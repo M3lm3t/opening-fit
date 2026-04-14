@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
-import { supabase } from "./supabase";
 import "./App.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
@@ -547,8 +546,10 @@ export default function App() {
     setSignupForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    setAuthMode("login");
+    setAuthMessage("Authentication is temporarily disabled while testing.");
+    setAuthOpen(true);
   };
 
   const isUnknownOpening = (name) => {
@@ -659,34 +660,8 @@ export default function App() {
   }, [authOpen]);
 
   useEffect(() => {
-    let mounted = true;
-
-    async function loadSession() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!mounted) return;
-
-      setCurrentUser(session?.user ?? null);
-      setAuthLoading(false);
-    }
-
-    loadSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUser(session?.user ?? null);
-      setAuthLoading(false);
-      setAuthOpen(false);
-      setAuthMessage("");
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    setCurrentUser(null);
+    setAuthLoading(false);
   }, []);
 
   const replayData = useMemo(() => {
@@ -754,47 +729,12 @@ export default function App() {
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    setAuthMessage("");
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: loginForm.email,
-        password: loginForm.password,
-      });
-
-      if (error) throw error;
-
-      setLoginForm({ email: "", password: "" });
-      closeAuthModal();
-    } catch (err) {
-      setAuthMessage(err.message || "Could not log in.");
-    }
+    setAuthMessage("Login is temporarily disabled while testing the live site.");
   };
 
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
-    setAuthMessage("");
-
-    try {
-      const { error } = await supabase.auth.signUp({
-        email: signupForm.email,
-        password: signupForm.password,
-        options: {
-          data: {
-            name: signupForm.name,
-          },
-        },
-      });
-
-      if (error) throw error;
-
-      setSignupForm({ name: "", email: "", password: "" });
-      setAuthMessage(
-        "Account created. Check your email if confirmation is required."
-      );
-    } catch (err) {
-      setAuthMessage(err.message || "Could not create account.");
-    }
+    setAuthMessage("Sign up is temporarily disabled while testing the live site.");
   };
 
   return (
@@ -907,9 +847,9 @@ export default function App() {
             </label>
           </div>
 
-<p className="helper">
-  Backend: <code>{API_BASE}</code>
-</p>
+          <p className="helper">
+            Backend: <code>{API_BASE}</code>
+          </p>
         </header>
 
         {error && <div className="errorBox">{error}</div>}
