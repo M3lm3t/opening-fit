@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
+import { supabase } from "./supabase";
 import "./App.css";
 
 const API_BASE = "http://127.0.0.1:8001";
@@ -21,11 +22,453 @@ function Section({ title, isOpen, onToggle, children, badge = null }) {
   );
 }
 
+function AuthModal({
+  isOpen,
+  mode,
+  onClose,
+  onSwitchMode,
+  loginForm,
+  signupForm,
+  onLoginChange,
+  onSignupChange,
+  onLoginSubmit,
+  onSignupSubmit,
+  authMessage,
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modalOverlay" onClick={onClose}>
+      <div
+        className="authModal"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Authentication"
+      >
+        <div className="authModalTop">
+          <div>
+            <p className="authEyebrow">Opening Fit</p>
+            <h2>{mode === "login" ? "Welcome back" : "Create your account"}</h2>
+          </div>
+
+          <button className="authCloseBtn" onClick={onClose} type="button">
+            ✕
+          </button>
+        </div>
+
+        <div className="authTabs">
+          <button
+            type="button"
+            className={`authTab ${mode === "login" ? "authTabActive" : ""}`}
+            onClick={() => onSwitchMode("login")}
+          >
+            Log in
+          </button>
+          <button
+            type="button"
+            className={`authTab ${mode === "signup" ? "authTabActive" : ""}`}
+            onClick={() => onSwitchMode("signup")}
+          >
+            Sign up
+          </button>
+        </div>
+
+        {mode === "login" ? (
+          <form className="authForm" onSubmit={onLoginSubmit}>
+            <label>
+              Email
+              <input
+                type="email"
+                value={loginForm.email}
+                onChange={(e) => onLoginChange("email", e.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+            </label>
+
+            <label>
+              Password
+              <input
+                type="password"
+                value={loginForm.password}
+                onChange={(e) => onLoginChange("password", e.target.value)}
+                placeholder="Enter your password"
+                required
+              />
+            </label>
+
+            <button type="submit" className="authSubmitBtn">
+              Log in
+            </button>
+          </form>
+        ) : (
+          <form className="authForm" onSubmit={onSignupSubmit}>
+            <label>
+              Name
+              <input
+                type="text"
+                value={signupForm.name}
+                onChange={(e) => onSignupChange("name", e.target.value)}
+                placeholder="Your name"
+                required
+              />
+            </label>
+
+            <label>
+              Email
+              <input
+                type="email"
+                value={signupForm.email}
+                onChange={(e) => onSignupChange("email", e.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+            </label>
+
+            <label>
+              Password
+              <input
+                type="password"
+                value={signupForm.password}
+                onChange={(e) => onSignupChange("password", e.target.value)}
+                placeholder="Create a password"
+                required
+              />
+            </label>
+
+            <button type="submit" className="authSubmitBtn">
+              Create account
+            </button>
+          </form>
+        )}
+
+        {authMessage ? <div className="authMessage">{authMessage}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+function LandingSection({
+  onOpenLogin,
+  onOpenSignup,
+  currentUser,
+  authLoading,
+  handleLogout,
+}) {
+  const features = [
+    {
+      icon: "♟️",
+      title: "Import Your Games",
+      text: "Pull in your recent Chess.com games and instantly see the openings you actually play.",
+    },
+    {
+      icon: "📊",
+      title: "Understand Your Style",
+      text: "See whether your results come from tactical attacks, practical setups, or calmer positional plans.",
+    },
+    {
+      icon: "🎯",
+      title: "Get Opening Recommendations",
+      text: "Receive opening ideas based on your real games instead of generic theory dumps.",
+    },
+    {
+      icon: "🚀",
+      title: "Train With Purpose",
+      text: "Use keep, improve, and avoid guidance to build a repertoire around your strengths.",
+    },
+  ];
+
+  const steps = [
+    "Import your Chess.com games",
+    "See your opening trends and win rates",
+    "Get a personalised opening fit report",
+    "Build a simple repertoire around your strengths",
+  ];
+
+  return (
+    <div className="landingWrap">
+      <header className="landingHero">
+        <div className="landingNav">
+          <div className="landingBrand">
+            <div className="landingBrandIcon">♞</div>
+            <div>
+              <p className="landingBrandTitle">Opening Fit</p>
+              <p className="landingBrandSubtitle">
+                Find openings that match your style
+              </p>
+            </div>
+          </div>
+
+          <div className="landingNavRight">
+            <nav className="landingNavLinks">
+              <a href="#features">Features</a>
+              <a href="#how-it-works">How it works</a>
+              <a href="#premium">Premium</a>
+              <a href="#app-dashboard">App</a>
+            </nav>
+
+            <div className="landingAuthButtons">
+              {authLoading ? null : currentUser ? (
+                <>
+                  <div className="userBadge">{currentUser.email}</div>
+                  <button
+                    className="landingLoginBtn"
+                    type="button"
+                    onClick={handleLogout}
+                  >
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="landingLoginBtn"
+                    type="button"
+                    onClick={onOpenLogin}
+                  >
+                    Log in
+                  </button>
+                  <button
+                    className="landingSignupBtn"
+                    type="button"
+                    onClick={onOpenSignup}
+                  >
+                    Sign up
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="landingHeroGrid">
+          <div className="landingHeroCopy">
+            <div className="landingPill">
+              <span>New</span>
+              <span className="landingDot">•</span>
+              <span>Personalised chess opening recommendations</span>
+            </div>
+
+            <h1>Build a repertoire that actually fits how you play.</h1>
+
+            <p className="landingSubtext">
+              Opening Fit analyses your real games, shows the openings you use
+              most, and recommends better choices based on your style, results,
+              and improvement areas.
+            </p>
+
+            <div className="landingActions">
+              <a className="landingPrimaryBtn" href="#app-dashboard">
+                Import Chess.com Games
+              </a>
+              <a className="landingSecondaryBtn" href="#sample-report">
+                See sample report
+              </a>
+            </div>
+
+            <div className="landingStats">
+              <div className="landingStatCard">
+                <strong>3 mins</strong>
+                <span>to get started</span>
+              </div>
+              <div className="landingStatCard">
+                <strong>1 click</strong>
+                <span>to import games</span>
+              </div>
+              <div className="landingStatCard">
+                <strong>Built for</strong>
+                <span>club players</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="landingPreviewCard" id="sample-report">
+            <div className="landingPreviewTop">
+              <div>
+                <p className="landingMiniLabel">Style Profile</p>
+                <h3>Aggressive counterpuncher</h3>
+              </div>
+              <span className="landingFitBadge">62% fit</span>
+            </div>
+
+            <div className="landingPreviewGrid">
+              <div className="landingInfoCard">
+                <p className="landingMiniLabel">Best with White</p>
+                <h4>Vienna Game</h4>
+                <p>Strong attacking chances, easy plans, lower theory load.</p>
+              </div>
+
+              <div className="landingInfoCard">
+                <p className="landingMiniLabel">Best with Black</p>
+                <h4>Scandinavian Defence</h4>
+                <p>
+                  Direct positions, practical ideas, and clear club-level plans.
+                </p>
+              </div>
+            </div>
+
+            <div className="landingInfoCard">
+              <div className="landingCardHeader">
+                <div>
+                  <h4>Keep / Improve / Avoid</h4>
+                  <p className="landingMiniLabel">Last 3 months</p>
+                </div>
+              </div>
+
+              <div className="landingVerdictList">
+                <div className="landingVerdictRow">
+                  <div>
+                    <strong>Vienna Game</strong>
+                    <span>Win rate 72%</span>
+                  </div>
+                  <span className="verdict keep">Keep</span>
+                </div>
+
+                <div className="landingVerdictRow">
+                  <div>
+                    <strong>Scandinavian Defence</strong>
+                    <span>Win rate 64%</span>
+                  </div>
+                  <span className="verdict keep">Keep</span>
+                </div>
+
+                <div className="landingVerdictRow">
+                  <div>
+                    <strong>Italian Game</strong>
+                    <span>Win rate 48%</span>
+                  </div>
+                  <span className="verdict improve">Improve</span>
+                </div>
+
+                <div className="landingVerdictRow">
+                  <div>
+                    <strong>Random sideline setups</strong>
+                    <span>Win rate 31%</span>
+                  </div>
+                  <span className="verdict avoid">Avoid</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section className="landingContentSection" id="features">
+        <div className="landingSectionHeading">
+          <p className="landingEyebrow">Why it works</p>
+          <h2>Less theory overload. More useful recommendations.</h2>
+          <p>
+            Most players do not need a giant opening encyclopedia. They need
+            clear advice based on their own games.
+          </p>
+        </div>
+
+        <div className="landingFeatureGrid">
+          {features.map((feature) => (
+            <article className="landingFeatureCard" key={feature.title}>
+              <div className="landingFeatureIcon">{feature.icon}</div>
+              <h3>{feature.title}</h3>
+              <p>{feature.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landingContentSection" id="how-it-works">
+        <div className="landingHowItWorks">
+          <div className="landingSectionHeading">
+            <p className="landingEyebrow">How it works</p>
+            <h2>A simple workflow for improving faster</h2>
+            <p>
+              Designed for everyday players who want practical opening help
+              without drowning in theory.
+            </p>
+          </div>
+
+          <div className="landingStepsList">
+            {steps.map((step, index) => (
+              <div className="landingStepCard" key={step}>
+                <div className="landingStepNumber">{index + 1}</div>
+                <p>{step}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="landingContentSection" id="premium">
+        <div className="landingPricingGrid">
+          <article className="landingPriceCard">
+            <p className="landingMiniLabel">Free</p>
+            <h3>Get the essentials</h3>
+            <p>
+              Perfect for trying the app and understanding your core opening
+              habits.
+            </p>
+            <ul>
+              <li>Import recent Chess.com games</li>
+              <li>View style profile summary</li>
+              <li>See top openings and win rates</li>
+              <li>Basic opening suggestions</li>
+            </ul>
+          </article>
+
+          <article className="landingPriceCard landingPriceCardPremium">
+            <div className="landingPriceTop">
+              <div>
+                <p className="landingMiniLabel">Premium</p>
+                <h3>Go deeper with your repertoire</h3>
+              </div>
+              <span className="landingPriceBadge">£8 once-off</span>
+            </div>
+
+            <p>
+              For players who want stronger recommendations and a more serious
+              training roadmap.
+            </p>
+
+            <ul>
+              <li>Keep / Improve / Avoid verdicts</li>
+              <li>Premium opening families matched to your style</li>
+              <li>More detailed training plans</li>
+              <li>Future repertoire tools and deeper breakdowns</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section className="landingContentSection">
+        <div className="landingFinalCta">
+          <div>
+            <p className="landingEyebrow dark">Start now</p>
+            <h2>Stop guessing which openings suit you.</h2>
+            <p>
+              Import your games, understand your patterns, and build a repertoire
+              that feels natural at the board.
+            </p>
+          </div>
+
+          <div className="landingFinalActions">
+            <a className="landingDarkBtn" href="#app-dashboard">
+              Launch app
+            </a>
+            <a className="landingLightBtn" href="#sample-report">
+              View example
+            </a>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export default function App() {
   const [username, setUsername] = useState("Hikaru");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
+  const [showUnknownOpenings, setShowUnknownOpenings] = useState(false);
 
   const [selectedGameIndex, setSelectedGameIndex] = useState(0);
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
@@ -39,6 +482,23 @@ export default function App() {
     replay: false,
     preferred: false,
     top: false,
+  });
+
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState("login");
+  const [authMessage, setAuthMessage] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  const [loginForm, setLoginForm] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [signupForm, setSignupForm] = useState({
+    name: "",
+    email: "",
+    password: "",
   });
 
   const toggleSection = (key) => {
@@ -62,6 +522,61 @@ export default function App() {
     });
   };
 
+  const openLoginModal = () => {
+    setAuthMode("login");
+    setAuthMessage("");
+    setAuthOpen(true);
+  };
+
+  const openSignupModal = () => {
+    setAuthMode("signup");
+    setAuthMessage("");
+    setAuthOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setAuthOpen(false);
+    setAuthMessage("");
+  };
+
+  const handleLoginChange = (field, value) => {
+    setLoginForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSignupChange = (field, value) => {
+    setSignupForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const isUnknownOpening = (name) => {
+    const normalized = (name || "").toLowerCase().trim();
+
+    return (
+      normalized === "" ||
+      normalized === "unknown" ||
+      normalized === "unknown opening" ||
+      normalized === "uncommon opening" ||
+      normalized.includes("unknown")
+    );
+  };
+
+  const filterUnknownOpenings = (items) => {
+    if (!Array.isArray(items)) return [];
+    if (showUnknownOpenings) return items;
+
+    return items.filter((item) => {
+      const name =
+        typeof item === "string"
+          ? item
+          : item?.name || item?.opening || "";
+
+      return !isUnknownOpening(name);
+    });
+  };
+
   const importGames = async () => {
     setLoading(true);
     setError("");
@@ -81,6 +596,11 @@ export default function App() {
       }
 
       setData(json);
+
+      setTimeout(() => {
+        const el = document.getElementById("app-results");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     } catch (err) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -95,7 +615,79 @@ export default function App() {
     return "verdict test";
   };
 
-  const selectedGame = data?.recent_games?.[selectedGameIndex] || null;
+  const filteredTopOpenings = useMemo(() => {
+    return filterUnknownOpenings(data?.top_openings || []);
+  }, [data, showUnknownOpenings]);
+
+  const filteredBestOpenings = useMemo(() => {
+    return filterUnknownOpenings(data?.best_openings || []);
+  }, [data, showUnknownOpenings]);
+
+  const filteredPreferredWhite = useMemo(() => {
+    return filterUnknownOpenings(data?.preferred_white || []);
+  }, [data, showUnknownOpenings]);
+
+  const filteredPreferredBlack = useMemo(() => {
+    return filterUnknownOpenings(data?.preferred_black || []);
+  }, [data, showUnknownOpenings]);
+
+  const filteredRecentGames = useMemo(() => {
+    return filterUnknownOpenings(data?.recent_games || []);
+  }, [data, showUnknownOpenings]);
+
+  const selectedGame = filteredRecentGames?.[selectedGameIndex] || null;
+
+  useEffect(() => {
+    setSelectedGameIndex(0);
+    setCurrentMoveIndex(0);
+  }, [showUnknownOpenings]);
+
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape") {
+        closeAuthModal();
+      }
+    };
+
+    if (authOpen) {
+      window.addEventListener("keydown", handleEscape);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [authOpen]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadSession() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!mounted) return;
+
+      setCurrentUser(session?.user ?? null);
+      setAuthLoading(false);
+    }
+
+    loadSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ?? null);
+      setAuthLoading(false);
+      setAuthOpen(false);
+      setAuthMessage("");
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const replayData = useMemo(() => {
     if (!selectedGame?.pgn) {
@@ -155,21 +747,88 @@ export default function App() {
   const goToEnd = () => setCurrentMoveIndex(totalMoves);
 
   const chartData = useMemo(() => {
-    if (!data?.top_openings) return [];
-    return data.top_openings.slice(0, 6);
-  }, [data]);
+    return filteredTopOpenings.slice(0, 6);
+  }, [filteredTopOpenings]);
 
   const lichessUrl = `https://lichess.org/@/${encodeURIComponent(username)}`;
 
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setAuthMessage("");
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginForm.email,
+        password: loginForm.password,
+      });
+
+      if (error) throw error;
+
+      setLoginForm({ email: "", password: "" });
+      closeAuthModal();
+    } catch (err) {
+      setAuthMessage(err.message || "Could not log in.");
+    }
+  };
+
+  const handleSignupSubmit = async (e) => {
+    e.preventDefault();
+    setAuthMessage("");
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: signupForm.email,
+        password: signupForm.password,
+        options: {
+          data: {
+            name: signupForm.name,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      setSignupForm({ name: "", email: "", password: "" });
+      setAuthMessage(
+        "Account created. Check your email if confirmation is required."
+      );
+    } catch (err) {
+      setAuthMessage(err.message || "Could not create account.");
+    }
+  };
+
   return (
     <div className="page">
-      <div className="container">
+      <LandingSection
+        onOpenLogin={openLoginModal}
+        onOpenSignup={openSignupModal}
+        currentUser={currentUser}
+        authLoading={authLoading}
+        handleLogout={handleLogout}
+      />
+
+      <AuthModal
+        isOpen={authOpen}
+        mode={authMode}
+        onClose={closeAuthModal}
+        onSwitchMode={setAuthMode}
+        loginForm={loginForm}
+        signupForm={signupForm}
+        onLoginChange={handleLoginChange}
+        onSignupChange={handleSignupChange}
+        onLoginSubmit={handleLoginSubmit}
+        onSignupSubmit={handleSignupSubmit}
+        authMessage={authMessage}
+      />
+
+      <div className="container" id="app-dashboard">
         <header className="hero">
           <p className="eyebrow">Opening Fit</p>
           <h1>Find openings that match your style</h1>
           <p className="subtext">
             Import your Chess.com games and explore your style profile, opening
-            verdicts, training plan, personalised repertoire ideas, and game replay.
+            verdicts, training plan, personalised repertoire ideas, and game
+            replay.
           </p>
 
           <div className="searchRow">
@@ -189,6 +848,63 @@ export default function App() {
             >
               Open Lichess Profile
             </a>
+
+            {authLoading ? null : currentUser ? (
+              <>
+                <div className="userBadge">{currentUser.email}</div>
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  onClick={handleLogout}
+                >
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  onClick={openLoginModal}
+                >
+                  Log in
+                </button>
+                <button
+                  className="signupButton"
+                  type="button"
+                  onClick={openSignupModal}
+                >
+                  Sign up
+                </button>
+              </>
+            )}
+          </div>
+
+          <div
+            style={{
+              marginTop: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                cursor: "pointer",
+                fontSize: "14px",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={showUnknownOpenings}
+                onChange={(e) => setShowUnknownOpenings(e.target.checked)}
+              />
+              Show unknown openings
+            </label>
           </div>
 
           <p className="helper">
@@ -216,7 +932,7 @@ export default function App() {
         )}
 
         {data && (
-          <>
+          <div id="app-results">
             <section className="statsGrid">
               <div className="card statCard">
                 <span className="statLabel">Username</span>
@@ -247,7 +963,10 @@ export default function App() {
                 <button className="quickNavBtn" onClick={() => openOnly("training")}>
                   Training Plan
                 </button>
-                <button className="quickNavBtn" onClick={() => openOnly("recommendations")}>
+                <button
+                  className="quickNavBtn"
+                  onClick={() => openOnly("recommendations")}
+                >
                   Opening Suggestions
                 </button>
                 <button className="quickNavBtn" onClick={() => openOnly("replay")}>
@@ -266,23 +985,29 @@ export default function App() {
               title="Style Profile"
               isOpen={openSections.style}
               onToggle={() => toggleSection("style")}
-              badge={data.style_profile?.labels?.join(" · ")}
+              badge={filterUnknownOpenings(data.style_profile?.labels || []).join(
+                " · "
+              )}
             >
               <div className="twoCol">
                 <div>
                   <div className="chips">
-                    {data.style_profile.labels.map((label, index) => (
-                      <span className="chip" key={index}>
-                        {label}
-                      </span>
-                    ))}
+                    {filterUnknownOpenings(data.style_profile?.labels || []).map(
+                      (label, index) => (
+                        <span className="chip" key={index}>
+                          {label}
+                        </span>
+                      )
+                    )}
                   </div>
 
                   <p className="profileSummary">{data.style_profile.summary}</p>
 
                   <h3>Top Opening Families</h3>
                   <div className="list">
-                    {data.style_profile.top_opening_families.map((item, index) => (
+                    {filterUnknownOpenings(
+                      data.style_profile?.top_opening_families || []
+                    ).map((item, index) => (
                       <div className="listItem" key={index}>
                         <strong>{item}</strong>
                       </div>
@@ -294,7 +1019,9 @@ export default function App() {
                   <p className="premiumLabel">Premium Preview</p>
                   <h3>Best Openings For You</h3>
                   <div className="list">
-                    {data.premium_preview.best_opening_for_you.map((item, index) => (
+                    {filterUnknownOpenings(
+                      data.premium_preview.best_opening_for_you
+                    ).map((item, index) => (
                       <div className="listItem" key={index}>
                         <div>
                           <strong>{item.name}</strong>
@@ -302,7 +1029,9 @@ export default function App() {
                         </div>
                         <div className="rightStat">
                           <div>{item.win_rate}%</div>
-                          <div className={verdictClass(item.verdict)}>{item.verdict}</div>
+                          <div className={verdictClass(item.verdict)}>
+                            {item.verdict}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -357,22 +1086,26 @@ export default function App() {
                 <div>
                   <h3>Recommended as White</h3>
                   <div className="list">
-                    {data.opening_recommendations.white.map((item, index) => (
-                      <div className="listItem" key={index}>
-                        <strong>{item}</strong>
-                      </div>
-                    ))}
+                    {filterUnknownOpenings(data.opening_recommendations.white).map(
+                      (item, index) => (
+                        <div className="listItem" key={index}>
+                          <strong>{item}</strong>
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
 
                 <div>
                   <h3>Recommended as Black</h3>
                   <div className="list">
-                    {data.opening_recommendations.black.map((item, index) => (
-                      <div className="listItem" key={index}>
-                        <strong>{item}</strong>
-                      </div>
-                    ))}
+                    {filterUnknownOpenings(data.opening_recommendations.black).map(
+                      (item, index) => (
+                        <div className="listItem" key={index}>
+                          <strong>{item}</strong>
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
@@ -393,20 +1126,23 @@ export default function App() {
               title="Keep / Improve / Avoid"
               isOpen={openSections.verdicts}
               onToggle={() => toggleSection("verdicts")}
-              badge={`${data.best_openings.length} tracked`}
+              badge={`${filteredBestOpenings.length} tracked`}
             >
               <div className="list">
-                {data.best_openings.map((item, index) => (
+                {filteredBestOpenings.map((item, index) => (
                   <div className="listItem" key={index}>
                     <div>
                       <strong>{item.name}</strong>
                       <div className="smallText">
-                        {item.games} games · {item.wins}W / {item.draws}D / {item.losses}L
+                        {item.games} games · {item.wins}W / {item.draws}D /{" "}
+                        {item.losses}L
                       </div>
                     </div>
                     <div className="rightStat">
                       <div>{item.win_rate}%</div>
-                      <div className={verdictClass(item.verdict)}>{item.verdict}</div>
+                      <div className={verdictClass(item.verdict)}>
+                        {item.verdict}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -423,11 +1159,13 @@ export default function App() {
                 <div>
                   <h3>Recent Games</h3>
                   <div className="gamePickerList">
-                    {data.recent_games.map((game, index) => (
+                    {filteredRecentGames.map((game, index) => (
                       <button
                         key={index}
                         className={`gamePickerButton ${
-                          selectedGameIndex === index ? "gamePickerButtonActive" : ""
+                          selectedGameIndex === index
+                            ? "gamePickerButtonActive"
+                            : ""
                         }`}
                         onClick={() => setSelectedGameIndex(index)}
                       >
@@ -436,7 +1174,8 @@ export default function App() {
                           <span>{game.result}</span>
                         </div>
                         <div className="smallText">
-                          {game.white_username} vs {game.black_username} · {game.time_class || "-"}
+                          {game.white_username} vs {game.black_username} ·{" "}
+                          {game.time_class || "-"}
                         </div>
                       </button>
                     ))}
@@ -475,10 +1214,16 @@ export default function App() {
                         <button onClick={goBack} disabled={currentMoveIndex === 0}>
                           ◀
                         </button>
-                        <button onClick={goForward} disabled={currentMoveIndex === totalMoves}>
+                        <button
+                          onClick={goForward}
+                          disabled={currentMoveIndex === totalMoves}
+                        >
                           ▶
                         </button>
-                        <button onClick={goToEnd} disabled={currentMoveIndex === totalMoves}>
+                        <button
+                          onClick={goToEnd}
+                          disabled={currentMoveIndex === totalMoves}
+                        >
                           ⏭
                         </button>
                       </div>
@@ -497,7 +1242,9 @@ export default function App() {
                               <div className="moveNumber">{row.moveNumber}.</div>
                               <button
                                 className={`moveCell ${
-                                  currentMoveIndex === whitePly ? "moveCellActive" : ""
+                                  currentMoveIndex === whitePly
+                                    ? "moveCellActive"
+                                    : ""
                                 }`}
                                 onClick={() => setCurrentMoveIndex(whitePly)}
                               >
@@ -505,7 +1252,9 @@ export default function App() {
                               </button>
                               <button
                                 className={`moveCell ${
-                                  currentMoveIndex === blackPly ? "moveCellActive" : ""
+                                  currentMoveIndex === blackPly
+                                    ? "moveCellActive"
+                                    : ""
                                 }`}
                                 onClick={() => setCurrentMoveIndex(blackPly)}
                               >
@@ -532,7 +1281,7 @@ export default function App() {
                 <div>
                   <h3>Preferred as White</h3>
                   <div className="list">
-                    {data.preferred_white.map((item, index) => (
+                    {filteredPreferredWhite.map((item, index) => (
                       <div className="listItem" key={index}>
                         <strong>{item.name}</strong>
                         <span>{item.games} games</span>
@@ -544,7 +1293,7 @@ export default function App() {
                 <div>
                   <h3>Preferred as Black</h3>
                   <div className="list">
-                    {data.preferred_black.map((item, index) => (
+                    {filteredPreferredBlack.map((item, index) => (
                       <div className="listItem" key={index}>
                         <strong>{item.name}</strong>
                         <span>{item.games} games</span>
@@ -559,7 +1308,7 @@ export default function App() {
               title="Top Openings Table"
               isOpen={openSections.top}
               onToggle={() => toggleSection("top")}
-              badge={`${data.top_openings.length} rows`}
+              badge={`${filteredTopOpenings.length} rows`}
             >
               <div className="tableWrap">
                 <table>
@@ -574,7 +1323,7 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.top_openings.map((opening, index) => (
+                    {filteredTopOpenings.map((opening, index) => (
                       <tr key={index}>
                         <td>{opening.name}</td>
                         <td>{opening.games}</td>
@@ -588,7 +1337,7 @@ export default function App() {
                 </table>
               </div>
             </Section>
-          </>
+          </div>
         )}
       </div>
     </div>
