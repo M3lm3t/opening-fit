@@ -4,7 +4,7 @@ import { Chessboard } from "react-chessboard";
 import { supabase } from "./supabase";
 import "./App.css";
 
-const API_BASE = "http://127.0.0.1:8001";
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
 function Section({ title, isOpen, onToggle, children, badge = null }) {
   return (
@@ -907,9 +907,9 @@ export default function App() {
             </label>
           </div>
 
-          <p className="helper">
-            Backend: <code>http://127.0.0.1:8001</code>
-          </p>
+<p className="helper">
+  Backend: <code>{API_BASE}</code>
+</p>
         </header>
 
         {error && <div className="errorBox">{error}</div>}
