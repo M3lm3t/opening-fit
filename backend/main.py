@@ -1,5 +1,6 @@
 from collections import Counter, defaultdict
 from typing import List, Dict, Any
+import os
 import re
 
 import requests
@@ -8,9 +9,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Opening Fit API")
 
+FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip()
+
+allowed_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+if FRONTEND_URL:
+    allowed_origins.append(FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,11 +34,20 @@ CHESSCOM_HEADERS = {
 
 @app.get("/")
 def root():
-    return {"message": "Opening Fit backend is running"}
+    return {
+        "message": "Opening Fit backend is running",
+        "health": "/health",
+        "api_health": "/api/health",
+    }
 
 
 @app.get("/health")
 def health():
+    return {"status": "ok"}
+
+
+@app.get("/api/health")
+def api_health():
     return {"status": "ok"}
 
 
@@ -39,13 +59,18 @@ def debug_chesscom(username: str):
         return {
             "url": url,
             "status_code": response.status_code,
-            "text_preview": response.text[:300]
+            "text_preview": response.text[:300],
         }
     except requests.RequestException as exc:
         return {
             "url": url,
-            "error": str(exc)
+            "error": str(exc),
         }
+
+
+@app.get("/api/debug/chesscom/{username}")
+def api_debug_chesscom(username: str):
+    return debug_chesscom(username)
 
 
 def safe_get(url: str) -> Dict[str, Any]:
@@ -60,7 +85,7 @@ def safe_get(url: str) -> Dict[str, Any]:
     if response.status_code != 200:
         raise HTTPException(
             status_code=502,
-            detail=f"Chess.com API returned status {response.status_code} for {url}"
+            detail=f"Chess.com API returned status {response.status_code} for {url}",
         )
 
     try:
@@ -81,7 +106,7 @@ def fetch_archives(username: str) -> List[str]:
     if not archives:
         raise HTTPException(
             status_code=404,
-            detail=f"No public game archives found for Chess.com user '{username}'"
+            detail=f"No public game archives found for Chess.com user '{username}'",
         )
     return archives
 
@@ -246,7 +271,14 @@ def result_for_user(game: Dict[str, Any], username: str) -> str:
 
     if res == "win":
         return "win"
-    if res in {"agreed", "repetition", "stalemate", "insufficient", "50move", "timevsinsufficient"}:
+    if res in {
+        "agreed",
+        "repetition",
+        "stalemate",
+        "insufficient",
+        "50move",
+        "timevsinsufficient",
+    }:
         return "draw"
     return "loss"
 
@@ -296,7 +328,10 @@ def build_style_profile(games: List[Dict[str, Any]], username: str) -> Dict[str,
         joined = " ".join(user_moves[:8]).lower()
         opening_lower = opening.lower()
 
-        if any(x in opening_lower for x in ["vienna", "sicilian", "scandinavian", "king's indian", "scotch"]):
+        if any(
+            x in opening_lower
+            for x in ["vienna", "sicilian", "scandinavian", "king's indian", "scotch"]
+        ):
             aggressive += 2
             tactical += 1
 
@@ -356,7 +391,7 @@ def build_style_profile(games: List[Dict[str, Any]], username: str) -> Dict[str,
             "solid": solid,
             "tactical": tactical,
             "flexible": flexible,
-        }
+        },
     }
 
 
@@ -385,16 +420,18 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
         else:
             verdict = "Test More"
 
-        scored.append({
-            "name": opening,
-            "games": games,
-            "wins": wins,
-            "draws": draws,
-            "losses": losses,
-            "win_rate": win_rate,
-            "score": score,
-            "verdict": verdict,
-        })
+        scored.append(
+            {
+                "name": opening,
+                "games": games,
+                "wins": wins,
+                "draws": draws,
+                "losses": losses,
+                "win_rate": win_rate,
+                "score": score,
+                "verdict": verdict,
+            }
+        )
 
     scored.sort(key=lambda x: (x["games"] >= 5, x["score"], x["games"]), reverse=True)
     return scored
@@ -508,16 +545,20 @@ def build_recommendations(
     if "Tactical" in labels:
         recommendations.append("Your results suggest tactics and initiative are worth leaning into.")
     if "Flexible" in labels:
-        recommendations.append("You can handle variety, but keeping a tighter core repertoire should improve consistency.")
+        recommendations.append(
+            "You can handle variety, but keeping a tighter core repertoire should improve consistency."
+        )
 
     return recommendations[:5]
 
 
-@app.get("/import/chesscom/{username}")
-def import_chesscom(username: str, months: int = 3):
+def import_chesscom_logic(username: str, months: int = 3):
     username = username.strip()
     if not username:
         raise HTTPException(status_code=400, detail="Username is required")
+
+    if months < 1:
+        raise HTTPException(status_code=400, detail="Months must be at least 1")
 
     player = validate_player(username)
     archives = fetch_archives(username)
@@ -537,16 +578,18 @@ def import_chesscom(username: str, months: int = 3):
             if username.lower() in {white_user, black_user}:
                 user_games.append(game)
 
-        archive_breakdown.append({
-            "archive": extract_year_month(archive_url),
-            "games_found": len(user_games)
-        })
+        archive_breakdown.append(
+            {
+                "archive": extract_year_month(archive_url),
+                "games_found": len(user_games),
+            }
+        )
         all_games.extend(user_games)
 
     if not all_games:
         raise HTTPException(
             status_code=404,
-            detail=f"No games found for Chess.com user '{username}' in the selected archives"
+            detail=f"No games found for Chess.com user '{username}' in the selected archives",
         )
 
     opening_counter = Counter()
@@ -575,18 +618,20 @@ def import_chesscom(username: str, months: int = 3):
         elif result == "loss":
             opening_results[opening]["losses"] += 1
 
-        recent_games.append({
-            "url": game.get("url"),
-            "time_class": game.get("time_class"),
-            "rated": game.get("rated"),
-            "colour": colour,
-            "result": result,
-            "opening": opening,
-            "end_time": game.get("end_time"),
-            "pgn": game.get("pgn", ""),
-            "white_username": game.get("white", {}).get("username", ""),
-            "black_username": game.get("black", {}).get("username", ""),
-        })
+        recent_games.append(
+            {
+                "url": game.get("url"),
+                "time_class": game.get("time_class"),
+                "rated": game.get("rated"),
+                "colour": colour,
+                "result": result,
+                "opening": opening,
+                "end_time": game.get("end_time"),
+                "pgn": game.get("pgn", ""),
+                "white_username": game.get("white", {}).get("username", ""),
+                "black_username": game.get("black", {}).get("username", ""),
+            }
+        )
 
     top_openings = []
     for opening, _count in opening_counter.most_common(10):
@@ -594,14 +639,16 @@ def import_chesscom(username: str, months: int = 3):
         games = stats["games"]
         win_rate = round((stats["wins"] / games) * 100, 1) if games else 0
 
-        top_openings.append({
-            "name": opening,
-            "games": games,
-            "wins": stats["wins"],
-            "draws": stats["draws"],
-            "losses": stats["losses"],
-            "win_rate": win_rate
-        })
+        top_openings.append(
+            {
+                "name": opening,
+                "games": games,
+                "wins": stats["wins"],
+                "draws": stats["draws"],
+                "losses": stats["losses"],
+                "win_rate": win_rate,
+            }
+        )
 
     preferred_white = [{"name": n, "games": g} for n, g in white_opening_counter.most_common(5)]
     preferred_black = [{"name": n, "games": g} for n, g in black_opening_counter.most_common(5)]
@@ -610,7 +657,9 @@ def import_chesscom(username: str, months: int = 3):
     best_openings = build_opening_scores(opening_results)
     opening_recommendations = recommend_openings_from_style(style_profile)
     training_plan = build_training_plan(style_profile, preferred_white, preferred_black, best_openings)
-    recommendations = build_recommendations(preferred_white, preferred_black, best_openings, style_profile)
+    recommendations = build_recommendations(
+        preferred_white, preferred_black, best_openings, style_profile
+    )
 
     premium_preview = {
         "best_opening_for_you": best_openings[:3],
@@ -644,3 +693,13 @@ def import_chesscom(username: str, months: int = 3):
         "training_plan": training_plan,
         "premium_preview": premium_preview,
     }
+
+
+@app.get("/import/chesscom/{username}")
+def import_chesscom(username: str, months: int = 3):
+    return import_chesscom_logic(username, months)
+
+
+@app.get("/api/import/chesscom/{username}")
+def api_import_chesscom(username: str, months: int = 3):
+    return import_chesscom_logic(username, months)
