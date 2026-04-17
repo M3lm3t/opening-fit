@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Chess } from "chess.js";
-import { Chessboard } from "react-chessboard";
 import "./App.css";
+import GameReplayBoard from "./components/GameReplayBoard";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
@@ -470,7 +469,6 @@ export default function App() {
   const [showUnknownOpenings, setShowUnknownOpenings] = useState(false);
 
   const [selectedGameIndex, setSelectedGameIndex] = useState(0);
-  const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
 
   const [openSections, setOpenSections] = useState({
     style: true,
@@ -583,7 +581,6 @@ export default function App() {
     setError("");
     setData(null);
     setSelectedGameIndex(0);
-    setCurrentMoveIndex(0);
 
     try {
       const res = await fetch(
@@ -638,9 +635,20 @@ export default function App() {
 
   const selectedGame = filteredRecentGames?.[selectedGameIndex] || null;
 
+  const selectedReplayGame = useMemo(() => {
+    if (!selectedGame) return null;
+
+    return {
+      id: selectedGame.url || selectedGame.pgn || `${selectedGameIndex}`,
+      white: selectedGame.white_username || selectedGame.white || "White",
+      black: selectedGame.black_username || selectedGame.black || "Black",
+      result: selectedGame.result || "",
+      moves: Array.isArray(selectedGame.moves) ? selectedGame.moves : [],
+    };
+  }, [selectedGame, selectedGameIndex]);
+
   useEffect(() => {
     setSelectedGameIndex(0);
-    setCurrentMoveIndex(0);
   }, [showUnknownOpenings]);
 
   useEffect(() => {
@@ -663,63 +671,6 @@ export default function App() {
     setCurrentUser(null);
     setAuthLoading(false);
   }, []);
-
-  const replayData = useMemo(() => {
-    if (!selectedGame?.pgn) {
-      return {
-        fen: "start",
-        history: [],
-        movesForDisplay: [],
-      };
-    }
-
-    try {
-      const base = new Chess();
-      base.loadPgn(selectedGame.pgn);
-
-      const historyVerbose = base.history({ verbose: true });
-
-      const replay = new Chess();
-      for (let i = 0; i < currentMoveIndex; i += 1) {
-        replay.move(historyVerbose[i]);
-      }
-
-      const movesForDisplay = [];
-      for (let i = 0; i < historyVerbose.length; i += 2) {
-        const whiteMove = historyVerbose[i];
-        const blackMove = historyVerbose[i + 1];
-
-        movesForDisplay.push({
-          moveNumber: Math.floor(i / 2) + 1,
-          white: whiteMove?.san || "",
-          black: blackMove?.san || "",
-        });
-      }
-
-      return {
-        fen: replay.fen(),
-        history: historyVerbose,
-        movesForDisplay,
-      };
-    } catch {
-      return {
-        fen: "start",
-        history: [],
-        movesForDisplay: [],
-      };
-    }
-  }, [selectedGame, currentMoveIndex]);
-
-  useEffect(() => {
-    setCurrentMoveIndex(0);
-  }, [selectedGameIndex]);
-
-  const totalMoves = replayData.history.length;
-
-  const goToStart = () => setCurrentMoveIndex(0);
-  const goBack = () => setCurrentMoveIndex((n) => Math.max(0, n - 1));
-  const goForward = () => setCurrentMoveIndex((n) => Math.min(totalMoves, n + 1));
-  const goToEnd = () => setCurrentMoveIndex(totalMoves);
 
   const chartData = useMemo(() => {
     return filteredTopOpenings.slice(0, 6);
@@ -1149,7 +1100,7 @@ export default function App() {
                 </div>
 
                 <div>
-                  {selectedGame ? (
+                  {selectedGame && selectedReplayGame ? (
                     <>
                       <div className="boardMeta">
                         <div>
@@ -1164,90 +1115,11 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="boardWrap">
-                        <Chessboard
-                          id="opening-fit-board"
-                          position={replayData.fen}
-                          arePiecesDraggable={false}
-                          boardWidth={420}
-                        />
-                      </div>
-
-                      <div className="replayControls boardControls">
-                        <button
-                          className="replayButton"
-                          type="button"
-                          onClick={goToStart}
-                          disabled={currentMoveIndex === 0}
-                        >
-                          ⏮
-                        </button>
-                        <button
-                          className="replayButton"
-                          type="button"
-                          onClick={goBack}
-                          disabled={currentMoveIndex === 0}
-                        >
-                          ◀
-                        </button>
-                        <button
-                          className="replayButton"
-                          type="button"
-                          onClick={goForward}
-                          disabled={currentMoveIndex === totalMoves}
-                        >
-                          ▶
-                        </button>
-                        <button
-                          className="replayButton"
-                          type="button"
-                          onClick={goToEnd}
-                          disabled={currentMoveIndex === totalMoves}
-                        >
-                          ⏭
-                        </button>
-                      </div>
-
-                      <div className="moveCounter">
-                        Move step {currentMoveIndex} / {totalMoves}
-                      </div>
-
-                      <div className="movesTable">
-                        {replayData.movesForDisplay.map((row) => {
-                          const whitePly = row.moveNumber * 2 - 1;
-                          const blackPly = row.moveNumber * 2;
-
-                          return (
-                            <div className="movesRow movesTableRow" key={row.moveNumber}>
-                              <div className="moveNumber movesNum">
-                                {row.moveNumber}.
-                              </div>
-                              <button
-                                type="button"
-                                className={`moveCell ${
-                                  currentMoveIndex === whitePly
-                                    ? "moveCellActive"
-                                    : ""
-                                }`}
-                                onClick={() => setCurrentMoveIndex(whitePly)}
-                              >
-                                {row.white || "-"}
-                              </button>
-                              <button
-                                type="button"
-                                className={`moveCell ${
-                                  currentMoveIndex === blackPly
-                                    ? "moveCellActive"
-                                    : ""
-                                }`}
-                                onClick={() => setCurrentMoveIndex(blackPly)}
-                              >
-                                {row.black || "-"}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <GameReplayBoard
+                        game={selectedReplayGame}
+                        title="Game Replay"
+                        initialOrientation="white"
+                      />
                     </>
                   ) : (
                     <p>No game selected.</p>
