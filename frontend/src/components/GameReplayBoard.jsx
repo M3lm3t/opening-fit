@@ -18,6 +18,45 @@ function chunkMoves(moves) {
   return rows;
 }
 
+function normaliseMove(move) {
+  if (!move || typeof move !== "string") return "";
+
+  return move
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[!?]+/g, "");
+}
+
+function tryApplyMove(chess, rawMove) {
+  const move = normaliseMove(rawMove);
+  if (!move) return false;
+
+  try {
+    chess.move(move);
+    return true;
+  } catch {
+    try {
+      chess.move(move, { sloppy: true });
+      return true;
+    } catch {
+      try {
+        if (/^[a-h][1-8][a-h][1-8][qrbnQRBN]?$/.test(move)) {
+          chess.move({
+            from: move.slice(0, 2),
+            to: move.slice(2, 4),
+            promotion: move[4]?.toLowerCase(),
+          });
+          return true;
+        }
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  return false;
+}
+
 export default function GameReplayBoard({
   game,
   title = "Game Replay",
@@ -32,27 +71,25 @@ export default function GameReplayBoard({
 
   const moves = useMemo(() => {
     if (!game?.moves) return [];
-    return Array.isArray(game.moves) ? game.moves : [];
+    return Array.isArray(game.moves) ? game.moves.filter(Boolean) : [];
   }, [game]);
 
-  const chess = useMemo(() => {
-    const instance = new Chess();
+  const replayState = useMemo(() => {
+    const chess = new Chess();
+    let appliedCount = 0;
 
     for (let i = 0; i < currentMoveIndex; i += 1) {
-      const move = moves[i];
-      if (!move) break;
-
-      try {
-        instance.move(move);
-      } catch {
-        break;
-      }
+      const ok = tryApplyMove(chess, moves[i]);
+      if (!ok) break;
+      appliedCount += 1;
     }
 
-    return instance;
+    return {
+      fen: chess.fen(),
+      appliedCount,
+    };
   }, [moves, currentMoveIndex]);
 
-  const fen = chess.fen();
   const moveRows = useMemo(() => chunkMoves(moves), [moves]);
 
   const canGoBack = currentMoveIndex > 0;
@@ -62,6 +99,9 @@ export default function GameReplayBoard({
   const goToPrev = () => setCurrentMoveIndex((n) => Math.max(0, n - 1));
   const goToNext = () => setCurrentMoveIndex((n) => Math.min(moves.length, n + 1));
   const goToEnd = () => setCurrentMoveIndex(moves.length);
+
+  const replayWarning =
+    moves.length > 0 && currentMoveIndex > 0 && replayState.appliedCount === 0;
 
   return (
     <section className="replayCard">
@@ -87,15 +127,29 @@ export default function GameReplayBoard({
         </button>
       </div>
 
+      {moves.length === 0 ? (
+        <div className="replayEmptyState">
+          No replayable moves were found for this game.
+        </div>
+      ) : null}
+
+      {replayWarning ? (
+        <div className="replayWarning">
+          Moves were found, but this game format is not being replayed correctly yet.
+        </div>
+      ) : null}
+
       <div className="replayLayout">
         <div className="replayBoardWrap">
-          <Chessboard
-            id={`replay-board-${game?.id || "default"}`}
-            position={fen}
-            boardOrientation={boardOrientation}
-            arePiecesDraggable={false}
-            boardWidth={420}
-          />
+          <div className="replayBoardBox">
+            <Chessboard
+              id={`replay-board-${game?.id || "default"}`}
+              position={replayState.fen}
+              boardOrientation={boardOrientation}
+              arePiecesDraggable={false}
+              boardWidth={360}
+            />
+          </div>
 
           <div className="replayControls">
             <button

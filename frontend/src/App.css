@@ -1329,3 +1329,68 @@ th {
     max-height: 320px;
   }
 }
+
+.replayBoardBox {
+  width: 100%;
+  max-width: 360px;
+}
+
+.replayEmptyState,
+.replayWarning {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 0.92rem;
+}
+
+.replayEmptyState {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+}
+
+.replayWarning {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #fcd34d;
+}
+
+.replayLayout {
+  display: grid;
+  grid-template-columns: minmax(260px, 380px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.replayMovesWrap {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.replayMovesList {
+  max-height: 480px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+.moveBtn {
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .replayLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .replayBoardBox {
+    max-width: 100%;
+  }
+
+  .replayMovesList {
+    max-height: 320px;
+  }
+}
