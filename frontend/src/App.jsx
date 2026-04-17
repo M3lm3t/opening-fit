@@ -1,8 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
+import { Chess } from "chess.js";
 import "./App.css";
 import GameReplayBoard from "./components/GameReplayBoard";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
+
+function getMovesFromPgn(pgnText) {
+  if (!pgnText) return [];
+
+  try {
+    const chess = new Chess();
+    chess.loadPgn(pgnText);
+    return chess.history();
+  } catch {
+    return [];
+  }
+}
 
 function Section({ title, isOpen, onToggle, children, badge = null }) {
   return (
@@ -638,12 +651,17 @@ export default function App() {
   const selectedReplayGame = useMemo(() => {
     if (!selectedGame) return null;
 
+    const parsedMoves =
+      Array.isArray(selectedGame.moves) && selectedGame.moves.length
+        ? selectedGame.moves
+        : getMovesFromPgn(selectedGame.pgn);
+
     return {
       id: selectedGame.url || selectedGame.pgn || `${selectedGameIndex}`,
       white: selectedGame.white_username || selectedGame.white || "White",
       black: selectedGame.black_username || selectedGame.black || "Black",
       result: selectedGame.result || "",
-      moves: Array.isArray(selectedGame.moves) ? selectedGame.moves : [],
+      moves: parsedMoves,
     };
   }, [selectedGame, selectedGameIndex]);
 
