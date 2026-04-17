@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Opening Fit API")
 
+# Allow local frontend in development and Vercel frontend in production
 FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip()
 
 allowed_origins = [
