@@ -8,7 +8,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 function Section({ title, isOpen, onToggle, children, badge = null }) {
   return (
     <section className="card collapsibleCard">
-      <button className="sectionToggle" onClick={onToggle}>
+      <button className="sectionToggle" onClick={onToggle} type="button">
         <div className="sectionToggleLeft">
           <span className="sectionArrow">{isOpen ? "▾" : "▸"}</span>
           <h2>{title}</h2>
@@ -761,27 +761,39 @@ export default function App() {
         authMessage={authMessage}
       />
 
-      <div className="container" id="app-dashboard">
-        <header className="hero">
-          <p className="eyebrow">Opening Fit</p>
-          <h1>Find openings that match your style</h1>
-          <p className="subtext">
-            Import your Chess.com games and explore your style profile, opening
-            verdicts, training plan, personalised repertoire ideas, and game
-            replay.
-          </p>
+      <div className="container appShell" id="app-dashboard">
+        <header className="hero heroCard">
+          <div className="heroTop">
+            <div className="heroTitleWrap">
+              <p className="eyebrow">Opening Fit</p>
+              <h1>Find openings that match your style</h1>
+              <p className="subtext">
+                Import your Chess.com games and explore your style profile,
+                opening verdicts, training plan, personalised repertoire ideas,
+                and game replay.
+              </p>
+            </div>
+          </div>
 
-          <div className="searchRow">
+          <div className="searchRow topBar">
             <input
+              className="input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Chess.com username"
             />
-            <button onClick={importGames} disabled={loading || !username.trim()}>
+
+            <button
+              className="primaryBtn"
+              type="button"
+              onClick={importGames}
+              disabled={loading || !username.trim()}
+            >
               {loading ? "Importing..." : "Import Chess.com Games"}
             </button>
+
             <a
-              className="secondaryButton"
+              className="secondaryButton secondaryBtn"
               href={lichessUrl}
               target="_blank"
               rel="noreferrer"
@@ -793,7 +805,7 @@ export default function App() {
               <>
                 <div className="userBadge">{currentUser.email}</div>
                 <button
-                  className="secondaryButton"
+                  className="secondaryButton secondaryBtn"
                   type="button"
                   onClick={handleLogout}
                 >
@@ -803,14 +815,14 @@ export default function App() {
             ) : (
               <>
                 <button
-                  className="secondaryButton"
+                  className="secondaryButton secondaryBtn"
                   type="button"
                   onClick={openLoginModal}
                 >
                   Log in
                 </button>
                 <button
-                  className="signupButton"
+                  className="signupButton primaryBtn"
                   type="button"
                   onClick={openSignupModal}
                 >
@@ -820,34 +832,18 @@ export default function App() {
             )}
           </div>
 
-          <div
-            style={{
-              marginTop: "14px",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                cursor: "pointer",
-                fontSize: "14px",
-              }}
-            >
+          <div className="filtersRow">
+            <label className="checkboxRow">
               <input
                 type="checkbox"
                 checked={showUnknownOpenings}
                 onChange={(e) => setShowUnknownOpenings(e.target.checked)}
               />
-              Show unknown openings
+              <span>Show unknown openings</span>
             </label>
           </div>
 
-          <p className="helper">
+          <p className="helper subtle">
             Backend: <code>{API_BASE}</code>
           </p>
         </header>
@@ -855,16 +851,16 @@ export default function App() {
         {error && <div className="errorBox">{error}</div>}
 
         {!data && !loading && !error && (
-          <section className="placeholderGrid">
-            <div className="card">
+          <section className="placeholderGrid grid3">
+            <div className="card smallCard">
               <h3>Cleaner dashboard</h3>
               <p>Open only the sections you want to view.</p>
             </div>
-            <div className="card">
+            <div className="card smallCard">
               <h3>Replay board</h3>
               <p>Step through moves without cluttering the screen.</p>
             </div>
-            <div className="card">
+            <div className="card smallCard">
               <h3>Quick navigation</h3>
               <p>Jump straight to charts, verdicts, training, or game replay.</p>
             </div>
@@ -891,31 +887,60 @@ export default function App() {
             <section className="card quickNavCard">
               <h2>Quick View</h2>
               <div className="quickNavGrid">
-                <button className="quickNavBtn" onClick={() => openOnly("style")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("style")}
+                >
                   Style Profile
                 </button>
-                <button className="quickNavBtn" onClick={() => openOnly("chart")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("chart")}
+                >
                   Opening Win Rate
                 </button>
-                <button className="quickNavBtn" onClick={() => openOnly("verdicts")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("verdicts")}
+                >
                   Keep / Improve / Avoid
                 </button>
-                <button className="quickNavBtn" onClick={() => openOnly("training")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("training")}
+                >
                   Training Plan
                 </button>
                 <button
-                  className="quickNavBtn"
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
                   onClick={() => openOnly("recommendations")}
                 >
                   Opening Suggestions
                 </button>
-                <button className="quickNavBtn" onClick={() => openOnly("replay")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("replay")}
+                >
                   Game Replay
                 </button>
-                <button className="quickNavBtn" onClick={() => openOnly("preferred")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("preferred")}
+                >
                   Preferred Openings
                 </button>
-                <button className="quickNavBtn" onClick={() => openOnly("top")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("top")}
+                >
                   Top Openings Table
                 </button>
               </div>
@@ -1095,13 +1120,14 @@ export default function App() {
               onToggle={() => toggleSection("replay")}
               badge={selectedGame ? selectedGame.opening : null}
             >
-              <div className="analysisGrid">
-                <div>
+              <div className="analysisGrid boardSection">
+                <div className="movesPanel">
                   <h3>Recent Games</h3>
                   <div className="gamePickerList">
                     {filteredRecentGames.map((game, index) => (
                       <button
                         key={index}
+                        type="button"
                         className={`gamePickerButton ${
                           selectedGameIndex === index
                             ? "gamePickerButtonActive"
@@ -1147,20 +1173,34 @@ export default function App() {
                         />
                       </div>
 
-                      <div className="boardControls">
-                        <button onClick={goToStart} disabled={currentMoveIndex === 0}>
+                      <div className="replayControls boardControls">
+                        <button
+                          className="replayButton"
+                          type="button"
+                          onClick={goToStart}
+                          disabled={currentMoveIndex === 0}
+                        >
                           ⏮
                         </button>
-                        <button onClick={goBack} disabled={currentMoveIndex === 0}>
+                        <button
+                          className="replayButton"
+                          type="button"
+                          onClick={goBack}
+                          disabled={currentMoveIndex === 0}
+                        >
                           ◀
                         </button>
                         <button
+                          className="replayButton"
+                          type="button"
                           onClick={goForward}
                           disabled={currentMoveIndex === totalMoves}
                         >
                           ▶
                         </button>
                         <button
+                          className="replayButton"
+                          type="button"
                           onClick={goToEnd}
                           disabled={currentMoveIndex === totalMoves}
                         >
@@ -1178,9 +1218,12 @@ export default function App() {
                           const blackPly = row.moveNumber * 2;
 
                           return (
-                            <div className="movesRow" key={row.moveNumber}>
-                              <div className="moveNumber">{row.moveNumber}.</div>
+                            <div className="movesRow movesTableRow" key={row.moveNumber}>
+                              <div className="moveNumber movesNum">
+                                {row.moveNumber}.
+                              </div>
                               <button
+                                type="button"
                                 className={`moveCell ${
                                   currentMoveIndex === whitePly
                                     ? "moveCellActive"
@@ -1191,6 +1234,7 @@ export default function App() {
                                 {row.white || "-"}
                               </button>
                               <button
+                                type="button"
                                 className={`moveCell ${
                                   currentMoveIndex === blackPly
                                     ? "moveCellActive"
