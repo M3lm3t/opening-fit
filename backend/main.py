@@ -8,17 +8,19 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Opening Fit API")
+app = FastAPI(title="Opening Fit API")
 
-# Allow local frontend in development and Vercel frontend in production
-FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip()
+FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
 
 allowed_origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
 
-if FRONTEND_URL:
+if FRONTEND_URL and FRONTEND_URL not in allowed_origins:
     allowed_origins.append(FRONTEND_URL)
+
+print("CORS allowed origins:", allowed_origins)
 
 app.add_middleware(
     CORSMiddleware,
