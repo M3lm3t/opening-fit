@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Chess } from "chess.js";
 
 const PIECES = {
@@ -16,15 +16,50 @@ const PIECES = {
   K: "♔",
 };
 
+function getBoard(chess, orientation) {
+  const board = chess.board();
+
+  if (orientation === "black") {
+    return board.map((rank) => [...rank].reverse()).reverse();
+  }
+
+  return board;
+}
+
+function getSquareName(rowIndex, colIndex, orientation) {
+  const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+  const ranks = ["8", "7", "6", "5", "4", "3", "2", "1"];
+
+  if (orientation === "black") {
+    return `${files[7 - colIndex]}${ranks[7 - rowIndex]}`;
+  }
+
+  return `${files[colIndex]}${ranks[rowIndex]}`;
+}
+
+function buildPositionFromMoves(moves, moveIndex) {
+  const chess = new Chess();
+
+  try {
+    for (let i = 0; i < moveIndex; i += 1) {
+      chess.move(moves[i]);
+    }
+  } catch {
+    return new Chess();
+  }
+
+  return chess;
+}
+
 function chunkMoves(moves) {
   const rows = [];
 
   for (let i = 0; i < moves.length; i += 2) {
     rows.push({
       moveNumber: Math.floor(i / 2) + 1,
-      white: moves[i] || null,
+      white: moves[i] || "",
+      black: moves[i + 1] || "",
       whiteIndex: i + 1,
-      black: moves[i + 1] || null,
       blackIndex: i + 2,
     });
   }
@@ -32,357 +67,163 @@ function chunkMoves(moves) {
   return rows;
 }
 
-function cleanMoveText(move) {
-  return move
-    .toString()
-    .trim()
-    .replace(/\{[^}]*\}/g, "")
-    .replace(/\([^)]*\)/g, "")
-    .replace(/\d+\.(\.\.)?/g, "")
-    .replace(/[!?]+/g, "")
-    .replace(/\s+/g, "");
-}
-
-function normaliseMove(move) {
-  if (!move) return "";
-
-  if (typeof move === "string") {
-    return cleanMoveText(move);
-  }
-
-  if (typeof move === "object") {
-    const possibleMove =
-      move.san ||
-      move.lan ||
-      move.uci ||
-      move.move ||
-      move.notation ||
-      move.text ||
-      "";
-
-    return cleanMoveText(possibleMove);
-  }
-
-  return "";
-}
-
-function tryApplyMove(chess, rawMove) {
-  const move = normaliseMove(rawMove);
-
-  if (!move) return false;
-
-  try {
-    chess.move(move);
-    return true;
-  } catch {
-    // Try UCI format below, for example e2e4
-  }
-
-  try {
-    if (/^[a-h][1-8][a-h][1-8][qrbnQRBN]?$/.test(move)) {
-      chess.move({
-        from: move.slice(0, 2),
-        to: move.slice(2, 4),
-        promotion: move[4] ? move[4].toLowerCase() : undefined,
-      });
-      return true;
-    }
-  } catch {
-    return false;
-  }
-
-  return false;
-}
-
-function movesFromPgn(pgnText) {
-  if (!pgnText || typeof pgnText !== "string") return [];
-
-  try {
-    const chess = new Chess();
-    chess.loadPgn(pgnText);
-    return chess.history();
-  } catch {
-    return [];
-  }
-}
-
-function getGameMoves(game) {
-  if (!game) return [];
-
-  if (Array.isArray(game.moves) && game.moves.length > 0) {
-    return game.moves.filter(Boolean);
-  }
-
-  if (Array.isArray(game.sanMoves) && game.sanMoves.length > 0) {
-    return game.sanMoves.filter(Boolean);
-  }
-
-  if (Array.isArray(game.moveList) && game.moveList.length > 0) {
-    return game.moveList.filter(Boolean);
-  }
-
-  if (Array.isArray(game.history) && game.history.length > 0) {
-    return game.history.filter(Boolean);
-  }
-
-  if (typeof game.pgn === "string") {
-    return movesFromPgn(game.pgn);
-  }
-
-  if (typeof game.pgnText === "string") {
-    return movesFromPgn(game.pgnText);
-  }
-
-  return [];
-}
-
-function getMoveLabel(move) {
-  if (!move) return "";
-
-  if (typeof move === "string") {
-    return move;
-  }
-
-  if (typeof move === "object") {
-    return (
-      move.san ||
-      move.lan ||
-      move.uci ||
-      move.move ||
-      move.notation ||
-      move.text ||
-      ""
-    ).toString();
-  }
-
-  return "";
-}
-
-function fenToBoard(fen) {
-  const boardPart = fen.split(" ")[0];
-  const rows = boardPart.split("/");
-
-  return rows.map((row) => {
-    const squares = [];
-
-    for (const char of row) {
-      const emptyCount = Number(char);
-
-      if (!Number.isNaN(emptyCount)) {
-        for (let i = 0; i < emptyCount; i += 1) {
-          squares.push("");
-        }
-      } else {
-        squares.push(char);
-      }
-    }
-
-    while (squares.length < 8) {
-      squares.push("");
-    }
-
-    return squares.slice(0, 8);
-  });
-}
-
-function ReplayBoard({ fen, orientation }) {
-  const board = useMemo(() => {
-    const parsed = fenToBoard(fen);
-
-    if (orientation === "black") {
-      return parsed.map((row) => [...row].reverse()).reverse();
-    }
-
-    return parsed;
-  }, [fen, orientation]);
-
-  const files =
-    orientation === "white"
-      ? ["a", "b", "c", "d", "e", "f", "g", "h"]
-      : ["h", "g", "f", "e", "d", "c", "b", "a"];
-
-  const ranks =
-    orientation === "white"
-      ? ["8", "7", "6", "5", "4", "3", "2", "1"]
-      : ["1", "2", "3", "4", "5", "6", "7", "8"];
-
-  return (
-    <div className="cleanReplayBoard">
-      {board.map((row, rowIndex) =>
-        row.map((piece, colIndex) => {
-          const isLight = (rowIndex + colIndex) % 2 === 0;
-          const isWhitePiece = piece && piece === piece.toUpperCase();
-          const isBottomRow = rowIndex === 7;
-          const isLeftCol = colIndex === 0;
-
-          return (
-            <div
-              key={`${fen}-${rowIndex}-${colIndex}-${piece}`}
-              className={`cleanReplaySquare ${
-                isLight ? "cleanReplayLight" : "cleanReplayDark"
-              }`}
-            >
-              {isLeftCol ? (
-                <span className="cleanReplayRank">{ranks[rowIndex]}</span>
-              ) : null}
-
-              {isBottomRow ? (
-                <span className="cleanReplayFile">{files[colIndex]}</span>
-              ) : null}
-
-              {piece ? (
-                <span
-                  className={`cleanReplayPiece cleanReplayPiece-${piece.toLowerCase()} ${
-                    isWhitePiece
-                      ? "cleanReplayWhitePiece"
-                      : "cleanReplayBlackPiece"
-                  }`}
-                >
-                  {PIECES[piece]}
-                </span>
-              ) : null}
-            </div>
-          );
-        })
-      )}
-    </div>
-  );
-}
-
 export default function GameReplayBoard({
   game,
   title = "Game Replay",
   initialOrientation = "white",
 }) {
-  const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
-  const [boardOrientation, setBoardOrientation] = useState(initialOrientation);
+  const moves = Array.isArray(game?.moves) ? game.moves : [];
+  const [moveIndex, setMoveIndex] = useState(0);
+  const [orientation, setOrientation] = useState(initialOrientation);
 
-  useEffect(() => {
-    setCurrentMoveIndex(0);
-    setBoardOrientation(initialOrientation);
-  }, [game, initialOrientation]);
+  const chess = useMemo(() => {
+    return buildPositionFromMoves(moves, moveIndex);
+  }, [moves, moveIndex]);
 
-  const moves = useMemo(() => getGameMoves(game), [game]);
+  const board = useMemo(() => {
+    return getBoard(chess, orientation);
+  }, [chess, orientation]);
 
-  const replayState = useMemo(() => {
-    const chess = new Chess();
-    let appliedCount = 0;
-    let failedMove = null;
+  const moveRows = useMemo(() => {
+    return chunkMoves(moves);
+  }, [moves]);
 
-    const safeMoveIndex = Math.max(0, Math.min(currentMoveIndex, moves.length));
+  const canGoBack = moveIndex > 0;
+  const canGoForward = moveIndex < moves.length;
 
-    for (let i = 0; i < safeMoveIndex; i += 1) {
-      const ok = tryApplyMove(chess, moves[i]);
+  const goStart = () => setMoveIndex(0);
+  const goBack = () => setMoveIndex((prev) => Math.max(prev - 1, 0));
+  const goForward = () =>
+    setMoveIndex((prev) => Math.min(prev + 1, moves.length));
+  const goEnd = () => setMoveIndex(moves.length);
 
-      if (!ok) {
-        failedMove = moves[i];
-        break;
-      }
+  const flipBoard = () => {
+    setOrientation((prev) => (prev === "white" ? "black" : "white"));
+  };
 
-      appliedCount += 1;
-    }
-
-    return {
-      fen: chess.fen(),
-      appliedCount,
-      failedMove,
-    };
-  }, [moves, currentMoveIndex]);
-
-  const moveRows = useMemo(() => chunkMoves(moves), [moves]);
-
-  const canGoBack = currentMoveIndex > 0;
-  const canGoForward = currentMoveIndex < moves.length;
-
-  const goToStart = () => setCurrentMoveIndex(0);
-  const goToPrev = () => setCurrentMoveIndex((n) => Math.max(0, n - 1));
-  const goToNext = () =>
-    setCurrentMoveIndex((n) => Math.min(moves.length, n + 1));
-  const goToEnd = () => setCurrentMoveIndex(moves.length);
-
-  const replayWarning =
-    moves.length > 0 &&
-    currentMoveIndex > 0 &&
-    replayState.appliedCount < currentMoveIndex;
+  if (!game) {
+    return (
+      <section className="replayCard card">
+        <div className="replayEmptyState">No game selected.</div>
+      </section>
+    );
+  }
 
   return (
-    <section className="replayCard">
+    <section className="replayCard card">
       <div className="replayHeader">
         <div>
           <h3 className="replayTitle">{title}</h3>
-
-          {game?.white || game?.black ? (
-            <p className="replayMeta">
-              {game?.white || "White"} vs {game?.black || "Black"}
-              {game?.result ? ` • ${game.result}` : ""}
-            </p>
-          ) : null}
+          <p className="replayMeta">
+            {game.white || "White"} vs {game.black || "Black"}
+            {game.result ? ` · ${game.result}` : ""}
+          </p>
         </div>
 
-        <button
-          type="button"
-          className="secondaryBtn"
-          onClick={() =>
-            setBoardOrientation((orientation) =>
-              orientation === "white" ? "black" : "white"
-            )
-          }
-        >
+        <button className="secondaryBtn replayFlipBtn" type="button" onClick={flipBoard}>
           Flip board
         </button>
       </div>
 
       {moves.length === 0 ? (
-        <div className="replayEmptyState">
-          No replayable moves were found for this game.
-        </div>
-      ) : null}
-
-      {replayWarning ? (
         <div className="replayWarning">
-          The replay stopped at move {replayState.appliedCount}. Failed move:{" "}
-          {getMoveLabel(replayState.failedMove)}
+          No moves were found for this game.
         </div>
       ) : null}
 
       <div className="replayLayout">
         <div className="replayBoardWrap">
           <div className="replayBoardBox">
-            <ReplayBoard fen={replayState.fen} orientation={boardOrientation} />
+            <div className="cleanReplayBoard">
+              {board.map((rank, rowIndex) =>
+                rank.map((piece, colIndex) => {
+                  const squareName = getSquareName(
+                    rowIndex,
+                    colIndex,
+                    orientation
+                  );
+                  const isLight = (rowIndex + colIndex) % 2 === 0;
+
+                  const pieceKey = piece
+                    ? piece.color === "w"
+                      ? piece.type.toUpperCase()
+                      : piece.type
+                    : null;
+
+                  const showRank =
+                    orientation === "white" ? colIndex === 0 : colIndex === 7;
+                  const showFile =
+                    orientation === "white" ? rowIndex === 7 : rowIndex === 0;
+
+                  return (
+                    <div
+                      key={squareName}
+                      className={`cleanReplaySquare ${
+                        isLight ? "cleanReplayLight" : "cleanReplayDark"
+                      }`}
+                    >
+                      {showRank ? (
+                        <span className="cleanReplayRank">
+                          {squareName[1]}
+                        </span>
+                      ) : null}
+
+                      {showFile ? (
+                        <span className="cleanReplayFile">
+                          {squareName[0]}
+                        </span>
+                      ) : null}
+
+                      {pieceKey ? (
+                        <span
+                          className={`cleanReplayPiece ${
+                            piece.color === "w"
+                              ? "cleanReplayWhitePiece"
+                              : "cleanReplayBlackPiece"
+                          } cleanReplayPiece-${piece.type}`}
+                        >
+                          {PIECES[pieceKey]}
+                        </span>
+                      ) : null}
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
 
           <div className="replayControls">
             <button
-              type="button"
               className="controlBtn"
-              onClick={goToStart}
+              type="button"
+              onClick={goStart}
               disabled={!canGoBack}
             >
               ⏮
             </button>
 
             <button
-              type="button"
               className="controlBtn"
-              onClick={goToPrev}
+              type="button"
+              onClick={goBack}
               disabled={!canGoBack}
             >
               ◀
             </button>
 
             <button
-              type="button"
               className="controlBtn"
-              onClick={goToNext}
+              type="button"
+              onClick={goForward}
               disabled={!canGoForward}
             >
               ▶
             </button>
 
             <button
-              type="button"
               className="controlBtn"
-              onClick={goToEnd}
+              type="button"
+              onClick={goEnd}
               disabled={!canGoForward}
             >
               ⏭
@@ -390,7 +231,7 @@ export default function GameReplayBoard({
           </div>
 
           <div className="replayStatus">
-            Move {currentMoveIndex} / {moves.length}
+            Move {moveIndex} of {moves.length}
           </div>
         </div>
 
@@ -401,35 +242,33 @@ export default function GameReplayBoard({
             <span>Black</span>
           </div>
 
-          <div className="replayMovesList">
-            {moveRows.map((row) => (
-              <div key={row.moveNumber} className="replayMoveRow">
-                <div className="moveNumber">{row.moveNumber}.</div>
+          {moveRows.map((row) => (
+            <div className="replayMoveRow" key={row.moveNumber}>
+              <div className="moveNumber">{row.moveNumber}.</div>
 
-                <button
-                  type="button"
-                  className={`moveBtn ${
-                    currentMoveIndex === row.whiteIndex ? "activeMove" : ""
-                  }`}
-                  onClick={() => setCurrentMoveIndex(row.whiteIndex)}
-                  disabled={!row.white}
-                >
-                  {getMoveLabel(row.white)}
-                </button>
+              <button
+                className={`moveBtn ${
+                  moveIndex === row.whiteIndex ? "activeMove" : ""
+                }`}
+                type="button"
+                disabled={!row.white}
+                onClick={() => setMoveIndex(row.whiteIndex)}
+              >
+                {row.white}
+              </button>
 
-                <button
-                  type="button"
-                  className={`moveBtn ${
-                    currentMoveIndex === row.blackIndex ? "activeMove" : ""
-                  }`}
-                  onClick={() => setCurrentMoveIndex(row.blackIndex)}
-                  disabled={!row.black}
-                >
-                  {getMoveLabel(row.black)}
-                </button>
-              </div>
-            ))}
-          </div>
+              <button
+                className={`moveBtn ${
+                  moveIndex === row.blackIndex ? "activeMove" : ""
+                }`}
+                type="button"
+                disabled={!row.black}
+                onClick={() => setMoveIndex(row.blackIndex)}
+              >
+                {row.black}
+              </button>
+            </div>
+          ))}
         </div>
       </div>
     </section>

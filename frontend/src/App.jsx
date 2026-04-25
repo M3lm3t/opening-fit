@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
 import GameReplayBoard from "./components/GameReplayBoard";
+import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
@@ -54,7 +55,7 @@ function LandingSection() {
     {
       icon: "🚀",
       title: "Train smarter",
-      text: "Use Keep, Improve, and Avoid verdicts to focus your study time.",
+      text: "Get a personal plan based on your strongest openings and weak spots.",
     },
   ];
 
@@ -72,8 +73,8 @@ function LandingSection() {
       text: "See your style profile, win rates, and opening trends.",
     },
     {
-      title: "Build your repertoire",
-      text: "Keep what works and improve weak areas.",
+      title: "Train your repertoire",
+      text: "Keep what works, improve weak areas, and practise main lines.",
     },
   ];
 
@@ -136,8 +137,8 @@ function LandingSection() {
               </div>
 
               <div className="landingStatCard">
-                <strong>Club</strong>
-                <span>player focused</span>
+                <strong>Practice</strong>
+                <span>main lines</span>
               </div>
             </div>
           </div>
@@ -260,6 +261,7 @@ function LandingSection() {
               <li>View your style profile</li>
               <li>See top openings and win rates</li>
               <li>Basic opening suggestions</li>
+              <li>Practise supported opening lines</li>
             </ul>
           </article>
 
@@ -281,7 +283,7 @@ function LandingSection() {
             <ul>
               <li>Keep / Improve / Avoid verdicts</li>
               <li>Opening families matched to your style</li>
-              <li>Detailed training plans</li>
+              <li>Detailed personal training plans</li>
               <li>Future repertoire tools</li>
             </ul>
           </article>
@@ -298,17 +300,20 @@ export default function App() {
   const [data, setData] = useState(null);
   const [showUnknownOpenings, setShowUnknownOpenings] = useState(false);
   const [selectedGameIndex, setSelectedGameIndex] = useState(0);
+  const [practiceOpening, setPracticeOpening] = useState(null);
 
-  const [openSections, setOpenSections] = useState({
-    style: true,
-    recommendations: true,
-    verdicts: true,
-    chart: true,
-    training: false,
-    replay: false,
-    preferred: false,
-    top: false,
-  });
+const closedSections = {
+  style: false,
+  recommendations: false,
+  verdicts: false,
+  chart: false,
+  training: false,
+  replay: false,
+  preferred: false,
+  top: false,
+};
+
+const [openSections, setOpenSections] = useState(closedSections);
 
   const toggleSection = (key) => {
     setOpenSections((prev) => ({
@@ -317,18 +322,22 @@ export default function App() {
     }));
   };
 
-  const openOnly = (key) => {
-    setOpenSections({
-      style: false,
-      recommendations: false,
-      verdicts: false,
-      chart: false,
-      training: false,
-      replay: false,
-      preferred: false,
-      top: false,
-      [key]: true,
-    });
+const openOnly = (key) => {
+  setOpenSections({
+    ...closedSections,
+    [key]: true,
+  });
+};
+
+  const startOpeningPractice = (openingName) => {
+    if (!openingName) return;
+
+    setPracticeOpening(openingName);
+
+    setTimeout(() => {
+      const el = document.getElementById("opening-practice");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   };
 
   const isUnknownOpening = (name) => {
@@ -360,6 +369,8 @@ export default function App() {
     setError("");
     setData(null);
     setSelectedGameIndex(0);
+    setPracticeOpening(null);
+    setOpenSections(closedSections);
 
     const cleanUsername = username.trim();
 
@@ -439,6 +450,101 @@ export default function App() {
     return filteredTopOpenings.slice(0, 6);
   }, [filteredTopOpenings]);
 
+  const personalTrainingPlan = useMemo(() => {
+    const plan = [];
+
+    const best = [...filteredBestOpenings]
+      .filter((item) => (item.games || 0) >= 3)
+      .sort((a, b) => (b.win_rate || 0) - (a.win_rate || 0));
+
+    const weakest = [...filteredBestOpenings]
+      .filter((item) => (item.games || 0) >= 3)
+      .sort((a, b) => (a.win_rate || 0) - (b.win_rate || 0));
+
+    const mostPlayed = [...filteredTopOpenings]
+      .filter((item) => (item.games || 0) >= 3)
+      .sort((a, b) => (b.games || 0) - (a.games || 0));
+
+    const bestOpening = best[0];
+    const weakOpening = weakest[0];
+    const mainOpening = mostPlayed[0];
+    const whitePick = filteredPreferredWhite?.[0];
+    const blackPick = filteredPreferredBlack?.[0];
+
+    if (mainOpening) {
+      plan.push({
+        title: `Make ${mainOpening.name} your main focus`,
+        text: `You have played this ${mainOpening.games} times, so small improvements here will affect a lot of your games. Review the first 6 moves and the main middlegame plan.`,
+        action: `Practise ${mainOpening.name}`,
+        opening: mainOpening.name,
+      });
+    }
+
+    if (bestOpening) {
+      plan.push({
+        title: `Keep using ${bestOpening.name}`,
+        text: `This is one of your strongest openings with a ${bestOpening.win_rate}% win rate from ${bestOpening.games} games. Keep it in your repertoire and learn one extra idea rather than replacing it.`,
+        action: `Reinforce ${bestOpening.name}`,
+        opening: bestOpening.name,
+      });
+    }
+
+    if (weakOpening && weakOpening.name !== bestOpening?.name) {
+      plan.push({
+        title: `Repair your ${weakOpening.name}`,
+        text: `This opening is currently scoring ${weakOpening.win_rate}% from ${weakOpening.games} games. Do not drop it immediately — first check whether you are losing in the opening or later in the middlegame.`,
+        action: `Practise ${weakOpening.name}`,
+        opening: weakOpening.name,
+      });
+    }
+
+    if (whitePick) {
+      plan.push({
+        title: `Build your White repertoire around ${whitePick.name}`,
+        text: `This appears often in your White games. Learn the first 6 moves, then one simple plan for what to do after development.`,
+        action: "Practise as White",
+        opening: whitePick.name,
+      });
+    }
+
+    if (blackPick) {
+      plan.push({
+        title: `Tighten your Black repertoire with ${blackPick.name}`,
+        text: `This is one of your regular Black openings. Focus on reaching a familiar setup instead of memorising too many sidelines.`,
+        action: "Practise as Black",
+        opening: blackPick.name,
+      });
+    }
+
+    if (plan.length === 0) {
+      return [
+        {
+          title: "Import more games to unlock a personal plan",
+          text: "Once Opening Fit has enough games, it will identify your strongest openings, weak spots, and training priorities.",
+          action: null,
+          opening: null,
+        },
+      ];
+    }
+
+    const uniquePlan = [];
+    const seenTitles = new Set();
+
+    plan.forEach((item) => {
+      if (!seenTitles.has(item.title)) {
+        seenTitles.add(item.title);
+        uniquePlan.push(item);
+      }
+    });
+
+    return uniquePlan.slice(0, 5);
+  }, [
+    filteredBestOpenings,
+    filteredTopOpenings,
+    filteredPreferredWhite,
+    filteredPreferredBlack,
+  ]);
+
   const selectedGame = filteredRecentGames?.[selectedGameIndex] || null;
 
   const selectedReplayGame = useMemo(() => {
@@ -516,7 +622,10 @@ export default function App() {
           <section className="placeholderGrid grid3">
             <div className="card smallCard">
               <h3>Style profile</h3>
-              <p>Discover whether your games are tactical, solid, direct, or positional.</p>
+              <p>
+                Discover whether your games are tactical, solid, direct, or
+                positional.
+              </p>
             </div>
 
             <div className="card smallCard">
@@ -525,8 +634,10 @@ export default function App() {
             </div>
 
             <div className="card smallCard">
-              <h3>Game replay</h3>
-              <p>Replay recent games and connect your results to your openings.</p>
+              <h3>Personal plan</h3>
+              <p>
+                Get training steps based on the openings you actually play.
+              </p>
             </div>
           </section>
         )}
@@ -547,7 +658,8 @@ export default function App() {
               <div className="card statCard">
                 <span className="statLabel">Recent activity</span>
                 <span className="statValue">
-                  {data.months_checked} month{data.months_checked === 1 ? "" : "s"}
+                  {data.months_checked} month
+                  {data.months_checked === 1 ? "" : "s"}
                 </span>
               </div>
             </section>
@@ -593,7 +705,7 @@ export default function App() {
                   type="button"
                   onClick={() => openOnly("training")}
                 >
-                  Training Plan
+                  Personal Plan
                 </button>
 
                 <button
@@ -606,11 +718,22 @@ export default function App() {
               </div>
             </section>
 
+            {practiceOpening && (
+              <div id="opening-practice">
+                <OpeningPracticeBoard
+                  openingName={practiceOpening}
+                  onClose={() => setPracticeOpening(null)}
+                />
+              </div>
+            )}
+
             <Section
               title="Style Profile"
               isOpen={openSections.style}
               onToggle={() => toggleSection("style")}
-              badge={filterUnknownOpenings(data.style_profile?.labels || []).join(" · ")}
+              badge={filterUnknownOpenings(
+                data.style_profile?.labels || []
+              ).join(" · ")}
             >
               <div className="twoCol">
                 <div>
@@ -635,9 +758,15 @@ export default function App() {
                     {filterUnknownOpenings(
                       data.style_profile?.top_opening_families || []
                     ).map((item, index) => (
-                      <div className="listItem" key={index}>
+                      <button
+                        className="listItem openingPracticeLink"
+                        key={index}
+                        type="button"
+                        onClick={() => startOpeningPractice(item)}
+                      >
                         <strong>{item}</strong>
-                      </div>
+                        <span>Practice</span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -650,7 +779,12 @@ export default function App() {
                     {filterUnknownOpenings(
                       data.premium_preview?.best_opening_for_you || []
                     ).map((item, index) => (
-                      <div className="listItem" key={index}>
+                      <button
+                        className="listItem openingPracticeLink"
+                        key={index}
+                        type="button"
+                        onClick={() => startOpeningPractice(item.name)}
+                      >
                         <div>
                           <strong>{item.name}</strong>
                           <div className="smallText">{item.games} games</div>
@@ -662,7 +796,7 @@ export default function App() {
                             {item.verdict}
                           </div>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -682,9 +816,15 @@ export default function App() {
                     {filterUnknownOpenings(
                       data.opening_recommendations?.white || []
                     ).map((item, index) => (
-                      <div className="listItem" key={index}>
+                      <button
+                        className="listItem openingPracticeLink"
+                        key={index}
+                        type="button"
+                        onClick={() => startOpeningPractice(item)}
+                      >
                         <strong>{item}</strong>
-                      </div>
+                        <span>Practice</span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -696,9 +836,15 @@ export default function App() {
                     {filterUnknownOpenings(
                       data.opening_recommendations?.black || []
                     ).map((item, index) => (
-                      <div className="listItem" key={index}>
+                      <button
+                        className="listItem openingPracticeLink"
+                        key={index}
+                        type="button"
+                        onClick={() => startOpeningPractice(item)}
+                      >
                         <strong>{item}</strong>
-                      </div>
+                        <span>Practice</span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -725,7 +871,12 @@ export default function App() {
             >
               <div className="list">
                 {filteredBestOpenings.map((item, index) => (
-                  <div className="listItem" key={index}>
+                  <button
+                    className="listItem openingPracticeLink"
+                    key={index}
+                    type="button"
+                    onClick={() => startOpeningPractice(item.name)}
+                  >
                     <div>
                       <strong>{item.name}</strong>
                       <div className="smallText">
@@ -740,7 +891,7 @@ export default function App() {
                         {item.verdict}
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </Section>
@@ -753,7 +904,12 @@ export default function App() {
             >
               <div className="chartList">
                 {chartData.map((item, index) => (
-                  <div className="chartRow" key={index}>
+                  <button
+                    className="chartRow openingChartPracticeLink"
+                    key={index}
+                    type="button"
+                    onClick={() => startOpeningPractice(item.name)}
+                  >
                     <div className="chartLabel">{item.name}</div>
 
                     <div className="chartBarWrap">
@@ -766,21 +922,36 @@ export default function App() {
                     </div>
 
                     <div className="chartValue">{item.win_rate}%</div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </Section>
 
             <Section
-              title="Training Plan"
+              title="Personal Training Plan"
               isOpen={openSections.training}
               onToggle={() => toggleSection("training")}
-              badge={`${data.training_plan?.length || 0} steps`}
+              badge={`${personalTrainingPlan.length} steps`}
             >
-              <div className="list">
-                {(data.training_plan || []).map((item, index) => (
-                  <div className="listItem" key={index}>
-                    {index + 1}. {item}
+              <div className="trainingPlanList">
+                {personalTrainingPlan.map((item, index) => (
+                  <div className="trainingPlanItem" key={index}>
+                    <div className="trainingStepNumber">{index + 1}</div>
+
+                    <div className="trainingStepContent">
+                      <h3>{item.title}</h3>
+                      <p>{item.text}</p>
+
+                      {item.opening ? (
+                        <button
+                          className="secondaryBtn trainingPracticeBtn"
+                          type="button"
+                          onClick={() => startOpeningPractice(item.opening)}
+                        >
+                          {item.action || "Practice opening"}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -835,7 +1006,8 @@ export default function App() {
                         </div>
 
                         <div>
-                          <strong>Players:</strong> {selectedGame.white_username} vs{" "}
+                          <strong>Players:</strong>{" "}
+                          {selectedGame.white_username} vs{" "}
                           {selectedGame.black_username}
                         </div>
                       </div>
@@ -864,10 +1036,15 @@ export default function App() {
 
                   <div className="list">
                     {filteredPreferredWhite.map((item, index) => (
-                      <div className="listItem" key={index}>
+                      <button
+                        className="listItem openingPracticeLink"
+                        key={index}
+                        type="button"
+                        onClick={() => startOpeningPractice(item.name)}
+                      >
                         <strong>{item.name}</strong>
                         <span>{item.games} games</span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -877,10 +1054,15 @@ export default function App() {
 
                   <div className="list">
                     {filteredPreferredBlack.map((item, index) => (
-                      <div className="listItem" key={index}>
+                      <button
+                        className="listItem openingPracticeLink"
+                        key={index}
+                        type="button"
+                        onClick={() => startOpeningPractice(item.name)}
+                      >
                         <strong>{item.name}</strong>
                         <span>{item.games} games</span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -909,7 +1091,15 @@ export default function App() {
                   <tbody>
                     {filteredTopOpenings.map((opening, index) => (
                       <tr key={index}>
-                        <td>{opening.name}</td>
+                        <td>
+                          <button
+                            className="tableOpeningBtn"
+                            type="button"
+                            onClick={() => startOpeningPractice(opening.name)}
+                          >
+                            {opening.name}
+                          </button>
+                        </td>
                         <td>{opening.games}</td>
                         <td>{opening.wins}</td>
                         <td>{opening.draws}</td>
