@@ -46,6 +46,89 @@ function Section({ title, isOpen, onToggle, children, badge = null }) {
   );
 }
 
+function EmptyState({ title, text }) {
+  return (
+    <div className="emptyState">
+      <h3>{title}</h3>
+      <p>{text}</p>
+    </div>
+  );
+}
+
+function AboutSection() {
+  return (
+    <section className="landingContentSection aboutSection" id="about">
+      <div className="landingSectionHeading">
+        <p className="landingEyebrow">Who it is for</p>
+        <h2>Built for beginner and club players.</h2>
+        <p>
+          Opening Fit is designed for players who want practical opening advice
+          without memorising huge theory files. It looks at what you already
+          play, finds patterns in your results, and helps you build a simple
+          repertoire that fits your style.
+        </p>
+      </div>
+
+      <div className="aboutGrid">
+        <article className="aboutCard">
+          <h3>Not an engine report</h3>
+          <p>
+            The goal is not to overwhelm you with computer lines. The goal is to
+            help you understand which openings feel natural and which ones need
+            attention.
+          </p>
+        </article>
+
+        <article className="aboutCard">
+          <h3>Made for practical training</h3>
+          <p>
+            Use the report to decide what to keep, what to repair, and what to
+            practise next on the board.
+          </p>
+        </article>
+
+        <article className="aboutCard">
+          <h3>Simple repertoire building</h3>
+          <p>
+            Start with a few openings you trust, learn the first moves, then add
+            plans over time instead of chasing every sideline.
+          </p>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="siteFooter">
+      <div>
+        <div className="landingBrand footerBrand">
+          <div className="landingBrandIcon">♞</div>
+          <div>
+            <p className="landingBrandTitle">Opening Fit</p>
+            <p className="landingBrandSubtitle">
+              Practical chess opening advice for club players
+            </p>
+          </div>
+        </div>
+
+        <p className="footerDisclaimer">
+          Opening popularity and rating-range suggestions are general guides.
+          They can vary by platform, time control, region, and current chess
+          trends. Opening Fit is for training guidance, not guaranteed results.
+        </p>
+      </div>
+
+      <div className="footerLinks">
+        <a href="#app-dashboard">Launch app</a>
+        <a href="#rating-openings">Rating ranges</a>
+        <a href="#premium">Premium</a>
+      </div>
+    </footer>
+  );
+}
+
 function RatingOpeningGuide({ onOpeningClick }) {
   const ratingRanges = [
     {
@@ -210,6 +293,7 @@ function LandingSection({ onOpeningClick }) {
 
           <nav className="landingNavLinks">
             <a href="#features">Features</a>
+            <a href="#about">About</a>
             <a href="#how-it-works">How it works</a>
             <a href="#rating-openings">Rating ranges</a>
             <a href="#premium">Premium</a>
@@ -366,6 +450,8 @@ function LandingSection({ onOpeningClick }) {
         </div>
       </section>
 
+      <AboutSection />
+
       <section className="landingContentSection" id="how-it-works">
         <div className="landingSectionHeading">
           <p className="landingEyebrow">How it works</p>
@@ -405,6 +491,7 @@ function LandingSection({ onOpeningClick }) {
               <li>See top openings and win rates</li>
               <li>Basic opening suggestions</li>
               <li>Practise supported opening lines</li>
+              <li>Popular openings by rating range</li>
             </ul>
           </article>
 
@@ -424,10 +511,12 @@ function LandingSection({ onOpeningClick }) {
             </p>
 
             <ul>
-              <li>Keep / Improve / Avoid verdicts</li>
-              <li>Opening families matched to your style</li>
-              <li>Detailed personal training plans</li>
-              <li>Future repertoire tools</li>
+              <li>Longer game import history</li>
+              <li>Full opening history and trend tracking</li>
+              <li>More practice lines and repertoire tools</li>
+              <li>Deeper personal training plans</li>
+              <li>Save reports and favourite openings</li>
+              <li>Future PDF export and progress tracking</li>
             </ul>
           </article>
         </div>
@@ -439,6 +528,7 @@ function LandingSection({ onOpeningClick }) {
 export default function App() {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState("");
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
   const [showUnknownOpenings, setShowUnknownOpenings] = useState(false);
@@ -508,6 +598,7 @@ export default function App() {
 
   const importGames = async () => {
     setLoading(true);
+    setLoadingStep("Preparing import...");
     setError("");
     setData(null);
     setSelectedGameIndex(0);
@@ -520,6 +611,8 @@ export default function App() {
       if (!cleanUsername) {
         throw new Error("Please enter a Chess.com username.");
       }
+
+      setLoadingStep("Fetching Chess.com archives...");
 
       const res = await fetch(
         `${API_BASE}/api/import/chesscom/${encodeURIComponent(
@@ -542,6 +635,12 @@ export default function App() {
         );
       }
 
+      setLoadingStep("Analysing opening patterns...");
+      await new Promise((resolve) => setTimeout(resolve, 450));
+
+      setLoadingStep("Building your personal report...");
+      await new Promise((resolve) => setTimeout(resolve, 450));
+
       setData(json);
 
       setTimeout(() => {
@@ -558,6 +657,7 @@ export default function App() {
       }
     } finally {
       setLoading(false);
+      setLoadingStep("");
     }
   };
 
@@ -758,6 +858,16 @@ export default function App() {
           </div>
         </header>
 
+        {loading && (
+          <section className="card loadingCard">
+            <div className="loadingSpinner" />
+            <div>
+              <h3>Importing your games</h3>
+              <p>{loadingStep || "Preparing your report..."}</p>
+            </div>
+          </section>
+        )}
+
         {practiceOpening && (
           <div id="opening-practice">
             <OpeningPracticeBoard
@@ -819,51 +929,22 @@ export default function App() {
               <h2>Quick View</h2>
 
               <div className="quickNavGrid">
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("style")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("style")}>
                   Style Profile
                 </button>
-
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("recommendations")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("recommendations")}>
                   Opening Suggestions
                 </button>
-
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("verdicts")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("verdicts")}>
                   Keep / Improve / Avoid
                 </button>
-
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("chart")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("chart")}>
                   Win Rate Chart
                 </button>
-
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("training")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("training")}>
                   Personal Plan
                 </button>
-
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("replay")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("replay")}>
                   Game Replay
                 </button>
               </div>
@@ -874,19 +955,13 @@ export default function App() {
                 title="Style Profile"
                 isOpen={openSections.style}
                 onToggle={() => toggleSection("style")}
-                badge={filterUnknownOpenings(
-                  data.style_profile?.labels || []
-                ).join(" · ")}
+                badge={filterUnknownOpenings(data.style_profile?.labels || []).join(" · ")}
               >
                 <div className="twoCol">
                   <div>
                     <div className="chips">
-                      {filterUnknownOpenings(
-                        data.style_profile?.labels || []
-                      ).map((label, index) => (
-                        <span className="chip" key={index}>
-                          {label}
-                        </span>
+                      {filterUnknownOpenings(data.style_profile?.labels || []).map((label, index) => (
+                        <span className="chip" key={index}>{label}</span>
                       ))}
                     </div>
 
@@ -898,19 +973,24 @@ export default function App() {
                     <h3>Top Opening Families</h3>
 
                     <div className="list">
-                      {filterUnknownOpenings(
-                        data.style_profile?.top_opening_families || []
-                      ).map((item, index) => (
-                        <button
-                          className="listItem openingPracticeLink"
-                          key={index}
-                          type="button"
-                          onClick={() => startOpeningPractice(item)}
-                        >
-                          <strong>{item}</strong>
-                          <span>Practice</span>
-                        </button>
-                      ))}
+                      {filterUnknownOpenings(data.style_profile?.top_opening_families || []).length ? (
+                        filterUnknownOpenings(data.style_profile?.top_opening_families || []).map((item, index) => (
+                          <button
+                            className="listItem openingPracticeLink"
+                            key={index}
+                            type="button"
+                            onClick={() => startOpeningPractice(item)}
+                          >
+                            <strong>{item}</strong>
+                            <span>Practice</span>
+                          </button>
+                        ))
+                      ) : (
+                        <EmptyState
+                          title="No opening families yet"
+                          text="Import more games to detect your most common opening families."
+                        />
+                      )}
                     </div>
                   </div>
 
@@ -919,28 +999,33 @@ export default function App() {
                     <h3>Best Openings For You</h3>
 
                     <div className="list">
-                      {filterUnknownOpenings(
-                        data.premium_preview?.best_opening_for_you || []
-                      ).map((item, index) => (
-                        <button
-                          className="listItem openingPracticeLink"
-                          key={index}
-                          type="button"
-                          onClick={() => startOpeningPractice(item.name)}
-                        >
-                          <div>
-                            <strong>{item.name}</strong>
-                            <div className="smallText">{item.games} games</div>
-                          </div>
-
-                          <div className="rightStat">
-                            <div>{item.win_rate}%</div>
-                            <div className={verdictClass(item.verdict)}>
-                              {item.verdict}
+                      {filterUnknownOpenings(data.premium_preview?.best_opening_for_you || []).length ? (
+                        filterUnknownOpenings(data.premium_preview?.best_opening_for_you || []).map((item, index) => (
+                          <button
+                            className="listItem openingPracticeLink"
+                            key={index}
+                            type="button"
+                            onClick={() => startOpeningPractice(item.name)}
+                          >
+                            <div>
+                              <strong>{item.name}</strong>
+                              <div className="smallText">{item.games} games</div>
                             </div>
-                          </div>
-                        </button>
-                      ))}
+
+                            <div className="rightStat">
+                              <div>{item.win_rate}%</div>
+                              <div className={verdictClass(item.verdict)}>
+                                {item.verdict}
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <EmptyState
+                          title="No premium preview yet"
+                          text="Once there are enough recognised openings, your best-fit openings will appear here."
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -956,54 +1041,66 @@ export default function App() {
                 <div className="twoCol">
                   <div>
                     <h3>Recommended as White</h3>
-
                     <div className="list">
-                      {filterUnknownOpenings(
-                        data.opening_recommendations?.white || []
-                      ).map((item, index) => (
-                        <button
-                          className="listItem openingPracticeLink"
-                          key={index}
-                          type="button"
-                          onClick={() => startOpeningPractice(item)}
-                        >
-                          <strong>{item}</strong>
-                          <span>Practice</span>
-                        </button>
-                      ))}
+                      {filterUnknownOpenings(data.opening_recommendations?.white || []).length ? (
+                        filterUnknownOpenings(data.opening_recommendations?.white || []).map((item, index) => (
+                          <button
+                            className="listItem openingPracticeLink"
+                            key={index}
+                            type="button"
+                            onClick={() => startOpeningPractice(item)}
+                          >
+                            <strong>{item}</strong>
+                            <span>Practice</span>
+                          </button>
+                        ))
+                      ) : (
+                        <EmptyState
+                          title="No White suggestions yet"
+                          text="Import more games to unlock stronger White repertoire suggestions."
+                        />
+                      )}
                     </div>
                   </div>
 
                   <div>
                     <h3>Recommended as Black</h3>
-
                     <div className="list">
-                      {filterUnknownOpenings(
-                        data.opening_recommendations?.black || []
-                      ).map((item, index) => (
-                        <button
-                          className="listItem openingPracticeLink"
-                          key={index}
-                          type="button"
-                          onClick={() => startOpeningPractice(item)}
-                        >
-                          <strong>{item}</strong>
-                          <span>Practice</span>
-                        </button>
-                      ))}
+                      {filterUnknownOpenings(data.opening_recommendations?.black || []).length ? (
+                        filterUnknownOpenings(data.opening_recommendations?.black || []).map((item, index) => (
+                          <button
+                            className="listItem openingPracticeLink"
+                            key={index}
+                            type="button"
+                            onClick={() => startOpeningPractice(item)}
+                          >
+                            <strong>{item}</strong>
+                            <span>Practice</span>
+                          </button>
+                        ))
+                      ) : (
+                        <EmptyState
+                          title="No Black suggestions yet"
+                          text="Import more games to unlock stronger Black repertoire suggestions."
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="spacerTop">
                   <h3>Summary</h3>
-
                   <div className="list">
-                    {(data.recommendations || []).map((item, index) => (
-                      <div className="listItem" key={index}>
-                        {item}
-                      </div>
-                    ))}
+                    {(data.recommendations || []).length ? (
+                      (data.recommendations || []).map((item, index) => (
+                        <div className="listItem" key={index}>{item}</div>
+                      ))
+                    ) : (
+                      <EmptyState
+                        title="No summary yet"
+                        text="Your recommendation summary will appear once Opening Fit has enough useful game data."
+                      />
+                    )}
                   </div>
                 </div>
               </Section>
@@ -1017,29 +1114,35 @@ export default function App() {
                 badge={`${filteredBestOpenings.length} tracked`}
               >
                 <div className="list">
-                  {filteredBestOpenings.map((item, index) => (
-                    <button
-                      className="listItem openingPracticeLink"
-                      key={index}
-                      type="button"
-                      onClick={() => startOpeningPractice(item.name)}
-                    >
-                      <div>
-                        <strong>{item.name}</strong>
-                        <div className="smallText">
-                          {item.games} games · {item.wins}W / {item.draws}D /{" "}
-                          {item.losses}L
+                  {filteredBestOpenings.length ? (
+                    filteredBestOpenings.map((item, index) => (
+                      <button
+                        className="listItem openingPracticeLink"
+                        key={index}
+                        type="button"
+                        onClick={() => startOpeningPractice(item.name)}
+                      >
+                        <div>
+                          <strong>{item.name}</strong>
+                          <div className="smallText">
+                            {item.games} games · {item.wins}W / {item.draws}D / {item.losses}L
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="rightStat">
-                        <div>{item.win_rate}%</div>
-                        <div className={verdictClass(item.verdict)}>
-                          {item.verdict}
+                        <div className="rightStat">
+                          <div>{item.win_rate}%</div>
+                          <div className={verdictClass(item.verdict)}>
+                            {item.verdict}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))
+                  ) : (
+                    <EmptyState
+                      title="No opening verdicts yet"
+                      text="Verdicts appear once you have enough recognised openings in your imported games."
+                    />
+                  )}
                 </div>
               </Section>
             </div>
@@ -1052,27 +1155,32 @@ export default function App() {
                 badge={`${chartData.length} openings`}
               >
                 <div className="chartList">
-                  {chartData.map((item, index) => (
-                    <button
-                      className="chartRow openingChartPracticeLink"
-                      key={index}
-                      type="button"
-                      onClick={() => startOpeningPractice(item.name)}
-                    >
-                      <div className="chartLabel">{item.name}</div>
+                  {chartData.length ? (
+                    chartData.map((item, index) => (
+                      <button
+                        className="chartRow openingChartPracticeLink"
+                        key={index}
+                        type="button"
+                        onClick={() => startOpeningPractice(item.name)}
+                      >
+                        <div className="chartLabel">{item.name}</div>
 
-                      <div className="chartBarWrap">
-                        <div
-                          className="chartBar"
-                          style={{
-                            width: `${Math.max(item.win_rate || 0, 2)}%`,
-                          }}
-                        />
-                      </div>
+                        <div className="chartBarWrap">
+                          <div
+                            className="chartBar"
+                            style={{ width: `${Math.max(item.win_rate || 0, 2)}%` }}
+                          />
+                        </div>
 
-                      <div className="chartValue">{item.win_rate}%</div>
-                    </button>
-                  ))}
+                        <div className="chartValue">{item.win_rate}%</div>
+                      </button>
+                    ))
+                  ) : (
+                    <EmptyState
+                      title="No chart data yet"
+                      text="Win-rate charts appear after Opening Fit finds recognised openings in your games."
+                    />
+                  )}
                 </div>
               </Section>
             </div>
@@ -1121,28 +1229,32 @@ export default function App() {
                     <h3>Recent Games</h3>
 
                     <div className="gamePickerList">
-                      {filteredRecentGames.map((game, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          className={`gamePickerButton ${
-                            selectedGameIndex === index
-                              ? "gamePickerButtonActive"
-                              : ""
-                          }`}
-                          onClick={() => setSelectedGameIndex(index)}
-                        >
-                          <div className="gamePickerTop">
-                            <strong>{game.opening}</strong>
-                            <span>{game.result}</span>
-                          </div>
+                      {filteredRecentGames.length ? (
+                        filteredRecentGames.map((game, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            className={`gamePickerButton ${
+                              selectedGameIndex === index ? "gamePickerButtonActive" : ""
+                            }`}
+                            onClick={() => setSelectedGameIndex(index)}
+                          >
+                            <div className="gamePickerTop">
+                              <strong>{game.opening}</strong>
+                              <span>{game.result}</span>
+                            </div>
 
-                          <div className="smallText">
-                            {game.white_username} vs {game.black_username} ·{" "}
-                            {game.time_class || "-"}
-                          </div>
-                        </button>
-                      ))}
+                            <div className="smallText">
+                              {game.white_username} vs {game.black_username} · {game.time_class || "-"}
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <EmptyState
+                          title="No replay games found"
+                          text="Recent games will appear here when the import includes PGN or move data."
+                        />
+                      )}
                     </div>
                   </div>
 
@@ -1155,9 +1267,7 @@ export default function App() {
                             <button
                               className="tableOpeningBtn"
                               type="button"
-                              onClick={() =>
-                                startOpeningPractice(selectedGame.opening)
-                              }
+                              onClick={() => startOpeningPractice(selectedGame.opening)}
                             >
                               {selectedGame.opening}
                             </button>
@@ -1169,8 +1279,7 @@ export default function App() {
 
                           <div>
                             <strong>Players:</strong>{" "}
-                            {selectedGame.white_username} vs{" "}
-                            {selectedGame.black_username}
+                            {selectedGame.white_username} vs {selectedGame.black_username}
                           </div>
                         </div>
 
@@ -1181,7 +1290,10 @@ export default function App() {
                         />
                       </>
                     ) : (
-                      <p>No recent games available.</p>
+                      <EmptyState
+                        title="No game selected"
+                        text="Choose a recent game from the list to replay it."
+                      />
                     )}
                   </div>
                 </div>
@@ -1197,37 +1309,49 @@ export default function App() {
                 <div className="twoCol">
                   <div>
                     <h3>Preferred as White</h3>
-
                     <div className="list">
-                      {filteredPreferredWhite.map((item, index) => (
-                        <button
-                          className="listItem openingPracticeLink"
-                          key={index}
-                          type="button"
-                          onClick={() => startOpeningPractice(item.name)}
-                        >
-                          <strong>{item.name}</strong>
-                          <span>{item.games} games</span>
-                        </button>
-                      ))}
+                      {filteredPreferredWhite.length ? (
+                        filteredPreferredWhite.map((item, index) => (
+                          <button
+                            className="listItem openingPracticeLink"
+                            key={index}
+                            type="button"
+                            onClick={() => startOpeningPractice(item.name)}
+                          >
+                            <strong>{item.name}</strong>
+                            <span>{item.games} games</span>
+                          </button>
+                        ))
+                      ) : (
+                        <EmptyState
+                          title="No preferred White openings yet"
+                          text="Import more games to detect your most common White openings."
+                        />
+                      )}
                     </div>
                   </div>
 
                   <div>
                     <h3>Preferred as Black</h3>
-
                     <div className="list">
-                      {filteredPreferredBlack.map((item, index) => (
-                        <button
-                          className="listItem openingPracticeLink"
-                          key={index}
-                          type="button"
-                          onClick={() => startOpeningPractice(item.name)}
-                        >
-                          <strong>{item.name}</strong>
-                          <span>{item.games} games</span>
-                        </button>
-                      ))}
+                      {filteredPreferredBlack.length ? (
+                        filteredPreferredBlack.map((item, index) => (
+                          <button
+                            className="listItem openingPracticeLink"
+                            key={index}
+                            type="button"
+                            onClick={() => startOpeningPractice(item.name)}
+                          >
+                            <strong>{item.name}</strong>
+                            <span>{item.games} games</span>
+                          </button>
+                        ))
+                      ) : (
+                        <EmptyState
+                          title="No preferred Black openings yet"
+                          text="Import more games to detect your most common Black openings."
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1241,46 +1365,57 @@ export default function App() {
                 onToggle={() => toggleSection("top")}
                 badge={`${filteredTopOpenings.length} rows`}
               >
-                <div className="tableWrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Opening</th>
-                        <th>Games</th>
-                        <th>W</th>
-                        <th>D</th>
-                        <th>L</th>
-                        <th>Win %</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {filteredTopOpenings.map((opening, index) => (
-                        <tr key={index}>
-                          <td>
-                            <button
-                              className="tableOpeningBtn"
-                              type="button"
-                              onClick={() => startOpeningPractice(opening.name)}
-                            >
-                              {opening.name}
-                            </button>
-                          </td>
-                          <td>{opening.games}</td>
-                          <td>{opening.wins}</td>
-                          <td>{opening.draws}</td>
-                          <td>{opening.losses}</td>
-                          <td>{opening.win_rate}%</td>
+                {filteredTopOpenings.length ? (
+                  <div className="tableWrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Opening</th>
+                          <th>Games</th>
+                          <th>W</th>
+                          <th>D</th>
+                          <th>L</th>
+                          <th>Win %</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+
+                      <tbody>
+                        {filteredTopOpenings.map((opening, index) => (
+                          <tr key={index}>
+                            <td>
+                              <button
+                                className="tableOpeningBtn"
+                                type="button"
+                                onClick={() => startOpeningPractice(opening.name)}
+                              >
+                                {opening.name}
+                              </button>
+                            </td>
+                            <td>{opening.games}</td>
+                            <td>{opening.wins}</td>
+                            <td>{opening.draws}</td>
+                            <td>{opening.losses}</td>
+                            <td>{opening.win_rate}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="No top openings yet"
+                    text="Opening table data appears once recognised openings are found in your imported games."
+                  />
+                )}
               </Section>
             </div>
           </div>
         )}
       </main>
+
+      <div className="landingWrap">
+        <Footer />
+      </div>
     </div>
   );
 }
