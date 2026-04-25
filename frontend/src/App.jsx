@@ -76,6 +76,7 @@ function AuthModal({
           >
             Log in
           </button>
+
           <button
             type="button"
             className={`authTab ${mode === "signup" ? "authTabActive" : ""}`}
@@ -170,31 +171,43 @@ function LandingSection({
   const features = [
     {
       icon: "♟️",
-      title: "Import Your Games",
-      text: "Pull in your recent Chess.com games and instantly see the openings you actually play.",
+      title: "Import your games",
+      text: "Connect your Chess.com username and see what openings you actually play.",
     },
     {
       icon: "📊",
-      title: "Understand Your Style",
-      text: "See whether your results come from tactical attacks, practical setups, or calmer positional plans.",
+      title: "Spot your patterns",
+      text: "View your strongest openings, weak spots, and practical trends from recent games.",
     },
     {
       icon: "🎯",
-      title: "Get Opening Recommendations",
-      text: "Receive opening ideas based on your real games instead of generic theory dumps.",
+      title: "Get better suggestions",
+      text: "Receive opening ideas based on your real results, not random theory lists.",
     },
     {
       icon: "🚀",
-      title: "Train With Purpose",
-      text: "Use keep, improve, and avoid guidance to build a repertoire around your strengths.",
+      title: "Train with purpose",
+      text: "Use Keep, Improve, and Avoid verdicts to build a simple repertoire.",
     },
   ];
 
   const steps = [
-    "Import your Chess.com games",
-    "See your opening trends and win rates",
-    "Get a personalised opening fit report",
-    "Build a simple repertoire around your strengths",
+    {
+      title: "Import games",
+      text: "Enter your Chess.com username.",
+    },
+    {
+      title: "Review your trends",
+      text: "See openings, win rates, and common patterns.",
+    },
+    {
+      title: "Get your fit report",
+      text: "Find openings that suit your style.",
+    },
+    {
+      title: "Build your repertoire",
+      text: "Keep what works and improve weak areas.",
+    },
   ];
 
   return (
@@ -258,23 +271,23 @@ function LandingSection({
             <div className="landingPill">
               <span>New</span>
               <span className="landingDot">•</span>
-              <span>Personalised chess opening recommendations</span>
+              <span>Personalised opening recommendations</span>
             </div>
 
-            <h1>Build a repertoire that actually fits how you play.</h1>
+            <h1>Build a chess repertoire that fits how you actually play.</h1>
 
             <p className="landingSubtext">
-              Opening Fit analyses your real games, shows the openings you use
-              most, and recommends better choices based on your style, results,
-              and improvement areas.
+              Opening Fit reviews your recent games, finds your strongest
+              opening patterns, and recommends simple repertoire ideas built
+              around your real results.
             </p>
 
-            <div className="landingActions">
+            <div className="landingHeroActions">
               <a className="landingPrimaryBtn" href="#app-dashboard">
-                Import Chess.com Games
+                Import games
               </a>
               <a className="landingSecondaryBtn" href="#sample-report">
-                See sample report
+                See example
               </a>
             </div>
 
@@ -283,13 +296,15 @@ function LandingSection({
                 <strong>3 mins</strong>
                 <span>to get started</span>
               </div>
+
               <div className="landingStatCard">
                 <strong>1 click</strong>
                 <span>to import games</span>
               </div>
+
               <div className="landingStatCard">
-                <strong>Built for</strong>
-                <span>club players</span>
+                <strong>Club</strong>
+                <span>player focused</span>
               </div>
             </div>
           </div>
@@ -297,7 +312,7 @@ function LandingSection({
           <div className="landingPreviewCard" id="sample-report">
             <div className="landingPreviewTop">
               <div>
-                <p className="landingMiniLabel">Style Profile</p>
+                <p className="landingMiniLabel">Sample Style Profile</p>
                 <h3>Aggressive counterpuncher</h3>
               </div>
               <span className="landingFitBadge">62% fit</span>
@@ -307,23 +322,21 @@ function LandingSection({
               <div className="landingInfoCard">
                 <p className="landingMiniLabel">Best with White</p>
                 <h4>Vienna Game</h4>
-                <p>Strong attacking chances, easy plans, lower theory load.</p>
+                <p>Attacking chances, simple plans, and less theory pressure.</p>
               </div>
 
               <div className="landingInfoCard">
                 <p className="landingMiniLabel">Best with Black</p>
                 <h4>Scandinavian Defence</h4>
-                <p>
-                  Direct positions, practical ideas, and clear club-level plans.
-                </p>
+                <p>Direct positions with clear ideas for club-level games.</p>
               </div>
             </div>
 
             <div className="landingInfoCard">
               <div className="landingCardHeader">
                 <div>
-                  <h4>Keep / Improve / Avoid</h4>
                   <p className="landingMiniLabel">Last 3 months</p>
+                  <h4>Keep / Improve / Avoid</h4>
                 </div>
               </div>
 
@@ -331,7 +344,7 @@ function LandingSection({
                 <div className="landingVerdictRow">
                   <div>
                     <strong>Vienna Game</strong>
-                    <span>Win rate 72%</span>
+                    <span>72% win rate</span>
                   </div>
                   <span className="verdict keep">Keep</span>
                 </div>
@@ -339,7 +352,7 @@ function LandingSection({
                 <div className="landingVerdictRow">
                   <div>
                     <strong>Scandinavian Defence</strong>
-                    <span>Win rate 64%</span>
+                    <span>64% win rate</span>
                   </div>
                   <span className="verdict keep">Keep</span>
                 </div>
@@ -347,15 +360,15 @@ function LandingSection({
                 <div className="landingVerdictRow">
                   <div>
                     <strong>Italian Game</strong>
-                    <span>Win rate 48%</span>
+                    <span>48% win rate</span>
                   </div>
                   <span className="verdict improve">Improve</span>
                 </div>
 
                 <div className="landingVerdictRow">
                   <div>
-                    <strong>Random sideline setups</strong>
-                    <span>Win rate 31%</span>
+                    <strong>Random sidelines</strong>
+                    <span>31% win rate</span>
                   </div>
                   <span className="verdict avoid">Avoid</span>
                 </div>
@@ -368,10 +381,10 @@ function LandingSection({
       <section className="landingContentSection" id="features">
         <div className="landingSectionHeading">
           <p className="landingEyebrow">Why it works</p>
-          <h2>Less theory overload. More useful recommendations.</h2>
+          <h2>Clear opening advice without theory overload.</h2>
           <p>
-            Most players do not need a giant opening encyclopedia. They need
-            clear advice based on their own games.
+            Most improving players do not need hundreds of opening lines. They
+            need simple choices based on what already works in their games.
           </p>
         </div>
 
@@ -379,47 +392,56 @@ function LandingSection({
           {features.map((feature) => (
             <article className="landingFeatureCard" key={feature.title}>
               <div className="landingFeatureIcon">{feature.icon}</div>
-              <h3>{feature.title}</h3>
-              <p>{feature.text}</p>
+              <div>
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
+              </div>
             </article>
           ))}
         </div>
       </section>
 
       <section className="landingContentSection" id="how-it-works">
-        <div className="landingHowItWorks">
-          <div className="landingSectionHeading">
-            <p className="landingEyebrow">How it works</p>
-            <h2>A simple workflow for improving faster</h2>
-            <p>
-              Designed for everyday players who want practical opening help
-              without drowning in theory.
-            </p>
-          </div>
+        <div className="landingSectionHeading">
+          <p className="landingEyebrow">How it works</p>
+          <h2>From games to repertoire in four steps.</h2>
+          <p>
+            A simple workflow designed for everyday chess players who want
+            practical opening help.
+          </p>
+        </div>
 
-          <div className="landingStepsList">
-            {steps.map((step, index) => (
-              <div className="landingStepCard" key={step}>
-                <div className="landingStepNumber">{index + 1}</div>
-                <p>{step}</p>
+        <div className="landingStepsList">
+          {steps.map((step, index) => (
+            <div className="landingStepCard" key={step.title}>
+              <div className="landingStepNumber">{index + 1}</div>
+              <div>
+                <h3>{step.title}</h3>
+                <p>{step.text}</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </section>
 
       <section className="landingContentSection" id="premium">
+        <div className="landingSectionHeading">
+          <p className="landingEyebrow">Pricing</p>
+          <h2>Start free. Upgrade when you want more depth.</h2>
+        </div>
+
         <div className="landingPricingGrid">
           <article className="landingPriceCard">
             <p className="landingMiniLabel">Free</p>
             <h3>Get the essentials</h3>
             <p>
-              Perfect for trying the app and understanding your core opening
+              Good for trying the app and understanding your main opening
               habits.
             </p>
+
             <ul>
               <li>Import recent Chess.com games</li>
-              <li>View style profile summary</li>
+              <li>View your style profile</li>
               <li>See top openings and win rates</li>
               <li>Basic opening suggestions</li>
             </ul>
@@ -429,21 +451,21 @@ function LandingSection({
             <div className="landingPriceTop">
               <div>
                 <p className="landingMiniLabel">Premium</p>
-                <h3>Go deeper with your repertoire</h3>
+                <h3>Build a stronger repertoire</h3>
               </div>
               <span className="landingPriceBadge">£8 once-off</span>
             </div>
 
             <p>
-              For players who want stronger recommendations and a more serious
-              training roadmap.
+              For players who want clearer verdicts, stronger recommendations,
+              and a more useful training plan.
             </p>
 
             <ul>
               <li>Keep / Improve / Avoid verdicts</li>
-              <li>Premium opening families matched to your style</li>
+              <li>Opening families matched to your style</li>
               <li>More detailed training plans</li>
-              <li>Future repertoire tools and deeper breakdowns</li>
+              <li>Future repertoire tools</li>
             </ul>
           </article>
         </div>
@@ -455,8 +477,8 @@ function LandingSection({
             <p className="landingEyebrow dark">Start now</p>
             <h2>Stop guessing which openings suit you.</h2>
             <p>
-              Import your games, understand your patterns, and build a repertoire
-              that feels natural at the board.
+              Import your games, find your patterns, and build a repertoire that
+              feels natural at the board.
             </p>
           </div>
 
@@ -581,9 +603,7 @@ export default function App() {
 
     return items.filter((item) => {
       const name =
-        typeof item === "string"
-          ? item
-          : item?.name || item?.opening || "";
+        typeof item === "string" ? item : item?.name || item?.opening || "";
 
       return !isUnknownOpening(name);
     });
@@ -1128,7 +1148,8 @@ export default function App() {
                           <strong>Result:</strong> {selectedGame.result}
                         </div>
                         <div>
-                          <strong>Players:</strong> {selectedGame.white_username} vs{" "}
+                          <strong>Players:</strong>{" "}
+                          {selectedGame.white_username} vs{" "}
                           {selectedGame.black_username}
                         </div>
                       </div>
