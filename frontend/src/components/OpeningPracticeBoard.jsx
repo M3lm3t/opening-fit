@@ -1,6 +1,25 @@
 import { useMemo, useState } from "react";
 import { Chess } from "chess.js";
 
+export const SUPPORTED_OPENINGS = [
+  "Vienna Game",
+  "Italian Game",
+  "Scotch Game",
+  "Ruy Lopez",
+  "London System",
+  "Queen's Gambit",
+  "English Opening",
+  "King's Indian Attack",
+  "Scandinavian Defense",
+  "Caro-Kann Defense",
+  "French Defense",
+  "Sicilian Defense",
+  "Pirc Defense",
+  "King's Indian Defense",
+  "Queen's Gambit Declined",
+  "Dutch Defense",
+];
+
 const OPENING_LINES = {
   "Vienna Game": {
     name: "Vienna Game",
@@ -17,50 +36,70 @@ const OPENING_LINES = {
     side: "white",
     moves: ["e4", "e5", "Nf3", "Nc6", "d4", "exd4"],
   },
-  "Queen's Gambit": {
-    name: "Queen's Gambit",
+  "Ruy Lopez": {
+    name: "Ruy Lopez",
     side: "white",
-    moves: ["d4", "d5", "c4", "e6", "Nc3", "Nf6"],
+    moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6"],
   },
   "London System": {
     name: "London System",
     side: "white",
     moves: ["d4", "d5", "Bf4", "Nf6", "e3", "e6"],
   },
-  "Ruy Lopez": {
-    name: "Ruy Lopez",
+  "Queen's Gambit": {
+    name: "Queen's Gambit",
     side: "white",
-    moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6"],
+    moves: ["d4", "d5", "c4", "e6", "Nc3", "Nf6"],
   },
-  "Sicilian Defense": {
-    name: "Sicilian Defense",
-    side: "black",
-    moves: ["e4", "c5", "Nf3", "d6", "d4", "cxd4"],
+  "English Opening": {
+    name: "English Opening",
+    side: "white",
+    moves: ["c4", "e5", "Nc3", "Nf6", "g3", "d5"],
   },
-  "French Defense": {
-    name: "French Defense",
-    side: "black",
-    moves: ["e4", "e6", "d4", "d5", "Nc3", "Nf6"],
-  },
-  "Caro-Kann Defense": {
-    name: "Caro-Kann Defense",
-    side: "black",
-    moves: ["e4", "c6", "d4", "d5", "Nc3", "dxe4"],
+  "King's Indian Attack": {
+    name: "King's Indian Attack",
+    side: "white",
+    moves: ["Nf3", "d5", "g3", "Nf6", "Bg2", "e6"],
   },
   "Scandinavian Defense": {
     name: "Scandinavian Defense",
     side: "black",
     moves: ["e4", "d5", "exd5", "Qxd5", "Nc3", "Qa5"],
   },
-  "King's Indian Defense": {
-    name: "King's Indian Defense",
+  "Caro-Kann Defense": {
+    name: "Caro-Kann Defense",
     side: "black",
-    moves: ["d4", "Nf6", "c4", "g6", "Nc3", "Bg7"],
+    moves: ["e4", "c6", "d4", "d5", "Nc3", "dxe4"],
+  },
+  "French Defense": {
+    name: "French Defense",
+    side: "black",
+    moves: ["e4", "e6", "d4", "d5", "Nc3", "Nf6"],
+  },
+  "Sicilian Defense": {
+    name: "Sicilian Defense",
+    side: "black",
+    moves: ["e4", "c5", "Nf3", "d6", "d4", "cxd4"],
   },
   "Pirc Defense": {
     name: "Pirc Defense",
     side: "black",
     moves: ["e4", "d6", "d4", "Nf6", "Nc3", "g6"],
+  },
+  "King's Indian Defense": {
+    name: "King's Indian Defense",
+    side: "black",
+    moves: ["d4", "Nf6", "c4", "g6", "Nc3", "Bg7"],
+  },
+  "Queen's Gambit Declined": {
+    name: "Queen's Gambit Declined",
+    side: "black",
+    moves: ["d4", "d5", "c4", "e6", "Nc3", "Nf6"],
+  },
+  "Dutch Defense": {
+    name: "Dutch Defense",
+    side: "black",
+    moves: ["d4", "f5", "c4", "Nf6", "g3", "e6"],
   },
 };
 
@@ -85,15 +124,19 @@ function normaliseOpeningName(name) {
   if (clean.includes("vienna")) return "Vienna Game";
   if (clean.includes("italian")) return "Italian Game";
   if (clean.includes("scotch")) return "Scotch Game";
-  if (clean.includes("queen") && clean.includes("gambit")) return "Queen's Gambit";
-  if (clean.includes("london")) return "London System";
   if (clean.includes("ruy") || clean.includes("spanish")) return "Ruy Lopez";
-  if (clean.includes("sicilian")) return "Sicilian Defense";
-  if (clean.includes("french")) return "French Defense";
-  if (clean.includes("caro")) return "Caro-Kann Defense";
+  if (clean.includes("london")) return "London System";
+  if (clean.includes("queen") && clean.includes("gambit") && clean.includes("declined")) return "Queen's Gambit Declined";
+  if (clean.includes("queen") && clean.includes("gambit")) return "Queen's Gambit";
+  if (clean.includes("english")) return "English Opening";
+  if (clean.includes("king") && clean.includes("indian") && clean.includes("attack")) return "King's Indian Attack";
   if (clean.includes("scandinavian") || clean.includes("center counter")) return "Scandinavian Defense";
-  if (clean.includes("king") && clean.includes("indian")) return "King's Indian Defense";
+  if (clean.includes("caro")) return "Caro-Kann Defense";
+  if (clean.includes("french")) return "French Defense";
+  if (clean.includes("sicilian")) return "Sicilian Defense";
   if (clean.includes("pirc")) return "Pirc Defense";
+  if (clean.includes("king") && clean.includes("indian")) return "King's Indian Defense";
+  if (clean.includes("dutch")) return "Dutch Defense";
 
   return null;
 }
@@ -133,6 +176,9 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
 
   const expectedMove = opening?.moves?.[moveIndex] || null;
   const isComplete = opening && moveIndex >= opening.moves.length;
+  const progressPercent = opening
+    ? Math.round((moveIndex / opening.moves.length) * 100)
+    : 0;
 
   const resetPractice = () => {
     setChess(new Chess());
@@ -272,7 +318,7 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
         <div className="practiceTop">
           <div>
             <p className="eyebrow">Opening Practice</p>
-            <h2>{openingName}</h2>
+            <h2>{openingName || "Opening line"}</h2>
           </div>
 
           <button className="secondaryBtn" type="button" onClick={onClose}>
@@ -280,10 +326,19 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
           </button>
         </div>
 
-        <p className="subtext">
-          I do not have a practice line for this opening yet. Add it to the
-          OPENING_LINES list inside OpeningPracticeBoard.jsx.
-        </p>
+        <div className="practiceComingSoon">
+          <h3>Practice line coming soon</h3>
+          <p>
+            This opening is not in the practice trainer yet. Supported lines are
+            being added gradually so the practice board stays accurate and useful.
+          </p>
+
+          <div className="supportedOpeningGrid">
+            {SUPPORTED_OPENINGS.map((name) => (
+              <span key={name}>{name}</span>
+            ))}
+          </div>
+        </div>
       </section>
     );
   }
@@ -295,20 +350,28 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
           <p className="eyebrow">Opening Practice</p>
           <h2>{opening.name}</h2>
           <p className="subtext">
-            Practise the first 6 moves of the main line. You can click a piece
-            then a square, or drag and drop the piece.
+            You are practising as{" "}
+            <strong>{opening.side === "black" ? "Black" : "White"}</strong>.
+            Play through the first 6 moves of the main line.
           </p>
         </div>
 
         <div className="practiceActions">
           <button className="secondaryBtn" type="button" onClick={resetPractice}>
-            Reset
+            Restart line
           </button>
 
           <button className="secondaryBtn" type="button" onClick={onClose}>
             Close
           </button>
         </div>
+      </div>
+
+      <div className="practiceProgressBarWrap">
+        <div
+          className="practiceProgressBar"
+          style={{ width: `${progressPercent}%` }}
+        />
       </div>
 
       <div className="practiceLayout">
@@ -401,8 +464,8 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
           )}
 
           <p className="smallText">
-            Tip: the next correct move is shown above. Try moving it on the
-            board before using “Show next move”.
+            Tip: click a piece, then click the target square. You can also drag
+            and drop pieces on desktop.
           </p>
         </div>
       </div>
