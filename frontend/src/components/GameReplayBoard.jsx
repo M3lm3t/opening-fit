@@ -1,6 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
-import { Chessboard } from "react-chessboard";
+
+const PIECES = {
+  p: "♟",
+  r: "♜",
+  n: "♞",
+  b: "♝",
+  q: "♛",
+  k: "♚",
+  P: "♙",
+  R: "♖",
+  N: "♘",
+  B: "♗",
+  Q: "♕",
+  K: "♔",
+};
 
 function chunkMoves(moves) {
   const rows = [];
@@ -18,43 +32,221 @@ function chunkMoves(moves) {
   return rows;
 }
 
-function normaliseMove(move) {
-  if (!move || typeof move !== "string") return "";
-
+function cleanMoveText(move) {
   return move
+    .toString()
     .trim()
-    .replace(/\s+/g, "")
-    .replace(/[!?]+/g, "");
+    .replace(/\{[^}]*\}/g, "")
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\d+\.(\.\.)?/g, "")
+    .replace(/[!?]+/g, "")
+    .replace(/\s+/g, "");
+}
+
+function normaliseMove(move) {
+  if (!move) return "";
+
+  if (typeof move === "string") {
+    return cleanMoveText(move);
+  }
+
+  if (typeof move === "object") {
+    const possibleMove =
+      move.san ||
+      move.lan ||
+      move.uci ||
+      move.move ||
+      move.notation ||
+      move.text ||
+      "";
+
+    return cleanMoveText(possibleMove);
+  }
+
+  return "";
 }
 
 function tryApplyMove(chess, rawMove) {
   const move = normaliseMove(rawMove);
+
   if (!move) return false;
 
   try {
     chess.move(move);
     return true;
   } catch {
-    try {
-      chess.move(move, { sloppy: true });
+    // Try UCI format below, for example e2e4
+  }
+
+  try {
+    if (/^[a-h][1-8][a-h][1-8][qrbnQRBN]?$/.test(move)) {
+      chess.move({
+        from: move.slice(0, 2),
+        to: move.slice(2, 4),
+        promotion: move[4] ? move[4].toLowerCase() : undefined,
+      });
       return true;
-    } catch {
-      try {
-        if (/^[a-h][1-8][a-h][1-8][qrbnQRBN]?$/.test(move)) {
-          chess.move({
-            from: move.slice(0, 2),
-            to: move.slice(2, 4),
-            promotion: move[4]?.toLowerCase(),
-          });
-          return true;
-        }
-      } catch {
-        return false;
-      }
     }
+  } catch {
+    return false;
   }
 
   return false;
+}
+
+function movesFromPgn(pgnText) {
+  if (!pgnText || typeof pgnText !== "string") return [];
+
+  try {
+    const chess = new Chess();
+    chess.loadPgn(pgnText);
+    return chess.history();
+  } catch {
+    return [];
+  }
+}
+
+function getGameMoves(game) {
+  if (!game) return [];
+
+  if (Array.isArray(game.moves) && game.moves.length > 0) {
+    return game.moves.filter(Boolean);
+  }
+
+  if (Array.isArray(game.sanMoves) && game.sanMoves.length > 0) {
+    return game.sanMoves.filter(Boolean);
+  }
+
+  if (Array.isArray(game.moveList) && game.moveList.length > 0) {
+    return game.moveList.filter(Boolean);
+  }
+
+  if (Array.isArray(game.history) && game.history.length > 0) {
+    return game.history.filter(Boolean);
+  }
+
+  if (typeof game.pgn === "string") {
+    return movesFromPgn(game.pgn);
+  }
+
+  if (typeof game.pgnText === "string") {
+    return movesFromPgn(game.pgnText);
+  }
+
+  return [];
+}
+
+function getMoveLabel(move) {
+  if (!move) return "";
+
+  if (typeof move === "string") {
+    return move;
+  }
+
+  if (typeof move === "object") {
+    return (
+      move.san ||
+      move.lan ||
+      move.uci ||
+      move.move ||
+      move.notation ||
+      move.text ||
+      ""
+    ).toString();
+  }
+
+  return "";
+}
+
+function fenToBoard(fen) {
+  const boardPart = fen.split(" ")[0];
+  const rows = boardPart.split("/");
+
+  return rows.map((row) => {
+    const squares = [];
+
+    for (const char of row) {
+      const emptyCount = Number(char);
+
+      if (!Number.isNaN(emptyCount)) {
+        for (let i = 0; i < emptyCount; i += 1) {
+          squares.push("");
+        }
+      } else {
+        squares.push(char);
+      }
+    }
+
+    while (squares.length < 8) {
+      squares.push("");
+    }
+
+    return squares.slice(0, 8);
+  });
+}
+
+function ReplayBoard({ fen, orientation }) {
+  const board = useMemo(() => {
+    const parsed = fenToBoard(fen);
+
+    if (orientation === "black") {
+      return parsed.map((row) => [...row].reverse()).reverse();
+    }
+
+    return parsed;
+  }, [fen, orientation]);
+
+  const files =
+    orientation === "white"
+      ? ["a", "b", "c", "d", "e", "f", "g", "h"]
+      : ["h", "g", "f", "e", "d", "c", "b", "a"];
+
+  const ranks =
+    orientation === "white"
+      ? ["8", "7", "6", "5", "4", "3", "2", "1"]
+      : ["1", "2", "3", "4", "5", "6", "7", "8"];
+
+  return (
+    <div className="cleanReplayBoard">
+      {board.map((row, rowIndex) =>
+        row.map((piece, colIndex) => {
+          const isLight = (rowIndex + colIndex) % 2 === 0;
+          const isWhitePiece = piece && piece === piece.toUpperCase();
+          const isBottomRow = rowIndex === 7;
+          const isLeftCol = colIndex === 0;
+
+          return (
+            <div
+              key={`${fen}-${rowIndex}-${colIndex}-${piece}`}
+              className={`cleanReplaySquare ${
+                isLight ? "cleanReplayLight" : "cleanReplayDark"
+              }`}
+            >
+              {isLeftCol ? (
+                <span className="cleanReplayRank">{ranks[rowIndex]}</span>
+              ) : null}
+
+              {isBottomRow ? (
+                <span className="cleanReplayFile">{files[colIndex]}</span>
+              ) : null}
+
+              {piece ? (
+                <span
+                  className={`cleanReplayPiece cleanReplayPiece-${piece.toLowerCase()} ${
+                    isWhitePiece
+                      ? "cleanReplayWhitePiece"
+                      : "cleanReplayBlackPiece"
+                  }`}
+                >
+                  {PIECES[piece]}
+                </span>
+              ) : null}
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
 }
 
 export default function GameReplayBoard({
@@ -67,26 +259,33 @@ export default function GameReplayBoard({
 
   useEffect(() => {
     setCurrentMoveIndex(0);
-  }, [game]);
+    setBoardOrientation(initialOrientation);
+  }, [game, initialOrientation]);
 
-  const moves = useMemo(() => {
-    if (!game?.moves) return [];
-    return Array.isArray(game.moves) ? game.moves.filter(Boolean) : [];
-  }, [game]);
+  const moves = useMemo(() => getGameMoves(game), [game]);
 
   const replayState = useMemo(() => {
     const chess = new Chess();
     let appliedCount = 0;
+    let failedMove = null;
 
-    for (let i = 0; i < currentMoveIndex; i += 1) {
+    const safeMoveIndex = Math.max(0, Math.min(currentMoveIndex, moves.length));
+
+    for (let i = 0; i < safeMoveIndex; i += 1) {
       const ok = tryApplyMove(chess, moves[i]);
-      if (!ok) break;
+
+      if (!ok) {
+        failedMove = moves[i];
+        break;
+      }
+
       appliedCount += 1;
     }
 
     return {
       fen: chess.fen(),
       appliedCount,
+      failedMove,
     };
   }, [moves, currentMoveIndex]);
 
@@ -97,17 +296,21 @@ export default function GameReplayBoard({
 
   const goToStart = () => setCurrentMoveIndex(0);
   const goToPrev = () => setCurrentMoveIndex((n) => Math.max(0, n - 1));
-  const goToNext = () => setCurrentMoveIndex((n) => Math.min(moves.length, n + 1));
+  const goToNext = () =>
+    setCurrentMoveIndex((n) => Math.min(moves.length, n + 1));
   const goToEnd = () => setCurrentMoveIndex(moves.length);
 
   const replayWarning =
-    moves.length > 0 && currentMoveIndex > 0 && replayState.appliedCount === 0;
+    moves.length > 0 &&
+    currentMoveIndex > 0 &&
+    replayState.appliedCount < currentMoveIndex;
 
   return (
     <section className="replayCard">
       <div className="replayHeader">
         <div>
           <h3 className="replayTitle">{title}</h3>
+
           {game?.white || game?.black ? (
             <p className="replayMeta">
               {game?.white || "White"} vs {game?.black || "Black"}
@@ -120,7 +323,9 @@ export default function GameReplayBoard({
           type="button"
           className="secondaryBtn"
           onClick={() =>
-            setBoardOrientation((o) => (o === "white" ? "black" : "white"))
+            setBoardOrientation((orientation) =>
+              orientation === "white" ? "black" : "white"
+            )
           }
         >
           Flip board
@@ -135,20 +340,15 @@ export default function GameReplayBoard({
 
       {replayWarning ? (
         <div className="replayWarning">
-          Moves were found, but this game format is not being replayed correctly yet.
+          The replay stopped at move {replayState.appliedCount}. Failed move:{" "}
+          {getMoveLabel(replayState.failedMove)}
         </div>
       ) : null}
 
       <div className="replayLayout">
         <div className="replayBoardWrap">
           <div className="replayBoardBox">
-            <Chessboard
-              id={`replay-board-${game?.id || "default"}`}
-              position={replayState.fen}
-              boardOrientation={boardOrientation}
-              arePiecesDraggable={false}
-              boardWidth={360}
-            />
+            <ReplayBoard fen={replayState.fen} orientation={boardOrientation} />
           </div>
 
           <div className="replayControls">
@@ -160,6 +360,7 @@ export default function GameReplayBoard({
             >
               ⏮
             </button>
+
             <button
               type="button"
               className="controlBtn"
@@ -168,6 +369,7 @@ export default function GameReplayBoard({
             >
               ◀
             </button>
+
             <button
               type="button"
               className="controlBtn"
@@ -176,6 +378,7 @@ export default function GameReplayBoard({
             >
               ▶
             </button>
+
             <button
               type="button"
               className="controlBtn"
@@ -211,7 +414,7 @@ export default function GameReplayBoard({
                   onClick={() => setCurrentMoveIndex(row.whiteIndex)}
                   disabled={!row.white}
                 >
-                  {row.white || ""}
+                  {getMoveLabel(row.white)}
                 </button>
 
                 <button
@@ -222,7 +425,7 @@ export default function GameReplayBoard({
                   onClick={() => setCurrentMoveIndex(row.blackIndex)}
                   disabled={!row.black}
                 >
-                  {row.black || ""}
+                  {getMoveLabel(row.black)}
                 </button>
               </div>
             ))}
