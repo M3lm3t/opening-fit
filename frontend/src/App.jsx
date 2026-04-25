@@ -502,7 +502,6 @@ export default function App() {
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
   const [showUnknownOpenings, setShowUnknownOpenings] = useState(false);
-
   const [selectedGameIndex, setSelectedGameIndex] = useState(0);
 
   const [openSections, setOpenSections] = useState({
@@ -615,25 +614,102 @@ export default function App() {
     setData(null);
     setSelectedGameIndex(0);
 
+    const cleanUsername = username.trim();
+
     try {
-      const res = await fetch(
-        `${API_BASE}/import/chesscom/${encodeURIComponent(username)}?months=3`
-      );
-
-      const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json.detail || "Could not import games");
+      if (!cleanUsername) {
+        throw new Error("Please enter a Chess.com username.");
       }
 
-      setData(json);
+      const health = await fetch(`${API_BASE}/api/health`);
 
-      setTimeout(() => {
-        const el = document.getElementById("app-results");
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
+      if (!health.ok) {
+        throw new Error(
+          `Backend is running, but /api/health failed. Check ${API_BASE}/docs`
+        );
+      }
+
+      const attempts = [
+        {
+          name: "GET /import/chesscom",
+          url: `${API_BASE}/import/chesscom/${encodeURIComponent(
+            cleanUsername
+          )}?months=3`,
+          options: {
+            method: "GET",
+          },
+        },
+        {
+          name: "GET /api/import/chesscom",
+          url: `${API_BASE}/api/import/chesscom/${encodeURIComponent(
+            cleanUsername
+          )}?months=3`,
+          options: {
+            method: "GET",
+          },
+        },
+        {
+          name: "POST /api/analyse",
+          url: `${API_BASE}/api/analyse`,
+          options: {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              pgnText: "",
+              playerName: cleanUsername,
+              username: cleanUsername,
+              months: 3,
+            }),
+          },
+        },
+      ];
+
+      let finalError = "";
+
+      for (const attempt of attempts) {
+        try {
+          const res = await fetch(attempt.url, attempt.options);
+
+          let json = null;
+
+          try {
+            json = await res.json();
+          } catch {
+            json = null;
+          }
+
+          if (res.ok && json) {
+            setData(json);
+
+            setTimeout(() => {
+              const el = document.getElementById("app-results");
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 100);
+
+            return;
+          }
+
+          finalError = `${attempt.name} failed: ${
+            json?.detail || res.statusText || res.status
+          }`;
+        } catch (err) {
+          finalError = `${attempt.name} failed: ${err.message}`;
+        }
+      }
+
+      throw new Error(
+        `Could not import games. ${finalError}. Open ${API_BASE}/docs to check your backend route names.`
+      );
     } catch (err) {
-      setError(err.message || "Something went wrong");
+      if (err.name === "TypeError") {
+        setError(
+          `Failed to fetch. Make sure backend is running on ${API_BASE}.`
+        );
+      } else {
+        setError(err.message || "Something went wrong");
+      }
     } finally {
       setLoading(false);
     }
@@ -876,60 +952,28 @@ export default function App() {
             <section className="card quickNavCard">
               <h2>Quick View</h2>
               <div className="quickNavGrid">
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("style")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("style")}>
                   Style Profile
                 </button>
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("chart")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("chart")}>
                   Opening Win Rate
                 </button>
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("verdicts")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("verdicts")}>
                   Keep / Improve / Avoid
                 </button>
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("training")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("training")}>
                   Training Plan
                 </button>
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("recommendations")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("recommendations")}>
                   Opening Suggestions
                 </button>
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("replay")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("replay")}>
                   Game Replay
                 </button>
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("preferred")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("preferred")}>
                   Preferred Openings
                 </button>
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("top")}
-                >
+                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("top")}>
                   Top Openings Table
                 </button>
               </div>
@@ -939,29 +983,23 @@ export default function App() {
               title="Style Profile"
               isOpen={openSections.style}
               onToggle={() => toggleSection("style")}
-              badge={filterUnknownOpenings(data.style_profile?.labels || []).join(
-                " · "
-              )}
+              badge={filterUnknownOpenings(data.style_profile?.labels || []).join(" · ")}
             >
               <div className="twoCol">
                 <div>
                   <div className="chips">
-                    {filterUnknownOpenings(data.style_profile?.labels || []).map(
-                      (label, index) => (
-                        <span className="chip" key={index}>
-                          {label}
-                        </span>
-                      )
-                    )}
+                    {filterUnknownOpenings(data.style_profile?.labels || []).map((label, index) => (
+                      <span className="chip" key={index}>
+                        {label}
+                      </span>
+                    ))}
                   </div>
 
-                  <p className="profileSummary">{data.style_profile.summary}</p>
+                  <p className="profileSummary">{data.style_profile?.summary}</p>
 
                   <h3>Top Opening Families</h3>
                   <div className="list">
-                    {filterUnknownOpenings(
-                      data.style_profile?.top_opening_families || []
-                    ).map((item, index) => (
+                    {filterUnknownOpenings(data.style_profile?.top_opening_families || []).map((item, index) => (
                       <div className="listItem" key={index}>
                         <strong>{item}</strong>
                       </div>
@@ -973,9 +1011,7 @@ export default function App() {
                   <p className="premiumLabel">Premium Preview</p>
                   <h3>Best Openings For You</h3>
                   <div className="list">
-                    {filterUnknownOpenings(
-                      data.premium_preview.best_opening_for_you
-                    ).map((item, index) => (
+                    {filterUnknownOpenings(data.premium_preview?.best_opening_for_you || []).map((item, index) => (
                       <div className="listItem" key={index}>
                         <div>
                           <strong>{item.name}</strong>
@@ -1007,7 +1043,7 @@ export default function App() {
                     <div className="chartBarWrap">
                       <div
                         className="chartBar"
-                        style={{ width: `${Math.max(item.win_rate, 2)}%` }}
+                        style={{ width: `${Math.max(item.win_rate || 0, 2)}%` }}
                       />
                     </div>
                     <div className="chartValue">{item.win_rate}%</div>
@@ -1020,10 +1056,10 @@ export default function App() {
               title="Training Plan"
               isOpen={openSections.training}
               onToggle={() => toggleSection("training")}
-              badge={`${data.training_plan.length} steps`}
+              badge={`${data.training_plan?.length || 0} steps`}
             >
               <div className="list">
-                {data.training_plan.map((item, index) => (
+                {(data.training_plan || []).map((item, index) => (
                   <div className="listItem" key={index}>
                     {index + 1}. {item}
                   </div>
@@ -1040,26 +1076,22 @@ export default function App() {
                 <div>
                   <h3>Recommended as White</h3>
                   <div className="list">
-                    {filterUnknownOpenings(data.opening_recommendations.white).map(
-                      (item, index) => (
-                        <div className="listItem" key={index}>
-                          <strong>{item}</strong>
-                        </div>
-                      )
-                    )}
+                    {filterUnknownOpenings(data.opening_recommendations?.white || []).map((item, index) => (
+                      <div className="listItem" key={index}>
+                        <strong>{item}</strong>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 <div>
                   <h3>Recommended as Black</h3>
                   <div className="list">
-                    {filterUnknownOpenings(data.opening_recommendations.black).map(
-                      (item, index) => (
-                        <div className="listItem" key={index}>
-                          <strong>{item}</strong>
-                        </div>
-                      )
-                    )}
+                    {filterUnknownOpenings(data.opening_recommendations?.black || []).map((item, index) => (
+                      <div className="listItem" key={index}>
+                        <strong>{item}</strong>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -1067,7 +1099,7 @@ export default function App() {
               <div className="spacerTop">
                 <h3>Recommendations Summary</h3>
                 <div className="list">
-                  {data.recommendations.map((item, index) => (
+                  {(data.recommendations || []).map((item, index) => (
                     <div className="listItem" key={index}>
                       {item}
                     </div>
@@ -1088,8 +1120,7 @@ export default function App() {
                     <div>
                       <strong>{item.name}</strong>
                       <div className="smallText">
-                        {item.games} games · {item.wins}W / {item.draws}D /{" "}
-                        {item.losses}L
+                        {item.games} games · {item.wins}W / {item.draws}D / {item.losses}L
                       </div>
                     </div>
                     <div className="rightStat">
@@ -1118,9 +1149,7 @@ export default function App() {
                         key={index}
                         type="button"
                         className={`gamePickerButton ${
-                          selectedGameIndex === index
-                            ? "gamePickerButtonActive"
-                            : ""
+                          selectedGameIndex === index ? "gamePickerButtonActive" : ""
                         }`}
                         onClick={() => setSelectedGameIndex(index)}
                       >
@@ -1129,8 +1158,7 @@ export default function App() {
                           <span>{game.result}</span>
                         </div>
                         <div className="smallText">
-                          {game.white_username} vs {game.black_username} ·{" "}
-                          {game.time_class || "-"}
+                          {game.white_username} vs {game.black_username} · {game.time_class || "-"}
                         </div>
                       </button>
                     ))}
@@ -1148,9 +1176,7 @@ export default function App() {
                           <strong>Result:</strong> {selectedGame.result}
                         </div>
                         <div>
-                          <strong>Players:</strong>{" "}
-                          {selectedGame.white_username} vs{" "}
-                          {selectedGame.black_username}
+                          <strong>Players:</strong> {selectedGame.white_username} vs {selectedGame.black_username}
                         </div>
                       </div>
 
