@@ -725,6 +725,21 @@ a {
   gap: 12px;
 }
 
+.openingChartPracticeLink {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.openingChartPracticeLink:hover {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(37, 99, 235, 0.12);
+}
+
 .chartLabel {
   font-weight: 800;
 }
@@ -1038,13 +1053,160 @@ th {
   color: #fde68a;
 }
 
+/* OPENING PRACTICE */
+
+.practiceCard {
+  margin-bottom: 18px;
+  border-color: rgba(96, 165, 250, 0.32);
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.16), transparent 34%),
+    var(--card);
+}
+
+.practiceTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.practiceTop h2 {
+  margin: 0 0 8px;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  letter-spacing: -0.04em;
+}
+
+.practiceActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.practiceLayout {
+  display: grid;
+  grid-template-columns: minmax(260px, 420px) minmax(260px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.practiceBoardBox {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.practicePanel {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.practiceProgress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(30, 41, 59, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.practiceProgress span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.practiceProgress strong {
+  font-size: 1.6rem;
+  color: #bfdbfe;
+}
+
+.practiceMoveLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.practiceMovePill {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 9px 12px;
+  background: rgba(30, 41, 59, 0.78);
+  color: var(--text);
+  font-weight: 900;
+}
+
+.practiceMoveDone {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.34);
+  color: #bbf7d0;
+}
+
+.practiceMoveCurrent {
+  background: rgba(37, 99, 235, 0.28);
+  border-color: rgba(96, 165, 250, 0.55);
+  color: #dbeafe;
+}
+
+.practiceSelectedSquare {
+  outline: 3px solid #38bdf8;
+  outline-offset: -3px;
+}
+
+.practiceMessage {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  color: #dbeafe;
+  font-weight: 800;
+}
+
+.practiceComplete {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  color: #bbf7d0;
+  font-weight: 900;
+}
+
+.practiceHintBtn {
+  width: fit-content;
+}
+
+.openingPracticeLink {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+}
+
+.openingPracticeLink:hover,
+.tableOpeningBtn:hover {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(37, 99, 235, 0.18);
+}
+
+.tableOpeningBtn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #bfdbfe;
+  font-weight: 900;
+  padding: 7px 9px;
+  border-radius: 10px;
+  text-align: left;
+}
+
 /* MOBILE */
 
 @media (max-width: 900px) {
   .landingHeroGrid,
   .twoCol,
   .analysisGrid,
-  .replayLayout {
+  .replayLayout,
+  .practiceLayout {
     grid-template-columns: 1fr;
   }
 
@@ -1068,7 +1230,8 @@ th {
     grid-template-columns: 1fr 1fr;
   }
 
-  .replayBoardBox {
+  .replayBoardBox,
+  .practiceBoardBox {
     max-width: min(92vw, 420px);
   }
 }
@@ -1272,6 +1435,30 @@ th {
   .replayMoveRow {
     grid-template-columns: 38px minmax(0, 1fr) minmax(0, 1fr);
   }
+
+  .practiceTop {
+    display: grid;
+  }
+
+  .practiceActions {
+    width: 100%;
+  }
+
+  .practiceActions .secondaryBtn {
+    flex: 1;
+  }
+
+  .practiceProgress {
+    display: grid;
+  }
+
+  .practiceProgress strong {
+    font-size: 1.35rem;
+  }
+
+  .practiceHintBtn {
+    width: 100%;
+  }
 }
 
 @media (max-width: 420px) {
@@ -1305,7 +1492,8 @@ th {
     display: none;
   }
 
-  .replayBoardBox {
+  .replayBoardBox,
+  .practiceBoardBox {
     max-width: 94vw;
   }
 
@@ -1316,5 +1504,70 @@ th {
   .cleanReplayRank,
   .cleanReplayFile {
     font-size: 7px;
+  }
+}
+.practiceDraggablePiece {
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.practiceDraggablePiece:active {
+  cursor: grabbing;
+}
+.replayFlipBtn {
+  min-height: 42px;
+  padding: 9px 14px;
+  border-radius: 14px;
+}
+.trainingPlanList {
+  display: grid;
+  gap: 14px;
+}
+
+.trainingPlanItem {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(30, 41, 59, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.trainingStepNumber {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(37, 99, 235, 0.24);
+  color: #dbeafe;
+  font-weight: 950;
+}
+
+.trainingStepContent h3 {
+  margin: 0 0 8px;
+}
+
+.trainingStepContent p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.trainingPracticeBtn {
+  width: fit-content;
+  margin-top: 12px;
+  min-height: 42px;
+  padding: 9px 14px;
+}
+
+@media (max-width: 700px) {
+  .trainingPlanItem {
+    grid-template-columns: 1fr;
+  }
+
+  .trainingPracticeBtn {
+    width: 100%;
   }
 }
