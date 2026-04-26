@@ -4,7 +4,7 @@ import os
 import re
 import json
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import requests
 from fastapi import FastAPI, HTTPException
@@ -20,6 +20,8 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
 allowed_origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
 ]
 
 if FRONTEND_URL and FRONTEND_URL not in allowed_origins:
@@ -40,6 +42,11 @@ CHESSCOM_HEADERS = {
     "User-Agent": "Mozilla/5.0 OpeningFit/1.0"
 }
 
+LICHESS_HEADERS = {
+    "Accept": "application/x-ndjson",
+    "User-Agent": "OpeningFit/1.0",
+}
+
 
 DATA_DIR = Path("data")
 PROFILES_DIR = DATA_DIR / "profiles"
@@ -54,6 +61,7 @@ class FeedbackRequest(BaseModel):
     message: str
     contact: Optional[str] = None
     username: Optional[str] = None
+    platform: Optional[str] = None
 
 
 class AnalyticsEventRequest(BaseModel):
@@ -69,24 +77,26 @@ def safe_username(username: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_-]", "", username.strip().lower())
 
 
-def profile_path(username: str) -> Path:
-    return PROFILES_DIR / f"{safe_username(username)}.json"
+def profile_path(username: str, platform: str = "chess.com") -> Path:
+    platform_key = re.sub(r"[^a-zA-Z0-9_-]", "", platform.strip().lower())
+    return PROFILES_DIR / f"{platform_key}_{safe_username(username)}.json"
 
 
 def save_user_profile(username: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     clean_username = safe_username(username)
+    platform = payload.get("platform", "chess.com")
 
     profile = {
         "username": username,
         "usernameKey": clean_username,
-        "platform": payload.get("platform", "chess.com"),
+        "platform": platform,
         "lastUpdated": now_iso(),
         "isPremium": False,
         "importHistory": [],
         "latestResult": payload,
     }
 
-    existing_path = profile_path(username)
+    existing_path = profile_path(username, platform)
 
     if existing_path.exists():
         try:
@@ -114,6 +124,7 @@ def save_user_profile(username: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         0,
         {
             "date": now_iso(),
+            "platform": platform,
             "gamesImported": games_imported,
             "monthsChecked": months_checked,
         },
@@ -125,15 +136,25 @@ def save_user_profile(username: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     return profile
 
 
-def load_user_profile(username: str):
-    path = profile_path(username)
-    if not path.exists():
-        return None
+def load_user_profile(username: str, platform: Optional[str] = None):
+    possible_paths = []
 
-    try:
-        return json.loads(path.read_text())
-    except Exception:
-        return None
+    if platform:
+        possible_paths.append(profile_path(username, platform))
+
+    possible_paths.append(profile_path(username, "chess.com"))
+    possible_paths.append(PROFILES_DIR / f"{safe_username(username)}.json")
+
+    for path in possible_paths:
+        if not path.exists():
+            continue
+
+        try:
+            return json.loads(path.read_text())
+        except Exception:
+            return None
+
+    return None
 
 
 def log_analytics_event(event_name: str, data: Optional[Dict[str, Any]] = None):
@@ -147,12 +168,18 @@ def log_analytics_event(event_name: str, data: Optional[Dict[str, Any]] = None):
         f.write(json.dumps(event) + "\n")
 
 
-def save_feedback(message: str, contact: Optional[str] = None, username: Optional[str] = None):
+def save_feedback(
+    message: str,
+    contact: Optional[str] = None,
+    username: Optional[str] = None,
+    platform: Optional[str] = None,
+):
     item = {
         "date": now_iso(),
         "message": message,
         "contact": contact,
         "username": username,
+        "platform": platform,
     }
 
     with FEEDBACK_FILE.open("a") as f:
@@ -168,6 +195,8 @@ def root():
         "health": "/health",
         "api_health": "/api/health",
         "demo": "/api/demo",
+        "chesscom_import": "/api/import/chesscom/{username}",
+        "lichess_import": "/api/import/lichess/{username}",
     }
 
 
@@ -201,6 +230,27 @@ def debug_chesscom(username: str):
 @app.get("/api/debug/chesscom/{username}")
 def api_debug_chesscom(username: str):
     return debug_chesscom(username)
+
+
+@app.get("/api/debug/lichess/{username}")
+def api_debug_lichess(username: str):
+    url = f"https://lichess.org/api/user/{username}"
+    try:
+        response = requests.get(
+            url,
+            headers={"User-Agent": "OpeningFit/1.0"},
+            timeout=20,
+        )
+        return {
+            "url": url,
+            "status_code": response.status_code,
+            "text_preview": response.text[:300],
+        }
+    except requests.RequestException as exc:
+        return {
+            "url": url,
+            "error": str(exc),
+        }
 
 
 def safe_get(url: str) -> Dict[str, Any]:
@@ -307,6 +357,10 @@ def normalize_opening_name(name: str) -> str:
         (["reti", "réti"], "Réti Opening"),
         (["scotch"], "Scotch Game"),
         (["four knights"], "Four Knights Game"),
+        (["dutch"], "Dutch Defence"),
+        (["grünfeld", "grunfeld"], "Grünfeld Defence"),
+        (["nimzo"], "Nimzo-Indian Defence"),
+        (["catalan"], "Catalan Opening"),
     ]
 
     for keys, value in mapping:
@@ -550,6 +604,87 @@ def build_style_profile(games: List[Dict[str, Any]], username: str) -> Dict[str,
         "summary": " ".join(summary_parts),
         "top_opening_families": [name for name, _ in opening_counts.most_common(3)],
         "topOpeningFamilies": [name for name, _ in opening_counts.most_common(3)],
+        "scores": {
+            "aggressive": aggressive,
+            "solid": solid,
+            "tactical": tactical,
+            "flexible": flexible,
+        },
+    }
+
+
+def build_lichess_style_profile(
+    top_openings: List[Dict[str, Any]],
+    preferred_white: List[Dict[str, Any]],
+    preferred_black: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    aggressive = 0
+    solid = 0
+    tactical = 0
+    flexible = 0
+
+    for item in top_openings:
+        opening_lower = item.get("name", "").lower()
+
+        if any(x in opening_lower for x in ["vienna", "sicilian", "scandinavian", "king's indian", "scotch"]):
+            aggressive += 2
+            tactical += 1
+
+        if any(x in opening_lower for x in ["caro-kann", "french", "london", "queen"]):
+            solid += 2
+
+        if any(x in opening_lower for x in ["english", "réti", "reti", "modern", "pirc"]):
+            flexible += 2
+
+    labels = []
+
+    if aggressive >= solid + 2:
+        labels.append("Aggressive")
+    elif solid >= aggressive + 2:
+        labels.append("Solid")
+    else:
+        labels.append("Balanced")
+
+    if tactical >= 3:
+        labels.append("Tactical")
+
+    if flexible >= 3:
+        labels.append("Flexible")
+
+    if len(top_openings) >= 8:
+        labels.append("Wide repertoire")
+
+    if len(top_openings) <= 3:
+        labels.append("Focused repertoire")
+
+    top_families = [item["name"] for item in top_openings[:3]]
+
+    summary_parts = []
+
+    if "Aggressive" in labels:
+        summary_parts.append("Your Lichess games suggest you often choose active, practical openings.")
+
+    if "Solid" in labels:
+        summary_parts.append("Your Lichess games suggest you favour stable structures and clear development.")
+
+    if "Balanced" in labels:
+        summary_parts.append("Your Lichess games show a mix of active and solid opening choices.")
+
+    if "Tactical" in labels:
+        summary_parts.append("You appear comfortable entering sharper positions.")
+
+    if "Flexible" in labels:
+        summary_parts.append("You use openings that can transpose into different structures.")
+
+    if not summary_parts:
+        summary_parts.append("Your Lichess opening style is still developing.")
+
+    return {
+        "primaryStyle": " ".join(labels) if labels else "Developing",
+        "labels": labels or ["Developing"],
+        "summary": " ".join(summary_parts),
+        "top_opening_families": top_families,
+        "topOpeningFamilies": top_families,
         "scores": {
             "aggressive": aggressive,
             "solid": solid,
@@ -875,6 +1010,20 @@ def build_premium_data(best_openings: List[Dict[str, Any]], style_profile: Dict[
                 "Future Stockfish analysis",
             ],
         },
+        "premium_preview": {
+            "title": "Unlock full opening report",
+            "best_opening_for_you": best_openings[:3],
+            "style_profile_summary": style_profile.get("summary", ""),
+            "premium_features": [
+                "Full opening ranking",
+                "Keep / Improve / Avoid engine",
+                "Training plan by style",
+                "Opening recommendations",
+                "More months of game history",
+                "Opponent-specific prep",
+                "Future Stockfish analysis",
+            ],
+        },
     }
 
 
@@ -894,6 +1043,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         "import_started",
         {
             "username": username,
+            "platform": "chess.com",
             "months": months,
         },
     )
@@ -1073,6 +1223,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         "games_imported",
         {
             "username": username,
+            "platform": "chess.com",
             "gamesImported": len(all_games),
             "monthsChecked": len(selected_archives),
         },
@@ -1088,6 +1239,330 @@ def import_chesscom_logic(username: str, months: int = 3):
     return result
 
 
+def lichess_user_name(player: Dict[str, Any], fallback: str) -> str:
+    user = player.get("user") or {}
+    return user.get("name") or user.get("id") or fallback
+
+
+def get_lichess_result(game: Dict[str, Any], username: str) -> str:
+    username_lower = username.lower()
+
+    players = game.get("players", {})
+    white_name = lichess_user_name(players.get("white", {}), "White")
+    black_name = lichess_user_name(players.get("black", {}), "Black")
+
+    winner = game.get("winner")
+
+    is_white = white_name.lower() == username_lower
+    is_black = black_name.lower() == username_lower
+
+    if not winner:
+        return "draw"
+
+    if is_white and winner == "white":
+        return "win"
+
+    if is_black and winner == "black":
+        return "win"
+
+    return "loss"
+
+
+def get_lichess_colour(game: Dict[str, Any], username: str) -> str:
+    username_lower = username.lower()
+
+    players = game.get("players", {})
+    white_name = lichess_user_name(players.get("white", {}), "White")
+    black_name = lichess_user_name(players.get("black", {}), "Black")
+
+    if white_name.lower() == username_lower:
+        return "white"
+
+    if black_name.lower() == username_lower:
+        return "black"
+
+    return "unknown"
+
+
+def get_lichess_opening_name(game: Dict[str, Any]) -> str:
+    opening = game.get("opening") or {}
+
+    if isinstance(opening, dict):
+        name = opening.get("name")
+        if name:
+            return normalize_opening_name(name)
+
+    moves_text = game.get("moves", "")
+    moves = moves_text.split() if moves_text else []
+    return normalize_opening_name(opening_from_move_sequence(moves))
+
+
+def lichess_time_class(game: Dict[str, Any]) -> str:
+    return game.get("speed") or game.get("perf") or "unknown"
+
+
+def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: int):
+    opening_counter = Counter()
+    white_opening_counter = Counter()
+    black_opening_counter = Counter()
+    opening_results = defaultdict(lambda: {"games": 0, "wins": 0, "draws": 0, "losses": 0})
+    recent_games = []
+
+    for game in games:
+        opening = get_lichess_opening_name(game)
+        colour = get_lichess_colour(game, username)
+        result = get_lichess_result(game, username)
+
+        players = game.get("players", {})
+        white_name = lichess_user_name(players.get("white", {}), "White")
+        black_name = lichess_user_name(players.get("black", {}), "Black")
+
+        moves_text = game.get("moves", "")
+        moves = moves_text.split() if moves_text else []
+
+        opening_counter[opening] += 1
+
+        if colour == "white":
+            white_opening_counter[opening] += 1
+        elif colour == "black":
+            black_opening_counter[opening] += 1
+
+        opening_results[opening]["games"] += 1
+
+        if result == "win":
+            opening_results[opening]["wins"] += 1
+        elif result == "draw":
+            opening_results[opening]["draws"] += 1
+        elif result == "loss":
+            opening_results[opening]["losses"] += 1
+
+        recent_games.append(
+            {
+                "url": f"https://lichess.org/{game.get('id')}" if game.get("id") else "",
+                "time_class": lichess_time_class(game),
+                "timeClass": lichess_time_class(game),
+                "rated": game.get("rated"),
+                "colour": colour,
+                "color": colour,
+                "result": result,
+                "opening": opening,
+                "end_time": game.get("lastMoveAt") or game.get("createdAt"),
+                "endTime": game.get("lastMoveAt") or game.get("createdAt"),
+                "pgn": "",
+                "moves": moves,
+                "white_username": white_name,
+                "whiteUsername": white_name,
+                "black_username": black_name,
+                "blackUsername": black_name,
+            }
+        )
+
+    top_openings = []
+
+    for opening, _count in opening_counter.most_common(10):
+        stats = opening_results[opening]
+        games_count = stats["games"]
+        win_rate = round((stats["wins"] / games_count) * 100, 1) if games_count else 0
+        explanation = opening_explanation(opening)
+
+        top_openings.append(
+            {
+                "name": opening,
+                "games": games_count,
+                "wins": stats["wins"],
+                "draws": stats["draws"],
+                "losses": stats["losses"],
+                "win_rate": win_rate,
+                "winRate": win_rate,
+                **explanation,
+            }
+        )
+
+    preferred_white = [
+        {
+            "name": n,
+            "games": g,
+            **opening_explanation(n),
+        }
+        for n, g in white_opening_counter.most_common(5)
+    ]
+
+    preferred_black = [
+        {
+            "name": n,
+            "games": g,
+            **opening_explanation(n),
+        }
+        for n, g in black_opening_counter.most_common(5)
+    ]
+
+    best_openings = build_opening_scores(opening_results)
+    style_profile = build_lichess_style_profile(top_openings, preferred_white, preferred_black)
+    opening_recommendations = recommend_openings_from_style(style_profile)
+    training_plan = build_training_plan(style_profile, preferred_white, preferred_black, best_openings)
+    recommendations = build_recommendations(
+        preferred_white,
+        preferred_black,
+        best_openings,
+        style_profile,
+    )
+
+    premium_data = build_premium_data(best_openings, style_profile)
+    recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
+
+    result = {
+        "username": username,
+        "player_url": f"https://lichess.org/@/{username}",
+        "playerUrl": f"https://lichess.org/@/{username}",
+        "platform": "lichess",
+        "total_games": len(games),
+        "totalGames": len(games),
+        "gamesImported": len(games),
+        "months_checked": months,
+        "monthsChecked": months,
+        "archives_checked": [
+            {
+                "archive": f"lichess-last-{months}-months",
+                "games_found": len(games),
+                "gamesFound": len(games),
+            }
+        ],
+        "archivesChecked": [
+            {
+                "archive": f"lichess-last-{months}-months",
+                "games_found": len(games),
+                "gamesFound": len(games),
+            }
+        ],
+        "top_openings": top_openings,
+        "topOpenings": top_openings,
+        "preferred_white": preferred_white,
+        "preferredWhite": preferred_white,
+        "preferred_black": preferred_black,
+        "preferredBlack": preferred_black,
+        "recommendations": recommendations,
+        "recent_games": recent_games,
+        "recentGames": recent_games,
+        "style_profile": style_profile,
+        "styleProfile": style_profile,
+        "best_openings": best_openings[:8],
+        "bestOpenings": best_openings[:8],
+        "opening_recommendations": opening_recommendations,
+        "openingRecommendations": opening_recommendations,
+        "recommendedOpenings": opening_recommendations,
+        "training_plan": training_plan,
+        "trainingPlan": training_plan,
+        "lastUpdated": now_iso(),
+        **premium_data,
+    }
+
+    profile = save_user_profile(username, result)
+
+    log_analytics_event(
+        "games_imported",
+        {
+            "username": username,
+            "platform": "lichess",
+            "gamesImported": len(games),
+            "monthsChecked": months,
+        },
+    )
+
+    result["savedProfile"] = {
+        "username": profile["username"],
+        "lastUpdated": profile["lastUpdated"],
+        "importHistory": profile["importHistory"],
+        "isPremium": profile["isPremium"],
+    }
+
+    return result
+
+
+def import_lichess_logic(username: str, months: int = 3):
+    username = username.strip()
+
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required.")
+
+    if months < 1:
+        raise HTTPException(status_code=400, detail="Months must be at least 1.")
+
+    if months > 12:
+        months = 12
+
+    log_analytics_event(
+        "import_started",
+        {
+            "username": username,
+            "platform": "lichess",
+            "months": months,
+        },
+    )
+
+    max_games = 300 if months >= 12 else 100
+    since_date = datetime.now(timezone.utc) - timedelta(days=months * 31)
+    since_ms = int(since_date.timestamp() * 1000)
+
+    url = f"https://lichess.org/api/games/user/{username}"
+
+    params = {
+        "max": max_games,
+        "since": since_ms,
+        "opening": "true",
+        "moves": "true",
+        "pgnInJson": "false",
+        "clocks": "false",
+        "evals": "false",
+        "perfType": "blitz,rapid,classical",
+        "sort": "dateDesc",
+    }
+
+    try:
+        response = requests.get(url, params=params, headers=LICHESS_HEADERS, timeout=30)
+    except requests.RequestException:
+        raise HTTPException(
+            status_code=503,
+            detail="Could not connect to Lichess right now. Please try again later.",
+        )
+
+    if response.status_code == 404:
+        raise HTTPException(
+            status_code=404,
+            detail="Could not find that Lichess username. Check the spelling and try again.",
+        )
+
+    if response.status_code == 429:
+        raise HTTPException(
+            status_code=429,
+            detail="Lichess is temporarily rate limiting requests. Try again in a minute.",
+        )
+
+    if not response.ok:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Lichess import failed: {response.text[:300]}",
+        )
+
+    games = []
+
+    for line in response.text.splitlines():
+        if not line.strip():
+            continue
+
+        try:
+            games.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+
+    if not games:
+        raise HTTPException(
+            status_code=404,
+            detail="This Lichess profile exists, but no recent blitz, rapid, or classical public games were found.",
+        )
+
+    return build_lichess_analysis(username, games, months)
+
+
 @app.get("/import/chesscom/{username}")
 def import_chesscom(username: str, months: int = 3):
     return import_chesscom_logic(username, months)
@@ -1098,9 +1573,19 @@ def api_import_chesscom(username: str, months: int = 3):
     return import_chesscom_logic(username, months)
 
 
+@app.get("/import/lichess/{username}")
+def import_lichess(username: str, months: int = 3):
+    return import_lichess_logic(username, months)
+
+
+@app.get("/api/import/lichess/{username}")
+def api_import_lichess(username: str, months: int = 3):
+    return import_lichess_logic(username, months)
+
+
 @app.get("/api/profile/{username}")
-def get_saved_profile(username: str):
-    profile = load_user_profile(username)
+def get_saved_profile(username: str, platform: Optional[str] = None):
+    profile = load_user_profile(username, platform)
 
     if not profile:
         raise HTTPException(
@@ -1112,6 +1597,7 @@ def get_saved_profile(username: str):
         "saved_profile_loaded",
         {
             "username": username,
+            "platform": profile.get("platform"),
         },
     )
 
@@ -1127,12 +1613,14 @@ def submit_feedback(request: FeedbackRequest):
         message=request.message.strip(),
         contact=request.contact,
         username=request.username,
+        platform=request.platform,
     )
 
     log_analytics_event(
         "feedback_submitted",
         {
             "username": request.username,
+            "platform": request.platform,
             "hasContact": bool(request.contact),
         },
     )
