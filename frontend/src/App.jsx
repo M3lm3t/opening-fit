@@ -6,177 +6,6 @@ import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
-const DEMO_DATA = {
-  username: "DemoPlayer",
-  total_games: 12,
-  months_checked: 3,
-  lastUpdated: new Date().toISOString(),
-  style_profile: {
-    labels: ["Tactical", "Active", "Direct"],
-    summary:
-      "DemoPlayer tends to prefer active development, early central tension, and positions with clear attacking chances.",
-    top_opening_families: [
-      "Vienna Game",
-      "Italian Game",
-      "Scandinavian Defence",
-    ],
-  },
-  opening_recommendations: {
-    white: ["Vienna Game", "Italian Game", "London System"],
-    black: ["Scandinavian Defence", "Caro-Kann Defence", "French Defence"],
-    whiteDetailed: [
-      {
-        name: "Vienna Game",
-        reason: "It gives active piece play and practical attacking chances.",
-        plan: "Develop quickly, control the centre, and look for kingside pressure.",
-        mistakeToAvoid: "Do not launch attacks before your pieces are developed.",
-        difficulty: "Beginner friendly",
-      },
-      {
-        name: "Italian Game",
-        reason: "It teaches natural development and simple attacking plans.",
-        plan: "Develop bishops and knights, castle early, and build pressure on f7.",
-        mistakeToAvoid: "Avoid moving the same piece too many times in the opening.",
-        difficulty: "Beginner friendly",
-      },
-    ],
-    blackDetailed: [
-      {
-        name: "Scandinavian Defence",
-        reason: "It creates direct positions and clear development plans for Black.",
-        plan: "Challenge the centre early, develop safely, and avoid queen adventures.",
-        mistakeToAvoid: "Do not waste too many tempi moving the queen.",
-        difficulty: "Beginner friendly",
-      },
-    ],
-  },
-  recommendations: [
-    "Use the Vienna Game as a simple attacking weapon with White.",
-    "Keep the Scandinavian Defence as a practical Black option.",
-    "Focus on learning plans, not memorising long theory lines.",
-  ],
-  top_openings: [
-    {
-      name: "Vienna Game",
-      games: 4,
-      wins: 3,
-      draws: 0,
-      losses: 1,
-      win_rate: 75,
-      verdict: "Keep",
-    },
-    {
-      name: "Italian Game",
-      games: 3,
-      wins: 1,
-      draws: 1,
-      losses: 1,
-      win_rate: 50,
-      verdict: "Improve",
-    },
-    {
-      name: "Scandinavian Defence",
-      games: 5,
-      wins: 3,
-      draws: 0,
-      losses: 2,
-      win_rate: 60,
-      verdict: "Keep",
-    },
-  ],
-  best_openings: [
-    {
-      name: "Vienna Game",
-      games: 4,
-      wins: 3,
-      draws: 0,
-      losses: 1,
-      win_rate: 75,
-      verdict: "Keep",
-    },
-    {
-      name: "Scandinavian Defence",
-      games: 5,
-      wins: 3,
-      draws: 0,
-      losses: 2,
-      win_rate: 60,
-      verdict: "Keep",
-    },
-    {
-      name: "Italian Game",
-      games: 3,
-      wins: 1,
-      draws: 1,
-      losses: 1,
-      win_rate: 50,
-      verdict: "Improve",
-    },
-  ],
-  preferred_white: [
-    {
-      name: "Vienna Game",
-      games: 4,
-    },
-    {
-      name: "Italian Game",
-      games: 3,
-    },
-  ],
-  preferred_black: [
-    {
-      name: "Scandinavian Defence",
-      games: 5,
-    },
-  ],
-  premium_preview: {
-    best_opening_for_you: [
-      {
-        name: "Vienna Game",
-        games: 4,
-        win_rate: 75,
-        verdict: "Keep",
-      },
-      {
-        name: "Scandinavian Defence",
-        games: 5,
-        win_rate: 60,
-        verdict: "Keep",
-      },
-    ],
-  },
-  recent_games: [
-    {
-      opening: "Vienna Game",
-      result: "1-0",
-      white_username: "DemoPlayer",
-      black_username: "Opponent",
-      time_class: "rapid",
-      pgn: `[Event "Demo Game"]
-[Site "Opening Fit"]
-[White "DemoPlayer"]
-[Black "Opponent"]
-[Result "1-0"]
-
-1. e4 e5 2. Nc3 Nf6 3. f4 d5 4. fxe5 Nxe4 5. Nf3 Be7 6. d4 O-O 7. Bd3 Nxc3 8. bxc3 c5 9. O-O Nc6 10. Qe1 1-0`,
-    },
-    {
-      opening: "Scandinavian Defence",
-      result: "0-1",
-      white_username: "Opponent",
-      black_username: "DemoPlayer",
-      time_class: "rapid",
-      pgn: `[Event "Demo Game"]
-[Site "Opening Fit"]
-[White "Opponent"]
-[Black "DemoPlayer"]
-[Result "0-1"]
-
-1. e4 d5 2. exd5 Qxd5 3. Nc3 Qa5 4. d4 Nf6 5. Nf3 c6 6. Bc4 Bf5 7. O-O e6 8. Re1 Be7 9. Ne5 O-O 10. Bg5 0-1`,
-    },
-  ],
-};
-
 const closedSections = {
   style: false,
   recommendations: false,
@@ -804,26 +633,6 @@ export default function App() {
     };
   };
 
-  const saveProfileLocally = (profileData, fallbackUsername = "") => {
-    try {
-      if (!profileData) return;
-
-      const keyUsername =
-        profileData.username?.toLowerCase() || fallbackUsername.toLowerCase();
-
-      if (keyUsername) {
-        localStorage.setItem(
-          `openingFitProfile:${keyUsername}`,
-          JSON.stringify(profileData)
-        );
-      }
-
-      localStorage.setItem("openingFitLastProfile", JSON.stringify(profileData));
-    } catch {
-      // Local saving should never break the app.
-    }
-  };
-
   const scrollToResults = () => {
     setTimeout(() => {
       const el = document.getElementById("app-results");
@@ -946,7 +755,6 @@ export default function App() {
 
       const cleanData = normaliseData(json);
       setData(cleanData);
-      saveProfileLocally(cleanData, cleanUsername);
 
       if (cleanData?.savedProfile?.lastUpdated) {
         setSavedProfileMessage(
@@ -955,9 +763,7 @@ export default function App() {
           ).toLocaleString()}`
         );
       } else {
-        setSavedProfileMessage(
-          `Import complete for ${cleanData.username}. Saved on this device.`
-        );
+        setSavedProfileMessage(`Import complete for ${cleanData.username}.`);
       }
 
       await trackEvent("frontend_import_completed", {
@@ -977,6 +783,11 @@ export default function App() {
   const loadSavedProfile = async () => {
     const cleanUsername = username.trim();
 
+    if (!cleanUsername) {
+      setError("Enter a Chess.com username first.");
+      return;
+    }
+
     setError("");
     setSavedProfileMessage("");
     setFeedbackStatus("");
@@ -984,72 +795,28 @@ export default function App() {
     setLoadingStep("Looking for your saved Opening Fit profile...");
 
     try {
-      if (!cleanUsername) {
-        const lastProfile = localStorage.getItem("openingFitLastProfile");
+      const response = await fetch(
+        `${API_BASE}/api/profile/${encodeURIComponent(cleanUsername)}`
+      );
 
-        if (!lastProfile) {
-          throw new Error(
-            "No saved profile found on this device yet. Import a Chess.com username first, then try Load Saved Profile."
-          );
-        }
-
-        const parsed = normaliseData(JSON.parse(lastProfile));
-
-        setData(parsed);
-        setUsername(parsed.username || "");
-        setOpenSections(closedSections);
-        setSelectedGameIndex(0);
-        setPracticeOpening(null);
-        setSavedProfileMessage(
-          `Loaded your most recent saved profile for ${parsed.username}.`
-        );
-
-        scrollToResults();
-        return;
-      }
-
-      let latestResult = null;
-      let profileUsername = cleanUsername;
-      let profileLastUpdated = null;
+      const text = await response.text();
+      let profile = null;
 
       try {
-        const response = await fetch(
-          `${API_BASE}/api/profile/${encodeURIComponent(cleanUsername)}`
-        );
-
-        const text = await response.text();
-        let profile = null;
-
-        try {
-          profile = JSON.parse(text);
-        } catch {
-          profile = null;
-        }
-
-        if (response.ok && profile?.latestResult) {
-          latestResult = normaliseData(profile.latestResult);
-          profileUsername = profile.username || cleanUsername;
-          profileLastUpdated = profile.lastUpdated || latestResult.lastUpdated;
-        }
+        profile = JSON.parse(text);
       } catch {
-        // If backend saved profile fails, fall back to browser storage.
+        profile = null;
       }
 
-      if (!latestResult) {
-        const localProfile = localStorage.getItem(
-          `openingFitProfile:${cleanUsername.toLowerCase()}`
-        );
-
-        if (localProfile) {
-          latestResult = normaliseData(JSON.parse(localProfile));
-          profileUsername = latestResult.username || cleanUsername;
-          profileLastUpdated = latestResult.lastUpdated;
-        }
+      if (!response.ok || !profile) {
+        throw new Error(profile?.detail || text || "No saved profile found.");
       }
+
+      const latestResult = normaliseData(profile.latestResult);
 
       if (!latestResult) {
         throw new Error(
-          "No saved profile found yet. Import this Chess.com username first, then try Load Saved Profile."
+          "Saved profile found, but it did not contain any saved analysis."
         );
       }
 
@@ -1059,11 +826,9 @@ export default function App() {
       setPracticeOpening(null);
 
       setSavedProfileMessage(
-        profileLastUpdated
-          ? `Loaded saved profile for ${profileUsername}. Last updated: ${new Date(
-              profileLastUpdated
-            ).toLocaleString()}`
-          : `Loaded saved profile for ${profileUsername}.`
+        `Loaded saved profile for ${profile.username}. Last updated: ${new Date(
+          profile.lastUpdated
+        ).toLocaleString()}`
       );
 
       await trackEvent("frontend_saved_profile_loaded", {
@@ -1087,29 +852,25 @@ export default function App() {
     setLoadingStep("Loading demo profile so you can preview Opening Fit...");
 
     try {
+      const response = await fetch(`${API_BASE}/api/demo`);
+      const text = await response.text();
+
       let demoData = null;
 
       try {
-        const response = await fetch(`${API_BASE}/api/demo`);
-        const text = await response.text();
-
-        try {
-          demoData = JSON.parse(text);
-        } catch {
-          demoData = null;
-        }
-
-        if (!response.ok) {
-          demoData = null;
-        }
+        demoData = JSON.parse(text);
       } catch {
         demoData = null;
       }
 
-      const cleanDemoData = normaliseData(demoData || DEMO_DATA);
+      if (!response.ok || !demoData) {
+        throw new Error(text || "Demo profile could not be loaded.");
+      }
+
+      const cleanDemoData = normaliseData(demoData);
 
       setData(cleanDemoData);
-      setUsername(cleanDemoData.username || "DemoPlayer");
+      setUsername("DemoPlayer");
       setSelectedGameIndex(0);
       setPracticeOpening(null);
       setOpenSections(closedSections);
@@ -1117,10 +878,8 @@ export default function App() {
         "Demo profile loaded. This shows how Opening Fit looks after an import."
       );
 
-      saveProfileLocally(cleanDemoData, cleanDemoData.username || "DemoPlayer");
-
       await trackEvent("frontend_demo_loaded", {
-        username: cleanDemoData.username || "DemoPlayer",
+        username: "DemoPlayer",
       });
 
       scrollToResults();
@@ -1403,7 +1162,7 @@ export default function App() {
               className="secondaryButton"
               type="button"
               onClick={loadSavedProfile}
-              disabled={loading}
+              disabled={loading || !username.trim()}
             >
               Load Saved Profile
             </button>
