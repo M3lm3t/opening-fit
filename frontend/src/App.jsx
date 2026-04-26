@@ -581,6 +581,14 @@ export default function App() {
 
     const lower = String(errorText).toLowerCase();
 
+    if (lower.includes("no saved profile")) {
+      return "No saved profile found yet. Import this Chess.com username first, then you can load it next time.";
+    }
+
+    if (lower.includes("demo profile could not be loaded")) {
+      return "Demo could not be loaded. Your live backend may not be deployed or your frontend may not be pointing to the backend URL.";
+    }
+
     if (lower.includes("not found") || lower.includes("could not find")) {
       return "Could not find that Chess.com username. Check the spelling and try again.";
     }
@@ -784,7 +792,15 @@ export default function App() {
     const cleanUsername = username.trim();
 
     if (!cleanUsername) {
-      setError("Enter a Chess.com username first.");
+      setError("Enter a Chess.com username first, or use Try Demo Account.");
+      return;
+    }
+
+    if (cleanUsername.toLowerCase() === "demoplayer") {
+      setError("");
+      setSavedProfileMessage(
+        "DemoPlayer is a demo account, not a saved profile. Use Try Demo Account instead."
+      );
       return;
     }
 
@@ -809,14 +825,17 @@ export default function App() {
       }
 
       if (!response.ok || !profile) {
-        throw new Error(profile?.detail || text || "No saved profile found.");
+        throw new Error(
+          profile?.detail ||
+            "No saved profile found yet. Import this Chess.com username first, then you can load it next time."
+        );
       }
 
       const latestResult = normaliseData(profile.latestResult);
 
       if (!latestResult) {
         throw new Error(
-          "Saved profile found, but it did not contain any saved analysis."
+          "Saved profile found, but it did not contain any saved analysis. Import games again to refresh it."
         );
       }
 
@@ -864,7 +883,10 @@ export default function App() {
       }
 
       if (!response.ok || !demoData) {
-        throw new Error(text || "Demo profile could not be loaded.");
+        throw new Error(
+          text ||
+            "Demo profile could not be loaded. The live backend may not have the /api/demo route deployed yet."
+        );
       }
 
       const cleanDemoData = normaliseData(demoData);
@@ -875,7 +897,7 @@ export default function App() {
       setPracticeOpening(null);
       setOpenSections(closedSections);
       setSavedProfileMessage(
-        "Demo profile loaded. This shows how Opening Fit looks after an import."
+        "Demo profile loaded. This is sample data, so use Import Chess.com Games for your real saved profile."
       );
 
       await trackEvent("frontend_demo_loaded", {
@@ -1141,7 +1163,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="searchRow topBar">
+          <div className="searchRow topBar appActionPanel">
             <input
               className="input"
               value={username}
@@ -1149,32 +1171,34 @@ export default function App() {
               placeholder="Chess.com username"
             />
 
-            <button
-              className="primaryBtn"
-              type="button"
-              onClick={importGames}
-              disabled={loading || !username.trim()}
-            >
-              {loading ? "Working..." : "Import Chess.com Games"}
-            </button>
+            <div className="appActionButtons">
+              <button
+                className="primaryBtn"
+                type="button"
+                onClick={importGames}
+                disabled={loading || !username.trim()}
+              >
+                {loading ? "Working..." : "Import Chess.com Games"}
+              </button>
 
-            <button
-              className="secondaryButton"
-              type="button"
-              onClick={loadSavedProfile}
-              disabled={loading || !username.trim()}
-            >
-              Load Saved Profile
-            </button>
+              <button
+                className="secondaryButton savedProfileButton"
+                type="button"
+                onClick={loadSavedProfile}
+                disabled={loading || !username.trim()}
+              >
+                Load Saved Profile
+              </button>
 
-            <button
-              className="ghostButton"
-              type="button"
-              onClick={loadDemoAccount}
-              disabled={loading}
-            >
-              Try Demo Account
-            </button>
+              <button
+                className="ghostButton demoAccountButton"
+                type="button"
+                onClick={loadDemoAccount}
+                disabled={loading}
+              >
+                Try Demo Account
+              </button>
+            </div>
           </div>
 
           {loadingStep ? <p className="statusMessage">{loadingStep}</p> : null}
