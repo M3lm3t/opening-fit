@@ -1,0 +1,15 @@
+{"event": "demo_loaded", "date": "2026-04-26T17:49:36.925667+00:00", "data": {"username": "DemoPlayer"}}
+{"event": "import_started", "date": "2026-04-26T17:49:50.858638+00:00", "data": {"username": "Hikaru", "months": 3}}
+{"event": "games_imported", "date": "2026-04-26T17:49:59.043214+00:00", "data": {"username": "Hikaru", "gamesImported": 758, "monthsChecked": 3}}
+{"event": "import_started", "date": "2026-04-26T17:50:17.721282+00:00", "data": {"username": "melmet", "months": 3}}
+{"event": "games_imported", "date": "2026-04-26T17:50:21.586110+00:00", "data": {"username": "melmet", "gamesImported": 502, "monthsChecked": 3}}
+{"event": "demo_loaded", "date": "2026-04-26T17:57:35.646932+00:00", "data": {"username": "DemoPlayer"}}
+{"event": "frontend_demo_loaded", "date": "2026-04-26T17:57:35.802310+00:00", "data": {"username": "DemoPlayer"}}
+{"event": "frontend_import_started", "date": "2026-04-26T17:57:59.208150+00:00", "data": {"username": "melmet"}}
+{"event": "import_started", "date": "2026-04-26T17:57:59.224652+00:00", "data": {"username": "melmet", "months": 3}}
+{"event": "games_imported", "date": "2026-04-26T17:58:03.043808+00:00", "data": {"username": "melmet", "gamesImported": 502, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-04-26T17:58:03.827232+00:00", "data": {"username": "melmet", "gamesImported": 502}}
+{"event": "saved_profile_loaded", "date": "2026-04-26T17:58:08.946808+00:00", "data": {"username": "melmet"}}
+{"event": "frontend_saved_profile_loaded", "date": "2026-04-26T17:58:09.004427+00:00", "data": {"username": "melmet"}}
+{"event": "demo_loaded", "date": "2026-04-26T17:58:13.269555+00:00", "data": {"username": "DemoPlayer"}}
+{"event": "frontend_demo_loaded", "date": "2026-04-26T17:58:13.320959+00:00", "data": {"username": "DemoPlayer"}}

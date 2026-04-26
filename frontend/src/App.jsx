@@ -535,6 +535,92 @@ export default function App() {
   const [selectedGameIndex, setSelectedGameIndex] = useState(0);
   const [practiceOpening, setPracticeOpening] = useState(null);
   const [openSections, setOpenSections] = useState(closedSections);
+  const [savedProfileMessage, setSavedProfileMessage] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackContact, setFeedbackContact] = useState("");
+  const [feedbackStatus, setFeedbackStatus] = useState("");
+
+  async function trackEvent(event, eventData = {}) {
+    try {
+      await fetch(`${API_BASE}/api/analytics/event`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          event,
+          data: eventData,
+        }),
+      });
+    } catch {
+      // Analytics should never break the app.
+    }
+  }
+
+  function getFriendlyError(errorText) {
+    if (!errorText) {
+      return "Something went wrong. Please try again.";
+    }
+
+    const lower = String(errorText).toLowerCase();
+
+    if (lower.includes("not found") || lower.includes("could not find")) {
+      return "Could not find that Chess.com username. Check the spelling and try again.";
+    }
+
+    if (lower.includes("no games")) {
+      return "This profile exists, but no recent public games were found.";
+    }
+
+    if (lower.includes("rate limiting") || lower.includes("429")) {
+      return "Chess.com is temporarily limiting requests. Try again in a minute.";
+    }
+
+    if (
+      lower.includes("failed to fetch") ||
+      lower.includes("connection refused") ||
+      lower.includes("could not connect")
+    ) {
+      return "Could not connect to the backend. Make sure FastAPI is running.";
+    }
+
+    try {
+      const parsed = JSON.parse(errorText);
+      return parsed.detail || parsed.message || errorText;
+    } catch {
+      return errorText;
+    }
+  }
+
+  const normaliseData = (incoming) => {
+    if (!incoming) return incoming;
+
+    return {
+      ...incoming,
+      total_games: incoming.total_games ?? incoming.totalGames ?? incoming.gamesImported ?? 0,
+      months_checked: incoming.months_checked ?? incoming.monthsChecked ?? 0,
+      top_openings: incoming.top_openings ?? incoming.topOpenings ?? [],
+      best_openings: incoming.best_openings ?? incoming.bestOpenings ?? [],
+      preferred_white: incoming.preferred_white ?? incoming.preferredWhite ?? [],
+      preferred_black: incoming.preferred_black ?? incoming.preferredBlack ?? [],
+      recent_games: incoming.recent_games ?? incoming.recentGames ?? [],
+      style_profile: incoming.style_profile ?? incoming.styleProfile ?? {},
+      opening_recommendations:
+        incoming.opening_recommendations ??
+        incoming.openingRecommendations ??
+        incoming.recommendedOpenings ??
+        {},
+      training_plan: incoming.training_plan ?? incoming.trainingPlan ?? [],
+      premium_preview: incoming.premium_preview ?? incoming.premiumPreview ?? {},
+    };
+  };
+
+  const scrollToResults = () => {
+    setTimeout(() => {
+      const el = document.getElementById("app-results");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
 
   const toggleSection = (key) => {
     setOpenSections((prev) => ({
@@ -598,8 +684,10 @@ export default function App() {
 
   const importGames = async () => {
     setLoading(true);
-    setLoadingStep("Preparing import...");
+    setLoadingStep("Finding your recent Chess.com games...");
     setError("");
+    setSavedProfileMessage("");
+    setFeedbackStatus("");
     setData(null);
     setSelectedGameIndex(0);
     setPracticeOpening(null);
@@ -612,6 +700,10 @@ export default function App() {
         throw new Error("Please enter a Chess.com username.");
       }
 
+      await trackEvent("frontend_import_started", {
+        username: cleanUsername,
+      });
+
       setLoadingStep("Fetching Chess.com archives...");
 
       const res = await fetch(
@@ -620,10 +712,11 @@ export default function App() {
         )}?months=3`
       );
 
+      const text = await res.text();
       let json = null;
 
       try {
-        json = await res.json();
+        json = JSON.parse(text);
       } catch {
         json = null;
       }
@@ -631,33 +724,187 @@ export default function App() {
       if (!res.ok || !json) {
         throw new Error(
           json?.detail ||
+            text ||
             "We could not import those games right now. Please check the username and try again."
         );
       }
 
-      setLoadingStep("Analysing opening patterns...");
-      await new Promise((resolve) => setTimeout(resolve, 450));
+      setLoadingStep("Detecting your opening patterns...");
+      await new Promise((resolve) => setTimeout(resolve, 350));
 
-      setLoadingStep("Building your personal report...");
-      await new Promise((resolve) => setTimeout(resolve, 450));
+      setLoadingStep("Building your style profile and recommendations...");
+      await new Promise((resolve) => setTimeout(resolve, 350));
 
-      setData(json);
+      const cleanData = normaliseData(json);
+      setData(cleanData);
 
-      setTimeout(() => {
-        const el = document.getElementById("app-results");
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
-    } catch (err) {
-      if (err.name === "TypeError") {
-        setError(
-          "We could not connect to the app server. Please make sure the backend is running, then try again."
+      if (cleanData?.savedProfile?.lastUpdated) {
+        setSavedProfileMessage(
+          `Saved profile updated for ${cleanData.username}. Last updated: ${new Date(
+            cleanData.savedProfile.lastUpdated
+          ).toLocaleString()}`
         );
       } else {
-        setError(err.message || "Something went wrong. Please try again.");
+        setSavedProfileMessage(`Import complete for ${cleanData.username}.`);
       }
+
+      await trackEvent("frontend_import_completed", {
+        username: cleanUsername,
+        gamesImported: cleanData.gamesImported ?? cleanData.total_games,
+      });
+
+      scrollToResults();
+    } catch (err) {
+      setError(getFriendlyError(err.message));
     } finally {
       setLoading(false);
       setLoadingStep("");
+    }
+  };
+
+  const loadSavedProfile = async () => {
+    const cleanUsername = username.trim();
+
+    if (!cleanUsername) {
+      setError("Enter a Chess.com username first.");
+      return;
+    }
+
+    setError("");
+    setSavedProfileMessage("");
+    setFeedbackStatus("");
+    setLoading(true);
+    setLoadingStep("Looking for your saved Opening Fit profile...");
+
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/profile/${encodeURIComponent(cleanUsername)}`
+      );
+
+      const text = await response.text();
+      let profile = null;
+
+      try {
+        profile = JSON.parse(text);
+      } catch {
+        profile = null;
+      }
+
+      if (!response.ok || !profile) {
+        throw new Error(profile?.detail || text || "No saved profile found.");
+      }
+
+      const latestResult = normaliseData(profile.latestResult);
+
+      if (!latestResult) {
+        throw new Error(
+          "Saved profile found, but it did not contain any saved analysis."
+        );
+      }
+
+      setData(latestResult);
+      setOpenSections(closedSections);
+      setSelectedGameIndex(0);
+      setPracticeOpening(null);
+
+      setSavedProfileMessage(
+        `Loaded saved profile for ${profile.username}. Last updated: ${new Date(
+          profile.lastUpdated
+        ).toLocaleString()}`
+      );
+
+      await trackEvent("frontend_saved_profile_loaded", {
+        username: cleanUsername,
+      });
+
+      scrollToResults();
+    } catch (err) {
+      setError(getFriendlyError(err.message));
+    } finally {
+      setLoading(false);
+      setLoadingStep("");
+    }
+  };
+
+  const loadDemoAccount = async () => {
+    setError("");
+    setSavedProfileMessage("");
+    setFeedbackStatus("");
+    setLoading(true);
+    setLoadingStep("Loading demo profile so you can preview Opening Fit...");
+
+    try {
+      const response = await fetch(`${API_BASE}/api/demo`);
+      const text = await response.text();
+
+      let demoData = null;
+
+      try {
+        demoData = JSON.parse(text);
+      } catch {
+        demoData = null;
+      }
+
+      if (!response.ok || !demoData) {
+        throw new Error(text || "Demo profile could not be loaded.");
+      }
+
+      const cleanDemoData = normaliseData(demoData);
+
+      setData(cleanDemoData);
+      setUsername("DemoPlayer");
+      setSelectedGameIndex(0);
+      setPracticeOpening(null);
+      setOpenSections(closedSections);
+      setSavedProfileMessage(
+        "Demo profile loaded. This shows how Opening Fit looks after an import."
+      );
+
+      await trackEvent("frontend_demo_loaded", {
+        username: "DemoPlayer",
+      });
+
+      scrollToResults();
+    } catch (err) {
+      setError(getFriendlyError(err.message));
+    } finally {
+      setLoading(false);
+      setLoadingStep("");
+    }
+  };
+
+  const submitFeedback = async () => {
+    if (!feedbackMessage.trim()) {
+      setFeedbackStatus("Please type a message first.");
+      return;
+    }
+
+    setFeedbackStatus("Sending feedback...");
+
+    try {
+      const response = await fetch(`${API_BASE}/api/feedback`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: feedbackMessage.trim(),
+          contact: feedbackContact.trim() || null,
+          username: username.trim() || null,
+        }),
+      });
+
+      const text = await response.text();
+
+      if (!response.ok) {
+        throw new Error(text);
+      }
+
+      setFeedbackMessage("");
+      setFeedbackContact("");
+      setFeedbackStatus("Thanks — feedback saved.");
+    } catch (err) {
+      setFeedbackStatus(getFriendlyError(err.message));
     }
   };
 
@@ -692,16 +939,32 @@ export default function App() {
     return filteredTopOpenings.slice(0, 6);
   }, [filteredTopOpenings]);
 
+  const whiteDetailedRecommendations = useMemo(() => {
+    return filterUnknownOpenings(
+      data?.opening_recommendations?.whiteDetailed ||
+        data?.recommendedOpenings?.whiteDetailed ||
+        []
+    );
+  }, [data, showUnknownOpenings]);
+
+  const blackDetailedRecommendations = useMemo(() => {
+    return filterUnknownOpenings(
+      data?.opening_recommendations?.blackDetailed ||
+        data?.recommendedOpenings?.blackDetailed ||
+        []
+    );
+  }, [data, showUnknownOpenings]);
+
   const personalTrainingPlan = useMemo(() => {
     const plan = [];
 
     const best = [...filteredBestOpenings]
       .filter((item) => (item.games || 0) >= 3)
-      .sort((a, b) => (b.win_rate || 0) - (a.win_rate || 0));
+      .sort((a, b) => (b.win_rate || b.winRate || 0) - (a.win_rate || a.winRate || 0));
 
     const weakest = [...filteredBestOpenings]
       .filter((item) => (item.games || 0) >= 3)
-      .sort((a, b) => (a.win_rate || 0) - (b.win_rate || 0));
+      .sort((a, b) => (a.win_rate || a.winRate || 0) - (b.win_rate || b.winRate || 0));
 
     const mostPlayed = [...filteredTopOpenings]
       .filter((item) => (item.games || 0) >= 3)
@@ -723,18 +986,22 @@ export default function App() {
     }
 
     if (bestOpening) {
+      const rate = bestOpening.win_rate ?? bestOpening.winRate ?? 0;
+
       plan.push({
         title: `Keep using ${bestOpening.name}`,
-        text: `This is one of your strongest openings with a ${bestOpening.win_rate}% win rate from ${bestOpening.games} games. Keep it in your repertoire and learn one extra idea rather than replacing it.`,
+        text: `This is one of your strongest openings with a ${rate}% win rate from ${bestOpening.games} games. Keep it in your repertoire and learn one extra idea rather than replacing it.`,
         action: `Reinforce ${bestOpening.name}`,
         opening: bestOpening.name,
       });
     }
 
     if (weakOpening && weakOpening.name !== bestOpening?.name) {
+      const rate = weakOpening.win_rate ?? weakOpening.winRate ?? 0;
+
       plan.push({
         title: `Repair your ${weakOpening.name}`,
-        text: `This opening is currently scoring ${weakOpening.win_rate}% from ${weakOpening.games} games. Do not drop it immediately — first check whether you are losing in the opening or later in the middlegame.`,
+        text: `This opening is currently scoring ${rate}% from ${weakOpening.games} games. Do not drop it immediately — first check whether you are losing in the opening or later in the middlegame.`,
         action: `Practise ${weakOpening.name}`,
         opening: weakOpening.name,
       });
@@ -755,6 +1022,19 @@ export default function App() {
         text: `This is one of your regular Black openings. Focus on reaching a familiar setup instead of memorising too many sidelines.`,
         action: "Practise as Black",
         opening: blackPick.name,
+      });
+    }
+
+    if (Array.isArray(data?.training_plan) && data.training_plan.length) {
+      data.training_plan.forEach((step, index) => {
+        if (typeof step === "string") {
+          plan.push({
+            title: `Backend suggestion ${index + 1}`,
+            text: step,
+            action: null,
+            opening: null,
+          });
+        }
       });
     }
 
@@ -779,8 +1059,9 @@ export default function App() {
       }
     });
 
-    return uniquePlan.slice(0, 5);
+    return uniquePlan.slice(0, 6);
   }, [
+    data,
     filteredBestOpenings,
     filteredTopOpenings,
     filteredPreferredWhite,
@@ -799,8 +1080,16 @@ export default function App() {
 
     return {
       id: selectedGame.url || selectedGame.pgn || `${selectedGameIndex}`,
-      white: selectedGame.white_username || selectedGame.white || "White",
-      black: selectedGame.black_username || selectedGame.black || "Black",
+      white:
+        selectedGame.white_username ||
+        selectedGame.whiteUsername ||
+        selectedGame.white ||
+        "White",
+      black:
+        selectedGame.black_username ||
+        selectedGame.blackUsername ||
+        selectedGame.black ||
+        "Black",
       result: selectedGame.result || "",
       moves: parsedMoves,
     };
@@ -842,9 +1131,33 @@ export default function App() {
               onClick={importGames}
               disabled={loading || !username.trim()}
             >
-              {loading ? "Importing games..." : "Import Chess.com Games"}
+              {loading ? "Working..." : "Import Chess.com Games"}
+            </button>
+
+            <button
+              className="secondaryButton"
+              type="button"
+              onClick={loadSavedProfile}
+              disabled={loading || !username.trim()}
+            >
+              Load Saved Profile
+            </button>
+
+            <button
+              className="ghostButton"
+              type="button"
+              onClick={loadDemoAccount}
+              disabled={loading}
+            >
+              Try Demo Account
             </button>
           </div>
+
+          {loadingStep ? <p className="statusMessage">{loadingStep}</p> : null}
+
+          {savedProfileMessage ? (
+            <p className="successMessage">{savedProfileMessage}</p>
+          ) : null}
 
           <div className="filtersRow">
             <label className="checkboxRow">
@@ -862,8 +1175,8 @@ export default function App() {
           <section className="card loadingCard">
             <div className="loadingSpinner" />
             <div>
-              <h3>Importing your games</h3>
-              <p>{loadingStep || "Preparing your report..."}</p>
+              <h3>Preparing your report</h3>
+              <p>{loadingStep || "Opening Fit is working..."}</p>
             </div>
           </section>
         )}
@@ -923,6 +1236,15 @@ export default function App() {
                   {data.months_checked === 1 ? "" : "s"}
                 </span>
               </div>
+
+              <div className="card statCard">
+                <span className="statLabel">Last updated</span>
+                <span className="statValue smallStatValue">
+                  {data.lastUpdated
+                    ? new Date(data.lastUpdated).toLocaleDateString()
+                    : "Today"}
+                </span>
+              </div>
             </section>
 
             <section className="card quickNavCard">
@@ -949,6 +1271,33 @@ export default function App() {
                 </button>
               </div>
             </section>
+
+            {data?.lockedFeatures?.length ? (
+              <section className="card premiumCard">
+                <div className="premiumHeader">
+                  <span className="premiumBadge">Premium Preview</span>
+                  <h2>Unlock the full Opening Fit report</h2>
+                </div>
+
+                <p>
+                  Your free report gives you the basics. Premium will unlock
+                  deeper opening stats, saved history, advanced training plans
+                  and future Stockfish analysis.
+                </p>
+
+                <div className="lockedFeatureGrid">
+                  {data.lockedFeatures.map((feature) => (
+                    <div className="lockedFeature" key={feature}>
+                      🔒 {feature}
+                    </div>
+                  ))}
+                </div>
+
+                <button className="primaryBtn" type="button" disabled>
+                  Premium coming soon
+                </button>
+              </section>
+            ) : null}
 
             <div id="section-style">
               <Section
@@ -1000,26 +1349,30 @@ export default function App() {
 
                     <div className="list">
                       {filterUnknownOpenings(data.premium_preview?.best_opening_for_you || []).length ? (
-                        filterUnknownOpenings(data.premium_preview?.best_opening_for_you || []).map((item, index) => (
-                          <button
-                            className="listItem openingPracticeLink"
-                            key={index}
-                            type="button"
-                            onClick={() => startOpeningPractice(item.name)}
-                          >
-                            <div>
-                              <strong>{item.name}</strong>
-                              <div className="smallText">{item.games} games</div>
-                            </div>
+                        filterUnknownOpenings(data.premium_preview?.best_opening_for_you || []).map((item, index) => {
+                          const rate = item.win_rate ?? item.winRate ?? 0;
 
-                            <div className="rightStat">
-                              <div>{item.win_rate}%</div>
-                              <div className={verdictClass(item.verdict)}>
-                                {item.verdict}
+                          return (
+                            <button
+                              className="listItem openingPracticeLink"
+                              key={index}
+                              type="button"
+                              onClick={() => startOpeningPractice(item.name)}
+                            >
+                              <div>
+                                <strong>{item.name}</strong>
+                                <div className="smallText">{item.games} games</div>
                               </div>
-                            </div>
-                          </button>
-                        ))
+
+                              <div className="rightStat">
+                                <div>{rate}%</div>
+                                <div className={verdictClass(item.verdict)}>
+                                  {item.verdict}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })
                       ) : (
                         <EmptyState
                           title="No premium preview yet"
@@ -1088,6 +1441,66 @@ export default function App() {
                   </div>
                 </div>
 
+                {whiteDetailedRecommendations.length ? (
+                  <div className="recommendationDetails">
+                    <h3>Why these openings fit you as White</h3>
+
+                    <div className="openingExplainGrid">
+                      {whiteDetailedRecommendations.map((opening) => (
+                        <article className="openingExplainCard" key={opening.name}>
+                          <h4>{opening.name}</h4>
+                          <p>{opening.reason}</p>
+                          <p>
+                            <strong>Simple plan:</strong> {opening.plan}
+                          </p>
+                          <p>
+                            <strong>Avoid:</strong> {opening.mistakeToAvoid}
+                          </p>
+                          <span>{opening.difficulty}</span>
+
+                          <button
+                            className="secondaryBtn explainPracticeBtn"
+                            type="button"
+                            onClick={() => startOpeningPractice(opening.name)}
+                          >
+                            Practise
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {blackDetailedRecommendations.length ? (
+                  <div className="recommendationDetails">
+                    <h3>Why these openings fit you as Black</h3>
+
+                    <div className="openingExplainGrid">
+                      {blackDetailedRecommendations.map((opening) => (
+                        <article className="openingExplainCard" key={opening.name}>
+                          <h4>{opening.name}</h4>
+                          <p>{opening.reason}</p>
+                          <p>
+                            <strong>Simple plan:</strong> {opening.plan}
+                          </p>
+                          <p>
+                            <strong>Avoid:</strong> {opening.mistakeToAvoid}
+                          </p>
+                          <span>{opening.difficulty}</span>
+
+                          <button
+                            className="secondaryBtn explainPracticeBtn"
+                            type="button"
+                            onClick={() => startOpeningPractice(opening.name)}
+                          >
+                            Practise
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="spacerTop">
                   <h3>Summary</h3>
                   <div className="list">
@@ -1115,28 +1528,32 @@ export default function App() {
               >
                 <div className="list">
                   {filteredBestOpenings.length ? (
-                    filteredBestOpenings.map((item, index) => (
-                      <button
-                        className="listItem openingPracticeLink"
-                        key={index}
-                        type="button"
-                        onClick={() => startOpeningPractice(item.name)}
-                      >
-                        <div>
-                          <strong>{item.name}</strong>
-                          <div className="smallText">
-                            {item.games} games · {item.wins}W / {item.draws}D / {item.losses}L
-                          </div>
-                        </div>
+                    filteredBestOpenings.map((item, index) => {
+                      const rate = item.win_rate ?? item.winRate ?? 0;
 
-                        <div className="rightStat">
-                          <div>{item.win_rate}%</div>
-                          <div className={verdictClass(item.verdict)}>
-                            {item.verdict}
+                      return (
+                        <button
+                          className="listItem openingPracticeLink"
+                          key={index}
+                          type="button"
+                          onClick={() => startOpeningPractice(item.name)}
+                        >
+                          <div>
+                            <strong>{item.name}</strong>
+                            <div className="smallText">
+                              {item.games} games · {item.wins}W / {item.draws}D / {item.losses}L
+                            </div>
                           </div>
-                        </div>
-                      </button>
-                    ))
+
+                          <div className="rightStat">
+                            <div>{rate}%</div>
+                            <div className={verdictClass(item.verdict)}>
+                              {item.verdict}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })
                   ) : (
                     <EmptyState
                       title="No opening verdicts yet"
@@ -1156,25 +1573,29 @@ export default function App() {
               >
                 <div className="chartList">
                   {chartData.length ? (
-                    chartData.map((item, index) => (
-                      <button
-                        className="chartRow openingChartPracticeLink"
-                        key={index}
-                        type="button"
-                        onClick={() => startOpeningPractice(item.name)}
-                      >
-                        <div className="chartLabel">{item.name}</div>
+                    chartData.map((item, index) => {
+                      const rate = item.win_rate ?? item.winRate ?? 0;
 
-                        <div className="chartBarWrap">
-                          <div
-                            className="chartBar"
-                            style={{ width: `${Math.max(item.win_rate || 0, 2)}%` }}
-                          />
-                        </div>
+                      return (
+                        <button
+                          className="chartRow openingChartPracticeLink"
+                          key={index}
+                          type="button"
+                          onClick={() => startOpeningPractice(item.name)}
+                        >
+                          <div className="chartLabel">{item.name}</div>
 
-                        <div className="chartValue">{item.win_rate}%</div>
-                      </button>
-                    ))
+                          <div className="chartBarWrap">
+                            <div
+                              className="chartBar"
+                              style={{ width: `${Math.max(rate || 0, 2)}%` }}
+                            />
+                          </div>
+
+                          <div className="chartValue">{rate}%</div>
+                        </button>
+                      );
+                    })
                   ) : (
                     <EmptyState
                       title="No chart data yet"
@@ -1245,7 +1666,9 @@ export default function App() {
                             </div>
 
                             <div className="smallText">
-                              {game.white_username} vs {game.black_username} · {game.time_class || "-"}
+                              {game.white_username || game.whiteUsername} vs{" "}
+                              {game.black_username || game.blackUsername} ·{" "}
+                              {game.time_class || game.timeClass || "-"}
                             </div>
                           </button>
                         ))
@@ -1279,7 +1702,8 @@ export default function App() {
 
                           <div>
                             <strong>Players:</strong>{" "}
-                            {selectedGame.white_username} vs {selectedGame.black_username}
+                            {selectedGame.white_username || selectedGame.whiteUsername} vs{" "}
+                            {selectedGame.black_username || selectedGame.blackUsername}
                           </div>
                         </div>
 
@@ -1380,24 +1804,28 @@ export default function App() {
                       </thead>
 
                       <tbody>
-                        {filteredTopOpenings.map((opening, index) => (
-                          <tr key={index}>
-                            <td>
-                              <button
-                                className="tableOpeningBtn"
-                                type="button"
-                                onClick={() => startOpeningPractice(opening.name)}
-                              >
-                                {opening.name}
-                              </button>
-                            </td>
-                            <td>{opening.games}</td>
-                            <td>{opening.wins}</td>
-                            <td>{opening.draws}</td>
-                            <td>{opening.losses}</td>
-                            <td>{opening.win_rate}%</td>
-                          </tr>
-                        ))}
+                        {filteredTopOpenings.map((opening, index) => {
+                          const rate = opening.win_rate ?? opening.winRate ?? 0;
+
+                          return (
+                            <tr key={index}>
+                              <td>
+                                <button
+                                  className="tableOpeningBtn"
+                                  type="button"
+                                  onClick={() => startOpeningPractice(opening.name)}
+                                >
+                                  {opening.name}
+                                </button>
+                              </td>
+                              <td>{opening.games}</td>
+                              <td>{opening.wins}</td>
+                              <td>{opening.draws}</td>
+                              <td>{opening.losses}</td>
+                              <td>{rate}%</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1411,6 +1839,33 @@ export default function App() {
             </div>
           </div>
         )}
+
+        <section className="card feedbackCard">
+          <h2>Help improve Opening Fit</h2>
+          <p>
+            Found a bug, confusing result, or feature idea? Send quick feedback
+            before launch.
+          </p>
+
+          <textarea
+            value={feedbackMessage}
+            onChange={(e) => setFeedbackMessage(e.target.value)}
+            placeholder="What should be improved?"
+            rows={4}
+          />
+
+          <input
+            value={feedbackContact}
+            onChange={(e) => setFeedbackContact(e.target.value)}
+            placeholder="Email or TikTok username optional"
+          />
+
+          <button className="secondaryButton" type="button" onClick={submitFeedback}>
+            Send Feedback
+          </button>
+
+          {feedbackStatus ? <p className="statusMessage">{feedbackStatus}</p> : null}
+        </section>
       </main>
 
       <div className="landingWrap">
