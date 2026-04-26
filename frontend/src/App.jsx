@@ -130,6 +130,8 @@ function Footer() {
 }
 
 function RatingOpeningGuide({ onOpeningClick }) {
+  const [mobileGuideOpen, setMobileGuideOpen] = useState(false);
+
   const ratingRanges = [
     {
       range: "Under 800",
@@ -174,61 +176,76 @@ function RatingOpeningGuide({ onOpeningClick }) {
   ];
 
   return (
-    <section className="ratingGuideSection" id="rating-openings">
-      <div className="landingSectionHeading">
+    <section
+      className={`ratingGuideSection ${
+        mobileGuideOpen ? "ratingGuideOpen" : "ratingGuideClosed"
+      }`}
+      id="rating-openings"
+    >
+      <div className="landingSectionHeading ratingGuideHeading">
         <p className="landingEyebrow">Opening trends</p>
         <h2>Popular openings by rating range.</h2>
         <p>
           A quick guide to the openings players commonly choose at different
           levels. Click any opening to practise a supported main line.
         </p>
+
+        <button
+          className="mobileSectionRevealBtn"
+          type="button"
+          onClick={() => setMobileGuideOpen((prev) => !prev)}
+        >
+          {mobileGuideOpen ? "Hide rating guide" : "Show rating guide"}
+        </button>
       </div>
 
-      <div className="ratingGuideGrid">
-        {ratingRanges.map((item) => (
-          <article className="ratingGuideCard" key={item.range}>
-            <div className="ratingGuideTop">
-              <h3>{item.range}</h3>
-              <p>{item.label}</p>
-            </div>
-
-            <p className="ratingGuideDescription">{item.description}</p>
-
-            <div className="ratingOpeningColumns">
-              <div>
-                <h4>Common as White</h4>
-                <div className="ratingOpeningList">
-                  {item.white.map((opening) => (
-                    <button
-                      key={opening}
-                      type="button"
-                      className="ratingOpeningBtn"
-                      onClick={() => onOpeningClick(opening)}
-                    >
-                      {opening}
-                    </button>
-                  ))}
-                </div>
+      <div className="ratingGuideBody">
+        <div className="ratingGuideGrid">
+          {ratingRanges.map((item) => (
+            <article className="ratingGuideCard" key={item.range}>
+              <div className="ratingGuideTop">
+                <h3>{item.range}</h3>
+                <p>{item.label}</p>
               </div>
 
-              <div>
-                <h4>Common as Black</h4>
-                <div className="ratingOpeningList">
-                  {item.black.map((opening) => (
-                    <button
-                      key={opening}
-                      type="button"
-                      className="ratingOpeningBtn"
-                      onClick={() => onOpeningClick(opening)}
-                    >
-                      {opening}
-                    </button>
-                  ))}
+              <p className="ratingGuideDescription">{item.description}</p>
+
+              <div className="ratingOpeningColumns">
+                <div>
+                  <h4>Common as White</h4>
+                  <div className="ratingOpeningList">
+                    {item.white.map((opening) => (
+                      <button
+                        key={opening}
+                        type="button"
+                        className="ratingOpeningBtn"
+                        onClick={() => onOpeningClick(opening)}
+                      >
+                        {opening}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4>Common as Black</h4>
+                  <div className="ratingOpeningList">
+                    {item.black.map((opening) => (
+                      <button
+                        key={opening}
+                        type="button"
+                        className="ratingOpeningBtn"
+                        onClick={() => onOpeningClick(opening)}
+                      >
+                        {opening}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -597,7 +614,8 @@ export default function App() {
 
     return {
       ...incoming,
-      total_games: incoming.total_games ?? incoming.totalGames ?? incoming.gamesImported ?? 0,
+      total_games:
+        incoming.total_games ?? incoming.totalGames ?? incoming.gamesImported ?? 0,
       months_checked: incoming.months_checked ?? incoming.monthsChecked ?? 0,
       top_openings: incoming.top_openings ?? incoming.topOpenings ?? [],
       best_openings: incoming.best_openings ?? incoming.bestOpenings ?? [],
@@ -960,11 +978,17 @@ export default function App() {
 
     const best = [...filteredBestOpenings]
       .filter((item) => (item.games || 0) >= 3)
-      .sort((a, b) => (b.win_rate || b.winRate || 0) - (a.win_rate || a.winRate || 0));
+      .sort(
+        (a, b) =>
+          (b.win_rate || b.winRate || 0) - (a.win_rate || a.winRate || 0)
+      );
 
     const weakest = [...filteredBestOpenings]
       .filter((item) => (item.games || 0) >= 3)
-      .sort((a, b) => (a.win_rate || a.winRate || 0) - (b.win_rate || b.winRate || 0));
+      .sort(
+        (a, b) =>
+          (a.win_rate || a.winRate || 0) - (b.win_rate || b.winRate || 0)
+      );
 
     const mostPlayed = [...filteredTopOpenings]
       .filter((item) => (item.games || 0) >= 3)
@@ -1251,22 +1275,46 @@ export default function App() {
               <h2>Quick View</h2>
 
               <div className="quickNavGrid">
-                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("style")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("style")}
+                >
                   Style Profile
                 </button>
-                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("recommendations")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("recommendations")}
+                >
                   Opening Suggestions
                 </button>
-                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("verdicts")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("verdicts")}
+                >
                   Keep / Improve / Avoid
                 </button>
-                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("chart")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("chart")}
+                >
                   Win Rate Chart
                 </button>
-                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("training")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("training")}
+                >
                   Personal Plan
                 </button>
-                <button className="quickNavBtn secondaryBtn" type="button" onClick={() => openOnly("replay")}>
+                <button
+                  className="quickNavBtn secondaryBtn"
+                  type="button"
+                  onClick={() => openOnly("replay")}
+                >
                   Game Replay
                 </button>
               </div>
@@ -1304,13 +1352,19 @@ export default function App() {
                 title="Style Profile"
                 isOpen={openSections.style}
                 onToggle={() => toggleSection("style")}
-                badge={filterUnknownOpenings(data.style_profile?.labels || []).join(" · ")}
+                badge={filterUnknownOpenings(
+                  data.style_profile?.labels || []
+                ).join(" · ")}
               >
                 <div className="twoCol">
                   <div>
                     <div className="chips">
-                      {filterUnknownOpenings(data.style_profile?.labels || []).map((label, index) => (
-                        <span className="chip" key={index}>{label}</span>
+                      {filterUnknownOpenings(
+                        data.style_profile?.labels || []
+                      ).map((label, index) => (
+                        <span className="chip" key={index}>
+                          {label}
+                        </span>
                       ))}
                     </div>
 
@@ -1322,8 +1376,12 @@ export default function App() {
                     <h3>Top Opening Families</h3>
 
                     <div className="list">
-                      {filterUnknownOpenings(data.style_profile?.top_opening_families || []).length ? (
-                        filterUnknownOpenings(data.style_profile?.top_opening_families || []).map((item, index) => (
+                      {filterUnknownOpenings(
+                        data.style_profile?.top_opening_families || []
+                      ).length ? (
+                        filterUnknownOpenings(
+                          data.style_profile?.top_opening_families || []
+                        ).map((item, index) => (
                           <button
                             className="listItem openingPracticeLink"
                             key={index}
@@ -1348,8 +1406,12 @@ export default function App() {
                     <h3>Best Openings For You</h3>
 
                     <div className="list">
-                      {filterUnknownOpenings(data.premium_preview?.best_opening_for_you || []).length ? (
-                        filterUnknownOpenings(data.premium_preview?.best_opening_for_you || []).map((item, index) => {
+                      {filterUnknownOpenings(
+                        data.premium_preview?.best_opening_for_you || []
+                      ).length ? (
+                        filterUnknownOpenings(
+                          data.premium_preview?.best_opening_for_you || []
+                        ).map((item, index) => {
                           const rate = item.win_rate ?? item.winRate ?? 0;
 
                           return (
@@ -1361,7 +1423,9 @@ export default function App() {
                             >
                               <div>
                                 <strong>{item.name}</strong>
-                                <div className="smallText">{item.games} games</div>
+                                <div className="smallText">
+                                  {item.games} games
+                                </div>
                               </div>
 
                               <div className="rightStat">
@@ -1395,8 +1459,12 @@ export default function App() {
                   <div>
                     <h3>Recommended as White</h3>
                     <div className="list">
-                      {filterUnknownOpenings(data.opening_recommendations?.white || []).length ? (
-                        filterUnknownOpenings(data.opening_recommendations?.white || []).map((item, index) => (
+                      {filterUnknownOpenings(
+                        data.opening_recommendations?.white || []
+                      ).length ? (
+                        filterUnknownOpenings(
+                          data.opening_recommendations?.white || []
+                        ).map((item, index) => (
                           <button
                             className="listItem openingPracticeLink"
                             key={index}
@@ -1419,8 +1487,12 @@ export default function App() {
                   <div>
                     <h3>Recommended as Black</h3>
                     <div className="list">
-                      {filterUnknownOpenings(data.opening_recommendations?.black || []).length ? (
-                        filterUnknownOpenings(data.opening_recommendations?.black || []).map((item, index) => (
+                      {filterUnknownOpenings(
+                        data.opening_recommendations?.black || []
+                      ).length ? (
+                        filterUnknownOpenings(
+                          data.opening_recommendations?.black || []
+                        ).map((item, index) => (
                           <button
                             className="listItem openingPracticeLink"
                             key={index}
@@ -1447,7 +1519,10 @@ export default function App() {
 
                     <div className="openingExplainGrid">
                       {whiteDetailedRecommendations.map((opening) => (
-                        <article className="openingExplainCard" key={opening.name}>
+                        <article
+                          className="openingExplainCard"
+                          key={opening.name}
+                        >
                           <h4>{opening.name}</h4>
                           <p>{opening.reason}</p>
                           <p>
@@ -1477,7 +1552,10 @@ export default function App() {
 
                     <div className="openingExplainGrid">
                       {blackDetailedRecommendations.map((opening) => (
-                        <article className="openingExplainCard" key={opening.name}>
+                        <article
+                          className="openingExplainCard"
+                          key={opening.name}
+                        >
                           <h4>{opening.name}</h4>
                           <p>{opening.reason}</p>
                           <p>
@@ -1506,7 +1584,9 @@ export default function App() {
                   <div className="list">
                     {(data.recommendations || []).length ? (
                       (data.recommendations || []).map((item, index) => (
-                        <div className="listItem" key={index}>{item}</div>
+                        <div className="listItem" key={index}>
+                          {item}
+                        </div>
                       ))
                     ) : (
                       <EmptyState
@@ -1541,7 +1621,8 @@ export default function App() {
                           <div>
                             <strong>{item.name}</strong>
                             <div className="smallText">
-                              {item.games} games · {item.wins}W / {item.draws}D / {item.losses}L
+                              {item.games} games · {item.wins}W / {item.draws}D
+                              / {item.losses}L
                             </div>
                           </div>
 
@@ -1656,7 +1737,9 @@ export default function App() {
                             key={index}
                             type="button"
                             className={`gamePickerButton ${
-                              selectedGameIndex === index ? "gamePickerButtonActive" : ""
+                              selectedGameIndex === index
+                                ? "gamePickerButtonActive"
+                                : ""
                             }`}
                             onClick={() => setSelectedGameIndex(index)}
                           >
@@ -1690,7 +1773,9 @@ export default function App() {
                             <button
                               className="tableOpeningBtn"
                               type="button"
-                              onClick={() => startOpeningPractice(selectedGame.opening)}
+                              onClick={() =>
+                                startOpeningPractice(selectedGame.opening)
+                              }
                             >
                               {selectedGame.opening}
                             </button>
@@ -1702,8 +1787,11 @@ export default function App() {
 
                           <div>
                             <strong>Players:</strong>{" "}
-                            {selectedGame.white_username || selectedGame.whiteUsername} vs{" "}
-                            {selectedGame.black_username || selectedGame.blackUsername}
+                            {selectedGame.white_username ||
+                              selectedGame.whiteUsername}{" "}
+                            vs{" "}
+                            {selectedGame.black_username ||
+                              selectedGame.blackUsername}
                           </div>
                         </div>
 
@@ -1813,7 +1901,9 @@ export default function App() {
                                 <button
                                   className="tableOpeningBtn"
                                   type="button"
-                                  onClick={() => startOpeningPractice(opening.name)}
+                                  onClick={() =>
+                                    startOpeningPractice(opening.name)
+                                  }
                                 >
                                   {opening.name}
                                 </button>
@@ -1860,11 +1950,17 @@ export default function App() {
             placeholder="Email or TikTok username optional"
           />
 
-          <button className="secondaryButton" type="button" onClick={submitFeedback}>
+          <button
+            className="secondaryButton"
+            type="button"
+            onClick={submitFeedback}
+          >
             Send Feedback
           </button>
 
-          {feedbackStatus ? <p className="statusMessage">{feedbackStatus}</p> : null}
+          {feedbackStatus ? (
+            <p className="statusMessage">{feedbackStatus}</p>
+          ) : null}
         </section>
       </main>
 

@@ -3494,3 +3494,139 @@ textarea {
     font-size: 0.78rem !important;
   }
 }
+/* ================================
+   MOBILE COMPACT / CLICK TO REVEAL
+================================ */
+
+.mobileSectionRevealBtn {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  /* Bring rating guide back on mobile, but collapsed */
+  #rating-openings {
+    display: block !important;
+  }
+
+  .ratingGuideSection {
+    padding: 0.9rem !important;
+    margin-top: 0.8rem !important;
+    margin-bottom: 0.8rem !important;
+  }
+
+  .ratingGuideHeading {
+    margin-bottom: 0 !important;
+  }
+
+  .ratingGuideHeading h2 {
+    font-size: 1.25rem !important;
+    margin-bottom: 0.35rem !important;
+  }
+
+  .ratingGuideHeading p:not(.landingEyebrow) {
+    font-size: 0.88rem !important;
+    line-height: 1.4 !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .mobileSectionRevealBtn {
+    display: inline-flex;
+    width: 100%;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid rgba(96, 165, 250, 0.28);
+    background: rgba(37, 99, 235, 0.12);
+    color: #dbeafe;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .ratingGuideClosed .ratingGuideBody {
+    display: none !important;
+  }
+
+  .ratingGuideOpen .ratingGuideBody {
+    display: block !important;
+    margin-top: 0.85rem;
+  }
+
+  .ratingGuideOpen .ratingGuideGrid {
+    grid-template-columns: 1fr !important;
+    gap: 0.65rem !important;
+  }
+
+  .ratingGuideCard {
+    padding: 0.8rem !important;
+    border-radius: 16px !important;
+  }
+
+  .ratingGuideTop {
+    margin-bottom: 0.45rem !important;
+  }
+
+  .ratingGuideTop h3 {
+    font-size: 1rem !important;
+  }
+
+  .ratingGuideTop p,
+  .ratingGuideDescription {
+    font-size: 0.82rem !important;
+    line-height: 1.35 !important;
+  }
+
+  .ratingGuideDescription {
+    margin-bottom: 0.65rem !important;
+  }
+
+  .ratingOpeningColumns {
+    grid-template-columns: 1fr !important;
+    gap: 0.65rem !important;
+  }
+
+  .ratingOpeningColumns h4 {
+    font-size: 0.82rem !important;
+    margin-bottom: 0.4rem !important;
+  }
+
+  .ratingOpeningList {
+    gap: 0.4rem !important;
+  }
+
+  .ratingOpeningBtn {
+    padding: 0.45rem 0.6rem !important;
+    font-size: 0.78rem !important;
+    border-radius: 999px !important;
+  }
+
+  /* Compact other non-essential mobile areas */
+  #features,
+  #about,
+  #how-it-works,
+  #premium {
+    display: none !important;
+  }
+
+  .landingHero {
+    margin-bottom: 0.7rem !important;
+  }
+
+  .landingHeroCopy h1 {
+    max-width: 12ch;
+  }
+
+  .landingSubtext {
+    max-width: 34ch;
+  }
+
+  .feedbackCard textarea {
+    min-height: 92px;
+  }
+}
+
+@media (min-width: 761px) {
+  .ratingGuideBody {
+    display: block !important;
+  }
+}
