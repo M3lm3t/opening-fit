@@ -2,61 +2,18 @@
   "username": "melmet",
   "usernameKey": "melmet",
   "platform": "chess.com",
-  "lastUpdated": "2026-04-26T20:04:26.114394+00:00",
+  "lastUpdated": "2026-04-26T20:12:46.856674+00:00",
   "isPremium": false,
   "importHistory": [
     {
-      "date": "2026-04-26T20:04:26.121882+00:00",
+      "date": "2026-04-26T20:12:46.858545+00:00",
+      "platform": "chess.com",
       "gamesImported": 502,
       "monthsChecked": 3
     },
     {
-      "date": "2026-04-26T19:40:39.910960+00:00",
-      "gamesImported": 502,
-      "monthsChecked": 3
-    },
-    {
-      "date": "2026-04-26T19:40:27.123919+00:00",
-      "gamesImported": 502,
-      "monthsChecked": 3
-    },
-    {
-      "date": "2026-04-26T19:35:16.942243+00:00",
-      "gamesImported": 502,
-      "monthsChecked": 3
-    },
-    {
-      "date": "2026-04-26T19:33:37.823905+00:00",
-      "gamesImported": 502,
-      "monthsChecked": 3
-    },
-    {
-      "date": "2026-04-26T19:31:58.303804+00:00",
-      "gamesImported": 502,
-      "monthsChecked": 3
-    },
-    {
-      "date": "2026-04-26T18:59:08.382039+00:00",
-      "gamesImported": 502,
-      "monthsChecked": 3
-    },
-    {
-      "date": "2026-04-26T18:08:08.010843+00:00",
-      "gamesImported": 502,
-      "monthsChecked": 3
-    },
-    {
-      "date": "2026-04-26T18:03:40.962025+00:00",
-      "gamesImported": 502,
-      "monthsChecked": 3
-    },
-    {
-      "date": "2026-04-26T17:58:03.041109+00:00",
-      "gamesImported": 502,
-      "monthsChecked": 3
-    },
-    {
-      "date": "2026-04-26T17:50:21.582669+00:00",
+      "date": "2026-04-26T20:11:30.792208+00:00",
+      "platform": "chess.com",
       "gamesImported": 502,
       "monthsChecked": 3
     }
@@ -1380,7 +1337,7 @@
       "After each game, review where tactics first appeared rather than only the final blunder.",
       "Choose one main line and one backup line so flexibility does not become inconsistency."
     ],
-    "lastUpdated": "2026-04-26T20:04:26.114323+00:00",
+    "lastUpdated": "2026-04-26T20:12:46.856596+00:00",
     "isPremium": false,
     "lockedFeatures": [
       "Full opening ranking",
@@ -1392,6 +1349,54 @@
       "Future Stockfish analysis"
     ],
     "premiumPreview": {
+      "title": "Unlock full opening report",
+      "best_opening_for_you": [
+        {
+          "name": "Pirc Defence",
+          "games": 6,
+          "wins": 4,
+          "draws": 0,
+          "losses": 2,
+          "win_rate": 66.7,
+          "winRate": 66.7,
+          "score": 0.67,
+          "verdict": "Keep"
+        },
+        {
+          "name": "R\u00e9ti Opening",
+          "games": 9,
+          "wins": 5,
+          "draws": 1,
+          "losses": 3,
+          "win_rate": 55.6,
+          "winRate": 55.6,
+          "score": 0.61,
+          "verdict": "Keep"
+        },
+        {
+          "name": "Scandinavian Defence",
+          "games": 169,
+          "wins": 99,
+          "draws": 6,
+          "losses": 64,
+          "win_rate": 58.6,
+          "winRate": 58.6,
+          "score": 0.6,
+          "verdict": "Keep"
+        }
+      ],
+      "style_profile_summary": "You lean toward active positions and practical initiative. Your games suggest you are comfortable in sharper positions. You seem comfortable transposing between different setups.",
+      "premium_features": [
+        "Full opening ranking",
+        "Keep / Improve / Avoid engine",
+        "Training plan by style",
+        "Opening recommendations",
+        "More months of game history",
+        "Opponent-specific prep",
+        "Future Stockfish analysis"
+      ]
+    },
+    "premium_preview": {
       "title": "Unlock full opening report",
       "best_opening_for_you": [
         {

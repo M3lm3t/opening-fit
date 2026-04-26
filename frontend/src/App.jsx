@@ -9,6 +9,20 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 const STORAGE_KEY = "openingFit:lastAnalysis";
 const USERNAME_KEY = "openingFit:lastUsername";
 const PREMIUM_KEY = "openingFit:isPremiumDemo";
+const PLATFORM_KEY = "openingFit:lastPlatform";
+
+const platforms = {
+  chesscom: {
+    label: "Chess.com",
+    apiPath: "chesscom",
+    usernamePlaceholder: "Chess.com username",
+  },
+  lichess: {
+    label: "Lichess",
+    apiPath: "lichess",
+    usernamePlaceholder: "Lichess username",
+  },
+};
 
 const closedSections = {
   style: false,
@@ -580,6 +594,8 @@ function LandingSection({ onOpeningClick }) {
 
 export default function App() {
   const [username, setUsername] = useState("");
+  const [platform, setPlatform] = useState("chesscom");
+  const [apiStatus, setApiStatus] = useState("checking");
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
   const [error, setError] = useState("");
@@ -598,10 +614,15 @@ export default function App() {
   useEffect(() => {
     const savedUsername = localStorage.getItem(USERNAME_KEY);
     const savedPremium = localStorage.getItem(PREMIUM_KEY);
+    const savedPlatform = localStorage.getItem(PLATFORM_KEY);
     const savedAnalysis = localStorage.getItem(STORAGE_KEY);
 
     if (savedUsername) setUsername(savedUsername);
     if (savedPremium === "true") setIsPremium(true);
+
+    if (savedPlatform && platforms[savedPlatform]) {
+      setPlatform(savedPlatform);
+    }
 
     if (savedAnalysis) {
       try {
@@ -619,6 +640,32 @@ export default function App() {
         localStorage.removeItem(STORAGE_KEY);
       }
     }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function checkApiHealth() {
+      try {
+        const response = await fetch(`${API_BASE}/api/health`);
+
+        if (!mounted) return;
+
+        if (response.ok) {
+          setApiStatus("online");
+        } else {
+          setApiStatus("warning");
+        }
+      } catch {
+        if (mounted) setApiStatus("offline");
+      }
+    }
+
+    checkApiHealth();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -658,7 +705,7 @@ export default function App() {
     }
 
     if (lower.includes("not found") || lower.includes("could not find")) {
-      return "Could not find that Chess.com username. Check the spelling and try again.";
+      return "Could not find that username. Check the spelling and try again.";
     }
 
     if (lower.includes("no games")) {
@@ -666,7 +713,7 @@ export default function App() {
     }
 
     if (lower.includes("rate limiting") || lower.includes("429")) {
-      return "Chess.com is temporarily limiting requests. Try again in a minute.";
+      return "The chess platform is temporarily limiting requests. Try again in a minute.";
     }
 
     if (
@@ -674,7 +721,11 @@ export default function App() {
       lower.includes("connection refused") ||
       lower.includes("could not connect")
     ) {
-      return "Could not connect to the backend. Make sure FastAPI is running.";
+      return "Could not connect to the backend. Make sure FastAPI is running, or check your live backend URL.";
+    }
+
+    if (lower.includes("404") && platform === "lichess") {
+      return "Lichess is selected, but the backend Lichess route may not be added yet. Chess.com should still work.";
     }
 
     try {
@@ -721,6 +772,7 @@ export default function App() {
 
     const payload = {
       username: cleanUsername,
+      platform,
       savedAt,
       analysis: {
         ...analysis,
@@ -730,6 +782,7 @@ export default function App() {
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     localStorage.setItem(USERNAME_KEY, cleanUsername);
+    localStorage.setItem(PLATFORM_KEY, platform);
     setLocalSavedAt(savedAt);
   };
 
@@ -751,6 +804,9 @@ export default function App() {
 
       setData(cleanData);
       setUsername(parsed.username || cleanData.username || "");
+      if (parsed.platform && platforms[parsed.platform]) {
+        setPlatform(parsed.platform);
+      }
       setSelectedGameIndex(0);
       setPracticeOpening(null);
       setOpenSections(closedSections);
@@ -847,7 +903,7 @@ export default function App() {
 
   const importGames = async () => {
     setLoading(true);
-    setLoadingStep("Finding your recent Chess.com games...");
+    setLoadingStep(`Finding your recent ${platforms[platform]?.label || "chess"} games...`);
     setError("");
     setSavedProfileMessage("");
     setFeedbackStatus("");
@@ -860,25 +916,29 @@ export default function App() {
 
     try {
       if (!cleanUsername) {
-        throw new Error("Please enter a Chess.com username.");
+        throw new Error("Please enter a username.");
       }
 
+      const selectedPlatform = platforms[platform] || platforms.chesscom;
+
       localStorage.setItem(USERNAME_KEY, cleanUsername);
+      localStorage.setItem(PLATFORM_KEY, platform);
 
       await trackEvent("frontend_import_started", {
         username: cleanUsername,
+        platform,
         months: monthsToImport,
         premiumDemo: isPremium,
       });
 
       setLoadingStep(
         isPremium
-          ? "Fetching up to 12 months of Chess.com games..."
-          : "Fetching your recent Chess.com games..."
+          ? `Fetching up to 12 months of ${selectedPlatform.label} games...`
+          : `Fetching your recent ${selectedPlatform.label} games...`
       );
 
       const res = await fetch(
-        `${API_BASE}/api/import/chesscom/${encodeURIComponent(
+        `${API_BASE}/api/import/${selectedPlatform.apiPath}/${encodeURIComponent(
           cleanUsername
         )}?months=${monthsToImport}`
       );
@@ -916,6 +976,7 @@ export default function App() {
 
       await trackEvent("frontend_import_completed", {
         username: cleanUsername,
+        platform,
         gamesImported: cleanData.gamesImported ?? cleanData.total_games,
         months: monthsToImport,
       });
@@ -940,7 +1001,7 @@ export default function App() {
       const loadedLocal = loadLocalAnalysis();
 
       if (!loadedLocal) {
-        setError("Enter a Chess.com username first, or import games once.");
+        setError("Enter a username first, or import games once.");
       }
 
       return;
@@ -980,7 +1041,7 @@ export default function App() {
 
         throw new Error(
           profile?.detail ||
-            "No saved profile found yet. Import this Chess.com username first, then you can load it next time."
+            "No saved profile found yet. Import this username first, then you can load it next time."
         );
       }
 
@@ -1012,6 +1073,7 @@ export default function App() {
 
       await trackEvent("frontend_saved_profile_loaded", {
         username: cleanUsername,
+        platform,
       });
 
       scrollToResults();
@@ -1057,7 +1119,7 @@ export default function App() {
       setPracticeOpening(null);
       setOpenSections(closedSections);
       setSavedProfileMessage(
-        "Demo profile loaded. This is sample data, so use Import Chess.com Games for your real saved profile."
+        "Demo profile loaded. This is sample data, so use Import Games for your real saved profile."
       );
 
       await trackEvent("frontend_demo_loaded", {
@@ -1091,6 +1153,7 @@ export default function App() {
           message: feedbackMessage.trim(),
           contact: feedbackContact.trim() || null,
           username: username.trim() || null,
+          platform,
         }),
       });
 
@@ -1359,7 +1422,7 @@ export default function App() {
           <div className="heroTop">
             <div className="heroTitleWrap">
               <p className="eyebrow">Opening Fit App</p>
-              <h1>Analyse your Chess.com openings</h1>
+              <h1>Analyse your chess openings</h1>
               <p className="subtext">
                 Import your recent games and get a clean report showing your
                 playing style, best openings, weak spots, and simple repertoire
@@ -1369,11 +1432,35 @@ export default function App() {
           </div>
 
           <div className="searchRow topBar appActionPanel">
+            <div className="platformSelector">
+              <button
+                type="button"
+                className={`platformButton ${
+                  platform === "chesscom" ? "platformButtonActive" : ""
+                }`}
+                onClick={() => setPlatform("chesscom")}
+              >
+                Chess.com
+              </button>
+
+              <button
+                type="button"
+                className={`platformButton ${
+                  platform === "lichess" ? "platformButtonActive" : ""
+                }`}
+                onClick={() => setPlatform("lichess")}
+              >
+                Lichess
+              </button>
+            </div>
+
             <input
               className="input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Chess.com username"
+              placeholder={
+                platforms[platform]?.usernamePlaceholder || "Chess username"
+              }
             />
 
             <div className="appActionButtons">
@@ -1386,8 +1473,10 @@ export default function App() {
                 {loading
                   ? "Working..."
                   : isPremium
-                  ? "Import 12 Months"
-                  : "Import Chess.com Games"}
+                  ? `Import 12 Months from ${
+                      platforms[platform]?.label || "Platform"
+                    }`
+                  : `Import ${platforms[platform]?.label || "Games"} Games`}
               </button>
 
               <button
@@ -1448,6 +1537,9 @@ export default function App() {
             </div>
           ) : null}
 
+
+
+
           {loadingStep ? <p className="statusMessage">{loadingStep}</p> : null}
 
           {savedProfileMessage ? (
@@ -1506,6 +1598,13 @@ export default function App() {
               <div className="card statCard">
                 <span className="statLabel">Player</span>
                 <span className="statValue">{data.username}</span>
+              </div>
+
+              <div className="card statCard">
+                <span className="statLabel">Platform</span>
+                <span className="statValue smallStatValue">
+                  {platforms[platform]?.label || "Chess"}
+                </span>
               </div>
 
               <div className="card statCard">
