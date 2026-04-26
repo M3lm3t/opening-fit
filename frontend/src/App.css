@@ -2049,3 +2049,607 @@ th {
     width: 100%;
   }
 }
+/* ================================
+   MOBILE POLISH OVERRIDES
+   Paste at very bottom of App.css
+================================ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.page,
+.landingWrap,
+.container,
+.appShell {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+canvas,
+table {
+  max-width: 100%;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+/* Better phone spacing */
+@media (max-width: 760px) {
+  .landingWrap {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+
+  .container,
+  .appShell {
+    width: 100%;
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+    box-sizing: border-box;
+  }
+
+  .landingHero,
+  .heroCard,
+  .card,
+  .landingContentSection,
+  .ratingGuideSection {
+    border-radius: 20px;
+  }
+
+  .landingHero {
+    padding: 1rem;
+  }
+
+  .heroCard {
+    padding: 1rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .landingNav {
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .landingBrand {
+    width: 100%;
+  }
+
+  .landingBrandIcon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+  }
+
+  .landingBrandTitle {
+    font-size: 1rem;
+  }
+
+  .landingBrandSubtitle {
+    font-size: 0.78rem;
+  }
+
+  .landingNavLinks {
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.35rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .landingNavLinks::-webkit-scrollbar {
+    display: none;
+  }
+
+  .landingNavLinks a {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-size: 0.82rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+  }
+
+  .landingHeroGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .landingHeroCopy h1 {
+    font-size: clamp(2rem, 10vw, 3rem);
+    line-height: 0.98;
+    letter-spacing: -0.06em;
+  }
+
+  .landingSubtext,
+  .subtext,
+  .landingSectionHeading p {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  .landingPill {
+    width: fit-content;
+    max-width: 100%;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+  }
+
+  .landingHeroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  .landingPrimaryBtn,
+  .landingSecondaryBtn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  .landingStats,
+  .landingPreviewGrid,
+  .landingFeatureGrid,
+  .aboutGrid,
+  .landingPricingGrid,
+  .ratingGuideGrid,
+  .statsGrid,
+  .placeholderGrid,
+  .twoCol,
+  .analysisGrid,
+  .quickNavGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landingStats {
+    gap: 0.65rem;
+  }
+
+  .landingStatCard {
+    min-height: auto;
+  }
+
+  .landingPreviewCard {
+    padding: 1rem;
+    border-radius: 20px;
+  }
+
+  .landingPreviewTop,
+  .landingPriceTop,
+  .heroTop {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .landingPreviewTop,
+  .landingPriceTop {
+    flex-direction: column;
+  }
+
+  .landingContentSection,
+  .ratingGuideSection {
+    padding: 1rem;
+  }
+
+  .landingSectionHeading h2,
+  .heroTitleWrap h1 {
+    font-size: clamp(1.55rem, 7vw, 2.2rem);
+    line-height: 1.05;
+  }
+
+  .landingFeatureCard,
+  .aboutCard,
+  .ratingGuideCard,
+  .landingPriceCard,
+  .smallCard,
+  .statCard {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
+  .ratingOpeningColumns {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .ratingOpeningList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .ratingOpeningBtn,
+  .landingOpeningBtn,
+  .inlineOpeningBtn,
+  .tableOpeningBtn {
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+  }
+
+  .searchRow,
+  .topBar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  .input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    font-size: 16px;
+  }
+
+  .primaryBtn,
+  .secondaryBtn,
+  .secondaryButton,
+  .ghostButton,
+  .quickNavBtn {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  .filtersRow {
+    margin-top: 0.9rem;
+    align-items: flex-start;
+  }
+
+  .checkboxRow {
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.9rem;
+  }
+
+  .checkboxRow input {
+    margin-top: 0.18rem;
+  }
+
+  .statusMessage,
+  .successMessage,
+  .errorBox {
+    font-size: 0.9rem;
+    border-radius: 14px;
+  }
+
+  .statsGrid {
+    gap: 0.75rem;
+  }
+
+  .statCard {
+    min-height: auto;
+  }
+
+  .statValue {
+    font-size: 1.25rem;
+    line-height: 1.1;
+    word-break: break-word;
+  }
+
+  .smallStatValue {
+    font-size: 0.95rem;
+  }
+
+  .quickNavCard h2 {
+    margin-bottom: 0.8rem;
+  }
+
+  .quickNavGrid {
+    gap: 0.65rem;
+  }
+
+  .sectionToggle {
+    gap: 0.8rem;
+    align-items: flex-start;
+  }
+
+  .sectionToggleLeft {
+    min-width: 0;
+  }
+
+  .sectionToggleLeft h2 {
+    font-size: 1.05rem;
+    line-height: 1.2;
+  }
+
+  .sectionBadge {
+    max-width: 42%;
+    white-space: normal;
+    text-align: right;
+    line-height: 1.2;
+    font-size: 0.72rem;
+  }
+
+  .sectionBody {
+    padding-top: 0.9rem;
+  }
+
+  .chips {
+    gap: 0.45rem;
+  }
+
+  .chip {
+    font-size: 0.78rem;
+  }
+
+  .profileSummary {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  .list {
+    gap: 0.65rem;
+  }
+
+  .listItem {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.85rem;
+    border-radius: 16px;
+    min-width: 0;
+  }
+
+  .listItem strong,
+  .chartLabel,
+  .gamePickerTop strong {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .rightStat {
+    min-width: 68px;
+    text-align: right;
+  }
+
+  .premiumMiniCard,
+  .premiumCard {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
+  .lockedFeatureGrid,
+  .openingExplainGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .openingExplainCard,
+  .lockedFeature {
+    padding: 0.9rem;
+    border-radius: 16px;
+  }
+
+  .openingExplainCard p {
+    font-size: 0.92rem;
+  }
+
+  .chartRow {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+    padding: 0.85rem;
+    border-radius: 16px;
+  }
+
+  .chartLabel {
+    width: 100%;
+  }
+
+  .chartBarWrap {
+    width: 100%;
+  }
+
+  .chartValue {
+    text-align: left;
+    font-size: 0.9rem;
+  }
+
+  .trainingPlanItem {
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    padding: 0.9rem;
+    border-radius: 16px;
+  }
+
+  .trainingStepNumber {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+  }
+
+  .trainingStepContent h3 {
+    font-size: 1rem;
+  }
+
+  .trainingStepContent p {
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  .boardSection {
+    gap: 1rem;
+  }
+
+  .movesPanel {
+    max-height: none;
+  }
+
+  .gamePickerList {
+    max-height: 340px;
+    overflow-y: auto;
+    padding-right: 0.15rem;
+  }
+
+  .gamePickerButton {
+    padding: 0.85rem;
+    border-radius: 16px;
+  }
+
+  .gamePickerTop {
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .gamePickerTop span {
+    flex: 0 0 auto;
+  }
+
+  .boardMeta {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+    font-size: 0.9rem;
+    padding: 0.85rem;
+    border-radius: 16px;
+  }
+
+  .tableWrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 560px;
+  }
+
+  th,
+  td {
+    padding: 0.7rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .feedbackCard textarea,
+  .feedbackCard input {
+    font-size: 16px;
+  }
+
+  .siteFooter {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+    padding: 1rem;
+    border-radius: 20px;
+  }
+
+  .footerLinks {
+    align-items: flex-start;
+  }
+}
+
+/* Extra-small phones */
+@media (max-width: 430px) {
+  .landingWrap,
+  .container,
+  .appShell {
+    padding-left: 0.65rem;
+    padding-right: 0.65rem;
+  }
+
+  .landingHero,
+  .heroCard,
+  .card,
+  .landingContentSection,
+  .ratingGuideSection {
+    padding: 0.85rem;
+    border-radius: 18px;
+  }
+
+  .landingHeroCopy h1 {
+    font-size: 2.15rem;
+  }
+
+  .landingSectionHeading h2,
+  .heroTitleWrap h1 {
+    font-size: 1.65rem;
+  }
+
+  .landingPreviewCard,
+  .landingFeatureCard,
+  .aboutCard,
+  .ratingGuideCard,
+  .landingPriceCard,
+  .smallCard,
+  .statCard {
+    padding: 0.85rem;
+  }
+
+  .sectionBadge {
+    display: none;
+  }
+
+  .listItem {
+    flex-direction: column;
+  }
+
+  .rightStat {
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .trainingPlanItem {
+    grid-template-columns: 1fr;
+  }
+
+  .trainingStepNumber {
+    width: 30px;
+    height: 30px;
+  }
+
+  .landingVerdictRow {
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+
+  .verdict {
+    white-space: nowrap;
+  }
+}
+
+/* Make chessboard areas behave better on phones */
+@media (max-width: 760px) {
+  #opening-practice,
+  .boardSection,
+  .analysisGrid {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .boardSection > div,
+  .analysisGrid > div {
+    min-width: 0;
+  }
+
+  .react-chessboard,
+  [data-boardid],
+  [class*="chessboard"] {
+    max-width: 100% !important;
+  }
+}
