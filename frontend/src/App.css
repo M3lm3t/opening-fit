@@ -43,6 +43,7 @@ body {
 
 button,
 input,
+textarea,
 a {
   font: inherit;
 }
@@ -62,8 +63,17 @@ a {
   text-decoration: none;
 }
 
+img,
+svg,
+canvas,
+table {
+  max-width: 100%;
+}
+
 .page {
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .container,
@@ -76,7 +86,104 @@ a {
   padding: 42px 0 80px;
 }
 
-/* LANDING */
+/* ================================
+   SHARED CARDS / BUTTONS
+================================ */
+
+.card,
+.heroCard,
+.statCard,
+.quickNavCard,
+.collapsibleCard,
+.premiumMiniCard,
+.landingPreviewCard,
+.landingFeatureCard,
+.landingPriceCard,
+.landingInfoCard,
+.landingStepCard,
+.aboutCard,
+.ratingGuideCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+}
+
+.card,
+.heroCard {
+  padding: 24px;
+}
+
+.primaryBtn,
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.landingPrimaryBtn,
+.landingSecondaryBtn {
+  min-height: 48px;
+  border-radius: 16px;
+  padding: 12px 18px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.primaryBtn,
+.landingPrimaryBtn {
+  border: 0;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.28);
+}
+
+.secondaryBtn,
+.landingSecondaryBtn {
+  color: #ffffff;
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid var(--border);
+}
+
+.secondaryButton {
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 999px;
+}
+
+.ghostButton {
+  color: #cbd5e1;
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 999px;
+}
+
+.primaryBtn:hover,
+.secondaryBtn:hover,
+.secondaryButton:hover,
+.ghostButton:hover,
+.landingPrimaryBtn:hover,
+.landingSecondaryBtn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(96, 165, 250, 0.55);
+}
+
+.secondaryButton:disabled,
+.ghostButton:disabled,
+.primaryBtn:disabled,
+.secondaryBtn:disabled {
+  transform: none;
+}
+
+/* ================================
+   LANDING
+================================ */
 
 .landingWrap {
   padding-top: 24px;
@@ -110,6 +217,7 @@ a {
 .landingBrandIcon {
   width: 48px;
   height: 48px;
+  min-width: 48px;
   display: grid;
   place-items: center;
   border-radius: 16px;
@@ -203,34 +311,6 @@ a {
   margin-top: 24px;
 }
 
-.landingPrimaryBtn,
-.landingSecondaryBtn,
-.primaryBtn,
-.secondaryBtn {
-  min-height: 48px;
-  border: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16px;
-  padding: 12px 18px;
-  font-weight: 900;
-  color: #ffffff;
-  text-align: center;
-}
-
-.landingPrimaryBtn,
-.primaryBtn {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.28);
-}
-
-.landingSecondaryBtn,
-.secondaryBtn {
-  background: rgba(30, 41, 59, 0.95);
-  border: 1px solid var(--border);
-}
-
 .landingStats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -256,23 +336,6 @@ a {
   margin-top: 4px;
   color: var(--muted);
   font-size: 0.9rem;
-}
-
-.landingPreviewCard,
-.landingFeatureCard,
-.landingPriceCard,
-.landingInfoCard,
-.landingStepCard,
-.heroCard,
-.card,
-.statCard,
-.quickNavCard,
-.collapsibleCard,
-.premiumMiniCard {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
 }
 
 .landingPreviewCard {
@@ -305,6 +368,18 @@ a {
   line-height: 1.5;
 }
 
+.landingPreviewGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.landingInfoCard {
+  padding: 16px;
+  box-shadow: none;
+  background: rgba(2, 6, 23, 0.42);
+}
+
 .landingFitBadge,
 .landingPriceBadge,
 .chip,
@@ -327,18 +402,6 @@ a {
   background: rgba(37, 99, 235, 0.18);
   border: 1px solid rgba(96, 165, 250, 0.22);
   color: #dbeafe;
-}
-
-.landingPreviewGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-.landingInfoCard {
-  padding: 16px;
-  box-shadow: none;
-  background: rgba(2, 6, 23, 0.42);
 }
 
 .landingVerdictList {
@@ -386,7 +449,15 @@ a {
   border: 1px solid rgba(239, 68, 68, 0.28);
 }
 
-.landingContentSection {
+.verdict.test {
+  background: rgba(96, 165, 250, 0.14);
+  color: #dbeafe;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+}
+
+.landingContentSection,
+.aboutSection,
+.ratingGuideSection {
   margin-bottom: 28px;
 }
 
@@ -486,12 +557,122 @@ a {
   margin-bottom: 10px;
 }
 
-/* APP DASHBOARD */
-
-.heroCard,
-.card {
-  padding: 24px;
+.aboutGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
 }
+
+.aboutCard {
+  padding: 20px;
+}
+
+.aboutCard h3 {
+  margin: 0 0 10px;
+}
+
+.aboutCard p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+/* ================================
+   RATING GUIDE
+================================ */
+
+.ratingGuideGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+.ratingGuideCard {
+  padding: 18px;
+}
+
+.ratingGuideTop h3 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.ratingGuideTop p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.ratingGuideDescription {
+  color: var(--text-soft);
+  line-height: 1.5;
+  margin: 14px 0;
+  font-size: 0.92rem;
+}
+
+.ratingOpeningColumns {
+  display: grid;
+  gap: 14px;
+}
+
+.ratingOpeningColumns h4 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  color: #bfdbfe;
+}
+
+.ratingOpeningList,
+.supportedOpeningGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.ratingOpeningBtn,
+.supportedOpeningGrid span {
+  display: inline-flex;
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  color: #dbeafe;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-align: left;
+}
+
+.ratingOpeningBtn:hover,
+.landingOpeningBtn:hover,
+.inlineOpeningBtn:hover {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(37, 99, 235, 0.25);
+}
+
+.mobileSectionRevealBtn {
+  display: none;
+}
+
+.landingOpeningBtn,
+.inlineOpeningBtn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #ffffff;
+  padding: 0;
+  font-weight: 900;
+  text-align: left;
+}
+
+.landingOpeningBtn {
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+.inlineOpeningBtn {
+  border-radius: 8px;
+}
+
+/* ================================
+   APP DASHBOARD
+================================ */
 
 .hero {
   margin-bottom: 18px;
@@ -539,6 +720,27 @@ a {
   border-color: rgba(96, 165, 250, 0.65);
 }
 
+.appActionPanel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.appActionButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.appActionButtons .primaryBtn,
+.appActionButtons .secondaryButton,
+.appActionButtons .ghostButton {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+}
+
 .filtersRow {
   margin-top: 16px;
 }
@@ -559,6 +761,27 @@ a {
   color: #fecaca;
 }
 
+.statusMessage,
+.successMessage {
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.statusMessage {
+  color: #dbeafe;
+  background: rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+}
+
+.successMessage {
+  color: #dcfce7;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+}
+
 .placeholderGrid,
 .grid3 {
   display: grid;
@@ -577,7 +800,7 @@ a {
 
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -585,6 +808,7 @@ a {
 .statCard {
   display: grid;
   gap: 8px;
+  padding: 24px;
 }
 
 .statLabel {
@@ -593,9 +817,14 @@ a {
 }
 
 .statValue {
-  font-size: 2.2rem;
+  font-size: 2rem;
   font-weight: 950;
   line-height: 1;
+  word-break: break-word;
+}
+
+.smallStatValue {
+  font-size: 1rem;
 }
 
 .quickNavCard {
@@ -639,6 +868,7 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .sectionToggle h2 {
@@ -711,6 +941,78 @@ a {
 .premiumMiniCard {
   padding: 18px;
   background: rgba(37, 99, 235, 0.1);
+}
+
+.premiumCard {
+  margin-bottom: 18px;
+  border: 1px solid rgba(250, 204, 21, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(250, 204, 21, 0.12), transparent 36%),
+    rgba(15, 23, 42, 0.9);
+}
+
+.premiumHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.premiumBadge {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  color: #fef9c3;
+  background: rgba(250, 204, 21, 0.14);
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.lockedFeatureGrid,
+.openingExplainGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.lockedFeature,
+.openingExplainCard {
+  border-radius: 18px;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.42);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.recommendationDetails {
+  margin-top: 1.5rem;
+}
+
+.openingExplainCard h4 {
+  margin: 0 0 0.5rem;
+  color: #f8fafc;
+}
+
+.openingExplainCard p {
+  margin: 0.45rem 0;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.openingExplainCard span {
+  display: inline-flex;
+  margin-top: 0.5rem;
+  border-radius: 999px;
+  padding: 0.3rem 0.55rem;
+  color: #bfdbfe;
+  background: rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.explainPracticeBtn {
+  margin-top: 0.75rem;
 }
 
 .chartList {
@@ -788,10 +1090,6 @@ th {
   font-size: 0.85rem;
 }
 
-.movesPanel {
-  min-width: 0;
-}
-
 .gamePickerButton {
   width: 100%;
   text-align: left;
@@ -817,20 +1115,218 @@ th {
   color: var(--text-soft);
 }
 
-/* GAME REPLAY BOARD */
+.tableOpeningBtn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #bfdbfe;
+  font-weight: 900;
+  padding: 7px 9px;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.tableOpeningBtn:hover,
+.openingPracticeLink:hover {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(37, 99, 235, 0.18);
+}
+
+.openingPracticeLink {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* ================================
+   LOADING / EMPTY / FOOTER / FEEDBACK
+================================ */
+
+.loadingCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  border-color: rgba(96, 165, 250, 0.34);
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.16), transparent 34%),
+    var(--card);
+}
+
+.loadingCard h3 {
+  margin: 0 0 4px;
+}
+
+.loadingCard p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.loadingSpinner {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 4px solid rgba(96, 165, 250, 0.18);
+  border-top-color: #60a5fa;
+  animation: spin 0.8s linear infinite;
+  flex: 0 0 42px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.emptyState {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.emptyState h3 {
+  margin: 0 0 6px;
+}
+
+.emptyState p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.feedbackCard {
+  margin-top: 18px;
+}
+
+.feedbackCard textarea,
+.feedbackCard input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.7rem;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.5);
+  color: #f8fafc;
+  padding: 0.85rem 1rem;
+  font: inherit;
+  outline: none;
+}
+
+.feedbackCard textarea:focus,
+.feedbackCard input:focus {
+  border-color: rgba(96, 165, 250, 0.65);
+}
+
+.feedbackCard button {
+  margin-top: 0.8rem;
+}
+
+.siteFooter {
+  margin: 10px 0 34px;
+  padding: 24px;
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.footerBrand {
+  margin-bottom: 14px;
+}
+
+.footerDisclaimer {
+  max-width: 760px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+  font-size: 0.92rem;
+}
+
+.footerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.footerLinks a {
+  padding: 9px 12px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  color: #dbeafe;
+  font-size: 0.85rem;
+  font-weight: 850;
+}
+
+/* ================================
+   TRAINING PLAN
+================================ */
+
+.trainingPlanList {
+  display: grid;
+  gap: 14px;
+}
+
+.trainingPlanItem {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(30, 41, 59, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.trainingStepNumber {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(37, 99, 235, 0.24);
+  color: #dbeafe;
+  font-weight: 950;
+}
+
+.trainingStepContent h3 {
+  margin: 0 0 8px;
+}
+
+.trainingStepContent p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.trainingPracticeBtn {
+  width: fit-content;
+  margin-top: 12px;
+  min-height: 42px;
+  padding: 9px 14px;
+}
+
+/* ================================
+   REPLAY BOARD
+================================ */
 
 .replayCard {
   overflow: hidden;
 }
 
-.replayLayout {
+.replayLayout,
+.practiceLayout {
   display: grid;
   grid-template-columns: minmax(260px, 420px) minmax(260px, 1fr);
   gap: 18px;
   align-items: start;
 }
 
-.replayHeader {
+.replayHeader,
+.practiceTop {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -848,11 +1344,14 @@ th {
   color: var(--text-soft);
 }
 
-.replayBoardWrap {
+.replayBoardWrap,
+.replayMovesWrap,
+.movesPanel {
   min-width: 0;
 }
 
-.replayBoardBox {
+.replayBoardBox,
+.practiceBoardBox {
   width: 100%;
   max-width: 420px;
   margin: 0 auto;
@@ -970,15 +1469,24 @@ th {
   margin-top: 10px;
 }
 
-.controlBtn {
-  min-width: 52px;
-  min-height: 48px;
+.controlBtn,
+.replayFlipBtn {
+  min-height: 42px;
   border: 0;
   border-radius: 14px;
   background: #2563eb;
   color: #ffffff;
   font-weight: 900;
+}
+
+.controlBtn {
+  min-width: 52px;
+  min-height: 48px;
   font-size: 1rem;
+}
+
+.replayFlipBtn {
+  padding: 9px 14px;
 }
 
 .replayStatus {
@@ -986,10 +1494,6 @@ th {
   color: var(--text-soft);
   font-weight: 800;
   text-align: center;
-}
-
-.replayMovesWrap {
-  min-width: 0;
 }
 
 .replayMovesHeader,
@@ -1039,10 +1543,6 @@ th {
   border-color: rgba(96, 165, 250, 0.9);
 }
 
-.moveBtn:disabled {
-  opacity: 0.35;
-}
-
 .replayWarning,
 .replayEmptyState {
   padding: 12px 14px;
@@ -1053,7 +1553,9 @@ th {
   color: #fde68a;
 }
 
-/* OPENING PRACTICE */
+/* ================================
+   PRACTICE BOARD
+================================ */
 
 .practiceCard {
   margin-bottom: 18px;
@@ -1061,14 +1563,6 @@ th {
   background:
     radial-gradient(circle at top right, rgba(37, 99, 235, 0.16), transparent 34%),
     var(--card);
-}
-
-.practiceTop {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
 }
 
 .practiceTop h2 {
@@ -1081,19 +1575,6 @@ th {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.practiceLayout {
-  display: grid;
-  grid-template-columns: minmax(260px, 420px) minmax(260px, 1fr);
-  gap: 20px;
-  align-items: start;
-}
-
-.practiceBoardBox {
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
 }
 
 .practicePanel {
@@ -1121,6 +1602,23 @@ th {
 .practiceProgress strong {
   font-size: 1.6rem;
   color: #bfdbfe;
+}
+
+.practiceProgressBarWrap {
+  width: 100%;
+  height: 10px;
+  margin: 0 0 18px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.practiceProgressBar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #38bdf8);
+  transition: width 0.25s ease;
 }
 
 .practiceMoveLine {
@@ -1177,29 +1675,44 @@ th {
   width: fit-content;
 }
 
-.openingPracticeLink {
-  width: 100%;
-  cursor: pointer;
-  text-align: left;
+.practiceDraggablePiece {
+  cursor: grab;
+  pointer-events: auto;
 }
 
-.openingPracticeLink:hover,
-.tableOpeningBtn:hover {
-  border-color: rgba(96, 165, 250, 0.55);
-  background: rgba(37, 99, 235, 0.18);
+.practiceDraggablePiece:active {
+  cursor: grabbing;
 }
 
-.tableOpeningBtn {
-  border: 1px solid transparent;
-  background: transparent;
-  color: #bfdbfe;
-  font-weight: 900;
-  padding: 7px 9px;
-  border-radius: 10px;
-  text-align: left;
+.practiceComingSoon {
+  display: grid;
+  gap: 14px;
 }
 
-/* MOBILE */
+.practiceComingSoon h3 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.practiceComingSoon p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+/* ================================
+   TABLET
+================================ */
+
+@media (max-width: 1100px) {
+  .ratingGuideGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
 @media (max-width: 900px) {
   .landingHeroGrid,
@@ -1213,7 +1726,8 @@ th {
   .landingFeatureGrid,
   .landingPricingGrid,
   .placeholderGrid,
-  .grid3 {
+  .grid3,
+  .aboutGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1234,12 +1748,29 @@ th {
   .practiceBoardBox {
     max-width: min(92vw, 420px);
   }
+
+  .siteFooter {
+    display: grid;
+  }
+
+  .footerLinks {
+    justify-content: flex-start;
+  }
 }
 
-@media (max-width: 700px) {
+/* ================================
+   MOBILE CLEAN MODE
+================================ */
+
+@media (max-width: 760px) {
   .landingWrap,
-  .container {
-    width: min(100% - 24px, 1180px);
+  .container,
+  .appShell {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+    overflow-x: hidden;
   }
 
   .landingWrap {
@@ -1247,249 +1778,580 @@ th {
   }
 
   .appShell {
-    padding: 18px 0 44px;
+    padding-top: 0;
+    padding-bottom: 44px;
   }
 
   .landingHero,
   .heroCard,
-  .card {
-    padding: 16px;
+  .card,
+  .landingContentSection,
+  .ratingGuideSection {
+    padding: 0.95rem;
     border-radius: 20px;
   }
 
+  .landingHero {
+    min-height: auto;
+    margin-bottom: 0.8rem;
+  }
+
   .landingNav {
-    margin-bottom: 24px;
-    gap: 12px;
+    margin-bottom: 0.8rem;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .landingNavLinks,
+  .landingBrandSubtitle,
+  .landingPill,
+  .landingStats,
+  .landingPreviewCard,
+  .landingSecondaryBtn {
+    display: none !important;
+  }
+
+  .landingBrand {
+    width: 100%;
   }
 
   .landingBrandIcon {
-    width: 40px;
-    height: 40px;
-    border-radius: 13px;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
   }
 
-  .landingBrandSubtitle,
-  .landingNavLinks {
-    display: none;
+  .landingHeroGrid {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
   }
 
-  .landingHeroCopy h1,
-  .heroTitleWrap h1 {
+  .landingHeroCopy h1 {
+    max-width: 12ch;
     font-size: 2rem;
     line-height: 1.02;
     letter-spacing: -0.05em;
+    margin-bottom: 0.65rem;
   }
 
-  .landingSubtext,
-  .subtext {
-    font-size: 0.94rem;
+  .landingSubtext {
+    max-width: 34ch;
+    font-size: 0.92rem;
     line-height: 1.45;
+    margin-bottom: 0.85rem;
   }
 
   .landingHeroActions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .landingStats,
-  .statsGrid {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .landingStatCard,
-  .statCard {
-    padding: 13px;
-  }
-
-  .landingStatCard strong,
-  .statValue {
-    font-size: 1.22rem;
-  }
-
-  .landingPreviewGrid {
     grid-template-columns: 1fr;
+    gap: 0.55rem;
   }
 
-  .landingPreviewCard,
-  .landingFeatureCard,
-  .landingPriceCard,
-  .landingInfoCard,
-  .landingStepCard,
-  .quickNavCard,
-  .collapsibleCard {
-    padding: 14px;
-    border-radius: 18px;
+  .landingPrimaryBtn {
+    width: 100%;
+    min-height: 44px;
   }
 
-  .landingSectionHeading h2 {
+  #features,
+  #about,
+  #how-it-works,
+  #premium {
+    display: none !important;
+  }
+
+  .siteFooter {
+    display: none !important;
+  }
+
+  .heroCard {
+    margin-top: 0;
+  }
+
+  .heroTitleWrap .eyebrow {
+    display: none;
+  }
+
+  .heroTitleWrap h1 {
     font-size: 1.55rem;
-    line-height: 1.08;
+    line-height: 1.05;
+    margin-bottom: 0.45rem;
   }
 
-  .landingFeatureCard {
-    gap: 12px;
-  }
-
-  .landingFeatureIcon {
-    width: 38px;
-    height: 38px;
-    flex-basis: 38px;
-    border-radius: 13px;
-  }
-
-  .landingStepsList {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .landingStepCard {
-    min-height: unset;
-    display: grid;
-    grid-template-columns: 42px 1fr;
-    gap: 12px;
-    align-items: center;
-  }
-
-  .landingStepNumber {
-    width: 42px;
-    height: 42px;
-    margin: 0;
-    border-radius: 14px;
+  .heroTitleWrap .subtext,
+  .subtext {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 0.9rem;
   }
 
   .searchRow,
-  .topBar {
+  .topBar,
+  .searchRow.topBar,
+  .appActionPanel {
+    display: grid;
     grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .appActionButtons {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .appActionButtons .primaryBtn,
+  .appActionButtons .secondaryButton,
+  .appActionButtons .ghostButton,
+  .savedProfileButton,
+  .demoAccountButton {
+    display: flex !important;
+    width: 100% !important;
+    min-height: 44px !important;
+    visibility: visible !important;
+    opacity: 1;
+  }
+
+  .input {
+    width: 100%;
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .filtersRow {
+    margin-top: 0.65rem;
+  }
+
+  .checkboxRow {
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.9rem;
+  }
+
+  .checkboxRow input {
+    margin-top: 0.18rem;
+  }
+
+  .statusMessage,
+  .successMessage,
+  .errorBox {
+    font-size: 0.9rem;
+    border-radius: 14px;
+  }
+
+  .placeholderGrid {
+    display: none !important;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+  }
+
+  .statCard {
+    padding: 0.8rem;
+    min-height: auto;
+  }
+
+  .statLabel {
+    font-size: 0.72rem;
+  }
+
+  .statValue {
+    font-size: 1rem;
+  }
+
+  .smallStatValue {
+    font-size: 0.9rem;
+  }
+
+  .quickNavCard {
+    padding: 0.85rem;
+  }
+
+  .quickNavCard h2 {
+    font-size: 1rem;
+    margin-bottom: 0.6rem;
   }
 
   .quickNavGrid {
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .quickNavCard h2 {
-    font-size: 1.4rem;
+    gap: 0.5rem;
   }
 
   .quickNavBtn {
-    min-height: 48px;
+    width: 100%;
+    min-height: 40px;
+    padding: 0.6rem 0.65rem;
     font-size: 0.82rem;
   }
 
-  .sectionToggle h2 {
-    font-size: 1.05rem;
+  .premiumCard {
+    display: none !important;
+  }
+
+  .collapsibleCard {
+    margin-bottom: 0.7rem;
+  }
+
+  .sectionToggle {
+    min-height: 48px;
+    padding: 0.75rem;
+    gap: 0.8rem;
+    align-items: flex-start;
+  }
+
+  .sectionToggleLeft h2 {
+    font-size: 1rem;
+    line-height: 1.2;
   }
 
   .sectionBadge {
     max-width: 42%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    text-align: right;
+    line-height: 1.2;
+    font-size: 0.72rem;
   }
 
-  .listItem,
-  .landingVerdictRow {
-    padding: 11px 12px;
+  .sectionBody {
+    padding: 0.75rem;
+  }
+
+  .twoCol,
+  .analysisGrid,
+  .landingPreviewGrid,
+  .landingFeatureGrid,
+  .aboutGrid,
+  .landingPricingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .chips {
+    gap: 0.45rem;
+  }
+
+  .chip {
+    font-size: 0.78rem;
+  }
+
+  .profileSummary {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  .list {
+    gap: 0.65rem;
+  }
+
+  .listItem {
+    padding: 0.75rem;
+    gap: 0.75rem;
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .listItem strong,
+  .chartLabel,
+  .gamePickerTop strong {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .smallText {
+    font-size: 0.78rem;
+  }
+
+  .rightStat {
+    min-width: 68px;
+    text-align: right;
+  }
+
+  .recommendationDetails {
+    display: none !important;
   }
 
   .chartRow {
     grid-template-columns: 1fr;
-    gap: 6px;
+    gap: 0.45rem;
+    padding: 0.85rem;
+    border-radius: 16px;
   }
 
   .chartValue {
     text-align: left;
+    font-size: 0.9rem;
+  }
+
+  .trainingPlanItem {
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    padding: 0.9rem;
+    border-radius: 16px;
+  }
+
+  .trainingStepNumber {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+  }
+
+  .trainingStepContent h3 {
+    font-size: 1rem;
+  }
+
+  .trainingStepContent p {
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  .trainingPracticeBtn {
+    width: 100%;
+  }
+
+  .boardSection,
+  .analysisGrid,
+  #opening-practice {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    gap: 1rem;
+  }
+
+  .boardSection > div,
+  .analysisGrid > div {
+    min-width: 0;
+  }
+
+  .react-chessboard,
+  [data-boardid],
+  [class*="chessboard"] {
+    max-width: 100% !important;
+  }
+
+  .gamePickerList {
+    max-height: 240px;
+    overflow-y: auto;
+    padding-right: 0.15rem;
+  }
+
+  .gamePickerButton {
+    padding: 0.85rem;
+    border-radius: 16px;
+  }
+
+  .gamePickerTop {
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .gamePickerTop span {
+    flex: 0 0 auto;
+  }
+
+  .boardMeta {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+    font-size: 0.9rem;
+    padding: 0.85rem;
+    border-radius: 16px;
+  }
+
+  .tableWrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 560px;
   }
 
   th,
   td {
-    padding: 10px 8px;
+    padding: 0.7rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .feedbackCard {
+    padding: 0.9rem;
+    margin-top: 0.8rem;
+  }
+
+  .feedbackCard h2 {
+    font-size: 1.05rem;
+  }
+
+  .feedbackCard p {
+    font-size: 0.88rem;
+    line-height: 1.4;
+  }
+
+  .feedbackCard textarea {
+    min-height: 92px;
+  }
+
+  .feedbackCard textarea,
+  .feedbackCard input {
+    font-size: 16px;
+  }
+
+  /* Rating guide is visible but collapsed on mobile */
+  #rating-openings {
+    display: block !important;
+  }
+
+  .ratingGuideSection {
+    padding: 0.9rem;
+    margin-top: 0.8rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .ratingGuideHeading {
+    margin-bottom: 0;
+  }
+
+  .ratingGuideHeading h2 {
+    font-size: 1.25rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .ratingGuideHeading p:not(.landingEyebrow) {
+    font-size: 0.88rem;
+    line-height: 1.4;
+    margin-bottom: 0.75rem;
+  }
+
+  .mobileSectionRevealBtn {
+    display: inline-flex;
+    width: 100%;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid rgba(96, 165, 250, 0.28);
+    background: rgba(37, 99, 235, 0.12);
+    color: #dbeafe;
+    font-weight: 800;
+  }
+
+  .ratingGuideClosed .ratingGuideBody {
+    display: none !important;
+  }
+
+  .ratingGuideOpen .ratingGuideBody {
+    display: block !important;
+    margin-top: 0.85rem;
+  }
+
+  .ratingGuideOpen .ratingGuideGrid {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .ratingGuideCard {
+    padding: 0.8rem;
+    border-radius: 16px;
+  }
+
+  .ratingGuideTop {
+    margin-bottom: 0.45rem;
+  }
+
+  .ratingGuideTop h3 {
+    font-size: 1rem;
+  }
+
+  .ratingGuideTop p,
+  .ratingGuideDescription {
     font-size: 0.82rem;
+    line-height: 1.35;
   }
 
-  .replayHeader {
-    flex-direction: column;
+  .ratingGuideDescription {
+    margin-bottom: 0.65rem;
   }
 
-  .cleanReplayPiece {
-    font-size: clamp(24px, 8vw, 38px);
+  .ratingOpeningColumns {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
   }
 
-  .cleanReplayPiece-p {
-    font-size: clamp(20px, 7.2vw, 32px);
+  .ratingOpeningColumns h4 {
+    font-size: 0.82rem;
+    margin-bottom: 0.4rem;
   }
 
-  .cleanReplayPiece-r,
-  .cleanReplayPiece-n,
-  .cleanReplayPiece-b {
-    font-size: clamp(22px, 7.6vw, 35px);
+  .ratingOpeningList {
+    gap: 0.4rem;
   }
 
-  .cleanReplayPiece-q,
-  .cleanReplayPiece-k {
-    font-size: clamp(23px, 7.8vw, 37px);
-  }
-
-  .replayMovesHeader,
-  .replayMoveRow {
-    grid-template-columns: 38px minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .practiceTop {
-    display: grid;
-  }
-
-  .practiceActions {
-    width: 100%;
-  }
-
-  .practiceActions .secondaryBtn {
-    flex: 1;
-  }
-
-  .practiceProgress {
-    display: grid;
-  }
-
-  .practiceProgress strong {
-    font-size: 1.35rem;
-  }
-
-  .practiceHintBtn {
-    width: 100%;
+  .ratingOpeningBtn {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.78rem;
   }
 }
 
-@media (max-width: 420px) {
-  .landingHeroActions {
-    grid-template-columns: 1fr;
+@media (max-width: 430px) {
+  .landingWrap,
+  .container,
+  .appShell {
+    padding-left: 0.65rem;
+    padding-right: 0.65rem;
   }
 
-  .landingHeroCopy h1,
+  .landingHero,
+  .heroCard,
+  .card,
+  .landingContentSection,
+  .ratingGuideSection {
+    padding: 0.85rem;
+    border-radius: 18px;
+  }
+
+  .landingHeroCopy h1 {
+    font-size: 1.8rem;
+  }
+
+  .landingSectionHeading h2,
   .heroTitleWrap h1 {
-    font-size: 1.78rem;
-  }
-
-  .quickNavGrid,
-  .landingStats,
-  .statsGrid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .landingVerdictRow,
-  .listItem {
-    grid-template-columns: 1fr;
-    align-items: flex-start;
-  }
-
-  .rightStat {
-    text-align: left;
-    justify-items: start;
+    font-size: 1.55rem;
   }
 
   .sectionBadge {
     display: none;
+  }
+
+  .listItem {
+    flex-direction: column;
+  }
+
+  .rightStat {
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .trainingPlanItem {
+    grid-template-columns: 1fr;
+  }
+
+  .trainingStepNumber {
+    width: 30px;
+    height: 30px;
+  }
+
+  .landingVerdictRow {
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+
+  .verdict {
+    white-space: nowrap;
   }
 
   .replayBoardBox,
@@ -1505,2123 +2367,9 @@ th {
   .cleanReplayFile {
     font-size: 7px;
   }
-}
-.practiceDraggablePiece {
-  cursor: grab;
-  pointer-events: auto;
-}
-
-.practiceDraggablePiece:active {
-  cursor: grabbing;
-}
-.replayFlipBtn {
-  min-height: 42px;
-  padding: 9px 14px;
-  border-radius: 14px;
-}
-.trainingPlanList {
-  display: grid;
-  gap: 14px;
-}
-
-.trainingPlanItem {
-  display: grid;
-  grid-template-columns: 48px 1fr;
-  gap: 14px;
-  padding: 16px;
-  border-radius: 18px;
-  background: rgba(30, 41, 59, 0.78);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-}
-
-.trainingStepNumber {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 14px;
-  background: rgba(37, 99, 235, 0.24);
-  color: #dbeafe;
-  font-weight: 950;
-}
-
-.trainingStepContent h3 {
-  margin: 0 0 8px;
-}
-
-.trainingStepContent p {
-  margin: 0;
-  color: var(--text-soft);
-  line-height: 1.55;
-}
-
-.trainingPracticeBtn {
-  width: fit-content;
-  margin-top: 12px;
-  min-height: 42px;
-  padding: 9px 14px;
-}
-
-@media (max-width: 700px) {
-  .trainingPlanItem {
-    grid-template-columns: 1fr;
-  }
-
-  .trainingPracticeBtn {
-    width: 100%;
-  }
-}
-
-.ratingGuideSection {
-  margin-bottom: 28px;
-}
-
-.ratingGuideGrid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
-}
-
-.ratingGuideCard {
-  padding: 18px;
-  border-radius: var(--radius);
-  background: var(--card);
-  border: 1px solid var(--border);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
-}
-
-.ratingGuideTop h3 {
-  margin: 0;
-  font-size: 1.35rem;
-}
-
-.ratingGuideTop p {
-  margin: 5px 0 0;
-  color: var(--muted);
-  font-weight: 800;
-}
-
-.ratingGuideDescription {
-  color: var(--text-soft);
-  line-height: 1.5;
-  margin: 14px 0;
-  font-size: 0.92rem;
-}
-
-.ratingOpeningColumns {
-  display: grid;
-  gap: 14px;
-}
-
-.ratingOpeningColumns h4 {
-  margin: 0 0 8px;
-  font-size: 0.9rem;
-  color: #bfdbfe;
-}
-
-.ratingOpeningList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-
-.ratingOpeningList span {
-  display: inline-flex;
-  padding: 7px 9px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.16);
-  border: 1px solid rgba(96, 165, 250, 0.22);
-  color: #dbeafe;
-  font-size: 0.78rem;
-  font-weight: 850;
-}
-
-@media (max-width: 1100px) {
-  .ratingGuideGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 700px) {
-  .ratingGuideGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .ratingGuideCard {
-    padding: 14px;
-    border-radius: 18px;
-  }
-}
-.ratingOpeningBtn {
-  display: inline-flex;
-  padding: 7px 9px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.16);
-  border: 1px solid rgba(96, 165, 250, 0.22);
-  color: #dbeafe;
-  font-size: 0.78rem;
-  font-weight: 850;
-  text-align: left;
-}
-
-.ratingOpeningBtn:hover,
-.landingOpeningBtn:hover,
-.inlineOpeningBtn:hover {
-  border-color: rgba(96, 165, 250, 0.55);
-  background: rgba(37, 99, 235, 0.25);
-}
-
-.landingOpeningBtn {
-  border: 1px solid transparent;
-  background: transparent;
-  color: #ffffff;
-  padding: 0;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 900;
-  text-align: left;
-}
-
-.inlineOpeningBtn {
-  border: 1px solid transparent;
-  background: transparent;
-  color: #ffffff;
-  padding: 0;
-  border-radius: 8px;
-  font-weight: 900;
-  text-align: left;
-}
-.practiceProgressBarWrap {
-  width: 100%;
-  height: 10px;
-  margin: 0 0 18px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(30, 41, 59, 0.95);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-}
-
-.practiceProgressBar {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #2563eb, #38bdf8);
-  transition: width 0.25s ease;
-}
-
-.practiceComingSoon {
-  display: grid;
-  gap: 14px;
-}
-
-.practiceComingSoon h3 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.practiceComingSoon p {
-  margin: 0;
-  color: var(--text-soft);
-  line-height: 1.55;
-}
-
-.supportedOpeningGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.supportedOpeningGrid span {
-  display: inline-flex;
-  padding: 8px 10px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.16);
-  border: 1px solid rgba(96, 165, 250, 0.22);
-  color: #dbeafe;
-  font-size: 0.8rem;
-  font-weight: 850;
-}
-/* PASS 2 POLISH */
-
-.aboutSection {
-  margin-bottom: 28px;
-}
-
-.aboutGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-}
-
-.aboutCard {
-  padding: 20px;
-  border-radius: var(--radius);
-  background: var(--card);
-  border: 1px solid var(--border);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
-}
-
-.aboutCard h3 {
-  margin: 0 0 10px;
-}
-
-.aboutCard p {
-  margin: 0;
-  color: var(--text-soft);
-  line-height: 1.55;
-}
-
-.loadingCard {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 18px;
-  border-color: rgba(96, 165, 250, 0.34);
-  background:
-    radial-gradient(circle at top right, rgba(37, 99, 235, 0.16), transparent 34%),
-    var(--card);
-}
-
-.loadingCard h3 {
-  margin: 0 0 4px;
-}
-
-.loadingCard p {
-  margin: 0;
-  color: var(--text-soft);
-}
-
-.loadingSpinner {
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
-  border: 4px solid rgba(96, 165, 250, 0.18);
-  border-top-color: #60a5fa;
-  animation: spin 0.8s linear infinite;
-  flex: 0 0 42px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.emptyState {
-  padding: 16px;
-  border-radius: 16px;
-  background: rgba(30, 41, 59, 0.65);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-}
-
-.emptyState h3 {
-  margin: 0 0 6px;
-}
-
-.emptyState p {
-  margin: 0;
-  color: var(--text-soft);
-  line-height: 1.5;
-}
-
-.siteFooter {
-  margin: 10px 0 34px;
-  padding: 24px;
-  border-radius: 24px;
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  align-items: flex-start;
-}
-
-.footerBrand {
-  margin-bottom: 14px;
-}
-
-.footerDisclaimer {
-  max-width: 760px;
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.55;
-  font-size: 0.92rem;
-}
-
-.footerLinks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.footerLinks a {
-  padding: 9px 12px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.16);
-  border: 1px solid rgba(96, 165, 250, 0.22);
-  color: #dbeafe;
-  font-size: 0.85rem;
-  font-weight: 850;
-}
-
-.footerLinks a:hover {
-  border-color: rgba(96, 165, 250, 0.55);
-  background: rgba(37, 99, 235, 0.25);
-}
-
-@media (max-width: 900px) {
-  .aboutGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .siteFooter {
-    display: grid;
-  }
-
-  .footerLinks {
-    justify-content: flex-start;
-  }
-}
-
-@media (max-width: 700px) {
-  .aboutCard {
-    padding: 14px;
-    border-radius: 18px;
-  }
-
-  .loadingCard {
-    align-items: flex-start;
-  }
-
-  .siteFooter {
-    padding: 16px;
-    border-radius: 20px;
-  }
-}
-.statusMessage,
-.successMessage {
-  margin-top: 0.75rem;
-  padding: 0.75rem 0.9rem;
-  border-radius: 14px;
-  font-size: 0.95rem;
-  line-height: 1.4;
-}
-
-.statusMessage {
-  color: #dbeafe;
-  background: rgba(37, 99, 235, 0.14);
-  border: 1px solid rgba(96, 165, 250, 0.22);
-}
-
-.successMessage {
-  color: #dcfce7;
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.22);
-}
-
-.secondaryButton,
-.ghostButton {
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 999px;
-  padding: 0.8rem 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-}
-
-.secondaryButton {
-  color: #f8fafc;
-  background: rgba(15, 23, 42, 0.9);
-}
-
-.ghostButton {
-  color: #cbd5e1;
-  background: transparent;
-}
-
-.secondaryButton:hover,
-.ghostButton:hover {
-  transform: translateY(-1px);
-  border-color: rgba(96, 165, 250, 0.55);
-}
-
-.secondaryButton:disabled,
-.ghostButton:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.premiumCard {
-  border: 1px solid rgba(250, 204, 21, 0.22);
-  background:
-    radial-gradient(circle at top right, rgba(250, 204, 21, 0.12), transparent 36%),
-    rgba(15, 23, 42, 0.9);
-}
-
-.premiumHeader {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.premiumBadge {
-  width: fit-content;
-  border-radius: 999px;
-  padding: 0.35rem 0.65rem;
-  color: #fef9c3;
-  background: rgba(250, 204, 21, 0.14);
-  border: 1px solid rgba(250, 204, 21, 0.24);
-  font-size: 0.8rem;
-  font-weight: 800;
-}
-
-.lockedFeatureGrid,
-.openingExplainGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 0.9rem;
-  margin-top: 1rem;
-}
-
-.lockedFeature,
-.openingExplainCard {
-  border-radius: 18px;
-  padding: 1rem;
-  background: rgba(2, 6, 23, 0.42);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-}
-
-.openingExplainCard h4 {
-  margin: 0 0 0.5rem;
-  color: #f8fafc;
-}
-
-.openingExplainCard p {
-  margin: 0.45rem 0;
-  color: #cbd5e1;
-  line-height: 1.45;
-}
-
-.openingExplainCard span {
-  display: inline-flex;
-  margin-top: 0.5rem;
-  border-radius: 999px;
-  padding: 0.3rem 0.55rem;
-  color: #bfdbfe;
-  background: rgba(37, 99, 235, 0.14);
-  border: 1px solid rgba(96, 165, 250, 0.22);
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.feedbackCard textarea,
-.feedbackCard input {
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 0.7rem;
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  background: rgba(2, 6, 23, 0.5);
-  color: #f8fafc;
-  padding: 0.85rem 1rem;
-  font: inherit;
-  outline: none;
-}
-
-.feedbackCard textarea:focus,
-.feedbackCard input:focus {
-  border-color: rgba(96, 165, 250, 0.65);
-}
-
-.feedbackCard button {
-  margin-top: 0.8rem;
-}
-
-@media (max-width: 640px) {
-  .lockedFeatureGrid,
-  .openingExplainGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .secondaryButton,
-  .ghostButton {
-    width: 100%;
-  }
-}
-/* ================================
-   MOBILE POLISH OVERRIDES
-   Paste at very bottom of App.css
-================================ */
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  overflow-x: hidden;
-}
-
-.page,
-.landingWrap,
-.container,
-.appShell {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-img,
-svg,
-canvas,
-table {
-  max-width: 100%;
-}
-
-button,
-input,
-textarea {
-  font: inherit;
-}
-
-/* Better phone spacing */
-@media (max-width: 760px) {
-  .landingWrap {
-    padding-left: 0.85rem;
-    padding-right: 0.85rem;
-  }
-
-  .container,
-  .appShell {
-    width: 100%;
-    padding-left: 0.85rem;
-    padding-right: 0.85rem;
-    box-sizing: border-box;
-  }
-
-  .landingHero,
-  .heroCard,
-  .card,
-  .landingContentSection,
-  .ratingGuideSection {
-    border-radius: 20px;
-  }
-
-  .landingHero {
-    padding: 1rem;
-  }
-
-  .heroCard {
-    padding: 1rem;
-  }
-
-  .card {
-    padding: 1rem;
-  }
-
-  .landingNav {
-    gap: 1rem;
-    align-items: flex-start;
-  }
-
-  .landingBrand {
-    width: 100%;
-  }
-
-  .landingBrandIcon {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-  }
-
-  .landingBrandTitle {
-    font-size: 1rem;
-  }
-
-  .landingBrandSubtitle {
-    font-size: 0.78rem;
-  }
-
-  .landingNavLinks {
-    width: 100%;
-    display: flex;
-    gap: 0.5rem;
-    overflow-x: auto;
-    padding-bottom: 0.35rem;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .landingNavLinks::-webkit-scrollbar {
-    display: none;
-  }
-
-  .landingNavLinks a {
-    flex: 0 0 auto;
-    white-space: nowrap;
-    font-size: 0.82rem;
-    padding: 0.45rem 0.7rem;
-    border-radius: 999px;
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid rgba(148, 163, 184, 0.18);
-  }
-
-  .landingHeroGrid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .landingHeroCopy h1 {
-    font-size: clamp(2rem, 10vw, 3rem);
-    line-height: 0.98;
-    letter-spacing: -0.06em;
-  }
-
-  .landingSubtext,
-  .subtext,
-  .landingSectionHeading p {
-    font-size: 0.95rem;
-    line-height: 1.55;
-  }
-
-  .landingPill {
-    width: fit-content;
-    max-width: 100%;
-    flex-wrap: wrap;
-    font-size: 0.78rem;
-  }
-
-  .landingHeroActions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.7rem;
-  }
-
-  .landingPrimaryBtn,
-  .landingSecondaryBtn {
-    width: 100%;
-    justify-content: center;
-    text-align: center;
-    box-sizing: border-box;
-  }
-
-  .landingStats,
-  .landingPreviewGrid,
-  .landingFeatureGrid,
-  .aboutGrid,
-  .landingPricingGrid,
-  .ratingGuideGrid,
-  .statsGrid,
-  .placeholderGrid,
-  .twoCol,
-  .analysisGrid,
-  .quickNavGrid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .landingStats {
-    gap: 0.65rem;
-  }
-
-  .landingStatCard {
-    min-height: auto;
-  }
-
-  .landingPreviewCard {
-    padding: 1rem;
-    border-radius: 20px;
-  }
-
-  .landingPreviewTop,
-  .landingPriceTop,
-  .heroTop {
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-
-  .landingPreviewTop,
-  .landingPriceTop {
-    flex-direction: column;
-  }
-
-  .landingContentSection,
-  .ratingGuideSection {
-    padding: 1rem;
-  }
-
-  .landingSectionHeading h2,
-  .heroTitleWrap h1 {
-    font-size: clamp(1.55rem, 7vw, 2.2rem);
-    line-height: 1.05;
-  }
-
-  .landingFeatureCard,
-  .aboutCard,
-  .ratingGuideCard,
-  .landingPriceCard,
-  .smallCard,
-  .statCard {
-    padding: 1rem;
-    border-radius: 18px;
-  }
-
-  .ratingOpeningColumns {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .ratingOpeningList {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .ratingOpeningBtn,
-  .landingOpeningBtn,
-  .inlineOpeningBtn,
-  .tableOpeningBtn {
-    max-width: 100%;
-    white-space: normal;
-    text-align: left;
-  }
-
-  .searchRow,
-  .topBar {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.7rem;
-  }
-
-  .input {
-    width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
-    font-size: 16px;
-  }
-
-  .primaryBtn,
-  .secondaryBtn,
-  .secondaryButton,
-  .ghostButton,
-  .quickNavBtn {
-    width: 100%;
-    min-height: 46px;
-    justify-content: center;
-    text-align: center;
-    box-sizing: border-box;
-  }
-
-  .filtersRow {
-    margin-top: 0.9rem;
-    align-items: flex-start;
-  }
-
-  .checkboxRow {
-    align-items: flex-start;
-    gap: 0.6rem;
-    font-size: 0.9rem;
-  }
-
-  .checkboxRow input {
-    margin-top: 0.18rem;
-  }
-
-  .statusMessage,
-  .successMessage,
-  .errorBox {
-    font-size: 0.9rem;
-    border-radius: 14px;
-  }
-
-  .statsGrid {
-    gap: 0.75rem;
-  }
-
-  .statCard {
-    min-height: auto;
-  }
-
-  .statValue {
-    font-size: 1.25rem;
-    line-height: 1.1;
-    word-break: break-word;
-  }
-
-  .smallStatValue {
-    font-size: 0.95rem;
-  }
-
-  .quickNavCard h2 {
-    margin-bottom: 0.8rem;
-  }
-
-  .quickNavGrid {
-    gap: 0.65rem;
-  }
-
-  .sectionToggle {
-    gap: 0.8rem;
-    align-items: flex-start;
-  }
-
-  .sectionToggleLeft {
-    min-width: 0;
-  }
-
-  .sectionToggleLeft h2 {
-    font-size: 1.05rem;
-    line-height: 1.2;
-  }
-
-  .sectionBadge {
-    max-width: 42%;
-    white-space: normal;
-    text-align: right;
-    line-height: 1.2;
-    font-size: 0.72rem;
-  }
-
-  .sectionBody {
-    padding-top: 0.9rem;
-  }
-
-  .chips {
-    gap: 0.45rem;
-  }
-
-  .chip {
-    font-size: 0.78rem;
-  }
-
-  .profileSummary {
-    font-size: 0.95rem;
-    line-height: 1.55;
-  }
-
-  .list {
-    gap: 0.65rem;
-  }
-
-  .listItem {
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-start;
-    padding: 0.85rem;
-    border-radius: 16px;
-    min-width: 0;
-  }
-
-  .listItem strong,
-  .chartLabel,
-  .gamePickerTop strong {
-    word-break: break-word;
-    overflow-wrap: anywhere;
-  }
-
-  .rightStat {
-    min-width: 68px;
-    text-align: right;
-  }
-
-  .premiumMiniCard,
-  .premiumCard {
-    padding: 1rem;
-    border-radius: 18px;
-  }
-
-  .lockedFeatureGrid,
-  .openingExplainGrid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .openingExplainCard,
-  .lockedFeature {
-    padding: 0.9rem;
-    border-radius: 16px;
-  }
-
-  .openingExplainCard p {
-    font-size: 0.92rem;
-  }
-
-  .chartRow {
-    grid-template-columns: 1fr;
-    gap: 0.45rem;
-    padding: 0.85rem;
-    border-radius: 16px;
-  }
-
-  .chartLabel {
-    width: 100%;
-  }
-
-  .chartBarWrap {
-    width: 100%;
-  }
-
-  .chartValue {
-    text-align: left;
-    font-size: 0.9rem;
-  }
-
-  .trainingPlanItem {
-    grid-template-columns: auto 1fr;
-    gap: 0.75rem;
-    padding: 0.9rem;
-    border-radius: 16px;
-  }
-
-  .trainingStepNumber {
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
-  }
-
-  .trainingStepContent h3 {
-    font-size: 1rem;
-  }
-
-  .trainingStepContent p {
-    font-size: 0.92rem;
-    line-height: 1.5;
-  }
-
-  .boardSection {
-    gap: 1rem;
-  }
-
-  .movesPanel {
-    max-height: none;
-  }
-
-  .gamePickerList {
-    max-height: 340px;
-    overflow-y: auto;
-    padding-right: 0.15rem;
-  }
-
-  .gamePickerButton {
-    padding: 0.85rem;
-    border-radius: 16px;
-  }
-
-  .gamePickerTop {
-    gap: 0.5rem;
-    align-items: flex-start;
-  }
-
-  .gamePickerTop span {
-    flex: 0 0 auto;
-  }
-
-  .boardMeta {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.55rem;
-    font-size: 0.9rem;
-    padding: 0.85rem;
-    border-radius: 16px;
-  }
-
-  .tableWrap {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  table {
-    min-width: 560px;
-  }
-
-  th,
-  td {
-    padding: 0.7rem 0.6rem;
-    font-size: 0.85rem;
-  }
-
-  .feedbackCard textarea,
-  .feedbackCard input {
-    font-size: 16px;
-  }
-
-  .siteFooter {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.2rem;
-    padding: 1rem;
-    border-radius: 20px;
-  }
-
-  .footerLinks {
-    align-items: flex-start;
-  }
-}
-
-/* Extra-small phones */
-@media (max-width: 430px) {
-  .landingWrap,
-  .container,
-  .appShell {
-    padding-left: 0.65rem;
-    padding-right: 0.65rem;
-  }
-
-  .landingHero,
-  .heroCard,
-  .card,
-  .landingContentSection,
-  .ratingGuideSection {
-    padding: 0.85rem;
-    border-radius: 18px;
-  }
-
-  .landingHeroCopy h1 {
-    font-size: 2.15rem;
-  }
-
-  .landingSectionHeading h2,
-  .heroTitleWrap h1 {
-    font-size: 1.65rem;
-  }
-
-  .landingPreviewCard,
-  .landingFeatureCard,
-  .aboutCard,
-  .ratingGuideCard,
-  .landingPriceCard,
-  .smallCard,
-  .statCard {
-    padding: 0.85rem;
-  }
-
-  .sectionBadge {
-    display: none;
-  }
-
-  .listItem {
-    flex-direction: column;
-  }
-
-  .rightStat {
-    width: 100%;
-    min-width: 0;
-    text-align: left;
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-    align-items: center;
-  }
-
-  .trainingPlanItem {
-    grid-template-columns: 1fr;
-  }
-
-  .trainingStepNumber {
-    width: 30px;
-    height: 30px;
-  }
-
-  .landingVerdictRow {
-    align-items: flex-start;
-    gap: 0.65rem;
-  }
-
-  .verdict {
-    white-space: nowrap;
-  }
-}
-
-/* Make chessboard areas behave better on phones */
-@media (max-width: 760px) {
-  #opening-practice,
-  .boardSection,
-  .analysisGrid {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
-  .boardSection > div,
-  .analysisGrid > div {
-    min-width: 0;
-  }
-
-  .react-chessboard,
-  [data-boardid],
-  [class*="chessboard"] {
-    max-width: 100% !important;
-  }
-}
-/* ================================
-   MOBILE POLISH OVERRIDES
-   Paste at very bottom of App.css
-================================ */
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  overflow-x: hidden;
-}
-
-.page,
-.landingWrap,
-.container,
-.appShell {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-img,
-svg,
-canvas,
-table {
-  max-width: 100%;
-}
-
-button,
-input,
-textarea {
-  font: inherit;
-}
-
-/* Better phone spacing */
-@media (max-width: 760px) {
-  .landingWrap {
-    padding-left: 0.85rem;
-    padding-right: 0.85rem;
-  }
-
-  .container,
-  .appShell {
-    width: 100%;
-    padding-left: 0.85rem;
-    padding-right: 0.85rem;
-    box-sizing: border-box;
-  }
-
-  .landingHero,
-  .heroCard,
-  .card,
-  .landingContentSection,
-  .ratingGuideSection {
-    border-radius: 20px;
-  }
-
-  .landingHero {
-    padding: 1rem;
-  }
-
-  .heroCard {
-    padding: 1rem;
-  }
-
-  .card {
-    padding: 1rem;
-  }
-
-  .landingNav {
-    gap: 1rem;
-    align-items: flex-start;
-  }
-
-  .landingBrand {
-    width: 100%;
-  }
-
-  .landingBrandIcon {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-  }
-
-  .landingBrandTitle {
-    font-size: 1rem;
-  }
-
-  .landingBrandSubtitle {
-    font-size: 0.78rem;
-  }
-
-  .landingNavLinks {
-    width: 100%;
-    display: flex;
-    gap: 0.5rem;
-    overflow-x: auto;
-    padding-bottom: 0.35rem;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .landingNavLinks::-webkit-scrollbar {
-    display: none;
-  }
-
-  .landingNavLinks a {
-    flex: 0 0 auto;
-    white-space: nowrap;
-    font-size: 0.82rem;
-    padding: 0.45rem 0.7rem;
-    border-radius: 999px;
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid rgba(148, 163, 184, 0.18);
-  }
-
-  .landingHeroGrid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .landingHeroCopy h1 {
-    font-size: clamp(2rem, 10vw, 3rem);
-    line-height: 0.98;
-    letter-spacing: -0.06em;
-  }
-
-  .landingSubtext,
-  .subtext,
-  .landingSectionHeading p {
-    font-size: 0.95rem;
-    line-height: 1.55;
-  }
-
-  .landingPill {
-    width: fit-content;
-    max-width: 100%;
-    flex-wrap: wrap;
-    font-size: 0.78rem;
-  }
-
-  .landingHeroActions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.7rem;
-  }
-
-  .landingPrimaryBtn,
-  .landingSecondaryBtn {
-    width: 100%;
-    justify-content: center;
-    text-align: center;
-    box-sizing: border-box;
-  }
-
-  .landingStats,
-  .landingPreviewGrid,
-  .landingFeatureGrid,
-  .aboutGrid,
-  .landingPricingGrid,
-  .ratingGuideGrid,
-  .statsGrid,
-  .placeholderGrid,
-  .twoCol,
-  .analysisGrid,
-  .quickNavGrid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .landingStats {
-    gap: 0.65rem;
-  }
-
-  .landingStatCard {
-    min-height: auto;
-  }
-
-  .landingPreviewCard {
-    padding: 1rem;
-    border-radius: 20px;
-  }
-
-  .landingPreviewTop,
-  .landingPriceTop,
-  .heroTop {
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-
-  .landingPreviewTop,
-  .landingPriceTop {
-    flex-direction: column;
-  }
-
-  .landingContentSection,
-  .ratingGuideSection {
-    padding: 1rem;
-  }
-
-  .landingSectionHeading h2,
-  .heroTitleWrap h1 {
-    font-size: clamp(1.55rem, 7vw, 2.2rem);
-    line-height: 1.05;
-  }
-
-  .landingFeatureCard,
-  .aboutCard,
-  .ratingGuideCard,
-  .landingPriceCard,
-  .smallCard,
-  .statCard {
-    padding: 1rem;
-    border-radius: 18px;
-  }
-
-  .ratingOpeningColumns {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .ratingOpeningList {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .ratingOpeningBtn,
-  .landingOpeningBtn,
-  .inlineOpeningBtn,
-  .tableOpeningBtn {
-    max-width: 100%;
-    white-space: normal;
-    text-align: left;
-  }
-
-  .searchRow,
-  .topBar {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.7rem;
-  }
-
-  .input {
-    width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
-    font-size: 16px;
-  }
-
-  .primaryBtn,
-  .secondaryBtn,
-  .secondaryButton,
-  .ghostButton,
-  .quickNavBtn {
-    width: 100%;
-    min-height: 46px;
-    justify-content: center;
-    text-align: center;
-    box-sizing: border-box;
-  }
-
-  .filtersRow {
-    margin-top: 0.9rem;
-    align-items: flex-start;
-  }
-
-  .checkboxRow {
-    align-items: flex-start;
-    gap: 0.6rem;
-    font-size: 0.9rem;
-  }
-
-  .checkboxRow input {
-    margin-top: 0.18rem;
-  }
-
-  .statusMessage,
-  .successMessage,
-  .errorBox {
-    font-size: 0.9rem;
-    border-radius: 14px;
-  }
-
-  .statsGrid {
-    gap: 0.75rem;
-  }
-
-  .statCard {
-    min-height: auto;
-  }
-
-  .statValue {
-    font-size: 1.25rem;
-    line-height: 1.1;
-    word-break: break-word;
-  }
-
-  .smallStatValue {
-    font-size: 0.95rem;
-  }
-
-  .quickNavCard h2 {
-    margin-bottom: 0.8rem;
-  }
-
-  .quickNavGrid {
-    gap: 0.65rem;
-  }
-
-  .sectionToggle {
-    gap: 0.8rem;
-    align-items: flex-start;
-  }
-
-  .sectionToggleLeft {
-    min-width: 0;
-  }
-
-  .sectionToggleLeft h2 {
-    font-size: 1.05rem;
-    line-height: 1.2;
-  }
-
-  .sectionBadge {
-    max-width: 42%;
-    white-space: normal;
-    text-align: right;
-    line-height: 1.2;
-    font-size: 0.72rem;
-  }
-
-  .sectionBody {
-    padding-top: 0.9rem;
-  }
-
-  .chips {
-    gap: 0.45rem;
-  }
-
-  .chip {
-    font-size: 0.78rem;
-  }
-
-  .profileSummary {
-    font-size: 0.95rem;
-    line-height: 1.55;
-  }
-
-  .list {
-    gap: 0.65rem;
-  }
-
-  .listItem {
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-start;
-    padding: 0.85rem;
-    border-radius: 16px;
-    min-width: 0;
-  }
-
-  .listItem strong,
-  .chartLabel,
-  .gamePickerTop strong {
-    word-break: break-word;
-    overflow-wrap: anywhere;
-  }
-
-  .rightStat {
-    min-width: 68px;
-    text-align: right;
-  }
-
-  .premiumMiniCard,
-  .premiumCard {
-    padding: 1rem;
-    border-radius: 18px;
-  }
-
-  .lockedFeatureGrid,
-  .openingExplainGrid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .openingExplainCard,
-  .lockedFeature {
-    padding: 0.9rem;
-    border-radius: 16px;
-  }
-
-  .openingExplainCard p {
-    font-size: 0.92rem;
-  }
-
-  .chartRow {
-    grid-template-columns: 1fr;
-    gap: 0.45rem;
-    padding: 0.85rem;
-    border-radius: 16px;
-  }
-
-  .chartLabel {
-    width: 100%;
-  }
-
-  .chartBarWrap {
-    width: 100%;
-  }
-
-  .chartValue {
-    text-align: left;
-    font-size: 0.9rem;
-  }
-
-  .trainingPlanItem {
-    grid-template-columns: auto 1fr;
-    gap: 0.75rem;
-    padding: 0.9rem;
-    border-radius: 16px;
-  }
-
-  .trainingStepNumber {
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
-  }
-
-  .trainingStepContent h3 {
-    font-size: 1rem;
-  }
-
-  .trainingStepContent p {
-    font-size: 0.92rem;
-    line-height: 1.5;
-  }
-
-  .boardSection {
-    gap: 1rem;
-  }
-
-  .movesPanel {
-    max-height: none;
-  }
-
-  .gamePickerList {
-    max-height: 340px;
-    overflow-y: auto;
-    padding-right: 0.15rem;
-  }
-
-  .gamePickerButton {
-    padding: 0.85rem;
-    border-radius: 16px;
-  }
-
-  .gamePickerTop {
-    gap: 0.5rem;
-    align-items: flex-start;
-  }
-
-  .gamePickerTop span {
-    flex: 0 0 auto;
-  }
-
-  .boardMeta {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.55rem;
-    font-size: 0.9rem;
-    padding: 0.85rem;
-    border-radius: 16px;
-  }
-
-  .tableWrap {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  table {
-    min-width: 560px;
-  }
-
-  th,
-  td {
-    padding: 0.7rem 0.6rem;
-    font-size: 0.85rem;
-  }
-
-  .feedbackCard textarea,
-  .feedbackCard input {
-    font-size: 16px;
-  }
-
-  .siteFooter {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.2rem;
-    padding: 1rem;
-    border-radius: 20px;
-  }
-
-  .footerLinks {
-    align-items: flex-start;
-  }
-}
-
-/* Extra-small phones */
-@media (max-width: 430px) {
-  .landingWrap,
-  .container,
-  .appShell {
-    padding-left: 0.65rem;
-    padding-right: 0.65rem;
-  }
-
-  .landingHero,
-  .heroCard,
-  .card,
-  .landingContentSection,
-  .ratingGuideSection {
-    padding: 0.85rem;
-    border-radius: 18px;
-  }
-
-  .landingHeroCopy h1 {
-    font-size: 2.15rem;
-  }
-
-  .landingSectionHeading h2,
-  .heroTitleWrap h1 {
-    font-size: 1.65rem;
-  }
-
-  .landingPreviewCard,
-  .landingFeatureCard,
-  .aboutCard,
-  .ratingGuideCard,
-  .landingPriceCard,
-  .smallCard,
-  .statCard {
-    padding: 0.85rem;
-  }
-
-  .sectionBadge {
-    display: none;
-  }
-
-  .listItem {
-    flex-direction: column;
-  }
-
-  .rightStat {
-    width: 100%;
-    min-width: 0;
-    text-align: left;
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-    align-items: center;
-  }
-
-  .trainingPlanItem {
-    grid-template-columns: 1fr;
-  }
-
-  .trainingStepNumber {
-    width: 30px;
-    height: 30px;
-  }
-
-  .landingVerdictRow {
-    align-items: flex-start;
-    gap: 0.65rem;
-  }
-
-  .verdict {
-    white-space: nowrap;
-  }
-}
-
-/* Make chessboard areas behave better on phones */
-@media (max-width: 760px) {
-  #opening-practice,
-  .boardSection,
-  .analysisGrid {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
-  .boardSection > div,
-  .analysisGrid > div {
-    min-width: 0;
-  }
-
-  .react-chessboard,
-  [data-boardid],
-  [class*="chessboard"] {
-    max-width: 100% !important;
-  }
-}
-
-/* ================================
-   MOBILE CLEAN MODE
-   Reduces scrolling on phone only
-================================ */
-
-@media (max-width: 760px) {
-  /* Hide long marketing sections on mobile */
-  #features,
-  #about,
-  #how-it-works,
-  #rating-openings,
-  #premium {
-    display: none !important;
-  }
-
-  /* Hide footer links on mobile to reduce clutter */
-  .siteFooter {
-    display: none !important;
-  }
-
-  /* Make landing hero much shorter on mobile */
-  .landingHero {
-    min-height: auto !important;
-    padding: 0.9rem !important;
-    margin-bottom: 0.8rem !important;
-  }
-
-  .landingNav {
-    margin-bottom: 0.8rem !important;
-  }
-
-  .landingNavLinks {
-    display: none !important;
-  }
-
-  .landingHeroGrid {
-    grid-template-columns: 1fr !important;
-    gap: 0.8rem !important;
-  }
-
-  .landingHeroCopy h1 {
-    font-size: 2rem !important;
-    line-height: 1.02 !important;
-    letter-spacing: -0.05em !important;
-    margin-bottom: 0.65rem !important;
-  }
-
-  .landingSubtext {
-    font-size: 0.92rem !important;
-    line-height: 1.45 !important;
-    margin-bottom: 0.85rem !important;
-  }
-
-  .landingPill {
-    display: none !important;
-  }
-
-  .landingStats,
-  .landingPreviewCard {
-    display: none !important;
-  }
-
-  .landingHeroActions {
-    grid-template-columns: 1fr !important;
-    gap: 0.55rem !important;
-  }
-
-  .landingSecondaryBtn {
-    display: none !important;
-  }
-
-  .landingPrimaryBtn {
-    min-height: 44px !important;
-  }
-
-  /* Bring the app closer to the top */
-  .appShell {
-    padding-top: 0 !important;
-  }
-
-  .heroCard {
-    margin-top: 0 !important;
-    padding: 0.95rem !important;
-  }
-
-  .heroTitleWrap .eyebrow {
-    display: none !important;
-  }
-
-  .heroTitleWrap h1 {
-    font-size: 1.55rem !important;
-    margin-bottom: 0.45rem !important;
-  }
-
-  .heroTitleWrap .subtext {
-    font-size: 0.9rem !important;
-    line-height: 1.4 !important;
-    margin-bottom: 0.9rem !important;
-  }
-
-  /* Make input/action area cleaner */
-  .searchRow.topBar {
-    gap: 0.55rem !important;
-  }
-
-  .input,
-  .primaryBtn,
-  .secondaryButton,
-  .ghostButton {
-    min-height: 44px !important;
-  }
-
-  .filtersRow {
-    margin-top: 0.65rem !important;
-  }
-
-  /* Reduce placeholder scroll before import */
-  .placeholderGrid {
-    display: none !important;
-  }
-
-  /* Make result stats more compact */
-  .statsGrid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 0.55rem !important;
-  }
-
-  .statCard {
-    padding: 0.8rem !important;
-  }
-
-  .statLabel {
-    font-size: 0.72rem !important;
-  }
-
-  .statValue {
-    font-size: 1rem !important;
-  }
-
-  /* Make Quick View less tall */
-  .quickNavCard {
-    padding: 0.85rem !important;
-  }
-
-  .quickNavCard h2 {
-    font-size: 1rem !important;
-    margin-bottom: 0.6rem !important;
-  }
-
-  .quickNavGrid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 0.5rem !important;
-  }
 
   .quickNavBtn {
-    min-height: 40px !important;
-    padding: 0.6rem 0.65rem !important;
-    font-size: 0.82rem !important;
-  }
-
-  /* Hide the big premium preview card on mobile.
-     The pricing section already exists on desktop. */
-  .premiumCard {
-    display: none !important;
-  }
-
-  /* Make collapsible sections tighter */
-  .collapsibleCard {
-    margin-bottom: 0.7rem !important;
-  }
-
-  .sectionToggle {
-    min-height: 48px !important;
-    padding: 0.75rem !important;
-  }
-
-  .sectionToggleLeft h2 {
-    font-size: 1rem !important;
-  }
-
-  .sectionBody {
-    padding: 0.75rem !important;
-  }
-
-  /* Recommendation explanation cards are useful but too long on mobile */
-  .recommendationDetails {
-    display: none !important;
-  }
-
-  /* Keep lists compact */
-  .listItem {
-    padding: 0.75rem !important;
-  }
-
-  .smallText {
-    font-size: 0.78rem !important;
-  }
-
-  /* Game replay can be very long; keep picker shorter */
-  .gamePickerList {
-    max-height: 240px !important;
-  }
-
-  /* Feedback is useful but should be compact */
-  .feedbackCard {
-    padding: 0.9rem !important;
-    margin-top: 0.8rem !important;
-  }
-
-  .feedbackCard h2 {
-    font-size: 1.05rem !important;
-  }
-
-  .feedbackCard p {
-    font-size: 0.88rem !important;
-    line-height: 1.4 !important;
-  }
-}
-
-@media (max-width: 430px) {
-  .landingHeroCopy h1 {
-    font-size: 1.8rem !important;
-  }
-
-  .statsGrid {
-    grid-template-columns: 1fr 1fr !important;
-  }
-
-  .quickNavGrid {
-    grid-template-columns: 1fr 1fr !important;
-  }
-
-  .quickNavBtn {
-    font-size: 0.78rem !important;
-  }
-}
-/* ================================
-   MOBILE COMPACT / CLICK TO REVEAL
-================================ */
-
-.mobileSectionRevealBtn {
-  display: none;
-}
-
-@media (max-width: 760px) {
-  /* Bring rating guide back on mobile, but collapsed */
-  #rating-openings {
-    display: block !important;
-  }
-
-  .ratingGuideSection {
-    padding: 0.9rem !important;
-    margin-top: 0.8rem !important;
-    margin-bottom: 0.8rem !important;
-  }
-
-  .ratingGuideHeading {
-    margin-bottom: 0 !important;
-  }
-
-  .ratingGuideHeading h2 {
-    font-size: 1.25rem !important;
-    margin-bottom: 0.35rem !important;
-  }
-
-  .ratingGuideHeading p:not(.landingEyebrow) {
-    font-size: 0.88rem !important;
-    line-height: 1.4 !important;
-    margin-bottom: 0.75rem !important;
-  }
-
-  .mobileSectionRevealBtn {
-    display: inline-flex;
-    width: 100%;
-    min-height: 42px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-    border: 1px solid rgba(96, 165, 250, 0.28);
-    background: rgba(37, 99, 235, 0.12);
-    color: #dbeafe;
-    font-weight: 800;
-    cursor: pointer;
-  }
-
-  .ratingGuideClosed .ratingGuideBody {
-    display: none !important;
-  }
-
-  .ratingGuideOpen .ratingGuideBody {
-    display: block !important;
-    margin-top: 0.85rem;
-  }
-
-  .ratingGuideOpen .ratingGuideGrid {
-    grid-template-columns: 1fr !important;
-    gap: 0.65rem !important;
-  }
-
-  .ratingGuideCard {
-    padding: 0.8rem !important;
-    border-radius: 16px !important;
-  }
-
-  .ratingGuideTop {
-    margin-bottom: 0.45rem !important;
-  }
-
-  .ratingGuideTop h3 {
-    font-size: 1rem !important;
-  }
-
-  .ratingGuideTop p,
-  .ratingGuideDescription {
-    font-size: 0.82rem !important;
-    line-height: 1.35 !important;
-  }
-
-  .ratingGuideDescription {
-    margin-bottom: 0.65rem !important;
-  }
-
-  .ratingOpeningColumns {
-    grid-template-columns: 1fr !important;
-    gap: 0.65rem !important;
-  }
-
-  .ratingOpeningColumns h4 {
-    font-size: 0.82rem !important;
-    margin-bottom: 0.4rem !important;
-  }
-
-  .ratingOpeningList {
-    gap: 0.4rem !important;
-  }
-
-  .ratingOpeningBtn {
-    padding: 0.45rem 0.6rem !important;
-    font-size: 0.78rem !important;
-    border-radius: 999px !important;
-  }
-
-  /* Compact other non-essential mobile areas */
-  #features,
-  #about,
-  #how-it-works,
-  #premium {
-    display: none !important;
-  }
-
-  .landingHero {
-    margin-bottom: 0.7rem !important;
-  }
-
-  .landingHeroCopy h1 {
-    max-width: 12ch;
-  }
-
-  .landingSubtext {
-    max-width: 34ch;
-  }
-
-  .feedbackCard textarea {
-    min-height: 92px;
+    font-size: 0.78rem;
   }
 }
 

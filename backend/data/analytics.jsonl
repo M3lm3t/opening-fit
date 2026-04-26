@@ -23,3 +23,7 @@
 {"event": "import_started", "date": "2026-04-26T18:08:04.760406+00:00", "data": {"username": "melmet", "months": 3}}
 {"event": "games_imported", "date": "2026-04-26T18:08:08.014396+00:00", "data": {"username": "melmet", "gamesImported": 502, "monthsChecked": 3}}
 {"event": "frontend_import_completed", "date": "2026-04-26T18:08:08.751712+00:00", "data": {"username": "melmet", "gamesImported": 502}}
+{"event": "frontend_import_started", "date": "2026-04-26T18:59:03.010651+00:00", "data": {"username": "melmet"}}
+{"event": "import_started", "date": "2026-04-26T18:59:03.547938+00:00", "data": {"username": "melmet", "months": 3}}
+{"event": "games_imported", "date": "2026-04-26T18:59:08.388613+00:00", "data": {"username": "melmet", "gamesImported": 502, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-04-26T18:59:09.167438+00:00", "data": {"username": "melmet", "gamesImported": 502}}
