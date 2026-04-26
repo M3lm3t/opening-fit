@@ -27,3 +27,17 @@
 {"event": "import_started", "date": "2026-04-26T18:59:03.547938+00:00", "data": {"username": "melmet", "months": 3}}
 {"event": "games_imported", "date": "2026-04-26T18:59:08.388613+00:00", "data": {"username": "melmet", "gamesImported": 502, "monthsChecked": 3}}
 {"event": "frontend_import_completed", "date": "2026-04-26T18:59:09.167438+00:00", "data": {"username": "melmet", "gamesImported": 502}}
+{"event": "import_started", "date": "2026-04-26T19:31:49.415523+00:00", "data": {"username": "melmet", "months": 3}}
+{"event": "games_imported", "date": "2026-04-26T19:31:58.307640+00:00", "data": {"username": "melmet", "gamesImported": 502, "monthsChecked": 3}}
+{"event": "import_started", "date": "2026-04-26T19:33:32.684685+00:00", "data": {"username": "melmet", "months": 3}}
+{"event": "games_imported", "date": "2026-04-26T19:33:37.838114+00:00", "data": {"username": "melmet", "gamesImported": 502, "monthsChecked": 3}}
+{"event": "import_started", "date": "2026-04-26T19:35:13.045389+00:00", "data": {"username": "melmet", "months": 3}}
+{"event": "games_imported", "date": "2026-04-26T19:35:16.960404+00:00", "data": {"username": "melmet", "gamesImported": 502, "monthsChecked": 3}}
+{"event": "frontend_import_started", "date": "2026-04-26T19:40:23.926959+00:00", "data": {"username": "melmet", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-04-26T19:40:24.003542+00:00", "data": {"username": "melmet", "months": 3}}
+{"event": "games_imported", "date": "2026-04-26T19:40:27.126678+00:00", "data": {"username": "melmet", "gamesImported": 502, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-04-26T19:40:27.684477+00:00", "data": {"username": "melmet", "gamesImported": 502, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-04-26T19:40:37.070309+00:00", "data": {"username": "melmet", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-04-26T19:40:37.095894+00:00", "data": {"username": "melmet", "months": 3}}
+{"event": "games_imported", "date": "2026-04-26T19:40:39.913431+00:00", "data": {"username": "melmet", "gamesImported": 502, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-04-26T19:40:40.496287+00:00", "data": {"username": "melmet", "gamesImported": 502, "months": 3}}

@@ -2,9 +2,34 @@
   "username": "melmet",
   "usernameKey": "melmet",
   "platform": "chess.com",
-  "lastUpdated": "2026-04-26T18:59:08.380255+00:00",
+  "lastUpdated": "2026-04-26T19:40:39.910125+00:00",
   "isPremium": false,
   "importHistory": [
+    {
+      "date": "2026-04-26T19:40:39.910960+00:00",
+      "gamesImported": 502,
+      "monthsChecked": 3
+    },
+    {
+      "date": "2026-04-26T19:40:27.123919+00:00",
+      "gamesImported": 502,
+      "monthsChecked": 3
+    },
+    {
+      "date": "2026-04-26T19:35:16.942243+00:00",
+      "gamesImported": 502,
+      "monthsChecked": 3
+    },
+    {
+      "date": "2026-04-26T19:33:37.823905+00:00",
+      "gamesImported": 502,
+      "monthsChecked": 3
+    },
+    {
+      "date": "2026-04-26T19:31:58.303804+00:00",
+      "gamesImported": 502,
+      "monthsChecked": 3
+    },
     {
       "date": "2026-04-26T18:59:08.382039+00:00",
       "gamesImported": 502,
@@ -1350,7 +1375,7 @@
       "After each game, review where tactics first appeared rather than only the final blunder.",
       "Choose one main line and one backup line so flexibility does not become inconsistency."
     ],
-    "lastUpdated": "2026-04-26T18:59:08.380179+00:00",
+    "lastUpdated": "2026-04-26T19:40:39.910086+00:00",
     "isPremium": false,
     "lockedFeatures": [
       "Full opening ranking",

@@ -6,6 +6,10 @@ import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
+const STORAGE_KEY = "openingFit:lastAnalysis";
+const USERNAME_KEY = "openingFit:lastUsername";
+const PREMIUM_KEY = "openingFit:isPremiumDemo";
+
 const closedSections = {
   style: false,
   recommendations: false,
@@ -17,6 +21,15 @@ const closedSections = {
   top: false,
 };
 
+const premiumFeatures = [
+  "12 months of game history",
+  "Full opening table",
+  "Keep / Improve / Avoid verdicts",
+  "Advanced personal training plan",
+  "Saved import history",
+  "Future Stockfish analysis",
+];
+
 function getMovesFromPgn(pgnText) {
   if (!pgnText) return [];
 
@@ -26,6 +39,16 @@ function getMovesFromPgn(pgnText) {
     return chess.history();
   } catch {
     return [];
+  }
+}
+
+function safeDate(value) {
+  if (!value) return "Today";
+
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return "Today";
   }
 }
 
@@ -51,6 +74,19 @@ function EmptyState({ title, text }) {
     <div className="emptyState">
       <h3>{title}</h3>
       <p>{text}</p>
+    </div>
+  );
+}
+
+function LockedPremiumCard({ title, text }) {
+  return (
+    <div className="premiumLockedInline">
+      <div>
+        <span className="premiumBadge">Premium</span>
+        <h3>{title}</h3>
+        <p>{text}</p>
+      </div>
+      <span className="lockIcon">🔒</span>
     </div>
   );
 }
@@ -556,6 +592,38 @@ export default function App() {
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackContact, setFeedbackContact] = useState("");
   const [feedbackStatus, setFeedbackStatus] = useState("");
+  const [localSavedAt, setLocalSavedAt] = useState("");
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    const savedUsername = localStorage.getItem(USERNAME_KEY);
+    const savedPremium = localStorage.getItem(PREMIUM_KEY);
+    const savedAnalysis = localStorage.getItem(STORAGE_KEY);
+
+    if (savedUsername) setUsername(savedUsername);
+    if (savedPremium === "true") setIsPremium(true);
+
+    if (savedAnalysis) {
+      try {
+        const parsed = JSON.parse(savedAnalysis);
+
+        if (parsed?.analysis) {
+          setLocalSavedAt(parsed.savedAt || "");
+          setSavedProfileMessage(
+            `Saved local report found${
+              parsed.username ? ` for ${parsed.username}` : ""
+            }. Click Load Saved Profile to open it.`
+          );
+        }
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(PREMIUM_KEY, String(isPremium));
+  }, [isPremium]);
 
   async function trackEvent(event, eventData = {}) {
     try {
@@ -582,7 +650,7 @@ export default function App() {
     const lower = String(errorText).toLowerCase();
 
     if (lower.includes("no saved profile")) {
-      return "No saved profile found yet. Import this Chess.com username first, then you can load it next time.";
+      return "No saved backend profile found yet. I will still check your local browser save if one exists.";
     }
 
     if (lower.includes("demo profile could not be loaded")) {
@@ -638,7 +706,74 @@ export default function App() {
         {},
       training_plan: incoming.training_plan ?? incoming.trainingPlan ?? [],
       premium_preview: incoming.premium_preview ?? incoming.premiumPreview ?? {},
+      recommendations: incoming.recommendations ?? [],
+      lockedFeatures: incoming.lockedFeatures ?? [],
+      lastUpdated:
+        incoming.lastUpdated ??
+        incoming.last_updated ??
+        incoming.savedProfile?.lastUpdated ??
+        new Date().toISOString(),
     };
+  };
+
+  const saveLocalAnalysis = (analysis, cleanUsername) => {
+    const savedAt = new Date().toISOString();
+
+    const payload = {
+      username: cleanUsername,
+      savedAt,
+      analysis: {
+        ...analysis,
+        lastUpdated: analysis.lastUpdated || savedAt,
+      },
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(USERNAME_KEY, cleanUsername);
+    setLocalSavedAt(savedAt);
+  };
+
+  const loadLocalAnalysis = () => {
+    const savedAnalysis = localStorage.getItem(STORAGE_KEY);
+
+    if (!savedAnalysis) {
+      return false;
+    }
+
+    try {
+      const parsed = JSON.parse(savedAnalysis);
+
+      if (!parsed?.analysis) {
+        return false;
+      }
+
+      const cleanData = normaliseData(parsed.analysis);
+
+      setData(cleanData);
+      setUsername(parsed.username || cleanData.username || "");
+      setSelectedGameIndex(0);
+      setPracticeOpening(null);
+      setOpenSections(closedSections);
+      setLocalSavedAt(parsed.savedAt || "");
+
+      setSavedProfileMessage(
+        `Loaded local saved report${
+          parsed.username ? ` for ${parsed.username}` : ""
+        }. Saved: ${safeDate(parsed.savedAt)}`
+      );
+
+      scrollToResults();
+      return true;
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+      return false;
+    }
+  };
+
+  const clearLocalAnalysis = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setLocalSavedAt("");
+    setSavedProfileMessage("Local saved report cleared.");
   };
 
   const scrollToResults = () => {
@@ -708,6 +843,8 @@ export default function App() {
     });
   };
 
+  const monthsToImport = isPremium ? 12 : 3;
+
   const importGames = async () => {
     setLoading(true);
     setLoadingStep("Finding your recent Chess.com games...");
@@ -726,16 +863,24 @@ export default function App() {
         throw new Error("Please enter a Chess.com username.");
       }
 
+      localStorage.setItem(USERNAME_KEY, cleanUsername);
+
       await trackEvent("frontend_import_started", {
         username: cleanUsername,
+        months: monthsToImport,
+        premiumDemo: isPremium,
       });
 
-      setLoadingStep("Fetching Chess.com archives...");
+      setLoadingStep(
+        isPremium
+          ? "Fetching up to 12 months of Chess.com games..."
+          : "Fetching your recent Chess.com games..."
+      );
 
       const res = await fetch(
         `${API_BASE}/api/import/chesscom/${encodeURIComponent(
           cleanUsername
-        )}?months=3`
+        )}?months=${monthsToImport}`
       );
 
       const text = await res.text();
@@ -756,27 +901,23 @@ export default function App() {
       }
 
       setLoadingStep("Detecting your opening patterns...");
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      await new Promise((resolve) => setTimeout(resolve, 250));
 
       setLoadingStep("Building your style profile and recommendations...");
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      await new Promise((resolve) => setTimeout(resolve, 250));
 
       const cleanData = normaliseData(json);
       setData(cleanData);
+      saveLocalAnalysis(cleanData, cleanUsername);
 
-      if (cleanData?.savedProfile?.lastUpdated) {
-        setSavedProfileMessage(
-          `Saved profile updated for ${cleanData.username}. Last updated: ${new Date(
-            cleanData.savedProfile.lastUpdated
-          ).toLocaleString()}`
-        );
-      } else {
-        setSavedProfileMessage(`Import complete for ${cleanData.username}.`);
-      }
+      setSavedProfileMessage(
+        `Import complete for ${cleanData.username || cleanUsername}. Saved locally so you can load it next time.`
+      );
 
       await trackEvent("frontend_import_completed", {
         username: cleanUsername,
         gamesImported: cleanData.gamesImported ?? cleanData.total_games,
+        months: monthsToImport,
       });
 
       scrollToResults();
@@ -791,8 +932,17 @@ export default function App() {
   const loadSavedProfile = async () => {
     const cleanUsername = username.trim();
 
+    setError("");
+    setSavedProfileMessage("");
+    setFeedbackStatus("");
+
     if (!cleanUsername) {
-      setError("Enter a Chess.com username first, or use Try Demo Account.");
+      const loadedLocal = loadLocalAnalysis();
+
+      if (!loadedLocal) {
+        setError("Enter a Chess.com username first, or import games once.");
+      }
+
       return;
     }
 
@@ -804,9 +954,6 @@ export default function App() {
       return;
     }
 
-    setError("");
-    setSavedProfileMessage("");
-    setFeedbackStatus("");
     setLoading(true);
     setLoadingStep("Looking for your saved Opening Fit profile...");
 
@@ -825,6 +972,12 @@ export default function App() {
       }
 
       if (!response.ok || !profile) {
+        const loadedLocal = loadLocalAnalysis();
+
+        if (loadedLocal) {
+          return;
+        }
+
         throw new Error(
           profile?.detail ||
             "No saved profile found yet. Import this Chess.com username first, then you can load it next time."
@@ -834,20 +987,27 @@ export default function App() {
       const latestResult = normaliseData(profile.latestResult);
 
       if (!latestResult) {
+        const loadedLocal = loadLocalAnalysis();
+
+        if (loadedLocal) {
+          return;
+        }
+
         throw new Error(
           "Saved profile found, but it did not contain any saved analysis. Import games again to refresh it."
         );
       }
 
       setData(latestResult);
+      saveLocalAnalysis(latestResult, profile.username || cleanUsername);
       setOpenSections(closedSections);
       setSelectedGameIndex(0);
       setPracticeOpening(null);
 
       setSavedProfileMessage(
-        `Loaded saved profile for ${profile.username}. Last updated: ${new Date(
+        `Loaded saved backend profile for ${profile.username}. Last updated: ${safeDate(
           profile.lastUpdated
-        ).toLocaleString()}`
+        )}`
       );
 
       await trackEvent("frontend_saved_profile_loaded", {
@@ -976,8 +1136,8 @@ export default function App() {
   }, [data, showUnknownOpenings]);
 
   const chartData = useMemo(() => {
-    return filteredTopOpenings.slice(0, 6);
-  }, [filteredTopOpenings]);
+    return filteredTopOpenings.slice(0, isPremium ? 10 : 6);
+  }, [filteredTopOpenings, isPremium]);
 
   const whiteDetailedRecommendations = useMemo(() => {
     return filterUnknownOpenings(
@@ -994,6 +1154,50 @@ export default function App() {
         []
     );
   }, [data, showUnknownOpenings]);
+
+  const smartRecommendationSummary = useMemo(() => {
+    const summary = [];
+
+    const top = filteredTopOpenings[0];
+    const best = [...filteredBestOpenings].sort(
+      (a, b) => (b.win_rate ?? b.winRate ?? 0) - (a.win_rate ?? a.winRate ?? 0)
+    )[0];
+    const weak = [...filteredBestOpenings]
+      .filter((item) => (item.games || 0) >= 3)
+      .sort(
+        (a, b) => (a.win_rate ?? a.winRate ?? 0) - (b.win_rate ?? b.winRate ?? 0)
+      )[0];
+
+    if (top) {
+      summary.push(
+        `Your most common opening is ${top.name}. Because it appears often, improving this opening should give you the biggest overall return.`
+      );
+    }
+
+    if (best) {
+      summary.push(
+        `${best.name} looks like one of your best fits. You score ${
+          best.win_rate ?? best.winRate ?? 0
+        }% from ${best.games} games, so this is worth keeping in your repertoire.`
+      );
+    }
+
+    if (weak && weak.name !== best?.name) {
+      summary.push(
+        `${weak.name} may need attention. Your current score is ${
+          weak.win_rate ?? weak.winRate ?? 0
+        }% from ${weak.games} games, so review the first few moves and common plans.`
+      );
+    }
+
+    if (summary.length === 0) {
+      summary.push(
+        "Import more games to unlock a stronger personalised recommendation summary."
+      );
+    }
+
+    return summary;
+  }, [filteredTopOpenings, filteredBestOpenings]);
 
   const personalTrainingPlan = useMemo(() => {
     const plan = [];
@@ -1105,13 +1309,14 @@ export default function App() {
       }
     });
 
-    return uniquePlan.slice(0, 6);
+    return uniquePlan.slice(0, isPremium ? 8 : 4);
   }, [
     data,
     filteredBestOpenings,
     filteredTopOpenings,
     filteredPreferredWhite,
     filteredPreferredBlack,
+    isPremium,
   ]);
 
   const selectedGame = filteredRecentGames?.[selectedGameIndex] || null;
@@ -1178,14 +1383,18 @@ export default function App() {
                 onClick={importGames}
                 disabled={loading || !username.trim()}
               >
-                {loading ? "Working..." : "Import Chess.com Games"}
+                {loading
+                  ? "Working..."
+                  : isPremium
+                  ? "Import 12 Months"
+                  : "Import Chess.com Games"}
               </button>
 
               <button
                 className="secondaryButton savedProfileButton"
                 type="button"
                 onClick={loadSavedProfile}
-                disabled={loading || !username.trim()}
+                disabled={loading}
               >
                 Load Saved Profile
               </button>
@@ -1198,14 +1407,17 @@ export default function App() {
               >
                 Try Demo Account
               </button>
+
+              <button
+                className="ghostButton"
+                type="button"
+                onClick={importGames}
+                disabled={loading || !username.trim()}
+              >
+                Refresh Games
+              </button>
             </div>
           </div>
-
-          {loadingStep ? <p className="statusMessage">{loadingStep}</p> : null}
-
-          {savedProfileMessage ? (
-            <p className="successMessage">{savedProfileMessage}</p>
-          ) : null}
 
           <div className="filtersRow">
             <label className="checkboxRow">
@@ -1216,7 +1428,31 @@ export default function App() {
               />
               <span>Show unclassified openings</span>
             </label>
+
+            <label className="checkboxRow">
+              <input
+                type="checkbox"
+                checked={isPremium}
+                onChange={(e) => setIsPremium(e.target.checked)}
+              />
+              <span>Premium demo mode</span>
+            </label>
           </div>
+
+          {localSavedAt ? (
+            <div className="savedHistoryRow">
+              <span>Local saved report: {safeDate(localSavedAt)}</span>
+              <button className="ghostButton" type="button" onClick={clearLocalAnalysis}>
+                Clear local save
+              </button>
+            </div>
+          ) : null}
+
+          {loadingStep ? <p className="statusMessage">{loadingStep}</p> : null}
+
+          {savedProfileMessage ? (
+            <p className="successMessage">{savedProfileMessage}</p>
+          ) : null}
         </header>
 
         {loading && (
@@ -1280,8 +1516,15 @@ export default function App() {
               <div className="card statCard">
                 <span className="statLabel">Recent activity</span>
                 <span className="statValue">
-                  {data.months_checked} month
-                  {data.months_checked === 1 ? "" : "s"}
+                  {data.months_checked || monthsToImport} month
+                  {(data.months_checked || monthsToImport) === 1 ? "" : "s"}
+                </span>
+              </div>
+
+              <div className="card statCard">
+                <span className="statLabel">Plan</span>
+                <span className="statValue smallStatValue">
+                  {isPremium ? "Premium demo" : "Free"}
                 </span>
               </div>
 
@@ -1344,7 +1587,7 @@ export default function App() {
               </div>
             </section>
 
-            {data?.lockedFeatures?.length ? (
+            {!isPremium ? (
               <section className="card premiumCard">
                 <div className="premiumHeader">
                   <span className="premiumBadge">Premium Preview</span>
@@ -1352,21 +1595,25 @@ export default function App() {
                 </div>
 
                 <p>
-                  Your free report gives you the basics. Premium will unlock
-                  deeper opening stats, saved history, advanced training plans
-                  and future Stockfish analysis.
+                  You are viewing the free version. Premium will unlock deeper
+                  opening stats, longer imports, advanced training plans and
+                  future Stockfish analysis.
                 </p>
 
                 <div className="lockedFeatureGrid">
-                  {data.lockedFeatures.map((feature) => (
+                  {premiumFeatures.map((feature) => (
                     <div className="lockedFeature" key={feature}>
                       🔒 {feature}
                     </div>
                   ))}
                 </div>
 
-                <button className="primaryBtn" type="button" disabled>
-                  Premium coming soon
+                <button
+                  className="primaryBtn"
+                  type="button"
+                  onClick={() => setIsPremium(true)}
+                >
+                  Preview Premium Mode
                 </button>
               </section>
             ) : null}
@@ -1426,7 +1673,9 @@ export default function App() {
                   </div>
 
                   <div className="premiumMiniCard">
-                    <p className="premiumLabel">Premium Preview</p>
+                    <p className="premiumLabel">
+                      {isPremium ? "Premium Active" : "Premium Preview"}
+                    </p>
                     <h3>Best Openings For You</h3>
 
                     <div className="list">
@@ -1537,7 +1786,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {whiteDetailedRecommendations.length ? (
+                {isPremium && whiteDetailedRecommendations.length ? (
                   <div className="recommendationDetails">
                     <h3>Why these openings fit you as White</h3>
 
@@ -1568,9 +1817,14 @@ export default function App() {
                       ))}
                     </div>
                   </div>
+                ) : !isPremium ? (
+                  <LockedPremiumCard
+                    title="Detailed opening explanations are premium"
+                    text="Free shows basic suggestions. Premium explains why each opening fits you and what mistakes to avoid."
+                  />
                 ) : null}
 
-                {blackDetailedRecommendations.length ? (
+                {isPremium && blackDetailedRecommendations.length ? (
                   <div className="recommendationDetails">
                     <h3>Why these openings fit you as Black</h3>
 
@@ -1606,18 +1860,11 @@ export default function App() {
                 <div className="spacerTop">
                   <h3>Summary</h3>
                   <div className="list">
-                    {(data.recommendations || []).length ? (
-                      (data.recommendations || []).map((item, index) => (
-                        <div className="listItem" key={index}>
-                          {item}
-                        </div>
-                      ))
-                    ) : (
-                      <EmptyState
-                        title="No summary yet"
-                        text="Your recommendation summary will appear once Opening Fit has enough useful game data."
-                      />
-                    )}
+                    {smartRecommendationSummary.map((item, index) => (
+                      <div className="listItem" key={index}>
+                        {item}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </Section>
@@ -1740,6 +1987,13 @@ export default function App() {
                     </div>
                   ))}
                 </div>
+
+                {!isPremium ? (
+                  <LockedPremiumCard
+                    title="Advanced training plan locked"
+                    text="Premium will show more steps, deeper weaknesses, and longer import history."
+                  />
+                ) : null}
               </Section>
             </div>
 
@@ -1916,7 +2170,10 @@ export default function App() {
                       </thead>
 
                       <tbody>
-                        {filteredTopOpenings.map((opening, index) => {
+                        {(isPremium
+                          ? filteredTopOpenings
+                          : filteredTopOpenings.slice(0, 8)
+                        ).map((opening, index) => {
                           const rate = opening.win_rate ?? opening.winRate ?? 0;
 
                           return (
@@ -1942,6 +2199,13 @@ export default function App() {
                         })}
                       </tbody>
                     </table>
+
+                    {!isPremium && filteredTopOpenings.length > 8 ? (
+                      <LockedPremiumCard
+                        title="Full opening table locked"
+                        text={`Free shows your top 8 rows. Premium would show all ${filteredTopOpenings.length} tracked openings.`}
+                      />
+                    ) : null}
                   </div>
                 ) : (
                   <EmptyState
