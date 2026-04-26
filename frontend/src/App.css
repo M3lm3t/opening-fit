@@ -2378,3 +2378,226 @@ th {
     display: block !important;
   }
 }
+/* Saved history + premium lock styling */
+
+.savedHistoryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #cbd5e1;
+  font-size: 0.92rem;
+}
+
+.premiumLockedInline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(96, 165, 250, 0.06)),
+    rgba(15, 23, 42, 0.74);
+}
+
+.premiumLockedInline h3 {
+  margin: 8px 0 6px;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.premiumLockedInline p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.lockIcon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  font-size: 1.25rem;
+}
+
+@media (max-width: 700px) {
+  .savedHistoryRow,
+  .premiumLockedInline {
+    align-items: flex-start;
+  }
+
+  .premiumLockedInline {
+    flex-direction: column;
+  }
+
+  .lockIcon {
+    width: 40px;
+    height: 40px;
+  }
+}
+/* Final polish for saved history + premium demo update */
+
+.statsGrid {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.filtersRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+}
+
+.savedHistoryRow .ghostButton {
+  min-height: 38px;
+  padding: 8px 14px;
+}
+
+.premiumLockedInline .premiumBadge {
+  margin-bottom: 4px;
+}
+
+/* Keep premium preview visible on mobile now we have a useful premium demo button */
+@media (max-width: 760px) {
+  .premiumCard {
+    display: block !important;
+    padding: 0.95rem;
+  }
+
+  .premiumCard h2 {
+    font-size: 1.15rem;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  .premiumCard p {
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .lockedFeatureGrid {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .lockedFeature {
+    padding: 0.75rem;
+    border-radius: 14px;
+    font-size: 0.88rem;
+  }
+
+  .savedHistoryRow {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+    font-size: 0.86rem;
+  }
+
+  .savedHistoryRow .ghostButton {
+    width: 100%;
+  }
+
+  .filtersRow {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .premiumLockedInline {
+    padding: 0.9rem;
+    border-radius: 16px;
+  }
+
+  .premiumLockedInline h3 {
+    font-size: 0.98rem;
+  }
+
+  .premiumLockedInline p {
+    font-size: 0.88rem;
+  }
+}
+/* Saved history + premium lock styling */
+
+.savedHistoryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #cbd5e1;
+  font-size: 0.92rem;
+}
+
+.premiumLockedInline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(96, 165, 250, 0.06)),
+    rgba(15, 23, 42, 0.74);
+}
+
+.premiumLockedInline h3 {
+  margin: 8px 0 6px;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.premiumLockedInline p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.lockIcon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  font-size: 1.25rem;
+}
+
+@media (max-width: 700px) {
+  .savedHistoryRow,
+  .premiumLockedInline {
+    align-items: flex-start;
+  }
+
+  .premiumLockedInline {
+    flex-direction: column;
+  }
+
+  .lockIcon {
+    width: 40px;
+    height: 40px;
+  }
+}
