@@ -1898,3 +1898,154 @@ th {
     border-radius: 20px;
   }
 }
+.statusMessage,
+.successMessage {
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.statusMessage {
+  color: #dbeafe;
+  background: rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+}
+
+.successMessage {
+  color: #dcfce7;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+}
+
+.secondaryButton,
+.ghostButton {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 999px;
+  padding: 0.8rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.secondaryButton {
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.ghostButton {
+  color: #cbd5e1;
+  background: transparent;
+}
+
+.secondaryButton:hover,
+.ghostButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(96, 165, 250, 0.55);
+}
+
+.secondaryButton:disabled,
+.ghostButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.premiumCard {
+  border: 1px solid rgba(250, 204, 21, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(250, 204, 21, 0.12), transparent 36%),
+    rgba(15, 23, 42, 0.9);
+}
+
+.premiumHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.premiumBadge {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  color: #fef9c3;
+  background: rgba(250, 204, 21, 0.14);
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.lockedFeatureGrid,
+.openingExplainGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.lockedFeature,
+.openingExplainCard {
+  border-radius: 18px;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.42);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.openingExplainCard h4 {
+  margin: 0 0 0.5rem;
+  color: #f8fafc;
+}
+
+.openingExplainCard p {
+  margin: 0.45rem 0;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.openingExplainCard span {
+  display: inline-flex;
+  margin-top: 0.5rem;
+  border-radius: 999px;
+  padding: 0.3rem 0.55rem;
+  color: #bfdbfe;
+  background: rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.feedbackCard textarea,
+.feedbackCard input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.7rem;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.5);
+  color: #f8fafc;
+  padding: 0.85rem 1rem;
+  font: inherit;
+  outline: none;
+}
+
+.feedbackCard textarea:focus,
+.feedbackCard input:focus {
+  border-color: rgba(96, 165, 250, 0.65);
+}
+
+.feedbackCard button {
+  margin-top: 0.8rem;
+}
+
+@media (max-width: 640px) {
+  .lockedFeatureGrid,
+  .openingExplainGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .secondaryButton,
+  .ghostButton {
+    width: 100%;
+  }
+}
