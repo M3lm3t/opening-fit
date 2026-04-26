@@ -1797,3 +1797,96 @@ def demo_profile():
     log_analytics_event("demo_loaded", {"username": "DemoPlayer"})
 
     return demo_data
+
+# ---- Contact / feedback capture to Supabase ----
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+
+
+class ContactMessageRequest(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    contact: Optional[str] = None
+    message: str
+    username: Optional[str] = None
+    platform: Optional[str] = None
+    page: Optional[str] = None
+
+
+def save_contact_message_to_supabase(request: ContactMessageRequest):
+    clean_message = request.message.strip()
+
+    if not clean_message:
+        raise HTTPException(status_code=400, detail="Message cannot be empty.")
+
+    created_at = now_iso()
+
+    item = {
+        "created_at": created_at,
+        "name": (request.name or "").strip(),
+        "email": (request.email or request.contact or "").strip(),
+        "message": clean_message,
+        "page": (request.page or "Opening Fit contact form").strip(),
+        "source": "opening-fit",
+    }
+
+    # Local backup file as a fallback
+    try:
+        with FEEDBACK_FILE.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(item, ensure_ascii=False) + "\n")
+    except Exception as exc:
+        print("Local contact backup failed:", str(exc))
+
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        print("Supabase is not configured. Saved contact locally only.")
+        return item
+
+    try:
+        response = requests.post(
+            f"{SUPABASE_URL}/rest/v1/contact_messages",
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+                "Content-Type": "application/json",
+                "Prefer": "return=representation",
+            },
+            json=item,
+            timeout=15,
+        )
+    except requests.RequestException as exc:
+        print("Supabase contact save request failed:", str(exc))
+        raise HTTPException(
+            status_code=500,
+            detail="Could not save your message right now. Please try again.",
+        )
+
+    if response.status_code >= 400:
+        print("Supabase contact save failed:", response.status_code, response.text)
+        raise HTTPException(
+            status_code=500,
+            detail="Could not save your message right now. Please try again.",
+        )
+
+    return item
+
+
+@app.post("/api/contact")
+def submit_contact_message(request: ContactMessageRequest):
+    saved = save_contact_message_to_supabase(request)
+
+    log_analytics_event(
+        "contact_message_submitted",
+        {
+            "hasEmail": bool(request.email or request.contact),
+            "username": request.username,
+            "platform": request.platform,
+            "savedToSupabase": bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY),
+        },
+    )
+
+    return {
+        "status": "ok",
+        "message": "Thanks — your message has been sent.",
+        "contact": saved,
+    }
