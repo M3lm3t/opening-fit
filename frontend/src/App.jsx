@@ -1144,7 +1144,7 @@ export default function App() {
     setFeedbackStatus("Sending feedback...");
 
     try {
-      const response = await fetch(`${API_BASE}/api/feedback`, {
+      const response = await fetch(`${API_BASE}/api/contact`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
