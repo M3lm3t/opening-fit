@@ -14,7 +14,6 @@ from pydantic import BaseModel
 
 app = FastAPI(title="Opening Fit API")
 
-
 FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip()
 FRONTEND_URL_WWW = os.getenv("FRONTEND_URL_WWW", "").strip()
 
