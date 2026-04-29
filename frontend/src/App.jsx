@@ -3,6 +3,7 @@ import { Chess } from "chess.js";
 import "./App.css";
 import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
+import { Analytics } from "@vercel/analytics/react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
@@ -306,7 +307,7 @@ function LandingSection({ onOpeningClick }) {
     {
       icon: "♟️",
       title: "Import your games",
-      text: "Enter your Chess.com username and analyse your recent games.",
+      text: "Enter your Chess.com or Lichess username and analyse your recent games.",
     },
     {
       icon: "📊",
@@ -328,7 +329,7 @@ function LandingSection({ onOpeningClick }) {
   const steps = [
     {
       title: "Enter username",
-      text: "Add your Chess.com username.",
+      text: "Add your Chess.com or Lichess username.",
     },
     {
       title: "Import games",
@@ -379,9 +380,9 @@ function LandingSection({ onOpeningClick }) {
             <h1>Build a chess repertoire that fits how you actually play.</h1>
 
             <p className="landingSubtext">
-              Opening Fit reviews your recent Chess.com games, finds your
-              strongest opening patterns, and recommends practical repertoire
-              ideas based on your own results.
+              Opening Fit reviews your recent games, finds your strongest
+              opening patterns, and recommends practical repertoire ideas based
+              on your own results.
             </p>
 
             <div className="landingHeroActions">
@@ -553,7 +554,7 @@ function LandingSection({ onOpeningClick }) {
             <p>Good for trying the app and seeing your main opening trends.</p>
 
             <ul>
-              <li>Import recent Chess.com games</li>
+              <li>Import recent Chess.com and Lichess games</li>
               <li>View your style profile</li>
               <li>See top openings and win rates</li>
               <li>Basic opening suggestions</li>
@@ -608,6 +609,7 @@ export default function App() {
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackContact, setFeedbackContact] = useState("");
   const [feedbackStatus, setFeedbackStatus] = useState("");
+  const [feedbackSending, setFeedbackSending] = useState(false);
   const [localSavedAt, setLocalSavedAt] = useState("");
   const [isPremium, setIsPremium] = useState(false);
 
@@ -734,6 +736,46 @@ export default function App() {
     } catch {
       return errorText;
     }
+  }
+
+  function getFeedbackError(errorText) {
+    if (!errorText) {
+      return "Could not send feedback. Please try again.";
+    }
+
+    try {
+      const parsed = JSON.parse(errorText);
+
+      if (parsed?.detail) {
+        return parsed.detail;
+      }
+
+      if (parsed?.message) {
+        return parsed.message;
+      }
+    } catch {
+      // Keep using text below.
+    }
+
+    const lower = String(errorText).toLowerCase();
+
+    if (
+      lower.includes("failed to fetch") ||
+      lower.includes("connection refused") ||
+      lower.includes("could not connect")
+    ) {
+      return "Could not connect to the backend. Make sure FastAPI is running, or check your live backend URL.";
+    }
+
+    if (lower.includes("404") || lower.includes("not found")) {
+      return "Feedback route was not found. Check that your backend has POST /api/feedback and that the live backend is deployed.";
+    }
+
+    if (lower.includes("405")) {
+      return "Feedback route exists, but it does not accept POST requests. Check your backend /api/feedback method.";
+    }
+
+    return "Could not send feedback. Please try again.";
   }
 
   const normaliseData = (incoming) => {
@@ -903,10 +945,11 @@ export default function App() {
 
   const importGames = async () => {
     setLoading(true);
-    setLoadingStep(`Finding your recent ${platforms[platform]?.label || "chess"} games...`);
+    setLoadingStep(
+      `Finding your recent ${platforms[platform]?.label || "chess"} games...`
+    );
     setError("");
     setSavedProfileMessage("");
-    setFeedbackStatus("");
     setData(null);
     setSelectedGameIndex(0);
     setPracticeOpening(null);
@@ -971,7 +1014,9 @@ export default function App() {
       saveLocalAnalysis(cleanData, cleanUsername);
 
       setSavedProfileMessage(
-        `Import complete for ${cleanData.username || cleanUsername}. Saved locally so you can load it next time.`
+        `Import complete for ${
+          cleanData.username || cleanUsername
+        }. Saved locally so you can load it next time.`
       );
 
       await trackEvent("frontend_import_completed", {
@@ -995,7 +1040,6 @@ export default function App() {
 
     setError("");
     setSavedProfileMessage("");
-    setFeedbackStatus("");
 
     if (!cleanUsername) {
       const loadedLocal = loadLocalAnalysis();
@@ -1066,9 +1110,9 @@ export default function App() {
       setPracticeOpening(null);
 
       setSavedProfileMessage(
-        `Loaded saved backend profile for ${profile.username}. Last updated: ${safeDate(
-          profile.lastUpdated
-        )}`
+        `Loaded saved backend profile for ${
+          profile.username
+        }. Last updated: ${safeDate(profile.lastUpdated)}`
       );
 
       await trackEvent("frontend_saved_profile_loaded", {
@@ -1088,7 +1132,6 @@ export default function App() {
   const loadDemoAccount = async () => {
     setError("");
     setSavedProfileMessage("");
-    setFeedbackStatus("");
     setLoading(true);
     setLoadingStep("Loading demo profile so you can preview Opening Fit...");
 
@@ -1136,38 +1179,53 @@ export default function App() {
   };
 
   const submitFeedback = async () => {
-    if (!feedbackMessage.trim()) {
+    const message = feedbackMessage.trim();
+
+    if (!message) {
       setFeedbackStatus("Please type a message first.");
       return;
     }
 
+    setFeedbackSending(true);
     setFeedbackStatus("Sending feedback...");
 
     try {
-      const response = await fetch(`${API_BASE}/api/contact`, {
+      const response = await fetch(`${API_BASE}/api/feedback`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: feedbackMessage.trim(),
+          message,
           contact: feedbackContact.trim() || null,
           username: username.trim() || null,
           platform,
+          page: "Opening Fit app",
+          createdAt: new Date().toISOString(),
         }),
       });
 
       const text = await response.text();
 
+      let parsed = null;
+
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        parsed = null;
+      }
+
       if (!response.ok) {
-        throw new Error(text);
+        throw new Error(parsed?.detail || parsed?.message || text);
       }
 
       setFeedbackMessage("");
       setFeedbackContact("");
       setFeedbackStatus("Thanks — feedback saved.");
     } catch (err) {
-      setFeedbackStatus(getFriendlyError(err.message));
+      setFeedbackStatus(getFeedbackError(err.message));
+    } finally {
+      setFeedbackSending(false);
     }
   };
 
@@ -1414,946 +1472,961 @@ export default function App() {
   }, [showUnknownOpenings]);
 
   return (
-    <div className="page">
-      <LandingSection onOpeningClick={startOpeningPractice} />
+    <>
+      <div className="page">
+        <LandingSection onOpeningClick={startOpeningPractice} />
 
-      <main className="container appShell" id="app-dashboard">
-        <header className="hero heroCard">
-          <div className="heroTop">
-            <div className="heroTitleWrap">
-              <p className="eyebrow">Opening Fit App</p>
-              <h1>Analyse your chess openings</h1>
-              <p className="subtext">
-                Import your recent games and get a clean report showing your
-                playing style, best openings, weak spots, and simple repertoire
-                suggestions.
-              </p>
-            </div>
-          </div>
-
-          <div className="searchRow topBar appActionPanel">
-            <div className="platformSelector">
-              <button
-                type="button"
-                className={`platformButton ${
-                  platform === "chesscom" ? "platformButtonActive" : ""
-                }`}
-                onClick={() => setPlatform("chesscom")}
-              >
-                Chess.com
-              </button>
-
-              <button
-                type="button"
-                className={`platformButton ${
-                  platform === "lichess" ? "platformButtonActive" : ""
-                }`}
-                onClick={() => setPlatform("lichess")}
-              >
-                Lichess
-              </button>
-            </div>
-
-            <input
-              className="input"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder={
-                platforms[platform]?.usernamePlaceholder || "Chess username"
-              }
-            />
-
-            <div className="appActionButtons">
-              <button
-                className="primaryBtn"
-                type="button"
-                onClick={importGames}
-                disabled={loading || !username.trim()}
-              >
-                {loading
-                  ? "Working..."
-                  : isPremium
-                  ? `Import 12 Months from ${
-                      platforms[platform]?.label || "Platform"
-                    }`
-                  : `Import ${platforms[platform]?.label || "Games"} Games`}
-              </button>
-
-              <button
-                className="secondaryButton savedProfileButton"
-                type="button"
-                onClick={loadSavedProfile}
-                disabled={loading}
-              >
-                Load Saved Profile
-              </button>
-
-              <button
-                className="ghostButton demoAccountButton"
-                type="button"
-                onClick={loadDemoAccount}
-                disabled={loading}
-              >
-                Try Demo Account
-              </button>
-
-              <button
-                className="ghostButton"
-                type="button"
-                onClick={importGames}
-                disabled={loading || !username.trim()}
-              >
-                Refresh Games
-              </button>
-            </div>
-          </div>
-
-          <div className="filtersRow">
-            <label className="checkboxRow">
-              <input
-                type="checkbox"
-                checked={showUnknownOpenings}
-                onChange={(e) => setShowUnknownOpenings(e.target.checked)}
-              />
-              <span>Show unclassified openings</span>
-            </label>
-
-            <label className="checkboxRow">
-              <input
-                type="checkbox"
-                checked={isPremium}
-                onChange={(e) => setIsPremium(e.target.checked)}
-              />
-              <span>Premium demo mode</span>
-            </label>
-          </div>
-
-          {localSavedAt ? (
-            <div className="savedHistoryRow">
-              <span>Local saved report: {safeDate(localSavedAt)}</span>
-              <button className="ghostButton" type="button" onClick={clearLocalAnalysis}>
-                Clear local save
-              </button>
-            </div>
-          ) : null}
-
-
-
-
-          {loadingStep ? <p className="statusMessage">{loadingStep}</p> : null}
-
-          {savedProfileMessage ? (
-            <p className="successMessage">{savedProfileMessage}</p>
-          ) : null}
-        </header>
-
-        {loading && (
-          <section className="card loadingCard">
-            <div className="loadingSpinner" />
-            <div>
-              <h3>Preparing your report</h3>
-              <p>{loadingStep || "Opening Fit is working..."}</p>
-            </div>
-          </section>
-        )}
-
-        {practiceOpening && (
-          <div id="opening-practice">
-            <OpeningPracticeBoard
-              openingName={practiceOpening}
-              onClose={() => setPracticeOpening(null)}
-            />
-          </div>
-        )}
-
-        {error && <div className="errorBox">{error}</div>}
-
-        {!data && !loading && !error && (
-          <section className="placeholderGrid grid3">
-            <div className="card smallCard">
-              <h3>Style profile</h3>
-              <p>
-                Discover whether your games are tactical, solid, direct, or
-                positional.
-              </p>
-            </div>
-
-            <div className="card smallCard">
-              <h3>Opening verdicts</h3>
-              <p>See which openings to keep, improve, or avoid.</p>
-            </div>
-
-            <div className="card smallCard">
-              <h3>Personal plan</h3>
-              <p>
-                Get training steps based on the openings you actually play.
-              </p>
-            </div>
-          </section>
-        )}
-
-        {data && (
-          <div id="app-results">
-            <section className="statsGrid">
-              <div className="card statCard">
-                <span className="statLabel">Player</span>
-                <span className="statValue">{data.username}</span>
-              </div>
-
-              <div className="card statCard">
-                <span className="statLabel">Platform</span>
-                <span className="statValue smallStatValue">
-                  {platforms[platform]?.label || "Chess"}
-                </span>
-              </div>
-
-              <div className="card statCard">
-                <span className="statLabel">Games analysed</span>
-                <span className="statValue">{data.total_games}</span>
-              </div>
-
-              <div className="card statCard">
-                <span className="statLabel">Recent activity</span>
-                <span className="statValue">
-                  {data.months_checked || monthsToImport} month
-                  {(data.months_checked || monthsToImport) === 1 ? "" : "s"}
-                </span>
-              </div>
-
-              <div className="card statCard">
-                <span className="statLabel">Plan</span>
-                <span className="statValue smallStatValue">
-                  {isPremium ? "Premium demo" : "Free"}
-                </span>
-              </div>
-
-              <div className="card statCard">
-                <span className="statLabel">Last updated</span>
-                <span className="statValue smallStatValue">
-                  {data.lastUpdated
-                    ? new Date(data.lastUpdated).toLocaleDateString()
-                    : "Today"}
-                </span>
-              </div>
-            </section>
-
-            <section className="card quickNavCard">
-              <h2>Quick View</h2>
-
-              <div className="quickNavGrid">
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("style")}
-                >
-                  Style Profile
-                </button>
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("recommendations")}
-                >
-                  Opening Suggestions
-                </button>
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("verdicts")}
-                >
-                  Keep / Improve / Avoid
-                </button>
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("chart")}
-                >
-                  Win Rate Chart
-                </button>
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("training")}
-                >
-                  Personal Plan
-                </button>
-                <button
-                  className="quickNavBtn secondaryBtn"
-                  type="button"
-                  onClick={() => openOnly("replay")}
-                >
-                  Game Replay
-                </button>
-              </div>
-            </section>
-
-            {!isPremium ? (
-              <section className="card premiumCard">
-                <div className="premiumHeader">
-                  <span className="premiumBadge">Premium Preview</span>
-                  <h2>Unlock the full Opening Fit report</h2>
-                </div>
-
-                <p>
-                  You are viewing the free version. Premium will unlock deeper
-                  opening stats, longer imports, advanced training plans and
-                  future Stockfish analysis.
+        <main className="container appShell" id="app-dashboard">
+          <header className="hero heroCard">
+            <div className="heroTop">
+              <div className="heroTitleWrap">
+                <p className="eyebrow">Opening Fit App</p>
+                <h1>Analyse your chess openings</h1>
+                <p className="subtext">
+                  Import your recent games and get a clean report showing your
+                  playing style, best openings, weak spots, and simple repertoire
+                  suggestions.
                 </p>
+              </div>
+            </div>
 
-                <div className="lockedFeatureGrid">
-                  {premiumFeatures.map((feature) => (
-                    <div className="lockedFeature" key={feature}>
-                      🔒 {feature}
-                    </div>
-                  ))}
-                </div>
+            <div className="searchRow topBar appActionPanel">
+              <div className="platformSelector">
+                <button
+                  type="button"
+                  className={`platformButton ${
+                    platform === "chesscom" ? "platformButtonActive" : ""
+                  }`}
+                  onClick={() => setPlatform("chesscom")}
+                >
+                  Chess.com
+                </button>
 
+                <button
+                  type="button"
+                  className={`platformButton ${
+                    platform === "lichess" ? "platformButtonActive" : ""
+                  }`}
+                  onClick={() => setPlatform("lichess")}
+                >
+                  Lichess
+                </button>
+              </div>
+
+              <input
+                className="input"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder={
+                  platforms[platform]?.usernamePlaceholder || "Chess username"
+                }
+              />
+
+              <div className="appActionButtons">
                 <button
                   className="primaryBtn"
                   type="button"
-                  onClick={() => setIsPremium(true)}
+                  onClick={importGames}
+                  disabled={loading || !username.trim()}
                 >
-                  Preview Premium Mode
+                  {loading
+                    ? "Working..."
+                    : isPremium
+                    ? `Import 12 Months from ${
+                        platforms[platform]?.label || "Platform"
+                      }`
+                    : `Import ${platforms[platform]?.label || "Games"} Games`}
                 </button>
-              </section>
+
+                <button
+                  className="secondaryButton savedProfileButton"
+                  type="button"
+                  onClick={loadSavedProfile}
+                  disabled={loading}
+                >
+                  Load Saved Profile
+                </button>
+
+                <button
+                  className="ghostButton demoAccountButton"
+                  type="button"
+                  onClick={loadDemoAccount}
+                  disabled={loading}
+                >
+                  Try Demo Account
+                </button>
+
+                <button
+                  className="ghostButton"
+                  type="button"
+                  onClick={importGames}
+                  disabled={loading || !username.trim()}
+                >
+                  Refresh Games
+                </button>
+              </div>
+            </div>
+
+            <div className="filtersRow">
+              <label className="checkboxRow">
+                <input
+                  type="checkbox"
+                  checked={showUnknownOpenings}
+                  onChange={(e) => setShowUnknownOpenings(e.target.checked)}
+                />
+                <span>Show unclassified openings</span>
+              </label>
+
+              <label className="checkboxRow">
+                <input
+                  type="checkbox"
+                  checked={isPremium}
+                  onChange={(e) => setIsPremium(e.target.checked)}
+                />
+                <span>Premium demo mode</span>
+              </label>
+            </div>
+
+            {apiStatus !== "online" ? (
+              <p className="statusMessage">
+                Backend status: {apiStatus}. Some features may not work until
+                your backend is running.
+              </p>
             ) : null}
 
-            <div id="section-style">
-              <Section
-                title="Style Profile"
-                isOpen={openSections.style}
-                onToggle={() => toggleSection("style")}
-                badge={filterUnknownOpenings(
-                  data.style_profile?.labels || []
-                ).join(" · ")}
-              >
-                <div className="twoCol">
-                  <div>
-                    <div className="chips">
-                      {filterUnknownOpenings(
-                        data.style_profile?.labels || []
-                      ).map((label, index) => (
-                        <span className="chip" key={index}>
-                          {label}
-                        </span>
-                      ))}
+            {localSavedAt ? (
+              <div className="savedHistoryRow">
+                <span>Local saved report: {safeDate(localSavedAt)}</span>
+                <button
+                  className="ghostButton"
+                  type="button"
+                  onClick={clearLocalAnalysis}
+                >
+                  Clear local save
+                </button>
+              </div>
+            ) : null}
+
+            {loadingStep ? <p className="statusMessage">{loadingStep}</p> : null}
+
+            {savedProfileMessage ? (
+              <p className="successMessage">{savedProfileMessage}</p>
+            ) : null}
+          </header>
+
+          {loading && (
+            <section className="card loadingCard">
+              <div className="loadingSpinner" />
+              <div>
+                <h3>Preparing your report</h3>
+                <p>{loadingStep || "Opening Fit is working..."}</p>
+              </div>
+            </section>
+          )}
+
+          {practiceOpening && (
+            <div id="opening-practice">
+              <OpeningPracticeBoard
+                openingName={practiceOpening}
+                onClose={() => setPracticeOpening(null)}
+              />
+            </div>
+          )}
+
+          {error && <div className="errorBox">{error}</div>}
+
+          {!data && !loading && !error && (
+            <section className="placeholderGrid grid3">
+              <div className="card smallCard">
+                <h3>Style profile</h3>
+                <p>
+                  Discover whether your games are tactical, solid, direct, or
+                  positional.
+                </p>
+              </div>
+
+              <div className="card smallCard">
+                <h3>Opening verdicts</h3>
+                <p>See which openings to keep, improve, or avoid.</p>
+              </div>
+
+              <div className="card smallCard">
+                <h3>Personal plan</h3>
+                <p>
+                  Get training steps based on the openings you actually play.
+                </p>
+              </div>
+            </section>
+          )}
+
+          {data && (
+            <div id="app-results">
+              <section className="statsGrid">
+                <div className="card statCard">
+                  <span className="statLabel">Player</span>
+                  <span className="statValue">{data.username}</span>
+                </div>
+
+                <div className="card statCard">
+                  <span className="statLabel">Platform</span>
+                  <span className="statValue smallStatValue">
+                    {platforms[platform]?.label || "Chess"}
+                  </span>
+                </div>
+
+                <div className="card statCard">
+                  <span className="statLabel">Games analysed</span>
+                  <span className="statValue">{data.total_games}</span>
+                </div>
+
+                <div className="card statCard">
+                  <span className="statLabel">Recent activity</span>
+                  <span className="statValue">
+                    {data.months_checked || monthsToImport} month
+                    {(data.months_checked || monthsToImport) === 1 ? "" : "s"}
+                  </span>
+                </div>
+
+                <div className="card statCard">
+                  <span className="statLabel">Plan</span>
+                  <span className="statValue smallStatValue">
+                    {isPremium ? "Premium demo" : "Free"}
+                  </span>
+                </div>
+
+                <div className="card statCard">
+                  <span className="statLabel">Last updated</span>
+                  <span className="statValue smallStatValue">
+                    {data.lastUpdated
+                      ? new Date(data.lastUpdated).toLocaleDateString()
+                      : "Today"}
+                  </span>
+                </div>
+              </section>
+
+              <section className="card quickNavCard">
+                <h2>Quick View</h2>
+
+                <div className="quickNavGrid">
+                  <button
+                    className="quickNavBtn secondaryBtn"
+                    type="button"
+                    onClick={() => openOnly("style")}
+                  >
+                    Style Profile
+                  </button>
+                  <button
+                    className="quickNavBtn secondaryBtn"
+                    type="button"
+                    onClick={() => openOnly("recommendations")}
+                  >
+                    Opening Suggestions
+                  </button>
+                  <button
+                    className="quickNavBtn secondaryBtn"
+                    type="button"
+                    onClick={() => openOnly("verdicts")}
+                  >
+                    Keep / Improve / Avoid
+                  </button>
+                  <button
+                    className="quickNavBtn secondaryBtn"
+                    type="button"
+                    onClick={() => openOnly("chart")}
+                  >
+                    Win Rate Chart
+                  </button>
+                  <button
+                    className="quickNavBtn secondaryBtn"
+                    type="button"
+                    onClick={() => openOnly("training")}
+                  >
+                    Personal Plan
+                  </button>
+                  <button
+                    className="quickNavBtn secondaryBtn"
+                    type="button"
+                    onClick={() => openOnly("replay")}
+                  >
+                    Game Replay
+                  </button>
+                </div>
+              </section>
+
+              {!isPremium ? (
+                <section className="card premiumCard">
+                  <div className="premiumHeader">
+                    <span className="premiumBadge">Premium Preview</span>
+                    <h2>Unlock the full Opening Fit report</h2>
+                  </div>
+
+                  <p>
+                    You are viewing the free version. Premium will unlock deeper
+                    opening stats, longer imports, advanced training plans and
+                    future Stockfish analysis.
+                  </p>
+
+                  <div className="lockedFeatureGrid">
+                    {premiumFeatures.map((feature) => (
+                      <div className="lockedFeature" key={feature}>
+                        🔒 {feature}
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    className="primaryBtn"
+                    type="button"
+                    onClick={() => setIsPremium(true)}
+                  >
+                    Preview Premium Mode
+                  </button>
+                </section>
+              ) : null}
+
+              <div id="section-style">
+                <Section
+                  title="Style Profile"
+                  isOpen={openSections.style}
+                  onToggle={() => toggleSection("style")}
+                  badge={filterUnknownOpenings(
+                    data.style_profile?.labels || []
+                  ).join(" · ")}
+                >
+                  <div className="twoCol">
+                    <div>
+                      <div className="chips">
+                        {filterUnknownOpenings(
+                          data.style_profile?.labels || []
+                        ).map((label, index) => (
+                          <span className="chip" key={index}>
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+
+                      <p className="profileSummary">
+                        {data.style_profile?.summary ||
+                          "Your style profile will appear here once enough games are analysed."}
+                      </p>
+
+                      <h3>Top Opening Families</h3>
+
+                      <div className="list">
+                        {filterUnknownOpenings(
+                          data.style_profile?.top_opening_families || []
+                        ).length ? (
+                          filterUnknownOpenings(
+                            data.style_profile?.top_opening_families || []
+                          ).map((item, index) => (
+                            <button
+                              className="listItem openingPracticeLink"
+                              key={index}
+                              type="button"
+                              onClick={() => startOpeningPractice(item)}
+                            >
+                              <strong>{item}</strong>
+                              <span>Practice</span>
+                            </button>
+                          ))
+                        ) : (
+                          <EmptyState
+                            title="No opening families yet"
+                            text="Import more games to detect your most common opening families."
+                          />
+                        )}
+                      </div>
                     </div>
 
-                    <p className="profileSummary">
-                      {data.style_profile?.summary ||
-                        "Your style profile will appear here once enough games are analysed."}
-                    </p>
+                    <div className="premiumMiniCard">
+                      <p className="premiumLabel">
+                        {isPremium ? "Premium Active" : "Premium Preview"}
+                      </p>
+                      <h3>Best Openings For You</h3>
 
-                    <h3>Top Opening Families</h3>
+                      <div className="list">
+                        {filterUnknownOpenings(
+                          data.premium_preview?.best_opening_for_you || []
+                        ).length ? (
+                          filterUnknownOpenings(
+                            data.premium_preview?.best_opening_for_you || []
+                          ).map((item, index) => {
+                            const rate = item.win_rate ?? item.winRate ?? 0;
 
+                            return (
+                              <button
+                                className="listItem openingPracticeLink"
+                                key={index}
+                                type="button"
+                                onClick={() => startOpeningPractice(item.name)}
+                              >
+                                <div>
+                                  <strong>{item.name}</strong>
+                                  <div className="smallText">
+                                    {item.games} games
+                                  </div>
+                                </div>
+
+                                <div className="rightStat">
+                                  <div>{rate}%</div>
+                                  <div className={verdictClass(item.verdict)}>
+                                    {item.verdict}
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <EmptyState
+                            title="No premium preview yet"
+                            text="Once there are enough recognised openings, your best-fit openings will appear here."
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Section>
+              </div>
+
+              <div id="section-recommendations">
+                <Section
+                  title="Opening Suggestions"
+                  isOpen={openSections.recommendations}
+                  onToggle={() => toggleSection("recommendations")}
+                >
+                  <div className="twoCol">
+                    <div>
+                      <h3>Recommended as White</h3>
+                      <div className="list">
+                        {filterUnknownOpenings(
+                          data.opening_recommendations?.white || []
+                        ).length ? (
+                          filterUnknownOpenings(
+                            data.opening_recommendations?.white || []
+                          ).map((item, index) => (
+                            <button
+                              className="listItem openingPracticeLink"
+                              key={index}
+                              type="button"
+                              onClick={() => startOpeningPractice(item)}
+                            >
+                              <strong>{item}</strong>
+                              <span>Practice</span>
+                            </button>
+                          ))
+                        ) : (
+                          <EmptyState
+                            title="No White suggestions yet"
+                            text="Import more games to unlock stronger White repertoire suggestions."
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3>Recommended as Black</h3>
+                      <div className="list">
+                        {filterUnknownOpenings(
+                          data.opening_recommendations?.black || []
+                        ).length ? (
+                          filterUnknownOpenings(
+                            data.opening_recommendations?.black || []
+                          ).map((item, index) => (
+                            <button
+                              className="listItem openingPracticeLink"
+                              key={index}
+                              type="button"
+                              onClick={() => startOpeningPractice(item)}
+                            >
+                              <strong>{item}</strong>
+                              <span>Practice</span>
+                            </button>
+                          ))
+                        ) : (
+                          <EmptyState
+                            title="No Black suggestions yet"
+                            text="Import more games to unlock stronger Black repertoire suggestions."
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {isPremium && whiteDetailedRecommendations.length ? (
+                    <div className="recommendationDetails">
+                      <h3>Why these openings fit you as White</h3>
+
+                      <div className="openingExplainGrid">
+                        {whiteDetailedRecommendations.map((opening) => (
+                          <article
+                            className="openingExplainCard"
+                            key={opening.name}
+                          >
+                            <h4>{opening.name}</h4>
+                            <p>{opening.reason}</p>
+                            <p>
+                              <strong>Simple plan:</strong> {opening.plan}
+                            </p>
+                            <p>
+                              <strong>Avoid:</strong> {opening.mistakeToAvoid}
+                            </p>
+                            <span>{opening.difficulty}</span>
+
+                            <button
+                              className="secondaryBtn explainPracticeBtn"
+                              type="button"
+                              onClick={() => startOpeningPractice(opening.name)}
+                            >
+                              Practise
+                            </button>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  ) : !isPremium ? (
+                    <LockedPremiumCard
+                      title="Detailed opening explanations are premium"
+                      text="Free shows basic suggestions. Premium explains why each opening fits you and what mistakes to avoid."
+                    />
+                  ) : null}
+
+                  {isPremium && blackDetailedRecommendations.length ? (
+                    <div className="recommendationDetails">
+                      <h3>Why these openings fit you as Black</h3>
+
+                      <div className="openingExplainGrid">
+                        {blackDetailedRecommendations.map((opening) => (
+                          <article
+                            className="openingExplainCard"
+                            key={opening.name}
+                          >
+                            <h4>{opening.name}</h4>
+                            <p>{opening.reason}</p>
+                            <p>
+                              <strong>Simple plan:</strong> {opening.plan}
+                            </p>
+                            <p>
+                              <strong>Avoid:</strong> {opening.mistakeToAvoid}
+                            </p>
+                            <span>{opening.difficulty}</span>
+
+                            <button
+                              className="secondaryBtn explainPracticeBtn"
+                              type="button"
+                              onClick={() => startOpeningPractice(opening.name)}
+                            >
+                              Practise
+                            </button>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="spacerTop">
+                    <h3>Summary</h3>
                     <div className="list">
-                      {filterUnknownOpenings(
-                        data.style_profile?.top_opening_families || []
-                      ).length ? (
-                        filterUnknownOpenings(
-                          data.style_profile?.top_opening_families || []
-                        ).map((item, index) => (
+                      {smartRecommendationSummary.map((item, index) => (
+                        <div className="listItem" key={index}>
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </Section>
+              </div>
+
+              <div id="section-verdicts">
+                <Section
+                  title="Keep / Improve / Avoid"
+                  isOpen={openSections.verdicts}
+                  onToggle={() => toggleSection("verdicts")}
+                  badge={`${filteredBestOpenings.length} tracked`}
+                >
+                  <div className="list">
+                    {filteredBestOpenings.length ? (
+                      filteredBestOpenings.map((item, index) => {
+                        const rate = item.win_rate ?? item.winRate ?? 0;
+
+                        return (
                           <button
                             className="listItem openingPracticeLink"
                             key={index}
                             type="button"
-                            onClick={() => startOpeningPractice(item)}
+                            onClick={() => startOpeningPractice(item.name)}
                           >
-                            <strong>{item}</strong>
-                            <span>Practice</span>
+                            <div>
+                              <strong>{item.name}</strong>
+                              <div className="smallText">
+                                {item.games} games · {item.wins}W /{" "}
+                                {item.draws}D / {item.losses}L
+                              </div>
+                            </div>
+
+                            <div className="rightStat">
+                              <div>{rate}%</div>
+                              <div className={verdictClass(item.verdict)}>
+                                {item.verdict}
+                              </div>
+                            </div>
                           </button>
-                        ))
+                        );
+                      })
+                    ) : (
+                      <EmptyState
+                        title="No opening verdicts yet"
+                        text="Verdicts appear once you have enough recognised openings in your imported games."
+                      />
+                    )}
+                  </div>
+                </Section>
+              </div>
+
+              <div id="section-chart">
+                <Section
+                  title="Opening Win Rate"
+                  isOpen={openSections.chart}
+                  onToggle={() => toggleSection("chart")}
+                  badge={`${chartData.length} openings`}
+                >
+                  <div className="chartList">
+                    {chartData.length ? (
+                      chartData.map((item, index) => {
+                        const rate = item.win_rate ?? item.winRate ?? 0;
+
+                        return (
+                          <button
+                            className="chartRow openingChartPracticeLink"
+                            key={index}
+                            type="button"
+                            onClick={() => startOpeningPractice(item.name)}
+                          >
+                            <div className="chartLabel">{item.name}</div>
+
+                            <div className="chartBarWrap">
+                              <div
+                                className="chartBar"
+                                style={{
+                                  width: `${Math.max(rate || 0, 2)}%`,
+                                }}
+                              />
+                            </div>
+
+                            <div className="chartValue">{rate}%</div>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <EmptyState
+                        title="No chart data yet"
+                        text="Win-rate charts appear after Opening Fit finds recognised openings in your games."
+                      />
+                    )}
+                  </div>
+                </Section>
+              </div>
+
+              <div id="section-training">
+                <Section
+                  title="Personal Training Plan"
+                  isOpen={openSections.training}
+                  onToggle={() => toggleSection("training")}
+                  badge={`${personalTrainingPlan.length} steps`}
+                >
+                  <div className="trainingPlanList">
+                    {personalTrainingPlan.map((item, index) => (
+                      <div className="trainingPlanItem" key={index}>
+                        <div className="trainingStepNumber">{index + 1}</div>
+
+                        <div className="trainingStepContent">
+                          <h3>{item.title}</h3>
+                          <p>{item.text}</p>
+
+                          {item.opening ? (
+                            <button
+                              className="secondaryBtn trainingPracticeBtn"
+                              type="button"
+                              onClick={() => startOpeningPractice(item.opening)}
+                            >
+                              {item.action || "Practice opening"}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {!isPremium ? (
+                    <LockedPremiumCard
+                      title="Advanced training plan locked"
+                      text="Premium will show more steps, deeper weaknesses, and longer import history."
+                    />
+                  ) : null}
+                </Section>
+              </div>
+
+              <div id="section-replay">
+                <Section
+                  title="Game Replay"
+                  isOpen={openSections.replay}
+                  onToggle={() => toggleSection("replay")}
+                  badge={selectedGame ? selectedGame.opening : null}
+                >
+                  <div className="analysisGrid boardSection">
+                    <div className="movesPanel">
+                      <h3>Recent Games</h3>
+
+                      <div className="gamePickerList">
+                        {filteredRecentGames.length ? (
+                          filteredRecentGames.map((game, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              className={`gamePickerButton ${
+                                selectedGameIndex === index
+                                  ? "gamePickerButtonActive"
+                                  : ""
+                              }`}
+                              onClick={() => setSelectedGameIndex(index)}
+                            >
+                              <div className="gamePickerTop">
+                                <strong>{game.opening}</strong>
+                                <span>{game.result}</span>
+                              </div>
+
+                              <div className="smallText">
+                                {game.white_username || game.whiteUsername} vs{" "}
+                                {game.black_username || game.blackUsername} ·{" "}
+                                {game.time_class || game.timeClass || "-"}
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <EmptyState
+                            title="No replay games found"
+                            text="Recent games will appear here when the import includes PGN or move data."
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      {selectedGame && selectedReplayGame ? (
+                        <>
+                          <div className="boardMeta">
+                            <div>
+                              <strong>Opening:</strong>{" "}
+                              <button
+                                className="tableOpeningBtn"
+                                type="button"
+                                onClick={() =>
+                                  startOpeningPractice(selectedGame.opening)
+                                }
+                              >
+                                {selectedGame.opening}
+                              </button>
+                            </div>
+
+                            <div>
+                              <strong>Result:</strong> {selectedGame.result}
+                            </div>
+
+                            <div>
+                              <strong>Players:</strong>{" "}
+                              {selectedGame.white_username ||
+                                selectedGame.whiteUsername}{" "}
+                              vs{" "}
+                              {selectedGame.black_username ||
+                                selectedGame.blackUsername}
+                            </div>
+                          </div>
+
+                          <GameReplayBoard
+                            game={selectedReplayGame}
+                            title="Game Replay"
+                            initialOrientation="white"
+                          />
+                        </>
                       ) : (
                         <EmptyState
-                          title="No opening families yet"
-                          text="Import more games to detect your most common opening families."
+                          title="No game selected"
+                          text="Choose a recent game from the list to replay it."
                         />
                       )}
                     </div>
                   </div>
+                </Section>
+              </div>
 
-                  <div className="premiumMiniCard">
-                    <p className="premiumLabel">
-                      {isPremium ? "Premium Active" : "Premium Preview"}
-                    </p>
-                    <h3>Best Openings For You</h3>
-
-                    <div className="list">
-                      {filterUnknownOpenings(
-                        data.premium_preview?.best_opening_for_you || []
-                      ).length ? (
-                        filterUnknownOpenings(
-                          data.premium_preview?.best_opening_for_you || []
-                        ).map((item, index) => {
-                          const rate = item.win_rate ?? item.winRate ?? 0;
-
-                          return (
+              <div id="section-preferred">
+                <Section
+                  title="Preferred Openings"
+                  isOpen={openSections.preferred}
+                  onToggle={() => toggleSection("preferred")}
+                >
+                  <div className="twoCol">
+                    <div>
+                      <h3>Preferred as White</h3>
+                      <div className="list">
+                        {filteredPreferredWhite.length ? (
+                          filteredPreferredWhite.map((item, index) => (
                             <button
                               className="listItem openingPracticeLink"
                               key={index}
                               type="button"
                               onClick={() => startOpeningPractice(item.name)}
                             >
-                              <div>
-                                <strong>{item.name}</strong>
-                                <div className="smallText">
-                                  {item.games} games
-                                </div>
-                              </div>
-
-                              <div className="rightStat">
-                                <div>{rate}%</div>
-                                <div className={verdictClass(item.verdict)}>
-                                  {item.verdict}
-                                </div>
-                              </div>
+                              <strong>{item.name}</strong>
+                              <span>{item.games} games</span>
                             </button>
-                          );
-                        })
-                      ) : (
-                        <EmptyState
-                          title="No premium preview yet"
-                          text="Once there are enough recognised openings, your best-fit openings will appear here."
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Section>
-            </div>
-
-            <div id="section-recommendations">
-              <Section
-                title="Opening Suggestions"
-                isOpen={openSections.recommendations}
-                onToggle={() => toggleSection("recommendations")}
-              >
-                <div className="twoCol">
-                  <div>
-                    <h3>Recommended as White</h3>
-                    <div className="list">
-                      {filterUnknownOpenings(
-                        data.opening_recommendations?.white || []
-                      ).length ? (
-                        filterUnknownOpenings(
-                          data.opening_recommendations?.white || []
-                        ).map((item, index) => (
-                          <button
-                            className="listItem openingPracticeLink"
-                            key={index}
-                            type="button"
-                            onClick={() => startOpeningPractice(item)}
-                          >
-                            <strong>{item}</strong>
-                            <span>Practice</span>
-                          </button>
-                        ))
-                      ) : (
-                        <EmptyState
-                          title="No White suggestions yet"
-                          text="Import more games to unlock stronger White repertoire suggestions."
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3>Recommended as Black</h3>
-                    <div className="list">
-                      {filterUnknownOpenings(
-                        data.opening_recommendations?.black || []
-                      ).length ? (
-                        filterUnknownOpenings(
-                          data.opening_recommendations?.black || []
-                        ).map((item, index) => (
-                          <button
-                            className="listItem openingPracticeLink"
-                            key={index}
-                            type="button"
-                            onClick={() => startOpeningPractice(item)}
-                          >
-                            <strong>{item}</strong>
-                            <span>Practice</span>
-                          </button>
-                        ))
-                      ) : (
-                        <EmptyState
-                          title="No Black suggestions yet"
-                          text="Import more games to unlock stronger Black repertoire suggestions."
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {isPremium && whiteDetailedRecommendations.length ? (
-                  <div className="recommendationDetails">
-                    <h3>Why these openings fit you as White</h3>
-
-                    <div className="openingExplainGrid">
-                      {whiteDetailedRecommendations.map((opening) => (
-                        <article
-                          className="openingExplainCard"
-                          key={opening.name}
-                        >
-                          <h4>{opening.name}</h4>
-                          <p>{opening.reason}</p>
-                          <p>
-                            <strong>Simple plan:</strong> {opening.plan}
-                          </p>
-                          <p>
-                            <strong>Avoid:</strong> {opening.mistakeToAvoid}
-                          </p>
-                          <span>{opening.difficulty}</span>
-
-                          <button
-                            className="secondaryBtn explainPracticeBtn"
-                            type="button"
-                            onClick={() => startOpeningPractice(opening.name)}
-                          >
-                            Practise
-                          </button>
-                        </article>
-                      ))}
-                    </div>
-                  </div>
-                ) : !isPremium ? (
-                  <LockedPremiumCard
-                    title="Detailed opening explanations are premium"
-                    text="Free shows basic suggestions. Premium explains why each opening fits you and what mistakes to avoid."
-                  />
-                ) : null}
-
-                {isPremium && blackDetailedRecommendations.length ? (
-                  <div className="recommendationDetails">
-                    <h3>Why these openings fit you as Black</h3>
-
-                    <div className="openingExplainGrid">
-                      {blackDetailedRecommendations.map((opening) => (
-                        <article
-                          className="openingExplainCard"
-                          key={opening.name}
-                        >
-                          <h4>{opening.name}</h4>
-                          <p>{opening.reason}</p>
-                          <p>
-                            <strong>Simple plan:</strong> {opening.plan}
-                          </p>
-                          <p>
-                            <strong>Avoid:</strong> {opening.mistakeToAvoid}
-                          </p>
-                          <span>{opening.difficulty}</span>
-
-                          <button
-                            className="secondaryBtn explainPracticeBtn"
-                            type="button"
-                            onClick={() => startOpeningPractice(opening.name)}
-                          >
-                            Practise
-                          </button>
-                        </article>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="spacerTop">
-                  <h3>Summary</h3>
-                  <div className="list">
-                    {smartRecommendationSummary.map((item, index) => (
-                      <div className="listItem" key={index}>
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Section>
-            </div>
-
-            <div id="section-verdicts">
-              <Section
-                title="Keep / Improve / Avoid"
-                isOpen={openSections.verdicts}
-                onToggle={() => toggleSection("verdicts")}
-                badge={`${filteredBestOpenings.length} tracked`}
-              >
-                <div className="list">
-                  {filteredBestOpenings.length ? (
-                    filteredBestOpenings.map((item, index) => {
-                      const rate = item.win_rate ?? item.winRate ?? 0;
-
-                      return (
-                        <button
-                          className="listItem openingPracticeLink"
-                          key={index}
-                          type="button"
-                          onClick={() => startOpeningPractice(item.name)}
-                        >
-                          <div>
-                            <strong>{item.name}</strong>
-                            <div className="smallText">
-                              {item.games} games · {item.wins}W / {item.draws}D
-                              / {item.losses}L
-                            </div>
-                          </div>
-
-                          <div className="rightStat">
-                            <div>{rate}%</div>
-                            <div className={verdictClass(item.verdict)}>
-                              {item.verdict}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <EmptyState
-                      title="No opening verdicts yet"
-                      text="Verdicts appear once you have enough recognised openings in your imported games."
-                    />
-                  )}
-                </div>
-              </Section>
-            </div>
-
-            <div id="section-chart">
-              <Section
-                title="Opening Win Rate"
-                isOpen={openSections.chart}
-                onToggle={() => toggleSection("chart")}
-                badge={`${chartData.length} openings`}
-              >
-                <div className="chartList">
-                  {chartData.length ? (
-                    chartData.map((item, index) => {
-                      const rate = item.win_rate ?? item.winRate ?? 0;
-
-                      return (
-                        <button
-                          className="chartRow openingChartPracticeLink"
-                          key={index}
-                          type="button"
-                          onClick={() => startOpeningPractice(item.name)}
-                        >
-                          <div className="chartLabel">{item.name}</div>
-
-                          <div className="chartBarWrap">
-                            <div
-                              className="chartBar"
-                              style={{ width: `${Math.max(rate || 0, 2)}%` }}
-                            />
-                          </div>
-
-                          <div className="chartValue">{rate}%</div>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <EmptyState
-                      title="No chart data yet"
-                      text="Win-rate charts appear after Opening Fit finds recognised openings in your games."
-                    />
-                  )}
-                </div>
-              </Section>
-            </div>
-
-            <div id="section-training">
-              <Section
-                title="Personal Training Plan"
-                isOpen={openSections.training}
-                onToggle={() => toggleSection("training")}
-                badge={`${personalTrainingPlan.length} steps`}
-              >
-                <div className="trainingPlanList">
-                  {personalTrainingPlan.map((item, index) => (
-                    <div className="trainingPlanItem" key={index}>
-                      <div className="trainingStepNumber">{index + 1}</div>
-
-                      <div className="trainingStepContent">
-                        <h3>{item.title}</h3>
-                        <p>{item.text}</p>
-
-                        {item.opening ? (
-                          <button
-                            className="secondaryBtn trainingPracticeBtn"
-                            type="button"
-                            onClick={() => startOpeningPractice(item.opening)}
-                          >
-                            {item.action || "Practice opening"}
-                          </button>
-                        ) : null}
+                          ))
+                        ) : (
+                          <EmptyState
+                            title="No preferred White openings yet"
+                            text="Import more games to detect your most common White openings."
+                          />
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
 
-                {!isPremium ? (
-                  <LockedPremiumCard
-                    title="Advanced training plan locked"
-                    text="Premium will show more steps, deeper weaknesses, and longer import history."
-                  />
-                ) : null}
-              </Section>
-            </div>
-
-            <div id="section-replay">
-              <Section
-                title="Game Replay"
-                isOpen={openSections.replay}
-                onToggle={() => toggleSection("replay")}
-                badge={selectedGame ? selectedGame.opening : null}
-              >
-                <div className="analysisGrid boardSection">
-                  <div className="movesPanel">
-                    <h3>Recent Games</h3>
-
-                    <div className="gamePickerList">
-                      {filteredRecentGames.length ? (
-                        filteredRecentGames.map((game, index) => (
-                          <button
-                            key={index}
-                            type="button"
-                            className={`gamePickerButton ${
-                              selectedGameIndex === index
-                                ? "gamePickerButtonActive"
-                                : ""
-                            }`}
-                            onClick={() => setSelectedGameIndex(index)}
-                          >
-                            <div className="gamePickerTop">
-                              <strong>{game.opening}</strong>
-                              <span>{game.result}</span>
-                            </div>
-
-                            <div className="smallText">
-                              {game.white_username || game.whiteUsername} vs{" "}
-                              {game.black_username || game.blackUsername} ·{" "}
-                              {game.time_class || game.timeClass || "-"}
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <EmptyState
-                          title="No replay games found"
-                          text="Recent games will appear here when the import includes PGN or move data."
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    {selectedGame && selectedReplayGame ? (
-                      <>
-                        <div className="boardMeta">
-                          <div>
-                            <strong>Opening:</strong>{" "}
+                    <div>
+                      <h3>Preferred as Black</h3>
+                      <div className="list">
+                        {filteredPreferredBlack.length ? (
+                          filteredPreferredBlack.map((item, index) => (
                             <button
-                              className="tableOpeningBtn"
+                              className="listItem openingPracticeLink"
+                              key={index}
                               type="button"
-                              onClick={() =>
-                                startOpeningPractice(selectedGame.opening)
-                              }
+                              onClick={() => startOpeningPractice(item.name)}
                             >
-                              {selectedGame.opening}
+                              <strong>{item.name}</strong>
+                              <span>{item.games} games</span>
                             </button>
-                          </div>
-
-                          <div>
-                            <strong>Result:</strong> {selectedGame.result}
-                          </div>
-
-                          <div>
-                            <strong>Players:</strong>{" "}
-                            {selectedGame.white_username ||
-                              selectedGame.whiteUsername}{" "}
-                            vs{" "}
-                            {selectedGame.black_username ||
-                              selectedGame.blackUsername}
-                          </div>
-                        </div>
-
-                        <GameReplayBoard
-                          game={selectedReplayGame}
-                          title="Game Replay"
-                          initialOrientation="white"
-                        />
-                      </>
-                    ) : (
-                      <EmptyState
-                        title="No game selected"
-                        text="Choose a recent game from the list to replay it."
-                      />
-                    )}
-                  </div>
-                </div>
-              </Section>
-            </div>
-
-            <div id="section-preferred">
-              <Section
-                title="Preferred Openings"
-                isOpen={openSections.preferred}
-                onToggle={() => toggleSection("preferred")}
-              >
-                <div className="twoCol">
-                  <div>
-                    <h3>Preferred as White</h3>
-                    <div className="list">
-                      {filteredPreferredWhite.length ? (
-                        filteredPreferredWhite.map((item, index) => (
-                          <button
-                            className="listItem openingPracticeLink"
-                            key={index}
-                            type="button"
-                            onClick={() => startOpeningPractice(item.name)}
-                          >
-                            <strong>{item.name}</strong>
-                            <span>{item.games} games</span>
-                          </button>
-                        ))
-                      ) : (
-                        <EmptyState
-                          title="No preferred White openings yet"
-                          text="Import more games to detect your most common White openings."
-                        />
-                      )}
+                          ))
+                        ) : (
+                          <EmptyState
+                            title="No preferred Black openings yet"
+                            text="Import more games to detect your most common Black openings."
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
+                </Section>
+              </div>
 
-                  <div>
-                    <h3>Preferred as Black</h3>
-                    <div className="list">
-                      {filteredPreferredBlack.length ? (
-                        filteredPreferredBlack.map((item, index) => (
-                          <button
-                            className="listItem openingPracticeLink"
-                            key={index}
-                            type="button"
-                            onClick={() => startOpeningPractice(item.name)}
-                          >
-                            <strong>{item.name}</strong>
-                            <span>{item.games} games</span>
-                          </button>
-                        ))
-                      ) : (
-                        <EmptyState
-                          title="No preferred Black openings yet"
-                          text="Import more games to detect your most common Black openings."
+              <div id="section-top">
+                <Section
+                  title="Top Openings Table"
+                  isOpen={openSections.top}
+                  onToggle={() => toggleSection("top")}
+                  badge={`${filteredTopOpenings.length} rows`}
+                >
+                  {filteredTopOpenings.length ? (
+                    <div className="tableWrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Opening</th>
+                            <th>Games</th>
+                            <th>W</th>
+                            <th>D</th>
+                            <th>L</th>
+                            <th>Win %</th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          {(isPremium
+                            ? filteredTopOpenings
+                            : filteredTopOpenings.slice(0, 8)
+                          ).map((opening, index) => {
+                            const rate = opening.win_rate ?? opening.winRate ?? 0;
+
+                            return (
+                              <tr key={index}>
+                                <td>
+                                  <button
+                                    className="tableOpeningBtn"
+                                    type="button"
+                                    onClick={() =>
+                                      startOpeningPractice(opening.name)
+                                    }
+                                  >
+                                    {opening.name}
+                                  </button>
+                                </td>
+                                <td>{opening.games}</td>
+                                <td>{opening.wins}</td>
+                                <td>{opening.draws}</td>
+                                <td>{opening.losses}</td>
+                                <td>{rate}%</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+
+                      {!isPremium && filteredTopOpenings.length > 8 ? (
+                        <LockedPremiumCard
+                          title="Full opening table locked"
+                          text={`Free shows your top 8 rows. Premium would show all ${filteredTopOpenings.length} tracked openings.`}
                         />
-                      )}
+                      ) : null}
                     </div>
-                  </div>
-                </div>
-              </Section>
+                  ) : (
+                    <EmptyState
+                      title="No top openings yet"
+                      text="Opening table data appears once recognised openings are found in your imported games."
+                    />
+                  )}
+                </Section>
+              </div>
             </div>
+          )}
 
-            <div id="section-top">
-              <Section
-                title="Top Openings Table"
-                isOpen={openSections.top}
-                onToggle={() => toggleSection("top")}
-                badge={`${filteredTopOpenings.length} rows`}
-              >
-                {filteredTopOpenings.length ? (
-                  <div className="tableWrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Opening</th>
-                          <th>Games</th>
-                          <th>W</th>
-                          <th>D</th>
-                          <th>L</th>
-                          <th>Win %</th>
-                        </tr>
-                      </thead>
+          <section className="card feedbackCard">
+            <h2>Help improve Opening Fit</h2>
+            <p>
+              Found a bug, confusing result, or feature idea? Send quick feedback
+              before launch.
+            </p>
 
-                      <tbody>
-                        {(isPremium
-                          ? filteredTopOpenings
-                          : filteredTopOpenings.slice(0, 8)
-                        ).map((opening, index) => {
-                          const rate = opening.win_rate ?? opening.winRate ?? 0;
+            <textarea
+              value={feedbackMessage}
+              onChange={(e) => setFeedbackMessage(e.target.value)}
+              placeholder="What should be improved?"
+              rows={4}
+            />
 
-                          return (
-                            <tr key={index}>
-                              <td>
-                                <button
-                                  className="tableOpeningBtn"
-                                  type="button"
-                                  onClick={() =>
-                                    startOpeningPractice(opening.name)
-                                  }
-                                >
-                                  {opening.name}
-                                </button>
-                              </td>
-                              <td>{opening.games}</td>
-                              <td>{opening.wins}</td>
-                              <td>{opening.draws}</td>
-                              <td>{opening.losses}</td>
-                              <td>{rate}%</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+            <input
+              value={feedbackContact}
+              onChange={(e) => setFeedbackContact(e.target.value)}
+              placeholder="Email or TikTok username optional"
+            />
 
-                    {!isPremium && filteredTopOpenings.length > 8 ? (
-                      <LockedPremiumCard
-                        title="Full opening table locked"
-                        text={`Free shows your top 8 rows. Premium would show all ${filteredTopOpenings.length} tracked openings.`}
-                      />
-                    ) : null}
-                  </div>
-                ) : (
-                  <EmptyState
-                    title="No top openings yet"
-                    text="Opening table data appears once recognised openings are found in your imported games."
-                  />
-                )}
-              </Section>
-            </div>
-          </div>
-        )}
+            <button
+              className="secondaryButton"
+              type="button"
+              onClick={submitFeedback}
+              disabled={feedbackSending}
+            >
+              {feedbackSending ? "Sending..." : "Send Feedback"}
+            </button>
 
-        <section className="card feedbackCard">
-          <h2>Help improve Opening Fit</h2>
-          <p>
-            Found a bug, confusing result, or feature idea? Send quick feedback
-            before launch.
-          </p>
+            {feedbackStatus ? (
+              <p className="statusMessage">{feedbackStatus}</p>
+            ) : null}
+          </section>
+        </main>
 
-          <textarea
-            value={feedbackMessage}
-            onChange={(e) => setFeedbackMessage(e.target.value)}
-            placeholder="What should be improved?"
-            rows={4}
-          />
-
-          <input
-            value={feedbackContact}
-            onChange={(e) => setFeedbackContact(e.target.value)}
-            placeholder="Email or TikTok username optional"
-          />
-
-          <button
-            className="secondaryButton"
-            type="button"
-            onClick={submitFeedback}
-          >
-            Send Feedback
-          </button>
-
-          {feedbackStatus ? (
-            <p className="statusMessage">{feedbackStatus}</p>
-          ) : null}
-        </section>
-      </main>
-
-      <div className="landingWrap">
-        <Footer />
+        <div className="landingWrap">
+          <Footer />
+        </div>
       </div>
-    </div>
+
+      <Analytics />
+    </>
   );
 }
