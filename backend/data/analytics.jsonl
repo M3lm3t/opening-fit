@@ -73,3 +73,12 @@
 {"event": "import_started", "date": "2026-04-26T20:14:16.153998+00:00", "data": {"username": "mraquariyaz67", "platform": "lichess", "months": 3}}
 {"event": "games_imported", "date": "2026-04-26T20:14:20.518318+00:00", "data": {"username": "mraquariyaz67", "platform": "lichess", "gamesImported": 100, "monthsChecked": 3}}
 {"event": "frontend_import_completed", "date": "2026-04-26T20:14:21.077766+00:00", "data": {"username": "mraquariyaz67", "platform": "lichess", "gamesImported": 100, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-04-29T07:14:06.670102+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-04-29T07:14:06.738417+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-04-29T07:14:11.686997+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 510, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-04-29T07:14:12.309762+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 510, "months": 3}}
+{"event": "feedback_submitted", "date": "2026-04-29T07:14:37.934956+00:00", "data": {"username": "melmet", "platform": "chesscom", "hasContact": false}}
+{"event": "frontend_import_started", "date": "2026-04-29T18:19:51.718110+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-04-29T18:19:51.908208+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-04-29T18:19:58.518853+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 510, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-04-29T18:19:59.420490+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 510, "months": 3}}

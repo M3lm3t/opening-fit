@@ -26,6 +26,7 @@ const platforms = {
 };
 
 const closedSections = {
+  fit: false,
   style: false,
   recommendations: false,
   verdicts: false,
@@ -44,6 +45,11 @@ const premiumFeatures = [
   "Saved import history",
   "Future Stockfish analysis",
 ];
+
+function safeNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
 
 function getMovesFromPgn(pgnText) {
   if (!pgnText) return [];
@@ -65,6 +71,351 @@ function safeDate(value) {
   } catch {
     return "Today";
   }
+}
+
+function getOpeningName(opening) {
+  if (typeof opening === "string") return opening;
+
+  return (
+    opening?.name ||
+    opening?.opening ||
+    opening?.openingName ||
+    opening?.ecoName ||
+    "Unknown Opening"
+  );
+}
+
+function getOpeningGames(opening) {
+  if (typeof opening === "string") return 0;
+  return safeNumber(opening?.games ?? opening?.count ?? opening?.total);
+}
+
+function getWinRate(opening) {
+  if (!opening || typeof opening === "string") return 0;
+
+  if (opening.win_rate !== undefined) return safeNumber(opening.win_rate);
+  if (opening.winRate !== undefined) return safeNumber(opening.winRate);
+
+  const games = safeNumber(opening.games);
+  const wins = safeNumber(opening.wins ?? opening.w);
+  const draws = safeNumber(opening.draws ?? opening.d);
+
+  if (!games) return 0;
+  return Math.round(((wins + draws * 0.5) / games) * 100);
+}
+
+function getOpeningSide(opening) {
+  if (!opening || typeof opening === "string") return "";
+  return opening.side || opening.colour || opening.color || "";
+}
+
+function isUnknownOpeningName(name) {
+  const normalized = (name || "").toLowerCase().trim();
+
+  return (
+    normalized === "" ||
+    normalized === "unknown" ||
+    normalized === "unknown opening" ||
+    normalized === "uncommon opening" ||
+    normalized.includes("unknown")
+  );
+}
+
+function getOpeningTags(name = "") {
+  const lower = name.toLowerCase();
+  const tags = [];
+
+  if (
+    lower.includes("gambit") ||
+    lower.includes("vienna") ||
+    lower.includes("king's gambit") ||
+    lower.includes("smith-morra") ||
+    lower.includes("scotch") ||
+    lower.includes("danish")
+  ) {
+    tags.push("attacking");
+  }
+
+  if (
+    lower.includes("london") ||
+    lower.includes("colle") ||
+    lower.includes("system")
+  ) {
+    tags.push("system");
+  }
+
+  if (
+    lower.includes("caro") ||
+    lower.includes("slav") ||
+    lower.includes("queen's gambit declined") ||
+    lower.includes("french")
+  ) {
+    tags.push("solid");
+  }
+
+  if (
+    lower.includes("sicilian") ||
+    lower.includes("king's indian") ||
+    lower.includes("grunfeld") ||
+    lower.includes("grünfeld") ||
+    lower.includes("najdorf") ||
+    lower.includes("dragon")
+  ) {
+    tags.push("sharp");
+  }
+
+  if (
+    lower.includes("italian") ||
+    lower.includes("ruy lopez") ||
+    lower.includes("queen's gambit") ||
+    lower.includes("english") ||
+    lower.includes("four knights")
+  ) {
+    tags.push("classical");
+  }
+
+  return tags;
+}
+
+function getPlayerStyleFromOpenings(openings = []) {
+  const tagScores = {
+    attacking: 0,
+    solid: 0,
+    system: 0,
+    sharp: 0,
+    classical: 0,
+  };
+
+  openings.forEach((opening) => {
+    const name = getOpeningName(opening);
+
+    if (isUnknownOpeningName(name)) return;
+
+    const games = Math.max(getOpeningGames(opening), 1);
+    const winRate = getWinRate(opening);
+    const weight = games * Math.max(winRate, 35);
+
+    getOpeningTags(name).forEach((tag) => {
+      tagScores[tag] += weight;
+    });
+  });
+
+  const sorted = Object.entries(tagScores).sort((a, b) => b[1] - a[1]);
+  const top = sorted[0]?.[0];
+
+  if (top === "attacking") {
+    return {
+      title: "Tactical Attacker",
+      description:
+        "You seem to perform best when the game opens up and you get active piece play early.",
+    };
+  }
+
+  if (top === "solid") {
+    return {
+      title: "Solid Builder",
+      description:
+        "You seem to do well in structured positions with clear plans and reliable pawn structures.",
+    };
+  }
+
+  if (top === "system") {
+    return {
+      title: "System Player",
+      description:
+        "You seem comfortable using repeatable setups where you understand the plans more than memorising long theory.",
+    };
+  }
+
+  if (top === "sharp") {
+    return {
+      title: "Chaos Handler",
+      description:
+        "You seem willing to enter complicated positions where tactics and initiative matter.",
+    };
+  }
+
+  return {
+    title: "Balanced Improver",
+    description:
+      "Your games show a mixed style. You may benefit most from a simple, reliable repertoire with a few active options.",
+  };
+}
+
+function calculateOpeningFitScore(opening, playerStyle) {
+  const name = getOpeningName(opening);
+  const games = getOpeningGames(opening);
+  const winRate = getWinRate(opening);
+  const tags = getOpeningTags(name);
+
+  let score = 45;
+
+  score += Math.min(games * 3, 18);
+
+  if (winRate >= 70) score += 28;
+  else if (winRate >= 60) score += 22;
+  else if (winRate >= 50) score += 14;
+  else if (winRate >= 40) score += 6;
+  else score -= 8;
+
+  if (playerStyle?.title === "Tactical Attacker" && tags.includes("attacking")) {
+    score += 12;
+  }
+
+  if (playerStyle?.title === "Solid Builder" && tags.includes("solid")) {
+    score += 12;
+  }
+
+  if (playerStyle?.title === "System Player" && tags.includes("system")) {
+    score += 12;
+  }
+
+  if (playerStyle?.title === "Chaos Handler" && tags.includes("sharp")) {
+    score += 12;
+  }
+
+  if (tags.includes("classical")) {
+    score += 5;
+  }
+
+  if (isUnknownOpeningName(name)) {
+    score -= 25;
+  }
+
+  return Math.max(1, Math.min(100, Math.round(score)));
+}
+
+function getOpeningVerdict(opening, score) {
+  const games = getOpeningGames(opening);
+  const winRate = getWinRate(opening);
+
+  if (score >= 75 && games >= 2) return "Keep";
+  if (score >= 55) return "Improve";
+  if (winRate < 40 || score < 55) return "Avoid for now";
+
+  return "Improve";
+}
+
+function getOpeningExplanation(opening, score, playerStyle) {
+  const name = getOpeningName(opening);
+  const games = getOpeningGames(opening);
+  const winRate = getWinRate(opening);
+  const tags = getOpeningTags(name);
+  const verdict = getOpeningVerdict(opening, score);
+
+  if (isUnknownOpeningName(name)) {
+    return "This opening was not clearly classified. It is worth reviewing the PGN or playing more recognised opening lines so the report can give better advice.";
+  }
+
+  if (verdict === "Keep") {
+    return `This looks like a strong fit. You score well with it, it appears in your games enough to be meaningful, and it suits your ${playerStyle.title.toLowerCase()} profile.`;
+  }
+
+  if (verdict === "Improve") {
+    if (games < 3) {
+      return "This opening has potential, but you have not played it enough yet. Keep testing it before making it a main part of your repertoire.";
+    }
+
+    if (winRate >= 50) {
+      return "Your results are decent here, but there is room to improve. This could become a reliable weapon with a clearer plan after the opening.";
+    }
+
+    return "This opening is not failing badly, but your results suggest you need a simpler plan or a more comfortable variation.";
+  }
+
+  if (tags.includes("sharp")) {
+    return "This may be too sharp or theory-heavy for your current results. Consider a simpler alternative until your confidence improves.";
+  }
+
+  return "Your results suggest this opening is not fitting you well right now. It may be worth replacing it or keeping it as a lower-priority side option.";
+}
+
+function buildOpeningFitData(data) {
+  const openings = [
+    ...(Array.isArray(data?.top_openings) ? data.top_openings : []),
+    ...(Array.isArray(data?.best_openings) ? data.best_openings : []),
+    ...(Array.isArray(data?.preferred_white) ? data.preferred_white : []),
+    ...(Array.isArray(data?.preferred_black) ? data.preferred_black : []),
+  ];
+
+  const mergedMap = new Map();
+
+  openings.forEach((opening) => {
+    const name = getOpeningName(opening);
+    const key = name.toLowerCase();
+
+    if (!mergedMap.has(key)) {
+      mergedMap.set(key, {
+        ...opening,
+        name,
+        games: getOpeningGames(opening),
+        win_rate: getWinRate(opening),
+      });
+      return;
+    }
+
+    const existing = mergedMap.get(key);
+    const existingGames = getOpeningGames(existing);
+    const incomingGames = getOpeningGames(opening);
+
+    if (incomingGames > existingGames) {
+      mergedMap.set(key, {
+        ...existing,
+        ...opening,
+        name,
+        games: incomingGames,
+        win_rate: getWinRate(opening) || getWinRate(existing),
+      });
+    }
+  });
+
+  const cleanOpenings = Array.from(mergedMap.values());
+  const playerStyle = getPlayerStyleFromOpenings(cleanOpenings);
+
+  const scoredOpenings = cleanOpenings
+    .map((opening) => {
+      const score = calculateOpeningFitScore(opening, playerStyle);
+      const verdict = getOpeningVerdict(opening, score);
+
+      return {
+        ...opening,
+        fitScore: score,
+        fitVerdict: verdict,
+        fitExplanation: getOpeningExplanation(opening, score, playerStyle),
+      };
+    })
+    .sort((a, b) => b.fitScore - a.fitScore);
+
+  const recognised = scoredOpenings.filter(
+    (opening) => !isUnknownOpeningName(getOpeningName(opening))
+  );
+
+  const bestOpening = recognised[0] || scoredOpenings[0] || null;
+
+  const weakestOpening =
+    [...recognised]
+      .filter((opening) => getOpeningGames(opening) >= 2)
+      .sort((a, b) => a.fitScore - b.fitScore)[0] ||
+    [...recognised].sort((a, b) => a.fitScore - b.fitScore)[0] ||
+    null;
+
+  const overallScore =
+    recognised.length > 0
+      ? Math.round(
+          recognised
+            .slice(0, 8)
+            .reduce((total, opening) => total + opening.fitScore, 0) /
+            Math.min(recognised.length, 8)
+        )
+      : 0;
+
+  return {
+    playerStyle,
+    scoredOpenings,
+    bestOpening,
+    weakestOpening,
+    overallScore,
+  };
 }
 
 function Section({ title, isOpen, onToggle, children, badge = null }) {
@@ -103,6 +454,297 @@ function LockedPremiumCard({ title, text }) {
       </div>
       <span className="lockIcon">🔒</span>
     </div>
+  );
+}
+
+function OpeningFitSummaryCard({ fitData, onPractice }) {
+  if (!fitData || !fitData.scoredOpenings?.length) return null;
+
+  const {
+    playerStyle,
+    bestOpening,
+    weakestOpening,
+    overallScore,
+    scoredOpenings,
+  } = fitData;
+
+  const keepCount = scoredOpenings.filter(
+    (opening) => opening.fitVerdict === "Keep"
+  ).length;
+
+  const improveCount = scoredOpenings.filter(
+    (opening) => opening.fitVerdict === "Improve"
+  ).length;
+
+  const avoidCount = scoredOpenings.filter(
+    (opening) => opening.fitVerdict === "Avoid for now"
+  ).length;
+
+  return (
+    <section className="card openingFitHeroCard">
+      <div className="fitHeroTop">
+        <div>
+          <p className="eyebrow">Opening Fit Result</p>
+          <h2>{playerStyle.title}</h2>
+          <p className="muted">{playerStyle.description}</p>
+        </div>
+
+        <div className="fitScoreCircle">
+          <strong>{overallScore}</strong>
+          <span>/100</span>
+        </div>
+      </div>
+
+      <div className="fitHeroGrid">
+        <div className="fitMiniCard">
+          <span className="fitLabel">Best current fit</span>
+          <strong>
+            {bestOpening ? getOpeningName(bestOpening) : "Not enough data"}
+          </strong>
+          {bestOpening ? (
+            <p>
+              {bestOpening.fitScore}/100 — {bestOpening.fitVerdict}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="fitMiniCard">
+          <span className="fitLabel">Biggest weakness</span>
+          <strong>
+            {weakestOpening ? getOpeningName(weakestOpening) : "Not enough data"}
+          </strong>
+          {weakestOpening ? (
+            <p>
+              {weakestOpening.fitScore}/100 — {weakestOpening.fitVerdict}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="fitMiniCard">
+          <span className="fitLabel">Opening verdicts</span>
+          <strong>
+            {keepCount} Keep · {improveCount} Improve · {avoidCount} Avoid
+          </strong>
+          <p>Based on your imported games and opening results.</p>
+        </div>
+      </div>
+
+      <div className="fitRecommendationBox">
+        <strong>Recommended next step:</strong>{" "}
+        {bestOpening
+          ? `Build your short repertoire around ${getOpeningName(
+              bestOpening
+            )}, then improve or replace your weakest opening.`
+          : "Import more games to get a stronger recommendation."}
+
+        {bestOpening ? (
+          <button
+            className="secondaryBtn fitPracticeBtn"
+            type="button"
+            onClick={() => onPractice(getOpeningName(bestOpening))}
+          >
+            Practise best fit
+          </button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function OpeningFitScoreList({ fitData, onPractice }) {
+  if (!fitData || !fitData.scoredOpenings?.length) return null;
+
+  return (
+    <section className="card openingFitScoreCard">
+      <div className="sectionHeaderSimple">
+        <div>
+          <p className="eyebrow">Opening Fit Scores</p>
+          <h2>Keep / Improve / Avoid</h2>
+          <p className="muted">
+            These scores estimate which openings fit your results and playing
+            style.
+          </p>
+        </div>
+      </div>
+
+      <div className="fitOpeningList">
+        {fitData.scoredOpenings.slice(0, 10).map((opening, index) => {
+          const name = getOpeningName(opening);
+          const games = getOpeningGames(opening);
+          const winRate = getWinRate(opening);
+
+          return (
+            <button
+              className="fitOpeningRow"
+              key={`${name}-${index}`}
+              type="button"
+              onClick={() => onPractice(name)}
+            >
+              <div className="fitOpeningMain">
+                <div>
+                  <strong>{name}</strong>
+                  <p>
+                    {games} games · {winRate}% score · {opening.fitVerdict}
+                  </p>
+                </div>
+
+                <div className="fitOpeningScore">
+                  {opening.fitScore}
+                  <span>/100</span>
+                </div>
+              </div>
+
+              <p className="fitOpeningReason">{opening.fitExplanation}</p>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange }) {
+  const [open, setOpen] = useState(false);
+
+  const mainItems = [
+    { label: "Import", target: "app-dashboard" },
+    { label: "Ratings", target: "rating-openings" },
+    { label: "Premium", target: "premium" },
+    { label: "Feedback", target: "feedback" },
+  ];
+
+  const appViews = [
+    { key: "overview", label: "Overview" },
+    { key: "recommendations", label: "Recommendations" },
+    { key: "training", label: "Training" },
+    { key: "games", label: "Games" },
+    { key: "data", label: "Data" },
+    { key: "feedback", label: "Feedback" },
+  ];
+
+  const mainOpening = data?.top_openings?.[0]?.name;
+
+  const handleView = (view) => {
+    onViewChange(view);
+    setOpen(false);
+
+    setTimeout(() => {
+      const el = document.getElementById("app-results") || document.getElementById("app-dashboard");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
+
+  return (
+    <div className={`floatingMenu ${open ? "floatingMenuOpen" : ""}`}>
+      <button
+        className="floatingMenuToggle"
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-label="Open navigation menu"
+      >
+        ☰
+      </button>
+
+      {open ? (
+        <div className="floatingMenuPanel">
+          <div className="floatingMenuHeader">
+            <strong>Opening Fit Menu</strong>
+            <button type="button" onClick={() => setOpen(false)}>
+              ×
+            </button>
+          </div>
+
+          <p className="floatingMenuLabel">Main</p>
+          <div className="floatingMenuButtons">
+            {mainItems.map((item) => (
+              <button
+                key={item.target}
+                type="button"
+                onClick={() => {
+                  onJump(item.target);
+                  setOpen(false);
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {data ? (
+            <>
+              <p className="floatingMenuLabel">Report pages</p>
+              <div className="floatingMenuButtons floatingMenuButtonsSingle">
+                {appViews.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={activeView === item.key ? "floatingMenuActiveItem" : ""}
+                    onClick={() => handleView(item.key)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              {mainOpening ? (
+                <button
+                  className="floatingPracticeButton"
+                  type="button"
+                  onClick={() => {
+                    onPractice(mainOpening);
+                    setOpen(false);
+                  }}
+                >
+                  Practise {mainOpening}
+                </button>
+              ) : null}
+            </>
+          ) : (
+            <p className="floatingMenuHint">
+              Import games first to unlock report pages.
+            </p>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AppViewTabs({ activeView, onChange }) {
+  const tabs = [
+    { key: "overview", label: "Overview", icon: "🏠" },
+    { key: "recommendations", label: "Recommendations", icon: "🎯" },
+    { key: "training", label: "Training", icon: "🚀" },
+    { key: "games", label: "Games", icon: "♟️" },
+    { key: "data", label: "Data", icon: "📊" },
+    { key: "feedback", label: "Feedback", icon: "💬" },
+  ];
+
+  return (
+    <section className="card appTabsCard">
+      <div className="appTabsHeader">
+        <div>
+          <p className="eyebrow">Report navigation</p>
+          <h2>Your Opening Fit report</h2>
+        </div>
+      </div>
+
+      <div className="appTabs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            className={`appTabButton ${
+              activeView === tab.key ? "appTabButtonActive" : ""
+            }`}
+            onClick={() => onChange(tab.key)}
+          >
+            <span>{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -612,6 +1254,7 @@ export default function App() {
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [localSavedAt, setLocalSavedAt] = useState("");
   const [isPremium, setIsPremium] = useState(false);
+  const [activeView, setActiveView] = useState("overview");
 
   useEffect(() => {
     const savedUsername = localStorage.getItem(USERNAME_KEY);
@@ -746,13 +1389,8 @@ export default function App() {
     try {
       const parsed = JSON.parse(errorText);
 
-      if (parsed?.detail) {
-        return parsed.detail;
-      }
-
-      if (parsed?.message) {
-        return parsed.message;
-      }
+      if (parsed?.detail) return parsed.detail;
+      if (parsed?.message) return parsed.message;
     } catch {
       // Keep using text below.
     }
@@ -828,19 +1466,24 @@ export default function App() {
     setLocalSavedAt(savedAt);
   };
 
+  const scrollToId = (id) => {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
+
+  const scrollToResults = () => scrollToId("app-results");
+
   const loadLocalAnalysis = () => {
     const savedAnalysis = localStorage.getItem(STORAGE_KEY);
 
-    if (!savedAnalysis) {
-      return false;
-    }
+    if (!savedAnalysis) return false;
 
     try {
       const parsed = JSON.parse(savedAnalysis);
 
-      if (!parsed?.analysis) {
-        return false;
-      }
+      if (!parsed?.analysis) return false;
 
       const cleanData = normaliseData(parsed.analysis);
 
@@ -874,13 +1517,6 @@ export default function App() {
     setSavedProfileMessage("Local saved report cleared.");
   };
 
-  const scrollToResults = () => {
-    setTimeout(() => {
-      const el = document.getElementById("app-results");
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
-  };
-
   const toggleSection = (key) => {
     setOpenSections((prev) => ({
       ...prev,
@@ -894,40 +1530,49 @@ export default function App() {
       [key]: true,
     });
 
+    scrollToId(`section-${key}`);
+  };
+
+  const jumpToSection = (target) => {
+    const sectionKey = target.replace("section-", "");
+
+    if (closedSections[sectionKey] !== undefined) {
+      setOpenSections((prev) => ({
+        ...prev,
+        [sectionKey]: true,
+      }));
+    }
+
     setTimeout(() => {
-      const el = document.getElementById(`section-${key}`);
+      const el = document.getElementById(target);
 
       if (el) {
-        el.scrollIntoView({
+        const y = el.getBoundingClientRect().top + window.scrollY - 18;
+        window.scrollTo({
+          top: Math.max(y, 0),
+          behavior: "smooth",
+        });
+        return;
+      }
+
+      const fallback = document.getElementById("app-dashboard");
+      if (fallback) {
+        fallback.scrollIntoView({
           behavior: "smooth",
           block: "start",
         });
       }
-    }, 100);
+    }, 160);
   };
 
   const startOpeningPractice = (openingName) => {
     if (!openingName) return;
 
     setPracticeOpening(openingName);
-
-    setTimeout(() => {
-      const el = document.getElementById("opening-practice");
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
+    scrollToId("opening-practice");
   };
 
-  const isUnknownOpening = (name) => {
-    const normalized = (name || "").toLowerCase().trim();
-
-    return (
-      normalized === "" ||
-      normalized === "unknown" ||
-      normalized === "unknown opening" ||
-      normalized === "uncommon opening" ||
-      normalized.includes("unknown")
-    );
-  };
+  const isUnknownOpening = (name) => isUnknownOpeningName(name);
 
   const filterUnknownOpenings = (items) => {
     if (!Array.isArray(items)) return [];
@@ -1079,9 +1724,7 @@ export default function App() {
       if (!response.ok || !profile) {
         const loadedLocal = loadLocalAnalysis();
 
-        if (loadedLocal) {
-          return;
-        }
+        if (loadedLocal) return;
 
         throw new Error(
           profile?.detail ||
@@ -1094,9 +1737,7 @@ export default function App() {
       if (!latestResult) {
         const loadedLocal = loadLocalAnalysis();
 
-        if (loadedLocal) {
-          return;
-        }
+        if (loadedLocal) return;
 
         throw new Error(
           "Saved profile found, but it did not contain any saved analysis. Import games again to refresh it."
@@ -1232,7 +1873,9 @@ export default function App() {
   const verdictClass = (verdict) => {
     if (verdict === "Keep") return "verdict keep";
     if (verdict === "Improve") return "verdict improve";
-    if (verdict === "Avoid") return "verdict avoid";
+    if (verdict === "Avoid" || verdict === "Avoid for now") {
+      return "verdict avoid";
+    }
     return "verdict test";
   };
 
@@ -1260,6 +1903,22 @@ export default function App() {
     return filteredTopOpenings.slice(0, isPremium ? 10 : 6);
   }, [filteredTopOpenings, isPremium]);
 
+  const fitData = useMemo(() => {
+    return buildOpeningFitData({
+      ...data,
+      top_openings: filteredTopOpenings,
+      best_openings: filteredBestOpenings,
+      preferred_white: filteredPreferredWhite,
+      preferred_black: filteredPreferredBlack,
+    });
+  }, [
+    data,
+    filteredTopOpenings,
+    filteredBestOpenings,
+    filteredPreferredWhite,
+    filteredPreferredBlack,
+  ]);
+
   const whiteDetailedRecommendations = useMemo(() => {
     return filterUnknownOpenings(
       data?.opening_recommendations?.whiteDetailed ||
@@ -1279,15 +1938,15 @@ export default function App() {
   const smartRecommendationSummary = useMemo(() => {
     const summary = [];
 
+    const bestFit = fitData.bestOpening;
+    const weakFit = fitData.weakestOpening;
     const top = filteredTopOpenings[0];
-    const best = [...filteredBestOpenings].sort(
-      (a, b) => (b.win_rate ?? b.winRate ?? 0) - (a.win_rate ?? a.winRate ?? 0)
-    )[0];
-    const weak = [...filteredBestOpenings]
-      .filter((item) => (item.games || 0) >= 3)
-      .sort(
-        (a, b) => (a.win_rate ?? a.winRate ?? 0) - (b.win_rate ?? b.winRate ?? 0)
-      )[0];
+
+    if (bestFit) {
+      summary.push(
+        `${getOpeningName(bestFit)} currently looks like your strongest Opening Fit. It scores ${bestFit.fitScore}/100 and matches your ${fitData.playerStyle.title.toLowerCase()} profile.`
+      );
+    }
 
     if (top) {
       summary.push(
@@ -1295,19 +1954,9 @@ export default function App() {
       );
     }
 
-    if (best) {
+    if (weakFit && getOpeningName(weakFit) !== getOpeningName(bestFit)) {
       summary.push(
-        `${best.name} looks like one of your best fits. You score ${
-          best.win_rate ?? best.winRate ?? 0
-        }% from ${best.games} games, so this is worth keeping in your repertoire.`
-      );
-    }
-
-    if (weak && weak.name !== best?.name) {
-      summary.push(
-        `${weak.name} may need attention. Your current score is ${
-          weak.win_rate ?? weak.winRate ?? 0
-        }% from ${weak.games} games, so review the first few moves and common plans.`
+        `${getOpeningName(weakFit)} may need attention. It currently scores ${weakFit.fitScore}/100, so review the first few moves and common plans.`
       );
     }
 
@@ -1318,70 +1967,53 @@ export default function App() {
     }
 
     return summary;
-  }, [filteredTopOpenings, filteredBestOpenings]);
+  }, [fitData, filteredTopOpenings]);
 
   const personalTrainingPlan = useMemo(() => {
     const plan = [];
 
-    const best = [...filteredBestOpenings]
-      .filter((item) => (item.games || 0) >= 3)
-      .sort(
-        (a, b) =>
-          (b.win_rate || b.winRate || 0) - (a.win_rate || a.winRate || 0)
-      );
-
-    const weakest = [...filteredBestOpenings]
-      .filter((item) => (item.games || 0) >= 3)
-      .sort(
-        (a, b) =>
-          (a.win_rate || a.winRate || 0) - (b.win_rate || b.winRate || 0)
-      );
+    const bestFit = fitData.bestOpening;
+    const weakFit = fitData.weakestOpening;
 
     const mostPlayed = [...filteredTopOpenings]
       .filter((item) => (item.games || 0) >= 3)
       .sort((a, b) => (b.games || 0) - (a.games || 0));
 
-    const bestOpening = best[0];
-    const weakOpening = weakest[0];
     const mainOpening = mostPlayed[0];
     const whitePick = filteredPreferredWhite?.[0];
     const blackPick = filteredPreferredBlack?.[0];
 
-    if (mainOpening) {
+    if (bestFit) {
       plan.push({
-        title: `Make ${mainOpening.name} your main focus`,
+        title: `Build around ${getOpeningName(bestFit)}`,
+        text: `This is your best current Opening Fit at ${bestFit.fitScore}/100. Keep it in your repertoire and learn one simple plan after the first few moves.`,
+        action: `Practise ${getOpeningName(bestFit)}`,
+        opening: getOpeningName(bestFit),
+      });
+    }
+
+    if (mainOpening && getOpeningName(mainOpening) !== getOpeningName(bestFit)) {
+      plan.push({
+        title: `Make ${mainOpening.name} more reliable`,
         text: `You have played this ${mainOpening.games} times, so small improvements here will affect a lot of your games. Review the first 6 moves and the main middlegame plan.`,
         action: `Practise ${mainOpening.name}`,
         opening: mainOpening.name,
       });
     }
 
-    if (bestOpening) {
-      const rate = bestOpening.win_rate ?? bestOpening.winRate ?? 0;
-
+    if (weakFit && getOpeningName(weakFit) !== getOpeningName(bestFit)) {
       plan.push({
-        title: `Keep using ${bestOpening.name}`,
-        text: `This is one of your strongest openings with a ${rate}% win rate from ${bestOpening.games} games. Keep it in your repertoire and learn one extra idea rather than replacing it.`,
-        action: `Reinforce ${bestOpening.name}`,
-        opening: bestOpening.name,
-      });
-    }
-
-    if (weakOpening && weakOpening.name !== bestOpening?.name) {
-      const rate = weakOpening.win_rate ?? weakOpening.winRate ?? 0;
-
-      plan.push({
-        title: `Repair your ${weakOpening.name}`,
-        text: `This opening is currently scoring ${rate}% from ${weakOpening.games} games. Do not drop it immediately — first check whether you are losing in the opening or later in the middlegame.`,
-        action: `Practise ${weakOpening.name}`,
-        opening: weakOpening.name,
+        title: `Repair or replace ${getOpeningName(weakFit)}`,
+        text: `This opening is your weakest current fit at ${weakFit.fitScore}/100. Try one simpler variation before dropping it completely.`,
+        action: `Practise ${getOpeningName(weakFit)}`,
+        opening: getOpeningName(weakFit),
       });
     }
 
     if (whitePick) {
       plan.push({
         title: `Build your White repertoire around ${whitePick.name}`,
-        text: `This appears often in your White games. Learn the first 6 moves, then one simple plan for what to do after development.`,
+        text: "This appears often in your White games. Learn the first 6 moves, then one simple plan for what to do after development.",
         action: "Practise as White",
         opening: whitePick.name,
       });
@@ -1390,7 +2022,7 @@ export default function App() {
     if (blackPick) {
       plan.push({
         title: `Tighten your Black repertoire with ${blackPick.name}`,
-        text: `This is one of your regular Black openings. Focus on reaching a familiar setup instead of memorising too many sidelines.`,
+        text: "This is one of your regular Black openings. Focus on reaching a familiar setup instead of memorising too many sidelines.",
         action: "Practise as Black",
         opening: blackPick.name,
       });
@@ -1433,7 +2065,7 @@ export default function App() {
     return uniquePlan.slice(0, isPremium ? 8 : 4);
   }, [
     data,
-    filteredBestOpenings,
+    fitData,
     filteredTopOpenings,
     filteredPreferredWhite,
     filteredPreferredBlack,
@@ -1474,6 +2106,14 @@ export default function App() {
   return (
     <>
       <div className="page">
+        <FloatingAppMenu
+          data={data}
+          onJump={jumpToSection}
+          onPractice={startOpeningPractice}
+          activeView={activeView}
+          onViewChange={setActiveView}
+        />
+
         <LandingSection onOpeningClick={startOpeningPractice} />
 
         <main className="container appShell" id="app-dashboard">
@@ -1704,6 +2344,32 @@ export default function App() {
                 </div>
               </section>
 
+              <AppViewTabs
+                activeView={activeView}
+                onChange={(view) => {
+                  setActiveView(view);
+
+                  setTimeout(() => {
+                    const el = document.getElementById("app-results");
+                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 80);
+                }}
+              />
+
+              {activeView === "overview" ? (
+                <>
+                  <div id="section-fit">
+                <OpeningFitSummaryCard
+                  fitData={fitData}
+                  onPractice={startOpeningPractice}
+                />
+
+                <OpeningFitScoreList
+                  fitData={fitData}
+                  onPractice={startOpeningPractice}
+                />
+              </div>
+
               <section className="card quickNavCard">
                 <h2>Quick View</h2>
 
@@ -1711,42 +2377,49 @@ export default function App() {
                   <button
                     className="quickNavBtn secondaryBtn"
                     type="button"
-                    onClick={() => openOnly("style")}
+                    onClick={() => jumpToSection("section-fit")}
+                  >
+                    Fit Score
+                  </button>
+                  <button
+                    className="quickNavBtn secondaryBtn"
+                    type="button"
+                    onClick={() => jumpToSection("section-style")}
                   >
                     Style Profile
                   </button>
                   <button
                     className="quickNavBtn secondaryBtn"
                     type="button"
-                    onClick={() => openOnly("recommendations")}
+                    onClick={() => jumpToSection("section-recommendations")}
                   >
                     Opening Suggestions
                   </button>
                   <button
                     className="quickNavBtn secondaryBtn"
                     type="button"
-                    onClick={() => openOnly("verdicts")}
+                    onClick={() => jumpToSection("section-verdicts")}
                   >
                     Keep / Improve / Avoid
                   </button>
                   <button
                     className="quickNavBtn secondaryBtn"
                     type="button"
-                    onClick={() => openOnly("chart")}
+                    onClick={() => jumpToSection("section-chart")}
                   >
                     Win Rate Chart
                   </button>
                   <button
                     className="quickNavBtn secondaryBtn"
                     type="button"
-                    onClick={() => openOnly("training")}
+                    onClick={() => jumpToSection("section-training")}
                   >
                     Personal Plan
                   </button>
                   <button
                     className="quickNavBtn secondaryBtn"
                     type="button"
-                    onClick={() => openOnly("replay")}
+                    onClick={() => jumpToSection("section-replay")}
                   >
                     Game Replay
                   </button>
@@ -1845,32 +2518,31 @@ export default function App() {
                       <h3>Best Openings For You</h3>
 
                       <div className="list">
-                        {filterUnknownOpenings(
-                          data.premium_preview?.best_opening_for_you || []
-                        ).length ? (
-                          filterUnknownOpenings(
-                            data.premium_preview?.best_opening_for_you || []
-                          ).map((item, index) => {
-                            const rate = item.win_rate ?? item.winRate ?? 0;
+                        {fitData.scoredOpenings.length ? (
+                          fitData.scoredOpenings.slice(0, 4).map((item, index) => {
+                            const rate = getWinRate(item);
 
                             return (
                               <button
                                 className="listItem openingPracticeLink"
                                 key={index}
                                 type="button"
-                                onClick={() => startOpeningPractice(item.name)}
+                                onClick={() =>
+                                  startOpeningPractice(getOpeningName(item))
+                                }
                               >
                                 <div>
-                                  <strong>{item.name}</strong>
+                                  <strong>{getOpeningName(item)}</strong>
                                   <div className="smallText">
-                                    {item.games} games
+                                    {getOpeningGames(item)} games · Fit{" "}
+                                    {item.fitScore}/100
                                   </div>
                                 </div>
 
                                 <div className="rightStat">
                                   <div>{rate}%</div>
-                                  <div className={verdictClass(item.verdict)}>
-                                    {item.verdict}
+                                  <div className={verdictClass(item.fitVerdict)}>
+                                    {item.fitVerdict}
                                   </div>
                                 </div>
                               </button>
@@ -1887,8 +2559,12 @@ export default function App() {
                   </div>
                 </Section>
               </div>
+                </>
+              ) : null}
 
-              <div id="section-recommendations">
+              {activeView === "recommendations" ? (
+                <>
+                  <div id="section-recommendations">
                 <Section
                   title="Opening Suggestions"
                   isOpen={openSections.recommendations}
@@ -2041,32 +2717,37 @@ export default function App() {
                   title="Keep / Improve / Avoid"
                   isOpen={openSections.verdicts}
                   onToggle={() => toggleSection("verdicts")}
-                  badge={`${filteredBestOpenings.length} tracked`}
+                  badge={`${fitData.scoredOpenings.length} tracked`}
                 >
                   <div className="list">
-                    {filteredBestOpenings.length ? (
-                      filteredBestOpenings.map((item, index) => {
-                        const rate = item.win_rate ?? item.winRate ?? 0;
+                    {fitData.scoredOpenings.length ? (
+                      fitData.scoredOpenings.map((item, index) => {
+                        const rate = getWinRate(item);
 
                         return (
                           <button
                             className="listItem openingPracticeLink"
                             key={index}
                             type="button"
-                            onClick={() => startOpeningPractice(item.name)}
+                            onClick={() =>
+                              startOpeningPractice(getOpeningName(item))
+                            }
                           >
                             <div>
-                              <strong>{item.name}</strong>
+                              <strong>{getOpeningName(item)}</strong>
                               <div className="smallText">
-                                {item.games} games · {item.wins}W /{" "}
-                                {item.draws}D / {item.losses}L
+                                {getOpeningGames(item)} games · {rate}% score ·
+                                Fit {item.fitScore}/100
+                              </div>
+                              <div className="smallText">
+                                {item.fitExplanation}
                               </div>
                             </div>
 
                             <div className="rightStat">
                               <div>{rate}%</div>
-                              <div className={verdictClass(item.verdict)}>
-                                {item.verdict}
+                              <div className={verdictClass(item.fitVerdict)}>
+                                {item.fitVerdict}
                               </div>
                             </div>
                           </button>
@@ -2081,8 +2762,12 @@ export default function App() {
                   </div>
                 </Section>
               </div>
+                </>
+              ) : null}
 
-              <div id="section-chart">
+              {activeView === "data" ? (
+                <>
+                  <div id="section-chart">
                 <Section
                   title="Opening Win Rate"
                   isOpen={openSections.chart}
@@ -2125,8 +2810,12 @@ export default function App() {
                   </div>
                 </Section>
               </div>
+                </>
+              ) : null}
 
-              <div id="section-training">
+              {activeView === "training" ? (
+                <>
+                  <div id="section-training">
                 <Section
                   title="Personal Training Plan"
                   isOpen={openSections.training}
@@ -2164,8 +2853,12 @@ export default function App() {
                   ) : null}
                 </Section>
               </div>
+                </>
+              ) : null}
 
-              <div id="section-replay">
+              {activeView === "games" ? (
+                <>
+                  <div id="section-replay">
                 <Section
                   title="Game Replay"
                   isOpen={openSections.replay}
@@ -2257,8 +2950,12 @@ export default function App() {
                   </div>
                 </Section>
               </div>
+                </>
+              ) : null}
 
-              <div id="section-preferred">
+              {activeView === "recommendations" ? (
+                <>
+                  <div id="section-preferred">
                 <Section
                   title="Preferred Openings"
                   isOpen={openSections.preferred}
@@ -2315,8 +3012,12 @@ export default function App() {
                   </div>
                 </Section>
               </div>
+                </>
+              ) : null}
 
-              <div id="section-top">
+              {activeView === "data" ? (
+                <>
+                  <div id="section-top">
                 <Section
                   title="Top Openings Table"
                   isOpen={openSections.top}
@@ -2334,6 +3035,7 @@ export default function App() {
                             <th>D</th>
                             <th>L</th>
                             <th>Win %</th>
+                            <th>Fit</th>
                           </tr>
                         </thead>
 
@@ -2343,6 +3045,11 @@ export default function App() {
                             : filteredTopOpenings.slice(0, 8)
                           ).map((opening, index) => {
                             const rate = opening.win_rate ?? opening.winRate ?? 0;
+                            const fitOpening = fitData.scoredOpenings.find(
+                              (item) =>
+                                getOpeningName(item).toLowerCase() ===
+                                getOpeningName(opening).toLowerCase()
+                            );
 
                             return (
                               <tr key={index}>
@@ -2362,6 +3069,7 @@ export default function App() {
                                 <td>{opening.draws}</td>
                                 <td>{opening.losses}</td>
                                 <td>{rate}%</td>
+                                <td>{fitOpening?.fitScore || "-"}</td>
                               </tr>
                             );
                           })}
@@ -2383,10 +3091,13 @@ export default function App() {
                   )}
                 </Section>
               </div>
+                </>
+              ) : null}
             </div>
           )}
 
-          <section className="card feedbackCard">
+          {activeView === "feedback" || !data ? (
+            <section className="card feedbackCard" id="feedback">
             <h2>Help improve Opening Fit</h2>
             <p>
               Found a bug, confusing result, or feature idea? Send quick feedback
@@ -2418,7 +3129,8 @@ export default function App() {
             {feedbackStatus ? (
               <p className="statusMessage">{feedbackStatus}</p>
             ) : null}
-          </section>
+            </section>
+          ) : null}
         </main>
 
         <div className="landingWrap">
