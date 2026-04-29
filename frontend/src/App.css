@@ -1,6 +1,8 @@
+cd ~/opening-fit/frontend
+
+cat > src/App.css <<'EOF'
 :root {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   --bg: #020617;
   --card: rgba(15, 23, 42, 0.9);
@@ -741,8 +743,35 @@ table {
   min-height: 46px;
 }
 
+.platformSelector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  grid-column: 1 / -1;
+}
+
+.platformButton {
+  min-height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.78);
+  color: #cbd5e1;
+  padding: 0.55rem 0.9rem;
+  font-weight: 850;
+}
+
+.platformButtonActive {
+  border-color: rgba(96, 165, 250, 0.65);
+  background: rgba(37, 99, 235, 0.25);
+  color: #ffffff;
+}
+
 .filtersRow {
   margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
 }
 
 .checkboxRow {
@@ -800,7 +829,7 @@ table {
 
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -1138,6 +1167,244 @@ th {
 }
 
 /* ================================
+   OPENING FIT SCORE CARDS
+================================ */
+
+.openingFitHeroCard {
+  margin-bottom: 18px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.22), transparent 36%),
+    rgba(15, 23, 42, 0.92);
+}
+
+.openingFitScoreCard {
+  margin-bottom: 18px;
+}
+
+.fitHeroTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.fitHeroTop h2 {
+  margin: 0.15rem 0 0.35rem;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+}
+
+.fitScoreCircle {
+  width: 96px;
+  height: 96px;
+  min-width: 96px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(96, 165, 250, 0.42);
+  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.18);
+}
+
+.fitScoreCircle strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.fitScoreCircle span {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: -1.2rem;
+}
+
+.fitHeroGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.fitMiniCard {
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(2, 6, 23, 0.32);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.fitMiniCard strong {
+  display: block;
+  margin: 0.25rem 0;
+  font-size: 1rem;
+}
+
+.fitMiniCard p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.fitLabel {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.fitRecommendationBox {
+  margin-top: 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  color: var(--text-soft);
+}
+
+.fitPracticeBtn {
+  margin-left: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.sectionHeaderSimple {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sectionHeaderSimple h2 {
+  margin: 0.15rem 0 0.35rem;
+}
+
+.fitOpeningList {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.fitOpeningRow {
+  width: 100%;
+  text-align: left;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(2, 6, 23, 0.28);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  color: inherit;
+  cursor: pointer;
+}
+
+.fitOpeningRow:hover {
+  border-color: rgba(96, 165, 250, 0.45);
+  transform: translateY(-1px);
+}
+
+.fitOpeningMain {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.fitOpeningMain strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.fitOpeningMain p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.fitOpeningScore {
+  min-width: 72px;
+  text-align: right;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--blue-light);
+}
+
+.fitOpeningScore span {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.fitOpeningReason {
+  margin: 0.75rem 0 0;
+  color: var(--text-soft);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+/* ================================
+   SAVED HISTORY / PREMIUM LOCK
+================================ */
+
+.savedHistoryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #cbd5e1;
+  font-size: 0.92rem;
+}
+
+.savedHistoryRow .ghostButton {
+  min-height: 38px;
+  padding: 8px 14px;
+}
+
+.premiumLockedInline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(96, 165, 250, 0.06)),
+    rgba(15, 23, 42, 0.74);
+}
+
+.premiumLockedInline h3 {
+  margin: 8px 0 6px;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.premiumLockedInline p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.premiumLockedInline .premiumBadge {
+  margin-bottom: 4px;
+}
+
+.lockIcon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  font-size: 1.25rem;
+}
+
+/* ================================
    LOADING / EMPTY / FOOTER / FEEDBACK
 ================================ */
 
@@ -1201,7 +1468,6 @@ th {
 .feedbackCard textarea,
 .feedbackCard input {
   width: 100%;
-  box-sizing: border-box;
   margin-top: 0.7rem;
   border-radius: 16px;
   border: 1px solid rgba(148, 163, 184, 0.22);
@@ -1392,8 +1658,7 @@ th {
 
 .cleanReplayPiece {
   display: block;
-  font-family: "DejaVu Sans", "Segoe UI Symbol", "Noto Sans Symbols 2",
-    "Arial Unicode MS", serif;
+  font-family: "DejaVu Sans", "Segoe UI Symbol", "Noto Sans Symbols 2", "Arial Unicode MS", serif;
   line-height: 1;
   text-align: center;
   pointer-events: none;
@@ -1701,6 +1966,75 @@ th {
 }
 
 /* ================================
+   FLOATING MENU
+================================ */
+
+.floatingMenu {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 9999;
+}
+
+.floatingMenuToggle {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  background: rgba(15, 23, 42, 0.96);
+  color: #f8fafc;
+  font-size: 1.35rem;
+  cursor: pointer;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+}
+
+.floatingMenuPanel {
+  position: absolute;
+  right: 0;
+  bottom: 64px;
+  width: 220px;
+  padding: 1rem;
+  border-radius: 1.2rem;
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.45);
+}
+
+.floatingMenuPanel strong {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.floatingMenuButtons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.floatingMenuButtons button,
+.floatingPracticeButton {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(2, 6, 23, 0.42);
+  color: #f8fafc;
+  border-radius: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+.floatingMenuButtons button:hover,
+.floatingPracticeButton:hover {
+  border-color: rgba(96, 165, 250, 0.5);
+  background: rgba(37, 99, 235, 0.16);
+}
+
+.floatingPracticeButton {
+  width: 100%;
+  margin-top: 0.75rem;
+  background: rgba(37, 99, 235, 0.25);
+}
+
+/* ================================
    TABLET
 ================================ */
 
@@ -1759,7 +2093,7 @@ th {
 }
 
 /* ================================
-   MOBILE CLEAN MODE
+   MOBILE
 ================================ */
 
 @media (max-width: 760px) {
@@ -1863,10 +2197,6 @@ th {
     display: none !important;
   }
 
-  .heroCard {
-    margin-top: 0;
-  }
-
   .heroTitleWrap .eyebrow {
     display: none;
   }
@@ -1891,6 +2221,15 @@ th {
     display: grid;
     grid-template-columns: 1fr;
     gap: 0.55rem;
+  }
+
+  .platformSelector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .platformButton {
+    width: 100%;
   }
 
   .appActionButtons {
@@ -1918,6 +2257,9 @@ th {
   }
 
   .filtersRow {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
     margin-top: 0.65rem;
   }
 
@@ -1986,7 +2328,30 @@ th {
   }
 
   .premiumCard {
-    display: none !important;
+    display: block !important;
+    padding: 0.95rem;
+  }
+
+  .premiumCard h2 {
+    font-size: 1.15rem;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  .premiumCard p {
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .lockedFeatureGrid {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .lockedFeature {
+    padding: 0.75rem;
+    border-radius: 14px;
+    font-size: 0.88rem;
   }
 
   .collapsibleCard {
@@ -2196,7 +2561,70 @@ th {
     font-size: 16px;
   }
 
-  /* Rating guide is visible but collapsed on mobile */
+  .savedHistoryRow {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+    font-size: 0.86rem;
+  }
+
+  .savedHistoryRow .ghostButton {
+    width: 100%;
+  }
+
+  .premiumLockedInline {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.9rem;
+    border-radius: 16px;
+  }
+
+  .premiumLockedInline h3 {
+    font-size: 0.98rem;
+  }
+
+  .premiumLockedInline p {
+    font-size: 0.88rem;
+  }
+
+  .lockIcon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .fitHeroTop {
+    flex-direction: column;
+  }
+
+  .fitScoreCircle {
+    width: 82px;
+    height: 82px;
+    min-width: 82px;
+  }
+
+  .fitHeroGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fitOpeningMain {
+    align-items: flex-start;
+  }
+
+  .fitPracticeBtn {
+    display: flex;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .floatingMenu {
+    right: 0.75rem;
+    bottom: 0.75rem;
+  }
+
+  .floatingMenuPanel {
+    width: min(220px, calc(100vw - 2rem));
+  }
+
   #rating-openings {
     display: block !important;
   }
@@ -2378,294 +2806,195 @@ th {
     display: block !important;
   }
 }
-/* Saved history + premium lock styling */
 
-.savedHistoryRow {
+.floatingMenuHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-  padding: 12px 14px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.72);
-  color: #cbd5e1;
-  font-size: 0.92rem;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
-.premiumLockedInline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 18px;
-  padding: 18px;
-  border: 1px solid rgba(250, 204, 21, 0.24);
-  border-radius: 18px;
-  background:
-    linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(96, 165, 250, 0.06)),
-    rgba(15, 23, 42, 0.74);
-}
-
-.premiumLockedInline h3 {
-  margin: 8px 0 6px;
+.floatingMenuHeader button {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(2, 6, 23, 0.5);
   color: #f8fafc;
-  font-size: 1rem;
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
-.premiumLockedInline p {
-  margin: 0;
+.floatingMenuLabel {
+  margin: 0.75rem 0 0.45rem;
+  color: #94a3b8;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.floatingMenuHint {
+  margin: 0.75rem 0 0;
   color: #cbd5e1;
-  font-size: 0.94rem;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
-.lockIcon {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 999px;
-  background: rgba(250, 204, 21, 0.12);
-  border: 1px solid rgba(250, 204, 21, 0.28);
-  font-size: 1.25rem;
+/* ================================
+   APP PAGE TABS
+================================ */
+
+.appTabsCard {
+  margin-bottom: 18px;
+  position: sticky;
+  top: 10px;
+  z-index: 50;
+  backdrop-filter: blur(16px);
+  background: rgba(15, 23, 42, 0.92);
 }
 
-@media (max-width: 700px) {
-  .savedHistoryRow,
-  .premiumLockedInline {
-    align-items: flex-start;
-  }
-
-  .premiumLockedInline {
-    flex-direction: column;
-  }
-
-  .lockIcon {
-    width: 40px;
-    height: 40px;
-  }
-}
-/* Final polish for saved history + premium demo update */
-
-.statsGrid {
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-}
-
-.filtersRow {
+.appTabsHeader {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 18px;
-}
-
-.savedHistoryRow .ghostButton {
-  min-height: 38px;
-  padding: 8px 14px;
-}
-
-.premiumLockedInline .premiumBadge {
-  margin-bottom: 4px;
-}
-
-/* Keep premium preview visible on mobile now we have a useful premium demo button */
-@media (max-width: 760px) {
-  .premiumCard {
-    display: block !important;
-    padding: 0.95rem;
-  }
-
-  .premiumCard h2 {
-    font-size: 1.15rem;
-    line-height: 1.2;
-    margin: 0;
-  }
-
-  .premiumCard p {
-    font-size: 0.9rem;
-    line-height: 1.45;
-  }
-
-  .lockedFeatureGrid {
-    grid-template-columns: 1fr;
-    gap: 0.55rem;
-  }
-
-  .lockedFeature {
-    padding: 0.75rem;
-    border-radius: 14px;
-    font-size: 0.88rem;
-  }
-
-  .savedHistoryRow {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.65rem;
-    font-size: 0.86rem;
-  }
-
-  .savedHistoryRow .ghostButton {
-    width: 100%;
-  }
-
-  .filtersRow {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.65rem;
-  }
-
-  .premiumLockedInline {
-    padding: 0.9rem;
-    border-radius: 16px;
-  }
-
-  .premiumLockedInline h3 {
-    font-size: 0.98rem;
-  }
-
-  .premiumLockedInline p {
-    font-size: 0.88rem;
-  }
-}
-/* Saved history + premium lock styling */
-
-.savedHistoryRow {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.appTabsHeader h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.appTabs {
+  display: flex;
   flex-wrap: wrap;
-  margin-top: 14px;
-  padding: 12px 14px;
+  gap: 0.55rem;
+}
+
+.appTabButton {
+  min-height: 42px;
+  border-radius: 999px;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.72);
+  background: rgba(2, 6, 23, 0.38);
   color: #cbd5e1;
-  font-size: 0.92rem;
-}
-
-.premiumLockedInline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 18px;
-  padding: 18px;
-  border: 1px solid rgba(250, 204, 21, 0.24);
-  border-radius: 18px;
-  background:
-    linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(96, 165, 250, 0.06)),
-    rgba(15, 23, 42, 0.74);
-}
-
-.premiumLockedInline h3 {
-  margin: 8px 0 6px;
-  color: #f8fafc;
-  font-size: 1rem;
-}
-
-.premiumLockedInline p {
-  margin: 0;
-  color: #cbd5e1;
-  font-size: 0.94rem;
-  line-height: 1.5;
-}
-
-.lockIcon {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 999px;
-  background: rgba(250, 204, 21, 0.12);
-  border: 1px solid rgba(250, 204, 21, 0.28);
-  font-size: 1.25rem;
-}
-
-@media (max-width: 700px) {
-  .savedHistoryRow,
-  .premiumLockedInline {
-    align-items: flex-start;
-  }
-
-  .premiumLockedInline {
-    flex-direction: column;
-  }
-
-  .lockIcon {
-    width: 40px;
-    height: 40px;
-  }
-}
-/* Platform selector + API status */
-
-.platformSelector {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  grid-column: 1 / -1;
-}
-
-.platformButton {
-  min-height: 40px;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  background: rgba(15, 23, 42, 0.78);
-  color: #cbd5e1;
-  padding: 0.55rem 0.9rem;
+  padding: 0.6rem 0.85rem;
   font-weight: 850;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
-.platformButtonActive {
-  border-color: rgba(96, 165, 250, 0.65);
-  background: rgba(37, 99, 235, 0.25);
+.appTabButton:hover {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(37, 99, 235, 0.14);
   color: #ffffff;
 }
 
-.apiStatus {
-  width: fit-content;
-  margin-top: 0.75rem;
-  padding: 0.45rem 0.7rem;
+.appTabButtonActive {
+  color: #ffffff;
+  border-color: rgba(96, 165, 250, 0.65);
+  background: rgba(37, 99, 235, 0.3);
+}
+
+/* Floating menu upgrades */
+
+.floatingMenuHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.floatingMenuHeader button {
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
-  font-size: 0.82rem;
-  font-weight: 850;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(2, 6, 23, 0.5);
+  color: #f8fafc;
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
-.apiStatus-online {
-  color: #bbf7d0;
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.25);
+.floatingMenuLabel {
+  margin: 0.75rem 0 0.45rem;
+  color: #94a3b8;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-.apiStatus-checking {
-  color: #dbeafe;
-  background: rgba(37, 99, 235, 0.12);
-  border: 1px solid rgba(96, 165, 250, 0.22);
+.floatingMenuHint {
+  margin: 0.75rem 0 0;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
-.apiStatus-warning,
-.apiStatus-offline {
-  color: #fecaca;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+.floatingMenuButtonsSingle {
+  grid-template-columns: 1fr;
+}
+
+.floatingMenuActiveItem {
+  border-color: rgba(96, 165, 250, 0.65) !important;
+  background: rgba(37, 99, 235, 0.28) !important;
+  color: #ffffff !important;
 }
 
 @media (max-width: 760px) {
-  .platformSelector {
+  .appTabsCard {
+    top: 0;
+    padding: 0.75rem;
+    margin-bottom: 0.8rem;
+    border-radius: 16px;
+  }
+
+  .appTabsHeader {
+    margin-bottom: 0.65rem;
+  }
+
+  .appTabsHeader .eyebrow {
+    display: none;
+  }
+
+  .appTabsHeader h2 {
+    font-size: 1rem;
+  }
+
+  .appTabs {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
   }
 
-  .platformButton {
+  .appTabButton {
     width: 100%;
+    min-height: 40px;
+    justify-content: center;
+    padding: 0.55rem 0.6rem;
+    font-size: 0.8rem;
   }
+}
 
-  .apiStatus {
-    width: 100%;
-    text-align: center;
-  }
+/* Floating menu icon alignment fix */
+.floatingMenuToggle,
+.floatingMenuHeader button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center;
+  line-height: 1 !important;
+  padding: 0 !important;
+}
+
+.floatingMenuToggle {
+  font-size: 1.35rem;
+}
+
+.floatingMenuHeader button {
+  font-size: 1.15rem;
 }
