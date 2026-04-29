@@ -140,20 +140,27 @@ def save_user_profile(username: str, payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def load_user_profile(username: str, platform: Optional[str] = None):
+    username_key = safe_username(username)
     possible_paths = []
 
     if platform:
         possible_paths.append(profile_path(username, platform))
 
     possible_paths.append(profile_path(username, "chess.com"))
-    possible_paths.append(PROFILES_DIR / f"{safe_username(username)}.json")
+    possible_paths.append(profile_path(username, "chesscom"))
+    possible_paths.append(profile_path(username, "lichess"))
+    possible_paths.append(PROFILES_DIR / f"{username_key}.json")
 
-    for path in possible_paths:
-        if not path.exists():
+    for found_path in sorted(PROFILES_DIR.glob(f"*_{username_key}.json")):
+        if found_path not in possible_paths:
+            possible_paths.append(found_path)
+
+    for found_path in possible_paths:
+        if not found_path.exists():
             continue
 
         try:
-            return json.loads(path.read_text())
+            return json.loads(found_path.read_text())
         except Exception:
             return None
 
