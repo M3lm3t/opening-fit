@@ -13,6 +13,28 @@ import OpeningComparison from "./components/OpeningComparison";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
+
+function getComparisonInvite() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const compareUser = params.get("compareUser");
+  const comparePlatform = params.get("comparePlatform") || "chesscom";
+
+  if (!compareUser) {
+    return null;
+  }
+
+  return {
+    user: compareUser,
+    platform: comparePlatform === "lichess" ? "Lichess" : "Chess.com",
+  };
+}
+
+
+
 const STORAGE_KEY = "openingFit:lastAnalysis";
 const USERNAME_KEY = "openingFit:lastUsername";
 const PREMIUM_KEY = "openingFit:isPremiumDemo";
@@ -1017,6 +1039,8 @@ function LandingSection({ onOpeningClick }) {
     },
   ];
 
+  const comparisonInvite = getComparisonInvite();
+
   return (
     <div className="landingWrap">
       <header className="landingHero">
@@ -1048,6 +1072,23 @@ function LandingSection({ onOpeningClick }) {
               <span className="landingDot">•</span>
               <span>Personalised chess opening recommendations</span>
             </div>
+
+            {comparisonInvite ? (
+              <div className="comparisonHeroNotice">
+                <div className="comparisonHeroBadge">VS</div>
+                <div>
+                  <p className="comparisonHeroKicker">
+                    {comparisonInvite.user} shared their Opening Fit report
+                  </p>
+                  <h2>Compare your openings with {comparisonInvite.user}</h2>
+                  <p>
+                    Import your {comparisonInvite.platform} games below to see
+                    your style match, shared openings, and biggest repertoire
+                    differences.
+                  </p>
+                </div>
+              </div>
+            ) : null}
 
             <h1>Build a chess repertoire that fits how you actually play.</h1>
 
