@@ -4156,3 +4156,61 @@ th {
     grid-template-columns: 1fr;
   }
 }
+
+/* Comparison invite banner */
+
+.comparisonInviteBanner {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto 18px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.28), transparent 34%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.88));
+  box-shadow: 0 22px 50px rgba(2, 6, 23, 0.28);
+}
+
+.comparisonInviteIcon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #2563eb, #22c55e);
+  color: #ffffff;
+  font-weight: 900;
+  letter-spacing: -0.06em;
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.24);
+}
+
+.comparisonInviteBanner h2 {
+  margin: 2px 0 6px;
+  font-size: clamp(1.25rem, 4vw, 1.85rem);
+  line-height: 1.05;
+}
+
+.comparisonInviteBanner p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+@media (max-width: 640px) {
+  .comparisonInviteBanner {
+    align-items: flex-start;
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .comparisonInviteIcon {
+    width: 48px;
+    height: 48px;
+    border-radius: 15px;
+    font-size: 0.92rem;
+  }
+}
