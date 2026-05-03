@@ -3897,3 +3897,28 @@ th {
   background: linear-gradient(135deg, #22c55e, #16a34a) !important;
   color: white !important;
 }
+
+/* Import loading spinner */
+
+.buttonLoadingContent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.buttonSpinner {
+  width: 17px;
+  height: 17px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: white;
+  border-radius: 999px;
+  animation: openingFitSpin 0.75s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes openingFitSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
