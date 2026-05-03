@@ -10,6 +10,7 @@ import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from supabase import create_client, Client
 
 
 app = FastAPI(title="Opening Fit API")
@@ -53,11 +54,19 @@ LICHESS_HEADERS = {
 
 DATA_DIR = Path("data")
 PROFILES_DIR = DATA_DIR / "profiles"
-FEEDBACK_FILE = DATA_DIR / "feedback.jsonl"
 ANALYTICS_FILE = DATA_DIR / "analytics.jsonl"
 
 DATA_DIR.mkdir(exist_ok=True)
 PROFILES_DIR.mkdir(exist_ok=True)
+
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+
+supabase: Optional[Client] = None
+
+if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 
 class FeedbackRequest(BaseModel):
@@ -140,7 +149,6 @@ def save_user_profile(username: str, payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def load_user_profile(username: str, platform: Optional[str] = None):
-    username_key = safe_username(username)
     possible_paths = []
 
     if platform:
@@ -149,18 +157,14 @@ def load_user_profile(username: str, platform: Optional[str] = None):
     possible_paths.append(profile_path(username, "chess.com"))
     possible_paths.append(profile_path(username, "chesscom"))
     possible_paths.append(profile_path(username, "lichess"))
-    possible_paths.append(PROFILES_DIR / f"{username_key}.json")
+    possible_paths.append(PROFILES_DIR / f"{safe_username(username)}.json")
 
-    for found_path in sorted(PROFILES_DIR.glob(f"*_{username_key}.json")):
-        if found_path not in possible_paths:
-            possible_paths.append(found_path)
-
-    for found_path in possible_paths:
-        if not found_path.exists():
+    for path in possible_paths:
+        if not path.exists():
             continue
 
         try:
-            return json.loads(found_path.read_text())
+            return json.loads(path.read_text())
         except Exception:
             return None
 
@@ -185,17 +189,32 @@ def save_feedback(
     platform: Optional[str] = None,
 ):
     item = {
-        "date": now_iso(),
-        "message": message,
-        "contact": contact,
-        "username": username,
-        "platform": platform,
+        "message": message.strip(),
+        "contact": contact.strip() if contact else None,
+        "username": username.strip() if username else None,
+        "platform": platform.strip() if platform else None,
     }
 
-    with FEEDBACK_FILE.open("a") as f:
-        f.write(json.dumps(item) + "\n")
+    if not supabase:
+        print("Supabase feedback insert failed: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
+        raise HTTPException(
+            status_code=500,
+            detail="Feedback storage is not configured.",
+        )
 
-    return item
+    try:
+        supabase.table("feedback").insert(item).execute()
+    except Exception as exc:
+        print("Supabase feedback insert failed:", exc)
+        raise HTTPException(
+            status_code=500,
+            detail="Could not save feedback.",
+        )
+
+    return {
+        "date": now_iso(),
+        **item,
+    }
 
 
 @app.get("/")
