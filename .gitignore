@@ -8,3 +8,26 @@ backend/data/profiles/
 frontend/.env
 frontend/.env.local
 frontend/dist/
+
+# Local Python environment/cache
+backend/.venv/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+
+# Local generated backend data
+backend/data/analytics.jsonl
+backend/data/profiles/
+
+# Local Node installs/builds
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Local env files
+.env
+.env.local
+frontend/.env
+frontend/.env.local
+backend/.env
+backend/.env.local
