@@ -663,7 +663,17 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
                 key={item.target}
                 type="button"
                 onClick={() => {
-                  onJump(item.target);
+                  if (item.target === "feedback") {
+                    onViewChange("feedback");
+
+                    setTimeout(() => {
+                      const el = document.getElementById("feedback");
+                      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }, 80);
+                  } else {
+                    onJump(item.target);
+                  }
+
                   setOpen(false);
                 }}
               >
