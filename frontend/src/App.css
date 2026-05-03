@@ -3346,3 +3346,231 @@ th {
     margin-top: 18px;
   }
 }
+
+/* Opening snapshot */
+
+.openingSnapshotCard {
+  margin-bottom: 1.25rem;
+}
+
+.snapshotHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.snapshotHeader h2 {
+  margin: 0.15rem 0 0;
+}
+
+.snapshotGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.snapshotTile {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.72);
+  border-radius: 18px;
+  padding: 1rem;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.snapshotTile:hover {
+  transform: translateY(-2px);
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(30, 41, 59, 0.85);
+}
+
+.snapshotTile span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-bottom: 0.35rem;
+}
+
+.snapshotTile strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.snapshotTile small {
+  display: block;
+  color: var(--text-soft);
+  margin-top: 0.45rem;
+}
+
+.snapshotAdvice {
+  margin-top: 1rem;
+  border: 1px solid rgba(34, 197, 94, 0.18);
+  background: rgba(34, 197, 94, 0.08);
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  color: var(--text-soft);
+}
+
+/* Opening details modal */
+
+.openingModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(2, 6, 23, 0.78);
+  backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.openingModal {
+  width: min(620px, 100%);
+  max-height: min(720px, 92vh);
+  overflow: auto;
+  border-radius: 26px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(2, 6, 23, 0.98));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  padding: 1.25rem;
+}
+
+.openingModalHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.openingModalHeader h2 {
+  margin: 0.15rem 0 0;
+  font-size: clamp(1.35rem, 4vw, 2rem);
+}
+
+.modalCloseButton {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text);
+  font-size: 1.7rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.modalCloseButton:hover {
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.openingModalStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.openingModalStats div {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.68);
+  border-radius: 16px;
+  padding: 0.85rem;
+}
+
+.openingModalStats span {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.openingModalStats strong {
+  font-size: 1.05rem;
+}
+
+.openingVerdict {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font-weight: 800;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  background: rgba(96, 165, 250, 0.12);
+  color: #bfdbfe;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+}
+
+.openingVerdictKeep {
+  background: rgba(34, 197, 94, 0.12);
+  color: #bbf7d0;
+  border-color: rgba(34, 197, 94, 0.24);
+}
+
+.openingVerdictImprove {
+  background: rgba(250, 204, 21, 0.12);
+  color: #fef08a;
+  border-color: rgba(250, 204, 21, 0.24);
+}
+
+.openingVerdictAvoid {
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.24);
+}
+
+.openingMeaningBox,
+.openingPremiumPreview {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.58);
+  border-radius: 18px;
+  padding: 1rem;
+  margin-top: 0.85rem;
+}
+
+.openingMeaningBox h3 {
+  margin: 0 0 0.45rem;
+}
+
+.openingMeaningBox p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.openingPremiumPreview ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.15rem;
+  color: var(--text-soft);
+}
+
+.clickableOpening {
+  cursor: pointer;
+}
+
+.clickableOpening:hover {
+  background: rgba(96, 165, 250, 0.08);
+}
+
+@media (max-width: 760px) {
+  .snapshotGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .openingModalStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .openingModal {
+    border-radius: 22px;
+    padding: 1rem;
+  }
+}
