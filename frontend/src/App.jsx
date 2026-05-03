@@ -10,6 +10,7 @@ import OpeningSnapshot from "./components/OpeningSnapshot";
 import OpeningPracticeLinesPanel from "./components/OpeningPracticeLinesPanel";
 import OpeningReportActions from "./components/OpeningReportActions";
 import OpeningComparison from "./components/OpeningComparison";
+import RepertoirePlan from "./components/RepertoirePlan";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
@@ -637,6 +638,7 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
 
   const mainItems = [
     { label: "Import", target: "app-dashboard" },
+    { label: "Repertoire Plan", target: "repertoire-plan" },
     { label: "Ratings", target: "rating-openings" },
     { label: "Premium", target: "premium" },
     { label: "Feedback", target: "feedback" },
@@ -869,6 +871,7 @@ function Footer() {
         <a href="#app-dashboard">Launch app</a>
         <a href="#rating-openings">Rating ranges</a>
         <a href="#premium">Premium</a>
+            <a href="#repertoire-plan">Repertoire Plan</a>
       </div>
     </footer>
   );
@@ -2615,6 +2618,7 @@ export default function App() {
                 fitData={fitData}
               />
               <OpeningComparison data={data} username={username} platform={platform} />
+              <RepertoirePlan data={data} />
 
               {activeView === "overview" ? (
                 <>
