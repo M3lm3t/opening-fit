@@ -3236,6 +3236,44 @@ export default function App() {
           ) : null}
         </main>
 
+        {!showLanding && activeView !== "feedback" ? (
+          <div className="landingWrap">
+            <section className="card feedbackCard" id="feedback-static">
+              <h2>Help improve Opening Fit</h2>
+              <p>
+                Found a bug, confusing result, or feature idea? Send quick feedback
+                before launch.
+              </p>
+
+              <textarea
+                value={feedbackMessage}
+                onChange={(e) => setFeedbackMessage(e.target.value)}
+                placeholder="What should be improved?"
+                rows={4}
+              />
+
+              <input
+                value={feedbackContact}
+                onChange={(e) => setFeedbackContact(e.target.value)}
+                placeholder="Email or TikTok username optional"
+              />
+
+              <button
+                className="secondaryButton"
+                type="button"
+                onClick={submitFeedback}
+                disabled={feedbackSending}
+              >
+                {feedbackSending ? "Sending..." : "Send Feedback"}
+              </button>
+
+              {feedbackStatus ? (
+                <p className="statusMessage">{feedbackStatus}</p>
+              ) : null}
+            </section>
+          </div>
+        ) : null}
+
         <div className="landingWrap">
           <Footer />
         </div>
