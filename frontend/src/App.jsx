@@ -5,6 +5,8 @@ import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 import LandingModal from "./components/LandingModal";
 import { Analytics } from "@vercel/analytics/react";
+import OpeningDetailsModal from "./components/OpeningDetailsModal";
+import OpeningSnapshot from "./components/OpeningSnapshot";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
@@ -553,7 +555,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
   );
 }
 
-function OpeningFitScoreList({ fitData, onPractice }) {
+function OpeningFitScoreList({ fitData, onPractice, onSelectOpening }) {
   if (!fitData || !fitData.scoredOpenings?.length) return null;
 
   return (
@@ -580,7 +582,7 @@ function OpeningFitScoreList({ fitData, onPractice }) {
               className="fitOpeningRow"
               key={`${name}-${index}`}
               type="button"
-              onClick={() => onPractice(name)}
+              onClick={() => onSelectOpening?.(opening)}
             >
               <div className="fitOpeningMain">
                 <div>
@@ -1269,6 +1271,7 @@ export default function App() {
   const [isPremium, setIsPremium] = useState(false);
   const [activeView, setActiveView] = useState("overview");
   const [showLanding, setShowLanding] = useState(true);
+  const [selectedOpening, setSelectedOpening] = useState(null);
 
   useEffect(() => {
     const savedUsername = localStorage.getItem(USERNAME_KEY);
@@ -1279,13 +1282,6 @@ export default function App() {
 
     if (savedUsername) setUsername(savedUsername);
     if (savedPremium === "true") setIsPremium(true);
-
-    if (savedMonths) {
-      const parsedMonths = Number(savedMonths);
-      if ([1, 3, 6, 12].includes(parsedMonths)) {
-        setImportMonths(parsedMonths);
-      }
-    }
 
     if (savedMonths) {
       const parsedMonths = Number(savedMonths);
@@ -1537,6 +1533,7 @@ export default function App() {
       }
       setSelectedGameIndex(0);
       setPracticeOpening(null);
+      setSelectedOpening(null);
       setOpenSections(closedSections);
       setLocalSavedAt(parsed.savedAt || "");
 
@@ -1641,6 +1638,7 @@ export default function App() {
     setData(null);
     setSelectedGameIndex(0);
     setPracticeOpening(null);
+    setSelectedOpening(null);
     setOpenSections(closedSections);
 
     const cleanUsername = username.trim();
@@ -1654,7 +1652,6 @@ export default function App() {
 
       localStorage.setItem(USERNAME_KEY, cleanUsername);
       localStorage.setItem(PLATFORM_KEY, platform);
-      localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
       localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
 
       await trackEvent("frontend_import_started", {
@@ -1794,6 +1791,7 @@ export default function App() {
       setOpenSections(closedSections);
       setSelectedGameIndex(0);
       setPracticeOpening(null);
+      setSelectedOpening(null);
 
       setSavedProfileMessage(
         `Loaded saved backend profile for ${
@@ -1846,6 +1844,7 @@ export default function App() {
       setUsername("DemoPlayer");
       setSelectedGameIndex(0);
       setPracticeOpening(null);
+      setSelectedOpening(null);
       setOpenSections(closedSections);
       setSavedProfileMessage(
         "Demo profile loaded. This is sample data, so use Import Games for your real saved profile."
@@ -2117,6 +2116,44 @@ export default function App() {
     isPremium,
   ]);
 
+  const allOpeningsForSnapshot = useMemo(() => {
+    const combined = [];
+
+    if (Array.isArray(filteredTopOpenings)) combined.push(...filteredTopOpenings);
+    if (Array.isArray(filteredBestOpenings)) combined.push(...filteredBestOpenings);
+    if (Array.isArray(filteredPreferredWhite)) combined.push(...filteredPreferredWhite);
+    if (Array.isArray(filteredPreferredBlack)) combined.push(...filteredPreferredBlack);
+    if (Array.isArray(fitData?.scoredOpenings)) combined.push(...fitData.scoredOpenings);
+
+    const merged = new Map();
+
+    combined.forEach((opening) => {
+      const name = getOpeningName(opening);
+      if (isUnknownOpeningName(name)) return;
+
+      const key = name.toLowerCase();
+      const existing = merged.get(key);
+
+      if (!existing || getOpeningGames(opening) > getOpeningGames(existing)) {
+        merged.set(key, {
+          ...opening,
+          name,
+          games: getOpeningGames(opening),
+          win_rate: getWinRate(opening),
+          verdict: opening.fitVerdict || opening.verdict || getOpeningVerdict(opening, opening.fitScore || 50),
+        });
+      }
+    });
+
+    return Array.from(merged.values());
+  }, [
+    filteredTopOpenings,
+    filteredBestOpenings,
+    filteredPreferredWhite,
+    filteredPreferredBlack,
+    fitData,
+  ]);
+
   const selectedGame = filteredRecentGames?.[selectedGameIndex] || null;
 
   const selectedReplayGame = useMemo(() => {
@@ -2235,22 +2272,6 @@ export default function App() {
                 </option>
               </select>
 
-              <select
-                className="input monthSelect"
-                value={importMonths}
-                onChange={(e) => setImportMonths(Number(e.target.value))}
-                aria-label="Months to import"
-              >
-                <option value={1}>1 month</option>
-                <option value={3}>3 months</option>
-                <option value={6} disabled={!isPremium}>
-                  6 months {isPremium ? "" : "— Premium"}
-                </option>
-                <option value={12} disabled={!isPremium}>
-                  12 months {isPremium ? "" : "— Premium"}
-                </option>
-              </select>
-
               <div className="appActionButtons">
                 <button
                   className="primaryBtn"
@@ -2317,12 +2338,6 @@ export default function App() {
                 <span>Premium demo mode</span>
               </label>
             </div>
-
-            {!isPremium && importMonths > 3 ? (
-              <p className="statusMessage">
-                Free mode imports up to 3 months. Turn on Premium demo mode to preview 6 or 12 month imports.
-              </p>
-            ) : null}
 
             {!isPremium && importMonths > 3 ? (
               <p className="statusMessage">
@@ -2459,6 +2474,11 @@ export default function App() {
                 }}
               />
 
+              <OpeningSnapshot
+                openings={allOpeningsForSnapshot}
+                onSelectOpening={setSelectedOpening}
+              />
+
               {activeView === "overview" ? (
                 <>
                   <div id="section-fit">
@@ -2470,6 +2490,7 @@ export default function App() {
                 <OpeningFitScoreList
                   fitData={fitData}
                   onPractice={startOpeningPractice}
+                  onSelectOpening={setSelectedOpening}
                 />
               </div>
 
@@ -3155,14 +3176,19 @@ export default function App() {
                             );
 
                             return (
-                              <tr key={index}>
+                              <tr
+                                key={index}
+                                className="clickableOpening"
+                                onClick={() => setSelectedOpening(fitOpening || opening)}
+                              >
                                 <td>
                                   <button
                                     className="tableOpeningBtn"
                                     type="button"
-                                    onClick={() =>
-                                      startOpeningPractice(opening.name)
-                                    }
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      startOpeningPractice(opening.name);
+                                    }}
                                   >
                                     {opening.name}
                                   </button>
@@ -3278,6 +3304,11 @@ export default function App() {
           <Footer />
         </div>
       </div>
+
+      <OpeningDetailsModal
+        opening={selectedOpening}
+        onClose={() => setSelectedOpening(null)}
+      />
 
       <Analytics />
     </>
