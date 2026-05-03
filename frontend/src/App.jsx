@@ -3,6 +3,7 @@ import { Chess } from "chess.js";
 import "./App.css";
 import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
+import LandingModal from "./components/LandingModal";
 import { Analytics } from "@vercel/analytics/react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
@@ -1257,6 +1258,7 @@ export default function App() {
   const [localSavedAt, setLocalSavedAt] = useState("");
   const [isPremium, setIsPremium] = useState(false);
   const [activeView, setActiveView] = useState("overview");
+  const [showLanding, setShowLanding] = useState(true);
 
   useEffect(() => {
     const savedUsername = localStorage.getItem(USERNAME_KEY);
@@ -1333,6 +1335,20 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(PREMIUM_KEY, String(isPremium));
   }, [isPremium]);
+
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setShowLanding(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   async function trackEvent(event, eventData = {}) {
     try {
@@ -2132,6 +2148,18 @@ export default function App() {
           activeView={activeView}
           onViewChange={setActiveView}
         />
+
+        {showLanding ? (
+          <LandingModal
+            username={username}
+            setUsername={setUsername}
+            platform={platform}
+            setPlatform={setPlatform}
+            onImport={importGames}
+            loading={loading}
+            onClose={() => setShowLanding(false)}
+          />
+        ) : null}
 
         <LandingSection onOpeningClick={startOpeningPractice} />
 
