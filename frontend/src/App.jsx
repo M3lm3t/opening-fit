@@ -1527,6 +1527,26 @@ export default function App() {
 
   const scrollToResults = () => scrollToId("app-results");
 
+  const openSectionForView = (view) => {
+    const sectionTargets = {
+      overview: "style",
+      recommendations: "recommendations",
+      training: "training",
+      games: "replay",
+      data: "chart",
+      feedback: "feedback",
+    };
+
+    const sectionKey = sectionTargets[view];
+
+    if (!sectionKey || sectionKey === "feedback") return;
+
+    setOpenSections((current) => ({
+      ...current,
+      [sectionKey]: true,
+    }));
+  };
+
   const scrollToActiveView = (view) => {
     const viewTargets = {
       overview: "section-fit",
@@ -1537,7 +1557,11 @@ export default function App() {
       feedback: "feedback",
     };
 
-    scrollToId(viewTargets[view] || "app-results");
+    openSectionForView(view);
+
+    setTimeout(() => {
+      scrollToId(viewTargets[view] || "app-results");
+    }, 80);
   };
 
   const loadLocalAnalysis = () => {
@@ -2524,10 +2548,7 @@ export default function App() {
                 activeView={activeView}
                 onChange={(view) => {
                   setActiveView(view);
-
-                  setTimeout(() => {
-                    scrollToActiveView(view);
-                  }, 120);
+                  scrollToActiveView(view);
                 }}
               />
 
