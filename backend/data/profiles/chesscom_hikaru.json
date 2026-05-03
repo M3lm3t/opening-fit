@@ -1,0 +1,1448 @@
+{
+  "username": "hikaru",
+  "usernameKey": "hikaru",
+  "platform": "chess.com",
+  "lastUpdated": "2026-05-03T11:40:00.308077+00:00",
+  "isPremium": false,
+  "importHistory": [
+    {
+      "date": "2026-05-03T11:40:00.309999+00:00",
+      "platform": "chess.com",
+      "gamesImported": 537,
+      "monthsChecked": 3
+    },
+    {
+      "date": "2026-05-03T11:32:47.850129+00:00",
+      "platform": "chess.com",
+      "gamesImported": 537,
+      "monthsChecked": 3
+    }
+  ],
+  "latestResult": {
+    "username": "hikaru",
+    "player_url": "https://www.chess.com/member/Hikaru",
+    "playerUrl": "https://www.chess.com/member/Hikaru",
+    "platform": "chess.com",
+    "total_games": 537,
+    "totalGames": 537,
+    "gamesImported": 537,
+    "months_checked": 3,
+    "monthsChecked": 3,
+    "archives_checked": [
+      {
+        "archive": "2026-03",
+        "games_found": 295,
+        "gamesFound": 295
+      },
+      {
+        "archive": "2026-04",
+        "games_found": 177,
+        "gamesFound": 177
+      },
+      {
+        "archive": "2026-05",
+        "games_found": 65,
+        "gamesFound": 65
+      }
+    ],
+    "archivesChecked": [
+      {
+        "archive": "2026-03",
+        "games_found": 295,
+        "gamesFound": 295
+      },
+      {
+        "archive": "2026-04",
+        "games_found": 177,
+        "gamesFound": 177
+      },
+      {
+        "archive": "2026-05",
+        "games_found": 65,
+        "gamesFound": 65
+      }
+    ],
+    "top_openings": [
+      {
+        "name": "Unknown Opening",
+        "games": 250,
+        "wins": 218,
+        "draws": 19,
+        "losses": 13,
+        "win_rate": 87.2,
+        "winRate": 87.2,
+        "reason": "This opening appears in your games and may be worth testing further.",
+        "plan": "Focus on development, king safety and understanding the first pawn break.",
+        "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+        "difficulty": "Unknown"
+      },
+      {
+        "name": "Modern Defence",
+        "games": 74,
+        "wins": 65,
+        "draws": 2,
+        "losses": 7,
+        "win_rate": 87.8,
+        "winRate": 87.8,
+        "reason": "This opening appears in your games and may be worth testing further.",
+        "plan": "Focus on development, king safety and understanding the first pawn break.",
+        "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+        "difficulty": "Unknown"
+      },
+      {
+        "name": "Sicilian Defence",
+        "games": 59,
+        "wins": 44,
+        "draws": 5,
+        "losses": 10,
+        "win_rate": 74.6,
+        "winRate": 74.6,
+        "reason": "Creates unbalanced games with lots of winning chances.",
+        "plan": "Fight for the centre from the side and look for counterplay instead of copying White.",
+        "mistakeToAvoid": "Do not ignore development while chasing tactics.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "R\u00e9ti Opening",
+        "games": 39,
+        "wins": 28,
+        "draws": 5,
+        "losses": 6,
+        "win_rate": 71.8,
+        "winRate": 71.8,
+        "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+        "plan": "Control the centre from the side and transpose into comfortable structures.",
+        "mistakeToAvoid": "Do not become too slow or vague with your development.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "French Defence",
+        "games": 22,
+        "wins": 17,
+        "draws": 2,
+        "losses": 3,
+        "win_rate": 77.3,
+        "winRate": 77.3,
+        "reason": "Fits solid players who like structure and counterattacking pawn breaks.",
+        "plan": "Challenge White's centre with ...c5 and develop with a clear pawn structure.",
+        "mistakeToAvoid": "Do not trap your light-squared bishop forever.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "English Opening",
+        "games": 19,
+        "wins": 13,
+        "draws": 2,
+        "losses": 4,
+        "win_rate": 68.4,
+        "winRate": 68.4,
+        "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+        "plan": "Control the centre from the side and transpose into comfortable structures.",
+        "mistakeToAvoid": "Do not become too slow or vague with your development.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "Queen Pawn Game",
+        "games": 19,
+        "wins": 17,
+        "draws": 2,
+        "losses": 0,
+        "win_rate": 89.5,
+        "winRate": 89.5,
+        "reason": "Good for players who like stable centres and long-term pressure.",
+        "plan": "Control the centre, develop calmly and prepare pressure on the queenside or centre.",
+        "mistakeToAvoid": "Do not grab pawns if it slows your development too much.",
+        "difficulty": "Beginner to medium"
+      },
+      {
+        "name": "Caro-Kann Defence",
+        "games": 15,
+        "wins": 12,
+        "draws": 1,
+        "losses": 2,
+        "win_rate": 80.0,
+        "winRate": 80.0,
+        "reason": "Good if you want a solid structure with fewer early traps.",
+        "plan": "Build a strong centre, develop safely and counterattack later.",
+        "mistakeToAvoid": "Do not play too passively after completing development.",
+        "difficulty": "Easy to learn, harder to master"
+      },
+      {
+        "name": "Scandinavian Defence",
+        "games": 10,
+        "wins": 5,
+        "draws": 3,
+        "losses": 2,
+        "win_rate": 50.0,
+        "winRate": 50.0,
+        "reason": "Good for players who want direct positions and simple development plans.",
+        "plan": "Challenge the centre early, develop quickly and avoid wasting queen moves.",
+        "mistakeToAvoid": "Do not move the queen too many times in the opening.",
+        "difficulty": "Beginner friendly"
+      },
+      {
+        "name": "Ruy Lopez",
+        "games": 8,
+        "wins": 4,
+        "draws": 3,
+        "losses": 1,
+        "win_rate": 50.0,
+        "winRate": 50.0,
+        "reason": "This opening appears in your games and may be worth testing further.",
+        "plan": "Focus on development, king safety and understanding the first pawn break.",
+        "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+        "difficulty": "Unknown"
+      }
+    ],
+    "topOpenings": [
+      {
+        "name": "Unknown Opening",
+        "games": 250,
+        "wins": 218,
+        "draws": 19,
+        "losses": 13,
+        "win_rate": 87.2,
+        "winRate": 87.2,
+        "reason": "This opening appears in your games and may be worth testing further.",
+        "plan": "Focus on development, king safety and understanding the first pawn break.",
+        "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+        "difficulty": "Unknown"
+      },
+      {
+        "name": "Modern Defence",
+        "games": 74,
+        "wins": 65,
+        "draws": 2,
+        "losses": 7,
+        "win_rate": 87.8,
+        "winRate": 87.8,
+        "reason": "This opening appears in your games and may be worth testing further.",
+        "plan": "Focus on development, king safety and understanding the first pawn break.",
+        "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+        "difficulty": "Unknown"
+      },
+      {
+        "name": "Sicilian Defence",
+        "games": 59,
+        "wins": 44,
+        "draws": 5,
+        "losses": 10,
+        "win_rate": 74.6,
+        "winRate": 74.6,
+        "reason": "Creates unbalanced games with lots of winning chances.",
+        "plan": "Fight for the centre from the side and look for counterplay instead of copying White.",
+        "mistakeToAvoid": "Do not ignore development while chasing tactics.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "R\u00e9ti Opening",
+        "games": 39,
+        "wins": 28,
+        "draws": 5,
+        "losses": 6,
+        "win_rate": 71.8,
+        "winRate": 71.8,
+        "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+        "plan": "Control the centre from the side and transpose into comfortable structures.",
+        "mistakeToAvoid": "Do not become too slow or vague with your development.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "French Defence",
+        "games": 22,
+        "wins": 17,
+        "draws": 2,
+        "losses": 3,
+        "win_rate": 77.3,
+        "winRate": 77.3,
+        "reason": "Fits solid players who like structure and counterattacking pawn breaks.",
+        "plan": "Challenge White's centre with ...c5 and develop with a clear pawn structure.",
+        "mistakeToAvoid": "Do not trap your light-squared bishop forever.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "English Opening",
+        "games": 19,
+        "wins": 13,
+        "draws": 2,
+        "losses": 4,
+        "win_rate": 68.4,
+        "winRate": 68.4,
+        "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+        "plan": "Control the centre from the side and transpose into comfortable structures.",
+        "mistakeToAvoid": "Do not become too slow or vague with your development.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "Queen Pawn Game",
+        "games": 19,
+        "wins": 17,
+        "draws": 2,
+        "losses": 0,
+        "win_rate": 89.5,
+        "winRate": 89.5,
+        "reason": "Good for players who like stable centres and long-term pressure.",
+        "plan": "Control the centre, develop calmly and prepare pressure on the queenside or centre.",
+        "mistakeToAvoid": "Do not grab pawns if it slows your development too much.",
+        "difficulty": "Beginner to medium"
+      },
+      {
+        "name": "Caro-Kann Defence",
+        "games": 15,
+        "wins": 12,
+        "draws": 1,
+        "losses": 2,
+        "win_rate": 80.0,
+        "winRate": 80.0,
+        "reason": "Good if you want a solid structure with fewer early traps.",
+        "plan": "Build a strong centre, develop safely and counterattack later.",
+        "mistakeToAvoid": "Do not play too passively after completing development.",
+        "difficulty": "Easy to learn, harder to master"
+      },
+      {
+        "name": "Scandinavian Defence",
+        "games": 10,
+        "wins": 5,
+        "draws": 3,
+        "losses": 2,
+        "win_rate": 50.0,
+        "winRate": 50.0,
+        "reason": "Good for players who want direct positions and simple development plans.",
+        "plan": "Challenge the centre early, develop quickly and avoid wasting queen moves.",
+        "mistakeToAvoid": "Do not move the queen too many times in the opening.",
+        "difficulty": "Beginner friendly"
+      },
+      {
+        "name": "Ruy Lopez",
+        "games": 8,
+        "wins": 4,
+        "draws": 3,
+        "losses": 1,
+        "win_rate": 50.0,
+        "winRate": 50.0,
+        "reason": "This opening appears in your games and may be worth testing further.",
+        "plan": "Focus on development, king safety and understanding the first pawn break.",
+        "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+        "difficulty": "Unknown"
+      }
+    ],
+    "preferred_white": [
+      {
+        "name": "Unknown Opening",
+        "games": 167,
+        "reason": "This opening appears in your games and may be worth testing further.",
+        "plan": "Focus on development, king safety and understanding the first pawn break.",
+        "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+        "difficulty": "Unknown"
+      },
+      {
+        "name": "Sicilian Defence",
+        "games": 39,
+        "reason": "Creates unbalanced games with lots of winning chances.",
+        "plan": "Fight for the centre from the side and look for counterplay instead of copying White.",
+        "mistakeToAvoid": "Do not ignore development while chasing tactics.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "Queen Pawn Game",
+        "games": 17,
+        "reason": "Good for players who like stable centres and long-term pressure.",
+        "plan": "Control the centre, develop calmly and prepare pressure on the queenside or centre.",
+        "mistakeToAvoid": "Do not grab pawns if it slows your development too much.",
+        "difficulty": "Beginner to medium"
+      },
+      {
+        "name": "English Opening",
+        "games": 12,
+        "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+        "plan": "Control the centre from the side and transpose into comfortable structures.",
+        "mistakeToAvoid": "Do not become too slow or vague with your development.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "Caro-Kann Defence",
+        "games": 9,
+        "reason": "Good if you want a solid structure with fewer early traps.",
+        "plan": "Build a strong centre, develop safely and counterattack later.",
+        "mistakeToAvoid": "Do not play too passively after completing development.",
+        "difficulty": "Easy to learn, harder to master"
+      }
+    ],
+    "preferredWhite": [
+      {
+        "name": "Unknown Opening",
+        "games": 167,
+        "reason": "This opening appears in your games and may be worth testing further.",
+        "plan": "Focus on development, king safety and understanding the first pawn break.",
+        "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+        "difficulty": "Unknown"
+      },
+      {
+        "name": "Sicilian Defence",
+        "games": 39,
+        "reason": "Creates unbalanced games with lots of winning chances.",
+        "plan": "Fight for the centre from the side and look for counterplay instead of copying White.",
+        "mistakeToAvoid": "Do not ignore development while chasing tactics.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "Queen Pawn Game",
+        "games": 17,
+        "reason": "Good for players who like stable centres and long-term pressure.",
+        "plan": "Control the centre, develop calmly and prepare pressure on the queenside or centre.",
+        "mistakeToAvoid": "Do not grab pawns if it slows your development too much.",
+        "difficulty": "Beginner to medium"
+      },
+      {
+        "name": "English Opening",
+        "games": 12,
+        "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+        "plan": "Control the centre from the side and transpose into comfortable structures.",
+        "mistakeToAvoid": "Do not become too slow or vague with your development.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "Caro-Kann Defence",
+        "games": 9,
+        "reason": "Good if you want a solid structure with fewer early traps.",
+        "plan": "Build a strong centre, develop safely and counterattack later.",
+        "mistakeToAvoid": "Do not play too passively after completing development.",
+        "difficulty": "Easy to learn, harder to master"
+      }
+    ],
+    "preferred_black": [
+      {
+        "name": "Unknown Opening",
+        "games": 83,
+        "reason": "This opening appears in your games and may be worth testing further.",
+        "plan": "Focus on development, king safety and understanding the first pawn break.",
+        "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+        "difficulty": "Unknown"
+      },
+      {
+        "name": "Modern Defence",
+        "games": 73,
+        "reason": "This opening appears in your games and may be worth testing further.",
+        "plan": "Focus on development, king safety and understanding the first pawn break.",
+        "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+        "difficulty": "Unknown"
+      },
+      {
+        "name": "R\u00e9ti Opening",
+        "games": 33,
+        "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+        "plan": "Control the centre from the side and transpose into comfortable structures.",
+        "mistakeToAvoid": "Do not become too slow or vague with your development.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "Sicilian Defence",
+        "games": 20,
+        "reason": "Creates unbalanced games with lots of winning chances.",
+        "plan": "Fight for the centre from the side and look for counterplay instead of copying White.",
+        "mistakeToAvoid": "Do not ignore development while chasing tactics.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "French Defence",
+        "games": 16,
+        "reason": "Fits solid players who like structure and counterattacking pawn breaks.",
+        "plan": "Challenge White's centre with ...c5 and develop with a clear pawn structure.",
+        "mistakeToAvoid": "Do not trap your light-squared bishop forever.",
+        "difficulty": "Medium"
+      }
+    ],
+    "preferredBlack": [
+      {
+        "name": "Unknown Opening",
+        "games": 83,
+        "reason": "This opening appears in your games and may be worth testing further.",
+        "plan": "Focus on development, king safety and understanding the first pawn break.",
+        "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+        "difficulty": "Unknown"
+      },
+      {
+        "name": "Modern Defence",
+        "games": 73,
+        "reason": "This opening appears in your games and may be worth testing further.",
+        "plan": "Focus on development, king safety and understanding the first pawn break.",
+        "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+        "difficulty": "Unknown"
+      },
+      {
+        "name": "R\u00e9ti Opening",
+        "games": 33,
+        "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+        "plan": "Control the centre from the side and transpose into comfortable structures.",
+        "mistakeToAvoid": "Do not become too slow or vague with your development.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "Sicilian Defence",
+        "games": 20,
+        "reason": "Creates unbalanced games with lots of winning chances.",
+        "plan": "Fight for the centre from the side and look for counterplay instead of copying White.",
+        "mistakeToAvoid": "Do not ignore development while chasing tactics.",
+        "difficulty": "Medium"
+      },
+      {
+        "name": "French Defence",
+        "games": 16,
+        "reason": "Fits solid players who like structure and counterattacking pawn breaks.",
+        "plan": "Challenge White's centre with ...c5 and develop with a clear pawn structure.",
+        "mistakeToAvoid": "Do not trap your light-squared bishop forever.",
+        "difficulty": "Medium"
+      }
+    ],
+    "recommendations": [
+      "As White, your most common practical choice is Unknown Opening.",
+      "As Black, your most common structure is Unknown Opening.",
+      "Your best-scoring recurring opening is Italian Game.",
+      "You seem to score best when you play actively rather than passively.",
+      "Your results suggest tactics and initiative are worth leaning into."
+    ],
+    "recent_games": [
+      {
+        "url": "https://www.chess.com/game/live/172057814845",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "white",
+        "color": "white",
+        "result": "win",
+        "opening": "Sicilian Defence",
+        "end_time": 1777744345,
+        "endTime": 1777744345,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"Hikaru\"]\n[Black \"ChessSharkz\"]\n[Result \"1-0\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"8/2B5/8/2k2p1p/P6P/3K4/8/8 b - - 2 67\"]\n[Timezone \"UTC\"]\n[ECO \"B23\"]\n[ECOUrl \"https://www.chess.com/openings/Closed-Sicilian-Defense-Grand-Prix-Schofman-Variation\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:50:30\"]\n[WhiteElo \"3307\"]\n[BlackElo \"2970\"]\n[TimeControl \"60\"]\n[Termination \"Hikaru won on time\"]\n[StartTime \"17:50:30\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:52:25\"]\n[Link \"https://www.chess.com/game/live/172057814845\"]\n\n1. e4 {[%clk 0:00:59.9]} 1... c5 {[%clk 0:00:59.3]} 2. Nc3 {[%clk 0:00:59.8]} 2... g6 {[%clk 0:00:58.9]} 3. f4 {[%clk 0:00:59.3]} 3... Bg7 {[%clk 0:00:58.6]} 4. Nf3 {[%clk 0:00:59.2]} 4... Nc6 {[%clk 0:00:58.1]} 5. Bc4 {[%clk 0:00:58.9]} 5... e6 {[%clk 0:00:57.4]} 6. f5 {[%clk 0:00:58.7]} 6... gxf5 {[%clk 0:00:56]} 7. d3 {[%clk 0:00:58]} 7... Nge7 {[%clk 0:00:54.8]} 8. O-O {[%clk 0:00:57.3]} 8... d5 {[%clk 0:00:54.5]} 9. exd5 {[%clk 0:00:56.9]} 9... exd5 {[%clk 0:00:54.1]} 10. Bb3 {[%clk 0:00:56.8]} 10... Be6 {[%clk 0:00:53.5]} 11. Qe1 {[%clk 0:00:56.5]} 11... Qd7 {[%clk 0:00:52.3]} 12. Ng5 {[%clk 0:00:53.8]} 12... O-O-O {[%clk 0:00:50.8]} 13. Bf4 {[%clk 0:00:52.4]} 13... Rhg8 {[%clk 0:00:49.1]} 14. Kh1 {[%clk 0:00:50.6]} 14... Nd4 {[%clk 0:00:46.5]} 15. Ne2 {[%clk 0:00:48.8]} 15... Nxe2 {[%clk 0:00:44.1]} 16. Qxe2 {[%clk 0:00:48.4]} 16... Nc6 {[%clk 0:00:43.4]} 17. Ba4 {[%clk 0:00:46.5]} 17... h6 {[%clk 0:00:40.4]} 18. Nf3 {[%clk 0:00:45.7]} 18... Bf6 {[%clk 0:00:37.8]} 19. Ne5 {[%clk 0:00:45]} 19... Bxe5 {[%clk 0:00:36.6]} 20. Bxc6 {[%clk 0:00:44.6]} 20... Qxc6 {[%clk 0:00:35.8]} 21. Qxe5 {[%clk 0:00:44.3]} 21... d4 {[%clk 0:00:33.1]} 22. Rf2 {[%clk 0:00:43.9]} 22... Bd5 {[%clk 0:00:31.2]} 23. Rg1 {[%clk 0:00:43.5]} 23... Rg6 {[%clk 0:00:29]} 24. Qxf5+ {[%clk 0:00:42.8]} 24... Qe6 {[%clk 0:00:28]} 25. Qxe6+ {[%clk 0:00:41.5]} 25... fxe6 {[%clk 0:00:27.9]} 26. b3 {[%clk 0:00:40.9]} 26... Rdg8 {[%clk 0:00:27.1]} 27. h3 {[%clk 0:00:39.8]} 27... Kd7 {[%clk 0:00:26]} 28. Kh2 {[%clk 0:00:39.3]} 28... h5 {[%clk 0:00:25.1]} 29. g3 {[%clk 0:00:38.8]} 29... Rf6 {[%clk 0:00:24.5]} 30. Re1 {[%clk 0:00:37.6]} 30... Rgf8 {[%clk 0:00:24.1]} 31. h4 {[%clk 0:00:36.8]} 31... Rf5 {[%clk 0:00:23.5]} 32. Kg1 {[%clk 0:00:36.4]} 32... b5 {[%clk 0:00:21.4]} 33. Rfe2 {[%clk 0:00:35.8]} 33... Kc6 {[%clk 0:00:19.7]} 34. Re5 {[%clk 0:00:35.1]} 34... c4 {[%clk 0:00:18.9]} 35. bxc4 {[%clk 0:00:33.9]} 35... bxc4 {[%clk 0:00:18.8]} 36. a3 {[%clk 0:00:33.2]} 36... cxd3 {[%clk 0:00:18.1]} 37. cxd3 {[%clk 0:00:33.1]} 37... Kc5 {[%clk 0:00:17.8]} 38. Rc1+ {[%clk 0:00:32.1]} 38... Kb5 {[%clk 0:00:17.2]} 39. Re2 {[%clk 0:00:31.7]} 39... Ka4 {[%clk 0:00:16.2]} 40. Rb2 {[%clk 0:00:31.2]} 40... a5 {[%clk 0:00:14.9]} 41. Rc5 {[%clk 0:00:27.7]} 41... Rg8 {[%clk 0:00:13]} 42. Kh2 {[%clk 0:00:26.7]} 42... Ra8 {[%clk 0:00:11.4]} 43. Rb6 {[%clk 0:00:25]} 43... Bb3 {[%clk 0:00:10]} 44. Rxf5 {[%clk 0:00:21.7]} 44... exf5 {[%clk 0:00:09.9]} 45. Be5 {[%clk 0:00:21.2]} 45... Re8 {[%clk 0:00:09.8]} 46. Bxd4 {[%clk 0:00:20.4]} 46... Re2+ {[%clk 0:00:09.6]} 47. Kg1 {[%clk 0:00:20.1]} 47... Bd5 {[%clk 0:00:09]} 48. Bf2 {[%clk 0:00:18.8]} 48... Rc2 {[%clk 0:00:08]} 49. Bd4 {[%clk 0:00:18.2]} 49... Rg2+ {[%clk 0:00:06.9]} 50. Kf1 {[%clk 0:00:18]} 50... Rxg3 {[%clk 0:00:06.8]} 51. Ke2 {[%clk 0:00:17.9]} 51... Rg2+ {[%clk 0:00:06.2]} 52. Ke3 {[%clk 0:00:17.3]} 52... Rg3+ {[%clk 0:00:06.1]} 53. Kd2 {[%clk 0:00:16.8]} 53... Rf3 {[%clk 0:00:06]} 54. Bc5 {[%clk 0:00:16.7]} 54... Bb3 {[%clk 0:00:04.9]} 55. Kc3 {[%clk 0:00:16.2]} 55... Rh3 {[%clk 0:00:04.6]} 56. Rd6 {[%clk 0:00:15.9]} 56... Ba2 {[%clk 0:00:03.8]} 57. Bf2 {[%clk 0:00:15]} 57... Kb5 {[%clk 0:00:03.7]} 58. Rd4 {[%clk 0:00:14.1]} 58... Bb1 {[%clk 0:00:03.3]} 59. a4+ {[%clk 0:00:14]} 59... Kc6 {[%clk 0:00:02.5]} 60. Rc4+ {[%clk 0:00:13.5]} 60... Kd6 {[%clk 0:00:02.3]} 61. Rd4+ {[%clk 0:00:13.3]} 61... Ke5 {[%clk 0:00:02.2]} 62. Be1 {[%clk 0:00:12.9]} 62... Re3 {[%clk 0:00:01]} 63. Rd8 {[%clk 0:00:12.8]} 63... Rxd3+ {[%clk 0:00:00.7]} 64. Rxd3 {[%clk 0:00:12]} 64... Bxd3 {[%clk 0:00:00.6]} 65. Kxd3 {[%clk 0:00:11.9]} 65... Kd5 {[%clk 0:00:00.2]} 66. Bxa5 {[%clk 0:00:11.5]} 66... Kc5 {[%clk 0:00:00.1]} 67. Bc7 {[%clk 0:00:11.2]} 1-0\n",
+        "white_username": "Hikaru",
+        "whiteUsername": "Hikaru",
+        "black_username": "ChessSharkz",
+        "blackUsername": "ChessSharkz"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057813169",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "white",
+        "color": "white",
+        "result": "loss",
+        "opening": "Scandinavian Defence",
+        "end_time": 1777744204,
+        "endTime": 1777744204,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"Hikaru\"]\n[Black \"wonderfultime\"]\n[Result \"0-1\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"2k3r1/pppb4/8/4Q3/5P2/4B3/PPP1B1q1/R3K2q w - - 0 37\"]\n[Timezone \"UTC\"]\n[ECO \"B01\"]\n[ECOUrl \"https://www.chess.com/openings/Scandinavian-Defense-Closed-2...dxe4-3.Nxe4-Nf6\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:48:29\"]\n[WhiteElo \"3305\"]\n[BlackElo \"3270\"]\n[TimeControl \"60\"]\n[Termination \"wonderfultime won by resignation\"]\n[StartTime \"17:48:29\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:50:04\"]\n[Link \"https://www.chess.com/game/live/172057813169\"]\n\n1. e4 {[%clk 0:00:59.9]} 1... d5 {[%clk 0:00:59.5]} 2. Nc3 {[%clk 0:00:59.8]} 2... dxe4 {[%clk 0:00:58.8]} 3. Nxe4 {[%clk 0:00:59]} 3... Nf6 {[%clk 0:00:58.7]} 4. Ng3 {[%clk 0:00:58.3]} 4... h5 {[%clk 0:00:58.1]} 5. Bc4 {[%clk 0:00:57.3]} 5... h4 {[%clk 0:00:57.6]} 6. Nf1 {[%clk 0:00:57]} 6... e5 {[%clk 0:00:57.3]} 7. Ne3 {[%clk 0:00:56.1]} 7... Nc6 {[%clk 0:00:56.8]} 8. h3 {[%clk 0:00:55.5]} 8... Bc5 {[%clk 0:00:55.3]} 9. Nf3 {[%clk 0:00:55]} 9... e4 {[%clk 0:00:54.6]} 10. Ng5 {[%clk 0:00:54.2]} 10... Ne5 {[%clk 0:00:54.3]} 11. Bb3 {[%clk 0:00:53.7]} 11... Qe7 {[%clk 0:00:51]} 12. Qe2 {[%clk 0:00:52.7]} 12... Bd7 {[%clk 0:00:50.3]} 13. Nc4 {[%clk 0:00:51.9]} 13... Nxc4 {[%clk 0:00:44.1]} 14. Bxc4 {[%clk 0:00:51.8]} 14... Rf8 {[%clk 0:00:43.3]} 15. d3 {[%clk 0:00:51.3]} 15... O-O-O {[%clk 0:00:42.5]} 16. dxe4 {[%clk 0:00:49.3]} 16... Bc6 {[%clk 0:00:42]} 17. Bd3 {[%clk 0:00:48.5]} 17... Nd7 {[%clk 0:00:40.6]} 18. Nf3 {[%clk 0:00:47.2]} 18... Ne5 {[%clk 0:00:39.1]} 19. Nxe5 {[%clk 0:00:45.3]} 19... Qxe5 {[%clk 0:00:39]} 20. O-O {[%clk 0:00:44.8]} 20... g5 {[%clk 0:00:37.8]} 21. Re1 {[%clk 0:00:43.8]} 21... f6 {[%clk 0:00:36.7]} 22. Be3 {[%clk 0:00:43.1]} 22... Bd6 {[%clk 0:00:36]} 23. Qf3 {[%clk 0:00:39.1]} 23... Bd7 {[%clk 0:00:33.2]} 24. Kf1 {[%clk 0:00:37.8]} 24... g4 {[%clk 0:00:31.4]} 25. hxg4 {[%clk 0:00:37]} 25... Rg8 {[%clk 0:00:31.1]} 26. g5 {[%clk 0:00:33.5]} 26... fxg5 {[%clk 0:00:30.1]} 27. Qh5 {[%clk 0:00:32.2]} 27... Qh2 {[%clk 0:00:28.3]} 28. e5 {[%clk 0:00:29.4]} 28... Bxe5 {[%clk 0:00:24.6]} 29. Ke2 {[%clk 0:00:29]} 29... Qxg2 {[%clk 0:00:23.5]} 30. Rg1 {[%clk 0:00:27.9]} 30... Qd5 {[%clk 0:00:21.9]} 31. Rxg5 {[%clk 0:00:27.2]} 31... Rxg5 {[%clk 0:00:20.8]} 32. Qxg5 {[%clk 0:00:27.1]} 32... h3 {[%clk 0:00:20.4]} 33. f4 {[%clk 0:00:25.5]} 33... Rg8 {[%clk 0:00:18.9]} 34. Qxe5 {[%clk 0:00:24.6]} 34... Qg2+ {[%clk 0:00:18]} 35. Ke1 {[%clk 0:00:24.1]} 35... h2 {[%clk 0:00:16.6]} 36. Be2 {[%clk 0:00:21.2]} 36... h1=Q+ {[%clk 0:00:15.7]} 0-1\n",
+        "white_username": "Hikaru",
+        "whiteUsername": "Hikaru",
+        "black_username": "wonderfultime",
+        "blackUsername": "wonderfultime"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057811389",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "black",
+        "color": "black",
+        "result": "loss",
+        "opening": "R\u00e9ti Opening",
+        "end_time": 1777744099,
+        "endTime": 1777744099,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"jakopogi\"]\n[Black \"Hikaru\"]\n[Result \"1-0\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"3r4/p7/4k2b/4RR1P/2P3P1/1P1p2K1/P7/8 b - - 0 59\"]\n[Timezone \"UTC\"]\n[ECO \"A04\"]\n[ECOUrl \"https://www.chess.com/openings/Reti-Opening-Kingside-Fianchetto-Variation-2.g3-Bg7-3.Bg2-d6-4.O-O\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:46:19\"]\n[WhiteElo \"3112\"]\n[BlackElo \"3314\"]\n[TimeControl \"60\"]\n[Termination \"jakopogi won by resignation\"]\n[StartTime \"17:46:19\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:48:19\"]\n[Link \"https://www.chess.com/game/live/172057811389\"]\n\n1. Nf3 {[%clk 0:00:58.5]} 1... g6 {[%clk 0:00:59.1]} 2. g3 {[%clk 0:00:58.4]} 2... Bg7 {[%clk 0:00:58.4]} 3. Bg2 {[%clk 0:00:58.2]} 3... d6 {[%clk 0:00:58.2]} 4. O-O {[%clk 0:00:58]} 4... Bd7 {[%clk 0:00:57.5]} 5. d3 {[%clk 0:00:57.7]} 5... Qc8 {[%clk 0:00:57]} 6. Re1 {[%clk 0:00:56.9]} 6... Bh3 {[%clk 0:00:56.1]} 7. Bh1 {[%clk 0:00:56.7]} 7... h5 {[%clk 0:00:55.6]} 8. c3 {[%clk 0:00:55.6]} 8... h4 {[%clk 0:00:55]} 9. Qa4+ {[%clk 0:00:55.1]} 9... Bd7 {[%clk 0:00:53.8]} 10. Qb3 {[%clk 0:00:53.1]} 10... hxg3 {[%clk 0:00:53.3]} 11. fxg3 {[%clk 0:00:52.6]} 11... Nc6 {[%clk 0:00:52.9]} 12. Be3 {[%clk 0:00:52.1]} 12... Nf6 {[%clk 0:00:51.9]} 13. Ng5 {[%clk 0:00:50.1]} 13... Nd8 {[%clk 0:00:50.7]} 14. Bf3 {[%clk 0:00:49.6]} 14... Ng4 {[%clk 0:00:49.3]} 15. Bxg4 {[%clk 0:00:49]} 15... Bxg4 {[%clk 0:00:48.6]} 16. Rf1 {[%clk 0:00:48.6]} 16... f6 {[%clk 0:00:47.9]} 17. Nf3 {[%clk 0:00:47.7]} 17... Bd7 {[%clk 0:00:46.6]} 18. Nbd2 {[%clk 0:00:47.3]} 18... c5 {[%clk 0:00:46]} 19. Rf2 {[%clk 0:00:46.6]} 19... Bc6 {[%clk 0:00:45.5]} 20. Raf1 {[%clk 0:00:46.2]} 20... Qh3 {[%clk 0:00:44.9]} 21. Ne4 {[%clk 0:00:44.8]} 21... Ne6 {[%clk 0:00:42.2]} 22. Rg2 {[%clk 0:00:40.2]} 22... O-O-O {[%clk 0:00:40.7]} 23. Nf2 {[%clk 0:00:39.7]} 23... Qf5 {[%clk 0:00:39.2]} 24. g4 {[%clk 0:00:35.7]} 24... Qd5 {[%clk 0:00:38.3]} 25. c4 {[%clk 0:00:35.4]} 25... Nd4 {[%clk 0:00:35.9]} 26. cxd5 {[%clk 0:00:33.4]} 26... Nxb3 {[%clk 0:00:34.8]} 27. dxc6 {[%clk 0:00:33]} 27... Na5 {[%clk 0:00:34.2]} 28. cxb7+ {[%clk 0:00:32.6]} 28... Kxb7 {[%clk 0:00:33.7]} 29. Ne4 {[%clk 0:00:32.2]} 29... Nc6 {[%clk 0:00:33.1]} 30. Nc3 {[%clk 0:00:31.8]} 30... e6 {[%clk 0:00:32.2]} 31. Ne4 {[%clk 0:00:31.2]} 31... Kc7 {[%clk 0:00:30.3]} 32. Bf4 {[%clk 0:00:30.8]} 32... e5 {[%clk 0:00:29.4]} 33. Bg3 {[%clk 0:00:30.5]} 33... Kd7 {[%clk 0:00:28.7]} 34. Nh4 {[%clk 0:00:30.1]} 34... Ke6 {[%clk 0:00:26.3]} 35. Nxg6 {[%clk 0:00:29.6]} 35... Rhg8 {[%clk 0:00:26.2]} 36. Nh4 {[%clk 0:00:29.1]} 36... Rb8 {[%clk 0:00:25.2]} 37. Nf5 {[%clk 0:00:28.7]} 37... Bf8 {[%clk 0:00:22.4]} 38. e3 {[%clk 0:00:27.8]} 38... d5 {[%clk 0:00:21.4]} 39. Nc3 {[%clk 0:00:27]} 39... Nb4 {[%clk 0:00:19.4]} 40. e4 {[%clk 0:00:26.3]} 40... d4 {[%clk 0:00:16.8]} 41. Nd5 {[%clk 0:00:25.9]} 41... Nxd5 {[%clk 0:00:15.8]} 42. exd5+ {[%clk 0:00:25.2]} 42... Kxd5 {[%clk 0:00:15.7]} 43. Bh4 {[%clk 0:00:23.7]} 43... c4 {[%clk 0:00:14.8]} 44. dxc4+ {[%clk 0:00:22.6]} 44... Ke6 {[%clk 0:00:14.1]} 45. Bxf6 {[%clk 0:00:22.4]} 45... Kxf6 {[%clk 0:00:13.2]} 46. Nh6+ {[%clk 0:00:22.1]} 46... Kg7 {[%clk 0:00:12.8]} 47. Nxg8 {[%clk 0:00:21.8]} 47... Kxg8 {[%clk 0:00:12.7]} 48. Re2 {[%clk 0:00:19.5]} 48... Bg7 {[%clk 0:00:12]} 49. b3 {[%clk 0:00:17.6]} 49... Rd8 {[%clk 0:00:11.7]} 50. Rd1 {[%clk 0:00:17]} 50... Kh7 {[%clk 0:00:11.6]} 51. Kg2 {[%clk 0:00:16.2]} 51... Kg6 {[%clk 0:00:11.5]} 52. Kf3 {[%clk 0:00:15.7]} 52... Kg5 {[%clk 0:00:11.2]} 53. Kg3 {[%clk 0:00:14.8]} 53... Kf6 {[%clk 0:00:11.1]} 54. h4 {[%clk 0:00:14.4]} 54... Ke6 {[%clk 0:00:11]} 55. h5 {[%clk 0:00:13.5]} 55... Kf6 {[%clk 0:00:10.3]} 56. Re4 {[%clk 0:00:12.8]} 56... Bh6 {[%clk 0:00:09.8]} 57. Rf1+ {[%clk 0:00:12.5]} 57... Ke6 {[%clk 0:00:09.5]} 58. Rf5 {[%clk 0:00:12]} 58... d3 {[%clk 0:00:09.4]} 59. Rexe5+ {[%clk 0:00:10.5]} 1-0\n",
+        "white_username": "jakopogi",
+        "whiteUsername": "jakopogi",
+        "black_username": "Hikaru",
+        "blackUsername": "Hikaru"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057810387",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "white",
+        "color": "white",
+        "result": "win",
+        "opening": "Unknown Opening",
+        "end_time": 1777743955,
+        "endTime": 1777743955,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"Hikaru\"]\n[Black \"Bryanl106\"]\n[Result \"1-0\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"Q7/2b1k3/2n1p3/1B2p2p/4N1p1/1P2P1P1/2r2P1P/6K1 b - - 2 33\"]\n[Timezone \"UTC\"]\n[ECO \"E62\"]\n[ECOUrl \"https://www.chess.com/openings/Kings-Indian-Defense-Fianchetto-Karlsbad-Panno-Uhlmann-Szabo-System-8.dxe5-dxe5\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:44:59\"]\n[WhiteElo \"3327\"]\n[BlackElo \"3078\"]\n[TimeControl \"60\"]\n[Termination \"Hikaru won by resignation\"]\n[StartTime \"17:44:59\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:45:55\"]\n[Link \"https://www.chess.com/game/live/172057810387\"]\n\n1. d4 {[%clk 0:00:59.4]} 1... Nf6 {[%clk 0:00:59]} 2. Nf3 {[%clk 0:00:59]} 2... g6 {[%clk 0:00:58.4]} 3. g3 {[%clk 0:00:58.3]} 3... Bg7 {[%clk 0:00:58.1]} 4. Bg2 {[%clk 0:00:58.2]} 4... O-O {[%clk 0:00:57.8]} 5. O-O {[%clk 0:00:58.1]} 5... d6 {[%clk 0:00:57.1]} 6. c4 {[%clk 0:00:58]} 6... Nc6 {[%clk 0:00:56.8]} 7. Nc3 {[%clk 0:00:57.6]} 7... e5 {[%clk 0:00:56.2]} 8. dxe5 {[%clk 0:00:57.2]} 8... dxe5 {[%clk 0:00:55.8]} 9. Qxd8 {[%clk 0:00:56.3]} 9... Rxd8 {[%clk 0:00:55.6]} 10. Bg5 {[%clk 0:00:55.7]} 10... Re8 {[%clk 0:00:55.1]} 11. Bxf6 {[%clk 0:00:54.6]} 11... Bxf6 {[%clk 0:00:55]} 12. Nd5 {[%clk 0:00:54.3]} 12... Bd8 {[%clk 0:00:54.6]} 13. Nd2 {[%clk 0:00:54.2]} 13... Kg7 {[%clk 0:00:53.8]} 14. e3 {[%clk 0:00:53.7]} 14... Be6 {[%clk 0:00:53.2]} 15. Rfd1 {[%clk 0:00:53]} 15... Rb8 {[%clk 0:00:52.6]} 16. Ne4 {[%clk 0:00:52.5]} 16... Be7 {[%clk 0:00:49.5]} 17. Nxc7 {[%clk 0:00:50.5]} 17... Rec8 {[%clk 0:00:46.6]} 18. Nxe6+ {[%clk 0:00:49.9]} 18... fxe6 {[%clk 0:00:46.3]} 19. b3 {[%clk 0:00:49.1]} 19... b5 {[%clk 0:00:44.7]} 20. cxb5 {[%clk 0:00:48.3]} 20... Rxb5 {[%clk 0:00:44.6]} 21. Rac1 {[%clk 0:00:47.3]} 21... Rbb8 {[%clk 0:00:43.6]} 22. Rd7 {[%clk 0:00:46.3]} 22... Kf8 {[%clk 0:00:43.3]} 23. Bh3 {[%clk 0:00:44.7]} 23... Nd8 {[%clk 0:00:38.7]} 24. Rxc8 {[%clk 0:00:43.1]} 24... Rxc8 {[%clk 0:00:38.6]} 25. Rxa7 {[%clk 0:00:42.6]} 25... Rc2 {[%clk 0:00:38.3]} 26. a4 {[%clk 0:00:40.6]} 26... h5 {[%clk 0:00:37.6]} 27. a5 {[%clk 0:00:39.7]} 27... g5 {[%clk 0:00:37.3]} 28. a6 {[%clk 0:00:38.6]} 28... g4 {[%clk 0:00:37]} 29. Bf1 {[%clk 0:00:37.8]} 29... Nc6 {[%clk 0:00:36.8]} 30. Rc7 {[%clk 0:00:36.4]} 30... Bd8 {[%clk 0:00:36.7]} 31. a7 {[%clk 0:00:34]} 31... Bxc7 {[%clk 0:00:35.8]} 32. a8=Q+ {[%clk 0:00:33.3]} 32... Ke7 {[%clk 0:00:35.7]} 33. Bb5 {[%clk 0:00:32.2]} 1-0\n",
+        "white_username": "Hikaru",
+        "whiteUsername": "Hikaru",
+        "black_username": "Bryanl106",
+        "blackUsername": "Bryanl106"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057217411",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "black",
+        "color": "black",
+        "result": "win",
+        "opening": "Modern Defence",
+        "end_time": 1777743870,
+        "endTime": 1777743870,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"FairChess_on_YouTube\"]\n[Black \"Hikaru\"]\n[Result \"0-1\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"6k1/3R2P1/p3p3/1p2p2q/4P1n1/2P2rPn/PP3PK1/5N2 w - - 1 32\"]\n[Timezone \"UTC\"]\n[ECO \"B06\"]\n[ECOUrl \"https://www.chess.com/openings/Modern-Defense-Standard-Two-Knights-Variation-4...a6\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:43:13\"]\n[WhiteElo \"3244\"]\n[BlackElo \"3324\"]\n[TimeControl \"60\"]\n[Termination \"Hikaru won by resignation\"]\n[StartTime \"17:43:13\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:44:30\"]\n[Link \"https://www.chess.com/game/live/172057217411\"]\n\n1. e4 {[%clk 0:00:59.4]} 1... g6 {[%clk 0:00:59.9]} 2. Nc3 {[%clk 0:00:58.5]} 2... Bg7 {[%clk 0:00:59.8]} 3. d4 {[%clk 0:00:58.1]} 3... a6 {[%clk 0:00:59.7]} 4. Nf3 {[%clk 0:00:57]} 4... d6 {[%clk 0:00:59.3]} 5. Bc4 {[%clk 0:00:56.2]} 5... b5 {[%clk 0:00:58.6]} 6. Bb3 {[%clk 0:00:55.7]} 6... e6 {[%clk 0:00:57.9]} 7. O-O {[%clk 0:00:55.2]} 7... Ne7 {[%clk 0:00:57.5]} 8. Ne2 {[%clk 0:00:54.8]} 8... O-O {[%clk 0:00:56.7]} 9. Ng3 {[%clk 0:00:54.1]} 9... Nd7 {[%clk 0:00:55.9]} 10. c3 {[%clk 0:00:53.8]} 10... c5 {[%clk 0:00:55.2]} 11. h4 {[%clk 0:00:52.6]} 11... h6 {[%clk 0:00:54.2]} 12. h5 {[%clk 0:00:51.5]} 12... g5 {[%clk 0:00:53.6]} 13. Nxg5 {[%clk 0:00:50.8]} 13... hxg5 {[%clk 0:00:52.8]} 14. Bxg5 {[%clk 0:00:50.7]} 14... cxd4 {[%clk 0:00:51.2]} 15. h6 {[%clk 0:00:49.5]} 15... Bf6 {[%clk 0:00:50.6]} 16. Bxf6 {[%clk 0:00:48.9]} 16... Nxf6 {[%clk 0:00:50.5]} 17. Qxd4 {[%clk 0:00:48.5]} 17... e5 {[%clk 0:00:49.9]} 18. Qe3 {[%clk 0:00:48.1]} 18... Ng6 {[%clk 0:00:49.6]} 19. Rad1 {[%clk 0:00:45.6]} 19... Ng4 {[%clk 0:00:48.6]} 20. Qf3 {[%clk 0:00:43.5]} 20... Qh4 {[%clk 0:00:47.8]} 21. Rfe1 {[%clk 0:00:43]} 21... Nf4 {[%clk 0:00:45.8]} 22. Rxd6 {[%clk 0:00:41.1]} 22... Be6 {[%clk 0:00:43.9]} 23. Red1 {[%clk 0:00:33.2]} 23... Kh8 {[%clk 0:00:42.9]} 24. Nf1 {[%clk 0:00:28.4]} 24... Rg8 {[%clk 0:00:38.4]} 25. g3 {[%clk 0:00:27.9]} 25... Qh5 {[%clk 0:00:37.5]} 26. Bxe6 {[%clk 0:00:26.1]} 26... fxe6 {[%clk 0:00:35.6]} 27. Rd7 {[%clk 0:00:24.8]} 27... Raf8 {[%clk 0:00:34.1]} 28. Rg7 {[%clk 0:00:23.9]} 28... Nh3+ {[%clk 0:00:33.2]} 29. Kg2 {[%clk 0:00:23.3]} 29... Rxf3 {[%clk 0:00:32.8]} 30. Rdd7 {[%clk 0:00:22.6]} 30... Rxg7 {[%clk 0:00:31.6]} 31. hxg7+ {[%clk 0:00:21.6]} 31... Kg8 {[%clk 0:00:30.9]} 0-1\n",
+        "white_username": "FairChess_on_YouTube",
+        "whiteUsername": "FairChess_on_YouTube",
+        "black_username": "Hikaru",
+        "blackUsername": "Hikaru"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057215701",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "white",
+        "color": "white",
+        "result": "win",
+        "opening": "Queen Pawn Game",
+        "end_time": 1777743769,
+        "endTime": 1777743769,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"Hikaru\"]\n[Black \"wonderfultime\"]\n[Result \"1-0\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"4R3/6P1/1p4R1/1kb5/8/4P2P/5PK1/q7 b - - 1 51\"]\n[Timezone \"UTC\"]\n[ECO \"D30\"]\n[ECOUrl \"https://www.chess.com/openings/Queens-Gambit-Declined...5.cxd5-exd5-6.Bb5-Bd7-7.Bxd7\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:41:11\"]\n[WhiteElo \"3317\"]\n[BlackElo \"3248\"]\n[TimeControl \"60\"]\n[Termination \"Hikaru won by resignation\"]\n[StartTime \"17:41:11\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:42:49\"]\n[Link \"https://www.chess.com/game/live/172057215701\"]\n\n1. d4 {[%clk 0:00:59.6]} 1... d5 {[%clk 0:00:59.5]} 2. Nf3 {[%clk 0:00:59.2]} 2... e6 {[%clk 0:00:58.9]} 3. e3 {[%clk 0:00:59.1]} 3... c5 {[%clk 0:00:58.4]} 4. c4 {[%clk 0:00:59]} 4... Nf6 {[%clk 0:00:57.7]} 5. cxd5 {[%clk 0:00:58.5]} 5... exd5 {[%clk 0:00:56.8]} 6. Bb5+ {[%clk 0:00:58.2]} 6... Bd7 {[%clk 0:00:56.2]} 7. Bxd7+ {[%clk 0:00:57.8]} 7... Qxd7 {[%clk 0:00:56.1]} 8. dxc5 {[%clk 0:00:57.4]} 8... Nc6 {[%clk 0:00:55.3]} 9. O-O {[%clk 0:00:57.3]} 9... Bxc5 {[%clk 0:00:54.8]} 10. b3 {[%clk 0:00:57.2]} 10... O-O {[%clk 0:00:52.6]} 11. Bb2 {[%clk 0:00:56.7]} 11... Ne4 {[%clk 0:00:52.3]} 12. Nc3 {[%clk 0:00:56.3]} 12... Rfd8 {[%clk 0:00:51.7]} 13. Rc1 {[%clk 0:00:55.2]} 13... Rab8 {[%clk 0:00:51]} 14. Nxe4 {[%clk 0:00:53.7]} 14... dxe4 {[%clk 0:00:50.7]} 15. Qxd7 {[%clk 0:00:53.3]} 15... Rxd7 {[%clk 0:00:50.1]} 16. Ng5 {[%clk 0:00:53.1]} 16... Bb6 {[%clk 0:00:48.3]} 17. Nxe4 {[%clk 0:00:52.5]} 17... Rbd8 {[%clk 0:00:48]} 18. g4 {[%clk 0:00:51.4]} 18... f6 {[%clk 0:00:45.2]} 19. Bxf6 {[%clk 0:00:49.8]} 19... gxf6 {[%clk 0:00:44.2]} 20. Nxf6+ {[%clk 0:00:49.7]} 20... Kf7 {[%clk 0:00:44]} 21. Nxd7 {[%clk 0:00:49.4]} 21... Rxd7 {[%clk 0:00:43.9]} 22. Rfd1 {[%clk 0:00:49]} 22... Re7 {[%clk 0:00:43.4]} 23. Kg2 {[%clk 0:00:48.1]} 23... Ne5 {[%clk 0:00:43.1]} 24. h3 {[%clk 0:00:47.5]} 24... Kg6 {[%clk 0:00:42]} 25. Rd6+ {[%clk 0:00:46.7]} 25... Kf7 {[%clk 0:00:41.7]} 26. Rcd1 {[%clk 0:00:46]} 26... Bc5 {[%clk 0:00:40.1]} 27. R6d5 {[%clk 0:00:45.1]} 27... b6 {[%clk 0:00:39.8]} 28. Rd8 {[%clk 0:00:41.3]} 28... Ke6 {[%clk 0:00:38.5]} 29. Rf8 {[%clk 0:00:39.4]} 29... Nd7 {[%clk 0:00:36.7]} 30. Rf5 {[%clk 0:00:38.3]} 30... Nf6 {[%clk 0:00:36.4]} 31. Kf3 {[%clk 0:00:36.7]} 31... h6 {[%clk 0:00:35.9]} 32. Ke2 {[%clk 0:00:36.1]} 32... a5 {[%clk 0:00:35.5]} 33. Rd8 {[%clk 0:00:34.5]} 33... Ne4 {[%clk 0:00:34.4]} 34. Rh8 {[%clk 0:00:33.1]} 34... Nc3+ {[%clk 0:00:33.4]} 35. Kd3 {[%clk 0:00:32.2]} 35... Nxa2 {[%clk 0:00:33]} 36. Rxh6+ {[%clk 0:00:31.6]} 36... Kd7 {[%clk 0:00:32.6]} 37. Rfh5 {[%clk 0:00:30.8]} 37... Re8 {[%clk 0:00:28.9]} 38. Rh7+ {[%clk 0:00:29.8]} 38... Kc6 {[%clk 0:00:28.1]} 39. g5 {[%clk 0:00:28.2]} 39... Rd8+ {[%clk 0:00:26.8]} 40. Ke2 {[%clk 0:00:27.1]} 40... Nc1+ {[%clk 0:00:26.4]} 41. Kf1 {[%clk 0:00:26.1]} 41... Nxb3 {[%clk 0:00:26.3]} 42. g6 {[%clk 0:00:25.2]} 42... Nd2+ {[%clk 0:00:25.9]} 43. Kg2 {[%clk 0:00:24.2]} 43... Ne4 {[%clk 0:00:25.8]} 44. g7 {[%clk 0:00:23.1]} 44... Rg8 {[%clk 0:00:25.5]} 45. Re5 {[%clk 0:00:21.6]} 45... Nf6 {[%clk 0:00:24.8]} 46. Re6+ {[%clk 0:00:21.1]} 46... Kb5 {[%clk 0:00:22.2]} 47. Rxf6 {[%clk 0:00:21]} 47... a4 {[%clk 0:00:22.1]} 48. Rg6 {[%clk 0:00:19.9]} 48... a3 {[%clk 0:00:21.6]} 49. Rh8 {[%clk 0:00:19.5]} 49... a2 {[%clk 0:00:21.3]} 50. Rxg8 {[%clk 0:00:19.4]} 50... a1=Q {[%clk 0:00:21.2]} 51. Re8 {[%clk 0:00:18.8]} 1-0\n",
+        "white_username": "Hikaru",
+        "whiteUsername": "Hikaru",
+        "black_username": "wonderfultime",
+        "blackUsername": "wonderfultime"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057215293",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "black",
+        "color": "black",
+        "result": "win",
+        "opening": "R\u00e9ti Opening",
+        "end_time": 1777743661,
+        "endTime": 1777743661,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"NikaVolkov\"]\n[Black \"Hikaru\"]\n[Result \"0-1\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"r1bqr1k1/1p1n1pbp/p4np1/1P6/2Ppp3/2N1P3/P1Q1BPPP/R1B2RK1 w - - 0 14\"]\n[Timezone \"UTC\"]\n[ECO \"E61\"]\n[ECOUrl \"https://www.chess.com/openings/Kings-Indian-Defense-Semi-Classical-Variation...7.O-O-e5-8.Qc2-Re8\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:40:43\"]\n[WhiteElo \"2982\"]\n[BlackElo \"3310\"]\n[TimeControl \"60\"]\n[Termination \"Hikaru won by resignation\"]\n[StartTime \"17:40:43\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:41:01\"]\n[Link \"https://www.chess.com/game/live/172057215293\"]\n\n1. Nf3 {[%clk 0:00:59.7]} 1... g6 {[%clk 0:00:59.7]} 2. e3 {[%clk 0:00:59.6]} 2... Bg7 {[%clk 0:00:59.6]} 3. d4 {[%clk 0:00:59.5]} 3... d6 {[%clk 0:00:59.2]} 4. Be2 {[%clk 0:00:59.4]} 4... Nf6 {[%clk 0:00:59]} 5. O-O {[%clk 0:00:59.3]} 5... O-O {[%clk 0:00:58.9]} 6. c4 {[%clk 0:00:59.2]} 6... Nbd7 {[%clk 0:00:58.8]} 7. Nc3 {[%clk 0:00:59.1]} 7... e5 {[%clk 0:00:58.7]} 8. Qc2 {[%clk 0:00:58.9]} 8... Re8 {[%clk 0:00:58.4]} 9. dxe5 {[%clk 0:00:58.5]} 9... dxe5 {[%clk 0:00:57.8]} 10. b3 {[%clk 0:00:57.7]} 10... e4 {[%clk 0:00:57.4]} 11. Nd4 {[%clk 0:00:56.9]} 11... a6 {[%clk 0:00:57.1]} 12. b4 {[%clk 0:00:53.6]} 12... c5 {[%clk 0:00:56.7]} 13. b5 {[%clk 0:00:52.4]} 13... cxd4 {[%clk 0:00:55.8]} 0-1\n",
+        "white_username": "NikaVolkov",
+        "whiteUsername": "NikaVolkov",
+        "black_username": "Hikaru",
+        "blackUsername": "Hikaru"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057213683",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "white",
+        "color": "white",
+        "result": "loss",
+        "opening": "Modern Defence",
+        "end_time": 1777743619,
+        "endTime": 1777743619,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"Hikaru\"]\n[Black \"bubeliang\"]\n[Result \"0-1\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"8/5p2/8/2R5/3Kp1k1/3p4/P3r3/8 w - - 0 50\"]\n[Timezone \"UTC\"]\n[ECO \"B06\"]\n[ECOUrl \"https://www.chess.com/openings/Modern-Defense-Standard-Line...4.Nf3-d5-5.e5-Bg4\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:38:42\"]\n[WhiteElo \"3308\"]\n[BlackElo \"3094\"]\n[TimeControl \"60\"]\n[Termination \"bubeliang won by resignation\"]\n[StartTime \"17:38:42\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:40:19\"]\n[Link \"https://www.chess.com/game/live/172057213683\"]\n\n1. e4 {[%clk 0:00:58.9]} 1... g6 {[%clk 0:00:59.8]} 2. Nc3 {[%clk 0:00:58.8]} 2... Bg7 {[%clk 0:00:59.7]} 3. d4 {[%clk 0:00:58.2]} 3... c6 {[%clk 0:00:59.6]} 4. Nf3 {[%clk 0:00:57.4]} 4... d5 {[%clk 0:00:59]} 5. e5 {[%clk 0:00:56.8]} 5... Bg4 {[%clk 0:00:58.3]} 6. Be2 {[%clk 0:00:56.5]} 6... Bxf3 {[%clk 0:00:57.3]} 7. Bxf3 {[%clk 0:00:56.4]} 7... e6 {[%clk 0:00:57.2]} 8. h4 {[%clk 0:00:56.1]} 8... Ne7 {[%clk 0:00:57.1]} 9. h5 {[%clk 0:00:55.2]} 9... c5 {[%clk 0:00:56.7]} 10. Ne2 {[%clk 0:00:53.7]} 10... cxd4 {[%clk 0:00:55.1]} 11. Nxd4 {[%clk 0:00:53.3]} 11... Nbc6 {[%clk 0:00:54.2]} 12. c3 {[%clk 0:00:51.1]} 12... Bxe5 {[%clk 0:00:52.6]} 13. Nb3 {[%clk 0:00:50.7]} 13... Qb6 {[%clk 0:00:51.5]} 14. Qe2 {[%clk 0:00:50.3]} 14... Bf6 {[%clk 0:00:50.3]} 15. Bf4 {[%clk 0:00:48.6]} 15... a5 {[%clk 0:00:48.6]} 16. O-O {[%clk 0:00:46.3]} 16... a4 {[%clk 0:00:48.2]} 17. Nc1 {[%clk 0:00:45.7]} 17... a3 {[%clk 0:00:46.5]} 18. Rb1 {[%clk 0:00:44.7]} 18... O-O {[%clk 0:00:44.9]} 19. Nd3 {[%clk 0:00:44.1]} 19... Rfe8 {[%clk 0:00:43.4]} 20. bxa3 {[%clk 0:00:43.3]} 20... Qa5 {[%clk 0:00:42.9]} 21. Rxb7 {[%clk 0:00:42.2]} 21... Qxc3 {[%clk 0:00:41.9]} 22. hxg6 {[%clk 0:00:41.7]} 22... hxg6 {[%clk 0:00:41]} 23. Bg4 {[%clk 0:00:38.5]} 23... Rxa3 {[%clk 0:00:39]} 24. Nc1 {[%clk 0:00:36.6]} 24... Nd4 {[%clk 0:00:37.1]} 25. Qd1 {[%clk 0:00:36.2]} 25... Nef5 {[%clk 0:00:35.9]} 26. Re1 {[%clk 0:00:35.1]} 26... Qc2 {[%clk 0:00:34.8]} 27. Qxc2 {[%clk 0:00:33.3]} 27... Nxc2 {[%clk 0:00:34.7]} 28. Rd1 {[%clk 0:00:32.9]} 28... Ncd4 {[%clk 0:00:34]} 29. Kf1 {[%clk 0:00:32.6]} 29... Nc6 {[%clk 0:00:32.6]} 30. Rb6 {[%clk 0:00:31]} 30... Ne5 {[%clk 0:00:31.8]} 31. Bxf5 {[%clk 0:00:30.2]} 31... gxf5 {[%clk 0:00:31]} 32. Rb3 {[%clk 0:00:29.5]} 32... Rea8 {[%clk 0:00:29.4]} 33. Rxa3 {[%clk 0:00:28.7]} 33... Rxa3 {[%clk 0:00:29.3]} 34. Bxe5 {[%clk 0:00:28]} 34... Bxe5 {[%clk 0:00:29.2]} 35. Nd3 {[%clk 0:00:26.7]} 35... Bf6 {[%clk 0:00:27.8]} 36. Rd2 {[%clk 0:00:26.2]} 36... Bc3 {[%clk 0:00:26.4]} 37. Rc2 {[%clk 0:00:25.6]} 37... e5 {[%clk 0:00:25.9]} 38. Nc5 {[%clk 0:00:25]} 38... d4 {[%clk 0:00:24.9]} 39. f3 {[%clk 0:00:24.6]} 39... Kg7 {[%clk 0:00:23.8]} 40. Ke2 {[%clk 0:00:23.6]} 40... Kf6 {[%clk 0:00:23.3]} 41. g4 {[%clk 0:00:22.2]} 41... fxg4 {[%clk 0:00:22.4]} 42. fxg4 {[%clk 0:00:22]} 42... Kg5 {[%clk 0:00:22.1]} 43. Kd3 {[%clk 0:00:21.2]} 43... Bb4+ {[%clk 0:00:20.6]} 44. Ke4 {[%clk 0:00:20.7]} 44... Bxc5 {[%clk 0:00:19.3]} 45. Rxc5 {[%clk 0:00:20.6]} 45... Re3+ {[%clk 0:00:18.9]} 46. Kd5 {[%clk 0:00:20.2]} 46... d3 {[%clk 0:00:18.6]} 47. Rc3 {[%clk 0:00:19.5]} 47... e4 {[%clk 0:00:17.6]} 48. Kd4 {[%clk 0:00:18.3]} 48... Re2 {[%clk 0:00:17.3]} 49. Rc5+ {[%clk 0:00:17.8]} 49... Kxg4 {[%clk 0:00:16.4]} 0-1\n",
+        "white_username": "Hikaru",
+        "whiteUsername": "Hikaru",
+        "black_username": "bubeliang",
+        "blackUsername": "bubeliang"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057211083",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "white",
+        "color": "white",
+        "result": "loss",
+        "opening": "Unknown Opening",
+        "end_time": 1777743492,
+        "endTime": 1777743492,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"Hikaru\"]\n[Black \"dropstoneDP\"]\n[Result \"0-1\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"1K6/3r4/4r3/8/8/8/8/7k w - - 12 77\"]\n[Timezone \"UTC\"]\n[ECO \"E17\"]\n[ECOUrl \"https://www.chess.com/openings/Queens-Indian-Defense-Fianchetto-Classical-Kramnik-Variation\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:35:50\"]\n[WhiteElo \"3321\"]\n[BlackElo \"3162\"]\n[TimeControl \"60\"]\n[Termination \"dropstoneDP won on time\"]\n[StartTime \"17:35:50\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:38:12\"]\n[Link \"https://www.chess.com/game/live/172057211083\"]\n\n1. d4 {[%clk 0:00:59.3]} 1... e6 {[%clk 0:00:59.7]} 2. Nf3 {[%clk 0:00:59.2]} 2... Nf6 {[%clk 0:00:59.2]} 3. g3 {[%clk 0:00:58.7]} 3... b6 {[%clk 0:00:58.7]} 4. Bg2 {[%clk 0:00:58.6]} 4... Bb7 {[%clk 0:00:58.4]} 5. O-O {[%clk 0:00:58.5]} 5... Be7 {[%clk 0:00:57.8]} 6. c4 {[%clk 0:00:58.2]} 6... O-O {[%clk 0:00:57.5]} 7. Re1 {[%clk 0:00:57.9]} 7... a5 {[%clk 0:00:56.2]} 8. a3 {[%clk 0:00:56.8]} 8... Qc8 {[%clk 0:00:54.7]} 9. Nc3 {[%clk 0:00:56]} 9... Ne4 {[%clk 0:00:54.3]} 10. Qc2 {[%clk 0:00:54.9]} 10... f5 {[%clk 0:00:53]} 11. Ne5 {[%clk 0:00:53.7]} 11... Nxc3 {[%clk 0:00:52]} 12. bxc3 {[%clk 0:00:53.6]} 12... Bxg2 {[%clk 0:00:51.3]} 13. Kxg2 {[%clk 0:00:53.5]} 13... d6 {[%clk 0:00:50.7]} 14. Nf3 {[%clk 0:00:52.9]} 14... a4 {[%clk 0:00:50]} 15. e4 {[%clk 0:00:52.4]} 15... Nc6 {[%clk 0:00:45.1]} 16. h4 {[%clk 0:00:51.6]} 16... Na5 {[%clk 0:00:40.8]} 17. exf5 {[%clk 0:00:50.7]} 17... Rxf5 {[%clk 0:00:39.8]} 18. Qe4 {[%clk 0:00:50.4]} 18... Nxc4 {[%clk 0:00:36.9]} 19. Qxe6+ {[%clk 0:00:49.2]} 19... Qxe6 {[%clk 0:00:35.9]} 20. Rxe6 {[%clk 0:00:49.1]} 20... Raf8 {[%clk 0:00:34.7]} 21. Bf4 {[%clk 0:00:44.3]} 21... Bd8 {[%clk 0:00:30.7]} 22. Re2 {[%clk 0:00:41.5]} 22... b5 {[%clk 0:00:30.2]} 23. Nd2 {[%clk 0:00:39.1]} 23... Nb6 {[%clk 0:00:28.4]} 24. Be3 {[%clk 0:00:37.1]} 24... Nd5 {[%clk 0:00:27.7]} 25. c4 {[%clk 0:00:36.4]} 25... bxc4 {[%clk 0:00:26.3]} 26. Nxc4 {[%clk 0:00:35.8]} 26... h6 {[%clk 0:00:25.3]} 27. Bd2 {[%clk 0:00:34.4]} 27... g5 {[%clk 0:00:24.5]} 28. hxg5 {[%clk 0:00:33.4]} 28... Bxg5 {[%clk 0:00:24.2]} 29. Rh1 {[%clk 0:00:32.7]} 29... Kg7 {[%clk 0:00:22.2]} 30. Bxg5 {[%clk 0:00:29.1]} 30... hxg5 {[%clk 0:00:22.1]} 31. Nb2 {[%clk 0:00:29]} 31... Nb6 {[%clk 0:00:20.8]} 32. Rc1 {[%clk 0:00:27.2]} 32... R8f7 {[%clk 0:00:20.3]} 33. Rec2 {[%clk 0:00:26.6]} 33... Kg6 {[%clk 0:00:18.2]} 34. Nd3 {[%clk 0:00:25.4]} 34... Nd5 {[%clk 0:00:17]} 35. Rc4 {[%clk 0:00:24.9]} 35... Re7 {[%clk 0:00:16.2]} 36. R1c2 {[%clk 0:00:23.8]} 36... Re4 {[%clk 0:00:14.8]} 37. Rxa4 {[%clk 0:00:22.5]} 37... c5 {[%clk 0:00:14]} 38. Ra6 {[%clk 0:00:21.9]} 38... Rxd4 {[%clk 0:00:13.5]} 39. Rxd6+ {[%clk 0:00:21.3]} 39... Kg7 {[%clk 0:00:13.2]} 40. Nxc5 {[%clk 0:00:20.6]} 40... Ne3+ {[%clk 0:00:11.1]} 41. fxe3 {[%clk 0:00:20.2]} 41... Rxd6 {[%clk 0:00:10.9]} 42. Kh3 {[%clk 0:00:19.9]} 42... Re5 {[%clk 0:00:10.3]} 43. Nb3 {[%clk 0:00:16.7]} 43... Rxe3 {[%clk 0:00:09.4]} 44. Na5 {[%clk 0:00:16.3]} 44... Rdd3 {[%clk 0:00:08.9]} 45. Rg2 {[%clk 0:00:15.9]} 45... Kh6 {[%clk 0:00:08]} 46. Nc4 {[%clk 0:00:15.5]} 46... Re4 {[%clk 0:00:07.6]} 47. Rc2 {[%clk 0:00:14.4]} 47... Kh5 {[%clk 0:00:06.8]} 48. Kg2 {[%clk 0:00:13.1]} 48... Kg4 {[%clk 0:00:05.9]} 49. Kf2 {[%clk 0:00:12.1]} 49... Rxg3 {[%clk 0:00:05.8]} 50. a4 {[%clk 0:00:09.4]} 50... Rf3+ {[%clk 0:00:05.3]} 51. Kg1 {[%clk 0:00:08.7]} 51... Rg3+ {[%clk 0:00:05.2]} 52. Kf1 {[%clk 0:00:07.9]} 52... Kh3 {[%clk 0:00:04.5]} 53. Nd2 {[%clk 0:00:06.5]} 53... Rf4+ {[%clk 0:00:04.4]} 54. Ke2 {[%clk 0:00:06.2]} 54... Rg2+ {[%clk 0:00:04.1]} 55. Kd3 {[%clk 0:00:06.1]} 55... g4 {[%clk 0:00:04]} 56. Rc7 {[%clk 0:00:04.6]} 56... Rg3+ {[%clk 0:00:03.9]} 57. Kc2 {[%clk 0:00:04]} 57... Kh2 {[%clk 0:00:03.8]} 58. Rh7+ {[%clk 0:00:03.8]} 58... Kg2 {[%clk 0:00:03.6]} 59. Rd7 {[%clk 0:00:03.7]} 59... Rf1 {[%clk 0:00:03.4]} 60. a5 {[%clk 0:00:03.6]} 60... Rf2 {[%clk 0:00:03.3]} 61. a6 {[%clk 0:00:03.5]} 61... Re3 {[%clk 0:00:02.9]} 62. a7 {[%clk 0:00:03.3]} 62... Re8 {[%clk 0:00:02.8]} 63. Rb7 {[%clk 0:00:02.8]} 63... Ra8 {[%clk 0:00:02.7]} 64. Rb4 {[%clk 0:00:02.6]} 64... Rxa7 {[%clk 0:00:02.6]} 65. Rxg4+ {[%clk 0:00:02.3]} 65... Kh1 {[%clk 0:00:01.8]} 66. Rc4 {[%clk 0:00:02.2]} 66... Rh2 {[%clk 0:00:01.7]} 67. Rh4 {[%clk 0:00:02]} 67... Rd7 {[%clk 0:00:01.5]} 68. Re4 {[%clk 0:00:01.9]} 68... Rdxd2+ {[%clk 0:00:01.4]} 69. Kc3 {[%clk 0:00:01.4]} 69... Rde2 {[%clk 0:00:01.1]} 70. Kc4 {[%clk 0:00:00.8]} 70... Rxe4+ {[%clk 0:00:01]} 71. Kc5 {[%clk 0:00:00.7]} 71... Rh3 {[%clk 0:00:00.9]} 72. Kc6 {[%clk 0:00:00.6]} 72... Rhh4 {[%clk 0:00:00.8]} 73. Kc7 {[%clk 0:00:00.5]} 73... Rh5 {[%clk 0:00:00.7]} 74. Kb7 {[%clk 0:00:00.4]} 74... Rd5 {[%clk 0:00:00.6]} 75. Kc8 {[%clk 0:00:00.3]} 75... Re6 {[%clk 0:00:00.5]} 76. Kb8 {[%clk 0:00:00.2]} 76... Rd7 {[%clk 0:00:00.4]} 0-1\n",
+        "white_username": "Hikaru",
+        "whiteUsername": "Hikaru",
+        "black_username": "dropstoneDP",
+        "blackUsername": "dropstoneDP"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172056618319",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "black",
+        "color": "black",
+        "result": "win",
+        "opening": "Modern Defence",
+        "end_time": 1777743314,
+        "endTime": 1777743314,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"bubeliang\"]\n[Black \"Hikaru\"]\n[Result \"0-1\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"6k1/3q3p/1p3ppb/P2p4/1p1P4/1N1Q1P2/1rr3PP/R3R1K1 w - - 1 28\"]\n[Timezone \"UTC\"]\n[ECO \"B27\"]\n[ECOUrl \"https://www.chess.com/openings/Sicilian-Defense-Hyperaccelerated-Dragon-Variation...5.cxd4-d5-6.e5-Nc6\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:34:07\"]\n[WhiteElo \"3088\"]\n[BlackElo \"3333\"]\n[TimeControl \"60\"]\n[Termination \"Hikaru won by resignation\"]\n[StartTime \"17:34:07\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:35:14\"]\n[Link \"https://www.chess.com/game/live/172056618319\"]\n\n1. e4 {[%clk 0:00:59.5]} 1... g6 {[%clk 0:00:59.7]} 2. d4 {[%clk 0:00:58.8]} 2... Bg7 {[%clk 0:00:59.6]} 3. c3 {[%clk 0:00:58.4]} 3... c5 {[%clk 0:00:59.3]} 4. Nf3 {[%clk 0:00:57.4]} 4... cxd4 {[%clk 0:00:59]} 5. cxd4 {[%clk 0:00:57.2]} 5... d5 {[%clk 0:00:58.6]} 6. e5 {[%clk 0:00:56.6]} 6... Nc6 {[%clk 0:00:58.1]} 7. Nbd2 {[%clk 0:00:56]} 7... Nh6 {[%clk 0:00:57.3]} 8. Bd3 {[%clk 0:00:55.2]} 8... O-O {[%clk 0:00:56.5]} 9. O-O {[%clk 0:00:54.6]} 9... Nf5 {[%clk 0:00:56.4]} 10. Nb3 {[%clk 0:00:53.1]} 10... a5 {[%clk 0:00:55.4]} 11. a4 {[%clk 0:00:51.8]} 11... Nb4 {[%clk 0:00:54.1]} 12. Bxf5 {[%clk 0:00:51.1]} 12... Bxf5 {[%clk 0:00:53.3]} 13. Ne1 {[%clk 0:00:49]} 13... Rc8 {[%clk 0:00:52.2]} 14. Bd2 {[%clk 0:00:48]} 14... b6 {[%clk 0:00:51.7]} 15. Bc3 {[%clk 0:00:45.9]} 15... f6 {[%clk 0:00:49.8]} 16. Bxb4 {[%clk 0:00:45]} 16... axb4 {[%clk 0:00:49.1]} 17. Nd3 {[%clk 0:00:44.9]} 17... Rc4 {[%clk 0:00:47.2]} 18. Re1 {[%clk 0:00:43.8]} 18... Qd7 {[%clk 0:00:45.5]} 19. exf6 {[%clk 0:00:43.2]} 19... exf6 {[%clk 0:00:44.8]} 20. Nf4 {[%clk 0:00:41.8]} 20... Bc2 {[%clk 0:00:42.3]} 21. Qf3 {[%clk 0:00:40.7]} 21... Be4 {[%clk 0:00:42]} 22. Qe2 {[%clk 0:00:36.6]} 22... Bh6 {[%clk 0:00:40.4]} 23. Nd3 {[%clk 0:00:35.8]} 23... Rfc8 {[%clk 0:00:39.6]} 24. f3 {[%clk 0:00:33.6]} 24... Rc2 {[%clk 0:00:38.8]} 25. Qf1 {[%clk 0:00:33.1]} 25... Bxd3 {[%clk 0:00:37.5]} 26. Qxd3 {[%clk 0:00:33]} 26... Rxb2 {[%clk 0:00:37.2]} 27. a5 {[%clk 0:00:31.3]} 27... Rcc2 {[%clk 0:00:34.7]} 0-1\n",
+        "white_username": "bubeliang",
+        "whiteUsername": "bubeliang",
+        "black_username": "Hikaru",
+        "blackUsername": "Hikaru"
+      }
+    ],
+    "recentGames": [
+      {
+        "url": "https://www.chess.com/game/live/172057814845",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "white",
+        "color": "white",
+        "result": "win",
+        "opening": "Sicilian Defence",
+        "end_time": 1777744345,
+        "endTime": 1777744345,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"Hikaru\"]\n[Black \"ChessSharkz\"]\n[Result \"1-0\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"8/2B5/8/2k2p1p/P6P/3K4/8/8 b - - 2 67\"]\n[Timezone \"UTC\"]\n[ECO \"B23\"]\n[ECOUrl \"https://www.chess.com/openings/Closed-Sicilian-Defense-Grand-Prix-Schofman-Variation\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:50:30\"]\n[WhiteElo \"3307\"]\n[BlackElo \"2970\"]\n[TimeControl \"60\"]\n[Termination \"Hikaru won on time\"]\n[StartTime \"17:50:30\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:52:25\"]\n[Link \"https://www.chess.com/game/live/172057814845\"]\n\n1. e4 {[%clk 0:00:59.9]} 1... c5 {[%clk 0:00:59.3]} 2. Nc3 {[%clk 0:00:59.8]} 2... g6 {[%clk 0:00:58.9]} 3. f4 {[%clk 0:00:59.3]} 3... Bg7 {[%clk 0:00:58.6]} 4. Nf3 {[%clk 0:00:59.2]} 4... Nc6 {[%clk 0:00:58.1]} 5. Bc4 {[%clk 0:00:58.9]} 5... e6 {[%clk 0:00:57.4]} 6. f5 {[%clk 0:00:58.7]} 6... gxf5 {[%clk 0:00:56]} 7. d3 {[%clk 0:00:58]} 7... Nge7 {[%clk 0:00:54.8]} 8. O-O {[%clk 0:00:57.3]} 8... d5 {[%clk 0:00:54.5]} 9. exd5 {[%clk 0:00:56.9]} 9... exd5 {[%clk 0:00:54.1]} 10. Bb3 {[%clk 0:00:56.8]} 10... Be6 {[%clk 0:00:53.5]} 11. Qe1 {[%clk 0:00:56.5]} 11... Qd7 {[%clk 0:00:52.3]} 12. Ng5 {[%clk 0:00:53.8]} 12... O-O-O {[%clk 0:00:50.8]} 13. Bf4 {[%clk 0:00:52.4]} 13... Rhg8 {[%clk 0:00:49.1]} 14. Kh1 {[%clk 0:00:50.6]} 14... Nd4 {[%clk 0:00:46.5]} 15. Ne2 {[%clk 0:00:48.8]} 15... Nxe2 {[%clk 0:00:44.1]} 16. Qxe2 {[%clk 0:00:48.4]} 16... Nc6 {[%clk 0:00:43.4]} 17. Ba4 {[%clk 0:00:46.5]} 17... h6 {[%clk 0:00:40.4]} 18. Nf3 {[%clk 0:00:45.7]} 18... Bf6 {[%clk 0:00:37.8]} 19. Ne5 {[%clk 0:00:45]} 19... Bxe5 {[%clk 0:00:36.6]} 20. Bxc6 {[%clk 0:00:44.6]} 20... Qxc6 {[%clk 0:00:35.8]} 21. Qxe5 {[%clk 0:00:44.3]} 21... d4 {[%clk 0:00:33.1]} 22. Rf2 {[%clk 0:00:43.9]} 22... Bd5 {[%clk 0:00:31.2]} 23. Rg1 {[%clk 0:00:43.5]} 23... Rg6 {[%clk 0:00:29]} 24. Qxf5+ {[%clk 0:00:42.8]} 24... Qe6 {[%clk 0:00:28]} 25. Qxe6+ {[%clk 0:00:41.5]} 25... fxe6 {[%clk 0:00:27.9]} 26. b3 {[%clk 0:00:40.9]} 26... Rdg8 {[%clk 0:00:27.1]} 27. h3 {[%clk 0:00:39.8]} 27... Kd7 {[%clk 0:00:26]} 28. Kh2 {[%clk 0:00:39.3]} 28... h5 {[%clk 0:00:25.1]} 29. g3 {[%clk 0:00:38.8]} 29... Rf6 {[%clk 0:00:24.5]} 30. Re1 {[%clk 0:00:37.6]} 30... Rgf8 {[%clk 0:00:24.1]} 31. h4 {[%clk 0:00:36.8]} 31... Rf5 {[%clk 0:00:23.5]} 32. Kg1 {[%clk 0:00:36.4]} 32... b5 {[%clk 0:00:21.4]} 33. Rfe2 {[%clk 0:00:35.8]} 33... Kc6 {[%clk 0:00:19.7]} 34. Re5 {[%clk 0:00:35.1]} 34... c4 {[%clk 0:00:18.9]} 35. bxc4 {[%clk 0:00:33.9]} 35... bxc4 {[%clk 0:00:18.8]} 36. a3 {[%clk 0:00:33.2]} 36... cxd3 {[%clk 0:00:18.1]} 37. cxd3 {[%clk 0:00:33.1]} 37... Kc5 {[%clk 0:00:17.8]} 38. Rc1+ {[%clk 0:00:32.1]} 38... Kb5 {[%clk 0:00:17.2]} 39. Re2 {[%clk 0:00:31.7]} 39... Ka4 {[%clk 0:00:16.2]} 40. Rb2 {[%clk 0:00:31.2]} 40... a5 {[%clk 0:00:14.9]} 41. Rc5 {[%clk 0:00:27.7]} 41... Rg8 {[%clk 0:00:13]} 42. Kh2 {[%clk 0:00:26.7]} 42... Ra8 {[%clk 0:00:11.4]} 43. Rb6 {[%clk 0:00:25]} 43... Bb3 {[%clk 0:00:10]} 44. Rxf5 {[%clk 0:00:21.7]} 44... exf5 {[%clk 0:00:09.9]} 45. Be5 {[%clk 0:00:21.2]} 45... Re8 {[%clk 0:00:09.8]} 46. Bxd4 {[%clk 0:00:20.4]} 46... Re2+ {[%clk 0:00:09.6]} 47. Kg1 {[%clk 0:00:20.1]} 47... Bd5 {[%clk 0:00:09]} 48. Bf2 {[%clk 0:00:18.8]} 48... Rc2 {[%clk 0:00:08]} 49. Bd4 {[%clk 0:00:18.2]} 49... Rg2+ {[%clk 0:00:06.9]} 50. Kf1 {[%clk 0:00:18]} 50... Rxg3 {[%clk 0:00:06.8]} 51. Ke2 {[%clk 0:00:17.9]} 51... Rg2+ {[%clk 0:00:06.2]} 52. Ke3 {[%clk 0:00:17.3]} 52... Rg3+ {[%clk 0:00:06.1]} 53. Kd2 {[%clk 0:00:16.8]} 53... Rf3 {[%clk 0:00:06]} 54. Bc5 {[%clk 0:00:16.7]} 54... Bb3 {[%clk 0:00:04.9]} 55. Kc3 {[%clk 0:00:16.2]} 55... Rh3 {[%clk 0:00:04.6]} 56. Rd6 {[%clk 0:00:15.9]} 56... Ba2 {[%clk 0:00:03.8]} 57. Bf2 {[%clk 0:00:15]} 57... Kb5 {[%clk 0:00:03.7]} 58. Rd4 {[%clk 0:00:14.1]} 58... Bb1 {[%clk 0:00:03.3]} 59. a4+ {[%clk 0:00:14]} 59... Kc6 {[%clk 0:00:02.5]} 60. Rc4+ {[%clk 0:00:13.5]} 60... Kd6 {[%clk 0:00:02.3]} 61. Rd4+ {[%clk 0:00:13.3]} 61... Ke5 {[%clk 0:00:02.2]} 62. Be1 {[%clk 0:00:12.9]} 62... Re3 {[%clk 0:00:01]} 63. Rd8 {[%clk 0:00:12.8]} 63... Rxd3+ {[%clk 0:00:00.7]} 64. Rxd3 {[%clk 0:00:12]} 64... Bxd3 {[%clk 0:00:00.6]} 65. Kxd3 {[%clk 0:00:11.9]} 65... Kd5 {[%clk 0:00:00.2]} 66. Bxa5 {[%clk 0:00:11.5]} 66... Kc5 {[%clk 0:00:00.1]} 67. Bc7 {[%clk 0:00:11.2]} 1-0\n",
+        "white_username": "Hikaru",
+        "whiteUsername": "Hikaru",
+        "black_username": "ChessSharkz",
+        "blackUsername": "ChessSharkz"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057813169",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "white",
+        "color": "white",
+        "result": "loss",
+        "opening": "Scandinavian Defence",
+        "end_time": 1777744204,
+        "endTime": 1777744204,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"Hikaru\"]\n[Black \"wonderfultime\"]\n[Result \"0-1\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"2k3r1/pppb4/8/4Q3/5P2/4B3/PPP1B1q1/R3K2q w - - 0 37\"]\n[Timezone \"UTC\"]\n[ECO \"B01\"]\n[ECOUrl \"https://www.chess.com/openings/Scandinavian-Defense-Closed-2...dxe4-3.Nxe4-Nf6\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:48:29\"]\n[WhiteElo \"3305\"]\n[BlackElo \"3270\"]\n[TimeControl \"60\"]\n[Termination \"wonderfultime won by resignation\"]\n[StartTime \"17:48:29\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:50:04\"]\n[Link \"https://www.chess.com/game/live/172057813169\"]\n\n1. e4 {[%clk 0:00:59.9]} 1... d5 {[%clk 0:00:59.5]} 2. Nc3 {[%clk 0:00:59.8]} 2... dxe4 {[%clk 0:00:58.8]} 3. Nxe4 {[%clk 0:00:59]} 3... Nf6 {[%clk 0:00:58.7]} 4. Ng3 {[%clk 0:00:58.3]} 4... h5 {[%clk 0:00:58.1]} 5. Bc4 {[%clk 0:00:57.3]} 5... h4 {[%clk 0:00:57.6]} 6. Nf1 {[%clk 0:00:57]} 6... e5 {[%clk 0:00:57.3]} 7. Ne3 {[%clk 0:00:56.1]} 7... Nc6 {[%clk 0:00:56.8]} 8. h3 {[%clk 0:00:55.5]} 8... Bc5 {[%clk 0:00:55.3]} 9. Nf3 {[%clk 0:00:55]} 9... e4 {[%clk 0:00:54.6]} 10. Ng5 {[%clk 0:00:54.2]} 10... Ne5 {[%clk 0:00:54.3]} 11. Bb3 {[%clk 0:00:53.7]} 11... Qe7 {[%clk 0:00:51]} 12. Qe2 {[%clk 0:00:52.7]} 12... Bd7 {[%clk 0:00:50.3]} 13. Nc4 {[%clk 0:00:51.9]} 13... Nxc4 {[%clk 0:00:44.1]} 14. Bxc4 {[%clk 0:00:51.8]} 14... Rf8 {[%clk 0:00:43.3]} 15. d3 {[%clk 0:00:51.3]} 15... O-O-O {[%clk 0:00:42.5]} 16. dxe4 {[%clk 0:00:49.3]} 16... Bc6 {[%clk 0:00:42]} 17. Bd3 {[%clk 0:00:48.5]} 17... Nd7 {[%clk 0:00:40.6]} 18. Nf3 {[%clk 0:00:47.2]} 18... Ne5 {[%clk 0:00:39.1]} 19. Nxe5 {[%clk 0:00:45.3]} 19... Qxe5 {[%clk 0:00:39]} 20. O-O {[%clk 0:00:44.8]} 20... g5 {[%clk 0:00:37.8]} 21. Re1 {[%clk 0:00:43.8]} 21... f6 {[%clk 0:00:36.7]} 22. Be3 {[%clk 0:00:43.1]} 22... Bd6 {[%clk 0:00:36]} 23. Qf3 {[%clk 0:00:39.1]} 23... Bd7 {[%clk 0:00:33.2]} 24. Kf1 {[%clk 0:00:37.8]} 24... g4 {[%clk 0:00:31.4]} 25. hxg4 {[%clk 0:00:37]} 25... Rg8 {[%clk 0:00:31.1]} 26. g5 {[%clk 0:00:33.5]} 26... fxg5 {[%clk 0:00:30.1]} 27. Qh5 {[%clk 0:00:32.2]} 27... Qh2 {[%clk 0:00:28.3]} 28. e5 {[%clk 0:00:29.4]} 28... Bxe5 {[%clk 0:00:24.6]} 29. Ke2 {[%clk 0:00:29]} 29... Qxg2 {[%clk 0:00:23.5]} 30. Rg1 {[%clk 0:00:27.9]} 30... Qd5 {[%clk 0:00:21.9]} 31. Rxg5 {[%clk 0:00:27.2]} 31... Rxg5 {[%clk 0:00:20.8]} 32. Qxg5 {[%clk 0:00:27.1]} 32... h3 {[%clk 0:00:20.4]} 33. f4 {[%clk 0:00:25.5]} 33... Rg8 {[%clk 0:00:18.9]} 34. Qxe5 {[%clk 0:00:24.6]} 34... Qg2+ {[%clk 0:00:18]} 35. Ke1 {[%clk 0:00:24.1]} 35... h2 {[%clk 0:00:16.6]} 36. Be2 {[%clk 0:00:21.2]} 36... h1=Q+ {[%clk 0:00:15.7]} 0-1\n",
+        "white_username": "Hikaru",
+        "whiteUsername": "Hikaru",
+        "black_username": "wonderfultime",
+        "blackUsername": "wonderfultime"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057811389",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "black",
+        "color": "black",
+        "result": "loss",
+        "opening": "R\u00e9ti Opening",
+        "end_time": 1777744099,
+        "endTime": 1777744099,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"jakopogi\"]\n[Black \"Hikaru\"]\n[Result \"1-0\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"3r4/p7/4k2b/4RR1P/2P3P1/1P1p2K1/P7/8 b - - 0 59\"]\n[Timezone \"UTC\"]\n[ECO \"A04\"]\n[ECOUrl \"https://www.chess.com/openings/Reti-Opening-Kingside-Fianchetto-Variation-2.g3-Bg7-3.Bg2-d6-4.O-O\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:46:19\"]\n[WhiteElo \"3112\"]\n[BlackElo \"3314\"]\n[TimeControl \"60\"]\n[Termination \"jakopogi won by resignation\"]\n[StartTime \"17:46:19\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:48:19\"]\n[Link \"https://www.chess.com/game/live/172057811389\"]\n\n1. Nf3 {[%clk 0:00:58.5]} 1... g6 {[%clk 0:00:59.1]} 2. g3 {[%clk 0:00:58.4]} 2... Bg7 {[%clk 0:00:58.4]} 3. Bg2 {[%clk 0:00:58.2]} 3... d6 {[%clk 0:00:58.2]} 4. O-O {[%clk 0:00:58]} 4... Bd7 {[%clk 0:00:57.5]} 5. d3 {[%clk 0:00:57.7]} 5... Qc8 {[%clk 0:00:57]} 6. Re1 {[%clk 0:00:56.9]} 6... Bh3 {[%clk 0:00:56.1]} 7. Bh1 {[%clk 0:00:56.7]} 7... h5 {[%clk 0:00:55.6]} 8. c3 {[%clk 0:00:55.6]} 8... h4 {[%clk 0:00:55]} 9. Qa4+ {[%clk 0:00:55.1]} 9... Bd7 {[%clk 0:00:53.8]} 10. Qb3 {[%clk 0:00:53.1]} 10... hxg3 {[%clk 0:00:53.3]} 11. fxg3 {[%clk 0:00:52.6]} 11... Nc6 {[%clk 0:00:52.9]} 12. Be3 {[%clk 0:00:52.1]} 12... Nf6 {[%clk 0:00:51.9]} 13. Ng5 {[%clk 0:00:50.1]} 13... Nd8 {[%clk 0:00:50.7]} 14. Bf3 {[%clk 0:00:49.6]} 14... Ng4 {[%clk 0:00:49.3]} 15. Bxg4 {[%clk 0:00:49]} 15... Bxg4 {[%clk 0:00:48.6]} 16. Rf1 {[%clk 0:00:48.6]} 16... f6 {[%clk 0:00:47.9]} 17. Nf3 {[%clk 0:00:47.7]} 17... Bd7 {[%clk 0:00:46.6]} 18. Nbd2 {[%clk 0:00:47.3]} 18... c5 {[%clk 0:00:46]} 19. Rf2 {[%clk 0:00:46.6]} 19... Bc6 {[%clk 0:00:45.5]} 20. Raf1 {[%clk 0:00:46.2]} 20... Qh3 {[%clk 0:00:44.9]} 21. Ne4 {[%clk 0:00:44.8]} 21... Ne6 {[%clk 0:00:42.2]} 22. Rg2 {[%clk 0:00:40.2]} 22... O-O-O {[%clk 0:00:40.7]} 23. Nf2 {[%clk 0:00:39.7]} 23... Qf5 {[%clk 0:00:39.2]} 24. g4 {[%clk 0:00:35.7]} 24... Qd5 {[%clk 0:00:38.3]} 25. c4 {[%clk 0:00:35.4]} 25... Nd4 {[%clk 0:00:35.9]} 26. cxd5 {[%clk 0:00:33.4]} 26... Nxb3 {[%clk 0:00:34.8]} 27. dxc6 {[%clk 0:00:33]} 27... Na5 {[%clk 0:00:34.2]} 28. cxb7+ {[%clk 0:00:32.6]} 28... Kxb7 {[%clk 0:00:33.7]} 29. Ne4 {[%clk 0:00:32.2]} 29... Nc6 {[%clk 0:00:33.1]} 30. Nc3 {[%clk 0:00:31.8]} 30... e6 {[%clk 0:00:32.2]} 31. Ne4 {[%clk 0:00:31.2]} 31... Kc7 {[%clk 0:00:30.3]} 32. Bf4 {[%clk 0:00:30.8]} 32... e5 {[%clk 0:00:29.4]} 33. Bg3 {[%clk 0:00:30.5]} 33... Kd7 {[%clk 0:00:28.7]} 34. Nh4 {[%clk 0:00:30.1]} 34... Ke6 {[%clk 0:00:26.3]} 35. Nxg6 {[%clk 0:00:29.6]} 35... Rhg8 {[%clk 0:00:26.2]} 36. Nh4 {[%clk 0:00:29.1]} 36... Rb8 {[%clk 0:00:25.2]} 37. Nf5 {[%clk 0:00:28.7]} 37... Bf8 {[%clk 0:00:22.4]} 38. e3 {[%clk 0:00:27.8]} 38... d5 {[%clk 0:00:21.4]} 39. Nc3 {[%clk 0:00:27]} 39... Nb4 {[%clk 0:00:19.4]} 40. e4 {[%clk 0:00:26.3]} 40... d4 {[%clk 0:00:16.8]} 41. Nd5 {[%clk 0:00:25.9]} 41... Nxd5 {[%clk 0:00:15.8]} 42. exd5+ {[%clk 0:00:25.2]} 42... Kxd5 {[%clk 0:00:15.7]} 43. Bh4 {[%clk 0:00:23.7]} 43... c4 {[%clk 0:00:14.8]} 44. dxc4+ {[%clk 0:00:22.6]} 44... Ke6 {[%clk 0:00:14.1]} 45. Bxf6 {[%clk 0:00:22.4]} 45... Kxf6 {[%clk 0:00:13.2]} 46. Nh6+ {[%clk 0:00:22.1]} 46... Kg7 {[%clk 0:00:12.8]} 47. Nxg8 {[%clk 0:00:21.8]} 47... Kxg8 {[%clk 0:00:12.7]} 48. Re2 {[%clk 0:00:19.5]} 48... Bg7 {[%clk 0:00:12]} 49. b3 {[%clk 0:00:17.6]} 49... Rd8 {[%clk 0:00:11.7]} 50. Rd1 {[%clk 0:00:17]} 50... Kh7 {[%clk 0:00:11.6]} 51. Kg2 {[%clk 0:00:16.2]} 51... Kg6 {[%clk 0:00:11.5]} 52. Kf3 {[%clk 0:00:15.7]} 52... Kg5 {[%clk 0:00:11.2]} 53. Kg3 {[%clk 0:00:14.8]} 53... Kf6 {[%clk 0:00:11.1]} 54. h4 {[%clk 0:00:14.4]} 54... Ke6 {[%clk 0:00:11]} 55. h5 {[%clk 0:00:13.5]} 55... Kf6 {[%clk 0:00:10.3]} 56. Re4 {[%clk 0:00:12.8]} 56... Bh6 {[%clk 0:00:09.8]} 57. Rf1+ {[%clk 0:00:12.5]} 57... Ke6 {[%clk 0:00:09.5]} 58. Rf5 {[%clk 0:00:12]} 58... d3 {[%clk 0:00:09.4]} 59. Rexe5+ {[%clk 0:00:10.5]} 1-0\n",
+        "white_username": "jakopogi",
+        "whiteUsername": "jakopogi",
+        "black_username": "Hikaru",
+        "blackUsername": "Hikaru"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057810387",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "white",
+        "color": "white",
+        "result": "win",
+        "opening": "Unknown Opening",
+        "end_time": 1777743955,
+        "endTime": 1777743955,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"Hikaru\"]\n[Black \"Bryanl106\"]\n[Result \"1-0\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"Q7/2b1k3/2n1p3/1B2p2p/4N1p1/1P2P1P1/2r2P1P/6K1 b - - 2 33\"]\n[Timezone \"UTC\"]\n[ECO \"E62\"]\n[ECOUrl \"https://www.chess.com/openings/Kings-Indian-Defense-Fianchetto-Karlsbad-Panno-Uhlmann-Szabo-System-8.dxe5-dxe5\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:44:59\"]\n[WhiteElo \"3327\"]\n[BlackElo \"3078\"]\n[TimeControl \"60\"]\n[Termination \"Hikaru won by resignation\"]\n[StartTime \"17:44:59\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:45:55\"]\n[Link \"https://www.chess.com/game/live/172057810387\"]\n\n1. d4 {[%clk 0:00:59.4]} 1... Nf6 {[%clk 0:00:59]} 2. Nf3 {[%clk 0:00:59]} 2... g6 {[%clk 0:00:58.4]} 3. g3 {[%clk 0:00:58.3]} 3... Bg7 {[%clk 0:00:58.1]} 4. Bg2 {[%clk 0:00:58.2]} 4... O-O {[%clk 0:00:57.8]} 5. O-O {[%clk 0:00:58.1]} 5... d6 {[%clk 0:00:57.1]} 6. c4 {[%clk 0:00:58]} 6... Nc6 {[%clk 0:00:56.8]} 7. Nc3 {[%clk 0:00:57.6]} 7... e5 {[%clk 0:00:56.2]} 8. dxe5 {[%clk 0:00:57.2]} 8... dxe5 {[%clk 0:00:55.8]} 9. Qxd8 {[%clk 0:00:56.3]} 9... Rxd8 {[%clk 0:00:55.6]} 10. Bg5 {[%clk 0:00:55.7]} 10... Re8 {[%clk 0:00:55.1]} 11. Bxf6 {[%clk 0:00:54.6]} 11... Bxf6 {[%clk 0:00:55]} 12. Nd5 {[%clk 0:00:54.3]} 12... Bd8 {[%clk 0:00:54.6]} 13. Nd2 {[%clk 0:00:54.2]} 13... Kg7 {[%clk 0:00:53.8]} 14. e3 {[%clk 0:00:53.7]} 14... Be6 {[%clk 0:00:53.2]} 15. Rfd1 {[%clk 0:00:53]} 15... Rb8 {[%clk 0:00:52.6]} 16. Ne4 {[%clk 0:00:52.5]} 16... Be7 {[%clk 0:00:49.5]} 17. Nxc7 {[%clk 0:00:50.5]} 17... Rec8 {[%clk 0:00:46.6]} 18. Nxe6+ {[%clk 0:00:49.9]} 18... fxe6 {[%clk 0:00:46.3]} 19. b3 {[%clk 0:00:49.1]} 19... b5 {[%clk 0:00:44.7]} 20. cxb5 {[%clk 0:00:48.3]} 20... Rxb5 {[%clk 0:00:44.6]} 21. Rac1 {[%clk 0:00:47.3]} 21... Rbb8 {[%clk 0:00:43.6]} 22. Rd7 {[%clk 0:00:46.3]} 22... Kf8 {[%clk 0:00:43.3]} 23. Bh3 {[%clk 0:00:44.7]} 23... Nd8 {[%clk 0:00:38.7]} 24. Rxc8 {[%clk 0:00:43.1]} 24... Rxc8 {[%clk 0:00:38.6]} 25. Rxa7 {[%clk 0:00:42.6]} 25... Rc2 {[%clk 0:00:38.3]} 26. a4 {[%clk 0:00:40.6]} 26... h5 {[%clk 0:00:37.6]} 27. a5 {[%clk 0:00:39.7]} 27... g5 {[%clk 0:00:37.3]} 28. a6 {[%clk 0:00:38.6]} 28... g4 {[%clk 0:00:37]} 29. Bf1 {[%clk 0:00:37.8]} 29... Nc6 {[%clk 0:00:36.8]} 30. Rc7 {[%clk 0:00:36.4]} 30... Bd8 {[%clk 0:00:36.7]} 31. a7 {[%clk 0:00:34]} 31... Bxc7 {[%clk 0:00:35.8]} 32. a8=Q+ {[%clk 0:00:33.3]} 32... Ke7 {[%clk 0:00:35.7]} 33. Bb5 {[%clk 0:00:32.2]} 1-0\n",
+        "white_username": "Hikaru",
+        "whiteUsername": "Hikaru",
+        "black_username": "Bryanl106",
+        "blackUsername": "Bryanl106"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057217411",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "black",
+        "color": "black",
+        "result": "win",
+        "opening": "Modern Defence",
+        "end_time": 1777743870,
+        "endTime": 1777743870,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"FairChess_on_YouTube\"]\n[Black \"Hikaru\"]\n[Result \"0-1\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"6k1/3R2P1/p3p3/1p2p2q/4P1n1/2P2rPn/PP3PK1/5N2 w - - 1 32\"]\n[Timezone \"UTC\"]\n[ECO \"B06\"]\n[ECOUrl \"https://www.chess.com/openings/Modern-Defense-Standard-Two-Knights-Variation-4...a6\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:43:13\"]\n[WhiteElo \"3244\"]\n[BlackElo \"3324\"]\n[TimeControl \"60\"]\n[Termination \"Hikaru won by resignation\"]\n[StartTime \"17:43:13\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:44:30\"]\n[Link \"https://www.chess.com/game/live/172057217411\"]\n\n1. e4 {[%clk 0:00:59.4]} 1... g6 {[%clk 0:00:59.9]} 2. Nc3 {[%clk 0:00:58.5]} 2... Bg7 {[%clk 0:00:59.8]} 3. d4 {[%clk 0:00:58.1]} 3... a6 {[%clk 0:00:59.7]} 4. Nf3 {[%clk 0:00:57]} 4... d6 {[%clk 0:00:59.3]} 5. Bc4 {[%clk 0:00:56.2]} 5... b5 {[%clk 0:00:58.6]} 6. Bb3 {[%clk 0:00:55.7]} 6... e6 {[%clk 0:00:57.9]} 7. O-O {[%clk 0:00:55.2]} 7... Ne7 {[%clk 0:00:57.5]} 8. Ne2 {[%clk 0:00:54.8]} 8... O-O {[%clk 0:00:56.7]} 9. Ng3 {[%clk 0:00:54.1]} 9... Nd7 {[%clk 0:00:55.9]} 10. c3 {[%clk 0:00:53.8]} 10... c5 {[%clk 0:00:55.2]} 11. h4 {[%clk 0:00:52.6]} 11... h6 {[%clk 0:00:54.2]} 12. h5 {[%clk 0:00:51.5]} 12... g5 {[%clk 0:00:53.6]} 13. Nxg5 {[%clk 0:00:50.8]} 13... hxg5 {[%clk 0:00:52.8]} 14. Bxg5 {[%clk 0:00:50.7]} 14... cxd4 {[%clk 0:00:51.2]} 15. h6 {[%clk 0:00:49.5]} 15... Bf6 {[%clk 0:00:50.6]} 16. Bxf6 {[%clk 0:00:48.9]} 16... Nxf6 {[%clk 0:00:50.5]} 17. Qxd4 {[%clk 0:00:48.5]} 17... e5 {[%clk 0:00:49.9]} 18. Qe3 {[%clk 0:00:48.1]} 18... Ng6 {[%clk 0:00:49.6]} 19. Rad1 {[%clk 0:00:45.6]} 19... Ng4 {[%clk 0:00:48.6]} 20. Qf3 {[%clk 0:00:43.5]} 20... Qh4 {[%clk 0:00:47.8]} 21. Rfe1 {[%clk 0:00:43]} 21... Nf4 {[%clk 0:00:45.8]} 22. Rxd6 {[%clk 0:00:41.1]} 22... Be6 {[%clk 0:00:43.9]} 23. Red1 {[%clk 0:00:33.2]} 23... Kh8 {[%clk 0:00:42.9]} 24. Nf1 {[%clk 0:00:28.4]} 24... Rg8 {[%clk 0:00:38.4]} 25. g3 {[%clk 0:00:27.9]} 25... Qh5 {[%clk 0:00:37.5]} 26. Bxe6 {[%clk 0:00:26.1]} 26... fxe6 {[%clk 0:00:35.6]} 27. Rd7 {[%clk 0:00:24.8]} 27... Raf8 {[%clk 0:00:34.1]} 28. Rg7 {[%clk 0:00:23.9]} 28... Nh3+ {[%clk 0:00:33.2]} 29. Kg2 {[%clk 0:00:23.3]} 29... Rxf3 {[%clk 0:00:32.8]} 30. Rdd7 {[%clk 0:00:22.6]} 30... Rxg7 {[%clk 0:00:31.6]} 31. hxg7+ {[%clk 0:00:21.6]} 31... Kg8 {[%clk 0:00:30.9]} 0-1\n",
+        "white_username": "FairChess_on_YouTube",
+        "whiteUsername": "FairChess_on_YouTube",
+        "black_username": "Hikaru",
+        "blackUsername": "Hikaru"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057215701",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "white",
+        "color": "white",
+        "result": "win",
+        "opening": "Queen Pawn Game",
+        "end_time": 1777743769,
+        "endTime": 1777743769,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"Hikaru\"]\n[Black \"wonderfultime\"]\n[Result \"1-0\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"4R3/6P1/1p4R1/1kb5/8/4P2P/5PK1/q7 b - - 1 51\"]\n[Timezone \"UTC\"]\n[ECO \"D30\"]\n[ECOUrl \"https://www.chess.com/openings/Queens-Gambit-Declined...5.cxd5-exd5-6.Bb5-Bd7-7.Bxd7\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:41:11\"]\n[WhiteElo \"3317\"]\n[BlackElo \"3248\"]\n[TimeControl \"60\"]\n[Termination \"Hikaru won by resignation\"]\n[StartTime \"17:41:11\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:42:49\"]\n[Link \"https://www.chess.com/game/live/172057215701\"]\n\n1. d4 {[%clk 0:00:59.6]} 1... d5 {[%clk 0:00:59.5]} 2. Nf3 {[%clk 0:00:59.2]} 2... e6 {[%clk 0:00:58.9]} 3. e3 {[%clk 0:00:59.1]} 3... c5 {[%clk 0:00:58.4]} 4. c4 {[%clk 0:00:59]} 4... Nf6 {[%clk 0:00:57.7]} 5. cxd5 {[%clk 0:00:58.5]} 5... exd5 {[%clk 0:00:56.8]} 6. Bb5+ {[%clk 0:00:58.2]} 6... Bd7 {[%clk 0:00:56.2]} 7. Bxd7+ {[%clk 0:00:57.8]} 7... Qxd7 {[%clk 0:00:56.1]} 8. dxc5 {[%clk 0:00:57.4]} 8... Nc6 {[%clk 0:00:55.3]} 9. O-O {[%clk 0:00:57.3]} 9... Bxc5 {[%clk 0:00:54.8]} 10. b3 {[%clk 0:00:57.2]} 10... O-O {[%clk 0:00:52.6]} 11. Bb2 {[%clk 0:00:56.7]} 11... Ne4 {[%clk 0:00:52.3]} 12. Nc3 {[%clk 0:00:56.3]} 12... Rfd8 {[%clk 0:00:51.7]} 13. Rc1 {[%clk 0:00:55.2]} 13... Rab8 {[%clk 0:00:51]} 14. Nxe4 {[%clk 0:00:53.7]} 14... dxe4 {[%clk 0:00:50.7]} 15. Qxd7 {[%clk 0:00:53.3]} 15... Rxd7 {[%clk 0:00:50.1]} 16. Ng5 {[%clk 0:00:53.1]} 16... Bb6 {[%clk 0:00:48.3]} 17. Nxe4 {[%clk 0:00:52.5]} 17... Rbd8 {[%clk 0:00:48]} 18. g4 {[%clk 0:00:51.4]} 18... f6 {[%clk 0:00:45.2]} 19. Bxf6 {[%clk 0:00:49.8]} 19... gxf6 {[%clk 0:00:44.2]} 20. Nxf6+ {[%clk 0:00:49.7]} 20... Kf7 {[%clk 0:00:44]} 21. Nxd7 {[%clk 0:00:49.4]} 21... Rxd7 {[%clk 0:00:43.9]} 22. Rfd1 {[%clk 0:00:49]} 22... Re7 {[%clk 0:00:43.4]} 23. Kg2 {[%clk 0:00:48.1]} 23... Ne5 {[%clk 0:00:43.1]} 24. h3 {[%clk 0:00:47.5]} 24... Kg6 {[%clk 0:00:42]} 25. Rd6+ {[%clk 0:00:46.7]} 25... Kf7 {[%clk 0:00:41.7]} 26. Rcd1 {[%clk 0:00:46]} 26... Bc5 {[%clk 0:00:40.1]} 27. R6d5 {[%clk 0:00:45.1]} 27... b6 {[%clk 0:00:39.8]} 28. Rd8 {[%clk 0:00:41.3]} 28... Ke6 {[%clk 0:00:38.5]} 29. Rf8 {[%clk 0:00:39.4]} 29... Nd7 {[%clk 0:00:36.7]} 30. Rf5 {[%clk 0:00:38.3]} 30... Nf6 {[%clk 0:00:36.4]} 31. Kf3 {[%clk 0:00:36.7]} 31... h6 {[%clk 0:00:35.9]} 32. Ke2 {[%clk 0:00:36.1]} 32... a5 {[%clk 0:00:35.5]} 33. Rd8 {[%clk 0:00:34.5]} 33... Ne4 {[%clk 0:00:34.4]} 34. Rh8 {[%clk 0:00:33.1]} 34... Nc3+ {[%clk 0:00:33.4]} 35. Kd3 {[%clk 0:00:32.2]} 35... Nxa2 {[%clk 0:00:33]} 36. Rxh6+ {[%clk 0:00:31.6]} 36... Kd7 {[%clk 0:00:32.6]} 37. Rfh5 {[%clk 0:00:30.8]} 37... Re8 {[%clk 0:00:28.9]} 38. Rh7+ {[%clk 0:00:29.8]} 38... Kc6 {[%clk 0:00:28.1]} 39. g5 {[%clk 0:00:28.2]} 39... Rd8+ {[%clk 0:00:26.8]} 40. Ke2 {[%clk 0:00:27.1]} 40... Nc1+ {[%clk 0:00:26.4]} 41. Kf1 {[%clk 0:00:26.1]} 41... Nxb3 {[%clk 0:00:26.3]} 42. g6 {[%clk 0:00:25.2]} 42... Nd2+ {[%clk 0:00:25.9]} 43. Kg2 {[%clk 0:00:24.2]} 43... Ne4 {[%clk 0:00:25.8]} 44. g7 {[%clk 0:00:23.1]} 44... Rg8 {[%clk 0:00:25.5]} 45. Re5 {[%clk 0:00:21.6]} 45... Nf6 {[%clk 0:00:24.8]} 46. Re6+ {[%clk 0:00:21.1]} 46... Kb5 {[%clk 0:00:22.2]} 47. Rxf6 {[%clk 0:00:21]} 47... a4 {[%clk 0:00:22.1]} 48. Rg6 {[%clk 0:00:19.9]} 48... a3 {[%clk 0:00:21.6]} 49. Rh8 {[%clk 0:00:19.5]} 49... a2 {[%clk 0:00:21.3]} 50. Rxg8 {[%clk 0:00:19.4]} 50... a1=Q {[%clk 0:00:21.2]} 51. Re8 {[%clk 0:00:18.8]} 1-0\n",
+        "white_username": "Hikaru",
+        "whiteUsername": "Hikaru",
+        "black_username": "wonderfultime",
+        "blackUsername": "wonderfultime"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057215293",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "black",
+        "color": "black",
+        "result": "win",
+        "opening": "R\u00e9ti Opening",
+        "end_time": 1777743661,
+        "endTime": 1777743661,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"NikaVolkov\"]\n[Black \"Hikaru\"]\n[Result \"0-1\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"r1bqr1k1/1p1n1pbp/p4np1/1P6/2Ppp3/2N1P3/P1Q1BPPP/R1B2RK1 w - - 0 14\"]\n[Timezone \"UTC\"]\n[ECO \"E61\"]\n[ECOUrl \"https://www.chess.com/openings/Kings-Indian-Defense-Semi-Classical-Variation...7.O-O-e5-8.Qc2-Re8\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:40:43\"]\n[WhiteElo \"2982\"]\n[BlackElo \"3310\"]\n[TimeControl \"60\"]\n[Termination \"Hikaru won by resignation\"]\n[StartTime \"17:40:43\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:41:01\"]\n[Link \"https://www.chess.com/game/live/172057215293\"]\n\n1. Nf3 {[%clk 0:00:59.7]} 1... g6 {[%clk 0:00:59.7]} 2. e3 {[%clk 0:00:59.6]} 2... Bg7 {[%clk 0:00:59.6]} 3. d4 {[%clk 0:00:59.5]} 3... d6 {[%clk 0:00:59.2]} 4. Be2 {[%clk 0:00:59.4]} 4... Nf6 {[%clk 0:00:59]} 5. O-O {[%clk 0:00:59.3]} 5... O-O {[%clk 0:00:58.9]} 6. c4 {[%clk 0:00:59.2]} 6... Nbd7 {[%clk 0:00:58.8]} 7. Nc3 {[%clk 0:00:59.1]} 7... e5 {[%clk 0:00:58.7]} 8. Qc2 {[%clk 0:00:58.9]} 8... Re8 {[%clk 0:00:58.4]} 9. dxe5 {[%clk 0:00:58.5]} 9... dxe5 {[%clk 0:00:57.8]} 10. b3 {[%clk 0:00:57.7]} 10... e4 {[%clk 0:00:57.4]} 11. Nd4 {[%clk 0:00:56.9]} 11... a6 {[%clk 0:00:57.1]} 12. b4 {[%clk 0:00:53.6]} 12... c5 {[%clk 0:00:56.7]} 13. b5 {[%clk 0:00:52.4]} 13... cxd4 {[%clk 0:00:55.8]} 0-1\n",
+        "white_username": "NikaVolkov",
+        "whiteUsername": "NikaVolkov",
+        "black_username": "Hikaru",
+        "blackUsername": "Hikaru"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057213683",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "white",
+        "color": "white",
+        "result": "loss",
+        "opening": "Modern Defence",
+        "end_time": 1777743619,
+        "endTime": 1777743619,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"Hikaru\"]\n[Black \"bubeliang\"]\n[Result \"0-1\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"8/5p2/8/2R5/3Kp1k1/3p4/P3r3/8 w - - 0 50\"]\n[Timezone \"UTC\"]\n[ECO \"B06\"]\n[ECOUrl \"https://www.chess.com/openings/Modern-Defense-Standard-Line...4.Nf3-d5-5.e5-Bg4\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:38:42\"]\n[WhiteElo \"3308\"]\n[BlackElo \"3094\"]\n[TimeControl \"60\"]\n[Termination \"bubeliang won by resignation\"]\n[StartTime \"17:38:42\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:40:19\"]\n[Link \"https://www.chess.com/game/live/172057213683\"]\n\n1. e4 {[%clk 0:00:58.9]} 1... g6 {[%clk 0:00:59.8]} 2. Nc3 {[%clk 0:00:58.8]} 2... Bg7 {[%clk 0:00:59.7]} 3. d4 {[%clk 0:00:58.2]} 3... c6 {[%clk 0:00:59.6]} 4. Nf3 {[%clk 0:00:57.4]} 4... d5 {[%clk 0:00:59]} 5. e5 {[%clk 0:00:56.8]} 5... Bg4 {[%clk 0:00:58.3]} 6. Be2 {[%clk 0:00:56.5]} 6... Bxf3 {[%clk 0:00:57.3]} 7. Bxf3 {[%clk 0:00:56.4]} 7... e6 {[%clk 0:00:57.2]} 8. h4 {[%clk 0:00:56.1]} 8... Ne7 {[%clk 0:00:57.1]} 9. h5 {[%clk 0:00:55.2]} 9... c5 {[%clk 0:00:56.7]} 10. Ne2 {[%clk 0:00:53.7]} 10... cxd4 {[%clk 0:00:55.1]} 11. Nxd4 {[%clk 0:00:53.3]} 11... Nbc6 {[%clk 0:00:54.2]} 12. c3 {[%clk 0:00:51.1]} 12... Bxe5 {[%clk 0:00:52.6]} 13. Nb3 {[%clk 0:00:50.7]} 13... Qb6 {[%clk 0:00:51.5]} 14. Qe2 {[%clk 0:00:50.3]} 14... Bf6 {[%clk 0:00:50.3]} 15. Bf4 {[%clk 0:00:48.6]} 15... a5 {[%clk 0:00:48.6]} 16. O-O {[%clk 0:00:46.3]} 16... a4 {[%clk 0:00:48.2]} 17. Nc1 {[%clk 0:00:45.7]} 17... a3 {[%clk 0:00:46.5]} 18. Rb1 {[%clk 0:00:44.7]} 18... O-O {[%clk 0:00:44.9]} 19. Nd3 {[%clk 0:00:44.1]} 19... Rfe8 {[%clk 0:00:43.4]} 20. bxa3 {[%clk 0:00:43.3]} 20... Qa5 {[%clk 0:00:42.9]} 21. Rxb7 {[%clk 0:00:42.2]} 21... Qxc3 {[%clk 0:00:41.9]} 22. hxg6 {[%clk 0:00:41.7]} 22... hxg6 {[%clk 0:00:41]} 23. Bg4 {[%clk 0:00:38.5]} 23... Rxa3 {[%clk 0:00:39]} 24. Nc1 {[%clk 0:00:36.6]} 24... Nd4 {[%clk 0:00:37.1]} 25. Qd1 {[%clk 0:00:36.2]} 25... Nef5 {[%clk 0:00:35.9]} 26. Re1 {[%clk 0:00:35.1]} 26... Qc2 {[%clk 0:00:34.8]} 27. Qxc2 {[%clk 0:00:33.3]} 27... Nxc2 {[%clk 0:00:34.7]} 28. Rd1 {[%clk 0:00:32.9]} 28... Ncd4 {[%clk 0:00:34]} 29. Kf1 {[%clk 0:00:32.6]} 29... Nc6 {[%clk 0:00:32.6]} 30. Rb6 {[%clk 0:00:31]} 30... Ne5 {[%clk 0:00:31.8]} 31. Bxf5 {[%clk 0:00:30.2]} 31... gxf5 {[%clk 0:00:31]} 32. Rb3 {[%clk 0:00:29.5]} 32... Rea8 {[%clk 0:00:29.4]} 33. Rxa3 {[%clk 0:00:28.7]} 33... Rxa3 {[%clk 0:00:29.3]} 34. Bxe5 {[%clk 0:00:28]} 34... Bxe5 {[%clk 0:00:29.2]} 35. Nd3 {[%clk 0:00:26.7]} 35... Bf6 {[%clk 0:00:27.8]} 36. Rd2 {[%clk 0:00:26.2]} 36... Bc3 {[%clk 0:00:26.4]} 37. Rc2 {[%clk 0:00:25.6]} 37... e5 {[%clk 0:00:25.9]} 38. Nc5 {[%clk 0:00:25]} 38... d4 {[%clk 0:00:24.9]} 39. f3 {[%clk 0:00:24.6]} 39... Kg7 {[%clk 0:00:23.8]} 40. Ke2 {[%clk 0:00:23.6]} 40... Kf6 {[%clk 0:00:23.3]} 41. g4 {[%clk 0:00:22.2]} 41... fxg4 {[%clk 0:00:22.4]} 42. fxg4 {[%clk 0:00:22]} 42... Kg5 {[%clk 0:00:22.1]} 43. Kd3 {[%clk 0:00:21.2]} 43... Bb4+ {[%clk 0:00:20.6]} 44. Ke4 {[%clk 0:00:20.7]} 44... Bxc5 {[%clk 0:00:19.3]} 45. Rxc5 {[%clk 0:00:20.6]} 45... Re3+ {[%clk 0:00:18.9]} 46. Kd5 {[%clk 0:00:20.2]} 46... d3 {[%clk 0:00:18.6]} 47. Rc3 {[%clk 0:00:19.5]} 47... e4 {[%clk 0:00:17.6]} 48. Kd4 {[%clk 0:00:18.3]} 48... Re2 {[%clk 0:00:17.3]} 49. Rc5+ {[%clk 0:00:17.8]} 49... Kxg4 {[%clk 0:00:16.4]} 0-1\n",
+        "white_username": "Hikaru",
+        "whiteUsername": "Hikaru",
+        "black_username": "bubeliang",
+        "blackUsername": "bubeliang"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172057211083",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "white",
+        "color": "white",
+        "result": "loss",
+        "opening": "Unknown Opening",
+        "end_time": 1777743492,
+        "endTime": 1777743492,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"Hikaru\"]\n[Black \"dropstoneDP\"]\n[Result \"0-1\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"1K6/3r4/4r3/8/8/8/8/7k w - - 12 77\"]\n[Timezone \"UTC\"]\n[ECO \"E17\"]\n[ECOUrl \"https://www.chess.com/openings/Queens-Indian-Defense-Fianchetto-Classical-Kramnik-Variation\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:35:50\"]\n[WhiteElo \"3321\"]\n[BlackElo \"3162\"]\n[TimeControl \"60\"]\n[Termination \"dropstoneDP won on time\"]\n[StartTime \"17:35:50\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:38:12\"]\n[Link \"https://www.chess.com/game/live/172057211083\"]\n\n1. d4 {[%clk 0:00:59.3]} 1... e6 {[%clk 0:00:59.7]} 2. Nf3 {[%clk 0:00:59.2]} 2... Nf6 {[%clk 0:00:59.2]} 3. g3 {[%clk 0:00:58.7]} 3... b6 {[%clk 0:00:58.7]} 4. Bg2 {[%clk 0:00:58.6]} 4... Bb7 {[%clk 0:00:58.4]} 5. O-O {[%clk 0:00:58.5]} 5... Be7 {[%clk 0:00:57.8]} 6. c4 {[%clk 0:00:58.2]} 6... O-O {[%clk 0:00:57.5]} 7. Re1 {[%clk 0:00:57.9]} 7... a5 {[%clk 0:00:56.2]} 8. a3 {[%clk 0:00:56.8]} 8... Qc8 {[%clk 0:00:54.7]} 9. Nc3 {[%clk 0:00:56]} 9... Ne4 {[%clk 0:00:54.3]} 10. Qc2 {[%clk 0:00:54.9]} 10... f5 {[%clk 0:00:53]} 11. Ne5 {[%clk 0:00:53.7]} 11... Nxc3 {[%clk 0:00:52]} 12. bxc3 {[%clk 0:00:53.6]} 12... Bxg2 {[%clk 0:00:51.3]} 13. Kxg2 {[%clk 0:00:53.5]} 13... d6 {[%clk 0:00:50.7]} 14. Nf3 {[%clk 0:00:52.9]} 14... a4 {[%clk 0:00:50]} 15. e4 {[%clk 0:00:52.4]} 15... Nc6 {[%clk 0:00:45.1]} 16. h4 {[%clk 0:00:51.6]} 16... Na5 {[%clk 0:00:40.8]} 17. exf5 {[%clk 0:00:50.7]} 17... Rxf5 {[%clk 0:00:39.8]} 18. Qe4 {[%clk 0:00:50.4]} 18... Nxc4 {[%clk 0:00:36.9]} 19. Qxe6+ {[%clk 0:00:49.2]} 19... Qxe6 {[%clk 0:00:35.9]} 20. Rxe6 {[%clk 0:00:49.1]} 20... Raf8 {[%clk 0:00:34.7]} 21. Bf4 {[%clk 0:00:44.3]} 21... Bd8 {[%clk 0:00:30.7]} 22. Re2 {[%clk 0:00:41.5]} 22... b5 {[%clk 0:00:30.2]} 23. Nd2 {[%clk 0:00:39.1]} 23... Nb6 {[%clk 0:00:28.4]} 24. Be3 {[%clk 0:00:37.1]} 24... Nd5 {[%clk 0:00:27.7]} 25. c4 {[%clk 0:00:36.4]} 25... bxc4 {[%clk 0:00:26.3]} 26. Nxc4 {[%clk 0:00:35.8]} 26... h6 {[%clk 0:00:25.3]} 27. Bd2 {[%clk 0:00:34.4]} 27... g5 {[%clk 0:00:24.5]} 28. hxg5 {[%clk 0:00:33.4]} 28... Bxg5 {[%clk 0:00:24.2]} 29. Rh1 {[%clk 0:00:32.7]} 29... Kg7 {[%clk 0:00:22.2]} 30. Bxg5 {[%clk 0:00:29.1]} 30... hxg5 {[%clk 0:00:22.1]} 31. Nb2 {[%clk 0:00:29]} 31... Nb6 {[%clk 0:00:20.8]} 32. Rc1 {[%clk 0:00:27.2]} 32... R8f7 {[%clk 0:00:20.3]} 33. Rec2 {[%clk 0:00:26.6]} 33... Kg6 {[%clk 0:00:18.2]} 34. Nd3 {[%clk 0:00:25.4]} 34... Nd5 {[%clk 0:00:17]} 35. Rc4 {[%clk 0:00:24.9]} 35... Re7 {[%clk 0:00:16.2]} 36. R1c2 {[%clk 0:00:23.8]} 36... Re4 {[%clk 0:00:14.8]} 37. Rxa4 {[%clk 0:00:22.5]} 37... c5 {[%clk 0:00:14]} 38. Ra6 {[%clk 0:00:21.9]} 38... Rxd4 {[%clk 0:00:13.5]} 39. Rxd6+ {[%clk 0:00:21.3]} 39... Kg7 {[%clk 0:00:13.2]} 40. Nxc5 {[%clk 0:00:20.6]} 40... Ne3+ {[%clk 0:00:11.1]} 41. fxe3 {[%clk 0:00:20.2]} 41... Rxd6 {[%clk 0:00:10.9]} 42. Kh3 {[%clk 0:00:19.9]} 42... Re5 {[%clk 0:00:10.3]} 43. Nb3 {[%clk 0:00:16.7]} 43... Rxe3 {[%clk 0:00:09.4]} 44. Na5 {[%clk 0:00:16.3]} 44... Rdd3 {[%clk 0:00:08.9]} 45. Rg2 {[%clk 0:00:15.9]} 45... Kh6 {[%clk 0:00:08]} 46. Nc4 {[%clk 0:00:15.5]} 46... Re4 {[%clk 0:00:07.6]} 47. Rc2 {[%clk 0:00:14.4]} 47... Kh5 {[%clk 0:00:06.8]} 48. Kg2 {[%clk 0:00:13.1]} 48... Kg4 {[%clk 0:00:05.9]} 49. Kf2 {[%clk 0:00:12.1]} 49... Rxg3 {[%clk 0:00:05.8]} 50. a4 {[%clk 0:00:09.4]} 50... Rf3+ {[%clk 0:00:05.3]} 51. Kg1 {[%clk 0:00:08.7]} 51... Rg3+ {[%clk 0:00:05.2]} 52. Kf1 {[%clk 0:00:07.9]} 52... Kh3 {[%clk 0:00:04.5]} 53. Nd2 {[%clk 0:00:06.5]} 53... Rf4+ {[%clk 0:00:04.4]} 54. Ke2 {[%clk 0:00:06.2]} 54... Rg2+ {[%clk 0:00:04.1]} 55. Kd3 {[%clk 0:00:06.1]} 55... g4 {[%clk 0:00:04]} 56. Rc7 {[%clk 0:00:04.6]} 56... Rg3+ {[%clk 0:00:03.9]} 57. Kc2 {[%clk 0:00:04]} 57... Kh2 {[%clk 0:00:03.8]} 58. Rh7+ {[%clk 0:00:03.8]} 58... Kg2 {[%clk 0:00:03.6]} 59. Rd7 {[%clk 0:00:03.7]} 59... Rf1 {[%clk 0:00:03.4]} 60. a5 {[%clk 0:00:03.6]} 60... Rf2 {[%clk 0:00:03.3]} 61. a6 {[%clk 0:00:03.5]} 61... Re3 {[%clk 0:00:02.9]} 62. a7 {[%clk 0:00:03.3]} 62... Re8 {[%clk 0:00:02.8]} 63. Rb7 {[%clk 0:00:02.8]} 63... Ra8 {[%clk 0:00:02.7]} 64. Rb4 {[%clk 0:00:02.6]} 64... Rxa7 {[%clk 0:00:02.6]} 65. Rxg4+ {[%clk 0:00:02.3]} 65... Kh1 {[%clk 0:00:01.8]} 66. Rc4 {[%clk 0:00:02.2]} 66... Rh2 {[%clk 0:00:01.7]} 67. Rh4 {[%clk 0:00:02]} 67... Rd7 {[%clk 0:00:01.5]} 68. Re4 {[%clk 0:00:01.9]} 68... Rdxd2+ {[%clk 0:00:01.4]} 69. Kc3 {[%clk 0:00:01.4]} 69... Rde2 {[%clk 0:00:01.1]} 70. Kc4 {[%clk 0:00:00.8]} 70... Rxe4+ {[%clk 0:00:01]} 71. Kc5 {[%clk 0:00:00.7]} 71... Rh3 {[%clk 0:00:00.9]} 72. Kc6 {[%clk 0:00:00.6]} 72... Rhh4 {[%clk 0:00:00.8]} 73. Kc7 {[%clk 0:00:00.5]} 73... Rh5 {[%clk 0:00:00.7]} 74. Kb7 {[%clk 0:00:00.4]} 74... Rd5 {[%clk 0:00:00.6]} 75. Kc8 {[%clk 0:00:00.3]} 75... Re6 {[%clk 0:00:00.5]} 76. Kb8 {[%clk 0:00:00.2]} 76... Rd7 {[%clk 0:00:00.4]} 0-1\n",
+        "white_username": "Hikaru",
+        "whiteUsername": "Hikaru",
+        "black_username": "dropstoneDP",
+        "blackUsername": "dropstoneDP"
+      },
+      {
+        "url": "https://www.chess.com/game/live/172056618319",
+        "time_class": "bullet",
+        "timeClass": "bullet",
+        "rated": true,
+        "colour": "black",
+        "color": "black",
+        "result": "win",
+        "opening": "Modern Defence",
+        "end_time": 1777743314,
+        "endTime": 1777743314,
+        "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"2026.05.02\"]\n[Round \"-\"]\n[White \"bubeliang\"]\n[Black \"Hikaru\"]\n[Result \"0-1\"]\n[Tournament \"https://www.chess.com/tournament/live/bullet-brawl-may-02-2026-31144963\"]\n[CurrentPosition \"6k1/3q3p/1p3ppb/P2p4/1p1P4/1N1Q1P2/1rr3PP/R3R1K1 w - - 1 28\"]\n[Timezone \"UTC\"]\n[ECO \"B27\"]\n[ECOUrl \"https://www.chess.com/openings/Sicilian-Defense-Hyperaccelerated-Dragon-Variation...5.cxd4-d5-6.e5-Nc6\"]\n[UTCDate \"2026.05.02\"]\n[UTCTime \"17:34:07\"]\n[WhiteElo \"3088\"]\n[BlackElo \"3333\"]\n[TimeControl \"60\"]\n[Termination \"Hikaru won by resignation\"]\n[StartTime \"17:34:07\"]\n[EndDate \"2026.05.02\"]\n[EndTime \"17:35:14\"]\n[Link \"https://www.chess.com/game/live/172056618319\"]\n\n1. e4 {[%clk 0:00:59.5]} 1... g6 {[%clk 0:00:59.7]} 2. d4 {[%clk 0:00:58.8]} 2... Bg7 {[%clk 0:00:59.6]} 3. c3 {[%clk 0:00:58.4]} 3... c5 {[%clk 0:00:59.3]} 4. Nf3 {[%clk 0:00:57.4]} 4... cxd4 {[%clk 0:00:59]} 5. cxd4 {[%clk 0:00:57.2]} 5... d5 {[%clk 0:00:58.6]} 6. e5 {[%clk 0:00:56.6]} 6... Nc6 {[%clk 0:00:58.1]} 7. Nbd2 {[%clk 0:00:56]} 7... Nh6 {[%clk 0:00:57.3]} 8. Bd3 {[%clk 0:00:55.2]} 8... O-O {[%clk 0:00:56.5]} 9. O-O {[%clk 0:00:54.6]} 9... Nf5 {[%clk 0:00:56.4]} 10. Nb3 {[%clk 0:00:53.1]} 10... a5 {[%clk 0:00:55.4]} 11. a4 {[%clk 0:00:51.8]} 11... Nb4 {[%clk 0:00:54.1]} 12. Bxf5 {[%clk 0:00:51.1]} 12... Bxf5 {[%clk 0:00:53.3]} 13. Ne1 {[%clk 0:00:49]} 13... Rc8 {[%clk 0:00:52.2]} 14. Bd2 {[%clk 0:00:48]} 14... b6 {[%clk 0:00:51.7]} 15. Bc3 {[%clk 0:00:45.9]} 15... f6 {[%clk 0:00:49.8]} 16. Bxb4 {[%clk 0:00:45]} 16... axb4 {[%clk 0:00:49.1]} 17. Nd3 {[%clk 0:00:44.9]} 17... Rc4 {[%clk 0:00:47.2]} 18. Re1 {[%clk 0:00:43.8]} 18... Qd7 {[%clk 0:00:45.5]} 19. exf6 {[%clk 0:00:43.2]} 19... exf6 {[%clk 0:00:44.8]} 20. Nf4 {[%clk 0:00:41.8]} 20... Bc2 {[%clk 0:00:42.3]} 21. Qf3 {[%clk 0:00:40.7]} 21... Be4 {[%clk 0:00:42]} 22. Qe2 {[%clk 0:00:36.6]} 22... Bh6 {[%clk 0:00:40.4]} 23. Nd3 {[%clk 0:00:35.8]} 23... Rfc8 {[%clk 0:00:39.6]} 24. f3 {[%clk 0:00:33.6]} 24... Rc2 {[%clk 0:00:38.8]} 25. Qf1 {[%clk 0:00:33.1]} 25... Bxd3 {[%clk 0:00:37.5]} 26. Qxd3 {[%clk 0:00:33]} 26... Rxb2 {[%clk 0:00:37.2]} 27. a5 {[%clk 0:00:31.3]} 27... Rcc2 {[%clk 0:00:34.7]} 0-1\n",
+        "white_username": "bubeliang",
+        "whiteUsername": "bubeliang",
+        "black_username": "Hikaru",
+        "blackUsername": "Hikaru"
+      }
+    ],
+    "style_profile": {
+      "primaryStyle": "Aggressive Tactical Flexible",
+      "labels": [
+        "Aggressive",
+        "Tactical",
+        "Flexible"
+      ],
+      "summary": "You lean toward active positions and practical initiative. Your games suggest you are comfortable in sharper positions. You seem comfortable transposing between different setups.",
+      "top_opening_families": [
+        "Unknown Opening",
+        "Modern Defence",
+        "Sicilian Defence"
+      ],
+      "topOpeningFamilies": [
+        "Unknown Opening",
+        "Modern Defence",
+        "Sicilian Defence"
+      ],
+      "scores": {
+        "aggressive": 210,
+        "solid": 164,
+        "tactical": 92,
+        "flexible": 319
+      }
+    },
+    "styleProfile": {
+      "primaryStyle": "Aggressive Tactical Flexible",
+      "labels": [
+        "Aggressive",
+        "Tactical",
+        "Flexible"
+      ],
+      "summary": "You lean toward active positions and practical initiative. Your games suggest you are comfortable in sharper positions. You seem comfortable transposing between different setups.",
+      "top_opening_families": [
+        "Unknown Opening",
+        "Modern Defence",
+        "Sicilian Defence"
+      ],
+      "topOpeningFamilies": [
+        "Unknown Opening",
+        "Modern Defence",
+        "Sicilian Defence"
+      ],
+      "scores": {
+        "aggressive": 210,
+        "solid": 164,
+        "tactical": 92,
+        "flexible": 319
+      }
+    },
+    "best_openings": [
+      {
+        "name": "Italian Game",
+        "games": 7,
+        "wins": 7,
+        "draws": 0,
+        "losses": 0,
+        "win_rate": 100.0,
+        "winRate": 100.0,
+        "score": 1.0,
+        "verdict": "Keep"
+      },
+      {
+        "name": "Vienna Game",
+        "games": 5,
+        "wins": 5,
+        "draws": 0,
+        "losses": 0,
+        "win_rate": 100.0,
+        "winRate": 100.0,
+        "score": 1.0,
+        "verdict": "Keep"
+      },
+      {
+        "name": "Queen Pawn Game",
+        "games": 19,
+        "wins": 17,
+        "draws": 2,
+        "losses": 0,
+        "win_rate": 89.5,
+        "winRate": 89.5,
+        "score": 0.95,
+        "verdict": "Keep"
+      },
+      {
+        "name": "Unknown Opening",
+        "games": 250,
+        "wins": 218,
+        "draws": 19,
+        "losses": 13,
+        "win_rate": 87.2,
+        "winRate": 87.2,
+        "score": 0.91,
+        "verdict": "Keep"
+      },
+      {
+        "name": "Modern Defence",
+        "games": 74,
+        "wins": 65,
+        "draws": 2,
+        "losses": 7,
+        "win_rate": 87.8,
+        "winRate": 87.8,
+        "score": 0.89,
+        "verdict": "Keep"
+      },
+      {
+        "name": "Caro-Kann Defence",
+        "games": 15,
+        "wins": 12,
+        "draws": 1,
+        "losses": 2,
+        "win_rate": 80.0,
+        "winRate": 80.0,
+        "score": 0.83,
+        "verdict": "Keep"
+      },
+      {
+        "name": "French Defence",
+        "games": 22,
+        "wins": 17,
+        "draws": 2,
+        "losses": 3,
+        "win_rate": 77.3,
+        "winRate": 77.3,
+        "score": 0.82,
+        "verdict": "Keep"
+      },
+      {
+        "name": "Sicilian Defence",
+        "games": 59,
+        "wins": 44,
+        "draws": 5,
+        "losses": 10,
+        "win_rate": 74.6,
+        "winRate": 74.6,
+        "score": 0.79,
+        "verdict": "Keep"
+      }
+    ],
+    "bestOpenings": [
+      {
+        "name": "Italian Game",
+        "games": 7,
+        "wins": 7,
+        "draws": 0,
+        "losses": 0,
+        "win_rate": 100.0,
+        "winRate": 100.0,
+        "score": 1.0,
+        "verdict": "Keep"
+      },
+      {
+        "name": "Vienna Game",
+        "games": 5,
+        "wins": 5,
+        "draws": 0,
+        "losses": 0,
+        "win_rate": 100.0,
+        "winRate": 100.0,
+        "score": 1.0,
+        "verdict": "Keep"
+      },
+      {
+        "name": "Queen Pawn Game",
+        "games": 19,
+        "wins": 17,
+        "draws": 2,
+        "losses": 0,
+        "win_rate": 89.5,
+        "winRate": 89.5,
+        "score": 0.95,
+        "verdict": "Keep"
+      },
+      {
+        "name": "Unknown Opening",
+        "games": 250,
+        "wins": 218,
+        "draws": 19,
+        "losses": 13,
+        "win_rate": 87.2,
+        "winRate": 87.2,
+        "score": 0.91,
+        "verdict": "Keep"
+      },
+      {
+        "name": "Modern Defence",
+        "games": 74,
+        "wins": 65,
+        "draws": 2,
+        "losses": 7,
+        "win_rate": 87.8,
+        "winRate": 87.8,
+        "score": 0.89,
+        "verdict": "Keep"
+      },
+      {
+        "name": "Caro-Kann Defence",
+        "games": 15,
+        "wins": 12,
+        "draws": 1,
+        "losses": 2,
+        "win_rate": 80.0,
+        "winRate": 80.0,
+        "score": 0.83,
+        "verdict": "Keep"
+      },
+      {
+        "name": "French Defence",
+        "games": 22,
+        "wins": 17,
+        "draws": 2,
+        "losses": 3,
+        "win_rate": 77.3,
+        "winRate": 77.3,
+        "score": 0.82,
+        "verdict": "Keep"
+      },
+      {
+        "name": "Sicilian Defence",
+        "games": 59,
+        "wins": 44,
+        "draws": 5,
+        "losses": 10,
+        "win_rate": 74.6,
+        "winRate": 74.6,
+        "score": 0.79,
+        "verdict": "Keep"
+      }
+    ],
+    "opening_recommendations": {
+      "white": [
+        "Vienna Game",
+        "Italian Game",
+        "Scotch Game",
+        "English Opening",
+        "R\u00e9ti Opening"
+      ],
+      "black": [
+        "Scandinavian Defence",
+        "Sicilian Defence",
+        "King's Indian Defence",
+        "Modern Defence"
+      ],
+      "whiteDetailed": [
+        {
+          "name": "Vienna Game",
+          "reason": "Fits players who like quick development, attacking chances and natural piece play.",
+          "plan": "Develop with Nc3, Bc4 and aim for pressure on the centre or f7.",
+          "mistakeToAvoid": "Do not attack too early before your king is safe.",
+          "difficulty": "Beginner friendly"
+        },
+        {
+          "name": "Italian Game",
+          "reason": "Gives simple development, quick castling and clear attacking ideas.",
+          "plan": "Develop pieces quickly, castle early and build pressure in the centre.",
+          "mistakeToAvoid": "Avoid moving the same piece repeatedly in the opening.",
+          "difficulty": "Beginner friendly"
+        },
+        {
+          "name": "Scotch Game",
+          "reason": "Creates open positions quickly, which suits tactical players.",
+          "plan": "Open the centre early and use active piece development to create threats.",
+          "mistakeToAvoid": "Do not trade into positions where your pieces become passive.",
+          "difficulty": "Easy to learn"
+        },
+        {
+          "name": "English Opening",
+          "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+          "plan": "Control the centre from the side and transpose into comfortable structures.",
+          "mistakeToAvoid": "Do not become too slow or vague with your development.",
+          "difficulty": "Medium"
+        },
+        {
+          "name": "R\u00e9ti Opening",
+          "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+          "plan": "Control the centre from the side and transpose into comfortable structures.",
+          "mistakeToAvoid": "Do not become too slow or vague with your development.",
+          "difficulty": "Medium"
+        }
+      ],
+      "blackDetailed": [
+        {
+          "name": "Scandinavian Defence",
+          "reason": "Good for players who want direct positions and simple development plans.",
+          "plan": "Challenge the centre early, develop quickly and avoid wasting queen moves.",
+          "mistakeToAvoid": "Do not move the queen too many times in the opening.",
+          "difficulty": "Beginner friendly"
+        },
+        {
+          "name": "Sicilian Defence",
+          "reason": "Creates unbalanced games with lots of winning chances.",
+          "plan": "Fight for the centre from the side and look for counterplay instead of copying White.",
+          "mistakeToAvoid": "Do not ignore development while chasing tactics.",
+          "difficulty": "Medium"
+        },
+        {
+          "name": "King's Indian Defence",
+          "reason": "Suits flexible players who like counterattacking setups.",
+          "plan": "Develop with g6, Bg7 and look for a later central or kingside break.",
+          "mistakeToAvoid": "Do not sit passively without creating counterplay.",
+          "difficulty": "Medium"
+        },
+        {
+          "name": "Modern Defence",
+          "reason": "This opening appears in your games and may be worth testing further.",
+          "plan": "Focus on development, king safety and understanding the first pawn break.",
+          "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+          "difficulty": "Unknown"
+        }
+      ]
+    },
+    "openingRecommendations": {
+      "white": [
+        "Vienna Game",
+        "Italian Game",
+        "Scotch Game",
+        "English Opening",
+        "R\u00e9ti Opening"
+      ],
+      "black": [
+        "Scandinavian Defence",
+        "Sicilian Defence",
+        "King's Indian Defence",
+        "Modern Defence"
+      ],
+      "whiteDetailed": [
+        {
+          "name": "Vienna Game",
+          "reason": "Fits players who like quick development, attacking chances and natural piece play.",
+          "plan": "Develop with Nc3, Bc4 and aim for pressure on the centre or f7.",
+          "mistakeToAvoid": "Do not attack too early before your king is safe.",
+          "difficulty": "Beginner friendly"
+        },
+        {
+          "name": "Italian Game",
+          "reason": "Gives simple development, quick castling and clear attacking ideas.",
+          "plan": "Develop pieces quickly, castle early and build pressure in the centre.",
+          "mistakeToAvoid": "Avoid moving the same piece repeatedly in the opening.",
+          "difficulty": "Beginner friendly"
+        },
+        {
+          "name": "Scotch Game",
+          "reason": "Creates open positions quickly, which suits tactical players.",
+          "plan": "Open the centre early and use active piece development to create threats.",
+          "mistakeToAvoid": "Do not trade into positions where your pieces become passive.",
+          "difficulty": "Easy to learn"
+        },
+        {
+          "name": "English Opening",
+          "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+          "plan": "Control the centre from the side and transpose into comfortable structures.",
+          "mistakeToAvoid": "Do not become too slow or vague with your development.",
+          "difficulty": "Medium"
+        },
+        {
+          "name": "R\u00e9ti Opening",
+          "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+          "plan": "Control the centre from the side and transpose into comfortable structures.",
+          "mistakeToAvoid": "Do not become too slow or vague with your development.",
+          "difficulty": "Medium"
+        }
+      ],
+      "blackDetailed": [
+        {
+          "name": "Scandinavian Defence",
+          "reason": "Good for players who want direct positions and simple development plans.",
+          "plan": "Challenge the centre early, develop quickly and avoid wasting queen moves.",
+          "mistakeToAvoid": "Do not move the queen too many times in the opening.",
+          "difficulty": "Beginner friendly"
+        },
+        {
+          "name": "Sicilian Defence",
+          "reason": "Creates unbalanced games with lots of winning chances.",
+          "plan": "Fight for the centre from the side and look for counterplay instead of copying White.",
+          "mistakeToAvoid": "Do not ignore development while chasing tactics.",
+          "difficulty": "Medium"
+        },
+        {
+          "name": "King's Indian Defence",
+          "reason": "Suits flexible players who like counterattacking setups.",
+          "plan": "Develop with g6, Bg7 and look for a later central or kingside break.",
+          "mistakeToAvoid": "Do not sit passively without creating counterplay.",
+          "difficulty": "Medium"
+        },
+        {
+          "name": "Modern Defence",
+          "reason": "This opening appears in your games and may be worth testing further.",
+          "plan": "Focus on development, king safety and understanding the first pawn break.",
+          "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+          "difficulty": "Unknown"
+        }
+      ]
+    },
+    "recommendedOpenings": {
+      "white": [
+        "Vienna Game",
+        "Italian Game",
+        "Scotch Game",
+        "English Opening",
+        "R\u00e9ti Opening"
+      ],
+      "black": [
+        "Scandinavian Defence",
+        "Sicilian Defence",
+        "King's Indian Defence",
+        "Modern Defence"
+      ],
+      "whiteDetailed": [
+        {
+          "name": "Vienna Game",
+          "reason": "Fits players who like quick development, attacking chances and natural piece play.",
+          "plan": "Develop with Nc3, Bc4 and aim for pressure on the centre or f7.",
+          "mistakeToAvoid": "Do not attack too early before your king is safe.",
+          "difficulty": "Beginner friendly"
+        },
+        {
+          "name": "Italian Game",
+          "reason": "Gives simple development, quick castling and clear attacking ideas.",
+          "plan": "Develop pieces quickly, castle early and build pressure in the centre.",
+          "mistakeToAvoid": "Avoid moving the same piece repeatedly in the opening.",
+          "difficulty": "Beginner friendly"
+        },
+        {
+          "name": "Scotch Game",
+          "reason": "Creates open positions quickly, which suits tactical players.",
+          "plan": "Open the centre early and use active piece development to create threats.",
+          "mistakeToAvoid": "Do not trade into positions where your pieces become passive.",
+          "difficulty": "Easy to learn"
+        },
+        {
+          "name": "English Opening",
+          "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+          "plan": "Control the centre from the side and transpose into comfortable structures.",
+          "mistakeToAvoid": "Do not become too slow or vague with your development.",
+          "difficulty": "Medium"
+        },
+        {
+          "name": "R\u00e9ti Opening",
+          "reason": "Fits flexible players who like choosing the structure after seeing the opponent's setup.",
+          "plan": "Control the centre from the side and transpose into comfortable structures.",
+          "mistakeToAvoid": "Do not become too slow or vague with your development.",
+          "difficulty": "Medium"
+        }
+      ],
+      "blackDetailed": [
+        {
+          "name": "Scandinavian Defence",
+          "reason": "Good for players who want direct positions and simple development plans.",
+          "plan": "Challenge the centre early, develop quickly and avoid wasting queen moves.",
+          "mistakeToAvoid": "Do not move the queen too many times in the opening.",
+          "difficulty": "Beginner friendly"
+        },
+        {
+          "name": "Sicilian Defence",
+          "reason": "Creates unbalanced games with lots of winning chances.",
+          "plan": "Fight for the centre from the side and look for counterplay instead of copying White.",
+          "mistakeToAvoid": "Do not ignore development while chasing tactics.",
+          "difficulty": "Medium"
+        },
+        {
+          "name": "King's Indian Defence",
+          "reason": "Suits flexible players who like counterattacking setups.",
+          "plan": "Develop with g6, Bg7 and look for a later central or kingside break.",
+          "mistakeToAvoid": "Do not sit passively without creating counterplay.",
+          "difficulty": "Medium"
+        },
+        {
+          "name": "Modern Defence",
+          "reason": "This opening appears in your games and may be worth testing further.",
+          "plan": "Focus on development, king safety and understanding the first pawn break.",
+          "mistakeToAvoid": "Do not judge it from one game. Build a small sample before deciding.",
+          "difficulty": "Unknown"
+        }
+      ]
+    },
+    "training_plan": [
+      "As White, play Unknown Opening for your next 10 to 15 games.",
+      "As Black, stick with Unknown Opening and learn the first 6 to 8 moves well.",
+      "Keep building around Italian Game. It is currently your best practical opening.",
+      "Study 2 tactical motifs from your main openings and look for initiative before material.",
+      "After each game, review where tactics first appeared rather than only the final blunder.",
+      "Choose one main line and one backup line so flexibility does not become inconsistency."
+    ],
+    "trainingPlan": [
+      "As White, play Unknown Opening for your next 10 to 15 games.",
+      "As Black, stick with Unknown Opening and learn the first 6 to 8 moves well.",
+      "Keep building around Italian Game. It is currently your best practical opening.",
+      "Study 2 tactical motifs from your main openings and look for initiative before material.",
+      "After each game, review where tactics first appeared rather than only the final blunder.",
+      "Choose one main line and one backup line so flexibility does not become inconsistency."
+    ],
+    "lastUpdated": "2026-05-03T11:40:00.308011+00:00",
+    "isPremium": false,
+    "lockedFeatures": [
+      "Full opening ranking",
+      "Full Keep / Improve / Avoid report",
+      "Saved import history",
+      "Advanced training plan",
+      "More months of game history",
+      "Opponent-specific prep",
+      "Future Stockfish analysis"
+    ],
+    "premiumPreview": {
+      "title": "Unlock full opening report",
+      "best_opening_for_you": [
+        {
+          "name": "Italian Game",
+          "games": 7,
+          "wins": 7,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 100.0,
+          "winRate": 100.0,
+          "score": 1.0,
+          "verdict": "Keep"
+        },
+        {
+          "name": "Vienna Game",
+          "games": 5,
+          "wins": 5,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 100.0,
+          "winRate": 100.0,
+          "score": 1.0,
+          "verdict": "Keep"
+        },
+        {
+          "name": "Queen Pawn Game",
+          "games": 19,
+          "wins": 17,
+          "draws": 2,
+          "losses": 0,
+          "win_rate": 89.5,
+          "winRate": 89.5,
+          "score": 0.95,
+          "verdict": "Keep"
+        }
+      ],
+      "style_profile_summary": "You lean toward active positions and practical initiative. Your games suggest you are comfortable in sharper positions. You seem comfortable transposing between different setups.",
+      "premium_features": [
+        "Full opening ranking",
+        "Keep / Improve / Avoid engine",
+        "Training plan by style",
+        "Opening recommendations",
+        "More months of game history",
+        "Opponent-specific prep",
+        "Future Stockfish analysis"
+      ]
+    },
+    "premium_preview": {
+      "title": "Unlock full opening report",
+      "best_opening_for_you": [
+        {
+          "name": "Italian Game",
+          "games": 7,
+          "wins": 7,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 100.0,
+          "winRate": 100.0,
+          "score": 1.0,
+          "verdict": "Keep"
+        },
+        {
+          "name": "Vienna Game",
+          "games": 5,
+          "wins": 5,
+          "draws": 0,
+          "losses": 0,
+          "win_rate": 100.0,
+          "winRate": 100.0,
+          "score": 1.0,
+          "verdict": "Keep"
+        },
+        {
+          "name": "Queen Pawn Game",
+          "games": 19,
+          "wins": 17,
+          "draws": 2,
+          "losses": 0,
+          "win_rate": 89.5,
+          "winRate": 89.5,
+          "score": 0.95,
+          "verdict": "Keep"
+        }
+      ],
+      "style_profile_summary": "You lean toward active positions and practical initiative. Your games suggest you are comfortable in sharper positions. You seem comfortable transposing between different setups.",
+      "premium_features": [
+        "Full opening ranking",
+        "Keep / Improve / Avoid engine",
+        "Training plan by style",
+        "Opening recommendations",
+        "More months of game history",
+        "Opponent-specific prep",
+        "Future Stockfish analysis"
+      ]
+    }
+  }
+}
