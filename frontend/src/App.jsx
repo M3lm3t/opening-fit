@@ -633,9 +633,22 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
     setOpen(false);
 
     setTimeout(() => {
-      const el = document.getElementById("app-results") || document.getElementById("app-dashboard");
+      const viewTargets = {
+        overview: "section-fit",
+        recommendations: "section-recommendations",
+        training: "section-training",
+        games: "section-replay",
+        data: "section-chart",
+        feedback: "feedback",
+      };
+
+      const el =
+        document.getElementById(viewTargets[view]) ||
+        document.getElementById("app-results") ||
+        document.getElementById("app-dashboard");
+
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
+    }, 120);
   };
 
   return (
@@ -1513,6 +1526,19 @@ export default function App() {
   };
 
   const scrollToResults = () => scrollToId("app-results");
+
+  const scrollToActiveView = (view) => {
+    const viewTargets = {
+      overview: "section-fit",
+      recommendations: "section-recommendations",
+      training: "section-training",
+      games: "section-replay",
+      data: "section-chart",
+      feedback: "feedback",
+    };
+
+    scrollToId(viewTargets[view] || "app-results");
+  };
 
   const loadLocalAnalysis = () => {
     const savedAnalysis = localStorage.getItem(STORAGE_KEY);
@@ -2500,9 +2526,8 @@ export default function App() {
                   setActiveView(view);
 
                   setTimeout(() => {
-                    const el = document.getElementById("app-results");
-                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }, 80);
+                    scrollToActiveView(view);
+                  }, 120);
                 }}
               />
 
