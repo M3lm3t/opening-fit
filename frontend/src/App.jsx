@@ -638,44 +638,52 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
 
   const mainItems = [
     { label: "Import", target: "app-dashboard" },
-    { label: "Repertoire Plan", target: "repertoire-plan" },
     { label: "Ratings", target: "rating-openings" },
     { label: "Premium", target: "premium" },
     { label: "Feedback", target: "feedback" },
   ];
 
-  const appViews = [
-    { key: "overview", label: "Overview" },
-    { key: "recommendations", label: "Recommendations" },
-    { key: "training", label: "Training" },
-    { key: "games", label: "Games" },
-    { key: "data", label: "Data" },
-    { key: "feedback", label: "Feedback" },
+  const reportItems = [
+    { key: "overview", label: "Fit Score", target: "section-fit" },
+    { key: "overview", label: "Style Profile", target: "section-style" },
+    { key: "recommendations", label: "Opening Suggestions", target: "section-recommendations" },
+    { key: "recommendations", label: "Keep / Improve / Avoid", target: "section-verdicts" },
+    { key: "recommendations", label: "Preferred Openings", target: "section-preferred" },
+    { key: "data", label: "Opening Win Rate", target: "section-chart" },
+    { key: "data", label: "Top Openings Table", target: "section-top" },
+    { key: "training", label: "Training Plan", target: "section-training" },
+    { key: "games", label: "Game Replay", target: "section-replay" },
+    { key: "overview", label: "Repertoire Plan", target: "repertoire-plan" },
   ];
 
   const mainOpening = data?.top_openings?.[0]?.name;
 
-  const handleView = (view) => {
-    onViewChange(view);
+  const handleMainJump = (target) => {
+    if (target === "feedback") {
+      onViewChange("feedback");
+      setOpen(false);
+
+      setTimeout(() => {
+        const el =
+          document.getElementById("feedback") ||
+          document.getElementById("feedback-static");
+
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 140);
+
+      return;
+    }
+
+    onJump(target);
+    setOpen(false);
+  };
+
+  const handleReportJump = (item) => {
+    onViewChange(item.key);
     setOpen(false);
 
-    setTimeout(() => {
-      const viewTargets = {
-        overview: "section-fit",
-        recommendations: "section-recommendations",
-        training: "section-training",
-        games: "section-replay",
-        data: "section-chart",
-        feedback: "feedback",
-      };
-
-      const el =
-        document.getElementById(viewTargets[view]) ||
-        document.getElementById("app-results") ||
-        document.getElementById("app-dashboard");
-
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 120);
+    setTimeout(() => onJump(item.target), 180);
+    setTimeout(() => onJump(item.target), 360);
   };
 
   return (
@@ -704,36 +712,23 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
               <button
                 key={item.target}
                 type="button"
-                onClick={() => {
-                  if (item.target === "feedback") {
-                    onViewChange("feedback");
-
-                    setTimeout(() => {
-                      const el = document.getElementById("feedback");
-                      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }, 80);
-                  } else {
-                    onJump(item.target);
-                  }
-
-                  setOpen(false);
-                }}
+                onClick={() => handleMainJump(item.target)}
               >
                 {item.label}
               </button>
             ))}
           </div>
 
-          {data || activeView === "feedback" ? (
+          {data ? (
             <>
-              <p className="floatingMenuLabel">Report pages</p>
+              <p className="floatingMenuLabel">Report sections</p>
               <div className="floatingMenuButtons floatingMenuButtonsSingle">
-                {appViews.map((item) => (
+                {reportItems.map((item) => (
                   <button
-                    key={item.key}
+                    key={`${item.key}-${item.target}`}
                     type="button"
                     className={activeView === item.key ? "floatingMenuActiveItem" : ""}
-                    onClick={() => handleView(item.key)}
+                    onClick={() => handleReportJump(item)}
                   >
                     {item.label}
                   </button>
@@ -755,7 +750,7 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
             </>
           ) : (
             <p className="floatingMenuHint">
-              Import games first to unlock report pages.
+              Import games first to unlock report sections.
             </p>
           )}
         </div>
@@ -1672,6 +1667,26 @@ export default function App() {
   };
 
   const jumpToSection = (target) => {
+    const viewByTarget = {
+      "section-fit": "overview",
+      "section-style": "overview",
+      "repertoire-plan": "overview",
+      "section-recommendations": "recommendations",
+      "section-verdicts": "recommendations",
+      "section-preferred": "recommendations",
+      "section-chart": "data",
+      "section-top": "data",
+      "section-training": "training",
+      "section-replay": "games",
+      feedback: "feedback",
+    };
+
+    const nextView = viewByTarget[target];
+
+    if (nextView) {
+      setActiveView(nextView);
+    }
+
     const sectionKey = target.replace("section-", "");
 
     if (closedSections[sectionKey] !== undefined) {
@@ -1681,26 +1696,24 @@ export default function App() {
       }));
     }
 
-    setTimeout(() => {
-      const el = document.getElementById(target);
+    const scroll = () => {
+      const el =
+        document.getElementById(target) ||
+        document.getElementById("app-results") ||
+        document.getElementById("app-dashboard");
 
-      if (el) {
-        const y = el.getBoundingClientRect().top + window.scrollY - 18;
-        window.scrollTo({
-          top: Math.max(y, 0),
-          behavior: "smooth",
-        });
-        return;
-      }
+      if (!el) return;
 
-      const fallback = document.getElementById("app-dashboard");
-      if (fallback) {
-        fallback.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }
-    }, 160);
+      const y = el.getBoundingClientRect().top + window.scrollY - 18;
+
+      window.scrollTo({
+        top: Math.max(y, 0),
+        behavior: "smooth",
+      });
+    };
+
+    setTimeout(scroll, 180);
+    setTimeout(scroll, 380);
   };
 
   const startOpeningPractice = (openingName) => {
