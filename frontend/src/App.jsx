@@ -8,6 +8,7 @@ import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
 import OpeningSnapshot from "./components/OpeningSnapshot";
 import OpeningPracticeLinesPanel from "./components/OpeningPracticeLinesPanel";
+import OpeningReportActions from "./components/OpeningReportActions";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
@@ -2562,6 +2563,14 @@ export default function App() {
               <OpeningPracticeLinesPanel
                 opening={selectedPracticeOpening}
                 onClose={() => setSelectedPracticeOpening(null)}
+              />
+
+              <OpeningReportActions
+                username={data?.username || data?.playerName || data?.player || ""}
+                platform={data?.platform || data?.source || ""}
+                gamesImported={data?.gamesImported || data?.games_imported || data?.totalGames || data?.games?.length || 0}
+                openings={allOpeningsForSnapshot}
+                fitData={fitData}
               />
 
               {activeView === "overview" ? (
