@@ -9,6 +9,7 @@ import OpeningDetailsModal from "./components/OpeningDetailsModal";
 import OpeningSnapshot from "./components/OpeningSnapshot";
 import OpeningPracticeLinesPanel from "./components/OpeningPracticeLinesPanel";
 import OpeningReportActions from "./components/OpeningReportActions";
+import OpeningComparison from "./components/OpeningComparison";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
@@ -2572,6 +2573,7 @@ export default function App() {
                 openings={allOpeningsForSnapshot}
                 fitData={fitData}
               />
+              <OpeningComparison data={data} username={username} platform={platform} />
 
               {activeView === "overview" ? (
                 <>
