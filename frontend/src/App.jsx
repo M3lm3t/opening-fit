@@ -3386,6 +3386,17 @@ export default function App() {
       <OpeningDetailsModal
         opening={selectedOpening}
         onClose={() => setSelectedOpening(null)}
+        onReview={() => {
+          setActiveView("games");
+          setOpenSections((current) => ({
+            ...current,
+            replay: true,
+          }));
+
+          setTimeout(() => {
+            scrollToId("section-replay");
+          }, 120);
+        }}
       />
 
       <Analytics />

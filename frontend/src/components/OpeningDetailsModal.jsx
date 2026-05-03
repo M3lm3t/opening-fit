@@ -1,4 +1,4 @@
-export default function OpeningDetailsModal({ opening, onClose }) {
+export default function OpeningDetailsModal({ opening, onClose, onReview }) {
   if (!opening) return null;
 
   const name =
@@ -101,6 +101,17 @@ export default function OpeningDetailsModal({ opening, onClose }) {
           <h3>What this means</h3>
           <p>{opening.fitExplanation || getMeaning()}</p>
         </div>
+
+        <button
+          className="reviewOpeningButton"
+          type="button"
+          onClick={() => {
+            onClose?.();
+            onReview?.(name);
+          }}
+        >
+          Review this opening
+        </button>
 
         <div className="openingPremiumPreview">
           <p className="eyebrow">Future premium detail</p>
