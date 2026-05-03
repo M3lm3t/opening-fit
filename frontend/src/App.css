@@ -4477,3 +4477,8 @@ th {
     flex-direction: column;
   }
 }
+
+/* Use the floating burger menu as the main report navigation */
+.appTabsCard {
+  display: none;
+}
