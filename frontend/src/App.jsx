@@ -672,7 +672,7 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
             ))}
           </div>
 
-          {data ? (
+          {data || activeView === "feedback" ? (
             <>
               <p className="floatingMenuLabel">Report pages</p>
               <div className="floatingMenuButtons floatingMenuButtonsSingle">
