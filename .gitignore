@@ -1,2 +1,10 @@
-__pycache__/
-*.pyc
+node_modules/
+frontend/node_modules/
+backend/__pycache__/
+backend/data/analytics.jsonl
+backend/data/profiles/
+.env
+.env.local
+frontend/.env
+frontend/.env.local
+frontend/dist/
