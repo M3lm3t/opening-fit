@@ -4011,3 +4011,148 @@ th {
     flex: 1 1 auto;
   }
 }
+
+/* Opening comparison sharing */
+
+.openingCompareCard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 34%),
+    rgba(15, 23, 42, 0.88);
+}
+
+.compareHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.compareHeader h2 {
+  margin: 0 0 8px;
+}
+
+.compareHeader p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.compareShareButton {
+  white-space: nowrap;
+}
+
+.compareStatus {
+  margin: 14px 0 0;
+  color: #bfdbfe;
+  font-weight: 700;
+}
+
+.comparePreviewBox,
+.compareActiveBox {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(2, 6, 23, 0.34);
+}
+
+.comparePreviewBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.comparePreviewBox span,
+.compareActiveBox p {
+  color: var(--text-soft);
+}
+
+.compareActiveBox h3 {
+  margin: 0 0 14px;
+}
+
+.styleMatchBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 16px;
+  padding: 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.28), rgba(34, 197, 94, 0.16));
+  border: 1px solid rgba(96, 165, 250, 0.22);
+}
+
+.styleMatchBox span {
+  color: var(--text-soft);
+  font-weight: 700;
+}
+
+.styleMatchBox strong {
+  font-size: clamp(2rem, 6vw, 3.3rem);
+  line-height: 1;
+}
+
+.compareGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.compareMiniPanel {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.76);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.compareMiniPanel h4 {
+  margin: 0 0 12px;
+}
+
+.compareOpeningList {
+  display: grid;
+  gap: 8px;
+}
+
+.compareOpeningRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.34);
+}
+
+.compareOpeningRow span {
+  color: var(--text-soft);
+}
+
+.compareOpeningRow strong {
+  color: #bfdbfe;
+}
+
+.compareEmpty,
+.compareError {
+  margin: 0;
+}
+
+.compareError {
+  color: #fecaca;
+}
+
+@media (max-width: 720px) {
+  .compareHeader {
+    flex-direction: column;
+  }
+
+  .compareShareButton {
+    width: 100%;
+  }
+
+  .compareGrid {
+    grid-template-columns: 1fr;
+  }
+}
