@@ -7,6 +7,7 @@ import LandingModal from "./components/LandingModal";
 import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
 import OpeningSnapshot from "./components/OpeningSnapshot";
+import OpeningPracticeLinesPanel from "./components/OpeningPracticeLinesPanel";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
@@ -1285,6 +1286,7 @@ export default function App() {
   const [activeView, setActiveView] = useState("overview");
   const [showLanding, setShowLanding] = useState(true);
   const [selectedOpening, setSelectedOpening] = useState(null);
+  const [selectedPracticeOpening, setSelectedPracticeOpening] = useState(null);
 
   useEffect(() => {
     const savedUsername = localStorage.getItem(USERNAME_KEY);
@@ -2557,6 +2559,11 @@ export default function App() {
                 onSelectOpening={setSelectedOpening}
               />
 
+              <OpeningPracticeLinesPanel
+                opening={selectedPracticeOpening}
+                onClose={() => setSelectedPracticeOpening(null)}
+              />
+
               {activeView === "overview" ? (
                 <>
                   <div id="section-fit">
@@ -3396,6 +3403,18 @@ export default function App() {
           setTimeout(() => {
             scrollToId("section-replay");
           }, 120);
+        }}
+              onPracticeLines={(opening) => {
+          setSelectedPracticeOpening(opening || selectedOpening);
+          setActiveView("training");
+          setOpenSections((current) => ({
+            ...current,
+            training: true,
+          }));
+
+          setTimeout(() => {
+            scrollToId("practice-main-lines");
+          }, 140);
         }}
       />
 

@@ -3591,3 +3591,219 @@ th {
 .reviewOpeningButton:hover {
   transform: translateY(-1px);
 }
+
+/* Opening practice lines */
+
+.openingModalActions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.practiceLinesButton {
+  width: 100%;
+  border: 0;
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(34, 197, 94, 0.2);
+}
+
+.practiceLinesButton:hover {
+  transform: translateY(-1px);
+}
+
+.practiceLinesPanel {
+  margin: 1rem 0 1.25rem;
+  scroll-margin-top: 90px;
+}
+
+.practiceLinesHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.practiceLinesHeader h2 {
+  margin: 0.15rem 0 0;
+}
+
+.practiceCloseButton {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text);
+  font-size: 1.5rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.practiceLineChoices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.practiceLineChoice {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.72);
+  color: inherit;
+  text-align: left;
+  border-radius: 16px;
+  padding: 0.85rem;
+  cursor: pointer;
+}
+
+.practiceLineChoice.active {
+  border-color: rgba(34, 197, 94, 0.55);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.practiceLineChoice span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-bottom: 0.3rem;
+}
+
+.practiceLineChoice strong {
+  display: block;
+  line-height: 1.25;
+}
+
+.practiceTrainerBox {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr;
+  gap: 1rem;
+  align-items: stretch;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.58);
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.practiceTrainerBox h3 {
+  margin: 0.15rem 0 0.4rem;
+}
+
+.practiceTrainerBox p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.practiceMovePrompt {
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.55);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.practiceMovePrompt span,
+.practiceMovePrompt small {
+  color: var(--muted);
+}
+
+.practiceMovePrompt strong {
+  font-size: 1.6rem;
+  margin: 0.25rem 0;
+}
+
+.practiceMoveList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 1rem 0;
+}
+
+.practiceMoveChip {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.7);
+  color: var(--text-soft);
+  border-radius: 999px;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+}
+
+.practiceMoveChip span {
+  color: var(--muted);
+  margin-right: 0.3rem;
+}
+
+.practiceMoveChip.done {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.1);
+  color: #bbf7d0;
+}
+
+.practiceMoveChip.current {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(96, 165, 250, 0.12);
+  color: #bfdbfe;
+}
+
+.practiceControls {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.practiceControls button {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.78);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.practiceControls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.practiceControls .primaryPracticeControl {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  border: 0;
+}
+
+.practiceComingSoon {
+  border: 1px solid rgba(250, 204, 21, 0.2);
+  background: rgba(250, 204, 21, 0.08);
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.practiceComingSoon h3 {
+  margin: 0 0 0.4rem;
+}
+
+.practiceComingSoon p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+@media (max-width: 760px) {
+  .practiceLineChoices,
+  .practiceTrainerBox {
+    grid-template-columns: 1fr;
+  }
+
+  .practiceMovePrompt strong {
+    font-size: 1.35rem;
+  }
+}

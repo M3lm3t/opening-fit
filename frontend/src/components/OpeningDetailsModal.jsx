@@ -1,4 +1,4 @@
-export default function OpeningDetailsModal({ opening, onClose, onReview }) {
+export default function OpeningDetailsModal({ opening, onClose, onReview, onPracticeLines }) {
   if (!opening) return null;
 
   const name =
@@ -102,16 +102,29 @@ export default function OpeningDetailsModal({ opening, onClose, onReview }) {
           <p>{opening.fitExplanation || getMeaning()}</p>
         </div>
 
-        <button
-          className="reviewOpeningButton"
-          type="button"
-          onClick={() => {
-            onClose?.();
-            onReview?.(name);
-          }}
-        >
-          Review this opening
-        </button>
+        <div className="openingModalActions">
+          <button
+            className="practiceLinesButton"
+            type="button"
+            onClick={() => {
+              onClose?.();
+              onPracticeLines?.(opening);
+            }}
+          >
+            Practice 3 main lines
+          </button>
+
+          <button
+            className="reviewOpeningButton"
+            type="button"
+            onClick={() => {
+              onClose?.();
+              onReview?.(name);
+            }}
+          >
+            Review this opening
+          </button>
+        </div>
 
         <div className="openingPremiumPreview">
           <p className="eyebrow">Future premium detail</p>
