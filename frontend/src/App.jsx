@@ -2123,7 +2123,6 @@ export default function App() {
     if (Array.isArray(filteredBestOpenings)) combined.push(...filteredBestOpenings);
     if (Array.isArray(filteredPreferredWhite)) combined.push(...filteredPreferredWhite);
     if (Array.isArray(filteredPreferredBlack)) combined.push(...filteredPreferredBlack);
-    if (Array.isArray(fitData?.scoredOpenings)) combined.push(...fitData.scoredOpenings);
 
     const merged = new Map();
 
@@ -2132,18 +2131,51 @@ export default function App() {
       if (isUnknownOpeningName(name)) return;
 
       const key = name.toLowerCase();
-      const existing = merged.get(key);
 
-      if (!existing || getOpeningGames(opening) > getOpeningGames(existing)) {
+      if (!merged.has(key)) {
         merged.set(key, {
           ...opening,
           name,
           games: getOpeningGames(opening),
           win_rate: getWinRate(opening),
-          verdict: opening.fitVerdict || opening.verdict || getOpeningVerdict(opening, opening.fitScore || 50),
+        });
+        return;
+      }
+
+      const existing = merged.get(key);
+
+      if (getOpeningGames(opening) > getOpeningGames(existing)) {
+        merged.set(key, {
+          ...existing,
+          ...opening,
+          name,
+          games: getOpeningGames(opening),
+          win_rate: getWinRate(opening),
         });
       }
     });
+
+    if (Array.isArray(fitData?.scoredOpenings)) {
+      fitData.scoredOpenings.forEach((opening) => {
+        const name = getOpeningName(opening);
+        if (isUnknownOpeningName(name)) return;
+
+        const key = name.toLowerCase();
+        const existing = merged.get(key) || {};
+
+        merged.set(key, {
+          ...existing,
+          ...opening,
+          name,
+          games: getOpeningGames(opening) || getOpeningGames(existing),
+          win_rate: getWinRate(opening) || getWinRate(existing),
+          fitScore: opening.fitScore,
+          fitVerdict: opening.fitVerdict,
+          verdict: opening.fitVerdict,
+          fitExplanation: opening.fitExplanation,
+        });
+      });
+    }
 
     return Array.from(merged.values());
   }, [

@@ -15,12 +15,19 @@ function getFitScore(opening) {
 }
 
 function getVerdict(opening) {
-  return opening?.fitVerdict || opening?.verdict || opening?.recommendation || "";
+  return opening?.fitVerdict || opening?.fit_verdict || opening?.verdict || "";
 }
 
-function isBadVerdict(opening) {
-  const verdict = String(getVerdict(opening)).toLowerCase();
-  return verdict.includes("avoid");
+function isAvoid(opening) {
+  return String(getVerdict(opening)).toLowerCase().includes("avoid");
+}
+
+function isKeep(opening) {
+  return String(getVerdict(opening)).toLowerCase().includes("keep");
+}
+
+function isImprove(opening) {
+  return String(getVerdict(opening)).toLowerCase().includes("improve");
 }
 
 export default function OpeningSnapshot({ openings = [], onSelectOpening }) {
@@ -30,24 +37,29 @@ export default function OpeningSnapshot({ openings = [], onSelectOpening }) {
 
   if (!usableOpenings.length) return null;
 
-  const repeatedOpenings = usableOpenings.filter((opening) => getGames(opening) >= 2);
+  const reliableOpenings = usableOpenings.filter((opening) => getGames(opening) >= 2);
+  const pool = reliableOpenings.length ? reliableOpenings : usableOpenings;
 
-  const reliableOpenings = repeatedOpenings.length ? repeatedOpenings : usableOpenings;
-
-  const strongestCandidates = reliableOpenings.filter((opening) => !isBadVerdict(opening));
+  const keepOpenings = pool.filter(isKeep);
+  const improveOpenings = pool.filter(isImprove);
+  const avoidOpenings = pool.filter(isAvoid);
 
   const strongest =
-    (strongestCandidates.length ? strongestCandidates : reliableOpenings)
+    (keepOpenings.length ? keepOpenings : improveOpenings.length ? improveOpenings : pool.filter((opening) => !isAvoid(opening)))
       .slice()
-      .sort((a, b) => getFitScore(b) - getFitScore(a))[0];
+      .sort((a, b) => getFitScore(b) - getFitScore(a))[0] || null;
 
   const mostPlayed = [...usableOpenings].sort((a, b) => getGames(b) - getGames(a))[0];
 
   const weakest =
-    [...reliableOpenings]
-      .sort((a, b) => getFitScore(a) - getFitScore(b))[0];
+    (avoidOpenings.length ? avoidOpenings : pool)
+      .slice()
+      .sort((a, b) => getFitScore(a) - getFitScore(b))[0] || null;
 
-  const firstFocus = weakest && weakest !== strongest ? weakest : mostPlayed;
+  const focusOpening =
+    weakest && getName(weakest) !== getName(strongest)
+      ? weakest
+      : improveOpenings[0] || mostPlayed;
 
   return (
     <section className="card openingSnapshotCard">
@@ -82,7 +94,10 @@ export default function OpeningSnapshot({ openings = [], onSelectOpening }) {
           >
             <span>Most played</span>
             <strong>{getName(mostPlayed)}</strong>
-            <small>{getGames(mostPlayed)} games</small>
+            <small>
+              {getGames(mostPlayed)} games
+              {getVerdict(mostPlayed) ? ` · ${getVerdict(mostPlayed)}` : ""}
+            </small>
           </button>
         ) : null}
 
@@ -102,12 +117,12 @@ export default function OpeningSnapshot({ openings = [], onSelectOpening }) {
         ) : null}
       </div>
 
-      {firstFocus ? (
+      {focusOpening ? (
         <div className="snapshotAdvice">
           <strong>Focus first:</strong>{" "}
-          {isBadVerdict(firstFocus)
-            ? `review or simplify your ${getName(firstFocus)} lines. Your current results suggest this opening needs attention.`
-            : `review your games in ${getName(firstFocus)}. This is likely the quickest place to improve your results.`}
+          {isAvoid(focusOpening)
+            ? `review or replace ${getName(focusOpening)} because your current Opening Fit verdict says ${getVerdict(focusOpening)}.`
+            : `review ${getName(focusOpening)} next because it is one of your most useful openings to improve.`}
         </div>
       ) : null}
     </section>
