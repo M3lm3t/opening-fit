@@ -3189,7 +3189,7 @@ export default function App() {
             </div>
           )}
 
-          {activeView === "feedback" && data ? (
+          {activeView === "feedback" ? (
             <section className="card feedbackCard" id="feedback">
             <h2>Help improve Opening Fit</h2>
             <p>
