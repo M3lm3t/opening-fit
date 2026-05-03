@@ -4482,3 +4482,42 @@ th {
 .appTabsCard {
   display: none;
 }
+
+/* Keep burger menu inside the screen */
+.floatingMenu {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 9999;
+}
+
+.floatingMenuPanel {
+  width: min(340px, calc(100vw - 32px));
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 520px) {
+  .floatingMenu {
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    left: auto;
+  }
+
+  .floatingMenuPanel {
+    width: calc(100vw - 24px);
+    max-width: none;
+    max-height: calc(100vh - 76px);
+  }
+
+  .floatingMenuButtonsSingle {
+    display: grid;
+    gap: 8px;
+  }
+
+  .floatingMenuButtons button,
+  .floatingPracticeButton {
+    min-height: 42px;
+  }
+}
