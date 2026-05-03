@@ -47,6 +47,8 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
   const moves = selectedLine?.moves || [];
   const expectedMove = moves[moveIndex];
   const isComplete = Boolean(pack) && moveIndex >= moves.length;
+  const progressPercent = moves.length ? Math.round((moveIndex / moves.length) * 100) : 0;
+  const completedMoves = Math.min(moveIndex, moves.length);
 
   useEffect(() => {
     setSelectedLineIndex(0);
@@ -215,6 +217,20 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
         ))}
       </div>
 
+      <div className="practiceProgressBox">
+        <div className="practiceProgressTop">
+          <span>Practice progress</span>
+          <strong>{completedMoves}/{moves.length} moves</strong>
+        </div>
+
+        <div className="practiceProgressTrack">
+          <div
+            className="practiceProgressFill"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
       <div className="practiceBoardLayout">
         <div className="practiceBoardWrap">
           <Chessboard
@@ -239,8 +255,8 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
             {isComplete ? (
               <>
                 <span>Complete</span>
-                <strong>Line finished</strong>
-                <small>Reset the line or choose another one.</small>
+                <strong>Line finished ✅</strong>
+                <small>Nice work — you completed this practice line.</small>
               </>
             ) : (
               <>
@@ -277,6 +293,17 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
               disabled={isComplete}
             >
               Show move
+            </button>
+
+            <button
+              type="button"
+              className="nextLineControl"
+              onClick={() => {
+                const nextIndex = selectedLineIndex + 1 >= pack.lines.length ? 0 : selectedLineIndex + 1;
+                chooseLine(nextIndex);
+              }}
+            >
+              Next line
             </button>
           </div>
         </div>
