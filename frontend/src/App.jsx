@@ -41,6 +41,7 @@ const USERNAME_KEY = "openingFit:lastUsername";
 const PREMIUM_KEY = "openingFit:isPremiumDemo";
 const PLATFORM_KEY = "openingFit:lastPlatform";
 const IMPORT_MONTHS_KEY = "openingFit:lastImportMonths";
+const THEME_KEY = "openingFit:theme";
 
 const platforms = {
   chesscom: {
@@ -633,7 +634,7 @@ function OpeningFitScoreList({ fitData, onPractice, onSelectOpening }) {
   );
 }
 
-function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange }) {
+function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange, theme, onThemeToggle }) {
   const [open, setOpen] = useState(false);
 
   const mainItems = [
@@ -717,6 +718,13 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
                 {item.label}
               </button>
             ))}
+          </div>
+
+          <p className="floatingMenuLabel">Appearance</p>
+          <div className="floatingMenuButtons">
+            <button type="button" onClick={onThemeToggle}>
+              {theme === "dark" ? "☀️ Light mode" : "🌙 Dark mode"}
+            </button>
           </div>
 
           {data ? (
@@ -994,7 +1002,7 @@ function RatingOpeningGuide({ onOpeningClick }) {
   );
 }
 
-function LandingSection({ onOpeningClick }) {
+function LandingSection({ onOpeningClick, theme, onThemeToggle }) {
   const features = [
     {
       icon: "♟️",
@@ -1061,10 +1069,19 @@ function LandingSection({ onOpeningClick }) {
             <a href="#premium">Premium</a>
             <a href="#app-dashboard">Launch app</a>
           </nav>
-        </div>
 
-        <div className="landingHeroGrid">
+        </div>
+<div className="landingHeroGrid">
           <div className="landingHeroCopy">
+            <button
+              className="landingThemeToggle landingThemeToggleHero"
+              type="button"
+              onClick={onThemeToggle}
+              aria-label="Toggle light and dark mode"
+            >
+              {theme === "dark" ? "☀️ Light mode" : "🌙 Dark mode"}
+            </button>
+
             <div className="landingPill">
               <span>New</span>
               <span className="landingDot">•</span>
@@ -1326,6 +1343,7 @@ export default function App() {
   const [isPremium, setIsPremium] = useState(false);
   const [activeView, setActiveView] = useState("overview");
   const [showLanding, setShowLanding] = useState(true);
+  const [theme, setTheme] = useState("dark");
   const [selectedOpening, setSelectedOpening] = useState(null);
   const [selectedPracticeOpening, setSelectedPracticeOpening] = useState(null);
 
@@ -1335,8 +1353,10 @@ export default function App() {
     const savedPlatform = localStorage.getItem(PLATFORM_KEY);
     const savedMonths = localStorage.getItem(IMPORT_MONTHS_KEY);
     const savedAnalysis = localStorage.getItem(STORAGE_KEY);
+    const savedTheme = localStorage.getItem(THEME_KEY);
 
     if (savedUsername) setUsername(savedUsername);
+    if (savedTheme === "light" || savedTheme === "dark") setTheme(savedTheme);
     if (savedPremium === "true") setIsPremium(true);
 
     if (savedMonths) {
@@ -1397,6 +1417,11 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(PREMIUM_KEY, String(isPremium));
   }, [isPremium]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
 
   useEffect(() => {
     const handleEscape = (event) => {
@@ -2328,6 +2353,10 @@ export default function App() {
     setSelectedGameIndex(0);
   }, [showUnknownOpenings]);
 
+  const toggleTheme = () => {
+    setTheme((current) => (current === "dark" ? "light" : "dark"));
+  };
+
   return (
     <>
       <div className="page">
@@ -2337,6 +2366,8 @@ export default function App() {
           onPractice={startOpeningPractice}
           activeView={activeView}
           onViewChange={setActiveView}
+          theme={theme}
+          onThemeToggle={toggleTheme}
         />
 
         {showLanding ? (
@@ -2348,10 +2379,16 @@ export default function App() {
             onImport={importGames}
             loading={loading}
             onClose={() => setShowLanding(false)}
+            theme={theme}
+            onThemeToggle={toggleTheme}
           />
         ) : null}
 
-        <LandingSection onOpeningClick={startOpeningPractice} />
+        <LandingSection
+          onOpeningClick={startOpeningPractice}
+          theme={theme}
+          onThemeToggle={toggleTheme}
+        />
 
         <main className="container appShell" id="app-dashboard">
           <header className="hero heroCard">

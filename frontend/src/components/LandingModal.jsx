@@ -1,12 +1,4 @@
-export default function LandingModal({
-  username,
-  setUsername,
-  platform,
-  setPlatform,
-  onImport,
-  loading,
-  onClose,
-}) {
+export default function LandingModal({ username, setUsername, platform, setPlatform, onImport, loading, onClose, theme, onThemeToggle }) {
   const handleImport = () => {
     onClose();
     onImport();
@@ -35,7 +27,16 @@ export default function LandingModal({
         </div>
 
         <div className="landingMiniCopy">
-          <h1>Analyse your openings in seconds.</h1>
+          <button
+          className="landingModalThemeToggle"
+          type="button"
+          onClick={onThemeToggle}
+          aria-label="Toggle light and dark mode"
+        >
+          {theme === "dark" ? "☀️ Light mode" : "🌙 Dark mode"}
+        </button>
+
+        <h1>Analyse your openings in seconds.</h1>
           <p>
             Import your recent Chess.com or Lichess games and get a simple
             report showing your best openings, weak spots, and what to practise
