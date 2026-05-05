@@ -4521,3 +4521,1017 @@ th {
     min-height: 42px;
   }
 }
+
+/* Light / dark theme system */
+:root {
+  --bg: #0f172a;
+  --page-bg: #0f172a;
+  --card-bg: #111827;
+  --card-bg-soft: #0b1220;
+  --text: #f8fafc;
+  --text-soft: #e2e8f0;
+  --muted: #94a3b8;
+  --border: #1f2937;
+  --border-soft: #334155;
+  --input-bg: #111827;
+  --button-bg: #2563eb;
+  --button-bg-hover: #1d4ed8;
+  --shadow: rgba(0, 0, 0, 0.25);
+  --danger-bg: #7f1d1d;
+  --danger-border: #b91c1c;
+  --danger-text: #fecaca;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f8fafc;
+  --page-bg: #f8fafc;
+  --card-bg: #ffffff;
+  --card-bg-soft: #f1f5f9;
+  --text: #0f172a;
+  --text-soft: #334155;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --border-soft: #cbd5e1;
+  --input-bg: #ffffff;
+  --button-bg: #2563eb;
+  --button-bg-hover: #1d4ed8;
+  --shadow: rgba(15, 23, 42, 0.10);
+  --danger-bg: #fee2e2;
+  --danger-border: #fecaca;
+  --danger-text: #991b1b;
+  color-scheme: light;
+}
+
+body {
+  background: var(--page-bg);
+  color: var(--text-soft);
+}
+
+.page {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 32rem),
+    var(--page-bg);
+}
+
+h1,
+h2,
+h3 {
+  color: var(--text);
+}
+
+.eyebrow,
+.helper,
+.statLabel,
+th {
+  color: var(--muted);
+}
+
+.subtext,
+td {
+  color: var(--text-soft);
+}
+
+.card,
+.heroCard,
+.feedbackCard,
+.appTabsCard,
+.quickNavCard,
+.premiumCard,
+.openingFitHeroCard,
+.openingFitScoreCard,
+.loadingCard,
+.smallCard,
+.statCard {
+  background: var(--card-bg);
+  border-color: var(--border);
+  color: var(--text-soft);
+  box-shadow: 0 10px 30px var(--shadow);
+}
+
+input,
+select,
+textarea,
+.input {
+  background: var(--input-bg);
+  border-color: var(--border-soft);
+  color: var(--text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+}
+
+button,
+.primaryBtn {
+  background: var(--button-bg);
+  color: #ffffff;
+}
+
+button:hover,
+.primaryBtn:hover {
+  background: var(--button-bg-hover);
+}
+
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.savedProfileButton,
+.demoAccountButton {
+  border: 1px solid var(--border-soft);
+}
+
+.listItem,
+.fitMiniCard,
+.fitOpeningRow,
+.landingInfoCard,
+.landingFeatureCard,
+.landingStepCard,
+.landingPriceCard,
+.ratingGuideCard,
+.premiumMiniCard,
+.lockedFeature,
+.chartRow,
+.gamePickerButton,
+.trainingPlanItem,
+.floatingMenuPanel {
+  background: var(--card-bg-soft);
+  border-color: var(--border);
+  color: var(--text-soft);
+}
+
+.tableWrap,
+th,
+td {
+  border-color: var(--border);
+}
+
+code {
+  background: var(--card-bg-soft);
+  color: var(--text);
+}
+
+.errorBox {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger-text);
+}
+
+/* Keep the burger appearance button tidy */
+.floatingMenuLabel {
+  color: var(--muted);
+}
+
+.floatingMenuPanel {
+  box-shadow: 0 18px 45px var(--shadow);
+}
+
+.floatingMenuButtons button {
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.floatingMenuButtons button:hover,
+.floatingMenuActiveItem {
+  background: var(--button-bg) !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .landingHero,
+:root[data-theme="light"] .landingContentSection,
+:root[data-theme="light"] .siteFooter {
+  color: var(--text-soft);
+}
+
+:root[data-theme="light"] .landingBrandTitle,
+:root[data-theme="light"] .landingSectionHeading h2,
+:root[data-theme="light"] .landingHero h1,
+:root[data-theme="light"] .footerBrand,
+:root[data-theme="light"] .statValue {
+  color: var(--text);
+}
+
+:root[data-theme="light"] .landingNavLinks a,
+:root[data-theme="light"] .footerLinks a {
+  color: var(--text-soft);
+}
+
+/* Light mode polish for landing page and preview cards */
+:root[data-theme="light"] body {
+  background: #f8fafc;
+  color: #334155;
+}
+
+:root[data-theme="light"] .page {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.10), transparent 34rem),
+    #f8fafc;
+}
+
+:root[data-theme="light"] .landingHero,
+:root[data-theme="light"] .landingWrap,
+:root[data-theme="light"] .landingContentSection,
+:root[data-theme="light"] .siteFooter {
+  background: transparent;
+  color: #334155;
+}
+
+:root[data-theme="light"] .landingHero {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.96)) !important;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 55px rgba(15, 23, 42, 0.10);
+}
+
+:root[data-theme="light"] .landingPreviewCard,
+:root[data-theme="light"] .landingInfoCard,
+:root[data-theme="light"] .landingFeatureCard,
+:root[data-theme="light"] .landingStepCard,
+:root[data-theme="light"] .landingPriceCard,
+:root[data-theme="light"] .ratingGuideCard,
+:root[data-theme="light"] .aboutCard,
+:root[data-theme="light"] .feedbackCard,
+:root[data-theme="light"] .card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme="light"] h1,
+:root[data-theme="light"] h2,
+:root[data-theme="light"] h3,
+:root[data-theme="light"] h4,
+:root[data-theme="light"] .landingHero h1,
+:root[data-theme="light"] .landingPreviewCard h3,
+:root[data-theme="light"] .landingInfoCard h4,
+:root[data-theme="light"] .landingBrandTitle,
+:root[data-theme="light"] .statValue,
+:root[data-theme="light"] .landingPriceCard h3,
+:root[data-theme="light"] .ratingGuideCard h3,
+:root[data-theme="light"] .aboutCard h3 {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] p,
+:root[data-theme="light"] span,
+:root[data-theme="light"] td,
+:root[data-theme="light"] .subtext,
+:root[data-theme="light"] .landingSubtext,
+:root[data-theme="light"] .landingBrandSubtitle,
+:root[data-theme="light"] .landingSectionHeading p,
+:root[data-theme="light"] .landingInfoCard p,
+:root[data-theme="light"] .landingFeatureCard p,
+:root[data-theme="light"] .landingStepCard p,
+:root[data-theme="light"] .landingPriceCard p,
+:root[data-theme="light"] .ratingGuideDescription,
+:root[data-theme="light"] .footerDisclaimer {
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .eyebrow,
+:root[data-theme="light"] .landingEyebrow,
+:root[data-theme="light"] .landingMiniLabel,
+:root[data-theme="light"] .statLabel,
+:root[data-theme="light"] th,
+:root[data-theme="light"] .smallText,
+:root[data-theme="light"] .helper,
+:root[data-theme="light"] .muted {
+  color: #64748b !important;
+}
+
+:root[data-theme="light"] .landingNavLinks a,
+:root[data-theme="light"] .footerLinks a {
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .landingNavLinks a:hover,
+:root[data-theme="light"] .footerLinks a:hover {
+  color: #2563eb !important;
+}
+
+:root[data-theme="light"] .landingPill,
+:root[data-theme="light"] .landingFitBadge,
+:root[data-theme="light"] .premiumBadge,
+:root[data-theme="light"] .landingPriceBadge {
+  background: #dbeafe !important;
+  border-color: #bfdbfe !important;
+  color: #1d4ed8 !important;
+}
+
+:root[data-theme="light"] .landingOpeningBtn,
+:root[data-theme="light"] .inlineOpeningBtn,
+:root[data-theme="light"] .tableOpeningBtn,
+:root[data-theme="light"] .ratingOpeningBtn {
+  color: #1d4ed8 !important;
+  background: transparent !important;
+}
+
+:root[data-theme="light"] .landingOpeningBtn:hover,
+:root[data-theme="light"] .inlineOpeningBtn:hover,
+:root[data-theme="light"] .tableOpeningBtn:hover,
+:root[data-theme="light"] .ratingOpeningBtn:hover {
+  color: #ffffff !important;
+  background: #2563eb !important;
+}
+
+:root[data-theme="light"] .landingVerdictRow,
+:root[data-theme="light"] .listItem,
+:root[data-theme="light"] .chartRow,
+:root[data-theme="light"] .gamePickerButton,
+:root[data-theme="light"] .trainingPlanItem,
+:root[data-theme="light"] .fitMiniCard,
+:root[data-theme="light"] .fitOpeningRow,
+:root[data-theme="light"] .lockedFeature,
+:root[data-theme="light"] .premiumMiniCard {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .verdict.keep,
+:root[data-theme="light"] .keep {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+}
+
+:root[data-theme="light"] .verdict.improve,
+:root[data-theme="light"] .improve {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+:root[data-theme="light"] .verdict.avoid,
+:root[data-theme="light"] .avoid {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+}
+
+:root[data-theme="light"] input,
+:root[data-theme="light"] select,
+:root[data-theme="light"] textarea,
+:root[data-theme="light"] .input {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] input::placeholder,
+:root[data-theme="light"] textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="light"] .floatingMenuToggle {
+  background: #0f172a !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .floatingMenuPanel {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .floatingMenuHeader strong,
+:root[data-theme="light"] .floatingMenuLabel {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .floatingMenuButtons button {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .floatingMenuButtons button:hover,
+:root[data-theme="light"] .floatingMenuActiveItem {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+/* Landing page light/dark toggle */
+.landingThemeToggle {
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  white-space: nowrap;
+  background: rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  color: #f8fafc;
+}
+
+.landingThemeToggle:hover {
+  background: rgba(37, 99, 235, 0.35);
+}
+
+/* Fix remaining light-mode landing blocks */
+:root[data-theme="light"] .landingStatCard {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme="light"] .landingStatCard strong {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .landingStatCard span {
+  color: #64748b !important;
+}
+
+:root[data-theme="light"] .landingSecondaryBtn {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border: 1px solid #0f172a !important;
+}
+
+:root[data-theme="light"] .landingSecondaryBtn:hover {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+:root[data-theme="light"] .landingThemeToggle {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme="light"] .landingThemeToggle:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+:root[data-theme="light"] .landingPill {
+  background: #eff6ff !important;
+  border: 1px solid #bfdbfe !important;
+  color: #1d4ed8 !important;
+}
+
+:root[data-theme="light"] .landingPill span {
+  color: #1d4ed8 !important;
+}
+
+/* Make landing nav fit better with the extra toggle */
+.landingNav {
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .landingThemeToggle {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .landingNav {
+    align-items: flex-start;
+  }
+
+  .landingThemeToggle {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+/* Final light-mode cleanup for snapshot/export/share areas */
+:root[data-theme="light"] .landingThemeToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  white-space: nowrap;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme="light"] .landingThemeToggle:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+/* Opening snapshot / quick summary tiles */
+:root[data-theme="light"] .openingSnapshotCard,
+:root[data-theme="light"] .snapshotCard,
+:root[data-theme="light"] .quickSummaryCard,
+:root[data-theme="light"] .summaryCard {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .openingSnapshotCard .card,
+:root[data-theme="light"] .openingSnapshotCard article,
+:root[data-theme="light"] .openingSnapshotCard div[class*="tile"],
+:root[data-theme="light"] .openingSnapshotCard div[class*="Tile"],
+:root[data-theme="light"] .openingSnapshotCard div[class*="summary"],
+:root[data-theme="light"] .openingSnapshotCard div[class*="Summary"],
+:root[data-theme="light"] .snapshotCard article,
+:root[data-theme="light"] .snapshotCard div[class*="tile"],
+:root[data-theme="light"] .snapshotCard div[class*="Tile"],
+:root[data-theme="light"] .quickSummaryCard article,
+:root[data-theme="light"] .quickSummaryCard div[class*="tile"],
+:root[data-theme="light"] .quickSummaryCard div[class*="Tile"],
+:root[data-theme="light"] .summaryCard article,
+:root[data-theme="light"] .summaryCard div[class*="tile"],
+:root[data-theme="light"] .summaryCard div[class*="Tile"] {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="light"] .openingSnapshotCard strong,
+:root[data-theme="light"] .openingSnapshotCard h2,
+:root[data-theme="light"] .openingSnapshotCard h3,
+:root[data-theme="light"] .snapshotCard strong,
+:root[data-theme="light"] .snapshotCard h2,
+:root[data-theme="light"] .snapshotCard h3,
+:root[data-theme="light"] .quickSummaryCard strong,
+:root[data-theme="light"] .quickSummaryCard h2,
+:root[data-theme="light"] .quickSummaryCard h3,
+:root[data-theme="light"] .summaryCard strong,
+:root[data-theme="light"] .summaryCard h2,
+:root[data-theme="light"] .summaryCard h3 {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .openingSnapshotCard p,
+:root[data-theme="light"] .openingSnapshotCard span,
+:root[data-theme="light"] .snapshotCard p,
+:root[data-theme="light"] .snapshotCard span,
+:root[data-theme="light"] .quickSummaryCard p,
+:root[data-theme="light"] .quickSummaryCard span,
+:root[data-theme="light"] .summaryCard p,
+:root[data-theme="light"] .summaryCard span {
+  color: #334155 !important;
+}
+
+/* Export/share card and social buttons */
+:root[data-theme="light"] .shareCard,
+:root[data-theme="light"] .exportCard,
+:root[data-theme="light"] .pdfCard,
+:root[data-theme="light"] .reportPdfCard {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] button[class*="share"],
+:root[data-theme="light"] button[class*="Share"],
+:root[data-theme="light"] a[class*="share"],
+:root[data-theme="light"] a[class*="Share"],
+:root[data-theme="light"] .socialButton,
+:root[data-theme="light"] .shareButton,
+:root[data-theme="light"] .shareButtons button,
+:root[data-theme="light"] .socialShareButtons button {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="light"] button[class*="share"]:hover,
+:root[data-theme="light"] button[class*="Share"]:hover,
+:root[data-theme="light"] a[class*="share"]:hover,
+:root[data-theme="light"] a[class*="Share"]:hover,
+:root[data-theme="light"] .socialButton:hover,
+:root[data-theme="light"] .shareButton:hover,
+:root[data-theme="light"] .shareButtons button:hover,
+:root[data-theme="light"] .socialShareButtons button:hover {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+/* Keep the main PDF action buttons bright */
+:root[data-theme="light"] .primaryBtn,
+:root[data-theme="light"] .landingPrimaryBtn,
+:root[data-theme="light"] button.primaryBtn {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+:root[data-theme="light"] .primaryBtn:hover,
+:root[data-theme="light"] .landingPrimaryBtn:hover,
+:root[data-theme="light"] button.primaryBtn:hover {
+  background: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
+/* Fix dark pill labels that may appear in light mode */
+:root[data-theme="light"] .eyebrow,
+:root[data-theme="light"] .landingEyebrow,
+:root[data-theme="light"] .landingMiniLabel,
+:root[data-theme="light"] .sectionBadge {
+  background: #eff6ff !important;
+  color: #475569 !important;
+  border-color: #bfdbfe !important;
+}
+
+/* Visible light/dark toggle on landing page */
+.landingHero {
+  position: relative;
+}
+
+.landingThemeToggleRow {
+  display: flex;
+  justify-content: flex-end;
+  margin: 18px 0 8px;
+}
+
+.landingThemeToggle {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  white-space: nowrap;
+  background: rgba(37, 99, 235, 0.18);
+  color: #f8fafc;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+}
+
+.landingThemeToggle:hover {
+  background: rgba(37, 99, 235, 0.35);
+}
+
+:root[data-theme="light"] .landingThemeToggle {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.10);
+}
+
+:root[data-theme="light"] .landingThemeToggle:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+@media (max-width: 720px) {
+  .landingThemeToggleRow {
+    justify-content: stretch;
+  }
+
+  .landingThemeToggle {
+    width: 100%;
+  }
+}
+
+/* Hero light/dark toggle */
+.landingThemeToggleHero {
+  width: fit-content;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 1;
+  background: rgba(37, 99, 235, 0.18) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(96, 165, 250, 0.42) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+}
+
+.landingThemeToggleHero:hover {
+  background: rgba(37, 99, 235, 0.35) !important;
+}
+
+:root[data-theme="light"] .landingThemeToggleHero {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.10);
+}
+
+:root[data-theme="light"] .landingThemeToggleHero:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+@media (max-width: 720px) {
+  .landingThemeToggleHero {
+    width: 100%;
+  }
+}
+
+/* Hero light/dark toggle */
+.landingThemeToggleHero {
+  width: fit-content;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 1;
+  background: rgba(37, 99, 235, 0.18) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(96, 165, 250, 0.42) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+}
+
+.landingThemeToggleHero:hover {
+  background: rgba(37, 99, 235, 0.35) !important;
+}
+
+:root[data-theme="light"] .landingThemeToggleHero {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.10);
+}
+
+:root[data-theme="light"] .landingThemeToggleHero:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+@media (max-width: 720px) {
+  .landingThemeToggleHero {
+    width: 100%;
+  }
+}
+
+/* Light/dark toggle inside import popup */
+.landingModalThemeToggle {
+  width: fit-content;
+  margin: 18px 0 16px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 1;
+  background: rgba(37, 99, 235, 0.18) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(96, 165, 250, 0.42) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+}
+
+.landingModalThemeToggle:hover {
+  background: rgba(37, 99, 235, 0.35) !important;
+}
+
+:root[data-theme="light"] .landingModalThemeToggle {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.10);
+}
+
+:root[data-theme="light"] .landingModalThemeToggle:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+/* Light mode for the import popup itself */
+:root[data-theme="light"] .landingModal,
+:root[data-theme="light"] .landingModalCard,
+:root[data-theme="light"] .modalCard,
+:root[data-theme="light"] .landingModalPanel {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .landingModal h1,
+:root[data-theme="light"] .landingModalCard h1,
+:root[data-theme="light"] .modalCard h1,
+:root[data-theme="light"] .landingModalPanel h1 {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .landingModal p,
+:root[data-theme="light"] .landingModalCard p,
+:root[data-theme="light"] .modalCard p,
+:root[data-theme="light"] .landingModalPanel p {
+  color: #334155 !important;
+}
+
+@media (max-width: 720px) {
+  .landingModalThemeToggle {
+    width: 100%;
+  }
+}
+
+/* Final light-mode polish for import modal */
+:root[data-theme="light"] .landingModalForm,
+:root[data-theme="light"] .landingModalSearch,
+:root[data-theme="light"] .landingModalInputWrap,
+:root[data-theme="light"] .landingModalActions,
+:root[data-theme="light"] .landingImportBox,
+:root[data-theme="light"] .modalImportBox,
+:root[data-theme="light"] .modalSearchBox,
+:root[data-theme="light"] .landingModalCard form,
+:root[data-theme="light"] .landingModalPanel form {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="light"] .landingModalCard input,
+:root[data-theme="light"] .landingModalPanel input,
+:root[data-theme="light"] .landingModal input {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+:root[data-theme="light"] .landingModalCard input::placeholder,
+:root[data-theme="light"] .landingModalPanel input::placeholder,
+:root[data-theme="light"] .landingModal input::placeholder {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="light"] .landingModalCard .platformSelector,
+:root[data-theme="light"] .landingModalPanel .platformSelector,
+:root[data-theme="light"] .landingModal .platformSelector {
+  background: #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+:root[data-theme="light"] .landingModalCard .platformButton,
+:root[data-theme="light"] .landingModalPanel .platformButton,
+:root[data-theme="light"] .landingModal .platformButton {
+  background: transparent !important;
+  color: #475569 !important;
+  border: none !important;
+}
+
+:root[data-theme="light"] .landingModalCard .platformButtonActive,
+:root[data-theme="light"] .landingModalPanel .platformButtonActive,
+:root[data-theme="light"] .landingModal .platformButtonActive {
+  background: linear-gradient(135deg, #2563eb, #38bdf8) !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .landingModalCard .primaryBtn,
+:root[data-theme="light"] .landingModalPanel .primaryBtn,
+:root[data-theme="light"] .landingModal .primaryBtn {
+  background: linear-gradient(135deg, #2563eb, #38bdf8) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+:root[data-theme="light"] .landingModalCard small,
+:root[data-theme="light"] .landingModalPanel small,
+:root[data-theme="light"] .landingModal small,
+:root[data-theme="light"] .landingModalCard .helper,
+:root[data-theme="light"] .landingModalPanel .helper,
+:root[data-theme="light"] .landingModal .helper {
+  color: #64748b !important;
+}
+
+/* Catch any remaining unnamed dark box inside the modal */
+:root[data-theme="light"] .landingModalCard > div:not(.landingBrand):not(.landingModalTop),
+:root[data-theme="light"] .landingModalPanel > div:not(.landingBrand):not(.landingModalTop) {
+  border-color: #e2e8f0 !important;
+}
+
+/* Stronger light-mode fix for the import modal form box */
+:root[data-theme="light"] [class*="Modal"] [class*="form"],
+:root[data-theme="light"] [class*="Modal"] [class*="Form"],
+:root[data-theme="light"] [class*="modal"] [class*="form"],
+:root[data-theme="light"] [class*="modal"] [class*="Form"],
+:root[data-theme="light"] [class*="Landing"] [class*="form"],
+:root[data-theme="light"] [class*="Landing"] [class*="Form"],
+:root[data-theme="light"] [class*="landing"] [class*="form"],
+:root[data-theme="light"] [class*="landing"] [class*="Form"] {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+}
+
+/* Catch the dark rounded import panel even if it has a custom class name */
+:root[data-theme="light"] .landingModalCard form,
+:root[data-theme="light"] .landingModalPanel form,
+:root[data-theme="light"] .landingModal form,
+:root[data-theme="light"] .landingModalCard form > div,
+:root[data-theme="light"] .landingModalPanel form > div,
+:root[data-theme="light"] .landingModal form > div,
+:root[data-theme="light"] [class*="Modal"] form,
+:root[data-theme="light"] [class*="Modal"] form > div,
+:root[data-theme="light"] [class*="modal"] form,
+:root[data-theme="light"] [class*="modal"] form > div {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+/* Lighten common import panel class names */
+:root[data-theme="light"] .importPanel,
+:root[data-theme="light"] .importBox,
+:root[data-theme="light"] .importCard,
+:root[data-theme="light"] .modalForm,
+:root[data-theme="light"] .modalFormBox,
+:root[data-theme="light"] .landingForm,
+:root[data-theme="light"] .landingFormBox,
+:root[data-theme="light"] .landingModalFormBox,
+:root[data-theme="light"] .landingModalImport,
+:root[data-theme="light"] .landingModalImportBox {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+}
+
+/* Make inactive Lichess tab readable in light mode */
+:root[data-theme="light"] [class*="Modal"] .platformSelector,
+:root[data-theme="light"] [class*="modal"] .platformSelector,
+:root[data-theme="light"] [class*="Landing"] .platformSelector,
+:root[data-theme="light"] [class*="landing"] .platformSelector {
+  background: #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+:root[data-theme="light"] [class*="Modal"] .platformButton,
+:root[data-theme="light"] [class*="modal"] .platformButton,
+:root[data-theme="light"] [class*="Landing"] .platformButton,
+:root[data-theme="light"] [class*="landing"] .platformButton {
+  background: transparent !important;
+  color: #475569 !important;
+}
+
+:root[data-theme="light"] [class*="Modal"] .platformButtonActive,
+:root[data-theme="light"] [class*="modal"] .platformButtonActive,
+:root[data-theme="light"] [class*="Landing"] .platformButtonActive,
+:root[data-theme="light"] [class*="landing"] .platformButtonActive {
+  background: linear-gradient(135deg, #2563eb, #38bdf8) !important;
+  color: #ffffff !important;
+}
+
+/* Import modal helper text */
+:root[data-theme="light"] [class*="Modal"] small,
+:root[data-theme="light"] [class*="modal"] small,
+:root[data-theme="light"] [class*="Landing"] small,
+:root[data-theme="light"] [class*="landing"] small {
+  color: #64748b !important;
+}
+
+/* Exact light-mode fixes for LandingModal */
+:root[data-theme="light"] .landingMiniSearch {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="light"] .landingMiniTabs {
+  background: #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+:root[data-theme="light"] .landingMiniTabs button {
+  background: transparent !important;
+  color: #475569 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="light"] .landingMiniTabs button.active {
+  background: linear-gradient(135deg, #2563eb, #38bdf8) !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .landingMiniInputRow input {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .landingMiniInputRow input::placeholder {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="light"] .landingMiniInputRow button {
+  background: linear-gradient(135deg, #2563eb, #38bdf8) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+:root[data-theme="light"] .landingMiniSearch p {
+  color: #64748b !important;
+}
+
+:root[data-theme="light"] .landingSkipBtn {
+  background: transparent !important;
+  color: #475569 !important;
+}
+
+:root[data-theme="light"] .landingSkipBtn:hover {
+  color: #1d4ed8 !important;
+}
