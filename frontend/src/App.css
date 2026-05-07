@@ -6878,3 +6878,300 @@ button[aria-label="Open navigation menu"] {
     display: none;
   }
 }
+
+
+/* =========================================================
+   Proper app dashboard, mobile nav, launch sections
+   ========================================================= */
+
+.dashboardHome {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dashboardHeroTile,
+.dashboardTile,
+.dashboardActionStrip,
+.launchTile {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.16), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.78));
+  border-radius: 1.45rem;
+  box-shadow: 0 22px 70px rgba(2, 6, 23, 0.24);
+}
+
+.dashboardHeroTile {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.2rem;
+}
+
+.dashboardHeroTile h2 {
+  margin: 0.2rem 0 0.4rem;
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+}
+
+.dashboardHeroTile p,
+.dashboardTile p,
+.dashboardActionStrip strong,
+.launchTile p {
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.dashboardHeroScore {
+  width: 132px;
+  height: 132px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  background: rgba(37, 99, 235, 0.14);
+  text-align: center;
+}
+
+.dashboardHeroScore strong {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.dashboardHeroScore span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.dashboardTileGrid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.dashboardTile {
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.primaryDashboardTile {
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.78));
+}
+
+.dashboardTileLabel {
+  color: var(--blue-light);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 900;
+}
+
+.dashboardTile h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.dashboardTile p {
+  margin: 0;
+}
+
+.dashboardTile button,
+.dashboardActionButtons button {
+  border: 1px solid rgba(96, 165, 250, 0.26);
+  background: rgba(37, 99, 235, 0.16);
+  color: var(--text);
+  border-radius: 0.9rem;
+  padding: 0.68rem 0.85rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.dashboardTile button:hover,
+.dashboardActionButtons button:hover {
+  background: rgba(37, 99, 235, 0.28);
+}
+
+.dashboardActionStrip {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+}
+
+.dashboardActionStrip span {
+  display: block;
+  color: var(--blue-light);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.25rem;
+}
+
+.dashboardActionStrip strong {
+  display: block;
+}
+
+.dashboardActionButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-end;
+}
+
+.mobileBottomNav {
+  display: none;
+}
+
+.launchReadySection {
+  scroll-margin-top: 1rem;
+}
+
+.launchTileGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.launchTile {
+  padding: 1rem;
+}
+
+.launchTile span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(96, 165, 250, 0.26);
+  color: var(--blue-light);
+  font-weight: 900;
+  margin-bottom: 0.75rem;
+}
+
+.launchTile h3 {
+  margin: 0 0 0.45rem;
+}
+
+.launchTile p {
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .dashboardTileGrid,
+  .launchTileGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboardActionStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboardActionButtons {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    padding-bottom: 5.4rem;
+  }
+
+  .dashboardHeroTile,
+  .dashboardTileGrid,
+  .launchTileGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboardHeroScore {
+    width: 100%;
+    height: auto;
+    border-radius: 1.15rem;
+    padding: 1rem;
+  }
+
+  .dashboardTile,
+  .dashboardHeroTile,
+  .dashboardActionStrip,
+  .launchTile {
+    border-radius: 1.1rem;
+  }
+
+  .dashboardActionButtons {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .dashboardActionButtons button,
+  .dashboardTile button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .mobileBottomNav {
+    position: fixed;
+    left: 0.65rem;
+    right: 0.65rem;
+    bottom: 0.65rem;
+    z-index: 75;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.25rem;
+    padding: 0.45rem;
+    border-radius: 1.1rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(2, 6, 23, 0.88);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.36);
+  }
+
+  .mobileBottomNav button {
+    display: grid;
+    gap: 0.1rem;
+    place-items: center;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 0.85rem;
+    padding: 0.5rem 0.25rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+  }
+
+  .mobileBottomNav button span {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .mobileBottomNav .mobileBottomNavActive {
+    color: var(--text);
+    background: rgba(37, 99, 235, 0.22);
+  }
+
+  .floatingMenu {
+    bottom: 5.45rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .mobileBottomNav {
+    left: 0.4rem;
+    right: 0.4rem;
+    bottom: 0.4rem;
+  }
+
+  .mobileBottomNav button {
+    font-size: 0.63rem;
+  }
+}
