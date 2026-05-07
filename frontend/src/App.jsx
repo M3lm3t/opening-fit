@@ -7,41 +7,15 @@ import LandingModal from "./components/LandingModal";
 import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
 import OpeningSnapshot from "./components/OpeningSnapshot";
-import OpeningPracticeLinesPanel from "./components/OpeningPracticeLinesPanel";
-import OpeningReportActions from "./components/OpeningReportActions";
-import OpeningComparison from "./components/OpeningComparison";
-import RepertoirePlan from "./components/RepertoirePlan";
+import RetentionHub from "./components/RetentionHub";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
-
-
-function getComparisonInvite() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const params = new URLSearchParams(window.location.search);
-  const compareUser = params.get("compareUser");
-  const comparePlatform = params.get("comparePlatform") || "chesscom";
-
-  if (!compareUser) {
-    return null;
-  }
-
-  return {
-    user: compareUser,
-    platform: comparePlatform === "lichess" ? "Lichess" : "Chess.com",
-  };
-}
-
-
 
 const STORAGE_KEY = "openingFit:lastAnalysis";
 const USERNAME_KEY = "openingFit:lastUsername";
 const PREMIUM_KEY = "openingFit:isPremiumDemo";
 const PLATFORM_KEY = "openingFit:lastPlatform";
 const IMPORT_MONTHS_KEY = "openingFit:lastImportMonths";
-const THEME_KEY = "openingFit:theme";
 
 const platforms = {
   chesscom: {
@@ -582,7 +556,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
   );
 }
 
-function OpeningFitScoreList({ fitData, onPractice, onSelectOpening }) {
+function OpeningFitScoreList({ fitData, onPractice }) {
   if (!fitData || !fitData.scoredOpenings?.length) return null;
 
   return (
@@ -609,7 +583,7 @@ function OpeningFitScoreList({ fitData, onPractice, onSelectOpening }) {
               className="fitOpeningRow"
               key={`${name}-${index}`}
               type="button"
-              onClick={() => onSelectOpening?.(opening)}
+              onClick={() => onPractice(name)}
             >
               <div className="fitOpeningMain">
                 <div>
@@ -634,7 +608,7 @@ function OpeningFitScoreList({ fitData, onPractice, onSelectOpening }) {
   );
 }
 
-function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange, theme, onThemeToggle }) {
+function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange }) {
   const [open, setOpen] = useState(false);
 
   const mainItems = [
@@ -644,47 +618,25 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange, t
     { label: "Feedback", target: "feedback" },
   ];
 
-  const reportItems = [
-    { key: "overview", label: "Fit Score", target: "section-fit" },
-    { key: "overview", label: "Style Profile", target: "section-style" },
-    { key: "recommendations", label: "Opening Suggestions", target: "section-recommendations" },
-    { key: "recommendations", label: "Keep / Improve / Avoid", target: "section-verdicts" },
-    { key: "recommendations", label: "Preferred Openings", target: "section-preferred" },
-    { key: "data", label: "Opening Win Rate", target: "section-chart" },
-    { key: "data", label: "Top Openings Table", target: "section-top" },
-    { key: "training", label: "Training Plan", target: "section-training" },
-    { key: "games", label: "Game Replay", target: "section-replay" },
-    { key: "overview", label: "Repertoire Plan", target: "repertoire-plan" },
+  const appViews = [
+    { key: "overview", label: "Overview" },
+    { key: "recommendations", label: "Recommendations" },
+    { key: "training", label: "Training" },
+    { key: "games", label: "Games" },
+    { key: "data", label: "Data" },
+    { key: "feedback", label: "Feedback" },
   ];
 
   const mainOpening = data?.top_openings?.[0]?.name;
 
-  const handleMainJump = (target) => {
-    if (target === "feedback") {
-      onViewChange("feedback");
-      setOpen(false);
-
-      setTimeout(() => {
-        const el =
-          document.getElementById("feedback") ||
-          document.getElementById("feedback-static");
-
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 140);
-
-      return;
-    }
-
-    onJump(target);
-    setOpen(false);
-  };
-
-  const handleReportJump = (item) => {
-    onViewChange(item.key);
+  const handleView = (view) => {
+    onViewChange(view);
     setOpen(false);
 
-    setTimeout(() => onJump(item.target), 180);
-    setTimeout(() => onJump(item.target), 360);
+    setTimeout(() => {
+      const el = document.getElementById("app-results") || document.getElementById("app-dashboard");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
   };
 
   return (
@@ -713,30 +665,36 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange, t
               <button
                 key={item.target}
                 type="button"
-                onClick={() => handleMainJump(item.target)}
+                onClick={() => {
+                  if (item.target === "feedback") {
+                    onViewChange("feedback");
+
+                    setTimeout(() => {
+                      const el = document.getElementById("feedback");
+                      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }, 80);
+                  } else {
+                    onJump(item.target);
+                  }
+
+                  setOpen(false);
+                }}
               >
                 {item.label}
               </button>
             ))}
           </div>
 
-          <p className="floatingMenuLabel">Appearance</p>
-          <div className="floatingMenuButtons">
-            <button type="button" onClick={onThemeToggle}>
-              {theme === "dark" ? "☀️ Light mode" : "🌙 Dark mode"}
-            </button>
-          </div>
-
-          {data ? (
+          {data || activeView === "feedback" ? (
             <>
-              <p className="floatingMenuLabel">Report sections</p>
+              <p className="floatingMenuLabel">Report pages</p>
               <div className="floatingMenuButtons floatingMenuButtonsSingle">
-                {reportItems.map((item) => (
+                {appViews.map((item) => (
                   <button
-                    key={`${item.key}-${item.target}`}
+                    key={item.key}
                     type="button"
                     className={activeView === item.key ? "floatingMenuActiveItem" : ""}
-                    onClick={() => handleReportJump(item)}
+                    onClick={() => handleView(item.key)}
                   >
                     {item.label}
                   </button>
@@ -758,7 +716,7 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange, t
             </>
           ) : (
             <p className="floatingMenuHint">
-              Import games first to unlock report sections.
+              Import games first to unlock report pages.
             </p>
           )}
         </div>
@@ -874,7 +832,6 @@ function Footer() {
         <a href="#app-dashboard">Launch app</a>
         <a href="#rating-openings">Rating ranges</a>
         <a href="#premium">Premium</a>
-            <a href="#repertoire-plan">Repertoire Plan</a>
       </div>
     </footer>
   );
@@ -1002,7 +959,7 @@ function RatingOpeningGuide({ onOpeningClick }) {
   );
 }
 
-function LandingSection({ onOpeningClick, theme, onThemeToggle }) {
+function LandingSection({ onOpeningClick }) {
   const features = [
     {
       icon: "♟️",
@@ -1045,8 +1002,6 @@ function LandingSection({ onOpeningClick, theme, onThemeToggle }) {
     },
   ];
 
-  const comparisonInvite = getComparisonInvite();
-
   return (
     <div className="landingWrap">
       <header className="landingHero">
@@ -1069,41 +1024,15 @@ function LandingSection({ onOpeningClick, theme, onThemeToggle }) {
             <a href="#premium">Premium</a>
             <a href="#app-dashboard">Launch app</a>
           </nav>
-
         </div>
-<div className="landingHeroGrid">
-          <div className="landingHeroCopy">
-            <button
-              className="landingThemeToggle landingThemeToggleHero"
-              type="button"
-              onClick={onThemeToggle}
-              aria-label="Toggle light and dark mode"
-            >
-              {theme === "dark" ? "☀️ Light mode" : "🌙 Dark mode"}
-            </button>
 
+        <div className="landingHeroGrid">
+          <div className="landingHeroCopy">
             <div className="landingPill">
               <span>New</span>
               <span className="landingDot">•</span>
               <span>Personalised chess opening recommendations</span>
             </div>
-
-            {comparisonInvite ? (
-              <div className="comparisonHeroNotice">
-                <div className="comparisonHeroBadge">VS</div>
-                <div>
-                  <p className="comparisonHeroKicker">
-                    {comparisonInvite.user} shared their Opening Fit report
-                  </p>
-                  <h2>Compare your openings with {comparisonInvite.user}</h2>
-                  <p>
-                    Import your {comparisonInvite.platform} games below to see
-                    your style match, shared openings, and biggest repertoire
-                    differences.
-                  </p>
-                </div>
-              </div>
-            ) : null}
 
             <h1>Build a chess repertoire that fits how you actually play.</h1>
 
@@ -1343,9 +1272,6 @@ export default function App() {
   const [isPremium, setIsPremium] = useState(false);
   const [activeView, setActiveView] = useState("overview");
   const [showLanding, setShowLanding] = useState(true);
-  const [theme, setTheme] = useState("dark");
-  const [selectedOpening, setSelectedOpening] = useState(null);
-  const [selectedPracticeOpening, setSelectedPracticeOpening] = useState(null);
 
   useEffect(() => {
     const savedUsername = localStorage.getItem(USERNAME_KEY);
@@ -1353,11 +1279,16 @@ export default function App() {
     const savedPlatform = localStorage.getItem(PLATFORM_KEY);
     const savedMonths = localStorage.getItem(IMPORT_MONTHS_KEY);
     const savedAnalysis = localStorage.getItem(STORAGE_KEY);
-    const savedTheme = localStorage.getItem(THEME_KEY);
 
     if (savedUsername) setUsername(savedUsername);
-    if (savedTheme === "light" || savedTheme === "dark") setTheme(savedTheme);
     if (savedPremium === "true") setIsPremium(true);
+
+    if (savedMonths) {
+      const parsedMonths = Number(savedMonths);
+      if ([1, 3, 6, 12].includes(parsedMonths)) {
+        setImportMonths(parsedMonths);
+      }
+    }
 
     if (savedMonths) {
       const parsedMonths = Number(savedMonths);
@@ -1417,11 +1348,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(PREMIUM_KEY, String(isPremium));
   }, [isPremium]);
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem(THEME_KEY, theme);
-  }, [theme]);
 
   useEffect(() => {
     const handleEscape = (event) => {
@@ -1595,43 +1521,6 @@ export default function App() {
 
   const scrollToResults = () => scrollToId("app-results");
 
-  const openSectionForView = (view) => {
-    const sectionTargets = {
-      overview: "style",
-      recommendations: "recommendations",
-      training: "training",
-      games: "replay",
-      data: "chart",
-      feedback: "feedback",
-    };
-
-    const sectionKey = sectionTargets[view];
-
-    if (!sectionKey || sectionKey === "feedback") return;
-
-    setOpenSections((current) => ({
-      ...current,
-      [sectionKey]: true,
-    }));
-  };
-
-  const scrollToActiveView = (view) => {
-    const viewTargets = {
-      overview: "section-fit",
-      recommendations: "section-recommendations",
-      training: "section-training",
-      games: "section-replay",
-      data: "section-chart",
-      feedback: "feedback",
-    };
-
-    openSectionForView(view);
-
-    setTimeout(() => {
-      scrollToId(viewTargets[view] || "app-results");
-    }, 80);
-  };
-
   const loadLocalAnalysis = () => {
     const savedAnalysis = localStorage.getItem(STORAGE_KEY);
 
@@ -1651,7 +1540,6 @@ export default function App() {
       }
       setSelectedGameIndex(0);
       setPracticeOpening(null);
-      setSelectedOpening(null);
       setOpenSections(closedSections);
       setLocalSavedAt(parsed.savedAt || "");
 
@@ -1692,26 +1580,6 @@ export default function App() {
   };
 
   const jumpToSection = (target) => {
-    const viewByTarget = {
-      "section-fit": "overview",
-      "section-style": "overview",
-      "repertoire-plan": "overview",
-      "section-recommendations": "recommendations",
-      "section-verdicts": "recommendations",
-      "section-preferred": "recommendations",
-      "section-chart": "data",
-      "section-top": "data",
-      "section-training": "training",
-      "section-replay": "games",
-      feedback: "feedback",
-    };
-
-    const nextView = viewByTarget[target];
-
-    if (nextView) {
-      setActiveView(nextView);
-    }
-
     const sectionKey = target.replace("section-", "");
 
     if (closedSections[sectionKey] !== undefined) {
@@ -1721,24 +1589,26 @@ export default function App() {
       }));
     }
 
-    const scroll = () => {
-      const el =
-        document.getElementById(target) ||
-        document.getElementById("app-results") ||
-        document.getElementById("app-dashboard");
+    setTimeout(() => {
+      const el = document.getElementById(target);
 
-      if (!el) return;
+      if (el) {
+        const y = el.getBoundingClientRect().top + window.scrollY - 18;
+        window.scrollTo({
+          top: Math.max(y, 0),
+          behavior: "smooth",
+        });
+        return;
+      }
 
-      const y = el.getBoundingClientRect().top + window.scrollY - 18;
-
-      window.scrollTo({
-        top: Math.max(y, 0),
-        behavior: "smooth",
-      });
-    };
-
-    setTimeout(scroll, 180);
-    setTimeout(scroll, 380);
+      const fallback = document.getElementById("app-dashboard");
+      if (fallback) {
+        fallback.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 160);
   };
 
   const startOpeningPractice = (openingName) => {
@@ -1774,7 +1644,6 @@ export default function App() {
     setData(null);
     setSelectedGameIndex(0);
     setPracticeOpening(null);
-    setSelectedOpening(null);
     setOpenSections(closedSections);
 
     const cleanUsername = username.trim();
@@ -1788,6 +1657,7 @@ export default function App() {
 
       localStorage.setItem(USERNAME_KEY, cleanUsername);
       localStorage.setItem(PLATFORM_KEY, platform);
+      localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
       localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
 
       await trackEvent("frontend_import_started", {
@@ -1927,7 +1797,6 @@ export default function App() {
       setOpenSections(closedSections);
       setSelectedGameIndex(0);
       setPracticeOpening(null);
-      setSelectedOpening(null);
 
       setSavedProfileMessage(
         `Loaded saved backend profile for ${
@@ -1980,7 +1849,6 @@ export default function App() {
       setUsername("DemoPlayer");
       setSelectedGameIndex(0);
       setPracticeOpening(null);
-      setSelectedOpening(null);
       setOpenSections(closedSections);
       setSavedProfileMessage(
         "Demo profile loaded. This is sample data, so use Import Games for your real saved profile."
@@ -2252,76 +2120,6 @@ export default function App() {
     isPremium,
   ]);
 
-  const allOpeningsForSnapshot = useMemo(() => {
-    const combined = [];
-
-    if (Array.isArray(filteredTopOpenings)) combined.push(...filteredTopOpenings);
-    if (Array.isArray(filteredBestOpenings)) combined.push(...filteredBestOpenings);
-    if (Array.isArray(filteredPreferredWhite)) combined.push(...filteredPreferredWhite);
-    if (Array.isArray(filteredPreferredBlack)) combined.push(...filteredPreferredBlack);
-
-    const merged = new Map();
-
-    combined.forEach((opening) => {
-      const name = getOpeningName(opening);
-      if (isUnknownOpeningName(name)) return;
-
-      const key = name.toLowerCase();
-
-      if (!merged.has(key)) {
-        merged.set(key, {
-          ...opening,
-          name,
-          games: getOpeningGames(opening),
-          win_rate: getWinRate(opening),
-        });
-        return;
-      }
-
-      const existing = merged.get(key);
-
-      if (getOpeningGames(opening) > getOpeningGames(existing)) {
-        merged.set(key, {
-          ...existing,
-          ...opening,
-          name,
-          games: getOpeningGames(opening),
-          win_rate: getWinRate(opening),
-        });
-      }
-    });
-
-    if (Array.isArray(fitData?.scoredOpenings)) {
-      fitData.scoredOpenings.forEach((opening) => {
-        const name = getOpeningName(opening);
-        if (isUnknownOpeningName(name)) return;
-
-        const key = name.toLowerCase();
-        const existing = merged.get(key) || {};
-
-        merged.set(key, {
-          ...existing,
-          ...opening,
-          name,
-          games: getOpeningGames(opening) || getOpeningGames(existing),
-          win_rate: getWinRate(opening) || getWinRate(existing),
-          fitScore: opening.fitScore,
-          fitVerdict: opening.fitVerdict,
-          verdict: opening.fitVerdict,
-          fitExplanation: opening.fitExplanation,
-        });
-      });
-    }
-
-    return Array.from(merged.values());
-  }, [
-    filteredTopOpenings,
-    filteredBestOpenings,
-    filteredPreferredWhite,
-    filteredPreferredBlack,
-    fitData,
-  ]);
-
   const selectedGame = filteredRecentGames?.[selectedGameIndex] || null;
 
   const selectedReplayGame = useMemo(() => {
@@ -2353,10 +2151,6 @@ export default function App() {
     setSelectedGameIndex(0);
   }, [showUnknownOpenings]);
 
-  const toggleTheme = () => {
-    setTheme((current) => (current === "dark" ? "light" : "dark"));
-  };
-
   return (
     <>
       <div className="page">
@@ -2366,8 +2160,6 @@ export default function App() {
           onPractice={startOpeningPractice}
           activeView={activeView}
           onViewChange={setActiveView}
-          theme={theme}
-          onThemeToggle={toggleTheme}
         />
 
         {showLanding ? (
@@ -2379,16 +2171,10 @@ export default function App() {
             onImport={importGames}
             loading={loading}
             onClose={() => setShowLanding(false)}
-            theme={theme}
-            onThemeToggle={toggleTheme}
           />
         ) : null}
 
-        <LandingSection
-          onOpeningClick={startOpeningPractice}
-          theme={theme}
-          onThemeToggle={toggleTheme}
-        />
+        <LandingSection onOpeningClick={startOpeningPractice} />
 
         <main className="container appShell" id="app-dashboard">
           <header className="hero heroCard">
@@ -2435,6 +2221,22 @@ export default function App() {
                   platforms[platform]?.usernamePlaceholder || "Chess username"
                 }
               />
+
+              <select
+                className="input monthSelect"
+                value={importMonths}
+                onChange={(e) => setImportMonths(Number(e.target.value))}
+                aria-label="Months to import"
+              >
+                <option value={1}>1 month</option>
+                <option value={3}>3 months</option>
+                <option value={6} disabled={!isPremium}>
+                  6 months {isPremium ? "" : "— Premium"}
+                </option>
+                <option value={12} disabled={!isPremium}>
+                  12 months {isPremium ? "" : "— Premium"}
+                </option>
+              </select>
 
               <select
                 className="input monthSelect"
@@ -2518,6 +2320,12 @@ export default function App() {
                 <span>Premium demo mode</span>
               </label>
             </div>
+
+            {!isPremium && importMonths > 3 ? (
+              <p className="statusMessage">
+                Free mode imports up to 3 months. Turn on Premium demo mode to preview 6 or 12 month imports.
+              </p>
+            ) : null}
 
             {!isPremium && importMonths > 3 ? (
               <p className="statusMessage">
@@ -2646,29 +2454,13 @@ export default function App() {
                 activeView={activeView}
                 onChange={(view) => {
                   setActiveView(view);
-                  scrollToActiveView(view);
+
+                  setTimeout(() => {
+                    const el = document.getElementById("app-results");
+                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 80);
                 }}
               />
-
-              <OpeningSnapshot
-                openings={allOpeningsForSnapshot}
-                onSelectOpening={setSelectedOpening}
-              />
-
-              <OpeningPracticeLinesPanel
-                opening={selectedPracticeOpening}
-                onClose={() => setSelectedPracticeOpening(null)}
-              />
-
-              <OpeningReportActions
-                username={data?.username || data?.playerName || data?.player || ""}
-                platform={data?.platform || data?.source || ""}
-                gamesImported={data?.gamesImported || data?.games_imported || data?.totalGames || data?.games?.length || 0}
-                openings={allOpeningsForSnapshot}
-                fitData={fitData}
-              />
-              <OpeningComparison data={data} username={username} platform={platform} />
-              <RepertoirePlan data={data} />
 
               {activeView === "overview" ? (
                 <>
@@ -2681,7 +2473,6 @@ export default function App() {
                 <OpeningFitScoreList
                   fitData={fitData}
                   onPractice={startOpeningPractice}
-                  onSelectOpening={setSelectedOpening}
                 />
               </div>
 
@@ -3367,19 +3158,14 @@ export default function App() {
                             );
 
                             return (
-                              <tr
-                                key={index}
-                                className="clickableOpening"
-                                onClick={() => setSelectedOpening(fitOpening || opening)}
-                              >
+                              <tr key={index}>
                                 <td>
                                   <button
                                     className="tableOpeningBtn"
                                     type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      startOpeningPractice(opening.name);
-                                    }}
+                                    onClick={() =>
+                                      startOpeningPractice(opening.name)
+                                    }
                                   >
                                     {opening.name}
                                   </button>
@@ -3402,7 +3188,7 @@ export default function App() {
                           text={`Free shows your top 8 rows. Premium would show all ${filteredTopOpenings.length} tracked openings.`}
                         />
                       ) : null}
-                    </div>
+                      </div>
                   ) : (
                     <EmptyState
                       title="No top openings yet"
@@ -3413,6 +3199,10 @@ export default function App() {
               </div>
                 </>
               ) : null}
+              {activeView === "overview" ? (
+                <RetentionHub data={data} />
+              ) : null}
+
             </div>
           )}
 
@@ -3495,34 +3285,6 @@ export default function App() {
           <Footer />
         </div>
       </div>
-
-      <OpeningDetailsModal
-        opening={selectedOpening}
-        onClose={() => setSelectedOpening(null)}
-        onReview={() => {
-          setActiveView("games");
-          setOpenSections((current) => ({
-            ...current,
-            replay: true,
-          }));
-
-          setTimeout(() => {
-            scrollToId("section-replay");
-          }, 120);
-        }}
-              onPracticeLines={(opening) => {
-          setSelectedPracticeOpening(opening || selectedOpening);
-          setActiveView("training");
-          setOpenSections((current) => ({
-            ...current,
-            training: true,
-          }));
-
-          setTimeout(() => {
-            scrollToId("practice-main-lines");
-          }, 140);
-        }}
-      />
 
       <Analytics />
     </>
