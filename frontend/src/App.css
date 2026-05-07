@@ -6359,3 +6359,522 @@ button[aria-label="Open navigation menu"] {
     display: none;
   }
 }
+
+
+/* =========================================================
+   Interactive Repertoire + modern tiles
+   ========================================================= */
+
+.interactivePage {
+  display: grid;
+  gap: 1rem;
+}
+
+.interactiveHeroTile,
+.modernTile {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.16), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.76));
+  border-radius: 1.45rem;
+  box-shadow: 0 22px 70px rgba(2, 6, 23, 0.28);
+}
+
+.interactiveHeroTile {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.2rem;
+}
+
+.interactiveHeroTile h2,
+.modernTile h3 {
+  margin: 0.15rem 0 0.35rem;
+}
+
+.interactiveHeroTile p,
+.modernTile p {
+  color: var(--text-soft);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.interactiveHeroStats {
+  display: grid;
+  grid-template-columns: repeat(3, 110px);
+  gap: 0.65rem;
+}
+
+.interactiveHeroStats div {
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: rgba(2, 6, 23, 0.38);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  text-align: center;
+}
+
+.interactiveHeroStats strong {
+  display: block;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.interactiveHeroStats span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.interactiveTileGrid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.twoColumnTiles {
+  grid-template-columns: 1fr 1fr;
+}
+
+.modernTile {
+  padding: 1rem;
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.modernTileLarge {
+  grid-row: span 2;
+}
+
+.modernTileTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.tileLabel {
+  color: var(--blue-light) !important;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 900;
+}
+
+.tileBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #bfdbfe;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  background: rgba(37, 99, 235, 0.15);
+}
+
+.tileBadgeGreen {
+  color: #bbf7d0;
+  border-color: rgba(34, 197, 94, 0.32);
+  background: rgba(34, 197, 94, 0.13);
+}
+
+.tileBadgeAmber {
+  color: #fde68a;
+  border-color: rgba(245, 158, 11, 0.34);
+  background: rgba(245, 158, 11, 0.13);
+}
+
+.openingTileList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.openingTile {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  background: rgba(2, 6, 23, 0.34);
+  color: var(--text);
+  border-radius: 1rem;
+  padding: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.openingTile:hover {
+  transform: translateY(-1px);
+  border-color: rgba(96, 165, 250, 0.32);
+  background: rgba(15, 23, 42, 0.76);
+}
+
+.openingTile strong {
+  display: block;
+  margin-bottom: 0.18rem;
+}
+
+.openingTile span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.openingTileArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.18);
+  color: var(--blue-light) !important;
+  font-size: 1.1rem !important;
+}
+
+.tileActions,
+.detailsActionGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.interactiveTileBtn,
+.miniTextButton {
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  background: rgba(37, 99, 235, 0.15);
+  color: var(--text);
+  border-radius: 0.9rem;
+  padding: 0.65rem 0.8rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.interactiveTileBtn:hover,
+.miniTextButton:hover {
+  background: rgba(37, 99, 235, 0.25);
+}
+
+.interactiveTileBtnActive {
+  border-color: rgba(34, 197, 94, 0.38);
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.interactiveTileBtnDanger {
+  border-color: rgba(248, 113, 113, 0.34);
+  background: rgba(127, 29, 29, 0.22);
+}
+
+.interactiveShareCard {
+  white-space: pre-wrap;
+  margin: 0;
+  padding: 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(2, 6, 23, 0.38);
+  color: var(--text-soft);
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.checklistTiles {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.checklistTile {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  background: rgba(2, 6, 23, 0.34);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.checklistTile span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.checklistTileDone strong {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.checklistTileDone span {
+  border-color: rgba(34, 197, 94, 0.42);
+  background: rgba(34, 197, 94, 0.16);
+  color: #bbf7d0;
+}
+
+.wizardGroup {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.wizardGroup label {
+  color: var(--text-soft);
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.wizardOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.wizardOptions button {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(2, 6, 23, 0.35);
+  color: var(--text-soft);
+  border-radius: 999px;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.wizardOptions .wizardActive {
+  border-color: rgba(96, 165, 250, 0.36);
+  background: rgba(37, 99, 235, 0.18);
+  color: var(--text);
+}
+
+.wizardResult {
+  padding: 0.85rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.wizardResult strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.repertoireBoard {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.repertoireBoardColumn {
+  display: grid;
+  gap: 0.65rem;
+  align-content: start;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: rgba(2, 6, 23, 0.28);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.repertoireBoardColumn h4 {
+  margin: 0;
+}
+
+.repertoireBoardColumn p {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.repertoireSavedTile {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.repertoireSavedTile div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.repertoireSavedTile button {
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  background: rgba(37, 99, 235, 0.13);
+  color: var(--text);
+  border-radius: 0.75rem;
+  padding: 0.48rem 0.6rem;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.openingDetailsOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.openingDetailsModal {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 1.2rem;
+  border-radius: 1.45rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 34%),
+    rgba(15, 23, 42, 0.96);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.45);
+}
+
+.openingDetailsClose {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(2, 6, 23, 0.5);
+  color: var(--text);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.openingDetailsModal h2 {
+  margin: 0.25rem 3rem 1rem 0;
+  font-size: clamp(1.6rem, 5vw, 2.35rem);
+}
+
+.detailsStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.detailsStatsGrid div {
+  padding: 0.8rem;
+  border-radius: 1rem;
+  background: rgba(2, 6, 23, 0.35);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.detailsStatsGrid strong {
+  display: block;
+  font-size: 1.25rem;
+}
+
+.detailsStatsGrid span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.openingDetailsText {
+  padding: 0.9rem;
+  border-radius: 1rem;
+  background: rgba(2, 6, 23, 0.3);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  margin-bottom: 1rem;
+}
+
+.openingDetailsText h3 {
+  margin: 0 0 0.35rem;
+}
+
+.openingDetailsText p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.detailsActionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.detailsActionGrid .interactiveTileBtn {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .interactiveHeroTile {
+    grid-template-columns: 1fr;
+  }
+
+  .interactiveHeroStats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .interactiveTileGrid,
+  .twoColumnTiles,
+  .repertoireBoard {
+    grid-template-columns: 1fr;
+  }
+
+  .modernTileLarge {
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .interactiveHeroTile,
+  .modernTile,
+  .openingDetailsModal {
+    border-radius: 1.1rem;
+    padding: 0.9rem;
+  }
+
+  .interactiveHeroStats,
+  .detailsStatsGrid,
+  .detailsActionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .modernTileTop {
+    flex-direction: column;
+  }
+
+  .tileActions,
+  .wizardOptions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .interactiveTileBtn,
+  .wizardOptions button,
+  .miniTextButton {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .openingTile {
+    grid-template-columns: 1fr;
+  }
+
+  .openingTileArrow {
+    display: none;
+  }
+}
