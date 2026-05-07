@@ -8,6 +8,7 @@ import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
 import OpeningSnapshot from "./components/OpeningSnapshot";
 import RetentionHub from "./components/RetentionHub";
+import InteractiveRepertoire from "./components/InteractiveRepertoire";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
@@ -624,6 +625,7 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
     { key: "training", label: "Training" },
     { key: "games", label: "Games" },
     { key: "data", label: "Data" },
+    { key: "repertoire", label: "Interactive" },
     { key: "feedback", label: "Feedback" },
   ];
 
@@ -732,6 +734,7 @@ function AppViewTabs({ activeView, onChange }) {
     { key: "training", label: "Training", icon: "🚀" },
     { key: "games", label: "Games", icon: "♟️" },
     { key: "data", label: "Data", icon: "📊" },
+    { key: "repertoire", label: "Interactive", icon: "🧩" },
     { key: "feedback", label: "Feedback", icon: "💬" },
   ];
 
@@ -3171,6 +3174,13 @@ export default function App() {
               ) : null}
               {activeView === "overview" ? (
                 <RetentionHub data={data} />
+              ) : null}
+
+              {activeView === "repertoire" ? (
+                <InteractiveRepertoire
+                  data={data}
+                  onPractice={startOpeningPractice}
+                />
               ) : null}
 
             </div>
