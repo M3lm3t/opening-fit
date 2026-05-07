@@ -9,6 +9,9 @@ import OpeningDetailsModal from "./components/OpeningDetailsModal";
 import OpeningSnapshot from "./components/OpeningSnapshot";
 import RetentionHub from "./components/RetentionHub";
 import InteractiveRepertoire from "./components/InteractiveRepertoire";
+import DashboardHome from "./components/DashboardHome";
+import MobileBottomNav from "./components/MobileBottomNav";
+import LaunchReadySections from "./components/LaunchReadySections";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
@@ -1025,6 +1028,8 @@ function LandingSection({ onOpeningClick }) {
             <a href="#how-it-works">How it works</a>
             <a href="#rating-openings">Rating ranges</a>
             <a href="#premium">Premium</a>
+            <a href="#roadmap">Roadmap</a>
+            <a href="#privacy">Privacy</a>
             <a href="#app-dashboard">Launch app</a>
           </nav>
         </div>
@@ -1249,6 +1254,8 @@ function LandingSection({ onOpeningClick }) {
           </article>
         </div>
       </section>
+
+      <LaunchReadySections />
     </div>
   );
 }
@@ -2157,6 +2164,12 @@ export default function App() {
           onViewChange={setActiveView}
         />
 
+        <MobileBottomNav
+          data={data}
+          activeView={activeView}
+          onViewChange={setActiveView}
+        />
+
         {showLanding ? (
           <LandingModal
             username={username}
@@ -2437,6 +2450,21 @@ export default function App() {
 
               {activeView === "overview" ? (
                 <>
+                  <DashboardHome
+                    data={data}
+                    fitData={fitData}
+                    onPractice={startOpeningPractice}
+                    onViewChange={setActiveView}
+                    onFeedback={() => {
+                      setActiveView("feedback");
+
+                      setTimeout(() => {
+                        const el = document.getElementById("feedback");
+                        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }, 80);
+                    }}
+                  />
+
                   <div id="section-fit">
                 <OpeningFitSummaryCard
                   fitData={fitData}
