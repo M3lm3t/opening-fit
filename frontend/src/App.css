@@ -5918,3 +5918,444 @@ code {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================================================
+   Mobile polish + centred close/menu buttons
+   Added after Comeback Hub work
+   ========================================================= */
+
+/* General button/icon centering */
+.landingCloseBtn,
+.floatingMenuToggle,
+.floatingMenuHeader button,
+.goalItem button,
+.goalRemove,
+button[aria-label="Open navigation menu"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  text-align: center;
+}
+
+/* Landing modal close button */
+.landingCloseBtn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 1.15rem;
+}
+
+/* Floating burger menu button */
+.floatingMenuToggle {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 1.35rem;
+}
+
+/* Floating menu close X */
+.floatingMenuHeader button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 1.25rem;
+}
+
+/* Make close/delete buttons inside Comeback Hub less awkward */
+.goalItem button {
+  padding: 0;
+}
+
+.goalRemove {
+  font-size: 1.1rem;
+}
+
+/* Cleaner mobile base */
+@media (max-width: 760px) {
+  .page {
+    overflow-x: hidden;
+  }
+
+  .container,
+  .landingWrap {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+
+  .card,
+  .heroCard,
+  .landingPreviewCard,
+  .landingFeatureCard,
+  .landingPriceCard,
+  .retentionPanel,
+  .retentionHub {
+    border-radius: 1.1rem;
+  }
+
+  .hero,
+  .heroCard {
+    padding: 1rem;
+  }
+
+  .heroTop,
+  .retentionHeader,
+  .landingHeroGrid,
+  .twoCol,
+  .analysisGrid,
+  .boardSection,
+  .landingPricingGrid,
+  .landingFeatureGrid,
+  .aboutGrid,
+  .statsGrid,
+  .placeholderGrid,
+  .fitHeroGrid,
+  .quickNavGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .heroTitleWrap h1,
+  .landingHeroCopy h1 {
+    font-size: clamp(2rem, 10vw, 3rem);
+    line-height: 1.02;
+  }
+
+  .subtext,
+  .landingSubtext,
+  .landingSectionHeading p,
+  .retentionHeader p {
+    font-size: 0.98rem;
+    line-height: 1.55;
+  }
+
+  /* Import controls stack neatly */
+  .searchRow,
+  .topBar,
+  .appActionPanel {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .platformSelector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .platformButton,
+  .input,
+  .monthSelect,
+  .primaryBtn,
+  .secondaryButton,
+  .ghostButton,
+  .savedProfileButton,
+  .demoAccountButton {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .appActionButtons {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+    width: 100%;
+  }
+
+  .filtersRow {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  .checkboxRow {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0.75rem;
+    border-radius: 0.9rem;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid var(--border);
+  }
+
+  /* Report tabs */
+  .appTabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .appTabButton {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.65rem 0.55rem;
+    font-size: 0.85rem;
+  }
+
+  /* Quick nav */
+  .quickNavGrid {
+    gap: 0.55rem;
+  }
+
+  .quickNavBtn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Stats cards */
+  .statsGrid {
+    gap: 0.75rem;
+  }
+
+  .statCard {
+    min-height: auto;
+    padding: 0.9rem;
+  }
+
+  .statValue {
+    font-size: 1.35rem;
+  }
+
+  .smallStatValue {
+    font-size: 1rem;
+  }
+
+  /* Section headers */
+  .sectionToggle {
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.9rem;
+  }
+
+  .sectionToggleLeft {
+    min-width: 0;
+  }
+
+  .sectionToggle h2 {
+    font-size: 1.05rem;
+    line-height: 1.2;
+  }
+
+  .sectionBadge {
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sectionBody {
+    padding: 0.9rem;
+  }
+
+  /* Lists and rows should not overflow */
+  .listItem,
+  .fitOpeningRow,
+  .chartRow,
+  .gamePickerButton,
+  .trainingPlanItem,
+  .landingVerdictRow,
+  .retentionList div,
+  .historyList div,
+  .repertoireQuickAdd > div {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .listItem,
+  .fitOpeningMain,
+  .landingVerdictRow {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+    align-items: start;
+  }
+
+  .rightStat,
+  .fitOpeningScore {
+    justify-self: start;
+  }
+
+  /* Comeback Hub mobile */
+  .retentionHub {
+    padding: 1rem;
+  }
+
+  .retentionHeaderStat {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .retentionGrid,
+  .retentionSplit,
+  .streakCards,
+  .repertoireColumns {
+    grid-template-columns: 1fr !important;
+  }
+
+  .retentionPanelTop {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .retentionPill {
+    white-space: normal;
+  }
+
+  .goalInputRow {
+    grid-template-columns: 1fr;
+  }
+
+  .goalItem {
+    grid-template-columns: 34px 1fr 34px;
+  }
+
+  .repertoireQuickAdd > div {
+    grid-template-columns: 1fr;
+  }
+
+  .repertoireQuickAdd > div > div {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .repertoireQuickAdd button {
+    width: 100%;
+  }
+
+  .historyList div {
+    grid-template-columns: 1fr;
+  }
+
+  .shareBox {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  /* Tables scroll instead of breaking mobile */
+  .tableWrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 650px;
+  }
+
+  /* Floating menu mobile */
+  .floatingMenu {
+    right: 0.9rem;
+    bottom: 0.9rem;
+  }
+
+  .floatingMenuPanel {
+    position: fixed;
+    left: 0.9rem;
+    right: 0.9rem;
+    bottom: 4.6rem;
+    width: auto;
+    max-width: none;
+    max-height: 72vh;
+    overflow-y: auto;
+    border-radius: 1.2rem;
+  }
+
+  .floatingMenuButtons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+  }
+
+  .floatingMenuButtonsSingle {
+    grid-template-columns: 1fr;
+  }
+
+  .floatingMenuButtons button,
+  .floatingPracticeButton {
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  /* Feedback form */
+  .feedbackCard {
+    padding: 1rem;
+  }
+
+  .feedbackCard textarea,
+  .feedbackCard input,
+  .feedbackCard button {
+    width: 100%;
+  }
+
+  /* Footer */
+  .siteFooter {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    text-align: left;
+  }
+
+  .footerLinks {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 420px) {
+  .container,
+  .landingWrap {
+    padding-left: 0.7rem;
+    padding-right: 0.7rem;
+  }
+
+  .hero,
+  .heroCard,
+  .card,
+  .retentionHub {
+    padding: 0.85rem;
+  }
+
+  .appTabs {
+    grid-template-columns: 1fr;
+  }
+
+  .platformSelector {
+    grid-template-columns: 1fr;
+  }
+
+  .repertoireQuickAdd > div > div {
+    grid-template-columns: 1fr;
+  }
+
+  .landingHeroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .landingPrimaryBtn,
+  .landingSecondaryBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .floatingMenuToggle {
+    width: 46px;
+    height: 46px;
+  }
+
+  .sectionBadge {
+    display: none;
+  }
+}
