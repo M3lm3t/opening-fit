@@ -1290,13 +1290,6 @@ export default function App() {
       }
     }
 
-    if (savedMonths) {
-      const parsedMonths = Number(savedMonths);
-      if ([1, 3, 6, 12].includes(parsedMonths)) {
-        setImportMonths(parsedMonths);
-      }
-    }
-
     if (savedPlatform && platforms[savedPlatform]) {
       setPlatform(savedPlatform);
     }
@@ -1657,7 +1650,6 @@ export default function App() {
 
       localStorage.setItem(USERNAME_KEY, cleanUsername);
       localStorage.setItem(PLATFORM_KEY, platform);
-      localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
       localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
 
       await trackEvent("frontend_import_started", {
@@ -2238,22 +2230,6 @@ export default function App() {
                 </option>
               </select>
 
-              <select
-                className="input monthSelect"
-                value={importMonths}
-                onChange={(e) => setImportMonths(Number(e.target.value))}
-                aria-label="Months to import"
-              >
-                <option value={1}>1 month</option>
-                <option value={3}>3 months</option>
-                <option value={6} disabled={!isPremium}>
-                  6 months {isPremium ? "" : "— Premium"}
-                </option>
-                <option value={12} disabled={!isPremium}>
-                  12 months {isPremium ? "" : "— Premium"}
-                </option>
-              </select>
-
               <div className="appActionButtons">
                 <button
                   className="primaryBtn"
@@ -2320,12 +2296,6 @@ export default function App() {
                 <span>Premium demo mode</span>
               </label>
             </div>
-
-            {!isPremium && importMonths > 3 ? (
-              <p className="statusMessage">
-                Free mode imports up to 3 months. Turn on Premium demo mode to preview 6 or 12 month imports.
-              </p>
-            ) : null}
 
             {!isPremium && importMonths > 3 ? (
               <p className="statusMessage">
