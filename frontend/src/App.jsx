@@ -10,6 +10,7 @@ import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 import PremiumPanel from "./components/PremiumPanel";
 import PremiumCoachPlan from "./components/PremiumCoachPlan";
+import MyRepertoire from "./components/MyRepertoire";
 import LandingModal from "./components/LandingModal";
 import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
@@ -3169,6 +3170,12 @@ const [activeView, setActiveView] = useState("overview");
         />
 
         <PremiumCoachPlan
+          data={data}
+          isPremium={isPremium}
+          onUnlockDemo={unlockPremiumDemo}
+        />
+
+        <MyRepertoire
           data={data}
           isPremium={isPremium}
           onUnlockDemo={unlockPremiumDemo}
