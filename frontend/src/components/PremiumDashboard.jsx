@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import "./PremiumDashboard.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
+const PREMIUM_DEMO_KEY = "openingFit:premiumDemo";
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -186,6 +187,20 @@ function buildWeakLines(data) {
     .slice(0, 5);
 }
 
+
+function LockedOverlay({ title = "Premium feature", children }) {
+  return (
+    <div className="premiumLockedOverlay">
+      <div className="premiumLockIcon">🔒</div>
+      <strong>{title}</strong>
+      <p>{children || "Unlock the full version to use this feature."}</p>
+      <button className="premiumUnlockBtn" type="button">
+        Unlock Premium
+      </button>
+    </div>
+  );
+}
+
 function StatTile({ label, value, helper }) {
   return (
     <div className="premiumStatTile">
@@ -213,6 +228,13 @@ function OpeningMiniCard({ title, row, fallback }) {
 }
 
 export default function PremiumDashboard({ data, username }) {
+  const [isPremiumDemo, setIsPremiumDemo] = useState(() => {
+    try {
+      return localStorage.getItem(PREMIUM_DEMO_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
   const [stockfishLoading, setStockfishLoading] = useState(false);
   const [stockfishResult, setStockfishResult] = useState(null);
   const [stockfishError, setStockfishError] = useState("");
@@ -235,7 +257,23 @@ export default function PremiumDashboard({ data, username }) {
 
   const latestGameWithPgn = games.find((game) => game?.pgn);
 
+  const togglePremiumDemo = () => {
+    const next = !isPremiumDemo;
+    setIsPremiumDemo(next);
+
+    try {
+      localStorage.setItem(PREMIUM_DEMO_KEY, String(next));
+    } catch {
+      // Ignore storage errors.
+    }
+  };
+
   const runStockfish = async () => {
+    if (!isPremiumDemo) {
+      setStockfishError("Stockfish coach is a premium feature. Turn on Premium demo to preview it.");
+      return;
+    }
+
     setStockfishLoading(true);
     setStockfishError("");
     setStockfishResult(null);
@@ -287,6 +325,10 @@ export default function PremiumDashboard({ data, username }) {
           <span>Early supporter idea</span>
           <strong>£8 one-time</strong>
           <small>Unlock deeper reports while the app is growing.</small>
+
+          <button className="premiumDemoToggle" type="button" onClick={togglePremiumDemo}>
+            {isPremiumDemo ? "Premium demo on" : "Preview premium"}
+          </button>
         </div>
       </div>
 
@@ -398,19 +440,27 @@ export default function PremiumDashboard({ data, username }) {
             <span className="premiumBadge">Pro</span>
           </div>
 
-          <div className="premiumList">
-            {weakLines.length ? (
-              weakLines.map((line) => (
-                <div key={line.line} className="premiumLineItem">
-                  <strong>{line.line}</strong>
-                  <span>{line.games} games · {line.scoreRate}% score</span>
-                </div>
-              ))
-            ) : (
-              <p className="premiumEmpty">
-                Weak-line tracking unlocks properly once there are repeated lines in your imported games.
-              </p>
-            )}
+          <div className={`premiumLockedArea ${!isPremiumDemo ? "isLocked" : ""}`}>
+            <div className="premiumList">
+              {weakLines.length ? (
+                weakLines.map((line) => (
+                  <div key={line.line} className="premiumLineItem">
+                    <strong>{line.line}</strong>
+                    <span>{line.games} games · {line.scoreRate}% score</span>
+                  </div>
+                ))
+              ) : (
+                <p className="premiumEmpty">
+                  Weak-line tracking unlocks properly once there are repeated lines in your imported games.
+                </p>
+              )}
+            </div>
+
+            {!isPremiumDemo ? (
+              <LockedOverlay title="Weak-line finder">
+                Find repeated opening lines where your score drops and turn them into training targets.
+              </LockedOverlay>
+            ) : null}
           </div>
         </div>
 
@@ -425,39 +475,47 @@ export default function PremiumDashboard({ data, username }) {
             </button>
           </div>
 
-          <p className="premiumPanelText">
-            This connects premium to Stockfish. Locally it should work once Stockfish is installed.
-            On the live backend, set <code>STOCKFISH_PATH</code> if needed.
-          </p>
+          <div className={`premiumLockedArea ${!isPremiumDemo ? "isLocked" : ""}`}>
+            <p className="premiumPanelText">
+              This connects premium to Stockfish. Locally it should work once Stockfish is installed.
+              On the live backend, set <code>STOCKFISH_PATH</code> if needed.
+            </p>
 
-          {stockfishError ? <div className="premiumError">{stockfishError}</div> : null}
+            {stockfishError ? <div className="premiumError">{stockfishError}</div> : null}
 
-          {stockfishResult ? (
-            <div className="premiumStockfishResult">
-              <strong>{stockfishResult.summary}</strong>
+            {stockfishResult ? (
+              <div className="premiumStockfishResult">
+                <strong>{stockfishResult.summary}</strong>
 
-              {stockfishResult.enabled === false ? (
-                <p>{stockfishResult.summary}</p>
-              ) : null}
+                {stockfishResult.enabled === false ? (
+                  <p>{stockfishResult.summary}</p>
+                ) : null}
 
-              {stockfishResult.mistakes?.length ? (
-                <div className="premiumList">
-                  {stockfishResult.mistakes.slice(0, 5).map((mistake) => (
-                    <div key={`${mistake.ply}-${mistake.played}`} className="premiumListItem danger">
-                      <strong>
-                        Move {mistake.moveNumber} · {mistake.side} played {mistake.played}
-                      </strong>
-                      <span>
-                        {mistake.severity} · {mistake.centipawnLoss} centipawn loss
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="premiumEmpty">No major mistakes returned from the latest analysis.</p>
-              )}
-            </div>
-          ) : null}
+                {stockfishResult.mistakes?.length ? (
+                  <div className="premiumList">
+                    {stockfishResult.mistakes.slice(0, 5).map((mistake) => (
+                      <div key={`${mistake.ply}-${mistake.played}`} className="premiumListItem danger">
+                        <strong>
+                          Move {mistake.moveNumber} · {mistake.side} played {mistake.played}
+                        </strong>
+                        <span>
+                          {mistake.severity} · {mistake.centipawnLoss} centipawn loss
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="premiumEmpty">No major mistakes returned from the latest analysis.</p>
+                )}
+              </div>
+            ) : null}
+
+            {!isPremiumDemo ? (
+              <LockedOverlay title="Stockfish coach">
+                Analyse your latest game with engine-backed mistake detection and best-move suggestions.
+              </LockedOverlay>
+            ) : null}
+          </div>
         </div>
 
         <div className="premiumPanel">
@@ -468,10 +526,18 @@ export default function PremiumDashboard({ data, username }) {
             </div>
           </div>
 
-          <div className="premiumChecklist">
-            <span>Train your weakest opening line first</span>
-            <span>Repeat missed moves until learned</span>
-            <span>Track repertoire confidence over time</span>
+          <div className={`premiumLockedArea ${!isPremiumDemo ? "isLocked" : ""}`}>
+            <div className="premiumChecklist">
+              <span>Train your weakest opening line first</span>
+              <span>Repeat missed moves until learned</span>
+              <span>Track repertoire confidence over time</span>
+            </div>
+
+            {!isPremiumDemo ? (
+              <LockedOverlay title="Practice Pro">
+                Turn your weak openings into focused drills and track what you have learned.
+              </LockedOverlay>
+            ) : null}
           </div>
         </div>
 
@@ -483,10 +549,18 @@ export default function PremiumDashboard({ data, username }) {
             </div>
           </div>
 
-          <div className="premiumChecklist">
-            <span>Monthly OpeningFit report</span>
-            <span>Repertoire summary</span>
-            <span>Shareable improvement plan</span>
+          <div className={`premiumLockedArea ${!isPremiumDemo ? "isLocked" : ""}`}>
+            <div className="premiumChecklist">
+              <span>Monthly OpeningFit report</span>
+              <span>Repertoire summary</span>
+              <span>Shareable improvement plan</span>
+            </div>
+
+            {!isPremiumDemo ? (
+              <LockedOverlay title="Export reports">
+                Generate a clean opening report you can save, share, or use as your monthly training plan.
+              </LockedOverlay>
+            ) : null}
           </div>
         </div>
       </div>
