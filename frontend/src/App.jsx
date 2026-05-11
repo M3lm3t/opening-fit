@@ -2267,8 +2267,7 @@ export default function App() {
   const [feedbackStatus, setFeedbackStatus] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [localSavedAt, setLocalSavedAt] = useState("");
-  const [isPremium, setIsPremium] = useState(false);
-  const [activeView, setActiveView] = useState("overview");
+const [activeView, setActiveView] = useState("overview");
   const [showLanding, setShowLanding] = useState(true);
 
 
