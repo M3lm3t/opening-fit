@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
 import OpeningReportSummary from "./components/OpeningReportSummary";
+import RepertoireStudyPlan from "./components/RepertoireStudyPlan";
 import PremiumDashboard from "./components/PremiumDashboard";
 import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
 import AccountPanel from "./components/AccountPanel";
@@ -3899,6 +3900,8 @@ export default function App() {
                     username={username}
                     platform={platform}
                   />
+
+                  <RepertoireStudyPlan data={data} />
 
                   <div id="section-chart">
                 <Section
