@@ -13150,3 +13150,249 @@ main > section,
     width: 100%;
   }
 }
+
+/* My Repertoire */
+
+.myRepertoireShell {
+  width: min(1180px, calc(100% - 28px));
+  margin: 18px auto 28px;
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(250, 204, 21, 0.12), transparent 30%),
+    var(--card-bg, rgba(255, 255, 255, 0.9));
+  box-shadow: 0 18px 52px rgba(15, 23, 42, 0.09);
+}
+
+.myRepertoireHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.myRepertoireEyebrow {
+  width: fit-content;
+  margin-bottom: 9px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.14);
+  color: #2563eb;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.myRepertoireHeader h2 {
+  margin: 0 0 8px;
+  font-size: clamp(1.45rem, 3vw, 2.25rem);
+  line-height: 1.06;
+}
+
+.myRepertoireHeader p {
+  max-width: 730px;
+  margin: 0;
+  color: var(--muted-text, #64748b);
+  line-height: 1.58;
+}
+
+.myRepertoireActions {
+  min-width: 220px;
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.myRepertoireActions span {
+  text-align: center;
+  color: var(--muted-text, #64748b);
+  font-weight: 950;
+}
+
+.myRepertoireActions button,
+.repertoireSuggestion button,
+.repertoireSavedOpening button {
+  border: 0;
+  border-radius: 13px;
+  padding: 10px 12px;
+  background: #111827;
+  color: #f8fafc;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.myRepertoireActions button.ghost {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: transparent;
+  color: inherit;
+}
+
+.myRepertoireActions button.danger {
+  background: rgba(248, 113, 113, 0.15);
+  color: #dc2626;
+}
+
+.myRepertoireGrid,
+.savedRepertoireGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.repertoireColumn,
+.savedRepertoireCard,
+.repertoireNotesCard {
+  padding: 17px;
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.repertoireColumnHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.repertoireColumnHeader span {
+  color: var(--muted-text, #64748b);
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.repertoireColumnHeader strong {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.repertoireSuggestionList,
+.savedOpeningsList {
+  display: grid;
+  gap: 10px;
+}
+
+.repertoireSuggestion,
+.repertoireSavedOpening {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 17px;
+  background: rgba(15, 23, 42, 0.045);
+}
+
+.repertoireSuggestion strong,
+.repertoireSavedOpening strong {
+  display: block;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.repertoireSuggestion span,
+.repertoireSavedOpening span {
+  color: var(--muted-text, #64748b);
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.repertoireSuggestion button {
+  background: #facc15;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.repertoireSavedOpening button {
+  background: rgba(248, 113, 113, 0.14);
+  color: #dc2626;
+  white-space: nowrap;
+}
+
+.savedRepertoireCard h3,
+.repertoireNotesCard h3 {
+  margin: 0 0 10px;
+}
+
+.savedRepertoireCard p,
+.repertoireNotesCard p {
+  margin: 0;
+  color: var(--muted-text, #64748b);
+  line-height: 1.55;
+}
+
+.repertoireNotesCard {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 16px;
+  align-items: start;
+  margin-top: 14px;
+}
+
+.repertoireNotesCard textarea {
+  width: 100%;
+  min-height: 130px;
+  resize: vertical;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 17px;
+  padding: 13px 14px;
+  background: rgba(255, 255, 255, 0.74);
+  color: inherit;
+  font: inherit;
+  line-height: 1.5;
+  outline: none;
+}
+
+.repertoireNotesCard textarea:focus {
+  border-color: rgba(59, 130, 246, 0.58);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+@media (max-width: 820px) {
+  .myRepertoireShell {
+    width: min(100% - 20px, 1180px);
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .myRepertoireHeader,
+  .repertoireNotesCard {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .myRepertoireActions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .myRepertoireGrid,
+  .savedRepertoireGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .repertoireSuggestion,
+  .repertoireSavedOpening {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .repertoireSuggestion button,
+  .repertoireSavedOpening button {
+    width: 100%;
+  }
+}
