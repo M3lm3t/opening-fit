@@ -11745,3 +11745,283 @@ main > section,
     flex-direction: column;
   }
 }
+
+
+/* -------------------------------------------------------
+   Repertoire + study plan
+------------------------------------------------------- */
+
+.repertoirePlanShell {
+  margin: 0 0 28px;
+  padding: 24px;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
+}
+
+.light .repertoirePlanShell,
+[data-theme="light"] .repertoirePlanShell {
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 34%),
+    linear-gradient(145deg, #ffffff, #f8fafc);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  box-shadow: 0 20px 55px rgba(15, 23, 42, 0.1);
+}
+
+.repertoirePlanHeader {
+  display: grid;
+  gap: 12px;
+}
+
+.repertoirePlanEyebrow {
+  margin: 0 0 8px;
+  color: #93c5fd;
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.light .repertoirePlanEyebrow,
+[data-theme="light"] .repertoirePlanEyebrow {
+  color: #1d4ed8;
+}
+
+.repertoirePlanHeader h2 {
+  margin: 0;
+  font-size: clamp(1.65rem, 3.4vw, 2.75rem);
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.repertoirePlanHeader p {
+  max-width: 760px;
+  margin: 12px 0 0;
+  color: rgba(226, 232, 240, 0.72);
+  line-height: 1.6;
+}
+
+.light .repertoirePlanHeader p,
+[data-theme="light"] .repertoirePlanHeader p {
+  color: #64748b;
+}
+
+.repertoirePlanGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.repertoirePlanCard {
+  padding: 18px;
+  border-radius: 24px;
+  min-height: 245px;
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.light .repertoirePlanCard,
+[data-theme="light"] .repertoirePlanCard {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
+}
+
+.repertoirePlanCard-white {
+  background:
+    linear-gradient(145deg, rgba(132, 204, 22, 0.14), rgba(255, 255, 255, 0.055));
+  border-color: rgba(132, 204, 22, 0.22);
+}
+
+.repertoirePlanCard-black {
+  background:
+    linear-gradient(145deg, rgba(168, 85, 247, 0.14), rgba(255, 255, 255, 0.055));
+  border-color: rgba(168, 85, 247, 0.22);
+}
+
+.repertoirePlanCard-study {
+  background:
+    linear-gradient(145deg, rgba(245, 158, 11, 0.14), rgba(255, 255, 255, 0.055));
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+.repertoirePlanCardTop {
+  display: flex;
+  margin-bottom: 14px;
+}
+
+.repertoirePlanCardTop span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(148, 163, 184, 0.13);
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.light .repertoirePlanCardTop span,
+[data-theme="light"] .repertoirePlanCardTop span {
+  color: #475569;
+  background: rgba(15, 23, 42, 0.055);
+}
+
+.repertoirePlanCard h3 {
+  margin: 0;
+  font-size: 1.24rem;
+  letter-spacing: -0.025em;
+}
+
+.repertoirePlanStats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.repertoirePlanStats div {
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.light .repertoirePlanStats div,
+[data-theme="light"] .repertoirePlanStats div {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+.repertoirePlanStats strong {
+  display: block;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.repertoirePlanStats small {
+  display: block;
+  margin-top: 5px;
+  color: rgba(226, 232, 240, 0.6);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.light .repertoirePlanStats small,
+[data-theme="light"] .repertoirePlanStats small {
+  color: #64748b;
+}
+
+.repertoirePlanCard p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.68);
+  line-height: 1.54;
+  font-size: 0.93rem;
+}
+
+.light .repertoirePlanCard p,
+[data-theme="light"] .repertoirePlanCard p {
+  color: #64748b;
+}
+
+.studyTimeline {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.studyTimelineStep {
+  padding: 15px;
+  border-radius: 22px;
+  background: rgba(2, 6, 23, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.light .studyTimelineStep,
+[data-theme="light"] .studyTimelineStep {
+  background: rgba(15, 23, 42, 0.035);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+.studyTimelineStep strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #93c5fd;
+  font-size: 0.92rem;
+}
+
+.light .studyTimelineStep strong,
+[data-theme="light"] .studyTimelineStep strong {
+  color: #1d4ed8;
+}
+
+.studyTimelineStep span {
+  display: block;
+  color: rgba(226, 232, 240, 0.64);
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+
+.light .studyTimelineStep span,
+[data-theme="light"] .studyTimelineStep span {
+  color: #64748b;
+}
+
+.premiumCoachNote {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(132, 204, 22, 0.1);
+  border: 1px solid rgba(132, 204, 22, 0.2);
+}
+
+.premiumCoachNote strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.premiumCoachNote span {
+  color: rgba(226, 232, 240, 0.68);
+  line-height: 1.5;
+}
+
+.light .premiumCoachNote span,
+[data-theme="light"] .premiumCoachNote span {
+  color: #475569;
+}
+
+@media (max-width: 980px) {
+  .repertoirePlanGrid,
+  .studyTimeline {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .repertoirePlanShell {
+    padding: 16px;
+    border-radius: 24px;
+  }
+
+  .repertoirePlanGrid,
+  .studyTimeline {
+    grid-template-columns: 1fr;
+  }
+
+  .repertoirePlanCard {
+    min-height: auto;
+  }
+
+  .repertoirePlanHeader h2 {
+    font-size: 2rem;
+  }
+}
