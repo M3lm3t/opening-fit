@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
 import PremiumDashboard from "./components/PremiumDashboard";
+import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
 import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 import LandingModal from "./components/LandingModal";
@@ -3144,6 +3145,7 @@ export default function App() {
   return (
     <>
       <div className={`page ${theme}`} data-theme={theme}>
+        {loading ? <ImportLoadingOverlay platform={platform} /> : null}
         <FloatingAppMenu
           data={data}
           onJump={jumpToSection}
