@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
+import PremiumDashboard from "./components/PremiumDashboard";
 import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 import LandingModal from "./components/LandingModal";
@@ -2010,7 +2011,10 @@ function OpeningFitFullReport({ data }) {
           </p>
         </div>
 
-        <div className="roadmapPills">
+        
+        {data ? <PremiumDashboard data={data} /> : null}
+
+<div className="roadmapPills">
           <span>PDF export</span>
           <span>Opponent prep</span>
           <span>Saved history</span>

@@ -1826,3 +1826,328 @@ def demo_profile():
     log_analytics_event("demo_loaded", {"username": "DemoPlayer"})
 
     return demo_data
+
+# =========================================================
+# Cloud saved user state
+# Saves local app state to Supabase by platform + username.
+# =========================================================
+
+from urllib.parse import quote
+from typing import Dict, Any
+from pydantic import BaseModel
+
+
+class UserStatePayload(BaseModel):
+    username: str
+    platform: str = "chesscom"
+    state: Dict[str, Any]
+
+
+def get_supabase_config():
+    supabase_url = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+    supabase_key = (
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+        or os.getenv("SUPABASE_SERVICE_KEY", "").strip()
+        or os.getenv("SUPABASE_KEY", "").strip()
+        or os.getenv("SUPABASE_ANON_KEY", "").strip()
+    )
+
+    if not supabase_url or not supabase_key:
+        raise HTTPException(
+            status_code=500,
+            detail="Supabase is not configured. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to your backend environment.",
+        )
+
+    return supabase_url, supabase_key
+
+
+def supabase_headers(extra=None):
+    _, supabase_key = get_supabase_config()
+
+    headers = {
+        "apikey": supabase_key,
+        "Authorization": f"Bearer {supabase_key}",
+        "Content-Type": "application/json",
+    }
+
+    if extra:
+        headers.update(extra)
+
+    return headers
+
+
+@app.get("/api/user-state/{platform}/{username}")
+def get_user_state(platform: str, username: str):
+    clean_username = username.strip()
+    clean_platform = platform.strip().lower() or "chesscom"
+
+    if not clean_username:
+        raise HTTPException(status_code=400, detail="Username is required.")
+
+    supabase_url, _ = get_supabase_config()
+
+    query = (
+        f"{supabase_url}/rest/v1/user_states"
+        f"?platform=eq.{quote(clean_platform)}"
+        f"&username=eq.{quote(clean_username)}"
+        f"&select=username,platform,state,updated_at"
+        f"&limit=1"
+    )
+
+    response = requests.get(
+        query,
+        headers=supabase_headers(),
+        timeout=20,
+    )
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=response.text,
+        )
+
+    rows = response.json()
+
+    if not rows:
+        return {
+            "found": False,
+            "username": clean_username,
+            "platform": clean_platform,
+            "state": {},
+            "updated_at": None,
+        }
+
+    row = rows[0]
+
+    return {
+        "found": True,
+        "username": row.get("username", clean_username),
+        "platform": row.get("platform", clean_platform),
+        "state": row.get("state") or {},
+        "updated_at": row.get("updated_at"),
+    }
+
+
+@app.post("/api/user-state")
+def save_user_state(payload: UserStatePayload):
+    clean_username = payload.username.strip()
+    clean_platform = payload.platform.strip().lower() or "chesscom"
+
+    if not clean_username:
+        raise HTTPException(status_code=400, detail="Username is required.")
+
+    supabase_url, _ = get_supabase_config()
+
+    row = {
+        "username": clean_username,
+        "platform": clean_platform,
+        "state": payload.state,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    response = requests.post(
+        f"{supabase_url}/rest/v1/user_states?on_conflict=platform,username",
+        headers=supabase_headers(
+            {
+                "Prefer": "resolution=merge-duplicates,return=representation",
+            }
+        ),
+        json=row,
+        timeout=20,
+    )
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=response.text,
+        )
+
+    saved_rows = response.json()
+
+    return {
+        "saved": True,
+        "username": clean_username,
+        "platform": clean_platform,
+        "updated_at": saved_rows[0].get("updated_at") if saved_rows else row["updated_at"],
+    }
+
+# -----------------------------
+# Premium / Stockfish endpoints
+# -----------------------------
+
+import io
+import shutil
+from typing import Optional as _Optional
+
+try:
+    import chess
+    import chess.pgn
+    import chess.engine
+except Exception:
+    chess = None
+
+
+class PremiumStockfishRequest(BaseModel):
+    pgn: str
+    depth: int = 8
+    max_moves: int = 80
+
+
+def _find_stockfish_path() -> _Optional[str]:
+    env_path = os.getenv("STOCKFISH_PATH", "").strip()
+    if env_path and Path(env_path).exists():
+        return env_path
+
+    possible_paths = [
+        shutil.which("stockfish"),
+        "/usr/games/stockfish",
+        "/usr/bin/stockfish",
+        "/opt/homebrew/bin/stockfish",
+    ]
+
+    for path in possible_paths:
+        if path and Path(path).exists():
+            return path
+
+    return None
+
+
+@app.get("/api/premium/stockfish-status")
+def premium_stockfish_status():
+    if chess is None:
+        return {
+            "enabled": False,
+            "message": "python-chess is not installed.",
+        }
+
+    engine_path = _find_stockfish_path()
+
+    if not engine_path:
+        return {
+            "enabled": False,
+            "message": "Stockfish is not installed or STOCKFISH_PATH is not set.",
+        }
+
+    return {
+        "enabled": True,
+        "enginePath": engine_path,
+        "message": "Stockfish is available.",
+    }
+
+
+@app.post("/api/premium/stockfish-game")
+def premium_stockfish_game(payload: PremiumStockfishRequest):
+    if chess is None:
+        raise HTTPException(
+            status_code=503,
+            detail="python-chess is not installed on the backend.",
+        )
+
+    engine_path = _find_stockfish_path()
+
+    if not engine_path:
+        return {
+            "enabled": False,
+            "summary": "Stockfish is not available yet, but premium analysis is ready to connect.",
+            "mistakes": [],
+            "bestMoves": [],
+        }
+
+    pgn_text = (payload.pgn or "").strip()
+
+    if not pgn_text:
+        raise HTTPException(status_code=400, detail="PGN is required.")
+
+    game = chess.pgn.read_game(io.StringIO(pgn_text))
+
+    if game is None:
+        raise HTTPException(status_code=400, detail="Could not parse PGN.")
+
+    depth = max(4, min(int(payload.depth or 8), 14))
+    max_moves = max(12, min(int(payload.max_moves or 80), 120))
+
+    board = game.board()
+    moves = list(game.mainline_moves())[:max_moves]
+
+    mistakes = []
+    best_moves = []
+
+    try:
+        with chess.engine.SimpleEngine.popen_uci(engine_path) as engine:
+            for index, move in enumerate(moves, start=1):
+                side_to_move = board.turn
+                move_san = board.san(move)
+
+                before = engine.analyse(
+                    board,
+                    chess.engine.Limit(depth=depth),
+                )
+
+                best_move = before.get("pv", [None])[0]
+                before_score = before["score"].pov(side_to_move).score(mate_score=100000)
+
+                if best_move:
+                    best_moves.append(
+                        {
+                            "moveNumber": (index + 1) // 2,
+                            "ply": index,
+                            "side": "White" if side_to_move == chess.WHITE else "Black",
+                            "played": move_san,
+                            "bestMove": board.san(best_move),
+                        }
+                    )
+
+                board.push(move)
+
+                after = engine.analyse(
+                    board,
+                    chess.engine.Limit(depth=depth),
+                )
+
+                after_score = after["score"].pov(side_to_move).score(mate_score=100000)
+
+                if before_score is None or after_score is None:
+                    continue
+
+                centipawn_loss = max(0, before_score - after_score)
+
+                if centipawn_loss >= 80:
+                    mistakes.append(
+                        {
+                            "moveNumber": (index + 1) // 2,
+                            "ply": index,
+                            "side": "White" if side_to_move == chess.WHITE else "Black",
+                            "played": move_san,
+                            "centipawnLoss": int(centipawn_loss),
+                            "severity": (
+                                "Blunder"
+                                if centipawn_loss >= 300
+                                else "Mistake"
+                                if centipawn_loss >= 160
+                                else "Inaccuracy"
+                            ),
+                        }
+                    )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Stockfish analysis failed: {exc}",
+        )
+
+    mistakes = sorted(
+        mistakes,
+        key=lambda item: item["centipawnLoss"],
+        reverse=True,
+    )[:10]
+
+    return {
+        "enabled": True,
+        "summary": (
+            "Stockfish reviewed the game and found "
+            f"{len(mistakes)} notable opening or middlegame moments."
+        ),
+        "mistakes": mistakes,
+        "bestMoves": best_moves[:12],
+        "depth": depth,
+    }
