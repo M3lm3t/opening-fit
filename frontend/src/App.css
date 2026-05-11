@@ -10068,3 +10068,75 @@ main > section,
     gap: 10px;
   }
 }
+
+/* --------------------------------------------------
+   Login update polish: landing mobile form fix
+-------------------------------------------------- */
+
+.landingModal,
+.landingCard,
+.landingShell,
+.landingPanel {
+  box-sizing: border-box;
+}
+
+.landingModal *,
+.landingCard *,
+.landingShell *,
+.landingPanel * {
+  box-sizing: border-box;
+}
+
+.landingInputRow,
+.importForm,
+.landingActions {
+  width: 100%;
+  min-width: 0;
+}
+
+.landingInputRow input,
+.landingInputRow select,
+.importForm input,
+.importForm select,
+.landingActions input,
+.landingActions select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 760px) {
+  .landingModal,
+  .landingCard,
+  .landingShell,
+  .landingPanel {
+    width: min(100% - 18px, 680px) !important;
+    max-width: calc(100vw - 18px) !important;
+    overflow-x: hidden;
+  }
+
+  .landingInputRow,
+  .importForm,
+  .landingActions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .landingInputRow input,
+  .landingInputRow select,
+  .importForm input,
+  .importForm select,
+  .landingActions input,
+  .landingActions select,
+  .landingActions button,
+  .importForm button {
+    width: 100% !important;
+  }
+
+  .landingModal input,
+  .landingCard input,
+  .landingShell input,
+  .landingPanel input {
+    font-size: 16px;
+  }
+}

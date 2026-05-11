@@ -1,3 +1,4 @@
+import AccountPanel from "./AccountPanel";
 export default function LandingModal({
   username,
   setUsername,

@@ -1,0 +1,587 @@
+.accountPanelShell {
+  position: fixed;
+  top: 104px;
+  right: 18px;
+  z-index: 920;
+}
+
+.accountPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.78);
+  color: #f8fafc;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 18px 38px rgba(2, 6, 23, 0.22);
+  backdrop-filter: blur(10px);
+}
+
+.accountPill.isSignedIn {
+  border-color: rgba(34, 197, 94, 0.34);
+}
+
+.accountDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+
+.accountPill.isSignedIn .accountDot {
+  background: #22c55e;
+}
+
+.accountPanel {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  width: min(380px, calc(100vw - 24px));
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 34%),
+    rgba(15, 23, 42, 0.96);
+  color: #f8fafc;
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.44);
+  backdrop-filter: blur(14px);
+}
+
+.page.light .accountPill,
+.light .accountPill {
+  background: rgba(255, 255, 255, 0.86);
+  color: #0f172a;
+}
+
+.page.light .accountPanel,
+.light .accountPanel {
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 34%),
+    rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.18);
+}
+
+.accountPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.accountPanelHeader h3 {
+  margin: 7px 0 0;
+  font-size: 1.25rem;
+  letter-spacing: -0.035em;
+}
+
+.accountEyebrow {
+  display: inline-flex;
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  color: #7dd3fc;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page.light .accountEyebrow,
+.light .accountEyebrow {
+  color: #0369a1;
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.accountCloseBtn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: transparent;
+  color: inherit;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.accountAuthStack,
+.accountProfileStack {
+  display: grid;
+  gap: 12px;
+}
+
+.accountAuthStack p,
+.accountStatus,
+.accountNotice,
+.premiumStatusCard small {
+  color: rgba(226, 232, 240, 0.76);
+  line-height: 1.5;
+}
+
+.page.light .accountAuthStack p,
+.page.light .accountStatus,
+.page.light .accountNotice,
+.page.light .premiumStatusCard small,
+.light .accountAuthStack p,
+.light .accountStatus,
+.light .accountNotice,
+.light .premiumStatusCard small {
+  color: #475569;
+}
+
+.googleSignInBtn,
+.emailSignInBtn,
+.saveAccountBtn,
+.signOutBtn {
+  border: 0;
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.googleSignInBtn {
+  background: linear-gradient(135deg, #2563eb, #16a34a);
+  color: #fff;
+}
+
+.emailSignInBtn,
+.saveAccountBtn {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.page.light .emailSignInBtn,
+.page.light .saveAccountBtn,
+.light .emailSignInBtn,
+.light .saveAccountBtn {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.signOutBtn {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fecaca;
+}
+
+.page.light .signOutBtn,
+.light .signOutBtn {
+  color: #991b1b;
+}
+
+.accountDivider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(226, 232, 240, 0.6);
+  font-size: 0.84rem;
+}
+
+.accountDivider::before,
+.accountDivider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: rgba(148, 163, 184, 0.22);
+}
+
+.accountLabel {
+  display: grid;
+  gap: 7px;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.accountLabel input {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 14px;
+  padding: 12px 13px;
+  background: rgba(15, 23, 42, 0.58);
+  color: #f8fafc;
+  outline: none;
+}
+
+.page.light .accountLabel input,
+.light .accountLabel input {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.accountNotice,
+.accountStatus,
+.premiumStatusCard {
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.page.light .accountNotice,
+.page.light .accountStatus,
+.page.light .premiumStatusCard,
+.light .accountNotice,
+.light .accountStatus,
+.light .premiumStatusCard {
+  background: #f8fafc;
+}
+
+.premiumStatusCard {
+  display: grid;
+  gap: 4px;
+}
+
+.premiumStatusCard span {
+  color: #7dd3fc;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.page.light .premiumStatusCard span,
+.light .premiumStatusCard span {
+  color: #0369a1;
+}
+
+.accountActions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.accountNotice code {
+  padding: 2px 5px;
+  border-radius: 7px;
+  background: rgba(2, 6, 23, 0.4);
+}
+
+@media (max-width: 760px) {
+  .accountPanelShell {
+    top: 74px;
+    right: 14px;
+    z-index: 780;
+  }
+
+  .accountPill {
+    padding: 9px 12px;
+    font-size: 0.9rem;
+  }
+
+  .accountPanel {
+    width: calc(100vw - 20px);
+    right: -4px;
+    max-height: calc(100vh - 132px);
+    overflow: auto;
+  }
+
+  .accountActions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Quick fix: make landing login dropdown cleaner and less intrusive */
+.accountPanelShell--landing {
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: 80;
+}
+
+.accountPanelShell--landing .accountPanel--landing {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  left: auto;
+  width: min(360px, calc(100vw - 32px));
+  padding: 16px;
+  border-radius: 22px;
+}
+
+.accountPanelShell--landing .accountPanelHeader h3 {
+  font-size: 1.1rem;
+}
+
+.accountPanelShell--landing .accountAuthStack {
+  gap: 10px;
+}
+
+.accountPanelShell--landing .accountAuthStack p {
+  margin: 0;
+  font-size: 0.94rem;
+}
+
+.accountPanelShell--landing .googleSignInBtn,
+.accountPanelShell--landing .emailSignInBtn {
+  padding: 11px 13px;
+}
+
+.accountPanelShell--landing .accountLabel input {
+  padding: 11px 12px;
+}
+
+/* If the landing sign-in sits in the nav, keep the dropdown attached to the right */
+.landingNav .accountPanelShell--landing,
+.navLinks .accountPanelShell--landing,
+.landingHeader .accountPanelShell--landing {
+  margin-left: 4px;
+}
+
+/* Mobile: make the login panel a centered sheet instead of cutting across the page */
+@media (max-width: 760px) {
+  .accountPanelShell--landing {
+    position: static;
+    width: 100%;
+  }
+
+  .accountPanelShell--landing .accountPill--landing {
+    width: 100%;
+    max-width: none;
+  }
+
+  .accountPanelShell--landing .accountPanel--landing {
+    position: fixed;
+    top: 76px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: calc(100vh - 96px);
+    overflow: auto;
+    z-index: 9999;
+  }
+}
+
+/* Quick fix: make landing login dropdown cleaner and less intrusive */
+.accountPanelShell--landing {
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: 80;
+}
+
+.accountPanelShell--landing .accountPanel--landing {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  left: auto;
+  width: min(360px, calc(100vw - 32px));
+  padding: 16px;
+  border-radius: 22px;
+}
+
+.accountPanelShell--landing .accountPanelHeader h3 {
+  font-size: 1.1rem;
+}
+
+.accountPanelShell--landing .accountAuthStack {
+  gap: 10px;
+}
+
+.accountPanelShell--landing .accountAuthStack p {
+  margin: 0;
+  font-size: 0.94rem;
+}
+
+.accountPanelShell--landing .googleSignInBtn,
+.accountPanelShell--landing .emailSignInBtn {
+  padding: 11px 13px;
+}
+
+.accountPanelShell--landing .accountLabel input {
+  padding: 11px 12px;
+}
+
+.landingNav .accountPanelShell--landing,
+.navLinks .accountPanelShell--landing,
+.landingHeader .accountPanelShell--landing {
+  margin-left: 4px;
+}
+
+@media (max-width: 760px) {
+  .accountPanelShell--landing {
+    position: static;
+    width: 100%;
+  }
+
+  .accountPanelShell--landing .accountPill--landing {
+    width: 100%;
+    max-width: none;
+  }
+
+  .accountPanelShell--landing .accountPanel--landing {
+    position: fixed;
+    top: 76px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: calc(100vh - 96px);
+    overflow: auto;
+    z-index: 9999;
+  }
+}
+
+/* Quick fix: make landing login dropdown cleaner and less intrusive */
+.accountPanelShell--landing {
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: 80;
+}
+
+.accountPanelShell--landing .accountPanel--landing {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  left: auto;
+  width: min(360px, calc(100vw - 32px));
+  padding: 16px;
+  border-radius: 22px;
+}
+
+.accountPanelShell--landing .accountPanelHeader h3 {
+  font-size: 1.1rem;
+}
+
+.accountPanelShell--landing .accountAuthStack {
+  gap: 10px;
+}
+
+.accountPanelShell--landing .accountAuthStack p {
+  margin: 0;
+  font-size: 0.94rem;
+}
+
+.accountPanelShell--landing .googleSignInBtn,
+.accountPanelShell--landing .emailSignInBtn {
+  padding: 11px 13px;
+}
+
+.accountPanelShell--landing .accountLabel input {
+  padding: 11px 12px;
+}
+
+.landingNav .accountPanelShell--landing,
+.navLinks .accountPanelShell--landing,
+.landingHeader .accountPanelShell--landing {
+  margin-left: 4px;
+}
+
+@media (max-width: 760px) {
+  .accountPanelShell--landing {
+    position: static;
+    width: 100%;
+  }
+
+  .accountPanelShell--landing .accountPill--landing {
+    width: 100%;
+    max-width: none;
+  }
+
+  .accountPanelShell--landing .accountPanel--landing {
+    position: fixed;
+    top: 76px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: calc(100vh - 96px);
+    overflow: auto;
+    z-index: 9999;
+  }
+}
+
+/* Quick fix: make landing login dropdown cleaner and less intrusive */
+.accountPanelShell--landing {
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: 80;
+}
+
+.accountPanelShell--landing .accountPanel--landing {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  left: auto;
+  width: min(360px, calc(100vw - 32px));
+  padding: 16px;
+  border-radius: 22px;
+}
+
+.accountPanelShell--landing .accountPanelHeader h3 {
+  font-size: 1.1rem;
+}
+
+.accountPanelShell--landing .accountAuthStack {
+  gap: 10px;
+}
+
+.accountPanelShell--landing .accountAuthStack p {
+  margin: 0;
+  font-size: 0.94rem;
+}
+
+.accountPanelShell--landing .googleSignInBtn,
+.accountPanelShell--landing .emailSignInBtn {
+  padding: 11px 13px;
+}
+
+.accountPanelShell--landing .accountLabel input {
+  padding: 11px 12px;
+}
+
+.landingNav .accountPanelShell--landing,
+.navLinks .accountPanelShell--landing,
+.landingHeader .accountPanelShell--landing {
+  margin-left: 4px;
+}
+
+@media (max-width: 760px) {
+  .accountPanelShell--landing {
+    position: static;
+    width: 100%;
+  }
+
+  .accountPanelShell--landing .accountPill--landing {
+    width: 100%;
+    max-width: none;
+  }
+
+  .accountPanelShell--landing .accountPanel--landing {
+    position: fixed;
+    top: 76px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: calc(100vh - 96px);
+    overflow: auto;
+    z-index: 9999;
+  }
+}
+
+/* Fix account/login close button cross alignment */
+.accountCloseBtn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  text-align: center !important;
+}
+
+.accountCloseBtn {
+  font-size: 1.45rem !important;
+}
+
+.accountCloseBtn::before,
+.accountCloseBtn::after {
+  line-height: 1 !important;
+}
