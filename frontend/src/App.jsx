@@ -13,6 +13,123 @@ import DashboardHome from "./components/DashboardHome";
 import MobileBottomNav from "./components/MobileBottomNav";
 import LaunchReadySections from "./components/LaunchReadySections";
 
+
+const SAMPLE_OPENING_FIT_REPORT = {
+  username: "DemoPlayer",
+  playerName: "DemoPlayer",
+  requestedUsername: "DemoPlayer",
+  gamesImported: 84,
+  totalGames: 84,
+  styleLabel: "Attacking practical player",
+  styleSummary:
+    "Your strongest results come from active piece play, open centres, and positions where you can develop quickly before choosing a direct attacking plan.",
+  openings: [
+    {
+      name: "Vienna Game",
+      games: 18,
+      winRate: 67,
+      colour: "white",
+      verdict: "keep",
+    },
+    {
+      name: "Italian Game",
+      games: 14,
+      winRate: 61,
+      colour: "white",
+      verdict: "keep",
+    },
+    {
+      name: "Scandinavian Defence",
+      games: 16,
+      winRate: 44,
+      colour: "black",
+      verdict: "improve",
+    },
+    {
+      name: "Caro-Kann Defence",
+      games: 11,
+      winRate: 55,
+      colour: "black",
+      verdict: "keep",
+    },
+    {
+      name: "King's Gambit",
+      games: 7,
+      winRate: 29,
+      colour: "white",
+      verdict: "avoid",
+    },
+    {
+      name: "Sicilian Defence sidelines",
+      games: 9,
+      winRate: 33,
+      colour: "black",
+      verdict: "avoid",
+    },
+  ],
+  topOpenings: [
+    {
+      name: "Vienna Game",
+      games: 18,
+      winRate: 67,
+      colour: "white",
+    },
+    {
+      name: "Italian Game",
+      games: 14,
+      winRate: 61,
+      colour: "white",
+    },
+    {
+      name: "Caro-Kann Defence",
+      games: 11,
+      winRate: 55,
+      colour: "black",
+    },
+  ],
+  openingStats: {
+    "Vienna Game": {
+      games: 18,
+      winRate: 67,
+      colour: "white",
+    },
+    "Italian Game": {
+      games: 14,
+      winRate: 61,
+      colour: "white",
+    },
+    "Scandinavian Defence": {
+      games: 16,
+      winRate: 44,
+      colour: "black",
+    },
+    "Caro-Kann Defence": {
+      games: 11,
+      winRate: 55,
+      colour: "black",
+    },
+    "King's Gambit": {
+      games: 7,
+      winRate: 29,
+      colour: "white",
+    },
+  },
+  recommendations: [
+    {
+      name: "Vienna Game",
+      games: 18,
+      winRate: 67,
+      colour: "white",
+    },
+    {
+      name: "Caro-Kann Defence",
+      games: 11,
+      winRate: 55,
+      colour: "black",
+    },
+  ],
+};
+
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
 const STORAGE_KEY = "openingFit:lastAnalysis";
@@ -1260,6 +1377,142 @@ function LandingSection({ onOpeningClick }) {
   );
 }
 
+
+
+
+function OpponentPrepPreview({ data }) {
+  const [opponentName, setOpponentName] = useState("");
+  const [preparedOpponent, setPreparedOpponent] = useState("");
+
+  if (!data) return null;
+
+  const playerName =
+    data.username ||
+    data.playerName ||
+    data.player_name ||
+    data.requestedUsername ||
+    "you";
+
+  const cleanOpponent = preparedOpponent.trim();
+
+  const hasPrep = cleanOpponent.length > 0;
+
+  const prepSeed = cleanOpponent
+    .split("")
+    .reduce((sum, char) => sum + char.charCodeAt(0), 0);
+
+  const opponentWhiteChoices = [
+    "London System",
+    "Italian Game",
+    "Queen's Gambit",
+    "Vienna Game",
+    "Scotch Game",
+  ];
+
+  const opponentBlackChoices = [
+    "Caro-Kann Defence",
+    "Sicilian Defence",
+    "French Defence",
+    "Scandinavian Defence",
+    "King's Indian setup",
+  ];
+
+  const whiteChoice =
+    opponentWhiteChoices[prepSeed % opponentWhiteChoices.length];
+
+  const blackChoice =
+    opponentBlackChoices[(prepSeed + 2) % opponentBlackChoices.length];
+
+  const weakness =
+    prepSeed % 2 === 0
+      ? "They may struggle when the position opens quickly and they have to calculate forcing lines."
+      : "They may struggle when you avoid their main setup and make them solve unfamiliar middlegame plans.";
+
+  const recommendation =
+    prepSeed % 2 === 0
+      ? "Prepare one direct attacking line and keep your development simple."
+      : "Prepare a solid setup first, then look for pawn breaks once they commit their pieces.";
+
+  const handlePrep = () => {
+    if (!opponentName.trim()) return;
+    setPreparedOpponent(opponentName.trim());
+  };
+
+  return (
+    <section className="opponentPrepShell" id="opponent-prep">
+      <div className="opponentPrepIntro">
+        <span>Premium preview</span>
+        <h2>Opponent prep mode</h2>
+        <p>
+          Enter an opponent username and Opening Fit can become a prep tool:
+          what they are likely to play, what to expect, and what you should study
+          before the game.
+        </p>
+
+        <div className="opponentPrepInputRow">
+          <input
+            value={opponentName}
+            onChange={(event) => setOpponentName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") handlePrep();
+            }}
+            placeholder="Enter opponent username"
+            aria-label="Opponent username"
+          />
+
+          <button type="button" onClick={handlePrep}>
+            Preview prep
+          </button>
+        </div>
+
+        <small>
+          Demo mode for now. Full opponent prep can later use public Chess.com
+          and Lichess games.
+        </small>
+      </div>
+
+      <div className="opponentPrepCards">
+        <article className="opponentPrepCard">
+          <span>Opponent</span>
+          <strong>{hasPrep ? cleanOpponent : "Example opponent"}</strong>
+          <p>
+            {hasPrep
+              ? `Prep snapshot generated for ${cleanOpponent}.`
+              : "Type a username to preview how opponent preparation could look."}
+          </p>
+        </article>
+
+        <article className="opponentPrepCard">
+          <span>Likely as White</span>
+          <strong>{hasPrep ? whiteChoice : "London System"}</strong>
+          <p>
+            Prepare a simple response that gets you into familiar middlegame
+            structures.
+          </p>
+        </article>
+
+        <article className="opponentPrepCard">
+          <span>Likely as Black</span>
+          <strong>{hasPrep ? blackChoice : "Caro-Kann Defence"}</strong>
+          <p>
+            Choose your opening plan before the game so you are not improvising
+            on move two.
+          </p>
+        </article>
+
+        <article className="opponentPrepCard highlight">
+          <span>Prep recommendation</span>
+          <strong>{hasPrep ? recommendation : "Use your strongest fit opening"}</strong>
+          <p>
+            {hasPrep
+              ? weakness
+              : `${playerName} should build around their strongest Opening Fit recommendation first.`}
+          </p>
+        </article>
+      </div>
+    </section>
+  );
+}
 
 
 function OpeningFitFullReport({ data }) {
@@ -2725,6 +2978,7 @@ export default function App() {
         {data ? <OpeningFitReportHero data={data} /> : null}
 
         {data ? <OpeningFitFullReport data={data} /> : null}
+        {data ? <OpponentPrepPreview data={data} /> : null}
 
 
         {showLanding ? (
@@ -2740,7 +2994,15 @@ export default function App() {
             onThemeToggle={() =>
               setTheme((current) => (current === "dark" ? "light" : "dark"))
             }
-          />
+            onDemoReport={() => {
+            setData(SAMPLE_OPENING_FIT_REPORT);
+            setUsername("DemoPlayer");
+            setPlatform("chesscom");
+            if (typeof setActiveView === "function") {
+              setActiveView("dashboard");
+            }
+          }}
+        />
         ) : null}
 
         <LandingSection onOpeningClick={startOpeningPractice} />
