@@ -10,6 +10,7 @@ import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 import PremiumPanel from "./components/PremiumPanel";
 import ResultsCommandCenter from "./components/ResultsCommandCenter";
+import OpeningHealthScore from "./components/OpeningHealthScore";
 import ProgressTracker from "./components/ProgressTracker";
 import ShareReport from "./components/ShareReport";
 import PremiumCoachPlan from "./components/PremiumCoachPlan";
@@ -3530,6 +3531,8 @@ const [activeView, setActiveView] = useState("overview");
           onPractice={startOpeningPractice}
         />
 
+
+        <OpeningHealthScore data={data} />
         <ProgressTracker data={data} />
 
         <ShareReport data={data} />
