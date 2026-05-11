@@ -11327,3 +11327,421 @@ main > section,
     min-width: 130px;
   }
 }
+
+
+/* -------------------------------------------------------
+   Premium opening report summary
+------------------------------------------------------- */
+
+.openingReportShell {
+  margin: 22px 0 28px;
+  padding: 24px;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top left, rgba(132, 204, 22, 0.16), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+  color: #f8fafc;
+}
+
+.light .openingReportShell,
+[data-theme="light"] .openingReportShell {
+  background:
+    radial-gradient(circle at top left, rgba(132, 204, 22, 0.14), transparent 34%),
+    linear-gradient(145deg, #ffffff, #f8fafc);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  box-shadow: 0 20px 55px rgba(15, 23, 42, 0.1);
+}
+
+.openingReportHero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 22px;
+  align-items: center;
+}
+
+.openingReportEyebrow {
+  margin: 0 0 8px;
+  color: #bef264;
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.light .openingReportEyebrow,
+[data-theme="light"] .openingReportEyebrow {
+  color: #4d7c0f;
+}
+
+.openingReportHero h2 {
+  margin: 0;
+  font-size: clamp(1.7rem, 3.6vw, 3rem);
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.openingReportHero p {
+  max-width: 760px;
+  margin: 12px 0 0;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.light .openingReportHero p,
+[data-theme="light"] .openingReportHero p {
+  color: #64748b;
+}
+
+.openingReportScore {
+  width: 130px;
+  height: 130px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.light .openingReportScore,
+[data-theme="light"] .openingReportScore {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.openingReportScore span {
+  display: block;
+  font-size: 2.6rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.openingReportScore small {
+  display: block;
+  margin-top: -26px;
+  padding: 0 16px;
+  color: rgba(226, 232, 240, 0.62);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.light .openingReportScore small,
+[data-theme="light"] .openingReportScore small {
+  color: #64748b;
+}
+
+.openingInsightCard {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: start;
+  margin-top: 22px;
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(132, 204, 22, 0.1);
+  border: 1px solid rgba(132, 204, 22, 0.22);
+}
+
+.openingInsightIcon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(132, 204, 22, 0.18);
+  color: #bef264;
+  font-size: 1.35rem;
+}
+
+.light .openingInsightIcon,
+[data-theme="light"] .openingInsightIcon {
+  color: #3f6212;
+}
+
+.openingInsightCard h3 {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+}
+
+.openingInsightCard p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.76);
+  line-height: 1.58;
+}
+
+.light .openingInsightCard p,
+[data-theme="light"] .openingInsightCard p {
+  color: #475569;
+}
+
+.openingReportGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.openingReportCard {
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 240px;
+}
+
+.light .openingReportCard,
+[data-theme="light"] .openingReportCard {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.065);
+}
+
+.openingReportCard-keep {
+  background:
+    linear-gradient(145deg, rgba(132, 204, 22, 0.16), rgba(255, 255, 255, 0.055));
+  border-color: rgba(132, 204, 22, 0.24);
+}
+
+.openingReportCard-improve {
+  background:
+    linear-gradient(145deg, rgba(59, 130, 246, 0.14), rgba(255, 255, 255, 0.055));
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.openingReportCard-avoid {
+  background:
+    linear-gradient(145deg, rgba(248, 113, 113, 0.12), rgba(255, 255, 255, 0.055));
+  border-color: rgba(248, 113, 113, 0.2);
+}
+
+.openingReportCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.openingReportCardTop span,
+.openingReportCardTop em {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-style: normal;
+}
+
+.openingReportCardTop span {
+  background: rgba(148, 163, 184, 0.13);
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.light .openingReportCardTop span,
+[data-theme="light"] .openingReportCardTop span {
+  color: #475569;
+  background: rgba(15, 23, 42, 0.055);
+}
+
+.reportVerdictKeep {
+  color: #d9f99d;
+  background: rgba(132, 204, 22, 0.18);
+}
+
+.reportVerdictImprove {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.reportVerdictAvoid {
+  color: #fecaca;
+  background: rgba(248, 113, 113, 0.18);
+}
+
+.reportVerdictWatch {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.18);
+}
+
+.light .reportVerdictKeep,
+[data-theme="light"] .reportVerdictKeep {
+  color: #3f6212;
+}
+
+.light .reportVerdictImprove,
+[data-theme="light"] .reportVerdictImprove {
+  color: #1d4ed8;
+}
+
+.light .reportVerdictAvoid,
+[data-theme="light"] .reportVerdictAvoid {
+  color: #b91c1c;
+}
+
+.light .reportVerdictWatch,
+[data-theme="light"] .reportVerdictWatch {
+  color: #92400e;
+}
+
+.openingReportCard h3 {
+  margin: 0;
+  font-size: 1.24rem;
+  letter-spacing: -0.025em;
+}
+
+.openingReportStats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.openingReportStats div {
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.light .openingReportStats div,
+[data-theme="light"] .openingReportStats div {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+.openingReportStats strong {
+  display: block;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.openingReportStats small {
+  display: block;
+  margin-top: 5px;
+  color: rgba(226, 232, 240, 0.6);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.light .openingReportStats small,
+[data-theme="light"] .openingReportStats small {
+  color: #64748b;
+}
+
+.openingReportCard p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.68);
+  line-height: 1.54;
+  font-size: 0.93rem;
+}
+
+.light .openingReportCard p,
+[data-theme="light"] .openingReportCard p {
+  color: #64748b;
+}
+
+.openingReportNextSteps {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.openingReportNextSteps div {
+  padding: 15px;
+  border-radius: 22px;
+  background: rgba(2, 6, 23, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.light .openingReportNextSteps div,
+[data-theme="light"] .openingReportNextSteps div {
+  background: rgba(15, 23, 42, 0.035);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+.openingReportNextSteps strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.95rem;
+}
+
+.openingReportNextSteps span {
+  display: block;
+  color: rgba(226, 232, 240, 0.64);
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+
+.light .openingReportNextSteps span,
+[data-theme="light"] .openingReportNextSteps span {
+  color: #64748b;
+}
+
+@media (max-width: 900px) {
+  .openingReportHero {
+    grid-template-columns: 1fr;
+  }
+
+  .openingReportScore {
+    width: 100%;
+    height: auto;
+    display: flex;
+    justify-content: space-between;
+    padding: 18px;
+  }
+
+  .openingReportScore small {
+    margin-top: 0;
+    padding: 0;
+  }
+
+  .openingReportGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .openingReportCard {
+    min-height: auto;
+  }
+
+  .openingReportNextSteps {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .openingReportShell {
+    padding: 16px;
+    border-radius: 24px;
+    margin-top: 16px;
+  }
+
+  .openingInsightCard {
+    grid-template-columns: 1fr;
+  }
+
+  .openingReportHero h2 {
+    font-size: 2rem;
+  }
+
+  .openingReportHero p {
+    font-size: 0.95rem;
+  }
+
+  .openingReportStats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .openingReportCardTop {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

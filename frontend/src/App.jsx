@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
+import OpeningReportSummary from "./components/OpeningReportSummary";
 import PremiumDashboard from "./components/PremiumDashboard";
 import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
 import AccountPanel from "./components/AccountPanel";
@@ -3893,6 +3894,12 @@ export default function App() {
 
               {activeView === "data" ? (
                 <>
+                  <OpeningReportSummary
+                    data={data}
+                    username={username}
+                    platform={platform}
+                  />
+
                   <div id="section-chart">
                 <Section
                   title="Opening Win Rate"
