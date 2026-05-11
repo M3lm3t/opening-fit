@@ -13396,3 +13396,265 @@ main > section,
     width: 100%;
   }
 }
+
+/* Premium / Coach / Repertoire dark-mode polish */
+
+.page.dark .coachPlanShell,
+.page.dark .myRepertoireShell,
+.page.dark .premiumUpgradeShell {
+  color: #f8fafc;
+}
+
+.page.dark .coachPlanShell {
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.14), transparent 34%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.94));
+  border-color: rgba(148, 163, 184, 0.26);
+}
+
+.page.dark .coachPrimaryCard,
+.page.dark .coachRuleCard,
+.page.dark .coachWeekCard,
+.page.dark .repertoireColumn,
+.page.dark .savedRepertoireCard,
+.page.dark .repertoireNotesCard,
+.page.dark .premiumComparisonCard,
+.page.dark .premiumPreviewCard,
+.page.dark .premiumInsightStrip > div {
+  background: rgba(15, 23, 42, 0.74);
+  border-color: rgba(148, 163, 184, 0.24);
+  color: #f8fafc;
+}
+
+.page.dark .coachPrimaryCard.danger {
+  background: rgba(88, 28, 12, 0.58);
+  border-color: rgba(251, 146, 60, 0.24);
+}
+
+.page.dark .coachRuleCard {
+  background: rgba(66, 56, 14, 0.58);
+  border-color: rgba(250, 204, 21, 0.24);
+}
+
+.page.dark .coachMiniStats div,
+.page.dark .coachDaysGrid div,
+.page.dark .repertoireSuggestion,
+.page.dark .repertoireSavedOpening,
+.page.dark .myRepertoireActions,
+.page.dark .coachPlanStatus {
+  background: rgba(2, 6, 23, 0.36);
+}
+
+.page.dark .coachPlanHeader p,
+.page.dark .coachPrimaryCard p,
+.page.dark .coachDaysGrid span,
+.page.dark .coachMiniStats small,
+.page.dark .repertoireSuggestion span,
+.page.dark .repertoireSavedOpening span,
+.page.dark .savedRepertoireCard p,
+.page.dark .repertoireNotesCard p,
+.page.dark .premiumPreviewCard p,
+.page.dark .premiumFinalCta p,
+.page.dark .premiumInsightStrip span,
+.page.dark .premiumComparisonHeader span,
+.page.dark .myRepertoireHeader p,
+.page.dark .coachPlanStatus span,
+.page.dark .myRepertoireActions span,
+.page.dark .coachPrimaryCard > span,
+.page.dark .coachRuleCard > span,
+.page.dark .coachWeekHeader span,
+.page.dark .repertoireColumnHeader span {
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.page.dark .repertoireNotesCard textarea {
+  background: rgba(2, 6, 23, 0.42);
+  border-color: rgba(148, 163, 184, 0.28);
+  color: #f8fafc;
+}
+
+.page.dark .repertoireNotesCard textarea::placeholder {
+  color: rgba(226, 232, 240, 0.45);
+}
+
+.page.dark .premiumFinalCta,
+.page.dark .summaryBottomStrip {
+  background: rgba(66, 56, 14, 0.42);
+  border-color: rgba(250, 204, 21, 0.22);
+  color: #f8fafc;
+}
+
+.page.dark .summaryActionCard,
+.page.dark .premiumSummaryCard,
+.page.dark .premiumInsightCard {
+  background: rgba(15, 23, 42, 0.74);
+  border-color: rgba(148, 163, 184, 0.24);
+  color: #f8fafc;
+}
+
+.page.dark .summaryActionCard p,
+.page.dark .premiumSummaryCard p,
+.page.dark .premiumInsightCard p,
+.page.dark .premiumRepertoireGrid ul,
+.page.dark .premiumTrainingPlan,
+.page.dark .premiumWeaknessRow small {
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.page.dark .premiumWeaknessRow {
+  background: rgba(2, 6, 23, 0.36);
+}
+
+.page.dark .summaryActionCard.keep span {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+}
+
+.page.dark .summaryActionCard.improve span {
+  background: rgba(249, 115, 22, 0.18);
+  color: #fdba74;
+}
+
+.page.dark .summaryActionCard.next span {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+
+.page.dark .myRepertoireEyebrow {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+
+.page.dark .coachPlanEyebrow {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+}
+
+/* Make the coach plan easier to read on laptop screens */
+
+.coachPlanShell {
+  padding: 24px;
+}
+
+.coachPlanHeader {
+  align-items: center;
+}
+
+.coachPlanStatus {
+  align-self: start;
+}
+
+.coachPrimaryCard,
+.coachRuleCard,
+.coachWeekCard {
+  backdrop-filter: blur(10px);
+}
+
+.coachDaysGrid div {
+  min-height: 122px;
+}
+
+.coachDaysGrid span {
+  font-size: 0.86rem;
+}
+
+/* Stronger premium conversion strip */
+
+.premiumTrustStrip {
+  width: min(1180px, calc(100% - 28px));
+  margin: 18px auto 28px;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 14px;
+}
+
+.premiumTrustCard,
+.premiumRoadmapCard {
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: var(--card-bg, rgba(255, 255, 255, 0.9));
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.08);
+}
+
+.premiumTrustCard {
+  background:
+    radial-gradient(circle at top left, rgba(250, 204, 21, 0.14), transparent 34%),
+    var(--card-bg, rgba(255, 255, 255, 0.9));
+}
+
+.premiumTrustCard span,
+.premiumRoadmapCard span {
+  display: inline-flex;
+  margin-bottom: 10px;
+  color: var(--muted-text, #64748b);
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.premiumTrustCard h3,
+.premiumRoadmapCard h3 {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+}
+
+.premiumTrustCard p,
+.premiumRoadmapCard p {
+  margin: 0;
+  color: var(--muted-text, #64748b);
+  line-height: 1.58;
+}
+
+.premiumRoadmapList {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.premiumRoadmapList div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+  border-radius: 15px;
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.premiumRoadmapList strong {
+  font-size: 0.94rem;
+}
+
+.premiumRoadmapList small {
+  color: var(--muted-text, #64748b);
+  font-weight: 850;
+}
+
+.page.dark .premiumTrustCard,
+.page.dark .premiumRoadmapCard {
+  background: rgba(15, 23, 42, 0.74);
+  border-color: rgba(148, 163, 184, 0.24);
+  color: #f8fafc;
+}
+
+.page.dark .premiumTrustCard p,
+.page.dark .premiumRoadmapCard p,
+.page.dark .premiumTrustCard span,
+.page.dark .premiumRoadmapCard span,
+.page.dark .premiumRoadmapList small {
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.page.dark .premiumRoadmapList div {
+  background: rgba(2, 6, 23, 0.36);
+}
+
+@media (max-width: 900px) {
+  .premiumTrustStrip {
+    grid-template-columns: 1fr;
+    width: min(100% - 20px, 1180px);
+  }
+}
