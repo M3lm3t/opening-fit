@@ -1380,6 +1380,185 @@ function LandingSection({ onOpeningClick }) {
 
 
 
+
+const REPORT_HISTORY_KEY = "openingFit:reportHistory";
+
+function ReportExportAndHistory({ data, onLoadReport }) {
+  const [savedReports, setSavedReports] = useState([]);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(REPORT_HISTORY_KEY) || "[]");
+      setSavedReports(Array.isArray(stored) ? stored : []);
+    } catch {
+      setSavedReports([]);
+    }
+  }, []);
+
+  if (!data) return null;
+
+  const playerName =
+    data.username ||
+    data.playerName ||
+    data.player_name ||
+    data.requestedUsername ||
+    data.requested_username ||
+    "Opening Fit report";
+
+  const gamesImported =
+    data.gamesImported ||
+    data.games_imported ||
+    data.totalGames ||
+    data.total_games ||
+    data.gameCount ||
+    data.game_count ||
+    "Recent";
+
+  const styleLabel =
+    data.styleLabel ||
+    data.style_label ||
+    data.primaryStyle ||
+    data.primary_style ||
+    data.styleProfile?.label ||
+    data.style_profile?.label ||
+    "Opening report";
+
+  const reportDate = new Date().toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
+  const saveReport = () => {
+    const reportRecord = {
+      id: `${Date.now()}`,
+      savedAt: new Date().toISOString(),
+      playerName,
+      gamesImported,
+      styleLabel,
+      data,
+    };
+
+    const updated = [
+      reportRecord,
+      ...savedReports.filter((report) => report.playerName !== playerName),
+    ].slice(0, 8);
+
+    localStorage.setItem(REPORT_HISTORY_KEY, JSON.stringify(updated));
+    setSavedReports(updated);
+  };
+
+  const clearReports = () => {
+    localStorage.removeItem(REPORT_HISTORY_KEY);
+    setSavedReports([]);
+  };
+
+  const exportPdf = () => {
+    const previousTitle = document.title;
+    document.title = `Opening Fit Report - ${playerName}`;
+    window.print();
+
+    setTimeout(() => {
+      document.title = previousTitle;
+    }, 500);
+  };
+
+  const loadReport = (report) => {
+    if (!report?.data || !onLoadReport) return;
+    onLoadReport(report.data);
+
+    setTimeout(() => {
+      const reportTop = document.getElementById("opening-fit-report");
+      if (reportTop) {
+        reportTop.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
+  };
+
+  return (
+    <section className="exportHistoryShell" id="report-history">
+      <div className="exportHistoryIntro">
+        <span>Export & history</span>
+        <h2>Save this report or export it as a PDF.</h2>
+        <p>
+          Keep a local copy of your Opening Fit reports so you can compare your
+          opening progress over time.
+        </p>
+
+        <div className="exportHistoryActions">
+          <button type="button" onClick={exportPdf} className="exportPrimaryBtn">
+            Export / print PDF
+          </button>
+
+          <button type="button" onClick={saveReport} className="exportSecondaryBtn">
+            Save report
+          </button>
+        </div>
+
+        <small>
+          Saved reports are stored in this browser only. Cloud sync can be added
+          later with Supabase accounts.
+        </small>
+      </div>
+
+      <div className="currentReportSummary">
+        <span>Current report</span>
+        <strong>{playerName}</strong>
+        <p>
+          {gamesImported} games reviewed · {styleLabel} · {reportDate}
+        </p>
+      </div>
+
+      <div className="savedReportsPanel">
+        <div className="savedReportsHeader">
+          <div>
+            <span>Saved history</span>
+            <h3>{savedReports.length ? "Previous reports" : "No saved reports yet"}</h3>
+          </div>
+
+          {savedReports.length ? (
+            <button type="button" onClick={clearReports}>
+              Clear
+            </button>
+          ) : null}
+        </div>
+
+        {savedReports.length ? (
+          <div className="savedReportsList">
+            {savedReports.map((report) => (
+              <button
+                type="button"
+                key={report.id}
+                className="savedReportItem"
+                onClick={() => loadReport(report)}
+              >
+                <strong>{report.playerName}</strong>
+                <span>
+                  {report.gamesImported} games · {report.styleLabel}
+                </span>
+                <small>
+                  Saved{" "}
+                  {new Date(report.savedAt).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </small>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="emptySavedReports">
+            Save your current report, then come back after more games to compare
+            how your openings are changing.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+
 function OpponentPrepPreview({ data }) {
   const [opponentName, setOpponentName] = useState("");
   const [preparedOpponent, setPreparedOpponent] = useState("");
@@ -2979,6 +3158,15 @@ export default function App() {
 
         {data ? <OpeningFitFullReport data={data} /> : null}
         {data ? <OpponentPrepPreview data={data} /> : null}
+        {data ? (
+          <ReportExportAndHistory
+            data={data}
+            onLoadReport={(reportData) => {
+              setData(reportData);
+            }}
+          />
+        ) : null}
+
 
 
         {showLanding ? (
