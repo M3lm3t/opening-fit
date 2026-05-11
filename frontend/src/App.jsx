@@ -10,6 +10,7 @@ import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 import PremiumPanel from "./components/PremiumPanel";
 import ProgressTracker from "./components/ProgressTracker";
+import ShareReport from "./components/ShareReport";
 import PremiumCoachPlan from "./components/PremiumCoachPlan";
 import MyRepertoire from "./components/MyRepertoire";
 import PremiumTrustStrip from "./components/PremiumTrustStrip";
@@ -3523,6 +3524,8 @@ const [activeView, setActiveView] = useState("overview");
 
 
         <ProgressTracker data={data} />
+
+        <ShareReport data={data} />
                 <OpeningFitScoreList
                   fitData={fitData}
                   onPractice={startOpeningPractice}
