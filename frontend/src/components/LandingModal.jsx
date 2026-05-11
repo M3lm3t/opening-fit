@@ -8,6 +8,7 @@ export default function LandingModal({
   onClose,
   theme,
   onThemeToggle,
+  onDemoReport,
 }) {
   const handleImport = () => {
     if (onClose) onClose();
@@ -15,8 +16,14 @@ export default function LandingModal({
   };
 
   const handleDemoReport = () => {
+    if (onDemoReport) {
+      onDemoReport();
+      if (onClose) onClose();
+      return;
+    }
+
     setPlatform("chesscom");
-    setUsername("Hikaru");
+    setUsername("DemoPlayer");
 
     setTimeout(() => {
       if (onClose) onClose();

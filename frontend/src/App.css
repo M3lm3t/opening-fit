@@ -9336,3 +9336,226 @@ body.dark {
     min-height: 0;
   }
 }
+
+
+/* ===== Opponent prep preview ===== */
+
+.opponentPrepShell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 30px;
+  display: grid;
+  grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.15fr);
+  gap: 16px;
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background:
+    radial-gradient(circle at top left, rgba(124, 58, 237, 0.13), transparent 26rem),
+    radial-gradient(circle at bottom right, rgba(37, 99, 235, 0.12), transparent 28rem),
+    rgba(255, 255, 255, 0.78);
+  box-shadow: 0 18px 54px rgba(15, 23, 42, 0.08);
+}
+
+.page.dark .opponentPrepShell,
+[data-theme="dark"] .opponentPrepShell {
+  background:
+    radial-gradient(circle at top left, rgba(167, 139, 250, 0.13), transparent 26rem),
+    radial-gradient(circle at bottom right, rgba(96, 165, 250, 0.11), transparent 28rem),
+    rgba(15, 23, 42, 0.76);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.opponentPrepIntro {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.opponentPrepIntro > span,
+.opponentPrepCard span {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.11);
+  color: #6d28d9;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.page.dark .opponentPrepIntro > span,
+.page.dark .opponentPrepCard span,
+[data-theme="dark"] .opponentPrepIntro > span,
+[data-theme="dark"] .opponentPrepCard span {
+  color: #c4b5fd;
+}
+
+.opponentPrepIntro h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: clamp(1.7rem, 3.5vw, 3rem);
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.page.dark .opponentPrepIntro h2,
+[data-theme="dark"] .opponentPrepIntro h2 {
+  color: #f8fafc;
+}
+
+.opponentPrepIntro p,
+.opponentPrepIntro small,
+.opponentPrepCard p {
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.page.dark .opponentPrepIntro p,
+.page.dark .opponentPrepIntro small,
+.page.dark .opponentPrepCard p,
+[data-theme="dark"] .opponentPrepIntro p,
+[data-theme="dark"] .opponentPrepIntro small,
+[data-theme="dark"] .opponentPrepCard p {
+  color: #cbd5e1;
+}
+
+.opponentPrepIntro p {
+  margin: 12px 0 0;
+}
+
+.opponentPrepIntro small {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.84rem;
+}
+
+.opponentPrepInputRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.opponentPrepInputRow input {
+  min-height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.36);
+  background: rgba(255, 255, 255, 0.82);
+  color: #0f172a;
+  padding: 0 14px;
+  font-size: 1rem;
+  outline: none;
+}
+
+.page.dark .opponentPrepInputRow input,
+[data-theme="dark"] .opponentPrepInputRow input {
+  background: rgba(2, 6, 23, 0.56);
+  color: #f8fafc;
+}
+
+.opponentPrepInputRow input:focus {
+  border-color: rgba(124, 58, 237, 0.62);
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+}
+
+.opponentPrepInputRow button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 16px;
+  padding: 0 16px;
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
+  color: white;
+  cursor: pointer;
+  font-weight: 900;
+  box-shadow: 0 14px 32px rgba(124, 58, 237, 0.2);
+}
+
+.opponentPrepCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.opponentPrepCard {
+  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+  padding: 17px;
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);
+}
+
+.page.dark .opponentPrepCard,
+[data-theme="dark"] .opponentPrepCard {
+  background: rgba(2, 6, 23, 0.42);
+  border-color: rgba(148, 163, 184, 0.15);
+}
+
+.opponentPrepCard.highlight {
+  grid-column: span 2;
+  background:
+    linear-gradient(135deg, rgba(124, 58, 237, 0.11), rgba(37, 99, 235, 0.10)),
+    rgba(255, 255, 255, 0.76);
+}
+
+.page.dark .opponentPrepCard.highlight,
+[data-theme="dark"] .opponentPrepCard.highlight {
+  background:
+    linear-gradient(135deg, rgba(167, 139, 250, 0.12), rgba(96, 165, 250, 0.10)),
+    rgba(2, 6, 23, 0.42);
+}
+
+.opponentPrepCard strong {
+  display: block;
+  color: #0f172a;
+  font-size: 1.16rem;
+  line-height: 1.24;
+}
+
+.page.dark .opponentPrepCard strong,
+[data-theme="dark"] .opponentPrepCard strong {
+  color: #f8fafc;
+}
+
+.opponentPrepCard p {
+  margin: 10px 0 0;
+}
+
+@media (max-width: 900px) {
+  .opponentPrepShell {
+    width: min(100% - 20px, 1180px);
+    grid-template-columns: 1fr;
+    padding: 18px;
+    border-radius: 24px;
+  }
+}
+
+@media (max-width: 620px) {
+  .opponentPrepCards,
+  .opponentPrepInputRow {
+    grid-template-columns: 1fr;
+  }
+
+  .opponentPrepCard.highlight {
+    grid-column: auto;
+  }
+
+  .opponentPrepShell {
+    padding: 15px;
+    border-radius: 22px;
+  }
+
+  .opponentPrepCard {
+    min-height: 0;
+    border-radius: 19px;
+  }
+
+  .opponentPrepInputRow button {
+    width: 100%;
+  }
+}
