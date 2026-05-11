@@ -11,6 +11,7 @@ import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 import PremiumPanel from "./components/PremiumPanel";
 import PremiumCoachPlan from "./components/PremiumCoachPlan";
 import MyRepertoire from "./components/MyRepertoire";
+import PremiumTrustStrip from "./components/PremiumTrustStrip";
 import LandingModal from "./components/LandingModal";
 import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
@@ -3187,6 +3188,8 @@ const [activeView, setActiveView] = useState("overview");
           onUnlockDemo={unlockPremiumDemo}
           onResetDemo={resetPremiumDemo}
         />
+
+        <PremiumTrustStrip />
 
 
         {data ? <OpeningFitReportHero data={data} /> : null}
