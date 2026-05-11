@@ -1260,6 +1260,220 @@ function LandingSection({ onOpeningClick }) {
   );
 }
 
+
+function OpeningFitReportHero({ data }) {
+  if (!data) return null;
+
+  const asArray = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    if (typeof value === "object") {
+      return Object.entries(value).map(([name, stats]) => ({
+        name,
+        ...(stats && typeof stats === "object" ? stats : {}),
+      }));
+    }
+    return [];
+  };
+
+  const getName = (item) =>
+    item?.name ||
+    item?.opening ||
+    item?.opening_name ||
+    item?.eco_name ||
+    item?.family ||
+    "Opening";
+
+  const getGames = (item) =>
+    Number(
+      item?.games ??
+        item?.total ??
+        item?.count ??
+        item?.played ??
+        item?.sample ??
+        0
+    );
+
+  const getWinRate = (item) => {
+    const raw =
+      item?.winRate ??
+      item?.win_rate ??
+      item?.score ??
+      item?.scoreRate ??
+      item?.score_rate ??
+      item?.percentage;
+
+    if (raw === undefined || raw === null || raw === "") return null;
+
+    const number = Number(String(raw).replace("%", ""));
+    if (Number.isNaN(number)) return null;
+
+    return number <= 1 ? Math.round(number * 100) : Math.round(number);
+  };
+
+  const openingSources = [
+    data.openings,
+    data.openingStats,
+    data.opening_stats,
+    data.topOpenings,
+    data.top_openings,
+    data.openingWinRates,
+    data.opening_win_rates,
+    data.verdicts,
+    data.openingVerdicts,
+    data.opening_verdicts,
+    data.keepImproveAvoid,
+    data.keep_improve_avoid,
+    data.openingTable,
+    data.opening_table,
+  ];
+
+  const openings = openingSources
+    .flatMap(asArray)
+    .map((item) => ({
+      ...item,
+      displayName: getName(item),
+      games: getGames(item),
+      winRate: getWinRate(item),
+    }))
+    .filter((item) => {
+      const name = String(item.displayName || "").toLowerCase();
+      return (
+        item.displayName &&
+        item.displayName !== "Opening" &&
+        !name.includes("unknown") &&
+        !name.includes("uncommon") &&
+        item.games > 0
+      );
+    });
+
+  const ranked = [...openings].sort((a, b) => {
+    const aRate = a.winRate ?? -1;
+    const bRate = b.winRate ?? -1;
+
+    if (bRate !== aRate) return bRate - aRate;
+    return b.games - a.games;
+  });
+
+  const bestOpening = ranked.find((item) => item.games >= 2) || ranked[0];
+
+  const weakOpening =
+    [...openings]
+      .filter((item) => item.games >= 2 && item.winRate !== null)
+      .sort((a, b) => a.winRate - b.winRate)[0] || openings[1];
+
+  const playerName =
+    data.username ||
+    data.playerName ||
+    data.player_name ||
+    data.requestedUsername ||
+    data.requested_username ||
+    "your games";
+
+  const gamesImported =
+    data.gamesImported ||
+    data.games_imported ||
+    data.totalGames ||
+    data.total_games ||
+    data.gameCount ||
+    data.game_count ||
+    openings.reduce((sum, item) => sum + item.games, 0);
+
+  const styleSummary =
+    data.styleSummary ||
+    data.style_summary ||
+    data.summary ||
+    data.styleProfile?.summary ||
+    data.style_profile?.summary ||
+    data.profile?.summary ||
+    "Opening Fit has reviewed your recent games and built a practical opening snapshot from your results.";
+
+  const styleLabel =
+    data.styleLabel ||
+    data.style_label ||
+    data.primaryStyle ||
+    data.primary_style ||
+    data.styleProfile?.label ||
+    data.style_profile?.label ||
+    data.styleProfile?.primary_style ||
+    data.style_profile?.primary_style ||
+    "Practical repertoire";
+
+  const bestName = bestOpening?.displayName || "Not enough data yet";
+  const bestRate =
+    bestOpening?.winRate !== null && bestOpening?.winRate !== undefined
+      ? `${bestOpening.winRate}%`
+      : "—";
+
+  const weakName = weakOpening?.displayName || "Keep importing games";
+  const weakRate =
+    weakOpening?.winRate !== null && weakOpening?.winRate !== undefined
+      ? `${weakOpening.winRate}%`
+      : "—";
+
+  const recommendation =
+    bestOpening?.displayName && bestOpening.displayName !== "Not enough data yet"
+      ? `Build around ${bestOpening.displayName} positions and use weaker openings as your next study targets.`
+      : "Import more games to unlock clearer opening recommendations.";
+
+  return (
+    <section className="reportHero">
+      <div className="reportHeroMain">
+        <span className="reportEyebrow">Your Opening Fit Report</span>
+
+        <h1>
+          {playerName}
+          <span> — opening snapshot</span>
+        </h1>
+
+        <p>{styleSummary}</p>
+
+        <div className="reportHeroActions">
+          <a href="#opening-suggestions" className="reportPrimaryLink">
+            View recommendations
+          </a>
+          <a href="#keep-improve-avoid" className="reportSecondaryLink">
+            See verdicts
+          </a>
+        </div>
+      </div>
+
+      <div className="reportHeroCards">
+        <article className="reportMetricCard best">
+          <span>Best opening</span>
+          <strong>{bestName}</strong>
+          <small>
+            {bestRate} score
+            {bestOpening?.games ? ` · ${bestOpening.games} games` : ""}
+          </small>
+        </article>
+
+        <article className="reportMetricCard improve">
+          <span>Needs work</span>
+          <strong>{weakName}</strong>
+          <small>
+            {weakRate} score
+            {weakOpening?.games ? ` · ${weakOpening.games} games` : ""}
+          </small>
+        </article>
+
+        <article className="reportMetricCard style">
+          <span>Style read</span>
+          <strong>{styleLabel}</strong>
+          <small>{gamesImported || "Recent"} games reviewed</small>
+        </article>
+
+        <article className="reportMetricCard plan">
+          <span>Next step</span>
+          <strong>{recommendation}</strong>
+          <small>Use this as your opening study focus.</small>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
   const [username, setUsername] = useState("");
@@ -2178,6 +2392,8 @@ export default function App() {
           activeView={activeView}
           onViewChange={setActiveView}
         />
+
+        {data ? <OpeningFitReportHero data={data} /> : null}
 
         {showLanding ? (
           <LandingModal
