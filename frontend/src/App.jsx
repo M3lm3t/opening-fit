@@ -828,18 +828,6 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
                 ))}
               </div>
 
-              {mainOpening ? (
-                <button
-                  className="floatingPracticeButton"
-                  type="button"
-                  onClick={() => {
-                    onPractice(mainOpening);
-                    setOpen(false);
-                  }}
-                >
-                  Practise {mainOpening}
-                </button>
-              ) : null}
             </>
           ) : (
             <p className="floatingMenuHint">
