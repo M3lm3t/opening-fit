@@ -1261,6 +1261,7 @@ function LandingSection({ onOpeningClick }) {
 }
 
 export default function App() {
+  const [theme, setTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
   const [username, setUsername] = useState("");
   const [platform, setPlatform] = useState("chesscom");
   const [importMonths, setImportMonths] = useState(3);
@@ -1282,6 +1283,14 @@ export default function App() {
   const [isPremium, setIsPremium] = useState(false);
   const [activeView, setActiveView] = useState("overview");
   const [showLanding, setShowLanding] = useState(true);
+
+
+  useEffect(() => {
+    localStorage.setItem("openingFit:theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
+    document.body.classList.remove("light", "dark");
+    document.body.classList.add(theme);
+  }, [theme]);
 
   useEffect(() => {
     const savedUsername = localStorage.getItem(USERNAME_KEY);
@@ -2155,7 +2164,7 @@ export default function App() {
 
   return (
     <>
-      <div className="page">
+      <div className={`page ${theme}`} data-theme={theme}>
         <FloatingAppMenu
           data={data}
           onJump={jumpToSection}
@@ -2179,6 +2188,10 @@ export default function App() {
             onImport={importGames}
             loading={loading}
             onClose={() => setShowLanding(false)}
+            theme={theme}
+            onThemeToggle={() =>
+              setTheme((current) => (current === "dark" ? "light" : "dark"))
+            }
           />
         ) : null}
 
