@@ -10283,3 +10283,171 @@ main > section,
     padding-top: 88px !important;
   }
 }
+
+/* --------------------------------------------------
+   Professional mobile landing top bar
+-------------------------------------------------- */
+
+@media (max-width: 760px) {
+  .landingModal,
+  .landingCard,
+  .landingShell,
+  .landingPanel {
+    position: relative !important;
+    padding-top: 74px !important;
+  }
+
+  /* Logo tile */
+  .landingModal .logo,
+  .landingCard .logo,
+  .landingShell .logo,
+  .landingPanel .logo,
+  .landingLogo,
+  .brandIcon {
+    position: absolute !important;
+    top: 20px !important;
+    left: 18px !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    border-radius: 14px !important;
+    z-index: 920 !important;
+  }
+
+  /* Make all top controls feel like one neat group */
+  .themeToggle,
+  .themeButton,
+  .landingThemeToggle,
+  button[aria-label="Toggle theme"],
+  button[aria-label="Light"],
+  button[aria-label="Dark"],
+  .landingCloseBtn,
+  .closeBtn,
+  .modalClose,
+  .landingModal .close,
+  .menuToggle,
+  .burgerMenu,
+  .floatingMenuButton,
+  button[aria-label="Menu"],
+  button[aria-label="Open menu"] {
+    top: 20px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(148, 163, 184, 0.24) !important;
+    background: rgba(15, 23, 42, 0.72) !important;
+    color: #f8fafc !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(10px) !important;
+  }
+
+  /* Theme button */
+  .themeToggle,
+  .themeButton,
+  .landingThemeToggle,
+  button[aria-label="Toggle theme"],
+  button[aria-label="Light"],
+  button[aria-label="Dark"] {
+    right: 116px !important;
+    width: auto !important;
+    min-width: 70px !important;
+    padding: 0 14px !important;
+    font-size: 0.86rem !important;
+    font-weight: 800 !important;
+    z-index: 930 !important;
+  }
+
+  /* Close button */
+  .landingCloseBtn,
+  .closeBtn,
+  .modalClose,
+  .landingModal .close {
+    right: 68px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    padding: 0 !important;
+    font-size: 1.35rem !important;
+    line-height: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 940 !important;
+  }
+
+  /* Burger button */
+  .menuToggle,
+  .burgerMenu,
+  .floatingMenuButton,
+  button[aria-label="Menu"],
+  button[aria-label="Open menu"] {
+    right: 18px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    padding: 0 !important;
+    z-index: 950 !important;
+  }
+
+  /* Improve hero spacing now controls are cleaner */
+  .landingModal h1,
+  .landingHero h1,
+  .landingTitle {
+    margin-top: 26px !important;
+    font-size: clamp(2.45rem, 10.5vw, 3.65rem) !important;
+    line-height: 1.03 !important;
+    letter-spacing: -0.06em !important;
+  }
+
+  .landingModal p,
+  .landingHero p,
+  .landingSubtitle {
+    font-size: 1.02rem !important;
+    line-height: 1.55 !important;
+  }
+
+  /* Make import card less huge on mobile */
+  .landingInputRow,
+  .importForm,
+  .landingActions {
+    padding: 18px !important;
+    border-radius: 24px !important;
+  }
+
+  .landingInputRow input,
+  .landingInputRow select,
+  .importForm input,
+  .importForm select,
+  .landingActions input,
+  .landingActions select {
+    height: 56px !important;
+    border-radius: 18px !important;
+  }
+
+  .landingActions button,
+  .importForm button,
+  .landingInputRow button {
+    min-height: 56px !important;
+    border-radius: 18px !important;
+  }
+}
+
+/* Very small phones: use icon-only theme chip to avoid crowding */
+@media (max-width: 390px) {
+  .themeToggle,
+  .themeButton,
+  .landingThemeToggle,
+  button[aria-label="Toggle theme"],
+  button[aria-label="Light"],
+  button[aria-label="Dark"] {
+    right: 116px !important;
+    min-width: 58px !important;
+    padding: 0 10px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .landingModal h1,
+  .landingHero h1,
+  .landingTitle {
+    font-size: clamp(2.25rem, 10vw, 3.2rem) !important;
+  }
+}
