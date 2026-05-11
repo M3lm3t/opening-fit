@@ -9895,3 +9895,176 @@ body.dark {
     width: 100%;
   }
 }
+
+/* --------------------------------------------------
+   UX polish: landing spacing, mobile controls, scanning
+-------------------------------------------------- */
+
+/* Landing modal/card spacing */
+.landingModal,
+.landingCard,
+.landingShell,
+.landingPanel {
+  max-height: calc(100vh - 32px);
+}
+
+.landingModal {
+  padding-top: clamp(18px, 3vw, 28px);
+  padding-bottom: clamp(18px, 3vw, 28px);
+}
+
+.landingModal h1,
+.landingHero h1,
+.landingTitle {
+  margin-top: 10px;
+  margin-bottom: 14px;
+  line-height: 1.04;
+}
+
+.landingModal p,
+.landingHero p,
+.landingSubtitle {
+  margin-top: 0;
+  margin-bottom: 22px;
+}
+
+/* Prevent the landing form sitting too low */
+.landingModal form,
+.landingActions,
+.importForm,
+.landingInputRow {
+  margin-top: 18px;
+}
+
+/* Fix burger/close button overlap on mobile */
+@media (max-width: 760px) {
+  .floatingAppMenu,
+  .appMenu,
+  .sideMenu {
+    z-index: 800;
+  }
+
+  .menuToggle,
+  .burgerMenu,
+  .floatingMenuButton {
+    top: 18px !important;
+    right: 16px !important;
+    z-index: 850 !important;
+  }
+
+  .landingCloseBtn,
+  .closeBtn,
+  .modalClose,
+  .landingModal .close {
+    top: 18px !important;
+    right: 72px !important;
+    z-index: 900 !important;
+  }
+
+  .landingModal,
+  .landingCard,
+  .landingShell,
+  .landingPanel {
+    width: min(100% - 18px, 680px);
+    margin: 9px auto;
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .landingModal h1,
+  .landingHero h1,
+  .landingTitle {
+    font-size: clamp(2.2rem, 11vw, 3.4rem);
+  }
+}
+
+/* Compact result sections so the page feels less endless */
+.resultsGrid,
+.dashboardGrid,
+.analysisGrid,
+.sectionGrid,
+.premiumGrid {
+  gap: 12px;
+}
+
+.resultCard,
+.analysisCard,
+.dashboardCard,
+.feedbackCard,
+.roadmapCard,
+.card,
+.panel {
+  padding: clamp(14px, 2vw, 20px);
+}
+
+.resultCard h2,
+.analysisCard h2,
+.dashboardCard h2,
+.card h2,
+.panel h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* Make long content easier to scan without removing info */
+.sectionBody,
+.cardBody,
+.panelBody {
+  line-height: 1.45;
+}
+
+/* Reduce huge vertical gaps between main areas */
+main > section,
+.page > section,
+.appContent > section,
+.dashboardView > section {
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+
+/* Keep tables/lists compact */
+.openingTable,
+.topOpeningsTable,
+.movesTable {
+  font-size: 0.94rem;
+}
+
+.openingTable td,
+.openingTable th,
+.topOpeningsTable td,
+.topOpeningsTable th,
+.movesTable td,
+.movesTable th {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* On mobile, keep content readable but reduce scrolling */
+@media (max-width: 760px) {
+  main > section,
+  .page > section,
+  .appContent > section,
+  .dashboardView > section {
+    margin-top: 14px;
+    margin-bottom: 14px;
+  }
+
+  .resultCard,
+  .analysisCard,
+  .dashboardCard,
+  .feedbackCard,
+  .roadmapCard,
+  .card,
+  .panel {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .resultsGrid,
+  .dashboardGrid,
+  .analysisGrid,
+  .sectionGrid,
+  .premiumGrid {
+    gap: 10px;
+  }
+}

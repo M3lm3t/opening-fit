@@ -486,3 +486,65 @@
     padding: 14px;
   }
 }
+
+/* Compact premium dashboard so it feels less scroll-heavy */
+.premiumDashboard {
+  margin-top: 24px;
+  margin-bottom: 24px;
+  padding: clamp(16px, 2.3vw, 22px);
+}
+
+.premiumHero {
+  margin-bottom: 14px;
+}
+
+.premiumHero h2 {
+  margin-bottom: 6px;
+}
+
+.premiumStatsGrid {
+  margin: 14px 0;
+  gap: 10px;
+}
+
+.premiumPanel {
+  padding: 15px;
+}
+
+.premiumPanelHeader {
+  margin-bottom: 10px;
+}
+
+.premiumOpeningGrid,
+.premiumGrid,
+.premiumList {
+  gap: 10px;
+}
+
+.premiumOpeningMiniCard,
+.premiumListItem,
+.premiumLineItem {
+  padding: 11px;
+}
+
+.premiumChecklist {
+  gap: 8px;
+}
+
+.premiumChecklist span {
+  padding: 9px 11px;
+}
+
+@media (min-width: 921px) {
+  .premiumDashboard {
+    width: min(1040px, calc(100% - 190px));
+    margin-right: 52px;
+  }
+}
+
+@media (max-width: 920px) {
+  .premiumDashboard {
+    margin-top: 18px;
+    margin-bottom: 18px;
+  }
+}
