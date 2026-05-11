@@ -12863,3 +12863,290 @@ main > section,
     width: 100%;
   }
 }
+
+/* Premium Coach Plan */
+
+.coachPlanShell {
+  position: relative;
+  width: min(1180px, calc(100% - 28px));
+  margin: 18px auto 28px;
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.12), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.12), transparent 34%),
+    var(--card-bg, rgba(255, 255, 255, 0.9));
+  box-shadow: 0 20px 56px rgba(15, 23, 42, 0.1);
+  overflow: hidden;
+}
+
+.coachPlanShell.locked .coachPlanGrid,
+.coachPlanShell.locked .coachWeekCard {
+  filter: blur(3px);
+  opacity: 0.48;
+  pointer-events: none;
+  user-select: none;
+}
+
+.coachPlanHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.coachPlanEyebrow {
+  width: fit-content;
+  margin-bottom: 9px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.14);
+  color: #16a34a;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.coachPlanHeader h2 {
+  margin: 0 0 8px;
+  font-size: clamp(1.45rem, 3vw, 2.25rem);
+  line-height: 1.06;
+}
+
+.coachPlanHeader p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted-text, #64748b);
+  line-height: 1.58;
+}
+
+.coachPlanStatus {
+  min-width: 190px;
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.coachPlanStatus span {
+  text-align: center;
+  font-weight: 950;
+  color: var(--muted-text, #64748b);
+}
+
+.coachPlanStatus button,
+.coachLockedOverlay button {
+  border: 0;
+  border-radius: 14px;
+  padding: 11px 14px;
+  background: #111827;
+  color: #f8fafc;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.coachPlanGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.9fr;
+  gap: 14px;
+}
+
+.coachPrimaryCard,
+.coachRuleCard,
+.coachWeekCard {
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.coachPrimaryCard,
+.coachRuleCard {
+  padding: 17px;
+}
+
+.coachPrimaryCard > span,
+.coachRuleCard > span,
+.coachWeekHeader span {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: var(--muted-text, #64748b);
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.coachPrimaryCard h3,
+.coachRuleCard h3 {
+  margin: 0 0 8px;
+  font-size: 1.18rem;
+  line-height: 1.18;
+}
+
+.coachPrimaryCard p {
+  margin: 0;
+  color: var(--muted-text, #64748b);
+  line-height: 1.55;
+}
+
+.coachMiniStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.coachMiniStats div {
+  padding: 11px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.coachMiniStats strong {
+  display: block;
+  font-size: 1.12rem;
+}
+
+.coachMiniStats small {
+  color: var(--muted-text, #64748b);
+  font-weight: 800;
+}
+
+.coachPrimaryCard.danger {
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.coachRuleCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.coachWeekCard {
+  margin-top: 14px;
+  padding: 17px;
+}
+
+.coachWeekHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.coachWeekHeader strong {
+  font-size: 1.05rem;
+}
+
+.coachDaysGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.coachDaysGrid div {
+  min-height: 135px;
+  padding: 12px;
+  border-radius: 17px;
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.coachDaysGrid strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.coachDaysGrid span {
+  display: block;
+  color: var(--muted-text, #64748b);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.coachLockedOverlay {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #f8fafc;
+  box-shadow: 0 20px 46px rgba(2, 6, 23, 0.28);
+}
+
+.coachLockedOverlay div {
+  display: grid;
+  gap: 4px;
+}
+
+.coachLockedOverlay span {
+  color: rgba(248, 250, 252, 0.72);
+}
+
+.coachLockedOverlay button {
+  background: #facc15;
+  color: #111827;
+  white-space: nowrap;
+}
+
+@media (max-width: 1050px) {
+  .coachPlanGrid,
+  .coachDaysGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coachRuleCard {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .coachPlanShell {
+    width: min(100% - 20px, 1180px);
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .coachPlanHeader,
+  .coachLockedOverlay,
+  .coachWeekHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .coachPlanStatus {
+    min-width: 0;
+  }
+
+  .coachPlanGrid,
+  .coachDaysGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .coachDaysGrid div {
+    min-height: auto;
+  }
+
+  .coachLockedOverlay {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .coachLockedOverlay button {
+    width: 100%;
+  }
+}
