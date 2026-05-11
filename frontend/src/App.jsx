@@ -17,6 +17,7 @@ import PremiumCoachPlan from "./components/PremiumCoachPlan";
 import MyRepertoire from "./components/MyRepertoire";
 import PremiumTrustStrip from "./components/PremiumTrustStrip";
 import LandingModal from "./components/LandingModal";
+import TrustFaq from "./components/TrustFaq";
 import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
 import OpeningSnapshot from "./components/OpeningSnapshot";
@@ -3233,7 +3234,10 @@ const [activeView, setActiveView] = useState("overview");
             }
           }}
         />
+
         ) : null}
+
+        {!data ? <TrustFaq /> : null}
 
         <LandingSection onOpeningClick={startOpeningPractice} />
 
