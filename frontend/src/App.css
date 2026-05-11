@@ -10184,3 +10184,28 @@ main > section,
     width: 100%;
   }
 }
+
+/* Hide broken mobile quick navigation for now */
+.mobileBottomNav,
+.mobile-bottom-nav,
+.bottomNav,
+.bottom-nav,
+.mobileQuickNav,
+.mobile-quick-nav {
+  display: none !important;
+}
+
+@media (max-width: 720px) {
+  .mobileBottomNav,
+  .mobile-bottom-nav,
+  .bottomNav,
+  .bottom-nav,
+  .mobileQuickNav,
+  .mobile-quick-nav {
+    display: none !important;
+  }
+
+  body {
+    padding-bottom: 0 !important;
+  }
+}
