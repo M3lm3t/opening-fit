@@ -8,6 +8,7 @@ import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
 import AccountPanel from "./components/AccountPanel";
 import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
+import PremiumPanel from "./components/PremiumPanel";
 import LandingModal from "./components/LandingModal";
 import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
@@ -3151,6 +3152,14 @@ export default function App() {
           activeView={activeView}
           onViewChange={setActiveView}
         />
+
+        <PremiumPanel
+          data={data}
+          isPremium={isPremium}
+          onUnlockDemo={unlockPremiumDemo}
+          onResetDemo={resetPremiumDemo}
+        />
+
 
         {data ? <OpeningFitReportHero data={data} /> : null}
 
