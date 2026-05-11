@@ -7175,3 +7175,894 @@ button[aria-label="Open navigation menu"] {
     font-size: 0.63rem;
   }
 }
+
+/* ================================
+   THEME FIX: DARK / LIGHT MODE
+================================ */
+
+:root,
+[data-theme="dark"],
+.dark {
+  --bg: #020617;
+  --card: rgba(15, 23, 42, 0.9);
+  --card-strong: rgba(15, 23, 42, 0.98);
+  --muted: #94a3b8;
+  --text: #f8fafc;
+  --text-soft: #cbd5e1;
+  --border: rgba(148, 163, 184, 0.16);
+  --blue: #2563eb;
+  --blue-light: #60a5fa;
+  --green: #22c55e;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --shadow: 0 22px 70px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"],
+.light {
+  --bg: #f8fafc;
+  --card: rgba(255, 255, 255, 0.92);
+  --card-strong: rgba(255, 255, 255, 0.98);
+  --muted: #64748b;
+  --text: #0f172a;
+  --text-soft: #334155;
+  --border: rgba(15, 23, 42, 0.12);
+  --blue: #2563eb;
+  --blue-light: #1d4ed8;
+  --green: #16a34a;
+  --amber: #d97706;
+  --red: #dc2626;
+  --shadow: 0 22px 70px rgba(15, 23, 42, 0.14);
+}
+
+body:has(.light),
+body.light,
+body[data-theme="light"] {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 34%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.1), transparent 30%),
+    #f8fafc;
+  color: var(--text);
+}
+
+body:has(.dark),
+body.dark,
+body[data-theme="dark"] {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.22), transparent 34%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 30%),
+    #020617;
+  color: var(--text);
+}
+
+/* ================================
+   LANDING MODAL UPGRADE
+================================ */
+
+.landingOverlay {
+  min-height: 100vh;
+  width: 100%;
+  padding: 24px 0;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.24), transparent 36%),
+    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.16), transparent 34%);
+}
+
+.landingModal {
+  width: min(100% - 32px, 1180px);
+  margin: 0 auto;
+}
+
+.landingHeroCopy h1 {
+  margin: 18px 0 16px;
+  font-size: clamp(2.4rem, 7vw, 5.4rem);
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+}
+
+.landingLead {
+  max-width: 660px;
+  margin: 0 0 24px;
+  color: var(--text-soft);
+  font-size: clamp(1.02rem, 2vw, 1.28rem);
+  line-height: 1.65;
+}
+
+.landingBadge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 9px 13px;
+  color: #bfdbfe;
+  background: rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.32);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.light .landingBadge,
+[data-theme="light"] .landingBadge {
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.landingImportCard {
+  max-width: 720px;
+  padding: 18px;
+  border-radius: 24px;
+  background: var(--card-strong);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.platformToggle {
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border);
+}
+
+.light .platformToggle,
+[data-theme="light"] .platformToggle {
+  background: rgba(226, 232, 240, 0.75);
+}
+
+.platformToggle button {
+  flex: 1;
+  min-height: 42px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-soft);
+  font-weight: 900;
+}
+
+.platformToggle button.active {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.25);
+}
+
+.landingInputRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.landingInputRow input {
+  min-height: 52px;
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 0 16px;
+  color: var(--text);
+  background: rgba(2, 6, 23, 0.56);
+  outline: none;
+  font-weight: 800;
+}
+
+.light .landingInputRow input,
+[data-theme="light"] .landingInputRow input {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.landingInputRow input:focus {
+  border-color: rgba(96, 165, 250, 0.7);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.landingTrustLine {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.landingActionRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.landingTextLink {
+  color: var(--blue-light);
+  font-weight: 900;
+}
+
+.landingThemeBtn {
+  min-height: 40px;
+  padding: 9px 13px;
+}
+
+.landingPreviewPanel {
+  padding: 20px;
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.92));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.light .landingPreviewPanel,
+[data-theme="light"] .landingPreviewPanel {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.96));
+}
+
+.previewTopLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.previewTopLine strong {
+  color: #ffffff;
+  background: rgba(37, 99, 235, 0.95);
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
+.previewScoreCard {
+  padding: 18px;
+  margin-bottom: 14px;
+  border-radius: 22px;
+  background: rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.26);
+}
+
+.previewScoreCard p {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.previewScoreCard h2 {
+  margin: 0 0 8px;
+  font-size: 1.75rem;
+}
+
+.previewScoreCard span {
+  color: var(--text-soft);
+}
+
+.previewVerdictGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.previewVerdictGrid > div {
+  padding: 15px;
+  border-radius: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+
+.previewVerdictGrid strong {
+  display: block;
+  margin: 10px 0 4px;
+  font-size: 1.04rem;
+}
+
+.previewVerdictGrid p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.verdictPill {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 0.75rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.verdictPill.keep {
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.verdictPill.improve {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.verdictPill.avoid {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.light .verdictPill.keep,
+[data-theme="light"] .verdictPill.keep {
+  color: #166534;
+}
+
+.light .verdictPill.improve,
+[data-theme="light"] .verdictPill.improve {
+  color: #92400e;
+}
+
+.light .verdictPill.avoid,
+[data-theme="light"] .verdictPill.avoid {
+  color: #991b1b;
+}
+
+.landingFeatureGrid,
+.landingTrustGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.landingFeatureCard,
+.landingInfoCard {
+  padding: 18px;
+}
+
+.landingFeatureCard span {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
+  font-weight: 950;
+}
+
+.landingFeatureCard h3,
+.landingInfoCard h3 {
+  margin: 0 0 8px;
+  font-size: 1.08rem;
+}
+
+.landingFeatureCard p,
+.landingInfoCard p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.light .landingHero,
+[data-theme="light"] .landingHero {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.96)),
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 36%);
+}
+
+.light .landingNavLinks a,
+[data-theme="light"] .landingNavLinks a {
+  color: #334155;
+}
+
+.light .landingBrandSubtitle,
+[data-theme="light"] .landingBrandSubtitle {
+  color: #64748b;
+}
+
+@media (max-width: 860px) {
+  .landingHero {
+    padding: 18px;
+    border-radius: 26px;
+  }
+
+  .landingNav {
+    margin-bottom: 34px;
+  }
+
+  .landingNavLinks a {
+    display: none;
+  }
+
+  .landingHeroGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .landingInputRow {
+    grid-template-columns: 1fr;
+  }
+
+  .landingPrimaryBtn,
+  .landingSecondaryBtn {
+    width: 100%;
+  }
+
+  .landingActionRow {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .landingTextLink {
+    text-align: center;
+  }
+
+  .landingFeatureGrid,
+  .landingTrustGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .landingOverlay {
+    padding: 12px 0;
+  }
+
+  .landingModal {
+    width: min(100% - 20px, 1180px);
+  }
+
+  .landingHeroCopy h1 {
+    font-size: 2.55rem;
+  }
+
+  .landingBrandIcon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+  }
+
+  .landingBrandSubtitle {
+    display: none;
+  }
+
+  .landingThemeBtn {
+    font-size: 0.82rem;
+    padding: 8px 10px;
+  }
+}
+
+/* ================================
+   LANDING SIZE + CLICK-OFF UPDATE
+================================ */
+
+.landingOverlay {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 18px 0 28px;
+}
+
+.landingModal.landingHero {
+  width: min(100% - 28px, 1040px);
+  padding: 22px;
+  margin: 0 auto;
+}
+
+.landingNav {
+  margin-bottom: 34px;
+}
+
+.landingHeroGrid {
+  gap: 20px;
+}
+
+.landingHeroCopy h1 {
+  margin: 14px 0 12px;
+  font-size: clamp(2.1rem, 5.5vw, 4.35rem);
+}
+
+.landingLead {
+  margin-bottom: 18px;
+  font-size: clamp(0.98rem, 1.7vw, 1.14rem);
+  line-height: 1.55;
+}
+
+.landingImportCard {
+  padding: 15px;
+}
+
+.landingInputRow input {
+  min-height: 48px;
+}
+
+.landingPrimaryBtn,
+.landingSecondaryBtn {
+  min-height: 46px;
+}
+
+.landingPreviewPanel {
+  padding: 16px;
+}
+
+.previewScoreCard {
+  padding: 15px;
+}
+
+.previewScoreCard h2 {
+  font-size: 1.45rem;
+}
+
+.previewVerdictGrid > div {
+  padding: 12px;
+}
+
+.landingFeatureGrid,
+.landingTrustGrid {
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.landingFeatureCard,
+.landingInfoCard {
+  padding: 15px;
+}
+
+.landingFeatureCard p,
+.landingInfoCard p,
+.previewVerdictGrid p {
+  font-size: 0.92rem;
+}
+
+/* ================================
+   STRONG LIGHT MODE OVERRIDES
+================================ */
+
+html[data-theme="light"] body,
+body.light {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 34%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.1), transparent 30%),
+    #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .page,
+.page.light {
+  background: transparent;
+  color: #0f172a;
+}
+
+html[data-theme="light"] .card,
+html[data-theme="light"] .heroCard,
+html[data-theme="light"] .statCard,
+html[data-theme="light"] .quickNavCard,
+html[data-theme="light"] .collapsibleCard,
+html[data-theme="light"] .premiumMiniCard,
+html[data-theme="light"] .landingPreviewCard,
+html[data-theme="light"] .landingFeatureCard,
+html[data-theme="light"] .landingPriceCard,
+html[data-theme="light"] .landingInfoCard,
+html[data-theme="light"] .landingStepCard,
+html[data-theme="light"] .aboutCard,
+html[data-theme="light"] .ratingGuideCard,
+html[data-theme="light"] .landingImportCard,
+html[data-theme="light"] .previewVerdictGrid > div {
+  background: rgba(255, 255, 255, 0.94) !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme="light"] .landingHero {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(241, 245, 249, 0.97)),
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 36%) !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .landingPreviewPanel {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(241, 245, 249, 0.97)) !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] p,
+html[data-theme="light"] .landingLead,
+html[data-theme="light"] .landingBrandSubtitle,
+html[data-theme="light"] .landingTrustLine,
+html[data-theme="light"] .previewScoreCard span,
+html[data-theme="light"] .previewVerdictGrid p,
+html[data-theme="light"] .landingFeatureCard p,
+html[data-theme="light"] .landingInfoCard p {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] h1,
+html[data-theme="light"] h2,
+html[data-theme="light"] h3,
+html[data-theme="light"] strong,
+html[data-theme="light"] .landingBrandTitle {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] input,
+html[data-theme="light"] textarea {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+}
+
+html[data-theme="light"] .secondaryBtn,
+html[data-theme="light"] .landingSecondaryBtn,
+html[data-theme="light"] .secondaryButton,
+html[data-theme="light"] .ghostButton {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+}
+
+html[data-theme="dark"] body,
+body.dark {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.22), transparent 34%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 30%),
+    #020617 !important;
+  color: #f8fafc !important;
+}
+
+@media (max-width: 860px) {
+  .landingModal.landingHero {
+    width: min(100% - 20px, 1040px);
+    padding: 16px;
+  }
+
+  .landingNav {
+    margin-bottom: 24px;
+  }
+
+  .landingHeroCopy h1 {
+    font-size: 2.45rem;
+  }
+}
+
+/* ================================
+   LANDING FINAL COMPACT POLISH
+   Fixes squashed hero layout
+================================ */
+
+.landingOverlay {
+  min-height: 100vh;
+  padding: 14px 0 24px;
+  align-items: flex-start;
+}
+
+.landingModal.landingHero {
+  width: min(100% - 32px, 980px);
+  padding: 20px 22px;
+  border-radius: 28px;
+}
+
+.landingNav {
+  margin-bottom: 28px;
+}
+
+.landingBrandIcon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 14px;
+  font-size: 1.25rem;
+}
+
+.landingHeroGrid {
+  grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.75fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.landingBadge {
+  padding: 8px 12px;
+  font-size: 0.82rem;
+}
+
+.landingHeroCopy h1 {
+  max-width: 560px;
+  margin: 14px 0 12px;
+  font-size: clamp(2.25rem, 4.8vw, 4.15rem);
+  line-height: 0.98;
+  letter-spacing: -0.065em;
+}
+
+.landingLead {
+  max-width: 560px;
+  margin-bottom: 18px;
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+
+.landingImportCard {
+  max-width: 540px;
+  padding: 14px;
+  border-radius: 22px;
+}
+
+.platformToggle {
+  margin-bottom: 12px;
+}
+
+.platformToggle button {
+  min-height: 40px;
+}
+
+.landingInputRow {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.landingInputRow input {
+  min-height: 46px;
+}
+
+.landingPrimaryBtn,
+.landingSecondaryBtn {
+  min-height: 44px;
+  padding: 10px 16px;
+}
+
+.landingTrustLine {
+  margin-top: 10px;
+  font-size: 0.86rem;
+}
+
+.landingActionRow {
+  margin-top: 12px;
+}
+
+.landingPreviewPanel {
+  padding: 15px;
+  border-radius: 24px;
+}
+
+.previewTopLine {
+  margin-bottom: 12px;
+  font-size: 0.82rem;
+}
+
+.previewScoreCard {
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 18px;
+}
+
+.previewScoreCard h2 {
+  font-size: 1.35rem;
+}
+
+.previewVerdictGrid {
+  gap: 10px;
+}
+
+.previewVerdictGrid > div {
+  padding: 12px;
+  border-radius: 18px;
+}
+
+.previewVerdictGrid strong {
+  margin: 8px 0 3px;
+  font-size: 0.98rem;
+}
+
+.previewVerdictGrid p {
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.verdictPill {
+  padding: 4px 8px;
+  font-size: 0.68rem;
+}
+
+.landingFeatureGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.landingFeatureCard {
+  padding: 14px;
+  border-radius: 18px;
+}
+
+.landingFeatureCard span {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+}
+
+.landingFeatureCard h3 {
+  font-size: 0.98rem;
+}
+
+.landingFeatureCard p {
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+/* Hide the extra trust cards on the opening modal.
+   They make the first screen too tall. */
+.landingTrustGrid {
+  display: none;
+}
+
+/* Better layout on smaller laptop screens */
+@media (max-height: 760px) and (min-width: 861px) {
+  .landingModal.landingHero {
+    width: min(100% - 32px, 940px);
+    padding: 18px 20px;
+  }
+
+  .landingNav {
+    margin-bottom: 22px;
+  }
+
+  .landingHeroCopy h1 {
+    font-size: clamp(2.1rem, 4.4vw, 3.7rem);
+  }
+
+  .landingLead {
+    font-size: 0.96rem;
+    margin-bottom: 14px;
+  }
+
+  .landingFeatureGrid {
+    display: none;
+  }
+}
+
+/* Tablet/mobile: stack cleanly instead of squeezing */
+@media (max-width: 860px) {
+  .landingOverlay {
+    padding: 10px 0 22px;
+  }
+
+  .landingModal.landingHero {
+    width: min(100% - 18px, 620px);
+    padding: 16px;
+  }
+
+  .landingHeroGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .landingHeroCopy h1 {
+    font-size: 2.55rem;
+  }
+
+  .landingLead {
+    font-size: 0.98rem;
+  }
+
+  .landingPreviewPanel {
+    display: none;
+  }
+
+  .landingFeatureGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Phone: keep the import section visible quickly */
+@media (max-width: 520px) {
+  .landingNav {
+    margin-bottom: 20px;
+  }
+
+  .landingHeroCopy h1 {
+    font-size: 2.25rem;
+  }
+
+  .landingLead {
+    font-size: 0.94rem;
+  }
+
+  .landingFeatureGrid {
+    display: none;
+  }
+}
