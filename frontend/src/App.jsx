@@ -2233,6 +2233,21 @@ function OpeningFitReportHero({ data }) {
 
 
 export default function App() {
+
+  const [isPremium, setIsPremium] = useState(() => {
+    return localStorage.getItem(PREMIUM_KEY) === "true";
+  });
+
+  const unlockPremiumDemo = () => {
+    localStorage.setItem(PREMIUM_KEY, "true");
+    setIsPremium(true);
+  };
+
+  const resetPremiumDemo = () => {
+    localStorage.removeItem(PREMIUM_KEY);
+    setIsPremium(false);
+  };
+
   const [theme, setTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
   const [username, setUsername] = useState("");
   const [platform, setPlatform] = useState("chesscom");
