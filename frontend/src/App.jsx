@@ -9,6 +9,7 @@ import AccountPanel from "./components/AccountPanel";
 import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 import PremiumPanel from "./components/PremiumPanel";
+import ResultsCommandCenter from "./components/ResultsCommandCenter";
 import ProgressTracker from "./components/ProgressTracker";
 import ShareReport from "./components/ShareReport";
 import PremiumCoachPlan from "./components/PremiumCoachPlan";
@@ -3522,6 +3523,12 @@ const [activeView, setActiveView] = useState("overview");
                   onPractice={startOpeningPractice}
                 />
 
+
+
+        <ResultsCommandCenter
+          data={data}
+          onPractice={startOpeningPractice}
+        />
 
         <ProgressTracker data={data} />
 
