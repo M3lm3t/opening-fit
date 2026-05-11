@@ -17,13 +17,17 @@ function getGames(item) {
 
 function getWinRate(item) {
   const direct = item?.winRate ?? item?.win_rate ?? item?.score;
-  if (typeof direct === "number") return direct > 1 ? direct : Math.round(direct * 100);
 
+  if (typeof direct === "number") {
+    return direct > 1 ? Math.round(direct) : Math.round(direct * 100);
+  }
+
+  const games = getGames(item);
   const wins = Number(item?.wins ?? item?.w ?? 0);
   const draws = Number(item?.draws ?? item?.d ?? 0);
-  const games = getGames(item);
 
   if (!games) return 0;
+
   return Math.round(((wins + draws * 0.5) / games) * 100);
 }
 
@@ -34,6 +38,7 @@ function collectOpenings(data) {
     data?.topOpenings ||
     data?.verdicts ||
     data?.opening_win_rates ||
+    data?.openingWinRates ||
     [];
 
   if (Array.isArray(possible)) return possible;
@@ -48,197 +53,201 @@ function collectOpenings(data) {
   return [];
 }
 
-function PremiumLockedCard({ title, children, isPremium }) {
-  if (isPremium) {
-    return (
-      <div className="premiumInsightCard">
-        <div className="premiumCardTopline">Premium unlocked</div>
-        <h3>{title}</h3>
-        {children}
-      </div>
-    );
-  }
+function isUnknownOpening(name) {
+  const normalised = String(name || "").trim().toLowerCase();
 
   return (
-    <div className="premiumInsightCard premiumLockedCard">
-      <div className="premiumLockBadge">Premium</div>
-      <h3>{title}</h3>
-      <div className="premiumBlur">{children}</div>
-      <div className="premiumLockOverlay">
-        <strong>Unlock this section</strong>
-        <span>Get the full repertoire plan, weakness report and weekly training path.</span>
+    !normalised ||
+    normalised === "unknown" ||
+    normalised === "unknown opening" ||
+    normalised.includes("uncommon opening")
+  );
+}
+
+function FeatureRow({ label, free, premium }) {
+  return (
+    <div className="premiumCompareRow">
+      <div className="premiumCompareFeature">{label}</div>
+      <div className={free ? "premiumCompareYes" : "premiumCompareNo"}>
+        {free ? "Included" : "Limited"}
       </div>
+      <div className="premiumCompareYes">{premium}</div>
+    </div>
+  );
+}
+
+function LockedPreview({ title, text, isPremium }) {
+  return (
+    <div className={isPremium ? "premiumPreviewCard unlocked" : "premiumPreviewCard locked"}>
+      <div className="premiumPreviewIcon">{isPremium ? "✓" : "🔒"}</div>
+      <h3>{title}</h3>
+      <p>{text}</p>
+      {!isPremium ? <span>Premium preview</span> : <span>Unlocked</span>}
     </div>
   );
 }
 
 export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDemo }) {
-  const openings = useMemo(() => {
-    return collectOpenings(data)
+  const premiumInsights = useMemo(() => {
+    const openings = collectOpenings(data)
       .map((item) => ({
         ...item,
         displayName: getOpeningName(item),
         games: getGames(item),
         winRate: getWinRate(item),
       }))
-      .filter((item) => item.displayName && item.displayName.toLowerCase() !== "unknown opening")
-      .sort((a, b) => b.games - a.games);
+      .filter((item) => !isUnknownOpening(item.displayName))
+      .sort((a, b) => {
+        if (b.games !== a.games) return b.games - a.games;
+        return b.winRate - a.winRate;
+      });
+
+    const reliable = openings.filter((item) => item.games >= 2);
+    const strong = reliable.filter((item) => item.winRate >= 55).sort((a, b) => b.winRate - a.winRate);
+    const weak = reliable.filter((item) => item.winRate < 45).sort((a, b) => a.winRate - b.winRate);
+
+    return {
+      best: strong[0] || reliable[0] || openings[0],
+      weak: weak[0] || reliable[1] || openings[1],
+      totalOpenings: openings.length,
+    };
   }, [data]);
 
   if (!data) return null;
 
-  const strongOpenings = openings
-    .filter((item) => item.games >= 2 && item.winRate >= 50)
-    .slice(0, 3);
-
-  const weakOpenings = openings
-    .filter((item) => item.games >= 2 && item.winRate < 45)
-    .slice(0, 3);
-
-  const mostPlayed = openings.slice(0, 4);
-
-  const bestWhite =
-    strongOpenings[0]?.displayName ||
-    mostPlayed[0]?.displayName ||
-    "your highest scoring White opening";
-
-  const bestBlack =
-    strongOpenings[1]?.displayName ||
-    mostPlayed[1]?.displayName ||
-    "a simple reliable Black setup";
-
-  const biggestLeak =
-    weakOpenings[0]?.displayName ||
-    "inconsistent opening choices";
+  const bestOpening = premiumInsights.best?.displayName || "your strongest opening";
+  const weakOpening = premiumInsights.weak?.displayName || "your weakest opening area";
 
   return (
-    <section className="premiumFoundationShell" id="premium">
-      <div className="premiumHeroCard">
-        <div>
-          <div className="premiumEyebrow">OpeningFit Premium</div>
-          <h2>Turn your games into a personal opening plan.</h2>
+    <section className="premiumUpgradeShell" id="premium">
+      <div className="premiumUpgradeHero">
+        <div className="premiumUpgradeCopy">
+          <div className="premiumUpgradeEyebrow">OpeningFit Premium</div>
+
+          <h2>Stop guessing what openings to study.</h2>
+
           <p>
-            Premium should not just show more stats. It should tell players what to keep,
-            what to fix, and exactly what to study next.
+            Premium turns your imported games into a clear opening repertoire, weakness report
+            and weekly training plan — built around how you actually play.
           </p>
+
+          <div className="premiumHeroBullets">
+            <span>✓ Full White and Black repertoire</span>
+            <span>✓ Weakness detection from your own games</span>
+            <span>✓ Weekly opening training plan</span>
+          </div>
         </div>
 
-        <div className="premiumDemoBox">
-          <span className={isPremium ? "premiumStatus unlocked" : "premiumStatus locked"}>
-            {isPremium ? "Premium demo unlocked" : "Free preview mode"}
-          </span>
+        <div className="premiumPriceCard">
+          <div className="premiumPriceTag">Early access</div>
+          <div className="premiumPrice">£8</div>
+          <p>One-time lifetime unlock while OpeningFit is still improving.</p>
 
-          <button type="button" className="premiumPrimaryBtn" onClick={onUnlockDemo}>
+          <button
+            type="button"
+            className="premiumCheckoutBtn"
+            onClick={() => {
+              alert("Stripe checkout will be connected later. For now, use Premium Demo to test the full flow.");
+            }}
+          >
+            Unlock Premium
+          </button>
+
+          <button type="button" className="premiumDemoBtn" onClick={onUnlockDemo}>
             Unlock Premium Demo
           </button>
 
-          <button type="button" className="premiumGhostBtn" onClick={onResetDemo}>
+          <button type="button" className="premiumResetBtn" onClick={onResetDemo}>
             Reset Free Preview
           </button>
+
+          <small>
+            {isPremium ? "Premium demo is currently unlocked." : "Payments are not live yet."}
+          </small>
         </div>
       </div>
 
-      <div className="premiumValueGrid">
-        <div className="premiumSummaryCard">
-          <span>Your current plan</span>
-          <h3>{bestWhite}</h3>
-          <p>
-            Your strongest fit appears to be built around <strong>{bestWhite}</strong>.
-            The next step is turning this into a simple repeatable repertoire instead of
-            guessing game by game.
-          </p>
+      <div className="premiumInsightStrip">
+        <div>
+          <span>Best opening to build around</span>
+          <strong>{bestOpening}</strong>
         </div>
 
-        <div className="premiumSummaryCard">
-          <span>Biggest leak</span>
-          <h3>{biggestLeak}</h3>
-          <p>
-            Your lowest-value area looks like <strong>{biggestLeak}</strong>. Premium should
-            focus the training plan here first because this is where quick rating gains are
-            most likely.
-          </p>
+        <div>
+          <span>Biggest opening leak</span>
+          <strong>{weakOpening}</strong>
         </div>
 
-        <div className="premiumSummaryCard">
-          <span>Suggested promise</span>
-          <h3>£8 lifetime early access</h3>
-          <p>
-            Best offer for now: a low one-time price while the app is improving. Avoid a
-            monthly subscription until the saved dashboard and deeper analysis are stronger.
-          </p>
+        <div>
+          <span>Openings detected</span>
+          <strong>{premiumInsights.totalOpenings || "Analysing"}</strong>
         </div>
       </div>
 
-      <div className="premiumCardsGrid">
-        <PremiumLockedCard title="Full repertoire builder" isPremium={isPremium}>
-          <div className="premiumRepertoireGrid">
-            <div>
-              <h4>White plan</h4>
-              <ul>
-                <li>Build around: {bestWhite}</li>
-                <li>Backup option: simple queen-pawn system</li>
-                <li>Goal: reach familiar middlegames by move 6–8</li>
-              </ul>
-            </div>
+      <div className="premiumPreviewGrid">
+        <LockedPreview
+          isPremium={isPremium}
+          title="Full repertoire builder"
+          text={`Build a practical White and Black repertoire around ${bestOpening}, instead of jumping between random openings.`}
+        />
 
-            <div>
-              <h4>Black plan</h4>
-              <ul>
-                <li>Against 1.e4: {bestBlack}</li>
-                <li>Against 1.d4: solid development setup</li>
-                <li>Goal: reduce unknown positions early</li>
-              </ul>
-            </div>
+        <LockedPreview
+          isPremium={isPremium}
+          title="Opening weakness report"
+          text={`Find where your results drop, starting with ${weakOpening}, then get a clear fix instead of just another chart.`}
+        />
+
+        <LockedPreview
+          isPremium={isPremium}
+          title="Weekly training plan"
+          text="Get a narrow 5-day study plan using your real games, so you know exactly what to review next."
+        />
+
+        <LockedPreview
+          isPremium={isPremium}
+          title="Progress tracking"
+          text="Save your profile, re-import later, and see whether your opening results are actually improving."
+        />
+      </div>
+
+      <div className="premiumComparisonCard">
+        <div className="premiumComparisonHeader">
+          <div>
+            <span>Free vs Premium</span>
+            <h3>Keep the free version useful. Make Premium genuinely actionable.</h3>
           </div>
-        </PremiumLockedCard>
+        </div>
 
-        <PremiumLockedCard title="Opening weakness detector" isPremium={isPremium}>
-          <div className="premiumWeaknessList">
-            {weakOpenings.length ? (
-              weakOpenings.map((item) => (
-                <div className="premiumWeaknessRow" key={item.displayName}>
-                  <span>{item.displayName}</span>
-                  <strong>{item.winRate}%</strong>
-                  <small>{item.games} games</small>
-                </div>
-              ))
-            ) : (
-              <>
-                <div className="premiumWeaknessRow">
-                  <span>Unknown / inconsistent openings</span>
-                  <strong>Review</strong>
-                  <small>Improve move-order confidence</small>
-                </div>
-                <div className="premiumWeaknessRow">
-                  <span>Black repertoire gaps</span>
-                  <strong>Fix</strong>
-                  <small>Choose one response per main first move</small>
-                </div>
-              </>
-            )}
+        <div className="premiumCompareTable">
+          <div className="premiumCompareHead">
+            <div>Feature</div>
+            <div>Free</div>
+            <div>Premium</div>
           </div>
-        </PremiumLockedCard>
 
-        <PremiumLockedCard title="Weekly training plan" isPremium={isPremium}>
-          <ol className="premiumTrainingPlan">
-            <li>
-              <strong>Day 1:</strong> Review your most-played opening and write down the first
-              6 moves you want.
-            </li>
-            <li>
-              <strong>Day 2:</strong> Replay two wins and two losses in {bestWhite}.
-            </li>
-            <li>
-              <strong>Day 3:</strong> Fix one weak line from {biggestLeak}.
-            </li>
-            <li>
-              <strong>Day 4:</strong> Play five rapid games using only the recommended plan.
-            </li>
-            <li>
-              <strong>Day 5:</strong> Re-import games and compare results.
-            </li>
-          </ol>
-        </PremiumLockedCard>
+          <FeatureRow label="Import Chess.com / Lichess games" free premium="Included" />
+          <FeatureRow label="Basic style profile" free premium="Included" />
+          <FeatureRow label="Opening win-rate chart" free premium="Included" />
+          <FeatureRow label="Keep / Improve / Avoid verdicts" free premium="Deeper verdicts" />
+          <FeatureRow label="Full repertoire builder" free={false} premium="Unlocked" />
+          <FeatureRow label="Opening weakness detection" free={false} premium="Unlocked" />
+          <FeatureRow label="Weekly training plan" free={false} premium="Unlocked" />
+          <FeatureRow label="Saved progress history" free={false} premium="Coming soon" />
+        </div>
+      </div>
+
+      <div className="premiumFinalCta">
+        <div>
+          <h3>Premium should feel like a coach, not just more stats.</h3>
+          <p>
+            This is the version to test with users before connecting Stripe. If people say
+            “I would pay for that”, then payments are worth adding.
+          </p>
+        </div>
+
+        <button type="button" onClick={onUnlockDemo}>
+          Test Premium Demo
+        </button>
       </div>
     </section>
   );
