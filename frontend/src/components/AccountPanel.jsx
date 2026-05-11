@@ -101,7 +101,7 @@ export default function AccountPanel({ variant = "floating" }) {
   const signInWithGoogle = async () => {
     if (!supabase) return;
 
-    setStatus("Opening Google sign in...");
+    setStatus("Opening secure Google sign-in...");
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -176,7 +176,7 @@ export default function AccountPanel({ variant = "floating" }) {
         onClick={() => setIsOpen((value) => !value)}
       >
         <span className="accountDot" />
-        {user ? "My account" : variant === "landing" ? "Sign in to save reports" : "Sign in"}
+        {user ? "My account" : variant === "landing" ? "Optional sign in" : "Optional sign in"}
       </button>
 
       {isOpen ? (
@@ -209,6 +209,11 @@ export default function AccountPanel({ variant = "floating" }) {
               <button className="googleSignInBtn" type="button" onClick={signInWithGoogle}>
                 Continue with Google
               </button>
+
+              <p className="accountBetaNote">
+                Beta note: Google may show our Supabase auth provider during sign-in.
+                This is the secure login service OpeningFit uses while in beta.
+              </p>
 
               <div className="accountDivider">
                 <span>or</span>

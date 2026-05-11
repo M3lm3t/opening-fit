@@ -585,3 +585,62 @@
 .accountCloseBtn::after {
   line-height: 1 !important;
 }
+
+/* Account trust messaging */
+
+.accountTrustBox {
+  display: grid;
+  gap: 9px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.accountTrustBox strong {
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.accountTrustBox p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.accountTrustBox ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.accountTrustBox li {
+  color: var(--muted-text, #64748b);
+  line-height: 1.45;
+}
+
+.accountBetaNote {
+  margin: 0;
+  padding: 11px 12px;
+  border-radius: 15px;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  background: rgba(250, 204, 21, 0.1);
+  color: var(--muted-text, #64748b);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.page.dark .accountTrustBox {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(147, 197, 253, 0.22);
+}
+
+.page.dark .accountTrustBox li,
+.page.dark .accountBetaNote {
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.page.dark .accountBetaNote {
+  background: rgba(66, 56, 14, 0.42);
+  border-color: rgba(250, 204, 21, 0.22);
+}
