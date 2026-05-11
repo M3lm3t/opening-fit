@@ -1261,6 +1261,335 @@ function LandingSection({ onOpeningClick }) {
 }
 
 
+
+function OpeningFitFullReport({ data }) {
+  if (!data) return null;
+
+  const asArray = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    if (typeof value === "object") {
+      return Object.entries(value).map(([name, stats]) => ({
+        name,
+        ...(stats && typeof stats === "object" ? stats : {}),
+      }));
+    }
+    return [];
+  };
+
+  const getName = (item) =>
+    item?.name ||
+    item?.opening ||
+    item?.opening_name ||
+    item?.eco_name ||
+    item?.family ||
+    item?.label ||
+    "Opening";
+
+  const getGames = (item) =>
+    Number(
+      item?.games ??
+        item?.total ??
+        item?.count ??
+        item?.played ??
+        item?.sample ??
+        0
+    );
+
+  const getWinRate = (item) => {
+    const raw =
+      item?.winRate ??
+      item?.win_rate ??
+      item?.score ??
+      item?.scoreRate ??
+      item?.score_rate ??
+      item?.percentage;
+
+    if (raw === undefined || raw === null || raw === "") return null;
+
+    const number = Number(String(raw).replace("%", ""));
+    if (Number.isNaN(number)) return null;
+
+    return number <= 1 ? Math.round(number * 100) : Math.round(number);
+  };
+
+  const getColour = (item) =>
+    String(
+      item?.colour ||
+        item?.color ||
+        item?.side ||
+        item?.as ||
+        item?.player_color ||
+        ""
+    ).toLowerCase();
+
+  const openingSources = [
+    data.openings,
+    data.openingStats,
+    data.opening_stats,
+    data.topOpenings,
+    data.top_openings,
+    data.openingWinRates,
+    data.opening_win_rates,
+    data.verdicts,
+    data.openingVerdicts,
+    data.opening_verdicts,
+    data.keepImproveAvoid,
+    data.keep_improve_avoid,
+    data.openingTable,
+    data.opening_table,
+    data.recommendations,
+    data.openingRecommendations,
+    data.opening_recommendations,
+  ];
+
+  const openings = openingSources
+    .flatMap(asArray)
+    .map((item) => ({
+      ...item,
+      displayName: getName(item),
+      games: getGames(item),
+      winRate: getWinRate(item),
+      colour: getColour(item),
+    }))
+    .filter((item, index, arr) => {
+      const name = String(item.displayName || "").toLowerCase();
+
+      if (
+        !item.displayName ||
+        item.displayName === "Opening" ||
+        name.includes("unknown") ||
+        name.includes("uncommon") ||
+        item.games <= 0
+      ) {
+        return false;
+      }
+
+      return (
+        arr.findIndex(
+          (other) =>
+            String(other.displayName).toLowerCase() ===
+            String(item.displayName).toLowerCase()
+        ) === index
+      );
+    });
+
+  const ranked = [...openings].sort((a, b) => {
+    const aRate = a.winRate ?? -1;
+    const bRate = b.winRate ?? -1;
+    if (bRate !== aRate) return bRate - aRate;
+    return b.games - a.games;
+  });
+
+  const weakest = [...openings]
+    .filter((item) => item.winRate !== null && item.games >= 2)
+    .sort((a, b) => a.winRate - b.winRate);
+
+  const bestOverall = ranked.find((item) => item.games >= 2) || ranked[0];
+  const improveOpening = weakest[0] || ranked[1] || ranked[0];
+  const avoidOpening = weakest[1] || weakest[0] || ranked[2] || ranked[0];
+
+  const whiteOpenings = ranked.filter((item) => item.colour.includes("white"));
+  const blackOpenings = ranked.filter((item) => item.colour.includes("black"));
+
+  const bestWhite =
+    whiteOpenings[0] ||
+    ranked.find((item) =>
+      /vienna|italian|london|queen|ruy|scotch|english|reti|gambit/i.test(
+        item.displayName
+      )
+    ) ||
+    ranked[0];
+
+  const bestBlack =
+    blackOpenings[0] ||
+    ranked.find((item) =>
+      /sicilian|caro|french|scandinavian|pirc|modern|dutch|king|nimzo|slav|grunfeld|defence|defense/i.test(
+        item.displayName
+      )
+    ) ||
+    ranked[1] ||
+    ranked[0];
+
+  const formatScore = (item) =>
+    item?.winRate !== null && item?.winRate !== undefined
+      ? `${item.winRate}%`
+      : "Not enough data";
+
+  const formatGames = (item) =>
+    item?.games ? `${item.games} game${item.games === 1 ? "" : "s"}` : "Recent games";
+
+  const styleLabel =
+    data.styleLabel ||
+    data.style_label ||
+    data.primaryStyle ||
+    data.primary_style ||
+    data.styleProfile?.label ||
+    data.style_profile?.label ||
+    data.styleProfile?.primary_style ||
+    data.style_profile?.primary_style ||
+    "Practical opening player";
+
+  const playerName =
+    data.username ||
+    data.playerName ||
+    data.player_name ||
+    data.requestedUsername ||
+    data.requested_username ||
+    "your games";
+
+  const explainFit = (opening, type) => {
+    if (!opening) {
+      return "Import more games to make this recommendation more accurate.";
+    }
+
+    if (type === "keep") {
+      return `This is currently one of your strongest choices. The results suggest it fits the positions you are already handling well.`;
+    }
+
+    if (type === "improve") {
+      return `This opening is worth studying because you already play it, but the results suggest there are recurring positions costing you points.`;
+    }
+
+    if (type === "avoid") {
+      return `Pause this for now unless you specifically want to study it. Your current results suggest there are easier ways to build a reliable repertoire.`;
+    }
+
+    return "Use this as a practical guide for what to study next.";
+  };
+
+  const whiteRecommendation = bestWhite
+    ? `Use ${bestWhite.displayName} as your main White focus for the next block of games.`
+    : "Import more White games to unlock a clearer White repertoire recommendation.";
+
+  const blackRecommendation = bestBlack
+    ? `Use ${bestBlack.displayName} as your main Black focus and review your common early middlegame positions.`
+    : "Import more Black games to unlock a clearer Black repertoire recommendation.";
+
+  const studyOpening =
+    improveOpening?.displayName ||
+    bestOverall?.displayName ||
+    "your most common opening";
+
+  return (
+    <section className="fullReportShell" id="opening-fit-report">
+      <div className="fullReportHeader">
+        <span>Report upgrade</span>
+        <h2>What Opening Fit recommends next</h2>
+        <p>
+          This turns {playerName}’s recent games into a practical opening plan:
+          what to keep, what to improve, and what to avoid.
+        </p>
+      </div>
+
+      <div className="adviceGrid" id="keep-improve-avoid">
+        <article className="adviceCard keep">
+          <div className="adviceTopline">
+            <span>Keep</span>
+            <small>{formatScore(bestOverall)}</small>
+          </div>
+          <h3>{bestOverall?.displayName || "Keep building your main repertoire"}</h3>
+          <p>{explainFit(bestOverall, "keep")}</p>
+          <div className="adviceMeta">{formatGames(bestOverall)} reviewed</div>
+        </article>
+
+        <article className="adviceCard improve">
+          <div className="adviceTopline">
+            <span>Improve</span>
+            <small>{formatScore(improveOpening)}</small>
+          </div>
+          <h3>{improveOpening?.displayName || "Review your common losses"}</h3>
+          <p>{explainFit(improveOpening, "improve")}</p>
+          <div className="adviceMeta">{formatGames(improveOpening)} reviewed</div>
+        </article>
+
+        <article className="adviceCard avoid">
+          <div className="adviceTopline">
+            <span>Avoid for now</span>
+            <small>{formatScore(avoidOpening)}</small>
+          </div>
+          <h3>{avoidOpening?.displayName || "Low-sample experiments"}</h3>
+          <p>{explainFit(avoidOpening, "avoid")}</p>
+          <div className="adviceMeta">{formatGames(avoidOpening)} reviewed</div>
+        </article>
+      </div>
+
+      <div className="reportTwoColumn">
+        <article className="repertoireBuilder" id="opening-suggestions">
+          <div className="sectionLabel">Repertoire builder</div>
+          <h2>Your suggested opening setup</h2>
+
+          <div className="repertoireRows">
+            <div className="repertoireRow">
+              <span>As White</span>
+              <strong>{bestWhite?.displayName || "Needs more White games"}</strong>
+              <p>{whiteRecommendation}</p>
+            </div>
+
+            <div className="repertoireRow">
+              <span>As Black</span>
+              <strong>{bestBlack?.displayName || "Needs more Black games"}</strong>
+              <p>{blackRecommendation}</p>
+            </div>
+
+            <div className="repertoireRow">
+              <span>Style fit</span>
+              <strong>{styleLabel}</strong>
+              <p>
+                Your study plan should focus on openings that repeatedly give you
+                positions you understand, not random openings with one lucky win.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <article className="studyPlanCard">
+          <div className="sectionLabel">Study plan</div>
+          <h2>Your next 7 days</h2>
+
+          <ol className="studySteps">
+            <li>
+              <strong>Day 1:</strong> Replay your best recent game in{" "}
+              {bestOverall?.displayName || "your strongest opening"}.
+            </li>
+            <li>
+              <strong>Day 2:</strong> Review one loss in {studyOpening} and find
+              the first move where the position became uncomfortable.
+            </li>
+            <li>
+              <strong>Day 3:</strong> Pick one simple setup and avoid switching
+              openings for a few games.
+            </li>
+            <li>
+              <strong>Day 4–7:</strong> Play a focused block using only your
+              recommended White and Black choices.
+            </li>
+          </ol>
+        </article>
+      </div>
+
+      <div className="premiumRoadmapStrip">
+        <div>
+          <span>Coming next</span>
+          <h2>Premium-style features being built</h2>
+          <p>
+            Saved report history, PDF exports, opponent prep, deeper opening
+            explanations, and progress tracking.
+          </p>
+        </div>
+
+        <div className="roadmapPills">
+          <span>PDF export</span>
+          <span>Opponent prep</span>
+          <span>Saved history</span>
+          <span>Progress tracking</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
 function OpeningFitReportHero({ data }) {
   if (!data) return null;
 
@@ -2394,6 +2723,9 @@ export default function App() {
         />
 
         {data ? <OpeningFitReportHero data={data} /> : null}
+
+        {data ? <OpeningFitFullReport data={data} /> : null}
+
 
         {showLanding ? (
           <LandingModal
