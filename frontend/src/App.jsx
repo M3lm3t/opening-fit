@@ -3,6 +3,7 @@ import { Chess } from "chess.js";
 import "./App.css";
 import PremiumDashboard from "./components/PremiumDashboard";
 import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
+import AccountPanel from "./components/AccountPanel";
 import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 import LandingModal from "./components/LandingModal";
@@ -3145,6 +3146,7 @@ export default function App() {
   return (
     <>
       <div className={`page ${theme}`} data-theme={theme}>
+        <AccountPanel />
         {loading ? <ImportLoadingOverlay platform={platform} /> : null}
         <FloatingAppMenu
           data={data}
