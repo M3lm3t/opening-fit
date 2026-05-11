@@ -176,7 +176,7 @@ export default function AccountPanel({ variant = "floating" }) {
         onClick={() => setIsOpen((value) => !value)}
       >
         <span className="accountDot" />
-        {user ? "My account" : variant === "landing" ? "Optional sign in" : "Optional sign in"}
+        {user ? "My account" : "Sign in"}
       </button>
 
       {isOpen ? (
