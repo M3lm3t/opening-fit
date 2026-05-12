@@ -3868,3 +3868,267 @@ body.openingfitTabbedResults .ofLegacySectionNavHidden {
 .page.light .ofUXStickyNav button.active {
   color: #ffffff !important;
 }
+
+/* Landing page button visibility fix */
+
+.shipPlatformRow button,
+.polishedPlatformRow button,
+.landingPlatformRow button,
+.shipLandingModal button,
+.polishedLandingModal button {
+  border: 1px solid rgba(79, 70, 229, 0.22) !important;
+  background: #ffffff !important;
+  color: #312e81 !important;
+  font-weight: 900 !important;
+}
+
+.shipPlatformRow button.active,
+.polishedPlatformRow button.active,
+.landingPlatformRow button.active,
+.shipPlatformRow button:first-child,
+.polishedPlatformRow button:first-child,
+.landingPlatformRow button:first-child {
+  background: rgba(79, 70, 229, 0.1) !important;
+  color: #312e81 !important;
+  border-color: rgba(79, 70, 229, 0.45) !important;
+}
+
+.shipPlatformRow button.comingSoon,
+.polishedPlatformRow button.comingSoon,
+.landingPlatformRow button.comingSoon {
+  background: #ffffff !important;
+  color: #64748b !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+}
+
+.shipLandingClose,
+.polishedLandingClose,
+.landingCloseBtn {
+  background: rgba(15, 23, 42, 0.06) !important;
+  color: #334155 !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+}
+
+.shipLandingClose:hover,
+.polishedLandingClose:hover,
+.landingCloseBtn:hover {
+  background: rgba(15, 23, 42, 0.1) !important;
+  color: #0f172a !important;
+}
+
+/* Keep the main analyse button strong */
+.shipInputRow button,
+.polishedInputRow button,
+.shipImportCard button[type="button"],
+.polishedImportCard button[type="button"] {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+/* But do not let the platform buttons inherit the purple CTA style */
+.shipPlatformRow button,
+.polishedPlatformRow button,
+.landingPlatformRow button {
+  min-height: 34px !important;
+  box-shadow: none !important;
+}
+
+/* Small landing value cards clearer */
+.shipValueGrid article,
+.polishedValueGrid article,
+.shipBetaNote,
+.polishedBetaNote {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+.shipValueGrid article span,
+.polishedValueGrid article span,
+.shipBetaNote,
+.polishedBetaNote {
+  color: #334155 !important;
+}
+
+/* Landing page button visibility fix */
+
+.shipPlatformRow button,
+.polishedPlatformRow button,
+.landingPlatformRow button,
+.shipLandingModal button,
+.polishedLandingModal button {
+  border: 1px solid rgba(79, 70, 229, 0.22) !important;
+  background: #ffffff !important;
+  color: #312e81 !important;
+  font-weight: 900 !important;
+}
+
+.shipPlatformRow button.active,
+.polishedPlatformRow button.active,
+.landingPlatformRow button.active,
+.shipPlatformRow button:first-child,
+.polishedPlatformRow button:first-child,
+.landingPlatformRow button:first-child {
+  background: rgba(79, 70, 229, 0.1) !important;
+  color: #312e81 !important;
+  border-color: rgba(79, 70, 229, 0.45) !important;
+}
+
+.shipPlatformRow button.comingSoon,
+.polishedPlatformRow button.comingSoon,
+.landingPlatformRow button.comingSoon {
+  background: #ffffff !important;
+  color: #64748b !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+}
+
+.shipLandingClose,
+.polishedLandingClose,
+.landingCloseBtn {
+  background: rgba(15, 23, 42, 0.06) !important;
+  color: #334155 !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+}
+
+.shipLandingClose:hover,
+.polishedLandingClose:hover,
+.landingCloseBtn:hover {
+  background: rgba(15, 23, 42, 0.1) !important;
+  color: #0f172a !important;
+}
+
+/* Keep the main analyse button strong */
+.shipInputRow button,
+.polishedInputRow button,
+.shipImportCard button[type="button"],
+.polishedImportCard button[type="button"] {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+/* But do not let the platform buttons inherit the purple CTA style */
+.shipPlatformRow button,
+.polishedPlatformRow button,
+.landingPlatformRow button {
+  min-height: 34px !important;
+  box-shadow: none !important;
+}
+
+/* Small landing value cards clearer */
+.shipValueGrid article,
+.polishedValueGrid article,
+.shipBetaNote,
+.polishedBetaNote {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+.shipValueGrid article span,
+.polishedValueGrid article span,
+.shipBetaNote,
+.polishedBetaNote {
+  color: #334155 !important;
+}
+
+/* Emergency landing platform button text repair */
+
+.shipLandingModal .shipPlatformRow,
+.polishedLandingModal .polishedPlatformRow,
+.landingModal .landingPlatformRow {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+.shipLandingModal .shipPlatformRow button,
+.polishedLandingModal .polishedPlatformRow button,
+.landingModal .landingPlatformRow button,
+.shipLandingModal button.comingSoon,
+.polishedLandingModal button.comingSoon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 104px !important;
+  min-height: 36px !important;
+  padding: 0 14px !important;
+  border: 1px solid rgba(15, 23, 42, 0.18) !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  font-size: 0.86rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  text-indent: 0 !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  box-shadow: none !important;
+}
+
+.shipLandingModal .shipPlatformRow button *,
+.polishedLandingModal .polishedPlatformRow button *,
+.landingModal .landingPlatformRow button *,
+.shipLandingModal button.comingSoon *,
+.polishedLandingModal button.comingSoon * {
+  display: inline !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.shipLandingModal .shipPlatformRow button.active,
+.polishedLandingModal .polishedPlatformRow button.active,
+.landingModal .landingPlatformRow button.active,
+.shipLandingModal .shipPlatformRow button:first-child,
+.polishedLandingModal .polishedPlatformRow button:first-child,
+.landingModal .landingPlatformRow button:first-child {
+  background: #eef2ff !important;
+  color: #312e81 !important;
+  -webkit-text-fill-color: #312e81 !important;
+  border-color: rgba(79, 70, 229, 0.42) !important;
+}
+
+.shipLandingModal .shipPlatformRow button.active *,
+.polishedLandingModal .polishedPlatformRow button.active *,
+.landingModal .landingPlatformRow button.active *,
+.shipLandingModal .shipPlatformRow button:first-child *,
+.polishedLandingModal .polishedPlatformRow button:first-child *,
+.landingModal .landingPlatformRow button:first-child * {
+  color: #312e81 !important;
+  -webkit-text-fill-color: #312e81 !important;
+}
+
+/* Keep Analyse games as the only strong purple CTA */
+.shipLandingModal .shipInputRow > button,
+.polishedLandingModal .polishedInputRow > button {
+  min-width: 150px !important;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: transparent !important;
+  font-size: 1rem !important;
+  font-weight: 950 !important;
+  opacity: 1 !important;
+}
+
+/* Force close X visible */
+.shipLandingModal .shipLandingClose,
+.polishedLandingModal .polishedLandingClose,
+.landingModal .landingCloseBtn {
+  display: grid !important;
+  place-items: center !important;
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+  font-size: 1.2rem !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
