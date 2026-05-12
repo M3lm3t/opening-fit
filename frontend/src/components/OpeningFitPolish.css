@@ -1395,3 +1395,482 @@
     font-size: 0.82rem !important;
   }
 }
+
+/* Upgrade 5: ship-ready landing fix */
+
+.shipLandingOverlay {
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 10px !important;
+  overflow: hidden !important;
+}
+
+.shipLandingModal {
+  width: min(920px, calc(100vw - 20px)) !important;
+  max-height: calc(100dvh - 20px) !important;
+  overflow: auto !important;
+  border-radius: 28px !important;
+  padding: clamp(18px, 3vw, 34px) !important;
+}
+
+.shipLandingContent {
+  display: grid;
+  gap: 18px;
+  width: 100%;
+}
+
+.shipLandingHero {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-top: 6px;
+  text-align: center;
+}
+
+.shipLandingEyebrow {
+  margin-bottom: 10px !important;
+}
+
+.shipLandingHero h1 {
+  max-width: 780px;
+  margin: 0 auto;
+  font-size: clamp(2rem, 5.3vw, 4rem);
+  line-height: 0.98;
+  letter-spacing: -0.065em;
+}
+
+.shipLandingHero p {
+  max-width: 620px;
+  margin: 14px auto 0;
+  color: #cbd5e1;
+  font-size: clamp(0.98rem, 1.8vw, 1.1rem);
+  line-height: 1.55;
+}
+
+[data-theme="light"] .shipLandingHero p,
+.light .shipLandingHero p {
+  color: #475569;
+}
+
+.shipImportCard {
+  display: grid;
+  gap: 11px;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 22px;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.58);
+  box-shadow: 0 18px 50px rgba(2, 6, 23, 0.18);
+}
+
+[data-theme="light"] .shipImportCard,
+.light .shipImportCard {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.shipImportCard label {
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-theme="light"] .shipImportCard label,
+.light .shipImportCard label {
+  color: #334155;
+}
+
+.shipInputRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.shipInputRow input {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 17px;
+  padding: 0 15px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #f8fafc;
+  font-size: 1rem;
+  outline: none;
+}
+
+[data-theme="light"] .shipInputRow input,
+.light .shipInputRow input {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.shipInputRow button {
+  min-height: 50px;
+  border: 0;
+  border-radius: 17px;
+  padding: 0 18px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #ffffff;
+  font-weight: 950;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 14px 34px rgba(79, 70, 229, 0.26);
+}
+
+.shipInputRow button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.shipPlatformRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shipPlatformRow button {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.58);
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.shipPlatformRow button.active {
+  border-color: rgba(99, 102, 241, 0.62);
+  background: rgba(99, 102, 241, 0.18);
+  color: #ffffff;
+}
+
+[data-theme="light"] .shipPlatformRow button,
+.light .shipPlatformRow button {
+  background: #ffffff;
+  color: #334155;
+}
+
+[data-theme="light"] .shipPlatformRow button.active,
+.light .shipPlatformRow button.active {
+  color: #312e81;
+}
+
+.shipThemeBtn {
+  margin-left: auto;
+}
+
+.shipValueGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 11px;
+  max-width: 840px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.shipValueGrid article {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 18px;
+  padding: 13px;
+  background: rgba(15, 23, 42, 0.44);
+}
+
+[data-theme="light"] .shipValueGrid article,
+.light .shipValueGrid article {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.shipValueGrid strong {
+  display: block;
+  font-size: 0.94rem;
+}
+
+.shipValueGrid span {
+  display: block;
+  margin-top: 5px;
+  color: #94a3b8;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+[data-theme="light"] .shipValueGrid span,
+.light .shipValueGrid span {
+  color: #64748b;
+}
+
+.shipBetaNote {
+  max-width: 720px;
+  margin: 0 auto;
+  border: 1px solid rgba(34, 197, 94, 0.26);
+  border-radius: 17px;
+  padding: 11px 14px;
+  background: rgba(34, 197, 94, 0.1);
+  color: #bbf7d0;
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.42;
+  text-align: center;
+}
+
+[data-theme="light"] .shipBetaNote,
+.light .shipBetaNote {
+  color: #166534;
+}
+
+.shipLandingClose {
+  top: 12px !important;
+  right: 12px !important;
+  display: grid !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  place-items: center !important;
+  padding: 0 !important;
+  font-size: 24px !important;
+  line-height: 1 !important;
+}
+
+/* Final CTA */
+
+.ofFinalCTA {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  gap: 22px;
+  align-items: stretch;
+  width: min(1180px, calc(100% - 32px));
+  margin: 22px auto;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 32px;
+  padding: clamp(18px, 3vw, 32px);
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.16), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.94));
+  color: #f8fafc;
+  box-shadow: 0 22px 70px rgba(2, 6, 23, 0.2);
+}
+
+[data-theme="light"] .ofFinalCTA,
+.light .ofFinalCTA {
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.11), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.1), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
+  color: #0f172a;
+}
+
+.ofFinalCTACopy h2 {
+  max-width: 780px;
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 3.25rem);
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.ofFinalCTACopy p {
+  max-width: 740px;
+  margin: 14px 0 0;
+  color: #94a3b8;
+  line-height: 1.7;
+}
+
+[data-theme="light"] .ofFinalCTACopy p,
+.light .ofFinalCTACopy p {
+  color: #64748b;
+}
+
+.ofFinalCTAStack {
+  display: grid;
+  gap: 14px;
+}
+
+.ofFinalCTAStack article {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 24px;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+[data-theme="light"] .ofFinalCTAStack article,
+.light .ofFinalCTAStack article {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.ofFinalCTAStack article span {
+  color: #a5b4fc;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-theme="light"] .ofFinalCTAStack article span,
+.light .ofFinalCTAStack article span {
+  color: #4338ca;
+}
+
+.ofFinalCTAStack article strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.1rem;
+  line-height: 1.25;
+}
+
+.ofFinalCTAStack article p {
+  margin: 9px 0 0;
+  color: #94a3b8;
+  line-height: 1.55;
+}
+
+[data-theme="light"] .ofFinalCTAStack article p,
+.light .ofFinalCTAStack article p {
+  color: #64748b;
+}
+
+.ofFinalCTAButtons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ofFinalCTAButtons button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 16px;
+  padding: 0 15px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #ffffff;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 14px 34px rgba(79, 70, 229, 0.22);
+}
+
+.ofFinalCTAButtons button.secondary {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(99, 102, 241, 0.14);
+  color: #dbeafe;
+  box-shadow: none;
+}
+
+[data-theme="light"] .ofFinalCTAButtons button.secondary,
+.light .ofFinalCTAButtons button.secondary {
+  color: #3730a3;
+}
+
+@media (max-height: 720px) and (min-width: 861px) {
+  .shipLandingContent {
+    gap: 12px;
+  }
+
+  .shipLandingHero h1 {
+    font-size: clamp(2rem, 4.2vw, 3.35rem);
+  }
+
+  .shipLandingHero p {
+    margin-top: 10px;
+    font-size: 0.96rem;
+    line-height: 1.42;
+  }
+
+  .shipImportCard {
+    padding: 12px;
+  }
+
+  .shipValueGrid article {
+    padding: 11px;
+  }
+
+  .shipBetaNote {
+    padding: 9px 12px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 860px) {
+  .shipLandingOverlay {
+    align-items: flex-start !important;
+    overflow: auto !important;
+  }
+
+  .shipLandingModal {
+    width: calc(100vw - 18px) !important;
+    max-height: none !important;
+    min-height: auto !important;
+    border-radius: 22px !important;
+    padding: 18px 13px !important;
+    margin: 9px 0 !important;
+  }
+
+  .shipLandingHero {
+    padding-top: 30px;
+  }
+
+  .shipLandingHero h1 {
+    font-size: clamp(1.95rem, 10vw, 3rem);
+    letter-spacing: -0.055em;
+  }
+
+  .shipInputRow {
+    grid-template-columns: 1fr;
+  }
+
+  .shipInputRow button {
+    width: 100%;
+  }
+
+  .shipValueGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .shipValueGrid article {
+    padding: 12px;
+  }
+
+  .ofFinalCTA {
+    grid-template-columns: 1fr;
+    width: min(100% - 20px, 1180px);
+    border-radius: 24px;
+  }
+}
+
+@media (max-width: 460px) {
+  .shipLandingContent {
+    gap: 13px;
+  }
+
+  .shipLandingHero h1 {
+    font-size: clamp(1.8rem, 10.5vw, 2.55rem);
+  }
+
+  .shipLandingHero p {
+    font-size: 0.92rem;
+    line-height: 1.42;
+  }
+
+  .shipValueGrid article:nth-child(3) {
+    display: none;
+  }
+
+  .shipBetaNote {
+    text-align: left;
+    font-size: 0.82rem;
+  }
+
+  .shipPlatformRow button {
+    flex: 1 1 auto;
+  }
+
+  .shipThemeBtn {
+    margin-left: 0;
+  }
+
+  .ofFinalCTAButtons {
+    grid-template-columns: 1fr;
+  }
+}
