@@ -4081,3 +4081,112 @@ body.openingfitTabbedResults .ofLegacySectionNavHidden {
     flex: 1 1 110px;
   }
 }
+
+/* Dark landing modal card repair after cleanup */
+
+.page:not(.light) .shipImportCard,
+.page:not(.light) .polishedImportCard,
+[data-theme="dark"] .shipImportCard,
+[data-theme="dark"] .polishedImportCard {
+  background: rgba(15, 23, 42, 0.78);
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+.page:not(.light) .shipImportCard label,
+.page:not(.light) .polishedImportCard label,
+[data-theme="dark"] .shipImportCard label,
+[data-theme="dark"] .polishedImportCard label {
+  color: #cbd5e1;
+}
+
+.page:not(.light) .shipInputRow input,
+.page:not(.light) .polishedInputRow input,
+[data-theme="dark"] .shipInputRow input,
+[data-theme="dark"] .polishedInputRow input {
+  background: rgba(2, 6, 23, 0.68);
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.page:not(.light) .shipPlatformRow button,
+.page:not(.light) .polishedPlatformRow button,
+.page:not(.light) .landingPlatformRow button,
+[data-theme="dark"] .shipPlatformRow button,
+[data-theme="dark"] .polishedPlatformRow button,
+[data-theme="dark"] .landingPlatformRow button {
+  background: rgba(15, 23, 42, 0.72);
+  color: #e2e8f0;
+  -webkit-text-fill-color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.page:not(.light) .shipPlatformRow button.active,
+.page:not(.light) .polishedPlatformRow button.active,
+.page:not(.light) .landingPlatformRow button.active,
+[data-theme="dark"] .shipPlatformRow button.active,
+[data-theme="dark"] .polishedPlatformRow button.active,
+[data-theme="dark"] .landingPlatformRow button.active {
+  background: rgba(99, 102, 241, 0.22);
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+  border-color: rgba(129, 140, 248, 0.45);
+}
+
+.page:not(.light) .shipPlatformRow button.comingSoon,
+.page:not(.light) .polishedPlatformRow button.comingSoon,
+.page:not(.light) .landingPlatformRow button.comingSoon,
+[data-theme="dark"] .shipPlatformRow button.comingSoon,
+[data-theme="dark"] .polishedPlatformRow button.comingSoon,
+[data-theme="dark"] .landingPlatformRow button.comingSoon {
+  color: #cbd5e1;
+  -webkit-text-fill-color: #cbd5e1;
+}
+
+.page:not(.light) .shipValueGrid article,
+.page:not(.light) .polishedValueGrid article,
+.page:not(.light) .shipBetaNote,
+.page:not(.light) .polishedBetaNote,
+[data-theme="dark"] .shipValueGrid article,
+[data-theme="dark"] .polishedValueGrid article,
+[data-theme="dark"] .shipBetaNote,
+[data-theme="dark"] .polishedBetaNote {
+  background: rgba(15, 23, 42, 0.68);
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.page:not(.light) .shipValueGrid article span,
+.page:not(.light) .polishedValueGrid article span,
+.page:not(.light) .shipBetaNote,
+.page:not(.light) .polishedBetaNote,
+[data-theme="dark"] .shipValueGrid article span,
+[data-theme="dark"] .polishedValueGrid article span,
+[data-theme="dark"] .shipBetaNote,
+[data-theme="dark"] .polishedBetaNote {
+  color: #cbd5e1;
+}
+
+.page:not(.light) .shipLandingClose,
+.page:not(.light) .polishedLandingClose,
+.page:not(.light) .landingCloseBtn,
+[data-theme="dark"] .shipLandingClose,
+[data-theme="dark"] .polishedLandingClose,
+[data-theme="dark"] .landingCloseBtn {
+  background: rgba(15, 23, 42, 0.72);
+  color: #cbd5e1;
+  -webkit-text-fill-color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.page:not(.light) .shipLandingClose:hover,
+.page:not(.light) .polishedLandingClose:hover,
+.page:not(.light) .landingCloseBtn:hover,
+[data-theme="dark"] .shipLandingClose:hover,
+[data-theme="dark"] .polishedLandingClose:hover,
+[data-theme="dark"] .landingCloseBtn:hover {
+  background: rgba(30, 41, 59, 0.92);
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+}
