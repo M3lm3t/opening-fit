@@ -36,6 +36,8 @@ import AppActionRouter, { AppOpeningHealthScore } from "./components/AppActionRo
 
 import OpeningDiagnosisPanel from "./components/OpeningDiagnosisPanel";
 
+import ShipReadyPanel from "./components/ShipReadyPanel";
+
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
   playerName: "DemoPlayer",
@@ -3191,6 +3193,7 @@ const [activeView, setActiveView] = useState("overview");
             <CoachSummaryCard data={data} onViewChange={setActiveView} />
             <AppOpeningHealthScore data={data} onViewChange={setActiveView} />
             <OpeningDiagnosisPanel data={data} onViewChange={setActiveView} />
+            <ShipReadyPanel data={data} onViewChange={setActiveView} />
             <SeriousPremiumStrip />
             <ReportHistoryVault data={data} onLoadReport={setData} />
             <NextBestActions data={data} onViewChange={setActiveView} />
