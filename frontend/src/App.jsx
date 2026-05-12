@@ -28,6 +28,8 @@ import MobileBottomNav from "./components/MobileBottomNav";
 import LaunchReadySections from "./components/LaunchReadySections";
 
 
+import { CoachSummaryCard, SeriousAppTabs, SeriousPremiumStrip } from "./components/SeriousAppUpgrade";
+
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
   playerName: "DemoPlayer",
@@ -3175,7 +3177,15 @@ const [activeView, setActiveView] = useState("overview");
           onViewChange={setActiveView}
         />
 
-        <PremiumCoachPlan
+        
+        {data ? (
+          <>
+            <SeriousAppTabs activeView={activeView} onViewChange={setActiveView} />
+            <CoachSummaryCard data={data} onViewChange={setActiveView} />
+            <SeriousPremiumStrip />
+          </>
+        ) : null}
+<PremiumCoachPlan
           data={data}
           isPremium={isPremium}
           onUnlockDemo={unlockPremiumDemo}
