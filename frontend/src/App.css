@@ -14757,3 +14757,341 @@ main > section,
     border-radius: 22px;
   }
 }
+
+
+/* === Serious app upgrade pass === */
+
+:root {
+  --of-bg: #070b16;
+  --of-panel: rgba(255, 255, 255, 0.08);
+  --of-panel-strong: rgba(255, 255, 255, 0.13);
+  --of-border: rgba(255, 255, 255, 0.14);
+  --of-text: #f8fafc;
+  --of-muted: rgba(248, 250, 252, 0.72);
+  --of-soft: rgba(148, 163, 184, 0.14);
+  --of-green: #9ee6b3;
+  --of-yellow: #facc15;
+  --of-blue: #93c5fd;
+}
+
+.page {
+  overflow-x: hidden;
+}
+
+.eyebrow {
+  margin: 0 0 0.45rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--of-green);
+}
+
+.seriousTabs {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 30;
+  display: flex;
+  gap: 0.45rem;
+  width: min(1120px, calc(100% - 1.5rem));
+  margin: 0.75rem auto 1rem;
+  padding: 0.45rem;
+  overflow-x: auto;
+  border: 1px solid var(--of-border);
+  border-radius: 999px;
+  background: rgba(7, 11, 22, 0.86);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.24);
+}
+
+.seriousTab {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.72rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--of-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.seriousTab:hover {
+  transform: translateY(-1px);
+  color: var(--of-text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.seriousTabActive {
+  color: #07111f;
+  background: linear-gradient(135deg, #d9f99d, #86efac);
+  box-shadow: 0 10px 28px rgba(134, 239, 172, 0.22);
+}
+
+.coachSummaryShell,
+.seriousPremiumStrip {
+  width: min(1120px, calc(100% - 1.5rem));
+  margin: 1rem auto 1.35rem;
+  border: 1px solid var(--of-border);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(134, 239, 172, 0.18), transparent 34%),
+    radial-gradient(circle at top right, rgba(147, 197, 253, 0.14), transparent 32%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.94));
+  color: var(--of-text);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+}
+
+.coachSummaryShell {
+  padding: clamp(1rem, 2.6vw, 1.8rem);
+}
+
+.coachSummaryHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.coachSummaryHero h2,
+.seriousPremiumStrip h2 {
+  margin: 0;
+  font-size: clamp(1.65rem, 3vw, 2.6rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+.coachSummaryHero p {
+  max-width: 760px;
+  margin: 0.85rem 0 0;
+  color: var(--of-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.coachScoreCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 170px;
+  padding: 1.1rem;
+  border: 1px solid var(--of-border);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.coachScoreCard span,
+.coachScoreCard small {
+  color: var(--of-muted);
+  font-weight: 700;
+}
+
+.coachScoreCard strong {
+  font-size: 1.45rem;
+  line-height: 1.08;
+}
+
+.coachInsightGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.coachInsightCard {
+  min-height: 175px;
+  padding: 1rem;
+  border: 1px solid var(--of-border);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.coachInsightCard span {
+  display: inline-flex;
+  margin-bottom: 0.85rem;
+  padding: 0.38rem 0.68rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.coachInsightCard h3 {
+  margin: 0;
+  font-size: 1.18rem;
+  letter-spacing: -0.02em;
+}
+
+.coachInsightCard p {
+  margin: 0.65rem 0 0;
+  color: var(--of-muted);
+  line-height: 1.55;
+}
+
+.coachInsightCard.positive span {
+  color: var(--of-green);
+}
+
+.coachInsightCard.warning span {
+  color: var(--of-yellow);
+}
+
+.coachInsightCard.premium span {
+  color: var(--of-blue);
+}
+
+.coachActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.primaryCoachButton,
+.secondaryCoachButton {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 1.15rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.primaryCoachButton {
+  color: #07111f;
+  background: linear-gradient(135deg, #d9f99d, #86efac);
+  box-shadow: 0 14px 34px rgba(134, 239, 172, 0.2);
+}
+
+.secondaryCoachButton {
+  color: var(--of-text);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--of-border);
+}
+
+.seriousPremiumStrip {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 1rem;
+  padding: clamp(1rem, 2.4vw, 1.5rem);
+}
+
+.premiumMiniGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.premiumMiniGrid div {
+  padding: 0.95rem;
+  border: 1px solid var(--of-border);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.premiumMiniGrid strong,
+.premiumMiniGrid span {
+  display: block;
+}
+
+.premiumMiniGrid strong {
+  margin-bottom: 0.3rem;
+}
+
+.premiumMiniGrid span {
+  color: var(--of-muted);
+  line-height: 1.45;
+}
+
+/* Make old sections feel more app-like without needing to rewrite every component */
+.section,
+.panel,
+.card,
+.reportCard,
+.dashboardCard,
+.accountPanel,
+.landingModal {
+  border-radius: 24px;
+}
+
+table {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+@media (max-width: 760px) {
+  .seriousTabs {
+    top: 0.4rem;
+    width: calc(100% - 0.8rem);
+    margin: 0.5rem auto 0.85rem;
+    border-radius: 20px;
+    padding: 0.35rem;
+  }
+
+  .seriousTab {
+    padding: 0.65rem 0.82rem;
+    font-size: 0.82rem;
+  }
+
+  .coachSummaryShell,
+  .seriousPremiumStrip {
+    width: calc(100% - 0.8rem);
+    margin: 0.75rem auto 1rem;
+    border-radius: 22px;
+  }
+
+  .coachSummaryHero,
+  .coachInsightGrid,
+  .seriousPremiumStrip,
+  .premiumMiniGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .coachScoreCard,
+  .coachInsightCard {
+    min-height: auto;
+  }
+
+  .coachSummaryHero p {
+    font-size: 0.95rem;
+  }
+
+  .coachActionRow {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .primaryCoachButton,
+  .secondaryCoachButton {
+    width: 100%;
+  }
+
+  .floatingAppMenu,
+  .mobileBottomNav {
+    max-width: calc(100vw - 0.75rem);
+  }
+
+  .landingModal,
+  .accountPanel,
+  .modal,
+  .panel {
+    max-width: calc(100vw - 1rem);
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td {
+    font-size: 0.86rem;
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "Opening Fit",
+  "short_name": "Opening Fit",
+  "description": "A personal chess opening coach based on your real games.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#070b16",
+  "theme_color": "#070b16",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/openingfit-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
