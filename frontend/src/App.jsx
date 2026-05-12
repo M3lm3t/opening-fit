@@ -28,7 +28,7 @@ import MobileBottomNav from "./components/MobileBottomNav";
 import LaunchReadySections from "./components/LaunchReadySections";
 
 
-import { CoachSummaryCard, SeriousAppTabs, SeriousPremiumStrip } from "./components/SeriousAppUpgrade";
+import { CoachSummaryCard, SeriousAppTabs, SeriousPremiumStrip, NextBestActions } from "./components/SeriousAppUpgrade";
 
 import ReportHistoryVault from "./components/ReportHistoryVault";
 
@@ -3186,6 +3186,7 @@ const [activeView, setActiveView] = useState("overview");
             <CoachSummaryCard data={data} onViewChange={setActiveView} />
             <SeriousPremiumStrip />
             <ReportHistoryVault data={data} onLoadReport={setData} />
+            <NextBestActions data={data} onViewChange={setActiveView} />
           </>
         ) : null}
 <PremiumCoachPlan

@@ -58,15 +58,32 @@ function pickTopOpenings(data) {
 
 export function SeriousAppTabs({ activeView, onViewChange }) {
   const tabs = [
-    { key: "overview", label: "Overview" },
-    { key: "recommendations", label: "Repertoire" },
-    { key: "training", label: "Training" },
-    { key: "games", label: "Games" },
-    { key: "data", label: "Progress" },
-    { key: "feedback", label: "Feedback" },
+    { key: "overview", label: "Overview", target: "coach-summary" },
+    { key: "recommendations", label: "Repertoire", target: "premium-value" },
+    { key: "training", label: "Training", target: "next-actions" },
+    { key: "games", label: "Games", target: "game-replay" },
+    { key: "data", label: "Progress", target: "report-history" },
+    { key: "feedback", label: "Feedback", target: "feedback" },
   ];
 
-  if (typeof onViewChange !== "function") return null;
+  const handleTabClick = (tab) => {
+    if (typeof onViewChange === "function") {
+      onViewChange(tab.key);
+    }
+
+    setTimeout(() => {
+      const target =
+        document.getElementById(tab.target) ||
+        document.querySelector(`[data-section="${tab.key}"]`) ||
+        document.querySelector(`#${tab.key}`);
+
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }, 80);
+  };
 
   return (
     <nav className="seriousTabs" aria-label="Opening Fit app sections">
@@ -75,7 +92,7 @@ export function SeriousAppTabs({ activeView, onViewChange }) {
           key={tab.key}
           type="button"
           className={`seriousTab ${activeView === tab.key ? "seriousTabActive" : ""}`}
-          onClick={() => onViewChange(tab.key)}
+          onClick={() => handleTabClick(tab)}
         >
           {tab.label}
         </button>
@@ -231,6 +248,93 @@ export function SeriousPremiumStrip() {
           <strong>Export report</strong>
           <span>Shareable training PDF later.</span>
         </div>
+      </div>
+    </section>
+  );
+}
+
+
+export function NextBestActions({ data, onViewChange }) {
+  if (!data) return null;
+
+  const openings = pickTopOpenings(data);
+  const sortedByGames = [...openings].sort((a, b) => getGames(b) - getGames(a));
+  const sortedByWinRate = [...openings]
+    .filter((opening) => getGames(opening) >= 2)
+    .sort((a, b) => getWinRate(a) - getWinRate(b));
+
+  const mostPlayed = sortedByGames[0];
+  const weakest = sortedByWinRate[0];
+  const strongest = [...sortedByWinRate].reverse()[0];
+
+  const mostPlayedName = mostPlayed ? getOpeningName(mostPlayed) : "your most common opening";
+  const weakestName = weakest ? getOpeningName(weakest) : "your lowest scoring opening";
+  const strongestName = strongest ? getOpeningName(strongest) : "your strongest opening";
+
+  const actionCards = [
+    {
+      label: "Step 1",
+      title: `Review ${weakestName}`,
+      text: "This is the first place to look for free rating gains. Check whether you are losing early, drifting into bad structures, or simply playing unfamiliar positions.",
+      button: "Open training",
+      view: "training",
+      target: "next-actions",
+    },
+    {
+      label: "Step 2",
+      title: `Keep building around ${strongestName}`,
+      text: "Do not abandon what is working. Your best openings should become the spine of your repertoire before adding new theory.",
+      button: "View repertoire",
+      view: "recommendations",
+      target: "premium-value",
+    },
+    {
+      label: "Step 3",
+      title: `Simplify ${mostPlayedName}`,
+      text: "Your most played opening needs a clear plan: main idea, common pawn breaks, typical piece setup, and one fallback line.",
+      button: "Check progress",
+      view: "data",
+      target: "report-history",
+    },
+  ];
+
+  const handleAction = (action) => {
+    if (typeof onViewChange === "function") {
+      onViewChange(action.view);
+    }
+
+    setTimeout(() => {
+      const target = document.getElementById(action.target);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 80);
+  };
+
+  return (
+    <section className="nextBestActions" id="next-actions">
+      <div className="nextBestHeader">
+        <div>
+          <p className="eyebrow">Next best actions</p>
+          <h2>What you should do next</h2>
+          <p>
+            A serious chess tool should not just show numbers. It should turn your games
+            into a small, clear training plan.
+          </p>
+        </div>
+      </div>
+
+      <div className="nextActionGrid">
+        {actionCards.map((action) => (
+          <article className="nextActionCard" key={action.label}>
+            <span>{action.label}</span>
+            <h3>{action.title}</h3>
+            <p>{action.text}</p>
+            <button type="button" onClick={() => handleAction(action)}>
+              {action.button}
+            </button>
+          </article>
+        ))}
       </div>
     </section>
   );
