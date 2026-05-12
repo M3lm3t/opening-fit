@@ -34,6 +34,8 @@ import ReportHistoryVault from "./components/ReportHistoryVault";
 
 import AppActionRouter, { AppOpeningHealthScore } from "./components/AppActionRouter";
 
+import OpeningDiagnosisPanel from "./components/OpeningDiagnosisPanel";
+
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
   playerName: "DemoPlayer",
@@ -3188,6 +3190,7 @@ const [activeView, setActiveView] = useState("overview");
             <SeriousAppTabs activeView={activeView} onViewChange={setActiveView} />
             <CoachSummaryCard data={data} onViewChange={setActiveView} />
             <AppOpeningHealthScore data={data} onViewChange={setActiveView} />
+            <OpeningDiagnosisPanel data={data} onViewChange={setActiveView} />
             <SeriousPremiumStrip />
             <ReportHistoryVault data={data} onLoadReport={setData} />
             <NextBestActions data={data} onViewChange={setActiveView} />
