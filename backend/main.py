@@ -2151,3 +2151,38 @@ def premium_stockfish_game(payload: PremiumStockfishRequest):
         "bestMoves": best_moves[:12],
         "depth": depth,
     }
+
+
+# --- OpeningFit local feedback fallback ---
+# This is intentionally separate from /api/feedback so it does not break any
+# Supabase-backed feedback route already in the app.
+try:
+    from pydantic import BaseModel as _OpeningFitBaseModel
+    from typing import Any as _OpeningFitAny, Optional as _OpeningFitOptional, Dict as _OpeningFitDict
+    from datetime import datetime as _OpeningFitDatetime, timezone as _OpeningFitTimezone
+    import json as _OpeningFitJson
+    from pathlib import Path as _OpeningFitPath
+
+    class _OpeningFitFeedbackLocalPayload(_OpeningFitBaseModel):
+        message: str
+        email: _OpeningFitOptional[str] = None
+        username: _OpeningFitOptional[str] = None
+        page: _OpeningFitOptional[str] = None
+        report_summary: _OpeningFitOptional[_OpeningFitDict[str, _OpeningFitAny]] = None
+        created_at: _OpeningFitOptional[str] = None
+
+    @app.post("/api/feedback-local")
+    def openingfit_feedback_local(payload: _OpeningFitFeedbackLocalPayload):
+        data_dir = _OpeningFitPath("data")
+        data_dir.mkdir(parents=True, exist_ok=True)
+
+        entry = payload.model_dump()
+        entry["stored_at"] = _OpeningFitDatetime.now(_OpeningFitTimezone.utc).isoformat()
+
+        with (data_dir / "feedback_local.jsonl").open("a", encoding="utf-8") as handle:
+            handle.write(_OpeningFitJson.dumps(entry, ensure_ascii=False) + "\n")
+
+        return {"status": "ok", "stored": "local"}
+except Exception as exc:
+    print("OpeningFit local feedback fallback failed to initialise:", exc)
+# --- End OpeningFit local feedback fallback ---

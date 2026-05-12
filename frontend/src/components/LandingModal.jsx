@@ -70,7 +70,7 @@ export default function LandingModal({
 
               <button
                 type="button"
-                className={platform === "lichess" ? "active" : ""}
+                className="comingSoon"
                 onClick={() => {
                 setPlatform?.("chesscom");
                 window.dispatchEvent(new CustomEvent("openingfit-toast", { detail: "Lichess import is coming soon. Use Chess.com for now." }));

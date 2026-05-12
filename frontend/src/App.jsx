@@ -1,3 +1,4 @@
+import OpeningFitFunctionalityHub from "./components/OpeningFitFunctionalityHub.jsx";
 import OpeningFitFunctionalTools from "./components/OpeningFitFunctionalTools.jsx";
 import OpeningFitFinalCTA from "./components/OpeningFitFinalCTA.jsx";
 import OpeningFitTrustBar from "./components/OpeningFitTrustBar.jsx";
@@ -3252,6 +3253,13 @@ const [activeView, setActiveView] = useState("overview");
             onJump={jumpToSection}
           />
         ) : null}
+
+        <OpeningFitFunctionalityHub
+          data={data}
+          username={username}
+          onLoadReport={setData}
+          onJump={jumpToSection}
+        />
 
         {data ? (
           <OpeningFitFunctionalTools
