@@ -1,3 +1,4 @@
+import OpeningFitStudyPlanner from "./components/OpeningFitStudyPlanner.jsx";
 import OpeningFitImportDoctor from "./components/OpeningFitImportDoctor.jsx";
 import OpeningFitFunctionalityHub from "./components/OpeningFitFunctionalityHub.jsx";
 import OpeningFitFunctionalTools from "./components/OpeningFitFunctionalTools.jsx";
@@ -3178,6 +3179,11 @@ const [activeView, setActiveView] = useState("overview");
   return (
     <>
       <div className={`page ${theme}`} data-theme={theme}>
+        <OpeningFitStudyPlanner
+          data={data}
+          username={username}
+        />
+
         <OpeningFitImportDoctor username={username} />
 
         <AccountPanel />
