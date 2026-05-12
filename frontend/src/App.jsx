@@ -1,3 +1,4 @@
+import OpeningFitUXCleanup from "./components/OpeningFitUXCleanup.jsx";
 import OpeningFitStudyPlanner from "./components/OpeningFitStudyPlanner.jsx";
 import OpeningFitImportDoctor from "./components/OpeningFitImportDoctor.jsx";
 import OpeningFitFunctionalityHub from "./components/OpeningFitFunctionalityHub.jsx";
@@ -3179,6 +3180,14 @@ const [activeView, setActiveView] = useState("overview");
   return (
     <>
       <div className={`page ${theme}`} data-theme={theme}>
+        <OpeningFitUXCleanup
+          data={data}
+          username={username}
+          onJump={jumpToSection}
+          activeView={activeView}
+          onViewChange={setActiveView}
+        />
+
         <OpeningFitStudyPlanner
           data={data}
           username={username}
