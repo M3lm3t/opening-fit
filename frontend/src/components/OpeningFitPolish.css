@@ -3695,3 +3695,176 @@ body.ofLegacySectionNavHidden {
 body.openingfitTabbedResults .ofLegacySectionNavHidden {
   display: none !important;
 }
+
+/* Final light mode readability repair for older report sections */
+
+.page.light,
+.page.light .page,
+.page.light main,
+.page.light section {
+  color: #0f172a !important;
+}
+
+/* Force old dark report panels/cards to become light */
+.page.light section,
+.page.light .card,
+.page.light .panel,
+.page.light .tile,
+.page.light .statCard,
+.page.light .resultCard,
+.page.light .summaryCard,
+.page.light .openingCard,
+.page.light .trainingCard,
+.page.light .reportCard,
+.page.light .replayCard,
+.page.light .dataCard,
+.page.light .premiumCard,
+.page.light .feedbackCard,
+.page.light [class*="Card"],
+.page.light [class*="Panel"],
+.page.light [class*="Tile"],
+.page.light [class*="card"],
+.page.light [class*="panel"],
+.page.light [class*="tile"] {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Make large old gradient sections readable in light mode */
+.page.light .ofReportHero,
+.page.light .ofGuidedFlow,
+.page.light .ofStudyPlanner,
+.page.light .ofReportActions,
+.page.light .ofFinalCTA,
+.page.light .ofUXReportHeader,
+.page.light .ofFunctionalityHub,
+.page.light .ofFunctionalTools,
+.page.light .ofImportDoctor,
+.page.light [class*="Hero"],
+.page.light [class*="Section"],
+.page.light [class*="Report"],
+.page.light [class*="Dashboard"] {
+  background:
+    radial-gradient(circle at top left, rgba(79, 70, 229, 0.08), transparent 34%),
+    linear-gradient(145deg, #ffffff, #f8fafc) !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Fix all text inside old dark cards */
+.page.light h1,
+.page.light h2,
+.page.light h3,
+.page.light h4,
+.page.light strong,
+.page.light b,
+.page.light label,
+.page.light th,
+.page.light td {
+  color: #0f172a !important;
+}
+
+.page.light p,
+.page.light span,
+.page.light small,
+.page.light li,
+.page.light div {
+  color: inherit;
+}
+
+.page.light p,
+.page.light small,
+.page.light li,
+.page.light .muted,
+.page.light .subtle,
+.page.light .description,
+.page.light [class*="muted"],
+.page.light [class*="description"],
+.page.light [class*="Subtitle"],
+.page.light [class*="subtitle"] {
+  color: #475569 !important;
+}
+
+/* Keep badge/pill labels readable */
+.page.light .ofEyebrow,
+.page.light .polishedEyebrow,
+.page.light .badge,
+.page.light .pill,
+.page.light [class*="Badge"],
+.page.light [class*="badge"],
+.page.light [class*="Pill"],
+.page.light [class*="pill"] {
+  background: rgba(79, 70, 229, 0.09) !important;
+  color: #3730a3 !important;
+  border-color: rgba(79, 70, 229, 0.2) !important;
+}
+
+/* Keep positive action buttons clear */
+.page.light button:not(.secondary):not(.ofUXStickyNav button),
+.page.light .button:not(.secondary),
+.page.light a.button:not(.secondary) {
+  color: #ffffff !important;
+}
+
+/* Keep secondary buttons readable */
+.page.light button.secondary,
+.page.light .secondary {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border-color: rgba(15, 23, 42, 0.16) !important;
+}
+
+/* Inputs/selects */
+.page.light input,
+.page.light select,
+.page.light textarea {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.16) !important;
+}
+
+/* Tables */
+.page.light table,
+.page.light thead,
+.page.light tbody,
+.page.light tr {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.page.light table td,
+.page.light table th {
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Prevent dark pseudo overlays from washing out light mode */
+.page.light *::before,
+.page.light *::after {
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.page.light .ofReportHero::before,
+.page.light .ofReportHero::after,
+.page.light .ofGuidedFlow::before,
+.page.light .ofGuidedFlow::after,
+.page.light .ofStudyPlanner::before,
+.page.light .ofStudyPlanner::after,
+.page.light [class*="Hero"]::before,
+.page.light [class*="Hero"]::after {
+  opacity: 0.04 !important;
+}
+
+/* Keep tab nav clean */
+.page.light .ofUXStickyNav {
+  background: rgba(255, 255, 255, 0.96) !important;
+}
+
+.page.light .ofUXStickyNav button {
+  color: #334155 !important;
+}
+
+.page.light .ofUXStickyNav button.active {
+  color: #ffffff !important;
+}
