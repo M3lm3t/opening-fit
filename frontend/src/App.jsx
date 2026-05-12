@@ -1,3 +1,4 @@
+import OpeningFitImportDoctor from "./components/OpeningFitImportDoctor.jsx";
 import OpeningFitFunctionalityHub from "./components/OpeningFitFunctionalityHub.jsx";
 import OpeningFitFunctionalTools from "./components/OpeningFitFunctionalTools.jsx";
 import OpeningFitFinalCTA from "./components/OpeningFitFinalCTA.jsx";
@@ -3177,6 +3178,8 @@ const [activeView, setActiveView] = useState("overview");
   return (
     <>
       <div className={`page ${theme}`} data-theme={theme}>
+        <OpeningFitImportDoctor username={username} />
+
         <AccountPanel />
         {loading ? <ImportLoadingOverlay platform={platform} /> : null}
         <AppActionRouter onViewChange={setActiveView} />

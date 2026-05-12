@@ -2186,3 +2186,145 @@ try:
 except Exception as exc:
     print("OpeningFit local feedback fallback failed to initialise:", exc)
 # --- End OpeningFit local feedback fallback ---
+
+
+# --- OpeningFit Chess.com import diagnostics ---
+try:
+    from fastapi import HTTPException as _OpeningFitHTTPException
+    import json as _OpeningFitJson
+    import urllib.request as _OpeningFitUrlRequest
+    import urllib.error as _OpeningFitUrlError
+
+    def _openingfit_fetch_json(url: str, timeout: int = 8):
+        request = _OpeningFitUrlRequest.Request(
+            url,
+            headers={
+                "User-Agent": "OpeningFit diagnostics contact: openingfit.com",
+                "Accept": "application/json",
+            },
+        )
+
+        with _OpeningFitUrlRequest.urlopen(request, timeout=timeout) as response:
+            status = getattr(response, "status", 200)
+            body = response.read().decode("utf-8", errors="replace")
+            return status, _OpeningFitJson.loads(body)
+
+    @app.get("/api/diagnose/chesscom/{username}")
+    def openingfit_diagnose_chesscom(username: str):
+        clean_username = username.strip()
+
+        if not clean_username:
+            raise _OpeningFitHTTPException(status_code=400, detail="Username is required.")
+
+        checks = []
+
+        profile_url = f"https://api.chess.com/pub/player/{clean_username}"
+        archives_url = f"https://api.chess.com/pub/player/{clean_username}/games/archives"
+
+        try:
+            profile_status, profile = _openingfit_fetch_json(profile_url)
+            profile_ok = profile_status == 200 and isinstance(profile, dict)
+        except _OpeningFitUrlError.HTTPError as exc:
+            if exc.code == 404:
+                return {
+                    "status": "error",
+                    "title": "Chess.com username not found",
+                    "message": f"Chess.com could not find '{clean_username}'. Check spelling and try again.",
+                    "checks": [
+                        {"label": "Backend", "ok": True, "detail": "FastAPI responded."},
+                        {"label": "Chess.com profile", "ok": False, "detail": "Profile returned 404."},
+                        {"label": "Archives", "ok": False, "detail": "Skipped because profile was not found."},
+                        {"label": "Next action", "ok": False, "detail": "Check the username spelling."},
+                    ],
+                }
+
+            return {
+                "status": "error",
+                "title": "Chess.com profile check failed",
+                "message": f"Chess.com returned HTTP {exc.code} while checking the profile.",
+                "checks": [
+                    {"label": "Backend", "ok": True, "detail": "FastAPI responded."},
+                    {"label": "Chess.com profile", "ok": False, "detail": f"HTTP {exc.code}."},
+                ],
+            }
+        except Exception as exc:
+            return {
+                "status": "error",
+                "title": "Could not reach Chess.com",
+                "message": f"The backend could not reach Chess.com right now: {exc}",
+                "checks": [
+                    {"label": "Backend", "ok": True, "detail": "FastAPI responded."},
+                    {"label": "Chess.com", "ok": False, "detail": "Request failed."},
+                ],
+            }
+
+        checks.append({"label": "Backend", "ok": True, "detail": "FastAPI responded."})
+        checks.append({"label": "Chess.com profile", "ok": profile_ok, "detail": "Profile found." if profile_ok else "Profile response was invalid."})
+
+        try:
+            archive_status, archives = _openingfit_fetch_json(archives_url)
+            archive_list = archives.get("archives", []) if isinstance(archives, dict) else []
+            archive_count = len(archive_list)
+            archive_ok = archive_status == 200 and archive_count > 0
+
+            checks.append({
+                "label": "Game archives",
+                "ok": archive_ok,
+                "detail": f"{archive_count} monthly archive(s) found.",
+            })
+
+            if archive_count == 0:
+                return {
+                    "status": "warning",
+                    "title": "Profile found, but no game archives",
+                    "message": f"'{clean_username}' exists, but Chess.com did not return monthly game archives.",
+                    "checks": checks + [
+                        {"label": "Next action", "ok": False, "detail": "Try another username or check if games are public."}
+                    ],
+                }
+
+            recent_archives = archive_list[-3:]
+
+            checks.append({
+                "label": "Recent months",
+                "ok": True,
+                "detail": f"Latest archive: {recent_archives[-1] if recent_archives else 'unknown'}",
+            })
+
+            return {
+                "status": "ok",
+                "title": "Import should work",
+                "message": f"'{clean_username}' exists and has {archive_count} monthly Chess.com archive(s). If import still fails, the issue is likely inside the analysis route rather than username lookup.",
+                "username": clean_username,
+                "profile": {
+                    "username": profile.get("username"),
+                    "title": profile.get("title"),
+                    "followers": profile.get("followers"),
+                    "country": profile.get("country"),
+                },
+                "archive_count": archive_count,
+                "recent_archives": recent_archives,
+                "checks": checks,
+            }
+
+        except _OpeningFitUrlError.HTTPError as exc:
+            return {
+                "status": "error",
+                "title": "Archive check failed",
+                "message": f"Profile exists, but Chess.com returned HTTP {exc.code} for game archives.",
+                "checks": checks + [
+                    {"label": "Game archives", "ok": False, "detail": f"HTTP {exc.code}."}
+                ],
+            }
+        except Exception as exc:
+            return {
+                "status": "error",
+                "title": "Could not check game archives",
+                "message": f"Profile exists, but archive lookup failed: {exc}",
+                "checks": checks + [
+                    {"label": "Game archives", "ok": False, "detail": "Archive request failed."}
+                ],
+            }
+except Exception as exc:
+    print("OpeningFit diagnostics route failed to initialise:", exc)
+# --- End OpeningFit Chess.com import diagnostics ---
