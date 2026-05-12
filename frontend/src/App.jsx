@@ -1,3 +1,4 @@
+import OpeningFitTrustBar from "./components/OpeningFitTrustBar.jsx";
 import PolishedOpeningFitReportHero from "./components/OpeningFitReportHero.jsx";
 import OpeningFitTrustSections from "./components/OpeningFitTrustSections.jsx";
 import OpeningFitPolishToast from "./components/OpeningFitPolishToast.jsx";
@@ -3191,6 +3192,10 @@ const [activeView, setActiveView] = useState("overview");
         />
 
         
+        {data ? (
+          <OpeningFitTrustBar data={data} />
+        ) : null}
+
         {data ? (
           <>
             <SeriousAppTabs activeView={activeView} onViewChange={setActiveView} />
