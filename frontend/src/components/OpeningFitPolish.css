@@ -2982,3 +2982,337 @@
     width: 100%;
   }
 }
+
+/* Site-wide UX cleanup */
+
+html {
+  scroll-behavior: smooth;
+}
+
+.ofReportStartAnchor {
+  position: relative;
+  top: -92px;
+  height: 1px;
+}
+
+.ofUXReportHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.85fr);
+  gap: 18px;
+  align-items: stretch;
+  width: min(1180px, calc(100% - 32px));
+  margin: 18px auto 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 28px;
+  padding: clamp(18px, 3vw, 28px);
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.13), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.94));
+  color: #f8fafc;
+  box-shadow: 0 20px 60px rgba(2, 6, 23, 0.18);
+}
+
+[data-theme="light"] .ofUXReportHeader,
+.light .ofUXReportHeader {
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.1), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.97));
+  color: #0f172a;
+}
+
+.ofUXReportCopy h2 {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 3.1rem);
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.ofUXReportCopy p {
+  max-width: 720px;
+  margin: 12px 0 0;
+  color: #94a3b8;
+  line-height: 1.65;
+}
+
+[data-theme="light"] .ofUXReportCopy p,
+.light .ofUXReportCopy p {
+  color: #64748b;
+}
+
+.ofUXQuickStats {
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr 1fr;
+  gap: 10px;
+}
+
+.ofUXQuickStats article {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 20px;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+[data-theme="light"] .ofUXQuickStats article,
+.light .ofUXQuickStats article {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.ofUXQuickStats span {
+  color: #a5b4fc;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-theme="light"] .ofUXQuickStats span,
+.light .ofUXQuickStats span {
+  color: #4338ca;
+}
+
+.ofUXQuickStats strong {
+  display: block;
+  min-width: 0;
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1rem;
+  line-height: 1.18;
+  text-overflow: ellipsis;
+}
+
+.ofUXStickyNav {
+  position: sticky;
+  top: 8px;
+  z-index: 80;
+  display: flex;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 14px;
+  gap: 8px;
+  overflow-x: auto;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  padding: 8px;
+  background: rgba(15, 23, 42, 0.84);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 40px rgba(2, 6, 23, 0.2);
+  scrollbar-width: none;
+}
+
+.ofUXStickyNav::-webkit-scrollbar {
+  display: none;
+}
+
+[data-theme="light"] .ofUXStickyNav,
+.light .ofUXStickyNav {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.ofUXStickyNav button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 14px;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 0.88rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+[data-theme="light"] .ofUXStickyNav button,
+.light .ofUXStickyNav button {
+  color: #334155;
+}
+
+.ofUXStickyNav button:hover,
+.ofUXStickyNav button.active {
+  background: rgba(99, 102, 241, 0.18);
+  color: #ffffff;
+}
+
+[data-theme="light"] .ofUXStickyNav button:hover,
+[data-theme="light"] .ofUXStickyNav button.active,
+.light .ofUXStickyNav button:hover,
+.light .ofUXStickyNav button.active {
+  color: #312e81;
+}
+
+/* Reduce section bloat globally for the new report sections */
+
+.ofReportHero,
+.ofGuidedFlow,
+.ofStudyPlanner,
+.ofReportActions,
+.ofFunctionalTools,
+.ofFunctionalityHub,
+.ofImportDoctor,
+.ofTrustBar,
+.ofTrustWrap,
+.ofFinalCTA {
+  margin-top: 14px !important;
+  margin-bottom: 14px !important;
+}
+
+.ofReportHero,
+.ofGuidedFlow,
+.ofStudyPlanner,
+.ofReportActions,
+.ofFunctionalTools,
+.ofFunctionalityHub,
+.ofImportDoctor,
+.ofTrustBar,
+.ofTrustWrap,
+.ofFinalCTA,
+.ofUXReportHeader {
+  scroll-margin-top: 90px;
+}
+
+/* Hide beta/dev sections from the normal report flow unless Tools is opened */
+
+body:not(.showOpeningFitTools) .ofFunctionalityHub,
+body:not(.showOpeningFitTools) .ofFunctionalTools,
+body:not(.showOpeningFitTools) .ofImportDoctor,
+body:not(.showOpeningFitTools) .ofTrustBar,
+body:not(.showOpeningFitTools) .ofTrustWrap {
+  display: none !important;
+}
+
+.ofDeveloperToolsClosed {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 10px;
+}
+
+.ofDeveloperToolsOpen {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 10px;
+}
+
+.ofDeveloperToolsNotice {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  padding: 10px 13px;
+  background: rgba(15, 23, 42, 0.58);
+  color: #cbd5e1;
+  font-size: 0.88rem;
+}
+
+[data-theme="light"] .ofDeveloperToolsNotice,
+.light .ofDeveloperToolsNotice {
+  background: rgba(255, 255, 255, 0.82);
+  color: #334155;
+}
+
+.ofDeveloperToolsNotice strong {
+  margin-right: 6px;
+}
+
+.ofDeveloperToolsClosed .ofDeveloperToolsNotice {
+  display: none;
+}
+
+/* When the Tools button is toggled, reveal beta tools */
+.ofDeveloperToolsOpen ~ .ofFunctionalityHub,
+.ofDeveloperToolsOpen ~ .ofFunctionalTools,
+.ofDeveloperToolsOpen ~ .ofImportDoctor,
+.ofDeveloperToolsOpen ~ .ofTrustBar,
+.ofDeveloperToolsOpen ~ .ofTrustWrap {
+  display: block !important;
+}
+
+/* Make previous 4-column feature grids less tall and easier to scan */
+
+.ofActionCard,
+.ofFunctionalGrid article,
+.ofFunctionalityGrid article {
+  min-height: 190px !important;
+}
+
+.ofGuidedSteps article {
+  min-height: 230px !important;
+}
+
+.ofStudyTaskList article,
+.ofActionCard,
+.ofFunctionalGrid article,
+.ofFunctionalityGrid article,
+.ofGuidedSteps article {
+  padding: 15px !important;
+}
+
+/* Keep the study planner as the main functional section */
+
+.ofStudyPlanner {
+  order: 5;
+}
+
+/* Mobile cleanup */
+
+@media (max-width: 900px) {
+  .ofUXReportHeader {
+    grid-template-columns: 1fr;
+    width: min(100% - 20px, 1180px);
+    border-radius: 24px;
+  }
+
+  .ofUXQuickStats {
+    grid-template-columns: 1fr;
+  }
+
+  .ofUXStickyNav {
+    top: 6px;
+    width: min(100% - 20px, 1180px);
+    border-radius: 20px;
+    padding: 7px;
+  }
+
+  .ofUXStickyNav button {
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 0.82rem;
+  }
+
+  .ofReportHero,
+  .ofGuidedFlow,
+  .ofStudyPlanner,
+  .ofReportActions,
+  .ofFinalCTA {
+    width: min(100% - 20px, 1180px) !important;
+    border-radius: 24px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .ofUXReportHeader {
+    margin-top: 10px;
+    padding: 16px;
+  }
+
+  .ofUXReportCopy h2 {
+    font-size: clamp(1.55rem, 9vw, 2.25rem);
+  }
+
+  .ofUXReportCopy p {
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  .ofUXStickyNav {
+    margin-bottom: 10px;
+  }
+
+  .ofUXStickyNav button {
+    font-size: 0.8rem;
+  }
+
+  .ofReportHeroTop,
+  .ofGuidedFlowHeader,
+  .ofStudyPlannerHeader,
+  .ofReportActionsHeader,
+  .ofFinalCTA {
+    gap: 12px !important;
+  }
+}
