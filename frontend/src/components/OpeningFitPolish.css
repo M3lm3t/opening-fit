@@ -3869,266 +3869,215 @@ body.openingfitTabbedResults .ofLegacySectionNavHidden {
   color: #ffffff !important;
 }
 
-/* Landing page button visibility fix */
+/* Clean landing modal controls
+   Keep button styles specific so close/platform/import buttons do not fight each other.
+*/
 
-.shipPlatformRow button,
-.polishedPlatformRow button,
-.landingPlatformRow button,
-.shipLandingModal button,
-.polishedLandingModal button {
-  border: 1px solid rgba(79, 70, 229, 0.22) !important;
-  background: #ffffff !important;
-  color: #312e81 !important;
-  font-weight: 900 !important;
+.page.light *::before,
+.page.light *::after {
+  border-color: rgba(15, 23, 42, 0.1);
 }
 
-.shipPlatformRow button.active,
-.polishedPlatformRow button.active,
-.landingPlatformRow button.active,
-.shipPlatformRow button:first-child,
-.polishedPlatformRow button:first-child,
-.landingPlatformRow button:first-child {
-  background: rgba(79, 70, 229, 0.1) !important;
-  color: #312e81 !important;
-  border-color: rgba(79, 70, 229, 0.45) !important;
+.page.light .ofReportHero::before,
+.page.light .ofReportHero::after,
+.page.light .ofGuidedFlow::before,
+.page.light .ofGuidedFlow::after,
+.page.light .ofStudyPlanner::before,
+.page.light .ofStudyPlanner::after,
+.page.light [class*="Hero"]::before,
+.page.light [class*="Hero"]::after {
+  opacity: 0.04 !important;
 }
 
-.shipPlatformRow button.comingSoon,
-.polishedPlatformRow button.comingSoon,
-.landingPlatformRow button.comingSoon {
-  background: #ffffff !important;
-  color: #64748b !important;
-  border-color: rgba(15, 23, 42, 0.14) !important;
+.page.light .ofUXStickyNav {
+  background: rgba(255, 255, 255, 0.96);
 }
+
+.page.light .ofUXStickyNav button {
+  color: #334155;
+}
+
+.page.light .ofUXStickyNav button.active {
+  color: #ffffff;
+}
+
+/* Landing panel shell */
+
+.shipLandingModal,
+.polishedLandingModal {
+  position: relative;
+}
+
+.shipImportCard,
+.polishedImportCard {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+.shipImportCard label,
+.polishedImportCard label {
+  color: #334155;
+}
+
+/* Close button only */
 
 .shipLandingClose,
 .polishedLandingClose,
 .landingCloseBtn {
-  background: rgba(15, 23, 42, 0.06) !important;
-  color: #334155 !important;
-  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  color: #334155;
+  -webkit-text-fill-color: #334155;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
 }
 
 .shipLandingClose:hover,
 .polishedLandingClose:hover,
 .landingCloseBtn:hover {
-  background: rgba(15, 23, 42, 0.1) !important;
-  color: #0f172a !important;
+  background: #f8fafc;
+  color: #0f172a;
+  -webkit-text-fill-color: #0f172a;
 }
 
-/* Keep the main analyse button strong */
-.shipInputRow button,
-.polishedInputRow button,
-.shipImportCard button[type="button"],
-.polishedImportCard button[type="button"] {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
-  color: #ffffff !important;
-  border-color: transparent !important;
+/* Username input + main CTA */
+
+.shipInputRow,
+.polishedInputRow {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
 }
 
-/* But do not let the platform buttons inherit the purple CTA style */
+.shipInputRow input,
+.polishedInputRow input {
+  min-height: 46px;
+}
+
+.shipInputRow > button,
+.polishedInputRow > button {
+  min-height: 46px;
+  min-width: 150px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 0;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 16px 34px rgba(79, 70, 229, 0.24);
+}
+
+.shipInputRow > button:disabled,
+.polishedInputRow > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+/* Platform/theme buttons only */
+
+.shipPlatformRow,
+.polishedPlatformRow,
+.landingPlatformRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .shipPlatformRow button,
 .polishedPlatformRow button,
 .landingPlatformRow button {
-  min-height: 34px !important;
-  box-shadow: none !important;
+  min-height: 36px;
+  min-width: 100px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  background: #ffffff;
+  color: #111827;
+  -webkit-text-fill-color: #111827;
+  font-size: 0.86rem;
+  font-weight: 850;
+  line-height: 1;
+  box-shadow: none;
+  opacity: 1;
 }
 
-/* Small landing value cards clearer */
+.shipPlatformRow button.active,
+.polishedPlatformRow button.active,
+.landingPlatformRow button.active {
+  background: #eef2ff;
+  color: #312e81;
+  -webkit-text-fill-color: #312e81;
+  border-color: rgba(79, 70, 229, 0.42);
+}
+
+.shipPlatformRow button.comingSoon,
+.polishedPlatformRow button.comingSoon,
+.landingPlatformRow button.comingSoon {
+  color: #64748b;
+  -webkit-text-fill-color: #64748b;
+}
+
+/* Landing value cards */
+
 .shipValueGrid article,
 .polishedValueGrid article,
 .shipBetaNote,
 .polishedBetaNote {
-  background: #ffffff !important;
-  color: #0f172a !important;
-  border-color: rgba(15, 23, 42, 0.12) !important;
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.12);
 }
 
 .shipValueGrid article span,
 .polishedValueGrid article span,
 .shipBetaNote,
 .polishedBetaNote {
-  color: #334155 !important;
+  color: #334155;
 }
 
-/* Landing page button visibility fix */
+/* Mobile landing layout */
 
-.shipPlatformRow button,
-.polishedPlatformRow button,
-.landingPlatformRow button,
-.shipLandingModal button,
-.polishedLandingModal button {
-  border: 1px solid rgba(79, 70, 229, 0.22) !important;
-  background: #ffffff !important;
-  color: #312e81 !important;
-  font-weight: 900 !important;
-}
+@media (max-width: 720px) {
+  .shipInputRow,
+  .polishedInputRow {
+    flex-direction: column;
+  }
 
-.shipPlatformRow button.active,
-.polishedPlatformRow button.active,
-.landingPlatformRow button.active,
-.shipPlatformRow button:first-child,
-.polishedPlatformRow button:first-child,
-.landingPlatformRow button:first-child {
-  background: rgba(79, 70, 229, 0.1) !important;
-  color: #312e81 !important;
-  border-color: rgba(79, 70, 229, 0.45) !important;
-}
+  .shipInputRow > button,
+  .polishedInputRow > button {
+    width: 100%;
+  }
 
-.shipPlatformRow button.comingSoon,
-.polishedPlatformRow button.comingSoon,
-.landingPlatformRow button.comingSoon {
-  background: #ffffff !important;
-  color: #64748b !important;
-  border-color: rgba(15, 23, 42, 0.14) !important;
-}
+  .shipPlatformRow,
+  .polishedPlatformRow,
+  .landingPlatformRow {
+    justify-content: center;
+  }
 
-.shipLandingClose,
-.polishedLandingClose,
-.landingCloseBtn {
-  background: rgba(15, 23, 42, 0.06) !important;
-  color: #334155 !important;
-  border: 1px solid rgba(15, 23, 42, 0.08) !important;
-}
-
-.shipLandingClose:hover,
-.polishedLandingClose:hover,
-.landingCloseBtn:hover {
-  background: rgba(15, 23, 42, 0.1) !important;
-  color: #0f172a !important;
-}
-
-/* Keep the main analyse button strong */
-.shipInputRow button,
-.polishedInputRow button,
-.shipImportCard button[type="button"],
-.polishedImportCard button[type="button"] {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
-  color: #ffffff !important;
-  border-color: transparent !important;
-}
-
-/* But do not let the platform buttons inherit the purple CTA style */
-.shipPlatformRow button,
-.polishedPlatformRow button,
-.landingPlatformRow button {
-  min-height: 34px !important;
-  box-shadow: none !important;
-}
-
-/* Small landing value cards clearer */
-.shipValueGrid article,
-.polishedValueGrid article,
-.shipBetaNote,
-.polishedBetaNote {
-  background: #ffffff !important;
-  color: #0f172a !important;
-  border-color: rgba(15, 23, 42, 0.12) !important;
-}
-
-.shipValueGrid article span,
-.polishedValueGrid article span,
-.shipBetaNote,
-.polishedBetaNote {
-  color: #334155 !important;
-}
-
-/* Emergency landing platform button text repair */
-
-.shipLandingModal .shipPlatformRow,
-.polishedLandingModal .polishedPlatformRow,
-.landingModal .landingPlatformRow {
-  display: flex !important;
-  gap: 8px !important;
-  align-items: center !important;
-}
-
-.shipLandingModal .shipPlatformRow button,
-.polishedLandingModal .polishedPlatformRow button,
-.landingModal .landingPlatformRow button,
-.shipLandingModal button.comingSoon,
-.polishedLandingModal button.comingSoon {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  min-width: 104px !important;
-  min-height: 36px !important;
-  padding: 0 14px !important;
-  border: 1px solid rgba(15, 23, 42, 0.18) !important;
-  border-radius: 999px !important;
-  background: #ffffff !important;
-  color: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
-  font-size: 0.86rem !important;
-  font-weight: 900 !important;
-  line-height: 1 !important;
-  letter-spacing: 0 !important;
-  text-indent: 0 !important;
-  text-shadow: none !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  box-shadow: none !important;
-}
-
-.shipLandingModal .shipPlatformRow button *,
-.polishedLandingModal .polishedPlatformRow button *,
-.landingModal .landingPlatformRow button *,
-.shipLandingModal button.comingSoon *,
-.polishedLandingModal button.comingSoon * {
-  display: inline !important;
-  color: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
-  font-size: inherit !important;
-  font-weight: inherit !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-.shipLandingModal .shipPlatformRow button.active,
-.polishedLandingModal .polishedPlatformRow button.active,
-.landingModal .landingPlatformRow button.active,
-.shipLandingModal .shipPlatformRow button:first-child,
-.polishedLandingModal .polishedPlatformRow button:first-child,
-.landingModal .landingPlatformRow button:first-child {
-  background: #eef2ff !important;
-  color: #312e81 !important;
-  -webkit-text-fill-color: #312e81 !important;
-  border-color: rgba(79, 70, 229, 0.42) !important;
-}
-
-.shipLandingModal .shipPlatformRow button.active *,
-.polishedLandingModal .polishedPlatformRow button.active *,
-.landingModal .landingPlatformRow button.active *,
-.shipLandingModal .shipPlatformRow button:first-child *,
-.polishedLandingModal .polishedPlatformRow button:first-child *,
-.landingModal .landingPlatformRow button:first-child * {
-  color: #312e81 !important;
-  -webkit-text-fill-color: #312e81 !important;
-}
-
-/* Keep Analyse games as the only strong purple CTA */
-.shipLandingModal .shipInputRow > button,
-.polishedLandingModal .polishedInputRow > button {
-  min-width: 150px !important;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  border-color: transparent !important;
-  font-size: 1rem !important;
-  font-weight: 950 !important;
-  opacity: 1 !important;
-}
-
-/* Force close X visible */
-.shipLandingModal .shipLandingClose,
-.polishedLandingModal .polishedLandingClose,
-.landingModal .landingCloseBtn {
-  display: grid !important;
-  place-items: center !important;
-  color: #334155 !important;
-  -webkit-text-fill-color: #334155 !important;
-  font-size: 1.2rem !important;
-  font-weight: 900 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+  .shipPlatformRow button,
+  .polishedPlatformRow button,
+  .landingPlatformRow button {
+    flex: 1 1 110px;
+  }
 }
