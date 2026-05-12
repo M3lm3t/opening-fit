@@ -15095,3 +15095,187 @@ textarea {
     font-size: 0.86rem;
   }
 }
+
+
+/* === Saved report history upgrade === */
+
+.reportHistoryVault {
+  width: min(1120px, calc(100% - 1.5rem));
+  margin: 1rem auto 1.35rem;
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(168, 85, 247, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.94));
+  color: #f8fafc;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.26);
+}
+
+.reportHistoryHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: start;
+}
+
+.reportHistoryHeader h2 {
+  margin: 0;
+  font-size: clamp(1.45rem, 2.5vw, 2.15rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.reportHistoryHeader p {
+  max-width: 720px;
+  margin: 0.65rem 0 0;
+  color: rgba(248, 250, 252, 0.72);
+  line-height: 1.6;
+}
+
+.saveReportButton {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 1.1rem;
+  font-weight: 900;
+  color: #07111f;
+  background: linear-gradient(135deg, #d9f99d, #86efac);
+  cursor: pointer;
+  box-shadow: 0 14px 34px rgba(134, 239, 172, 0.2);
+}
+
+.currentReportCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.currentReportCard span {
+  color: rgba(248, 250, 252, 0.68);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.currentReportCard strong {
+  font-size: 1.25rem;
+}
+
+.currentReportCard small {
+  color: rgba(248, 250, 252, 0.72);
+  line-height: 1.45;
+}
+
+.historyStatus {
+  margin: 0.85rem 0 0;
+  color: #86efac;
+  font-weight: 800;
+}
+
+.historyList {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.historyItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.065);
+}
+
+.historyItem strong,
+.historyItem span,
+.historyItem small {
+  display: block;
+}
+
+.historyItem span {
+  margin-top: 0.25rem;
+  color: rgba(248, 250, 252, 0.74);
+  line-height: 1.45;
+}
+
+.historyItem small {
+  margin-top: 0.25rem;
+  color: rgba(248, 250, 252, 0.52);
+}
+
+.historyActions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.historyActions button,
+.clearHistoryButton {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 0.65rem 0.85rem;
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.historyActions button:hover,
+.clearHistoryButton:hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.historyActions .dangerHistoryButton {
+  color: #fecaca;
+}
+
+.clearHistoryButton {
+  margin-top: 0.85rem;
+}
+
+.emptyHistoryState {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  color: rgba(248, 250, 252, 0.74);
+}
+
+.emptyHistoryState strong {
+  color: #f8fafc;
+}
+
+@media (max-width: 760px) {
+  .reportHistoryVault {
+    width: calc(100% - 0.8rem);
+    margin: 0.75rem auto 1rem;
+    border-radius: 22px;
+  }
+
+  .reportHistoryHeader,
+  .historyItem {
+    grid-template-columns: 1fr;
+  }
+
+  .saveReportButton,
+  .historyActions,
+  .historyActions button,
+  .clearHistoryButton {
+    width: 100%;
+  }
+
+  .historyActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
