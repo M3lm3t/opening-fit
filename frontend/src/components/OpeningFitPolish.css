@@ -3682,3 +3682,16 @@ body.openingfitTabbedResults .ofLegacySectionNavHidden {
 .page[data-theme="light"] .ofGuidedFlow::after {
   opacity: 0.08 !important;
 }
+
+/* Safety fix: never allow legacy nav hider to hide the whole app */
+#root.ofLegacySectionNavHidden,
+.page.ofLegacySectionNavHidden,
+.app.ofLegacySectionNavHidden,
+main.ofLegacySectionNavHidden,
+body.ofLegacySectionNavHidden {
+  display: block !important;
+}
+
+body.openingfitTabbedResults .ofLegacySectionNavHidden {
+  display: none !important;
+}

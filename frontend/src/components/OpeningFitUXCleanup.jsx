@@ -51,40 +51,6 @@ export default function OpeningFitUXCleanup({ data, username, onJump, activeView
   const [toolsOpen, setToolsOpen] = useState(false);
   const currentTab = normaliseTab(activeView);
 
-  useEffect(() => {
-    if (!data) return;
-
-    const markLegacyNavs = () => {
-      const candidates = Array.from(
-        document.querySelectorAll("nav, .tabs, .appTabs, .viewTabs, .dashboardTabs, .sectionTabs, div")
-      );
-
-      candidates.forEach((element) => {
-        const text = (element.textContent || "").replace(/\s+/g, " ").trim();
-
-        const looksLikeOldViewNav =
-          text.includes("Overview") &&
-          text.includes("Repertoire") &&
-          text.includes("Training") &&
-          text.includes("Games") &&
-          text.includes("Progress") &&
-          text.includes("Feedback");
-
-        const isNewTabbedNav = element.classList.contains("ofTabbedNav");
-        const isBottomNav = element.className && String(element.className).toLowerCase().includes("bottom");
-
-        if (looksLikeOldViewNav && !isNewTabbedNav && !isBottomNav) {
-          element.classList.add("ofLegacySectionNavHidden");
-        }
-      });
-    };
-
-    markLegacyNavs();
-    const timer = window.setTimeout(markLegacyNavs, 300);
-
-    return () => window.clearTimeout(timer);
-  }, [data, activeView]);
-
   const summary = useMemo(() => {
     const openings = getOpenings(data);
 
@@ -113,6 +79,45 @@ export default function OpeningFitUXCleanup({ data, username, onJump, activeView
       document.body.removeAttribute("data-openingfit-tab");
     };
   }, [data, currentTab, toolsOpen]);
+
+  useEffect(() => {
+    if (!data) return;
+
+    const markLegacyNavs = () => {
+      document.querySelectorAll(".ofLegacySectionNavHidden").forEach((element) => {
+        element.classList.remove("ofLegacySectionNavHidden");
+      });
+
+      const candidates = Array.from(
+        document.querySelectorAll("nav, [role='tablist'], .tabs, .appTabs, .viewTabs, .dashboardTabs, .sectionTabs")
+      );
+
+      candidates.forEach((element) => {
+        const text = (element.textContent || "").replace(/\s+/g, " ").trim();
+
+        const looksLikeOldViewNav =
+          text.includes("Overview") &&
+          text.includes("Repertoire") &&
+          text.includes("Training") &&
+          text.includes("Games") &&
+          text.includes("Progress") &&
+          text.includes("Feedback");
+
+        const isNewTabbedNav = element.classList.contains("ofTabbedNav");
+        const rect = element.getBoundingClientRect();
+        const isSmallNav = rect.height > 20 && rect.height < 120;
+
+        if (looksLikeOldViewNav && !isNewTabbedNav && isSmallNav) {
+          element.classList.add("ofLegacySectionNavHidden");
+        }
+      });
+    };
+
+    markLegacyNavs();
+    const timer = window.setTimeout(markLegacyNavs, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [data, activeView]);
 
   useEffect(() => {
     if (!data) return;
