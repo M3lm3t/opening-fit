@@ -1,3 +1,4 @@
+import OpeningFitFinalCTA from "./components/OpeningFitFinalCTA.jsx";
 import OpeningFitTrustBar from "./components/OpeningFitTrustBar.jsx";
 import PolishedOpeningFitReportHero from "./components/OpeningFitReportHero.jsx";
 import OpeningFitTrustSections from "./components/OpeningFitTrustSections.jsx";
@@ -3240,6 +3241,14 @@ const [activeView, setActiveView] = useState("overview");
             onLoadReport={(reportData) => {
               setData(reportData);
             }}
+          />
+        ) : null}
+
+        {data ? (
+          <OpeningFitFinalCTA
+            data={data}
+            username={username}
+            onJump={jumpToSection}
           />
         ) : null}
 

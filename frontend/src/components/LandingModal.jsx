@@ -10,17 +10,16 @@ export default function LandingModal({
   onThemeToggle,
 }) {
   const handleImport = () => {
+    if (!username?.trim() || loading) return;
     onClose?.();
     onImport?.();
   };
 
   return (
-    <div className="landingOverlay polishedLandingOverlay" onClick={onClose}>
-      <section className="landingModal polishedLandingModal" onClick={(event) => event.stopPropagation()}>
-        <div className="polishedLandingGlow" />
-
+    <div className="landingOverlay polishedLandingOverlay shipLandingOverlay" onClick={onClose}>
+      <section className="landingModal polishedLandingModal shipLandingModal" onClick={(event) => event.stopPropagation()}>
         <button
-          className="landingCloseBtn polishedLandingClose"
+          className="landingCloseBtn polishedLandingClose shipLandingClose"
           type="button"
           onClick={onClose}
           aria-label="Close landing panel"
@@ -28,21 +27,22 @@ export default function LandingModal({
           ×
         </button>
 
-        <div className="polishedLandingHero">
-          <div className="polishedEyebrow">OpeningFit Beta</div>
+        <div className="shipLandingContent">
+          <div className="shipLandingHero">
+            <div className="polishedEyebrow shipLandingEyebrow">OpeningFit Beta</div>
 
-          <h1>Find the openings that fit how you actually play.</h1>
+            <h1>Find the openings that fit how you actually play.</h1>
 
-          <p>
-            OpeningFit reviews your recent games, spots your strongest opening patterns,
-            and gives you a practical keep, improve, or avoid repertoire plan.
-          </p>
-        </div>
+            <p>
+              Import your recent Chess.com games and get a practical opening report:
+              what to keep, what to improve, and what to avoid.
+            </p>
+          </div>
 
-        <div className="polishedImportCard">
-          <div>
+          <div className="shipImportCard">
             <label htmlFor="landingUsername">Chess.com username</label>
-            <div className="polishedInputRow">
+
+            <div className="shipInputRow">
               <input
                 id="landingUsername"
                 value={username}
@@ -55,81 +55,58 @@ export default function LandingModal({
               />
 
               <button type="button" onClick={handleImport} disabled={loading || !username?.trim()}>
-                {loading ? "Analysing..." : "Analyse my games"}
+                {loading ? "Analysing..." : "Analyse games"}
+              </button>
+            </div>
+
+            <div className="shipPlatformRow" aria-label="Platform selector">
+              <button
+                type="button"
+                className={platform === "chesscom" ? "active" : ""}
+                onClick={() => setPlatform?.("chesscom")}
+              >
+                Chess.com
+              </button>
+
+              <button
+                type="button"
+                className={platform === "lichess" ? "active" : ""}
+                onClick={() => setPlatform?.("lichess")}
+              >
+                Lichess soon
+              </button>
+
+              <button
+                type="button"
+                className="shipThemeBtn"
+                onClick={onThemeToggle}
+              >
+                {theme === "light" ? "Dark" : "Light"}
               </button>
             </div>
           </div>
 
-          <div className="polishedPlatformRow" aria-label="Platform selector">
-            <button
-              type="button"
-              className={platform === "chesscom" ? "active" : ""}
-              onClick={() => setPlatform?.("chesscom")}
-            >
-              Chess.com
-            </button>
-            <button
-              type="button"
-              className={platform === "lichess" ? "active" : ""}
-              onClick={() => setPlatform?.("lichess")}
-            >
-              Lichess soon
-            </button>
+          <div className="shipValueGrid">
+            <article>
+              <strong>Personal report</strong>
+              <span>Based on your games</span>
+            </article>
+
+            <article>
+              <strong>Clear verdicts</strong>
+              <span>Keep / Improve / Avoid</span>
+            </article>
+
+            <article>
+              <strong>Study direction</strong>
+              <span>Know what to fix first</span>
+            </article>
+          </div>
+
+          <div className="shipBetaNote">
+            Built for improving club players. OpeningFit is still in beta, so your feedback helps shape the next version.
           </div>
         </div>
-
-        <div className="polishedTrustTiles">
-          <article>
-            <strong>Personalised</strong>
-            <span>Built from your own games, not generic theory.</span>
-          </article>
-
-          <article>
-            <strong>Practical</strong>
-            <span>See what to keep, improve, and avoid.</span>
-          </article>
-
-          <article>
-            <strong>Fast</strong>
-            <span>Get a usable study direction in minutes.</span>
-          </article>
-        </div>
-
-        <div className="polishedHowItWorks">
-          <h2>How it works</h2>
-
-          <div className="polishedSteps">
-            <div>
-              <span>1</span>
-              <strong>Import games</strong>
-              <p>Enter your public Chess.com username.</p>
-            </div>
-
-            <div>
-              <span>2</span>
-              <strong>Detect patterns</strong>
-              <p>OpeningFit reviews results by opening, colour, and style.</p>
-            </div>
-
-            <div>
-              <span>3</span>
-              <strong>Get a plan</strong>
-              <p>Turn your games into a practical repertoire direction.</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="polishedBetaNote">
-          Built for improving club players. Still in beta, so early feedback helps shape the next version.
-        </div>
-
-        <button
-          type="button"
-          className="polishedThemeToggle"
-          onClick={onThemeToggle}
-        >
-          {theme === "light" ? "Dark mode" : "Light mode"}
-        </button>
       </section>
     </div>
   );
