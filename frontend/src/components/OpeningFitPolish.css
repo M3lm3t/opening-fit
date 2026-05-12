@@ -1874,3 +1874,204 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Functionality update 1 */
+
+.ofFunctionalTools {
+  width: min(1180px, calc(100% - 32px));
+  margin: 22px auto;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 32px;
+  padding: clamp(18px, 3vw, 32px);
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.94));
+  color: #f8fafc;
+  box-shadow: 0 22px 70px rgba(2, 6, 23, 0.2);
+}
+
+[data-theme="light"] .ofFunctionalTools,
+.light .ofFunctionalTools {
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.1), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
+  color: #0f172a;
+}
+
+.ofFunctionalToolsHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.ofFunctionalToolsHeader h2 {
+  margin: 0;
+  font-size: clamp(1.7rem, 4vw, 3rem);
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.ofFunctionalToolsHeader p {
+  max-width: 760px;
+  margin: 12px 0 0;
+  color: #94a3b8;
+  line-height: 1.7;
+}
+
+[data-theme="light"] .ofFunctionalToolsHeader p,
+.light .ofFunctionalToolsHeader p {
+  color: #64748b;
+}
+
+.ofFunctionalStatus {
+  display: grid;
+  align-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 24px;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.48);
+  text-align: center;
+}
+
+[data-theme="light"] .ofFunctionalStatus,
+.light .ofFunctionalStatus {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.ofFunctionalStatus span {
+  color: #38bdf8;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ofFunctionalStatus strong {
+  margin-top: 4px;
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.ofFunctionalStatus small {
+  margin-top: 6px;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
+[data-theme="light"] .ofFunctionalStatus small,
+.light .ofFunctionalStatus small {
+  color: #64748b;
+}
+
+.ofFunctionalGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.ofFunctionalGrid article {
+  display: flex;
+  min-height: 230px;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 24px;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+[data-theme="light"] .ofFunctionalGrid article,
+.light .ofFunctionalGrid article {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.ofFunctionalGrid article > span {
+  color: #a5b4fc;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-theme="light"] .ofFunctionalGrid article > span,
+.light .ofFunctionalGrid article > span {
+  color: #4338ca;
+}
+
+.ofFunctionalGrid strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 1.08rem;
+  line-height: 1.25;
+}
+
+.ofFunctionalGrid p {
+  margin: 10px 0 18px;
+  color: #94a3b8;
+  line-height: 1.55;
+}
+
+[data-theme="light"] .ofFunctionalGrid p,
+.light .ofFunctionalGrid p {
+  color: #64748b;
+}
+
+.ofFunctionalGrid button {
+  min-height: 46px;
+  margin-top: auto;
+  border: 0;
+  border-radius: 15px;
+  padding: 0 15px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #ffffff;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 14px 34px rgba(79, 70, 229, 0.22);
+}
+
+.ofFunctionalGrid button.secondary {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: transparent;
+  color: #cbd5e1;
+  box-shadow: none;
+}
+
+[data-theme="light"] .ofFunctionalGrid button.secondary,
+.light .ofFunctionalGrid button.secondary {
+  color: #334155;
+}
+
+@media (max-width: 980px) {
+  .ofFunctionalToolsHeader {
+    grid-template-columns: 1fr;
+  }
+
+  .ofFunctionalStatus {
+    text-align: left;
+  }
+
+  .ofFunctionalGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .ofFunctionalTools {
+    width: min(100% - 20px, 1180px);
+    border-radius: 24px;
+  }
+
+  .ofFunctionalGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ofFunctionalGrid article {
+    min-height: auto;
+  }
+
+  .ofFunctionalGrid button {
+    width: 100%;
+  }
+}
