@@ -3316,3 +3316,172 @@ body:not(.showOpeningFitTools) .ofTrustWrap {
     gap: 12px !important;
   }
 }
+
+/* Tabbed results layout + light mode contrast */
+
+body.openingfitTabbedResults .ofReportHero,
+body.openingfitTabbedResults .ofGuidedFlow,
+body.openingfitTabbedResults .ofStudyPlanner,
+body.openingfitTabbedResults .ofReportActions,
+body.openingfitTabbedResults .ofFinalCTA,
+body.openingfitTabbedResults .ofFunctionalityHub,
+body.openingfitTabbedResults .ofFunctionalTools,
+body.openingfitTabbedResults .ofImportDoctor,
+body.openingfitTabbedResults .ofTrustBar,
+body.openingfitTabbedResults .ofTrustWrap,
+body.openingfitTabbedResults #style-profile,
+body.openingfitTabbedResults #keep-improve-avoid,
+body.openingfitTabbedResults #training-plan,
+body.openingfitTabbedResults #game-replay,
+body.openingfitTabbedResults #top-openings-table,
+body.openingfitTabbedResults #rating-openings,
+body.openingfitTabbedResults #feedback,
+body.openingfitTabbedResults #premium {
+  display: none !important;
+}
+
+body.openingfitTabbedResults[data-openingfit-tab="overview"] .ofReportHero,
+body.openingfitTabbedResults[data-openingfit-tab="overview"] .ofGuidedFlow,
+body.openingfitTabbedResults[data-openingfit-tab="overview"] .ofReportActions {
+  display: block !important;
+}
+
+body.openingfitTabbedResults[data-openingfit-tab="recommendations"] #keep-improve-avoid,
+body.openingfitTabbedResults[data-openingfit-tab="recommendations"] #rating-openings,
+body.openingfitTabbedResults[data-openingfit-tab="recommendations"] #premium,
+body.openingfitTabbedResults[data-openingfit-tab="recommendations"] .ofFinalCTA {
+  display: block !important;
+}
+
+body.openingfitTabbedResults[data-openingfit-tab="training"] .ofStudyPlanner,
+body.openingfitTabbedResults[data-openingfit-tab="training"] #training-plan,
+body.openingfitTabbedResults[data-openingfit-tab="training"] .ofFinalCTA {
+  display: block !important;
+}
+
+body.openingfitTabbedResults[data-openingfit-tab="games"] #game-replay {
+  display: block !important;
+}
+
+body.openingfitTabbedResults[data-openingfit-tab="data"] #top-openings-table,
+body.openingfitTabbedResults[data-openingfit-tab="data"] #rating-openings {
+  display: block !important;
+}
+
+body.openingfitTabbedResults[data-openingfit-tab="feedback"] #feedback,
+body.openingfitTabbedResults[data-openingfit-tab="feedback"] .ofFinalCTA {
+  display: block !important;
+}
+
+body.openingfitTabbedResults[data-openingfit-tab="tools"] .ofFunctionalityHub,
+body.openingfitTabbedResults[data-openingfit-tab="tools"] .ofFunctionalTools,
+body.openingfitTabbedResults[data-openingfit-tab="tools"] .ofImportDoctor,
+body.openingfitTabbedResults[data-openingfit-tab="tools"] .ofTrustBar,
+body.openingfitTabbedResults[data-openingfit-tab="tools"] .ofTrustWrap,
+body.openingfitTabbedResults.showOpeningFitTools .ofFunctionalityHub,
+body.openingfitTabbedResults.showOpeningFitTools .ofFunctionalTools,
+body.openingfitTabbedResults.showOpeningFitTools .ofImportDoctor,
+body.openingfitTabbedResults.showOpeningFitTools .ofTrustBar,
+body.openingfitTabbedResults.showOpeningFitTools .ofTrustWrap {
+  display: block !important;
+}
+
+.ofTabbedNav button.active {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.24);
+}
+
+[data-theme="light"] .ofUXReportHeader,
+[data-theme="light"] .ofReportHero,
+[data-theme="light"] .ofGuidedFlow,
+[data-theme="light"] .ofStudyPlanner,
+[data-theme="light"] .ofReportActions,
+[data-theme="light"] .ofFinalCTA,
+[data-theme="light"] .ofFunctionalityHub,
+[data-theme="light"] .ofFunctionalTools,
+[data-theme="light"] .ofImportDoctor,
+[data-theme="light"] .ofTrustBar,
+[data-theme="light"] .ofTrustWrap,
+.light .ofUXReportHeader,
+.light .ofReportHero,
+.light .ofGuidedFlow,
+.light .ofStudyPlanner,
+.light .ofReportActions,
+.light .ofFinalCTA,
+.light .ofFunctionalityHub,
+.light .ofFunctionalTools,
+.light .ofImportDoctor,
+.light .ofTrustBar,
+.light .ofTrustWrap {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  background: linear-gradient(145deg, #ffffff, #f8fafc) !important;
+  color: #0f172a !important;
+  box-shadow: 0 18px 55px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] p,
+[data-theme="light"] small,
+.light p,
+.light small {
+  color: #475569 !important;
+}
+
+[data-theme="light"] strong,
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+.light strong,
+.light h1,
+.light h2,
+.light h3 {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .ofEyebrow,
+[data-theme="light"] .polishedEyebrow,
+.light .ofEyebrow,
+.light .polishedEyebrow {
+  border-color: rgba(79, 70, 229, 0.22) !important;
+  background: rgba(79, 70, 229, 0.08) !important;
+  color: #3730a3 !important;
+}
+
+[data-theme="light"] .ofUXStickyNav,
+.light .ofUXStickyNav {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.1) !important;
+}
+
+[data-theme="light"] .ofUXStickyNav button,
+.light .ofUXStickyNav button {
+  color: #334155 !important;
+}
+
+[data-theme="light"] .ofUXStickyNav button.active,
+.light .ofUXStickyNav button.active {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea,
+.light input,
+.light select,
+.light textarea {
+  border-color: rgba(15, 23, 42, 0.16) !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+@media (max-width: 640px) {
+  .ofTabbedNav {
+    justify-content: flex-start;
+  }
+
+  .ofTabbedNav button {
+    min-width: fit-content;
+  }
+}

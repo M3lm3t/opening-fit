@@ -33,38 +33,59 @@ function getStyle(data) {
   );
 }
 
+function normaliseTab(activeView) {
+  const value = String(activeView || "overview").toLowerCase();
+
+  if (["overview", "summary", "home"].includes(value)) return "overview";
+  if (["recommendations", "openings", "repertoire"].includes(value)) return "recommendations";
+  if (["training", "study", "study-plan"].includes(value)) return "training";
+  if (["games", "replay"].includes(value)) return "games";
+  if (["data", "stats", "table"].includes(value)) return "data";
+  if (value === "feedback") return "feedback";
+  if (value === "tools" || value === "debug") return "tools";
+
+  return "overview";
+}
+
 export default function OpeningFitUXCleanup({ data, username, onJump, activeView, onViewChange }) {
   const [toolsOpen, setToolsOpen] = useState(false);
-
-  useEffect(() => {
-    document.body.classList.toggle("showOpeningFitTools", toolsOpen);
-    return () => document.body.classList.remove("showOpeningFitTools");
-  }, [toolsOpen]);
+  const currentTab = normaliseTab(activeView);
 
   const summary = useMemo(() => {
     const openings = getOpenings(data);
+
     return {
       games: getGames(data),
       style: getStyle(data),
       topOpening: openingName(openings[0]),
-      openingCount: openings.length,
     };
   }, [data]);
+
+  useEffect(() => {
+    if (!data) {
+      document.body.classList.remove("openingfitTabbedResults");
+      document.body.classList.remove("showOpeningFitTools");
+      document.body.removeAttribute("data-openingfit-tab");
+      return;
+    }
+
+    document.body.classList.add("openingfitTabbedResults");
+    document.body.setAttribute("data-openingfit-tab", currentTab);
+    document.body.classList.toggle("showOpeningFitTools", toolsOpen || currentTab === "tools");
+
+    return () => {
+      document.body.classList.remove("openingfitTabbedResults");
+      document.body.classList.remove("showOpeningFitTools");
+      document.body.removeAttribute("data-openingfit-tab");
+    };
+  }, [data, currentTab, toolsOpen]);
 
   useEffect(() => {
     if (!data) return;
 
     const timer = window.setTimeout(() => {
-      const target =
-        document.getElementById("report-start") ||
-        document.getElementById("openingfit-report") ||
-        document.getElementById("study-planner");
-
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
+      const target = document.getElementById("report-start") || document.getElementById("openingfit-report");
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 250);
 
     return () => window.clearTimeout(timer);
@@ -73,16 +94,28 @@ export default function OpeningFitUXCleanup({ data, username, onJump, activeView
   if (!data) return null;
 
   const go = (view, target) => {
-    if (view && onViewChange) {
-      onViewChange(view);
-    }
+    if (view && onViewChange) onViewChange(view);
+    if (view === "tools") setToolsOpen(true);
 
     window.setTimeout(() => {
-      if (target) {
-        onJump?.(target);
-      }
+      const fallback = document.getElementById("report-start");
+      const direct = target ? document.getElementById(target) : null;
+
+      if (direct) direct.scrollIntoView({ behavior: "smooth", block: "start" });
+      else if (fallback) fallback.scrollIntoView({ behavior: "smooth", block: "start" });
+      else if (target) onJump?.(target);
     }, 80);
   };
+
+  const tabs = [
+    { key: "overview", label: "Summary", view: "overview", target: "openingfit-report" },
+    { key: "recommendations", label: "Openings", view: "recommendations", target: "keep-improve-avoid" },
+    { key: "training", label: "Study Plan", view: "training", target: "study-planner" },
+    { key: "games", label: "Games", view: "games", target: "game-replay" },
+    { key: "data", label: "Stats", view: "data", target: "top-openings-table" },
+    { key: "feedback", label: "Feedback", view: "feedback", target: "feedback" },
+    { key: "tools", label: "Tools", view: "tools", target: "functionality-hub" },
+  ];
 
   return (
     <>
@@ -92,13 +125,11 @@ export default function OpeningFitUXCleanup({ data, username, onJump, activeView
         <div className="ofUXReportCopy">
           <div className="ofEyebrow">Your report</div>
 
-          <h2>
-            {username ? `${username}'s OpeningFit report` : "Your OpeningFit report"}
-          </h2>
+          <h2>{username ? `${username}'s OpeningFit report` : "Your OpeningFit report"}</h2>
 
           <p>
-            Start with the summary, then work through the plan. The detailed stats and
-            QA tools are now kept lower down so the report feels easier to use.
+            Use the tabs below instead of scrolling through everything. Start with the summary,
+            then move into openings, study plan, games, stats, or feedback.
           </p>
         </div>
 
@@ -120,47 +151,23 @@ export default function OpeningFitUXCleanup({ data, username, onJump, activeView
         </div>
       </section>
 
-      <nav className="ofUXStickyNav" aria-label="OpeningFit report navigation">
-        <button type="button" onClick={() => go("overview", "openingfit-report")}>
-          Summary
-        </button>
-
-        <button type="button" onClick={() => go("recommendations", "keep-improve-avoid")}>
-          Openings
-        </button>
-
-        <button type="button" onClick={() => go("training", "study-planner")}>
-          Study plan
-        </button>
-
-        <button type="button" onClick={() => go("games", "game-replay")}>
-          Games
-        </button>
-
-        <button type="button" onClick={() => go("data", "top-openings-table")}>
-          Stats
-        </button>
-
-        <button type="button" onClick={() => go("feedback", "feedback")}>
-          Feedback
-        </button>
-
-        <button
-          type="button"
-          className={toolsOpen ? "active" : ""}
-          onClick={() => setToolsOpen((value) => !value)}
-        >
-          Tools
-        </button>
+      <nav className="ofUXStickyNav ofTabbedNav" aria-label="OpeningFit report navigation">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            className={currentTab === tab.key ? "active" : ""}
+            onClick={() => go(tab.view, tab.target)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </nav>
 
-      <div className={toolsOpen ? "ofDeveloperToolsOpen" : "ofDeveloperToolsClosed"}>
+      <div className={currentTab === "tools" || toolsOpen ? "ofDeveloperToolsOpen" : "ofDeveloperToolsClosed"}>
         <div className="ofDeveloperToolsNotice">
-          <strong>Beta tools are {toolsOpen ? "visible" : "hidden"}.</strong>
-          <span>
-            Import doctor, functionality checks, backend status, and trust/debug panels are kept
-            out of the main reading flow.
-          </span>
+          <strong>{currentTab === "tools" || toolsOpen ? "Tools visible." : "Tools hidden."}</strong>
+          <span> Diagnostics, backend checks, and beta utilities are kept away from the main report.</span>
         </div>
       </div>
     </>
