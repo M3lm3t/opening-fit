@@ -3485,3 +3485,200 @@ body.openingfitTabbedResults.showOpeningFitTools .ofTrustWrap {
     min-width: fit-content;
   }
 }
+
+/* Final tabbed layout cleanup: hide old duplicate internal nav */
+
+body.openingfitTabbedResults .ofLegacySectionNavHidden {
+  display: none !important;
+}
+
+/* Final light mode contrast patch */
+
+.page.light .ofUXReportHeader,
+.page.light .ofReportHero,
+.page.light .ofGuidedFlow,
+.page.light .ofStudyPlanner,
+.page.light .ofReportActions,
+.page.light .ofFinalCTA,
+.page.light .ofFunctionalityHub,
+.page.light .ofFunctionalTools,
+.page.light .ofImportDoctor,
+.page.light .ofTrustBar,
+.page.light .ofTrustWrap,
+.page[data-theme="light"] .ofUXReportHeader,
+.page[data-theme="light"] .ofReportHero,
+.page[data-theme="light"] .ofGuidedFlow,
+.page[data-theme="light"] .ofStudyPlanner,
+.page[data-theme="light"] .ofReportActions,
+.page[data-theme="light"] .ofFinalCTA,
+.page[data-theme="light"] .ofFunctionalityHub,
+.page[data-theme="light"] .ofFunctionalTools,
+.page[data-theme="light"] .ofImportDoctor,
+.page[data-theme="light"] .ofTrustBar,
+.page[data-theme="light"] .ofTrustWrap {
+  background: linear-gradient(145deg, #ffffff, #f8fafc) !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 18px 55px rgba(15, 23, 42, 0.08) !important;
+}
+
+.page.light .ofReportHero *,
+.page.light .ofGuidedFlow *,
+.page.light .ofStudyPlanner *,
+.page.light .ofReportActions *,
+.page.light .ofFinalCTA *,
+.page.light .ofUXReportHeader *,
+.page[data-theme="light"] .ofReportHero *,
+.page[data-theme="light"] .ofGuidedFlow *,
+.page[data-theme="light"] .ofStudyPlanner *,
+.page[data-theme="light"] .ofReportActions *,
+.page[data-theme="light"] .ofFinalCTA *,
+.page[data-theme="light"] .ofUXReportHeader * {
+  color: inherit;
+}
+
+.page.light .ofReportHero h1,
+.page.light .ofReportHero h2,
+.page.light .ofReportHero h3,
+.page.light .ofReportHero strong,
+.page.light .ofGuidedFlow h1,
+.page.light .ofGuidedFlow h2,
+.page.light .ofGuidedFlow h3,
+.page.light .ofGuidedFlow strong,
+.page.light .ofStudyPlanner h1,
+.page.light .ofStudyPlanner h2,
+.page.light .ofStudyPlanner h3,
+.page.light .ofStudyPlanner strong,
+.page.light .ofReportActions h1,
+.page.light .ofReportActions h2,
+.page.light .ofReportActions h3,
+.page.light .ofReportActions strong,
+.page.light .ofUXReportHeader h1,
+.page.light .ofUXReportHeader h2,
+.page.light .ofUXReportHeader h3,
+.page.light .ofUXReportHeader strong,
+.page[data-theme="light"] .ofReportHero h1,
+.page[data-theme="light"] .ofReportHero h2,
+.page[data-theme="light"] .ofReportHero h3,
+.page[data-theme="light"] .ofReportHero strong,
+.page[data-theme="light"] .ofGuidedFlow h1,
+.page[data-theme="light"] .ofGuidedFlow h2,
+.page[data-theme="light"] .ofGuidedFlow h3,
+.page[data-theme="light"] .ofGuidedFlow strong,
+.page[data-theme="light"] .ofStudyPlanner h1,
+.page[data-theme="light"] .ofStudyPlanner h2,
+.page[data-theme="light"] .ofStudyPlanner h3,
+.page[data-theme="light"] .ofStudyPlanner strong,
+.page[data-theme="light"] .ofReportActions h1,
+.page[data-theme="light"] .ofReportActions h2,
+.page[data-theme="light"] .ofReportActions h3,
+.page[data-theme="light"] .ofReportActions strong,
+.page[data-theme="light"] .ofUXReportHeader h1,
+.page[data-theme="light"] .ofUXReportHeader h2,
+.page[data-theme="light"] .ofUXReportHeader h3,
+.page[data-theme="light"] .ofUXReportHeader strong {
+  color: #0f172a !important;
+}
+
+.page.light .ofReportHero p,
+.page.light .ofReportHero small,
+.page.light .ofGuidedFlow p,
+.page.light .ofGuidedFlow small,
+.page.light .ofStudyPlanner p,
+.page.light .ofStudyPlanner small,
+.page.light .ofReportActions p,
+.page.light .ofReportActions small,
+.page.light .ofUXReportHeader p,
+.page.light .ofUXReportHeader small,
+.page[data-theme="light"] .ofReportHero p,
+.page[data-theme="light"] .ofReportHero small,
+.page[data-theme="light"] .ofGuidedFlow p,
+.page[data-theme="light"] .ofGuidedFlow small,
+.page[data-theme="light"] .ofStudyPlanner p,
+.page[data-theme="light"] .ofStudyPlanner small,
+.page[data-theme="light"] .ofReportActions p,
+.page[data-theme="light"] .ofReportActions small,
+.page[data-theme="light"] .ofUXReportHeader p,
+.page[data-theme="light"] .ofUXReportHeader small {
+  color: #475569 !important;
+}
+
+.page.light .ofScoreCard,
+.page.light .ofInsightGrid article,
+.page.light .ofGuidedMiniCard,
+.page.light .ofGuidedSteps article,
+.page.light .ofStudyProgressCard,
+.page.light .ofStudyOpeningMeta,
+.page.light .ofStudyTaskList article,
+.page.light .ofActionCard,
+.page.light .ofFinalCTAStack article,
+.page.light .ofUXQuickStats article,
+.page[data-theme="light"] .ofScoreCard,
+.page[data-theme="light"] .ofInsightGrid article,
+.page[data-theme="light"] .ofGuidedMiniCard,
+.page[data-theme="light"] .ofGuidedSteps article,
+.page[data-theme="light"] .ofStudyProgressCard,
+.page[data-theme="light"] .ofStudyOpeningMeta,
+.page[data-theme="light"] .ofStudyTaskList article,
+.page[data-theme="light"] .ofActionCard,
+.page[data-theme="light"] .ofFinalCTAStack article,
+.page[data-theme="light"] .ofUXQuickStats article {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+.page.light .ofEyebrow,
+.page.light .polishedEyebrow,
+.page[data-theme="light"] .ofEyebrow,
+.page[data-theme="light"] .polishedEyebrow {
+  background: rgba(79, 70, 229, 0.08) !important;
+  color: #3730a3 !important;
+  border-color: rgba(79, 70, 229, 0.22) !important;
+}
+
+.page.light .ofUXStickyNav,
+.page[data-theme="light"] .ofUXStickyNav {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+.page.light .ofUXStickyNav button,
+.page[data-theme="light"] .ofUXStickyNav button {
+  color: #334155 !important;
+}
+
+.page.light .ofUXStickyNav button.active,
+.page[data-theme="light"] .ofUXStickyNav button.active {
+  color: #ffffff !important;
+}
+
+.page.light input,
+.page.light select,
+.page.light textarea,
+.page[data-theme="light"] input,
+.page[data-theme="light"] select,
+.page[data-theme="light"] textarea {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.16) !important;
+}
+
+.page.light input::placeholder,
+.page.light textarea::placeholder,
+.page[data-theme="light"] input::placeholder,
+.page[data-theme="light"] textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Prevent dark glass overlays from making light mode unreadable */
+.page.light .ofReportHero::before,
+.page.light .ofReportHero::after,
+.page.light .ofGuidedFlow::before,
+.page.light .ofGuidedFlow::after,
+.page[data-theme="light"] .ofReportHero::before,
+.page[data-theme="light"] .ofReportHero::after,
+.page[data-theme="light"] .ofGuidedFlow::before,
+.page[data-theme="light"] .ofGuidedFlow::after {
+  opacity: 0.08 !important;
+}
