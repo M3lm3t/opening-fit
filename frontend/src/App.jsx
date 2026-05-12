@@ -1,3 +1,7 @@
+import PolishedOpeningFitReportHero from "./components/OpeningFitReportHero.jsx";
+import OpeningFitTrustSections from "./components/OpeningFitTrustSections.jsx";
+import OpeningFitPolishToast from "./components/OpeningFitPolishToast.jsx";
+import "./components/OpeningFitPolish.css";
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
@@ -3221,7 +3225,7 @@ const [activeView, setActiveView] = useState("overview");
         <PremiumTrustStrip />
 
 
-        {data ? <OpeningFitReportHero data={data} /> : null}
+        {data ? <PolishedOpeningFitReportHero data={data} /> : null}
 
         {data ? <OpeningFitFullReport data={data} /> : null}
         {data ? <OpponentPrepPreview data={data} /> : null}

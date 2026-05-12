@@ -9,123 +9,128 @@ export default function LandingModal({
   theme,
   onThemeToggle,
 }) {
-  const fillDemo = () => {
-    setPlatform("chesscom");
-    setUsername("Hikaru");
-  };
-
   const handleImport = () => {
-    onClose();
-    onImport();
+    onClose?.();
+    onImport?.();
   };
 
   return (
-    <div className="landingOverlay" onClick={onClose}>
-      <div className="landingModal landingModalPremium" onClick={(event) => event.stopPropagation()}>
+    <div className="landingOverlay polishedLandingOverlay" onClick={onClose}>
+      <section className="landingModal polishedLandingModal" onClick={(event) => event.stopPropagation()}>
+        <div className="polishedLandingGlow" />
+
         <button
-          className="landingCloseBtn"
+          className="landingCloseBtn polishedLandingClose"
           type="button"
           onClick={onClose}
-          aria-label="Close landing modal"
+          aria-label="Close landing panel"
         >
           ×
         </button>
 
-        <div className="landingHeroPremium">
-          <div className="landingBadge">Personal opening report</div>
+        <div className="polishedLandingHero">
+          <div className="polishedEyebrow">OpeningFit Beta</div>
 
-          <h1>Find the openings that actually fit your chess</h1>
+          <h1>Find the openings that fit how you actually play.</h1>
 
-          <p className="landingLead">
-            Opening Fit analyses your recent games and shows what to keep,
-            improve, and avoid — based on your own results.
+          <p>
+            OpeningFit reviews your recent games, spots your strongest opening patterns,
+            and gives you a practical keep, improve, or avoid repertoire plan.
           </p>
         </div>
 
-        <div className="landingActionCard">
-          <div className="landingInputGrid">
-            <label>
-              <span>Platform</span>
-              <select value={platform} onChange={(event) => setPlatform(event.target.value)}>
-                <option value="chesscom">Chess.com</option>
-                <option value="lichess">Lichess</option>
-              </select>
-            </label>
-
-            <label>
-              <span>Username</span>
+        <div className="polishedImportCard">
+          <div>
+            <label htmlFor="landingUsername">Chess.com username</label>
+            <div className="polishedInputRow">
               <input
+                id="landingUsername"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                placeholder={platform === "lichess" ? "Lichess username" : "Chess.com username"}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && username.trim() && !loading) {
-                    handleImport();
-                  }
+                  if (event.key === "Enter") handleImport();
                 }}
+                placeholder="e.g. Hikaru"
+                autoComplete="off"
               />
-            </label>
+
+              <button type="button" onClick={handleImport} disabled={loading || !username?.trim()}>
+                {loading ? "Analysing..." : "Analyse my games"}
+              </button>
+            </div>
           </div>
 
-          <button
-            className="landingPrimaryBtn"
-            type="button"
-            onClick={handleImport}
-            disabled={loading || !username.trim()}
-          >
-            {loading ? "Analysing games..." : "Analyse my games"}
-          </button>
-
-          <div className="landingSecondaryRow">
-            <button type="button" onClick={fillDemo}>
-              Try demo username
+          <div className="polishedPlatformRow" aria-label="Platform selector">
+            <button
+              type="button"
+              className={platform === "chesscom" ? "active" : ""}
+              onClick={() => setPlatform?.("chesscom")}
+            >
+              Chess.com
             </button>
-
-            <button type="button" onClick={onThemeToggle}>
-              {theme === "dark" ? "Light mode" : "Dark mode"}
+            <button
+              type="button"
+              className={platform === "lichess" ? "active" : ""}
+              onClick={() => setPlatform?.("lichess")}
+            >
+              Lichess soon
             </button>
           </div>
-
-          <p className="landingTrustText">
-            No password needed. Uses public game data only.
-          </p>
         </div>
 
-        <div className="landingPreviewGrid">
-          <div className="landingPreviewCard landingPreviewCardStrong">
-            <span>Keep</span>
-            <h3>Vienna Game</h3>
-            <p>Strong results in tactical e4 positions. Keep building this into your main White weapon.</p>
-          </div>
+        <div className="polishedTrustTiles">
+          <article>
+            <strong>Personalised</strong>
+            <span>Built from your own games, not generic theory.</span>
+          </article>
 
-          <div className="landingPreviewCard">
-            <span>Improve</span>
-            <h3>Caro-Kann Defence</h3>
-            <p>Good structure, but your middlegame plans need sharpening after the opening phase.</p>
-          </div>
+          <article>
+            <strong>Practical</strong>
+            <span>See what to keep, improve, and avoid.</span>
+          </article>
 
-          <div className="landingPreviewCard">
-            <span>Avoid for now</span>
-            <h3>Scandinavian Defence</h3>
-            <p>Recent games show early development problems and lower scoring positions.</p>
+          <article>
+            <strong>Fast</strong>
+            <span>Get a usable study direction in minutes.</span>
+          </article>
+        </div>
+
+        <div className="polishedHowItWorks">
+          <h2>How it works</h2>
+
+          <div className="polishedSteps">
+            <div>
+              <span>1</span>
+              <strong>Import games</strong>
+              <p>Enter your public Chess.com username.</p>
+            </div>
+
+            <div>
+              <span>2</span>
+              <strong>Detect patterns</strong>
+              <p>OpeningFit reviews results by opening, colour, and style.</p>
+            </div>
+
+            <div>
+              <span>3</span>
+              <strong>Get a plan</strong>
+              <p>Turn your games into a practical repertoire direction.</p>
+            </div>
           </div>
         </div>
 
-        <div className="landingMiniRoadmap">
-          <div>
-            <strong>1</strong>
-            Import games
-          </div>
-          <div>
-            <strong>2</strong>
-            Get opening verdicts
-          </div>
-          <div>
-            <strong>3</strong>
-            Build your repertoire
-          </div>
+        <div className="polishedBetaNote">
+          Built for improving club players. Still in beta, so early feedback helps shape the next version.
         </div>
-      </div>
+
+        <button
+          type="button"
+          className="polishedThemeToggle"
+          onClick={onThemeToggle}
+        >
+          {theme === "light" ? "Dark mode" : "Light mode"}
+        </button>
+      </section>
     </div>
   );
 }
