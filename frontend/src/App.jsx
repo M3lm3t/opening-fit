@@ -55,6 +55,9 @@ import CleanReportHeader from "./components/CleanReportHeader";
 
 import IntelligentCoachInsights from "./components/IntelligentCoachInsights";
 
+import OpeningClassificationNotice from "./components/OpeningClassificationNotice";
+import { buildLevelAwareRecommendation, displayOpeningName, getPlayerLevelProfile } from "./components/playerLevelLogic";
+
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
   playerName: "DemoPlayer",
@@ -3258,7 +3261,12 @@ const [activeView, setActiveView] = useState("overview");
   }, [data, showUnknownOpenings]);
 
   const smartRecommendationSummary = useMemo(() => {
+    const levelProfile = getPlayerLevelProfile(data);
+    const levelAware = buildLevelAwareRecommendation(data, fitData);
     const summary = [];
+
+    summary.push(levelAware.summary);
+    summary.push(levelAware.primaryAction);
 
     const bestFit = fitData.bestOpening;
     const weakFit = fitData.weakestOpening;
@@ -3266,19 +3274,19 @@ const [activeView, setActiveView] = useState("overview");
 
     if (bestFit) {
       summary.push(
-        `${getOpeningName(bestFit)} currently looks like your strongest Opening Fit. It scores ${bestFit.fitScore}/100 and matches your ${fitData.playerStyle.title.toLowerCase()} profile.`
+        `${displayOpeningName(bestFit, data)} currently looks like your strongest Opening Fit. It scores ${bestFit.fitScore}/100 and matches the ${levelProfile.shortLabel.toLowerCase()} profile read.`
       );
     }
 
-    if (top) {
+    if (top && levelProfile.level !== "elite") {
       summary.push(
-        `Your most common opening is ${top.name}. Because it appears often, improving this opening should give you the biggest overall return.`
+        `Your most common opening is ${displayOpeningName(top, data)}. Because it appears often, improving this opening should give you the biggest overall return.`
       );
     }
 
     if (weakFit && getOpeningName(weakFit) !== getOpeningName(bestFit)) {
       summary.push(
-        `${getOpeningName(weakFit)} may need attention. It currently scores ${weakFit.fitScore}/100, so review the first few moves and common plans.`
+        `${displayOpeningName(weakFit, data)} may need attention. It currently scores ${weakFit.fitScore}/100, so review the first few moves and common plans.`
       );
     }
 
@@ -3289,13 +3297,55 @@ const [activeView, setActiveView] = useState("overview");
     }
 
     return summary;
-  }, [fitData, filteredTopOpenings]);
+  }, [data, fitData, filteredTopOpenings]);
 
   const personalTrainingPlan = useMemo(() => {
     const plan = [];
+    const levelProfile = getPlayerLevelProfile(data);
 
     const bestFit = fitData.bestOpening;
     const weakFit = fitData.weakestOpening;
+
+    if (levelProfile.level === "elite") {
+      return [
+        {
+          title: "Run this as a repertoire audit",
+          text: "This account is too strong for beginner-style coaching. Focus on trend changes, underperforming sidelines, colour splits, and opponent-prep value.",
+          action: null,
+          opening: null,
+        },
+        {
+          title: "Check high-volume openings first",
+          text: "Prioritise openings with enough games to show a real trend. Low-sample results should be treated as noise at elite level.",
+          action: null,
+          opening: null,
+        },
+        {
+          title: "Look for preparation gaps",
+          text: "The useful question is not “what simple opening should they play?” but “which parts of the existing repertoire are scoring below expectation?”",
+          action: null,
+          opening: null,
+        },
+      ];
+    }
+
+    if (levelProfile.level === "advanced") {
+      plan.push({
+        title: "Refine, do not replace",
+        text: "This player likely already has opening knowledge. Focus on weak branches, repeated structures, and recent performance changes rather than generic opening swaps.",
+        action: null,
+        opening: null,
+      });
+    }
+
+    if (levelProfile.level === "beginner" || levelProfile.level === "improver") {
+      plan.push({
+        title: "Simplify the repertoire first",
+        text: "Use fewer openings for the next block of games. Pick one White setup and one simple Black setup so the same middlegame plans appear repeatedly.",
+        action: null,
+        opening: null,
+      });
+    }
 
     const mostPlayed = [...filteredTopOpenings]
       .filter((item) => (item.games || 0) >= 3)
@@ -3709,6 +3759,8 @@ const [activeView, setActiveView] = useState("overview");
               />
 
               <IntelligentCoachInsights data={data} />
+
+              <OpeningClassificationNotice data={data} />
 
               <section className="statsGrid">
                 <div className="card statCard">

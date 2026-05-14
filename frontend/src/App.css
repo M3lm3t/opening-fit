@@ -19498,3 +19498,96 @@ video {
     border-radius: 22px;
   }
 }
+
+/* Opening classification notice */
+.classificationNotice {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: center;
+  margin: 0 0 18px;
+  padding: 18px;
+  border: 1px solid rgba(251, 191, 36, 0.26);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(251, 191, 36, 0.14), transparent 34%),
+    rgba(15, 23, 42, 0.74);
+  color: #f8fafc;
+}
+
+[data-theme="light"] .classificationNotice,
+.light .classificationNotice {
+  background:
+    radial-gradient(circle at top left, rgba(251, 191, 36, 0.12), transparent 34%),
+    rgba(255, 255, 255, 0.88);
+  color: #0f172a;
+  border-color: rgba(217, 119, 6, 0.22);
+}
+
+.classificationNotice span {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 7px;
+  color: #fcd34d;
+  font-size: 0.74rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+[data-theme="light"] .classificationNotice span,
+.light .classificationNotice span {
+  color: #92400e;
+}
+
+.classificationNotice h2 {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+  letter-spacing: -0.03em;
+}
+
+.classificationNotice p {
+  margin: 8px 0 0;
+  max-width: 760px;
+  color: rgba(226, 232, 240, 0.72);
+  line-height: 1.5;
+}
+
+[data-theme="light"] .classificationNotice p,
+.light .classificationNotice p {
+  color: rgba(15, 23, 42, 0.64);
+}
+
+.classificationNoticeStat {
+  min-width: 128px;
+  padding: 14px;
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  border-radius: 20px;
+  background: rgba(251, 191, 36, 0.1);
+  text-align: center;
+}
+
+.classificationNoticeStat strong {
+  display: block;
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.classificationNoticeStat span {
+  display: block;
+  width: auto;
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+@media (max-width: 700px) {
+  .classificationNotice {
+    grid-template-columns: 1fr;
+  }
+
+  .classificationNoticeStat {
+    text-align: left;
+  }
+}
