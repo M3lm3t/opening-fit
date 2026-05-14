@@ -169,9 +169,27 @@ export function CoachSummaryCard({ data, onViewChange }) {
         </div>
 
         <div className="coachScoreCard">
-          <span>Opening focus</span>
-          <strong>{mainName}</strong>
-          <small>Start here before adding more theory.</small>
+          <div>
+            <span>Opening focus</span>
+            <strong>{mainName}</strong>
+            <small>Start here before adding more theory.</small>
+          </div>
+
+          <div className="coachFocusMiniGrid">
+            <div>
+              <b>{summary.gamesImported || "—"}</b>
+              <small>games</small>
+            </div>
+            <div>
+              <b>{bestRate || "—"}{bestRate ? "%" : ""}</b>
+              <small>best score</small>
+            </div>
+          </div>
+
+          <p>
+            Your next improvement should come from sharpening this part of your
+            repertoire, not adding lots of new openings.
+          </p>
         </div>
       </div>
 

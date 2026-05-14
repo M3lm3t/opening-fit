@@ -17793,3 +17793,839 @@ textarea {
     letter-spacing: -0.06em;
   }
 }
+
+/* =========================================================
+   Overflow + mobile landing polish
+   Fixes cards/boxes pushing outside containers on laptop/mobile
+   ========================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.page,
+.appShell,
+.mainShell,
+.reportShell,
+.reportGrid,
+.dashboardGrid,
+.accountPanel,
+.accountPanelShell,
+.card,
+.panel,
+.sectionCard,
+.statCard,
+.premiumCard,
+.progressCard,
+.openingHealthCard,
+.openingHealthGrid,
+.freeProgressCard {
+  min-width: 0;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+}
+
+/* Make big report/dashboard sections wrap instead of pushing out */
+.reportGrid,
+.dashboardGrid,
+.openingHealthGrid,
+.progressGrid,
+.featureGrid,
+.planGrid,
+.actionGrid,
+.accountGrid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+  width: 100%;
+}
+
+/* Prevent inner cards from forcing overflow */
+.card,
+.panel,
+.sectionCard,
+.statCard,
+.progressCard,
+.premiumCard,
+.openingHealthCard,
+.freeProgressCard {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Text should wrap cleanly inside cards */
+.card *,
+.panel *,
+.sectionCard *,
+.statCard *,
+.progressCard *,
+.premiumCard *,
+.openingHealthCard *,
+.freeProgressCard *,
+.accountPanel * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Fix button rows that currently push outside cards */
+.actionRow,
+.buttonRow,
+.reportActions,
+.heroActions,
+.importActions,
+.accountActions,
+.progressActions,
+.premiumActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.actionRow > *,
+.buttonRow > *,
+.reportActions > *,
+.heroActions > *,
+.importActions > *,
+.accountActions > *,
+.progressActions > *,
+.premiumActions > * {
+  min-width: 0;
+}
+
+/* Better laptop/tablet spacing */
+@media (max-width: 1100px) {
+  .page {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .reportGrid,
+  .dashboardGrid,
+  .openingHealthGrid,
+  .progressGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .card,
+  .panel,
+  .sectionCard,
+  .progressCard,
+  .premiumCard,
+  .openingHealthCard,
+  .freeProgressCard {
+    padding: 18px !important;
+  }
+}
+
+/* Mobile landing page: reduce text and stop cut-off */
+@media (max-width: 720px) {
+  .landingOverlay {
+    align-items: flex-start !important;
+    padding: 14px !important;
+    overflow-y: auto !important;
+  }
+
+  .landingModal,
+  .landingCard,
+  .heroCard,
+  .landingShell,
+  .landingPanel {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 18px !important;
+    border-radius: 24px !important;
+  }
+
+  .landingModal h1,
+  .landingCard h1,
+  .heroCard h1,
+  .landingShell h1 {
+    font-size: clamp(2rem, 12vw, 3.1rem) !important;
+    line-height: 0.95 !important;
+    letter-spacing: -0.06em !important;
+  }
+
+  .landingModal h2,
+  .landingCard h2,
+  .heroCard h2,
+  .landingShell h2 {
+    font-size: clamp(1.35rem, 8vw, 2rem) !important;
+    line-height: 1.05 !important;
+  }
+
+  .landingModal p,
+  .landingCard p,
+  .heroCard p,
+  .landingShell p {
+    font-size: 0.95rem !important;
+    line-height: 1.45 !important;
+    max-width: 100% !important;
+  }
+
+  .landingModal .lead,
+  .landingCard .lead,
+  .heroCard .lead,
+  .landingShell .lead {
+    font-size: 1rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .landingHeroGrid,
+  .landingGrid,
+  .heroGrid,
+  .landingFeatureGrid,
+  .landingSteps {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .landingFeature,
+  .landingStep,
+  .heroFeature,
+  .miniFeature,
+  .featurePill {
+    padding: 12px !important;
+  }
+
+  .landingFeature p,
+  .landingStep p,
+  .heroFeature p,
+  .miniFeature p,
+  .featurePill p {
+    display: none !important;
+  }
+
+  .landingActions,
+  .heroActions,
+  .importActions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .landingActions button,
+  .heroActions button,
+  .importActions button,
+  .landingActions a,
+  .heroActions a,
+  .importActions a {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 420px) {
+  .page {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .landingModal,
+  .landingCard,
+  .heroCard,
+  .landingShell,
+  .landingPanel {
+    padding: 14px !important;
+    border-radius: 20px !important;
+  }
+
+  .landingModal h1,
+  .landingCard h1,
+  .heroCard h1,
+  .landingShell h1 {
+    font-size: 2.35rem !important;
+  }
+
+  .card,
+  .panel,
+  .sectionCard,
+  .progressCard,
+  .premiumCard,
+  .openingHealthCard,
+  .freeProgressCard {
+    padding: 14px !important;
+  }
+}
+
+
+/* =========================================================
+   Cleaner report hero spacing
+   Removes dead space from top report area
+   ========================================================= */
+
+.openingCoachHero,
+.reportHero,
+.coachHero,
+.reportIntro,
+.heroReportGrid,
+.openingFitReportHero {
+  align-items: stretch;
+}
+
+/* Keep top hero cards compact instead of stretching into empty blocks */
+.openingCoachHero .card,
+.reportHero .card,
+.coachHero .card,
+.reportIntro .card,
+.heroReportGrid .card,
+.openingFitReportHero .card,
+.openingCoachHero .panel,
+.reportHero .panel,
+.coachHero .panel,
+.reportIntro .panel,
+.heroReportGrid .panel,
+.openingFitReportHero .panel {
+  min-height: 0 !important;
+}
+
+/* The large "Opening focus" style card was creating too much empty height */
+.openingFocus,
+.openingFocusCard,
+.focusCard,
+.heroFocusCard,
+.reportFocusCard {
+  min-height: 280px !important;
+  max-height: 360px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+/* Make the intro/coach card feel balanced */
+.openingCoachCard,
+.personalCoachCard,
+.reportCoachCard,
+.heroCoachCard {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  gap: 18px !important;
+}
+
+/* Remove excessive empty vertical room in the top summary cards */
+.openingCoachCard h1,
+.personalCoachCard h1,
+.reportCoachCard h1,
+.heroCoachCard h1 {
+  margin-bottom: 12px !important;
+}
+
+.openingCoachCard p,
+.personalCoachCard p,
+.reportCoachCard p,
+.heroCoachCard p {
+  margin-bottom: 0 !important;
+}
+
+/* Make the opening health card more compact and app-like */
+.openingHealthCard,
+.healthScoreCard,
+.reportHealthCard,
+.heroHealthCard {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.15fr) minmax(160px, 0.85fr) !important;
+  gap: 22px !important;
+  align-items: start !important;
+}
+
+.openingHealthCard .statsGrid,
+.healthScoreCard .statsGrid,
+.reportHealthCard .statsGrid,
+.heroHealthCard .statsGrid {
+  grid-column: 1 / -1;
+}
+
+/* Stats should look neat and fill the card width */
+.statsGrid,
+.heroStatsGrid,
+.reportStatsGrid,
+.scoreStatsGrid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(120px, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.statsGrid > *,
+.heroStatsGrid > *,
+.reportStatsGrid > *,
+.scoreStatsGrid > * {
+  min-height: 92px !important;
+}
+
+/* Action buttons should sit closer to the stat row */
+.openingHealthCard .actionRow,
+.healthScoreCard .actionRow,
+.reportHealthCard .actionRow,
+.heroHealthCard .actionRow,
+.openingHealthCard .buttonRow,
+.healthScoreCard .buttonRow,
+.reportHealthCard .buttonRow,
+.heroHealthCard .buttonRow {
+  grid-column: 1 / -1;
+  margin-top: 4px !important;
+}
+
+/* Laptop layout: stop two-column hero sections becoming awkward */
+@media (max-width: 1180px) {
+  .openingCoachHero,
+  .reportHero,
+  .coachHero,
+  .reportIntro,
+  .heroReportGrid,
+  .openingFitReportHero {
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
+  }
+
+  .openingFocus,
+  .openingFocusCard,
+  .focusCard,
+  .heroFocusCard,
+  .reportFocusCard {
+    min-height: 220px !important;
+    max-height: none !important;
+  }
+
+  .openingHealthCard,
+  .healthScoreCard,
+  .reportHealthCard,
+  .heroHealthCard {
+    grid-template-columns: 1fr !important;
+  }
+
+  .statsGrid,
+  .heroStatsGrid,
+  .reportStatsGrid,
+  .scoreStatsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Mobile: tighter and cleaner */
+@media (max-width: 720px) {
+  .openingCoachHero,
+  .reportHero,
+  .coachHero,
+  .reportIntro,
+  .heroReportGrid,
+  .openingFitReportHero {
+    gap: 14px !important;
+  }
+
+  .openingCoachCard,
+  .personalCoachCard,
+  .reportCoachCard,
+  .heroCoachCard,
+  .openingFocus,
+  .openingFocusCard,
+  .focusCard,
+  .heroFocusCard,
+  .reportFocusCard,
+  .openingHealthCard,
+  .healthScoreCard,
+  .reportHealthCard,
+  .heroHealthCard {
+    padding: 18px !important;
+  }
+
+  .openingCoachCard h1,
+  .personalCoachCard h1,
+  .reportCoachCard h1,
+  .heroCoachCard h1 {
+    font-size: clamp(2rem, 11vw, 3rem) !important;
+    line-height: 0.98 !important;
+  }
+
+  .openingFocus,
+  .openingFocusCard,
+  .focusCard,
+  .heroFocusCard,
+  .reportFocusCard {
+    min-height: 180px !important;
+  }
+
+  .statsGrid,
+  .heroStatsGrid,
+  .reportStatsGrid,
+  .scoreStatsGrid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .statsGrid > *,
+  .heroStatsGrid > *,
+  .reportStatsGrid > *,
+  .scoreStatsGrid > * {
+    min-height: 82px !important;
+    padding: 14px !important;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 430px) {
+  .statsGrid,
+  .heroStatsGrid,
+  .reportStatsGrid,
+  .scoreStatsGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+/* =========================================================
+   Clean coach summary hero
+   Fixes empty/dead space in the top Opening Fit report area
+   ========================================================= */
+
+.coachSummaryShell {
+  width: min(1120px, calc(100% - 1.5rem));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.coachSummaryHero {
+  display: grid !important;
+  grid-template-columns: minmax(0, 0.95fr) minmax(280px, 0.75fr) !important;
+  gap: 1rem !important;
+  align-items: stretch !important;
+}
+
+.coachSummaryHero > div:first-child,
+.coachScoreCard {
+  min-height: 0 !important;
+}
+
+.coachSummaryHero > div:first-child {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  padding: clamp(1.2rem, 2.2vw, 1.65rem) !important;
+}
+
+.coachSummaryHero h2 {
+  max-width: 420px !important;
+  margin-bottom: 0.9rem !important;
+}
+
+.coachSummaryHero p {
+  max-width: 430px !important;
+}
+
+.coachScoreCard {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  gap: 1rem !important;
+  padding: clamp(1.1rem, 2vw, 1.45rem) !important;
+  overflow: hidden !important;
+}
+
+.coachScoreCard > div:first-child {
+  display: grid !important;
+  gap: 0.5rem !important;
+}
+
+.coachScoreCard span {
+  width: fit-content !important;
+}
+
+.coachScoreCard strong {
+  max-width: 100% !important;
+  font-size: clamp(1.65rem, 3vw, 2.35rem) !important;
+  line-height: 1 !important;
+  letter-spacing: -0.055em !important;
+}
+
+.coachScoreCard small {
+  line-height: 1.35 !important;
+}
+
+.coachFocusMiniGrid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0.65rem !important;
+}
+
+.coachFocusMiniGrid div {
+  padding: 0.8rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+.coachFocusMiniGrid b,
+.coachFocusMiniGrid small {
+  display: block !important;
+}
+
+.coachFocusMiniGrid b {
+  color: #f8fafc !important;
+  font-size: 1.2rem !important;
+  line-height: 1 !important;
+}
+
+.coachFocusMiniGrid small {
+  margin-top: 0.25rem !important;
+  color: rgba(248, 250, 252, 0.62) !important;
+  font-weight: 800 !important;
+}
+
+.coachScoreCard p {
+  margin: 0 !important;
+  color: rgba(248, 250, 252, 0.7) !important;
+  font-size: 0.94rem !important;
+  line-height: 1.5 !important;
+}
+
+.coachInsightGrid {
+  margin-top: 1rem !important;
+}
+
+.coachInsightCard {
+  min-height: 0 !important;
+  padding: 1rem !important;
+}
+
+.openingHealthScore {
+  margin-top: 1rem !important;
+}
+
+@media (max-width: 980px) {
+  .coachSummaryHero {
+    grid-template-columns: 1fr !important;
+  }
+
+  .coachSummaryHero > div:first-child,
+  .coachScoreCard {
+    padding: 1.1rem !important;
+  }
+
+  .coachSummaryHero h2,
+  .coachSummaryHero p {
+    max-width: none !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .coachSummaryShell {
+    width: calc(100% - 0.8rem) !important;
+  }
+
+  .coachSummaryHero {
+    gap: 0.75rem !important;
+  }
+
+  .coachSummaryHero h2 {
+    font-size: clamp(2rem, 10vw, 2.75rem) !important;
+  }
+
+  .coachScoreCard strong {
+    font-size: 1.75rem !important;
+  }
+
+  .coachFocusMiniGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .coachInsightGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+/* =========================================================
+   Compact desktop report dashboard
+   Fixes huge blank spaces in coach summary + health score area
+   ========================================================= */
+
+@media (min-width: 981px) {
+  .coachSummaryShell {
+    width: min(1180px, calc(100% - 2rem)) !important;
+    margin: 0.85rem auto 1rem !important;
+  }
+
+  .coachSummaryHero {
+    display: grid !important;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) !important;
+    gap: 1rem !important;
+    align-items: stretch !important;
+  }
+
+  .coachSummaryHero > div:first-child,
+  .coachScoreCard {
+    min-height: 260px !important;
+    max-height: 310px !important;
+    height: auto !important;
+    justify-content: flex-start !important;
+  }
+
+  .coachSummaryHero > div:first-child {
+    display: grid !important;
+    align-content: start !important;
+    gap: 0.75rem !important;
+  }
+
+  .coachSummaryHero .eyebrow {
+    margin-bottom: 0 !important;
+  }
+
+  .coachSummaryHero h2 {
+    max-width: 360px !important;
+    margin: 0 !important;
+    font-size: clamp(2.3rem, 3.2vw, 3.3rem) !important;
+    line-height: 0.98 !important;
+  }
+
+  .coachSummaryHero > div:first-child p {
+    max-width: 390px !important;
+    margin: 0 !important;
+    font-size: 1rem !important;
+    line-height: 1.55 !important;
+  }
+
+  .coachScoreCard {
+    display: grid !important;
+    grid-template-rows: auto auto 1fr !important;
+    gap: 0.85rem !important;
+  }
+
+  .coachScoreCard strong {
+    max-width: 360px !important;
+    font-size: clamp(2rem, 3vw, 2.8rem) !important;
+    line-height: 0.95 !important;
+  }
+
+  .coachFocusMiniGrid {
+    max-width: 260px !important;
+  }
+
+  .coachScoreCard p {
+    max-width: 390px !important;
+    align-self: end !important;
+  }
+
+  .coachInsightGrid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.85rem !important;
+    margin-top: 0.85rem !important;
+  }
+
+  .coachInsightCard {
+    min-height: 145px !important;
+    max-height: 185px !important;
+    overflow: hidden !important;
+  }
+
+  .coachActionRow {
+    margin-top: 0.85rem !important;
+  }
+
+  .openingHealthScore {
+    width: min(1180px, calc(100% - 2rem)) !important;
+    margin: 0.85rem auto 1rem !important;
+    padding: 1.15rem !important;
+  }
+
+  .healthScoreMain {
+    grid-template-columns: minmax(0, 1fr) 120px !important;
+    gap: 1rem !important;
+    align-items: center !important;
+  }
+
+  .healthScoreMain h2 {
+    font-size: clamp(1.9rem, 2.7vw, 2.7rem) !important;
+    max-width: 420px !important;
+  }
+
+  .healthScoreMain p {
+    max-width: 500px !important;
+    line-height: 1.5 !important;
+  }
+
+  .healthScoreDial {
+    width: 120px !important;
+    min-height: 120px !important;
+    height: 120px !important;
+  }
+
+  .healthScoreDial strong {
+    font-size: 2.4rem !important;
+    margin-top: 0.55rem !important;
+  }
+
+  .healthScoreDial span {
+    margin-top: -0.95rem !important;
+  }
+
+  .healthMetricGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 0.7rem !important;
+    margin-top: 0.85rem !important;
+  }
+
+  .healthMetricGrid div {
+    min-height: 84px !important;
+    padding: 0.85rem !important;
+  }
+
+  .healthActionRow {
+    margin-top: 0.85rem !important;
+  }
+}
+
+/* Chromebook / smaller laptop widths */
+@media (min-width: 981px) and (max-width: 1220px) {
+  .coachSummaryShell,
+  .openingHealthScore {
+    width: calc(100% - 1rem) !important;
+  }
+
+  .coachSummaryHero {
+    grid-template-columns: minmax(280px, 0.75fr) minmax(360px, 1fr) !important;
+  }
+
+  .coachSummaryHero > div:first-child,
+  .coachScoreCard {
+    min-height: 230px !important;
+    max-height: 280px !important;
+  }
+
+  .coachSummaryHero h2 {
+    font-size: clamp(2rem, 3vw, 2.75rem) !important;
+  }
+
+  .coachScoreCard strong {
+    font-size: clamp(1.75rem, 2.8vw, 2.35rem) !important;
+  }
+
+  .healthMetricGrid div {
+    min-height: 76px !important;
+  }
+}
+
+/* Emergency override for older tall-card rules */
+.coachSummaryHero *,
+.openingHealthScore * {
+  min-width: 0 !important;
+}
+
+.coachSummaryHero > div,
+.openingHealthScore {
+  height: auto !important;
+}
+
