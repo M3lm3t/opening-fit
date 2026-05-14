@@ -1609,7 +1609,7 @@ def import_lichess_logic(username: str, months: int = 3):
         "pgnInJson": "false",
         "clocks": "false",
         "evals": "false",
-        "perfType": "blitz,rapid,classical",
+        "perfType": "bullet,blitz,rapid,classical",
         "sort": "dateDesc",
     }
 
