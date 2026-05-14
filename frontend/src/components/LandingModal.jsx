@@ -1,4 +1,3 @@
-import { LandingSampleReport } from "./ProductPolish";
 export default function LandingModal({
   username,
   setUsername,
@@ -10,17 +9,32 @@ export default function LandingModal({
   theme,
   onThemeToggle,
 }) {
+  const cleanUsername = String(username || "").trim();
+
   const handleImport = () => {
-    if (!username?.trim() || loading) return;
-    onClose?.();
-    onImport?.();
+    if (!cleanUsername || loading) return;
+    onClose();
+    onImport();
+  };
+
+  const handleSampleReport = () => {
+    if (loading) return;
+
+    // Uses a reliable public Chess.com account as an instant product demo.
+    setPlatform("chesscom");
+    setUsername("hikaru");
+
+    setTimeout(() => {
+      onClose();
+      onImport();
+    }, 0);
   };
 
   return (
-    <div className="landingOverlay polishedLandingOverlay shipLandingOverlay" onClick={onClose}>
-      <section className="landingModal polishedLandingModal shipLandingModal" onClick={(event) => event.stopPropagation()}>
+    <div className="landingOverlay" onClick={onClose}>
+      <div className="landingModal landingModal--beta" onClick={(event) => event.stopPropagation()}>
         <button
-          className="landingCloseBtn polishedLandingClose shipLandingClose"
+          className="landingCloseBtn"
           type="button"
           onClick={onClose}
           aria-label="Close landing panel"
@@ -28,94 +42,113 @@ export default function LandingModal({
           ×
         </button>
 
-        <div className="shipLandingContent">
-          <div className="shipLandingHero">
-            <div className="polishedEyebrow shipLandingEyebrow">OpeningFit Beta</div>
+        <div className="landingBetaPill">Beta version</div>
 
-            <h1>Find the openings that fit how you actually play.</h1>
+        <div className="landingHeroCopy">
+          <h1>Find the chess openings that actually fit your games.</h1>
+          <p>
+            OpeningFit looks at your recent games, spots which openings are working,
+            and turns them into a simple repertoire and study plan.
+          </p>
+        </div>
 
-            <p>
-              Import your recent Chess.com games and get a practical opening report:
-              what to keep, what to improve, and what to avoid.
-            </p>
+        <div className="landingValueGrid">
+          <div className="landingValueCard">
+            <span>01</span>
+            <strong>Opening profile</strong>
+            <p>See the opening families that match your current playing style.</p>
           </div>
 
-          <div className="shipImportCard">
-            <label htmlFor="landingUsername">Chess.com username</label>
-
-            <div className="shipInputRow">
-              <input
-                id="landingUsername"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") handleImport();
-                }}
-                placeholder="e.g. Hikaru"
-                autoComplete="off"
-              />
-
-              <button type="button" onClick={handleImport} disabled={loading || !username?.trim()}>
-                {loading ? "Analysing..." : "Analyse games"}
-              </button>
-            </div>
-
-            <div className="shipPlatformRow" aria-label="Platform selector">
-              <button
-                type="button"
-                className={platform === "chesscom" ? "active" : ""}
-                onClick={() => setPlatform?.("chesscom")}
-              >
-                Chess.com
-              </button>
-
-              <button
-                type="button"
-                className="comingSoon"
-                onClick={() => {
-                setPlatform?.("chesscom");
-                window.dispatchEvent(new CustomEvent("openingfit-toast", { detail: "Lichess import is coming soon. Use Chess.com for now." }));
-              }}
-              >
-                Lichess soon
-              </button>
-
-              <button
-                type="button"
-                className="shipThemeBtn"
-                onClick={onThemeToggle}
-              >
-                {theme === "light" ? "Dark" : "Light"}
-              </button>
-            </div>
+          <div className="landingValueCard">
+            <span>02</span>
+            <strong>Win-rate breakdown</strong>
+            <p>Find which openings are helping you score and which need work.</p>
           </div>
 
-          <div className="shipValueGrid">
-            <article>
-              <strong>Personal report</strong>
-              <span>Based on your games</span>
-            </article>
-
-            <article>
-              <strong>Clear verdicts</strong>
-              <span>Keep / Improve / Avoid</span>
-            </article>
-
-            <article>
-              <strong>Study direction</strong>
-              <span>Know what to fix first</span>
-            </article>
-          </div>
-
-          <div className="landingSampleReportMount">
-            <LandingSampleReport />
-          </div>
-
-          <div className="shipBetaNote">
-            Built for improving club players. OpeningFit is still in beta, so your feedback helps shape the next version.
+          <div className="landingValueCard">
+            <span>03</span>
+            <strong>Study plan</strong>
+            <p>Get clear next steps instead of staring at a long list of games.</p>
           </div>
         </div>
-      </section>
+
+        <div className="landingImportPanel">
+          <div className="landingImportHeader">
+            <h2>Import your games</h2>
+            <p>No account needed. Enter a public Chess.com username to generate a report.</p>
+          </div>
+
+          <div className="landingPlatformTabs" role="tablist" aria-label="Choose platform">
+            <button
+              type="button"
+              className={`landingPlatformTab ${platform === "chesscom" ? "is-active" : ""}`}
+              onClick={() => setPlatform("chesscom")}
+            >
+              Chess.com
+            </button>
+
+            <button
+              type="button"
+              className={`landingPlatformTab ${platform === "lichess" ? "is-active" : ""}`}
+              onClick={() => setPlatform("lichess")}
+              title="Lichess import is coming soon"
+            >
+              Lichess <small>soon</small>
+            </button>
+          </div>
+
+          {platform === "lichess" ? (
+            <div className="landingComingSoon">
+              Lichess import is next on the roadmap. For now, use Chess.com or view the sample report.
+            </div>
+          ) : null}
+
+          <div className="landingInputRow">
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleImport();
+              }}
+              placeholder={platform === "lichess" ? "Lichess coming soon" : "Chess.com username"}
+              disabled={loading || platform === "lichess"}
+              autoComplete="off"
+            />
+
+            <button
+              type="button"
+              className="landingPrimaryBtn"
+              onClick={handleImport}
+              disabled={loading || platform === "lichess" || !cleanUsername}
+            >
+              {loading ? "Analysing..." : "Import games"}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="landingSampleBtn"
+            onClick={handleSampleReport}
+            disabled={loading}
+          >
+            View sample report
+          </button>
+        </div>
+
+        <div className="landingTrustRow">
+          <span>Built for club players</span>
+          <span>Uses public game data</span>
+          <span>Free beta access</span>
+        </div>
+
+        <button
+          type="button"
+          className="landingThemeToggle"
+          onClick={onThemeToggle}
+        >
+          {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        </button>
+      </div>
     </div>
   );
 }
