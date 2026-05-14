@@ -16176,3 +16176,285 @@ html {
     margin-right: -0.25rem;
   }
 }
+
+/* Next Study Session */
+.nextStudyShell {
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 34rem),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(2, 6, 23, 0.96));
+}
+
+.light .nextStudyShell,
+[data-theme="light"] .nextStudyShell {
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 34rem),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.nextStudyHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.nextStudyHero h2 {
+  margin: 0.25rem 0;
+  font-size: clamp(1.45rem, 3vw, 2.25rem);
+  letter-spacing: -0.04em;
+}
+
+.nextStudyScore {
+  display: grid;
+  place-items: center;
+  min-width: 112px;
+  min-height: 112px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  box-shadow: inset 0 0 28px rgba(59, 130, 246, 0.12);
+}
+
+.nextStudyScore strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.nextStudyScore span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.76;
+}
+
+.nextStudyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.nextStudyCard {
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+  padding: 1rem;
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.66);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.16);
+}
+
+.light .nextStudyCard,
+[data-theme="light"] .nextStudyCard {
+  background: rgba(255, 255, 255, 0.76);
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.08);
+}
+
+.nextStudyCardTop {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+.nextStudyCardTop span {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.light .nextStudyCardTop span,
+[data-theme="light"] .nextStudyCardTop span {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.nextStudyCardTop p {
+  margin: 0;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.74;
+  font-weight: 800;
+}
+
+.nextStudyCard h3 {
+  margin: 0 0 0.55rem;
+  font-size: 1.25rem;
+  letter-spacing: -0.03em;
+}
+
+.nextStudyCard > p {
+  margin: 0 0 1rem;
+  line-height: 1.55;
+  opacity: 0.82;
+}
+
+.nextStudyMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: auto 0 1rem;
+}
+
+.nextStudyMeta span {
+  padding: 0.42rem 0.62rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.nextStudyCardBest {
+  border-color: rgba(34, 197, 94, 0.26);
+}
+
+.nextStudyCardWarning {
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.nextStudyCardRepertoire {
+  border-color: rgba(96, 165, 250, 0.26);
+}
+
+.nextStudyRepertoire {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.nextStudyRepertoire div {
+  padding: 0.72rem;
+  border-radius: 16px;
+  background: rgba(148, 163, 184, 0.11);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.nextStudyRepertoire span {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  opacity: 0.68;
+  font-weight: 800;
+}
+
+.nextStudyRepertoire strong {
+  display: block;
+  line-height: 1.25;
+}
+
+.nextStudyGames {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.48);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.light .nextStudyGames,
+[data-theme="light"] .nextStudyGames {
+  background: rgba(248, 250, 252, 0.82);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.nextStudySubhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.nextStudySubhead h3 {
+  margin: 0;
+}
+
+.nextStudySubhead button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  opacity: 0.78;
+}
+
+.nextStudySubhead button:hover {
+  opacity: 1;
+}
+
+.nextStudyGameList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.nextStudyGameItem {
+  text-align: left;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  border-radius: 16px;
+  padding: 0.8rem;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.light .nextStudyGameItem,
+[data-theme="light"] .nextStudyGameItem {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.nextStudyGameItem:hover {
+  transform: translateY(-1px);
+  border-color: rgba(96, 165, 250, 0.42);
+}
+
+.nextStudyGameItem strong,
+.nextStudyGameItem span {
+  display: block;
+}
+
+.nextStudyGameItem span {
+  margin-top: 0.2rem;
+  font-size: 0.86rem;
+  opacity: 0.72;
+}
+
+@media (max-width: 980px) {
+  .nextStudyGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .nextStudyCard {
+    min-height: unset;
+  }
+}
+
+@media (max-width: 620px) {
+  .nextStudyHero {
+    grid-template-columns: 1fr;
+  }
+
+  .nextStudyScore {
+    width: 100%;
+    min-height: 86px;
+    border-radius: 22px;
+  }
+
+  .nextStudySubhead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
