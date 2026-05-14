@@ -3653,30 +3653,8 @@ const [activeView, setActiveView] = useState("overview");
             </div>
 
             <div className="filtersRow">
-              <label className="checkboxRow">
-                <input
-                  type="checkbox"
-                  checked={showUnknownOpenings}
-                  onChange={(e) => setShowUnknownOpenings(e.target.checked)}
-                />
-                <span>Show unclassified openings</span>
-              </label>
 
-              <label className="checkboxRow">
-                <input
-                  type="checkbox"
-                  checked={isPremium}
-                  onChange={(e) => setIsPremium(e.target.checked)}
-                />
-                <span>Premium demo mode</span>
-              </label>
             </div>
-
-            {!isPremium && importMonths > 3 ? (
-              <p className="statusMessage">
-                Free mode imports up to 3 months. Turn on Premium demo mode to preview 6 or 12 month imports.
-              </p>
-            ) : null}
 
             {apiStatus !== "online" ? (
               <p className="statusMessage">

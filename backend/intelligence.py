@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from statistics import median
+import json
+import urllib.error
+import urllib.request
 from typing import Any
 
 
@@ -145,7 +148,7 @@ def collect_openings(data: dict, include_unknown: bool = True) -> list[dict]:
             if unknown and not include_unknown:
                 continue
 
-            key = f"unknown-{len(merged)}" if unknown else name.lower()
+            key = "unclassified-opening-bucket" if unknown else name.lower()
             games = get_opening_games(item)
             score = get_opening_score(item)
 
@@ -171,58 +174,139 @@ def collect_openings(data: dict, include_unknown: bool = True) -> list[dict]:
     return list(merged.values())
 
 
-def collect_rating(data: dict) -> int | None:
+def extract_rating_from_object(obj: Any, username: str | None = None) -> list[int]:
     values: list[int] = []
 
-    direct_fields = [
-        "rating",
-        "currentRating",
-        "current_rating",
-        "rapidRating",
-        "rapid_rating",
-        "blitzRating",
-        "blitz_rating",
-        "bulletRating",
-        "bullet_rating",
-        "chesscomRating",
-        "chesscom_rating",
-    ]
-
-    for field in direct_fields:
-        number = safe_number(data.get(field), None)
-        if number and 100 < number < 3500:
-            values.append(int(number))
-
-    games = []
-    games.extend(as_list(data.get("recent_games")))
-    games.extend(as_list(data.get("recentGames")))
-    games.extend(as_list(data.get("games")))
-
-    for game in games:
-        if not isinstance(game, dict):
-            continue
-
-        for field in [
+    if isinstance(obj, dict):
+        direct_rating_keys = {
+            "rating",
+            "currentRating",
+            "current_rating",
+            "rapidRating",
+            "rapid_rating",
+            "blitzRating",
+            "blitz_rating",
+            "bulletRating",
+            "bullet_rating",
+            "chesscomRating",
+            "chesscom_rating",
             "white_rating",
             "whiteRating",
             "black_rating",
             "blackRating",
             "player_rating",
             "playerRating",
-            "rating",
-        ]:
-            number = safe_number(game.get(field), None)
-            if number and 100 < number < 3500:
-                values.append(int(number))
+            "elo",
+            "whiteElo",
+            "white_elo",
+            "blackElo",
+            "black_elo",
+        }
+
+        for key, value in obj.items():
+            if key in direct_rating_keys:
+                number = safe_number(value, None)
+                if number and 100 < number < 3500:
+                    values.append(int(number))
+
+        # Chess.com-style nested players:
+        # {"white": {"username": "...", "rating": 1234}, "black": {...}}
+        if username:
+            user_lower = username.lower()
+
+            for side in ["white", "black", "player"]:
+                side_obj = obj.get(side)
+
+                if isinstance(side_obj, dict):
+                    side_name = str(
+                        side_obj.get("username")
+                        or side_obj.get("name")
+                        or side_obj.get("player")
+                        or ""
+                    ).lower()
+
+                    if side_name == user_lower:
+                        number = safe_number(side_obj.get("rating"), None)
+                        if number and 100 < number < 3500:
+                            values.append(int(number))
+
+        for value in obj.values():
+            values.extend(extract_rating_from_object(value, username=username))
+
+    elif isinstance(obj, list):
+        for item in obj:
+            values.extend(extract_rating_from_object(item, username=username))
+
+    return values
+
+
+def collect_rating(data: dict, username: str | None = None) -> int | None:
+    values = extract_rating_from_object(data, username=username)
 
     if not values:
         return None
 
+    # Remove obvious duplicates/noise, then use median so one odd game does not skew it.
+    values = sorted(set(values))
+
     return int(median(values))
 
 
+
+def fetch_chesscom_current_rating(username: str | None) -> int | None:
+    if not username:
+        return None
+
+    safe_username = str(username).strip().lower()
+
+    if not safe_username:
+        return None
+
+    url = f"https://api.chess.com/pub/player/{safe_username}/stats"
+
+    try:
+        request = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "OpeningFit/0.1 contact: openingfit.com",
+                "Accept": "application/json",
+            },
+        )
+
+        with urllib.request.urlopen(request, timeout=8) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return None
+
+    # Prefer the most useful live ratings for opening advice.
+    preferred_modes = [
+        "chess_rapid",
+        "chess_blitz",
+        "chess_bullet",
+        "chess_daily",
+    ]
+
+    ratings: list[int] = []
+
+    for mode in preferred_modes:
+        current = payload.get(mode, {}).get("last", {})
+        rating = safe_number(current.get("rating"), None)
+
+        if rating and 100 < rating < 3500:
+            ratings.append(int(rating))
+
+    if not ratings:
+        return None
+
+    # Rapid is best for opening advice, but if missing use the first valid mode.
+    return ratings[0]
+
+
 def get_player_level(data: dict, username: str | None = None) -> dict:
-    rating = collect_rating(data)
+    rating = collect_rating(data, username=username)
+
+    if rating is None and username:
+        rating = fetch_chesscom_current_rating(username)
 
     name = str(
         username
@@ -456,6 +540,8 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
 
     if game_count < 30:
         confidence = "low"
+    elif level_profile.get("rating") is None:
+        confidence = "medium"
     elif game_count >= 80 and repeat_openings >= 4:
         confidence = "high"
     else:
