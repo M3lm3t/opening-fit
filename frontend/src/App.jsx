@@ -53,6 +53,8 @@ import { CoachVerdict, RecommendedRepertoire, PremiumPath } from "./components/P
 
 import CleanReportHeader from "./components/CleanReportHeader";
 
+import IntelligentCoachInsights from "./components/IntelligentCoachInsights";
+
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
   playerName: "DemoPlayer",
@@ -3705,6 +3707,8 @@ const [activeView, setActiveView] = useState("overview");
                 fitData={fitData}
                 onViewChange={setActiveView}
               />
+
+              <IntelligentCoachInsights data={data} />
 
               <section className="statsGrid">
                 <div className="card statCard">

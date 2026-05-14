@@ -19282,3 +19282,219 @@ video {
     width: 100%;
   }
 }
+
+/* Intelligent coach logic section */
+.intelligentCoachShell {
+  width: 100%;
+  margin: 0 0 18px;
+  padding: clamp(18px, 3vw, 26px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.14), transparent 34%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.94));
+  color: #f8fafc;
+  box-shadow: 0 20px 60px rgba(2, 6, 23, 0.22);
+}
+
+[data-theme="light"] .intelligentCoachShell,
+.light .intelligentCoachShell {
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.1), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+}
+
+.intelligentCoachHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.intelligentCoachEyebrow {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 10px;
+  padding: 7px 11px;
+  border: 1px solid rgba(125, 211, 252, 0.32);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.1);
+  color: #bae6fd;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+[data-theme="light"] .intelligentCoachEyebrow,
+.light .intelligentCoachEyebrow {
+  color: #0369a1;
+  background: rgba(14, 165, 233, 0.1);
+  border-color: rgba(2, 132, 199, 0.18);
+}
+
+.intelligentCoachHeader h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  letter-spacing: -0.045em;
+}
+
+.intelligentCoachHeader p {
+  max-width: 760px;
+  margin: 8px 0 0;
+  color: rgba(226, 232, 240, 0.76);
+  line-height: 1.55;
+}
+
+[data-theme="light"] .intelligentCoachHeader p,
+.light .intelligentCoachHeader p {
+  color: rgba(15, 23, 42, 0.64);
+}
+
+.coachConfidenceBadge {
+  flex: 0 0 auto;
+  min-width: 190px;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+[data-theme="light"] .coachConfidenceBadge,
+.light .coachConfidenceBadge {
+  background: rgba(255, 255, 255, 0.76);
+  border-color: rgba(15, 23, 42, 0.09);
+}
+
+.coachConfidenceBadge strong,
+.coachConfidenceBadge span {
+  display: block;
+}
+
+.coachConfidenceBadge strong {
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.coachConfidenceBadge span {
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 0.86rem;
+}
+
+[data-theme="light"] .coachConfidenceBadge span,
+.light .coachConfidenceBadge span {
+  color: rgba(15, 23, 42, 0.6);
+}
+
+.coachProfileGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.coachProfileGrid article,
+.coachInsightCard {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.54);
+}
+
+[data-theme="light"] .coachProfileGrid article,
+[data-theme="light"] .coachInsightCard,
+.light .coachProfileGrid article,
+.light .coachInsightCard {
+  background: rgba(255, 255, 255, 0.74);
+  border-color: rgba(15, 23, 42, 0.09);
+}
+
+.coachProfileGrid span,
+.coachNextAction span {
+  display: block;
+  margin-bottom: 7px;
+  color: #93c5fd;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+[data-theme="light"] .coachProfileGrid span,
+[data-theme="light"] .coachNextAction span,
+.light .coachProfileGrid span,
+.light .coachNextAction span {
+  color: #1d4ed8;
+}
+
+.coachProfileGrid strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 1.15rem;
+}
+
+.coachProfileGrid p,
+.coachInsightCard p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.72);
+  line-height: 1.5;
+}
+
+[data-theme="light"] .coachProfileGrid p,
+[data-theme="light"] .coachInsightCard p,
+.light .coachProfileGrid p,
+.light .coachInsightCard p {
+  color: rgba(15, 23, 42, 0.62);
+}
+
+.coachInsightList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.coachInsightCard h3 {
+  margin: 0 0 8px;
+  font-size: 1.02rem;
+}
+
+.coachNextAction {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid rgba(190, 242, 100, 0.26);
+  border-radius: 20px;
+  background: rgba(132, 204, 22, 0.1);
+}
+
+.coachNextAction strong {
+  display: block;
+  font-size: clamp(1rem, 2.4vw, 1.25rem);
+  line-height: 1.35;
+}
+
+@media (max-width: 860px) {
+  .intelligentCoachHeader {
+    display: block;
+  }
+
+  .coachConfidenceBadge {
+    margin-top: 14px;
+  }
+
+  .coachProfileGrid,
+  .coachInsightList {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .intelligentCoachShell {
+    padding: 16px;
+    border-radius: 22px;
+  }
+}
