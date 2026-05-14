@@ -3,52 +3,92 @@
   <head>
     <meta charset="UTF-8" />
 
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>Opening Fit - Personal Chess Opening Coach</title>
+    <title>Opening Fit | Chess Opening Analysis & Repertoire Builder</title>
 
     <meta
       name="description"
-      content="Import your Chess.com or Lichess games and find the openings that actually suit how you play. Get opening stats, Keep / Improve / Avoid verdicts, and practical repertoire suggestions."
+      content="Analyse your Chess.com and Lichess games to find your best openings, weak spots, playing style, and personalised chess repertoire suggestions."
     />
 
     <meta
       name="keywords"
-      content="chess openings, chess opening recommendations, Chess.com analysis, Lichess analysis, chess repertoire builder, opening repertoire, chess improvement"
+      content="chess opening analysis, chess repertoire builder, Chess.com analysis, Lichess analysis, chess opening trainer, chess study plan, best chess openings"
     />
 
     <meta name="author" content="Opening Fit" />
     <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#020617" />
 
-    <link rel="canonical" href="https://www.openingfit.com/" />
+    <link rel="canonical" href="https://openingfit.com/" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://www.openingfit.com/" />
-    <meta property="og:title" content="Opening Fit | Find the Chess Openings That Suit You" />
+    <meta property="og:url" content="https://openingfit.com/" />
+    <meta property="og:site_name" content="Opening Fit" />
+    <meta
+      property="og:title"
+      content="Opening Fit | Chess Opening Analysis & Repertoire Builder"
+    />
     <meta
       property="og:description"
-      content="Import your Chess.com or Lichess games and get a simple opening report showing what to keep, improve, and avoid."
+      content="Import your Chess.com or Lichess games and get practical opening recommendations based on your real results."
     />
-    <meta property="og:site_name" content="Opening Fit" />
+    <meta property="og:image" content="https://openingfit.com/social-preview.png" />
 
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Opening Fit | Find the Chess Openings That Suit You" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://openingfit.com/" />
+    <meta
+      name="twitter:title"
+      content="Opening Fit | Chess Opening Analysis & Repertoire Builder"
+    />
     <meta
       name="twitter:description"
-      content="Import your games and discover the openings that actually fit how you play."
+      content="Find your best chess openings, weak spots, playing style, and next study session from your real games."
     />
+    <meta name="twitter:image" content="https://openingfit.com/social-preview.png" />
 
-    <meta name="theme-color" content="#0f172a" />
-
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-  <meta name="theme-color" content="#070b16" />
-  <link rel="icon" href="/icons/openingfit-icon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="/icons/openingfit-icon.svg" />
-</head>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Opening Fit",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "url": "https://openingfit.com/",
+        "description": "Opening Fit analyses Chess.com and Lichess games to recommend chess openings, identify weak spots, and build a practical repertoire plan.",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Free Opening Snapshot",
+            "price": "0",
+            "priceCurrency": "GBP"
+          },
+          {
+            "@type": "Offer",
+            "name": "Premium Repertoire Builder",
+            "price": "8",
+            "priceCurrency": "GBP"
+          }
+        ],
+        "creator": {
+          "@type": "Organization",
+          "name": "Opening Fit"
+        }
+      }
+    </script>
+  </head>
 
   <body>
+    <noscript>
+      Opening Fit is a chess opening analysis and repertoire builder. Enable JavaScript to import your Chess.com or Lichess games and view your personalised opening report.
+    </noscript>
+
     <div id="root"></div>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

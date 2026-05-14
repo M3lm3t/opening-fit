@@ -1145,6 +1145,50 @@ function AboutSection() {
   );
 }
 
+function SeoLandingSection() {
+  return (
+    <section className="landingContentSection seoLandingSection" id="chess-opening-analysis">
+      <div className="landingSectionHeading">
+        <p className="landingEyebrow">Chess opening analysis</p>
+        <h2>Find the chess openings that actually fit your games.</h2>
+        <p>
+          Opening Fit helps chess players analyse their real online games and turn
+          opening results into a practical study plan. Instead of guessing which
+          chess opening to learn next, you can import your Chess.com or Lichess
+          games and see which openings are working, which need attention, and
+          which ones may not suit your current playing style.
+        </p>
+      </div>
+
+      <div className="seoFeatureGrid">
+        <article className="seoFeatureCard">
+          <h3>Chess.com and Lichess opening insights</h3>
+          <p>
+            Import recent games and review your most common openings, win rates,
+            preferred choices as White and Black, and recurring weak spots.
+          </p>
+        </article>
+
+        <article className="seoFeatureCard">
+          <h3>Personal chess repertoire builder</h3>
+          <p>
+            Build a simple repertoire around openings that give you familiar
+            middlegame plans instead of memorising random theory.
+          </p>
+        </article>
+
+        <article className="seoFeatureCard">
+          <h3>Opening training for club players</h3>
+          <p>
+            Get a focused next study session: review your weakest opening,
+            practise your best fit, then play a cleaner block of games.
+          </p>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 function Footer() {
   return (
     <footer className="siteFooter">
@@ -1516,6 +1560,8 @@ function LandingSection({ onOpeningClick }) {
       </section>
 
       <AboutSection />
+
+      <SeoLandingSection />
 
       <section className="landingContentSection" id="how-it-works">
         <div className="landingSectionHeading">

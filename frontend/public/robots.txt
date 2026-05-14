@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.openingfit.com/sitemap.xml
+Sitemap: https://openingfit.com/sitemap.xml

@@ -16458,3 +16458,62 @@ html {
     flex-direction: column;
   }
 }
+
+/* SEO landing content */
+.seoLandingSection {
+  position: relative;
+  overflow: hidden;
+}
+
+.seoLandingSection::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 32rem),
+    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.08), transparent 28rem);
+  pointer-events: none;
+}
+
+.seoLandingSection > * {
+  position: relative;
+  z-index: 1;
+}
+
+.seoFeatureGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.seoFeatureCard {
+  padding: 1.1rem;
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.52);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+}
+
+.light .seoFeatureCard,
+[data-theme="light"] .seoFeatureCard {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+.seoFeatureCard h3 {
+  margin: 0 0 0.45rem;
+  letter-spacing: -0.03em;
+}
+
+.seoFeatureCard p {
+  margin: 0;
+  line-height: 1.6;
+  opacity: 0.82;
+}
+
+@media (max-width: 860px) {
+  .seoFeatureGrid {
+    grid-template-columns: 1fr;
+  }
+}
