@@ -1,4 +1,6 @@
 from collections import Counter, defaultdict
+from fastapi.responses import JSONResponse, Response
+from intelligence import enrich_analysis_result
 from typing import List, Dict, Any, Optional
 import os
 import re
@@ -14,6 +16,51 @@ from supabase import create_client, Client
 
 
 app = FastAPI(title="Opening Fit API")
+
+@app.middleware("http")
+async def enrich_openingfit_analysis_payloads(request, call_next):
+    response = await call_next(request)
+
+    path = request.url.path
+    should_enrich = path.startswith("/api/import/") or path == "/api/demo"
+
+    if not should_enrich or response.status_code >= 400:
+        return response
+
+    content_type = response.headers.get("content-type", "")
+
+    if "application/json" not in content_type:
+        return response
+
+    body = b""
+
+    async for chunk in response.body_iterator:
+        body += chunk
+
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except Exception:
+        return Response(
+            content=body,
+            status_code=response.status_code,
+            media_type=content_type,
+        )
+
+    parts = [part for part in path.split("/") if part]
+    platform = None
+    username = None
+
+    if len(parts) >= 4 and parts[0] == "api" and parts[1] == "import":
+        platform = parts[2]
+        username = parts[3]
+
+    enriched = enrich_analysis_result(payload, username=username, platform=platform)
+
+    return JSONResponse(
+        content=enriched,
+        status_code=response.status_code,
+    )
+
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip()
 FRONTEND_URL_WWW = os.getenv("FRONTEND_URL_WWW", "").strip()
