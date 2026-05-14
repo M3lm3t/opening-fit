@@ -16034,3 +16034,145 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+/* Professional compact report redesign */
+#app-results {
+  scroll-margin-top: 1rem;
+}
+
+.compactReportGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+  margin: 1rem 0;
+}
+
+.compactPremiumCard {
+  margin-top: 1rem;
+}
+
+.appTabsCard {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 40;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
+}
+
+.light .appTabsCard,
+[data-theme="light"] .appTabsCard {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.1);
+}
+
+.appTabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+}
+
+.appTabButton {
+  white-space: nowrap;
+  min-height: 42px;
+  border-radius: 999px;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.appTabButton:hover {
+  transform: translateY(-1px);
+}
+
+.appTabButtonActive {
+  box-shadow: 0 10px 28px rgba(59, 130, 246, 0.22);
+}
+
+.fullReportShell,
+.exportHistoryShell,
+.opponentPrepShell,
+.premiumCard,
+.openingFitHeroCard,
+.openingFitScoreCard {
+  margin-top: 1rem;
+}
+
+.reportHero,
+.fullReportShell,
+.exportHistoryShell,
+.opponentPrepShell {
+  border-radius: 28px;
+}
+
+.statsGrid {
+  margin-bottom: 1rem;
+}
+
+.statCard {
+  min-height: 92px;
+}
+
+.card {
+  border-radius: 24px;
+}
+
+.quickNavCard {
+  display: none;
+}
+
+.floatingMenu {
+  z-index: 80;
+}
+
+@media (max-width: 780px) {
+  .compactReportGrid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .appTabsCard {
+    top: 0.35rem;
+    border-radius: 20px;
+  }
+
+  .appTabsHeader {
+    margin-bottom: 0.65rem;
+  }
+
+  .appTabsHeader h2 {
+    font-size: 1.05rem;
+  }
+
+  .appTabButton {
+    min-height: 40px;
+    padding-inline: 0.85rem;
+    font-size: 0.9rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .statCard {
+    min-height: 84px;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .appTabsCard {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+  }
+}

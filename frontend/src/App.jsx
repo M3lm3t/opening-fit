@@ -2731,6 +2731,8 @@ const [activeView, setActiveView] = useState("overview");
       const cleanData = normaliseData(json);
       setData(cleanData);
       saveLocalAnalysis(cleanData, cleanUsername);
+      setShowLanding(false);
+      setActiveView("overview");
 
       setSavedProfileMessage(
         `Import complete for ${
@@ -2876,6 +2878,8 @@ const [activeView, setActiveView] = useState("overview");
       setSelectedGameIndex(0);
       setPracticeOpening(null);
       setOpenSections(closedSections);
+      setShowLanding(false);
+      setActiveView("overview");
       setSavedProfileMessage(
         "Demo profile loaded. This is sample data, so use Import Games for your real saved profile."
       );
@@ -3188,11 +3192,6 @@ const [activeView, setActiveView] = useState("overview");
           onViewChange={setActiveView}
         />
 
-        <OpeningFitStudyPlanner
-          data={data}
-          username={username}
-        />
-
         <OpeningFitImportDoctor username={username} />
 
         <AccountPanel />
@@ -3212,83 +3211,7 @@ const [activeView, setActiveView] = useState("overview");
           onViewChange={setActiveView}
         />
 
-        
-        {data ? (
-          <OpeningFitTrustBar data={data} />
-        ) : null}
-
-        {data ? (
-          <>
-            <SeriousAppTabs activeView={activeView} onViewChange={setActiveView} />
-            <CoachSummaryCard data={data} onViewChange={setActiveView} />
-            <AppOpeningHealthScore data={data} onViewChange={setActiveView} />
-            <OpeningDiagnosisPanel data={data} onViewChange={setActiveView} />
-            <ShipReadyPanel data={data} onViewChange={setActiveView} />
-            <SeriousPremiumStrip />
-            <ReportHistoryVault data={data} onLoadReport={setData} />
-            <NextBestActions data={data} onViewChange={setActiveView} />
-          </>
-        ) : null}
-<PremiumCoachPlan
-          data={data}
-          isPremium={isPremium}
-          onUnlockDemo={unlockPremiumDemo}
-        />
-
-        <MyRepertoire
-          data={data}
-          isPremium={isPremium}
-          onUnlockDemo={unlockPremiumDemo}
-        />
-
-        <PremiumPanel
-          data={data}
-          isPremium={isPremium}
-          onUnlockDemo={unlockPremiumDemo}
-          onResetDemo={resetPremiumDemo}
-        />
-
-        <PremiumTrustStrip />
-
-
-        {data ? <PolishedOpeningFitReportHero data={data} /> : null}
-
-        {data ? <OpeningFitFullReport data={data} /> : null}
-        {data ? <OpponentPrepPreview data={data} /> : null}
-        {data ? (
-          <ReportExportAndHistory
-            data={data}
-            onLoadReport={(reportData) => {
-              setData(reportData);
-            }}
-          />
-        ) : null}
-
-        {data ? (
-          <OpeningFitFinalCTA
-            data={data}
-            username={username}
-            onJump={jumpToSection}
-          />
-        ) : null}
-
-        <OpeningFitFunctionalityHub
-          data={data}
-          username={username}
-          onLoadReport={setData}
-          onJump={jumpToSection}
-        />
-
-        {data ? (
-          <OpeningFitFunctionalTools
-            data={data}
-            username={username}
-            onLoadReport={setData}
-            onJump={jumpToSection}
-          />
-        ) : null}
-
-
+        {data ? <OpeningFitTrustBar data={data} /> : null}
 
         {showLanding ? (
           <LandingModal
@@ -3304,12 +3227,17 @@ const [activeView, setActiveView] = useState("overview");
               setTheme((current) => (current === "dark" ? "light" : "dark"))
             }
             onDemoReport={() => {
-            setData(SAMPLE_OPENING_FIT_REPORT);
+            const cleanDemo = normaliseData(SAMPLE_OPENING_FIT_REPORT);
+            setData(cleanDemo);
             setUsername("DemoPlayer");
             setPlatform("chesscom");
-            if (typeof setActiveView === "function") {
-              setActiveView("dashboard");
-            }
+            setShowLanding(false);
+            setActiveView("overview");
+
+            setTimeout(() => {
+              const el = document.getElementById("app-results");
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 80);
           }}
         />
 
@@ -3317,7 +3245,7 @@ const [activeView, setActiveView] = useState("overview");
 
         {!data ? <TrustFaq /> : null}
 
-        <LandingSection onOpeningClick={startOpeningPractice} />
+        {!data ? <LandingSection onOpeningClick={startOpeningPractice} /> : null}
 
         <main className="container appShell" id="app-dashboard">
           <header className="hero heroCard">
@@ -3585,239 +3513,74 @@ const [activeView, setActiveView] = useState("overview");
 
               {activeView === "overview" ? (
                 <>
-                  <DashboardHome
-                    data={data}
-                    fitData={fitData}
-                    onPractice={startOpeningPractice}
-                    onViewChange={setActiveView}
-                    onFeedback={() => {
-                      setActiveView("feedback");
+                  <PolishedOpeningFitReportHero data={data} />
 
-                      setTimeout(() => {
-                        const el = document.getElementById("feedback");
-                        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }, 80);
-                    }}
-                  />
+                  <div className="compactReportGrid">
+                    <CoachSummaryCard data={data} onViewChange={setActiveView} />
+                    <AppOpeningHealthScore data={data} onViewChange={setActiveView} />
+                  </div>
+
+                  <NextBestActions data={data} onViewChange={setActiveView} />
 
                   <div id="section-fit">
-                <OpeningFitSummaryCard
-                  fitData={fitData}
-                  onPractice={startOpeningPractice}
-                />
-
-
-
-        <ResultsCommandCenter
-          data={data}
-          onPractice={startOpeningPractice}
-        />
-
-
-        <OpeningHealthScore data={data} />
-        <ProgressTracker data={data} />
-
-        <ShareReport data={data} />
-                <OpeningFitScoreList
-                  fitData={fitData}
-                  onPractice={startOpeningPractice}
-                />
-              </div>
-
-              <section className="card quickNavCard">
-                <h2>Quick View</h2>
-
-                <div className="quickNavGrid">
-                  <button
-                    className="quickNavBtn secondaryBtn"
-                    type="button"
-                    onClick={() => jumpToSection("section-fit")}
-                  >
-                    Fit Score
-                  </button>
-                  <button
-                    className="quickNavBtn secondaryBtn"
-                    type="button"
-                    onClick={() => jumpToSection("section-style")}
-                  >
-                    Style Profile
-                  </button>
-                  <button
-                    className="quickNavBtn secondaryBtn"
-                    type="button"
-                    onClick={() => jumpToSection("section-recommendations")}
-                  >
-                    Opening Suggestions
-                  </button>
-                  <button
-                    className="quickNavBtn secondaryBtn"
-                    type="button"
-                    onClick={() => jumpToSection("section-verdicts")}
-                  >
-                    Keep / Improve / Avoid
-                  </button>
-                  <button
-                    className="quickNavBtn secondaryBtn"
-                    type="button"
-                    onClick={() => jumpToSection("section-chart")}
-                  >
-                    Win Rate Chart
-                  </button>
-                  <button
-                    className="quickNavBtn secondaryBtn"
-                    type="button"
-                    onClick={() => jumpToSection("section-training")}
-                  >
-                    Personal Plan
-                  </button>
-                  <button
-                    className="quickNavBtn secondaryBtn"
-                    type="button"
-                    onClick={() => jumpToSection("section-replay")}
-                  >
-                    Game Replay
-                  </button>
-                </div>
-              </section>
-
-              {!isPremium ? (
-                <section className="card premiumCard">
-                  <div className="premiumHeader">
-                    <span className="premiumBadge">Premium Preview</span>
-                    <h2>Unlock the full Opening Fit report</h2>
+                    <OpeningFitSummaryCard
+                      fitData={fitData}
+                      onPractice={startOpeningPractice}
+                    />
                   </div>
 
-                  <p>
-                    You are viewing the free version. Premium will unlock deeper
-                    opening stats, longer imports, advanced training plans and
-                    future Stockfish analysis.
-                  </p>
+                  <OpeningDiagnosisPanel data={data} onViewChange={setActiveView} />
 
-                  <div className="lockedFeatureGrid">
-                    {premiumFeatures.map((feature) => (
-                      <div className="lockedFeature" key={feature}>
-                        🔒 {feature}
+                  <ResultsCommandCenter
+                    data={data}
+                    onPractice={startOpeningPractice}
+                  />
+
+                  <div className="compactReportGrid">
+                    <OpeningHealthScore data={data} />
+                    <ProgressTracker data={data} />
+                  </div>
+
+                  <ShareReport data={data} />
+
+                  {!isPremium ? (
+                    <section className="card premiumCard compactPremiumCard">
+                      <div className="premiumHeader">
+                        <span className="premiumBadge">Premium Preview</span>
+                        <h2>Unlock the full Opening Fit report</h2>
                       </div>
-                    ))}
-                  </div>
 
-                  <button
-                    className="primaryBtn"
-                    type="button"
-                    onClick={() => setIsPremium(true)}
-                  >
-                    Preview Premium Mode
-                  </button>
-                </section>
-              ) : null}
+                      <p>
+                        Free gives you a useful opening snapshot. Premium will focus on longer
+                        imports, deeper stats, stronger training plans, and saved progress.
+                      </p>
 
-              <div id="section-style">
-                <Section
-                  title="Style Profile"
-                  isOpen={openSections.style}
-                  onToggle={() => toggleSection("style")}
-                  badge={filterUnknownOpenings(
-                    data.style_profile?.labels || []
-                  ).join(" · ")}
-                >
-                  <div className="twoCol">
-                    <div>
-                      <div className="chips">
-                        {filterUnknownOpenings(
-                          data.style_profile?.labels || []
-                        ).map((label, index) => (
-                          <span className="chip" key={index}>
-                            {label}
-                          </span>
+                      <div className="lockedFeatureGrid">
+                        {premiumFeatures.map((feature) => (
+                          <div className="lockedFeature" key={feature}>
+                            🔒 {feature}
+                          </div>
                         ))}
                       </div>
 
-                      <p className="profileSummary">
-                        {data.style_profile?.summary ||
-                          "Your style profile will appear here once enough games are analysed."}
-                      </p>
+                      <button
+                        className="primaryBtn"
+                        type="button"
+                        onClick={() => setIsPremium(true)}
+                      >
+                        Preview Premium Mode
+                      </button>
+                    </section>
+                  ) : null}
 
-                      <h3>Top Opening Families</h3>
-
-                      <div className="list">
-                        {filterUnknownOpenings(
-                          data.style_profile?.top_opening_families || []
-                        ).length ? (
-                          filterUnknownOpenings(
-                            data.style_profile?.top_opening_families || []
-                          ).map((item, index) => (
-                            <button
-                              className="listItem openingPracticeLink"
-                              key={index}
-                              type="button"
-                              onClick={() => startOpeningPractice(item)}
-                            >
-                              <strong>{item}</strong>
-                              <span>Practice</span>
-                            </button>
-                          ))
-                        ) : (
-                          <EmptyState
-                            title="No opening families yet"
-                            text="Import more games to detect your most common opening families."
-                          />
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="premiumMiniCard">
-                      <p className="premiumLabel">
-                        {isPremium ? "Premium Active" : "Premium Preview"}
-                      </p>
-                      <h3>Best Openings For You</h3>
-
-                      <div className="list">
-                        {fitData.scoredOpenings.length ? (
-                          fitData.scoredOpenings.slice(0, 4).map((item, index) => {
-                            const rate = getWinRate(item);
-
-                            return (
-                              <button
-                                className="listItem openingPracticeLink"
-                                key={index}
-                                type="button"
-                                onClick={() =>
-                                  startOpeningPractice(getOpeningName(item))
-                                }
-                              >
-                                <div>
-                                  <strong>{getOpeningName(item)}</strong>
-                                  <div className="smallText">
-                                    {getOpeningGames(item)} games · Fit{" "}
-                                    {item.fitScore}/100
-                                  </div>
-                                </div>
-
-                                <div className="rightStat">
-                                  <div>{rate}%</div>
-                                  <div className={verdictClass(item.fitVerdict)}>
-                                    {item.fitVerdict}
-                                  </div>
-                                </div>
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <EmptyState
-                            title="No premium preview yet"
-                            text="Once there are enough recognised openings, your best-fit openings will appear here."
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Section>
-              </div>
+                  <RetentionHub data={data} />
                 </>
               ) : null}
 
               {activeView === "recommendations" ? (
                 <>
+                  <OpeningFitFullReport data={data} />
+
                   <div id="section-recommendations">
                 <Section
                   title="Opening Suggestions"
@@ -4029,6 +3792,29 @@ const [activeView, setActiveView] = useState("overview");
 
                   <RepertoireStudyPlan data={data} />
 
+                  <ReportHistoryVault data={data} onLoadReport={setData} />
+
+                  <ReportExportAndHistory
+                    data={data}
+                    onLoadReport={(reportData) => {
+                      setData(reportData);
+                    }}
+                  />
+
+                  <OpeningFitFunctionalityHub
+                    data={data}
+                    username={username}
+                    onLoadReport={setData}
+                    onJump={jumpToSection}
+                  />
+
+                  <OpeningFitFunctionalTools
+                    data={data}
+                    username={username}
+                    onLoadReport={setData}
+                    onJump={jumpToSection}
+                  />
+
                   <div id="section-chart">
                 <Section
                   title="Opening Win Rate"
@@ -4077,6 +3863,14 @@ const [activeView, setActiveView] = useState("overview");
 
               {activeView === "training" ? (
                 <>
+                  <OpeningFitStudyPlanner data={data} username={username} />
+
+                  <PremiumCoachPlan
+                    data={data}
+                    isPremium={isPremium}
+                    onUnlockDemo={unlockPremiumDemo}
+                  />
+
                   <div id="section-training">
                 <Section
                   title="Personal Training Plan"
@@ -4360,12 +4154,36 @@ const [activeView, setActiveView] = useState("overview");
               ) : null}
 
               {activeView === "repertoire" ? (
-                <InteractiveRepertoire
-                  data={data}
-                  onPractice={startOpeningPractice}
-                />
+                <>
+                  <MyRepertoire
+                    data={data}
+                    isPremium={isPremium}
+                    onUnlockDemo={unlockPremiumDemo}
+                  />
+
+                  <InteractiveRepertoire
+                    data={data}
+                    onPractice={startOpeningPractice}
+                  />
+
+                  <PremiumPanel
+                    data={data}
+                    isPremium={isPremium}
+                    onUnlockDemo={unlockPremiumDemo}
+                    onResetDemo={resetPremiumDemo}
+                  />
+
+                  <PremiumTrustStrip />
+                </>
               ) : null}
 
+              {activeView !== "feedback" ? (
+                <OpeningFitFinalCTA
+                  data={data}
+                  username={username}
+                  onJump={jumpToSection}
+                />
+              ) : null}
             </div>
           )}
 
