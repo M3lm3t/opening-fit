@@ -1396,6 +1396,25 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
         moves_text = game.get("moves", "")
         moves = moves_text.split() if moves_text else []
 
+        pgn_moves = []
+        for index in range(0, len(moves), 2):
+            move_number = (index // 2) + 1
+            white_move = moves[index]
+            black_move = moves[index + 1] if index + 1 < len(moves) else None
+
+            if black_move:
+                pgn_moves.append(f"{move_number}. {white_move} {black_move}")
+            else:
+                pgn_moves.append(f"{move_number}. {white_move}")
+
+        simple_pgn = "\n".join([
+            f'[White "{white_name}"]',
+            f'[Black "{black_name}"]',
+            f'[Opening "{opening}"]',
+            "",
+            " ".join(pgn_moves),
+        ]).strip()
+
         opening_counter[opening] += 1
 
         if colour == "white":
@@ -1424,8 +1443,9 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
                 "opening": opening,
                 "end_time": game.get("lastMoveAt") or game.get("createdAt"),
                 "endTime": game.get("lastMoveAt") or game.get("createdAt"),
-                "pgn": "",
+                "pgn": simple_pgn,
                 "moves": moves,
+                "movesText": moves_text,
                 "white_username": white_name,
                 "whiteUsername": white_name,
                 "black_username": black_name,
