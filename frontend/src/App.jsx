@@ -49,6 +49,8 @@ import OpeningDiagnosisPanel from "./components/OpeningDiagnosisPanel";
 
 import ShipReadyPanel from "./components/ShipReadyPanel";
 
+import { CoachVerdict, RecommendedRepertoire, PremiumPath } from "./components/ProductPolish";
+
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
   playerName: "DemoPlayer",
@@ -3479,7 +3481,9 @@ const [activeView, setActiveView] = useState("overview");
           }}
         />
 
-        ) : null}
+        
+) : null}
+
 
         {!data ? <TrustFaq /> : null}
 
@@ -4098,6 +4102,16 @@ const [activeView, setActiveView] = useState("overview");
               </div>
                 </>
               ) : null}
+
+        {data ? (
+          <div className="productPolishFlow">
+            <CoachVerdict data={data} />
+            <RecommendedRepertoire data={data} />
+            <PremiumPath />
+          </div>
+        ) : null}
+
+
 
               {activeView === "training" ? (
                 <>

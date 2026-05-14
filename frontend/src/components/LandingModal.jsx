@@ -1,3 +1,4 @@
+import { LandingSampleReport } from "./ProductPolish";
 export default function LandingModal({
   username,
   setUsername,
@@ -104,6 +105,10 @@ export default function LandingModal({
               <strong>Study direction</strong>
               <span>Know what to fix first</span>
             </article>
+          </div>
+
+          <div className="landingSampleReportMount">
+            <LandingSampleReport />
           </div>
 
           <div className="shipBetaNote">
