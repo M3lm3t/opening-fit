@@ -13,7 +13,6 @@ export default function LandingModal({
 
   const handleImport = () => {
     if (!cleanUsername || loading) return;
-    onClose();
     onImport();
   };
 
@@ -25,7 +24,6 @@ export default function LandingModal({
     setUsername("hikaru");
 
     setTimeout(() => {
-      onClose();
       onImport();
     }, 0);
   };
@@ -91,15 +89,14 @@ export default function LandingModal({
               type="button"
               className={`landingPlatformTab ${platform === "lichess" ? "is-active" : ""}`}
               onClick={() => setPlatform("lichess")}
-              title="Lichess import is coming soon"
             >
-              Lichess <small>soon</small>
+              Lichess
             </button>
           </div>
 
           {platform === "lichess" ? (
             <div className="landingComingSoon">
-              Lichess import is next on the roadmap. For now, use Chess.com or view the sample report.
+              Lichess import is now in beta. Enter a public Lichess username to generate a report.
             </div>
           ) : null}
 
@@ -110,8 +107,8 @@ export default function LandingModal({
               onKeyDown={(event) => {
                 if (event.key === "Enter") handleImport();
               }}
-              placeholder={platform === "lichess" ? "Lichess coming soon" : "Chess.com username"}
-              disabled={loading || platform === "lichess"}
+              placeholder={platform === "lichess" ? "Lichess username" : "Chess.com username"}
+              disabled={loading}
               autoComplete="off"
             />
 
@@ -119,7 +116,7 @@ export default function LandingModal({
               type="button"
               className="landingPrimaryBtn"
               onClick={handleImport}
-              disabled={loading || platform === "lichess" || !cleanUsername}
+              disabled={loading || !cleanUsername}
             >
               {loading ? "Analysing..." : "Import games"}
             </button>
