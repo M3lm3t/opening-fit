@@ -458,3 +458,92 @@ export function buildLevelAwareRecommendation(data, fitData) {
     weakName,
   };
 }
+
+export function getBackendPlayerLevel(data) {
+  return data?.player_level || data?.playerLevel || null;
+}
+
+export function getBackendRecommendation(data) {
+  return data?.backend_recommendation || data?.backendRecommendation || null;
+}
+
+export function getBackendDataQuality(data) {
+  return data?.data_quality || data?.dataQuality || null;
+}
+
+export function getBackendOpeningClassification(data) {
+  return data?.opening_classification || data?.openingClassification || null;
+}
+
+export function getSmartPlayerLevelProfile(data) {
+  const backend = getBackendPlayerLevel(data);
+
+  if (backend && typeof backend === "object") {
+    return {
+      rating: backend.rating ?? null,
+      level: backend.level || "unknown",
+      label: backend.label || "Unknown level",
+      shortLabel: backend.short_label || backend.shortLabel || backend.label || "Unknown",
+      tone: backend.tone || "balanced",
+      openingUnknownLabel:
+        backend.opening_unknown_label ||
+        backend.openingUnknownLabel ||
+        "Unclassified opening",
+      unknownExplanation:
+        backend.unknown_explanation ||
+        backend.unknownExplanation ||
+        "OpeningFit could not confidently classify this opening.",
+      headline:
+        backend.headline ||
+        "The player level is unclear, so the report should avoid overclaiming.",
+      recommendation:
+        backend.recommendation ||
+        "Use repeated opening patterns and game volume before giving strong advice.",
+      trainingFocus:
+        backend.training_focus ||
+        backend.trainingFocus ||
+        "Import more games to improve confidence.",
+      source: "backend",
+    };
+  }
+
+  return {
+    ...getPlayerLevelProfile(data),
+    source: "frontend",
+  };
+}
+
+export function getSmartLevelAwareRecommendation(data, fitData) {
+  const backend = getBackendRecommendation(data);
+
+  if (backend && typeof backend === "object") {
+    return {
+      type: backend.type || "backend_recommendation",
+      title: backend.title || "OpeningFit recommendation",
+      summary:
+        backend.summary ||
+        data?.backend_coach_summary ||
+        "OpeningFit has generated a player-specific recommendation.",
+      primaryAction:
+        backend.primary_action ||
+        backend.primaryAction ||
+        data?.backend_next_action ||
+        "Review the strongest and weakest repeated openings.",
+      bestName:
+        backend.best_opening ||
+        backend.bestOpening ||
+        "your strongest repeated opening",
+      weakName:
+        backend.weak_opening ||
+        backend.weakOpening ||
+        "your weakest repeated opening",
+      source: "backend",
+    };
+  }
+
+  return {
+    ...buildLevelAwareRecommendation(data, fitData),
+    source: "frontend",
+  };
+}
+

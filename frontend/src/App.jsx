@@ -56,7 +56,7 @@ import CleanReportHeader from "./components/CleanReportHeader";
 import IntelligentCoachInsights from "./components/IntelligentCoachInsights";
 
 import OpeningClassificationNotice from "./components/OpeningClassificationNotice";
-import { buildLevelAwareRecommendation, displayOpeningName, getPlayerLevelProfile } from "./components/playerLevelLogic";
+import { displayOpeningName, getSmartLevelAwareRecommendation, getSmartPlayerLevelProfile } from "./components/playerLevelLogic";
 
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
@@ -3261,8 +3261,8 @@ const [activeView, setActiveView] = useState("overview");
   }, [data, showUnknownOpenings]);
 
   const smartRecommendationSummary = useMemo(() => {
-    const levelProfile = getPlayerLevelProfile(data);
-    const levelAware = buildLevelAwareRecommendation(data, fitData);
+    const levelProfile = getSmartPlayerLevelProfile(data);
+    const levelAware = getSmartLevelAwareRecommendation(data, fitData);
     const summary = [];
 
     summary.push(levelAware.summary);
@@ -3301,7 +3301,7 @@ const [activeView, setActiveView] = useState("overview");
 
   const personalTrainingPlan = useMemo(() => {
     const plan = [];
-    const levelProfile = getPlayerLevelProfile(data);
+    const levelProfile = getSmartPlayerLevelProfile(data);
 
     const bestFit = fitData.bestOpening;
     const weakFit = fitData.weakestOpening;
