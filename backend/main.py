@@ -2375,3 +2375,86 @@ try:
 except Exception as exc:
     print("OpeningFit diagnostics route failed to initialise:", exc)
 # --- End OpeningFit Chess.com import diagnostics ---
+
+
+# --- Lichess import support ---------------------------------------------------
+# Public Lichess games can be downloaded as PGN without needing a login.
+# This endpoint returns PGN text in the same spirit as Chess.com imports,
+# so the frontend can pass it into the existing analyser flow.
+
+import httpx
+from fastapi import Query
+
+
+@app.get("/api/lichess/games")
+async def get_lichess_games(
+    username: str = Query(..., min_length=1),
+    months: int = Query(3, ge=1, le=12),
+    max_games: int = Query(80, ge=1, le=300),
+):
+    clean_username = username.strip().lstrip("@")
+
+    if not clean_username:
+        raise HTTPException(status_code=400, detail="Missing Lichess username.")
+
+    # Rough limit: more months = more games, but capped so imports stay fast.
+    calculated_max = min(max_games, max(20, months * 35))
+
+    url = f"https://lichess.org/api/games/user/{clean_username}"
+
+    params = {
+        "max": calculated_max,
+        "moves": "true",
+        "pgnInJson": "false",
+        "tags": "true",
+        "clocks": "false",
+        "evals": "false",
+        "opening": "true",
+        "perfType": "blitz,rapid,classical",
+    }
+
+    headers = {
+        "Accept": "application/x-chess-pgn",
+        "User-Agent": "OpeningFit beta import",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            response = await client.get(url, params=params, headers=headers)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not connect to Lichess: {exc}",
+        )
+
+    if response.status_code == 404:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Lichess user '{clean_username}' was not found.",
+        )
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Lichess import failed with status {response.status_code}.",
+        )
+
+    pgn_text = response.text.strip()
+
+    if not pgn_text:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No recent rated rapid, blitz, or classical games found for '{clean_username}'.",
+        )
+
+    game_count = pgn_text.count("[Event ")
+
+    return {
+        "platform": "lichess",
+        "username": clean_username,
+        "months": months,
+        "maxGames": calculated_max,
+        "gameCount": game_count,
+        "pgnText": pgn_text,
+    }
+# --- End Lichess import support ----------------------------------------------
