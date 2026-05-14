@@ -1,3 +1,8 @@
+import {
+  getSmartLevelAwareRecommendation,
+  getSmartPlayerLevelProfile,
+} from "./playerLevelLogic";
+
 function getPlayerName(data) {
   return (
     data?.username ||
@@ -129,7 +134,11 @@ export default function CleanReportHeader({ data, fitData, onViewChange }) {
 
   const knownOpenings = openings.length;
 
+  const levelProfile = getSmartPlayerLevelProfile(data);
+  const backendRecommendation = getSmartLevelAwareRecommendation(data, fitData);
+
   const style =
+    levelProfile?.label ||
     fitData?.playerStyle?.title ||
     data?.styleLabel ||
     data?.style_label ||
@@ -142,6 +151,8 @@ export default function CleanReportHeader({ data, fitData, onViewChange }) {
     fitData?.overallScore ||
     data?.openingHealthScore ||
     data?.opening_health_score ||
+    data?.data_quality?.confidence ||
+    data?.dataQuality?.confidence ||
     null;
 
   return (
@@ -155,8 +166,8 @@ export default function CleanReportHeader({ data, fitData, onViewChange }) {
         </h1>
 
         <p>
-          Based on your recent games, OpeningFit has found what to keep, what to
-          improve, and where your next study focus should be.
+          {backendRecommendation.summary ||
+            "Based on your recent games, OpeningFit has found what to keep, what to improve, and where your next study focus should be."}
         </p>
 
         <div className="cleanReportActions">
@@ -179,21 +190,25 @@ export default function CleanReportHeader({ data, fitData, onViewChange }) {
       <div className="cleanReportCards">
         <article>
           <span>Best fit</span>
-          <strong>{bestName}</strong>
+          <strong>{backendRecommendation.bestName || bestName}</strong>
           <p>
             {bestScore !== null
               ? `${bestScore}/100 current fit`
-              : "Best result from your known openings"}
+              : backendRecommendation.source === "backend"
+                ? "Backend recommendation signal"
+                : "Best result from your known openings"}
           </p>
         </article>
 
         <article>
           <span>Improve next</span>
-          <strong>{weakName}</strong>
+          <strong>{backendRecommendation.weakName || weakName}</strong>
           <p>
             {weakScore !== null
               ? `${weakScore}/100 current fit`
-              : "Review this area first"}
+              : backendRecommendation.source === "backend"
+                ? "Backend repair target"
+                : "Review this area first"}
           </p>
         </article>
 

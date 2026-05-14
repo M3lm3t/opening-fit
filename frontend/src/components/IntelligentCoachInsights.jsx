@@ -3,16 +3,21 @@ import {
   collectOpenings,
   collectRatings,
   displayOpeningName,
+  getBackendDataQuality,
+  getBackendOpeningClassification,
   getOpeningGames,
-  getOpeningName,
   getOpeningScore,
-  getPlayerLevelProfile,
-  isUnknownOpeningName,
+  getSmartLevelAwareRecommendation,
+  getSmartPlayerLevelProfile,
   safeNumber,
 } from "./playerLevelLogic";
 
 function getGameCount(data, openings) {
+  const backendQuality = getBackendDataQuality(data);
+
   return (
+    safeNumber(backendQuality?.games_checked, null) ??
+    safeNumber(backendQuality?.gamesChecked, null) ??
     safeNumber(data?.gamesImported, null) ??
     safeNumber(data?.games_imported, null) ??
     safeNumber(data?.totalGames, null) ??
@@ -23,13 +28,29 @@ function getGameCount(data, openings) {
   );
 }
 
+function normaliseConfidence(value) {
+  if (!value) return null;
+
+  const lower = String(value).toLowerCase();
+
+  if (lower.includes("high")) return "High confidence";
+  if (lower.includes("low")) return "Low confidence";
+  if (lower.includes("medium")) return "Medium confidence";
+
+  return String(value);
+}
+
 function analyseProfile(data) {
   const openings = collectOpenings(data, { includeUnknown: true });
   const knownOpenings = openings.filter((item) => !item.isUnknownOpening);
   const unknownOpenings = openings.filter((item) => item.isUnknownOpening);
 
   const rating = collectRatings(data);
-  const band = getPlayerLevelProfile(data);
+  const band = getSmartPlayerLevelProfile(data);
+  const levelAware = getSmartLevelAwareRecommendation(data);
+  const backendQuality = getBackendDataQuality(data);
+  const backendClassification = getBackendOpeningClassification(data);
+
   const gameCount = getGameCount(data, openings);
 
   const sortedByScore = [...knownOpenings].sort((a, b) => {
@@ -47,20 +68,31 @@ function analyseProfile(data) {
   const best = sortedByScore[0] || null;
   const weak = sortedWeak[0] || null;
 
-  const repeatOpenings = knownOpenings.filter((item) => getOpeningGames(item) >= 3).length;
+  const repeatOpenings =
+    safeNumber(backendQuality?.repeat_openings, null) ??
+    safeNumber(backendQuality?.repeatOpenings, null) ??
+    knownOpenings.filter((item) => getOpeningGames(item) >= 3).length;
+
   const highVariety = knownOpenings.length >= 12 && repeatOpenings < knownOpenings.length * 0.45;
   const lowSample = gameCount < 30;
-  const goodSample = gameCount >= 80;
   const bestScore = getOpeningScore(best);
   const weakScore = getOpeningScore(weak);
 
-  let confidence = "Medium confidence";
+  const confidence =
+    normaliseConfidence(backendQuality?.confidence) ||
+    (lowSample
+      ? "Low confidence"
+      : gameCount >= 80 && repeatOpenings >= 4
+        ? "High confidence"
+        : "Medium confidence");
 
-  if (lowSample) confidence = "Low confidence";
-  if (goodSample && repeatOpenings >= 4) confidence = "High confidence";
-  if (band.level === "elite" && gameCount >= 100) confidence = "High confidence, advanced audit needed";
+  const backendUnknownCount =
+    safeNumber(backendClassification?.unclassified_openings, null) ??
+    safeNumber(backendClassification?.unclassifiedOpenings, null);
 
-  const levelAware = buildLevelAwareRecommendation(data);
+  const backendUnknownGames =
+    safeNumber(backendClassification?.unclassified_games, null) ??
+    safeNumber(backendClassification?.unclassifiedGames, null);
 
   const insights = [
     {
@@ -69,10 +101,15 @@ function analyseProfile(data) {
     },
   ];
 
-  if (unknownOpenings.length) {
+  const hasUnknown =
+    (backendUnknownCount ?? unknownOpenings.length) > 0;
+
+  if (hasUnknown) {
     insights.push({
-      title: `${band.openingUnknownLabel} detected`,
-      text: band.unknownExplanation,
+      title: `${backendClassification?.display_label || backendClassification?.displayLabel || band.openingUnknownLabel} detected`,
+      text:
+        backendClassification?.explanation ||
+        band.unknownExplanation,
     });
   }
 
@@ -113,11 +150,13 @@ function analyseProfile(data) {
   }
 
   return {
-    rating,
+    rating: band.rating ?? rating,
     band,
     openings,
     knownOpenings,
     unknownOpenings,
+    backendUnknownCount,
+    backendUnknownGames,
     gameCount,
     repeatOpenings,
     highVariety,
@@ -128,6 +167,7 @@ function analyseProfile(data) {
     weakScore,
     insights: insights.slice(0, 5),
     nextAction: levelAware.primaryAction,
+    source: levelAware.source,
   };
 }
 
@@ -140,7 +180,9 @@ export default function IntelligentCoachInsights({ data }) {
     <section className="intelligentCoachShell">
       <div className="intelligentCoachHeader">
         <div>
-          <div className="intelligentCoachEyebrow">Smarter coach logic</div>
+          <div className="intelligentCoachEyebrow">
+            {profile.source === "backend" ? "Backend coach logic" : "Smarter coach logic"}
+          </div>
           <h2>Player-specific diagnosis</h2>
           <p>
             This section adapts the advice based on rating level, sample size,
@@ -176,10 +218,12 @@ export default function IntelligentCoachInsights({ data }) {
 
         <article>
           <span>Opening spread</span>
-          <strong>{profile.knownOpenings.length} known</strong>
+          <strong>
+            {profile.knownOpenings.length} known
+          </strong>
           <p>
-            {profile.unknownOpenings.length
-              ? `${profile.unknownOpenings.length} ${profile.band.openingUnknownLabel.toLowerCase()} item${profile.unknownOpenings.length === 1 ? "" : "s"} found.`
+            {(profile.backendUnknownCount ?? profile.unknownOpenings.length)
+              ? `${profile.backendUnknownCount ?? profile.unknownOpenings.length} ${profile.band.openingUnknownLabel.toLowerCase()} item${(profile.backendUnknownCount ?? profile.unknownOpenings.length) === 1 ? "" : "s"} found.`
               : `${profile.repeatOpenings} openings appear repeatedly enough to study.`}
           </p>
         </article>
