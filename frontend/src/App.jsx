@@ -51,6 +51,8 @@ import ShipReadyPanel from "./components/ShipReadyPanel";
 
 import { CoachVerdict, RecommendedRepertoire, PremiumPath } from "./components/ProductPolish";
 
+import CleanReportHeader from "./components/CleanReportHeader";
+
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
   playerName: "DemoPlayer",
@@ -3698,6 +3700,12 @@ const [activeView, setActiveView] = useState("overview");
 
           {data && (
             <div id="app-results">
+              <CleanReportHeader
+                data={data}
+                fitData={fitData}
+                onViewChange={setActiveView}
+              />
+
               <section className="statsGrid">
                 <div className="card statCard">
                   <span className="statLabel">Player</span>
