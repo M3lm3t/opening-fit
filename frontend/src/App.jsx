@@ -764,6 +764,198 @@ function OpeningFitScoreList({ fitData, onPractice }) {
   );
 }
 
+function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange }) {
+  const [savedMessage, setSavedMessage] = useState("");
+
+  if (!fitData || !fitData.scoredOpenings?.length) return null;
+
+  const bestOpening = fitData.bestOpening;
+  const weakestOpening = fitData.weakestOpening;
+  const scoredOpenings = fitData.scoredOpenings || [];
+
+  const bestName = bestOpening ? getOpeningName(bestOpening) : "your strongest opening";
+  const weakName = weakestOpening ? getOpeningName(weakestOpening) : "your weakest opening";
+
+  const reviewGames = recentGames.filter((game) => {
+    const gameOpening = String(game?.opening || game?.name || "").toLowerCase();
+    return weakestOpening && gameOpening.includes(weakName.toLowerCase());
+  });
+
+  const fallbackGames = recentGames.slice(0, 3);
+  const gamesToReview = reviewGames.length ? reviewGames.slice(0, 3) : fallbackGames;
+
+  const whitePick =
+    scoredOpenings.find((opening) => {
+      const side = getOpeningSide(opening).toLowerCase();
+      const name = getOpeningName(opening).toLowerCase();
+      return side.includes("white") || /vienna|italian|london|queen|ruy|scotch|english|reti|gambit/.test(name);
+    }) || bestOpening;
+
+  const blackPick =
+    scoredOpenings.find((opening) => {
+      const side = getOpeningSide(opening).toLowerCase();
+      const name = getOpeningName(opening).toLowerCase();
+      return side.includes("black") || /sicilian|caro|french|scandinavian|pirc|modern|dutch|king|nimzo|slav|grunfeld|defence|defense/.test(name);
+    }) || scoredOpenings.find((opening) => getOpeningName(opening) !== getOpeningName(whitePick)) || bestOpening;
+
+  const saveStudySession = () => {
+    const payload = {
+      savedAt: new Date().toISOString(),
+      bestOpening: bestName,
+      weakestOpening: weakName,
+      whiteOpening: whitePick ? getOpeningName(whitePick) : "",
+      blackOpening: blackPick ? getOpeningName(blackPick) : "",
+      tasks: [
+        `Review ${weakName}`,
+        `Practise ${bestName}`,
+        "Play a focused block using your saved repertoire",
+      ],
+    };
+
+    localStorage.setItem("openingFit:nextStudySession", JSON.stringify(payload));
+    setSavedMessage("Study session saved in this browser.");
+  };
+
+  const goToGames = () => {
+    if (onViewChange) onViewChange("games");
+
+    setTimeout(() => {
+      const el = document.getElementById("app-results");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
+
+  return (
+    <section className="nextStudyShell card">
+      <div className="nextStudyHero">
+        <div>
+          <p className="eyebrow">Next Study Session</p>
+          <h2>Your next 20 minutes of opening work</h2>
+          <p className="muted">
+            Opening Fit has turned your report into a focused training loop:
+            review the weak spot, practise the best fit, then play a simple repertoire.
+          </p>
+        </div>
+
+        <div className="nextStudyScore">
+          <strong>{fitData.overallScore || "—"}</strong>
+          <span>fit score</span>
+        </div>
+      </div>
+
+      <div className="nextStudyGrid">
+        <article className="nextStudyCard nextStudyCardWarning">
+          <div className="nextStudyCardTop">
+            <span>1</span>
+            <p>Review weak spot</p>
+          </div>
+
+          <h3>{weakName}</h3>
+
+          <p>
+            {weakestOpening
+              ? `This is currently your lowest fit at ${weakestOpening.fitScore}/100. Review where your positions start becoming uncomfortable.`
+              : "Import more games to identify a clear weak opening."}
+          </p>
+
+          <div className="nextStudyMeta">
+            <span>{weakestOpening ? `${getOpeningGames(weakestOpening)} games` : "Needs data"}</span>
+            <span>{weakestOpening ? `${getWinRate(weakestOpening)}% score` : "—"}</span>
+          </div>
+
+          <button className="secondaryBtn" type="button" onClick={goToGames}>
+            Review games
+          </button>
+        </article>
+
+        <article className="nextStudyCard nextStudyCardBest">
+          <div className="nextStudyCardTop">
+            <span>2</span>
+            <p>Practise best fit</p>
+          </div>
+
+          <h3>{bestName}</h3>
+
+          <p>
+            {bestOpening
+              ? `This is your strongest current opening fit at ${bestOpening.fitScore}/100. Learn the first few moves and one simple middlegame plan.`
+              : "Import more games to identify your strongest opening."}
+          </p>
+
+          <div className="nextStudyMeta">
+            <span>{bestOpening ? `${getOpeningGames(bestOpening)} games` : "Needs data"}</span>
+            <span>{bestOpening ? `${getWinRate(bestOpening)}% score` : "—"}</span>
+          </div>
+
+          <button
+            className="primaryBtn"
+            type="button"
+            onClick={() => bestOpening && onPractice(bestName)}
+            disabled={!bestOpening}
+          >
+            Practise line
+          </button>
+        </article>
+
+        <article className="nextStudyCard nextStudyCardRepertoire">
+          <div className="nextStudyCardTop">
+            <span>3</span>
+            <p>Use simple repertoire</p>
+          </div>
+
+          <h3>Play a focused block</h3>
+
+          <div className="nextStudyRepertoire">
+            <div>
+              <span>White</span>
+              <strong>{whitePick ? getOpeningName(whitePick) : "Needs more games"}</strong>
+            </div>
+
+            <div>
+              <span>Black</span>
+              <strong>{blackPick ? getOpeningName(blackPick) : "Needs more games"}</strong>
+            </div>
+          </div>
+
+          <p>
+            For your next games, avoid switching openings randomly. Play these choices and compare the next import.
+          </p>
+
+          <button className="secondaryBtn" type="button" onClick={saveStudySession}>
+            Save study session
+          </button>
+        </article>
+      </div>
+
+      {gamesToReview.length ? (
+        <div className="nextStudyGames">
+          <div className="nextStudySubhead">
+            <h3>Games worth reviewing</h3>
+            <button type="button" onClick={goToGames}>
+              Open game replay
+            </button>
+          </div>
+
+          <div className="nextStudyGameList">
+            {gamesToReview.map((game, index) => (
+              <button className="nextStudyGameItem" type="button" key={index} onClick={goToGames}>
+                <strong>{game.opening || "Recent game"}</strong>
+                <span>
+                  {game.white_username || game.whiteUsername || "White"} vs{" "}
+                  {game.black_username || game.blackUsername || "Black"} ·{" "}
+                  {game.result || "Result unknown"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {savedMessage ? <p className="successMessage">{savedMessage}</p> : null}
+    </section>
+  );
+}
+
 function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange }) {
   const [open, setOpen] = useState(false);
 
@@ -777,7 +969,7 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
   const appViews = [
     { key: "overview", label: "Overview" },
     { key: "recommendations", label: "Recommendations" },
-    { key: "training", label: "Training" },
+    { key: "training", label: "Study Session" },
     { key: "games", label: "Games" },
     { key: "data", label: "Data" },
     { key: "repertoire", label: "Interactive" },
@@ -874,7 +1066,7 @@ function AppViewTabs({ activeView, onChange }) {
   const tabs = [
     { key: "overview", label: "Overview", icon: "🏠" },
     { key: "recommendations", label: "Recommendations", icon: "🎯" },
-    { key: "training", label: "Training", icon: "🚀" },
+    { key: "training", label: "Study Session", icon: "🚀" },
     { key: "games", label: "Games", icon: "♟️" },
     { key: "data", label: "Data", icon: "📊" },
     { key: "repertoire", label: "Interactive", icon: "🧩" },
@@ -3863,6 +4055,13 @@ const [activeView, setActiveView] = useState("overview");
 
               {activeView === "training" ? (
                 <>
+                  <NextStudySession
+                    fitData={fitData}
+                    recentGames={filteredRecentGames}
+                    onPractice={startOpeningPractice}
+                    onViewChange={setActiveView}
+                  />
+
                   <OpeningFitStudyPlanner data={data} username={username} />
 
                   <PremiumCoachPlan
