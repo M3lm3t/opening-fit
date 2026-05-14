@@ -3492,9 +3492,9 @@ const [activeView, setActiveView] = useState("overview");
                 <p className="eyebrow">Opening Fit App</p>
                 <h1>Analyse your chess openings</h1>
                 <p className="subtext">
-                  Import your recent games and get a clean report showing your
-                  playing style, best openings, weak spots, and simple repertoire
-                  suggestions.
+                  Your personal chess opening dashboard. Import your games, get a
+                  clean Opening Fit report, then follow a focused study session
+                  built from your real results.
                 </p>
               </div>
             </div>

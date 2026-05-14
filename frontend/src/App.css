@@ -16517,3 +16517,1279 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   Mobile-app style polish layer
+   Makes the whole site feel more like a premium app shell.
+   ========================================================= */
+
+:root {
+  --app-radius-xl: 30px;
+  --app-radius-lg: 24px;
+  --app-radius-md: 18px;
+  --app-border-dark: rgba(148, 163, 184, 0.16);
+  --app-border-light: rgba(15, 23, 42, 0.1);
+  --app-panel-dark: rgba(15, 23, 42, 0.72);
+  --app-panel-light: rgba(255, 255, 255, 0.82);
+  --app-shadow-dark: 0 24px 70px rgba(0, 0, 0, 0.28);
+  --app-shadow-light: 0 24px 60px rgba(15, 23, 42, 0.1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.page {
+  position: relative;
+  min-height: 100vh;
+  padding-bottom: 5.5rem;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.22), transparent 34rem),
+    radial-gradient(circle at 80% 10%, rgba(34, 197, 94, 0.11), transparent 28rem),
+    radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.12), transparent 30rem),
+    #020617;
+}
+
+.page.light,
+.light .page,
+[data-theme="light"] .page {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 34rem),
+    radial-gradient(circle at 80% 10%, rgba(34, 197, 94, 0.09), transparent 28rem),
+    radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.08), transparent 30rem),
+    #f8fafc;
+}
+
+.container,
+.landingWrap {
+  width: min(1180px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.card,
+.heroCard,
+.landingHero,
+.landingContentSection,
+.reportHero,
+.fullReportShell,
+.exportHistoryShell,
+.opponentPrepShell,
+.nextStudyShell,
+.feedbackCard,
+.premiumCard,
+.appTabsCard {
+  border-radius: var(--app-radius-xl);
+  border: 1px solid var(--app-border-dark);
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.78), rgba(2, 6, 23, 0.62));
+  box-shadow: var(--app-shadow-dark);
+  backdrop-filter: blur(18px);
+}
+
+.light .card,
+.light .heroCard,
+.light .landingHero,
+.light .landingContentSection,
+.light .reportHero,
+.light .fullReportShell,
+.light .exportHistoryShell,
+.light .opponentPrepShell,
+.light .nextStudyShell,
+.light .feedbackCard,
+.light .premiumCard,
+.light .appTabsCard,
+[data-theme="light"] .card,
+[data-theme="light"] .heroCard,
+[data-theme="light"] .landingHero,
+[data-theme="light"] .landingContentSection,
+[data-theme="light"] .reportHero,
+[data-theme="light"] .fullReportShell,
+[data-theme="light"] .exportHistoryShell,
+[data-theme="light"] .opponentPrepShell,
+[data-theme="light"] .nextStudyShell,
+[data-theme="light"] .feedbackCard,
+[data-theme="light"] .premiumCard,
+[data-theme="light"] .appTabsCard {
+  border-color: var(--app-border-light);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.78));
+  box-shadow: var(--app-shadow-light);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+.primaryBtn,
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.landingPrimaryBtn,
+.landingSecondaryBtn,
+.reportPrimaryLink,
+.reportSecondaryLink {
+  min-height: 44px;
+  border-radius: 999px;
+}
+
+.primaryBtn,
+.landingPrimaryBtn,
+.reportPrimaryLink {
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.28);
+}
+
+.primaryBtn:hover,
+.secondaryBtn:hover,
+.secondaryButton:hover,
+.ghostButton:hover,
+.landingPrimaryBtn:hover,
+.landingSecondaryBtn:hover,
+.reportPrimaryLink:hover,
+.reportSecondaryLink:hover {
+  transform: translateY(-1px);
+}
+
+.input,
+textarea,
+select {
+  border-radius: 18px;
+  min-height: 46px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+/* Landing page as app-style launch screen */
+.landingHero {
+  margin-top: 1rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  overflow: hidden;
+}
+
+.landingHero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(96, 165, 250, 0.16), transparent 26rem),
+    radial-gradient(circle at 80% 30%, rgba(34, 197, 94, 0.11), transparent 24rem);
+  pointer-events: none;
+}
+
+.landingHero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.landingNav {
+  padding: 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(2, 6, 23, 0.36);
+  backdrop-filter: blur(16px);
+}
+
+.light .landingNav,
+[data-theme="light"] .landingNav {
+  background: rgba(255, 255, 255, 0.64);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.landingBrandIcon {
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.28);
+}
+
+.landingNavLinks {
+  gap: 0.35rem;
+}
+
+.landingNavLinks a {
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    transform 160ms ease,
+    opacity 160ms ease;
+}
+
+.landingNavLinks a:hover {
+  background: rgba(148, 163, 184, 0.14);
+  transform: translateY(-1px);
+}
+
+.landingHeroGrid {
+  align-items: center;
+  gap: clamp(1.25rem, 4vw, 3rem);
+  padding-top: clamp(1.5rem, 4vw, 3rem);
+}
+
+.landingPill {
+  width: fit-content;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  background: rgba(37, 99, 235, 0.12);
+  box-shadow: inset 0 0 24px rgba(37, 99, 235, 0.08);
+}
+
+.landingHeroCopy h1 {
+  max-width: 760px;
+  font-size: clamp(2.3rem, 7vw, 5.6rem);
+  line-height: 0.92;
+  letter-spacing: -0.075em;
+}
+
+.landingSubtext {
+  max-width: 680px;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+}
+
+.landingHeroActions {
+  gap: 0.75rem;
+}
+
+.landingStats {
+  gap: 0.75rem;
+}
+
+.landingStatCard,
+.landingPreviewCard,
+.landingInfoCard,
+.landingFeatureCard,
+.aboutCard,
+.ratingGuideCard,
+.landingPriceCard,
+.landingStepCard,
+.seoFeatureCard {
+  border-radius: var(--app-radius-lg);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 23, 42, 0.52);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
+}
+
+.light .landingStatCard,
+.light .landingPreviewCard,
+.light .landingInfoCard,
+.light .landingFeatureCard,
+.light .aboutCard,
+.light .ratingGuideCard,
+.light .landingPriceCard,
+.light .landingStepCard,
+.light .seoFeatureCard,
+[data-theme="light"] .landingStatCard,
+[data-theme="light"] .landingPreviewCard,
+[data-theme="light"] .landingInfoCard,
+[data-theme="light"] .landingFeatureCard,
+[data-theme="light"] .aboutCard,
+[data-theme="light"] .ratingGuideCard,
+[data-theme="light"] .landingPriceCard,
+[data-theme="light"] .landingStepCard,
+[data-theme="light"] .seoFeatureCard {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+}
+
+.landingPreviewCard {
+  padding: 1rem;
+  transform: rotate(1deg);
+}
+
+.landingPreviewCard:hover {
+  transform: rotate(0deg) translateY(-2px);
+}
+
+.landingContentSection {
+  margin-top: 1rem;
+  padding: clamp(1.1rem, 3vw, 2rem);
+}
+
+.landingSectionHeading h2 {
+  letter-spacing: -0.055em;
+}
+
+/* App area */
+.appShell {
+  margin-top: 1rem;
+}
+
+.heroCard {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.heroCard::after {
+  content: "";
+  position: absolute;
+  inset: auto -8rem -10rem auto;
+  width: 22rem;
+  height: 22rem;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.18), transparent 68%);
+  pointer-events: none;
+}
+
+.searchRow.appActionPanel {
+  position: relative;
+  z-index: 1;
+  padding: 0.75rem;
+  border-radius: 26px;
+  background: rgba(2, 6, 23, 0.34);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.light .searchRow.appActionPanel,
+[data-theme="light"] .searchRow.appActionPanel {
+  background: rgba(248, 250, 252, 0.8);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.platformSelector {
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.platformButton {
+  border-radius: 999px;
+}
+
+.filtersRow,
+.savedHistoryRow {
+  padding: 0.75rem 0.85rem;
+  border-radius: 20px;
+  background: rgba(148, 163, 184, 0.08);
+}
+
+/* Report tabs behave like an app nav */
+.appTabsCard {
+  top: 0.6rem;
+  padding: 0.85rem;
+}
+
+.appTabsHeader {
+  display: none;
+}
+
+.appTabs {
+  padding: 0.15rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.appTabButton {
+  flex: 1 0 auto;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+}
+
+.appTabButtonActive {
+  background: rgba(37, 99, 235, 0.96);
+  color: white;
+}
+
+/* Stats feel like app summary tiles */
+.statsGrid {
+  gap: 0.75rem;
+}
+
+.statCard {
+  border-radius: 22px;
+  box-shadow: none;
+}
+
+.statValue {
+  letter-spacing: -0.04em;
+}
+
+/* Form/status polish */
+.statusMessage,
+.successMessage,
+.errorBox {
+  border-radius: 18px;
+}
+
+.feedbackCard textarea,
+.feedbackCard input {
+  width: 100%;
+}
+
+/* Footer more app-like */
+.siteFooter {
+  margin-top: 1rem;
+  border-radius: 28px 28px 0 0;
+  padding: 1.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(2, 6, 23, 0.48);
+  backdrop-filter: blur(16px);
+}
+
+.light .siteFooter,
+[data-theme="light"] .siteFooter {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+/* Mobile-first refinements */
+@media (max-width: 900px) {
+  .container,
+  .landingWrap {
+    width: min(100% - 1rem, 1180px);
+  }
+
+  .landingHero {
+    margin-top: 0.5rem;
+    border-radius: 0 0 34px 34px;
+  }
+
+  .landingNav {
+    border-radius: 24px;
+    align-items: flex-start;
+  }
+
+  .landingNavLinks {
+    width: 100%;
+    display: flex;
+    overflow-x: auto;
+    padding: 0.25rem 0 0.1rem;
+    scrollbar-width: none;
+  }
+
+  .landingNavLinks::-webkit-scrollbar {
+    display: none;
+  }
+
+  .landingNavLinks a {
+    white-space: nowrap;
+    flex: 0 0 auto;
+    font-size: 0.86rem;
+  }
+
+  .landingHeroGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .landingHeroCopy h1 {
+    font-size: clamp(2.6rem, 13vw, 4.4rem);
+  }
+
+  .landingHeroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .landingPrimaryBtn,
+  .landingSecondaryBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .landingStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .landingStatCard {
+    padding: 0.75rem;
+  }
+
+  .landingStatCard strong {
+    font-size: 0.95rem;
+  }
+
+  .landingStatCard span {
+    font-size: 0.76rem;
+  }
+
+  .landingPreviewCard {
+    transform: none;
+  }
+
+  .searchRow.appActionPanel {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .platformSelector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .appActionButtons {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .appActionButtons button {
+    width: 100%;
+  }
+
+  .filtersRow {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .appTabsCard {
+    margin-inline: -0.25rem;
+    border-radius: 999px;
+  }
+
+  .appTabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .appTabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .appTabButton {
+    min-width: max-content;
+    padding-inline: 1rem;
+  }
+
+  .floatingMenu {
+    right: 1rem;
+    bottom: 5.5rem;
+  }
+
+  .feedbackCard {
+    margin-bottom: 5rem;
+  }
+
+  .siteFooter {
+    margin-bottom: 4.5rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .page {
+    padding-bottom: 6.25rem;
+  }
+
+  .container,
+  .landingWrap {
+    width: min(100% - 0.75rem, 1180px);
+  }
+
+  .card,
+  .heroCard,
+  .landingContentSection,
+  .reportHero,
+  .fullReportShell,
+  .exportHistoryShell,
+  .opponentPrepShell,
+  .nextStudyShell,
+  .feedbackCard,
+  .premiumCard {
+    border-radius: 24px;
+  }
+
+  .landingHero {
+    padding: 0.75rem;
+  }
+
+  .landingBrandSubtitle {
+    display: none;
+  }
+
+  .landingHeroCopy h1 {
+    letter-spacing: -0.08em;
+  }
+
+  .landingStats {
+    grid-template-columns: 1fr;
+  }
+
+  .landingFeatureGrid,
+  .aboutGrid,
+  .landingPricingGrid,
+  .ratingGuideGrid,
+  .landingStepsList {
+    gap: 0.75rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+  }
+
+  .statCard {
+    min-height: 78px;
+    padding: 0.8rem;
+  }
+
+  .statLabel {
+    font-size: 0.72rem;
+  }
+
+  .statValue {
+    font-size: 1.15rem;
+  }
+
+  .smallStatValue {
+    font-size: 0.9rem;
+  }
+
+  .appTabsCard {
+    padding: 0.35rem;
+  }
+
+  .appTabButton {
+    min-height: 38px;
+    font-size: 0.84rem;
+  }
+
+  .heroTitleWrap h1,
+  .reportHero h1,
+  .fullReportHeader h2,
+  .landingSectionHeading h2 {
+    letter-spacing: -0.06em;
+  }
+}
+
+/* =========================================================
+   Mobile-app style polish layer
+   Makes the whole site feel more like a premium app shell.
+   ========================================================= */
+
+:root {
+  --app-radius-xl: 30px;
+  --app-radius-lg: 24px;
+  --app-radius-md: 18px;
+  --app-border-dark: rgba(148, 163, 184, 0.16);
+  --app-border-light: rgba(15, 23, 42, 0.1);
+  --app-panel-dark: rgba(15, 23, 42, 0.72);
+  --app-panel-light: rgba(255, 255, 255, 0.82);
+  --app-shadow-dark: 0 24px 70px rgba(0, 0, 0, 0.28);
+  --app-shadow-light: 0 24px 60px rgba(15, 23, 42, 0.1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.page {
+  position: relative;
+  min-height: 100vh;
+  padding-bottom: 5.5rem;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.22), transparent 34rem),
+    radial-gradient(circle at 80% 10%, rgba(34, 197, 94, 0.11), transparent 28rem),
+    radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.12), transparent 30rem),
+    #020617;
+}
+
+.page.light,
+.light .page,
+[data-theme="light"] .page {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 34rem),
+    radial-gradient(circle at 80% 10%, rgba(34, 197, 94, 0.09), transparent 28rem),
+    radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.08), transparent 30rem),
+    #f8fafc;
+}
+
+.container,
+.landingWrap {
+  width: min(1180px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.card,
+.heroCard,
+.landingHero,
+.landingContentSection,
+.reportHero,
+.fullReportShell,
+.exportHistoryShell,
+.opponentPrepShell,
+.nextStudyShell,
+.feedbackCard,
+.premiumCard,
+.appTabsCard {
+  border-radius: var(--app-radius-xl);
+  border: 1px solid var(--app-border-dark);
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.78), rgba(2, 6, 23, 0.62));
+  box-shadow: var(--app-shadow-dark);
+  backdrop-filter: blur(18px);
+}
+
+.light .card,
+.light .heroCard,
+.light .landingHero,
+.light .landingContentSection,
+.light .reportHero,
+.light .fullReportShell,
+.light .exportHistoryShell,
+.light .opponentPrepShell,
+.light .nextStudyShell,
+.light .feedbackCard,
+.light .premiumCard,
+.light .appTabsCard,
+[data-theme="light"] .card,
+[data-theme="light"] .heroCard,
+[data-theme="light"] .landingHero,
+[data-theme="light"] .landingContentSection,
+[data-theme="light"] .reportHero,
+[data-theme="light"] .fullReportShell,
+[data-theme="light"] .exportHistoryShell,
+[data-theme="light"] .opponentPrepShell,
+[data-theme="light"] .nextStudyShell,
+[data-theme="light"] .feedbackCard,
+[data-theme="light"] .premiumCard,
+[data-theme="light"] .appTabsCard {
+  border-color: var(--app-border-light);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.78));
+  box-shadow: var(--app-shadow-light);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+.primaryBtn,
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.landingPrimaryBtn,
+.landingSecondaryBtn,
+.reportPrimaryLink,
+.reportSecondaryLink {
+  min-height: 44px;
+  border-radius: 999px;
+}
+
+.primaryBtn,
+.landingPrimaryBtn,
+.reportPrimaryLink {
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.28);
+}
+
+.primaryBtn:hover,
+.secondaryBtn:hover,
+.secondaryButton:hover,
+.ghostButton:hover,
+.landingPrimaryBtn:hover,
+.landingSecondaryBtn:hover,
+.reportPrimaryLink:hover,
+.reportSecondaryLink:hover {
+  transform: translateY(-1px);
+}
+
+.input,
+textarea,
+select {
+  border-radius: 18px;
+  min-height: 46px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+/* Landing page as app-style launch screen */
+.landingHero {
+  margin-top: 1rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  overflow: hidden;
+}
+
+.landingHero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(96, 165, 250, 0.16), transparent 26rem),
+    radial-gradient(circle at 80% 30%, rgba(34, 197, 94, 0.11), transparent 24rem);
+  pointer-events: none;
+}
+
+.landingHero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.landingNav {
+  padding: 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(2, 6, 23, 0.36);
+  backdrop-filter: blur(16px);
+}
+
+.light .landingNav,
+[data-theme="light"] .landingNav {
+  background: rgba(255, 255, 255, 0.64);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.landingBrandIcon {
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.28);
+}
+
+.landingNavLinks {
+  gap: 0.35rem;
+}
+
+.landingNavLinks a {
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    transform 160ms ease,
+    opacity 160ms ease;
+}
+
+.landingNavLinks a:hover {
+  background: rgba(148, 163, 184, 0.14);
+  transform: translateY(-1px);
+}
+
+.landingHeroGrid {
+  align-items: center;
+  gap: clamp(1.25rem, 4vw, 3rem);
+  padding-top: clamp(1.5rem, 4vw, 3rem);
+}
+
+.landingPill {
+  width: fit-content;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  background: rgba(37, 99, 235, 0.12);
+  box-shadow: inset 0 0 24px rgba(37, 99, 235, 0.08);
+}
+
+.landingHeroCopy h1 {
+  max-width: 760px;
+  font-size: clamp(2.3rem, 7vw, 5.6rem);
+  line-height: 0.92;
+  letter-spacing: -0.075em;
+}
+
+.landingSubtext {
+  max-width: 680px;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+}
+
+.landingHeroActions {
+  gap: 0.75rem;
+}
+
+.landingStats {
+  gap: 0.75rem;
+}
+
+.landingStatCard,
+.landingPreviewCard,
+.landingInfoCard,
+.landingFeatureCard,
+.aboutCard,
+.ratingGuideCard,
+.landingPriceCard,
+.landingStepCard,
+.seoFeatureCard {
+  border-radius: var(--app-radius-lg);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 23, 42, 0.52);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
+}
+
+.light .landingStatCard,
+.light .landingPreviewCard,
+.light .landingInfoCard,
+.light .landingFeatureCard,
+.light .aboutCard,
+.light .ratingGuideCard,
+.light .landingPriceCard,
+.light .landingStepCard,
+.light .seoFeatureCard,
+[data-theme="light"] .landingStatCard,
+[data-theme="light"] .landingPreviewCard,
+[data-theme="light"] .landingInfoCard,
+[data-theme="light"] .landingFeatureCard,
+[data-theme="light"] .aboutCard,
+[data-theme="light"] .ratingGuideCard,
+[data-theme="light"] .landingPriceCard,
+[data-theme="light"] .landingStepCard,
+[data-theme="light"] .seoFeatureCard {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+}
+
+.landingPreviewCard {
+  padding: 1rem;
+  transform: rotate(1deg);
+}
+
+.landingPreviewCard:hover {
+  transform: rotate(0deg) translateY(-2px);
+}
+
+.landingContentSection {
+  margin-top: 1rem;
+  padding: clamp(1.1rem, 3vw, 2rem);
+}
+
+.landingSectionHeading h2 {
+  letter-spacing: -0.055em;
+}
+
+/* App area */
+.appShell {
+  margin-top: 1rem;
+}
+
+.heroCard {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.heroCard::after {
+  content: "";
+  position: absolute;
+  inset: auto -8rem -10rem auto;
+  width: 22rem;
+  height: 22rem;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.18), transparent 68%);
+  pointer-events: none;
+}
+
+.searchRow.appActionPanel {
+  position: relative;
+  z-index: 1;
+  padding: 0.75rem;
+  border-radius: 26px;
+  background: rgba(2, 6, 23, 0.34);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.light .searchRow.appActionPanel,
+[data-theme="light"] .searchRow.appActionPanel {
+  background: rgba(248, 250, 252, 0.8);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.platformSelector {
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.platformButton {
+  border-radius: 999px;
+}
+
+.filtersRow,
+.savedHistoryRow {
+  padding: 0.75rem 0.85rem;
+  border-radius: 20px;
+  background: rgba(148, 163, 184, 0.08);
+}
+
+/* Report tabs behave like an app nav */
+.appTabsCard {
+  top: 0.6rem;
+  padding: 0.85rem;
+}
+
+.appTabsHeader {
+  display: none;
+}
+
+.appTabs {
+  padding: 0.15rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.appTabButton {
+  flex: 1 0 auto;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+}
+
+.appTabButtonActive {
+  background: rgba(37, 99, 235, 0.96);
+  color: white;
+}
+
+/* Stats feel like app summary tiles */
+.statsGrid {
+  gap: 0.75rem;
+}
+
+.statCard {
+  border-radius: 22px;
+  box-shadow: none;
+}
+
+.statValue {
+  letter-spacing: -0.04em;
+}
+
+/* Form/status polish */
+.statusMessage,
+.successMessage,
+.errorBox {
+  border-radius: 18px;
+}
+
+.feedbackCard textarea,
+.feedbackCard input {
+  width: 100%;
+}
+
+/* Footer more app-like */
+.siteFooter {
+  margin-top: 1rem;
+  border-radius: 28px 28px 0 0;
+  padding: 1.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(2, 6, 23, 0.48);
+  backdrop-filter: blur(16px);
+}
+
+.light .siteFooter,
+[data-theme="light"] .siteFooter {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+/* Mobile-first refinements */
+@media (max-width: 900px) {
+  .container,
+  .landingWrap {
+    width: min(100% - 1rem, 1180px);
+  }
+
+  .landingHero {
+    margin-top: 0.5rem;
+    border-radius: 0 0 34px 34px;
+  }
+
+  .landingNav {
+    border-radius: 24px;
+    align-items: flex-start;
+  }
+
+  .landingNavLinks {
+    width: 100%;
+    display: flex;
+    overflow-x: auto;
+    padding: 0.25rem 0 0.1rem;
+    scrollbar-width: none;
+  }
+
+  .landingNavLinks::-webkit-scrollbar {
+    display: none;
+  }
+
+  .landingNavLinks a {
+    white-space: nowrap;
+    flex: 0 0 auto;
+    font-size: 0.86rem;
+  }
+
+  .landingHeroGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .landingHeroCopy h1 {
+    font-size: clamp(2.6rem, 13vw, 4.4rem);
+  }
+
+  .landingHeroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .landingPrimaryBtn,
+  .landingSecondaryBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .landingStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .landingStatCard {
+    padding: 0.75rem;
+  }
+
+  .landingStatCard strong {
+    font-size: 0.95rem;
+  }
+
+  .landingStatCard span {
+    font-size: 0.76rem;
+  }
+
+  .landingPreviewCard {
+    transform: none;
+  }
+
+  .searchRow.appActionPanel {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .platformSelector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .appActionButtons {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .appActionButtons button {
+    width: 100%;
+  }
+
+  .filtersRow {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .appTabsCard {
+    margin-inline: -0.25rem;
+    border-radius: 999px;
+  }
+
+  .appTabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .appTabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .appTabButton {
+    min-width: max-content;
+    padding-inline: 1rem;
+  }
+
+  .floatingMenu {
+    right: 1rem;
+    bottom: 5.5rem;
+  }
+
+  .feedbackCard {
+    margin-bottom: 5rem;
+  }
+
+  .siteFooter {
+    margin-bottom: 4.5rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .page {
+    padding-bottom: 6.25rem;
+  }
+
+  .container,
+  .landingWrap {
+    width: min(100% - 0.75rem, 1180px);
+  }
+
+  .card,
+  .heroCard,
+  .landingContentSection,
+  .reportHero,
+  .fullReportShell,
+  .exportHistoryShell,
+  .opponentPrepShell,
+  .nextStudyShell,
+  .feedbackCard,
+  .premiumCard {
+    border-radius: 24px;
+  }
+
+  .landingHero {
+    padding: 0.75rem;
+  }
+
+  .landingBrandSubtitle {
+    display: none;
+  }
+
+  .landingHeroCopy h1 {
+    letter-spacing: -0.08em;
+  }
+
+  .landingStats {
+    grid-template-columns: 1fr;
+  }
+
+  .landingFeatureGrid,
+  .aboutGrid,
+  .landingPricingGrid,
+  .ratingGuideGrid,
+  .landingStepsList {
+    gap: 0.75rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+  }
+
+  .statCard {
+    min-height: 78px;
+    padding: 0.8rem;
+  }
+
+  .statLabel {
+    font-size: 0.72rem;
+  }
+
+  .statValue {
+    font-size: 1.15rem;
+  }
+
+  .smallStatValue {
+    font-size: 0.9rem;
+  }
+
+  .appTabsCard {
+    padding: 0.35rem;
+  }
+
+  .appTabButton {
+    min-height: 38px;
+    font-size: 0.84rem;
+  }
+
+  .heroTitleWrap h1,
+  .reportHero h1,
+  .fullReportHeader h2,
+  .landingSectionHeading h2 {
+    letter-spacing: -0.06em;
+  }
+}
