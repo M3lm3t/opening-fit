@@ -20366,3 +20366,1569 @@ main {
     padding-bottom: 0.75rem !important;
   }
 }
+
+/* =========================================================
+   Opening Fit light mode polish
+   Makes light theme feel intentional instead of washed out
+   ========================================================= */
+
+.page.light,
+[data-theme="light"] {
+  color: #0f172a;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.10), transparent 32rem),
+    radial-gradient(circle at top right, rgba(132, 204, 22, 0.10), transparent 28rem),
+    linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+}
+
+.page.light *,
+[data-theme="light"] * {
+  color-scheme: light;
+}
+
+.page.light h1,
+.page.light h2,
+.page.light h3,
+.page.light h4,
+.page.light .sectionTitle,
+.page.light .heroTitle,
+.page.light .reportTitle,
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] h4 {
+  color: #020617;
+}
+
+.page.light p,
+.page.light li,
+.page.light span,
+.page.light .muted,
+.page.light .subtext,
+.page.light .sectionSubtitle,
+.page.light .heroSubtitle,
+[data-theme="light"] p,
+[data-theme="light"] li {
+  color: #334155;
+}
+
+.page.light .muted,
+.page.light .subtle,
+.page.light .helpText,
+.page.light .smallText,
+[data-theme="light"] .muted,
+[data-theme="light"] .subtle {
+  color: #64748b;
+}
+
+/* Main cards / panels */
+.page.light .card,
+.page.light .panel,
+.page.light .reportCard,
+.page.light .sectionCard,
+.page.light .dashboardCard,
+.page.light .premiumCard,
+.page.light .analysisCard,
+.page.light .coachCard,
+.page.light .toolCard,
+.page.light .resultCard,
+.page.light .openingCard,
+.page.light .statCard,
+.page.light .accountPanel,
+[data-theme="light"] .card,
+[data-theme="light"] .panel,
+[data-theme="light"] .reportCard,
+[data-theme="light"] .sectionCard,
+[data-theme="light"] .dashboardCard,
+[data-theme="light"] .premiumCard,
+[data-theme="light"] .analysisCard,
+[data-theme="light"] .coachCard,
+[data-theme="light"] .toolCard,
+[data-theme="light"] .resultCard,
+[data-theme="light"] .openingCard,
+[data-theme="light"] .statCard,
+[data-theme="light"] .accountPanel {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(148, 163, 184, 0.32);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+}
+
+/* Glass/hero areas */
+.page.light .hero,
+.page.light .landingHero,
+.page.light .appHero,
+.page.light .topBar,
+.page.light .navBar,
+.page.light .floatingMenu,
+[data-theme="light"] .hero,
+[data-theme="light"] .landingHero,
+[data-theme="light"] .appHero,
+[data-theme="light"] .topBar,
+[data-theme="light"] .navBar,
+[data-theme="light"] .floatingMenu {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(148, 163, 184, 0.32);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+}
+
+/* Inputs */
+.page.light input,
+.page.light textarea,
+.page.light select,
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(100, 116, 139, 0.38);
+  box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.03);
+}
+
+.page.light input::placeholder,
+.page.light textarea::placeholder,
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #94a3b8;
+}
+
+.page.light input:focus,
+.page.light textarea:focus,
+.page.light select:focus,
+[data-theme="light"] input:focus,
+[data-theme="light"] textarea:focus,
+[data-theme="light"] select:focus {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.72);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+/* Primary buttons */
+.page.light button,
+[data-theme="light"] button {
+  color: inherit;
+}
+
+.page.light .primaryBtn,
+.page.light .importButton,
+.page.light .heroButton,
+.page.light .ctaButton,
+.page.light .accountPrimaryAction,
+.page.light button[type="submit"],
+[data-theme="light"] .primaryBtn,
+[data-theme="light"] .importButton,
+[data-theme="light"] .heroButton,
+[data-theme="light"] .ctaButton,
+[data-theme="light"] .accountPrimaryAction,
+[data-theme="light"] button[type="submit"] {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.22);
+}
+
+.page.light .primaryBtn:hover,
+.page.light .importButton:hover,
+.page.light .heroButton:hover,
+.page.light .ctaButton:hover,
+.page.light .accountPrimaryAction:hover,
+[data-theme="light"] .primaryBtn:hover,
+[data-theme="light"] .importButton:hover,
+[data-theme="light"] .heroButton:hover,
+[data-theme="light"] .ctaButton:hover,
+[data-theme="light"] .accountPrimaryAction:hover {
+  filter: brightness(0.98);
+  transform: translateY(-1px);
+}
+
+/* Secondary buttons / tabs */
+.page.light .secondaryBtn,
+.page.light .ghostBtn,
+.page.light .tabButton,
+.page.light .pillButton,
+.page.light .accountPill,
+.page.light .menuButton,
+[data-theme="light"] .secondaryBtn,
+[data-theme="light"] .ghostBtn,
+[data-theme="light"] .tabButton,
+[data-theme="light"] .pillButton,
+[data-theme="light"] .accountPill,
+[data-theme="light"] .menuButton {
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  border-color: rgba(148, 163, 184, 0.36);
+}
+
+.page.light .tabButton.active,
+.page.light .pillButton.active,
+.page.light .isActive,
+.page.light .active,
+[data-theme="light"] .tabButton.active,
+[data-theme="light"] .pillButton.active,
+[data-theme="light"] .isActive,
+[data-theme="light"] .active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+/* Badges */
+.page.light .badge,
+.page.light .chip,
+.page.light .tag,
+.page.light .statBadge,
+[data-theme="light"] .badge,
+[data-theme="light"] .chip,
+[data-theme="light"] .tag,
+[data-theme="light"] .statBadge {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: rgba(37, 99, 235, 0.18);
+}
+
+/* Tables */
+.page.light table,
+[data-theme="light"] table {
+  color: #0f172a;
+}
+
+.page.light th,
+[data-theme="light"] th {
+  color: #475569;
+  background: rgba(241, 245, 249, 0.9);
+}
+
+.page.light td,
+[data-theme="light"] td {
+  color: #0f172a;
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+/* Account panel specific */
+.page.light .accountPanel,
+[data-theme="light"] .accountPanel {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.page.light .accountPanelHeader,
+[data-theme="light"] .accountPanelHeader {
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.page.light .accountEyebrow,
+[data-theme="light"] .accountEyebrow {
+  color: #2563eb;
+}
+
+.page.light .accountNotice,
+[data-theme="light"] .accountNotice {
+  background: #eff6ff;
+  border-color: rgba(37, 99, 235, 0.18);
+  color: #1e3a8a;
+}
+
+.page.light .accountPremiumBox,
+[data-theme="light"] .accountPremiumBox {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(132, 204, 22, 0.14));
+  border-color: rgba(132, 204, 22, 0.34);
+}
+
+.page.light .accountPremiumBox p,
+[data-theme="light"] .accountPremiumBox p {
+  color: #475569;
+}
+
+.page.light .accountDangerZone,
+[data-theme="light"] .accountDangerZone {
+  background: #fff1f2;
+  border-color: rgba(225, 29, 72, 0.25);
+}
+
+.page.light .accountDangerZone p,
+[data-theme="light"] .accountDangerZone p {
+  color: #64748b;
+}
+
+.page.light .accountDangerButton,
+[data-theme="light"] .accountDangerButton {
+  background: #ffffff;
+  color: #be123c;
+  border-color: rgba(225, 29, 72, 0.32);
+}
+
+.page.light .accountDangerButton:hover,
+[data-theme="light"] .accountDangerButton:hover {
+  background: #ffe4e6;
+}
+
+/* Landing modal */
+.page.light .landingModal,
+.page.light .landingOverlay .landingModal,
+[data-theme="light"] .landingModal {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(148, 163, 184, 0.32);
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.20);
+}
+
+.page.light .landingCloseBtn,
+[data-theme="light"] .landingCloseBtn {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: rgba(148, 163, 184, 0.32);
+}
+
+/* Error/success messages */
+.page.light .error,
+.page.light .errorBox,
+[data-theme="light"] .error,
+[data-theme="light"] .errorBox {
+  background: #fff1f2;
+  color: #be123c;
+  border-color: rgba(225, 29, 72, 0.25);
+}
+
+.page.light .success,
+.page.light .successBox,
+[data-theme="light"] .success,
+[data-theme="light"] .successBox {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+/* Mobile bottom nav */
+.page.light .mobileBottomNav,
+[data-theme="light"] .mobileBottomNav {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(148, 163, 184, 0.32);
+  box-shadow: 0 -14px 35px rgba(15, 23, 42, 0.10);
+}
+
+.page.light .mobileBottomNav button,
+[data-theme="light"] .mobileBottomNav button {
+  color: #475569;
+}
+
+.page.light .mobileBottomNav button.active,
+[data-theme="light"] .mobileBottomNav button.active {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+/* Make sure SVG icons inherit visible colours */
+.page.light svg,
+[data-theme="light"] svg {
+  color: currentColor;
+}
+
+/* Text that was forced white in dark mode */
+.page.light .textWhite,
+.page.light .whiteText,
+.page.light .forceWhite,
+[data-theme="light"] .textWhite,
+[data-theme="light"] .whiteText,
+[data-theme="light"] .forceWhite {
+  color: #0f172a !important;
+}
+
+
+/* =========================================================
+   Light mode repair pass: loading modal, menu, tracker cards
+   ========================================================= */
+
+.page.light .loadingStep,
+.page.light .importStep,
+.page.light .progressStep,
+[data-theme="light"] .loadingStep,
+[data-theme="light"] .importStep,
+[data-theme="light"] .progressStep {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+}
+
+.page.light .loadingStep *,
+.page.light .importStep *,
+.page.light .progressStep *,
+[data-theme="light"] .loadingStep *,
+[data-theme="light"] .importStep *,
+[data-theme="light"] .progressStep * {
+  color: #334155 !important;
+}
+
+.page.light .repertoireItem,
+.page.light .trackerItem,
+.page.light .goalItem,
+.page.light .studyGoal,
+.page.light .openingGoal,
+.page.light .savedOpening,
+.page.light .openingRow,
+.page.light .moveRow,
+.page.light .gameRow,
+.page.light .historyItem,
+[data-theme="light"] .repertoireItem,
+[data-theme="light"] .trackerItem,
+[data-theme="light"] .goalItem,
+[data-theme="light"] .studyGoal,
+[data-theme="light"] .openingGoal,
+[data-theme="light"] .savedOpening,
+[data-theme="light"] .openingRow,
+[data-theme="light"] .moveRow,
+[data-theme="light"] .gameRow,
+[data-theme="light"] .historyItem {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+}
+
+.page.light .repertoireItem *,
+.page.light .trackerItem *,
+.page.light .goalItem *,
+.page.light .studyGoal *,
+.page.light .openingGoal *,
+.page.light .savedOpening *,
+.page.light .openingRow *,
+.page.light .moveRow *,
+.page.light .gameRow *,
+.page.light .historyItem *,
+[data-theme="light"] .repertoireItem *,
+[data-theme="light"] .trackerItem *,
+[data-theme="light"] .goalItem *,
+[data-theme="light"] .studyGoal *,
+[data-theme="light"] .openingGoal *,
+[data-theme="light"] .savedOpening *,
+[data-theme="light"] .openingRow *,
+[data-theme="light"] .moveRow *,
+[data-theme="light"] .gameRow *,
+[data-theme="light"] .historyItem * {
+  color: #334155 !important;
+}
+
+.page.light .goalItem button,
+.page.light .studyGoal button,
+.page.light .openingGoal button,
+.page.light .repertoireItem button,
+.page.light .trackerItem button,
+[data-theme="light"] .goalItem button,
+[data-theme="light"] .studyGoal button,
+[data-theme="light"] .openingGoal button,
+[data-theme="light"] .repertoireItem button,
+[data-theme="light"] .trackerItem button {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+}
+
+.page.light .floatingMenuPanel,
+.page.light .appMenuPanel,
+.page.light .menuPanel,
+[data-theme="light"] .floatingMenuPanel,
+[data-theme="light"] .appMenuPanel,
+[data-theme="light"] .menuPanel {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.16) !important;
+}
+
+.page.light .floatingMenuPanel button,
+.page.light .appMenuPanel button,
+.page.light .menuPanel button,
+[data-theme="light"] .floatingMenuPanel button,
+[data-theme="light"] .appMenuPanel button,
+[data-theme="light"] .menuPanel button {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  opacity: 1 !important;
+}
+
+.page.light .floatingMenuPanel button:hover,
+.page.light .appMenuPanel button:hover,
+.page.light .menuPanel button:hover,
+[data-theme="light"] .floatingMenuPanel button:hover,
+[data-theme="light"] .appMenuPanel button:hover,
+[data-theme="light"] .menuPanel button:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(37, 99, 235, 0.28) !important;
+}
+
+.page.light .floatingMenuPanel button:disabled,
+.page.light .appMenuPanel button:disabled,
+.page.light .menuPanel button:disabled,
+[data-theme="light"] .floatingMenuPanel button:disabled,
+[data-theme="light"] .appMenuPanel button:disabled,
+[data-theme="light"] .menuPanel button:disabled {
+  opacity: 0.55 !important;
+  color: #64748b !important;
+  background: #f1f5f9 !important;
+}
+
+.page.light .platformToggle button,
+.page.light .platformTabs button,
+[data-theme="light"] .platformToggle button,
+[data-theme="light"] .platformTabs button {
+  background: #f8fafc !important;
+  color: #334155 !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+}
+
+.page.light .platformToggle button.active,
+.page.light .platformTabs button.active,
+[data-theme="light"] .platformToggle button.active,
+[data-theme="light"] .platformTabs button.active {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+.page.light .loadProfileButton,
+.page.light .demoButton,
+.page.light .refreshButton,
+[data-theme="light"] .loadProfileButton,
+[data-theme="light"] .demoButton,
+[data-theme="light"] .refreshButton {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.32) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.page.light .viewButton,
+.page.light .reportNavButton,
+.page.light .dashboardTab,
+[data-theme="light"] .viewButton,
+[data-theme="light"] .reportNavButton,
+[data-theme="light"] .dashboardTab {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  opacity: 1 !important;
+}
+
+.page.light .viewButton.active,
+.page.light .reportNavButton.active,
+.page.light .dashboardTab.active,
+[data-theme="light"] .viewButton.active,
+[data-theme="light"] .reportNavButton.active,
+[data-theme="light"] .dashboardTab.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+
+/* =========================================================
+   Final light mode landing button fix
+   Fixes landing import buttons/tabs that still look washed out
+   ========================================================= */
+
+.page.light .landingModal button,
+.page.light .landingModal .button,
+.page.light .landingModal .btn,
+.page.light .landingModal [role="button"],
+.page.light .landingCard button,
+.page.light .landingHero button,
+.page.light .importCard button,
+.page.light .heroImportCard button,
+[data-theme="light"] .landingModal button,
+[data-theme="light"] .landingModal .button,
+[data-theme="light"] .landingModal .btn,
+[data-theme="light"] .landingModal [role="button"],
+[data-theme="light"] .landingCard button,
+[data-theme="light"] .landingHero button,
+[data-theme="light"] .importCard button,
+[data-theme="light"] .heroImportCard button {
+  opacity: 1 !important;
+  filter: none !important;
+  pointer-events: auto;
+}
+
+/* Platform toggle buttons: Chess.com / Lichess */
+.page.light .landingModal button:not(.landingCloseBtn):not([type="submit"]),
+.page.light .landingCard button:not(.landingCloseBtn):not([type="submit"]),
+.page.light .platformToggle button,
+.page.light .platformTabs button,
+.page.light .sourceToggle button,
+.page.light .sourceTabs button,
+.page.light .platformChoice,
+.page.light .platformButton,
+[data-theme="light"] .landingModal button:not(.landingCloseBtn):not([type="submit"]),
+[data-theme="light"] .landingCard button:not(.landingCloseBtn):not([type="submit"]),
+[data-theme="light"] .platformToggle button,
+[data-theme="light"] .platformTabs button,
+[data-theme="light"] .sourceToggle button,
+[data-theme="light"] .sourceTabs button,
+[data-theme="light"] .platformChoice,
+[data-theme="light"] .platformButton {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.38) !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Active platform tab */
+.page.light .landingModal button.active,
+.page.light .landingCard button.active,
+.page.light .platformToggle button.active,
+.page.light .platformTabs button.active,
+.page.light .sourceToggle button.active,
+.page.light .sourceTabs button.active,
+.page.light .platformChoice.active,
+.page.light .platformButton.active,
+[data-theme="light"] .landingModal button.active,
+[data-theme="light"] .landingCard button.active,
+[data-theme="light"] .platformToggle button.active,
+[data-theme="light"] .platformTabs button.active,
+[data-theme="light"] .sourceToggle button.active,
+[data-theme="light"] .sourceTabs button.active,
+[data-theme="light"] .platformChoice.active,
+[data-theme="light"] .platformButton.active {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(37, 99, 235, 0.45) !important;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* Main import button */
+.page.light .landingModal button[type="submit"],
+.page.light .landingCard button[type="submit"],
+.page.light .landingModal .primary,
+.page.light .landingCard .primary,
+.page.light .landingModal .primaryBtn,
+.page.light .landingCard .primaryBtn,
+.page.light .landingModal .importButton,
+.page.light .landingCard .importButton,
+.page.light .landingModal .importBtn,
+.page.light .landingCard .importBtn,
+.page.light .landingModal .analyseButton,
+.page.light .landingCard .analyseButton,
+.page.light .landingModal .analyzeButton,
+.page.light .landingCard .analyzeButton,
+[data-theme="light"] .landingModal button[type="submit"],
+[data-theme="light"] .landingCard button[type="submit"],
+[data-theme="light"] .landingModal .primary,
+[data-theme="light"] .landingCard .primary,
+[data-theme="light"] .landingModal .primaryBtn,
+[data-theme="light"] .landingCard .primaryBtn,
+[data-theme="light"] .landingModal .importButton,
+[data-theme="light"] .landingCard .importButton,
+[data-theme="light"] .landingModal .importBtn,
+[data-theme="light"] .landingCard .importBtn,
+[data-theme="light"] .landingModal .analyseButton,
+[data-theme="light"] .landingCard .analyseButton,
+[data-theme="light"] .landingModal .analyzeButton,
+[data-theme="light"] .landingCard .analyzeButton {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  color: #ffffff !important;
+  border: 1px solid #2563eb !important;
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.24) !important;
+}
+
+/* Fix disabled-looking buttons that are not actually disabled */
+.page.light .landingModal button:not(:disabled),
+.page.light .landingCard button:not(:disabled),
+.page.light .importCard button:not(:disabled),
+[data-theme="light"] .landingModal button:not(:disabled),
+[data-theme="light"] .landingCard button:not(:disabled),
+[data-theme="light"] .importCard button:not(:disabled) {
+  opacity: 1 !important;
+}
+
+/* Real disabled state should still look disabled */
+.page.light .landingModal button:disabled,
+.page.light .landingCard button:disabled,
+.page.light .importCard button:disabled,
+[data-theme="light"] .landingModal button:disabled,
+[data-theme="light"] .landingCard button:disabled,
+[data-theme="light"] .importCard button:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+}
+
+/* Landing input/menu square icon on right side */
+.page.light .landingModal input + button,
+.page.light .landingCard input + button,
+.page.light .inputWithButton button,
+.page.light .inputAction,
+[data-theme="light"] .landingModal input + button,
+[data-theme="light"] .landingCard input + button,
+[data-theme="light"] .inputWithButton button,
+[data-theme="light"] .inputAction {
+  background: #e2e8f0 !important;
+  color: #334155 !important;
+  border-color: rgba(148, 163, 184, 0.36) !important;
+  box-shadow: none !important;
+}
+
+/* Small beta badges */
+.page.light .landingModal .badge,
+.page.light .landingCard .badge,
+.page.light .landingModal .chip,
+.page.light .landingCard .chip,
+.page.light .landingModal .tag,
+.page.light .landingCard .tag,
+[data-theme="light"] .landingModal .badge,
+[data-theme="light"] .landingCard .badge,
+[data-theme="light"] .landingModal .chip,
+[data-theme="light"] .landingCard .chip,
+[data-theme="light"] .landingModal .tag,
+[data-theme="light"] .landingCard .tag {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+}
+
+/* Catch the actual landing import section even if class names differ */
+.page.light [class*="landing"] button,
+.page.light [class*="Landing"] button,
+.page.light [class*="import"] button,
+.page.light [class*="Import"] button,
+[data-theme="light"] [class*="landing"] button,
+[data-theme="light"] [class*="Landing"] button,
+[data-theme="light"] [class*="import"] button,
+[data-theme="light"] [class*="Import"] button {
+  opacity: 1 !important;
+}
+
+/* But keep the main CTA blue */
+.page.light [class*="landing"] button[type="submit"],
+.page.light [class*="Landing"] button[type="submit"],
+.page.light [class*="import"] button[type="submit"],
+.page.light [class*="Import"] button[type="submit"],
+[data-theme="light"] [class*="landing"] button[type="submit"],
+[data-theme="light"] [class*="Landing"] button[type="submit"],
+[data-theme="light"] [class*="import"] button[type="submit"],
+[data-theme="light"] [class*="Import"] button[type="submit"] {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+
+/* =========================================================
+   Light mode fix: Opening Fit slide-out menu
+   ========================================================= */
+
+.page.light .floatingAppMenuPanel,
+.page.light .floatingAppMenu,
+.page.light .appMenu,
+.page.light .appMenuDrawer,
+.page.light .commandMenu,
+.page.light .menuDrawer,
+[data-theme="light"] .floatingAppMenuPanel,
+[data-theme="light"] .floatingAppMenu,
+[data-theme="light"] .appMenu,
+[data-theme="light"] .appMenuDrawer,
+[data-theme="light"] .commandMenu,
+[data-theme="light"] .menuDrawer {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18) !important;
+}
+
+.page.light .floatingAppMenuPanel *,
+.page.light .floatingAppMenu *,
+.page.light .appMenu *,
+.page.light .appMenuDrawer *,
+.page.light .commandMenu *,
+.page.light .menuDrawer *,
+[data-theme="light"] .floatingAppMenuPanel *,
+[data-theme="light"] .floatingAppMenu *,
+[data-theme="light"] .appMenu *,
+[data-theme="light"] .appMenuDrawer *,
+[data-theme="light"] .commandMenu *,
+[data-theme="light"] .menuDrawer * {
+  color: #0f172a;
+}
+
+.page.light .floatingAppMenuPanel button,
+.page.light .floatingAppMenu button,
+.page.light .appMenu button,
+.page.light .appMenuDrawer button,
+.page.light .commandMenu button,
+.page.light .menuDrawer button,
+[data-theme="light"] .floatingAppMenuPanel button,
+[data-theme="light"] .floatingAppMenu button,
+[data-theme="light"] .appMenu button,
+[data-theme="light"] .appMenuDrawer button,
+[data-theme="light"] .commandMenu button,
+[data-theme="light"] .menuDrawer button {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.32) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+.page.light .floatingAppMenuPanel button *,
+.page.light .floatingAppMenu button *,
+.page.light .appMenu button *,
+.page.light .appMenuDrawer button *,
+.page.light .commandMenu button *,
+.page.light .menuDrawer button *,
+[data-theme="light"] .floatingAppMenuPanel button *,
+[data-theme="light"] .floatingAppMenu button *,
+[data-theme="light"] .appMenu button *,
+[data-theme="light"] .appMenuDrawer button *,
+[data-theme="light"] .commandMenu button *,
+[data-theme="light"] .menuDrawer button * {
+  color: inherit !important;
+}
+
+.page.light .floatingAppMenuPanel button:hover,
+.page.light .floatingAppMenu button:hover,
+.page.light .appMenu button:hover,
+.page.light .appMenuDrawer button:hover,
+.page.light .commandMenu button:hover,
+.page.light .menuDrawer button:hover,
+[data-theme="light"] .floatingAppMenuPanel button:hover,
+[data-theme="light"] .floatingAppMenu button:hover,
+[data-theme="light"] .appMenu button:hover,
+[data-theme="light"] .appMenuDrawer button:hover,
+[data-theme="light"] .commandMenu button:hover,
+[data-theme="light"] .menuDrawer button:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(37, 99, 235, 0.36) !important;
+}
+
+.page.light .floatingAppMenuPanel button.active,
+.page.light .floatingAppMenu button.active,
+.page.light .appMenu button.active,
+.page.light .appMenuDrawer button.active,
+.page.light .commandMenu button.active,
+.page.light .menuDrawer button.active,
+.page.light .floatingAppMenuPanel .active,
+.page.light .floatingAppMenu .active,
+.page.light .appMenu .active,
+.page.light .appMenuDrawer .active,
+.page.light .commandMenu .active,
+.page.light .menuDrawer .active,
+[data-theme="light"] .floatingAppMenuPanel button.active,
+[data-theme="light"] .floatingAppMenu button.active,
+[data-theme="light"] .appMenu button.active,
+[data-theme="light"] .appMenuDrawer button.active,
+[data-theme="light"] .commandMenu button.active,
+[data-theme="light"] .menuDrawer button.active,
+[data-theme="light"] .floatingAppMenuPanel .active,
+[data-theme="light"] .floatingAppMenu .active,
+[data-theme="light"] .appMenu .active,
+[data-theme="light"] .appMenuDrawer .active,
+[data-theme="light"] .commandMenu .active,
+[data-theme="light"] .menuDrawer .active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+.page.light .floatingAppMenuPanel button.active *,
+.page.light .floatingAppMenu button.active *,
+.page.light .appMenu button.active *,
+.page.light .appMenuDrawer button.active *,
+.page.light .commandMenu button.active *,
+.page.light .menuDrawer button.active *,
+[data-theme="light"] .floatingAppMenuPanel button.active *,
+[data-theme="light"] .floatingAppMenu button.active *,
+[data-theme="light"] .appMenu button.active *,
+[data-theme="light"] .appMenuDrawer button.active *,
+[data-theme="light"] .commandMenu button.active *,
+[data-theme="light"] .menuDrawer button.active * {
+  color: #ffffff !important;
+}
+
+.page.light .floatingAppMenuPanel button:disabled,
+.page.light .floatingAppMenu button:disabled,
+.page.light .appMenu button:disabled,
+.page.light .appMenuDrawer button:disabled,
+.page.light .commandMenu button:disabled,
+.page.light .menuDrawer button:disabled,
+[data-theme="light"] .floatingAppMenuPanel button:disabled,
+[data-theme="light"] .floatingAppMenu button:disabled,
+[data-theme="light"] .appMenu button:disabled,
+[data-theme="light"] .appMenuDrawer button:disabled,
+[data-theme="light"] .commandMenu button:disabled,
+[data-theme="light"] .menuDrawer button:disabled {
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  opacity: 1 !important;
+}
+
+/* Fix the close button specifically */
+.page.light .floatingAppMenuPanel .closeButton,
+.page.light .floatingAppMenuPanel .menuClose,
+.page.light .floatingAppMenuPanel .closeBtn,
+.page.light .appMenu .closeButton,
+.page.light .appMenu .menuClose,
+.page.light .appMenu .closeBtn,
+[data-theme="light"] .floatingAppMenuPanel .closeButton,
+[data-theme="light"] .floatingAppMenuPanel .menuClose,
+[data-theme="light"] .floatingAppMenuPanel .closeBtn,
+[data-theme="light"] .appMenu .closeButton,
+[data-theme="light"] .appMenu .menuClose,
+[data-theme="light"] .appMenu .closeBtn {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: rgba(148, 163, 184, 0.32) !important;
+}
+
+
+/* =========================================================
+   Exact light mode fix for FloatingAppMenu in App.jsx
+   Targets:
+   floatingMenu, floatingMenuPanel, floatingMenuButtons,
+   floatingMenuActiveItem
+   ========================================================= */
+
+.page.light .floatingMenu {
+  color: #0f172a !important;
+}
+
+.page.light .floatingMenuToggle {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.12) !important;
+  opacity: 1 !important;
+}
+
+.page.light .floatingMenuPanel {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.32) !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18) !important;
+}
+
+.page.light .floatingMenuPanel * {
+  color: inherit;
+}
+
+.page.light .floatingMenuHeader {
+  color: #0f172a !important;
+}
+
+.page.light .floatingMenuHeader strong {
+  color: #0f172a !important;
+}
+
+.page.light .floatingMenuHeader button {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.32) !important;
+  opacity: 1 !important;
+}
+
+.page.light .floatingMenuLabel {
+  color: #334155 !important;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page.light .floatingMenuHint {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+}
+
+.page.light .floatingMenuButtons button {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.32) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+.page.light .floatingMenuButtons button:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(37, 99, 235, 0.38) !important;
+}
+
+.page.light .floatingMenuButtons button:disabled {
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+  opacity: 1 !important;
+}
+
+.page.light .floatingMenuButtons button.floatingMenuActiveItem,
+.page.light .floatingMenuButtons .floatingMenuActiveItem {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+  opacity: 1 !important;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.22) !important;
+}
+
+.page.light .floatingMenuButtons button.floatingMenuActiveItem *,
+.page.light .floatingMenuButtons .floatingMenuActiveItem * {
+  color: #ffffff !important;
+}
+
+.page.light .floatingMenuButtonsSingle button {
+  color: #0f172a !important;
+}
+
+.page.light .floatingMenuButtonsSingle button.floatingMenuActiveItem {
+  color: #ffffff !important;
+}
+
+/* Prevent global light-mode .active styles from making menu text invisible */
+.page.light .floatingMenuPanel .active:not(.floatingMenuActiveItem) {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+
+/* =========================================================
+   Exact light mode fix for App.jsx dashboard import controls
+   ========================================================= */
+
+.page.light .platformSelector {
+  background: #f8fafc !important;
+  border: 1px solid rgba(148, 163, 184, 0.32) !important;
+}
+
+.page.light .platformButton {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  opacity: 1 !important;
+}
+
+.page.light .platformButtonActive {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(37, 99, 235, 0.45) !important;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12) !important;
+}
+
+.page.light .primaryBtn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  color: #ffffff !important;
+  border: 1px solid #2563eb !important;
+  opacity: 1 !important;
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.24) !important;
+}
+
+.page.light .primaryBtn:disabled {
+  background: #cbd5e1 !important;
+  color: #64748b !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+  opacity: 0.7 !important;
+}
+
+.page.light .secondaryButton,
+.page.light .savedProfileButton,
+.page.light .ghostButton,
+.page.light .demoAccountButton {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+.page.light .secondaryButton:hover,
+.page.light .savedProfileButton:hover,
+.page.light .ghostButton:hover,
+.page.light .demoAccountButton:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+.page.light .secondaryButton:disabled,
+.page.light .savedProfileButton:disabled,
+.page.light .ghostButton:disabled,
+.page.light .demoAccountButton:disabled {
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  opacity: 0.7 !important;
+}
+
+.page.light .input,
+.page.light .monthSelect {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.4) !important;
+}
+
+.page.light .input::placeholder {
+  color: #94a3b8 !important;
+}
+
+
+/* =========================================================
+   Exact light mode fix for FloatingAppMenu in App.jsx
+   Targets:
+   floatingMenu, floatingMenuPanel, floatingMenuButtons,
+   floatingMenuActiveItem
+   ========================================================= */
+
+.page.light .floatingMenu {
+  color: #0f172a !important;
+}
+
+.page.light .floatingMenuToggle {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.12) !important;
+  opacity: 1 !important;
+}
+
+.page.light .floatingMenuPanel {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.32) !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18) !important;
+}
+
+.page.light .floatingMenuPanel * {
+  color: inherit;
+}
+
+.page.light .floatingMenuHeader {
+  color: #0f172a !important;
+}
+
+.page.light .floatingMenuHeader strong {
+  color: #0f172a !important;
+}
+
+.page.light .floatingMenuHeader button {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.32) !important;
+  opacity: 1 !important;
+}
+
+.page.light .floatingMenuLabel {
+  color: #334155 !important;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page.light .floatingMenuHint {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+}
+
+.page.light .floatingMenuButtons button {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.32) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+.page.light .floatingMenuButtons button:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(37, 99, 235, 0.38) !important;
+}
+
+.page.light .floatingMenuButtons button:disabled {
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+  opacity: 1 !important;
+}
+
+.page.light .floatingMenuButtons button.floatingMenuActiveItem,
+.page.light .floatingMenuButtons .floatingMenuActiveItem {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+  opacity: 1 !important;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.22) !important;
+}
+
+.page.light .floatingMenuButtons button.floatingMenuActiveItem *,
+.page.light .floatingMenuButtons .floatingMenuActiveItem * {
+  color: #ffffff !important;
+}
+
+.page.light .floatingMenuButtonsSingle button {
+  color: #0f172a !important;
+}
+
+.page.light .floatingMenuButtonsSingle button.floatingMenuActiveItem {
+  color: #ffffff !important;
+}
+
+/* Prevent global light-mode .active styles from making menu text invisible */
+.page.light .floatingMenuPanel .active:not(.floatingMenuActiveItem) {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+
+/* =========================================================
+   Exact light mode fix for App.jsx dashboard import controls
+   ========================================================= */
+
+.page.light .platformSelector {
+  background: #f8fafc !important;
+  border: 1px solid rgba(148, 163, 184, 0.32) !important;
+}
+
+.page.light .platformButton {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  opacity: 1 !important;
+}
+
+.page.light .platformButtonActive {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(37, 99, 235, 0.45) !important;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12) !important;
+}
+
+.page.light .primaryBtn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  color: #ffffff !important;
+  border: 1px solid #2563eb !important;
+  opacity: 1 !important;
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.24) !important;
+}
+
+.page.light .primaryBtn:disabled {
+  background: #cbd5e1 !important;
+  color: #64748b !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+  opacity: 0.7 !important;
+}
+
+.page.light .secondaryButton,
+.page.light .savedProfileButton,
+.page.light .ghostButton,
+.page.light .demoAccountButton {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+.page.light .secondaryButton:hover,
+.page.light .savedProfileButton:hover,
+.page.light .ghostButton:hover,
+.page.light .demoAccountButton:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+.page.light .secondaryButton:disabled,
+.page.light .savedProfileButton:disabled,
+.page.light .ghostButton:disabled,
+.page.light .demoAccountButton:disabled {
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  opacity: 0.7 !important;
+}
+
+.page.light .input,
+.page.light .monthSelect {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.4) !important;
+}
+
+.page.light .input::placeholder {
+  color: #94a3b8 !important;
+}
+
+
+/* Final mobile/desktop menu button polish */
+.floatingAppMenu,
+.floating-menu,
+.appMenu,
+.menuPanel,
+.mobileMenu,
+.accountPanel,
+.accountPanelShell {
+  box-sizing: border-box;
+}
+
+.floatingAppMenu button,
+.floating-menu button,
+.appMenu button,
+.menuPanel button,
+.mobileMenu button,
+.accountPanel button,
+.accountPanelShell button {
+  appearance: none;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.82);
+  color: #f8fafc;
+  border-radius: 14px;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.22);
+}
+
+.floatingAppMenu button:hover,
+.floating-menu button:hover,
+.appMenu button:hover,
+.menuPanel button:hover,
+.mobileMenu button:hover,
+.accountPanel button:hover,
+.accountPanelShell button:hover {
+  transform: translateY(-1px);
+  background: rgba(30, 41, 59, 0.96);
+  border-color: rgba(148, 163, 184, 0.42);
+}
+
+.floatingAppMenu button:active,
+.floating-menu button:active,
+.appMenu button:active,
+.menuPanel button:active,
+.mobileMenu button:active,
+.accountPanel button:active,
+.accountPanelShell button:active {
+  transform: translateY(0);
+}
+
+/* Make grouped menu buttons align properly */
+.floatingAppMenu .menuGrid,
+.floating-menu .menuGrid,
+.appMenu .menuGrid,
+.menuPanel .menuGrid,
+.mobileMenu .menuGrid,
+.accountPanel .menuGrid,
+.accountPanelShell .menuGrid,
+.floatingAppMenu nav,
+.floating-menu nav,
+.appMenu nav,
+.menuPanel nav,
+.mobileMenu nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* Prevent ugly stretched/overflowing buttons on mobile */
+@media (max-width: 640px) {
+  .floatingAppMenu,
+  .floating-menu,
+  .appMenu,
+  .menuPanel,
+  .mobileMenu,
+  .accountPanel,
+  .accountPanelShell {
+    max-width: calc(100vw - 24px);
+  }
+
+  .floatingAppMenu button,
+  .floating-menu button,
+  .appMenu button,
+  .menuPanel button,
+  .mobileMenu button,
+  .accountPanel button,
+  .accountPanelShell button {
+    width: 100%;
+    min-height: 46px;
+    padding: 11px 12px;
+    font-size: 0.9rem;
+    border-radius: 16px;
+  }
+}
+
+/* Light mode fix */
+[data-theme="light"] .floatingAppMenu button,
+[data-theme="light"] .floating-menu button,
+[data-theme="light"] .appMenu button,
+[data-theme="light"] .menuPanel button,
+[data-theme="light"] .mobileMenu button,
+[data-theme="light"] .accountPanel button,
+[data-theme="light"] .accountPanelShell button {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .floatingAppMenu button:hover,
+[data-theme="light"] .floating-menu button:hover,
+[data-theme="light"] .appMenu button:hover,
+[data-theme="light"] .menuPanel button:hover,
+[data-theme="light"] .mobileMenu button:hover,
+[data-theme="light"] .accountPanel button:hover,
+[data-theme="light"] .accountPanelShell button:hover {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+
+/* --- Final light mode burger/menu visibility fix --- */
+
+[data-theme="light"] .floatingMenuPanel,
+[data-theme="light"] .floatingAppMenu,
+[data-theme="light"] .appMenuPanel,
+[data-theme="light"] .menuPanel {
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18) !important;
+}
+
+[data-theme="light"] .floatingMenuPanel *,
+[data-theme="light"] .floatingAppMenu *,
+[data-theme="light"] .appMenuPanel *,
+[data-theme="light"] .menuPanel * {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .floatingMenuPanel button,
+[data-theme="light"] .floatingAppMenu button,
+[data-theme="light"] .appMenuPanel button,
+[data-theme="light"] .menuPanel button {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme="light"] .floatingMenuPanel button:hover,
+[data-theme="light"] .floatingAppMenu button:hover,
+[data-theme="light"] .appMenuPanel button:hover,
+[data-theme="light"] .menuPanel button:hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.22) !important;
+}
+
+[data-theme="light"] .floatingMenuPanel button.active,
+[data-theme="light"] .floatingAppMenu button.active,
+[data-theme="light"] .appMenuPanel button.active,
+[data-theme="light"] .menuPanel button.active,
+[data-theme="light"] .floatingMenuPanel .active,
+[data-theme="light"] .floatingAppMenu .active,
+[data-theme="light"] .appMenuPanel .active,
+[data-theme="light"] .menuPanel .active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+[data-theme="light"] .floatingMenuPanel button.active *,
+[data-theme="light"] .floatingAppMenu button.active *,
+[data-theme="light"] .appMenuPanel button.active *,
+[data-theme="light"] .menuPanel button.active *,
+[data-theme="light"] .floatingMenuPanel .active *,
+[data-theme="light"] .floatingAppMenu .active *,
+[data-theme="light"] .appMenuPanel .active *,
+[data-theme="light"] .menuPanel .active * {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .floatingMenuPanel .menuSectionTitle,
+[data-theme="light"] .floatingAppMenu .menuSectionTitle,
+[data-theme="light"] .appMenuPanel .menuSectionTitle,
+[data-theme="light"] .menuPanel .menuSectionTitle {
+  color: #334155 !important;
+  opacity: 1 !important;
+}
+
+
+/* --- Force burger menu buttons readable in light mode --- */
+
+.page.light .floatingMenuPanel,
+.page.light .floatingAppMenu,
+.page.light [class*="Menu"] {
+  color: #0f172a !important;
+}
+
+.page.light .floatingMenuPanel button,
+.page.light .floatingAppMenu button,
+.page.light [class*="Menu"] button {
+  opacity: 1 !important;
+  filter: none !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  border: 1px solid rgba(15, 23, 42, 0.14) !important;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06) !important;
+}
+
+.page.light .floatingMenuPanel button *,
+.page.light .floatingAppMenu button *,
+.page.light [class*="Menu"] button * {
+  opacity: 1 !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+/* Keep selected/active page blue */
+.page.light .floatingMenuPanel button.active,
+.page.light .floatingAppMenu button.active,
+.page.light [class*="Menu"] button.active,
+.page.light .floatingMenuPanel .active,
+.page.light .floatingAppMenu .active,
+.page.light [class*="Menu"] .active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+.page.light .floatingMenuPanel button.active *,
+.page.light .floatingAppMenu button.active *,
+.page.light [class*="Menu"] button.active *,
+.page.light .floatingMenuPanel .active *,
+.page.light .floatingAppMenu .active *,
+.page.light [class*="Menu"] .active * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Make account button readable but still highlighted */
+.page.light .floatingMenuPanel button:has(.accountDot),
+.page.light .floatingAppMenu button:has(.accountDot),
+.page.light [class*="Menu"] button:has(.accountDot) {
+  background: #f5f3ff !important;
+  color: #312e81 !important;
+  -webkit-text-fill-color: #312e81 !important;
+  border-color: rgba(124, 58, 237, 0.22) !important;
+}
+
+/* Close button should not look washed out */
+.page.light .floatingMenuPanel .menuClose,
+.page.light .floatingAppMenu .menuClose,
+.page.light [class*="Menu"] .menuClose,
+.page.light [class*="Menu"] button[aria-label*="Close"],
+.page.light [class*="Menu"] button[aria-label*="close"] {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 1 !important;
+}
+
