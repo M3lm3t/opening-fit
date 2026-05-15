@@ -21946,3 +21946,88 @@ main {
   color: #0f172a;
   border-color: rgba(15, 23, 42, 0.14);
 }
+
+/* Prevent ugly mid-word wrapping in compact dashboard cards */
+.stat-card,
+.mini-card,
+.health-card,
+.opening-health-card,
+.repertoire-card,
+.coach-card,
+.dashboard-card,
+.summary-card,
+.action-card,
+.keep-improve-card,
+[class*="card"],
+[class*="Card"] {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.stat-card *,
+.mini-card *,
+.health-card *,
+.opening-health-card *,
+.repertoire-card *,
+.coach-card *,
+.dashboard-card *,
+.summary-card *,
+.action-card *,
+.keep-improve-card *,
+[class*="card"] *,
+[class*="Card"] * {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+/* Let small recommendation boxes breathe instead of crushing text */
+.keep-improve-card,
+.action-card,
+.repertoire-card,
+.summary-card,
+.opening-health-card {
+  min-width: 0;
+}
+
+.keep-improve-card h3,
+.keep-improve-card h4,
+.action-card h3,
+.action-card h4,
+.repertoire-card h3,
+.repertoire-card h4,
+.summary-card h3,
+.summary-card h4,
+.opening-health-card h3,
+.opening-health-card h4 {
+  line-height: 1.18;
+  text-wrap: balance;
+}
+
+/* Make compact card grids less cramped on laptop/mobile widths */
+@media (max-width: 1100px) {
+  .keep-improve-grid,
+  .repertoire-grid,
+  .summary-grid,
+  .health-grid,
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .stat-card,
+  .mini-card,
+  .health-card,
+  .opening-health-card,
+  .repertoire-card,
+  .coach-card,
+  .dashboard-card,
+  .summary-card,
+  .action-card,
+  .keep-improve-card {
+    min-width: 0;
+    width: 100%;
+  }
+}
