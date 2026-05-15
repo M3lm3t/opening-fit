@@ -1383,6 +1383,7 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
     black_opening_counter = Counter()
     opening_results = defaultdict(lambda: {"games": 0, "wins": 0, "draws": 0, "losses": 0})
     recent_games = []
+    player_ratings = []
 
     for game in games:
         opening = get_lichess_opening_name(game)
@@ -1390,8 +1391,22 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
         result = get_lichess_result(game, username)
 
         players = game.get("players", {})
-        white_name = lichess_user_name(players.get("white", {}), "White")
-        black_name = lichess_user_name(players.get("black", {}), "Black")
+        white_player = players.get("white", {})
+        black_player = players.get("black", {})
+        white_name = lichess_user_name(white_player, "White")
+        black_name = lichess_user_name(black_player, "Black")
+
+        username_lower = username.lower()
+
+        if white_name.lower() == username_lower:
+            rating_value = white_player.get("rating")
+            if isinstance(rating_value, (int, float)):
+                player_ratings.append(int(rating_value))
+
+        if black_name.lower() == username_lower:
+            rating_value = black_player.get("rating")
+            if isinstance(rating_value, (int, float)):
+                player_ratings.append(int(rating_value))
 
         moves_text = game.get("moves", "")
         moves = moves_text.split() if moves_text else []
@@ -1506,11 +1521,31 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
     premium_data = build_premium_data(best_openings, style_profile)
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
+    current_rating = max(player_ratings) if player_ratings else None
+
+    if current_rating is None:
+        player_level = "Unknown"
+    elif current_rating < 900:
+        player_level = "Beginner"
+    elif current_rating < 1400:
+        player_level = "Improver"
+    elif current_rating < 1800:
+        player_level = "Club"
+    elif current_rating < 2200:
+        player_level = "Advanced"
+    else:
+        player_level = "Master"
+
     result = {
         "username": username,
         "player_url": f"https://lichess.org/@/{username}",
         "playerUrl": f"https://lichess.org/@/{username}",
         "platform": "lichess",
+        "rating": current_rating,
+        "lichess_rating": current_rating,
+        "lichessRating": current_rating,
+        "player_level": player_level,
+        "playerLevel": player_level,
         "total_games": len(games),
         "totalGames": len(games),
         "gamesImported": len(games),
