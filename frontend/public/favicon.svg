@@ -1,5 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="16" fill="#020617"/>
-  <circle cx="32" cy="32" r="24" fill="#2563eb" opacity="0.18"/>
-  <path d="M23 48h21v-5H23v5Zm3-8h15c-1.5-4.8-4.7-7.9-9.5-9.5 2.8-1.4 5.2-4.1 5.2-8.1 0-5.2-3.6-8.4-8.5-8.4H23v5h4.8c2.2 0 3.8 1.4 3.8 3.7 0 2.7-2.2 4.4-5.8 4.4H23v4.8h4.7c4.5 0 7.4 2.6 8.6 8.1H26Z" fill="#f8fafc"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Opening Fit knight icon">
+  <rect width="512" height="512" rx="96" fill="#1d8cf8"/>
+  <text
+    x="256"
+    y="318"
+    text-anchor="middle"
+    font-size="230"
+    font-family="Arial, Helvetica, sans-serif"
+    font-weight="700"
+    fill="#020617"
+  >♞</text>
 </svg>
