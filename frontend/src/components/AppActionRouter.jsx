@@ -251,8 +251,8 @@ export default function AppActionRouter({ onViewChange }) {
       "start drill": "Interactive drills are not live yet. This is a strong premium/training upgrade.",
       "start practice": "Interactive practice is not fully wired yet. This should become the next training feature.",
       "create account": "Account creation is not fully live yet. Saved report history is active for now.",
-      "sign in": "Login is still being polished. Saved report history works locally for now.",
-      "login": "Login is still being polished. Saved report history works locally for now.",
+      "sign in": "Opening account menu...",
+      "login": "Opening account menu...",
     };
 
     const handleClick = (event) => {
