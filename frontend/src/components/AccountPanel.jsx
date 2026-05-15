@@ -219,6 +219,45 @@ export default function AccountPanel({ variant = "floating",
   }
 
 
+  useEffect(() => {
+    const handleFounderPassIntent = () => {
+      setIsOpen(true);
+
+      setTimeout(() => {
+        const panel =
+          document.getElementById("account") ||
+          document.getElementById("login") ||
+          document.querySelector(".accountPanel") ||
+          document.querySelector(".account-panel") ||
+          document.querySelector("[data-section='account']");
+
+        if (panel && panel.scrollIntoView) {
+          panel.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
+        const paymentArea =
+          document.getElementById("payment") ||
+          document.getElementById("checkout") ||
+          panel?.querySelector?.("[data-section='payment']") ||
+          panel?.querySelector?.("[data-section='checkout']") ||
+          panel?.querySelector?.(".checkout") ||
+          panel?.querySelector?.(".payment");
+
+        if (paymentArea && paymentArea.scrollIntoView) {
+          paymentArea.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 180);
+    };
+
+    window.addEventListener("openingfit:founder-pass-intent", handleFounderPassIntent);
+
+    return () => {
+      window.removeEventListener("openingfit:founder-pass-intent", handleFounderPassIntent);
+    };
+  }, []);
+
+
+
   return (
     <div className={`accountPanelShell accountPanelShell--${variant}`}>
       <button

@@ -2560,6 +2560,31 @@ export default function App() {
     }, 80);
   };
 
+  const handleFounderPassClick = () => {
+    window.dispatchEvent(
+      new CustomEvent("openingfit:founder-pass-intent", {
+        detail: {
+          source: "trust-upgrade",
+          plan: "founder_pass",
+        },
+      })
+    );
+
+    setTimeout(() => {
+      const accountTarget =
+        document.getElementById("account") ||
+        document.getElementById("login") ||
+        document.querySelector(".accountPanel") ||
+        document.querySelector(".account-panel") ||
+        document.querySelector("[data-section='account']");
+
+      if (accountTarget) {
+        accountTarget.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 120);
+  };
+
+
   const [showUnknownOpenings, setShowUnknownOpenings] = useState(false);
   const [selectedGameIndex, setSelectedGameIndex] = useState(0);
   const [practiceOpening, setPracticeOpening] = useState(null);
@@ -3556,6 +3581,7 @@ const [activeView, setActiveView] = useState("overview");
         {data ? <OpeningFitTrustBar data={data} /> : null}
 
         <OpeningFitTrustUpgrade
+          onFounderPass={handleFounderPassClick}
           onDemo={loadDemoReport}
           onImport={() => {
             const el =
