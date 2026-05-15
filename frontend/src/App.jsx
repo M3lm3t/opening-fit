@@ -28,6 +28,7 @@ import PremiumCoachPlan from "./components/PremiumCoachPlan";
 import MyRepertoire from "./components/MyRepertoire";
 import PremiumTrustStrip from "./components/PremiumTrustStrip";
 import LandingModal from "./components/LandingModal";
+import OpeningFitTrustUpgrade from "./components/OpeningFitTrustUpgrade";
 import TrustFaq from "./components/TrustFaq";
 import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
@@ -3529,6 +3530,21 @@ const [activeView, setActiveView] = useState("overview");
         />
 
         {data ? <OpeningFitTrustBar data={data} /> : null}
+
+        <OpeningFitTrustUpgrade
+          onImport={() => {
+            const el =
+              document.getElementById("app-dashboard") ||
+              document.getElementById("import") ||
+              document.querySelector("input");
+
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }}
+          onSample={() => {
+            const el = document.getElementById("sample-report");
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        />
 
         {showLanding ? (
           <LandingModal
