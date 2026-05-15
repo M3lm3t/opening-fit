@@ -59,6 +59,7 @@ import IntelligentCoachInsights from "./components/IntelligentCoachInsights";
 import OpeningClassificationNotice from "./components/OpeningClassificationNotice";
 import { displayOpeningName, getSmartLevelAwareRecommendation, getSmartPlayerLevelProfile } from "./components/playerLevelLogic";
 import AccountRestoreSync from "./components/AccountRestoreSync";
+import { DEMO_REPORT } from "./demoReportData";
 
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
@@ -2536,6 +2537,29 @@ export default function App() {
   const [loadingStep, setLoadingStep] = useState("");
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
+
+  const loadDemoReport = () => {
+    setData(DEMO_REPORT);
+
+    if (typeof setActiveView === "function") {
+      setActiveView("overview");
+    }
+
+    if (typeof setShowLanding === "function") {
+      setShowLanding(false);
+    }
+
+    setTimeout(() => {
+      const el =
+        document.getElementById("app-dashboard") ||
+        document.getElementById("report") ||
+        document.querySelector(".app-dashboard") ||
+        document.querySelector(".report-shell");
+
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
+
   const [showUnknownOpenings, setShowUnknownOpenings] = useState(false);
   const [selectedGameIndex, setSelectedGameIndex] = useState(0);
   const [practiceOpening, setPracticeOpening] = useState(null);
@@ -3532,6 +3556,7 @@ const [activeView, setActiveView] = useState("overview");
         {data ? <OpeningFitTrustBar data={data} /> : null}
 
         <OpeningFitTrustUpgrade
+          onDemo={loadDemoReport}
           onImport={() => {
             const el =
               document.getElementById("app-dashboard") ||
