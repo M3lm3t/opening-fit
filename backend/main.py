@@ -1528,9 +1528,9 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
     elif current_rating < 900:
         player_level = "Beginner"
     elif current_rating < 1400:
-        player_level = "Improver"
+        player_level = "Intermediate"
     elif current_rating < 1800:
-        player_level = "Club"
+        player_level = "Club Player"
     elif current_rating < 2200:
         player_level = "Advanced"
     else:
