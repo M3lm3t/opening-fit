@@ -44,7 +44,7 @@ const premiumItems = [
   "Future premium upgrades",
 ];
 
-export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo }) {
+export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onFounderPass }) {
   return (
     <section className="trustUpgrade" id="sample-report">
       <div className="trustHeroCard">
@@ -145,7 +145,7 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo }) {
             as more premium features are added.
           </p>
 
-          <button type="button" className="founderButton">
+          <button type="button" className="founderButton" onClick={onFounderPass}>
             Get Founder Pass
           </button>
         </article>
