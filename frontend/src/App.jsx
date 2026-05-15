@@ -2546,7 +2546,16 @@ export default function App() {
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [localSavedAt, setLocalSavedAt] = useState("");
 const [activeView, setActiveView] = useState("overview");
-  const [showLanding, setShowLanding] = useState(true);
+  const [showLanding, setShowLanding] = useState(() => {
+    const landingSeen = localStorage.getItem("openingfit_landing_seen") === "true";
+    const hasAppHash = window.location.hash && window.location.hash !== "#";
+    return !landingSeen && !hasAppHash;
+  });
+  const rememberLandingSeen = () => {
+    localStorage.setItem("openingfit_landing_seen", "true");
+    setShowLanding(false);
+  };
+
 
 
   useEffect(() => {
@@ -2628,7 +2637,7 @@ const [activeView, setActiveView] = useState("overview");
   useEffect(() => {
     const handleEscape = (event) => {
       if (event.key === "Escape") {
-        setShowLanding(false);
+        rememberLandingSeen();
       }
     };
 
@@ -2980,7 +2989,7 @@ const [activeView, setActiveView] = useState("overview");
       const cleanData = normaliseData(json);
       setData(cleanData);
       saveLocalAnalysis(cleanData, cleanUsername);
-      setShowLanding(false);
+      rememberLandingSeen();
       setActiveView("overview");
 
       setSavedProfileMessage(
@@ -3127,7 +3136,7 @@ const [activeView, setActiveView] = useState("overview");
       setSelectedGameIndex(0);
       setPracticeOpening(null);
       setOpenSections(closedSections);
-      setShowLanding(false);
+      rememberLandingSeen();
       setActiveView("overview");
       setSavedProfileMessage(
         "Demo profile loaded. This is sample data, so use Import Games for your real saved profile."
@@ -3529,7 +3538,7 @@ const [activeView, setActiveView] = useState("overview");
             setPlatform={setPlatform}
             onImport={importGames}
             loading={loading}
-            onClose={() => setShowLanding(false)}
+            onClose={rememberLandingSeen}
             theme={theme}
             onThemeToggle={() =>
               setTheme((current) => (current === "dark" ? "light" : "dark"))
@@ -3539,7 +3548,7 @@ const [activeView, setActiveView] = useState("overview");
             setData(cleanDemo);
             setUsername("DemoPlayer");
             setPlatform("chesscom");
-            setShowLanding(false);
+            rememberLandingSeen();
             setActiveView("overview");
 
             setTimeout(() => {
