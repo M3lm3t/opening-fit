@@ -1,0 +1,322 @@
+.evidenceDiagnosisShell {
+  margin: 18px 0;
+  padding: clamp(18px, 3vw, 26px);
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.94));
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.24);
+}
+
+.evidenceDiagnosisHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.evidenceEyebrow {
+  margin: 0 0 8px;
+  color: #93c5fd;
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.evidenceDiagnosisHeader h2 {
+  margin: 0;
+  max-width: 760px;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.evidenceDiagnosisHeader p {
+  max-width: 850px;
+  margin: 12px 0 0;
+  color: var(--text-soft, #cbd5e1);
+  line-height: 1.65;
+}
+
+.evidenceAverageCard {
+  border-radius: 22px;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.evidenceAverageCard span,
+.evidenceAverageCard small {
+  display: block;
+  color: var(--muted, #94a3b8);
+  font-weight: 850;
+}
+
+.evidenceAverageCard strong {
+  display: block;
+  margin: 6px 0;
+  font-size: 2.45rem;
+  line-height: 1;
+  letter-spacing: -0.07em;
+}
+
+.evidenceDiagnosisList {
+  display: grid;
+  gap: 14px;
+}
+
+.evidenceCard {
+  border-radius: 24px;
+  padding: 18px;
+  background: rgba(2, 6, 23, 0.48);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.evidenceCard--keep {
+  border-color: rgba(34, 197, 94, 0.22);
+}
+
+.evidenceCard--improve {
+  border-color: rgba(245, 158, 11, 0.24);
+}
+
+.evidenceCard--avoid-for-now {
+  border-color: rgba(239, 68, 68, 0.24);
+}
+
+.evidenceCardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.evidenceOpeningSide {
+  display: inline-flex;
+  margin-bottom: 6px;
+  color: #bfdbfe;
+  font-size: 0.75rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.evidenceCard h3 {
+  margin: 0;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  letter-spacing: -0.04em;
+}
+
+.evidenceVerdictStack {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  flex-shrink: 0;
+}
+
+.evidenceScore {
+  font-size: 1.45rem;
+  font-weight: 950;
+  letter-spacing: -0.05em;
+}
+
+.evidenceVerdict {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(37, 99, 235, 0.16);
+  color: #bfdbfe;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.evidenceCard--keep .evidenceVerdict {
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.22);
+}
+
+.evidenceCard--improve .evidenceVerdict {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.24);
+}
+
+.evidenceCard--avoid-for-now .evidenceVerdict {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.24);
+}
+
+.evidenceMetaGrid {
+  display: grid;
+  grid-template-columns: 120px 150px minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.evidenceMetaGrid > div {
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.64);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.evidenceMetaGrid span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted, #94a3b8);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.evidenceMetaGrid strong {
+  display: block;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.evidenceReasonBlock {
+  margin-top: 14px;
+  padding: 15px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.46);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.evidenceReasonBlock h4 {
+  margin: 0 0 9px;
+  font-size: 1rem;
+}
+
+.evidenceReasonBlock p {
+  margin: 0;
+  color: var(--text-soft, #cbd5e1);
+  line-height: 1.58;
+}
+
+.evidenceReasonBlock p + p {
+  margin-top: 8px;
+}
+
+.evidenceNextAction {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.18);
+}
+
+.evidenceNextAction span {
+  display: block;
+  margin-bottom: 4px;
+  color: #bfdbfe;
+  font-size: 0.75rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.evidenceNextAction p {
+  margin: 0;
+  color: var(--text, #f8fafc);
+  line-height: 1.45;
+  font-weight: 750;
+}
+
+.evidenceNextAction button {
+  flex-shrink: 0;
+  min-height: 42px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 15px;
+  color: white;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+[data-theme="light"] .evidenceDiagnosisShell,
+.light .evidenceDiagnosisShell {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.1), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.96));
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .evidenceDiagnosisHeader p,
+[data-theme="light"] .evidenceReasonBlock p,
+.light .evidenceDiagnosisHeader p,
+.light .evidenceReasonBlock p {
+  color: #475569;
+}
+
+[data-theme="light"] .evidenceAverageCard,
+[data-theme="light"] .evidenceCard,
+[data-theme="light"] .evidenceMetaGrid > div,
+[data-theme="light"] .evidenceReasonBlock,
+.light .evidenceAverageCard,
+.light .evidenceCard,
+.light .evidenceMetaGrid > div,
+.light .evidenceReasonBlock {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(15, 23, 42, 0.09);
+}
+
+[data-theme="light"] .evidenceNextAction,
+.light .evidenceNextAction {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.14);
+}
+
+[data-theme="light"] .evidenceNextAction p,
+.light .evidenceNextAction p {
+  color: #0f172a;
+}
+
+@media (max-width: 820px) {
+  .evidenceDiagnosisHeader,
+  .evidenceMetaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .evidenceAverageCard {
+    max-width: 260px;
+  }
+}
+
+@media (max-width: 560px) {
+  .evidenceDiagnosisShell {
+    padding: 16px;
+    border-radius: 24px;
+  }
+
+  .evidenceCard {
+    padding: 15px;
+    border-radius: 21px;
+  }
+
+  .evidenceCardTop,
+  .evidenceNextAction {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .evidenceVerdictStack {
+    justify-items: start;
+  }
+
+  .evidenceNextAction button {
+    width: 100%;
+  }
+}
