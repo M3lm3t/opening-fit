@@ -320,3 +320,24 @@
     width: 100%;
   }
 }
+
+/* Keep evidence diagnosis text readable */
+.evidenceDiagnosisShell,
+.evidenceDiagnosisShell * {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.evidenceCard h3,
+.evidenceReasonBlock h4,
+.evidenceNextAction p,
+.evidenceMetaGrid strong {
+  text-wrap: pretty;
+}
+
+@media (max-width: 980px) {
+  .evidenceMetaGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
