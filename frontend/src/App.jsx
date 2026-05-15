@@ -49,6 +49,7 @@ import ReportHistoryVault from "./components/ReportHistoryVault";
 import AppActionRouter, { AppOpeningHealthScore } from "./components/AppActionRouter";
 
 import OpeningDiagnosisPanel from "./components/OpeningDiagnosisPanel";
+import EvidenceBackedOpeningDiagnosis from "./components/EvidenceBackedOpeningDiagnosis";
 
 import ShipReadyPanel from "./components/ShipReadyPanel";
 
@@ -3924,6 +3925,11 @@ const [activeView, setActiveView] = useState("overview");
                   </div>
 
                   <OpeningDiagnosisPanel data={data} onViewChange={setActiveView} />
+
+                  <EvidenceBackedOpeningDiagnosis
+                    data={data}
+                    onPractice={startOpeningPractice}
+                  />
 
                   <ResultsCommandCenter
                     data={data}
