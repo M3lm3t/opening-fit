@@ -644,3 +644,204 @@
   background: rgba(66, 56, 14, 0.42);
   border-color: rgba(250, 204, 21, 0.22);
 }
+
+.accountPremiumBox {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(163, 230, 53, 0.28);
+  background: linear-gradient(135deg, rgba(163, 230, 53, 0.12), rgba(59, 130, 246, 0.08));
+  display: grid;
+  gap: 0.85rem;
+}
+
+.accountPremiumBox strong {
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.accountPremiumBox p {
+  margin: 0;
+  opacity: 0.78;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.accountPrimaryAction {
+  width: 100%;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 1rem;
+  font-weight: 900;
+  cursor: pointer;
+  background: #bef264;
+  color: #07111f;
+  box-shadow: 0 14px 34px rgba(163, 230, 53, 0.16);
+}
+
+.accountPrimaryAction:hover {
+  transform: translateY(-1px);
+}
+
+.accountPremiumBadge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.5rem 0.8rem;
+  font-weight: 900;
+  color: #07111f;
+  background: #bef264;
+}
+
+.accountDangerZone {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.accountDangerZone strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.accountDangerZone p {
+  margin: 0 0 0.8rem;
+  opacity: 0.76;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.accountDangerButton {
+  width: 100%;
+  border-radius: 999px;
+  padding: 0.78rem 1rem;
+  border: 1px solid rgba(248, 113, 113, 0.55);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.accountDangerButton:hover {
+  background: rgba(248, 113, 113, 0.2);
+}
+
+
+/* --- Account panel scroll + premium visibility fix --- */
+
+.accountPanel {
+  max-height: min(82vh, 720px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 1.25rem;
+}
+
+.accountProfileStack {
+  padding-bottom: 1rem;
+}
+
+.accountPremiumBox {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(163, 230, 53, 0.32);
+  background: linear-gradient(135deg, rgba(163, 230, 53, 0.12), rgba(59, 130, 246, 0.08));
+  display: grid;
+  gap: 0.85rem;
+}
+
+.accountPremiumBox strong {
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.accountPremiumBox p {
+  margin: 0;
+  opacity: 0.78;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.accountPrimaryAction {
+  width: 100%;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.9rem 1rem;
+  font-weight: 900;
+  cursor: pointer;
+  background: #bef264;
+  color: #07111f;
+  box-shadow: 0 14px 34px rgba(163, 230, 53, 0.18);
+}
+
+.accountPrimaryAction:hover {
+  transform: translateY(-1px);
+}
+
+.accountPremiumBadge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.5rem 0.8rem;
+  font-weight: 900;
+  color: #07111f;
+  background: #bef264;
+}
+
+.accountDangerZone {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.accountDangerZone strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.accountDangerZone p {
+  margin: 0 0 0.8rem;
+  opacity: 0.76;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.accountDangerButton {
+  width: 100%;
+  border-radius: 999px;
+  padding: 0.78rem 1rem;
+  border: 1px solid rgba(248, 113, 113, 0.55);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.accountDangerButton:hover {
+  background: rgba(248, 113, 113, 0.2);
+}
+
+@media (max-width: 720px) {
+  .accountPanelShell {
+    position: relative;
+  }
+
+  .accountPanel {
+    position: fixed;
+    left: 1rem;
+    right: 1rem;
+    top: 5rem;
+    bottom: 1rem;
+    width: auto;
+    max-height: none;
+    overflow-y: auto;
+  }
+}

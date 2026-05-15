@@ -31,3 +31,15 @@ frontend/.env
 frontend/.env.local
 backend/.env
 backend/.env.local
+
+# Local secrets
+.env
+backend/.env
+
+# Local/generated backend data
+backend/data/
+backend/**/*.jsonl
+
+# Patch backups
+*.backup-*
+*.bak

@@ -1,19 +1,24 @@
+import stripe
 from collections import Counter, defaultdict
 from fastapi.responses import JSONResponse, Response
 from intelligence import enrich_analysis_result
 from typing import List, Dict, Any, Optional
 import os
+from dotenv import load_dotenv
 import re
 import json
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
+from uuid import UUID
 
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import create_client, Client
 
+
+load_dotenv(".env")
 
 app = FastAPI(title="Opening Fit API")
 
@@ -1936,7 +1941,6 @@ def demo_profile():
 
 from urllib.parse import quote
 from typing import Dict, Any
-from pydantic import BaseModel
 
 
 class UserStatePayload(BaseModel):
@@ -2513,3 +2517,203 @@ async def get_lichess_games(
         "pgnText": pgn_text,
     }
 # --- End Lichess import support ----------------------------------------------
+
+
+def is_valid_uuid(value: str) -> bool:
+    try:
+        UUID(str(value))
+        return True
+    except Exception:
+        return False
+
+# =========================================================
+# Opening Fit account sync + Stripe premium support
+# =========================================================
+
+class AccountProfilePayload(BaseModel):
+    userId: str
+    email: Optional[str] = None
+    displayName: Optional[str] = None
+    platform: Optional[str] = "chesscom"
+    username: Optional[str] = None
+    lastReport: Optional[Dict[str, Any]] = None
+
+
+def get_supabase_admin_client():
+    supabase_url = os.getenv("SUPABASE_URL", "").strip()
+    service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+
+    if not supabase_url or not service_key:
+        raise HTTPException(
+            status_code=500,
+            detail="Supabase is not configured. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+        )
+
+    return create_client(supabase_url, service_key)
+
+
+@app.post("/api/account/sync")
+async def sync_account_profile(payload: AccountProfilePayload):
+    supabase_admin = get_supabase_admin_client()
+
+    profile = {
+        "id": payload.userId,
+        "email": payload.email,
+        "display_name": payload.displayName,
+        "platform": payload.platform or "chesscom",
+        "username": payload.username,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    if payload.lastReport:
+        profile["last_report"] = payload.lastReport
+        profile["last_report_platform"] = payload.platform
+        profile["last_report_username"] = payload.username
+
+    result = (
+        supabase_admin
+        .table("user_profiles")
+        .upsert(profile, on_conflict="id")
+        .execute()
+    )
+
+    return {
+        "ok": True,
+        "profile": result.data[0] if result.data else profile,
+    }
+
+
+@app.get("/api/account/profile/{user_id}")
+async def get_account_profile(user_id: str):
+    if not is_valid_uuid(user_id):
+        return {"ok": True, "profile": None}
+
+    supabase_admin = get_supabase_admin_client()
+
+    try:
+        result = (
+            supabase_admin
+            .table("user_profiles")
+            .select("*")
+            .eq("id", user_id)
+            .limit(1)
+            .execute()
+        )
+    except Exception as exc:
+        print("Supabase account profile lookup failed:", exc)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Supabase account profile lookup failed: {exc}",
+        )
+
+    return {
+        "ok": True,
+        "profile": result.data[0] if result.data else None,
+    }
+
+
+@app.post("/api/account/create-checkout-session")
+async def create_checkout_session(payload: Dict[str, Any]):
+    stripe_secret_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
+    stripe_price_id = os.getenv("STRIPE_PREMIUM_PRICE_ID", "").strip()
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").strip()
+
+    if not stripe_secret_key or not stripe_price_id:
+        raise HTTPException(
+            status_code=500,
+            detail="Stripe is not configured. Add STRIPE_SECRET_KEY and STRIPE_PREMIUM_PRICE_ID.",
+        )
+
+    stripe.api_key = stripe_secret_key
+
+    user_id = payload.get("userId")
+    email = payload.get("email")
+
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Missing userId.")
+
+    session = stripe.checkout.Session.create(
+        mode="payment",
+        line_items=[
+            {
+                "price": stripe_price_id,
+                "quantity": 1,
+            }
+        ],
+        success_url=f"{frontend_url}?payment=success",
+        cancel_url=f"{frontend_url}?payment=cancelled",
+        customer_email=email,
+        client_reference_id=user_id,
+        metadata={
+            "user_id": user_id,
+            "product": "openingfit_premium",
+        },
+    )
+
+    return {"url": session.url}
+
+
+@app.post("/api/stripe/webhook")
+async def stripe_webhook(request: Request):
+    stripe_secret_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
+    webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
+
+    if not stripe_secret_key or not webhook_secret:
+        raise HTTPException(
+            status_code=500,
+            detail="Stripe webhook is not configured.",
+        )
+
+    stripe.api_key = stripe_secret_key
+
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload=payload,
+            sig_header=sig_header,
+            secret=webhook_secret,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Webhook error: {str(exc)}")
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        user_id = session.get("client_reference_id") or session.get("metadata", {}).get("user_id")
+
+        if user_id:
+            supabase_admin = get_supabase_admin_client()
+
+            supabase_admin.table("user_profiles").upsert(
+                {
+                    "id": user_id,
+                    "email": session.get("customer_email"),
+                    "is_premium": True,
+                    "premium_source": "stripe_checkout",
+                    "premium_since": datetime.now(timezone.utc).isoformat(),
+                    "stripe_customer_id": session.get("customer"),
+                    "stripe_checkout_session_id": session.get("id"),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                },
+                on_conflict="id",
+            ).execute()
+
+    return {"received": True}
+
+
+@app.delete("/api/account/{user_id}")
+async def delete_account(user_id: str):
+    if not is_valid_uuid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid account id.")
+
+    supabase_admin = get_supabase_admin_client()
+
+    supabase_admin.table("user_profiles").delete().eq("id", user_id).execute()
+    supabase_admin.auth.admin.delete_user(user_id)
+
+    return {"ok": True}
+# =========================================================
+# End account sync + Stripe premium support
+# =========================================================
+

@@ -57,6 +57,7 @@ import IntelligentCoachInsights from "./components/IntelligentCoachInsights";
 
 import OpeningClassificationNotice from "./components/OpeningClassificationNotice";
 import { displayOpeningName, getSmartLevelAwareRecommendation, getSmartPlayerLevelProfile } from "./components/playerLevelLogic";
+import AccountRestoreSync from "./components/AccountRestoreSync";
 
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
@@ -2526,6 +2527,7 @@ export default function App() {
 
   const [theme, setTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
   const [username, setUsername] = useState("");
+  const [accountUser, setAccountUser] = useState(null);
   const [platform, setPlatform] = useState("chesscom");
   const [importMonths, setImportMonths] = useState(3);
   const [apiStatus, setApiStatus] = useState("checking");
@@ -3488,9 +3490,21 @@ const [activeView, setActiveView] = useState("overview");
 
         <OpeningFitImportDoctor username={username} />
 
-        <AccountPanel />
+        <AccountPanel   onUserChange={setAccountUser}
+        />
         {loading ? <ImportLoadingOverlay platform={platform} /> : null}
         <AppActionRouter onViewChange={setActiveView} />
+        <AccountRestoreSync
+          user={accountUser}
+          username={username}
+          setUsername={setUsername}
+          platform={platform}
+          setPlatform={setPlatform}
+          data={data}
+          setData={setData}
+          setIsPremium={setIsPremium}
+        />
+
         <FloatingAppMenu
           data={data}
           onJump={jumpToSection}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 import "./AccountPanel.css";
+import { startPremiumCheckout, deleteOpeningFitAccount } from "../accountApi";
 
 const EMPTY_PROFILE = {
   chesscom_username: "",
@@ -8,7 +9,8 @@ const EMPTY_PROFILE = {
   is_premium: false,
 };
 
-export default function AccountPanel({ variant = "floating" }) {
+export default function AccountPanel({ variant = "floating",
+  onUserChange,}) {
   const [isOpen, setIsOpen] = useState(false);
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(EMPTY_PROFILE);
@@ -17,6 +19,12 @@ export default function AccountPanel({ variant = "floating" }) {
   const [saving, setSaving] = useState(false);
 
   const user = session?.user || null;
+
+  useEffect(() => {
+    if (typeof onUserChange === "function") {
+      onUserChange(user);
+    }
+  }, [user, onUserChange]);
 
   const displayName = useMemo(() => {
     if (!user) return "Account";
@@ -168,6 +176,49 @@ export default function AccountPanel({ variant = "floating" }) {
     setIsOpen(false);
   };
 
+
+  async function handlePremiumCheckout() {
+    if (!user) {
+      setIsOpen(true);
+      setStatus("Please sign in first, then you can unlock premium.");
+      return;
+    }
+
+    try {
+      setStatus("Opening secure Stripe checkout...");
+      await startPremiumCheckout(user);
+    } catch (error) {
+      console.error("Premium checkout failed", error);
+      setStatus(error?.message || "Could not start Stripe checkout.");
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!user?.id) {
+      setStatus("Please sign in before deleting an account.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Delete your Opening Fit account and saved cloud data? This cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setStatus("Deleting account...");
+      await deleteOpeningFitAccount(user.id);
+      await supabase.auth.signOut();
+      setProfile(null);
+      setStatus("Account deleted.");
+      window.location.reload();
+    } catch (error) {
+      console.error("Delete account failed", error);
+      setStatus(error?.message || "Could not delete account.");
+    }
+  }
+
+
   return (
     <div className={`accountPanelShell accountPanelShell--${variant}`}>
       <button
@@ -241,7 +292,7 @@ export default function AccountPanel({ variant = "floating" }) {
                 <span>Premium status</span>
                 <strong>{profile.is_premium ? "Premium active" : "Free account"}</strong>
                 <small>
-                  Payments will connect here next. For now this field is ready for Stripe.
+                  Premium is synced to Stripe. Unlock Founder Pass to save premium access to this account.
                 </small>
               </div>
 
@@ -272,6 +323,42 @@ export default function AccountPanel({ variant = "floating" }) {
                   }
                 />
               </label>
+
+
+              <div className="accountPremiumBox">
+                <div>
+                  <strong>{profile?.is_premium ? "Premium active" : "Opening Fit Founder Pass"}</strong>
+                  <p>
+                    {profile?.is_premium
+                      ? "Your account has premium access saved in the cloud."
+                      : "Support Opening Fit early and unlock premium on this account."}
+                  </p>
+                </div>
+
+                {!profile?.is_premium ? (
+                  <button
+                    className="accountPrimaryAction"
+                    type="button"
+                    onClick={handlePremiumCheckout}
+                  >
+                    Unlock premium
+                  </button>
+                ) : (
+                  <span className="accountPremiumBadge">Premium</span>
+                )}
+              </div>
+
+              <div className="accountDangerZone">
+                <strong>Danger zone</strong>
+                <p>Delete your Opening Fit account and saved cloud data.</p>
+                <button
+                  className="accountDangerButton"
+                  type="button"
+                  onClick={handleDeleteAccount}
+                >
+                  Delete my account
+                </button>
+              </div>
 
               <div className="accountActions">
                 <button type="button" className="saveAccountBtn" onClick={saveProfile} disabled={saving}>
