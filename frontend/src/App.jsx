@@ -29,6 +29,8 @@ import MyRepertoire from "./components/MyRepertoire";
 import PremiumTrustStrip from "./components/PremiumTrustStrip";
 import LandingModal from "./components/LandingModal";
 import OpeningFitTrustUpgrade from "./components/OpeningFitTrustUpgrade";
+import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
+import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
 import TrustFaq from "./components/TrustFaq";
 import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
@@ -3549,7 +3551,23 @@ const [activeView, setActiveView] = useState("overview");
 
         <OpeningFitImportDoctor username={username} />
 
-        <AccountPanel   onUserChange={setAccountUser}
+        <AccountPanel
+          onUserChange={setAccountUser}
+        />
+
+        <FounderPassLoginUpgrade accountUser={accountUser} />
+
+        <CheckoutStatusNotice
+          onRestoreAccess={() => {
+            window.dispatchEvent(
+              new CustomEvent("openingfit:founder-pass-intent", {
+                detail: {
+                  source: "checkout-success",
+                  plan: "founder_pass",
+                },
+              })
+            );
+          }}
         />
         {loading ? <ImportLoadingOverlay platform={platform} /> : null}
         <AppActionRouter onViewChange={setActiveView} />
