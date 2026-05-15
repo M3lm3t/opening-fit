@@ -44,7 +44,7 @@ const premiumItems = [
   "Future premium upgrades",
 ];
 
-export default function OpeningFitTrustUpgrade({ onImport, onSample }) {
+export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo }) {
   return (
     <section className="trustUpgrade" id="sample-report">
       <div className="trustHeroCard">
@@ -63,8 +63,8 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample }) {
               Analyse my games
             </button>
 
-            <button type="button" className="trustSecondaryBtn" onClick={onSample}>
-              View sample report
+            <button type="button" className="trustSecondaryBtn" onClick={onDemo || onSample}>
+              Try demo report
             </button>
           </div>
 

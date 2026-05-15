@@ -21932,3 +21932,17 @@ main {
   opacity: 1 !important;
 }
 
+
+.demoReportButton {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.72);
+  color: var(--text, #f8fafc);
+  font-weight: 900;
+}
+
+[data-theme="light"] .demoReportButton,
+.light .demoReportButton {
+  background: rgba(255, 255, 255, 0.86);
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.14);
+}
