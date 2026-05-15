@@ -3551,9 +3551,11 @@ const [activeView, setActiveView] = useState("overview");
 
         <OpeningFitImportDoctor username={username} />
 
-        <AccountPanel
-          onUserChange={setAccountUser}
-        />
+        <div id="account">
+          <AccountPanel
+            onUserChange={setAccountUser}
+          />
+        </div>
 
         <FounderPassLoginUpgrade accountUser={accountUser} />
 

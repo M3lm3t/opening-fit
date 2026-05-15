@@ -17,9 +17,26 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
   }, []);
 
   const continueToAccountPayment = () => {
+    // Close this Founder Pass modal first so the account/payment UI is not hidden behind it.
     setOpen(false);
 
+    // Put the user on the account area.
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}${window.location.search}#account`
+    );
+
     setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("openingfit:open-account-payment", {
+          detail: {
+            source: "founder-pass-modal",
+            plan: "founder_pass",
+          },
+        })
+      );
+
       const accountTarget =
         document.getElementById("account") ||
         document.getElementById("login") ||
@@ -30,58 +47,9 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
       if (accountTarget?.scrollIntoView) {
         accountTarget.scrollIntoView({ behavior: "smooth", block: "center" });
       }
-
-      const accountButtons = Array.from(
-        document.querySelectorAll("button, a, [role='button']")
-      );
-
-      const paymentButton = accountButtons.find((el) => {
-        const text = String(
-          el.innerText || el.textContent || el.getAttribute("aria-label") || ""
-        ).toLowerCase();
-
-        const className = String(el.className || "").toLowerCase();
-
-        if (className.includes("founderpassupgrade")) return false;
-
-        return (
-          text.includes("checkout") ||
-          text.includes("stripe") ||
-          text.includes("founder") ||
-          text.includes("upgrade") ||
-          text.includes("premium") ||
-          text.includes("buy") ||
-          text.includes("£8") ||
-          text.includes("lifetime")
-        );
-      });
-
-      if (paymentButton) {
-        if (paymentButton.tagName === "A" && paymentButton.href) {
-          window.location.href = paymentButton.href;
-          return;
-        }
-
-        paymentButton.click();
-        return;
-      }
-
-      const loginButton = accountButtons.find((el) => {
-        const text = String(
-          el.innerText || el.textContent || el.getAttribute("aria-label") || ""
-        ).toLowerCase();
-
-        return (
-          text.includes("login") ||
-          text.includes("log in") ||
-          text.includes("sign in") ||
-          text.includes("account")
-        );
-      });
-
-      if (loginButton) loginButton.click();
-    }, 120);
+    }, 180);
   };
+
 
   if (!open) return null;
 
