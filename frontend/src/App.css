@@ -23729,3 +23729,20 @@ html:has(.landingModal) {
     font-size: 0.86rem;
   }
 }
+
+/* Clean burger/report navigation */
+#app-results,
+.appTabsCard,
+#openingfit-report,
+#opening-fit-report,
+#app-dashboard,
+#rating-openings,
+#premium,
+#feedback {
+  scroll-margin-top: 112px;
+}
+
+.floatingMenuPanel {
+  max-height: min(76vh, 620px);
+  overflow-y: auto;
+}
