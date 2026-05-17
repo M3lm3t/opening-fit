@@ -29,6 +29,7 @@ import MyRepertoire from "./components/MyRepertoire";
 import PremiumTrustStrip from "./components/PremiumTrustStrip";
 import LandingModal from "./components/LandingModal";
 import ReportSnapshot from "./components/ReportSnapshot";
+import OpeningCoachPlan from "./components/OpeningCoachPlan";
 import OpeningFitTrustUpgrade from "./components/OpeningFitTrustUpgrade";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
@@ -4076,6 +4077,7 @@ const [activeView, setActiveView] = useState("overview");
 
                   <div className="compactReportGrid">
                     <ReportSnapshot data={data} onViewChange={setActiveView} />
+                    <OpeningCoachPlan data={data} compact />
                     <CoachSummaryCard data={data} onViewChange={setActiveView} />
                     <AppOpeningHealthScore data={data} onViewChange={setActiveView} />
                   </div>
@@ -4479,6 +4481,7 @@ const [activeView, setActiveView] = useState("overview");
 
               {activeView === "training" ? (
                 <>
+                  <OpeningCoachPlan data={data} />
                   <NextStudySession
                     fitData={fitData}
                     recentGames={filteredRecentGames}
