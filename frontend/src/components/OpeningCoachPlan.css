@@ -1,0 +1,290 @@
+.openingCoachPlan {
+  margin: 18px 0 24px;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.18));
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(34, 197, 94, 0.14), transparent 32%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.97), rgba(2, 6, 23, 0.95));
+  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.26);
+  color: var(--text, #f8fafc);
+}
+
+.openingCoachPlan--compact {
+  padding: clamp(16px, 2.4vw, 22px);
+}
+
+.openingCoachPlanHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.openingCoachPlanKicker {
+  margin: 0 0 8px;
+  color: var(--green, #22c55e);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.openingCoachPlanHeader h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  line-height: 1.05;
+}
+
+.openingCoachPlanHeader p {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: var(--text-soft, #cbd5e1);
+  line-height: 1.6;
+}
+
+.openingCoachProgressCard {
+  flex: 0 0 164px;
+  padding: 14px;
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.72);
+  text-align: right;
+}
+
+.openingCoachProgressCard span {
+  display: block;
+  color: var(--muted, #94a3b8);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.openingCoachProgressCard strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.openingCoachProgressTrack {
+  height: 8px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.openingCoachProgressTrack div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--green, #22c55e), var(--blue-light, #60a5fa));
+  transition: width 220ms ease;
+}
+
+.openingCoachPlanList {
+  display: grid;
+  gap: 12px;
+}
+
+.openingCoachStep {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.72);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.openingCoachStep:hover {
+  transform: translateY(-1px);
+  border-color: rgba(96, 165, 250, 0.32);
+}
+
+.openingCoachStep--done {
+  border-color: rgba(34, 197, 94, 0.42);
+  background: rgba(20, 83, 45, 0.24);
+}
+
+.openingCoachCheck {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-top: 2px;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.38);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+}
+
+.openingCoachStep--done .openingCoachCheck {
+  border-color: rgba(34, 197, 94, 0.72);
+  background: rgba(34, 197, 94, 0.9);
+  color: #052e16;
+}
+
+.openingCoachStepBody {
+  min-width: 0;
+}
+
+.openingCoachStepTopline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.openingCoachStepTopline span,
+.openingCoachStepTopline em {
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.openingCoachStepTopline span {
+  color: var(--blue-light, #60a5fa);
+}
+
+.openingCoachStepTopline em {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--text-soft, #cbd5e1);
+  font-style: normal;
+}
+
+.openingCoachStep h3 {
+  margin: 0;
+  font-size: clamp(1.02rem, 2vw, 1.2rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.openingCoachStepMeta {
+  margin: 8px 0 0;
+  color: var(--green, #22c55e);
+  font-weight: 850;
+}
+
+.openingCoachStepDetail {
+  margin: 8px 0 0;
+  color: var(--text-soft, #cbd5e1);
+  line-height: 1.55;
+}
+
+.openingCoachStep--done h3,
+.openingCoachStep--done .openingCoachStepMeta,
+.openingCoachStep--done .openingCoachStepDetail {
+  opacity: 0.72;
+}
+
+.openingCoachPlanFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.openingCoachPlanFooter p {
+  margin: 0;
+  color: var(--muted, #94a3b8);
+  line-height: 1.5;
+}
+
+.openingCoachPlanFooter button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.7);
+  color: var(--text, #f8fafc);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 9px 13px;
+}
+
+[data-theme="light"] .openingCoachPlan,
+.light .openingCoachPlan,
+body.light .openingCoachPlan {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(34, 197, 94, 0.1), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(240, 253, 244, 0.96));
+  color: #0f172a;
+  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.1);
+}
+
+[data-theme="light"] .openingCoachPlanHeader p,
+[data-theme="light"] .openingCoachStepDetail,
+.light .openingCoachPlanHeader p,
+.light .openingCoachStepDetail,
+body.light .openingCoachPlanHeader p,
+body.light .openingCoachStepDetail {
+  color: #475569;
+}
+
+[data-theme="light"] .openingCoachProgressCard,
+[data-theme="light"] .openingCoachStep,
+.light .openingCoachProgressCard,
+.light .openingCoachStep,
+body.light .openingCoachProgressCard,
+body.light .openingCoachStep {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(22, 163, 74, 0.16);
+}
+
+[data-theme="light"] .openingCoachStep--done,
+.light .openingCoachStep--done,
+body.light .openingCoachStep--done {
+  background: rgba(220, 252, 231, 0.76);
+  border-color: rgba(22, 163, 74, 0.28);
+}
+
+[data-theme="light"] .openingCoachCheck,
+.light .openingCoachCheck,
+body.light .openingCoachCheck {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+[data-theme="light"] .openingCoachPlanFooter button,
+.light .openingCoachPlanFooter button,
+body.light .openingCoachPlanFooter button {
+  background: #ffffff;
+  color: #166534;
+}
+
+@media (max-width: 820px) {
+  .openingCoachPlanHeader,
+  .openingCoachPlanFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .openingCoachProgressCard {
+    flex-basis: auto;
+    width: 100%;
+    text-align: left;
+  }
+
+  .openingCoachStep {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 14px;
+  }
+
+  .openingCoachStepTopline {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
