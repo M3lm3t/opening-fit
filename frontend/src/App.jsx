@@ -65,6 +65,7 @@ import AccountRestoreSync from "./components/AccountRestoreSync";
 import { DEMO_REPORT } from "./demoReportData";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
+import ReportCommandBar from "./components/ReportCommandBar";
 
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
@@ -3598,6 +3599,35 @@ const [activeView, setActiveView] = useState("overview");
 
   const isPublicLanding = !data && showPublicLanding;
 
+
+  const hasReport = Boolean(
+    data &&
+      (
+        data.username ||
+        data.player ||
+        data.games_analyzed ||
+        data.gamesImported ||
+        data.total_games ||
+        data.top_openings?.length ||
+        data.opening_stats?.length ||
+        data.openings?.length
+      )
+  );
+
+
+  useEffect(() => {
+    if (hasReport) {
+      setShowLanding(false);
+      try {
+        localStorage.setItem("openingFit:landingSeen", "true");
+      } catch {
+        // Ignore storage failures.
+      }
+    }
+  }, [hasReport]);
+
+
+
   return (
     <>
       <div className={`page ${theme} ${isPublicLanding ? "publicLandingPage" : "appReportPage"}`} data-theme={theme}>
@@ -3683,7 +3713,7 @@ const [activeView, setActiveView] = useState("overview");
           />
         ) : null}
 
-        {showLanding && !data ? (
+        {showLanding && !hasReport ? (
           <LandingModal
             username={username}
             setUsername={setUsername}
@@ -4275,6 +4305,20 @@ const [activeView, setActiveView] = useState("overview");
           />
         ) : null}
 
+
+
+        {data ? (
+          <ReportCommandBar
+            data={data}
+            activeView={activeView}
+            onViewChange={setActiveView}
+            isPremium={isPremium}
+            onUpgrade={() => {
+              const el = document.getElementById("premium");
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          />
+        ) : null}
 
         {data && !isPremium ? (
           <FounderPassOutcomePanel
