@@ -1,0 +1,263 @@
+.openingProgressTracker {
+  margin: 18px 0 24px;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.18));
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(96, 165, 250, 0.16), transparent 30%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.97), rgba(2, 6, 23, 0.95));
+  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.24);
+  color: var(--text, #f8fafc);
+}
+
+.openingProgressTracker--compact {
+  padding: clamp(16px, 2.4vw, 22px);
+}
+
+.openingProgressHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.openingProgressKicker {
+  margin: 0 0 8px;
+  color: var(--blue-light, #60a5fa);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.openingProgressHeader h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  line-height: 1.05;
+}
+
+.openingProgressHeader p {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: var(--text-soft, #cbd5e1);
+  line-height: 1.6;
+}
+
+.openingProgressActions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.openingProgressActions button {
+  border: 1px solid rgba(96, 165, 250, 0.32);
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.18);
+  color: var(--text, #f8fafc);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 850;
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+
+.openingProgressActions .openingProgressGhost {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.openingProgressStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.openingProgressStats article,
+.openingProgressEmpty,
+.openingProgressChange {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.openingProgressStats article {
+  padding: 16px;
+}
+
+.openingProgressStats span,
+.openingProgressChange span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted, #94a3b8);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.openingProgressStats strong {
+  display: block;
+  font-size: clamp(1.1rem, 2.4vw, 1.55rem);
+  line-height: 1.1;
+}
+
+.openingProgressStats p,
+.openingProgressEmpty p,
+.openingProgressChange p,
+.openingProgressFooter p {
+  margin: 8px 0 0;
+  color: var(--text-soft, #cbd5e1);
+  line-height: 1.5;
+}
+
+.openingProgressEmpty {
+  padding: 18px;
+}
+
+.openingProgressEmpty h3 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.openingProgressChanges {
+  display: grid;
+  gap: 10px;
+}
+
+.openingProgressChange {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+}
+
+.openingProgressChange h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.openingProgressChange > strong {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  font-size: 1rem;
+}
+
+.openingProgressChange--improved > strong {
+  background: rgba(34, 197, 94, 0.18);
+  color: var(--green, #22c55e);
+}
+
+.openingProgressChange--dropped > strong {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--amber, #f59e0b);
+}
+
+.openingProgressChange--new > strong {
+  background: rgba(96, 165, 250, 0.18);
+  color: var(--blue-light, #60a5fa);
+}
+
+.openingProgressChange--improved span {
+  color: var(--green, #22c55e);
+}
+
+.openingProgressChange--dropped span {
+  color: var(--amber, #f59e0b);
+}
+
+.openingProgressChange--new span {
+  color: var(--blue-light, #60a5fa);
+}
+
+.openingProgressFooter {
+  margin-top: 14px;
+}
+
+.openingProgressFooter p {
+  color: var(--muted, #94a3b8);
+  font-size: 0.9rem;
+}
+
+[data-theme="light"] .openingProgressTracker,
+.light .openingProgressTracker,
+body.light .openingProgressTracker {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(37, 99, 235, 0.1), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(239, 246, 255, 0.96));
+  color: #0f172a;
+  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.1);
+}
+
+[data-theme="light"] .openingProgressHeader p,
+[data-theme="light"] .openingProgressStats p,
+[data-theme="light"] .openingProgressEmpty p,
+[data-theme="light"] .openingProgressChange p,
+.light .openingProgressHeader p,
+.light .openingProgressStats p,
+.light .openingProgressEmpty p,
+.light .openingProgressChange p,
+body.light .openingProgressHeader p,
+body.light .openingProgressStats p,
+body.light .openingProgressEmpty p,
+body.light .openingProgressChange p {
+  color: #475569;
+}
+
+[data-theme="light"] .openingProgressStats article,
+[data-theme="light"] .openingProgressEmpty,
+[data-theme="light"] .openingProgressChange,
+.light .openingProgressStats article,
+.light .openingProgressEmpty,
+.light .openingProgressChange,
+body.light .openingProgressStats article,
+body.light .openingProgressEmpty,
+body.light .openingProgressChange {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(37, 99, 235, 0.14);
+}
+
+[data-theme="light"] .openingProgressActions button,
+.light .openingProgressActions button,
+body.light .openingProgressActions button {
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+[data-theme="light"] .openingProgressActions .openingProgressGhost,
+.light .openingProgressActions .openingProgressGhost,
+body.light .openingProgressActions .openingProgressGhost {
+  color: #334155;
+  background: #ffffff;
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+@media (max-width: 880px) {
+  .openingProgressHeader {
+    flex-direction: column;
+  }
+
+  .openingProgressActions {
+    width: 100%;
+  }
+
+  .openingProgressActions button {
+    flex: 1;
+  }
+
+  .openingProgressStats {
+    grid-template-columns: 1fr;
+  }
+
+  .openingProgressChange {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
