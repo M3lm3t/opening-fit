@@ -64,6 +64,7 @@ import { displayOpeningName, getSmartLevelAwareRecommendation, getSmartPlayerLev
 import AccountRestoreSync from "./components/AccountRestoreSync";
 import { DEMO_REPORT } from "./demoReportData";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
+import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
 
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
@@ -4273,6 +4274,20 @@ const [activeView, setActiveView] = useState("overview");
             onViewChange={setActiveView}
           />
         ) : null}
+
+
+        {data && !isPremium ? (
+          <FounderPassOutcomePanel
+            data={data}
+            isPremium={isPremium}
+            onUpgrade={() => {
+              const el = document.getElementById("premium");
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            onViewChange={setActiveView}
+          />
+        ) : null}
+
 
         <ReportExportAndHistory
                     data={data}
