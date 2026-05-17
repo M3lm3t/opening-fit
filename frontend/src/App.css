@@ -22834,3 +22834,711 @@ html:has(.landingModal) {
     margin-top: 8px;
   }
 }
+
+/* Outcome-led Founder Pass panel */
+.founderOutcome {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 28px;
+  padding: clamp(18px, 3vw, 28px);
+  border-radius: 30px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    radial-gradient(circle at top right, rgba(168, 85, 247, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.96));
+  color: var(--text, #f8fafc);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  gap: clamp(18px, 4vw, 34px);
+  align-items: center;
+  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.28);
+}
+
+.page.light .founderOutcome,
+[data-theme="light"] .founderOutcome {
+  background:
+    radial-gradient(circle at top right, rgba(124, 58, 237, 0.1), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.1);
+}
+
+.founderOutcome__eyebrow,
+.founderOutcome__mini {
+  margin: 0 0 8px;
+  color: #c4b5fd;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.page.light .founderOutcome__eyebrow,
+.page.light .founderOutcome__mini,
+[data-theme="light"] .founderOutcome__eyebrow,
+[data-theme="light"] .founderOutcome__mini {
+  color: #6d28d9;
+}
+
+.founderOutcome h2 {
+  max-width: 720px;
+  margin: 0;
+  font-size: clamp(1.7rem, 4vw, 3rem);
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.founderOutcome__copy > p:not(.founderOutcome__eyebrow) {
+  max-width: 720px;
+  margin: 14px 0 0;
+  color: var(--text-soft, #cbd5e1);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.page.light .founderOutcome__copy > p:not(.founderOutcome__eyebrow),
+[data-theme="light"] .founderOutcome__copy > p:not(.founderOutcome__eyebrow) {
+  color: #475569;
+}
+
+.founderOutcome__trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.founderOutcome__trust span {
+  padding: 8px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-soft, #cbd5e1);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.page.light .founderOutcome__trust span,
+[data-theme="light"] .founderOutcome__trust span {
+  background: rgba(255, 255, 255, 0.8);
+  color: #334155;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.founderOutcome__card {
+  padding: 18px;
+  border-radius: 26px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.page.light .founderOutcome__card,
+[data-theme="light"] .founderOutcome__card {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.founderOutcome__priceRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: end;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.founderOutcome__priceRow strong {
+  display: block;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  line-height: 0.9;
+  letter-spacing: -0.07em;
+}
+
+.founderOutcome__priceRow em {
+  color: var(--muted, #94a3b8);
+  font-style: normal;
+  font-weight: 900;
+}
+
+.founderOutcome ul {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.founderOutcome li {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.page.light .founderOutcome li,
+[data-theme="light"] .founderOutcome li {
+  background: rgba(15, 23, 42, 0.045);
+}
+
+.founderOutcome li strong {
+  font-size: 0.94rem;
+}
+
+.founderOutcome li span {
+  color: var(--text-soft, #cbd5e1);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.page.light .founderOutcome li span,
+[data-theme="light"] .founderOutcome li span {
+  color: #475569;
+}
+
+.founderOutcome__cta,
+.founderOutcome__ghost {
+  width: 100%;
+  border-radius: 999px;
+  padding: 13px 16px;
+  font-weight: 950;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.founderOutcome__cta:hover,
+.founderOutcome__ghost:hover {
+  transform: translateY(-1px);
+}
+
+.founderOutcome__cta {
+  border: 0;
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.24);
+}
+
+.founderOutcome__ghost {
+  margin-top: 9px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.065);
+  color: var(--text, #f8fafc);
+}
+
+.page.light .founderOutcome__ghost,
+[data-theme="light"] .founderOutcome__ghost {
+  background: #fff;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+.founderOutcome__note {
+  margin: 12px 0 0;
+  color: var(--muted, #94a3b8);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .founderOutcome {
+    grid-template-columns: 1fr;
+    width: min(100% - 18px, 1180px);
+    border-radius: 24px;
+    padding: 16px;
+  }
+
+  .founderOutcome__card {
+    border-radius: 22px;
+  }
+
+  .founderOutcome h2 {
+    font-size: clamp(1.75rem, 9vw, 2.45rem);
+  }
+}
+
+@media (max-width: 460px) {
+  .founderOutcome__trust {
+    display: grid;
+  }
+
+  .founderOutcome__trust span {
+    text-align: center;
+  }
+}
+
+/* Compact oversized health/progress cards */
+.openingHealth,
+.openingHealthScore,
+.healthScoreCard,
+.progressTracking,
+.progressTracker,
+.savedImports,
+.importHistoryPanel {
+  min-height: unset !important;
+}
+
+.openingHealthScore,
+.healthScoreCard,
+.progressTracking,
+.progressTracker {
+  align-self: start;
+}
+
+.openingHealthScore,
+.healthScoreCard {
+  padding: clamp(16px, 2vw, 22px) !important;
+}
+
+.progressTracking,
+.progressTracker {
+  padding: clamp(16px, 2vw, 22px) !important;
+}
+
+.healthScoreGrid,
+.openingHealthScoreGrid,
+.progressTrackingGrid,
+.progressTrackerGrid {
+  align-items: start !important;
+}
+
+.healthScoreCard h2,
+.openingHealthScore h2,
+.progressTracking h2,
+.progressTracker h2 {
+  font-size: clamp(1.65rem, 3vw, 2.35rem) !important;
+  line-height: 1.05 !important;
+  letter-spacing: -0.045em !important;
+}
+
+.healthScoreCard p,
+.openingHealthScore p,
+.progressTracking p,
+.progressTracker p {
+  line-height: 1.45 !important;
+}
+
+.healthScoreCard .scoreRing,
+.openingHealthScore .scoreRing,
+.openingHealthScore svg,
+.healthScoreCard svg {
+  max-width: 132px !important;
+  max-height: 132px !important;
+}
+
+.healthScoreCard ul,
+.openingHealthScore ul,
+.progressTracking ul,
+.progressTracker ul {
+  margin-top: 10px !important;
+  gap: 8px !important;
+}
+
+.healthScoreCard li,
+.openingHealthScore li,
+.progressTracking li,
+.progressTracker li {
+  line-height: 1.35 !important;
+}
+
+.progressTracking .savePanel,
+.progressTracker .savePanel,
+.importHistoryPanel,
+.savedImports {
+  padding: 14px !important;
+  border-radius: 20px !important;
+}
+
+.progressTracking .statCard,
+.progressTracker .statCard,
+.progressTracking [class*="stat"],
+.progressTracker [class*="stat"] {
+  min-height: unset !important;
+}
+
+@media (min-width: 900px) {
+  .openingHealthScore,
+  .healthScoreCard,
+  .progressTracking,
+  .progressTracker {
+    max-height: none;
+  }
+
+  .openingHealthScore,
+  .healthScoreCard {
+    grid-template-columns: 130px minmax(0, 1fr) !important;
+  }
+
+  .progressTracking,
+  .progressTracker {
+    grid-template-columns: minmax(0, 1fr) 220px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .openingHealthScore,
+  .healthScoreCard,
+  .progressTracking,
+  .progressTracker {
+    padding: 16px !important;
+    border-radius: 22px !important;
+  }
+
+  .healthScoreCard h2,
+  .openingHealthScore h2,
+  .progressTracking h2,
+  .progressTracker h2 {
+    font-size: clamp(1.55rem, 8vw, 2.15rem) !important;
+  }
+
+  .healthScoreCard .scoreRing,
+  .openingHealthScore .scoreRing,
+  .openingHealthScore svg,
+  .healthScoreCard svg {
+    max-width: 112px !important;
+    max-height: 112px !important;
+  }
+}
+
+/* Targeted compact fix for Opening Health + Progress Tracker */
+.openingHealthCard,
+.progressTrackerCard,
+.openingHealthShell,
+.progressTrackerShell {
+  min-height: unset !important;
+  height: auto !important;
+  align-self: start !important;
+}
+
+.openingHealthGrid,
+.progressTrackerGrid,
+.reportHealthGrid,
+.dashboardHealthGrid,
+.healthProgressGrid {
+  align-items: start !important;
+}
+
+.openingHealthCard {
+  padding: 20px !important;
+}
+
+.progressTrackerCard {
+  padding: 20px !important;
+}
+
+.openingHealthCard h2,
+.progressTrackerCard h2 {
+  font-size: clamp(1.85rem, 3vw, 2.55rem) !important;
+  line-height: 1.02 !important;
+  letter-spacing: -0.055em !important;
+  margin-bottom: 10px !important;
+}
+
+.openingHealthCard p,
+.progressTrackerCard p {
+  line-height: 1.45 !important;
+  margin-bottom: 14px !important;
+}
+
+.openingHealthCard [class*="Ring"],
+.openingHealthCard [class*="Dial"],
+.openingHealthCard svg {
+  max-width: 118px !important;
+  max-height: 118px !important;
+}
+
+.openingHealthCard [class*="Stat"],
+.progressTrackerCard [class*="Stat"],
+.progressTrackerCard [class*="Import"] {
+  min-height: unset !important;
+}
+
+.openingHealthCard [class*="Panel"],
+.progressTrackerCard [class*="Panel"] {
+  padding: 14px !important;
+  border-radius: 18px !important;
+}
+
+.progressTrackerCard button {
+  min-height: 44px !important;
+  padding: 10px 14px !important;
+}
+
+@media (min-width: 900px) {
+  .openingHealthCard,
+  .progressTrackerCard {
+    max-height: 560px;
+    overflow: hidden;
+  }
+
+  .openingHealthCard {
+    display: grid !important;
+    grid-template-columns: 120px minmax(0, 1fr) !important;
+    gap: 18px !important;
+  }
+
+  .progressTrackerCard {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 220px !important;
+    gap: 18px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .openingHealthCard,
+  .progressTrackerCard {
+    padding: 16px !important;
+    border-radius: 22px !important;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .openingHealthCard h2,
+  .progressTrackerCard h2 {
+    font-size: clamp(1.65rem, 8vw, 2.25rem) !important;
+  }
+
+  .openingHealthCard [class*="Ring"],
+  .openingHealthCard [class*="Dial"],
+  .openingHealthCard svg {
+    max-width: 104px !important;
+    max-height: 104px !important;
+  }
+}
+
+/* Exact compact fix: Opening Health + Progress Tracker */
+.openingHealthShell,
+.progressTrackerShell {
+  height: auto !important;
+  min-height: unset !important;
+  align-self: start !important;
+  padding: clamp(18px, 2vw, 24px) !important;
+}
+
+.openingHealthMain {
+  display: grid !important;
+  grid-template-columns: 128px minmax(0, 1fr) 150px !important;
+  gap: 18px !important;
+  align-items: center !important;
+}
+
+.openingHealthScoreCircle {
+  width: 120px !important;
+  height: 120px !important;
+  min-width: 120px !important;
+}
+
+.openingHealthScoreCircle strong,
+.openingHealthScoreCircle .scoreValue {
+  font-size: 2rem !important;
+}
+
+.openingHealthCopy h2,
+.progressTrackerHeader h2 {
+  font-size: clamp(1.75rem, 3vw, 2.45rem) !important;
+  line-height: 1.04 !important;
+  letter-spacing: -0.05em !important;
+  margin: 0 0 8px !important;
+}
+
+.openingHealthCopy p,
+.progressTrackerHeader p {
+  margin: 0 !important;
+  line-height: 1.45 !important;
+}
+
+.openingHealthStats {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.openingHealthStats > * {
+  padding: 10px 12px !important;
+  min-height: unset !important;
+}
+
+.openingHealthGrid {
+  margin-top: 16px !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.openingHealthCard {
+  min-height: unset !important;
+  padding: 14px !important;
+  border-radius: 18px !important;
+}
+
+.openingHealthCard h3,
+.openingHealthCard strong {
+  margin-top: 0 !important;
+}
+
+.openingHealthCard ul,
+.openingHealthCard p {
+  margin-bottom: 0 !important;
+}
+
+.progressTrackerHeader {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 220px !important;
+  gap: 18px !important;
+  align-items: start !important;
+}
+
+.progressTrackerActions {
+  padding: 14px !important;
+  border-radius: 18px !important;
+}
+
+.progressTrackerActions button {
+  min-height: 42px !important;
+  padding: 10px 14px !important;
+}
+
+.progressTrackerGrid {
+  margin-top: 16px !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.progressMainCard,
+.progressResultCard,
+.progressHistoryCard {
+  min-height: unset !important;
+  padding: 14px !important;
+  border-radius: 18px !important;
+}
+
+.progressResultGrid {
+  margin-top: 12px !important;
+  gap: 12px !important;
+}
+
+.progressHistoryCard {
+  margin-top: 12px !important;
+}
+
+.progressHistoryList {
+  max-height: 220px !important;
+  overflow: auto !important;
+}
+
+@media (max-width: 1050px) {
+  .openingHealthMain,
+  .progressTrackerHeader {
+    grid-template-columns: 1fr !important;
+  }
+
+  .openingHealthScoreCircle {
+    width: 112px !important;
+    height: 112px !important;
+    min-width: 112px !important;
+  }
+
+  .openingHealthGrid,
+  .progressTrackerGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .openingHealthShell,
+  .progressTrackerShell {
+    padding: 16px !important;
+    border-radius: 22px !important;
+  }
+
+  .openingHealthCopy h2,
+  .progressTrackerHeader h2 {
+    font-size: clamp(1.6rem, 8vw, 2.2rem) !important;
+  }
+
+  .openingHealthStats {
+    grid-template-columns: 1fr !important;
+  }
+
+  .progressTrackerActions {
+    width: 100% !important;
+  }
+}
+
+/* Final fix: stop Opening Health lower cards becoming huge */
+.openingHealthShell {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.openingHealthGrid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+  margin-top: 16px !important;
+  align-items: start !important;
+}
+
+.openingHealthCard {
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding: 13px 15px !important;
+  border-radius: 18px !important;
+  display: grid !important;
+  grid-template-columns: 170px minmax(0, 1fr) !important;
+  gap: 14px !important;
+  align-items: start !important;
+}
+
+.openingHealthCard h3,
+.openingHealthCard strong,
+.openingHealthCard .openingHealthCardTitle {
+  margin: 0 !important;
+  font-size: 0.78rem !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+.openingHealthCard ul {
+  margin: 0 !important;
+  padding-left: 1.1rem !important;
+  display: grid !important;
+  gap: 5px !important;
+}
+
+.openingHealthCard li {
+  margin: 0 !important;
+  line-height: 1.35 !important;
+}
+
+.openingHealthCard p {
+  margin: 0 !important;
+  line-height: 1.35 !important;
+}
+
+/* Keep Progress Tracker compact without stretching its inner cards */
+.progressTrackerShell {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.progressTrackerGrid {
+  align-items: start !important;
+}
+
+.progressMainCard,
+.progressResultCard {
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+@media (max-width: 760px) {
+  .openingHealthCard {
+    grid-template-columns: 1fr !important;
+  }
+}
