@@ -981,7 +981,7 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
     { label: "Import", target: "app-dashboard" },
     { label: "Ratings", target: "rating-openings" },
     { label: "Premium", target: "premium" },
-    { label: "Feedback", target: "feedback" },
+    { label: "Feedback", view: "feedback" },
   ];
 
   const appViews = [
@@ -994,16 +994,71 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
     { key: "feedback", label: "Feedback" },
   ];
 
-  const mainOpening = data?.top_openings?.[0]?.name;
+  const scrollToReportTop = () => {
+    const target =
+      document.getElementById("app-results") ||
+      document.querySelector(".appTabsCard") ||
+      document.getElementById("openingfit-report") ||
+      document.getElementById("opening-fit-report") ||
+      document.getElementById("app-dashboard");
 
-  const handleView = (view) => {
-    onViewChange(view);
+    if (!target) return;
+
+    const offset = window.innerWidth <= 760 ? 86 : 108;
+    const top = target.getBoundingClientRect().top + window.scrollY - offset;
+
+    window.scrollTo({
+      top: Math.max(0, top),
+      behavior: "smooth",
+    });
+  };
+
+  const scrollToId = (id) => {
+    const target = document.getElementById(id);
+
+    if (!target) {
+      scrollToReportTop();
+      return;
+    }
+
+    const offset = window.innerWidth <= 760 ? 86 : 108;
+    const top = target.getBoundingClientRect().top + window.scrollY - offset;
+
+    window.scrollTo({
+      top: Math.max(0, top),
+      behavior: "smooth",
+    });
+  };
+
+  const goToReportView = (view) => {
+    if (typeof onViewChange === "function") {
+      onViewChange(view);
+    }
+
     setOpen(false);
 
-    setTimeout(() => {
-      const el = document.getElementById("app-results") || document.getElementById("app-dashboard");
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(scrollToReportTop);
+    });
+
+    setTimeout(scrollToReportTop, 120);
+    setTimeout(scrollToReportTop, 360);
+  };
+
+  const goToMainSection = (item) => {
+    setOpen(false);
+
+    if (item.view) {
+      goToReportView(item.view);
+      return;
+    }
+
+    if (typeof onJump === "function") {
+      onJump(item.target);
+    }
+
+    setTimeout(() => scrollToId(item.target), 80);
+    setTimeout(() => scrollToId(item.target), 240);
   };
 
   return (
@@ -1021,7 +1076,7 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
         <div className="floatingMenuPanel">
           <div className="floatingMenuHeader">
             <strong>Opening Fit Menu</strong>
-            <button type="button" onClick={() => setOpen(false)}>
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close menu">
               ×
             </button>
           </div>
@@ -1030,22 +1085,9 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
           <div className="floatingMenuButtons">
             {mainItems.map((item) => (
               <button
-                key={item.target}
+                key={item.label}
                 type="button"
-                onClick={() => {
-                  if (item.target === "feedback") {
-                    onViewChange("feedback");
-
-                    setTimeout(() => {
-                      const el = document.getElementById("feedback");
-                      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }, 80);
-                  } else {
-                    onJump(item.target);
-                  }
-
-                  setOpen(false);
-                }}
+                onClick={() => goToMainSection(item)}
               >
                 {item.label}
               </button>
@@ -1061,13 +1103,12 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
                     key={item.key}
                     type="button"
                     className={activeView === item.key ? "floatingMenuActiveItem" : ""}
-                    onClick={() => handleView(item.key)}
+                    onClick={() => goToReportView(item.key)}
                   >
                     {item.label}
                   </button>
                 ))}
               </div>
-
             </>
           ) : (
             <p className="floatingMenuHint">
@@ -1080,6 +1121,7 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
   );
 }
 
+
 function AppViewTabs({ activeView, onChange }) {
   const tabs = [
     { key: "overview", label: "Overview", icon: "🏠" },
@@ -1091,8 +1133,32 @@ function AppViewTabs({ activeView, onChange }) {
     { key: "feedback", label: "Feedback", icon: "💬" },
   ];
 
+  const selectTab = (view) => {
+    if (typeof onChange === "function") {
+      onChange(view);
+    }
+
+    const scrollToTabs = () => {
+      const target =
+        document.getElementById("app-results") ||
+        document.querySelector(".appTabsCard");
+
+      if (!target) return;
+
+      const offset = window.innerWidth <= 760 ? 86 : 108;
+      const top = target.getBoundingClientRect().top + window.scrollY - offset;
+
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior: "smooth",
+      });
+    };
+
+    setTimeout(scrollToTabs, 80);
+  };
+
   return (
-    <section className="card appTabsCard">
+    <section className="card appTabsCard" id="app-results">
       <div className="appTabsHeader">
         <div>
           <p className="eyebrow">Report navigation</p>
@@ -1108,7 +1174,7 @@ function AppViewTabs({ activeView, onChange }) {
             className={`appTabButton ${
               activeView === tab.key ? "appTabButtonActive" : ""
             }`}
-            onClick={() => onChange(tab.key)}
+            onClick={() => selectTab(tab.key)}
           >
             <span>{tab.icon}</span>
             {tab.label}
@@ -1118,6 +1184,7 @@ function AppViewTabs({ activeView, onChange }) {
     </section>
   );
 }
+
 
 function AboutSection() {
   return (
