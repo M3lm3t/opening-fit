@@ -63,6 +63,7 @@ import OpeningClassificationNotice from "./components/OpeningClassificationNotic
 import { displayOpeningName, getSmartLevelAwareRecommendation, getSmartPlayerLevelProfile } from "./components/playerLevelLogic";
 import AccountRestoreSync from "./components/AccountRestoreSync";
 import { DEMO_REPORT } from "./demoReportData";
+import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
@@ -3681,7 +3682,7 @@ const [activeView, setActiveView] = useState("overview");
           />
         ) : null}
 
-        {showLanding ? (
+        {showLanding && !data ? (
           <LandingModal
             username={username}
             setUsername={setUsername}
@@ -4260,7 +4261,20 @@ const [activeView, setActiveView] = useState("overview");
 
                   <ReportHistoryVault data={data} onLoadReport={setData} />
 
-                  <ReportExportAndHistory
+          
+        {data ? (
+          <OpeningFitDiagnosisFirst
+            data={data}
+            isPremium={isPremium}
+            onUpgrade={() => {
+              const el = document.getElementById("premium");
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            onViewChange={setActiveView}
+          />
+        ) : null}
+
+        <ReportExportAndHistory
                     data={data}
                     onLoadReport={(reportData) => {
                       setData(reportData);
