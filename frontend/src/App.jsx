@@ -990,8 +990,6 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
     { key: "training", label: "Study Session" },
     { key: "games", label: "Games" },
     { key: "data", label: "Data" },
-    { key: "repertoire", label: "Interactive" },
-    { key: "feedback", label: "Feedback" },
   ];
 
   const scrollToReportTop = () => {
