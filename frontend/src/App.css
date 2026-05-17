@@ -22031,3 +22031,469 @@ main {
     width: 100%;
   }
 }
+
+/* Landing refresh / incognito layout stability rescue */
+body:has(.landingShell),
+html:has(.landingShell),
+body:has(.landingPage),
+html:has(.landingPage),
+body:has(.landingModal),
+html:has(.landingModal) {
+  scroll-behavior: auto;
+  overflow-x: hidden;
+}
+
+.landingShell,
+.landingPage,
+.landingHero,
+.landingHeroShell,
+.landingModal,
+.landingModalShell {
+  min-height: auto;
+}
+
+.landingShell,
+.landingPage {
+  position: relative;
+  width: 100%;
+  padding-top: max(72px, env(safe-area-inset-top));
+}
+
+.landingHero,
+.landingHeroShell {
+  align-items: center;
+  padding-top: clamp(2.5rem, 7vh, 5rem);
+  padding-bottom: clamp(2.5rem, 7vh, 5rem);
+}
+
+@media (max-width: 760px) {
+  .landingShell,
+  .landingPage {
+    padding-top: 72px;
+  }
+
+  .landingHero,
+  .landingHeroShell {
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+    min-height: auto;
+  }
+}
+
+/* Public landing first-load / refresh stability */
+.publicLandingPage {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.publicLandingPage .publicLandingTop {
+  width: 100%;
+  scroll-margin-top: 0;
+}
+
+.publicLandingPage .landingWrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 100vh;
+  padding-top: 0;
+  overflow-x: hidden;
+}
+
+.publicLandingPage .landingHero {
+  min-height: 100vh;
+  padding-top: clamp(2rem, 5vh, 4rem);
+  padding-bottom: clamp(2rem, 5vh, 4rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.publicLandingPage .landingNav {
+  position: relative;
+  z-index: 3;
+  margin-bottom: clamp(2rem, 5vh, 4rem);
+}
+
+.publicLandingPage .landingHeroGrid {
+  position: relative;
+  z-index: 2;
+  align-items: center;
+}
+
+.publicLandingPage .appShell {
+  margin-top: 0;
+}
+
+@media (max-width: 820px) {
+  .publicLandingPage .landingHero {
+    min-height: auto;
+    padding-top: 1.25rem;
+    padding-bottom: 2rem;
+    justify-content: flex-start;
+  }
+
+  .publicLandingPage .landingNav {
+    margin-bottom: 1.5rem;
+  }
+
+  .publicLandingPage .landingHeroGrid {
+    gap: 1.25rem;
+  }
+}
+
+
+/* =========================================================
+   CLEAN LANDING FLOW FIX
+   Public/example landing should look like the live site.
+   React decides whether it appears after refresh.
+========================================================= */
+
+.publicLandingPage {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.publicLandingPage .publicLandingTop {
+  display: block;
+  width: 100%;
+}
+
+.publicLandingPage .landingWrap {
+  width: min(100% - 32px, 1180px);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-top: 24px;
+  overflow: visible;
+}
+
+.publicLandingPage .landingHero {
+  min-height: auto;
+  height: auto;
+  display: block;
+  padding: 28px;
+  margin: 0 0 28px;
+  border-radius: 32px;
+  overflow: hidden;
+}
+
+.publicLandingPage .landingNav {
+  margin-bottom: 56px;
+}
+
+.publicLandingPage .landingHeroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  gap: 28px;
+  align-items: center;
+}
+
+.publicLandingPage .landingPreviewCard {
+  display: grid;
+  visibility: visible;
+  opacity: 1;
+}
+
+.landingOverlay {
+  overflow-y: auto;
+  overflow-x: hidden;
+  align-items: flex-start;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(22px, env(safe-area-inset-bottom));
+}
+
+.landingOverlay .landingModal {
+  max-height: none;
+  height: auto;
+  overflow: visible;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .publicLandingPage .landingHeroGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .publicLandingPage .landingWrap {
+    width: 100%;
+    max-width: 100%;
+    padding: 12px 0.85rem 0;
+  }
+
+  .publicLandingPage .landingHero {
+    padding: 0.95rem;
+    border-radius: 20px;
+    margin-bottom: 0.85rem;
+  }
+
+  .publicLandingPage .landingNav {
+    margin-bottom: 0.9rem;
+  }
+
+  .publicLandingPage .landingHeroCopy h1 {
+    max-width: 13ch;
+    font-size: clamp(1.85rem, 9vw, 2.4rem);
+    line-height: 1.02;
+    margin-bottom: 0.65rem;
+  }
+
+  .publicLandingPage .landingSubtext {
+    max-width: 36ch;
+    font-size: 0.94rem;
+    line-height: 1.45;
+  }
+
+  .publicLandingPage .landingHeroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .publicLandingPage .landingPrimaryBtn,
+  .publicLandingPage .landingSecondaryBtn {
+    width: 100%;
+    min-height: 46px;
+  }
+}
+
+
+/* =========================================================
+   LANDING DEMO STRAIGHTEN + PROFESSIONAL POLISH
+   Removes the tilted sample card and makes the hero feel
+   cleaner on both live landing and dismissed demo page.
+========================================================= */
+
+.landingPreviewCard,
+.publicLandingPage .landingPreviewCard,
+.landingModal .landingPreviewCard,
+.landingModalPolished .landingPreviewCard {
+  transform: none !important;
+}
+
+.landingPreviewCard:hover,
+.publicLandingPage .landingPreviewCard:hover,
+.landingModal .landingPreviewCard:hover,
+.landingModalPolished .landingPreviewCard:hover {
+  transform: translateY(-2px) !important;
+}
+
+/* Make the sample card feel like a serious product preview, not a sticker */
+.landingPreviewCard {
+  align-self: stretch !important;
+  border-radius: 24px !important;
+  padding: clamp(1rem, 2vw, 1.35rem) !important;
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.24) !important;
+}
+
+/* Cleaner public landing geometry */
+.publicLandingPage .landingHeroGrid,
+.landingHeroGrid {
+  align-items: center !important;
+}
+
+.publicLandingPage .landingPreviewTop,
+.landingPreviewTop {
+  align-items: flex-start !important;
+}
+
+.publicLandingPage .landingPreviewGrid,
+.landingPreviewGrid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+}
+
+.publicLandingPage .landingInfoCard,
+.landingInfoCard {
+  min-width: 0 !important;
+}
+
+/* Prevent long nav labels from making the whole hero look uneven */
+.landingNavLinks {
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  row-gap: 0.35rem !important;
+}
+
+.landingNavLinks a {
+  line-height: 1.15 !important;
+}
+
+/* Desktop polish: keep hero balanced */
+@media (min-width: 901px) {
+  .publicLandingPage .landingHeroGrid,
+  .landingHeroGrid {
+    grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.98fr) !important;
+  }
+
+  .landingPreviewCard {
+    max-width: 520px !important;
+    justify-self: end !important;
+  }
+}
+
+/* Tablet/mobile: stack cleanly and stop the preview being cramped */
+@media (max-width: 900px) {
+  .publicLandingPage .landingHeroGrid,
+  .landingHeroGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landingPreviewCard {
+    max-width: none !important;
+    justify-self: stretch !important;
+  }
+
+  .landingNav {
+    border-radius: 24px !important;
+  }
+
+  .landingNavLinks {
+    justify-content: flex-start !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .publicLandingPage .landingPreviewGrid,
+  .landingPreviewGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landingPreviewCard {
+    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.2) !important;
+  }
+}
+
+
+/* =========================================================
+   CLEAN LANDING TOP MENU
+   Makes the demo/live landing nav feel sharper and less bulky.
+========================================================= */
+
+.landingNav,
+.publicLandingPage .landingNav {
+  min-height: 72px !important;
+  padding: 0.85rem 1rem !important;
+  margin-bottom: clamp(2rem, 5vw, 4rem) !important;
+  border-radius: 28px !important;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.82)) !important;
+  border: 1px solid rgba(148, 163, 184, 0.14) !important;
+  box-shadow: none !important;
+}
+
+.landingBrand,
+.publicLandingPage .landingBrand {
+  min-width: 220px !important;
+  align-items: center !important;
+}
+
+.landingBrandIcon,
+.publicLandingPage .landingBrandIcon {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  border-radius: 13px !important;
+  font-size: 1.15rem !important;
+}
+
+.landingBrandTitle,
+.publicLandingPage .landingBrandTitle {
+  font-size: 1rem !important;
+  line-height: 1.1 !important;
+}
+
+.landingBrandSubtitle,
+.publicLandingPage .landingBrandSubtitle {
+  max-width: 210px !important;
+  font-size: 0.82rem !important;
+  line-height: 1.35 !important;
+}
+
+.landingNavLinks,
+.publicLandingPage .landingNavLinks {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+  gap: 0.35rem !important;
+}
+
+.landingNavLinks a,
+.publicLandingPage .landingNavLinks a {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 38px !important;
+  padding: 0.5rem 0.7rem !important;
+  border-radius: 999px !important;
+  color: rgba(226, 232, 240, 0.84) !important;
+  font-size: 0.86rem !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.landingNavLinks a:hover,
+.publicLandingPage .landingNavLinks a:hover {
+  color: #ffffff !important;
+  background: rgba(37, 99, 235, 0.16) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Make Launch app feel like the clear action */
+.landingNavLinks a[href="#app-dashboard"],
+.publicLandingPage .landingNavLinks a[href="#app-dashboard"] {
+  color: #ffffff !important;
+  background: rgba(37, 99, 235, 0.24) !important;
+  border: 1px solid rgba(96, 165, 250, 0.24) !important;
+}
+
+/* Prevent medium laptop widths from wrapping the nav awkwardly */
+@media (max-width: 1120px) {
+  .landingNav,
+  .publicLandingPage .landingNav {
+    align-items: flex-start !important;
+  }
+
+  .landingNavLinks,
+  .publicLandingPage .landingNavLinks {
+    flex-wrap: wrap !important;
+    row-gap: 0.4rem !important;
+  }
+
+  .landingNavLinks a,
+  .publicLandingPage .landingNavLinks a {
+    min-height: 34px !important;
+    padding: 0.45rem 0.62rem !important;
+    font-size: 0.82rem !important;
+  }
+}
+
+/* Mobile keeps the existing simplified landing */
+@media (max-width: 760px) {
+  .landingNav,
+  .publicLandingPage .landingNav {
+    min-height: auto !important;
+    padding: 0 !important;
+    margin-bottom: 0.9rem !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .landingBrand,
+  .publicLandingPage .landingBrand {
+    min-width: 0 !important;
+  }
+
+  .landingBrandSubtitle,
+  .publicLandingPage .landingBrandSubtitle {
+    display: none !important;
+  }
+}

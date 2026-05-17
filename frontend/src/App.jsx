@@ -2514,7 +2514,52 @@ function OpeningFitReportHero({ data }) {
 }
 
 
-export default function App() {
+export default 
+function App() {
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+
+    const resetPublicLandingScroll = () => {
+      const hasSavedReport = Boolean(localStorage.getItem(STORAGE_KEY));
+      const landingSeen = localStorage.getItem("openingfit_landing_seen") === "true";
+      const hasHash = Boolean(window.location.hash && window.location.hash !== "#");
+
+      if (!hasSavedReport && !landingSeen && !hasHash) {
+        window.scrollTo(0, 0);
+
+        const landing = document.getElementById("public-landing-top");
+        if (landing) {
+          landing.scrollIntoView({ block: "start", inline: "nearest" });
+        }
+      }
+    };
+
+    const resetSoon = () => {
+      requestAnimationFrame(() => {
+        resetPublicLandingScroll();
+        setTimeout(resetPublicLandingScroll, 120);
+      });
+    };
+
+    resetSoon();
+
+    const handleVisibility = () => {
+      if (!document.hidden) resetSoon();
+    };
+
+    window.addEventListener("pageshow", resetSoon);
+    window.addEventListener("focus", resetSoon);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("pageshow", resetSoon);
+      window.removeEventListener("focus", resetSoon);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
+
 
   const [isPremium, setIsPremium] = useState(() => {
     return localStorage.getItem(PREMIUM_KEY) === "true";
@@ -2599,14 +2644,24 @@ export default function App() {
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [localSavedAt, setLocalSavedAt] = useState("");
 const [activeView, setActiveView] = useState("overview");
-  const [showLanding, setShowLanding] = useState(() => {
+  const shouldShowLandingIntro = () => {
     const landingSeen = localStorage.getItem("openingfit_landing_seen") === "true";
     const hasAppHash = window.location.hash && window.location.hash !== "#";
     return !landingSeen && !hasAppHash;
-  });
-  const rememberLandingSeen = () => {
+  };
+
+  const [showLanding, setShowLanding] = useState(shouldShowLandingIntro);
+
+  // This is intentionally session-only.
+  // First visit: public/example landing is visible behind the modal.
+  // Close modal: public/example landing stays visible.
+  // Refresh after close: localStorage prevents it coming back.
+  const [showPublicLanding, setShowPublicLanding] = useState(shouldShowLandingIntro);
+
+  const rememberLandingSeen = ({ keepPublicLanding = true } = {}) => {
     localStorage.setItem("openingfit_landing_seen", "true");
     setShowLanding(false);
+    setShowPublicLanding(Boolean(keepPublicLanding));
   };
 
 
@@ -3042,7 +3097,7 @@ const [activeView, setActiveView] = useState("overview");
       const cleanData = normaliseData(json);
       setData(cleanData);
       saveLocalAnalysis(cleanData, cleanUsername);
-      rememberLandingSeen();
+      rememberLandingSeen({ keepPublicLanding: false });
       setActiveView("overview");
 
       setSavedProfileMessage(
@@ -3189,7 +3244,7 @@ const [activeView, setActiveView] = useState("overview");
       setSelectedGameIndex(0);
       setPracticeOpening(null);
       setOpenSections(closedSections);
-      rememberLandingSeen();
+      rememberLandingSeen({ keepPublicLanding: false });
       setActiveView("overview");
       setSavedProfileMessage(
         "Demo profile loaded. This is sample data, so use Import Games for your real saved profile."
@@ -3539,84 +3594,92 @@ const [activeView, setActiveView] = useState("overview");
     setSelectedGameIndex(0);
   }, [showUnknownOpenings]);
 
+  const isPublicLanding = !data && showPublicLanding;
+
   return (
     <>
-      <div className={`page ${theme}`} data-theme={theme}>
-        <OpeningFitUXCleanup
-          data={data}
-          username={username}
-          onJump={jumpToSection}
-          activeView={activeView}
-          onViewChange={setActiveView}
-        />
+      <div className={`page ${theme} ${isPublicLanding ? "publicLandingPage" : "appReportPage"}`} data-theme={theme}>
+        {data ? (
+          <>
+            <OpeningFitUXCleanup
+              data={data}
+              username={username}
+              onJump={jumpToSection}
+              activeView={activeView}
+              onViewChange={setActiveView}
+            />
 
-        <OpeningFitImportDoctor username={username} />
+            <OpeningFitImportDoctor username={username} />
 
-        <div id="account">
-          <AccountPanel
-            onUserChange={setAccountUser}
-          />
-        </div>
+            <div id="account">
+              <AccountPanel onUserChange={setAccountUser} />
+            </div>
 
-        <FounderPassLoginUpgrade accountUser={accountUser} />
+            <FounderPassLoginUpgrade accountUser={accountUser} />
 
-        <CheckoutStatusNotice
-          onRestoreAccess={() => {
-            window.dispatchEvent(
-              new CustomEvent("openingfit:founder-pass-intent", {
-                detail: {
-                  source: "checkout-success",
-                  plan: "founder_pass",
-                },
-              })
-            );
-          }}
-        />
+            <CheckoutStatusNotice
+              onRestoreAccess={() => {
+                window.dispatchEvent(
+                  new CustomEvent("openingfit:founder-pass-intent", {
+                    detail: {
+                      source: "checkout-success",
+                      plan: "founder_pass",
+                    },
+                  })
+                );
+              }}
+            />
+
+            <AppActionRouter onViewChange={setActiveView} />
+            <AccountRestoreSync
+              user={accountUser}
+              username={username}
+              setUsername={setUsername}
+              platform={platform}
+              setPlatform={setPlatform}
+              data={data}
+              setData={setData}
+              setIsPremium={setIsPremium}
+            />
+
+            <FloatingAppMenu
+              data={data}
+              onJump={jumpToSection}
+              onPractice={startOpeningPractice}
+              activeView={activeView}
+              onViewChange={setActiveView}
+            />
+
+            <MobileBottomNav
+              data={data}
+              activeView={activeView}
+              onViewChange={setActiveView}
+            />
+          </>
+        ) : null}
+
         {loading ? <ImportLoadingOverlay platform={platform} /> : null}
-        <AppActionRouter onViewChange={setActiveView} />
-        <AccountRestoreSync
-          user={accountUser}
-          username={username}
-          setUsername={setUsername}
-          platform={platform}
-          setPlatform={setPlatform}
-          data={data}
-          setData={setData}
-          setIsPremium={setIsPremium}
-        />
-
-        <FloatingAppMenu
-          data={data}
-          onJump={jumpToSection}
-          onPractice={startOpeningPractice}
-          activeView={activeView}
-          onViewChange={setActiveView}
-        />
-
-        <MobileBottomNav
-          data={data}
-          activeView={activeView}
-          onViewChange={setActiveView}
-        />
 
         {data ? <OpeningFitTrustBar data={data} /> : null}
 
-        <OpeningFitTrustUpgrade
-          onFounderPass={handleFounderPassClick}
-          onDemo={loadDemoReport}
-          onImport={() => {
-            const el =
-              document.getElementById("app-dashboard") ||
-              document.getElementById("import") ||
-              document.querySelector("input");
+        {data ? (
+          <OpeningFitTrustUpgrade
+            onFounderPass={handleFounderPassClick}
+            onDemo={loadDemoReport}
+            onImport={() => {
+              const el =
+                document.getElementById("app-dashboard") ||
+                document.getElementById("import") ||
+                document.querySelector("input");
 
-            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-          }}
-          onSample={() => {
-            const el = document.getElementById("sample-report");
-            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}
-        />
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+            onSample={() => {
+              const el = document.getElementById("sample-report");
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          />
+        ) : null}
 
         {showLanding ? (
           <LandingModal
@@ -3636,7 +3699,7 @@ const [activeView, setActiveView] = useState("overview");
             setData(cleanDemo);
             setUsername("DemoPlayer");
             setPlatform("chesscom");
-            rememberLandingSeen();
+            rememberLandingSeen({ keepPublicLanding: false });
             setActiveView("overview");
 
             setTimeout(() => {
@@ -3650,9 +3713,12 @@ const [activeView, setActiveView] = useState("overview");
 ) : null}
 
 
-        {!data ? <TrustFaq /> : null}
-
-        {!data ? <LandingSection onOpeningClick={startOpeningPractice} /> : null}
+        {isPublicLanding ? (
+          <div className="publicLandingTop" id="public-landing-top">
+            <LandingSection onOpeningClick={startOpeningPractice} />
+            <TrustFaq />
+          </div>
+        ) : null}
 
         <main className="container appShell" id="app-dashboard">
           <header className="hero heroCard">
