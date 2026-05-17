@@ -1,0 +1,187 @@
+.reportSnapshot {
+  margin: 18px 0 22px;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.18));
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.94));
+  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.28);
+  color: var(--text, #f8fafc);
+}
+
+.reportSnapshotHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.reportSnapshotKicker,
+.reportSnapshotEyebrow {
+  margin: 0 0 8px;
+  color: var(--blue-light, #60a5fa);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.reportSnapshotHeader h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  line-height: 1.05;
+}
+
+.reportSnapshotHeader p {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: var(--text-soft, #cbd5e1);
+  line-height: 1.6;
+}
+
+.reportSnapshotBadge {
+  flex: 0 0 auto;
+  min-width: 148px;
+  padding: 12px 14px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.72);
+  text-align: right;
+}
+
+.reportSnapshotBadge span,
+.reportSnapshotBadge strong {
+  display: block;
+}
+
+.reportSnapshotBadge span {
+  color: var(--muted, #94a3b8);
+  font-size: 0.78rem;
+}
+
+.reportSnapshotBadge strong {
+  margin-top: 3px;
+  color: var(--text, #f8fafc);
+  font-size: 0.92rem;
+}
+
+.reportSnapshotGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.reportSnapshotCard {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.76);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.reportSnapshotCard h3 {
+  margin: 0;
+  font-size: clamp(1.02rem, 2vw, 1.22rem);
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.reportSnapshotDetail {
+  margin: 10px 0 0;
+  color: var(--green, #22c55e);
+  font-weight: 800;
+}
+
+.reportSnapshotNote {
+  min-height: 52px;
+  margin: 10px 0 16px;
+  color: var(--text-soft, #cbd5e1);
+  line-height: 1.5;
+}
+
+.reportSnapshotButton {
+  width: 100%;
+  border: 1px solid rgba(96, 165, 250, 0.32);
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.16);
+  color: var(--text, #f8fafc);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 10px 14px;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.reportSnapshotButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(96, 165, 250, 0.62);
+  background: rgba(37, 99, 235, 0.28);
+}
+
+[data-theme="light"] .reportSnapshot,
+.light .reportSnapshot,
+body.light .reportSnapshot {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.11), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(239, 246, 255, 0.96));
+  color: #0f172a;
+  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.10);
+}
+
+[data-theme="light"] .reportSnapshotHeader p,
+[data-theme="light"] .reportSnapshotNote,
+.light .reportSnapshotHeader p,
+.light .reportSnapshotNote,
+body.light .reportSnapshotHeader p,
+body.light .reportSnapshotNote {
+  color: #475569;
+}
+
+[data-theme="light"] .reportSnapshotBadge,
+[data-theme="light"] .reportSnapshotCard,
+.light .reportSnapshotBadge,
+.light .reportSnapshotCard,
+body.light .reportSnapshotBadge,
+body.light .reportSnapshotCard {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(37, 99, 235, 0.16);
+}
+
+[data-theme="light"] .reportSnapshotBadge strong,
+.light .reportSnapshotBadge strong,
+body.light .reportSnapshotBadge strong {
+  color: #0f172a;
+}
+
+[data-theme="light"] .reportSnapshotButton,
+.light .reportSnapshotButton,
+body.light .reportSnapshotButton {
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+@media (max-width: 920px) {
+  .reportSnapshotHeader {
+    flex-direction: column;
+  }
+
+  .reportSnapshotBadge {
+    width: 100%;
+    text-align: left;
+  }
+
+  .reportSnapshotGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .reportSnapshotNote {
+    min-height: 0;
+  }
+}

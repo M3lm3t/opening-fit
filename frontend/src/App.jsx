@@ -28,6 +28,7 @@ import PremiumCoachPlan from "./components/PremiumCoachPlan";
 import MyRepertoire from "./components/MyRepertoire";
 import PremiumTrustStrip from "./components/PremiumTrustStrip";
 import LandingModal from "./components/LandingModal";
+import ReportSnapshot from "./components/ReportSnapshot";
 import OpeningFitTrustUpgrade from "./components/OpeningFitTrustUpgrade";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
@@ -4074,6 +4075,7 @@ const [activeView, setActiveView] = useState("overview");
                   <PolishedOpeningFitReportHero data={data} />
 
                   <div className="compactReportGrid">
+                    <ReportSnapshot data={data} onViewChange={setActiveView} />
                     <CoachSummaryCard data={data} onViewChange={setActiveView} />
                     <AppOpeningHealthScore data={data} onViewChange={setActiveView} />
                   </div>
