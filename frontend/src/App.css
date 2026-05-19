@@ -24663,3 +24663,144 @@ textarea,
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Rebuilt deterministic app menu + login screen */
+.loginScreenSection {
+  margin: 0 0 18px;
+  scroll-margin-top: 104px;
+}
+
+.openingAppMenu {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 10000;
+}
+
+.openingAppMenuToggle {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
+  font-size: 1.3rem;
+  line-height: 1;
+  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.3);
+  backdrop-filter: blur(18px);
+}
+
+.openingAppMenuPanel {
+  position: absolute;
+  top: 56px;
+  right: 0;
+  width: min(360px, calc(100vw - 24px));
+  padding: 12px;
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.98);
+  color: #f8fafc;
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.48);
+  backdrop-filter: blur(22px);
+}
+
+.openingAppMenuHeader {
+  display: grid;
+  gap: 3px;
+  padding: 4px 4px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.openingAppMenuHeader strong {
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.openingAppMenuHeader span {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.openingAppMenuGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.openingAppMenuGrid button {
+  min-height: 44px;
+  border-radius: 13px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(148, 163, 184, 0.08);
+  color: #e2e8f0;
+  font-weight: 900;
+}
+
+.openingAppMenuGrid button:hover,
+.openingAppMenuGrid button.isActive {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.page.light .openingAppMenuToggle,
+[data-theme="light"] .openingAppMenuToggle,
+.page.light .openingAppMenuPanel,
+[data-theme="light"] .openingAppMenuPanel {
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.15);
+}
+
+.page.light .openingAppMenuHeader strong,
+[data-theme="light"] .openingAppMenuHeader strong {
+  color: #0f172a;
+}
+
+.page.light .openingAppMenuHeader span,
+[data-theme="light"] .openingAppMenuHeader span {
+  color: #64748b;
+}
+
+.page.light .openingAppMenuGrid button,
+[data-theme="light"] .openingAppMenuGrid button {
+  background: rgba(15, 23, 42, 0.05);
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.page.light .openingAppMenuGrid button:hover,
+.page.light .openingAppMenuGrid button.isActive,
+[data-theme="light"] .openingAppMenuGrid button:hover,
+[data-theme="light"] .openingAppMenuGrid button.isActive {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+@media (max-width: 760px) {
+  .loginScreenSection {
+    margin-bottom: 12px;
+    scroll-margin-top: 88px;
+  }
+
+  .openingAppMenu {
+    top: max(10px, env(safe-area-inset-top));
+    right: 10px;
+  }
+
+  .openingAppMenuPanel {
+    width: calc(100vw - 20px);
+    max-height: min(72vh, 560px);
+    overflow-y: auto;
+  }
+
+  .openingAppMenuGrid {
+    grid-template-columns: 1fr;
+  }
+}
