@@ -23777,6 +23777,7 @@ html:has(.landingModal) {
 
 /* Clean burger/report navigation */
 #app-results,
+#app-view-tabs,
 .appTabsCard,
 #openingfit-report,
 #opening-fit-report,
@@ -24266,5 +24267,399 @@ html:has(.landingModal) {
 
   .mobileBottomNav button {
     font-size: 0.61rem !important;
+  }
+}
+
+/* =========================================================
+   Professional Interface Cleanup
+   Final visual pass for a calmer desktop and mobile app feel.
+========================================================= */
+
+:root {
+  --pro-bg: #0d1117;
+  --pro-surface: rgba(18, 24, 32, 0.94);
+  --pro-surface-raised: rgba(24, 31, 42, 0.96);
+  --pro-border: rgba(226, 232, 240, 0.1);
+  --pro-text: #f8fafc;
+  --pro-muted: #9aa7b8;
+  --pro-accent: #3b82f6;
+  --pro-success: #22c55e;
+  --pro-warning: #f59e0b;
+  --pro-danger: #ef4444;
+  --pro-radius: 18px;
+  --pro-radius-sm: 12px;
+  --pro-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+}
+
+.page.light,
+[data-theme="light"] {
+  --pro-bg: #f6f8fb;
+  --pro-surface: rgba(255, 255, 255, 0.96);
+  --pro-surface-raised: #ffffff;
+  --pro-border: rgba(15, 23, 42, 0.1);
+  --pro-text: #0f172a;
+  --pro-muted: #64748b;
+  --pro-shadow: 0 16px 38px rgba(15, 23, 42, 0.09);
+}
+
+body {
+  background: var(--pro-bg);
+}
+
+.page {
+  background:
+    linear-gradient(180deg, rgba(59, 130, 246, 0.1), transparent 340px),
+    var(--pro-bg) !important;
+}
+
+.container,
+.landingWrap {
+  width: min(100% - 28px, 1160px);
+}
+
+.appShell {
+  padding-top: 28px;
+}
+
+.card,
+.heroCard,
+.statCard,
+.smallCard,
+.premiumCard,
+.feedbackCard,
+.loadingCard,
+.collapsibleCard,
+.fullReportShell,
+.exportHistoryShell,
+.opponentPrepShell,
+.nextStudyShell,
+.reportHero,
+.productPolish,
+.landingPreviewCard,
+.landingFeatureCard,
+.landingPriceCard,
+.landingInfoCard,
+.landingStepCard,
+.aboutCard,
+.ratingGuideCard {
+  border-radius: var(--pro-radius) !important;
+  border-color: var(--pro-border) !important;
+  background: var(--pro-surface) !important;
+  box-shadow: var(--pro-shadow) !important;
+  color: var(--text-soft, #e2e8f0);
+}
+
+.heroCard {
+  overflow: hidden;
+  padding: clamp(20px, 3vw, 30px) !important;
+  background:
+    linear-gradient(135deg, rgba(24, 31, 42, 0.98), rgba(13, 17, 23, 0.96)) !important;
+}
+
+.page.light .heroCard,
+[data-theme="light"] .heroCard {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96)) !important;
+}
+
+.heroTitleWrap h1,
+.landingHeroCopy h1,
+.reportHero h1,
+.fullReportHeader h2,
+.landingSectionHeading h2 {
+  letter-spacing: 0 !important;
+  text-wrap: balance;
+}
+
+.subtext,
+.landingSubtext,
+.card p,
+.productPolish p {
+  color: var(--pro-muted) !important;
+}
+
+.searchRow.appActionPanel,
+.filtersRow,
+.savedHistoryRow,
+.reportCommandBar,
+.appTabsCard {
+  border-radius: var(--pro-radius) !important;
+  border: 1px solid var(--pro-border) !important;
+  background: rgba(15, 23, 42, 0.46) !important;
+  box-shadow: none !important;
+}
+
+.page.light .searchRow.appActionPanel,
+.page.light .filtersRow,
+.page.light .savedHistoryRow,
+.page.light .reportCommandBar,
+.page.light .appTabsCard,
+[data-theme="light"] .searchRow.appActionPanel,
+[data-theme="light"] .filtersRow,
+[data-theme="light"] .savedHistoryRow,
+[data-theme="light"] .reportCommandBar,
+[data-theme="light"] .appTabsCard {
+  background: rgba(255, 255, 255, 0.82) !important;
+}
+
+input,
+select,
+textarea,
+.input {
+  border-radius: 14px !important;
+  border: 1px solid var(--pro-border) !important;
+  background: var(--pro-surface-raised) !important;
+  color: var(--pro-text) !important;
+  box-shadow: none !important;
+}
+
+.primaryBtn,
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.landingPrimaryBtn,
+.landingSecondaryBtn,
+.platformButton,
+.appTabButton,
+.reportCommandBar__tabs button,
+.reportCommandBar__upgrade {
+  border-radius: 14px !important;
+  letter-spacing: 0 !important;
+  box-shadow: none !important;
+}
+
+.primaryBtn,
+.landingPrimaryBtn,
+.appTabButtonActive,
+.platformButtonActive,
+.reportCommandBar__upgrade {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.landingSecondaryBtn,
+.platformButton,
+.appTabButton {
+  background: rgba(148, 163, 184, 0.08) !important;
+  border-color: var(--pro-border) !important;
+  color: var(--pro-text) !important;
+}
+
+.primaryBtn:hover,
+.secondaryBtn:hover,
+.secondaryButton:hover,
+.ghostButton:hover,
+.landingPrimaryBtn:hover,
+.landingSecondaryBtn:hover,
+.platformButton:hover,
+.appTabButton:hover,
+.floatingMenuButtons button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(59, 130, 246, 0.48) !important;
+}
+
+.statsGrid,
+.compactReportGrid,
+.placeholderGrid,
+.landingFeatureGrid,
+.landingPricingGrid,
+.aboutGrid {
+  gap: 14px !important;
+}
+
+.statCard {
+  min-height: 96px !important;
+  padding: 16px !important;
+}
+
+.statLabel,
+.eyebrow,
+.landingEyebrow,
+.premiumLabel,
+.floatingMenuLabel {
+  letter-spacing: 0 !important;
+}
+
+.listItem,
+.chartRow,
+.gamePickerButton,
+.trainingPlanItem,
+.openingExplainCard,
+.lockedFeature {
+  border-radius: 14px !important;
+  border-color: var(--pro-border) !important;
+  background: rgba(148, 163, 184, 0.07) !important;
+}
+
+.floatingMenu {
+  z-index: 9999;
+}
+
+.floatingMenuToggle {
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--pro-border) !important;
+  background: var(--pro-surface-raised) !important;
+  color: var(--pro-text) !important;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22) !important;
+  backdrop-filter: blur(18px);
+}
+
+.floatingMenuPanel {
+  padding: 12px !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--pro-border) !important;
+  background: var(--pro-surface-raised) !important;
+  color: var(--pro-text) !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32) !important;
+}
+
+.floatingMenuHeader {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--pro-border);
+}
+
+.floatingMenuHeader strong {
+  color: var(--pro-text) !important;
+}
+
+.floatingMenuHeader button {
+  background: rgba(148, 163, 184, 0.1) !important;
+  color: var(--pro-text) !important;
+}
+
+.floatingMenuLabel {
+  color: var(--pro-muted) !important;
+  font-size: 0.72rem !important;
+}
+
+.floatingMenuButtons {
+  gap: 8px !important;
+}
+
+.floatingMenuButtons button,
+.floatingPracticeButton {
+  min-height: 42px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--pro-border) !important;
+  background: rgba(148, 163, 184, 0.08) !important;
+  color: var(--pro-text) !important;
+  font-weight: 850 !important;
+}
+
+.floatingMenuButtons button.floatingMenuActiveItem,
+.floatingMenuButtons .floatingMenuActiveItem {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+@media (min-width: 761px) {
+  .heroTop {
+    align-items: flex-start;
+  }
+
+  .searchRow.appActionPanel {
+    grid-template-columns: minmax(220px, auto) minmax(260px, 1fr) minmax(150px, auto);
+    align-items: center;
+  }
+
+  .appActionButtons {
+    grid-column: 1 / -1;
+  }
+
+  .openingSampleControl {
+    max-width: 560px;
+  }
+}
+
+@media (max-width: 760px) {
+  .container,
+  .landingWrap {
+    width: 100% !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .appShell {
+    padding-top: calc(8px + env(safe-area-inset-top)) !important;
+  }
+
+  .heroCard {
+    margin: 0 -12px 12px !important;
+    border-radius: 0 0 24px 24px !important;
+    padding: 18px 12px 14px !important;
+  }
+
+  .card,
+  .statCard,
+  .premiumCard,
+  .feedbackCard,
+  .fullReportShell,
+  .exportHistoryShell,
+  .opponentPrepShell,
+  .nextStudyShell,
+  .reportHero,
+  .productPolish {
+    border-radius: 18px !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .heroTitleWrap h1 {
+    max-width: 13ch;
+    font-size: clamp(2rem, 10vw, 2.7rem) !important;
+  }
+
+  .heroTitleWrap .subtext {
+    max-width: 36ch;
+  }
+
+  .searchRow.appActionPanel {
+    border-radius: 18px !important;
+  }
+
+  .appActionButtons {
+    grid-template-columns: 1fr !important;
+  }
+
+  .statsGrid,
+  .heroStatsGrid,
+  .reportStatsGrid,
+  .scoreStatsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .statCard {
+    min-height: 82px !important;
+  }
+
+  .floatingMenuPanel {
+    width: calc(100vw - 24px) !important;
+    max-height: min(72vh, 560px) !important;
+  }
+
+  .mobileBottomNav {
+    border-radius: 22px !important;
+    background: rgba(18, 24, 32, 0.9) !important;
+    border-color: var(--pro-border) !important;
+  }
+
+  .page.light .mobileBottomNav,
+  [data-theme="light"] .mobileBottomNav {
+    background: rgba(255, 255, 255, 0.9) !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .statsGrid,
+  .heroStatsGrid,
+  .reportStatsGrid,
+  .scoreStatsGrid {
+    grid-template-columns: 1fr !important;
   }
 }
