@@ -1011,9 +1011,10 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
 
   const mainItems = [
     { label: "Import", target: "app-dashboard" },
-    { label: "Ratings", target: "rating-openings" },
-    { label: "Premium", target: "premium" },
-    { label: "Feedback", view: "feedback" },
+    { label: "Report", view: "overview", target: "app-results" },
+    { label: "Suggestions", view: "recommendations", target: "section-recommendations" },
+    { label: "Premium", view: "repertoire", target: "premium" },
+    { label: "Feedback", view: "feedback", target: "feedback" },
   ];
 
   const appViews = [
@@ -1022,6 +1023,7 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
     { key: "training", label: "Study Session" },
     { key: "games", label: "Games" },
     { key: "data", label: "Data" },
+    { key: "repertoire", label: "Repertoire" },
   ];
 
   const scrollToReportTop = () => {
@@ -1043,11 +1045,11 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
     });
   };
 
-  const scrollToId = (id) => {
+  const scrollToId = (id, fallback = scrollToReportTop) => {
     const target = document.getElementById(id);
 
     if (!target) {
-      scrollToReportTop();
+      fallback();
       return;
     }
 
@@ -1060,26 +1062,28 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
     });
   };
 
-  const goToReportView = (view) => {
+  const goToReportView = (view, targetId = "app-results") => {
     if (typeof onViewChange === "function") {
       onViewChange(view);
     }
 
     setOpen(false);
 
+    const scrollToTarget = () => scrollToId(targetId, scrollToReportTop);
+
     window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(scrollToReportTop);
+      window.requestAnimationFrame(scrollToTarget);
     });
 
-    setTimeout(scrollToReportTop, 120);
-    setTimeout(scrollToReportTop, 360);
+    setTimeout(scrollToTarget, 120);
+    setTimeout(scrollToTarget, 360);
   };
 
   const goToMainSection = (item) => {
     setOpen(false);
 
     if (item.view) {
-      goToReportView(item.view);
+      goToReportView(item.view, item.target || "app-results");
       return;
     }
 
@@ -1087,8 +1091,8 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
       onJump(item.target);
     }
 
-    setTimeout(() => scrollToId(item.target), 80);
-    setTimeout(() => scrollToId(item.target), 240);
+    setTimeout(() => scrollToId(item.target, scrollToReportTop), 80);
+    setTimeout(() => scrollToId(item.target, scrollToReportTop), 240);
   };
 
   return (
@@ -1188,7 +1192,7 @@ function AppViewTabs({ activeView, onChange }) {
   };
 
   return (
-    <section className="card appTabsCard" id="app-results">
+    <section className="card appTabsCard" id="app-view-tabs">
       <div className="appTabsHeader">
         <div>
           <p className="eyebrow">Report navigation</p>
@@ -4888,12 +4892,14 @@ const [activeView, setActiveView] = useState("overview");
                     onPractice={startOpeningPractice}
                   />
 
-                  <PremiumPanel
-                    data={data}
-                    isPremium={isPremium}
-                    onUnlockDemo={unlockPremiumDemo}
-                    onResetDemo={resetPremiumDemo}
-                  />
+                  <div id="premium">
+                    <PremiumPanel
+                      data={data}
+                      isPremium={isPremium}
+                      onUnlockDemo={unlockPremiumDemo}
+                      onResetDemo={resetPremiumDemo}
+                    />
+                  </div>
 
                   <PremiumTrustStrip />
                 </>
