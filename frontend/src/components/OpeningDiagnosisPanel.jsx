@@ -84,14 +84,69 @@ function getOpenings(data) {
     .filter((opening) => opening.games > 0);
 }
 
-function getVerdict(opening) {
+function isStrongProfile(data) {
+  const rating = Number(
+    data?.rating ??
+      data?.chesscomRating ??
+      data?.chesscom_rating ??
+      data?.lichessRating ??
+      data?.lichess_rating ??
+      data?.player_level?.rating ??
+      data?.playerLevel?.rating ??
+      0
+  );
+  const level = String(
+    data?.playerLevel?.level ??
+      data?.playerLevel?.label ??
+      data?.playerLevel ??
+      data?.player_level?.level ??
+      data?.player_level?.label ??
+      data?.player_level ??
+      ""
+  ).toLowerCase();
+
+  return (
+    rating >= 2200 ||
+    level.includes("advanced") ||
+    level.includes("expert") ||
+    level.includes("master") ||
+    level.includes("elite")
+  );
+}
+
+function getVerdict(opening, data, index = 0) {
+  const strongProfile = isStrongProfile(data);
+  const mainOpening = index <= 2 && opening.games >= 8;
+
   if (opening.games < 3) {
     return {
-      label: "Watch",
+      label: "Small sample",
       tone: "neutral",
       reason:
-        "The sample is still small. Keep playing it, but do not build your whole repertoire around it yet.",
+        "The sample is still small. Keep tracking it before making a confident repertoire call.",
       action: "Collect more games before making a final call.",
+    };
+  }
+
+  if (strongProfile && mainOpening && opening.winRate >= 38) {
+    return {
+      label: "Core weapon",
+      tone: "positive",
+      reason:
+        "This is a heavily played opening for a strong player. Treat it as a trusted repertoire choice unless a deeper branch-level review proves otherwise.",
+      action:
+        "Audit recurring loss structures, opponent rating bands, and move-order details rather than replacing the opening.",
+    };
+  }
+
+  if (strongProfile && opening.winRate < 48) {
+    return {
+      label: mainOpening ? "Fine-tune" : "Review",
+      tone: "warning",
+      reason:
+        "The opening itself may still be completely viable. Recent results point to specific lines or middlegame structures worth checking.",
+      action:
+        "Review losses by structure and variation before drawing conclusions from the headline win rate.",
     };
   }
 
@@ -135,6 +190,7 @@ function scrollToTarget(targetId) {
 }
 
 export default function OpeningDiagnosisPanel({ data, onViewChange }) {
+  const strongProfile = isStrongProfile(data);
   const diagnosis = useMemo(() => {
     if (!data) return null;
 
@@ -198,16 +254,16 @@ export default function OpeningDiagnosisPanel({ data, onViewChange }) {
           <p className="eyebrow">Opening diagnosis</p>
           <h2>What your openings are telling us</h2>
           <p>
-            This turns your opening stats into practical coaching decisions. The goal is
-            not to learn more openings — it is to keep what works, fix what is costing
-            points, and avoid lines that do not currently fit.
+            {strongProfile
+              ? "This turns your opening stats into a repertoire audit. The goal is to protect core weapons, find branch-level issues, and avoid overreacting to variance."
+              : "This turns your opening stats into practical coaching decisions. The goal is not to learn more openings — it is to keep what works, fix what is costing points, and avoid lines that do not currently fit."}
           </p>
         </div>
       </div>
 
       <div className="diagnosisGrid">
-        {diagnosis.map((opening) => {
-          const verdict = getVerdict(opening);
+        {diagnosis.map((opening, index) => {
+          const verdict = getVerdict(opening, data, index);
 
           return (
             <article className={`diagnosisCard ${verdict.tone}`} key={opening.name}>

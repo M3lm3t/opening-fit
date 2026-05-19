@@ -496,49 +496,313 @@ function calculateOpeningFitScore(opening, playerStyle) {
   return Math.max(1, Math.min(100, Math.round(score)));
 }
 
-function getOpeningVerdict(opening, score) {
-  const games = getOpeningGames(opening);
-  const winRate = getWinRate(opening);
+function getProfileRating(data) {
+  const directValues = [
+    data?.rating,
+    data?.currentRating,
+    data?.current_rating,
+    data?.chesscomRating,
+    data?.chesscom_rating,
+    data?.lichessRating,
+    data?.lichess_rating,
+    data?.rapidRating,
+    data?.rapid_rating,
+    data?.blitzRating,
+    data?.blitz_rating,
+    data?.bulletRating,
+    data?.bullet_rating,
+    data?.player_level?.rating,
+    data?.playerLevel?.rating,
+  ];
 
-  if (score >= 75 && games >= 2) return "Keep";
-  if (score >= 55) return "Improve";
-  if (winRate < 40 || score < 55) return "Avoid for now";
+  const cleanRatings = directValues
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 100 && value < 3500);
 
-  return "Improve";
+  if (cleanRatings.length) return Math.max(...cleanRatings);
+
+  const recentGames = Array.isArray(data?.recent_games)
+    ? data.recent_games
+    : Array.isArray(data?.recentGames)
+    ? data.recentGames
+    : [];
+
+  const gameRatings = recentGames
+    .flatMap((game) => [
+      game?.player_rating,
+      game?.playerRating,
+      game?.rating,
+      game?.white_rating,
+      game?.whiteRating,
+      game?.black_rating,
+      game?.blackRating,
+    ])
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 100 && value < 3500);
+
+  if (!gameRatings.length) return 0;
+
+  gameRatings.sort((a, b) => a - b);
+  return gameRatings[Math.floor(gameRatings.length / 2)];
 }
 
-function getOpeningExplanation(opening, score, playerStyle) {
-  const name = getOpeningName(opening);
-  const games = getOpeningGames(opening);
-  const winRate = getWinRate(opening);
-  const tags = getOpeningTags(name);
-  const verdict = getOpeningVerdict(opening, score);
+function getPlayerTier(data) {
+  const rating = getProfileRating(data);
+  const level = String(
+    data?.playerLevel?.level ??
+      data?.playerLevel?.label ??
+      data?.playerLevel ??
+      data?.player_level?.level ??
+      data?.player_level?.label ??
+      data?.player_level ??
+      data?.level ??
+      ""
+  ).toLowerCase();
 
-  if (isUnknownOpeningName(name)) {
-    return "This opening was not clearly classified. It is worth reviewing the PGN or playing more recognised opening lines so the report can give better advice.";
+  if (
+    rating >= 2500 ||
+    level.includes("elite") ||
+    level.includes("master") ||
+    level.includes("gm") ||
+    level.includes("grandmaster") ||
+    level.includes("international master")
+  ) {
+    return "elite";
   }
 
-  if (verdict === "Keep") {
+  if (
+    rating >= 2200 ||
+    level.includes("expert") ||
+    level.includes("advanced") ||
+    level.includes("candidate master") ||
+    level.includes("national master")
+  ) {
+    return "strong";
+  }
+
+  if (
+    rating >= 1600 ||
+    level.includes("club") ||
+    level.includes("strong")
+  ) {
+    return "club";
+  }
+
+  return "developing";
+}
+
+function getOpeningSampleTier(games) {
+  const count = Number(games || 0);
+  if (count >= 20) return "large";
+  if (count >= 8) return "medium";
+  if (count >= 3) return "small";
+  return "tiny";
+}
+
+function getAverageOppositionRating(opening, data) {
+  const direct = Number(
+    opening?.averageOpponentRating ??
+      opening?.average_opponent_rating ??
+      opening?.avgOpponentRating ??
+      opening?.avg_opponent_rating ??
+      opening?.opponentRating ??
+      opening?.opponent_rating ??
+      data?.averageOpponentRating ??
+      data?.average_opponent_rating ??
+      0
+  );
+
+  return Number.isFinite(direct) ? direct : 0;
+}
+
+function getSmartOpeningVerdict(opening, data, index = 0) {
+  const games = getOpeningGames(opening);
+  const winRate = getWinRate(opening);
+  const tier = getPlayerTier(data);
+  const sampleTier = getOpeningSampleTier(games);
+  const isMainWeapon = index <= 2 && games >= 8;
+  const rating = getProfileRating(data);
+  const opposition = getAverageOppositionRating(opening, data);
+  const strongOpposition =
+    rating && opposition ? opposition >= Math.max(1800, rating - 100) : false;
+
+  if (isUnknownOpeningName(getOpeningName(opening))) {
+    return {
+      label: "Review",
+      category: "review",
+      tone: "neutral",
+      message:
+        "This opening was not clearly classified. Review the move order before treating it as a repertoire problem.",
+    };
+  }
+
+  if (sampleTier === "tiny") {
+    return {
+      label: "Small sample",
+      category: "neutral",
+      tone: "neutral",
+      message:
+        "There is not enough data here to make a confident call yet. Treat this as a note, not a verdict.",
+    };
+  }
+
+  if (sampleTier === "small") {
+    return {
+      label: "Small sample",
+      category: "neutral",
+      tone: "neutral",
+      message:
+        "This opening has appeared a few times, but the sample is still too small for strong advice. Keep tracking it before changing the repertoire.",
+    };
+  }
+
+  if (tier === "elite") {
+    if (isMainWeapon && winRate >= 38) {
+      return {
+        label: "Core weapon",
+        category: "keep",
+        tone: "positive",
+        message:
+          "This looks like a regular part of the repertoire. Recent results are worth reviewing, but the opening should be treated as a trusted core weapon rather than something to abandon.",
+      };
+    }
+
+    if (isMainWeapon) {
+      return {
+        label: "Deep review",
+        category: "review",
+        tone: "warning",
+        message:
+          "This is still likely a serious repertoire choice. The useful question is which branches, structures, or opponent pools are causing the recent losses.",
+      };
+    }
+
+    if (winRate < 42) {
+      return {
+        label: "Review",
+        category: "review",
+        tone: "warning",
+        message:
+          "The opening itself may still be sound, but recent results suggest specific lines, move orders, or middlegame structures are worth checking.",
+      };
+    }
+
+    return {
+      label: "Keep",
+      category: "keep",
+      tone: "positive",
+      message:
+        "This opening is performing well enough to remain part of the repertoire. Look for refinements rather than replacement ideas.",
+    };
+  }
+
+  if (tier === "strong") {
+    if (isMainWeapon && winRate >= 45) {
+      return {
+        label: "Core weapon",
+        category: "keep",
+        tone: "positive",
+        message:
+          "This is a high-volume opening that still looks viable. Recent results may be mixed, but it should be reviewed as a main weapon, not treated as a beginner-level weakness.",
+      };
+    }
+
+    if (isMainWeapon && winRate >= 35) {
+      return {
+        label: "Fine-tune",
+        category: "review",
+        tone: "warning",
+        message:
+          "This is probably still a useful part of the repertoire. Fine-tune the specific variations or middlegame structures where the recent results are slipping.",
+      };
+    }
+
+    if (winRate < 40) {
+      return {
+        label: "Review",
+        category: "review",
+        tone: "warning",
+        message: strongOpposition
+          ? "Recent results are under pressure against strong opposition. Review recurring loss patterns before deciding whether the opening itself is the issue."
+          : "Recent results suggest this line is worth reviewing. The issue may be a branch or structure, not the opening choice itself.",
+      };
+    }
+
+    return {
+      label: "Keep",
+      category: "keep",
+      tone: "positive",
+      message:
+        "This opening is performing well enough to stay in the repertoire. Use the games to refine plans rather than replace the opening.",
+    };
+  }
+
+  if (isMainWeapon && games >= 8 && winRate >= 42) {
+    return {
+      label: "Keep",
+      category: "keep",
+      tone: "positive",
+      message:
+        "This is one of the player's main openings and the results are playable. Keep it, but review the recurring positions that decide games.",
+    };
+  }
+
+  if (winRate >= 55) {
+    return {
+      label: "Keep",
+      category: "keep",
+      tone: "positive",
+      message:
+        "This opening is working well and should stay in the repertoire.",
+    };
+  }
+
+  if (winRate >= 45) {
+    return {
+      label: "Improve",
+      category: "improve",
+      tone: "warning",
+      message:
+        "This opening is playable, but there are likely recurring positions worth improving.",
+    };
+  }
+
+  if (isMainWeapon && winRate >= 35) {
+    return {
+      label: "Review",
+      category: "review",
+      tone: "warning",
+      message:
+        "Because this is a main opening, do not abandon it too quickly. Review the losses and simplify the most uncomfortable lines first.",
+    };
+  }
+
+  return {
+    label: "Avoid for now",
+    category: "avoid",
+    tone: "danger",
+    message:
+      "This opening may currently be costing points. Consider simplifying the setup or replacing it until the recurring problems are clearer.",
+  };
+}
+
+function getOpeningExplanation(opening, score, playerStyle, data, index = 0) {
+  const name = getOpeningName(opening);
+  const smartVerdict = getSmartOpeningVerdict(opening, data, index);
+
+  if (isUnknownOpeningName(name)) {
+    return smartVerdict.message;
+  }
+
+  if (smartVerdict.message) {
+    return smartVerdict.message;
+  }
+
+  if (smartVerdict.category === "keep") {
     return `This looks like a strong fit. You score well with it, it appears in your games enough to be meaningful, and it suits your ${playerStyle.title.toLowerCase()} profile.`;
   }
 
-  if (verdict === "Improve") {
-    if (games < 3) {
-      return "This opening has potential, but you have not played it enough yet. Keep testing it before making it a main part of your repertoire.";
-    }
-
-    if (winRate >= 50) {
-      return "Your results are decent here, but there is room to improve. This could become a reliable weapon with a clearer plan after the opening.";
-    }
-
-    return "This opening is not failing badly, but your results suggest you need a simpler plan or a more comfortable variation.";
-  }
-
-  if (tags.includes("sharp")) {
-    return "This may be too sharp or theory-heavy for your current results. Consider a simpler alternative until your confidence improves.";
-  }
-
-  return "Your results suggest this opening is not fitting you well right now. It may be worth replacing it or keeping it as a lower-priority side option.";
+  return smartVerdict.message;
 }
 
 function buildOpeningFitData(data) {
@@ -582,17 +846,38 @@ function buildOpeningFitData(data) {
 
   const cleanOpenings = Array.from(mergedMap.values());
   const playerStyle = getPlayerStyleFromOpenings(cleanOpenings);
+  const volumeRank = new Map(
+    [...cleanOpenings]
+      .sort((a, b) => getOpeningGames(b) - getOpeningGames(a))
+      .map((opening, index) => [getOpeningName(opening).toLowerCase(), index])
+  );
 
   const scoredOpenings = cleanOpenings
     .map((opening) => {
       const score = calculateOpeningFitScore(opening, playerStyle);
-      const verdict = getOpeningVerdict(opening, score);
+      const rank = volumeRank.get(getOpeningName(opening).toLowerCase()) ?? 99;
+      const smartVerdict = getSmartOpeningVerdict(opening, data, rank);
+      const fitScore =
+        smartVerdict.label === "Core weapon"
+          ? Math.max(score, 78)
+          : smartVerdict.category === "review"
+          ? Math.max(score, 58)
+          : score;
 
       return {
         ...opening,
-        fitScore: score,
-        fitVerdict: verdict,
-        fitExplanation: getOpeningExplanation(opening, score, playerStyle),
+        fitScore,
+        fitVerdict: smartVerdict.label,
+        fitCategory: smartVerdict.category,
+        fitTone: smartVerdict.tone,
+        fitSampleTier: getOpeningSampleTier(getOpeningGames(opening)),
+        fitExplanation: getOpeningExplanation(
+          opening,
+          fitScore,
+          playerStyle,
+          data,
+          rank
+        ),
       };
     })
     .sort((a, b) => b.fitScore - a.fitScore);
@@ -603,10 +888,23 @@ function buildOpeningFitData(data) {
 
   const bestOpening = recognised[0] || scoredOpenings[0] || null;
 
+  const concernRank = {
+    avoid: 0,
+    review: 1,
+    improve: 2,
+    neutral: 3,
+    keep: 4,
+  };
+
   const weakestOpening =
     [...recognised]
-      .filter((opening) => getOpeningGames(opening) >= 2)
-      .sort((a, b) => a.fitScore - b.fitScore)[0] ||
+      .filter((opening) => getOpeningGames(opening) >= 3)
+      .sort((a, b) => {
+        const categoryDiff =
+          (concernRank[a.fitCategory] ?? 3) - (concernRank[b.fitCategory] ?? 3);
+        if (categoryDiff) return categoryDiff;
+        return a.fitScore - b.fitScore;
+      })[0] ||
     [...recognised].sort((a, b) => a.fitScore - b.fitScore)[0] ||
     null;
 
@@ -622,6 +920,7 @@ function buildOpeningFitData(data) {
 
   return {
     playerStyle,
+    playerTier: getPlayerTier(data),
     scoredOpenings,
     bestOpening,
     weakestOpening,
@@ -680,15 +979,16 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
   } = fitData;
 
   const keepCount = scoredOpenings.filter(
-    (opening) => opening.fitVerdict === "Keep"
+    (opening) => opening.fitCategory === "keep"
   ).length;
 
-  const improveCount = scoredOpenings.filter(
-    (opening) => opening.fitVerdict === "Improve"
+  const reviewCount = scoredOpenings.filter(
+    (opening) =>
+      opening.fitCategory === "review" || opening.fitCategory === "improve"
   ).length;
 
   const avoidCount = scoredOpenings.filter(
-    (opening) => opening.fitVerdict === "Avoid for now"
+    (opening) => opening.fitCategory === "avoid"
   ).length;
 
   return (
@@ -734,7 +1034,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
         <div className="fitMiniCard">
           <span className="fitLabel">Opening verdicts</span>
           <strong>
-            {keepCount} Keep · {improveCount} Improve · {avoidCount} Avoid
+            {keepCount} Keep · {reviewCount} Review · {avoidCount} Avoid
           </strong>
           <p>Based on your imported games and opening results.</p>
         </div>
@@ -3436,11 +3736,28 @@ const [activeView, setActiveView] = useState("overview");
   };
 
   const verdictClass = (verdict) => {
-    if (verdict === "Keep") return "verdict keep";
-    if (verdict === "Improve") return "verdict improve";
-    if (verdict === "Avoid" || verdict === "Avoid for now") {
+    const normalized = String(verdict || "").toLowerCase();
+
+    if (
+      normalized.includes("keep") ||
+      normalized.includes("core weapon")
+    ) {
+      return "verdict keep";
+    }
+
+    if (
+      normalized.includes("improve") ||
+      normalized.includes("review") ||
+      normalized.includes("fine-tune") ||
+      normalized.includes("deep review")
+    ) {
+      return "verdict improve";
+    }
+
+    if (normalized.includes("avoid")) {
       return "verdict avoid";
     }
+
     return "verdict test";
   };
 

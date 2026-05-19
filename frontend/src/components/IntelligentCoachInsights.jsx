@@ -77,6 +77,7 @@ function analyseProfile(data) {
   const lowSample = gameCount < 30;
   const bestScore = getOpeningScore(best);
   const weakScore = getOpeningScore(weak);
+  const auditTone = ["elite", "advanced", "strong"].includes(band.level);
 
   const confidence =
     normaliseConfidence(backendQuality?.confidence) ||
@@ -141,11 +142,15 @@ function analyseProfile(data) {
 
   if (weak && weakScore !== null) {
     insights.push({
-      title: `Weakest useful signal: ${displayOpeningName(weak, data)}`,
+      title: auditTone
+        ? `Review signal: ${displayOpeningName(weak, data)}`
+        : `Weakest useful signal: ${displayOpeningName(weak, data)}`,
       text:
-        weakScore <= 40
-          ? "This opening is costing points. The player should either simplify the line, study the first recurring mistake, or pause it for now."
-          : "This is not disastrous, but it is the clearest place to look for improvement next.",
+        auditTone
+          ? "For a strong profile, treat this as a branch-level review target. Look for recurring loss structures, opponent pools, or recent trend changes before replacing the opening."
+          : weakScore <= 40
+            ? "This opening is costing points. The player should either simplify the line, study the first recurring mistake, or pause it for now."
+            : "This is not disastrous, but it is the clearest place to look for improvement next.",
     });
   }
 

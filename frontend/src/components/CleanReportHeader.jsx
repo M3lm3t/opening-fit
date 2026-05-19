@@ -136,6 +136,9 @@ export default function CleanReportHeader({ data, fitData, onViewChange }) {
 
   const levelProfile = getSmartPlayerLevelProfile(data);
   const backendRecommendation = getSmartLevelAwareRecommendation(data, fitData);
+  const isAuditTone =
+    levelProfile?.tone === "audit" ||
+    ["elite", "advanced", "strong"].includes(levelProfile?.level);
 
   const style =
     levelProfile?.label ||
@@ -201,14 +204,18 @@ export default function CleanReportHeader({ data, fitData, onViewChange }) {
         </article>
 
         <article>
-          <span>Improve next</span>
+          <span>{isAuditTone ? "Review next" : "Improve next"}</span>
           <strong>{backendRecommendation.weakName || weakName}</strong>
           <p>
             {weakScore !== null
               ? `${weakScore}/100 current fit`
               : backendRecommendation.source === "backend"
-                ? "Backend repair target"
-                : "Review this area first"}
+                ? isAuditTone
+                  ? "Backend review target"
+                  : "Backend repair target"
+                : isAuditTone
+                  ? "Audit this area first"
+                  : "Review this area first"}
           </p>
         </article>
 

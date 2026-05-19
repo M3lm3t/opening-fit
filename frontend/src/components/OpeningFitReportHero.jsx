@@ -20,32 +20,86 @@ function getWinRate(item) {
   return value <= 1 ? Math.round(value * 100) : Math.round(value);
 }
 
-function verdictFor(item) {
+function getRating(data) {
+  const values = [
+    data?.rating,
+    data?.chesscomRating,
+    data?.chesscom_rating,
+    data?.lichessRating,
+    data?.lichess_rating,
+    data?.rapidRating,
+    data?.rapid_rating,
+    data?.blitzRating,
+    data?.blitz_rating,
+    data?.player_level?.rating,
+    data?.playerLevel?.rating,
+  ]
+    .map(Number)
+    .filter((value) => Number.isFinite(value) && value > 100 && value < 3500);
+
+  return values.length ? Math.max(...values) : 0;
+}
+
+function isStrongProfile(data) {
+  const rating = getRating(data);
+  const level = String(
+    data?.playerLevel?.level ??
+      data?.playerLevel?.label ??
+      data?.playerLevel ??
+      data?.player_level?.level ??
+      data?.player_level?.label ??
+      data?.player_level ??
+      ""
+  ).toLowerCase();
+
+  return (
+    rating >= 2200 ||
+    level.includes("advanced") ||
+    level.includes("expert") ||
+    level.includes("master") ||
+    level.includes("elite")
+  );
+}
+
+function verdictFor(item, data, index = 0) {
   const verdict = String(item?.verdict || "").toLowerCase();
+  const strongProfile = isStrongProfile(data);
+  const games = getGames(item);
+  const winRate = getWinRate(item);
+  const mainOpening = index <= 2 && games >= 8;
 
   if (verdict.includes("keep")) return "Keep";
-  if (verdict.includes("improve")) return "Improve";
-  if (verdict.includes("avoid")) return "Avoid";
+  if (verdict.includes("core")) return "Core weapon";
+  if (verdict.includes("review")) return "Review";
+  if (verdict.includes("fine")) return "Fine-tune";
+  if (verdict.includes("improve")) return strongProfile ? "Review" : "Improve";
+  if (verdict.includes("avoid")) return strongProfile && mainOpening ? "Review" : "Avoid";
 
-  const winRate = getWinRate(item);
-  const games = getGames(item);
+  if (games < 3) return "Small sample";
 
-  if (games < 3) return "Review";
+  if (strongProfile && mainOpening && winRate >= 38) return "Core weapon";
+  if (strongProfile && winRate < 45) return mainOpening ? "Fine-tune" : "Review";
+  if (strongProfile) return "Keep";
+
   if (winRate >= 58) return "Keep";
   if (winRate >= 45) return "Improve";
   return "Avoid";
 }
 
-function pickByVerdict(openings, target) {
-  return openings.find((item) => verdictFor(item) === target);
+function pickByVerdict(openings, target, data) {
+  return openings.find((item, index) => verdictFor(item, data, index) === target);
 }
 
 function buildSummary(data, username) {
   const openings = getArray(data?.top_openings, data?.opening_stats, data?.openings);
   const top = openings[0];
-  const keep = pickByVerdict(openings, "Keep") || top;
-  const improve = pickByVerdict(openings, "Improve") || openings[1];
-  const avoid = pickByVerdict(openings, "Avoid") || openings[2];
+  const strongProfile = isStrongProfile(data);
+  const keep = pickByVerdict(openings, "Core weapon", data) || pickByVerdict(openings, "Keep", data) || top;
+  const improve =
+    pickByVerdict(openings, strongProfile ? "Fine-tune" : "Improve", data) ||
+    pickByVerdict(openings, "Review", data) ||
+    openings[1];
+  const avoid = pickByVerdict(openings, "Avoid", data) || openings[2];
 
   const style =
     data?.style_profile?.label ||
@@ -68,7 +122,7 @@ function buildSummary(data, username) {
     data?.score ||
     null;
 
-  return { openings, top, keep, improve, avoid, style, games, score, username };
+  return { openings, top, keep, improve, avoid, style, games, score, username, strongProfile };
 }
 
 export default function OpeningFitReportHero({ data, username, onJump }) {
@@ -77,7 +131,9 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
   const report = buildSummary(data, username);
   const scoreText = report.score ? Math.round(Number(report.score)) : Math.min(92, Math.max(61, 70 + report.openings.length * 2));
 
-  const shareText = `My OpeningFit report says I should keep ${getName(report.keep)}, improve ${getName(report.improve)}, and review ${getName(report.avoid)}.`;
+  const shareText = report.strongProfile
+    ? `My OpeningFit report says ${getName(report.keep)} is a core opening and ${getName(report.improve)} is worth reviewing.`
+    : `My OpeningFit report says I should keep ${getName(report.keep)}, improve ${getName(report.improve)}, and review ${getName(report.avoid)}.`;
 
   const copyShareText = async () => {
     try {
@@ -95,8 +151,9 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
           <div className="ofEyebrow">Your OpeningFit Report</div>
           <h2>{report.username ? `${report.username}'s opening profile` : "Your opening profile"}</h2>
           <p>
-            A simple report built from your recent games, showing what to keep,
-            what needs work, and where your opening study should go next.
+            {report.strongProfile
+              ? "A repertoire audit built from recent games, highlighting core weapons, trend changes, and lines worth reviewing."
+              : "A simple report built from your recent games, showing what to keep, what needs work, and where your opening study should go next."}
           </p>
         </div>
 
@@ -124,15 +181,23 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
         </article>
 
         <article>
-          <span>Biggest study target</span>
+          <span>{report.strongProfile ? "Review target" : "Biggest study target"}</span>
           <strong>{getName(report.improve)}</strong>
-          <p>This is the best place to gain rating without rebuilding everything.</p>
+          <p>
+            {report.strongProfile
+              ? "Look for recurring loss patterns, move-order issues, or structures causing practical problems."
+              : "This is the best place to gain rating without rebuilding everything."}
+          </p>
         </article>
 
         <article>
           <span>Review carefully</span>
           <strong>{getName(report.avoid)}</strong>
-          <p>Low-confidence or poor-result openings should be simplified.</p>
+          <p>
+            {report.strongProfile
+              ? "Treat this as a trend signal before changing the repertoire."
+              : "Low-confidence or poor-result openings should be simplified."}
+          </p>
         </article>
       </div>
 
