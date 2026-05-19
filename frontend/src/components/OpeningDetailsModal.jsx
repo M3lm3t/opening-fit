@@ -31,28 +31,29 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
   function getVerdict(rate, gameCount) {
     const n = Number(rate) || 0;
 
-    if (gameCount < 3) return "Needs more games";
-    if (n >= 60) return "Keep";
-    if (n >= 45) return "Improve";
-    return "Avoid";
+    if (gameCount < 3) return "Experimental / not enough data";
+    if (gameCount < 8) return "Low-confidence sample";
+    if (n >= 60) return "Reliable choice";
+    if (n >= 45) return "Promising but unstable";
+    return "Needs review";
   }
 
   function getMeaning() {
     const v = String(verdict).toLowerCase();
 
-    if (v.includes("keep")) {
+    if (v.includes("keep") || v.includes("main weapon") || v.includes("reliable choice")) {
       return "You are scoring well with this opening, so it should probably stay in your repertoire.";
     }
 
-    if (v.includes("improve")) {
-      return "You play this opening enough to review it properly. The results are okay, but there is room to improve.";
+    if (v.includes("promising") || v.includes("review")) {
+      return "You play this opening enough to review it properly. The results are useful, but the sample points to recurring positions worth checking.";
     }
 
-    if (v.includes("avoid")) {
-      return "Your results are currently weak with this opening. It may be worth reviewing your losses or replacing it with something easier to handle.";
+    if (v.includes("low-confidence") || v.includes("experimental")) {
+      return "There is not enough reliable data yet. Play more games with this opening before making a final decision.";
     }
 
-    return "There is not enough reliable data yet. Play more games with this opening before making a final decision.";
+    return "Your results are currently under pressure with this opening. Review the losses before deciding whether the opening itself is the issue.";
   }
 
   const verdictClass = String(verdict).replace(/\s+/g, "");

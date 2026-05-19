@@ -4,6 +4,7 @@ export default function LandingModal({
   platform,
   setPlatform,
   onImport,
+  onDemoReport,
   loading,
   onClose,
   theme,
@@ -13,19 +14,12 @@ export default function LandingModal({
 
   const handleImport = () => {
     if (!cleanUsername || loading) return;
-    onImport();
+    onImport(cleanUsername, platform);
   };
 
   const handleSampleReport = () => {
     if (loading) return;
-
-    // Uses a reliable public Chess.com account as an instant product demo.
-    setPlatform("chesscom");
-    setUsername("hikaru");
-
-    setTimeout(() => {
-      onImport();
-    }, 0);
+    onDemoReport?.();
   };
 
   return (

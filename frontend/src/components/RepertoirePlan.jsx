@@ -121,15 +121,15 @@ function guessColour(index) {
 function defaultRole(index, winRate) {
   if (index === 0) return "Main weapon";
   if (index === 1) return "Backup";
-  if (winRate >= 55) return "Keep";
+  if (winRate >= 55) return "Reliable choice";
   if (winRate >= 45) return "Learning";
-  return "Improve";
+  return "Needs review";
 }
 
 function defaultStatus(winRate) {
-  if (winRate >= 58) return "Keep";
+  if (winRate >= 58) return "Reliable choice";
   if (winRate >= 45) return "Learn";
-  return "Improve";
+  return "Needs review";
 }
 
 function buildSuggestedPlan(data) {
@@ -328,10 +328,10 @@ export default function RepertoirePlan({ data }) {
                     >
                       <option>Main weapon</option>
                       <option>Backup</option>
-                      <option>Keep</option>
+                      <option>Reliable choice</option>
                       <option>Learning</option>
-                      <option>Improve</option>
-                      <option>Avoid for now</option>
+                      <option>Promising but unstable</option>
+                      <option>Needs review</option>
                     </select>
                   </td>
 
@@ -342,10 +342,10 @@ export default function RepertoirePlan({ data }) {
                         updateItem(item.id, "status", event.target.value)
                       }
                     >
-                      <option>Keep</option>
+                      <option>Reliable choice</option>
                       <option>Learn</option>
-                      <option>Improve</option>
-                      <option>Avoid</option>
+                      <option>Promising but unstable</option>
+                      <option>Needs review</option>
                     </select>
                   </td>
 

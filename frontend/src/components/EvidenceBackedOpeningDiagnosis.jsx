@@ -190,41 +190,37 @@ function getVerdict(item, average, data, index = 0) {
     item?.fitVerdict || item?.fit_verdict || item?.verdict || item?.recommendation || ""
   ).toLowerCase();
   const tier = getPlayerTier(data);
-  const strongProfile = tier === "elite" || tier === "strong";
   const games = getGames(item);
   const score = getScore(item);
   const mainOpening = index <= 2 && games >= 8;
 
-  if (explicit.includes("keep")) return "Keep";
-  if (explicit.includes("core")) return "Core weapon";
-  if (explicit.includes("trusted")) return "Trusted weapon";
-  if (explicit.includes("review")) return "Review";
-  if (explicit.includes("fine")) return "Fine-tune";
-  if (explicit.includes("performance")) return "Performance check";
-  if (explicit.includes("avoid")) return strongProfile ? (mainOpening ? "Performance check" : "Review") : "Avoid for now";
-  if (explicit.includes("improve")) return strongProfile ? "Review" : "Improve";
+  if (explicit.includes("main weapon") || explicit.includes("core") || explicit.includes("trusted")) return "Main weapon";
+  if (explicit.includes("keep") || explicit.includes("reliable")) return "Reliable choice";
+  if (explicit.includes("promising") || explicit.includes("fine") || explicit.includes("improve")) return "Promising but unstable";
+  if (explicit.includes("review") || explicit.includes("performance") || explicit.includes("avoid")) return "Needs review";
 
-  if (games < 8) return "Small sample";
+  if (games < 3) return "Experimental / not enough data";
+  if (games < 8) return "Low-confidence sample";
 
   if (tier === "elite") {
-    if (mainOpening && score >= 45) return "Core weapon";
-    if (mainOpening) return "Review";
-    if (games >= 20 && score < 25) return "Performance check";
-    if (score < 45) return "Review";
-    return "Keep";
+    if (mainOpening && score >= 45) return "Main weapon";
+    if (mainOpening) return "Needs review";
+    if (games >= 20 && score < 25) return "Needs review";
+    if (score < 45) return "Promising but unstable";
+    return "Reliable choice";
   }
 
   if (tier === "strong") {
-    if (mainOpening && score >= 45) return "Trusted weapon";
-    if (mainOpening && score >= 35) return "Fine-tune";
-    if (score < 40) return "Review";
-    return "Keep";
+    if (mainOpening && score >= 45) return "Main weapon";
+    if (mainOpening && score >= 35) return "Promising but unstable";
+    if (score < 40) return "Needs review";
+    return "Reliable choice";
   }
 
-  if (games >= 6 && score >= Math.max(55, average + 5)) return "Keep";
-  if (games >= 6 && score <= Math.min(42, average - 8)) return "Avoid for now";
+  if (games >= 6 && score >= Math.max(55, average + 5)) return "Reliable choice";
+  if (games >= 6 && score <= Math.min(42, average - 8)) return "Needs review";
 
-  return "Improve";
+  return "Promising but unstable";
 }
 
 function getConfidence(games) {
@@ -285,32 +281,22 @@ function buildReason(item, average, verdict) {
       ? `${wins} wins, ${draws} draws and ${losses} losses`
       : `${games} games reviewed`;
 
-  if (["Keep", "Core weapon", "Trusted weapon"].includes(verdict)) {
+  if (["Main weapon", "Reliable choice"].includes(verdict)) {
     return {
       title:
-        verdict === "Core weapon"
-          ? `${name} looks like a core weapon.`
-          : verdict === "Trusted weapon"
-            ? `${name} looks trusted.`
-            : `${name} is earning its place.`,
+        verdict === "Main weapon"
+          ? `${name} looks like a main weapon.`
+          : `${name} is earning its place.`,
       body: `You are scoring ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, so this looks like a meaningful repertoire signal rather than one isolated result.`,
       action: "Keep it in the repertoire. Review the reply or structure that currently makes the position least comfortable instead of replacing the opening.",
     };
   }
 
-  if (["Review", "Fine-tune", "Performance check"].includes(verdict)) {
+  if (["Needs review", "Promising but unstable"].includes(verdict)) {
     return {
       title: `${name} deserves targeted review.`,
       body: `You are scoring ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, so this is worth treating as a practical problem, not just bad luck.`,
       action: "Look for repeated loss patterns, move-order issues, or middlegame structures before making a repertoire change.",
-    };
-  }
-
-  if (verdict === "Avoid for now") {
-    return {
-      title: `${name} is currently costing points.`,
-      body: `You are scoring ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, so this is worth treating as a practical problem, not just bad luck.`,
-      action: "Pause it for now or simplify the setup, then come back to it once the rest of the repertoire is cleaner.",
     };
   }
 

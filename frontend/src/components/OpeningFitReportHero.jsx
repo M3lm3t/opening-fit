@@ -92,26 +92,22 @@ function verdictFor(item, data, index = 0) {
   const winRate = getWinRate(item);
   const mainOpening = index <= 2 && games >= 8;
 
-  if (verdict.includes("keep")) return "Keep";
-  if (verdict.includes("core")) return "Core weapon";
-  if (verdict.includes("trusted")) return "Trusted weapon";
-  if (verdict.includes("review")) return "Review";
-  if (verdict.includes("fine")) return "Fine-tune";
-  if (verdict.includes("performance")) return "Performance check";
-  if (verdict.includes("improve")) return strongProfile ? "Review" : "Improve";
-  if (verdict.includes("avoid")) return strongProfile ? (mainOpening ? "Performance check" : "Review") : "Avoid";
+  if (verdict.includes("main weapon") || verdict.includes("core") || verdict.includes("trusted")) return "Main weapon";
+  if (verdict.includes("keep") || verdict.includes("reliable")) return "Reliable choice";
+  if (verdict.includes("promising") || verdict.includes("fine") || verdict.includes("improve")) return "Promising but unstable";
+  if (verdict.includes("review") || verdict.includes("performance") || verdict.includes("avoid")) return "Needs review";
 
-  if (games < 8) return "Small sample";
+  if (games < 3) return "Experimental / not enough data";
+  if (games < 8) return "Low-confidence sample";
 
-  if (tier === "elite" && mainOpening && winRate >= 45) return "Core weapon";
-  if (tier === "strong" && mainOpening && winRate >= 45) return "Trusted weapon";
-  if (strongProfile && mainOpening && winRate >= 35) return "Fine-tune";
-  if (strongProfile && winRate < 45) return "Review";
-  if (strongProfile) return "Keep";
+  if ((tier === "elite" || tier === "strong") && mainOpening && winRate >= 45) return "Main weapon";
+  if (strongProfile && mainOpening && winRate >= 35) return "Promising but unstable";
+  if (strongProfile && winRate < 45) return "Needs review";
+  if (strongProfile) return "Reliable choice";
 
-  if (winRate >= 58) return "Keep";
-  if (winRate >= 45) return "Improve";
-  return "Avoid";
+  if (winRate >= 58) return "Reliable choice";
+  if (winRate >= 45) return "Promising but unstable";
+  return "Needs review";
 }
 
 function pickByVerdict(openings, target, data) {
@@ -122,12 +118,12 @@ function buildSummary(data, username) {
   const openings = getArray(data?.top_openings, data?.opening_stats, data?.openings);
   const top = openings[0];
   const strongProfile = isStrongProfile(data);
-  const keep = pickByVerdict(openings, "Core weapon", data) || pickByVerdict(openings, "Keep", data) || top;
+  const keep = pickByVerdict(openings, "Main weapon", data) || pickByVerdict(openings, "Reliable choice", data) || top;
   const improve =
-    pickByVerdict(openings, strongProfile ? "Fine-tune" : "Improve", data) ||
-    pickByVerdict(openings, "Review", data) ||
+    pickByVerdict(openings, "Promising but unstable", data) ||
+    pickByVerdict(openings, "Needs review", data) ||
     openings[1];
-  const avoid = pickByVerdict(openings, "Avoid", data) || openings[2];
+  const avoid = pickByVerdict(openings, "Needs review", data) || openings[2];
 
   const style =
     data?.style_profile?.label ||

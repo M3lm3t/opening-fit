@@ -19,16 +19,20 @@ function getWinRate(item) {
 function verdictFor(item) {
   const verdict = String(item?.verdict || "").toLowerCase();
 
-  if (verdict.includes("keep")) return "Keep";
-  if (verdict.includes("improve")) return "Improve";
-  if (verdict.includes("avoid")) return "Avoid";
+  if (verdict.includes("keep") || verdict.includes("weapon") || verdict.includes("reliable")) {
+    return "Reliable choice";
+  }
+  if (verdict.includes("improve") || verdict.includes("promising")) {
+    return "Promising but unstable";
+  }
+  if (verdict.includes("avoid") || verdict.includes("review")) return "Needs review";
 
   const winRate = getWinRate(item);
 
-  if (winRate === null) return "Review";
-  if (winRate >= 58) return "Keep";
-  if (winRate >= 45) return "Improve";
-  return "Avoid";
+  if (winRate === null) return "Needs review";
+  if (winRate >= 58) return "Reliable choice";
+  if (winRate >= 45) return "Promising but unstable";
+  return "Needs review";
 }
 
 function pick(openings, verdict, fallbackIndex) {
@@ -52,9 +56,9 @@ export default function OpeningFitReportActions({ data, username, onJump }) {
   if (!data) return null;
 
   const openings = getArray(data?.top_openings, data?.opening_stats, data?.openings);
-  const keep = pick(openings, "Keep", 0);
-  const improve = pick(openings, "Improve", 1);
-  const avoid = pick(openings, "Avoid", 2);
+  const reliable = pick(openings, "Reliable choice", 0);
+  const promising = pick(openings, "Promising but unstable", 1);
+  const review = pick(openings, "Needs review", 2);
 
   const games =
     data?.games_imported ||
@@ -66,14 +70,14 @@ export default function OpeningFitReportActions({ data, username, onJump }) {
 
   const displayName = username || data?.username || "my Chess.com account";
 
-  const shortSummary = `My OpeningFit report for ${displayName}: keep ${openingName(keep)}, improve ${openingName(improve, "my weaker openings")}, and review ${openingName(avoid, "low-performing openings")}.`;
+  const shortSummary = `My OpeningFit report for ${displayName}: rely on ${openingName(reliable)}, track ${openingName(promising, "my unstable openings")}, and review ${openingName(review, "low-confidence openings")}.`;
 
-  const forumPost = `I've been testing OpeningFit, a chess opening analyser that looks at your own Chess.com games and suggests what openings to keep, improve, or avoid.
+  const forumPost = `I've been testing OpeningFit, a chess opening analyser that looks at your own Chess.com games and suggests which openings look reliable, unstable, or worth reviewing.
 
 My latest report:
-- Keep: ${openingName(keep)}
-- Improve: ${openingName(improve, "my weaker openings")}
-- Review: ${openingName(avoid, "low-performing openings")}
+- Reliable choice: ${openingName(reliable)}
+- Promising but unstable: ${openingName(promising, "my weaker openings")}
+- Needs review: ${openingName(review, "low-performing openings")}
 ${games ? `- Games analysed: ${games}` : ""}
 
 Would be interested to hear what other players think of the idea and whether the recommendations feel useful.`;
