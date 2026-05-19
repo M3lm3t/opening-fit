@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { fetchOpeningFitCloudState, saveOpeningFitCloudState } from "./openingFitCloudState";
 import "./OpeningProgressTracker.css";
 
 const MAX_HISTORY = 8;
@@ -191,20 +192,55 @@ function compareOpenings(previous, current) {
     .slice(0, 5);
 }
 
-export default function OpeningProgressTracker({ data, compact = false }) {
+export default function OpeningProgressTracker({ data, user = null, compact = false }) {
   const key = useMemo(() => storageKey(data || {}), [data]);
   const currentSnapshot = useMemo(() => makeSnapshot(data || {}), [data]);
 
   const [history, setHistory] = useState([]);
+  const [saveStatus, setSaveStatus] = useState(user?.id ? "Cloud save ready" : "Saved on this device");
 
   useEffect(() => {
+    let cancelled = false;
+
     try {
       const saved = JSON.parse(localStorage.getItem(key) || "[]");
       setHistory(Array.isArray(saved) ? saved : []);
     } catch {
       setHistory([]);
     }
-  }, [key]);
+
+    if (user?.id) {
+      setSaveStatus("Loading cloud history…");
+
+      fetchOpeningFitCloudState(user, data || {})
+        .then((state) => {
+          if (cancelled) return;
+
+          const cloudHistory = state?.progress_history;
+          if (Array.isArray(cloudHistory)) {
+            setHistory(cloudHistory);
+            try {
+              localStorage.setItem(key, JSON.stringify(cloudHistory));
+            } catch {
+              // Ignore browser storage failures.
+            }
+          }
+
+          setSaveStatus("Saved to your OpeningFit account");
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setSaveStatus("Using this device until cloud reconnects");
+          }
+        });
+    } else {
+      setSaveStatus("Saved on this device");
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [key, user?.id, data]);
 
   const previousSnapshot = history[0] || null;
   const openingChanges = compareOpenings(previousSnapshot, currentSnapshot);
@@ -239,6 +275,22 @@ export default function OpeningProgressTracker({ data, compact = false }) {
     } catch {
       // Local progress should never break the app.
     }
+
+    if (user?.id) {
+      setSaveStatus("Saving to your OpeningFit account…");
+
+      saveOpeningFitCloudState(user, data || {}, {
+        progress_history: next,
+      })
+        .then(() => {
+          setSaveStatus("Saved to your OpeningFit account");
+        })
+        .catch(() => {
+          setSaveStatus("Saved on this device. Cloud sync failed.");
+        });
+    } else {
+      setSaveStatus("Saved on this device");
+    }
   };
 
   const clearHistory = () => {
@@ -247,6 +299,20 @@ export default function OpeningProgressTracker({ data, compact = false }) {
       localStorage.removeItem(key);
     } catch {
       // Ignore localStorage failures.
+    }
+
+    if (user?.id) {
+      saveOpeningFitCloudState(user, data || {}, {
+        progress_history: [],
+      })
+        .then(() => {
+          setSaveStatus("Cloud history cleared");
+        })
+        .catch(() => {
+          setSaveStatus("Cleared on this device. Cloud sync failed.");
+        });
+    } else {
+      setSaveStatus("Cleared on this device");
     }
   };
 
@@ -359,7 +425,7 @@ export default function OpeningProgressTracker({ data, compact = false }) {
 
       <div className="openingProgressFooter">
         <p>
-          Progress is saved on this device for {currentSnapshot.platform}/{currentSnapshot.username}.
+          {saveStatus} for {currentSnapshot.platform}/{currentSnapshot.username}.
         </p>
       </div>
     </section>
