@@ -55,6 +55,40 @@ function getAllOpenings(data) {
   ];
 }
 
+function getRating(data) {
+  return toNumber(
+    data?.rating ??
+      data?.currentRating ??
+      data?.current_rating ??
+      data?.chesscom_rating ??
+      data?.lichess_rating ??
+      data?.player_level?.rating ??
+      data?.playerLevel?.rating,
+    null
+  );
+}
+
+function getLevel(data) {
+  const rating = getRating(data);
+  const level = String(
+    data?.playerLevel?.level ??
+      data?.playerLevel?.label ??
+      data?.playerLevel ??
+      data?.player_level?.level ??
+      data?.player_level?.label ??
+      data?.player_level ??
+      ""
+  ).toLowerCase();
+
+  if (rating >= 2200 || level.includes("master") || level.includes("expert") || level.includes("elite")) {
+    return "advanced";
+  }
+  if (rating >= 1200 || level.includes("club") || level.includes("intermediate")) {
+    return "intermediate";
+  }
+  return "beginner";
+}
+
 function getBestOpening(data) {
   const openings = getAllOpenings(data);
   if (!openings.length) return null;
@@ -115,42 +149,71 @@ function buildPlan(data) {
   const best = getBestOpening(data);
   const weak = getWeakOpening(data);
   const recommendation = getMainRecommendation(data);
+  const level = getLevel(data);
+  const reviewLanguage =
+    level === "advanced"
+      ? "Audit the branch where your score drops: move order, opponent rating band, and the first recurring middlegame structure."
+      : level === "intermediate"
+      ? "Find the first repeated position where your plan becomes unclear. The goal is fixing the branch, not blaming the opening."
+      : "Look for the first move where development, king safety, or a simple centre plan went wrong.";
+  const strengthLanguage =
+    level === "advanced"
+      ? "Keep this as part of the repertoire and add one branch-level note: what reply causes the most practical problems?"
+      : level === "intermediate"
+      ? "Choose one line you can repeat and write the plan in one sentence before playing more games."
+      : "Use this opening to reach the same kind of position again. Familiar positions matter more than memorising theory.";
 
   return [
     {
       id: "day-1-2",
-      days: "Day 1–2",
-      title: `Fix ${openingName(weak, "your weakest recurring opening")}`,
+      days: "Day 1",
+      title: `20 minutes on ${openingName(weak, "your weakest recurring opening")}`,
       meta: openingMeta(weak),
-      detail:
-        "Replay 3 losses or difficult games from this opening. Write down where you left familiar positions and what plan you needed.",
+      detail: reviewLanguage,
       tag: "Repair",
     },
     {
-      id: "day-3-4",
-      days: "Day 3–4",
-      title: `Build around ${openingName(best, "your best-fit opening")}`,
+      id: "day-2",
+      days: "Day 2",
+      title: `20 minutes building around ${openingName(best, "your best-fit opening")}`,
       meta: openingMeta(best),
-      detail:
-        "Choose one simple line you are happy to repeat. The goal is not memorising everything — it is getting familiar positions more often.",
+      detail: strengthLanguage,
       tag: "Strength",
+    },
+    {
+      id: "day-3",
+      days: "Day 3",
+      title: "20 minutes on the damaging line",
+      meta: "Improve means one line may be hurting the opening",
+      detail:
+        "Replay only the first 10 to 12 moves of three games. Mark the repeated branch, pawn structure, or piece placement that keeps causing trouble.",
+      tag: "Review",
+    },
+    {
+      id: "day-4",
+      days: "Day 4",
+      title: recommendation,
+      meta: "Turn your report into one practical rule",
+      detail:
+        "Convert the recommendation into one rule you can remember during games, such as: castle earlier, delay the pawn break, or avoid one risky sideline.",
+      tag: "Apply",
     },
     {
       id: "day-5",
       days: "Day 5",
-      title: "Review your opening losses",
-      meta: "Look for the first moment the game became uncomfortable",
+      title: "20 minutes of line practice",
+      meta: "Use the practice pack for your most relevant opening",
       detail:
-        "Do not analyse the whole game. Focus only on the opening-to-middlegame transition and mark the first decision you would change.",
-      tag: "Review",
+        "Play through three lines slowly. Say out loud why each move works: centre, development, king safety, pressure, or a useful pawn break.",
+      tag: "Drill",
     },
     {
       id: "day-6",
       days: "Day 6",
-      title: recommendation,
-      meta: "Turn your report into one practical rule",
+      title: "Play a small focused block",
+      meta: "Do not change the whole repertoire today",
       detail:
-        "Convert the recommendation into a simple rule you can remember during games, such as: castle earlier, avoid early queen moves, or trade into simpler structures.",
+        "Play 3 to 5 games while deliberately entering the line you reviewed. Your only goal is to reach the repaired structure with a clear plan.",
       tag: "Apply",
     },
     {
@@ -209,10 +272,10 @@ export default function OpeningCoachPlan({ data, compact = false }) {
       <div className="openingCoachPlanHeader">
         <div>
           <p className="openingCoachPlanKicker">Opening coach</p>
-          <h2>Your 7-day opening plan</h2>
+          <h2>Your 7-day / 20-minute opening plan</h2>
           <p>
-            A simple progress-tracked plan based on your imported games. Tick
-            each step off as you complete it.
+            A rating-aware plan based on your imported games. Each step is built
+            for one focused 20-minute session.
           </p>
         </div>
 

@@ -18,7 +18,7 @@ import PremiumDashboard from "./components/PremiumDashboard";
 import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
 import AccountPanel from "./components/AccountPanel";
 import GameReplayBoard from "./components/GameReplayBoard";
-import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
+import OpeningPracticeLinesPanel from "./components/OpeningPracticeLinesPanel";
 import PremiumPanel from "./components/PremiumPanel";
 import ResultsCommandCenter from "./components/ResultsCommandCenter";
 import OpeningHealthScore from "./components/OpeningHealthScore";
@@ -249,12 +249,12 @@ const filterOpeningsBySamplePercent = (items, totalGames, samplePercent) => {
 };
 
 const premiumFeatures = [
-  "12 months of game history",
-  "Full opening table",
+  "Line-level opening diagnosis",
+  "12-month trend view",
+  "Saved report history",
   "Confidence-aware opening verdicts",
-  "Advanced personal training plan",
-  "Saved import history",
-  "Future Stockfish analysis",
+  "Full 7-day study plan",
+  "Deeper move-order explanations",
 ];
 
 function safeNumber(value, fallback = 0) {
@@ -844,7 +844,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       tone: "warning",
       severity: "warning",
       message:
-        "This opening is playable, but there are likely recurring positions worth improving.",
+        "This does not mean the whole opening is bad. It means one branch, move order, or opening-to-middlegame transition is likely costing points.",
     };
   }
 
@@ -855,7 +855,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       tone: "warning",
       severity: "warning",
       message:
-        "Because this is a main opening, do not abandon it too quickly. Review the losses and simplify the most uncomfortable lines first.",
+        "Because this is a main opening, do not abandon it too quickly. Review the specific line or structure where the losses start to repeat.",
     };
   }
 
@@ -865,7 +865,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
     tone: "danger",
     severity: "danger",
     message:
-      "This opening may currently be costing points. Consider simplifying the setup or replacing it until the recurring problems are clearer.",
+      "The data points to a recurring problem inside this opening. Review the damaging line first before deciding whether the whole opening should leave the repertoire.",
   };
 }
 
@@ -1194,6 +1194,67 @@ function OpeningFitScoreList({ fitData, onPractice }) {
             </button>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+function BiggestInsightCard({ data, fitData }) {
+  if (!data || !fitData?.scoredOpenings?.length) return null;
+
+  const profile = getSmartPlayerLevelProfile(data);
+  const recommendation = getSmartLevelAwareRecommendation(data, fitData);
+  const openings = fitData.scoredOpenings || [];
+  const stable = openings.find((opening) => opening.fitCategory === "keep") || fitData.bestOpening;
+  const review =
+    openings.find((opening) => ["review", "improve", "avoid"].includes(opening.fitCategory)) ||
+    fitData.weakestOpening;
+  const white = openings.find((opening) =>
+    String(getOpeningSide(opening)).toLowerCase().includes("white")
+  );
+  const black = openings.find((opening) =>
+    String(getOpeningSide(opening)).toLowerCase().includes("black")
+  );
+  const sideFocus = white && black
+    ? getWinRate(white) < getWinRate(black)
+      ? "White"
+      : "Black"
+    : white
+    ? "White"
+    : black
+    ? "Black"
+    : "your most repeated side";
+  const stableName = stable ? getOpeningName(stable) : recommendation.bestName;
+  const reviewName = review ? getOpeningName(review) : recommendation.weakName;
+  const ratingLabel = profile.rating ? `${profile.rating} rating` : profile.label;
+  const levelText =
+    profile.level === "elite" || profile.level === "strong"
+      ? "Treat this as a repertoire audit, not a beginner verdict."
+      : profile.level === "beginner" || profile.level === "improver"
+      ? "The fastest gain is simpler choices and familiar positions."
+      : "The fastest gain is repairing one repeat branch while keeping your stable openings.";
+
+  return (
+    <section className="card biggestInsightCard">
+      <p className="eyebrow">Biggest insight</p>
+      <h2>{recommendation.title}</h2>
+      <p>
+        {levelText} Your {sideFocus} results point toward keeping{" "}
+        <strong>{stableName}</strong> as the reference point and reviewing{" "}
+        <strong>{reviewName}</strong> for a specific line, move order, or early
+        middlegame structure.
+      </p>
+      <div className="fitMiniGrid">
+        <div className="fitMiniCard">
+          <span className="fitLabel">Level read</span>
+          <strong>{ratingLabel}</strong>
+          <p>{profile.trainingFocus}</p>
+        </div>
+        <div className="fitMiniCard">
+          <span className="fitLabel">Action</span>
+          <strong>20 minutes today</strong>
+          <p>{recommendation.primaryAction}</p>
+        </div>
       </div>
     </section>
   );
@@ -2586,11 +2647,11 @@ function OpeningFitFullReport({ data }) {
     }
 
     if (type === "improve") {
-      return `This opening is worth studying because you already play it, but the results suggest there are recurring positions costing you points.`;
+      return `This is not a verdict that the whole opening is bad. It means one line, move order, or early middlegame structure is hurting the overall score.`;
     }
 
     if (type === "avoid") {
-      return `Pause this for now unless you specifically want to study it. Your current results suggest there are easier ways to build a reliable repertoire.`;
+      return `Treat this as a review target first. If the same branch keeps causing trouble, simplify that line before replacing the entire opening.`;
     }
 
     return "Use this as a practical guide for what to study next.";
@@ -2616,7 +2677,8 @@ function OpeningFitFullReport({ data }) {
         <h2>What Opening Fit recommends next</h2>
         <p>
           This turns {playerName}’s recent games into a practical opening plan:
-          what to keep, what to improve, and what to avoid.
+          what is reliable, what branch needs review, and where the study time
+          should go next.
         </p>
       </div>
 
@@ -4421,8 +4483,9 @@ const [activeView, setActiveView] = useState("overview");
 
           {practiceOpening && (
             <div id="opening-practice">
-              <OpeningPracticeBoard
+              <OpeningPracticeLinesPanel
                 openingName={practiceOpening}
+                opening={practiceOpening}
                 onClose={() => setPracticeOpening(null)}
               />
             </div>
@@ -4525,6 +4588,8 @@ const [activeView, setActiveView] = useState("overview");
                 <>
                   <PolishedOpeningFitReportHero data={data} />
 
+                  <BiggestInsightCard data={data} fitData={fitData} />
+
                   <div className="compactReportGrid">
                     <ReportSnapshot data={data} onViewChange={setActiveView} />
                     <OpeningCoachPlan data={data} compact />
@@ -4569,8 +4634,9 @@ const [activeView, setActiveView] = useState("overview");
                       </div>
 
                       <p>
-                        Free gives you a useful opening snapshot. Premium will focus on longer
-                        imports, deeper stats, stronger training plans, and saved progress.
+                        Free gives you the core report. Premium unlocks depth:
+                        line-level diagnosis, 12-month trends, saved reports,
+                        and the full study plan behind each recommendation.
                       </p>
 
                       <div className="lockedFeatureGrid">
