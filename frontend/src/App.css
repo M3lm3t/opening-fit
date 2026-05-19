@@ -779,6 +779,51 @@ table {
   color: var(--text-soft);
 }
 
+.importFiltersRow {
+  align-items: stretch;
+}
+
+.openingSampleControl {
+  width: min(100%, 520px);
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.54);
+}
+
+.openingSampleControlTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.openingSampleControlTop strong {
+  min-width: 44px;
+  text-align: right;
+  color: var(--blue-light);
+}
+
+.openingSampleControl input[type="range"] {
+  width: 100%;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  accent-color: var(--blue-light);
+  background: transparent;
+}
+
+.openingSampleHelp {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
 .errorBox {
   padding: 16px;
   margin-bottom: 16px;
@@ -23905,6 +23950,31 @@ html:has(.landingModal) {
     font-size: 0.9rem !important;
   }
 
+  .importFiltersRow {
+    margin-top: 10px !important;
+  }
+
+  .openingSampleControl {
+    width: 100% !important;
+    padding: 12px !important;
+    border-radius: 18px !important;
+    background: rgba(255, 255, 255, 0.055) !important;
+    border-color: var(--mobile-app-border) !important;
+  }
+
+  .page.light .openingSampleControl,
+  [data-theme="light"] .openingSampleControl {
+    background: rgba(15, 23, 42, 0.04) !important;
+  }
+
+  .openingSampleControlTop {
+    font-size: 0.88rem !important;
+  }
+
+  .openingSampleHelp {
+    font-size: 0.8rem !important;
+  }
+
   input,
   select,
   textarea,
@@ -23916,6 +23986,13 @@ html:has(.landingModal) {
     background: var(--mobile-app-surface-strong) !important;
     border-color: var(--mobile-app-border) !important;
     font-size: 16px !important;
+  }
+
+  .openingSampleControl input[type="range"] {
+    min-height: 28px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
   }
 
   .appActionButtons {

@@ -193,6 +193,7 @@ const USERNAME_KEY = "openingFit:lastUsername";
 const PREMIUM_KEY = "openingFit:isPremiumDemo";
 const PLATFORM_KEY = "openingFit:lastPlatform";
 const IMPORT_MONTHS_KEY = "openingFit:lastImportMonths";
+const OPENING_SAMPLE_PERCENT_KEY = "openingFit:openingSamplePercent";
 
 const platforms = {
   chesscom: {
@@ -217,6 +218,34 @@ const closedSections = {
   replay: false,
   preferred: false,
   top: false,
+};
+
+const clampOpeningSamplePercent = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 2;
+  return Math.min(20, Math.max(0, Math.round(parsed)));
+};
+
+const getOpeningSampleMinimumGames = (totalGames, samplePercent) => {
+  const cleanPercent = clampOpeningSamplePercent(samplePercent);
+  const cleanTotal = Math.max(0, Number(totalGames) || 0);
+
+  if (!cleanPercent || !cleanTotal) return 1;
+
+  return Math.max(2, Math.ceil((cleanTotal * cleanPercent) / 100));
+};
+
+const filterOpeningsBySamplePercent = (items, totalGames, samplePercent) => {
+  if (!Array.isArray(items)) return [];
+
+  const minimumGames = getOpeningSampleMinimumGames(totalGames, samplePercent);
+
+  if (minimumGames <= 1) return items;
+
+  return items.filter((item) => {
+    if (typeof item === "string") return true;
+    return getOpeningGames(item) >= minimumGames;
+  });
 };
 
 const premiumFeatures = [
@@ -2651,6 +2680,9 @@ function App() {
   const [accountUser, setAccountUser] = useState(null);
   const [platform, setPlatform] = useState("chesscom");
   const [importMonths, setImportMonths] = useState(3);
+  const [openingSamplePercent, setOpeningSamplePercent] = useState(() =>
+    clampOpeningSamplePercent(localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY) ?? 2)
+  );
   const [apiStatus, setApiStatus] = useState("checking");
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
@@ -2749,6 +2781,7 @@ const [activeView, setActiveView] = useState("overview");
     const savedPremium = localStorage.getItem(PREMIUM_KEY);
     const savedPlatform = localStorage.getItem(PLATFORM_KEY);
     const savedMonths = localStorage.getItem(IMPORT_MONTHS_KEY);
+    const savedSamplePercent = localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY);
     const savedAnalysis = localStorage.getItem(STORAGE_KEY);
 
     if (savedUsername) setUsername(savedUsername);
@@ -2759,6 +2792,10 @@ const [activeView, setActiveView] = useState("overview");
       if ([1, 3, 6, 12].includes(parsedMonths)) {
         setImportMonths(parsedMonths);
       }
+    }
+
+    if (savedSamplePercent !== null) {
+      setOpeningSamplePercent(clampOpeningSamplePercent(savedSamplePercent));
     }
 
     if (savedPlatform && platforms[savedPlatform]) {
@@ -2812,6 +2849,13 @@ const [activeView, setActiveView] = useState("overview");
   useEffect(() => {
     localStorage.setItem(PREMIUM_KEY, String(isPremium));
   }, [isPremium]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      OPENING_SAMPLE_PERCENT_KEY,
+      String(openingSamplePercent)
+    );
+  }, [openingSamplePercent]);
 
   useEffect(() => {
     const handleEscape = (event) => {
@@ -3127,6 +3171,7 @@ const [activeView, setActiveView] = useState("overview");
         username: cleanUsername,
         platform,
         months: monthsToImport,
+        openingSamplePercent,
         premiumDemo: isPremium,
       });
 
@@ -3182,6 +3227,7 @@ const [activeView, setActiveView] = useState("overview");
         platform,
         gamesImported: cleanData.gamesImported ?? cleanData.total_games,
         months: monthsToImport,
+        openingSamplePercent,
       });
 
       scrollToResults();
@@ -3395,20 +3441,36 @@ const [activeView, setActiveView] = useState("overview");
   };
 
   const filteredTopOpenings = useMemo(() => {
-    return filterUnknownOpenings(data?.top_openings || []);
-  }, [data, showUnknownOpenings]);
+    return filterOpeningsBySamplePercent(
+      filterUnknownOpenings(data?.top_openings || []),
+      data?.total_games,
+      openingSamplePercent
+    );
+  }, [data, showUnknownOpenings, openingSamplePercent]);
 
   const filteredBestOpenings = useMemo(() => {
-    return filterUnknownOpenings(data?.best_openings || []);
-  }, [data, showUnknownOpenings]);
+    return filterOpeningsBySamplePercent(
+      filterUnknownOpenings(data?.best_openings || []),
+      data?.total_games,
+      openingSamplePercent
+    );
+  }, [data, showUnknownOpenings, openingSamplePercent]);
 
   const filteredPreferredWhite = useMemo(() => {
-    return filterUnknownOpenings(data?.preferred_white || []);
-  }, [data, showUnknownOpenings]);
+    return filterOpeningsBySamplePercent(
+      filterUnknownOpenings(data?.preferred_white || []),
+      data?.total_games,
+      openingSamplePercent
+    );
+  }, [data, showUnknownOpenings, openingSamplePercent]);
 
   const filteredPreferredBlack = useMemo(() => {
-    return filterUnknownOpenings(data?.preferred_black || []);
-  }, [data, showUnknownOpenings]);
+    return filterOpeningsBySamplePercent(
+      filterUnknownOpenings(data?.preferred_black || []),
+      data?.total_games,
+      openingSamplePercent
+    );
+  }, [data, showUnknownOpenings, openingSamplePercent]);
 
   const filteredRecentGames = useMemo(() => {
     return filterUnknownOpenings(data?.recent_games || []);
@@ -3417,6 +3479,11 @@ const [activeView, setActiveView] = useState("overview");
   const chartData = useMemo(() => {
     return filteredTopOpenings.slice(0, isPremium ? 10 : 6);
   }, [filteredTopOpenings, isPremium]);
+
+  const openingSampleMinimumGames = getOpeningSampleMinimumGames(
+    data?.total_games,
+    openingSamplePercent
+  );
 
   const fitData = useMemo(() => {
     return buildOpeningFitData({
@@ -3929,8 +3996,35 @@ const [activeView, setActiveView] = useState("overview");
               </div>
             </div>
 
-            <div className="filtersRow">
+            <div className="filtersRow importFiltersRow">
+              <label className="openingSampleControl">
+                <span className="openingSampleControlTop">
+                  <span>Opening sample filter</span>
+                  <strong>{openingSamplePercent}%</strong>
+                </span>
 
+                <input
+                  type="range"
+                  min="0"
+                  max="20"
+                  step="1"
+                  value={openingSamplePercent}
+                  onChange={(event) =>
+                    setOpeningSamplePercent(
+                      clampOpeningSamplePercent(event.target.value)
+                    )
+                  }
+                  aria-label="Minimum percentage of games for an opening to appear in the report"
+                />
+
+                <span className="openingSampleHelp">
+                  {openingSamplePercent === 0
+                    ? "Showing every recognised opening, including one-game experiments."
+                    : data?.total_games
+                    ? `Ignoring openings below ${openingSampleMinimumGames} games in this report.`
+                    : "After import, one-game openings will be ignored by default."}
+                </span>
+              </label>
             </div>
 
             {apiStatus !== "online" ? (
