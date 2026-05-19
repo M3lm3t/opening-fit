@@ -1644,17 +1644,22 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
 function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange }) {
   const [open, setOpen] = useState(false);
 
-  const menuRoutes = [
-    { key: "import", label: "Import", target: "app-dashboard" },
-    { key: "account", label: "Login", target: "account" },
-    { key: "overview", label: "Overview", view: "overview", target: "app-results" },
-    { key: "recommendations", label: "Suggestions", view: "recommendations", target: "section-recommendations" },
-    { key: "training", label: "Training", view: "training", target: "section-training" },
-    { key: "games", label: "Games", view: "games", target: "section-replay" },
-    { key: "upgrade", label: "Upgrade", view: "upgrade", target: "premium" },
-    { key: "repertoire", label: "Repertoire", view: "repertoire", target: "premium" },
-    { key: "feedback", label: "Feedback", view: "feedback", target: "feedback" },
-  ];
+  const menuRoutes = data
+    ? [
+        { key: "overview", label: "Overview", view: "overview", target: "app-results", path: "/" },
+        { key: "recommendations", label: "Openings", view: "recommendations", target: "section-recommendations", path: "/" },
+        { key: "training", label: "Study plan", view: "training", target: "section-training", path: "/" },
+        { key: "games", label: "Games", view: "games", target: "section-replay", path: "/" },
+        { key: "upgrade", label: "Upgrade", view: "upgrade", target: "premium", path: "/upgrade" },
+        { key: "account", label: "Login / Payment", view: "account", target: "account", path: "/account" },
+        { key: "feedback", label: "Feedback", view: "feedback", target: "feedback", path: "/" },
+      ]
+    : [
+        { key: "import", label: "Import", target: "app-dashboard", path: "/" },
+        { key: "account", label: "Login / Payment", view: "account", target: "account", path: "/account" },
+        { key: "upgrade", label: "Founder Pass", view: "account", target: "account", path: "/account" },
+        { key: "feedback", label: "Feedback", view: "feedback", target: "feedback", path: "/" },
+      ];
 
   const scrollToElement = (target) => {
     if (!target) return false;
@@ -1681,6 +1686,10 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
   const navigate = (route) => {
     if (route.view && typeof onViewChange === "function") {
       onViewChange(route.view);
+    }
+
+    if (route.path && window.location.pathname !== route.path) {
+      window.history.pushState({}, "", route.path);
     }
 
     if (!route.view && typeof onJump === "function") {
@@ -1916,6 +1925,13 @@ function getCurrentPath() {
   if (typeof window === "undefined") return "/";
   const path = window.location.pathname || "/";
   return path.length > 1 ? path.replace(/\/+$/, "") : "/";
+}
+
+function getInitialAppView() {
+  const path = getCurrentPath();
+  if (path === "/account" || path === "/login") return "account";
+  if (path === "/upgrade" || path === "/premium") return "upgrade";
+  return "overview";
 }
 
 function getSeoData(path) {
@@ -3423,6 +3439,11 @@ function App() {
   };
 
   const handleFounderPassClick = () => {
+    setActiveView("account");
+    if (window.location.pathname !== "/account") {
+      window.history.pushState({}, "", "/account");
+    }
+
     window.dispatchEvent(
       new CustomEvent("openingfit:founder-pass-intent", {
         detail: {
@@ -3457,7 +3478,7 @@ function App() {
   const [feedbackStatus, setFeedbackStatus] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [localSavedAt, setLocalSavedAt] = useState("");
-const [activeView, setActiveView] = useState("overview");
+  const [activeView, setActiveView] = useState(getInitialAppView);
   const shouldShowLandingIntro = () => {
     const landingSeen = localStorage.getItem("openingfit_landing_seen") === "true";
     const hasSavedReport = Boolean(localStorage.getItem(STORAGE_KEY));
@@ -4565,6 +4586,43 @@ const [activeView, setActiveView] = useState("overview");
     }
   }, [currentPath, seoData]);
 
+  useEffect(() => {
+    const openAccountPage = () => {
+      setActiveView("account");
+      if (window.location.pathname !== "/account") {
+        window.history.pushState({}, "", "/account");
+      }
+
+      setTimeout(() => {
+        const accountTarget =
+          document.getElementById("account") ||
+          document.querySelector(".accountPanel");
+
+        if (accountTarget?.scrollIntoView) {
+          accountTarget.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 120);
+    };
+
+    window.addEventListener("openingfit:open-account-payment", openAccountPage);
+
+    return () => {
+      window.removeEventListener("openingfit:open-account-payment", openAccountPage);
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncViewFromPath = () => {
+      setActiveView(getInitialAppView());
+    };
+
+    window.addEventListener("popstate", syncViewFromPath);
+
+    return () => {
+      window.removeEventListener("popstate", syncViewFromPath);
+    };
+  }, []);
+
   if (seoPage) {
     return <SeoRoutePage page={seoData} />;
   }
@@ -4586,21 +4644,6 @@ const [activeView, setActiveView] = useState("overview");
 
             <OpeningFitImportDoctor username={username} />
 
-            <FounderPassLoginUpgrade accountUser={accountUser} />
-
-            <CheckoutStatusNotice
-              onRestoreAccess={() => {
-                window.dispatchEvent(
-                  new CustomEvent("openingfit:founder-pass-intent", {
-                    detail: {
-                      source: "checkout-success",
-                      plan: "founder_pass",
-                    },
-                  })
-                );
-              }}
-            />
-
             {false ? <AppActionRouter onViewChange={setActiveView} /> : null}
             <AccountRestoreSync
               user={accountUser}
@@ -4620,6 +4663,29 @@ const [activeView, setActiveView] = useState("overview");
             />
           </>
         ) : null}
+
+        <FounderPassLoginUpgrade accountUser={accountUser} />
+
+        <CheckoutStatusNotice
+          onRestoreAccess={() => {
+            window.dispatchEvent(
+              new CustomEvent("openingfit:founder-pass-intent", {
+                detail: {
+                  source: "checkout-success",
+                  plan: "founder_pass",
+                },
+              })
+            );
+          }}
+        />
+
+        <FloatingAppMenu
+          data={data}
+          onJump={jumpToSection}
+          onPractice={startOpeningPractice}
+          activeView={activeView}
+          onViewChange={setActiveView}
+        />
 
         {loading ? <ImportLoadingOverlay platform={platform} /> : null}
 
@@ -4827,7 +4893,7 @@ const [activeView, setActiveView] = useState("overview");
 
           {!data && !loading ? <CompactSeoFooter /> : null}
 
-          {false ? <section className="loginScreenSection" id="account">
+          {activeView === "account" ? <section className="loginScreenSection" id="account">
             <AccountPanel variant="screen" onUserChange={setAccountUser} />
           </section> : null}
 
@@ -4877,7 +4943,7 @@ const [activeView, setActiveView] = useState("overview");
             </section>
           )}
 
-          {data && (
+          {data && activeView !== "account" && (
             <div id="app-results">
               <CompactReportSummary
                 data={data}
@@ -5141,6 +5207,7 @@ const [activeView, setActiveView] = useState("overview");
                       isPremium={isPremium}
                       onUnlockDemo={unlockPremiumDemo}
                       onResetDemo={resetPremiumDemo}
+                      onFounderPass={handleFounderPassClick}
                     />
                   </div>
 
@@ -5593,6 +5660,7 @@ const [activeView, setActiveView] = useState("overview");
                       isPremium={isPremium}
                       onUnlockDemo={unlockPremiumDemo}
                       onResetDemo={resetPremiumDemo}
+                      onFounderPass={handleFounderPassClick}
                     />
                   </div>
 
