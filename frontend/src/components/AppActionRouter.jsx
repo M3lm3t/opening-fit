@@ -142,7 +142,7 @@ export function AppOpeningHealthScore({ data, onViewChange }) {
   };
 
   const goProgress = () => {
-    if (typeof onViewChange === "function") onViewChange("data");
+    if (typeof onViewChange === "function") onViewChange("upgrade");
     setTimeout(() => scrollToTarget("report-history"), 80);
   };
 
@@ -224,11 +224,11 @@ export default function AppActionRouter({ onViewChange }) {
       "game replay": { view: "games", target: "game-replay" },
       "view games": { view: "games", target: "game-replay" },
 
-      "progress": { view: "data", target: "report-history" },
-      "view progress": { view: "data", target: "report-history" },
-      "check progress": { view: "data", target: "report-history" },
-      "view saved progress": { view: "data", target: "report-history" },
-      "saved reports": { view: "data", target: "report-history" },
+      "progress": { view: "upgrade", target: "report-history" },
+      "view progress": { view: "upgrade", target: "report-history" },
+      "check progress": { view: "upgrade", target: "report-history" },
+      "view saved progress": { view: "upgrade", target: "report-history" },
+      "saved reports": { view: "upgrade", target: "report-history" },
 
       "feedback": { view: "feedback", target: "feedback" },
       "leave feedback": { view: "feedback", target: "feedback" },

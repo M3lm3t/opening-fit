@@ -287,7 +287,7 @@ export default function OpeningDiagnosisPanel({ data, onViewChange }) {
 
   const goProgress = () => {
     if (typeof onViewChange === "function") {
-      onViewChange("data");
+      onViewChange("upgrade");
     }
 
     setTimeout(() => scrollToTarget("report-history"), 80);

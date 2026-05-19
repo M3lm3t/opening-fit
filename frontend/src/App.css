@@ -24804,3 +24804,222 @@ textarea,
     grid-template-columns: 1fr;
   }
 }
+[data-theme] .compactImportHero {
+  max-width: 820px;
+  margin: 28px auto;
+  padding: 28px;
+}
+
+.compactImportHero .heroTop {
+  margin-bottom: 18px;
+}
+
+.compactImportHero .heroTitleWrap h1 {
+  max-width: 680px;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.02;
+}
+
+.compactImportHero .subtext {
+  max-width: 620px;
+}
+
+.compactImportHero .appActionPanel {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) 150px auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.compactImportHero .appActionButtons {
+  display: flex;
+}
+
+.compactTrustRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.82rem;
+}
+
+.compactTrustRow span:not(:last-child)::after {
+  content: "·";
+  margin-left: 8px;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+[data-theme="light"] .compactTrustRow {
+  color: rgba(51, 65, 85, 0.74);
+}
+
+.compactReportDashboard {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0 12px;
+}
+
+.compactReportTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.compactReportTitle h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  line-height: 1.04;
+}
+
+.compactReportTitle span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.biggestInsightCard {
+  padding: 18px;
+}
+
+.biggestInsightCard h2 {
+  margin-bottom: 8px;
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+}
+
+.biggestInsightCard p {
+  margin-bottom: 0;
+}
+
+.biggestInsightCard .fitMiniGrid {
+  margin-top: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.biggestInsightCard .fitMiniCard {
+  padding: 12px;
+  min-height: auto;
+}
+
+.compactVerdictGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.compactVerdictCard {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 13px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+[data-theme="light"] .compactVerdictCard {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.compactVerdictCard span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.compactVerdictCard strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.compactVerdictCard p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.compactStudyCta {
+  width: fit-content;
+}
+
+.compactReportNav {
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  margin: 12px 0;
+  padding: 10px;
+}
+
+.compactReportNav .appTabsHeader {
+  display: none;
+}
+
+.compactReportNav .appTabs {
+  gap: 6px;
+  margin: 0;
+  overflow-x: auto;
+  padding-bottom: 0;
+}
+
+.compactReportNav .appTabButton {
+  min-height: 38px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.appReportPage .card,
+.appReportPage .collapsibleCard,
+.appReportPage .openingCoachPlan,
+.appReportPage .nextStudySession,
+.appReportPage .fullReportShell {
+  margin-top: 12px;
+}
+
+.appReportPage .compactReportGrid {
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  [data-theme] .compactImportHero {
+    margin: 12px auto;
+    padding: 18px;
+  }
+
+  .compactImportHero .appActionPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .compactImportHero .appActionButtons,
+  .compactImportHero .primaryBtn {
+    width: 100%;
+  }
+
+  .compactTrustRow {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .compactVerdictGrid,
+  .biggestInsightCard .fitMiniGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .compactStudyCta {
+    width: 100%;
+  }
+
+  .compactReportNav {
+    top: 0;
+    border-radius: 0 0 8px 8px;
+  }
+
+  .compactReportNav .appTabButton {
+    font-size: 0.86rem;
+  }
+
+  .appReportPage .container {
+    padding-top: 8px;
+  }
+}

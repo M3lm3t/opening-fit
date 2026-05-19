@@ -151,7 +151,7 @@ export default function OpeningFitUXCleanup({ data, username, onJump, activeView
     { key: "recommendations", label: "Openings", view: "recommendations", target: "keep-improve-avoid" },
     { key: "training", label: "Study Plan", view: "training", target: "study-planner" },
     { key: "games", label: "Games", view: "games", target: "game-replay" },
-    { key: "data", label: "Stats", view: "data", target: "top-openings-table" },
+    { key: "upgrade", label: "Upgrade", view: "upgrade", target: "top-openings-table" },
     { key: "feedback", label: "Feedback", view: "feedback", target: "feedback" },
     { key: "tools", label: "Tools", view: "tools", target: "functionality-hub" },
   ];

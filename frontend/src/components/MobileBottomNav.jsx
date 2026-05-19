@@ -1,12 +1,12 @@
-import { Blocks, Dumbbell, Home, MessageCircle, Target } from "lucide-react";
+import { Crown, Dumbbell, Gamepad2, Home, Target } from "lucide-react";
 
 export default function MobileBottomNav({ data, activeView, onViewChange }) {
   const items = [
     { key: "overview", label: "Home", Icon: Home },
-    { key: "recommendations", label: "Ideas", Icon: Target },
-    { key: "training", label: "Train", Icon: Dumbbell },
-    { key: "repertoire", label: "Tools", Icon: Blocks },
-    { key: "feedback", label: "Feedback", Icon: MessageCircle },
+    { key: "recommendations", label: "Openings", Icon: Target },
+    { key: "training", label: "Plan", Icon: Dumbbell },
+    { key: "games", label: "Games", Icon: Gamepad2 },
+    { key: "upgrade", label: "Upgrade", Icon: Crown },
   ];
 
   function handleClick(key) {
