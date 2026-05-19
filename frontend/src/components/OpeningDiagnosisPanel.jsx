@@ -155,7 +155,7 @@ function getVerdict(opening, data, index = 0) {
 
   if (sampleTier === "tiny" || sampleTier === "small") {
     return {
-      label: "Small sample",
+      label: sampleTier === "tiny" ? "Experimental / not enough data" : "Low-confidence sample",
       tone: "neutral",
       reason:
         "The sample is still small. Keep tracking it before making a confident repertoire call.",
@@ -165,7 +165,7 @@ function getVerdict(opening, data, index = 0) {
 
   if (tier === "elite" && mainOpening && opening.winRate >= 45) {
     return {
-      label: "Core weapon",
+      label: "Main weapon",
       tone: "positive",
       reason:
         "This is a heavily played opening for an elite player. Treat it as a core repertoire choice unless a deeper branch-level review proves otherwise.",
@@ -176,7 +176,7 @@ function getVerdict(opening, data, index = 0) {
 
   if (tier === "strong" && mainOpening && opening.winRate >= 45) {
     return {
-      label: "Trusted weapon",
+      label: "Main weapon",
       tone: "positive",
       reason:
         "This is used often enough to look like a trusted part of the repertoire. Mixed recent results should trigger review, not replacement.",
@@ -187,7 +187,7 @@ function getVerdict(opening, data, index = 0) {
 
   if (strongProfile && opening.winRate < 48) {
     return {
-      label: mainOpening ? "Fine-tune" : "Review",
+      label: mainOpening ? "Promising but unstable" : "Needs review",
       tone: "warning",
       reason:
         "The opening itself may still be completely viable. Recent results point to specific lines or middlegame structures worth checking.",
@@ -198,7 +198,7 @@ function getVerdict(opening, data, index = 0) {
 
   if (opening.winRate >= 60) {
     return {
-      label: "Keep",
+      label: mainOpening ? "Main weapon" : "Reliable choice",
       tone: "positive",
       reason:
         "This opening is giving you a strong return. It likely suits your current decision-making and middlegame comfort.",
@@ -209,7 +209,7 @@ function getVerdict(opening, data, index = 0) {
 
   if (opening.winRate >= 48) {
     return {
-      label: "Improve",
+      label: "Promising but unstable",
       tone: "warning",
       reason:
         "This opening is playable for you, but it is not yet a strength. There are likely one or two repeat mistakes costing points.",
@@ -219,7 +219,7 @@ function getVerdict(opening, data, index = 0) {
   }
 
   return {
-    label: "Avoid",
+    label: "Needs review",
     tone: "danger",
     reason:
       "This opening is currently dragging your results down. That does not mean it is bad, but it may not fit your current style or understanding.",

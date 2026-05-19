@@ -28,17 +28,22 @@ function getWinRate(item) {
 function verdictFor(item) {
   const verdict = String(item?.verdict || "").toLowerCase();
 
-  if (verdict.includes("keep")) return "Keep";
-  if (verdict.includes("improve")) return "Improve";
-  if (verdict.includes("avoid")) return "Avoid";
+  if (verdict.includes("keep") || verdict.includes("weapon") || verdict.includes("reliable")) {
+    return "Reliable choice";
+  }
+  if (verdict.includes("improve") || verdict.includes("promising")) {
+    return "Promising but unstable";
+  }
+  if (verdict.includes("avoid") || verdict.includes("review")) return "Needs review";
 
   const winRate = getWinRate(item);
   const games = getGames(item);
 
-  if (games < 3) return "Review";
-  if (winRate >= 58) return "Keep";
-  if (winRate >= 45) return "Improve";
-  return "Avoid";
+  if (games < 3) return "Experimental / not enough data";
+  if (games < 8) return "Low-confidence sample";
+  if (winRate >= 58) return "Reliable choice";
+  if (winRate >= 45) return "Promising but unstable";
+  return "Needs review";
 }
 
 function storageKey(username) {

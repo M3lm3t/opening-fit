@@ -251,7 +251,7 @@ const filterOpeningsBySamplePercent = (items, totalGames, samplePercent) => {
 const premiumFeatures = [
   "12 months of game history",
   "Full opening table",
-  "Keep / Improve / Avoid verdicts",
+  "Confidence-aware opening verdicts",
   "Advanced personal training plan",
   "Saved import history",
   "Future Stockfish analysis",
@@ -606,6 +606,25 @@ function getPlayerTier(data) {
   return "developing";
 }
 
+function getPlayerBaselineScore(data) {
+  const value = [
+    data?.score,
+    data?.scoreRate,
+    data?.score_rate,
+    data?.winRate,
+    data?.win_rate,
+    data?.overallScore,
+    data?.overall_score,
+    data?.summary?.score,
+    data?.summary?.winRate,
+  ]
+    .map((item) => safeNumber(item, NaN))
+    .find((item) => Number.isFinite(item) && item > 0);
+
+  if (!value) return 50;
+  return value <= 1 ? Math.round(value * 100) : Math.round(value);
+}
+
 function getOpeningSampleTier(games) {
   const count = Number(games || 0);
   if (count >= 20) return "large";
@@ -637,14 +656,21 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   const sampleTier = getOpeningSampleTier(games);
   const isMainWeapon = index <= 2 && games >= 8;
   const largeSample = sampleTier === "large";
+  const frequentlyPlayed = isMainWeapon || games >= 20;
+  const baseline = getPlayerBaselineScore(data);
+  const highRatedPlayer = ["club", "strong", "elite"].includes(tier);
+  const belowBaseline = winRate < baseline;
+  const slightlyBelowBaseline = belowBaseline && baseline - winRate <= 8;
   const rating = getProfileRating(data);
   const opposition = getAverageOppositionRating(opening, data);
   const strongOpposition =
     rating && opposition ? opposition >= Math.max(1800, rating - 100) : false;
+  const highRatedRepertoireMessage =
+    "This looks like a serious part of your repertoire. Recent results are below your usual baseline, but this is more likely a form trend than a reason to abandon the opening.";
 
   if (isUnknownOpeningName(getOpeningName(opening))) {
     return {
-      label: "Review",
+      label: "Needs review",
       category: "review",
       tone: "neutral",
       severity: "neutral",
@@ -655,7 +681,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
   if (sampleTier === "tiny") {
     return {
-      label: "Small sample",
+      label: "Experimental / not enough data",
       category: "neutral",
       tone: "neutral",
       severity: "neutral",
@@ -666,7 +692,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
   if (sampleTier === "small") {
     return {
-      label: "Small sample",
+      label: "Low-confidence sample",
       category: "neutral",
       tone: "neutral",
       severity: "neutral",
@@ -675,32 +701,44 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
     };
   }
 
+  if (highRatedPlayer && frequentlyPlayed && belowBaseline && winRate >= 35) {
+    return {
+      label: isMainWeapon ? "Main weapon" : "Reliable choice",
+      category: slightlyBelowBaseline ? "keep" : "review",
+      tone: slightlyBelowBaseline ? "positive" : "warning",
+      severity: slightlyBelowBaseline ? "positive" : "warning",
+      message: highRatedRepertoireMessage,
+    };
+  }
+
   if (tier === "elite") {
     if (isMainWeapon && winRate >= 45) {
       return {
-        label: "Core weapon",
+        label: "Main weapon",
         category: "keep",
         tone: "positive",
         severity: "positive",
         message:
-          "This looks like a regular part of the repertoire. Recent results are worth reviewing, but the data points to targeted fine-tuning rather than replacing the opening.",
+          belowBaseline
+            ? highRatedRepertoireMessage
+            : "This looks like a regular part of the repertoire. Recent results are worth reviewing, but the data points to targeted fine-tuning rather than replacing the opening.",
       };
     }
 
     if (isMainWeapon) {
       return {
-        label: "Review",
+        label: "Needs review",
         category: "review",
         tone: "warning",
         severity: "warning",
         message:
-          "This appears to be a core opening with recent underperformance. Review recurring loss patterns, specific sidelines, or middlegame structures rather than treating the opening as a bad choice.",
+          highRatedRepertoireMessage,
       };
     }
 
     if (largeSample && games >= 20 && winRate < 25) {
       return {
-        label: "Performance check",
+        label: "Needs review",
         category: "review",
         tone: "warning",
         severity: "warning",
@@ -711,7 +749,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
     if (winRate < 45) {
       return {
-        label: "Review",
+        label: "Promising but unstable",
         category: "review",
         tone: "warning",
         severity: "warning",
@@ -721,7 +759,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
     }
 
     return {
-      label: "Keep",
+      label: "Reliable choice",
       category: "keep",
       tone: "positive",
       severity: "positive",
@@ -733,18 +771,20 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   if (tier === "strong") {
     if (isMainWeapon && winRate >= 45) {
       return {
-        label: "Trusted weapon",
+        label: "Main weapon",
         category: "keep",
         tone: "positive",
         severity: "positive",
         message:
-          "This is used often enough to look like a trusted part of the repertoire. Review recent losses for patterns, but do not treat this as an opening to abandon.",
+          belowBaseline
+            ? highRatedRepertoireMessage
+            : "This is used often enough to look like a trusted part of the repertoire. Review recent losses for patterns, but do not treat this as an opening to abandon.",
       };
     }
 
     if (isMainWeapon && winRate >= 35) {
       return {
-        label: "Fine-tune",
+        label: "Promising but unstable",
         category: "review",
         tone: "warning",
         severity: "warning",
@@ -755,7 +795,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
     if (winRate < 40) {
       return {
-        label: "Review",
+        label: "Needs review",
         category: "review",
         tone: "warning",
         severity: "warning",
@@ -766,7 +806,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
     }
 
     return {
-      label: "Keep",
+      label: "Reliable choice",
       category: "keep",
       tone: "positive",
       severity: "positive",
@@ -777,7 +817,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
   if (isMainWeapon && games >= 8 && winRate >= 42) {
     return {
-      label: "Keep",
+      label: "Main weapon",
       category: "keep",
       tone: "positive",
       severity: "positive",
@@ -788,7 +828,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
   if (winRate >= 55) {
     return {
-      label: "Keep",
+      label: "Reliable choice",
       category: "keep",
       tone: "positive",
       severity: "positive",
@@ -799,7 +839,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
   if (winRate >= 45) {
     return {
-      label: "Improve",
+      label: "Promising but unstable",
       category: "improve",
       tone: "warning",
       severity: "warning",
@@ -810,7 +850,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
   if (isMainWeapon && winRate >= 35) {
     return {
-      label: "Review",
+      label: "Promising but unstable",
       category: "review",
       tone: "warning",
       severity: "warning",
@@ -820,7 +860,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   }
 
   return {
-    label: "Avoid",
+    label: "Needs review",
     category: "avoid",
     tone: "danger",
     severity: "danger",
@@ -901,8 +941,8 @@ function buildOpeningFitData(data) {
       const rank = volumeRank.get(getOpeningName(opening).toLowerCase()) ?? 99;
       const smartVerdict = getSmartOpeningVerdict(opening, data, rank);
       const fitScore =
-        smartVerdict.label === "Core weapon" ||
-        smartVerdict.label === "Trusted weapon"
+        smartVerdict.label === "Main weapon" ||
+        smartVerdict.label === "Reliable choice"
           ? Math.max(score, 78)
           : smartVerdict.category === "review"
           ? Math.max(score, 58)
@@ -1079,7 +1119,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
         <div className="fitMiniCard">
           <span className="fitLabel">Opening verdicts</span>
           <strong>
-            {keepCount} Keep · {reviewCount} Review · {avoidCount} Avoid
+            {keepCount} Reliable · {reviewCount} Review · {avoidCount} Caution
           </strong>
           <p>Based on your imported games and opening results.</p>
         </div>
@@ -1090,7 +1130,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
         {bestOpening
           ? `Build your short repertoire around ${getOpeningName(
               bestOpening
-            )}, then improve or replace your weakest opening.`
+            )}, then review your least stable opening.`
           : "Import more games to get a stronger recommendation."}
 
         {bestOpening ? (
@@ -1115,7 +1155,7 @@ function OpeningFitScoreList({ fitData, onPractice }) {
       <div className="sectionHeaderSimple">
         <div>
           <p className="eyebrow">Opening Fit Scores</p>
-          <h2>Keep / Improve / Avoid</h2>
+          <h2>Opening verdicts</h2>
           <p className="muted">
             These scores estimate which openings fit your results and playing
             style.
@@ -2593,7 +2633,7 @@ function OpeningFitFullReport({ data }) {
 
         <article className="adviceCard improve">
           <div className="adviceTopline">
-            <span>Improve</span>
+            <span>Promising but unstable</span>
             <small>{formatScore(improveOpening)}</small>
           </div>
           <h3>{improveOpening?.displayName || "Review your common losses"}</h3>
@@ -2603,7 +2643,7 @@ function OpeningFitFullReport({ data }) {
 
         <article className="adviceCard avoid">
           <div className="adviceTopline">
-            <span>Avoid for now</span>
+            <span>Needs review</span>
             <small>{formatScore(avoidOpening)}</small>
           </div>
           <h3>{avoidOpening?.displayName || "Low-sample experiments"}</h3>
@@ -3432,10 +3472,13 @@ const [activeView, setActiveView] = useState("overview");
 
   const monthsToImport = isPremium ? importMonths : Math.min(importMonths, 3);
 
-  const importGames = async () => {
+  const importGames = async (usernameOverride, platformOverride) => {
+    const selectedPlatformKey = platforms[platformOverride] ? platformOverride : platform;
+    const cleanUsername = String(usernameOverride ?? username).trim();
+
     setLoading(true);
     setLoadingStep(
-      `Finding your recent ${platforms[platform]?.label || "chess"} games...`
+      `Finding your recent ${platforms[selectedPlatformKey]?.label || "chess"} games...`
     );
     setError("");
     setSavedProfileMessage("");
@@ -3444,22 +3487,22 @@ const [activeView, setActiveView] = useState("overview");
     setPracticeOpening(null);
     setOpenSections(closedSections);
 
-    const cleanUsername = username.trim();
-
     try {
       if (!cleanUsername) {
         throw new Error("Please enter a username.");
       }
 
-      const selectedPlatform = platforms[platform] || platforms.chesscom;
+      const selectedPlatform = platforms[selectedPlatformKey] || platforms.chesscom;
 
       localStorage.setItem(USERNAME_KEY, cleanUsername);
-      localStorage.setItem(PLATFORM_KEY, platform);
+      localStorage.setItem(PLATFORM_KEY, selectedPlatformKey);
       localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
+      setUsername(cleanUsername);
+      setPlatform(selectedPlatformKey);
 
       await trackEvent("frontend_import_started", {
         username: cleanUsername,
-        platform,
+        platform: selectedPlatformKey,
         months: monthsToImport,
         openingSamplePercent,
         premiumDemo: isPremium,
@@ -3514,7 +3557,7 @@ const [activeView, setActiveView] = useState("overview");
 
       await trackEvent("frontend_import_completed", {
         username: cleanUsername,
-        platform,
+        platform: selectedPlatformKey,
         gamesImported: cleanData.gamesImported ?? cleanData.total_games,
         months: monthsToImport,
         openingSamplePercent,
@@ -3727,7 +3770,9 @@ const [activeView, setActiveView] = useState("overview");
     if (
       normalized.includes("keep") ||
       normalized.includes("core weapon") ||
-      normalized.includes("trusted weapon")
+      normalized.includes("trusted weapon") ||
+      normalized.includes("main weapon") ||
+      normalized.includes("reliable choice")
     ) {
       return "verdict keep";
     }
@@ -3737,7 +3782,8 @@ const [activeView, setActiveView] = useState("overview");
       normalized.includes("review") ||
       normalized.includes("performance check") ||
       normalized.includes("fine-tune") ||
-      normalized.includes("deep review")
+      normalized.includes("deep review") ||
+      normalized.includes("promising but unstable")
     ) {
       return "verdict improve";
     }
@@ -4258,7 +4304,7 @@ const [activeView, setActiveView] = useState("overview");
                 <button
                   className="primaryBtn"
                   type="button"
-                  onClick={importGames}
+                  onClick={() => importGames()}
                   disabled={loading || !username.trim()}
                 >
                   {loading
@@ -4293,7 +4339,7 @@ const [activeView, setActiveView] = useState("overview");
                 <button
                   className="ghostButton"
                   type="button"
-                  onClick={importGames}
+                  onClick={() => importGames()}
                   disabled={loading || !username.trim()}
                 >
                   Refresh Games
@@ -4703,7 +4749,7 @@ const [activeView, setActiveView] = useState("overview");
 
               <div id="section-verdicts">
                 <Section
-                  title="Keep / Improve / Avoid"
+                  title="Opening verdicts"
                   isOpen={openSections.verdicts}
                   onToggle={() => toggleSection("verdicts")}
                   badge={`${fitData.scoredOpenings.length} tracked`}

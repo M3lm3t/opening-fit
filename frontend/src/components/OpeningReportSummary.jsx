@@ -119,47 +119,46 @@ function getSampleTier(games) {
 function getVerdict(opening, data, index = 0) {
   const existing = opening?.verdict || opening?.recommendation || opening?.status;
   const tier = getPlayerTier(data);
-  const strongProfile = tier === "elite" || tier === "strong";
   const games = getGames(opening);
   const winRate = getWinRate(opening);
   const sampleTier = getSampleTier(games);
   const mainOpening = index <= 2 && games >= 8;
 
-  if (sampleTier === "tiny" || sampleTier === "small") return "Small sample";
+  if (sampleTier === "tiny") return "Experimental / not enough data";
+  if (sampleTier === "small") return "Low-confidence sample";
 
   if (existing) {
     const lower = String(existing).toLowerCase();
 
-    if (strongProfile && lower.includes("improve")) {
-      return mainOpening ? (tier === "elite" ? "Core weapon" : "Trusted weapon") : "Review";
+    if (lower.includes("keep") || lower.includes("core weapon") || lower.includes("trusted weapon")) {
+      return mainOpening ? "Main weapon" : "Reliable choice";
     }
 
-    if (strongProfile && lower.includes("avoid")) {
-      return tier === "elite" || mainOpening ? "Performance check" : "Review";
-    }
+    if (lower.includes("improve") || lower.includes("fine-tune")) return "Promising but unstable";
+    if (lower.includes("avoid") || lower.includes("review")) return "Needs review";
 
     return String(existing);
   }
 
   if (tier === "elite") {
-    if (mainOpening && winRate >= 45) return "Core weapon";
-    if (mainOpening) return "Review";
-    if (sampleTier === "large" && winRate < 25) return "Performance check";
-    if (winRate < 45) return "Review";
-    return "Keep";
+    if (mainOpening && winRate >= 45) return "Main weapon";
+    if (mainOpening) return "Needs review";
+    if (sampleTier === "large" && winRate < 25) return "Needs review";
+    if (winRate < 45) return "Promising but unstable";
+    return "Reliable choice";
   }
 
   if (tier === "strong") {
-    if (mainOpening && winRate >= 45) return "Trusted weapon";
-    if (mainOpening && winRate >= 35) return "Fine-tune";
-    if (winRate < 40) return "Review";
-    return "Keep";
+    if (mainOpening && winRate >= 45) return "Main weapon";
+    if (mainOpening && winRate >= 35) return "Promising but unstable";
+    if (winRate < 40) return "Needs review";
+    return "Reliable choice";
   }
 
-  if (winRate >= 58) return "Keep";
-  if (winRate >= 45) return "Improve";
-  if (mainOpening && winRate >= 35) return "Review";
-  return "Avoid";
+  if (winRate >= 58) return "Reliable choice";
+  if (winRate >= 45) return "Promising but unstable";
+  if (mainOpening && winRate >= 35) return "Promising but unstable";
+  return "Needs review";
 }
 
 function isStrongProfile(data) {
@@ -341,7 +340,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
         />
 
         <ReportCard
-          title={strongProfile ? "Check carefully" : "Avoid for now"}
+          title={strongProfile ? "Check carefully" : "Needs review"}
           opening={avoid}
           fallbackTitle={strongProfile ? "Trend to inspect" : "Risky opening"}
           fallbackText={
