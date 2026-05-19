@@ -18,16 +18,35 @@ function getVerdict(opening) {
   return opening?.fitVerdict || opening?.fit_verdict || opening?.verdict || "";
 }
 
+function getCategory(opening) {
+  return String(opening?.fitCategory || opening?.fit_category || "").toLowerCase();
+}
+
 function isAvoid(opening) {
-  return String(getVerdict(opening)).toLowerCase().includes("avoid");
+  return (
+    getCategory(opening) === "avoid" ||
+    String(getVerdict(opening)).toLowerCase().includes("avoid")
+  );
 }
 
 function isKeep(opening) {
-  return String(getVerdict(opening)).toLowerCase().includes("keep");
+  const verdict = String(getVerdict(opening)).toLowerCase();
+  return (
+    getCategory(opening) === "keep" ||
+    verdict.includes("keep") ||
+    verdict.includes("core weapon")
+  );
 }
 
 function isImprove(opening) {
-  return String(getVerdict(opening)).toLowerCase().includes("improve");
+  const verdict = String(getVerdict(opening)).toLowerCase();
+  return (
+    getCategory(opening) === "improve" ||
+    getCategory(opening) === "review" ||
+    verdict.includes("improve") ||
+    verdict.includes("review") ||
+    verdict.includes("fine-tune")
+  );
 }
 
 export default function OpeningSnapshot({ openings = [], onSelectOpening }) {

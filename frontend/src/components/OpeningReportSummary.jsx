@@ -72,6 +72,36 @@ function getVerdict(opening) {
   return "Avoid for now";
 }
 
+function isStrongProfile(data) {
+  const rating = Number(
+    data?.rating ??
+      data?.chesscomRating ??
+      data?.chesscom_rating ??
+      data?.lichessRating ??
+      data?.lichess_rating ??
+      data?.player_level?.rating ??
+      data?.playerLevel?.rating ??
+      0
+  );
+  const level = String(
+    data?.playerLevel?.level ??
+      data?.playerLevel?.label ??
+      data?.playerLevel ??
+      data?.player_level?.level ??
+      data?.player_level?.label ??
+      data?.player_level ??
+      ""
+  ).toLowerCase();
+
+  return (
+    rating >= 2200 ||
+    level.includes("advanced") ||
+    level.includes("expert") ||
+    level.includes("master") ||
+    level.includes("elite")
+  );
+}
+
 function getVerdictClass(verdict) {
   const lower = verdict.toLowerCase();
 
@@ -154,6 +184,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const totalGames = getTotalGames(data, openings);
   const styleLabel = getStyleLabel(data);
   const { keep, improve, avoid, cleaned } = buildReportCards(openings);
+  const strongProfile = isStrongProfile(data);
 
   const platformLabel =
     platform === "lichess"
@@ -173,9 +204,13 @@ export default function OpeningReportSummary({ data, username, platform }) {
           <p className="openingReportEyebrow">Opening report</p>
           <h2>Your personalised opening summary</h2>
           <p>
-            Based on {totalGames || "your recent"} imported games
-            {username ? ` from ${platformLabel} user ${username}` : ""}, here is what
-            looks strongest, what needs work, and what to avoid for now.
+            {strongProfile
+              ? `Based on ${totalGames || "your recent"} imported games${
+                  username ? ` from ${platformLabel} user ${username}` : ""
+                }, here is a repertoire audit of core openings and lines worth reviewing.`
+              : `Based on ${totalGames || "your recent"} imported games${
+                  username ? ` from ${platformLabel} user ${username}` : ""
+                }, here is what looks strongest, what needs work, and what to avoid for now.`}
           </p>
         </div>
 
@@ -190,10 +225,20 @@ export default function OpeningReportSummary({ data, username, platform }) {
         <div>
           <h3>{styleLabel}</h3>
           <p>
-            Your current profile suggests you should focus on openings that create
-            clear plans quickly. Keep building around <strong>{bestOpening}</strong>,
-            review <strong>{focusOpening}</strong>, and be careful with{" "}
-            <strong>{weakOpening}</strong> until the results improve.
+            {strongProfile ? (
+              <>
+                Treat <strong>{bestOpening}</strong> as the stable reference point,
+                then review <strong>{focusOpening}</strong> for recurring structures
+                or move-order details before changing the repertoire.
+              </>
+            ) : (
+              <>
+                Your current profile suggests you should focus on openings that create
+                clear plans quickly. Keep building around <strong>{bestOpening}</strong>,
+                review <strong>{focusOpening}</strong>, and be careful with{" "}
+                <strong>{weakOpening}</strong> until the results improve.
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -208,18 +253,26 @@ export default function OpeningReportSummary({ data, username, platform }) {
         />
 
         <ReportCard
-          title="Improve next"
+          title={strongProfile ? "Review next" : "Improve next"}
           opening={improve}
-          fallbackTitle="Main study target"
-          fallbackText="This will highlight an opening with enough promise to keep, but enough weakness to study."
+          fallbackTitle={strongProfile ? "Main review target" : "Main study target"}
+          fallbackText={
+            strongProfile
+              ? "This will highlight a core or recurring opening worth auditing for specific branches."
+              : "This will highlight an opening with enough promise to keep, but enough weakness to study."
+          }
           type="improve"
         />
 
         <ReportCard
-          title="Avoid for now"
+          title={strongProfile ? "Check carefully" : "Avoid for now"}
           opening={avoid}
-          fallbackTitle="Risky opening"
-          fallbackText="This will flag openings that are repeatedly costing you games or producing poor positions."
+          fallbackTitle={strongProfile ? "Trend to inspect" : "Risky opening"}
+          fallbackText={
+            strongProfile
+              ? "This will flag openings where recent results deserve review before any repertoire decision."
+              : "This will flag openings that are repeatedly costing you games or producing poor positions."
+          }
           type="avoid"
         />
       </div>

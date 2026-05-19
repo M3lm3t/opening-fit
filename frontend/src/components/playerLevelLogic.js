@@ -380,9 +380,32 @@ export function buildLevelAwareRecommendation(data, fitData) {
     return getOpeningGames(b) - getOpeningGames(a);
   });
 
-  const weakest = [...openings]
-    .filter((item) => getOpeningGames(item) >= 2 && getOpeningScore(item) !== null)
-    .sort((a, b) => (getOpeningScore(a) ?? 100) - (getOpeningScore(b) ?? 100))[0];
+  const fitOpenings = Array.isArray(fitData?.scoredOpenings)
+    ? fitData.scoredOpenings
+    : [];
+
+  const fitConcernRank = {
+    avoid: 0,
+    review: 1,
+    improve: 2,
+    neutral: 3,
+    keep: 4,
+  };
+
+  const weakestFromFit = [...fitOpenings]
+    .filter((item) => getOpeningGames(item) >= 3)
+    .sort((a, b) => {
+      const categoryDiff =
+        (fitConcernRank[a.fitCategory] ?? 3) -
+        (fitConcernRank[b.fitCategory] ?? 3);
+      if (categoryDiff) return categoryDiff;
+      return (a.fitScore ?? 100) - (b.fitScore ?? 100);
+    })[0];
+
+  const weakest = weakestFromFit ||
+    [...openings]
+      .filter((item) => getOpeningGames(item) >= 2 && getOpeningScore(item) !== null)
+      .sort((a, b) => (getOpeningScore(a) ?? 100) - (getOpeningScore(b) ?? 100))[0];
 
   const best = fitData?.bestOpening || ranked[0];
   const bestName = best ? displayOpeningName(best, data) : "your strongest repeated opening";
@@ -392,9 +415,9 @@ export function buildLevelAwareRecommendation(data, fitData) {
     return {
       title: "Elite-level repertoire audit",
       summary:
-        "Do not give this player beginner-style opening advice. The useful output is a high-level audit of trends, underperforming branches, and preparation gaps.",
+        "This is a master-level repertoire audit. Treat heavily played openings as trusted weapons unless the data strongly proves otherwise.",
       primaryAction:
-        "Prioritise colour splits, time-control splits, opponent-rating bands, and openings that have changed performance recently.",
+        `Review ${weakName} for specific branches, colour splits, opponent-rating bands, and recurring middlegame structures rather than replacing the opening.`,
       bestName,
       weakName,
     };
@@ -406,7 +429,7 @@ export function buildLevelAwareRecommendation(data, fitData) {
       summary:
         "This player likely already has opening knowledge. Recommendations should refine what they play, not replace it with beginner systems.",
       primaryAction:
-        `Use ${bestName} as the stable reference point, then investigate ${weakName} for specific branches or move-order issues.`,
+        `Use ${bestName} as the stable reference point, then review ${weakName} for specific branches, move-order issues, or recent trend changes.`,
       bestName,
       weakName,
     };
@@ -416,9 +439,9 @@ export function buildLevelAwareRecommendation(data, fitData) {
     return {
       title: "Strong club-player refinement",
       summary:
-        "The goal is not just choosing openings — it is improving the branches and structures that appear most often.",
+        "The goal is not replacing openings too quickly — it is refining the branches and structures that appear most often.",
       primaryAction:
-        `Keep ${bestName} as a main weapon and use ${weakName} as the next repair target.`,
+        `Keep ${bestName} as a main weapon and fine-tune ${weakName} by checking recurring loss patterns.`,
       bestName,
       weakName,
     };
@@ -546,4 +569,3 @@ export function getSmartLevelAwareRecommendation(data, fitData) {
     source: "frontend",
   };
 }
-
