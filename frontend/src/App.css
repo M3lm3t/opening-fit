@@ -25104,3 +25104,69 @@ textarea,
     gap: 8px 10px;
   }
 }
+
+/* Final app-flow restoration: keep nav/account surfaces compact and visible. */
+.openingAppMenu {
+  display: block !important;
+}
+
+.loginScreenSection {
+  max-width: 920px;
+  margin: 14px auto;
+}
+
+.loginScreenSection .accountPanelShell,
+.loginScreenSection .accountPanel {
+  width: 100%;
+}
+
+.premiumUpgradeShell,
+.loginScreenSection .accountPanel {
+  border-radius: 12px;
+}
+
+@media (min-width: 761px) {
+  .mobileBottomNav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    padding-bottom: 90px !important;
+  }
+
+  .mobileBottomNav {
+    display: grid !important;
+  }
+
+  .openingAppMenu {
+    top: max(10px, env(safe-area-inset-top)) !important;
+    right: 10px !important;
+  }
+
+  .openingAppMenuToggle {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .openingAppMenuPanel {
+    width: calc(100vw - 20px) !important;
+    max-height: min(72vh, 560px);
+    overflow-y: auto;
+    border-radius: 16px;
+  }
+
+  .loginScreenSection {
+    margin: 10px 0 14px;
+  }
+
+  .compactImportHero {
+    margin-top: 10px !important;
+  }
+
+  .appShell {
+    width: min(100%, 1080px);
+  }
+}

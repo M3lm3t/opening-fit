@@ -87,7 +87,7 @@ function LockedPreview({ title, text, isPremium }) {
   );
 }
 
-export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDemo }) {
+export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDemo, onFounderPass }) {
   const premiumInsights = useMemo(() => {
     const openings = collectOpenings(data)
       .map((item) => ({
@@ -146,9 +146,7 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
           <button
             type="button"
             className="premiumCheckoutBtn"
-            onClick={() => {
-              alert("Stripe checkout will be connected later. For now, use Premium Demo to test the full flow.");
-            }}
+            onClick={onFounderPass}
           >
             Unlock Premium
           </button>
@@ -162,7 +160,7 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
           </button>
 
           <small>
-            {isPremium ? "Premium demo is currently unlocked." : "Payments are not live yet."}
+            {isPremium ? "Premium demo is currently unlocked." : "Login first, then continue to secure Stripe checkout."}
           </small>
         </div>
       </div>
