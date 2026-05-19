@@ -208,6 +208,129 @@ const platforms = {
   },
 };
 
+const SITE_URL = "https://www.openingfit.com";
+
+const HOME_SEO = {
+  title: "Opening Fit | Chess Opening Analysis & Repertoire Builder",
+  description:
+    "Opening Fit analyses your Chess.com or Lichess games to find which openings fit your play style, what to keep, what to improve, and what to study next.",
+  path: "/",
+  h1: "Find the chess openings that fit how you actually play",
+};
+
+const SEO_LINKS = [
+  ["Chess Opening Analysis", "/chess-opening-analysis"],
+  ["Chess Repertoire Builder", "/chess-repertoire-builder"],
+  ["Chess.com Opening Analysis", "/chesscom-opening-analysis"],
+  ["Lichess Opening Analysis", "/lichess-opening-analysis"],
+  ["Find Openings for Your Style", "/best-chess-openings-for-your-style"],
+  ["FAQ", "/faq"],
+];
+
+const SEO_PAGES = {
+  "/chess-opening-analysis": {
+    title: "Chess Opening Analysis from Your Real Games | Opening Fit",
+    description:
+      "Analyse your real Chess.com or Lichess games to see which chess openings score best, where weak lines repeat, and what to study next.",
+    h1: "Chess opening analysis based on your actual games",
+    intro:
+      "Opening Fit turns public online games into a practical opening report, so your repertoire decisions come from positions you actually reach.",
+    sections: [
+      ["Analyse your Chess.com or Lichess games", "Import public games and review the openings you play most often as White and Black."],
+      ["See which openings score best", "Compare results, sample size, and fit so strong openings are easy to keep in your repertoire."],
+      ["Find weak lines and repeat problems", "Spot openings where one recurring line is hurting results without treating the whole opening as bad."],
+      ["Turn the report into a practical study plan", "Use the report to decide what to keep, what to repair, and what to study in short sessions."],
+    ],
+  },
+  "/chess-repertoire-builder": {
+    title: "Chess Repertoire Builder for Real Online Games | Opening Fit",
+    description:
+      "Build a chess repertoire around your own online games, using opening results, style fit, and repair targets.",
+    h1: "Build a chess repertoire around how you actually play",
+    intro:
+      "Opening Fit helps you choose openings from your own evidence instead of copying random grandmaster repertoires.",
+    sections: [
+      ["Do not copy random grandmaster openings", "A good repertoire should fit your rating, style, memory, and typical middlegames."],
+      ["Use your own results", "Start from the Chess.com or Lichess openings that already appear in your games."],
+      ["Keep openings that suit you", "Protect reliable choices that score well and create positions you understand."],
+      ["Repair openings with line-level weaknesses", "Improve can mean one variation needs attention, not that the whole opening is wrong for you."],
+      ["Replace openings that create bad positions for you", "When an opening repeatedly gives you uncomfortable positions, the report can flag it for review."],
+    ],
+  },
+  "/chesscom-opening-analysis": {
+    title: "Chess.com Opening Analysis Tool | Opening Fit",
+    description:
+      "Import public Chess.com games and analyse your openings by colour, result, sample size, and study priority.",
+    h1: "Analyse your Chess.com openings",
+    intro:
+      "Opening Fit reads public Chess.com games and turns your opening history into a compact repertoire report.",
+    sections: [
+      ["Import public Chess.com games", "Enter a username and choose the import window to analyse recent public games."],
+      ["Find your best and worst openings", "See which openings are reliable, which need repair, and which may be risky right now."],
+      ["See opening results by colour", "Separate White and Black patterns so repertoire choices stay practical."],
+      ["Get a simple study plan", "Turn the findings into a focused plan instead of a long theory list."],
+    ],
+  },
+  "/lichess-opening-analysis": {
+    title: "Lichess Opening Analysis Tool | Opening Fit",
+    description:
+      "Import public Lichess games and analyse opening patterns, colour results, and practical repertoire choices.",
+    h1: "Analyse your Lichess openings",
+    intro:
+      "Opening Fit uses your public Lichess games to show opening patterns and study priorities from real results.",
+    sections: [
+      ["Import public Lichess games", "Use a Lichess username to create an opening report from recent public games."],
+      ["Find opening patterns", "Review common openings, recurring problems, and choices that match your style."],
+      ["Compare White and Black results", "Understand where each side of your repertoire is strongest or most fragile."],
+      ["Build a practical repertoire", "Keep useful openings, repair weak lines, and focus study time where it matters."],
+    ],
+  },
+  "/best-chess-openings-for-your-style": {
+    title: "Find the Best Chess Openings for Your Style | Opening Fit",
+    description:
+      "Find chess openings that fit your style using real Chess.com and Lichess games instead of a quiz.",
+    h1: "Find chess openings that fit your style",
+    intro:
+      "Opening Fit looks at your real games to connect opening choices with the kinds of positions you handle well.",
+    sections: [
+      ["Tactical vs positional openings", "Some players score best in active positions; others do better with slower plans and structure."],
+      ["Open vs closed positions", "Your games can reveal whether open centres, locked pawn chains, or flexible structures fit you best."],
+      ["Aggressive vs solid repertoires", "A good repertoire can be ambitious or steady, as long as it matches your decisions at the board."],
+      ["Real games instead of a quiz", "Opening Fit uses Chess.com and Lichess results rather than asking you to guess your style."],
+    ],
+  },
+  "/about": {
+    title: "About Opening Fit | Chess Opening Analysis",
+    description:
+      "Opening Fit is a chess opening analysis and repertoire builder for Chess.com and Lichess players.",
+    h1: "About Opening Fit",
+    intro:
+      "Opening Fit helps chess players understand which openings fit their real online games, then turns that evidence into a compact report and study plan.",
+    sections: [
+      ["Built around real games", "The app analyses public Chess.com and Lichess games rather than generic opening lists."],
+      ["Designed for practical study", "Reports focus on what to keep, what to improve, and what to study next."],
+      ["Free report available", "You can import games without logging in and view a free opening report."],
+    ],
+  },
+  "/faq": {
+    title: "Opening Fit FAQ | Chess Opening Analysis Questions",
+    description:
+      "Common questions about Opening Fit, Chess.com opening analysis, Lichess opening analysis, and chess repertoire reports.",
+    h1: "Opening Fit FAQ",
+    intro:
+      "Quick answers about using Opening Fit for chess opening analysis and repertoire building.",
+    faqs: [
+      ["Is OpeningFit free?", "A free report is available. Paid access unlocks deeper analysis and longer-term study features."],
+      ["Does it work with Chess.com?", "Yes. Opening Fit can import public Chess.com games by username."],
+      ["Does it work with Lichess?", "Yes. Opening Fit can import public Lichess games by username."],
+      ["Do I need to log in?", "No login is required for the basic import flow because the app uses public games."],
+      ["What does Keep / Improve / Avoid mean?", "Keep means the opening is working well, Improve means a line or pattern needs repair, and Avoid means the opening may be a poor practical fit for now."],
+      ["Is this a chess engine?", "No. Opening Fit is not an engine. It analyses opening results, patterns, and study priorities from your games."],
+      ["How is this different from Chessable or an opening trainer?", "Opening Fit helps decide what to study from your own games; opening trainers usually help memorise chosen lines."],
+    ],
+  },
+};
+
 const closedSections = {
   fit: false,
   style: false,
@@ -1786,6 +1909,138 @@ function Footer() {
         <a href="#premium">Premium</a>
       </div>
     </footer>
+  );
+}
+
+function getCurrentPath() {
+  if (typeof window === "undefined") return "/";
+  const path = window.location.pathname || "/";
+  return path.length > 1 ? path.replace(/\/+$/, "") : "/";
+}
+
+function getSeoData(path) {
+  const page = SEO_PAGES[path];
+  if (!page) return { ...HOME_SEO, url: `${SITE_URL}/` };
+  return { ...page, path, url: `${SITE_URL}${path}` };
+}
+
+function setMetaAttribute(selector, attributes) {
+  let tag = document.head.querySelector(selector);
+
+  if (!tag) {
+    tag = document.createElement("meta");
+    document.head.appendChild(tag);
+  }
+
+  Object.entries(attributes).forEach(([key, value]) => {
+    tag.setAttribute(key, value);
+  });
+}
+
+function setCanonical(url) {
+  let link = document.head.querySelector('link[rel="canonical"]');
+
+  if (!link) {
+    link = document.createElement("link");
+    link.setAttribute("rel", "canonical");
+    document.head.appendChild(link);
+  }
+
+  link.setAttribute("href", url);
+}
+
+function getSeoJsonLd(seoData) {
+  if (seoData.path === "/faq") {
+    return {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: seoData.faqs.map(([question, answer]) => ({
+        "@type": "Question",
+        name: question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: answer,
+        },
+      })),
+    };
+  }
+
+  if (seoData.path && seoData.path !== "/") {
+    return {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: seoData.title,
+      url: seoData.url,
+      description: seoData.description,
+      isPartOf: {
+        "@type": "WebSite",
+        name: "Opening Fit",
+        url: `${SITE_URL}/`,
+      },
+    };
+  }
+
+  return null;
+}
+
+function CompactSeoFooter() {
+  return (
+    <footer className="compactSeoFooter">
+      <nav aria-label="Opening Fit SEO links">
+        {SEO_LINKS.map(([label, href]) => (
+          <a key={href} href={href}>
+            {label}
+          </a>
+        ))}
+      </nav>
+      <p>
+        Chess opening analysis, repertoire builder, Chess.com and Lichess
+        opening report, study plan, and keep / improve / avoid guidance.
+        Founder Pass lifetime access: £8.
+      </p>
+    </footer>
+  );
+}
+
+function SeoRoutePage({ page }) {
+  return (
+    <>
+      <div className="page dark publicLandingPage" data-theme="dark">
+        <main className="container appShell seoRouteShell">
+          <section className="hero heroCard compactImportHero seoRouteHero">
+            <p className="eyebrow">Opening Fit</p>
+            <h1>{page.h1}</h1>
+            <p className="subtext">{page.intro}</p>
+            <a className="primaryBtn seoRouteCta" href="/">
+              Start a free opening report
+            </a>
+          </section>
+
+          {page.faqs ? (
+            <section className="seoRouteGrid seoFaqList" aria-label="FAQ">
+              {page.faqs.map(([question, answer]) => (
+                <article className="seoRouteCard" key={question}>
+                  <h2>{question}</h2>
+                  <p>{answer}</p>
+                </article>
+              ))}
+            </section>
+          ) : (
+            <section className="seoRouteGrid">
+              {page.sections.map(([title, text]) => (
+                <article className="seoRouteCard" key={title}>
+                  <h2>{title}</h2>
+                  <p>{text}</p>
+                </article>
+              ))}
+            </section>
+          )}
+
+          <CompactSeoFooter />
+        </main>
+      </div>
+      <Analytics />
+    </>
   );
 }
 
@@ -4243,6 +4498,77 @@ const [activeView, setActiveView] = useState("overview");
     }
   }, [hasReport]);
 
+  const currentPath = getCurrentPath();
+  const seoPage = SEO_PAGES[currentPath] || null;
+  const seoData = useMemo(() => getSeoData(currentPath), [currentPath]);
+
+  useEffect(() => {
+    document.title = seoData.title;
+    setCanonical(seoData.url);
+    setMetaAttribute('meta[name="description"]', {
+      name: "description",
+      content: seoData.description,
+    });
+    setMetaAttribute('meta[property="og:title"]', {
+      property: "og:title",
+      content: seoData.title,
+    });
+    setMetaAttribute('meta[property="og:description"]', {
+      property: "og:description",
+      content:
+        currentPath === "/"
+          ? "Analyse your real Chess.com and Lichess games to build a practical opening repertoire."
+          : seoData.description,
+    });
+    setMetaAttribute('meta[property="og:url"]', {
+      property: "og:url",
+      content: seoData.url,
+    });
+    setMetaAttribute('meta[property="og:type"]', {
+      property: "og:type",
+      content: "website",
+    });
+    setMetaAttribute('meta[property="og:image"]', {
+      property: "og:image",
+      content: `${SITE_URL}/og-image.png`,
+    });
+    setMetaAttribute('meta[name="twitter:card"]', {
+      name: "twitter:card",
+      content: "summary_large_image",
+    });
+    setMetaAttribute('meta[name="twitter:title"]', {
+      name: "twitter:title",
+      content: seoData.title,
+    });
+    setMetaAttribute('meta[name="twitter:description"]', {
+      name: "twitter:description",
+      content:
+        currentPath === "/"
+          ? "Find the chess openings that fit how you actually play."
+          : seoData.description,
+    });
+    setMetaAttribute('meta[name="twitter:image"]', {
+      name: "twitter:image",
+      content: `${SITE_URL}/og-image.png`,
+    });
+
+    const existingJsonLd = document.getElementById("seo-route-jsonld");
+    if (existingJsonLd) existingJsonLd.remove();
+
+    const jsonLd = getSeoJsonLd(seoData);
+    if (jsonLd) {
+      const script = document.createElement("script");
+      script.id = "seo-route-jsonld";
+      script.type = "application/ld+json";
+      script.textContent = JSON.stringify(jsonLd);
+      document.head.appendChild(script);
+    }
+  }, [currentPath, seoData]);
+
+  if (seoPage) {
+    return <SeoRoutePage page={seoData} />;
+  }
+
 
 
   return (
@@ -4360,13 +4686,14 @@ const [activeView, setActiveView] = useState("overview");
         <main className="container appShell" id="app-dashboard">
           {!data && !loading ? (
           <header className="hero heroCard compactImportHero">
-            <div className="heroTop">
+              <div className="heroTop">
               <div className="heroTitleWrap">
                 <p className="eyebrow">Opening Fit</p>
-                <h1>Find the openings that fit how you actually play.</h1>
+                <h1>Find the chess openings that fit how you actually play</h1>
                 <p className="subtext">
-                  Analyse your public games and get a compact opening report,
-                  practical verdicts, and a focused study plan.
+                  Chess opening analysis for your public Chess.com or Lichess
+                  games, with a compact opening report, repertoire builder,
+                  keep / improve / avoid guidance, and a focused study plan.
                 </p>
               </div>
             </div>
@@ -4497,6 +4824,8 @@ const [activeView, setActiveView] = useState("overview");
             ) : null}
           </header>
           ) : null}
+
+          {!data && !loading ? <CompactSeoFooter /> : null}
 
           {false ? <section className="loginScreenSection" id="account">
             <AccountPanel variant="screen" onUserChange={setAccountUser} />
