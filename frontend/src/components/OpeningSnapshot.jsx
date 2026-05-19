@@ -34,7 +34,8 @@ function isKeep(opening) {
   return (
     getCategory(opening) === "keep" ||
     verdict.includes("keep") ||
-    verdict.includes("core weapon")
+    verdict.includes("core weapon") ||
+    verdict.includes("trusted weapon")
   );
 }
 
@@ -45,6 +46,7 @@ function isImprove(opening) {
     getCategory(opening) === "review" ||
     verdict.includes("improve") ||
     verdict.includes("review") ||
+    verdict.includes("performance check") ||
     verdict.includes("fine-tune")
   );
 }

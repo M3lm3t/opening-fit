@@ -58,27 +58,19 @@ function collectOpenings(data) {
   return [];
 }
 
-function getVerdict(opening) {
-  const existing = opening?.verdict || opening?.recommendation || opening?.status;
-
-  if (existing) return String(existing);
-
-  const games = getGames(opening);
-  const winRate = getWinRate(opening);
-
-  if (games < 3) return "Watch";
-  if (winRate >= 58) return "Keep";
-  if (winRate >= 45) return "Improve";
-  return "Avoid for now";
-}
-
-function isStrongProfile(data) {
+function getPlayerTier(data) {
   const rating = Number(
     data?.rating ??
       data?.chesscomRating ??
       data?.chesscom_rating ??
       data?.lichessRating ??
       data?.lichess_rating ??
+      data?.rapidRating ??
+      data?.rapid_rating ??
+      data?.blitzRating ??
+      data?.blitz_rating ??
+      data?.bulletRating ??
+      data?.bullet_rating ??
       data?.player_level?.rating ??
       data?.playerLevel?.rating ??
       0
@@ -92,22 +84,103 @@ function isStrongProfile(data) {
       data?.player_level ??
       ""
   ).toLowerCase();
+  const title = String(
+    data?.title ??
+      data?.chessTitle ??
+      data?.chess_title ??
+      data?.fideTitle ??
+      data?.fide_title ??
+      data?.playerTitle ??
+      data?.player_title ??
+      data?.profile?.title ??
+      ""
+  )
+    .trim()
+    .toLowerCase();
+  const titledPlayer = ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(title);
 
-  return (
-    rating >= 2200 ||
-    level.includes("advanced") ||
-    level.includes("expert") ||
-    level.includes("master") ||
-    level.includes("elite")
-  );
+  if (rating >= 2500 || titledPlayer || level.includes("master") || level.includes("elite")) {
+    return "elite";
+  }
+
+  if (rating >= 2200 || level.includes("expert")) return "strong";
+  if (rating >= 1600 || level.includes("advanced")) return "club";
+  return "developing";
+}
+
+function getSampleTier(games) {
+  const count = Number(games || 0);
+  if (count >= 20) return "large";
+  if (count >= 8) return "medium";
+  if (count >= 3) return "small";
+  return "tiny";
+}
+
+function getVerdict(opening, data, index = 0) {
+  const existing = opening?.verdict || opening?.recommendation || opening?.status;
+  const tier = getPlayerTier(data);
+  const strongProfile = tier === "elite" || tier === "strong";
+  const games = getGames(opening);
+  const winRate = getWinRate(opening);
+  const sampleTier = getSampleTier(games);
+  const mainOpening = index <= 2 && games >= 8;
+
+  if (sampleTier === "tiny" || sampleTier === "small") return "Small sample";
+
+  if (existing) {
+    const lower = String(existing).toLowerCase();
+
+    if (strongProfile && lower.includes("improve")) {
+      return mainOpening ? (tier === "elite" ? "Core weapon" : "Trusted weapon") : "Review";
+    }
+
+    if (strongProfile && lower.includes("avoid")) {
+      return tier === "elite" || mainOpening ? "Performance check" : "Review";
+    }
+
+    return String(existing);
+  }
+
+  if (tier === "elite") {
+    if (mainOpening && winRate >= 45) return "Core weapon";
+    if (mainOpening) return "Review";
+    if (sampleTier === "large" && winRate < 25) return "Performance check";
+    if (winRate < 45) return "Review";
+    return "Keep";
+  }
+
+  if (tier === "strong") {
+    if (mainOpening && winRate >= 45) return "Trusted weapon";
+    if (mainOpening && winRate >= 35) return "Fine-tune";
+    if (winRate < 40) return "Review";
+    return "Keep";
+  }
+
+  if (winRate >= 58) return "Keep";
+  if (winRate >= 45) return "Improve";
+  if (mainOpening && winRate >= 35) return "Review";
+  return "Avoid";
+}
+
+function isStrongProfile(data) {
+  const tier = getPlayerTier(data);
+  return tier === "elite" || tier === "strong";
 }
 
 function getVerdictClass(verdict) {
   const lower = verdict.toLowerCase();
 
   if (lower.includes("keep")) return "reportVerdictKeep";
+  if (lower.includes("core") || lower.includes("trusted")) return "reportVerdictKeep";
   if (lower.includes("avoid")) return "reportVerdictAvoid";
-  if (lower.includes("improve")) return "reportVerdictImprove";
+  if (
+    lower.includes("improve") ||
+    lower.includes("review") ||
+    lower.includes("fine") ||
+    lower.includes("performance")
+  ) {
+    return "reportVerdictImprove";
+  }
 
   return "reportVerdictWatch";
 }
@@ -141,14 +214,13 @@ function getTotalGames(data, openings) {
   return openingTotal || 0;
 }
 
-function buildReportCards(openings) {
+function buildReportCards(openings, data) {
   const cleaned = openings
     .map((opening) => ({
       raw: opening,
       name: normaliseOpeningName(opening),
       games: getGames(opening),
       winRate: getWinRate(opening),
-      verdict: getVerdict(opening),
     }))
     .filter((opening) => {
       const name = opening.name.toLowerCase();
@@ -157,7 +229,11 @@ function buildReportCards(openings) {
         !["unknown", "unknown opening", "uncommon opening"].includes(name)
       );
     })
-    .sort((a, b) => b.games - a.games);
+    .sort((a, b) => b.games - a.games)
+    .map((opening, index) => ({
+      ...opening,
+      verdict: getVerdict(opening.raw, data, index),
+    }));
 
   const keep =
     cleaned
@@ -183,7 +259,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const openings = collectOpenings(data);
   const totalGames = getTotalGames(data, openings);
   const styleLabel = getStyleLabel(data);
-  const { keep, improve, avoid, cleaned } = buildReportCards(openings);
+  const { keep, improve, avoid, cleaned } = buildReportCards(openings, data);
   const strongProfile = isStrongProfile(data);
 
   const platformLabel =

@@ -84,13 +84,19 @@ function getOpenings(data) {
     .filter((opening) => opening.games > 0);
 }
 
-function isStrongProfile(data) {
+function getPlayerTier(data) {
   const rating = Number(
     data?.rating ??
       data?.chesscomRating ??
       data?.chesscom_rating ??
       data?.lichessRating ??
       data?.lichess_rating ??
+      data?.rapidRating ??
+      data?.rapid_rating ??
+      data?.blitzRating ??
+      data?.blitz_rating ??
+      data?.bulletRating ??
+      data?.bullet_rating ??
       data?.player_level?.rating ??
       data?.playerLevel?.rating ??
       0
@@ -104,21 +110,50 @@ function isStrongProfile(data) {
       data?.player_level ??
       ""
   ).toLowerCase();
+  const title = String(
+    data?.title ??
+      data?.chessTitle ??
+      data?.chess_title ??
+      data?.fideTitle ??
+      data?.fide_title ??
+      data?.playerTitle ??
+      data?.player_title ??
+      data?.profile?.title ??
+      ""
+  )
+    .trim()
+    .toLowerCase();
+  const titledPlayer = ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(title);
 
-  return (
-    rating >= 2200 ||
-    level.includes("advanced") ||
-    level.includes("expert") ||
-    level.includes("master") ||
-    level.includes("elite")
-  );
+  if (rating >= 2500 || titledPlayer || level.includes("master") || level.includes("elite")) {
+    return "elite";
+  }
+
+  if (rating >= 2200 || level.includes("expert")) return "strong";
+  if (rating >= 1600 || level.includes("advanced")) return "club";
+  return "developing";
+}
+
+function isStrongProfile(data) {
+  const tier = getPlayerTier(data);
+  return tier === "elite" || tier === "strong";
+}
+
+function getSampleTier(games) {
+  const count = Number(games || 0);
+  if (count >= 20) return "large";
+  if (count >= 8) return "medium";
+  if (count >= 3) return "small";
+  return "tiny";
 }
 
 function getVerdict(opening, data, index = 0) {
-  const strongProfile = isStrongProfile(data);
+  const tier = getPlayerTier(data);
+  const strongProfile = tier === "elite" || tier === "strong";
   const mainOpening = index <= 2 && opening.games >= 8;
+  const sampleTier = getSampleTier(opening.games);
 
-  if (opening.games < 3) {
+  if (sampleTier === "tiny" || sampleTier === "small") {
     return {
       label: "Small sample",
       tone: "neutral",
@@ -128,14 +163,25 @@ function getVerdict(opening, data, index = 0) {
     };
   }
 
-  if (strongProfile && mainOpening && opening.winRate >= 38) {
+  if (tier === "elite" && mainOpening && opening.winRate >= 45) {
     return {
       label: "Core weapon",
       tone: "positive",
       reason:
-        "This is a heavily played opening for a strong player. Treat it as a trusted repertoire choice unless a deeper branch-level review proves otherwise.",
+        "This is a heavily played opening for an elite player. Treat it as a core repertoire choice unless a deeper branch-level review proves otherwise.",
       action:
         "Audit recurring loss structures, opponent rating bands, and move-order details rather than replacing the opening.",
+    };
+  }
+
+  if (tier === "strong" && mainOpening && opening.winRate >= 45) {
+    return {
+      label: "Trusted weapon",
+      tone: "positive",
+      reason:
+        "This is used often enough to look like a trusted part of the repertoire. Mixed recent results should trigger review, not replacement.",
+      action:
+        "Review losses by structure and variation before drawing conclusions from the headline win rate.",
     };
   }
 
@@ -173,7 +219,7 @@ function getVerdict(opening, data, index = 0) {
   }
 
   return {
-    label: "Avoid for now",
+    label: "Avoid",
     tone: "danger",
     reason:
       "This opening is currently dragging your results down. That does not mean it is bad, but it may not fit your current style or understanding.",

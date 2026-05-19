@@ -558,9 +558,24 @@ function getPlayerTier(data) {
       data?.level ??
       ""
   ).toLowerCase();
+  const title = String(
+    data?.title ??
+      data?.chessTitle ??
+      data?.chess_title ??
+      data?.fideTitle ??
+      data?.fide_title ??
+      data?.playerTitle ??
+      data?.player_title ??
+      data?.profile?.title ??
+      ""
+  )
+    .trim()
+    .toLowerCase();
+  const titledPlayer = ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(title);
 
   if (
     rating >= 2500 ||
+    titledPlayer ||
     level.includes("elite") ||
     level.includes("master") ||
     level.includes("gm") ||
@@ -573,7 +588,6 @@ function getPlayerTier(data) {
   if (
     rating >= 2200 ||
     level.includes("expert") ||
-    level.includes("advanced") ||
     level.includes("candidate master") ||
     level.includes("national master")
   ) {
@@ -582,6 +596,7 @@ function getPlayerTier(data) {
 
   if (
     rating >= 1600 ||
+    level.includes("advanced") ||
     level.includes("club") ||
     level.includes("strong")
   ) {
@@ -621,6 +636,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   const tier = getPlayerTier(data);
   const sampleTier = getOpeningSampleTier(games);
   const isMainWeapon = index <= 2 && games >= 8;
+  const largeSample = sampleTier === "large";
   const rating = getProfileRating(data);
   const opposition = getAverageOppositionRating(opening, data);
   const strongOpposition =
@@ -631,6 +647,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       label: "Review",
       category: "review",
       tone: "neutral",
+      severity: "neutral",
       message:
         "This opening was not clearly classified. Review the move order before treating it as a repertoire problem.",
     };
@@ -641,8 +658,9 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       label: "Small sample",
       category: "neutral",
       tone: "neutral",
+      severity: "neutral",
       message:
-        "There is not enough data here to make a confident call yet. Treat this as a note, not a verdict.",
+        "There is not enough data here to make a confident recommendation yet. Treat this as a note, not a verdict.",
     };
   }
 
@@ -651,39 +669,54 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       label: "Small sample",
       category: "neutral",
       tone: "neutral",
+      severity: "neutral",
       message:
-        "This opening has appeared a few times, but the sample is still too small for strong advice. Keep tracking it before changing the repertoire.",
+        "This opening has appeared a few times, but the sample is still too small for confident advice. Keep tracking it before changing the repertoire.",
     };
   }
 
   if (tier === "elite") {
-    if (isMainWeapon && winRate >= 38) {
+    if (isMainWeapon && winRate >= 45) {
       return {
         label: "Core weapon",
         category: "keep",
         tone: "positive",
+        severity: "positive",
         message:
-          "This looks like a regular part of the repertoire. Recent results are worth reviewing, but the opening should be treated as a trusted core weapon rather than something to abandon.",
+          "This looks like a regular part of the repertoire. Recent results are worth reviewing, but the data points to targeted fine-tuning rather than replacing the opening.",
       };
     }
 
     if (isMainWeapon) {
       return {
-        label: "Deep review",
+        label: "Review",
         category: "review",
         tone: "warning",
+        severity: "warning",
         message:
-          "This is still likely a serious repertoire choice. The useful question is which branches, structures, or opponent pools are causing the recent losses.",
+          "This appears to be a core opening with recent underperformance. Review recurring loss patterns, specific sidelines, or middlegame structures rather than treating the opening as a bad choice.",
       };
     }
 
-    if (winRate < 42) {
+    if (largeSample && games >= 20 && winRate < 25) {
+      return {
+        label: "Performance check",
+        category: "review",
+        tone: "warning",
+        severity: "warning",
+        message:
+          "This is a large sample with unusually poor recent results. Even then, for an elite player this should be treated as a performance check before calling the opening a bad choice.",
+      };
+    }
+
+    if (winRate < 45) {
       return {
         label: "Review",
         category: "review",
         tone: "warning",
+        severity: "warning",
         message:
-          "The opening itself may still be sound, but recent results suggest specific lines, move orders, or middlegame structures are worth checking.",
+          "Recent results in this opening are below the player's usual level. For a top player, frame this as a performance review, not beginner improvement advice.",
       };
     }
 
@@ -691,6 +724,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       label: "Keep",
       category: "keep",
       tone: "positive",
+      severity: "positive",
       message:
         "This opening is performing well enough to remain part of the repertoire. Look for refinements rather than replacement ideas.",
     };
@@ -699,11 +733,12 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   if (tier === "strong") {
     if (isMainWeapon && winRate >= 45) {
       return {
-        label: "Core weapon",
+        label: "Trusted weapon",
         category: "keep",
         tone: "positive",
+        severity: "positive",
         message:
-          "This is a high-volume opening that still looks viable. Recent results may be mixed, but it should be reviewed as a main weapon, not treated as a beginner-level weakness.",
+          "This is used often enough to look like a trusted part of the repertoire. Review recent losses for patterns, but do not treat this as an opening to abandon.",
       };
     }
 
@@ -712,6 +747,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
         label: "Fine-tune",
         category: "review",
         tone: "warning",
+        severity: "warning",
         message:
           "This is probably still a useful part of the repertoire. Fine-tune the specific variations or middlegame structures where the recent results are slipping.",
       };
@@ -722,6 +758,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
         label: "Review",
         category: "review",
         tone: "warning",
+        severity: "warning",
         message: strongOpposition
           ? "Recent results are under pressure against strong opposition. Review recurring loss patterns before deciding whether the opening itself is the issue."
           : "Recent results suggest this line is worth reviewing. The issue may be a branch or structure, not the opening choice itself.",
@@ -732,6 +769,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       label: "Keep",
       category: "keep",
       tone: "positive",
+      severity: "positive",
       message:
         "This opening is performing well enough to stay in the repertoire. Use the games to refine plans rather than replace the opening.",
     };
@@ -742,6 +780,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       label: "Keep",
       category: "keep",
       tone: "positive",
+      severity: "positive",
       message:
         "This is one of the player's main openings and the results are playable. Keep it, but review the recurring positions that decide games.",
     };
@@ -752,6 +791,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       label: "Keep",
       category: "keep",
       tone: "positive",
+      severity: "positive",
       message:
         "This opening is working well and should stay in the repertoire.",
     };
@@ -762,6 +802,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       label: "Improve",
       category: "improve",
       tone: "warning",
+      severity: "warning",
       message:
         "This opening is playable, but there are likely recurring positions worth improving.",
     };
@@ -772,15 +813,17 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       label: "Review",
       category: "review",
       tone: "warning",
+      severity: "warning",
       message:
         "Because this is a main opening, do not abandon it too quickly. Review the losses and simplify the most uncomfortable lines first.",
     };
   }
 
   return {
-    label: "Avoid for now",
+    label: "Avoid",
     category: "avoid",
     tone: "danger",
+    severity: "danger",
     message:
       "This opening may currently be costing points. Consider simplifying the setup or replacing it until the recurring problems are clearer.",
   };
@@ -858,7 +901,8 @@ function buildOpeningFitData(data) {
       const rank = volumeRank.get(getOpeningName(opening).toLowerCase()) ?? 99;
       const smartVerdict = getSmartOpeningVerdict(opening, data, rank);
       const fitScore =
-        smartVerdict.label === "Core weapon"
+        smartVerdict.label === "Core weapon" ||
+        smartVerdict.label === "Trusted weapon"
           ? Math.max(score, 78)
           : smartVerdict.category === "review"
           ? Math.max(score, 58)
@@ -870,6 +914,7 @@ function buildOpeningFitData(data) {
         fitVerdict: smartVerdict.label,
         fitCategory: smartVerdict.category,
         fitTone: smartVerdict.tone,
+        fitSeverity: smartVerdict.severity,
         fitSampleTier: getOpeningSampleTier(getOpeningGames(opening)),
         fitExplanation: getOpeningExplanation(
           opening,
@@ -3681,7 +3726,8 @@ const [activeView, setActiveView] = useState("overview");
 
     if (
       normalized.includes("keep") ||
-      normalized.includes("core weapon")
+      normalized.includes("core weapon") ||
+      normalized.includes("trusted weapon")
     ) {
       return "verdict keep";
     }
@@ -3689,6 +3735,7 @@ const [activeView, setActiveView] = useState("overview");
     if (
       normalized.includes("improve") ||
       normalized.includes("review") ||
+      normalized.includes("performance check") ||
       normalized.includes("fine-tune") ||
       normalized.includes("deep review")
     ) {

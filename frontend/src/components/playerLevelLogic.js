@@ -96,6 +96,10 @@ export function collectRatings(data) {
     data?.bullet_rating,
     data?.chesscomRating,
     data?.chesscom_rating,
+    data?.lichessRating,
+    data?.lichess_rating,
+    data?.player_level?.rating,
+    data?.playerLevel?.rating,
   ];
 
   directFields.forEach((value) => {
@@ -133,23 +137,36 @@ export function collectRatings(data) {
 
 export function getPlayerLevelProfile(data) {
   const rating = collectRatings(data);
-
-  const username = String(
-    data?.username ||
-      data?.playerName ||
-      data?.player_name ||
-      data?.requestedUsername ||
-      data?.requested_username ||
+  const level = String(
+    data?.playerLevel?.level ??
+      data?.playerLevel?.label ??
+      data?.playerLevel ??
+      data?.player_level?.level ??
+      data?.player_level?.label ??
+      data?.player_level ??
       ""
   ).toLowerCase();
+  const title = String(
+    data?.title ??
+      data?.chessTitle ??
+      data?.chess_title ??
+      data?.fideTitle ??
+      data?.fide_title ??
+      data?.playerTitle ??
+      data?.player_title ??
+      data?.profile?.title ??
+      ""
+  )
+    .trim()
+    .toLowerCase();
+  const titledPlayer = ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(title);
 
-  const likelyEliteUsername =
-    username === "hikaru" ||
-    username === "magnuscarlsen" ||
-    username === "drnykterstein" ||
-    username === "gmhikaru";
-
-  if (likelyEliteUsername && (!rating || rating >= 2200)) {
+  if (
+    rating >= 2500 ||
+    titledPlayer ||
+    level.includes("master") ||
+    level.includes("elite")
+  ) {
     return {
       rating,
       level: "elite",
@@ -165,6 +182,44 @@ export function getPlayerLevelProfile(data) {
         "Focus on trend detection, colour splits, opponent prep, weak-scoring sidelines, and changes over time.",
       trainingFocus:
         "Review high-sample repertoire trends and identify specific branches that underperform.",
+    };
+  }
+
+  if (rating >= 2200 || level.includes("expert")) {
+    return {
+      rating,
+      level: "strong",
+      label: "Expert / strong player",
+      shortLabel: "Expert",
+      tone: "audit",
+      openingUnknownLabel: "Rare line / transposition",
+      unknownExplanation:
+        "For strong players, unclassified openings are more likely to be transpositions, sidelines, or detector limitations than random opening play.",
+      headline:
+        "This player needs repertoire refinement, not generic opening advice.",
+      recommendation:
+        "Use colour splits, weak branches, and repeated middlegame structures to refine the repertoire.",
+      trainingFocus:
+        "Opening branches, time-control trends, opponent rating bands, and move-order issues.",
+    };
+  }
+
+  if (level.includes("advanced")) {
+    return {
+      rating,
+      level: "club",
+      label: "Advanced / club player",
+      shortLabel: "Advanced",
+      tone: "refine",
+      openingUnknownLabel: "Rare line / transposition",
+      unknownExplanation:
+        "For advanced players, this often means a transposition, sideline, or incomplete ECO detection rather than a random opening.",
+      headline:
+        "This player can refine a practical repertoire from repeated structures.",
+      recommendation:
+        "Use colour splits, weak branches, and repeated middlegame structures to refine the repertoire.",
+      trainingFocus:
+        "Opening branches, time-control trends, opponent rating bands, and move-order issues.",
     };
   }
 
@@ -244,18 +299,20 @@ export function getPlayerLevelProfile(data) {
     };
   }
 
-  if (rating < 2000) {
+  if (rating < 2200) {
     return {
       rating,
-      level: "strong",
-      label: "Strong club player",
-      shortLabel: "Strong club",
+      level: "club",
+      label: rating >= 1600 ? "Advanced / club player" : "Club player",
+      shortLabel: rating >= 1600 ? "Advanced" : "Club",
       tone: "refine",
       openingUnknownLabel: "Rare line / transposition",
       unknownExplanation:
         "For stronger players, this often means a transposition, sideline, or incomplete ECO detection rather than a random opening.",
       headline:
-        "This player needs refinement, not generic opening advice.",
+        rating >= 1600
+          ? "This player can refine a practical repertoire from repeated structures."
+          : "This player can build a practical repertoire from repeated patterns.",
       recommendation:
         "Use colour splits, weak branches, and repeated middlegame structures to refine the repertoire.",
       trainingFocus:
@@ -263,12 +320,12 @@ export function getPlayerLevelProfile(data) {
     };
   }
 
-  if (rating < 2400) {
+  if (rating < 2500) {
     return {
       rating,
-      level: "advanced",
-      label: "Advanced player",
-      shortLabel: "Advanced",
+      level: "strong",
+      label: "Expert / strong player",
+      shortLabel: "Expert",
       tone: "audit",
       openingUnknownLabel: "Rare line / transposition",
       unknownExplanation:

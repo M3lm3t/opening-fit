@@ -40,7 +40,7 @@ function getRating(data) {
   return values.length ? Math.max(...values) : 0;
 }
 
-function isStrongProfile(data) {
+function getPlayerTier(data) {
   const rating = getRating(data);
   const level = String(
     data?.playerLevel?.level ??
@@ -51,34 +51,62 @@ function isStrongProfile(data) {
       data?.player_level ??
       ""
   ).toLowerCase();
+  const title = String(
+    data?.title ??
+      data?.chessTitle ??
+      data?.chess_title ??
+      data?.fideTitle ??
+      data?.fide_title ??
+      data?.playerTitle ??
+      data?.player_title ??
+      data?.profile?.title ??
+      ""
+  )
+    .trim()
+    .toLowerCase();
 
   return (
-    rating >= 2200 ||
-    level.includes("advanced") ||
-    level.includes("expert") ||
+    rating >= 2500 ||
+    ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(title) ||
     level.includes("master") ||
     level.includes("elite")
-  );
+  )
+    ? "elite"
+    : rating >= 2200 || level.includes("expert")
+    ? "strong"
+    : rating >= 1600 || level.includes("advanced")
+    ? "club"
+    : "developing";
+}
+
+function isStrongProfile(data) {
+  const tier = getPlayerTier(data);
+  return tier === "elite" || tier === "strong";
 }
 
 function verdictFor(item, data, index = 0) {
   const verdict = String(item?.verdict || "").toLowerCase();
-  const strongProfile = isStrongProfile(data);
+  const tier = getPlayerTier(data);
+  const strongProfile = tier === "elite" || tier === "strong";
   const games = getGames(item);
   const winRate = getWinRate(item);
   const mainOpening = index <= 2 && games >= 8;
 
   if (verdict.includes("keep")) return "Keep";
   if (verdict.includes("core")) return "Core weapon";
+  if (verdict.includes("trusted")) return "Trusted weapon";
   if (verdict.includes("review")) return "Review";
   if (verdict.includes("fine")) return "Fine-tune";
+  if (verdict.includes("performance")) return "Performance check";
   if (verdict.includes("improve")) return strongProfile ? "Review" : "Improve";
-  if (verdict.includes("avoid")) return strongProfile && mainOpening ? "Review" : "Avoid";
+  if (verdict.includes("avoid")) return strongProfile ? (mainOpening ? "Performance check" : "Review") : "Avoid";
 
-  if (games < 3) return "Small sample";
+  if (games < 8) return "Small sample";
 
-  if (strongProfile && mainOpening && winRate >= 38) return "Core weapon";
-  if (strongProfile && winRate < 45) return mainOpening ? "Fine-tune" : "Review";
+  if (tier === "elite" && mainOpening && winRate >= 45) return "Core weapon";
+  if (tier === "strong" && mainOpening && winRate >= 45) return "Trusted weapon";
+  if (strongProfile && mainOpening && winRate >= 35) return "Fine-tune";
+  if (strongProfile && winRate < 45) return "Review";
   if (strongProfile) return "Keep";
 
   if (winRate >= 58) return "Keep";

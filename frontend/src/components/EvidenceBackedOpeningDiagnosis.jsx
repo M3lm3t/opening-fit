@@ -79,6 +79,56 @@ function getSide(item) {
   return "in your games";
 }
 
+function getPlayerTier(data) {
+  const rating = number(
+    data?.rating ??
+      data?.chesscomRating ??
+      data?.chesscom_rating ??
+      data?.lichessRating ??
+      data?.lichess_rating ??
+      data?.rapidRating ??
+      data?.rapid_rating ??
+      data?.blitzRating ??
+      data?.blitz_rating ??
+      data?.bulletRating ??
+      data?.bullet_rating ??
+      data?.player_level?.rating ??
+      data?.playerLevel?.rating ??
+      0
+  );
+  const level = String(
+    data?.playerLevel?.level ??
+      data?.playerLevel?.label ??
+      data?.playerLevel ??
+      data?.player_level?.level ??
+      data?.player_level?.label ??
+      data?.player_level ??
+      ""
+  ).toLowerCase();
+  const title = String(
+    data?.title ??
+      data?.chessTitle ??
+      data?.chess_title ??
+      data?.fideTitle ??
+      data?.fide_title ??
+      data?.playerTitle ??
+      data?.player_title ??
+      data?.profile?.title ??
+      ""
+  )
+    .trim()
+    .toLowerCase();
+  const titledPlayer = ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(title);
+
+  if (rating >= 2500 || titledPlayer || level.includes("master") || level.includes("elite")) {
+    return "elite";
+  }
+
+  if (rating >= 2200 || level.includes("expert")) return "strong";
+  if (rating >= 1600 || level.includes("advanced")) return "club";
+  return "developing";
+}
+
 function collectOpenings(data) {
   const sources = [
     data?.opening_stats,
@@ -135,15 +185,41 @@ function getAverage(openings) {
   return total.games ? Math.round(total.points / total.games) : 50;
 }
 
-function getVerdict(item, average) {
-  const explicit = String(item?.verdict || item?.recommendation || "").toLowerCase();
-
-  if (explicit.includes("keep")) return "Keep";
-  if (explicit.includes("avoid")) return "Avoid for now";
-  if (explicit.includes("improve")) return "Improve";
-
+function getVerdict(item, average, data, index = 0) {
+  const explicit = String(
+    item?.fitVerdict || item?.fit_verdict || item?.verdict || item?.recommendation || ""
+  ).toLowerCase();
+  const tier = getPlayerTier(data);
+  const strongProfile = tier === "elite" || tier === "strong";
   const games = getGames(item);
   const score = getScore(item);
+  const mainOpening = index <= 2 && games >= 8;
+
+  if (explicit.includes("keep")) return "Keep";
+  if (explicit.includes("core")) return "Core weapon";
+  if (explicit.includes("trusted")) return "Trusted weapon";
+  if (explicit.includes("review")) return "Review";
+  if (explicit.includes("fine")) return "Fine-tune";
+  if (explicit.includes("performance")) return "Performance check";
+  if (explicit.includes("avoid")) return strongProfile ? (mainOpening ? "Performance check" : "Review") : "Avoid for now";
+  if (explicit.includes("improve")) return strongProfile ? "Review" : "Improve";
+
+  if (games < 8) return "Small sample";
+
+  if (tier === "elite") {
+    if (mainOpening && score >= 45) return "Core weapon";
+    if (mainOpening) return "Review";
+    if (games >= 20 && score < 25) return "Performance check";
+    if (score < 45) return "Review";
+    return "Keep";
+  }
+
+  if (tier === "strong") {
+    if (mainOpening && score >= 45) return "Trusted weapon";
+    if (mainOpening && score >= 35) return "Fine-tune";
+    if (score < 40) return "Review";
+    return "Keep";
+  }
 
   if (games >= 6 && score >= Math.max(55, average + 5)) return "Keep";
   if (games >= 6 && score <= Math.min(42, average - 8)) return "Avoid for now";
@@ -209,11 +285,24 @@ function buildReason(item, average, verdict) {
       ? `${wins} wins, ${draws} draws and ${losses} losses`
       : `${games} games reviewed`;
 
-  if (verdict === "Keep") {
+  if (["Keep", "Core weapon", "Trusted weapon"].includes(verdict)) {
     return {
-      title: `${name} is earning its place.`,
-      body: `You are scoring ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, so this looks like a genuine practical strength rather than one lucky result.`,
-      action: "Keep it in your main repertoire. Study the reply that currently makes the position least comfortable instead of replacing the opening.",
+      title:
+        verdict === "Core weapon"
+          ? `${name} looks like a core weapon.`
+          : verdict === "Trusted weapon"
+            ? `${name} looks trusted.`
+            : `${name} is earning its place.`,
+      body: `You are scoring ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, so this looks like a meaningful repertoire signal rather than one isolated result.`,
+      action: "Keep it in the repertoire. Review the reply or structure that currently makes the position least comfortable instead of replacing the opening.",
+    };
+  }
+
+  if (["Review", "Fine-tune", "Performance check"].includes(verdict)) {
+    return {
+      title: `${name} deserves targeted review.`,
+      body: `You are scoring ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, so this is worth treating as a practical problem, not just bad luck.`,
+      action: "Look for repeated loss patterns, move-order issues, or middlegame structures before making a repertoire change.",
     };
   }
 
@@ -221,7 +310,7 @@ function buildReason(item, average, verdict) {
     return {
       title: `${name} is currently costing points.`,
       body: `You are scoring ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, so this is worth treating as a practical problem, not just bad luck.`,
-      action: "Pause it for now. Use a steadier option for your next block of games, then come back to it once the rest of the repertoire is cleaner.",
+      action: "Pause it for now or simplify the setup, then come back to it once the rest of the repertoire is cleaner.",
     };
   }
 
@@ -238,6 +327,8 @@ export default function EvidenceBackedOpeningDiagnosis({ data, onPractice }) {
   if (!data || openings.length === 0) return null;
 
   const average = getAverage(openings);
+  const tier = getPlayerTier(data);
+  const strongProfile = tier === "elite" || tier === "strong";
 
   return (
     <section className="evidenceDiagnosisShell" id="opening-evidence">
@@ -249,7 +340,9 @@ export default function EvidenceBackedOpeningDiagnosis({ data, onPractice }) {
             OpeningFit is comparing each opening against your own results, not a generic
             list of fashionable openings. Your current opening average is{" "}
             <strong>{average}%</strong>, so the key question is whether each opening is
-            helping, repairable, or quietly costing points.
+            {strongProfile
+              ? " a trusted weapon, a review target, or too small a sample to judge."
+              : " helping, repairable, or quietly costing points."}
           </p>
         </div>
 
@@ -261,11 +354,11 @@ export default function EvidenceBackedOpeningDiagnosis({ data, onPractice }) {
       </div>
 
       <div className="evidenceDiagnosisList">
-        {openings.map((opening) => {
+        {openings.map((opening, index) => {
           const name = getOpeningName(opening);
           const games = getGames(opening);
           const score = getScore(opening);
-          const verdict = getVerdict(opening, average);
+          const verdict = getVerdict(opening, average, data, index);
           const reason = buildReason(opening, average, verdict);
           const diff = Math.round(score - average);
 
