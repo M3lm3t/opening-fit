@@ -11,7 +11,8 @@ const EMPTY_PROFILE = {
 
 export default function AccountPanel({ variant = "floating",
   onUserChange,}) {
-  const [isOpen, setIsOpen] = useState(false);
+  const isScreen = variant === "screen";
+  const [isOpen, setIsOpen] = useState(isScreen);
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [email, setEmail] = useState("");
@@ -19,6 +20,10 @@ export default function AccountPanel({ variant = "floating",
   const [saving, setSaving] = useState(false);
 
   const user = session?.user || null;
+
+  useEffect(() => {
+    if (isScreen) setIsOpen(true);
+  }, [isScreen]);
 
   useEffect(() => {
     if (typeof onUserChange === "function") {
@@ -260,14 +265,16 @@ export default function AccountPanel({ variant = "floating",
 
   return (
     <div className={`accountPanelShell accountPanelShell--${variant}`}>
-      <button
-        className={`accountPill accountPill--${variant} ${user ? "isSignedIn" : ""}`}
-        type="button"
-        onClick={() => setIsOpen((value) => !value)}
-      >
-        <span className="accountDot" />
-        {user ? "My account" : "Sign in"}
-      </button>
+      {!isScreen ? (
+        <button
+          className={`accountPill accountPill--${variant} ${user ? "isSignedIn" : ""}`}
+          type="button"
+          onClick={() => setIsOpen((value) => !value)}
+        >
+          <span className="accountDot" />
+          {user ? "My account" : "Sign in"}
+        </button>
+      ) : null}
 
       {isOpen ? (
         <div className={`accountPanel accountPanel--${variant}`}>
@@ -277,9 +284,11 @@ export default function AccountPanel({ variant = "floating",
               <h3>{user ? displayName : "Save your reports"}</h3>
             </div>
 
-            <button className="accountCloseBtn" type="button" onClick={() => setIsOpen(false)}>
-              ×
-            </button>
+            {!isScreen ? (
+              <button className="accountCloseBtn" type="button" onClick={() => setIsOpen(false)}>
+                ×
+              </button>
+            ) : null}
           </div>
 
           {!isSupabaseConfigured ? (

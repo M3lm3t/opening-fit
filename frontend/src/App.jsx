@@ -1309,149 +1309,90 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
 function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange }) {
   const [open, setOpen] = useState(false);
 
-  const mainItems = [
-    { label: "Import", target: "app-dashboard" },
-    { label: "Report", view: "overview", target: "app-results" },
-    { label: "Suggestions", view: "recommendations", target: "section-recommendations" },
-    { label: "Premium", view: "repertoire", target: "premium" },
-    { label: "Feedback", view: "feedback", target: "feedback" },
+  const menuRoutes = [
+    { key: "import", label: "Import", target: "app-dashboard" },
+    { key: "account", label: "Login", target: "account" },
+    { key: "overview", label: "Overview", view: "overview", target: "app-results" },
+    { key: "recommendations", label: "Suggestions", view: "recommendations", target: "section-recommendations" },
+    { key: "training", label: "Training", view: "training", target: "section-training" },
+    { key: "games", label: "Games", view: "games", target: "section-replay" },
+    { key: "data", label: "Data", view: "data", target: "section-chart" },
+    { key: "repertoire", label: "Repertoire", view: "repertoire", target: "premium" },
+    { key: "feedback", label: "Feedback", view: "feedback", target: "feedback" },
   ];
 
-  const appViews = [
-    { key: "overview", label: "Overview" },
-    { key: "recommendations", label: "Recommendations" },
-    { key: "training", label: "Study Session" },
-    { key: "games", label: "Games" },
-    { key: "data", label: "Data" },
-    { key: "repertoire", label: "Repertoire" },
-  ];
+  const scrollToElement = (target) => {
+    if (!target) return false;
+    const offset = window.innerWidth <= 760 ? 86 : 108;
+    const top = target.getBoundingClientRect().top + window.scrollY - offset;
 
-  const scrollToReportTop = () => {
+    window.scrollTo({
+      top: Math.max(0, top),
+      behavior: "smooth",
+    });
+
+    return true;
+  };
+
+  const scrollToTarget = (targetId) => {
     const target =
+      document.getElementById(targetId) ||
       document.getElementById("app-results") ||
-      document.querySelector(".appTabsCard") ||
-      document.getElementById("openingfit-report") ||
-      document.getElementById("opening-fit-report") ||
       document.getElementById("app-dashboard");
 
-    if (!target) return;
-
-    const offset = window.innerWidth <= 760 ? 86 : 108;
-    const top = target.getBoundingClientRect().top + window.scrollY - offset;
-
-    window.scrollTo({
-      top: Math.max(0, top),
-      behavior: "smooth",
-    });
+    scrollToElement(target);
   };
 
-  const scrollToId = (id, fallback = scrollToReportTop) => {
-    const target = document.getElementById(id);
-
-    if (!target) {
-      fallback();
-      return;
+  const navigate = (route) => {
+    if (route.view && typeof onViewChange === "function") {
+      onViewChange(route.view);
     }
 
-    const offset = window.innerWidth <= 760 ? 86 : 108;
-    const top = target.getBoundingClientRect().top + window.scrollY - offset;
-
-    window.scrollTo({
-      top: Math.max(0, top),
-      behavior: "smooth",
-    });
-  };
-
-  const goToReportView = (view, targetId = "app-results") => {
-    if (typeof onViewChange === "function") {
-      onViewChange(view);
+    if (!route.view && typeof onJump === "function") {
+      onJump(route.target);
     }
 
     setOpen(false);
 
-    const scrollToTarget = () => scrollToId(targetId, scrollToReportTop);
-
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(scrollToTarget);
+    [80, 220, 480].forEach((delay) => {
+      setTimeout(() => scrollToTarget(route.target), delay);
     });
-
-    setTimeout(scrollToTarget, 120);
-    setTimeout(scrollToTarget, 360);
-  };
-
-  const goToMainSection = (item) => {
-    setOpen(false);
-
-    if (item.view) {
-      goToReportView(item.view, item.target || "app-results");
-      return;
-    }
-
-    if (typeof onJump === "function") {
-      onJump(item.target);
-    }
-
-    setTimeout(() => scrollToId(item.target, scrollToReportTop), 80);
-    setTimeout(() => scrollToId(item.target, scrollToReportTop), 240);
   };
 
   return (
-    <div className={`floatingMenu ${open ? "floatingMenuOpen" : ""}`}>
+    <nav className={`openingAppMenu ${open ? "openingAppMenuOpen" : ""}`} aria-label="Opening Fit navigation">
       <button
-        className="floatingMenuToggle"
+        className="openingAppMenuToggle"
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        aria-label="Open navigation menu"
+        aria-expanded={open}
+        aria-label={open ? "Close navigation menu" : "Open navigation menu"}
       >
-        ☰
+        {open ? "×" : "☰"}
       </button>
 
       {open ? (
-        <div className="floatingMenuPanel">
-          <div className="floatingMenuHeader">
-            <strong>Opening Fit Menu</strong>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Close menu">
-              ×
-            </button>
+        <div className="openingAppMenuPanel">
+          <div className="openingAppMenuHeader">
+            <strong>Opening Fit</strong>
+            <span>{data ? "Report navigation" : "Start here"}</span>
           </div>
 
-          <p className="floatingMenuLabel">Main</p>
-          <div className="floatingMenuButtons">
-            {mainItems.map((item) => (
+          <div className="openingAppMenuGrid">
+            {menuRoutes.map((route) => (
               <button
-                key={item.label}
+                key={route.key}
                 type="button"
-                onClick={() => goToMainSection(item)}
+                className={activeView === route.view ? "isActive" : ""}
+                onClick={() => navigate(route)}
               >
-                {item.label}
+                {route.label}
               </button>
             ))}
           </div>
-
-          {data || activeView === "feedback" ? (
-            <>
-              <p className="floatingMenuLabel">Report pages</p>
-              <div className="floatingMenuButtons floatingMenuButtonsSingle">
-                {appViews.map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className={activeView === item.key ? "floatingMenuActiveItem" : ""}
-                    onClick={() => goToReportView(item.key)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
-            <p className="floatingMenuHint">
-              Import games first to unlock report pages.
-            </p>
-          )}
         </div>
       ) : null}
-    </div>
+    </nav>
   );
 }
 
@@ -4099,10 +4040,6 @@ const [activeView, setActiveView] = useState("overview");
 
             <OpeningFitImportDoctor username={username} />
 
-            <div id="account">
-              <AccountPanel onUserChange={setAccountUser} />
-            </div>
-
             <FounderPassLoginUpgrade accountUser={accountUser} />
 
             <CheckoutStatusNotice
@@ -4374,6 +4311,10 @@ const [activeView, setActiveView] = useState("overview");
               <p className="successMessage">{savedProfileMessage}</p>
             ) : null}
           </header>
+
+          <section className="loginScreenSection" id="account">
+            <AccountPanel variant="screen" onUserChange={setAccountUser} />
+          </section>
 
           {loading && (
             <section className="card loadingCard">
