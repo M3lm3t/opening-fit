@@ -2717,3 +2717,162 @@ async def delete_account(user_id: str):
 # End account sync + Stripe premium support
 # =========================================================
 
+
+
+# ---------------------------------------------------------------------------
+# OpeningFit cloud user state
+# Stores report/progress state for logged-in accounts.
+# Logged-out users can still use localStorage on the frontend.
+# ---------------------------------------------------------------------------
+
+from typing import Optional, Dict, Any
+from pydantic import BaseModel
+
+
+class OpeningFitUserStatePayload(BaseModel):
+    user_id: str
+    platform: str = "unknown"
+    username: str = "guest"
+    last_report: Optional[Dict[str, Any]] = None
+    coach_progress: Optional[Dict[str, Any]] = None
+    progress_history: Optional[list] = None
+    import_history: Optional[list] = None
+
+
+def _get_supabase_for_user_state():
+    """
+    Use the existing admin Supabase helper when available.
+    This is more reliable than relying on the global `supabase` variable,
+    because get_supabase_admin_client() reads the current backend env directly.
+    """
+    helper = globals().get("get_supabase_admin_client")
+    if callable(helper):
+        return helper()
+
+    client = globals().get("supabase")
+    if client is not None:
+        return client
+
+    client = globals().get("supabase_client")
+    if client is not None:
+        return client
+
+    raise HTTPException(
+        status_code=500,
+        detail="Supabase is not configured on the backend. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+    )
+
+
+def _clean_platform(value: str) -> str:
+    value = str(value or "unknown").strip().lower()
+    if value in {"chess.com", "chesscom", "chess_com"}:
+        return "chesscom"
+    if value in {"lichess", "lichess.org"}:
+        return "lichess"
+    return value or "unknown"
+
+
+def _clean_username(value: str) -> str:
+    return str(value or "guest").strip() or "guest"
+
+
+@app.get("/api/account/state/{user_id}")
+def get_openingfit_user_state(
+    user_id: str,
+    platform: str = "unknown",
+    username: str = "guest",
+):
+    sb = _get_supabase_for_user_state()
+
+    platform = _clean_platform(platform)
+    username = _clean_username(username)
+
+    try:
+        result = (
+            sb.table("openingfit_user_state")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("platform", platform)
+            .eq("username", username)
+            .limit(1)
+            .execute()
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Cloud state lookup failed: {exc}",
+        )
+
+    rows = getattr(result, "data", None) or []
+
+    if not rows:
+        return {
+            "found": False,
+            "user_id": user_id,
+            "platform": platform,
+            "username": username,
+            "last_report": None,
+            "coach_progress": {},
+            "progress_history": [],
+            "import_history": [],
+        }
+
+    row = rows[0]
+
+    return {
+        "found": True,
+        "user_id": row.get("user_id"),
+        "platform": row.get("platform"),
+        "username": row.get("username"),
+        "last_report": row.get("last_report"),
+        "coach_progress": row.get("coach_progress") or {},
+        "progress_history": row.get("progress_history") or [],
+        "import_history": row.get("import_history") or [],
+        "updated_at": row.get("updated_at"),
+    }
+
+
+@app.post("/api/account/state")
+def save_openingfit_user_state(payload: OpeningFitUserStatePayload):
+    sb = _get_supabase_for_user_state()
+
+    platform = _clean_platform(payload.platform)
+    username = _clean_username(payload.username)
+
+    row = {
+        "user_id": payload.user_id,
+        "platform": platform,
+        "username": username,
+    }
+
+    if payload.last_report is not None:
+        row["last_report"] = payload.last_report
+
+    if payload.coach_progress is not None:
+        row["coach_progress"] = payload.coach_progress
+
+    if payload.progress_history is not None:
+        row["progress_history"] = payload.progress_history
+
+    if payload.import_history is not None:
+        row["import_history"] = payload.import_history
+
+    try:
+        result = (
+            sb.table("openingfit_user_state")
+            .upsert(row, on_conflict="user_id,platform,username")
+            .execute()
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Cloud state save failed: {exc}",
+        )
+
+    return {
+        "ok": True,
+        "saved": True,
+        "platform": platform,
+        "username": username,
+        "data": getattr(result, "data", None),
+    }
