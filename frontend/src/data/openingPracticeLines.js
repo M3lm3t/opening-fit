@@ -209,6 +209,132 @@ export const openingPracticePacks = [
       },
     ],
   },
+  {
+    key: "ruy lopez",
+    aliases: ["Ruy Lopez", "Spanish Opening", "Spanish Game"],
+    lines: [
+      {
+        name: "Classical Ruy Lopez",
+        moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Ba4", "Nf6", "O-O"],
+        idea: "White develops, pressures the knight on c6, and castles before choosing the central plan.",
+      },
+      {
+        name: "Exchange Ruy Lopez",
+        moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Bxc6", "dxc6"],
+        idea: "White changes the pawn structure early and plays for a clean long-term plan.",
+      },
+      {
+        name: "Berlin Defence",
+        moves: ["e4", "e5", "Nf3", "Nc6", "Bb5", "Nf6", "O-O", "Nxe4"],
+        idea: "Black challenges the centre immediately and asks White to prove compensation.",
+      },
+    ],
+  },
+  {
+    key: "scotch game",
+    aliases: ["Scotch Game", "Scotch"],
+    lines: [
+      {
+        name: "Main Scotch",
+        moves: ["e4", "e5", "Nf3", "Nc6", "d4", "exd4", "Nxd4"],
+        idea: "White opens the centre early and gets active piece play without slow manoeuvring.",
+      },
+      {
+        name: "Scotch Four Knights",
+        moves: ["e4", "e5", "Nf3", "Nc6", "Nc3", "Nf6", "d4"],
+        idea: "White develops first, then opens the centre from a stable position.",
+      },
+      {
+        name: "Scotch Gambit",
+        moves: ["e4", "e5", "Nf3", "Nc6", "d4", "exd4", "Bc4"],
+        idea: "White gives up immediate pawn recovery to develop quickly and attack f7.",
+      },
+    ],
+  },
+  {
+    key: "pirc defense",
+    aliases: ["Pirc Defense", "Pirc Defence", "Pirc"],
+    lines: [
+      {
+        name: "Classical Pirc",
+        moves: ["e4", "d6", "d4", "Nf6", "Nc3", "g6", "Nf3"],
+        idea: "White builds a broad centre while Black prepares counterplay from a flexible setup.",
+      },
+      {
+        name: "Austrian Attack",
+        moves: ["e4", "d6", "d4", "Nf6", "Nc3", "g6", "f4"],
+        idea: "White grabs space and prepares direct central or kingside play.",
+      },
+      {
+        name: "Fianchetto Setup",
+        moves: ["e4", "d6", "d4", "Nf6", "Nc3", "g6", "g3"],
+        idea: "White uses a calmer setup and reduces Black's attacking chances.",
+      },
+    ],
+  },
+  {
+    key: "dutch defense",
+    aliases: ["Dutch Defense", "Dutch Defence", "Dutch"],
+    lines: [
+      {
+        name: "Classical Dutch",
+        moves: ["d4", "f5", "g3", "Nf6", "Bg2", "e6"],
+        idea: "White develops naturally while Black fights for kingside space.",
+      },
+      {
+        name: "Stonewall Dutch",
+        moves: ["d4", "f5", "g3", "Nf6", "Bg2", "e6", "Nf3", "d5"],
+        idea: "Black builds a fixed centre; White should understand the dark-square plans.",
+      },
+      {
+        name: "Leningrad Dutch",
+        moves: ["d4", "f5", "g3", "Nf6", "Bg2", "g6"],
+        idea: "Black combines kingside space with a fianchetto; White keeps central control.",
+      },
+    ],
+  },
+  {
+    key: "slav defense",
+    aliases: ["Slav Defense", "Slav Defence", "Slav"],
+    lines: [
+      {
+        name: "Main Slav",
+        moves: ["d4", "d5", "c4", "c6", "Nf3", "Nf6", "Nc3"],
+        idea: "Black supports the centre with c6 while keeping the light-squared bishop flexible.",
+      },
+      {
+        name: "Exchange Slav",
+        moves: ["d4", "d5", "c4", "c6", "cxd5", "cxd5"],
+        idea: "The structure becomes symmetrical, so piece activity and plans matter more than tactics.",
+      },
+      {
+        name: "Slow Slav Setup",
+        moves: ["d4", "d5", "c4", "c6", "e3", "Nf6", "Nf3"],
+        idea: "White develops calmly and avoids sharp theory while keeping central pressure.",
+      },
+    ],
+  },
+  {
+    key: "reti opening",
+    aliases: ["Reti Opening", "Réti Opening", "Reti"],
+    lines: [
+      {
+        name: "Reti Main Setup",
+        moves: ["Nf3", "d5", "c4", "e6", "g3", "Nf6", "Bg2"],
+        idea: "White controls the centre with pieces first, then chooses when to challenge it with pawns.",
+      },
+      {
+        name: "Reti vs King's Indian Setup",
+        moves: ["Nf3", "Nf6", "g3", "g6", "Bg2", "Bg7", "O-O"],
+        idea: "Both sides develop flexibly; White keeps options open before committing the centre.",
+      },
+      {
+        name: "Reti with d4",
+        moves: ["Nf3", "d5", "g3", "Nf6", "Bg2", "e6", "d4"],
+        idea: "White transposes into a solid queen-pawn structure after developing safely.",
+      },
+    ],
+  },
 ];
 
 export function findOpeningPracticePack(openingName = "") {

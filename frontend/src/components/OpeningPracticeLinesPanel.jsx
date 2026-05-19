@@ -4,6 +4,7 @@ import { Chessboard } from "react-chessboard";
 import { findOpeningPracticePack } from "../data/openingPracticeLines";
 
 function getOpeningName(opening) {
+  if (typeof opening === "string") return opening;
   return opening?.name || opening?.opening || opening?.label || "Unknown opening";
 }
 
@@ -33,6 +34,38 @@ function buildGameToMove(moves, moveCount) {
   return game;
 }
 
+function explainMove(line, moves, index) {
+  if (line?.moveIdeas?.[index]) return line.moveIdeas[index];
+
+  const game = buildGameToMove(moves, index);
+
+  try {
+    const move = game.move(moves[index]);
+    const piece = move?.piece;
+    const san = move?.san || moves[index];
+
+    if (move?.flags?.includes("k") || san === "O-O" || san === "O-O-O") {
+      return "Gets the king safer and connects the rooks so the middlegame is easier to handle.";
+    }
+    if (piece === "p" && ["e", "d", "c", "f"].includes(move?.to?.[0])) {
+      return "Changes the central structure. Ask what squares this pawn move controls and what break it prepares.";
+    }
+    if (piece === "n" || piece === "b") {
+      return "Develops a piece toward useful squares instead of spending time on side moves.";
+    }
+    if (piece === "q") {
+      return "Uses the queen for a concrete purpose. Check that it creates pressure without becoming a target.";
+    }
+    if (piece === "r") {
+      return "Places a rook where an open file, pawn break, or central tension can matter.";
+    }
+  } catch {
+    // Fall through to generic guidance.
+  }
+
+  return "This move belongs to the line because it supports the opening plan. Check the centre, development, and king safety before moving on.";
+}
+
 export default function OpeningPracticeLinesPanel({ opening, onClose }) {
   const openingName = getOpeningName(opening);
   const pack = useMemo(() => findOpeningPracticePack(openingName), [openingName]);
@@ -49,6 +82,9 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
   const isComplete = Boolean(pack) && moveIndex >= moves.length;
   const progressPercent = moves.length ? Math.round((moveIndex / moves.length) * 100) : 0;
   const completedMoves = Math.min(moveIndex, moves.length);
+  const moveExplanation = !isComplete
+    ? explainMove(selectedLine, moves, moveIndex)
+    : selectedLine?.finishIdea || "You reached the target position. Review the plan, not just the move order.";
 
   useEffect(() => {
     setSelectedLineIndex(0);
@@ -249,6 +285,11 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
             <p className="eyebrow">Current line</p>
             <h3>{selectedLine.name}</h3>
             <p>{selectedLine.idea}</p>
+          </div>
+
+          <div className="practiceMoveWhy">
+            <span>{isComplete ? "Target position" : "Why this move works"}</span>
+            <p>{moveExplanation}</p>
           </div>
 
           <div className="practiceMovePrompt">

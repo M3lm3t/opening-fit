@@ -246,25 +246,25 @@ export function SeriousPremiumStrip() {
     <section className="seriousPremiumStrip" id="premium-value">
       <div>
         <p className="eyebrow">Premium direction</p>
-        <h2>Make premium feel like a training system, not extra charts.</h2>
+        <h2>Premium unlocks depth, not just more rows.</h2>
       </div>
 
       <div className="premiumMiniGrid">
         <div>
-          <strong>Saved history</strong>
-          <span>Track reports over time.</span>
+          <strong>Line-level diagnosis</strong>
+          <span>See which branch inside an opening is hurting results.</span>
         </div>
         <div>
-          <strong>Weakness diagnosis</strong>
-          <span>Know what is costing points.</span>
+          <strong>12-month trend</strong>
+          <span>Separate current form from long-term repertoire problems.</span>
         </div>
         <div>
-          <strong>Repertoire builder</strong>
-          <span>White, vs 1.e4, vs 1.d4.</span>
+          <strong>Saved reports</strong>
+          <span>Compare imports and keep a real training history.</span>
         </div>
         <div>
-          <strong>Export report</strong>
-          <span>Shareable training PDF later.</span>
+          <strong>Full study plan</strong>
+          <span>Turn the diagnosis into deeper weekly training blocks.</span>
         </div>
       </div>
     </section>
