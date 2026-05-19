@@ -1260,6 +1260,72 @@ function BiggestInsightCard({ data, fitData }) {
   );
 }
 
+function CompactReportSummary({ data, fitData, onViewChange }) {
+  if (!data) return null;
+
+  const openings = fitData?.scoredOpenings || [];
+  const best = fitData?.bestOpening || openings[0] || null;
+  const repair =
+    openings.find((opening) => ["review", "improve"].includes(opening.fitCategory)) ||
+    fitData?.weakestOpening ||
+    openings[1] ||
+    null;
+  const avoid =
+    openings.find((opening) => opening.fitCategory === "avoid") ||
+    openings.find((opening) => opening.fitSeverity === "danger") ||
+    repair;
+  const playerName =
+    data.username ||
+    data.playerName ||
+    data.player_name ||
+    data.requestedUsername ||
+    "Your report";
+  const games =
+    data.total_games ||
+    data.gamesImported ||
+    data.games_imported ||
+    data.games_analyzed ||
+    0;
+
+  const card = (label, opening, fallback, className) => (
+    <article className={`compactVerdictCard ${className || ""}`}>
+      <span>{label}</span>
+      <strong>{opening ? getOpeningName(opening) : fallback}</strong>
+      <p>
+        {opening
+          ? `${getOpeningGames(opening)} games · ${getWinRate(opening)}% score`
+          : "Import more games to improve confidence."}
+      </p>
+    </article>
+  );
+
+  return (
+    <section className="compactReportDashboard">
+      <div className="compactReportTitle">
+        <p className="eyebrow">Opening Fit report</p>
+        <h1>{playerName} opening dashboard</h1>
+        <span>{games ? `${games} games analysed` : "Report ready"}</span>
+      </div>
+
+      <BiggestInsightCard data={data} fitData={fitData} />
+
+      <div className="compactVerdictGrid">
+        {card("Best fit", best, "Not enough data", "best")}
+        {card("Needs repair", repair, "No repair target yet", "repair")}
+        {card("Avoid for now", avoid, "No avoid target yet", "avoid")}
+      </div>
+
+      <button
+        className="primaryBtn compactStudyCta"
+        type="button"
+        onClick={() => onViewChange?.("training")}
+      >
+        Start my 20-minute study plan
+      </button>
+    </section>
+  );
+}
+
 function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange }) {
   const [savedMessage, setSavedMessage] = useState("");
 
@@ -1462,7 +1528,7 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
     { key: "recommendations", label: "Suggestions", view: "recommendations", target: "section-recommendations" },
     { key: "training", label: "Training", view: "training", target: "section-training" },
     { key: "games", label: "Games", view: "games", target: "section-replay" },
-    { key: "data", label: "Data", view: "data", target: "section-chart" },
+    { key: "upgrade", label: "Upgrade", view: "upgrade", target: "premium" },
     { key: "repertoire", label: "Repertoire", view: "repertoire", target: "premium" },
     { key: "feedback", label: "Feedback", view: "feedback", target: "feedback" },
   ];
@@ -1545,13 +1611,11 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
 
 function AppViewTabs({ activeView, onChange }) {
   const tabs = [
-    { key: "overview", label: "Overview", icon: "🏠" },
-    { key: "recommendations", label: "Recommendations", icon: "🎯" },
-    { key: "training", label: "Study Session", icon: "🚀" },
-    { key: "games", label: "Games", icon: "♟️" },
-    { key: "data", label: "Data", icon: "📊" },
-    { key: "repertoire", label: "Interactive", icon: "🧩" },
-    { key: "feedback", label: "Feedback", icon: "💬" },
+    { key: "overview", label: "Overview", icon: "⌂" },
+    { key: "recommendations", label: "Openings", icon: "◎" },
+    { key: "training", label: "Study Plan", icon: "◷" },
+    { key: "games", label: "Games", icon: "♟" },
+    { key: "upgrade", label: "Upgrade", icon: "◆" },
   ];
 
   const selectTab = (view) => {
@@ -1579,7 +1643,7 @@ function AppViewTabs({ activeView, onChange }) {
   };
 
   return (
-    <section className="card appTabsCard" id="app-view-tabs">
+    <section className="card appTabsCard compactReportNav" id="app-view-tabs">
       <div className="appTabsHeader">
         <div>
           <p className="eyebrow">Report navigation</p>
@@ -3141,8 +3205,9 @@ function App() {
 const [activeView, setActiveView] = useState("overview");
   const shouldShowLandingIntro = () => {
     const landingSeen = localStorage.getItem("openingfit_landing_seen") === "true";
+    const hasSavedReport = Boolean(localStorage.getItem(STORAGE_KEY));
     const hasAppHash = window.location.hash && window.location.hash !== "#";
-    return !landingSeen && !hasAppHash;
+    return !hasSavedReport && !landingSeen && !hasAppHash;
   };
 
   const [showLanding, setShowLanding] = useState(shouldShowLandingIntro);
@@ -4185,13 +4250,13 @@ const [activeView, setActiveView] = useState("overview");
       <div className={`page ${theme} ${isPublicLanding ? "publicLandingPage" : "appReportPage"}`} data-theme={theme}>
         {data ? (
           <>
-            <OpeningFitUXCleanup
+            {false ? <OpeningFitUXCleanup
               data={data}
               username={username}
               onJump={jumpToSection}
               activeView={activeView}
               onViewChange={setActiveView}
-            />
+            /> : null}
 
             <OpeningFitImportDoctor username={username} />
 
@@ -4210,7 +4275,7 @@ const [activeView, setActiveView] = useState("overview");
               }}
             />
 
-            <AppActionRouter onViewChange={setActiveView} />
+            {false ? <AppActionRouter onViewChange={setActiveView} /> : null}
             <AccountRestoreSync
               user={accountUser}
               username={username}
@@ -4220,14 +4285,6 @@ const [activeView, setActiveView] = useState("overview");
               data={data}
               setData={setData}
               setIsPremium={setIsPremium}
-            />
-
-            <FloatingAppMenu
-              data={data}
-              onJump={jumpToSection}
-              onPractice={startOpeningPractice}
-              activeView={activeView}
-              onViewChange={setActiveView}
             />
 
             <MobileBottomNav
@@ -4240,9 +4297,9 @@ const [activeView, setActiveView] = useState("overview");
 
         {loading ? <ImportLoadingOverlay platform={platform} /> : null}
 
-        {data ? <OpeningFitTrustBar data={data} /> : null}
+        {false && data ? <OpeningFitTrustBar data={data} /> : null}
 
-        {data ? (
+        {false && data ? (
           <OpeningFitTrustUpgrade
             onFounderPass={handleFounderPassClick}
             onDemo={loadDemoReport}
@@ -4261,7 +4318,7 @@ const [activeView, setActiveView] = useState("overview");
           />
         ) : null}
 
-        {showLanding && !hasReport ? (
+        {false && showLanding && !hasReport ? (
           <LandingModal
             username={username}
             setUsername={setUsername}
@@ -4293,7 +4350,7 @@ const [activeView, setActiveView] = useState("overview");
 ) : null}
 
 
-        {isPublicLanding ? (
+        {false && isPublicLanding ? (
           <div className="publicLandingTop" id="public-landing-top">
             <LandingSection onOpeningClick={startOpeningPractice} />
             <TrustFaq />
@@ -4301,15 +4358,15 @@ const [activeView, setActiveView] = useState("overview");
         ) : null}
 
         <main className="container appShell" id="app-dashboard">
-          <header className="hero heroCard">
+          {!data && !loading ? (
+          <header className="hero heroCard compactImportHero">
             <div className="heroTop">
               <div className="heroTitleWrap">
-                <p className="eyebrow">Opening Fit App</p>
-                <h1>Analyse your chess openings</h1>
+                <p className="eyebrow">Opening Fit</p>
+                <h1>Find the openings that fit how you actually play.</h1>
                 <p className="subtext">
-                  Your personal chess opening dashboard. Import your games, get a
-                  clean Opening Fit report, then follow a focused study session
-                  built from your real results.
+                  Analyse your public games and get a compact opening report,
+                  practical verdicts, and a focused study plan.
                 </p>
               </div>
             </div>
@@ -4369,46 +4426,12 @@ const [activeView, setActiveView] = useState("overview");
                   onClick={() => importGames()}
                   disabled={loading || !username.trim()}
                 >
-                  {loading
-                    ? "Working..."
-                    : isPremium
-                    ? `Import ${monthsToImport} Month${
-                        monthsToImport === 1 ? "" : "s"
-                      } from ${platforms[platform]?.label || "Platform"}`
-                    : `Import ${monthsToImport} Month${
-                        monthsToImport === 1 ? "" : "s"
-                      } from ${platforms[platform]?.label || "Platform"}`}
-                </button>
-
-                <button
-                  className="secondaryButton savedProfileButton"
-                  type="button"
-                  onClick={loadSavedProfile}
-                  disabled={loading}
-                >
-                  Load Saved Profile
-                </button>
-
-                <button
-                  className="ghostButton demoAccountButton"
-                  type="button"
-                  onClick={loadDemoAccount}
-                  disabled={loading}
-                >
-                  Try Demo Account
-                </button>
-
-                <button
-                  className="ghostButton"
-                  type="button"
-                  onClick={() => importGames()}
-                  disabled={loading || !username.trim()}
-                >
-                  Refresh Games
+                  {loading ? "Analysing..." : "Analyse"}
                 </button>
               </div>
             </div>
 
+            {false ? (
             <div className="filtersRow importFiltersRow">
               <label className="openingSampleControl">
                 <span className="openingSampleControlTop">
@@ -4439,6 +4462,13 @@ const [activeView, setActiveView] = useState("overview");
                 </span>
               </label>
             </div>
+            ) : null}
+
+            <div className="compactTrustRow">
+              <span>No login required</span>
+              <span>Uses public games</span>
+              <span>Free report available</span>
+            </div>
 
             {apiStatus !== "online" ? (
               <p className="statusMessage">
@@ -4466,10 +4496,11 @@ const [activeView, setActiveView] = useState("overview");
               <p className="successMessage">{savedProfileMessage}</p>
             ) : null}
           </header>
+          ) : null}
 
-          <section className="loginScreenSection" id="account">
+          {false ? <section className="loginScreenSection" id="account">
             <AccountPanel variant="screen" onUserChange={setAccountUser} />
-          </section>
+          </section> : null}
 
           {loading && (
             <section className="card loadingCard">
@@ -4493,7 +4524,7 @@ const [activeView, setActiveView] = useState("overview");
 
           {error && <div className="errorBox">{error}</div>}
 
-          {!data && !loading && !error && (
+          {false && !data && !loading && !error && (
             <section className="placeholderGrid grid3">
               <div className="card smallCard">
                 <h3>Style profile</h3>
@@ -4519,58 +4550,11 @@ const [activeView, setActiveView] = useState("overview");
 
           {data && (
             <div id="app-results">
-              <CleanReportHeader
+              <CompactReportSummary
                 data={data}
                 fitData={fitData}
                 onViewChange={setActiveView}
               />
-
-              <IntelligentCoachInsights data={data} />
-
-              <OpeningClassificationNotice data={data} />
-
-              <section className="statsGrid">
-                <div className="card statCard">
-                  <span className="statLabel">Player</span>
-                  <span className="statValue">{data.username}</span>
-                </div>
-
-                <div className="card statCard">
-                  <span className="statLabel">Platform</span>
-                  <span className="statValue smallStatValue">
-                    {platforms[platform]?.label || "Chess"}
-                  </span>
-                </div>
-
-                <div className="card statCard">
-                  <span className="statLabel">Games analysed</span>
-                  <span className="statValue">{data.total_games}</span>
-                </div>
-
-                <div className="card statCard">
-                  <span className="statLabel">Recent activity</span>
-                  <span className="statValue">
-                    {data.months_checked || monthsToImport} month
-                    {(data.months_checked || monthsToImport) === 1 ? "" : "s"}
-                  </span>
-                </div>
-
-                <div className="card statCard">
-                  <span className="statLabel">Plan</span>
-                  <span className="statValue smallStatValue">
-                    {isPremium ? "Premium demo" : "Free"}
-                  </span>
-                </div>
-
-                <div className="card statCard">
-                  <span className="statLabel">Last updated</span>
-                  <span className="statValue smallStatValue">
-                    {data.lastUpdated
-                      ? new Date(data.lastUpdated).toLocaleDateString()
-                      : "Today"}
-                  </span>
-                </div>
-              </section>
 
               <AppViewTabs
                 activeView={activeView}
@@ -4586,19 +4570,10 @@ const [activeView, setActiveView] = useState("overview");
 
               {activeView === "overview" ? (
                 <>
-                  <PolishedOpeningFitReportHero data={data} />
-
-                  <BiggestInsightCard data={data} fitData={fitData} />
-
                   <div className="compactReportGrid">
                     <ReportSnapshot data={data} onViewChange={setActiveView} />
-                    <OpeningCoachPlan data={data} compact />
-                    <OpeningProgressTracker data={data} compact />
-                    <CoachSummaryCard data={data} onViewChange={setActiveView} />
                     <AppOpeningHealthScore data={data} onViewChange={setActiveView} />
                   </div>
-
-                  <NextBestActions data={data} onViewChange={setActiveView} />
 
                   <div id="section-fit">
                     <OpeningFitSummaryCard
@@ -4607,57 +4582,20 @@ const [activeView, setActiveView] = useState("overview");
                     />
                   </div>
 
-                  <OpeningDiagnosisPanel data={data} onViewChange={setActiveView} />
-
-                  <EvidenceBackedOpeningDiagnosis
-                    data={data}
-                    onPractice={startOpeningPractice}
-                  />
-
-                  <ResultsCommandCenter
-                    data={data}
-                    onPractice={startOpeningPractice}
-                  />
-
-                  <div className="compactReportGrid">
-                    <OpeningHealthScore data={data} />
-                    <ProgressTracker data={data} />
-                  </div>
-
-                  <ShareReport data={data} />
-
-                  {!isPremium ? (
-                    <section className="card premiumCard compactPremiumCard">
-                      <div className="premiumHeader">
-                        <span className="premiumBadge">Premium Preview</span>
-                        <h2>Unlock the full Opening Fit report</h2>
-                      </div>
-
-                      <p>
-                        Free gives you the core report. Premium unlocks depth:
-                        line-level diagnosis, 12-month trends, saved reports,
-                        and the full study plan behind each recommendation.
-                      </p>
-
-                      <div className="lockedFeatureGrid">
-                        {premiumFeatures.map((feature) => (
-                          <div className="lockedFeature" key={feature}>
-                            🔒 {feature}
-                          </div>
-                        ))}
-                      </div>
-
-                      <button
-                        className="primaryBtn"
-                        type="button"
-                        onClick={() => setIsPremium(true)}
-                      >
-                        Preview Premium Mode
-                      </button>
-                    </section>
-                  ) : null}
-
-                  <RetentionHub data={data} />
+                  <Section
+                    title="Optional detailed evidence"
+                    isOpen={openSections.fit}
+                    onToggle={() => toggleSection("fit")}
+                    badge="Evidence"
+                  >
+                    <IntelligentCoachInsights data={data} />
+                    <OpeningClassificationNotice data={data} />
+                    <OpeningDiagnosisPanel data={data} onViewChange={setActiveView} />
+                    <EvidenceBackedOpeningDiagnosis
+                      data={data}
+                      onPractice={startOpeningPractice}
+                    />
+                  </Section>
                 </>
               ) : null}
 
@@ -4866,8 +4804,19 @@ const [activeView, setActiveView] = useState("overview");
                 </>
               ) : null}
 
-              {activeView === "data" ? (
+              {activeView === "upgrade" ? (
                 <>
+                  <div id="premium">
+                    <PremiumPanel
+                      data={data}
+                      isPremium={isPremium}
+                      onUnlockDemo={unlockPremiumDemo}
+                      onResetDemo={resetPremiumDemo}
+                    />
+                  </div>
+
+                  <SeriousPremiumStrip />
+
                   <OpeningReportSummary
                     data={data}
                     username={username}
@@ -4893,7 +4842,7 @@ const [activeView, setActiveView] = useState("overview");
 
 
 
-        {data ? (
+        {false && data ? (
           <ReportCommandBar
             data={data}
             activeView={activeView}
@@ -4986,7 +4935,7 @@ const [activeView, setActiveView] = useState("overview");
                 </>
               ) : null}
 
-        {data ? (
+        {false && data ? (
           <div className="productPolishFlow">
             <CoachVerdict data={data} />
             <RecommendedRepertoire data={data} />
@@ -5008,11 +4957,11 @@ const [activeView, setActiveView] = useState("overview");
 
                   <OpeningFitStudyPlanner data={data} username={username} />
 
-                  <PremiumCoachPlan
+                  {false ? <PremiumCoachPlan
                     data={data}
                     isPremium={isPremium}
                     onUnlockDemo={unlockPremiumDemo}
-                  />
+                  /> : null}
 
                   <div id="section-training">
                 <Section
@@ -5214,7 +5163,7 @@ const [activeView, setActiveView] = useState("overview");
                 </>
               ) : null}
 
-              {activeView === "data" ? (
+              {activeView === "upgrade" ? (
                 <>
                   <div id="section-top">
                 <Section
@@ -5322,7 +5271,7 @@ const [activeView, setActiveView] = useState("overview");
                 </>
               ) : null}
 
-              {activeView !== "feedback" ? (
+              {false && activeView !== "feedback" ? (
                 <OpeningFitFinalCTA
                   data={data}
                   username={username}
@@ -5369,7 +5318,7 @@ const [activeView, setActiveView] = useState("overview");
           ) : null}
         </main>
 
-        {!showLanding && activeView !== "feedback" ? (
+        {!data && !showLanding && activeView !== "feedback" ? (
           <div className="landingWrap">
             <section className="card feedbackCard" id="feedback-static">
               <h2>Help improve Opening Fit</h2>
@@ -5407,9 +5356,9 @@ const [activeView, setActiveView] = useState("overview");
           </div>
         ) : null}
 
-        <div className="landingWrap">
+        {false ? <div className="landingWrap">
           <Footer />
-        </div>
+        </div> : null}
       </div>
 
       <Analytics />

@@ -311,7 +311,7 @@ export function NextBestActions({ data, onViewChange }) {
       title: `Simplify ${mostPlayedName}`,
       text: "Your most played opening needs a clear plan: main idea, common pawn breaks, typical piece setup, and one fallback line.",
       button: "Check progress",
-      view: "data",
+      view: "upgrade",
       target: "report-history",
     },
   ];

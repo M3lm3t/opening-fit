@@ -87,7 +87,7 @@ export default function OpeningFitGuidedFlow({ data, onJump, activeView, onViewC
       text: "Use the tables and charts as supporting evidence, not as the first thing you read.",
       action: "View detailed stats",
       target: "top-openings-table",
-      view: "data",
+      view: "upgrade",
     },
   ];
 
