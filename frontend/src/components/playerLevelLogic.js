@@ -507,7 +507,7 @@ export function buildLevelAwareRecommendation(data, fitData) {
       summary:
         "This player likely already has opening knowledge. Recommendations should refine what they play, not replace it with beginner systems.",
       primaryAction:
-        `Use ${bestName} as the stable reference point, then review ${weakName} for specific branches, move-order issues, or recent trend changes.`,
+        `Use ${bestName} as the stable side-specific reference point, then review ${weakName} for specific branches, move-order issues, or recent trend changes.`,
       bestName,
       weakName,
     };
@@ -519,7 +519,7 @@ export function buildLevelAwareRecommendation(data, fitData) {
       summary:
         "The goal is not replacing openings too quickly — it is refining the branches and structures that appear most often.",
       primaryAction:
-        `Keep ${bestName} as a main weapon and fine-tune ${weakName} by checking recurring loss patterns.`,
+        `Keep ${bestName} only in the side/context where the report shows it is yours, and fine-tune ${weakName} by checking recurring loss patterns.`,
       bestName,
       weakName,
     };

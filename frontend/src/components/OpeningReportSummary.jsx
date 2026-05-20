@@ -1,5 +1,5 @@
 import { getPlayerLevelText } from "./playerLevelLogic";
-import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningSignal } from "./OpeningEvidence";
+import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 
 function normaliseOpeningName(opening) {
   if (!opening) return "Unknown opening";
@@ -421,6 +421,11 @@ export default function OpeningReportSummary({ data, username, platform }) {
 
 function ReportCard({ title, opening, fallbackTitle, fallbackText, type }) {
   const name = opening?.name || fallbackTitle;
+  const context = getOpeningContext(opening?.raw || opening || {});
+  const contextualName =
+    opening && context.label !== "Mixed signal"
+      ? `${name} ${context.label === "You faced this" ? "you faced" : context.label.toLowerCase()}`
+      : name;
   const games = opening?.games || 0;
   const winRate = opening?.winRate || 0;
   const verdict = opening?.verdict || title;
@@ -435,7 +440,7 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type }) {
         <em className={getVerdictClass(verdict)}>{verdict}</em>
       </div>
 
-      <h3>{name}</h3>
+      <h3>{contextualName}</h3>
 
       {opening ? (
         <>

@@ -264,7 +264,7 @@ function buildWeeklyPlan(repertoire, weakLines) {
     {
       day: "Day 4",
       title: "Play a focused block",
-      text: `Use ${best} as your main weapon and avoid adding new sidelines for this session.`,
+      text: `Use ${best} only in the side/context where your report shows you actually play it, and avoid adding new sidelines for this session.`,
       opening: best,
     },
     {
@@ -499,7 +499,7 @@ export default function PremiumDashboard({
           Copy weekly plan
         </button>
         <button type="button" onClick={() => onPractice?.(repertoire.mainWhite?.openingName || repertoire.keep?.[0]?.openingName)}>
-          Practise main weapon
+          Practise side-specific line
         </button>
         <button type="button" onClick={() => onPractice?.(repertoire.avoid?.[0]?.openingName || repertoire.improve?.[0]?.openingName)}>
           Drill repair target

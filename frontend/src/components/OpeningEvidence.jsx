@@ -3,6 +3,56 @@ export const CONFIDENCE_THRESHOLDS = {
   mediumGames: 5,
 };
 
+const BLACK_OPENING_NAME_PATTERNS = [
+  "defence",
+  "defense",
+  "sicilian",
+  "french",
+  "caro-kann",
+  "scandinavian",
+  "pirc",
+  "alekhine",
+  "dutch",
+  "nimzo",
+  "queen's indian",
+  "king's indian",
+  "grunfeld",
+  "grünfeld",
+  "slav",
+  "benoni",
+  "benko",
+  "englund",
+  "queen's gambit declined",
+  "queen's gambit accepted",
+];
+
+const WHITE_OPENING_NAME_PATTERNS = [
+  "london",
+  "vienna",
+  "italian",
+  "ruy lopez",
+  "spanish",
+  "scotch",
+  "king's gambit",
+  "queen's gambit",
+  "english opening",
+  "réti",
+  "reti",
+  "colle",
+  "stonewall attack",
+  "trompowsky",
+  "wayward queen",
+  "danish gambit",
+  "king's pawn game",
+  "queen pawn game",
+  "queen's pawn game",
+  "center game",
+  "centre game",
+  "zukertort opening",
+  "polish opening",
+  "bird's opening",
+];
+
 function numberValue(value, fallback = null) {
   if (value === undefined || value === null || value === "") return fallback;
   const number = Number(String(value).replace("%", ""));
@@ -69,7 +119,124 @@ function sideFromText(value) {
   return "";
 }
 
+export function getOpeningNameSideHint(opening) {
+  const name = getEvidenceOpeningName(opening, "");
+  const lower = String(name || "").toLowerCase();
+
+  if (BLACK_OPENING_NAME_PATTERNS.some((pattern) => lower.includes(pattern))) {
+    return "black";
+  }
+
+  if (WHITE_OPENING_NAME_PATTERNS.some((pattern) => lower.includes(pattern))) {
+    return "white";
+  }
+
+  return "unknown";
+}
+
+export function getOpeningContext(opening) {
+  const rawContext = String(
+    opening?.context ||
+      opening?.repertoireContext ||
+      opening?.repertoire_context ||
+      opening?.contextLabel ||
+      opening?.context_label ||
+      opening?.category ||
+      ""
+  ).toLowerCase();
+  const rawSide = String(
+    opening?.colour ||
+      opening?.color ||
+      opening?.side ||
+      opening?.as ||
+      opening?.player_color ||
+      ""
+  ).toLowerCase();
+  const hint = getOpeningNameSideHint(opening);
+  const looksFaced =
+    rawContext.includes("faced") ||
+    rawContext.includes("opponent") ||
+    opening?.faced === true ||
+    opening?.opponentOpening === true ||
+    opening?.opponent_opening === true;
+  const isWhiteContext =
+    rawContext.includes("played_as_white") ||
+    rawContext.includes("as white") ||
+    rawContext.includes("played as white") ||
+    rawSide.includes("white");
+  const isBlackContext =
+    rawContext.includes("black_vs") ||
+    rawContext.includes("as black") ||
+    rawContext.includes("played as black") ||
+    rawSide.includes("black");
+
+  if (looksFaced) {
+    return {
+      type: "faced",
+      label: "You faced this",
+      detail: "opponent opening",
+      canRecommend: false,
+      isRepertoire: false,
+    };
+  }
+
+  if (isWhiteContext && hint === "black") {
+    return {
+      type: "faced",
+      label: "You faced this",
+      detail: "facing it as White",
+      canRecommend: false,
+      isRepertoire: false,
+    };
+  }
+
+  if (isBlackContext && hint === "white") {
+    return {
+      type: "faced",
+      label: "You faced this",
+      detail: "facing it as Black",
+      canRecommend: false,
+      isRepertoire: false,
+    };
+  }
+
+  if (isWhiteContext) {
+    return {
+      type: "white",
+      label: "As White",
+      detail: "played as White",
+      canRecommend: true,
+      isRepertoire: true,
+    };
+  }
+
+  if (isBlackContext) {
+    return {
+      type: "black",
+      label: "As Black",
+      detail: rawContext.includes("d4") || rawContext.includes("c4") || rawContext.includes("nf3")
+        ? "played as Black vs 1.d4 / other setups"
+        : rawContext.includes("e4")
+          ? "played as Black vs 1.e4"
+          : "played as Black",
+      canRecommend: true,
+      isRepertoire: true,
+    };
+  }
+
+  return {
+    type: "mixed",
+    label: "Mixed signal",
+    detail: "side/context unclear",
+    canRecommend: false,
+    isRepertoire: false,
+  };
+}
+
 export function getEvidenceSide(opening) {
+  const context = getOpeningContext(opening);
+  if (context.label) return context.label;
+
   const explicit = sideFromText(
     opening?.contextLabel ||
       opening?.context_label ||
@@ -112,6 +279,31 @@ export function getOpeningSignal(opening) {
   const games = getEvidenceGames(opening);
   const score = getEvidenceScore(opening);
   const confidence = getOpeningConfidence(opening);
+  const context = getOpeningContext(opening);
+
+  if (context.type === "faced") {
+    return {
+      tier: "faced",
+      label: "You faced this",
+      badge: "You faced this",
+      canBePrimary: false,
+      canBeFirm: false,
+      explanation:
+        "This looks like an opening you faced from the opponent side, so it is not a clean repertoire recommendation.",
+    };
+  }
+
+  if (!context.canRecommend) {
+    return {
+      tier: "mixed",
+      label: "Mixed signal",
+      badge: "Mixed signal",
+      canBePrimary: false,
+      canBeFirm: false,
+      explanation:
+        "This opening appears in your games, but the current data is not clear enough to treat it as a clean repertoire recommendation.",
+    };
+  }
 
   if (!games || score === null) {
     return {
@@ -215,6 +407,7 @@ function verdictText(opening) {
 
 export function getEvidenceReason(opening, data) {
   const games = getEvidenceGames(opening);
+  const context = getOpeningContext(opening);
   const explicit = textField(opening, [
     "verdictReason",
     "verdict_reason",
@@ -224,6 +417,12 @@ export function getEvidenceReason(opening, data) {
     "recommendationCopy",
     "summary",
   ]);
+
+  if (!context.canRecommend) {
+    return context.type === "faced"
+      ? "This looks like an opening you faced from the opponent side, so Opening Fit is not treating it as something you should play."
+      : "This opening appears in your games, but the current data is not clear enough to treat it as a clean repertoire recommendation.";
+  }
 
   if (games < CONFIDENCE_THRESHOLDS.mediumGames) {
     const cautious = explicit.toLowerCase();
@@ -262,6 +461,7 @@ export function getEvidenceNextAction(opening, slot = "") {
   const name = getEvidenceOpeningName(opening);
   const score = getEvidenceScore(opening);
   const lowConfidence = confidenceIsLow(opening);
+  const context = getOpeningContext(opening);
   const explicit = textField(opening, [
     "nextStudyAction",
     "next_study_action",
@@ -272,6 +472,12 @@ export function getEvidenceNextAction(opening, slot = "") {
     "action",
     "plan",
   ]);
+
+  if (!context.canRecommend) {
+    return context.type === "faced"
+      ? `Review how you handled ${name}; do not add it to your repertoire unless you also play it from your side.`
+      : `Track ${name} until the side/context is clear enough for a repertoire decision.`;
+  }
 
   if (lowConfidence) {
     const cautious = explicit.toLowerCase();
@@ -296,6 +502,8 @@ export function getEvidenceNextAction(opening, slot = "") {
   if (slot === "black_vs_e4") return `Save one clear plan for ${name} against 1.e4.`;
   if (slot === "black_vs_d4_other") return `Check the first 8 moves of your ${name} games against queen-pawn or flank setups.`;
   if (slot === "white_repertoire") return `Write one move-10 plan for ${name} and test it in your next White games.`;
+  if (context.type === "white") return `Write one move-10 plan for ${name} and test it in your next White games.`;
+  if (context.type === "black") return `Save one clear Black plan for ${name} and review the first repeated branch.`;
 
   return `Keep ${name} in the study queue and review the next recurring branch.`;
 }
@@ -318,6 +526,7 @@ export function getOpeningEvidence(opening, data, options = {}) {
     reason: getEvidenceReason(opening, data),
     nextAction: getEvidenceNextAction(opening, options.slot || options.sectionKey || ""),
     signal,
+    context: getOpeningContext(opening),
   };
 }
 

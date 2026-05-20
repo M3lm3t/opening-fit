@@ -32,7 +32,7 @@ import ReportSnapshot from "./components/ReportSnapshot";
 import OpeningCoachPlan from "./components/OpeningCoachPlan";
 import OpeningProgressTracker from "./components/OpeningProgressTracker";
 import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
-import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningSignal } from "./components/OpeningEvidence";
+import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./components/OpeningEvidence";
 import OpeningFitTrustUpgrade from "./components/OpeningFitTrustUpgrade";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
@@ -3336,11 +3336,14 @@ function OpeningFitFullReport({ data }) {
         return false;
       }
 
+      const itemContextLabel = getOpeningContext(item).label;
+
       return (
         arr.findIndex(
           (other) =>
             String(other.displayName).toLowerCase() ===
-            String(item.displayName).toLowerCase()
+              String(item.displayName).toLowerCase() &&
+            getOpeningContext(other).label === itemContextLabel
         ) === index
       );
     });
@@ -3374,8 +3377,8 @@ function OpeningFitFullReport({ data }) {
   const findSection = (key) =>
     colourAwareSections.find((section) => section.key === key)?.items || [];
 
-  const whiteOpenings = ranked.filter((item) => item.colour.includes("white"));
-  const blackOpenings = ranked.filter((item) => item.colour.includes("black"));
+  const whiteOpenings = ranked.filter((item) => getOpeningContext(item).type === "white");
+  const blackOpenings = ranked.filter((item) => getOpeningContext(item).type === "black");
 
   const pickPrimarySignal = (items) =>
     items.find((item) => getOpeningSignal(item).canBePrimary) || items[0];
@@ -3396,6 +3399,10 @@ function OpeningFitFullReport({ data }) {
 
   const bestWhite = pickPrimarySignal(whiteSignals);
   const bestBlack = pickPrimarySignal(blackSignals);
+  const mixedSignals = ranked.filter((item) => {
+    const context = getOpeningContext(item);
+    return context.type === "mixed" || context.type === "faced";
+  });
 
   const formatScore = (item) =>
     item?.winRate !== null && item?.winRate !== undefined
@@ -3455,11 +3462,11 @@ function OpeningFitFullReport({ data }) {
   };
 
   const whiteRecommendation = bestWhite
-    ? `Use ${bestWhite.displayName || bestWhite.name} as your main White focus for the next block of games.`
+    ? `${bestWhite.displayName || bestWhite.name} is a White-side signal. Use it only as a White repertoire focus.`
     : "Import more White games to unlock a clearer White repertoire recommendation.";
 
   const blackRecommendation = bestBlack
-    ? `Use ${bestBlack.displayName || bestBlack.name} as your main Black focus and review the positions for that specific first-move context.`
+    ? `${bestBlack.displayName || bestBlack.name} is a Black-side signal. Use it only as a Black repertoire focus for that context.`
     : "Import more Black games to unlock a clearer Black repertoire recommendation.";
 
   const studyOpening =
@@ -3496,7 +3503,7 @@ function OpeningFitFullReport({ data }) {
             <span>{publicMode ? "Recent strength" : "Keep"}</span>
             <small>{formatScore(bestOverall)}</small>
           </div>
-          <h3>{bestOverall?.displayName || (publicMode ? "Recent strength sample" : "Keep building your main repertoire")}</h3>
+          <h3>{bestOverall ? `${bestOverall.displayName} ${getOpeningContext(bestOverall).label === "You faced this" ? "you faced" : getOpeningContext(bestOverall).label.toLowerCase()}` : (publicMode ? "Recent strength sample" : "Keep building your main repertoire")}</h3>
           <OpeningEvidenceBlock
             opening={{
               ...(bestOverall || {}),
@@ -3514,7 +3521,7 @@ function OpeningFitFullReport({ data }) {
             <span>{publicMode ? "Lower-scoring sample" : "Promising but unstable"}</span>
             <small>{formatScore(improveOpening)}</small>
           </div>
-          <h3>{improveOpening?.displayName || (publicMode ? "Noisy recent sample" : "Review your common losses")}</h3>
+          <h3>{improveOpening ? `${improveOpening.displayName} ${getOpeningContext(improveOpening).label === "You faced this" ? "you faced" : getOpeningContext(improveOpening).label.toLowerCase()}` : (publicMode ? "Noisy recent sample" : "Review your common losses")}</h3>
           <OpeningEvidenceBlock
             opening={{
               ...(improveOpening || {}),
@@ -3532,7 +3539,7 @@ function OpeningFitFullReport({ data }) {
             <span>{publicMode ? "Experimental/content-game possible" : "Needs review"}</span>
             <small>{formatScore(avoidOpening)}</small>
           </div>
-          <h3>{avoidOpening?.displayName || "Low-sample experiments"}</h3>
+          <h3>{avoidOpening ? `${avoidOpening.displayName} ${getOpeningContext(avoidOpening).label === "You faced this" ? "you faced" : getOpeningContext(avoidOpening).label.toLowerCase()}` : "Low-sample experiments"}</h3>
           <OpeningEvidenceBlock
             opening={{
               ...(avoidOpening || {}),
@@ -3596,6 +3603,20 @@ function OpeningFitFullReport({ data }) {
               <p>
                 Your study plan should focus on openings that repeatedly give you
                 positions you understand, not random openings with one lucky win.
+              </p>
+            </div>
+
+            <div className="repertoireRow">
+              <span>Mixed / faced signals</span>
+              <strong>
+                {mixedSignals.length
+                  ? mixedSignals.slice(0, 2).map((item) => item.displayName || item.name).join(", ")
+                  : "No unclear side signals"}
+              </strong>
+              <p>
+                {mixedSignals.length
+                  ? "These appear in your games, but Opening Fit is not treating them as clean repertoire recommendations until the side/context is clear."
+                  : "No opponent-only or mixed-side opening signals are currently driving the plan."}
               </p>
             </div>
           </div>
@@ -5613,7 +5634,7 @@ function App() {
                                   }
                                 >
                                   <div>
-                                    <strong>{verdict}: {item.name}</strong>
+                                    <strong>{verdict}: {item.name} · {getOpeningContext(evidenceItem).label}</strong>
                                     <OpeningEvidenceBlock
                                       opening={evidenceItem}
                                       data={data}
