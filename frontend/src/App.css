@@ -24956,6 +24956,70 @@ textarea,
   font-size: 0.9rem;
 }
 
+.openingIdentityHero {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(0, 1.25fr);
+  gap: 10px;
+}
+
+.openingScoreHeroCard,
+.openingIdentityCard {
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  border-radius: 8px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(15, 23, 42, 0.72)),
+    rgba(15, 23, 42, 0.82);
+}
+
+[data-theme="light"] .openingScoreHeroCard,
+[data-theme="light"] .openingIdentityCard {
+  background:
+    linear-gradient(135deg, rgba(219, 234, 254, 0.95), rgba(255, 255, 255, 0.96)),
+    #ffffff;
+  border-color: rgba(37, 99, 235, 0.18);
+}
+
+.openingScoreHeroCard span,
+.openingIdentityCard span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.openingScoreHeroValue {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.openingScoreHeroValue strong {
+  font-size: clamp(2.35rem, 6vw, 4.2rem);
+  line-height: 0.9;
+}
+
+.openingScoreHeroValue small {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.openingIdentityCard strong {
+  display: block;
+  font-size: clamp(1.45rem, 3vw, 2.25rem);
+  line-height: 1.02;
+}
+
+.openingScoreHeroCard p,
+.openingIdentityCard p {
+  margin: 10px 0 0;
+  color: var(--text-soft);
+  line-height: 1.45;
+}
+
 .biggestInsightCard {
   padding: 18px;
 }
@@ -25151,6 +25215,7 @@ textarea,
     text-align: center;
   }
 
+  .openingIdentityHero,
   .compactVerdictGrid,
   .biggestInsightCard .fitMiniGrid {
     grid-template-columns: 1fr;

@@ -1246,6 +1246,125 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
     return scored
 
 
+def weighted_score(items: List[Dict[str, Any]]) -> Optional[float]:
+    total_games = sum(int(item.get("games", 0) or 0) for item in items)
+    if total_games <= 0:
+        return None
+
+    return round(
+        sum(float(item.get("winRate", item.get("win_rate", 0)) or 0) * int(item.get("games", 0) or 0) for item in items)
+        / total_games,
+        1,
+    )
+
+
+def build_opening_fit_profile(
+    best_openings: List[Dict[str, Any]],
+    opening_recommendations: Dict[str, Any],
+    total_games: int,
+    style_profile: Dict[str, Any],
+) -> Dict[str, Any]:
+    openings = [item for item in best_openings if not is_unknown_opening_name(item.get("name", ""))]
+    total_opening_games = sum(int(item.get("games", 0) or 0) for item in openings)
+    white_items = [item for item in openings if item.get("context") == "played_as_white" or item.get("colour") == "white"]
+    black_items = [item for item in openings if item.get("context") in {"black_vs_e4", "black_vs_d4_other"} or item.get("colour") == "black"]
+    black_e4_items = [item for item in openings if item.get("context") == "black_vs_e4"]
+    rare_count = len(opening_recommendations.get("experimental_rare", [])) + len(opening_recommendations.get("too_little_data", []))
+    weak_items = [
+        item
+        for item in openings
+        if int(item.get("games", 0) or 0) >= 3 and float(item.get("winRate", item.get("win_rate", 50)) or 50) < 40
+    ]
+
+    if not openings or total_opening_games <= 0:
+        return {
+            "opening_fit_score": 0,
+            "openingFitScore": 0,
+            "opening_fit_score_explanation": "Import more games before assigning an OpeningFit Score.",
+            "openingFitScoreExplanation": "Import more games before assigning an OpeningFit Score.",
+            "opening_identity": "Repertoire experimenter",
+            "openingIdentity": "Repertoire experimenter",
+            "opening_identity_explanation": "There is not enough stable opening data yet, so OpeningFit is treating this as an early repertoire snapshot.",
+            "openingIdentityExplanation": "There is not enough stable opening data yet, so OpeningFit is treating this as an early repertoire snapshot.",
+        }
+
+    top_three_games = sum(int(item.get("games", 0) or 0) for item in sorted(openings, key=lambda item: item.get("games", 0), reverse=True)[:3])
+    stability_score = min(100, round((top_three_games / total_opening_games) * 70 + min(len([i for i in openings if i.get("games", 0) >= 5]), 3) * 10))
+    white_score = weighted_score(white_items) or weighted_score(openings) or 50
+    black_score = weighted_score(black_items) or weighted_score(openings) or 50
+    confidence_score = min(100, round((min(total_games, 60) / 60) * 70 + min(len([i for i in openings if i.get("games", 0) >= 5]), 4) * 7.5))
+    weakness_score = max(25, 100 - len(weak_items) * 18 - rare_count * 6)
+    recent_consistency = 72 if total_games >= 20 else 58
+
+    score = round(
+        stability_score * 0.22
+        + white_score * 0.20
+        + black_score * 0.20
+        + confidence_score * 0.18
+        + weakness_score * 0.12
+        + recent_consistency * 0.08
+    )
+    score = max(20, min(95, score))
+
+    reasons = []
+    if black_score < 45:
+        reasons.append("unstable Black results")
+    if weighted_score(black_e4_items) is not None and weighted_score(black_e4_items) < 45:
+        reasons.append("Black results against 1.e4")
+    if white_score < 45:
+        reasons.append("lower White performance")
+    if confidence_score < 65:
+        reasons.append("low confidence from the current sample size")
+    if rare_count >= 2:
+        reasons.append("several rare or unclear openings")
+    if weak_items:
+        reasons.append(f"{len(weak_items)} clear lower-scoring opening sample{'s' if len(weak_items) != 1 else ''}")
+
+    if reasons:
+        explanation = f"Your score is held back by {', '.join(reasons[:3])}."
+    else:
+        explanation = "Your score is supported by stable repeated openings, balanced White and Black results, and a useful sample size."
+
+    style_text = " ".join(style_profile.get("labels", []) + [style_profile.get("primaryStyle", ""), style_profile.get("summary", "")]).lower()
+    if black_score < 45 and black_score + 8 < white_score:
+        identity = "Needs a simpler Black repertoire"
+        identity_explanation = "Your White results are ahead of your Black results, so the report points toward simplifying the Black repertoire before adding new systems."
+    elif rare_count >= 3 or stability_score < 55:
+        identity = "Repertoire experimenter"
+        identity_explanation = "Your games are spread across several low-sample openings, which makes the report read more like an experimentation snapshot than a settled repertoire."
+    elif "aggressive" in style_text or "tactical" in style_text:
+        identity = "Tactical but unstable" if weak_items else "Sharp counter-attacker"
+        identity_explanation = "Your best results come from active positions, but the score still depends on whether those sharp lines repeat cleanly across a larger sample."
+    elif stability_score >= 72 and min(white_score, black_score) >= 50:
+        identity = "Strong with familiar structures"
+        identity_explanation = "Your repeated openings are carrying the report, suggesting you score best when you reach familiar pawn structures and plans."
+    elif "solid" in style_text or "positional" in style_text:
+        identity = "Solid positional player"
+        identity_explanation = "Your opening profile leans toward steadier structures, so the best next step is improving one repeated branch rather than changing the whole repertoire."
+    else:
+        identity = "System-based improver"
+        identity_explanation = "Your report points toward a compact repertoire with repeatable plans, especially in the openings with the clearest sample size."
+
+    return {
+        "opening_fit_score": score,
+        "openingFitScore": score,
+        "opening_fit_score_explanation": explanation,
+        "openingFitScoreExplanation": explanation,
+        "opening_identity": identity,
+        "openingIdentity": identity,
+        "opening_identity_explanation": identity_explanation,
+        "openingIdentityExplanation": identity_explanation,
+        "openingFitScoreBreakdown": {
+            "stability": stability_score,
+            "whitePerformance": round(white_score),
+            "blackPerformance": round(black_score),
+            "confidence": confidence_score,
+            "weaknessControl": weakness_score,
+            "recentConsistency": recent_consistency,
+        },
+    }
+
+
 def opening_explanation(name: str) -> Dict[str, str]:
     lower = name.lower()
 
@@ -1772,6 +1891,12 @@ def import_chesscom_logic(username: str, months: int = 3):
     best_openings = adapt_openings_for_report_mode(best_openings, report_mode)
     top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
     opening_recommendations = build_colour_aware_recommendations(opening_results)
+    opening_fit_profile = build_opening_fit_profile(
+        best_openings,
+        opening_recommendations,
+        len(all_games),
+        style_profile,
+    )
     training_plan = build_training_plan(
         style_profile,
         preferred_white,
@@ -1825,6 +1950,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         "training_plan": training_plan,
         "trainingPlan": training_plan,
         "lastUpdated": now_iso(),
+        **opening_fit_profile,
         **report_mode_data,
         **premium_data,
     }
@@ -2108,6 +2234,12 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
     best_openings = adapt_openings_for_report_mode(best_openings, report_mode)
     top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
     opening_recommendations = build_colour_aware_recommendations(opening_results)
+    opening_fit_profile = build_opening_fit_profile(
+        best_openings,
+        opening_recommendations,
+        len(games),
+        style_profile,
+    )
     training_plan = build_training_plan(
         style_profile,
         preferred_white,
@@ -2174,6 +2306,7 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
         "training_plan": training_plan,
         "trainingPlan": training_plan,
         "lastUpdated": now_iso(),
+        **opening_fit_profile,
         **report_mode_data,
         **premium_data,
     }
@@ -2490,6 +2623,12 @@ def demo_profile():
     )
 
     premium_data = build_premium_data(demo_best_openings, style_profile)
+    opening_fit_profile = build_opening_fit_profile(
+        demo_best_openings,
+        opening_recommendations,
+        24,
+        style_profile,
+    )
 
     demo_data = {
         "username": "DemoPlayer",
@@ -2516,6 +2655,7 @@ def demo_profile():
             {"archive": "demo-3", "games_found": 8, "gamesFound": 8},
         ],
         "lastUpdated": now_iso(),
+        **opening_fit_profile,
         "style_profile": style_profile,
         "styleProfile": style_profile,
         "top_openings": demo_best_openings,
