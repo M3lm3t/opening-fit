@@ -195,6 +195,11 @@ function getVerdict(item, average, data, index = 0) {
   const score = getScore(item);
   const mainOpening = index <= 2 && games >= 8;
 
+  if (publicMode && games < 8) return "Not enough context to judge";
+  if (publicMode && (explicit.includes("avoid") || explicit.includes("review"))) return "Recent underperformer";
+  if (publicMode && (explicit.includes("improve") || explicit.includes("promising"))) return "Lower-scoring sample";
+  if (publicMode && (explicit.includes("keep") || explicit.includes("reliable"))) return "Recent strength";
+
   if (explicit.includes("main weapon") || explicit.includes("core") || explicit.includes("trusted")) return "Main weapon";
   if (explicit.includes("keep") || explicit.includes("reliable")) return "Reliable choice";
   if (explicit.includes("promising") || explicit.includes("fine") || explicit.includes("improve")) return "Promising but unstable";
@@ -430,7 +435,3 @@ export default function EvidenceBackedOpeningDiagnosis({ data, onPractice }) {
     </section>
   );
 }
-  if (publicMode && games < 8) return "Not enough context to judge";
-  if (publicMode && (explicit.includes("avoid") || explicit.includes("review"))) return "Recent underperformer";
-  if (publicMode && (explicit.includes("improve") || explicit.includes("promising"))) return "Lower-scoring sample";
-  if (publicMode && (explicit.includes("keep") || explicit.includes("reliable"))) return "Recent strength";
