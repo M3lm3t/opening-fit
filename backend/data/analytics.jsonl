@@ -94,3 +94,367 @@
 {"event": "import_started", "date": "2026-05-03T11:39:57.348793+00:00", "data": {"username": "hikaru", "platform": "chess.com", "months": 3}}
 {"event": "games_imported", "date": "2026-05-03T11:40:00.313673+00:00", "data": {"username": "hikaru", "platform": "chess.com", "gamesImported": 537, "monthsChecked": 3}}
 {"event": "frontend_import_completed", "date": "2026-05-03T11:40:00.859450+00:00", "data": {"username": "hikaru", "platform": "chesscom", "gamesImported": 537, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-16T19:43:55.983418+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-16T19:43:56.133380+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-16T19:44:00.855846+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 431, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-16T19:44:03.104507+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 431, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:03:14.378012+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:03:14.434013+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:03:18.868169+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:03:20.385593+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "demo_loaded", "date": "2026-05-17T06:10:50.313931+00:00", "data": {"username": "DemoPlayer"}}
+{"event": "frontend_demo_loaded", "date": "2026-05-17T06:10:50.652424+00:00", "data": {"username": "DemoPlayer"}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:11:04.537372+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:11:04.582217+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:11:08.458490+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:11:09.588591+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "demo_loaded", "date": "2026-05-17T06:12:03.337733+00:00", "data": {"username": "DemoPlayer"}}
+{"event": "frontend_demo_loaded", "date": "2026-05-17T06:12:03.455035+00:00", "data": {"username": "DemoPlayer"}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:12:19.269701+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:12:19.347147+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:12:22.925450+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:12:23.884409+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:12:40.062078+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:12:40.086522+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:12:42.695874+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:12:43.989356+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:31:43.552812+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:31:43.635305+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:31:46.921033+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:31:47.950820+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:42:42.374755+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:42:42.426132+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:42:45.904926+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:42:47.148204+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:46:47.590559+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:46:47.646548+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:46:52.309514+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:46:53.865729+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:47:33.199385+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:47:33.328739+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:47:37.131123+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:47:38.715931+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:49:42.469132+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:49:42.522024+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:49:46.079707+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:49:47.313668+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:53:42.426481+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:53:42.720696+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:53:48.864148+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:53:50.185753+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:56:53.475599+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:56:53.536142+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:56:57.755312+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:56:58.887745+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:57:12.615222+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:57:12.635135+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:57:15.566233+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:57:16.681907+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T06:57:44.330230+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T06:57:44.379561+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T06:57:47.646119+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T06:57:48.971042+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:00:30.409828+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:00:30.492493+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:00:35.842244+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:00:37.063036+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:01:04.046066+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:01:04.098875+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:01:07.653587+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:01:08.901114+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:03:21.678068+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:03:21.780758+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:03:27.624141+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:03:29.669015+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:06:22.514148+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:06:22.644350+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:06:30.023306+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:06:31.568669+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:09:42.482140+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:09:42.570934+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:09:46.107401+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:09:47.204382+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:10:26.704482+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:10:26.825877+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:10:31.070589+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:10:32.716401+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:10:45.147071+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:10:45.177414+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:10:48.634867+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:10:49.752256+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:11:23.308051+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:11:23.460129+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:11:28.695015+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:11:30.277572+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:12:05.844892+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:12:05.901264+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:12:08.754635+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:12:09.749178+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:15:19.123506+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:15:19.288680+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:15:24.209173+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:15:26.573973+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:19:14.379834+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:19:14.542323+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:19:17.965142+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:19:19.049450+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:24:00.855001+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:24:00.904927+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:24:05.003538+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:24:06.259558+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:24:32.913177+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:24:32.968953+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:24:36.315675+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:24:37.489427+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:25:02.079047+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:25:02.111401+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:25:06.180409+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:25:07.807229+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:29:48.497313+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:29:48.799292+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:29:54.328160+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:29:55.584252+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:30:24.496508+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:30:24.525305+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:30:27.837258+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:30:29.151631+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:33:36.999630+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:33:37.128901+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:33:43.857633+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 432, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:33:46.617018+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 432, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:34:20.278831+00:00", "data": {"username": "itshutton", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:34:20.356074+00:00", "data": {"username": "itshutton", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:34:25.083484+00:00", "data": {"username": "itshutton", "platform": "chess.com", "gamesImported": 17, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:34:26.506536+00:00", "data": {"username": "itshutton", "platform": "chesscom", "gamesImported": 17, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T07:34:41.126989+00:00", "data": {"username": "itshutton", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T07:34:41.172732+00:00", "data": {"username": "itshutton", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T07:34:43.380418+00:00", "data": {"username": "itshutton", "platform": "chess.com", "gamesImported": 17, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T07:34:44.421080+00:00", "data": {"username": "itshutton", "platform": "chesscom", "gamesImported": 17, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:18:04.954970+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:18:05.158390+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:18:09.968673+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:18:11.636245+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:19:20.236025+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:19:20.331388+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:19:24.168134+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:19:25.342026+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:20:43.129273+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:20:43.225554+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:20:46.354229+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:20:47.413413+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:20:53.683362+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:20:53.700549+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:20:56.210225+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:20:57.210913+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:25:02.381208+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:25:02.411220+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:25:05.579116+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:25:06.601950+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:25:40.424680+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:25:40.528895+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:25:43.796964+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:25:44.749627+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:26:10.642901+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:26:10.767002+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:26:14.034205+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:26:15.059665+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:29:37.349435+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:29:37.484803+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:29:41.730480+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:29:43.268873+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:30:10.532113+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:30:10.631775+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:30:13.488988+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:30:14.483481+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:33:39.702615+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:33:39.733838+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:33:43.044989+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:33:44.113478+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:34:08.291049+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:34:08.351013+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:34:10.944007+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:34:11.952440+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:34:20.442877+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:34:20.461263+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:34:23.311057+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:34:24.346139+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T08:34:41.115471+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T08:34:41.154541+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T08:34:44.217054+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T08:34:45.265249+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T09:38:25.044020+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T09:38:25.163350+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T09:38:30.240938+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T09:38:32.378388+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T09:39:03.449214+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T09:39:03.521961+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T09:39:06.389164+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T09:39:07.389127+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T09:39:16.520356+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T09:39:16.538672+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T09:39:19.701889+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T09:39:20.683158+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T09:39:41.254755+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T09:39:41.273185+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T09:39:44.666518+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T09:39:45.719337+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T09:40:20.454711+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T09:40:20.561668+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T09:40:23.455497+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T09:40:24.511040+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T09:40:30.810686+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T09:40:30.827043+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T09:40:33.615539+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T09:40:34.849521+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T09:48:17.053014+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T09:48:17.242909+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T09:48:20.907574+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T09:48:21.951882+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T09:48:52.830178+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T09:48:52.971794+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T09:48:55.760027+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T09:48:56.720407+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T10:04:50.504937+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T10:04:50.662925+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T10:04:55.838380+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T10:04:57.325057+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T10:15:05.960598+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T10:15:06.116674+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T10:15:09.831353+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T10:15:10.926833+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T10:15:41.254021+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T10:15:41.286708+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T10:15:44.384193+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T10:15:45.580578+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T10:16:13.415579+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T10:16:13.449114+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T10:16:16.906443+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T10:16:18.027736+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T10:30:19.777065+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T10:30:19.964933+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T10:30:25.665057+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T10:30:27.030265+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T10:31:17.336159+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T10:31:17.404633+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T10:31:20.201320+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T10:31:21.210373+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T10:37:51.628606+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T10:37:51.941805+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T10:37:57.863087+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T10:37:59.439512+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T10:44:15.899009+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T10:44:16.503919+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T10:44:22.249714+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T10:44:25.240080+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T10:45:23.104256+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T10:45:23.265876+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T10:45:31.605605+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T10:45:33.415433+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T10:46:22.237953+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T10:46:22.313316+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T10:46:24.996119+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 434, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T10:46:26.029816+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 434, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T14:16:47.818841+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T14:16:48.706064+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T14:16:54.759123+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T14:16:56.840591+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T14:21:49.392286+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T14:21:49.617747+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T14:21:54.261639+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T14:21:57.968481+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T14:25:51.021163+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T14:25:51.453273+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T14:25:55.939787+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T14:25:57.412905+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T14:27:23.180837+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T14:27:23.233567+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T14:27:27.314642+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T14:27:28.448441+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T14:33:08.805521+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T14:33:09.243180+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T14:33:20.130573+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T14:33:22.137862+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T14:41:46.406278+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T14:41:47.323917+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T14:41:52.142361+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T14:41:54.310928+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T14:44:24.624999+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T14:44:24.740977+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T14:44:31.266189+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T14:44:32.515766+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T14:49:44.170220+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T14:49:44.256126+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T14:49:47.054176+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T14:49:47.907164+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T14:50:32.347626+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T14:50:32.463700+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T14:50:34.798900+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T14:50:35.782937+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T14:50:49.378524+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T14:50:49.402445+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T14:50:52.949571+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T14:50:53.960577+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T15:06:02.531539+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T15:06:02.592354+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T15:06:06.769534+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T15:06:07.826692+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T15:29:29.620191+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T15:29:29.832976+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T15:29:37.732737+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T15:29:40.950180+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T15:30:34.680623+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T15:30:34.786594+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T15:30:40.690583+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T15:30:43.215224+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T15:37:45.613698+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T15:37:45.806512+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T15:37:50.734994+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T15:37:51.834239+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T15:43:51.795868+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T15:43:52.002044+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T15:43:59.720568+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T15:44:03.466112+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T15:45:11.371957+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T15:45:11.504111+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T15:45:14.724819+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T15:45:15.770071+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T15:47:45.063524+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T15:47:45.121185+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T15:47:48.859501+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T15:47:50.104392+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T15:58:39.874135+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T15:58:40.037605+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T15:58:43.989388+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T15:58:46.452642+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-17T15:59:43.909401+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-17T15:59:44.015203+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-17T15:59:48.302088+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 435, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-17T15:59:49.367802+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 435, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-19T16:25:21.315604+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-19T16:25:21.471323+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-19T16:25:31.978901+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 461, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-19T16:25:36.768583+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 461, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-19T17:46:33.061538+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-19T17:46:33.245954+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-19T17:46:39.296695+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 461, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-19T17:46:41.487522+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 461, "months": 3}}
+{"event": "frontend_import_started", "date": "2026-05-19T17:56:40.647788+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "openingSamplePercent": 0, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-19T17:56:40.705495+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-19T17:56:43.711909+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 461, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-19T17:56:44.737765+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 461, "months": 3, "openingSamplePercent": 0}}
+{"event": "frontend_import_started", "date": "2026-05-19T17:57:36.331680+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "openingSamplePercent": 19, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-19T17:57:36.380037+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-19T17:57:39.037891+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 461, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-19T17:57:40.012819+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 461, "months": 3, "openingSamplePercent": 19}}
+{"event": "frontend_import_started", "date": "2026-05-19T17:59:10.323206+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "openingSamplePercent": 2, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-19T17:59:10.524414+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-19T17:59:15.709236+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 461, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-19T17:59:17.620243+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 461, "months": 3, "openingSamplePercent": 2}}
+{"event": "frontend_import_started", "date": "2026-05-19T18:08:44.012349+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "openingSamplePercent": 19, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-19T18:08:44.523037+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-19T18:08:55.536438+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 461, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-19T18:08:57.818467+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 461, "months": 3, "openingSamplePercent": 19}}
+{"event": "frontend_import_started", "date": "2026-05-19T18:09:37.860403+00:00", "data": {"username": "melmet", "platform": "chesscom", "months": 3, "openingSamplePercent": 2, "premiumDemo": false}}
+{"event": "import_started", "date": "2026-05-19T18:09:38.024362+00:00", "data": {"username": "melmet", "platform": "chess.com", "months": 3}}
+{"event": "games_imported", "date": "2026-05-19T18:09:43.194308+00:00", "data": {"username": "melmet", "platform": "chess.com", "gamesImported": 461, "monthsChecked": 3}}
+{"event": "frontend_import_completed", "date": "2026-05-19T18:09:45.349603+00:00", "data": {"username": "melmet", "platform": "chesscom", "gamesImported": 461, "months": 3, "openingSamplePercent": 2}}
