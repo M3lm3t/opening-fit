@@ -1003,6 +1003,95 @@ table {
   font-size: 0.86rem;
 }
 
+.evidenceListItem {
+  align-items: flex-start;
+}
+
+.evidenceListItem > div:first-child {
+  min-width: 0;
+}
+
+.openingEvidenceBlock {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  text-align: left;
+}
+
+.openingEvidenceBlockCompact {
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.openingEvidenceChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.openingEvidenceChips span {
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  font-weight: 850;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.openingEvidenceBlock p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.84rem;
+  line-height: 1.42;
+}
+
+.openingEvidenceBlock p strong {
+  color: #e2e8f0;
+  font-weight: 900;
+}
+
+:root[data-theme="light"] .openingEvidenceChips span,
+.page.light .openingEvidenceChips span,
+[data-theme="light"] .openingEvidenceChips span {
+  background: rgba(15, 23, 42, 0.045);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #475569;
+}
+
+:root[data-theme="light"] .openingEvidenceBlock p,
+.page.light .openingEvidenceBlock p,
+[data-theme="light"] .openingEvidenceBlock p {
+  color: #64748b;
+}
+
+:root[data-theme="light"] .openingEvidenceBlock p strong,
+.page.light .openingEvidenceBlock p strong,
+[data-theme="light"] .openingEvidenceBlock p strong {
+  color: #1e293b;
+}
+
+table .openingEvidenceBlock {
+  margin-top: 7px;
+}
+
+table .openingEvidenceChips {
+  max-width: 360px;
+}
+
+table .openingEvidenceChips span {
+  min-height: 22px;
+  padding: 3px 7px;
+  font-size: 0.7rem;
+}
+
 .rightStat {
   text-align: right;
   display: grid;
@@ -9286,6 +9375,18 @@ body.dark {
 }
 
 @media (max-width: 680px) {
+  .evidenceListItem {
+    align-items: stretch;
+  }
+
+  .openingEvidenceChips {
+    gap: 5px;
+  }
+
+  .openingEvidenceChips span {
+    font-size: 0.7rem;
+  }
+
   .openingFitPlanShell {
     width: min(100% - 20px, 1180px);
     padding: 14px;
