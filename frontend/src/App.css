@@ -11696,7 +11696,7 @@ main > section,
 
 .openingReportStats {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin: 16px 0;
 }
@@ -11716,8 +11716,9 @@ main > section,
 
 .openingReportStats strong {
   display: block;
-  font-size: 1.35rem;
+  font-size: clamp(0.95rem, 1.4vw, 1.35rem);
   line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .openingReportStats small {
@@ -11738,6 +11739,12 @@ main > section,
   color: rgba(226, 232, 240, 0.68);
   line-height: 1.54;
   font-size: 0.93rem;
+}
+
+.openingReportEvidence {
+  margin-top: 8px !important;
+  color: rgba(226, 232, 240, 0.54) !important;
+  font-size: 0.86rem !important;
 }
 
 .light .openingReportCard p,

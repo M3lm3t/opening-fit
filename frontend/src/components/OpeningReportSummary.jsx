@@ -41,6 +41,49 @@ function getWinRate(opening) {
   return Math.round(((wins + draws * 0.5) / games) * 100);
 }
 
+function getConfidenceLabel(opening) {
+  return (
+    opening?.confidenceLabel ||
+    opening?.confidence_label ||
+    opening?.confidence ||
+    (getGames(opening) <= 2
+      ? "Too little data"
+      : getGames(opening) < 8
+        ? "Low confidence"
+        : "Medium confidence")
+  );
+}
+
+function getComparisonText(opening, data) {
+  if (opening?.comparisonText || opening?.comparison_text) {
+    return opening.comparisonText || opening.comparison_text;
+  }
+
+  const average = Number(data?.averageOpeningScore ?? data?.average_opening_score);
+  const winRate = getWinRate(opening);
+
+  if (!average || !winRate) return "Average comparison unavailable.";
+
+  const delta = Math.round((winRate - average) * 10) / 10;
+
+  if (delta > 0) return `${delta} points above your imported-game average.`;
+  if (delta < 0) return `${Math.abs(delta)} points below your imported-game average.`;
+  return "Matches your imported-game average.";
+}
+
+function getReason(opening, data) {
+  if (opening?.verdictReason || opening?.verdict_reason) {
+    return opening.verdictReason || opening.verdict_reason;
+  }
+
+  const games = getGames(opening);
+  const confidence = getConfidenceLabel(opening).toLowerCase();
+
+  if (games <= 2) return "This opening appears only once or twice, so the result is too noisy to judge.";
+  if (confidence.includes("low")) return "The sample is still modest, so treat this as a provisional pattern.";
+  return getComparisonText(opening, data);
+}
+
 function collectOpenings(data) {
   const candidates = [
     data?.topOpenings,
@@ -111,18 +154,27 @@ function getSampleTier(games) {
 }
 
 function getVerdict(opening, data, index = 0) {
-  const existing = opening?.verdict || opening?.recommendation || opening?.status;
+  const existing = opening?.fitVerdict || opening?.fit_verdict || opening?.verdict || opening?.recommendation || opening?.status;
   const tier = getPlayerTier(data);
   const games = getGames(opening);
   const winRate = getWinRate(opening);
   const sampleTier = getSampleTier(games);
   const mainOpening = index <= 2 && games >= 8;
 
-  if (sampleTier === "tiny") return "Experimental / not enough data";
-  if (sampleTier === "small") return "Low-confidence sample";
+  if (sampleTier === "tiny") return "Too little data";
+  if (games <= 4) return "Emerging pattern";
+  if (games < 8) return "Needs more games before judging";
 
   if (existing) {
     const lower = String(existing).toLowerCase();
+
+    if (
+      lower.includes("too little data") ||
+      lower.includes("emerging pattern") ||
+      lower.includes("needs more games")
+    ) {
+      return String(existing);
+    }
 
     if (lower.includes("keep") || lower.includes("core weapon") || lower.includes("trusted weapon")) {
       return mainOpening ? "Main weapon" : "Reliable choice";
@@ -226,21 +278,24 @@ function buildReportCards(openings, data) {
     .map((opening, index) => ({
       ...opening,
       verdict: getVerdict(opening.raw, data, index),
+      confidenceLabel: getConfidenceLabel(opening.raw),
+      comparisonText: getComparisonText(opening.raw, data),
+      reason: getReason(opening.raw, data),
     }));
 
   const keep =
     cleaned
-      .filter((opening) => opening.winRate >= 58 && opening.games >= 3)
+      .filter((opening) => opening.winRate >= 58 && opening.games >= 8)
       .sort((a, b) => b.winRate - a.winRate)[0] || cleaned[0];
 
   const improve =
     cleaned
-      .filter((opening) => opening.winRate >= 42 && opening.winRate < 58 && opening.games >= 3)
+      .filter((opening) => opening.winRate >= 42 && opening.winRate < 58 && opening.games >= 8)
       .sort((a, b) => b.games - a.games)[0] || cleaned[1];
 
   const avoid =
     cleaned
-      .filter((opening) => opening.winRate < 42 && opening.games >= 3)
+      .filter((opening) => opening.winRate < 42 && opening.games >= 8)
       .sort((a, b) => a.winRate - b.winRate)[0] || cleaned[2];
 
   return { keep, improve, avoid, cleaned };
@@ -314,7 +369,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
 
       <div className="openingReportGrid">
         <ReportCard
-          title="Keep playing"
+          title={keep?.verdict === "Keep" || keep?.verdict === "Reliable choice" || keep?.verdict === "Main weapon" ? "Keep playing" : "Track carefully"}
           opening={keep}
           fallbackTitle="Best repeated opening"
           fallbackText="Once more games are imported, this will show the opening that best fits your current results."
@@ -322,7 +377,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
         />
 
         <ReportCard
-          title={strongProfile ? "Review next" : "Improve next"}
+          title={improve?.verdict === "Improve" || improve?.verdict === "Promising but unstable" ? (strongProfile ? "Review next" : "Improve next") : "Build sample"}
           opening={improve}
           fallbackTitle={strongProfile ? "Main review target" : "Main study target"}
           fallbackText={
@@ -334,7 +389,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
         />
 
         <ReportCard
-          title={strongProfile ? "Check carefully" : "Needs review"}
+          title={avoid?.verdict === "Avoid" || avoid?.verdict === "Needs review" ? (strongProfile ? "Check carefully" : "Needs review") : "Wait before judging"}
           opening={avoid}
           fallbackTitle={strongProfile ? "Trend to inspect" : "Risky opening"}
           fallbackText={
@@ -372,6 +427,9 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type }) {
   const games = opening?.games || 0;
   const winRate = opening?.winRate || 0;
   const verdict = opening?.verdict || title;
+  const confidenceLabel = opening?.confidenceLabel || "Too little data";
+  const comparisonText = opening?.comparisonText || "Average comparison unavailable.";
+  const reason = opening?.reason || fallbackText;
 
   return (
     <article className={`openingReportCard openingReportCard-${type}`}>
@@ -394,18 +452,15 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type }) {
               <strong>{winRate}%</strong>
               <small>score</small>
             </div>
+
+            <div>
+              <strong>{confidenceLabel}</strong>
+              <small>confidence</small>
+            </div>
           </div>
 
-          <p>
-            {type === "keep" &&
-              "This is currently one of your better fits. Keep it in your repertoire and build more depth around the common middlegame plans."}
-
-            {type === "improve" &&
-              "This has enough promise to keep, but your results suggest it needs focused study before it becomes reliable."}
-
-            {type === "avoid" &&
-              "This is underperforming compared with your other openings. Reduce how often you play it until you understand the main problems."}
-          </p>
+          <p>{reason}</p>
+          <p className="openingReportEvidence">{comparisonText}</p>
         </>
       ) : (
         <p>{fallbackText}</p>

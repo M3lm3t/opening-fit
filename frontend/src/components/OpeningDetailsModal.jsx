@@ -21,18 +21,38 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
   );
 
   const colour = opening.colour || opening.color || opening.side || "Mixed";
+  const confidenceLabel =
+    opening.confidenceLabel ||
+    opening.confidence_label ||
+    (games <= 2 ? "Too little data" : games < 8 ? "Low confidence" : "Medium confidence");
+  const comparisonText =
+    opening.comparisonText ||
+    opening.comparison_text ||
+    "Average comparison unavailable.";
+  const verdictReason =
+    opening.verdictReason ||
+    opening.verdict_reason ||
+    opening.confidenceReason ||
+    opening.confidence_reason;
 
   const verdict =
-    opening.fitVerdict ||
-    opening.verdict ||
-    opening.recommendation ||
-    getVerdict(winRate, games);
+    games <= 2
+      ? "Too little data"
+      : games <= 4
+        ? "Emerging pattern"
+        : games < 8
+          ? "Needs more games before judging"
+          : opening.fitVerdict ||
+            opening.verdict ||
+            opening.recommendation ||
+            getVerdict(winRate, games);
 
   function getVerdict(rate, gameCount) {
     const n = Number(rate) || 0;
 
-    if (gameCount < 3) return "Experimental / not enough data";
-    if (gameCount < 8) return "Low-confidence sample";
+    if (gameCount < 3) return "Too little data";
+    if (gameCount < 5) return "Emerging pattern";
+    if (gameCount < 8) return "Needs more games before judging";
     if (n >= 60) return "Reliable choice";
     if (n >= 45) return "Promising but unstable";
     return "Needs review";
@@ -49,7 +69,7 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
       return "You play this opening enough to review it properly. The results are useful, but the sample points to recurring positions worth checking.";
     }
 
-    if (v.includes("low-confidence") || v.includes("experimental")) {
+    if (v.includes("low-confidence") || v.includes("experimental") || v.includes("too little") || v.includes("emerging") || v.includes("needs more games")) {
       return "There is not enough reliable data yet. Play more games with this opening before making a final decision.";
     }
 
@@ -92,6 +112,11 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
             <span>Side</span>
             <strong>{colour}</strong>
           </div>
+
+          <div>
+            <span>Confidence</span>
+            <strong>{confidenceLabel}</strong>
+          </div>
         </div>
 
         <div className={`openingVerdict openingVerdict${verdictClass}`}>
@@ -100,7 +125,8 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
 
         <div className="openingMeaningBox">
           <h3>What this means</h3>
-          <p>{opening.fitExplanation || getMeaning()}</p>
+          <p>{verdictReason || opening.fitExplanation || getMeaning()}</p>
+          <p>{comparisonText}</p>
         </div>
 
         <div className="openingModalActions">
