@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "./OpeningCoachPlan.css";
 import { getPlayerLevelText } from "./playerLevelLogic";
+import { getOpeningContext } from "./OpeningEvidence";
 
 function toNumber(value, fallback = 0) {
   const n = Number(value);
@@ -44,6 +45,7 @@ function openingMeta(item) {
 
   if (wr !== null) parts.push(`${wr}% score`);
   if (g > 0) parts.push(`${g} game${g === 1 ? "" : "s"}`);
+  parts.push(getOpeningContext(item).label);
 
   return parts.length ? parts.join(" · ") : "Pattern found in your games";
 }
@@ -169,7 +171,9 @@ function buildPlan(data) {
       ? `${evidence(best)} Action: add one branch-level note on the reply causing the most practical problems.`
       : level === "intermediate"
       ? `${evidence(best)} Action: choose one repeatable line and write the plan in one sentence.`
-      : `${evidence(best)} Action: play this opening again and aim for the same move-10 structure.`;
+      : getOpeningContext(best).canRecommend
+        ? `${evidence(best)} Action: play this opening again from your side and aim for the same move-10 structure.`
+        : `${evidence(best)} Action: review how you handled this opening; do not add it to your repertoire unless you also play it from your side.`;
   const reviewTitle = advancedMode
     ? `20 minutes on ${openingName(weak, "a lower-scoring sample")}`
     : `20 minutes on ${openingName(weak, "your weakest recurring opening")}`;

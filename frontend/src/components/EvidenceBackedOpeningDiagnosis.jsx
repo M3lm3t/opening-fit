@@ -296,7 +296,7 @@ function buildReason(item, average, verdict) {
         verdict === "Recent strength"
           ? `${name} is a recent strength sample.`
           : verdict === "Main weapon"
-          ? `${name} looks like a main weapon.`
+          ? `${name} looks like a main weapon in this side/context.`
           : `${name} is earning its place.`,
       body:
         verdict === "Recent strength"
@@ -305,7 +305,7 @@ function buildReason(item, average, verdict) {
       action:
         verdict === "Recent strength"
           ? "Compare this against time control, opponent pool, and event context before drawing broader repertoire conclusions."
-          : "Keep it in the repertoire. Review the reply or structure that currently makes the position least comfortable instead of replacing the opening.",
+          : "Keep it in the repertoire only for the side/context shown here. Review the reply or structure that currently makes the position least comfortable instead of replacing the opening.",
     };
   }
 

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { getOpeningConfidence, getOpeningSignal } from "./OpeningEvidence";
+import { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 
 const MIN_RELIABLE_GAMES = 5;
 
@@ -341,8 +341,7 @@ function pickBest(items, statsByName, context, preferredSide = "") {
 
 function sideAwareStats(statsByName, wantedSide) {
   return Array.from(statsByName.values()).flat().filter((item) => {
-    const itemSide = side(item);
-    return itemSide.includes(wantedSide);
+    return getOpeningContext(item).type === wantedSide;
   });
 }
 
@@ -375,7 +374,12 @@ function metricLine(item) {
 
 function hasReliableEvidence(item) {
   if (!item) return false;
-  return games(item) >= MIN_RELIABLE_GAMES || (item.hasContextEvidence && score(item) !== null && getOpeningSignal(item).tier !== "low");
+  const context = getOpeningContext(item);
+  return (
+    context.isRepertoire &&
+    (games(item) >= MIN_RELIABLE_GAMES ||
+      (item.hasContextEvidence && score(item) !== null && getOpeningSignal(item).canBePrimary))
+  );
 }
 
 function missingReason(slot) {
@@ -451,6 +455,7 @@ function nextAction(item, slot) {
 function buildPlan(data) {
   const statsByName = collectStats(data || {});
   const buckets = recommendationBuckets(data || {});
+  const allStats = Array.from(statsByName.values()).flat();
 
   const white =
     pickBest(buckets.white, statsByName, "played_as_white", "white") ||
@@ -473,6 +478,13 @@ function buildPlan(data) {
     );
 
   const d4Cautious = !explicitD4 && blackFallback;
+  const mixedSignals = allStats
+    .filter((item) => {
+      const type = getOpeningContext(item).type;
+      return type === "mixed" || type === "faced";
+    })
+    .sort((a, b) => games(b) - games(a))
+    .slice(0, 3);
   const actionSources = [
     { item: white, slot: "white" },
     { item: blackVsE4, slot: "black-e4" },
@@ -496,6 +508,7 @@ function buildPlan(data) {
     white,
     blackVsE4,
     blackVsD4: explicitD4 || blackFallback,
+    mixedSignals,
     d4Cautious,
     actions: actions.slice(0, 3),
   };
@@ -505,6 +518,7 @@ function PlanCard({ title, item, slot, cautiousLabel }) {
   const reliable = hasReliableEvidence(item);
   const missing = !reliable;
   const displayName = missing ? "Not enough reliable data yet" : openingName(item);
+  const context = getOpeningContext(item || {});
 
   return (
     <article className={`fitPlanCard ${missing ? "fitPlanCardMissing" : ""}`}>
@@ -514,6 +528,7 @@ function PlanCard({ title, item, slot, cautiousLabel }) {
       </div>
       {cautiousLabel ? <div className="fitPlanContext">{cautiousLabel}</div> : null}
       <h3>{displayName}</h3>
+      <div className="fitPlanContext">{context.label}</div>
       <dl>
         <div>
           <dt>Games / score</dt>
@@ -536,6 +551,35 @@ function PlanCard({ title, item, slot, cautiousLabel }) {
         <span>Next study action</span>
         <strong>{nextAction(item, slot)}</strong>
       </div>
+    </article>
+  );
+}
+
+function MixedSignalsCard({ items }) {
+  return (
+    <article className="fitPlanCard fitPlanCardMissing">
+      <div className="fitPlanCardTop">
+        <span>Mixed / unclear signals</span>
+        <small>Hold</small>
+      </div>
+      <h3>{items.length ? "Track before recommending" : "No mixed signals found"}</h3>
+      <div className="fitPlanCopyGroup">
+        <span>What this means</span>
+        <p>
+          {items.length
+            ? "These openings appear in your games, but the current data is not clear enough to treat them as clean repertoire recommendations."
+            : "The report did not find opponent-only or mixed-side signals that need separating."}
+        </p>
+      </div>
+      {items.length ? (
+        <ul className="fitPlanSignalList">
+          {items.map((item) => (
+            <li key={`${openingName(item)}-${getOpeningContext(item).label}`}>
+              {openingName(item)} · {getOpeningContext(item).label} · {metricLine(item)}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </article>
   );
 }
@@ -567,6 +611,7 @@ export default function OpeningFitRepertoirePlan({ data }) {
               : null
           }
         />
+        <MixedSignalsCard items={plan.mixedSignals} />
         <article className="fitPlanCard fitPlanActionsCard">
           <div className="fitPlanCardTop">
             <span>Your next 3 study actions</span>

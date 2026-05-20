@@ -1,4 +1,4 @@
-import { getOpeningConfidence, getOpeningSignal } from "./OpeningEvidence";
+import { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 
 export default function OpeningDetailsModal({ opening, onClose, onReview, onPracticeLines }) {
   if (!opening) return null;
@@ -23,6 +23,7 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
   );
 
   const colour = opening.colour || opening.color || opening.side || "Mixed";
+  const context = getOpeningContext(opening);
   const signal = getOpeningSignal(opening);
   const confidenceLabel =
     opening.confidenceLabel ||
@@ -62,12 +63,18 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
   function getMeaning() {
     const v = String(verdict).toLowerCase();
 
+    if (!context.canRecommend) {
+      return context.type === "faced"
+        ? "This looks like an opening you faced from the opponent side. Review how you handled it, but do not treat it as something you should play."
+        : "This opening appears in your games, but the side/context is not clear enough for a clean repertoire recommendation.";
+    }
+
     if (v.includes("keep") || v.includes("main weapon") || v.includes("reliable choice")) {
       return "You are scoring well with this opening, so it should probably stay in your repertoire.";
     }
 
     if (v.includes("promising") || v.includes("review")) {
-      return "You play this opening enough to review it properly. The results are useful, but the sample points to recurring positions worth checking.";
+      return "This side/context has enough games to review properly. The results are useful, but the sample points to recurring positions worth checking.";
     }
 
     if (v.includes("low-confidence") || v.includes("experimental") || v.includes("too little") || v.includes("too few") || v.includes("no reliable") || v.includes("emerging") || v.includes("needs more games")) {
@@ -110,8 +117,8 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
           </div>
 
           <div>
-            <span>Side</span>
-            <strong>{colour}</strong>
+            <span>Context</span>
+            <strong>{context.label || colour}</strong>
           </div>
 
           <div>

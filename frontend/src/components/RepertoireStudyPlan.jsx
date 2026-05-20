@@ -1,3 +1,5 @@
+import { getOpeningContext } from "./OpeningEvidence";
+
 function getOpeningName(opening) {
   if (!opening) return "Unknown opening";
 
@@ -64,6 +66,7 @@ function cleanOpenings(data) {
         opening?.side ||
         opening?.player_color ||
         "",
+      context: opening?.context || opening?.repertoireContext || opening?.contextLabel || "",
     }))
     .filter((opening) => {
       const lower = opening.name.toLowerCase();
@@ -77,11 +80,9 @@ function cleanOpenings(data) {
 
 function pickBest(openings, side) {
   const sideOpenings = openings.filter((opening) => {
-    const colour = String(opening.colour).toLowerCase();
-
     if (!side) return true;
 
-    return colour.includes(side);
+    return getOpeningContext(opening).type === side;
   });
 
   const pool = sideOpenings.length ? sideOpenings : openings;
@@ -120,20 +121,21 @@ export default function RepertoireStudyPlan({ data }) {
   if (!data) return null;
 
   const openings = cleanOpenings(data);
+  const repertoireOpenings = openings.filter((opening) =>
+    ["white", "black"].includes(getOpeningContext(opening).type)
+  );
 
   const whitePick =
-    pickBest(openings, "white") ||
-    pickBest(openings) ||
+    pickBest(repertoireOpenings, "white") ||
     fallbackOpening("Choose a main White opening");
 
   const blackPick =
-    pickBest(openings, "black") ||
-    pickMostPlayed(openings) ||
+    pickBest(repertoireOpenings, "black") ||
     fallbackOpening("Choose a reliable Black defence");
 
   const studyTarget =
-    pickWeakest(openings) ||
-    pickMostPlayed(openings) ||
+    pickWeakest(repertoireOpenings) ||
+    pickMostPlayed(repertoireOpenings) ||
     fallbackOpening("Import more games to find a study target");
 
   const anchorOpening = whitePick?.fallback ? blackPick : whitePick;
@@ -222,6 +224,8 @@ export default function RepertoireStudyPlan({ data }) {
 }
 
 function PlanCard({ label, opening, type, text }) {
+  const context = getOpeningContext(opening);
+
   return (
     <article className={`repertoirePlanCard repertoirePlanCard-${type}`}>
       <div className="repertoirePlanCardTop">
@@ -229,6 +233,7 @@ function PlanCard({ label, opening, type, text }) {
       </div>
 
       <h3>{opening.name}</h3>
+      {!opening.fallback ? <p className="repertoirePlanContext">{context.label}</p> : null}
 
       {!opening.fallback ? (
         <div className="repertoirePlanStats">
