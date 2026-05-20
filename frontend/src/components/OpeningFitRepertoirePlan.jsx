@@ -1,6 +1,7 @@
 import { useMemo } from "react";
+import { getOpeningConfidence, getOpeningSignal } from "./OpeningEvidence";
 
-const MIN_RELIABLE_GAMES = 3;
+const MIN_RELIABLE_GAMES = 5;
 
 function asArray(value) {
   if (!value) return [];
@@ -109,20 +110,7 @@ function textField(item, keys) {
 }
 
 function confidence(item) {
-  const explicit =
-    item?.confidenceLabel ||
-    item?.confidence_label ||
-    item?.confidence ||
-    item?.sampleConfidence ||
-    item?.sample_confidence;
-
-  if (explicit) return String(explicit);
-
-  const count = games(item);
-  if (count >= 12) return "High";
-  if (count >= 6) return "Medium";
-  if (count >= 3) return "Low";
-  return "Too little data";
+  return getOpeningConfidence(item);
 }
 
 function colorSignal(value) {
@@ -320,9 +308,10 @@ function candidateScore(item, preferredContext) {
   const pct = score(item) ?? 50;
   const label = String(verdict(item)).toLowerCase();
   const explicitContext = side(item);
+  const signal = getOpeningSignal(item);
   const contextBonus =
     preferredContext && explicitContext.includes(preferredContext) ? 35 : 0;
-  const enoughGames = count >= 6 ? 20 : count >= 3 ? 8 : 0;
+  const enoughGames = signal.tier === "strong" ? 26 : signal.tier === "medium" ? 14 : -30;
   const metricsBonus = item?.hasMetricEvidence ? 8 : -12;
   const verdictBonus =
     label.includes("keep") || label.includes("recommend") || label.includes("main")
@@ -386,7 +375,7 @@ function metricLine(item) {
 
 function hasReliableEvidence(item) {
   if (!item) return false;
-  return games(item) >= MIN_RELIABLE_GAMES || (item.hasContextEvidence && score(item) !== null);
+  return games(item) >= MIN_RELIABLE_GAMES || (item.hasContextEvidence && score(item) !== null && getOpeningSignal(item).tier !== "low");
 }
 
 function missingReason(slot) {
@@ -422,6 +411,7 @@ function meaning(item, slot) {
   if (explicitReason) return explicitReason;
 
   if (count < 3) return `${name} is visible in your games, but the sample is still too small to trust.`;
+  if (getOpeningSignal(item).tier === "medium") return `${name} is a useful signal, but confirm it with a few more games before treating it as settled.`;
   if (pct !== null && pct >= 55) return `${name} is a practical direction to build around in your next game block.`;
   if (pct !== null && pct < 45) return `${name} is showing up often enough to review before you make it a core choice.`;
   return `${name} is a usable signal, but the report needs a bigger sample before treating it as settled.`;
@@ -561,6 +551,7 @@ export default function OpeningFitRepertoirePlan({ data }) {
         <span>Opening Fit Repertoire Plan</span>
         <h2>Your Opening Fit Repertoire Plan</h2>
         <p>Here is the practical opening plan the report can support from your imported games.</p>
+        <p className="fitPlanConfidenceNote">Confidence is based mainly on game count and signal clarity.</p>
       </div>
 
       <div className="openingFitPlanGrid">

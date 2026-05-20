@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { getOpeningSignal } from "./OpeningEvidence";
 
 function getOpenings(data) {
   return [
@@ -26,7 +27,11 @@ function getWinRate(item) {
 }
 
 function verdictFor(item) {
+  const signal = getOpeningSignal(item);
   const verdict = String(item?.verdict || "").toLowerCase();
+
+  if (signal.tier === "none") return "No reliable data";
+  if (signal.tier === "low") return "Too few games";
 
   if (verdict.includes("keep") || verdict.includes("weapon") || verdict.includes("reliable")) {
     return "Reliable choice";
@@ -39,8 +44,7 @@ function verdictFor(item) {
   const winRate = getWinRate(item);
   const games = getGames(item);
 
-  if (games < 3) return "Experimental / not enough data";
-  if (games < 8) return "Low-confidence sample";
+  if (games < 5) return "Too few games";
   if (winRate >= 58) return "Reliable choice";
   if (winRate >= 45) return "Promising but unstable";
   return "Needs review";

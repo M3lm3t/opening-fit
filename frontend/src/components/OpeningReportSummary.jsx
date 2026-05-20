@@ -1,5 +1,5 @@
 import { getPlayerLevelText } from "./playerLevelLogic";
-import OpeningEvidenceBlock, { getOpeningConfidence } from "./OpeningEvidence";
+import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningSignal } from "./OpeningEvidence";
 
 function normaliseOpeningName(opening) {
   if (!opening) return "Unknown opening";
@@ -144,9 +144,9 @@ function getPlayerTier(data) {
 
 function getSampleTier(games) {
   const count = Number(games || 0);
-  if (count >= 20) return "large";
-  if (count >= 8) return "medium";
-  if (count >= 3) return "small";
+  if (count >= 10) return "large";
+  if (count >= 5) return "medium";
+  if (count >= 1) return "tiny";
   return "tiny";
 }
 
@@ -156,11 +156,11 @@ function getVerdict(opening, data, index = 0) {
   const games = getGames(opening);
   const winRate = getWinRate(opening);
   const sampleTier = getSampleTier(games);
-  const mainOpening = index <= 2 && games >= 8;
+  const signal = getOpeningSignal(opening);
+  const mainOpening = index <= 2 && signal.tier === "strong";
 
-  if (sampleTier === "tiny") return "Too little data";
-  if (games <= 4) return "Emerging pattern";
-  if (games < 8) return "Needs more games before judging";
+  if (signal.tier === "none") return "No reliable data";
+  if (signal.tier === "low") return "Too few games";
 
   if (existing) {
     const lower = String(existing).toLowerCase();
@@ -282,17 +282,17 @@ function buildReportCards(openings, data) {
 
   const keep =
     cleaned
-      .filter((opening) => opening.winRate >= 58 && opening.games >= 8)
+      .filter((opening) => opening.winRate >= 58 && getOpeningSignal(opening.raw).canBePrimary)
       .sort((a, b) => b.winRate - a.winRate)[0] || cleaned[0];
 
   const improve =
     cleaned
-      .filter((opening) => opening.winRate >= 42 && opening.winRate < 58 && opening.games >= 8)
+      .filter((opening) => opening.winRate >= 42 && opening.winRate < 58 && getOpeningSignal(opening.raw).canBePrimary)
       .sort((a, b) => b.games - a.games)[0] || cleaned[1];
 
   const avoid =
     cleaned
-      .filter((opening) => opening.winRate < 42 && opening.games >= 8)
+      .filter((opening) => opening.winRate < 42 && getOpeningSignal(opening.raw).canBePrimary)
       .sort((a, b) => a.winRate - b.winRate)[0] || cleaned[2];
 
   return { keep, improve, avoid, cleaned };
@@ -424,7 +424,7 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type }) {
   const games = opening?.games || 0;
   const winRate = opening?.winRate || 0;
   const verdict = opening?.verdict || title;
-  const confidenceLabel = opening?.confidenceLabel || "Too little data";
+  const confidenceLabel = opening?.confidenceLabel || getOpeningConfidence(opening?.raw || opening || {});
   const comparisonText = opening?.comparisonText || "Average comparison unavailable.";
   const reason = opening?.reason || fallbackText;
 

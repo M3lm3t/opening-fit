@@ -1,3 +1,5 @@
+import { getOpeningConfidence, getOpeningSignal } from "./OpeningEvidence";
+
 export default function OpeningDetailsModal({ opening, onClose, onReview, onPracticeLines }) {
   if (!opening) return null;
 
@@ -21,10 +23,11 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
   );
 
   const colour = opening.colour || opening.color || opening.side || "Mixed";
+  const signal = getOpeningSignal(opening);
   const confidenceLabel =
     opening.confidenceLabel ||
     opening.confidence_label ||
-    (games <= 2 ? "Too little data" : games < 8 ? "Low confidence" : "Medium confidence");
+    getOpeningConfidence(opening);
   const comparisonText =
     opening.comparisonText ||
     opening.comparison_text ||
@@ -36,13 +39,11 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
     opening.confidence_reason;
 
   const verdict =
-    games <= 2
-      ? "Too little data"
-      : games <= 4
-        ? "Emerging pattern"
-        : games < 8
-          ? "Needs more games before judging"
-          : opening.fitVerdict ||
+    signal.tier === "none"
+      ? "No reliable data"
+      : signal.tier === "low"
+        ? "Too few games"
+        : opening.fitVerdict ||
             opening.verdict ||
             opening.recommendation ||
             getVerdict(winRate, games);
@@ -50,9 +51,9 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
   function getVerdict(rate, gameCount) {
     const n = Number(rate) || 0;
 
-    if (gameCount < 3) return "Too little data";
-    if (gameCount < 5) return "Emerging pattern";
-    if (gameCount < 8) return "Needs more games before judging";
+    const localSignal = getOpeningSignal({ ...opening, games: gameCount, winRate: rate });
+    if (localSignal.tier === "none") return "No reliable data";
+    if (localSignal.tier === "low") return "Too few games";
     if (n >= 60) return "Reliable choice";
     if (n >= 45) return "Promising but unstable";
     return "Needs review";
@@ -69,8 +70,8 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
       return "You play this opening enough to review it properly. The results are useful, but the sample points to recurring positions worth checking.";
     }
 
-    if (v.includes("low-confidence") || v.includes("experimental") || v.includes("too little") || v.includes("emerging") || v.includes("needs more games")) {
-      return "There is not enough reliable data yet. Play more games with this opening before making a final decision.";
+    if (v.includes("low-confidence") || v.includes("experimental") || v.includes("too little") || v.includes("too few") || v.includes("no reliable") || v.includes("emerging") || v.includes("needs more games")) {
+      return "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation.";
     }
 
     return "Your results are currently under pressure with this opening. Review the losses before deciding whether the opening itself is the issue.";
