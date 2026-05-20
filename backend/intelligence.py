@@ -38,19 +38,15 @@ def as_list(value: Any) -> list:
     return []
 
 
-            # Fallback tiers affect wording and confidence rather than blocking output.
-            if games >= 10:
-                # Strong signal — be decisive but balanced
-                if win_rate >= 55:
-                    verdict = "Keep"
-                else:
-                    verdict = "Review"
-            elif 5 <= games <= 9:
-                verdict = "Volatile sample"
-            elif 3 <= games <= 4:
-                verdict = "Low confidence"
-            else:
-                verdict = "Specialist line"
+def get_opening_name(item: Any) -> str:
+    if isinstance(item, str):
+        return item
+
+    if not isinstance(item, dict):
+        return "Unclassified opening"
+
+    return (
+        item.get("name")
         or item.get("opening")
         or item.get("openingName")
         or item.get("opening_name")

@@ -43,3 +43,4 @@ backend/**/*.jsonl
 # Patch backups
 *.backup-*
 *.bak
+rescue-before-nav-reset/
