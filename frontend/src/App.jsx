@@ -213,7 +213,7 @@ const SITE_URL = "https://www.openingfit.com";
 const HOME_SEO = {
   title: "Opening Fit | Chess Opening Analysis & Repertoire Builder",
   description:
-    "Opening Fit analyses your Chess.com or Lichess games to find which openings fit your play style, what to keep, what to improve, and what to study next.",
+    "Import your Chess.com or Lichess games and get a practical chess opening repertoire plan based on how you actually play.",
   path: "/",
   h1: "Find the chess openings that fit how you actually play",
 };
@@ -5036,10 +5036,7 @@ function App() {
     });
     setMetaAttribute('meta[property="og:description"]', {
       property: "og:description",
-      content:
-        currentPath === "/"
-          ? "Analyse your real Chess.com and Lichess games to build a practical opening repertoire."
-          : seoData.description,
+      content: seoData.description,
     });
     setMetaAttribute('meta[property="og:url"]', {
       property: "og:url",
@@ -5063,14 +5060,19 @@ function App() {
     });
     setMetaAttribute('meta[name="twitter:description"]', {
       name: "twitter:description",
-      content:
-        currentPath === "/"
-          ? "Find the chess openings that fit how you actually play."
-          : seoData.description,
+      content: seoData.description,
+    });
+    setMetaAttribute('meta[name="twitter:url"]', {
+      name: "twitter:url",
+      content: seoData.url,
     });
     setMetaAttribute('meta[name="twitter:image"]', {
       name: "twitter:image",
       content: `${SITE_URL}/og-image.png`,
+    });
+    setMetaAttribute('meta[name="theme-color"]', {
+      name: "theme-color",
+      content: "#020617",
     });
 
     const existingJsonLd = document.getElementById("seo-route-jsonld");

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { jsPDF } from "jspdf";
 import QRCode from "qrcode";
 
+const PRIMARY_SITE_URL = "https://www.openingfit.com";
+
 function getOpeningName(opening) {
   return opening?.name || opening?.opening || opening?.label || opening?.openingName || "Unknown opening";
 }
@@ -33,11 +35,7 @@ function getTodayText() {
 }
 
 function getReportUrl() {
-  if (window.location.hostname.includes("localhost")) {
-    return "https://openingfit.com";
-  }
-
-  return window.location.origin || "https://openingfit.com";
+  return PRIMARY_SITE_URL;
 }
 
 function getShareText(username) {

@@ -1,12 +1,12 @@
 {
   "name": "Opening Fit",
   "short_name": "Opening Fit",
-  "description": "Chess opening analysis and repertoire recommendations from your real games.",
+  "description": "Import your Chess.com or Lichess games and get a practical chess opening repertoire plan based on how you actually play.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#020617",
-  "theme_color": "#1d8cf8",
+  "theme_color": "#020617",
   "orientation": "portrait-primary",
   "icons": [
     {
