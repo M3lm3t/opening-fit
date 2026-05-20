@@ -788,6 +788,321 @@ def dominant_opening_colour(stats: Dict[str, int]) -> str:
     return "mixed"
 
 
+SAFE_CONTEXT_FALLBACK_COPY = (
+    "We found this opening pattern, but not enough colour/context data to recommend it confidently."
+)
+
+BLACK_OPENING_NAME_PATTERNS = [
+    "defence",
+    "defense",
+    "sicilian",
+    "french",
+    "caro-kann",
+    "scandinavian",
+    "pirc",
+    "modern defence",
+    "modern defense",
+    "alekhine",
+    "dutch",
+    "nimzo",
+    "queen's indian",
+    "king's indian",
+    "grunfeld",
+    "grünfeld",
+    "slav",
+    "benoni",
+    "benko",
+    "englund",
+]
+
+WHITE_OPENING_NAME_PATTERNS = [
+    "london",
+    "vienna",
+    "italian",
+    "ruy lopez",
+    "spanish",
+    "scotch",
+    "king's gambit",
+    "queen's gambit",
+    "english opening",
+    "réti",
+    "reti",
+    "colle",
+    "stonewall attack",
+    "trompowsky",
+    "wayward queen",
+    "danish gambit",
+    "king's pawn game",
+    "queen pawn game",
+    "queen's pawn game",
+    "center game",
+    "centre game",
+    "zukertort opening",
+    "polish opening",
+    "bird's opening",
+]
+
+
+def opening_name_colour_hint(opening: str) -> str:
+    lower = (opening or "").lower()
+
+    if any(pattern in lower for pattern in BLACK_OPENING_NAME_PATTERNS):
+        return "black"
+
+    if any(pattern in lower for pattern in WHITE_OPENING_NAME_PATTERNS):
+        return "white"
+
+    return "unknown"
+
+
+def is_unknown_opening_name(opening: str) -> bool:
+    normalized = (opening or "").strip().lower()
+
+    return (
+        not normalized
+        or normalized in {"unknown", "unknown opening", "unclassified opening"}
+        or "unknown" in normalized
+        or "uncommon" in normalized
+    )
+
+
+def extract_first_white_move_from_text(text: str) -> str:
+    if not text:
+        return ""
+
+    moves_text = "\n".join(
+        line for line in text.splitlines() if not line.strip().startswith("[")
+    )
+    moves_text = re.sub(r"\{[^}]*\}", " ", moves_text)
+    moves_text = re.sub(r"\([^)]*\)", " ", moves_text)
+    moves_text = re.sub(r"\$\d+", " ", moves_text)
+
+    for token in moves_text.split():
+        clean = token.strip()
+        clean = re.sub(r"^\d+\.(\.\.)?", "", clean)
+        clean = clean.strip()
+
+        if not clean or clean in {"1-0", "0-1", "1/2-1/2", "*"}:
+            continue
+
+        return clean.rstrip("+#?!")
+
+    return ""
+
+
+def black_context_from_first_white_move(first_white_move: str) -> str:
+    clean = (first_white_move or "").strip().rstrip("+#?!")
+
+    if clean == "e4":
+        return "black_vs_e4"
+
+    if clean in {"d4", "c4", "Nf3", "g3", "b3"}:
+        return "black_vs_d4_other"
+
+    return "unknown_mixed"
+
+
+def opening_context_for_game(colour: str, first_white_move: str) -> str:
+    if colour == "white":
+        return "played_as_white"
+
+    if colour == "black":
+        return black_context_from_first_white_move(first_white_move)
+
+    return "unknown_mixed"
+
+
+def context_label(context: str) -> str:
+    return {
+        "played_as_white": "played as White",
+        "black_vs_e4": "played as Black vs 1.e4",
+        "black_vs_d4_other": "played as Black vs 1.d4 / 1.c4 / 1.Nf3",
+        "unknown_mixed": "unknown / mixed",
+    }.get(context, "unknown / mixed")
+
+
+def context_colour(context: str) -> str:
+    if context == "played_as_white":
+        return "white"
+
+    if context in {"black_vs_e4", "black_vs_d4_other"}:
+        return "black"
+
+    return "mixed"
+
+
+def dominant_opening_context(stats: Dict[str, int]) -> str:
+    context_counts = {
+        "played_as_white": int(stats.get("played_as_white", 0) or 0),
+        "black_vs_e4": int(stats.get("black_vs_e4", 0) or 0),
+        "black_vs_d4_other": int(stats.get("black_vs_d4_other", 0) or 0),
+        "unknown_mixed": int(stats.get("unknown_mixed", 0) or 0),
+    }
+    known = {key: value for key, value in context_counts.items() if value > 0}
+
+    if not known:
+        return "unknown_mixed"
+
+    ranked = sorted(known.items(), key=lambda item: item[1], reverse=True)
+
+    if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
+        return "unknown_mixed"
+
+    return ranked[0][0]
+
+
+def opening_item(
+    name: str,
+    games: int,
+    context: str,
+    stats: Optional[Dict[str, int]] = None,
+) -> Dict[str, Any]:
+    stats = stats or {}
+    win_rate = None
+
+    if stats.get("games"):
+        win_rate = round((stats.get("wins", 0) / stats["games"]) * 100, 1)
+
+    item = {
+        "name": name,
+        "games": games,
+        "context": context,
+        "contextLabel": context_label(context),
+        "repertoireContext": context,
+        "recommendationCopy": SAFE_CONTEXT_FALLBACK_COPY if context == "unknown_mixed" else "",
+        "colour": context_colour(context),
+        "color": context_colour(context),
+        **opening_explanation(name),
+    }
+
+    if win_rate is not None:
+        item["win_rate"] = win_rate
+        item["winRate"] = win_rate
+
+    return item
+
+
+def context_is_compatible(name: str, context: str) -> bool:
+    hint = opening_name_colour_hint(name)
+
+    if context == "played_as_white":
+        return hint != "black"
+
+    if context in {"black_vs_e4", "black_vs_d4_other"}:
+        return hint != "white"
+
+    return False
+
+
+def build_colour_aware_recommendations(
+    opening_results: Dict[str, Dict[str, int]],
+    max_items: int = 5,
+) -> Dict[str, Any]:
+    sections = {
+        "white_repertoire": [],
+        "black_vs_e4": [],
+        "black_vs_d4_other": [],
+        "experimental_rare": [],
+        "too_little_data": [],
+    }
+
+    for name, stats in opening_results.items():
+        games = int(stats.get("games", 0) or 0)
+        context = dominant_opening_context(stats)
+        item = opening_item(name, games, context, stats)
+
+        if is_unknown_opening_name(name):
+            sections["too_little_data"].append(
+                {
+                    **item,
+                    "context": "unknown_mixed",
+                    "contextLabel": context_label("unknown_mixed"),
+                    "repertoireContext": "unknown_mixed",
+                    "colour": "mixed",
+                    "color": "mixed",
+                    "recommendationCopy": SAFE_CONTEXT_FALLBACK_COPY,
+                }
+            )
+            continue
+
+        if games < 2:
+            sections["experimental_rare"].append(item)
+            continue
+
+        if context == "unknown_mixed" or not context_is_compatible(name, context):
+            sections["too_little_data"].append(
+                {
+                    **item,
+                    "context": "unknown_mixed",
+                    "contextLabel": context_label("unknown_mixed"),
+                    "repertoireContext": "unknown_mixed",
+                    "colour": "mixed",
+                    "color": "mixed",
+                    "recommendationCopy": SAFE_CONTEXT_FALLBACK_COPY,
+                }
+            )
+            continue
+
+        section_key = "white_repertoire" if context == "played_as_white" else context
+
+        if section_key in sections:
+            sections[section_key].append(item)
+
+    def rank(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        return sorted(
+            items,
+            key=lambda item: (
+                item.get("games", 0),
+                item.get("win_rate") if item.get("win_rate") is not None else -1,
+            ),
+            reverse=True,
+        )[:max_items]
+
+    sections = {key: rank(value) for key, value in sections.items()}
+    black_combined = sections["black_vs_e4"] + sections["black_vs_d4_other"]
+
+    return {
+        **sections,
+        "white": [item["name"] for item in sections["white_repertoire"]],
+        "black": [item["name"] for item in black_combined[:max_items]],
+        "blackVsE4": [item["name"] for item in sections["black_vs_e4"]],
+        "blackVsD4Other": [item["name"] for item in sections["black_vs_d4_other"]],
+        "whiteDetailed": sections["white_repertoire"],
+        "blackDetailed": black_combined[:max_items],
+        "blackVsE4Detailed": sections["black_vs_e4"],
+        "blackVsD4OtherDetailed": sections["black_vs_d4_other"],
+        "experimentalRare": sections["experimental_rare"],
+        "tooLittleData": sections["too_little_data"],
+        "sections": [
+            {
+                "key": "white_repertoire",
+                "title": "White repertoire",
+                "items": sections["white_repertoire"],
+            },
+            {
+                "key": "black_vs_e4",
+                "title": "Black vs 1.e4",
+                "items": sections["black_vs_e4"],
+            },
+            {
+                "key": "black_vs_d4_other",
+                "title": "Black vs 1.d4 / 1.c4 / 1.Nf3",
+                "items": sections["black_vs_d4_other"],
+            },
+            {
+                "key": "experimental_rare",
+                "title": "Experimental / rare openings",
+                "items": sections["experimental_rare"],
+            },
+            {
+                "key": "too_little_data",
+                "title": "Too little data",
+                "items": sections["too_little_data"],
+            },
+        ],
+    }
+
+
 def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dict[str, Any]]:
     scored = []
 
@@ -813,6 +1128,8 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
         else:
             verdict = "Test More"
 
+        context = dominant_opening_context(stats)
+
         scored.append(
             {
                 "name": opening,
@@ -826,6 +1143,9 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "verdict": verdict,
                 "colour": dominant_opening_colour(stats),
                 "color": dominant_opening_colour(stats),
+                "context": context,
+                "contextLabel": context_label(context),
+                "repertoireContext": context,
             }
         )
 
@@ -1190,7 +1510,18 @@ def import_chesscom_logic(username: str, months: int = 3):
     white_opening_counter = Counter()
     black_opening_counter = Counter()
     opening_results = defaultdict(
-        lambda: {"games": 0, "wins": 0, "draws": 0, "losses": 0, "white": 0, "black": 0}
+        lambda: {
+            "games": 0,
+            "wins": 0,
+            "draws": 0,
+            "losses": 0,
+            "white": 0,
+            "black": 0,
+            "played_as_white": 0,
+            "black_vs_e4": 0,
+            "black_vs_d4_other": 0,
+            "unknown_mixed": 0,
+        }
     )
     recent_games = []
 
@@ -1198,6 +1529,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         opening = guess_opening_from_pgn(game.get("pgn", ""))
         colour = colour_for_user(game, username)
         result = result_for_user(game, username)
+        first_white_move = extract_first_white_move_from_text(game.get("pgn", ""))
+        repertoire_context = opening_context_for_game(colour, first_white_move)
 
         opening_counter[opening] += 1
 
@@ -1209,6 +1542,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         opening_results[opening]["games"] += 1
         if colour in {"white", "black"}:
             opening_results[opening][colour] += 1
+        opening_results[opening][repertoire_context] += 1
 
         if result == "win":
             opening_results[opening]["wins"] += 1
@@ -1227,6 +1561,9 @@ def import_chesscom_logic(username: str, months: int = 3):
                 "color": colour,
                 "result": result,
                 "opening": opening,
+                "context": repertoire_context,
+                "contextLabel": context_label(repertoire_context),
+                "repertoireContext": repertoire_context,
                 "end_time": game.get("end_time"),
                 "endTime": game.get("end_time"),
                 "pgn": game.get("pgn", ""),
@@ -1256,6 +1593,9 @@ def import_chesscom_logic(username: str, months: int = 3):
                 "winRate": win_rate,
                 "colour": dominant_opening_colour(stats),
                 "color": dominant_opening_colour(stats),
+                "context": dominant_opening_context(stats),
+                "contextLabel": context_label(dominant_opening_context(stats)),
+                "repertoireContext": dominant_opening_context(stats),
                 **explanation,
             }
         )
@@ -1264,23 +1604,35 @@ def import_chesscom_logic(username: str, months: int = 3):
         {
             "name": n,
             "games": g,
+            "context": "played_as_white",
+            "contextLabel": context_label("played_as_white"),
+            "repertoireContext": "played_as_white",
+            "colour": "white",
+            "color": "white",
             **opening_explanation(n),
         }
         for n, g in white_opening_counter.most_common(5)
+        if context_is_compatible(n, "played_as_white")
     ]
 
     preferred_black = [
         {
             "name": n,
             "games": g,
+            "context": dominant_opening_context(opening_results[n]),
+            "contextLabel": context_label(dominant_opening_context(opening_results[n])),
+            "repertoireContext": dominant_opening_context(opening_results[n]),
+            "colour": "black",
+            "color": "black",
             **opening_explanation(n),
         }
         for n, g in black_opening_counter.most_common(5)
+        if context_is_compatible(n, dominant_opening_context(opening_results[n]))
     ]
 
     style_profile = build_style_profile(all_games, username)
     best_openings = build_opening_scores(opening_results)
-    opening_recommendations = recommend_openings_from_style(style_profile)
+    opening_recommendations = build_colour_aware_recommendations(opening_results)
     training_plan = build_training_plan(style_profile, preferred_white, preferred_black, best_openings)
     recommendations = build_recommendations(
         preferred_white,
@@ -1416,7 +1768,18 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
     white_opening_counter = Counter()
     black_opening_counter = Counter()
     opening_results = defaultdict(
-        lambda: {"games": 0, "wins": 0, "draws": 0, "losses": 0, "white": 0, "black": 0}
+        lambda: {
+            "games": 0,
+            "wins": 0,
+            "draws": 0,
+            "losses": 0,
+            "white": 0,
+            "black": 0,
+            "played_as_white": 0,
+            "black_vs_e4": 0,
+            "black_vs_d4_other": 0,
+            "unknown_mixed": 0,
+        }
     )
     recent_games = []
     player_ratings = []
@@ -1446,6 +1809,8 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
 
         moves_text = game.get("moves", "")
         moves = moves_text.split() if moves_text else []
+        first_white_move = moves[0] if moves else ""
+        repertoire_context = opening_context_for_game(colour, first_white_move)
 
         pgn_moves = []
         for index in range(0, len(moves), 2):
@@ -1476,6 +1841,7 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
         opening_results[opening]["games"] += 1
         if colour in {"white", "black"}:
             opening_results[opening][colour] += 1
+        opening_results[opening][repertoire_context] += 1
 
         if result == "win":
             opening_results[opening]["wins"] += 1
@@ -1494,6 +1860,9 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
                 "color": colour,
                 "result": result,
                 "opening": opening,
+                "context": repertoire_context,
+                "contextLabel": context_label(repertoire_context),
+                "repertoireContext": repertoire_context,
                 "end_time": game.get("lastMoveAt") or game.get("createdAt"),
                 "endTime": game.get("lastMoveAt") or game.get("createdAt"),
                 "pgn": simple_pgn,
@@ -1525,6 +1894,9 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
                 "winRate": win_rate,
                 "colour": dominant_opening_colour(stats),
                 "color": dominant_opening_colour(stats),
+                "context": dominant_opening_context(stats),
+                "contextLabel": context_label(dominant_opening_context(stats)),
+                "repertoireContext": dominant_opening_context(stats),
                 **explanation,
             }
         )
@@ -1533,23 +1905,35 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
         {
             "name": n,
             "games": g,
+            "context": "played_as_white",
+            "contextLabel": context_label("played_as_white"),
+            "repertoireContext": "played_as_white",
+            "colour": "white",
+            "color": "white",
             **opening_explanation(n),
         }
         for n, g in white_opening_counter.most_common(5)
+        if context_is_compatible(n, "played_as_white")
     ]
 
     preferred_black = [
         {
             "name": n,
             "games": g,
+            "context": dominant_opening_context(opening_results[n]),
+            "contextLabel": context_label(dominant_opening_context(opening_results[n])),
+            "repertoireContext": dominant_opening_context(opening_results[n]),
+            "colour": "black",
+            "color": "black",
             **opening_explanation(n),
         }
         for n, g in black_opening_counter.most_common(5)
+        if context_is_compatible(n, dominant_opening_context(opening_results[n]))
     ]
 
     best_openings = build_opening_scores(opening_results)
     style_profile = build_lichess_style_profile(top_openings, preferred_white, preferred_black)
-    opening_recommendations = recommend_openings_from_style(style_profile)
+    opening_recommendations = build_colour_aware_recommendations(opening_results)
     training_plan = build_training_plan(style_profile, preferred_white, preferred_black, best_openings)
     recommendations = build_recommendations(
         preferred_white,
@@ -1826,6 +2210,11 @@ def demo_profile():
             "winRate": 62.5,
             "score": 0.69,
             "verdict": "Keep",
+            "colour": "white",
+            "color": "white",
+            "context": "played_as_white",
+            "contextLabel": context_label("played_as_white"),
+            "repertoireContext": "played_as_white",
             **opening_explanation("Vienna Game"),
         },
         {
@@ -1838,6 +2227,11 @@ def demo_profile():
             "winRate": 57.1,
             "score": 0.57,
             "verdict": "Improve",
+            "colour": "black",
+            "color": "black",
+            "context": "black_vs_e4",
+            "contextLabel": context_label("black_vs_e4"),
+            "repertoireContext": "black_vs_e4",
             **opening_explanation("Scandinavian Defence"),
         },
         {
@@ -1850,6 +2244,11 @@ def demo_profile():
             "winRate": 16.7,
             "score": 0.25,
             "verdict": "Avoid",
+            "colour": "white",
+            "color": "white",
+            "context": "played_as_white",
+            "contextLabel": context_label("played_as_white"),
+            "repertoireContext": "played_as_white",
             **opening_explanation("Queen Pawn Game"),
         },
     ]
@@ -1869,13 +2268,59 @@ def demo_profile():
     }
 
     opening_recommendations = {
-        "white": ["Vienna Game", "Italian Game", "Scotch Game"],
-        "black": ["Scandinavian Defence", "Sicilian Defence", "Caro-Kann Defence"],
-        "whiteDetailed": enrich_opening_list(["Vienna Game", "Italian Game", "Scotch Game"]),
-        "blackDetailed": enrich_opening_list(
-            ["Scandinavian Defence", "Sicilian Defence", "Caro-Kann Defence"]
-        ),
+        "white_repertoire": [
+            opening_item("Vienna Game", 8, "played_as_white", {"games": 8, "wins": 5}),
+            opening_item("Italian Game", 5, "played_as_white", {"games": 5, "wins": 3}),
+        ],
+        "black_vs_e4": [
+            opening_item("Scandinavian Defence", 7, "black_vs_e4", {"games": 7, "wins": 4}),
+            opening_item("Caro-Kann Defence", 4, "black_vs_e4", {"games": 4, "wins": 2}),
+        ],
+        "black_vs_d4_other": [
+            opening_item("Queen's Gambit Declined", 3, "black_vs_d4_other", {"games": 3, "wins": 1}),
+        ],
+        "experimental_rare": [
+            opening_item("Englund Gambit", 1, "black_vs_d4_other", {"games": 1, "wins": 0}),
+        ],
+        "too_little_data": [
+            {
+                **opening_item("Unclear transposition", 1, "unknown_mixed", {"games": 1, "wins": 0}),
+                "recommendationCopy": SAFE_CONTEXT_FALLBACK_COPY,
+            }
+        ],
     }
+    opening_recommendations.update(
+        {
+            "white": [item["name"] for item in opening_recommendations["white_repertoire"]],
+            "black": [
+                item["name"]
+                for item in (
+                    opening_recommendations["black_vs_e4"]
+                    + opening_recommendations["black_vs_d4_other"]
+                )
+            ],
+            "blackVsE4": [item["name"] for item in opening_recommendations["black_vs_e4"]],
+            "blackVsD4Other": [
+                item["name"] for item in opening_recommendations["black_vs_d4_other"]
+            ],
+            "whiteDetailed": opening_recommendations["white_repertoire"],
+            "blackDetailed": (
+                opening_recommendations["black_vs_e4"]
+                + opening_recommendations["black_vs_d4_other"]
+            ),
+            "blackVsE4Detailed": opening_recommendations["black_vs_e4"],
+            "blackVsD4OtherDetailed": opening_recommendations["black_vs_d4_other"],
+            "experimentalRare": opening_recommendations["experimental_rare"],
+            "tooLittleData": opening_recommendations["too_little_data"],
+            "sections": [
+                {"key": "white_repertoire", "title": "White repertoire", "items": opening_recommendations["white_repertoire"]},
+                {"key": "black_vs_e4", "title": "Black vs 1.e4", "items": opening_recommendations["black_vs_e4"]},
+                {"key": "black_vs_d4_other", "title": "Black vs 1.d4 / 1.c4 / 1.Nf3", "items": opening_recommendations["black_vs_d4_other"]},
+                {"key": "experimental_rare", "title": "Experimental / rare openings", "items": opening_recommendations["experimental_rare"]},
+                {"key": "too_little_data", "title": "Too little data", "items": opening_recommendations["too_little_data"]},
+            ],
+        }
+    )
 
     premium_data = build_premium_data(demo_best_openings, style_profile)
 
@@ -1907,20 +2352,20 @@ def demo_profile():
         "best_openings": demo_best_openings,
         "bestOpenings": demo_best_openings,
         "preferred_white": [
-            {"name": "Vienna Game", "games": 8, **opening_explanation("Vienna Game")},
-            {"name": "Italian Game", "games": 5, **opening_explanation("Italian Game")},
+            {"name": "Vienna Game", "games": 8, "colour": "white", "color": "white", "context": "played_as_white", "contextLabel": context_label("played_as_white"), **opening_explanation("Vienna Game")},
+            {"name": "Italian Game", "games": 5, "colour": "white", "color": "white", "context": "played_as_white", "contextLabel": context_label("played_as_white"), **opening_explanation("Italian Game")},
         ],
         "preferredWhite": [
-            {"name": "Vienna Game", "games": 8, **opening_explanation("Vienna Game")},
-            {"name": "Italian Game", "games": 5, **opening_explanation("Italian Game")},
+            {"name": "Vienna Game", "games": 8, "colour": "white", "color": "white", "context": "played_as_white", "contextLabel": context_label("played_as_white"), **opening_explanation("Vienna Game")},
+            {"name": "Italian Game", "games": 5, "colour": "white", "color": "white", "context": "played_as_white", "contextLabel": context_label("played_as_white"), **opening_explanation("Italian Game")},
         ],
         "preferred_black": [
-            {"name": "Scandinavian Defence", "games": 7, **opening_explanation("Scandinavian Defence")},
-            {"name": "Caro-Kann Defence", "games": 4, **opening_explanation("Caro-Kann Defence")},
+            {"name": "Scandinavian Defence", "games": 7, "colour": "black", "color": "black", "context": "black_vs_e4", "contextLabel": context_label("black_vs_e4"), **opening_explanation("Scandinavian Defence")},
+            {"name": "Caro-Kann Defence", "games": 4, "colour": "black", "color": "black", "context": "black_vs_e4", "contextLabel": context_label("black_vs_e4"), **opening_explanation("Caro-Kann Defence")},
         ],
         "preferredBlack": [
-            {"name": "Scandinavian Defence", "games": 7, **opening_explanation("Scandinavian Defence")},
-            {"name": "Caro-Kann Defence", "games": 4, **opening_explanation("Caro-Kann Defence")},
+            {"name": "Scandinavian Defence", "games": 7, "colour": "black", "color": "black", "context": "black_vs_e4", "contextLabel": context_label("black_vs_e4"), **opening_explanation("Scandinavian Defence")},
+            {"name": "Caro-Kann Defence", "games": 4, "colour": "black", "color": "black", "context": "black_vs_e4", "contextLabel": context_label("black_vs_e4"), **opening_explanation("Caro-Kann Defence")},
         ],
         "recommendations": [
             "As White, your most common practical choice is Vienna Game.",
