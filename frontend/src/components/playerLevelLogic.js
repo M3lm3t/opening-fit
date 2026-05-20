@@ -541,7 +541,7 @@ export function buildLevelAwareRecommendation(data, fitData) {
     return {
       title: "Simplify the opening choices",
       summary:
-        "This player will improve faster by playing fewer openings and reaching familiar positions more often.",
+        `Verdict: simplify. Evidence: ${bestName} is the strongest repeated opening and ${weakName} is the lower-scoring repeated sample.`,
       primaryAction:
         "Choose one White setup, one Black defence against 1.e4, and one simple setup against 1.d4 for the next 20 games.",
       bestName,
@@ -554,7 +554,7 @@ export function buildLevelAwareRecommendation(data, fitData) {
     summary:
       "The rating level is unclear, so the advice should stay cautious and rely on repeated opening patterns.",
     primaryAction:
-      best ? `Start with ${bestName}, then import more games to improve confidence.` : "Import more games to improve confidence.",
+      best ? `Verdict: low certainty. Evidence: ${bestName} is the clearest repeated sample. Action: import more games before changing the repertoire.` : "Verdict: too little data. Evidence: no stable repeated opening sample. Action: import more games.",
     bestName,
     weakName,
   };
@@ -603,7 +603,7 @@ export function getSmartPlayerLevelProfile(data) {
       trainingFocus:
         backend.training_focus ||
         backend.trainingFocus ||
-        "Import more games to improve confidence.",
+        "Import more games before changing the repertoire.",
       source: "backend",
     };
   }

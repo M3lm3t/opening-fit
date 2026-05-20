@@ -438,6 +438,21 @@ function getWinRate(opening) {
   return Math.round(((wins + draws * 0.5) / games) * 100);
 }
 
+function getOpeningLosses(opening) {
+  if (!opening || typeof opening === "string") return 0;
+  return safeNumber(opening?.losses ?? opening?.l ?? opening?.lost);
+}
+
+function getOpeningWins(opening) {
+  if (!opening || typeof opening === "string") return 0;
+  return safeNumber(opening?.wins ?? opening?.w);
+}
+
+function getOpeningDraws(opening) {
+  if (!opening || typeof opening === "string") return 0;
+  return safeNumber(opening?.draws ?? opening?.d);
+}
+
 function getOpeningSide(opening) {
   if (!opening || typeof opening === "string") return "";
   return opening.side || opening.colour || opening.color || "";
@@ -784,7 +799,7 @@ function getPlayerStyleFromOpenings(openings = []) {
   return {
     title: "Balanced Improver",
     description:
-      "Your games show a mixed style. You may benefit most from a simple, reliable repertoire with a few active options.",
+      "Your imported games show mixed opening results. Start with the repeated openings that have the largest sample and highest score.",
   };
 }
 
@@ -982,6 +997,83 @@ function publicAwareVerdict(label, data, games = 0) {
 
 function publicAccountCaution(data) {
   return data?.publicAccountCaution || data?.public_account_caution || PUBLIC_ACCOUNT_CAUTION_COPY;
+}
+
+function getRecommendationConfidence(opening) {
+  const games = getOpeningGames(opening);
+
+  if (games >= 20) return "High confidence";
+  if (games >= 8) return "Medium confidence";
+  if (games >= 3) return "Low confidence";
+  return "Too little data";
+}
+
+function getDataFirstVerdict(opening, data) {
+  const games = getOpeningGames(opening);
+  const winRate = getWinRate(opening);
+
+  if (games < 3) return "Too little data";
+  if (isPublicReportMode(data)) return publicAwareVerdict(opening?.verdict || opening?.fitVerdict, data, games);
+  if (winRate >= 55) return "Keep";
+  if (winRate >= 42) return "Improve";
+  return "Review";
+}
+
+function getEvidenceLine(opening, data) {
+  const games = getOpeningGames(opening);
+  const winRate = getWinRate(opening);
+  const losses = getOpeningLosses(opening);
+  const wins = getOpeningWins(opening);
+  const draws = getOpeningDraws(opening);
+  const context = opening?.contextLabel || contextLabel(itemContext(opening));
+  const resultParts = [];
+
+  if (wins || draws || losses) {
+    resultParts.push(`${wins}W-${draws}D-${losses}L`);
+  }
+
+  if (!games) {
+    return `Evidence: ${context}; no stable sample yet.`;
+  }
+
+  const sampleText = `${games} game${games === 1 ? "" : "s"}`;
+  const scoreText = Number.isFinite(winRate) ? `${winRate}% score` : "score unavailable";
+  const resultText = resultParts.length ? `, ${resultParts.join("")}` : "";
+
+  if (isPublicReportMode(data)) {
+    return `Evidence: ${sampleText} in this import as ${context}, ${scoreText}${resultText}.`;
+  }
+
+  return `Evidence: ${sampleText} as ${context}, ${scoreText}${resultText}.`;
+}
+
+function getNextActionLine(opening, data, sectionKey = "") {
+  const name = getOpeningName(opening);
+  const games = getOpeningGames(opening);
+  const context = opening?.contextLabel || contextLabel(itemContext(opening));
+  const publicMode = isPublicReportMode(data);
+
+  if (games < 3 || sectionKey === "too_little_data" || opening?.context === "unknown_mixed") {
+    return `Next action: collect more games before changing anything in ${name}.`;
+  }
+
+  if (publicMode) {
+    return `Next action: compare ${name} by time control, opponent pool, and game context.`;
+  }
+
+  if (sectionKey === "white_repertoire") {
+    return `Next action: review your last 3 ${name} games as White and write one move-10 plan.`;
+  }
+
+  if (sectionKey === "black_vs_e4") {
+    return `Next action: review your last 3 ${name} games vs 1.e4 and fix one repeated branch.`;
+  }
+
+  if (sectionKey === "black_vs_d4_other") {
+    return `Next action: review your last 3 ${name} games vs 1.d4, 1.c4, or 1.Nf3.`;
+  }
+
+  return `Next action: review your last 3 ${name} games in ${context}.`;
 }
 
 function getPlayerBaselineScore(data) {
@@ -1698,7 +1790,7 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
       <p>
         {opening
           ? `${getOpeningGames(opening)} games · ${getWinRate(opening)}% score`
-          : "Import more games to improve confidence."}
+          : "Import more games before changing the repertoire."}
       </p>
     </article>
   );
@@ -3316,6 +3408,18 @@ function OpeningFitFullReport({ data }) {
     improveOpening?.displayName ||
     bestOverall?.displayName ||
     "your most common opening";
+  const adviceEvidence = (opening) => getEvidenceLine(opening || {}, data).replace(/^Evidence: /, "");
+  const adviceAction = (opening, type) => {
+    if (publicMode) {
+      return `Next action: compare ${opening?.displayName || opening?.name || "this sample"} by time control and opponent pool.`;
+    }
+
+    if (type === "keep") {
+      return `Next action: replay your last win in ${opening?.displayName || opening?.name || "this opening"} and save the move-10 plan.`;
+    }
+
+    return `Next action: review your last 3 ${opening?.displayName || opening?.name || "opening"} losses and mark the first repeated problem.`;
+  };
 
   return (
     <section className="fullReportShell" id="opening-fit-report">
@@ -3336,7 +3440,8 @@ function OpeningFitFullReport({ data }) {
             <small>{formatScore(bestOverall)}</small>
           </div>
           <h3>{bestOverall?.displayName || (publicMode ? "Recent strength sample" : "Keep building your main repertoire")}</h3>
-          <p>{explainFit(bestOverall, "keep")}</p>
+          <p><strong>Evidence:</strong> {adviceEvidence(bestOverall)}</p>
+          <p><strong>{adviceAction(bestOverall, "keep")}</strong></p>
           <div className="adviceMeta">{formatGames(bestOverall)} reviewed</div>
         </article>
 
@@ -3346,7 +3451,8 @@ function OpeningFitFullReport({ data }) {
             <small>{formatScore(improveOpening)}</small>
           </div>
           <h3>{improveOpening?.displayName || (publicMode ? "Noisy recent sample" : "Review your common losses")}</h3>
-          <p>{explainFit(improveOpening, "improve")}</p>
+          <p><strong>Evidence:</strong> {adviceEvidence(improveOpening)}</p>
+          <p><strong>{adviceAction(improveOpening, "improve")}</strong></p>
           <div className="adviceMeta">{formatGames(improveOpening)} reviewed</div>
         </article>
 
@@ -3356,7 +3462,8 @@ function OpeningFitFullReport({ data }) {
             <small>{formatScore(avoidOpening)}</small>
           </div>
           <h3>{avoidOpening?.displayName || "Low-sample experiments"}</h3>
-          <p>{explainFit(avoidOpening, "avoid")}</p>
+          <p><strong>Evidence:</strong> {adviceEvidence(avoidOpening)}</p>
+          <p><strong>{adviceAction(avoidOpening, "avoid")}</strong></p>
           <div className="adviceMeta">{formatGames(avoidOpening)} reviewed</div>
         </article>
       </div>
@@ -5364,6 +5471,14 @@ function App() {
                               const isAmbiguous =
                                 section.key === "too_little_data" ||
                                 item.context === "unknown_mixed";
+                              const verdict = isAmbiguous
+                                ? "Not enough context"
+                                : getDataFirstVerdict(item, data);
+                              const confidence = getRecommendationConfidence(item);
+                              const evidenceLine = isAmbiguous
+                                ? item.recommendationCopy || SAFE_CONTEXT_FALLBACK_COPY
+                                : getEvidenceLine(item, data);
+                              const nextAction = getNextActionLine(item, data, section.key);
 
                               return (
                                 <button
@@ -5375,19 +5490,14 @@ function App() {
                                   }
                                 >
                                   <div>
-                                    <strong>{item.name}</strong>
+                                    <strong>{verdict}: {item.name}</strong>
                                     <div className="smallText">
-                                      {item.contextLabel || contextLabel(item.context)}
-                                      {item.games ? ` · ${item.games} games` : ""}
+                                      Confidence: {confidence}
                                     </div>
-                                    {isAmbiguous ? (
-                                      <div className="smallText">
-                                        {item.recommendationCopy ||
-                                          SAFE_CONTEXT_FALLBACK_COPY}
-                                      </div>
-                                    ) : null}
+                                    <div className="smallText">{evidenceLine}</div>
+                                    <div className="smallText">{nextAction}</div>
                                   </div>
-                                  <span>{isAmbiguous ? "Ambiguous" : "Practice"}</span>
+                                  <span>{isAmbiguous ? "Hold" : "Practice"}</span>
                                 </button>
                               );
                             })

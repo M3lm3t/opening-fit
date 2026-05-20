@@ -127,13 +127,13 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
           <h2>Stop guessing what openings to study.</h2>
 
           <p>
-            Premium turns your imported games into a clear opening repertoire, weakness report
+            Premium turns your imported games into a clear opening repertoire, trend report
             and weekly training plan — built around how you actually play.
           </p>
 
           <div className="premiumHeroBullets">
             <span>✓ Full White and Black repertoire</span>
-            <span>✓ Weakness detection from your own games</span>
+            <span>✓ Lower-scoring trends from your own games</span>
             <span>✓ Weekly opening training plan</span>
           </div>
         </div>
