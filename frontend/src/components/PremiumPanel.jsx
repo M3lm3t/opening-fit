@@ -82,7 +82,7 @@ function LockedPreview({ title, text, isPremium }) {
       <div className="premiumPreviewIcon">{isPremium ? "✓" : "🔒"}</div>
       <h3>{title}</h3>
       <p>{text}</p>
-      {!isPremium ? <span>Premium preview</span> : <span>Unlocked</span>}
+      {!isPremium ? <span>Premium feature</span> : <span>Unlocked</span>}
     </div>
   );
 }
@@ -119,7 +119,7 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
   const weakOpening = premiumInsights.weak?.displayName || "your weakest opening area";
 
   return (
-    <section className="premiumUpgradeShell" id="premium">
+    <section className="premiumUpgradeShell" id="premium-offer">
       <div className="premiumUpgradeHero">
         <div className="premiumUpgradeCopy">
           <div className="premiumUpgradeEyebrow">OpeningFit Premium</div>
@@ -152,15 +152,15 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
           </button>
 
           <button type="button" className="premiumDemoBtn" onClick={onUnlockDemo}>
-            Unlock Premium Demo
+            Preview Premium
           </button>
 
           <button type="button" className="premiumResetBtn" onClick={onResetDemo}>
-            Reset Free Preview
+            Exit Preview
           </button>
 
           <small>
-            {isPremium ? "Premium demo is currently unlocked." : "Login first, then continue to secure Stripe checkout."}
+            {isPremium ? "Premium tools are available in this report." : "Login first, then continue to secure Stripe checkout."}
           </small>
         </div>
       </div>
@@ -238,13 +238,13 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
         <div>
           <h3>Premium should feel like a coach, not just more stats.</h3>
           <p>
-            This is the version to test with users before connecting Stripe. If people say
-            “I would pay for that”, then payments are worth adding.
+            Premium gives the report a clear next step: what to keep, what to repair,
+            and what to practise this week.
           </p>
         </div>
 
         <button type="button" onClick={onUnlockDemo}>
-          Test Premium Demo
+          Preview Premium
         </button>
       </div>
     </section>

@@ -9,7 +9,7 @@ function asArray(value) {
 }
 
 function safeNumber(value, fallback = 0) {
-  const number = Number(value);
+  const number = Number(String(value ?? "").replace("%", ""));
   return Number.isFinite(number) ? number : fallback;
 }
 
@@ -18,6 +18,7 @@ function normaliseOpeningName(row) {
     row?.opening ||
     row?.name ||
     row?.ecoName ||
+    row?.eco_name ||
     row?.family ||
     row?.label ||
     "Unknown opening"
@@ -30,6 +31,8 @@ function getGames(data) {
       ? asArray(data.games)
       : asArray(data?.recentGames).length
       ? asArray(data.recentGames)
+      : asArray(data?.recent_games).length
+      ? asArray(data.recent_games)
       : asArray(data?.sampleGames).length
       ? asArray(data.sampleGames)
       : []
@@ -39,10 +42,14 @@ function getGames(data) {
 function getOpeningRows(data) {
   const candidates = [
     data?.topOpenings,
+    data?.top_openings,
     data?.openingStats,
+    data?.opening_stats,
     data?.openings,
     data?.openingWinRates,
+    data?.opening_win_rates,
     data?.openingBreakdown,
+    data?.opening_breakdown,
   ];
 
   for (const candidate of candidates) {
@@ -60,9 +67,12 @@ function getOpeningRows(data) {
 }
 
 function getWinRate(row) {
-  if (row?.winRate !== undefined) return safeNumber(row.winRate);
-  if (row?.win_rate !== undefined) return safeNumber(row.win_rate);
-  if (row?.score !== undefined) return safeNumber(row.score);
+  const direct = row?.winRate ?? row?.win_rate ?? row?.score ?? row?.scoreRate ?? row?.score_rate;
+
+  if (direct !== undefined && direct !== null && direct !== "") {
+    const value = safeNumber(direct);
+    return value <= 1 ? Math.round(value * 100) : Math.round(value);
+  }
 
   const wins = safeNumber(row?.wins ?? row?.W);
   const draws = safeNumber(row?.draws ?? row?.D);
@@ -188,14 +198,14 @@ function buildWeakLines(data) {
 }
 
 
-function LockedOverlay({ title = "Premium feature", children, onUnlock }) {
+function LockedOverlay({ title = "Premium feature", children, onUnlock, actionLabel = "Unlock premium" }) {
   return (
     <div className="premiumLockedOverlay">
       <div className="premiumLockIcon">🔒</div>
       <strong>{title}</strong>
       <p>{children || "Unlock the full version to use this feature."}</p>
       <button className="premiumUnlockBtn" type="button" onClick={onUnlock}>
-        Preview premium
+        {actionLabel}
       </button>
     </div>
   );
@@ -227,7 +237,61 @@ function OpeningMiniCard({ title, row, fallback }) {
   );
 }
 
-export default function PremiumDashboard({ data, username }) {
+function buildWeeklyPlan(repertoire, weakLines) {
+  const best = repertoire.mainWhite?.openingName || repertoire.keep?.[0]?.openingName || "your most reliable opening";
+  const weak = repertoire.avoid?.[0]?.openingName || repertoire.improve?.[0]?.openingName || "your weakest recurring opening";
+  const line = weakLines?.[0]?.line || `the first 6 moves of ${weak}`;
+
+  return [
+    {
+      day: "Day 1",
+      title: `Lock in ${best}`,
+      text: "Replay one clean win or high-scoring game and write down the setup you want to repeat.",
+      opening: best,
+    },
+    {
+      day: "Day 2",
+      title: `Repair ${weak}`,
+      text: "Review one loss and identify the first move where your position became hard to play.",
+      opening: weak,
+    },
+    {
+      day: "Day 3",
+      title: "Drill the weak line",
+      text: `Practise ${line}. Repeat it until the plan feels natural, not memorised.`,
+      opening: weak,
+    },
+    {
+      day: "Day 4",
+      title: "Play a focused block",
+      text: `Use ${best} as your main weapon and avoid adding new sidelines for this session.`,
+      opening: best,
+    },
+    {
+      day: "Day 5",
+      title: "Update the repertoire",
+      text: "Keep one opening, repair one branch, and park one low-confidence experiment until you have more data.",
+      opening: weak,
+    },
+  ];
+}
+
+function normaliseName(value) {
+  return String(value || "openingfit")
+    .trim()
+    .replace(/[^a-z0-9_-]/gi, "-")
+    .replace(/-+/g, "-")
+    .toLowerCase();
+}
+
+export default function PremiumDashboard({
+  data,
+  username,
+  isPremium = false,
+  onFounderPass,
+  onUnlockDemo,
+  onPractice,
+}) {
   const [isPremiumDemo, setIsPremiumDemo] = useState(() => {
     try {
       return localStorage.getItem(PREMIUM_DEMO_KEY) === "true";
@@ -242,11 +306,16 @@ export default function PremiumDashboard({ data, username }) {
   const repertoire = useMemo(() => buildRepertoire(data), [data]);
   const weakLines = useMemo(() => buildWeakLines(data), [data]);
   const games = useMemo(() => getGames(data), [data]);
+  const weeklyPlan = useMemo(() => buildWeeklyPlan(repertoire, weakLines), [repertoire, weakLines]);
+  const premiumActive = Boolean(isPremium || isPremiumDemo);
 
   const totalGames =
     safeNumber(data?.gamesImported) ||
+    safeNumber(data?.games_imported) ||
     safeNumber(data?.totalGames) ||
+    safeNumber(data?.total_games) ||
     safeNumber(data?.gamesCount) ||
+    safeNumber(data?.game_count) ||
     games.length;
 
   const openingRows = getOpeningRows(data);
@@ -258,6 +327,8 @@ export default function PremiumDashboard({ data, username }) {
   const latestGameWithPgn = games.find((game) => game?.pgn);
 
   const togglePremiumDemo = () => {
+    if (isPremium) return;
+
     const next = !isPremiumDemo;
     setIsPremiumDemo(next);
 
@@ -268,9 +339,84 @@ export default function PremiumDashboard({ data, username }) {
     }
   };
 
+  const unlockAction = () => {
+    if (typeof onFounderPass === "function") {
+      onFounderPass();
+      return;
+    }
+
+    if (typeof onUnlockDemo === "function") {
+      onUnlockDemo();
+      return;
+    }
+
+    togglePremiumDemo();
+  };
+
+  const buildPremiumReportText = () => {
+    const lines = [
+      `Opening Fit Premium Report`,
+      `Player: ${username || data?.username || data?.playerName || "Unknown player"}`,
+      `Games reviewed: ${totalGames || "Unknown"}`,
+      ``,
+      `Repertoire`,
+      `- Main White weapon: ${repertoire.mainWhite?.openingName || "Needs more data"}`,
+      `- Backup White option: ${repertoire.backupWhite?.openingName || "Needs more data"}`,
+      `- Black vs 1.e4: ${repertoire.blackVsE4?.openingName || "Needs more black games"}`,
+      `- Black vs 1.d4: ${repertoire.blackVsD4?.openingName || "Needs more black games"}`,
+      ``,
+      `Keep`,
+      ...(repertoire.keep.length
+        ? repertoire.keep.map((row) => `- ${row.openingName}: ${row.games} games, ${row.winRate}% score`)
+        : ["- No clear keep list yet."]),
+      ``,
+      `Repair`,
+      ...(repertoire.improve.length || repertoire.avoid.length
+        ? [...repertoire.improve, ...repertoire.avoid].map((row) => `- ${row.openingName}: ${row.games} games, ${row.winRate}% score`)
+        : ["- No clear repair target yet."]),
+      ``,
+      `Weekly plan`,
+      ...weeklyPlan.map((step) => `- ${step.day}: ${step.title}. ${step.text}`),
+    ];
+
+    return lines.join("\n");
+  };
+
+  const downloadPremiumReport = () => {
+    if (!premiumActive) {
+      unlockAction();
+      return;
+    }
+
+    const blob = new Blob([buildPremiumReportText()], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `openingfit-premium-${normaliseName(username || data?.username)}.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const copyWeeklyPlan = async () => {
+    if (!premiumActive) {
+      unlockAction();
+      return;
+    }
+
+    const text = weeklyPlan.map((step) => `${step.day}: ${step.title} - ${step.text}`).join("\n");
+
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      window.alert(text);
+    }
+  };
+
   const runStockfish = async () => {
-    if (!isPremiumDemo) {
-      setStockfishError("Stockfish coach is a premium feature. Turn on Premium demo to preview it.");
+    if (!premiumActive) {
+      setStockfishError("Stockfish coach is a premium feature. Unlock premium or preview it first.");
       return;
     }
 
@@ -310,26 +456,54 @@ export default function PremiumDashboard({ data, username }) {
   };
 
   return (
-    <section className="premiumDashboard" id="premium">
+    <section className="premiumDashboard" id="premium-workspace">
       <div className="premiumHero">
         <div>
-          <span className="premiumEyebrow">Premium preview</span>
+          <span className="premiumEyebrow">
+            {isPremium ? "Premium active" : isPremiumDemo ? "Premium preview" : "Premium"}
+          </span>
           <h2>Your personal opening coach</h2>
           <p>
             Turn your imported games into a complete repertoire plan, weak-line tracker,
-            training focus list, and optional engine-backed review when it is available.
+            training focus list, exportable report, and optional engine-backed review when it is available.
           </p>
         </div>
 
         <div className="premiumPriceCard">
-          <span>Early supporter idea</span>
+          <span>{isPremium ? "Unlocked" : "Founder Pass"}</span>
           <strong>£8 one-time</strong>
-          <small>Unlock deeper reports while the app is growing.</small>
+          <small>
+            {isPremium
+              ? "Premium tools are unlocked for this report."
+              : "Unlock deeper reports while the app is growing."}
+          </small>
 
-          <button className="premiumDemoToggle" type="button" onClick={togglePremiumDemo}>
-            {isPremiumDemo ? "Premium demo on" : "Preview premium"}
-          </button>
+          {!isPremium ? (
+            <>
+              <button className="premiumCheckoutButton" type="button" onClick={unlockAction}>
+                Unlock premium
+              </button>
+              <button className="premiumDemoToggle" type="button" onClick={togglePremiumDemo}>
+                {isPremiumDemo ? "Preview on" : "Preview premium"}
+              </button>
+            </>
+          ) : null}
         </div>
+      </div>
+
+      <div className="premiumCommandStrip">
+        <button type="button" onClick={downloadPremiumReport}>
+          Export premium report
+        </button>
+        <button type="button" onClick={copyWeeklyPlan}>
+          Copy weekly plan
+        </button>
+        <button type="button" onClick={() => onPractice?.(repertoire.mainWhite?.openingName || repertoire.keep?.[0]?.openingName)}>
+          Practise main weapon
+        </button>
+        <button type="button" onClick={() => onPractice?.(repertoire.avoid?.[0]?.openingName || repertoire.improve?.[0]?.openingName)}>
+          Drill repair target
+        </button>
       </div>
 
       <div className="premiumStatsGrid">
@@ -440,7 +614,7 @@ export default function PremiumDashboard({ data, username }) {
             <span className="premiumBadge">Pro</span>
           </div>
 
-          <div className={`premiumLockedArea ${!isPremiumDemo ? "isLocked" : ""}`}>
+          <div className={`premiumLockedArea ${!premiumActive ? "isLocked" : ""}`}>
             <div className="premiumList">
               {weakLines.length ? (
                 weakLines.map((line) => (
@@ -456,8 +630,8 @@ export default function PremiumDashboard({ data, username }) {
               )}
             </div>
 
-            {!isPremiumDemo ? (
-              <LockedOverlay title="Weak-line finder" onUnlock={togglePremiumDemo}>
+            {!premiumActive ? (
+              <LockedOverlay title="Weak-line finder" onUnlock={unlockAction}>
                 Find repeated opening lines where your score drops and turn them into training targets.
               </LockedOverlay>
             ) : null}
@@ -475,10 +649,10 @@ export default function PremiumDashboard({ data, username }) {
             </button>
           </div>
 
-          <div className={`premiumLockedArea ${!isPremiumDemo ? "isLocked" : ""}`}>
+          <div className={`premiumLockedArea ${!premiumActive ? "isLocked" : ""}`}>
             <p className="premiumPanelText">
-              This connects premium to Stockfish. Locally it should work once Stockfish is installed.
-              On the live backend, set <code>STOCKFISH_PATH</code> if needed.
+              Review the latest imported PGN for engine-backed mistakes when Stockfish is available.
+              If the live backend has no engine configured, this panel will explain that clearly.
             </p>
 
             {stockfishError ? <div className="premiumError">{stockfishError}</div> : null}
@@ -510,8 +684,8 @@ export default function PremiumDashboard({ data, username }) {
               </div>
             ) : null}
 
-            {!isPremiumDemo ? (
-              <LockedOverlay title="Stockfish coach" onUnlock={togglePremiumDemo}>
+            {!premiumActive ? (
+              <LockedOverlay title="Stockfish coach" onUnlock={unlockAction}>
                 Preview the premium coach panel. Engine analysis activates when Stockfish is available on the backend.
               </LockedOverlay>
             ) : null}
@@ -526,15 +700,24 @@ export default function PremiumDashboard({ data, username }) {
             </div>
           </div>
 
-          <div className={`premiumLockedArea ${!isPremiumDemo ? "isLocked" : ""}`}>
-            <div className="premiumChecklist">
-              <span>Train your weakest opening line first</span>
-              <span>Repeat missed moves until learned</span>
-              <span>Track repertoire confidence over time</span>
+          <div className={`premiumLockedArea ${!premiumActive ? "isLocked" : ""}`}>
+            <div className="premiumWeeklyPlan">
+              {weeklyPlan.map((step) => (
+                <article key={step.day}>
+                  <span>{step.day}</span>
+                  <strong>{step.title}</strong>
+                  <p>{step.text}</p>
+                  {step.opening ? (
+                    <button type="button" onClick={() => onPractice?.(step.opening)}>
+                      Practise
+                    </button>
+                  ) : null}
+                </article>
+              ))}
             </div>
 
-            {!isPremiumDemo ? (
-              <LockedOverlay title="Practice Pro" onUnlock={togglePremiumDemo}>
+            {!premiumActive ? (
+              <LockedOverlay title="Practice Pro" onUnlock={unlockAction}>
                 Turn your weak openings into focused drills and track what you have learned.
               </LockedOverlay>
             ) : null}
@@ -549,15 +732,18 @@ export default function PremiumDashboard({ data, username }) {
             </div>
           </div>
 
-          <div className={`premiumLockedArea ${!isPremiumDemo ? "isLocked" : ""}`}>
+          <div className={`premiumLockedArea ${!premiumActive ? "isLocked" : ""}`}>
             <div className="premiumChecklist">
-              <span>Monthly OpeningFit report</span>
-              <span>Repertoire summary</span>
-              <span>Shareable improvement plan</span>
+              <span>Markdown premium report</span>
+              <span>Repertoire summary and repair list</span>
+              <span>Shareable weekly improvement plan</span>
+              <button type="button" className="premiumActionBtn" onClick={downloadPremiumReport}>
+                Export report
+              </button>
             </div>
 
-            {!isPremiumDemo ? (
-              <LockedOverlay title="Export reports" onUnlock={togglePremiumDemo}>
+            {!premiumActive ? (
+              <LockedOverlay title="Export reports" onUnlock={unlockAction}>
                 Generate a clean opening report you can save, share, or use as your monthly training plan.
               </LockedOverlay>
             ) : null}
