@@ -1207,6 +1207,16 @@ th {
   width: 100%;
   cursor: pointer;
   text-align: left;
+  align-items: flex-start;
+}
+
+.openingPracticeLink > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.openingPracticeLink .smallText {
+  overflow-wrap: anywhere;
 }
 
 /* ================================
@@ -4100,6 +4110,14 @@ th {
 }
 
 @media (max-width: 640px) {
+  .openingPracticeLink {
+    flex-direction: column;
+  }
+
+  .openingPracticeLink > span {
+    align-self: flex-start;
+  }
+
   .reportActionButtons {
     grid-template-columns: 1fr;
   }

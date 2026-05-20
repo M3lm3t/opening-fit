@@ -48,6 +48,18 @@ function openingMeta(item) {
   return parts.length ? parts.join(" · ") : "Pattern found in your games";
 }
 
+function resultRecord(item) {
+  const wins = toNumber(item?.wins ?? item?.w, 0);
+  const draws = toNumber(item?.draws ?? item?.d, 0);
+  const losses = toNumber(item?.losses ?? item?.l, 0);
+  return wins || draws || losses ? ` · ${wins}W-${draws}D-${losses}L` : "";
+}
+
+function evidence(item) {
+  if (!item) return "Evidence: no stable opening sample yet.";
+  return `Evidence: ${openingMeta(item)}${resultRecord(item)}.`;
+}
+
 function getAllOpenings(data) {
   return [
     ...(Array.isArray(data?.top_openings) ? data.top_openings : []),
@@ -143,27 +155,33 @@ function buildPlan(data) {
   const weak = getWeakOpening(data);
   const recommendation = getMainRecommendation(data);
   const level = getLevel(data);
+  const advancedMode =
+    level === "advanced" ||
+    ["high_rated_user", "public_account_possible"].includes(data?.reportMode || data?.report_mode);
   const reviewLanguage =
-    level === "advanced"
-      ? "Audit the branch where your score drops: move order, opponent rating band, and the first recurring middlegame structure."
+    advancedMode
+      ? `${evidence(weak)} Action: audit move order, opponent rating band, and the first recurring middlegame structure.`
       : level === "intermediate"
-      ? "Find the first repeated position where your plan becomes unclear. The goal is fixing the branch, not blaming the opening."
-      : "Look for the first move where development, king safety, or a simple centre plan went wrong.";
+      ? `${evidence(weak)} Action: find the first repeated position where your plan becomes unclear.`
+      : `${evidence(weak)} Action: mark the first move where development, king safety, or the centre plan went wrong.`;
   const strengthLanguage =
-    level === "advanced"
-      ? "Keep this as part of the repertoire and add one branch-level note: what reply causes the most practical problems?"
+    advancedMode
+      ? `${evidence(best)} Action: add one branch-level note on the reply causing the most practical problems.`
       : level === "intermediate"
-      ? "Choose one line you can repeat and write the plan in one sentence before playing more games."
-      : "Use this opening to reach the same kind of position again. Familiar positions matter more than memorising theory.";
+      ? `${evidence(best)} Action: choose one repeatable line and write the plan in one sentence.`
+      : `${evidence(best)} Action: play this opening again and aim for the same move-10 structure.`;
+  const reviewTitle = advancedMode
+    ? `20 minutes on ${openingName(weak, "a lower-scoring sample")}`
+    : `20 minutes on ${openingName(weak, "your weakest recurring opening")}`;
 
   return [
     {
       id: "day-1-2",
       days: "Day 1",
-      title: `20 minutes on ${openingName(weak, "your weakest recurring opening")}`,
+      title: reviewTitle,
       meta: openingMeta(weak),
       detail: reviewLanguage,
-      tag: "Repair",
+      tag: advancedMode ? "Trend" : "Repair",
     },
     {
       id: "day-2",
@@ -176,10 +194,11 @@ function buildPlan(data) {
     {
       id: "day-3",
       days: "Day 3",
-      title: "20 minutes on the damaging line",
-      meta: "Improve means one line may be hurting the opening",
-      detail:
-        "Replay only the first 10 to 12 moves of three games. Mark the repeated branch, pawn structure, or piece placement that keeps causing trouble.",
+      title: advancedMode ? "20 minutes on the lower-scoring branch" : "20 minutes on the damaging line",
+      meta: weak ? openingMeta(weak) : "Needs a larger sample",
+      detail: advancedMode
+        ? "Verdict: Lower-scoring sample. Evidence: this branch underperformed in the import. Action: compare moves 1-12 across three recent games."
+        : "Verdict: Improve. Evidence: this is the lower-scoring repeated sample. Action: replay only moves 1-12 of three games and mark the repeated branch.",
       tag: "Review",
     },
     {
@@ -188,7 +207,7 @@ function buildPlan(data) {
       title: recommendation,
       meta: "Turn your report into one practical rule",
       detail:
-        "Convert the recommendation into one rule you can remember during games, such as: castle earlier, delay the pawn break, or avoid one risky sideline.",
+        "Evidence: this came from your imported opening summary. Action: write one rule for the next games, such as castle earlier, delay the pawn break, or skip one risky sideline.",
       tag: "Apply",
     },
     {

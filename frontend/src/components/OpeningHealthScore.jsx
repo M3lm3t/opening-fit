@@ -136,7 +136,7 @@ export default function OpeningHealthScore({ data }) {
     if (weakest) fixes.push(`Fix ${weakest.name} first.`);
     if (unknownPenalty > 0) fixes.push("Reduce unknown or unclear opening choices.");
     if (varietyPenalty > 0) fixes.push("You may be playing too many different openings.");
-    if (!strong.length) fixes.push("You need one reliable opening to build confidence around.");
+    if (!strong.length) fixes.push("No opening is above 55% yet; pick the largest sample and review the last 3 losses.");
 
     return {
       score,

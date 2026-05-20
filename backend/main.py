@@ -1056,6 +1056,9 @@ def opening_item(
     item = {
         "name": name,
         "games": games,
+        "wins": int(stats.get("wins", 0) or 0),
+        "draws": int(stats.get("draws", 0) or 0),
+        "losses": int(stats.get("losses", 0) or 0),
         "context": context,
         "contextLabel": context_label(context),
         "repertoireContext": context,
