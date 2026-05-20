@@ -3119,16 +3119,13 @@ function OpeningFitFullReport({ data }) {
 
       <div className="premiumRoadmapStrip">
         <div>
-          <span>Coming next</span>
-          <h2>Premium-style features being built</h2>
+          <span>Premium tools</span>
+          <h2>Deeper report actions</h2>
           <p>
-            Saved report history, PDF exports, opponent prep, deeper opening
-            explanations, and progress tracking.
+            Save report history, export your report, prepare for opponents,
+            review deeper opening explanations, and track progress over time.
           </p>
         </div>
-
-        
-        {data ? <PremiumDashboard data={data} /> : null}
 
 <div className="roadmapPills">
           <span>PDF export</span>
@@ -5224,6 +5221,15 @@ function App() {
                       onFounderPass={handleFounderPassClick}
                     />
                   </div>
+
+                  <PremiumDashboard
+                    data={data}
+                    username={username}
+                    isPremium={isPremium}
+                    onFounderPass={handleFounderPassClick}
+                    onUnlockDemo={unlockPremiumDemo}
+                    onPractice={startOpeningPractice}
+                  />
 
                   <SeriousPremiumStrip />
 
