@@ -1691,6 +1691,19 @@ th {
   overflow: hidden;
 }
 
+.chessBoardSquareButton {
+  border: 0;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chessBoardSquareButton:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.85);
+  outline-offset: -3px;
+  z-index: 3;
+}
+
 .cleanReplayLight {
   background: #dbe4ef;
 }
@@ -1707,6 +1720,11 @@ th {
   pointer-events: none;
   font-size: clamp(25px, 4.2vw, 42px);
   transform: translateY(8%);
+}
+
+.practiceSelectedSquare {
+  box-shadow: inset 0 0 0 4px rgba(34, 197, 94, 0.85);
+  z-index: 2;
 }
 
 .cleanReplayPiece-p {
@@ -3772,6 +3790,40 @@ th {
   flex-wrap: wrap;
   gap: 0.55rem;
   margin: 1rem 0;
+}
+
+.practiceMoveExplanationList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.practiceMoveExplanationItem {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.58);
+  border-radius: 16px;
+  padding: 0.85rem;
+}
+
+.practiceMoveExplanationItem.current {
+  border-color: rgba(96, 165, 250, 0.58);
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.practiceMoveExplanationItem.done {
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.practiceMoveExplanationItem strong {
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.practiceMoveExplanationItem p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.45;
 }
 
 .practiceMoveChip {
