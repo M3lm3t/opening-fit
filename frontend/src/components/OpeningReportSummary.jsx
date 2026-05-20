@@ -1,4 +1,5 @@
 import { getPlayerLevelText } from "./playerLevelLogic";
+import OpeningEvidenceBlock, { getOpeningConfidence } from "./OpeningEvidence";
 
 function normaliseOpeningName(opening) {
   if (!opening) return "Unknown opening";
@@ -46,11 +47,7 @@ function getConfidenceLabel(opening) {
     opening?.confidenceLabel ||
     opening?.confidence_label ||
     opening?.confidence ||
-    (getGames(opening) <= 2
-      ? "Too little data"
-      : getGames(opening) < 8
-        ? "Low confidence"
-        : "Medium confidence")
+    getOpeningConfidence(opening)
   );
 }
 
@@ -459,8 +456,23 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type }) {
             </div>
           </div>
 
-          <p>{reason}</p>
-          <p className="openingReportEvidence">{comparisonText}</p>
+          <OpeningEvidenceBlock
+            opening={{
+              ...opening.raw,
+              name,
+              games,
+              winRate,
+              verdict,
+              confidence: confidenceLabel,
+              comparisonText,
+              reason,
+              nextAction:
+                winRate < 45
+                  ? `Review your last 3 ${name} losses before changing the whole opening.`
+                  : `Keep tracking ${name} and review the next recurring branch.`,
+            }}
+            compact
+          />
         </>
       ) : (
         <p>{fallbackText}</p>

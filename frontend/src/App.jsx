@@ -32,6 +32,7 @@ import ReportSnapshot from "./components/ReportSnapshot";
 import OpeningCoachPlan from "./components/OpeningCoachPlan";
 import OpeningProgressTracker from "./components/OpeningProgressTracker";
 import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
+import OpeningEvidenceBlock, { getOpeningConfidence } from "./components/OpeningEvidence";
 import OpeningFitTrustUpgrade from "./components/OpeningFitTrustUpgrade";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
@@ -998,15 +999,6 @@ function publicAwareVerdict(label, data, games = 0) {
 
 function publicAccountCaution(data) {
   return data?.publicAccountCaution || data?.public_account_caution || PUBLIC_ACCOUNT_CAUTION_COPY;
-}
-
-function getRecommendationConfidence(opening) {
-  const games = getOpeningGames(opening);
-
-  if (games >= 20) return "High confidence";
-  if (games >= 8) return "Medium confidence";
-  if (games >= 3) return "Low confidence";
-  return "Too little data";
 }
 
 function getDataFirstVerdict(opening, data) {
@@ -3452,7 +3444,6 @@ function OpeningFitFullReport({ data }) {
     improveOpening?.displayName ||
     bestOverall?.displayName ||
     "your most common opening";
-  const adviceEvidence = (opening) => getEvidenceLine(opening || {}, data).replace(/^Evidence: /, "");
   const adviceAction = (opening, type) => {
     if (publicMode) {
       return `Next action: compare ${opening?.displayName || opening?.name || "this sample"} by time control and opponent pool.`;
@@ -3484,8 +3475,15 @@ function OpeningFitFullReport({ data }) {
             <small>{formatScore(bestOverall)}</small>
           </div>
           <h3>{bestOverall?.displayName || (publicMode ? "Recent strength sample" : "Keep building your main repertoire")}</h3>
-          <p><strong>Evidence:</strong> {adviceEvidence(bestOverall)}</p>
-          <p><strong>{adviceAction(bestOverall, "keep")}</strong></p>
+          <OpeningEvidenceBlock
+            opening={{
+              ...(bestOverall || {}),
+              reason: explainFit(bestOverall, "keep"),
+              nextAction: adviceAction(bestOverall, "keep"),
+            }}
+            data={data}
+            compact
+          />
           <div className="adviceMeta">{formatGames(bestOverall)} reviewed</div>
         </article>
 
@@ -3495,8 +3493,15 @@ function OpeningFitFullReport({ data }) {
             <small>{formatScore(improveOpening)}</small>
           </div>
           <h3>{improveOpening?.displayName || (publicMode ? "Noisy recent sample" : "Review your common losses")}</h3>
-          <p><strong>Evidence:</strong> {adviceEvidence(improveOpening)}</p>
-          <p><strong>{adviceAction(improveOpening, "improve")}</strong></p>
+          <OpeningEvidenceBlock
+            opening={{
+              ...(improveOpening || {}),
+              reason: explainFit(improveOpening, "improve"),
+              nextAction: adviceAction(improveOpening, "improve"),
+            }}
+            data={data}
+            compact
+          />
           <div className="adviceMeta">{formatGames(improveOpening)} reviewed</div>
         </article>
 
@@ -3506,8 +3511,15 @@ function OpeningFitFullReport({ data }) {
             <small>{formatScore(avoidOpening)}</small>
           </div>
           <h3>{avoidOpening?.displayName || "Low-sample experiments"}</h3>
-          <p><strong>Evidence:</strong> {adviceEvidence(avoidOpening)}</p>
-          <p><strong>{adviceAction(avoidOpening, "avoid")}</strong></p>
+          <OpeningEvidenceBlock
+            opening={{
+              ...(avoidOpening || {}),
+              reason: explainFit(avoidOpening, "avoid"),
+              nextAction: adviceAction(avoidOpening, "avoid"),
+            }}
+            data={data}
+            compact
+          />
           <div className="adviceMeta">{formatGames(avoidOpening)} reviewed</div>
         </article>
       </div>
@@ -3521,13 +3533,39 @@ function OpeningFitFullReport({ data }) {
             <div className="repertoireRow">
               <span>As White</span>
               <strong>{bestWhite?.displayName || bestWhite?.name || "Needs more White games"}</strong>
-              <p>{whiteRecommendation}</p>
+              {bestWhite ? (
+                <OpeningEvidenceBlock
+                  opening={{
+                    ...bestWhite,
+                    reason: whiteRecommendation,
+                    nextAction: `Review your last 3 ${bestWhite.displayName || bestWhite.name} games as White.`,
+                  }}
+                  data={data}
+                  slot="white_repertoire"
+                  compact
+                />
+              ) : (
+                <p>{whiteRecommendation}</p>
+              )}
             </div>
 
             <div className="repertoireRow">
               <span>As Black</span>
               <strong>{bestBlack?.displayName || bestBlack?.name || "Needs more Black games"}</strong>
-              <p>{blackRecommendation}</p>
+              {bestBlack ? (
+                <OpeningEvidenceBlock
+                  opening={{
+                    ...bestBlack,
+                    reason: blackRecommendation,
+                    nextAction: `Review the first branch that repeats in ${bestBlack.displayName || bestBlack.name}.`,
+                  }}
+                  data={data}
+                  slot={bestBlack?.context || "black_repertoire"}
+                  compact
+                />
+              ) : (
+                <p>{blackRecommendation}</p>
+              )}
             </div>
 
             <div className="repertoireRow">
@@ -5531,15 +5569,19 @@ function App() {
                               const verdict = isAmbiguous
                                 ? "Not enough context"
                                 : getDataFirstVerdict(item, data);
-                              const confidence = getRecommendationConfidence(item);
-                              const evidenceLine = isAmbiguous
-                                ? item.recommendationCopy || SAFE_CONTEXT_FALLBACK_COPY
-                                : getEvidenceLine(item, data);
-                              const nextAction = getNextActionLine(item, data, section.key);
+                              const evidenceItem = {
+                                ...item,
+                                confidence: getOpeningConfidence(item),
+                                verdict,
+                                reason: isAmbiguous
+                                  ? item.recommendationCopy || SAFE_CONTEXT_FALLBACK_COPY
+                                  : item.reason,
+                                nextAction: getNextActionLine(item, data, section.key),
+                              };
 
                               return (
                                 <button
-                                  className="listItem openingPracticeLink"
+                                  className="listItem openingPracticeLink evidenceListItem"
                                   key={`${section.key}-${item.name}-${index}`}
                                   type="button"
                                   onClick={() =>
@@ -5548,11 +5590,12 @@ function App() {
                                 >
                                   <div>
                                     <strong>{verdict}: {item.name}</strong>
-                                    <div className="smallText">
-                                      Confidence: {confidence}
-                                    </div>
-                                    <div className="smallText">{evidenceLine}</div>
-                                    <div className="smallText">{nextAction}</div>
+                                    <OpeningEvidenceBlock
+                                      opening={evidenceItem}
+                                      data={data}
+                                      slot={section.key}
+                                      compact
+                                    />
                                   </div>
                                   <span>{isAmbiguous ? "Hold" : "Practice"}</span>
                                 </button>
@@ -5584,13 +5627,21 @@ function App() {
                             key={opening.name}
                           >
                             <h4>{opening.name}</h4>
-                            <p>{opening.reason}</p>
-                            <p>
-                              <strong>Simple plan:</strong> {opening.plan}
-                            </p>
-                            <p>
-                              <strong>Avoid:</strong> {opening.mistakeToAvoid}
-                            </p>
+                            <OpeningEvidenceBlock
+                              opening={{
+                                ...opening,
+                                reason: opening.reason,
+                                nextAction: opening.plan,
+                              }}
+                              data={data}
+                              slot="white_repertoire"
+                              compact
+                            />
+                            {opening.mistakeToAvoid ? (
+                              <p>
+                                <strong>Watch:</strong> {opening.mistakeToAvoid}
+                              </p>
+                            ) : null}
                             <span>{opening.difficulty}</span>
 
                             <button
@@ -5622,13 +5673,21 @@ function App() {
                             key={opening.name}
                           >
                             <h4>{opening.name}</h4>
-                            <p>{opening.reason}</p>
-                            <p>
-                              <strong>Simple plan:</strong> {opening.plan}
-                            </p>
-                            <p>
-                              <strong>Avoid:</strong> {opening.mistakeToAvoid}
-                            </p>
+                            <OpeningEvidenceBlock
+                              opening={{
+                                ...opening,
+                                reason: opening.reason,
+                                nextAction: opening.plan,
+                              }}
+                              data={data}
+                              slot="black_repertoire"
+                              compact
+                            />
+                            {opening.mistakeToAvoid ? (
+                              <p>
+                                <strong>Watch:</strong> {opening.mistakeToAvoid}
+                              </p>
+                            ) : null}
                             <span>{opening.difficulty}</span>
 
                             <button
@@ -5671,7 +5730,7 @@ function App() {
 
                         return (
                           <button
-                            className="listItem openingPracticeLink"
+                            className="listItem openingPracticeLink evidenceListItem"
                             key={index}
                             type="button"
                             onClick={() =>
@@ -5680,13 +5739,16 @@ function App() {
                           >
                             <div>
                               <strong>{getOpeningName(item)}</strong>
-                              <div className="smallText">
-                                {getOpeningGames(item)} games · {rate}% score ·
-                                Fit {item.fitScore}/100
-                              </div>
-                              <div className="smallText">
-                                {item.fitExplanation}
-                              </div>
+                              <OpeningEvidenceBlock
+                                opening={{
+                                  ...item,
+                                  winRate: rate,
+                                  verdict: item.fitVerdict,
+                                  reason: item.fitExplanation,
+                                }}
+                                data={data}
+                                compact
+                              />
                             </div>
 
                             <div className="rightStat">
@@ -6132,6 +6194,18 @@ function App() {
                                   >
                                     {opening.name}
                                   </button>
+                                  <OpeningEvidenceBlock
+                                    opening={{
+                                      ...opening,
+                                      winRate: rate,
+                                      verdict: fitOpening?.fitVerdict,
+                                      reason: fitOpening?.fitExplanation,
+                                    }}
+                                    data={data}
+                                    compact
+                                    hideReason
+                                    hideNextAction
+                                  />
                                 </td>
                                 <td>{opening.games}</td>
                                 <td>{opening.wins}</td>
