@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
-import { Chessboard } from "react-chessboard";
+import ChessPositionBoard from "./ChessPositionBoard";
 import { findOpeningPracticePack } from "../data/openingPracticeLines";
 
 function getOpeningName(opening) {
@@ -44,26 +44,44 @@ function explainMove(line, moves, index) {
     const piece = move?.piece;
     const san = move?.san || moves[index];
 
+    if (index === 0 && san === "e4") {
+      return "Best practical first move for many open games: it claims central space, opens the bishop and queen, and asks Black to solve the centre immediately.";
+    }
+    if (index === 0 && san === "d4") {
+      return "Takes central space with a protected pawn and usually leads to stable structures where your pieces can develop naturally.";
+    }
+    if (index === 0 && san === "c4") {
+      return "Controls d5 from the side, keeps the centre flexible, and often gives you a reversed-Sicilian style setup with an extra tempo.";
+    }
+    if (index === 0 && san === "Nf3") {
+      return "Develops a piece, controls e5 and d4, and keeps your central pawn choice flexible until you see Black's setup.";
+    }
+    if (move?.captured) {
+      return "This capture resolves central tension or wins time. It works when the recapture still leaves your pieces active and your king safe.";
+    }
+    if (san.includes("+")) {
+      return "The check gains forcing value: your opponent must respond, which can help you develop or win time for the next part of the plan.";
+    }
     if (move?.flags?.includes("k") || san === "O-O" || san === "O-O-O") {
-      return "Gets the king safer and connects the rooks so the middlegame is easier to handle.";
+      return "Gets the king safe and connects the rooks, so the next moves can focus on the centre instead of emergency defence.";
     }
     if (piece === "p" && ["e", "d", "c", "f"].includes(move?.to?.[0])) {
-      return "Changes the central structure. Ask what squares this pawn move controls and what break it prepares.";
+      return "Changes the central structure. This is best when it controls key squares, supports development, or prepares a useful pawn break.";
     }
     if (piece === "n" || piece === "b") {
-      return "Develops a piece toward useful squares instead of spending time on side moves.";
+      return "Develops a piece toward useful central or attacking squares, which is usually stronger than moving the same piece twice early.";
     }
     if (piece === "q") {
-      return "Uses the queen for a concrete purpose. Check that it creates pressure without becoming a target.";
+      return "Uses the queen for a concrete purpose. It works only if the queen creates pressure without becoming an easy target for tempo-gaining moves.";
     }
     if (piece === "r") {
-      return "Places a rook where an open file, pawn break, or central tension can matter.";
+      return "Places a rook where an open file, pawn break, or central tension can matter, instead of leaving it passive in the corner.";
     }
   } catch {
     // Fall through to generic guidance.
   }
 
-  return "This move belongs to the line because it supports the opening plan. Check the centre, development, and king safety before moving on.";
+  return "This is the main-line move because it supports the opening plan. Check the centre, development, and king safety before moving on.";
 }
 
 export default function OpeningPracticeLinesPanel({ opening, onClose }) {
@@ -75,6 +93,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
   const [fen, setFen] = useState(new Chess().fen());
   const [status, setStatus] = useState("");
   const [showHint, setShowHint] = useState(false);
+  const [selectedSquare, setSelectedSquare] = useState(null);
 
   const selectedLine = pack?.lines?.[selectedLineIndex];
   const moves = selectedLine?.moves || [];
@@ -128,6 +147,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
     setFen(new Chess().fen());
     setStatus("");
     setShowHint(false);
+    setSelectedSquare(null);
   }
 
   function chooseLine(index) {
@@ -136,6 +156,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
     setFen(new Chess().fen());
     setStatus("");
     setShowHint(false);
+    setSelectedSquare(null);
   }
 
   function playExpectedMove() {
@@ -149,6 +170,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
       setMoveIndex((current) => current + 1);
       setStatus("Correct move played.");
       setShowHint(false);
+      setSelectedSquare(null);
     } catch {
       setStatus("This practice line could not play that move. Check the saved line.");
     }
@@ -162,6 +184,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
     setMoveIndex(nextIndex);
     setStatus("");
     setShowHint(false);
+    setSelectedSquare(null);
   }
 
   function jumpToMove(index) {
@@ -170,6 +193,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
     setMoveIndex(index);
     setStatus("");
     setShowHint(false);
+    setSelectedSquare(null);
   }
 
   function handlePieceDrop(sourceSquare, targetSquare) {
@@ -184,6 +208,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
       expectedMoveObject = gameAfterExpectedMove.move(expectedMove);
     } catch {
       setStatus("This practice line has a saved move that cannot be played.");
+      setSelectedSquare(null);
       return false;
     }
 
@@ -196,6 +221,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
 
       if (!attemptedMove) {
         setStatus("That move is not legal.");
+        setSelectedSquare(null);
         return false;
       }
 
@@ -212,6 +238,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
               : "Use Hint if you want to reveal the move."
           }`
         );
+        setSelectedSquare(null);
         return false;
       }
 
@@ -219,11 +246,36 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
       setMoveIndex((current) => current + 1);
       setStatus("Correct.");
       setShowHint(false);
+      setSelectedSquare(null);
       return true;
     } catch {
       setStatus("That move is not legal.");
+      setSelectedSquare(null);
       return false;
     }
+  }
+
+  function handleSquareClick(squareName) {
+    if (!expectedMove || isComplete) return;
+
+    const game = buildGameToMove(moves, moveIndex);
+    const piece = game.get(squareName);
+
+    if (!selectedSquare) {
+      if (!piece) return;
+
+      setSelectedSquare(squareName);
+      setStatus("Choose the square this piece should move to.");
+      return;
+    }
+
+    if (selectedSquare === squareName) {
+      setSelectedSquare(null);
+      setStatus("");
+      return;
+    }
+
+    handlePieceDrop(selectedSquare, squareName);
   }
 
   return (
@@ -269,14 +321,12 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
 
       <div className="practiceBoardLayout">
         <div className="practiceBoardWrap">
-          <Chessboard
-            key={`${selectedLineIndex}-${fen}`}
-            id={`practice-board-${openingName}-${selectedLineIndex}`}
+          <ChessPositionBoard
             position={fen}
+            interactive={!isComplete}
+            selectedSquare={selectedSquare}
             onPieceDrop={handlePieceDrop}
-            arePiecesDraggable={!isComplete}
-            animationDuration={200}
-            boardWidth={360}
+            onSquareClick={handleSquareClick}
           />
         </div>
 
@@ -363,6 +413,22 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
             <span>{formatMoveNumber(index)}</span>
             {index < moveIndex || index === moveIndex || showHint ? move : "?"}
           </button>
+        ))}
+      </div>
+
+      <div className="practiceMoveExplanationList">
+        {moves.map((move, index) => (
+          <article
+            key={`${selectedLine.name}-${move}-${index}`}
+            className={`practiceMoveExplanationItem ${
+              index === moveIndex && !isComplete ? "current" : ""
+            } ${index < moveIndex ? "done" : ""}`}
+          >
+            <strong>
+              {formatMoveNumber(index)} {move}
+            </strong>
+            <p>{explainMove(selectedLine, moves, index)}</p>
+          </article>
         ))}
       </div>
     </section>

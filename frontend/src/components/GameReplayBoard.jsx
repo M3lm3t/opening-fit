@@ -1,41 +1,6 @@
 import { useMemo, useState } from "react";
 import { Chess } from "chess.js";
-
-const PIECES = {
-  p: "♟",
-  r: "♜",
-  n: "♞",
-  b: "♝",
-  q: "♛",
-  k: "♚",
-  P: "♙",
-  R: "♖",
-  N: "♘",
-  B: "♗",
-  Q: "♕",
-  K: "♔",
-};
-
-function getBoard(chess, orientation) {
-  const board = chess.board();
-
-  if (orientation === "black") {
-    return board.map((rank) => [...rank].reverse()).reverse();
-  }
-
-  return board;
-}
-
-function getSquareName(rowIndex, colIndex, orientation) {
-  const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
-  const ranks = ["8", "7", "6", "5", "4", "3", "2", "1"];
-
-  if (orientation === "black") {
-    return `${files[7 - colIndex]}${ranks[7 - rowIndex]}`;
-  }
-
-  return `${files[colIndex]}${ranks[rowIndex]}`;
-}
+import ChessPositionBoard from "./ChessPositionBoard";
 
 function buildPositionFromMoves(moves, moveIndex) {
   const chess = new Chess();
@@ -79,10 +44,6 @@ export default function GameReplayBoard({
   const chess = useMemo(() => {
     return buildPositionFromMoves(moves, moveIndex);
   }, [moves, moveIndex]);
-
-  const board = useMemo(() => {
-    return getBoard(chess, orientation);
-  }, [chess, orientation]);
 
   const moveRows = useMemo(() => {
     return chunkMoves(moves);
@@ -134,62 +95,7 @@ export default function GameReplayBoard({
       <div className="replayLayout">
         <div className="replayBoardWrap">
           <div className="replayBoardBox">
-            <div className="cleanReplayBoard">
-              {board.map((rank, rowIndex) =>
-                rank.map((piece, colIndex) => {
-                  const squareName = getSquareName(
-                    rowIndex,
-                    colIndex,
-                    orientation
-                  );
-                  const isLight = (rowIndex + colIndex) % 2 === 0;
-
-                  const pieceKey = piece
-                    ? piece.color === "w"
-                      ? piece.type.toUpperCase()
-                      : piece.type
-                    : null;
-
-                  const showRank =
-                    orientation === "white" ? colIndex === 0 : colIndex === 7;
-                  const showFile =
-                    orientation === "white" ? rowIndex === 7 : rowIndex === 0;
-
-                  return (
-                    <div
-                      key={squareName}
-                      className={`cleanReplaySquare ${
-                        isLight ? "cleanReplayLight" : "cleanReplayDark"
-                      }`}
-                    >
-                      {showRank ? (
-                        <span className="cleanReplayRank">
-                          {squareName[1]}
-                        </span>
-                      ) : null}
-
-                      {showFile ? (
-                        <span className="cleanReplayFile">
-                          {squareName[0]}
-                        </span>
-                      ) : null}
-
-                      {pieceKey ? (
-                        <span
-                          className={`cleanReplayPiece ${
-                            piece.color === "w"
-                              ? "cleanReplayWhitePiece"
-                              : "cleanReplayBlackPiece"
-                          } cleanReplayPiece-${piece.type}`}
-                        >
-                          {PIECES[pieceKey]}
-                        </span>
-                      ) : null}
-                    </div>
-                  );
-                })
-              )}
-            </div>
+            <ChessPositionBoard position={chess.fen()} orientation={orientation} />
           </div>
 
           <div className="replayControls">
