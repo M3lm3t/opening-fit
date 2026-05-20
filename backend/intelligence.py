@@ -117,6 +117,27 @@ def get_opening_score(item: Any) -> int | None:
     return round(number)
 
 
+def get_opening_colour(item: Any) -> str:
+    if not isinstance(item, dict):
+        return "mixed"
+
+    colour = (
+        item.get("colour")
+        or item.get("color")
+        or item.get("side")
+        or item.get("player_colour")
+        or item.get("playerColor")
+        or "mixed"
+    )
+
+    colour = str(colour or "mixed").strip().lower()
+
+    if colour in {"white", "black"}:
+        return colour
+
+    return "mixed"
+
+
 def collect_openings(data: dict, include_unknown: bool = True) -> list[dict]:
     sources = [
         data.get("openings"),
@@ -172,6 +193,160 @@ def collect_openings(data: dict, include_unknown: bool = True) -> list[dict]:
                 }
 
     return list(merged.values())
+
+
+def opening_sample_evidence(
+    item: dict,
+    total_games: int,
+    average_score: int | None,
+    level_profile: dict,
+) -> dict:
+    games = get_opening_games(item)
+    score = get_opening_score(item)
+    colour = get_opening_colour(item)
+    sample_percent = round((games / total_games) * 100, 1) if total_games else 0
+    rating = level_profile.get("rating")
+    level = level_profile.get("level", "unknown")
+    original_verdict = str(
+        item.get("verdict")
+        or item.get("fitVerdict")
+        or item.get("fit_verdict")
+        or item.get("recommendation")
+        or item.get("status")
+        or ""
+    ).strip()
+
+    if games <= 2:
+        confidence_label = "Too little data"
+        verdict = "Too little data"
+        reason = "This opening appears only once or twice, so the result is too noisy to judge."
+    elif games <= 4:
+        confidence_label = "Low confidence"
+        verdict = "Emerging pattern"
+        reason = "A small pattern is forming, but a few games can still swing the result heavily."
+    elif games <= 7:
+        confidence_label = "Low confidence"
+        verdict = "Needs more games before judging"
+        reason = "There are enough games to track, but not enough for a strong Keep, Improve, or Avoid verdict."
+    else:
+        sample_points = 0
+
+        if games >= 20:
+            sample_points += 2
+        elif games >= 10:
+            sample_points += 1
+
+        if sample_percent >= 12:
+            sample_points += 2
+        elif sample_percent >= 6:
+            sample_points += 1
+
+        if colour in {"white", "black"}:
+            sample_points += 1
+
+        if rating:
+            sample_points += 1
+
+        if level in {"advanced", "elite"} and games < 12:
+            sample_points -= 1
+
+        if games < 10 and sample_percent < 10:
+            sample_points -= 1
+
+        if sample_points >= 5:
+            confidence_label = "High confidence"
+        elif sample_points >= 3:
+            confidence_label = "Medium confidence"
+        else:
+            confidence_label = "Low confidence"
+
+        if score is None:
+            verdict = original_verdict or "Needs more games before judging"
+        elif score >= 58:
+            verdict = "Keep"
+        elif score >= 42:
+            verdict = "Improve"
+        else:
+            verdict = "Avoid"
+
+        if confidence_label == "Low confidence" and verdict in {"Keep", "Improve", "Avoid"}:
+            verdict = "Needs more games before judging"
+
+        if confidence_label == "High confidence":
+            reason = "This opening has repeated across a meaningful share of the import, so the verdict is more reliable."
+        elif confidence_label == "Medium confidence":
+            reason = "This opening repeats enough to inform a cautious recommendation, but more games would improve certainty."
+        else:
+            reason = "The sample is still modest for this import, so treat the verdict as provisional."
+
+    comparison = None
+    comparison_text = "No average comparison available yet."
+
+    if score is not None and average_score is not None:
+        comparison = round(score - average_score, 1)
+        if comparison > 0:
+            comparison_text = f"{comparison:g} points above your imported-game average."
+        elif comparison < 0:
+            comparison_text = f"{abs(comparison):g} points below your imported-game average."
+        else:
+            comparison_text = "Matches your imported-game average."
+
+    return {
+        "confidence_label": confidence_label,
+        "confidenceLabel": confidence_label,
+        "sample_percent": sample_percent,
+        "samplePercent": sample_percent,
+        "verdict": verdict,
+        "fitVerdict": verdict,
+        "verdict_reason": reason,
+        "verdictReason": reason,
+        "confidence_reason": reason,
+        "confidenceReason": reason,
+        "average_score": average_score,
+        "averageScore": average_score,
+        "comparison_to_average": comparison,
+        "comparisonToAverage": comparison,
+        "comparison_text": comparison_text,
+        "comparisonText": comparison_text,
+        "colour": colour,
+        "color": colour,
+    }
+
+
+def enrich_opening_item(
+    item: Any,
+    total_games: int,
+    average_score: int | None,
+    level_profile: dict,
+) -> Any:
+    if not isinstance(item, dict):
+        return item
+
+    return {
+        **item,
+        **opening_sample_evidence(item, total_games, average_score, level_profile),
+    }
+
+
+def enrich_opening_collection(
+    collection: Any,
+    total_games: int,
+    average_score: int | None,
+    level_profile: dict,
+) -> Any:
+    if isinstance(collection, list):
+        return [
+            enrich_opening_item(item, total_games, average_score, level_profile)
+            for item in collection
+        ]
+
+    if isinstance(collection, dict):
+        return {
+            key: enrich_opening_item(value, total_games, average_score, level_profile)
+            for key, value in collection.items()
+        }
+
+    return collection
 
 
 def extract_rating_from_object(obj: Any, username: str | None = None) -> list[int]:
@@ -553,6 +728,43 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
 
     # Usable games are those assigned to known openings (not unknown)
     usable_games = sum(get_opening_games(item) for item in known_openings)
+    scored_games = 0
+    weighted_score_total = 0
+
+    for item in known_openings:
+        games = get_opening_games(item)
+        score = get_opening_score(item)
+
+        if games and score is not None:
+            scored_games += games
+            weighted_score_total += games * score
+
+    average_score = round(weighted_score_total / scored_games, 1) if scored_games else None
+
+    opening_collection_keys = [
+        "openings",
+        "openingStats",
+        "opening_stats",
+        "topOpenings",
+        "top_openings",
+        "bestOpenings",
+        "best_openings",
+        "preferredWhite",
+        "preferred_white",
+        "preferredBlack",
+        "preferred_black",
+        "openingWinRates",
+        "opening_win_rates",
+    ]
+
+    for key in opening_collection_keys:
+        if key in data:
+            data[key] = enrich_opening_collection(
+                data[key],
+                games_imported,
+                average_score,
+                level_profile,
+            )
 
     # Strict qualification (affects wording/confidence only)
     qualified_openings = [item for item in known_openings if get_opening_games(item) >= 5]
@@ -608,6 +820,7 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
         "repeat_openings": repeat_openings,
         "known_openings": len(known_openings),
         "rating_detected": level_profile["rating"],
+        "average_score": average_score,
     }
     # Expose analysis-level fields required by the UI
     data["gamesImported"] = games_imported
@@ -617,6 +830,7 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
     data["qualifiedOpenings"] = [get_opening_name(o) for o in qualified_openings]
     data["analysisConfidence"] = final_confidence
     data["notEnoughDataReason"] = not_enough_data_reason
+    data["averageOpeningScore"] = average_score
 
     # Debug / diagnostic payload for frontend
     debug = {

@@ -775,6 +775,19 @@ def build_lichess_style_profile(
     }
 
 
+def dominant_opening_colour(stats: Dict[str, int]) -> str:
+    white_games = int(stats.get("white", 0) or 0)
+    black_games = int(stats.get("black", 0) or 0)
+
+    if white_games > black_games:
+        return "white"
+
+    if black_games > white_games:
+        return "black"
+
+    return "mixed"
+
+
 def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dict[str, Any]]:
     scored = []
 
@@ -811,6 +824,8 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "winRate": win_rate,
                 "score": score,
                 "verdict": verdict,
+                "colour": dominant_opening_colour(stats),
+                "color": dominant_opening_colour(stats),
             }
         )
 
@@ -997,7 +1012,9 @@ def build_training_plan(
     if best_openings:
         top = best_openings[0]
 
-        if top["verdict"] == "Keep":
+        if top["games"] < 8:
+            plan.append(f"Treat {top['name']} as an emerging pattern and collect more games before judging it.")
+        elif top["verdict"] == "Keep":
             plan.append(f"Keep building around {top['name']}. It is currently your best practical opening.")
         elif top["verdict"] == "Improve":
             plan.append(f"Keep {top['name']} in your pool, but review the early middlegame plans.")
@@ -1042,9 +1059,15 @@ def build_recommendations(
         )
 
     if best_openings:
-        recommendations.append(
-            f"Your best-scoring recurring opening is {best_openings[0]['name']}."
-        )
+        top = best_openings[0]
+        if top["games"] < 8:
+            recommendations.append(
+                f"{top['name']} is an emerging pattern, but it needs more games before a strong verdict."
+            )
+        else:
+            recommendations.append(
+                f"Your best-scoring recurring opening is {top['name']}."
+            )
 
     labels = style_profile.get("labels", [])
 
@@ -1166,7 +1189,9 @@ def import_chesscom_logic(username: str, months: int = 3):
     opening_counter = Counter()
     white_opening_counter = Counter()
     black_opening_counter = Counter()
-    opening_results = defaultdict(lambda: {"games": 0, "wins": 0, "draws": 0, "losses": 0})
+    opening_results = defaultdict(
+        lambda: {"games": 0, "wins": 0, "draws": 0, "losses": 0, "white": 0, "black": 0}
+    )
     recent_games = []
 
     for game in all_games:
@@ -1182,6 +1207,8 @@ def import_chesscom_logic(username: str, months: int = 3):
             black_opening_counter[opening] += 1
 
         opening_results[opening]["games"] += 1
+        if colour in {"white", "black"}:
+            opening_results[opening][colour] += 1
 
         if result == "win":
             opening_results[opening]["wins"] += 1
@@ -1227,6 +1254,8 @@ def import_chesscom_logic(username: str, months: int = 3):
                 "losses": stats["losses"],
                 "win_rate": win_rate,
                 "winRate": win_rate,
+                "colour": dominant_opening_colour(stats),
+                "color": dominant_opening_colour(stats),
                 **explanation,
             }
         )
@@ -1386,7 +1415,9 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
     opening_counter = Counter()
     white_opening_counter = Counter()
     black_opening_counter = Counter()
-    opening_results = defaultdict(lambda: {"games": 0, "wins": 0, "draws": 0, "losses": 0})
+    opening_results = defaultdict(
+        lambda: {"games": 0, "wins": 0, "draws": 0, "losses": 0, "white": 0, "black": 0}
+    )
     recent_games = []
     player_ratings = []
 
@@ -1443,6 +1474,8 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
             black_opening_counter[opening] += 1
 
         opening_results[opening]["games"] += 1
+        if colour in {"white", "black"}:
+            opening_results[opening][colour] += 1
 
         if result == "win":
             opening_results[opening]["wins"] += 1
@@ -1490,6 +1523,8 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
                 "losses": stats["losses"],
                 "win_rate": win_rate,
                 "winRate": win_rate,
+                "colour": dominant_opening_colour(stats),
+                "color": dominant_opening_colour(stats),
                 **explanation,
             }
         )
