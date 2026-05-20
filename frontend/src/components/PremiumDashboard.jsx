@@ -188,14 +188,14 @@ function buildWeakLines(data) {
 }
 
 
-function LockedOverlay({ title = "Premium feature", children }) {
+function LockedOverlay({ title = "Premium feature", children, onUnlock }) {
   return (
     <div className="premiumLockedOverlay">
       <div className="premiumLockIcon">🔒</div>
       <strong>{title}</strong>
       <p>{children || "Unlock the full version to use this feature."}</p>
-      <button className="premiumUnlockBtn" type="button">
-        Unlock Premium
+      <button className="premiumUnlockBtn" type="button" onClick={onUnlock}>
+        Preview premium
       </button>
     </div>
   );
@@ -317,7 +317,7 @@ export default function PremiumDashboard({ data, username }) {
           <h2>Your personal opening coach</h2>
           <p>
             Turn your imported games into a complete repertoire plan, weak-line tracker,
-            training focus list, and deeper Stockfish-backed review.
+            training focus list, and optional engine-backed review when it is available.
           </p>
         </div>
 
@@ -457,7 +457,7 @@ export default function PremiumDashboard({ data, username }) {
             </div>
 
             {!isPremiumDemo ? (
-              <LockedOverlay title="Weak-line finder">
+              <LockedOverlay title="Weak-line finder" onUnlock={togglePremiumDemo}>
                 Find repeated opening lines where your score drops and turn them into training targets.
               </LockedOverlay>
             ) : null}
@@ -511,8 +511,8 @@ export default function PremiumDashboard({ data, username }) {
             ) : null}
 
             {!isPremiumDemo ? (
-              <LockedOverlay title="Stockfish coach">
-                Analyse your latest game with engine-backed mistake detection and best-move suggestions.
+              <LockedOverlay title="Stockfish coach" onUnlock={togglePremiumDemo}>
+                Preview the premium coach panel. Engine analysis activates when Stockfish is available on the backend.
               </LockedOverlay>
             ) : null}
           </div>
@@ -534,7 +534,7 @@ export default function PremiumDashboard({ data, username }) {
             </div>
 
             {!isPremiumDemo ? (
-              <LockedOverlay title="Practice Pro">
+              <LockedOverlay title="Practice Pro" onUnlock={togglePremiumDemo}>
                 Turn your weak openings into focused drills and track what you have learned.
               </LockedOverlay>
             ) : null}
@@ -557,7 +557,7 @@ export default function PremiumDashboard({ data, username }) {
             </div>
 
             {!isPremiumDemo ? (
-              <LockedOverlay title="Export reports">
+              <LockedOverlay title="Export reports" onUnlock={togglePremiumDemo}>
                 Generate a clean opening report you can save, share, or use as your monthly training plan.
               </LockedOverlay>
             ) : null}
