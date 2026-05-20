@@ -443,6 +443,216 @@ function getOpeningSide(opening) {
   return opening.side || opening.colour || opening.color || "";
 }
 
+const SAFE_CONTEXT_FALLBACK_COPY =
+  "We found this opening pattern, but not enough colour/context data to recommend it confidently.";
+
+const BLACK_OPENING_NAME_PATTERNS = [
+  "defence",
+  "defense",
+  "sicilian",
+  "french",
+  "caro-kann",
+  "scandinavian",
+  "pirc",
+  "modern defence",
+  "modern defense",
+  "alekhine",
+  "dutch",
+  "nimzo",
+  "queen's indian",
+  "king's indian",
+  "grunfeld",
+  "grünfeld",
+  "slav",
+  "benoni",
+  "benko",
+  "englund",
+];
+
+const WHITE_OPENING_NAME_PATTERNS = [
+  "london",
+  "vienna",
+  "italian",
+  "ruy lopez",
+  "spanish",
+  "scotch",
+  "king's gambit",
+  "queen's gambit",
+  "english opening",
+  "réti",
+  "reti",
+  "colle",
+  "stonewall attack",
+  "trompowsky",
+  "wayward queen",
+  "danish gambit",
+  "king's pawn game",
+  "queen pawn game",
+  "queen's pawn game",
+  "center game",
+  "centre game",
+  "zukertort opening",
+  "polish opening",
+  "bird's opening",
+];
+
+function openingNameColourHint(name = "") {
+  const lower = String(name).toLowerCase();
+
+  if (BLACK_OPENING_NAME_PATTERNS.some((pattern) => lower.includes(pattern))) {
+    return "black";
+  }
+
+  if (WHITE_OPENING_NAME_PATTERNS.some((pattern) => lower.includes(pattern))) {
+    return "white";
+  }
+
+  return "unknown";
+}
+
+function contextLabel(context = "") {
+  return (
+    {
+      played_as_white: "played as White",
+      black_vs_e4: "played as Black vs 1.e4",
+      black_vs_d4_other: "played as Black vs 1.d4 / 1.c4 / 1.Nf3",
+      unknown_mixed: "unknown / mixed",
+    }[context] || "unknown / mixed"
+  );
+}
+
+function itemContext(item, fallback = "unknown_mixed") {
+  const raw =
+    item?.context ||
+    item?.repertoireContext ||
+    item?.repertoire_context ||
+    item?.category ||
+    "";
+  const context = String(raw).trim();
+
+  if (
+    ["played_as_white", "black_vs_e4", "black_vs_d4_other", "unknown_mixed"].includes(
+      context
+    )
+  ) {
+    return context;
+  }
+
+  const side = String(getOpeningSide(item)).toLowerCase();
+
+  if (side.includes("white")) return "played_as_white";
+  if (side.includes("black")) return fallback === "played_as_white" ? "unknown_mixed" : fallback;
+
+  return fallback;
+}
+
+function contextIsCompatible(name, context) {
+  const hint = openingNameColourHint(name);
+
+  if (context === "played_as_white") return hint !== "black";
+  if (context === "black_vs_e4" || context === "black_vs_d4_other") return hint !== "white";
+
+  return false;
+}
+
+function normalizeRecommendationItem(item, fallbackContext = "unknown_mixed") {
+  const source = typeof item === "string" ? { name: item } : item || {};
+  const name = getOpeningName(source);
+  const context = itemContext(source, fallbackContext);
+  const compatible = contextIsCompatible(name, context);
+  const safeContext = compatible ? context : "unknown_mixed";
+
+  return {
+    ...source,
+    name,
+    context: safeContext,
+    contextLabel: contextLabel(safeContext),
+    recommendationCopy:
+      safeContext === "unknown_mixed"
+        ? source.recommendationCopy || SAFE_CONTEXT_FALLBACK_COPY
+        : source.recommendationCopy || "",
+  };
+}
+
+function normalizeRecommendationSection(items, fallbackContext) {
+  const contextFallback =
+    {
+      white_repertoire: "played_as_white",
+      black_vs_e4: "black_vs_e4",
+      black_vs_d4_other: "black_vs_d4_other",
+      experimental_rare: "unknown_mixed",
+      too_little_data: "unknown_mixed",
+    }[fallbackContext] || fallbackContext;
+
+  return (Array.isArray(items) ? items : [])
+    .map((item) => normalizeRecommendationItem(item, contextFallback))
+    .filter((item) => !isUnknownOpeningName(item.name));
+}
+
+function getColourAwareRecommendationSections(data) {
+  const recommendations =
+    data?.opening_recommendations ||
+    data?.openingRecommendations ||
+    data?.recommendedOpenings ||
+    {};
+
+  const fromBackend = Array.isArray(recommendations.sections)
+    ? recommendations.sections.map((section) => ({
+        key: section.key,
+        title: section.title,
+        items: normalizeRecommendationSection(section.items, section.key),
+      }))
+    : null;
+
+  if (fromBackend) return fromBackend;
+
+  const white = normalizeRecommendationSection(
+    recommendations.white_repertoire ||
+      recommendations.whiteDetailed ||
+      recommendations.white ||
+      data?.preferred_white ||
+      [],
+    "played_as_white"
+  );
+  const blackVsE4 = normalizeRecommendationSection(
+    recommendations.black_vs_e4 ||
+      recommendations.blackVsE4Detailed ||
+      recommendations.blackVsE4 ||
+      recommendations.blackDetailed ||
+      recommendations.black ||
+      data?.preferred_black ||
+      [],
+    "black_vs_e4"
+  );
+  const blackVsD4 = normalizeRecommendationSection(
+    recommendations.black_vs_d4_other ||
+      recommendations.blackVsD4OtherDetailed ||
+      recommendations.blackVsD4Other ||
+      [],
+    "black_vs_d4_other"
+  );
+  const experimental = normalizeRecommendationSection(
+    recommendations.experimental_rare || recommendations.experimentalRare || [],
+    "unknown_mixed"
+  );
+  const tooLittle = normalizeRecommendationSection(
+    recommendations.too_little_data || recommendations.tooLittleData || [],
+    "unknown_mixed"
+  );
+
+  return [
+    { key: "white_repertoire", title: "White repertoire", items: white },
+    { key: "black_vs_e4", title: "Black vs 1.e4", items: blackVsE4 },
+    {
+      key: "black_vs_d4_other",
+      title: "Black vs 1.d4 / 1.c4 / 1.Nf3",
+      items: blackVsD4,
+    },
+    { key: "experimental_rare", title: "Experimental / rare openings", items: experimental },
+    { key: "too_little_data", title: "Too little data", items: tooLittle },
+  ];
+}
+
 function isUnknownOpeningName(name) {
   const normalized = (name || "").toLowerCase().trim();
 
@@ -2936,28 +3146,25 @@ function OpeningFitFullReport({ data }) {
   const bestOverall = ranked.find((item) => item.games >= 2) || ranked[0];
   const improveOpening = weakest[0] || ranked[1] || ranked[0];
   const avoidOpening = weakest[1] || weakest[0] || ranked[2] || ranked[0];
+  const colourAwareSections = getColourAwareRecommendationSections(data);
+  const findSection = (key) =>
+    colourAwareSections.find((section) => section.key === key)?.items || [];
 
   const whiteOpenings = ranked.filter((item) => item.colour.includes("white"));
   const blackOpenings = ranked.filter((item) => item.colour.includes("black"));
 
   const bestWhite =
-    whiteOpenings[0] ||
-    ranked.find((item) =>
-      /vienna|italian|london|queen|ruy|scotch|english|reti|gambit/i.test(
-        item.displayName
-      )
-    ) ||
-    ranked[0];
+    findSection("white_repertoire")[0] ||
+    whiteOpenings.find((item) =>
+      contextIsCompatible(item.displayName, "played_as_white")
+    );
 
   const bestBlack =
-    blackOpenings[0] ||
-    ranked.find((item) =>
-      /sicilian|caro|french|scandinavian|pirc|modern|dutch|king|nimzo|slav|grunfeld|defence|defense/i.test(
-        item.displayName
-      )
-    ) ||
-    ranked[1] ||
-    ranked[0];
+    findSection("black_vs_e4")[0] ||
+    findSection("black_vs_d4_other")[0] ||
+    blackOpenings.find((item) =>
+      contextIsCompatible(item.displayName, "black_vs_e4")
+    );
 
   const formatScore = (item) =>
     item?.winRate !== null && item?.winRate !== undefined
@@ -3007,11 +3214,11 @@ function OpeningFitFullReport({ data }) {
   };
 
   const whiteRecommendation = bestWhite
-    ? `Use ${bestWhite.displayName} as your main White focus for the next block of games.`
+    ? `Use ${bestWhite.displayName || bestWhite.name} as your main White focus for the next block of games.`
     : "Import more White games to unlock a clearer White repertoire recommendation.";
 
   const blackRecommendation = bestBlack
-    ? `Use ${bestBlack.displayName} as your main Black focus and review your common early middlegame positions.`
+    ? `Use ${bestBlack.displayName || bestBlack.name} as your main Black focus and review the positions for that specific first-move context.`
     : "Import more Black games to unlock a clearer Black repertoire recommendation.";
 
   const studyOpening =
@@ -3071,13 +3278,13 @@ function OpeningFitFullReport({ data }) {
           <div className="repertoireRows">
             <div className="repertoireRow">
               <span>As White</span>
-              <strong>{bestWhite?.displayName || "Needs more White games"}</strong>
+              <strong>{bestWhite?.displayName || bestWhite?.name || "Needs more White games"}</strong>
               <p>{whiteRecommendation}</p>
             </div>
 
             <div className="repertoireRow">
               <span>As Black</span>
-              <strong>{bestBlack?.displayName || "Needs more Black games"}</strong>
+              <strong>{bestBlack?.displayName || bestBlack?.name || "Needs more Black games"}</strong>
               <p>{blackRecommendation}</p>
             </div>
 
@@ -4286,6 +4493,13 @@ function App() {
     );
   }, [data, showUnknownOpenings]);
 
+  const colourAwareRecommendationSections = useMemo(() => {
+    return getColourAwareRecommendationSections(data).map((section) => ({
+      ...section,
+      items: filterUnknownOpenings(section.items || []),
+    }));
+  }, [data, showUnknownOpenings]);
+
   const smartRecommendationSummary = useMemo(() => {
     const levelProfile = getSmartPlayerLevelProfile(data);
     const levelAware = getSmartLevelAwareRecommendation(data, fitData);
@@ -5015,62 +5229,56 @@ function App() {
                   isOpen={openSections.recommendations}
                   onToggle={() => toggleSection("recommendations")}
                 >
-                  <div className="twoCol">
-                    <div>
-                      <h3>Recommended as White</h3>
-                      <div className="list">
-                        {filterUnknownOpenings(
-                          data.opening_recommendations?.white || []
-                        ).length ? (
-                          filterUnknownOpenings(
-                            data.opening_recommendations?.white || []
-                          ).map((item, index) => (
-                            <button
-                              className="listItem openingPracticeLink"
-                              key={index}
-                              type="button"
-                              onClick={() => startOpeningPractice(item)}
-                            >
-                              <strong>{item}</strong>
-                              <span>Practice</span>
-                            </button>
-                          ))
-                        ) : (
-                          <EmptyState
-                            title="No White suggestions yet"
-                            text="Import more games to unlock stronger White repertoire suggestions."
-                          />
-                        )}
-                      </div>
-                    </div>
+                  <div className="repertoirePreviewGrid">
+                    {colourAwareRecommendationSections.map((section) => (
+                      <div className="repertoireCard" key={section.key}>
+                        <h3>{section.title}</h3>
+                        <div className="list">
+                          {section.items.length ? (
+                            section.items.map((item, index) => {
+                              const isAmbiguous =
+                                section.key === "too_little_data" ||
+                                item.context === "unknown_mixed";
 
-                    <div>
-                      <h3>Recommended as Black</h3>
-                      <div className="list">
-                        {filterUnknownOpenings(
-                          data.opening_recommendations?.black || []
-                        ).length ? (
-                          filterUnknownOpenings(
-                            data.opening_recommendations?.black || []
-                          ).map((item, index) => (
-                            <button
-                              className="listItem openingPracticeLink"
-                              key={index}
-                              type="button"
-                              onClick={() => startOpeningPractice(item)}
-                            >
-                              <strong>{item}</strong>
-                              <span>Practice</span>
-                            </button>
-                          ))
-                        ) : (
-                          <EmptyState
-                            title="No Black suggestions yet"
-                            text="Import more games to unlock stronger Black repertoire suggestions."
-                          />
-                        )}
+                              return (
+                                <button
+                                  className="listItem openingPracticeLink"
+                                  key={`${section.key}-${item.name}-${index}`}
+                                  type="button"
+                                  onClick={() =>
+                                    !isAmbiguous && startOpeningPractice(item.name)
+                                  }
+                                >
+                                  <div>
+                                    <strong>{item.name}</strong>
+                                    <div className="smallText">
+                                      {item.contextLabel || contextLabel(item.context)}
+                                      {item.games ? ` · ${item.games} games` : ""}
+                                    </div>
+                                    {isAmbiguous ? (
+                                      <div className="smallText">
+                                        {item.recommendationCopy ||
+                                          SAFE_CONTEXT_FALLBACK_COPY}
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                  <span>{isAmbiguous ? "Ambiguous" : "Practice"}</span>
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <EmptyState
+                              title={`No ${section.title.toLowerCase()} yet`}
+                              text={
+                                section.key === "too_little_data"
+                                  ? "Ambiguous opening patterns will appear here instead of being treated as confident advice."
+                                  : "Import more games to unlock a confident colour-aware recommendation."
+                              }
+                            />
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
 
                   {isPremium && whiteDetailedRecommendations.length ? (

@@ -59,6 +59,85 @@ export const DEMO_REPORT = {
     ],
   },
 
+  opening_recommendations: {
+    white_repertoire: [
+      {
+        name: "Vienna Game",
+        games: 31,
+        colour: "white",
+        color: "white",
+        context: "played_as_white",
+        contextLabel: "played as White",
+        reason: "Strong results and suits your attacking style.",
+      },
+      {
+        name: "Queen's Gambit",
+        games: 22,
+        colour: "white",
+        color: "white",
+        context: "played_as_white",
+        contextLabel: "played as White",
+        reason: "A steadier second option when you want less chaos.",
+      },
+    ],
+    black_vs_e4: [
+      {
+        name: "Caro-Kann Defence",
+        games: 11,
+        colour: "black",
+        color: "black",
+        context: "black_vs_e4",
+        contextLabel: "played as Black vs 1.e4",
+        reason: "Reliable structure and easier plans than your current risky gambits.",
+      },
+      {
+        name: "Scandinavian Defence",
+        games: 28,
+        colour: "black",
+        color: "black",
+        context: "black_vs_e4",
+        contextLabel: "played as Black vs 1.e4",
+        reason: "Playable, but your early queen moves need tidying up.",
+      },
+    ],
+    black_vs_d4_other: [
+      {
+        name: "Queen's Gambit Declined",
+        games: 6,
+        colour: "black",
+        color: "black",
+        context: "black_vs_d4_other",
+        contextLabel: "played as Black vs 1.d4 / 1.c4 / 1.Nf3",
+        reason: "Use it as the calmer answer to queen-pawn and flank starts.",
+      },
+    ],
+    experimental_rare: [
+      {
+        name: "Englund Gambit",
+        games: 1,
+        colour: "black",
+        color: "black",
+        context: "black_vs_d4_other",
+        contextLabel: "played as Black vs 1.d4 / 1.c4 / 1.Nf3",
+        reason: "Treat this as a rare experiment, not a core defence.",
+      },
+    ],
+    too_little_data: [
+      {
+        name: "Unclear transposition",
+        games: 1,
+        colour: "mixed",
+        color: "mixed",
+        context: "unknown_mixed",
+        contextLabel: "unknown / mixed",
+        recommendationCopy:
+          "We found this opening pattern, but not enough colour/context data to recommend it confidently.",
+      },
+    ],
+    white: ["Vienna Game", "Queen's Gambit"],
+    black: ["Caro-Kann Defence", "Scandinavian Defence", "Queen's Gambit Declined"],
+  },
+
   opening_stats: [
     {
       name: "Vienna Game",

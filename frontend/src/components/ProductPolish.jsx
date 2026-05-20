@@ -56,17 +56,30 @@ function findWeakOpening(data) {
 }
 
 function guessWhiteOpening(data) {
+  const section = data?.opening_recommendations?.white_repertoire?.[0];
+  if (section?.name) return section.name;
+  const detailed = data?.opening_recommendations?.whiteDetailed?.[0];
+  if (detailed?.name) return detailed.name;
   const top = pickTopOpenings(data);
-  return top[0]?.name || top[0]?.opening || data?.recommended_white?.[0]?.name || "Vienna Game / Italian-style e4 setup";
+  const whiteTop = top.find((item) => {
+    const colour = String(item?.colour || item?.color || "").toLowerCase();
+    return colour.includes("white");
+  });
+  return whiteTop?.name || whiteTop?.opening || data?.recommended_white?.[0]?.name || "Needs more White games";
 }
 
 function guessBlackOpening(data) {
-  const names = pickTopOpenings(data).map((x) => openingName(x).toLowerCase());
-  if (names.some((n) => n.includes("caro"))) return "Caro-Kann Defence";
-  if (names.some((n) => n.includes("scandinavian"))) return "Scandinavian Defence";
-  if (names.some((n) => n.includes("sicilian"))) return "Sicilian Defence";
-  if (names.some((n) => n.includes("french"))) return "French Defence";
-  return "Caro-Kann or Scandinavian as a simple Black base";
+  const vsE4 = data?.opening_recommendations?.black_vs_e4?.[0];
+  if (vsE4?.name) return `${vsE4.name} vs 1.e4`;
+  const vsD4 = data?.opening_recommendations?.black_vs_d4_other?.[0];
+  if (vsD4?.name) return `${vsD4.name} vs 1.d4 / 1.c4 / 1.Nf3`;
+
+  const blackTop = pickTopOpenings(data).find((item) => {
+    const colour = String(item?.colour || item?.color || "").toLowerCase();
+    return colour.includes("black");
+  });
+
+  return blackTop ? openingName(blackTop) : "Needs more Black games";
 }
 
 export function LandingSampleReport() {
@@ -180,21 +193,21 @@ export function RecommendedRepertoire({ data }) {
       <div className="productPolishEyebrow">Recommended repertoire</div>
       <h2>Your simple opening plan</h2>
       <p>
-        This is the practical version of your report: fewer openings, clearer choices,
-        and less guessing before move 10.
+        This is the practical version of your report: White choices stay separate
+        from Black defences, and ambiguous patterns are held back from confident advice.
       </p>
 
       <div className="repertoireGrid">
         <article>
-          <span>As White</span>
+          <span>White repertoire</span>
           <strong>{white}</strong>
-          <p>Use this as your main comfort opening and build depth slowly.</p>
+          <p>Use this only for games where you are playing White.</p>
         </article>
 
         <article>
-          <span>As Black</span>
+          <span>Black repertoire</span>
           <strong>{black}</strong>
-          <p>Choose a reliable structure instead of switching openings every few games.</p>
+          <p>Choose a reliable defence for the first move context shown.</p>
         </article>
 
         <article>
