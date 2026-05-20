@@ -31,6 +31,7 @@ import LandingModal from "./components/LandingModal";
 import ReportSnapshot from "./components/ReportSnapshot";
 import OpeningCoachPlan from "./components/OpeningCoachPlan";
 import OpeningProgressTracker from "./components/OpeningProgressTracker";
+import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
 import OpeningFitTrustUpgrade from "./components/OpeningFitTrustUpgrade";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
@@ -5472,6 +5473,8 @@ function App() {
                     <AppOpeningHealthScore data={data} onViewChange={setActiveView} />
                   </div>
 
+                  <OpeningFitRepertoirePlan data={data} />
+
                   <div id="section-fit">
                     <OpeningFitSummaryCard
                       fitData={fitData}
@@ -5505,6 +5508,8 @@ function App() {
 
               {activeView === "recommendations" ? (
                 <>
+                  <OpeningFitRepertoirePlan data={data} />
+
                   <OpeningFitFullReport data={data} />
 
                   <div id="section-recommendations">
