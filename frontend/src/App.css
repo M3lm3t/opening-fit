@@ -25811,3 +25811,736 @@ textarea,
     width: min(100%, 1080px);
   }
 }
+
+/* Final product polish: shared sizing, responsive guardrails, and theme-safe controls. */
+:root {
+  --of-shell: min(1180px, calc(100vw - 32px));
+  --of-shell-wide: min(1320px, calc(100vw - 32px));
+  --of-card-radius: 18px;
+  --of-card-pad: clamp(16px, 2vw, 24px);
+  --of-control-radius: 14px;
+  --of-mobile-gutter: 14px;
+}
+
+html,
+body,
+#root,
+.page {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.page * {
+  min-width: 0;
+}
+
+.container,
+.landingWrap,
+.fullReportShell,
+.openingFitPlanShell,
+.openingReportShell,
+.reportSnapshotShell,
+.coachPlanShell,
+.progressTrackerShell,
+.evidenceDiagnosisShell,
+.premiumDashboardShell,
+.trustUpgradeShell,
+.founderPassShell {
+  width: var(--of-shell) !important;
+  max-width: var(--of-shell) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.landingShell,
+.landingHero,
+.compactImportHero,
+.heroCard,
+.card,
+.collapsibleCard,
+.openingFitPlanShell,
+.fullReportShell,
+.openingReportShell,
+.premiumDashboardShell,
+.reportSnapshotShell,
+.openingCoachPlan,
+.openingProgressTracker,
+.evidenceDiagnosisShell,
+.accountPanel,
+.accountPanelShell,
+.landingModal,
+.landingModalCard,
+.landingModalPanel {
+  max-width: 100%;
+}
+
+.card,
+.collapsibleCard,
+.quickNavCard,
+.premiumMiniCard,
+.landingPreviewCard,
+.landingFeatureCard,
+.landingPriceCard,
+.landingInfoCard,
+.landingStepCard,
+.aboutCard,
+.ratingGuideCard,
+.openingFitPlanShell,
+.fullReportShell,
+.openingReportShell,
+.openingReportCard,
+.adviceCard,
+.repertoireCard,
+.openingExplainCard,
+.fitMiniCard,
+.reportSnapshotCard,
+.coachPlanCard,
+.progressCard,
+.evidenceDiagnosisCard,
+.premiumDashboardCard,
+.openingHealthCard,
+.listItem,
+.gamePickerButton,
+.trainingPlanItem,
+.repertoireRow {
+  border-radius: var(--of-card-radius) !important;
+  overflow-wrap: anywhere;
+}
+
+.card,
+.collapsibleCard,
+.openingFitPlanShell,
+.fullReportShell,
+.openingReportShell,
+.openingReportCard,
+.adviceCard,
+.repertoireCard,
+.openingExplainCard,
+.fitMiniCard,
+.reportSnapshotCard,
+.coachPlanCard,
+.progressCard,
+.evidenceDiagnosisCard,
+.premiumDashboardCard,
+.openingHealthCard {
+  padding: var(--of-card-pad);
+}
+
+.page.light .card,
+[data-theme="light"] .card,
+.page.light .collapsibleCard,
+[data-theme="light"] .collapsibleCard,
+.page.light .openingFitPlanShell,
+[data-theme="light"] .openingFitPlanShell,
+.page.light .fullReportShell,
+[data-theme="light"] .fullReportShell,
+.page.light .openingReportShell,
+[data-theme="light"] .openingReportShell,
+.page.light .openingReportCard,
+[data-theme="light"] .openingReportCard,
+.page.light .adviceCard,
+[data-theme="light"] .adviceCard,
+.page.light .repertoireCard,
+[data-theme="light"] .repertoireCard,
+.page.light .openingExplainCard,
+[data-theme="light"] .openingExplainCard,
+.page.light .fitMiniCard,
+[data-theme="light"] .fitMiniCard,
+.page.light .listItem,
+[data-theme="light"] .listItem,
+.page.light .gamePickerButton,
+[data-theme="light"] .gamePickerButton,
+.page.light .trainingPlanItem,
+[data-theme="light"] .trainingPlanItem {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0f172a !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+}
+
+.page.dark .card,
+[data-theme="dark"] .card,
+.page.dark .collapsibleCard,
+[data-theme="dark"] .collapsibleCard,
+.page.dark .openingFitPlanShell,
+[data-theme="dark"] .openingFitPlanShell,
+.page.dark .fullReportShell,
+[data-theme="dark"] .fullReportShell,
+.page.dark .openingReportShell,
+[data-theme="dark"] .openingReportShell,
+.page.dark .openingReportCard,
+[data-theme="dark"] .openingReportCard,
+.page.dark .adviceCard,
+[data-theme="dark"] .adviceCard,
+.page.dark .repertoireCard,
+[data-theme="dark"] .repertoireCard,
+.page.dark .openingExplainCard,
+[data-theme="dark"] .openingExplainCard,
+.page.dark .fitMiniCard,
+[data-theme="dark"] .fitMiniCard,
+.page.dark .listItem,
+[data-theme="dark"] .listItem,
+.page.dark .gamePickerButton,
+[data-theme="dark"] .gamePickerButton,
+.page.dark .trainingPlanItem,
+[data-theme="dark"] .trainingPlanItem {
+  background-color: rgba(15, 23, 42, 0.88) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  color: #f8fafc !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+.landingTitle,
+.heroTitle,
+.openingReportHero h2,
+.fullReportHeader h2,
+.openingFitPlanHeader h2 {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  letter-spacing: 0 !important;
+}
+
+h1,
+.landingTitle,
+.heroTitle {
+  font-size: clamp(2rem, 5vw, 4.4rem) !important;
+  line-height: 1.02 !important;
+}
+
+h2,
+.openingReportHero h2,
+.fullReportHeader h2,
+.openingFitPlanHeader h2 {
+  font-size: clamp(1.35rem, 2.5vw, 2.25rem) !important;
+  line-height: 1.12 !important;
+}
+
+h3 {
+  font-size: clamp(1rem, 1.7vw, 1.35rem);
+  line-height: 1.22;
+}
+
+p,
+li,
+.smallText,
+.muted,
+.subtext,
+.helper {
+  max-width: 72ch;
+}
+
+.page.light p,
+.page.light li,
+.page.light .smallText,
+.page.light .muted,
+.page.light .subtext,
+.page.light .helper,
+[data-theme="light"] p,
+[data-theme="light"] li,
+[data-theme="light"] .smallText,
+[data-theme="light"] .muted,
+[data-theme="light"] .subtext,
+[data-theme="light"] .helper {
+  color: #475569 !important;
+}
+
+.primaryBtn,
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.landingPrimaryBtn,
+.landingSecondaryBtn,
+.floatingMenuToggle,
+.openingAppMenuToggle,
+.landingCloseBtn,
+.modalCloseButton,
+.explainPracticeBtn,
+.trainingPracticeBtn,
+.fitPracticeBtn,
+.tableOpeningBtn,
+.inlineOpeningBtn,
+.openingPracticeLink,
+.appTabButton,
+.sectionToggle,
+.mobileSectionRevealBtn,
+button {
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.primaryBtn,
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.landingPrimaryBtn,
+.landingSecondaryBtn,
+.floatingMenuButtons button,
+.openingAppMenuPanel button,
+.appTabButton,
+.mobileSectionRevealBtn {
+  min-height: 44px !important;
+  border-radius: var(--of-control-radius) !important;
+}
+
+.page.light .secondaryBtn,
+[data-theme="light"] .secondaryBtn,
+.page.light .secondaryButton,
+[data-theme="light"] .secondaryButton,
+.page.light .ghostButton,
+[data-theme="light"] .ghostButton,
+.page.light .landingSecondaryBtn,
+[data-theme="light"] .landingSecondaryBtn,
+.page.light .floatingMenuButtons button,
+[data-theme="light"] .floatingMenuButtons button,
+.page.light .openingAppMenuPanel button,
+[data-theme="light"] .openingAppMenuPanel button {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0f172a !important;
+}
+
+.page.light .primaryBtn,
+[data-theme="light"] .primaryBtn,
+.page.light .landingPrimaryBtn,
+[data-theme="light"] .landingPrimaryBtn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  color: #ffffff !important;
+}
+
+.page.dark .secondaryBtn,
+[data-theme="dark"] .secondaryBtn,
+.page.dark .secondaryButton,
+[data-theme="dark"] .secondaryButton,
+.page.dark .ghostButton,
+[data-theme="dark"] .ghostButton,
+.page.dark .landingSecondaryBtn,
+[data-theme="dark"] .landingSecondaryBtn,
+.page.dark .floatingMenuButtons button,
+[data-theme="dark"] .floatingMenuButtons button,
+.page.dark .openingAppMenuPanel button,
+[data-theme="dark"] .openingAppMenuPanel button {
+  background: rgba(15, 23, 42, 0.92) !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+  color: #f8fafc !important;
+}
+
+.landingHeroGrid,
+.heroGrid,
+.reportTwoColumn,
+.analysisGrid,
+.boardSection,
+.twoCol,
+.compactReportGrid,
+.openingReportGrid,
+.adviceGrid,
+.repertoirePreviewGrid,
+.openingExplainGrid,
+.openingFitPlanGrid,
+.openingHealthGrid,
+.studyPlanGrid,
+.premiumCard,
+.scoreStatsGrid,
+.reportStatsGrid,
+.heroStatsGrid,
+.statsGrid {
+  max-width: 100%;
+}
+
+.compactReportGrid,
+.openingReportGrid,
+.adviceGrid,
+.repertoirePreviewGrid,
+.openingExplainGrid,
+.openingFitPlanGrid,
+.openingHealthGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
+}
+
+.landingHeroGrid,
+.heroGrid,
+.reportTwoColumn,
+.analysisGrid,
+.boardSection,
+.twoCol {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)) !important;
+}
+
+.appTabsCard,
+.compactReportNav {
+  width: var(--of-shell) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+}
+
+.appTabs {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px;
+  overflow: visible !important;
+}
+
+.appTabButton {
+  flex: 1 1 150px;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+}
+
+.appTabButtonActive,
+.page.light .appTabButtonActive,
+[data-theme="light"] .appTabButtonActive {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  color: #ffffff !important;
+  border-color: rgba(37, 99, 235, 0.75) !important;
+}
+
+.page.light .appTabButton,
+[data-theme="light"] .appTabButton {
+  background: #f8fafc !important;
+  color: #334155 !important;
+}
+
+.tableWrap,
+.repertoirePlanTableWrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tableWrap table,
+.repertoirePlanTable {
+  width: 100%;
+  min-width: 680px;
+}
+
+td,
+th {
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.openingEvidenceChips {
+  max-width: 100%;
+}
+
+.openingEvidenceChips span,
+.verdict,
+.sectionBadge,
+.premiumBadge,
+.fitLabel,
+.adviceTopline span,
+.adviceTopline small {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.floatingMenu,
+.openingAppMenu {
+  z-index: 130 !important;
+}
+
+.floatingMenuPanel,
+.openingAppMenuPanel {
+  width: min(360px, calc(100vw - 24px)) !important;
+  max-width: calc(100vw - 24px) !important;
+  max-height: min(76vh, 620px) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+
+.page.light .floatingMenuPanel,
+[data-theme="light"] .floatingMenuPanel,
+.page.light .openingAppMenuPanel,
+[data-theme="light"] .openingAppMenuPanel {
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+.floatingMenuHeader,
+.openingAppMenuHeader,
+.landingModalHeader {
+  align-items: center !important;
+  gap: 10px;
+}
+
+.floatingMenuHeader button,
+.openingAppMenuHeader button,
+.landingCloseBtn,
+.modalCloseButton {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+}
+
+.landingHero {
+  min-height: auto !important;
+  padding: clamp(18px, 4vw, 36px) !important;
+}
+
+.landingHeroGrid {
+  align-items: center;
+}
+
+.landingHeroCopy,
+.landingHeroText,
+.landingHeroContent {
+  max-width: 720px;
+}
+
+.landingModal,
+.landingModalPolished,
+.landingModalCard,
+.landingModalPanel {
+  width: min(960px, calc(100vw - 24px)) !important;
+  max-height: min(92vh, 820px);
+  overflow-y: auto;
+}
+
+.landingModalActions,
+.landingHeroActions,
+.heroActions,
+.appActionButtons,
+.dashboardActionButtons,
+.reportCommandBarActions,
+.exportHistoryActions,
+.recommendationActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.landingModalActions > *,
+.landingHeroActions > *,
+.heroActions > *,
+.appActionButtons > *,
+.dashboardActionButtons > *,
+.reportCommandBarActions > *,
+.exportHistoryActions > *,
+.recommendationActions > * {
+  flex: 1 1 180px;
+}
+
+input,
+select,
+textarea {
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 1280px) {
+  .container,
+  .landingWrap,
+  .fullReportShell,
+  .openingFitPlanShell,
+  .openingReportShell,
+  .appTabsCard,
+  .compactReportNav {
+    width: var(--of-shell-wide) !important;
+    max-width: var(--of-shell-wide) !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --of-shell: min(100vw - 24px, 960px);
+  }
+
+  .appShell {
+    padding-top: 24px;
+  }
+
+  .premiumCard,
+  .dashboardActionStrip,
+  .statusMessage {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --of-shell: calc(100vw - 20px);
+    --of-card-radius: 16px;
+    --of-card-pad: 14px;
+  }
+
+  body {
+    padding-bottom: 96px !important;
+  }
+
+  .container,
+  .landingWrap,
+  .fullReportShell,
+  .openingFitPlanShell,
+  .openingReportShell,
+  .appTabsCard,
+  .compactReportNav {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+
+  .landingHero,
+  .compactImportHero,
+  .heroCard {
+    padding: 16px !important;
+    border-radius: 20px !important;
+  }
+
+  .landingHeroGrid,
+  .heroGrid,
+  .reportTwoColumn,
+  .analysisGrid,
+  .boardSection,
+  .twoCol,
+  .compactReportGrid,
+  .openingReportGrid,
+  .adviceGrid,
+  .repertoirePreviewGrid,
+  .openingExplainGrid,
+  .openingFitPlanGrid,
+  .openingHealthGrid,
+  .studyPlanGrid,
+  .premiumCard,
+  .scoreStatsGrid,
+  .reportStatsGrid,
+  .heroStatsGrid,
+  .statsGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .appTabsCard,
+  .compactReportNav {
+    position: relative;
+    top: auto;
+  }
+
+  .appTabs {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .appTabButton {
+    flex: none;
+    width: 100%;
+    min-height: 44px !important;
+    padding: 10px 8px !important;
+    font-size: 0.86rem !important;
+  }
+
+  .listItem,
+  .gamePickerButton,
+  .sectionToggle,
+  .savedHistoryRow,
+  .chartRow {
+    align-items: stretch !important;
+    flex-direction: column;
+    text-align: left;
+  }
+
+  .rightStat {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .openingReportStats,
+  .openingHealthStats,
+  .reportStatsGrid,
+  .scoreStatsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .tableWrap table,
+  .repertoirePlanTable {
+    min-width: 620px;
+  }
+
+  .landingModalActions > *,
+  .landingHeroActions > *,
+  .heroActions > *,
+  .appActionButtons > *,
+  .dashboardActionButtons > *,
+  .reportCommandBarActions > *,
+  .exportHistoryActions > *,
+  .recommendationActions > * {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  :root {
+    --of-shell: calc(100vw - 16px);
+    --of-mobile-gutter: 8px;
+  }
+
+  .container,
+  .landingWrap,
+  .fullReportShell,
+  .openingFitPlanShell,
+  .openingReportShell,
+  .appTabsCard,
+  .compactReportNav {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  h1,
+  .landingTitle,
+  .heroTitle {
+    font-size: clamp(1.75rem, 10vw, 2.45rem) !important;
+  }
+
+  .appTabs {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .openingReportStats,
+  .openingHealthStats {
+    grid-template-columns: 1fr !important;
+  }
+
+  .mobileBottomNav {
+    left: 6px !important;
+    right: 6px !important;
+    bottom: max(6px, env(safe-area-inset-bottom)) !important;
+    height: 68px !important;
+    padding: 6px !important;
+    border-radius: 18px !important;
+  }
+
+  .mobileBottomNav button {
+    min-height: 54px !important;
+    font-size: 0.61rem !important;
+    border-radius: 14px !important;
+  }
+
+  .mobileBottomNav button span {
+    width: 21px !important;
+    height: 21px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .appTabs {
+    grid-template-columns: 1fr;
+  }
+
+  .mobileBottomNav button {
+    font-size: 0.57rem !important;
+  }
+
+  .openingEvidenceChips span {
+    font-size: 0.66rem;
+  }
+}
