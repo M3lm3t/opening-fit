@@ -63,7 +63,7 @@ import CleanReportHeader from "./components/CleanReportHeader";
 import IntelligentCoachInsights from "./components/IntelligentCoachInsights";
 
 import OpeningClassificationNotice from "./components/OpeningClassificationNotice";
-import { displayOpeningName, getSmartLevelAwareRecommendation, getSmartPlayerLevelProfile } from "./components/playerLevelLogic";
+import { displayOpeningName, getPlayerLevelText, getSmartLevelAwareRecommendation, getSmartPlayerLevelProfile } from "./components/playerLevelLogic";
 import AccountRestoreSync from "./components/AccountRestoreSync";
 import { DEMO_REPORT } from "./demoReportData";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
@@ -671,16 +671,7 @@ function getProfileRating(data) {
 
 function getPlayerTier(data) {
   const rating = getProfileRating(data);
-  const level = String(
-    data?.playerLevel?.level ??
-      data?.playerLevel?.label ??
-      data?.playerLevel ??
-      data?.player_level?.level ??
-      data?.player_level?.label ??
-      data?.player_level ??
-      data?.level ??
-      ""
-  ).toLowerCase();
+  const level = getPlayerLevelText(data).toLowerCase();
   const title = String(
     data?.title ??
       data?.chessTitle ??

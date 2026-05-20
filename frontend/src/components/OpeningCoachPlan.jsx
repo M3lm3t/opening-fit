@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./OpeningCoachPlan.css";
+import { getPlayerLevelText } from "./playerLevelLogic";
 
 function toNumber(value, fallback = 0) {
   const n = Number(value);
@@ -70,15 +71,7 @@ function getRating(data) {
 
 function getLevel(data) {
   const rating = getRating(data);
-  const level = String(
-    data?.playerLevel?.level ??
-      data?.playerLevel?.label ??
-      data?.playerLevel ??
-      data?.player_level?.level ??
-      data?.player_level?.label ??
-      data?.player_level ??
-      ""
-  ).toLowerCase();
+  const level = getPlayerLevelText(data).toLowerCase();
 
   if (rating >= 2200 || level.includes("master") || level.includes("expert") || level.includes("elite")) {
     return "advanced";

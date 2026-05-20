@@ -1,3 +1,5 @@
+import { getPlayerLevelText } from "./playerLevelLogic";
+
 function normaliseOpeningName(opening) {
   if (!opening) return "Unknown opening";
 
@@ -75,15 +77,7 @@ function getPlayerTier(data) {
       data?.playerLevel?.rating ??
       0
   );
-  const level = String(
-    data?.playerLevel?.level ??
-      data?.playerLevel?.label ??
-      data?.playerLevel ??
-      data?.player_level?.level ??
-      data?.player_level?.label ??
-      data?.player_level ??
-      ""
-  ).toLowerCase();
+  const level = getPlayerLevelText(data).toLowerCase();
   const title = String(
     data?.title ??
       data?.chessTitle ??
