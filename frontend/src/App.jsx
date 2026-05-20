@@ -1423,7 +1423,7 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
   );
 
   return (
-    <section className="compactReportDashboard">
+    <section className="compactReportDashboard" id="style-profile">
       <div className="compactReportTitle">
         <p className="eyebrow">Opening Fit report</p>
         <h1>{playerName} opening dashboard</h1>
@@ -5382,6 +5382,7 @@ function App() {
                     onUnlockDemo={unlockPremiumDemo}
                   /> : null}
 
+                  <div id="training-plan">
                   <div id="section-training">
                 <Section
                   title="Personal Training Plan"
@@ -5420,11 +5421,13 @@ function App() {
                   ) : null}
                 </Section>
               </div>
+              </div>
                 </>
               ) : null}
 
               {activeView === "games" ? (
                 <>
+                  <div id="game-replay">
                   <div id="section-replay">
                 <Section
                   title="Game Replay"
@@ -5517,6 +5520,7 @@ function App() {
                   </div>
                 </Section>
               </div>
+              </div>
                 </>
               ) : null}
 
@@ -5584,6 +5588,7 @@ function App() {
 
               {activeView === "upgrade" ? (
                 <>
+                  <div id="top-openings-table">
                   <div id="section-top">
                 <Section
                   title="Top Openings Table"
@@ -5657,6 +5662,7 @@ function App() {
                     />
                   )}
                 </Section>
+              </div>
               </div>
                 </>
               ) : null}
