@@ -124,6 +124,8 @@ function formatMeta(item) {
 export default function ReportSnapshot({ data, onViewChange }) {
   if (!data) return null;
 
+  const reportMode = data?.reportMode || data?.report_mode || "normal_user";
+  const publicMode = reportMode !== "normal_user";
   const bestFit = findBestFit(data);
   const weakSpot = findWeakSpot(data);
   const mainOpening = findMainOpening(data);
@@ -140,18 +142,22 @@ export default function ReportSnapshot({ data, onViewChange }) {
 
   const cards = [
     {
-      eyebrow: "Best fit",
+      eyebrow: publicMode ? "Recent strength" : "Best fit",
       title: getOpeningName(bestFit || mainOpening, "Your strongest opening"),
       detail: formatMeta(bestFit || mainOpening),
-      note: "Keep this in your repertoire and build around it.",
+      note: publicMode
+        ? "A higher-scoring recent online sample, not a judgement of full opening knowledge."
+        : "Keep this in your repertoire and build around it.",
       action: "See recommendations",
       view: "recommendations",
     },
     {
-      eyebrow: "Needs work",
-      title: getOpeningName(weakSpot, "Your weakest recurring opening"),
+      eyebrow: publicMode ? "Lower-scoring sample" : "Needs work",
+      title: getOpeningName(weakSpot, publicMode ? "Recent underperformer" : "Your weakest recurring opening"),
       detail: formatMeta(weakSpot),
-      note: "This is the fastest place to gain practical rating points.",
+      note: publicMode
+        ? "Compare by time control, opponent pool, and whether the games were experimental."
+        : "This is the fastest place to gain practical rating points.",
       action: "Open study plan",
       view: "training",
     },
@@ -159,8 +165,10 @@ export default function ReportSnapshot({ data, onViewChange }) {
       eyebrow: "Next focus",
       title: recommendation || "Review your most repeated opening mistakes",
       detail: profileDetail || "Based on your imported games",
-      note: "One focused study session beats ten random opening videos.",
-      action: "Start training",
+      note: publicMode
+        ? "OpeningFit is analysing recent online results only."
+        : "One focused study session beats ten random opening videos.",
+      action: publicMode ? "Review trends" : "Start training",
       view: "training",
     },
   ];
@@ -172,8 +180,9 @@ export default function ReportSnapshot({ data, onViewChange }) {
           <p className="reportSnapshotKicker">Report snapshot</p>
           <h2>Your opening profile at a glance</h2>
           <p>
-            The quick version of what OpeningFit found in your games — what to
-            keep, what to improve, and what to study next.
+            {publicMode
+              ? "The quick version of recent online performance trends. This is not a judgement of the player's actual opening knowledge."
+              : "The quick version of what OpeningFit found in your games — what to keep, what to improve, and what to study next."}
           </p>
         </div>
 

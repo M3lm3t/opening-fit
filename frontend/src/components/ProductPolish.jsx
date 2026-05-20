@@ -12,6 +12,10 @@ function openingScore(item) {
   return pct(item?.win_rate ?? item?.score ?? item?.performance ?? item?.winRate);
 }
 
+function isPublicMode(data) {
+  return (data?.reportMode || data?.report_mode || "normal_user") !== "normal_user";
+}
+
 function pickTopOpenings(data) {
   const pools = [
     ...(Array.isArray(data?.top_openings) ? data.top_openings : []),
@@ -125,6 +129,7 @@ export function LandingSampleReport() {
 export function CoachVerdict({ data }) {
   if (!data) return null;
 
+  const publicMode = isPublicMode(data);
   const top = pickTopOpenings(data);
   const best = top[0];
   const weak = findWeakOpening(data);
@@ -145,30 +150,38 @@ export function CoachVerdict({ data }) {
       <div className="coachVerdictHeader">
         <div>
           <div className="productPolishEyebrow">Coach verdict</div>
-          <h2>Your opening diagnosis</h2>
+          <h2>{publicMode ? "Recent online trend read" : "Your opening diagnosis"}</h2>
         </div>
         {games ? <span className="coachVerdictBadge">{games} games checked</span> : null}
       </div>
 
       <p className="coachVerdictLead">
         {best
-          ? `Keep leaning into ${bestName}${bestScore !== null ? ` — it is currently scoring around ${bestScore}% for you` : ""}.`
+          ? publicMode
+            ? `${bestName}${bestScore !== null ? ` is a recent strength at around ${bestScore}% in this import` : " is a recent strength in this import"}.`
+            : `Keep leaning into ${bestName}${bestScore !== null ? ` — it is currently scoring around ${bestScore}% for you` : ""}.`
           : "OpeningFit has enough to give you a practical direction, but more imported games will make the verdict sharper."}{" "}
         {weak
-          ? `Your biggest leak looks like ${weakName}${weakScore !== null ? ` at around ${weakScore}%` : ""}, so treat that as the next study target.`
+          ? publicMode
+            ? `${weakName}${weakScore !== null ? ` is a lower-scoring recent sample at around ${weakScore}%` : " is a lower-scoring recent sample"}. This is not a judgement of the player's actual opening knowledge.`
+            : `Your biggest leak looks like ${weakName}${weakScore !== null ? ` at around ${weakScore}%` : ""}, so treat that as the next study target.`
           : "For now, focus on building one reliable White opening and one simple Black response."}
       </p>
 
       <div className="coachActionGrid">
         <article>
-          <span>Keep</span>
+          <span>{publicMode ? "Recent strength" : "Keep"}</span>
           <strong>{bestName}</strong>
           <p>Do not rebuild everything. Start by doubling down on what already works.</p>
         </article>
         <article>
-          <span>Improve</span>
+          <span>{publicMode ? "Lower-scoring sample" : "Improve"}</span>
           <strong>{weakName}</strong>
-          <p>Review early move choices and look for the first position where games go wrong.</p>
+          <p>
+            {publicMode
+              ? "Compare by time control, opponent pool, and game context before drawing conclusions."
+              : "Review early move choices and look for the first position where games go wrong."}
+          </p>
         </article>
         <article>
           <span>Next move</span>

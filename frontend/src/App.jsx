@@ -445,6 +445,8 @@ function getOpeningSide(opening) {
 
 const SAFE_CONTEXT_FALLBACK_COPY =
   "We found this opening pattern, but not enough colour/context data to recommend it confidently.";
+const PUBLIC_ACCOUNT_CAUTION_COPY =
+  "This appears to be a high-level or public account. OpeningFit is analysing recent online results only, not judging the player’s actual opening knowledge.";
 
 const BLACK_OPENING_NAME_PATTERNS = [
   "defence",
@@ -930,6 +932,58 @@ function getPlayerTier(data) {
   return "developing";
 }
 
+function getReportMode(data) {
+  const direct = data?.reportMode || data?.report_mode;
+
+  if (
+    ["normal_user", "high_rated_user", "public_account_possible"].includes(direct)
+  ) {
+    return direct;
+  }
+
+  const tier = getPlayerTier(data);
+  const totalGames = safeNumber(data?.total_games ?? data?.totalGames ?? data?.gamesImported);
+
+  if (tier === "elite" || totalGames >= 250) return "public_account_possible";
+  if (tier === "strong") return "high_rated_user";
+
+  return "normal_user";
+}
+
+function isPublicReportMode(data) {
+  return getReportMode(data) !== "normal_user";
+}
+
+function publicAwareVerdict(label, data, games = 0) {
+  if (!isPublicReportMode(data)) return label;
+
+  if (games > 0 && games < 8) return "Not enough context to judge";
+
+  const lower = String(label || "").toLowerCase();
+
+  if (lower.includes("main") || lower.includes("reliable") || lower.includes("keep")) {
+    return "Recent strength";
+  }
+
+  if (lower.includes("avoid") || lower.includes("needs review")) {
+    return "Recent underperformer";
+  }
+
+  if (lower.includes("promising") || lower.includes("improve") || lower.includes("unstable")) {
+    return "Lower-scoring sample";
+  }
+
+  if (lower.includes("experimental") || lower.includes("not enough")) {
+    return "Not enough context to judge";
+  }
+
+  return label || "Recent sample";
+}
+
+function publicAccountCaution(data) {
+  return data?.publicAccountCaution || data?.public_account_caution || PUBLIC_ACCOUNT_CAUTION_COPY;
+}
+
 function getPlayerBaselineScore(data) {
   const value = [
     data?.score,
@@ -977,6 +1031,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   const games = getOpeningGames(opening);
   const winRate = getWinRate(opening);
   const tier = getPlayerTier(data);
+  const publicMode = isPublicReportMode(data);
   const sampleTier = getOpeningSampleTier(games);
   const isMainWeapon = index <= 2 && games >= 8;
   const largeSample = sampleTier === "large";
@@ -994,34 +1049,40 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
   if (isUnknownOpeningName(getOpeningName(opening))) {
     return {
-      label: "Needs review",
+      label: publicMode ? "Not enough context to judge" : "Needs review",
       category: "review",
       tone: "neutral",
       severity: "neutral",
       message:
-        "This opening was not clearly classified. Review the move order before treating it as a repertoire problem.",
+        publicMode
+          ? "This opening was not clearly classified, so OpeningFit is not making a hard judgement from this sample."
+          : "This opening was not clearly classified. Review the move order before treating it as a repertoire problem.",
     };
   }
 
   if (sampleTier === "tiny") {
     return {
-      label: "Experimental / not enough data",
+      label: publicMode ? "Not enough context to judge" : "Experimental / not enough data",
       category: "neutral",
       tone: "neutral",
       severity: "neutral",
       message:
-        "There is not enough data here to make a confident recommendation yet. Treat this as a note, not a verdict.",
+        publicMode
+          ? "This is too small a recent online sample for a hard verdict. It may be an experiment, a content game, or a one-off opponent-specific choice."
+          : "There is not enough data here to make a confident recommendation yet. Treat this as a note, not a verdict.",
     };
   }
 
   if (sampleTier === "small") {
     return {
-      label: "Low-confidence sample",
+      label: publicMode ? "Not enough context to judge" : "Low-confidence sample",
       category: "neutral",
       tone: "neutral",
       severity: "neutral",
       message:
-        "This opening has appeared a few times, but the sample is still too small for confident advice. Keep tracking it before changing the repertoire.",
+        publicMode
+          ? "This is a small, noisy sample from recent online games. OpeningFit is tracking it without judging the player's opening knowledge."
+          : "This opening has appeared a few times, but the sample is still too small for confident advice. Keep tracking it before changing the repertoire.",
     };
   }
 
@@ -1051,7 +1112,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
     if (isMainWeapon) {
       return {
-        label: "Needs review",
+        label: "Lower-scoring sample",
         category: "review",
         tone: "warning",
         severity: "warning",
@@ -1062,7 +1123,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
     if (largeSample && games >= 20 && winRate < 25) {
       return {
-        label: "Needs review",
+        label: "Recent underperformer",
         category: "review",
         tone: "warning",
         severity: "warning",
@@ -1073,7 +1134,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
     if (winRate < 45) {
       return {
-        label: "Promising but unstable",
+        label: "Lower-scoring sample",
         category: "review",
         tone: "warning",
         severity: "warning",
@@ -1119,7 +1180,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
     if (winRate < 40) {
       return {
-        label: "Needs review",
+        label: publicMode ? "Recent underperformer" : "Needs review",
         category: "review",
         tone: "warning",
         severity: "warning",
@@ -1184,12 +1245,14 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   }
 
   return {
-    label: "Needs review",
+    label: publicMode ? "Recent underperformer" : "Needs review",
     category: "avoid",
     tone: "danger",
     severity: "danger",
     message:
-      "The data points to a recurring problem inside this opening. Review the damaging line first before deciding whether the whole opening should leave the repertoire.",
+      publicMode
+        ? "This is a lower-scoring recent online sample. Treat it as trend evidence only, not a judgement of the player's opening knowledge."
+        : "The data points to a recurring problem inside this opening. Review the damaging line first before deciding whether the whole opening should leave the repertoire.",
   };
 }
 
@@ -1330,6 +1393,7 @@ function buildOpeningFitData(data) {
   return {
     playerStyle,
     playerTier: getPlayerTier(data),
+    reportMode: getReportMode(data),
     scoredOpenings,
     bestOpening,
     weakestOpening,
@@ -1386,6 +1450,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
     overallScore,
     scoredOpenings,
   } = fitData;
+  const publicMode = fitData.reportMode !== "normal_user";
 
   const keepCount = scoredOpenings.filter(
     (opening) => opening.fitCategory === "keep"
@@ -1407,6 +1472,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
           <p className="eyebrow">Opening Fit Result</p>
           <h2>{playerStyle.title}</h2>
           <p className="muted">{playerStyle.description}</p>
+          {publicMode ? <p className="muted">{PUBLIC_ACCOUNT_CAUTION_COPY}</p> : null}
         </div>
 
         <div className="fitScoreCircle">
@@ -1417,44 +1483,52 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
 
       <div className="fitHeroGrid">
         <div className="fitMiniCard">
-          <span className="fitLabel">Best current fit</span>
+          <span className="fitLabel">{publicMode ? "Recent strength" : "Best current fit"}</span>
           <strong>
             {bestOpening ? getOpeningName(bestOpening) : "Not enough data"}
           </strong>
           {bestOpening ? (
             <p>
-              {bestOpening.fitScore}/100 — {bestOpening.fitVerdict}
+              {bestOpening.fitScore}/100 — {publicAwareVerdict(bestOpening.fitVerdict, { reportMode: fitData.reportMode }, getOpeningGames(bestOpening))}
             </p>
           ) : null}
         </div>
 
         <div className="fitMiniCard">
-          <span className="fitLabel">Biggest weakness</span>
+          <span className="fitLabel">{publicMode ? "Lower-scoring sample" : "Biggest weakness"}</span>
           <strong>
             {weakestOpening ? getOpeningName(weakestOpening) : "Not enough data"}
           </strong>
           {weakestOpening ? (
             <p>
-              {weakestOpening.fitScore}/100 — {weakestOpening.fitVerdict}
+              {weakestOpening.fitScore}/100 — {publicAwareVerdict(weakestOpening.fitVerdict, { reportMode: fitData.reportMode }, getOpeningGames(weakestOpening))}
             </p>
           ) : null}
         </div>
 
         <div className="fitMiniCard">
-          <span className="fitLabel">Opening verdicts</span>
+          <span className="fitLabel">{publicMode ? "Recent sample labels" : "Opening verdicts"}</span>
           <strong>
-            {keepCount} Reliable · {reviewCount} Review · {avoidCount} Caution
+            {publicMode
+              ? `${keepCount} Strength · ${reviewCount} Lower-scoring · ${avoidCount} Noisy`
+              : `${keepCount} Reliable · ${reviewCount} Review · ${avoidCount} Caution`}
           </strong>
-          <p>Based on your imported games and opening results.</p>
+          <p>
+            {publicMode
+              ? "Based only on recent imported online games."
+              : "Based on your imported games and opening results."}
+          </p>
         </div>
       </div>
 
       <div className="fitRecommendationBox">
         <strong>Recommended next step:</strong>{" "}
         {bestOpening
-          ? `Build your short repertoire around ${getOpeningName(
-              bestOpening
-            )}, then review your least stable opening.`
+          ? publicMode
+            ? `Use ${getOpeningName(bestOpening)} as the recent strength sample, then compare lower-scoring samples by time control and opponent pool.`
+            : `Build your short repertoire around ${getOpeningName(
+                bestOpening
+              )}, then review your least stable opening.`
           : "Import more games to get a stronger recommendation."}
 
         {bestOpening ? (
@@ -1463,7 +1537,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
             type="button"
             onClick={() => onPractice(getOpeningName(bestOpening))}
           >
-            Practise best fit
+            {publicMode ? "Review sample" : "Practise best fit"}
           </button>
         ) : null}
       </div>
@@ -1473,6 +1547,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
 
 function OpeningFitScoreList({ fitData, onPractice }) {
   if (!fitData || !fitData.scoredOpenings?.length) return null;
+  const publicMode = fitData.reportMode !== "normal_user";
 
   return (
     <section className="card openingFitScoreCard">
@@ -1481,8 +1556,9 @@ function OpeningFitScoreList({ fitData, onPractice }) {
           <p className="eyebrow">Opening Fit Scores</p>
           <h2>Opening verdicts</h2>
           <p className="muted">
-            These scores estimate which openings fit your results and playing
-            style.
+            {publicMode
+              ? "These labels describe recent online performance samples only."
+              : "These scores estimate which openings fit your results and playing style."}
           </p>
         </div>
       </div>
@@ -1504,7 +1580,8 @@ function OpeningFitScoreList({ fitData, onPractice }) {
                 <div>
                   <strong>{name}</strong>
                   <p>
-                    {games} games · {winRate}% score · {opening.fitVerdict}
+                    {games} games · {winRate}% score ·{" "}
+                    {publicAwareVerdict(opening.fitVerdict, { reportMode: fitData.reportMode }, games)}
                   </p>
                 </div>
 
@@ -1526,6 +1603,7 @@ function OpeningFitScoreList({ fitData, onPractice }) {
 function BiggestInsightCard({ data, fitData }) {
   if (!data || !fitData?.scoredOpenings?.length) return null;
 
+  const publicMode = isPublicReportMode(data);
   const profile = getSmartPlayerLevelProfile(data);
   const recommendation = getSmartLevelAwareRecommendation(data, fitData);
   const openings = fitData.scoredOpenings || [];
@@ -1552,7 +1630,9 @@ function BiggestInsightCard({ data, fitData }) {
   const reviewName = review ? getOpeningName(review) : recommendation.weakName;
   const ratingLabel = profile.rating ? `${profile.rating} rating` : profile.label;
   const levelText =
-    profile.level === "elite" || profile.level === "strong"
+    publicMode
+      ? publicAccountCaution(data)
+      : profile.level === "elite" || profile.level === "strong"
       ? "Treat this as a repertoire audit, not a beginner verdict."
       : profile.level === "beginner" || profile.level === "improver"
       ? "The fastest gain is simpler choices and familiar positions."
@@ -1563,10 +1643,9 @@ function BiggestInsightCard({ data, fitData }) {
       <p className="eyebrow">Biggest insight</p>
       <h2>{recommendation.title}</h2>
       <p>
-        {levelText} Your {sideFocus} results point toward keeping{" "}
-        <strong>{stableName}</strong> as the reference point and reviewing{" "}
-        <strong>{reviewName}</strong> for a specific line, move order, or early
-        middlegame structure.
+        {publicMode
+          ? `${levelText} The ${sideFocus} sample shows ${stableName} as a recent strength and ${reviewName} as a lower-scoring sample to compare by time control, opponent pool, and game context.`
+          : `${levelText} Your ${sideFocus} results point toward keeping ${stableName} as the reference point and reviewing ${reviewName} for a specific line, move order, or early middlegame structure.`}
       </p>
       <div className="fitMiniGrid">
         <div className="fitMiniCard">
@@ -1587,6 +1666,7 @@ function BiggestInsightCard({ data, fitData }) {
 function CompactReportSummary({ data, fitData, onViewChange }) {
   if (!data) return null;
 
+  const publicMode = isPublicReportMode(data);
   const openings = fitData?.scoredOpenings || [];
   const best = fitData?.bestOpening || openings[0] || null;
   const repair =
@@ -1634,9 +1714,9 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
       <BiggestInsightCard data={data} fitData={fitData} />
 
       <div className="compactVerdictGrid">
-        {card("Best fit", best, "Not enough data", "best")}
-        {card("Needs repair", repair, "No repair target yet", "repair")}
-        {card("Avoid for now", avoid, "No avoid target yet", "avoid")}
+        {card(publicMode ? "Recent strength" : "Best fit", best, "Not enough data", "best")}
+        {card(publicMode ? "Lower-scoring sample" : "Needs repair", repair, "No repair target yet", "repair")}
+        {card(publicMode ? "Experimental/content-game possible" : "Avoid for now", avoid, "No avoid target yet", "avoid")}
       </div>
 
       <button
@@ -1644,7 +1724,7 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
         type="button"
         onClick={() => onViewChange?.("training")}
       >
-        Start my 20-minute study plan
+        {publicMode ? "Review recent performance trends" : "Start my 20-minute study plan"}
       </button>
     </section>
   );
@@ -1658,9 +1738,10 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
   const bestOpening = fitData.bestOpening;
   const weakestOpening = fitData.weakestOpening;
   const scoredOpenings = fitData.scoredOpenings || [];
+  const publicMode = fitData.reportMode !== "normal_user";
 
   const bestName = bestOpening ? getOpeningName(bestOpening) : "your strongest opening";
-  const weakName = weakestOpening ? getOpeningName(weakestOpening) : "your weakest opening";
+  const weakName = weakestOpening ? getOpeningName(weakestOpening) : publicMode ? "a lower-scoring sample" : "your weakest opening";
 
   const reviewGames = recentGames.filter((game) => {
     const gameOpening = String(game?.opening || game?.name || "").toLowerCase();
@@ -1716,10 +1797,11 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
       <div className="nextStudyHero">
         <div>
           <p className="eyebrow">Next Study Session</p>
-          <h2>Your next 20 minutes of opening work</h2>
+          <h2>{publicMode ? "Recent trend review" : "Your next 20 minutes of opening work"}</h2>
           <p className="muted">
-            Opening Fit has turned your report into a focused training loop:
-            review the weak spot, practise the best fit, then play a simple repertoire.
+            {publicMode
+              ? "Opening Fit is treating this as a recent online sample: compare trend changes, opponent pool, and game context."
+              : "Opening Fit has turned your report into a focused training loop: review the weak spot, practise the best fit, then play a simple repertoire."}
           </p>
         </div>
 
@@ -1733,14 +1815,16 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
         <article className="nextStudyCard nextStudyCardWarning">
           <div className="nextStudyCardTop">
             <span>1</span>
-            <p>Review weak spot</p>
+            <p>{publicMode ? "Review lower-scoring sample" : "Review weak spot"}</p>
           </div>
 
           <h3>{weakName}</h3>
 
           <p>
             {weakestOpening
-              ? `This is currently your lowest fit at ${weakestOpening.fitScore}/100. Review where your positions start becoming uncomfortable.`
+              ? publicMode
+                ? `This is a lower-scoring recent sample at ${weakestOpening.fitScore}/100. Compare by time control, opponent pool, and whether the games were experimental.`
+                : `This is currently your lowest fit at ${weakestOpening.fitScore}/100. Review where your positions start becoming uncomfortable.`
               : "Import more games to identify a clear weak opening."}
           </p>
 
@@ -3022,6 +3106,7 @@ function OpponentPrepPreview({ data }) {
 
 function OpeningFitFullReport({ data }) {
   if (!data) return null;
+  const publicMode = isPublicReportMode(data);
 
   const asArray = (value) => {
     if (!value) return [];
@@ -3199,15 +3284,21 @@ function OpeningFitFullReport({ data }) {
     }
 
     if (type === "keep") {
-      return `This is currently one of your strongest choices. The results suggest it fits the positions you are already handling well.`;
+      return publicMode
+        ? "This is a recent strength in the imported online sample."
+        : `This is currently one of your strongest choices. The results suggest it fits the positions you are already handling well.`;
     }
 
     if (type === "improve") {
-      return `This is not a verdict that the whole opening is bad. It means one line, move order, or early middlegame structure is hurting the overall score.`;
+      return publicMode
+        ? "This is a lower-scoring recent sample. Compare time control, opponent pool, and whether these were experimental or content-style games before drawing conclusions."
+        : `This is not a verdict that the whole opening is bad. It means one line, move order, or early middlegame structure is hurting the overall score.`;
     }
 
     if (type === "avoid") {
-      return `Treat this as a review target first. If the same branch keeps causing trouble, simplify that line before replacing the entire opening.`;
+      return publicMode
+        ? "This sample is too contextual for a hard verdict. Treat it as recent online trend evidence only."
+        : `Treat this as a review target first. If the same branch keeps causing trouble, simplify that line before replacing the entire opening.`;
     }
 
     return "Use this as a practical guide for what to study next.";
@@ -3232,36 +3323,36 @@ function OpeningFitFullReport({ data }) {
         <span>Report upgrade</span>
         <h2>What Opening Fit recommends next</h2>
         <p>
-          This turns {playerName}’s recent games into a practical opening plan:
-          what is reliable, what branch needs review, and where the study time
-          should go next.
+          {publicMode
+            ? `${publicAccountCaution(data)} This report frames ${playerName}'s imported games as recent online performance trends.`
+            : `This turns ${playerName}'s recent games into a practical opening plan: what is reliable, what branch needs review, and where the study time should go next.`}
         </p>
       </div>
 
       <div className="adviceGrid" id="keep-improve-avoid">
         <article className="adviceCard keep">
           <div className="adviceTopline">
-            <span>Keep</span>
+            <span>{publicMode ? "Recent strength" : "Keep"}</span>
             <small>{formatScore(bestOverall)}</small>
           </div>
-          <h3>{bestOverall?.displayName || "Keep building your main repertoire"}</h3>
+          <h3>{bestOverall?.displayName || (publicMode ? "Recent strength sample" : "Keep building your main repertoire")}</h3>
           <p>{explainFit(bestOverall, "keep")}</p>
           <div className="adviceMeta">{formatGames(bestOverall)} reviewed</div>
         </article>
 
         <article className="adviceCard improve">
           <div className="adviceTopline">
-            <span>Promising but unstable</span>
+            <span>{publicMode ? "Lower-scoring sample" : "Promising but unstable"}</span>
             <small>{formatScore(improveOpening)}</small>
           </div>
-          <h3>{improveOpening?.displayName || "Review your common losses"}</h3>
+          <h3>{improveOpening?.displayName || (publicMode ? "Noisy recent sample" : "Review your common losses")}</h3>
           <p>{explainFit(improveOpening, "improve")}</p>
           <div className="adviceMeta">{formatGames(improveOpening)} reviewed</div>
         </article>
 
         <article className="adviceCard avoid">
           <div className="adviceTopline">
-            <span>Needs review</span>
+            <span>{publicMode ? "Experimental/content-game possible" : "Needs review"}</span>
             <small>{formatScore(avoidOpening)}</small>
           </div>
           <h3>{avoidOpening?.displayName || "Low-sample experiments"}</h3>
@@ -3301,25 +3392,41 @@ function OpeningFitFullReport({ data }) {
 
         <article className="studyPlanCard">
           <div className="sectionLabel">Study plan</div>
-          <h2>Your next 7 days</h2>
+          <h2>{publicMode ? "Recent trend review" : "Your next 7 days"}</h2>
 
           <ol className="studySteps">
-            <li>
-              <strong>Day 1:</strong> Replay your best recent game in{" "}
-              {bestOverall?.displayName || "your strongest opening"}.
-            </li>
-            <li>
-              <strong>Day 2:</strong> Review one loss in {studyOpening} and find
-              the first move where the position became uncomfortable.
-            </li>
-            <li>
-              <strong>Day 3:</strong> Pick one simple setup and avoid switching
-              openings for a few games.
-            </li>
-            <li>
-              <strong>Day 4–7:</strong> Play a focused block using only your
-              recommended White and Black choices.
-            </li>
+            {publicMode ? (
+              <>
+                <li>
+                  <strong>Step 1:</strong> Separate games by time control, opponent rating, and event context.
+                </li>
+                <li>
+                  <strong>Step 2:</strong> Compare the lower-scoring sample in {studyOpening} with the player's broader repertoire before making claims.
+                </li>
+                <li>
+                  <strong>Step 3:</strong> Treat tiny samples as experimental/content-game possible.
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <strong>Day 1:</strong> Replay your best recent game in{" "}
+                  {bestOverall?.displayName || "your strongest opening"}.
+                </li>
+                <li>
+                  <strong>Day 2:</strong> Review one loss in {studyOpening} and find
+                  the first move where the position became uncomfortable.
+                </li>
+                <li>
+                  <strong>Day 3:</strong> Pick one simple setup and avoid switching
+                  openings for a few games.
+                </li>
+                <li>
+                  <strong>Day 4-7:</strong> Play a focused block using only your
+                  recommended White and Black choices.
+                </li>
+              </>
+            )}
           </ol>
         </article>
       </div>
@@ -3944,6 +4051,11 @@ function App() {
       premium_preview: incoming.premium_preview ?? incoming.premiumPreview ?? {},
       recommendations: incoming.recommendations ?? [],
       lockedFeatures: incoming.lockedFeatures ?? [],
+      reportMode: incoming.reportMode ?? incoming.report_mode ?? "normal_user",
+      report_mode: incoming.report_mode ?? incoming.reportMode ?? "normal_user",
+      reportModeReasons: incoming.reportModeReasons ?? incoming.report_mode_reasons ?? [],
+      publicAccountCaution:
+        incoming.publicAccountCaution ?? incoming.public_account_caution ?? "",
       lastUpdated:
         incoming.lastUpdated ??
         incoming.last_updated ??
@@ -4503,10 +4615,18 @@ function App() {
   const smartRecommendationSummary = useMemo(() => {
     const levelProfile = getSmartPlayerLevelProfile(data);
     const levelAware = getSmartLevelAwareRecommendation(data, fitData);
+    const publicMode = isPublicReportMode(data);
     const summary = [];
 
-    summary.push(levelAware.summary);
-    summary.push(levelAware.primaryAction);
+    if (publicMode) {
+      summary.push(publicAccountCaution(data));
+      summary.push(
+        "Treat these as recent online performance trends. Small samples may be experiments, prep choices, or content-game noise."
+      );
+    } else {
+      summary.push(levelAware.summary);
+      summary.push(levelAware.primaryAction);
+    }
 
     const bestFit = fitData.bestOpening;
     const weakFit = fitData.weakestOpening;
@@ -4514,7 +4634,9 @@ function App() {
 
     if (bestFit) {
       summary.push(
-        `${displayOpeningName(bestFit, data)} currently looks like your strongest Opening Fit. It scores ${bestFit.fitScore}/100 and matches the ${levelProfile.shortLabel.toLowerCase()} profile read.`
+        publicMode
+          ? `${displayOpeningName(bestFit, data)} is the recent strength sample in this import at ${bestFit.fitScore}/100.`
+          : `${displayOpeningName(bestFit, data)} currently looks like your strongest Opening Fit. It scores ${bestFit.fitScore}/100 and matches the ${levelProfile.shortLabel.toLowerCase()} profile read.`
       );
     }
 
@@ -4526,7 +4648,9 @@ function App() {
 
     if (weakFit && getOpeningName(weakFit) !== getOpeningName(bestFit)) {
       summary.push(
-        `${displayOpeningName(weakFit, data)} may need attention. It currently scores ${weakFit.fitScore}/100, so review the first few moves and common plans.`
+        publicMode
+          ? `${displayOpeningName(weakFit, data)} is a lower-scoring recent sample at ${weakFit.fitScore}/100. Do not treat this as a hard opening verdict.`
+          : `${displayOpeningName(weakFit, data)} may need attention. It currently scores ${weakFit.fitScore}/100, so review the first few moves and common plans.`
       );
     }
 
@@ -4542,27 +4666,28 @@ function App() {
   const personalTrainingPlan = useMemo(() => {
     const plan = [];
     const levelProfile = getSmartPlayerLevelProfile(data);
+    const publicMode = isPublicReportMode(data);
 
     const bestFit = fitData.bestOpening;
     const weakFit = fitData.weakestOpening;
 
-    if (levelProfile.level === "elite") {
+    if (publicMode) {
       return [
         {
-          title: "Run this as a repertoire audit",
-          text: "This account is too strong for beginner-style coaching. Focus on trend changes, underperforming sidelines, colour splits, and opponent-prep value.",
+          title: "Run this as a recent-results audit",
+          text: publicAccountCaution(data),
           action: null,
           opening: null,
         },
         {
-          title: "Check high-volume openings first",
-          text: "Prioritise openings with enough games to show a real trend. Low-sample results should be treated as noise at elite level.",
+          title: "Check high-volume samples first",
+          text: "Prioritise openings with enough games to show a recent trend. Low-sample results should be treated as noise or experiment/context evidence.",
           action: null,
           opening: null,
         },
         {
-          title: "Look for preparation gaps",
-          text: "The useful question is not “what simple opening should they play?” but “which parts of the existing repertoire are scoring below expectation?”",
+          title: "Look for context before conclusions",
+          text: "Compare time control, opponent rating, colour/context, and event purpose before describing any line as underperforming.",
           action: null,
           opening: null,
         },
