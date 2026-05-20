@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { getPlayerLevelText } from "./playerLevelLogic";
+import { getOpeningSignal } from "./OpeningEvidence";
 
 function getOpeningName(opening) {
   return (
@@ -133,25 +134,22 @@ function isStrongProfile(data) {
 }
 
 function getSampleTier(games) {
-  const count = Number(games || 0);
-  if (count >= 20) return "large";
-  if (count >= 8) return "medium";
-  if (count >= 3) return "small";
-  return "tiny";
+  return getOpeningSignal({ games, score: 50 }).tier;
 }
 
 function getVerdict(opening, data, index = 0) {
   const tier = getPlayerTier(data);
   const strongProfile = tier === "elite" || tier === "strong";
-  const mainOpening = index <= 2 && opening.games >= 8;
+  const signal = getOpeningSignal(opening);
+  const mainOpening = index <= 2 && signal.tier === "strong";
   const sampleTier = getSampleTier(opening.games);
 
-  if (sampleTier === "tiny" || sampleTier === "small") {
+  if (sampleTier === "none" || sampleTier === "low") {
     return {
-      label: sampleTier === "tiny" ? "Experimental / not enough data" : "Low-confidence sample",
+      label: sampleTier === "none" ? "No reliable data" : "Too few games",
       tone: "neutral",
       reason:
-        "The sample is still small. Keep tracking it before making a confident repertoire call.",
+        "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation.",
       action: "Collect more games before making a final call.",
     };
   }

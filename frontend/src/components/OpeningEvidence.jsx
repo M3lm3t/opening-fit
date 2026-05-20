@@ -1,4 +1,4 @@
-const CONFIDENCE_THRESHOLDS = {
+export const CONFIDENCE_THRESHOLDS = {
   strongGames: 10,
   mediumGames: 5,
 };
@@ -104,11 +104,61 @@ export function getOpeningConfidence(opening) {
   const games = getEvidenceGames(opening);
   if (games >= CONFIDENCE_THRESHOLDS.strongGames) return "Strong";
   if (games >= CONFIDENCE_THRESHOLDS.mediumGames) return "Medium";
+  if (games <= 0) return "No reliable data";
   return "Low sample";
 }
 
+export function getOpeningSignal(opening) {
+  const games = getEvidenceGames(opening);
+  const score = getEvidenceScore(opening);
+  const confidence = getOpeningConfidence(opening);
+
+  if (!games || score === null) {
+    return {
+      tier: "none",
+      label: "No reliable data",
+      badge: "No reliable data",
+      canBePrimary: false,
+      canBeFirm: false,
+      explanation: "No reliable game sample is available yet.",
+    };
+  }
+
+  if (games >= CONFIDENCE_THRESHOLDS.strongGames) {
+    return {
+      tier: "strong",
+      label: "Strong signal",
+      badge: "Strong",
+      canBePrimary: true,
+      canBeFirm: true,
+      explanation: "Reliable signal from your recent games.",
+    };
+  }
+
+  if (games >= CONFIDENCE_THRESHOLDS.mediumGames) {
+    return {
+      tier: "medium",
+      label: "Medium signal",
+      badge: "Medium",
+      canBePrimary: true,
+      canBeFirm: false,
+      explanation: "Useful signal, but still worth confirming with more games.",
+    };
+  }
+
+  return {
+    tier: "low",
+    label: confidence || "Low sample",
+    badge: "Low sample",
+    canBePrimary: false,
+    canBeFirm: false,
+    explanation: "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation.",
+  };
+}
+
 function confidenceIsLow(opening) {
-  return getOpeningConfidence(opening).toLowerCase().includes("low") || getEvidenceGames(opening) < 5;
+  const signal = getOpeningSignal(opening);
+  return signal.tier === "low" || signal.tier === "none";
 }
 
 function baselineComparison(opening, data) {
@@ -187,7 +237,9 @@ export function getEvidenceReason(opening, data) {
       return explicit;
     }
 
-    return "The sample is too small for a firm verdict.";
+    return games
+      ? "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation."
+      : "No reliable game sample is available yet.";
   }
 
   if (explicit) return explicit;
@@ -207,6 +259,9 @@ export function getEvidenceReason(opening, data) {
 }
 
 export function getEvidenceNextAction(opening, slot = "") {
+  const name = getEvidenceOpeningName(opening);
+  const score = getEvidenceScore(opening);
+  const lowConfidence = confidenceIsLow(opening);
   const explicit = textField(opening, [
     "nextStudyAction",
     "next_study_action",
@@ -218,14 +273,21 @@ export function getEvidenceNextAction(opening, slot = "") {
     "plan",
   ]);
 
-  if (explicit) return explicit;
-
-  const name = getEvidenceOpeningName(opening);
-  const score = getEvidenceScore(opening);
-
-  if (confidenceIsLow(opening)) {
+  if (lowConfidence) {
+    const cautious = explicit.toLowerCase();
+    if (
+      cautious.includes("collect") ||
+      cautious.includes("more games") ||
+      cautious.includes("track") ||
+      cautious.includes("watch") ||
+      cautious.includes("re-import")
+    ) {
+      return explicit;
+    }
     return `Collect 5 more games with ${name} before changing the repertoire.`;
   }
+
+  if (explicit) return explicit;
 
   if (score !== null && score < 45) {
     return `Review your last 3 ${name} losses and mark the first repeated problem.`;
@@ -241,19 +303,21 @@ export function getEvidenceNextAction(opening, slot = "") {
 export function getOpeningEvidence(opening, data, options = {}) {
   const games = getEvidenceGames(opening);
   const score = getEvidenceScore(opening);
+  const signal = getOpeningSignal(opening);
   const baseline = baselineComparison(opening, data);
   const chips = [
     getEvidenceSide(opening),
     games ? `${games} game${games === 1 ? "" : "s"}` : "Game count unavailable",
     score !== null ? `${score}% score` : "Score unavailable",
     baseline,
-    `Confidence: ${getOpeningConfidence(opening)}`,
+    `Confidence: ${signal.badge}`,
   ].filter(Boolean);
 
   return {
     chips: [...new Set(chips)],
     reason: getEvidenceReason(opening, data),
     nextAction: getEvidenceNextAction(opening, options.slot || options.sectionKey || ""),
+    signal,
   };
 }
 
@@ -274,6 +338,12 @@ export default function OpeningEvidenceBlock({
           <span key={chip}>{chip}</span>
         ))}
       </div>
+
+      {compact ? null : (
+        <p className="openingEvidenceHelp">
+          Confidence is based mainly on game count and signal clarity.
+        </p>
+      )}
 
       {!hideReason ? (
         <p>

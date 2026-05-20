@@ -12,14 +12,23 @@ export default function MobileBottomNav({ data, activeView, onViewChange }) {
   function handleClick(key) {
     onViewChange(key);
 
+    if (typeof window !== "undefined") {
+      const nextPath = key === "upgrade" ? "/upgrade" : "/";
+      if (window.location.pathname !== nextPath) {
+        window.history.pushState({}, "", nextPath);
+      }
+    }
+
     setTimeout(() => {
       const target =
-        key === "feedback"
-          ? document.getElementById("feedback")
-          : document.getElementById("app-results") || document.getElementById("app-dashboard");
+        document.getElementById("app-results") ||
+        document.getElementById("app-dashboard") ||
+        document.querySelector(".appTabsCard");
 
       if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        const offset = 82;
+        const top = target.getBoundingClientRect().top + window.scrollY - offset;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
       }
     }, 80);
   }

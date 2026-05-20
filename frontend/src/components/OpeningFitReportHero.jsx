@@ -1,4 +1,5 @@
 import { getPlayerLevelText } from "./playerLevelLogic";
+import { getOpeningSignal } from "./OpeningEvidence";
 
 function getArray(...values) {
   for (const value of values) {
@@ -104,9 +105,10 @@ function verdictFor(item, data, index = 0) {
   const strongProfile = tier === "elite" || tier === "strong";
   const games = getGames(item);
   const winRate = getWinRate(item);
-  const mainOpening = index <= 2 && games >= 8;
+  const signal = getOpeningSignal(item);
+  const mainOpening = index <= 2 && signal.tier === "strong";
 
-  if (publicMode && games < 8) return "Not enough context to judge";
+  if (publicMode && !signal.canBePrimary) return "Not enough context to judge";
   if (publicMode && (verdict.includes("avoid") || verdict.includes("review"))) return "Recent underperformer";
   if (publicMode && (verdict.includes("improve") || verdict.includes("promising"))) return "Lower-scoring sample";
   if (publicMode && (verdict.includes("keep") || verdict.includes("reliable"))) return "Recent strength";
@@ -116,8 +118,8 @@ function verdictFor(item, data, index = 0) {
   if (verdict.includes("promising") || verdict.includes("fine") || verdict.includes("improve")) return "Promising but unstable";
   if (verdict.includes("review") || verdict.includes("performance") || verdict.includes("avoid")) return "Needs review";
 
-  if (games < 3) return "Experimental / not enough data";
-  if (games < 8) return "Low-confidence sample";
+  if (signal.tier === "none") return "No reliable data";
+  if (signal.tier === "low") return "Too few games";
 
   if ((tier === "elite" || tier === "strong") && mainOpening && winRate >= 45) return "Main weapon";
   if (strongProfile && mainOpening && winRate >= 35) return publicMode ? "Lower-scoring sample" : "Promising but unstable";

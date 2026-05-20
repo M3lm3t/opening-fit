@@ -1,5 +1,6 @@
 import "./EvidenceBackedOpeningDiagnosis.css";
 import { getPlayerLevelText } from "./playerLevelLogic";
+import { getOpeningConfidence, getOpeningSignal } from "./OpeningEvidence";
 
 function toArray(value) {
   if (!value) return [];
@@ -193,9 +194,10 @@ function getVerdict(item, average, data, index = 0) {
   const publicMode = isPublicMode(data);
   const games = getGames(item);
   const score = getScore(item);
-  const mainOpening = index <= 2 && games >= 8;
+  const signal = getOpeningSignal(item);
+  const mainOpening = index <= 2 && signal.tier === "strong";
 
-  if (publicMode && games < 8) return "Not enough context to judge";
+  if (publicMode && !signal.canBePrimary) return "Not enough context to judge";
   if (publicMode && (explicit.includes("avoid") || explicit.includes("review"))) return "Recent underperformer";
   if (publicMode && (explicit.includes("improve") || explicit.includes("promising"))) return "Lower-scoring sample";
   if (publicMode && (explicit.includes("keep") || explicit.includes("reliable"))) return "Recent strength";
@@ -205,8 +207,8 @@ function getVerdict(item, average, data, index = 0) {
   if (explicit.includes("promising") || explicit.includes("fine") || explicit.includes("improve")) return "Promising but unstable";
   if (explicit.includes("review") || explicit.includes("performance") || explicit.includes("avoid")) return "Needs review";
 
-  if (games < 3) return "Experimental / not enough data";
-  if (games < 8) return "Low-confidence sample";
+  if (signal.tier === "none") return "No reliable data";
+  if (signal.tier === "low") return "Too few games";
 
   if (tier === "elite") {
     if (mainOpening && score >= 45) return publicMode ? "Recent strength" : "Main weapon";
@@ -230,10 +232,11 @@ function getVerdict(item, average, data, index = 0) {
 }
 
 function getConfidence(games) {
-  if (games >= 25) return "High confidence — enough games to trust the pattern.";
-  if (games >= 10) return "Medium confidence — useful signal, worth checking again later.";
-  if (games >= 4) return "Early signal — helpful, but still sample-size sensitive.";
-  return "Low confidence — not enough games for a hard verdict yet.";
+  const label = getOpeningConfidence({ games, score: 50 });
+  if (label === "Strong") return "Strong signal — reliable signal from your recent games.";
+  if (label === "Medium") return "Medium signal — useful, but still worth confirming with more games.";
+  if (label === "No reliable data") return "No reliable data — import games before making a verdict.";
+  return "Low sample — too few games for a hard verdict yet.";
 }
 
 function getOpeningRead(name) {

@@ -32,7 +32,7 @@ import ReportSnapshot from "./components/ReportSnapshot";
 import OpeningCoachPlan from "./components/OpeningCoachPlan";
 import OpeningProgressTracker from "./components/OpeningProgressTracker";
 import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
-import OpeningEvidenceBlock, { getOpeningConfidence } from "./components/OpeningEvidence";
+import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningSignal } from "./components/OpeningEvidence";
 import OpeningFitTrustUpgrade from "./components/OpeningFitTrustUpgrade";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
@@ -974,7 +974,7 @@ function isPublicReportMode(data) {
 function publicAwareVerdict(label, data, games = 0) {
   if (!isPublicReportMode(data)) return label;
 
-  if (games > 0 && games < 8) return "Not enough context to judge";
+  if (!getOpeningSignal({ games, score: 50 }).canBePrimary) return "Not enough context to judge";
 
   const lower = String(label || "").toLowerCase();
 
@@ -1002,11 +1002,12 @@ function publicAccountCaution(data) {
 }
 
 function getDataFirstVerdict(opening, data) {
-  const games = getOpeningGames(opening);
   const winRate = getWinRate(opening);
+  const signal = getOpeningSignal(opening);
 
-  if (games < 3) return "Too little data";
-  if (isPublicReportMode(data)) return publicAwareVerdict(opening?.verdict || opening?.fitVerdict, data, games);
+  if (signal.tier === "none") return "No reliable data";
+  if (signal.tier === "low") return "Too few games";
+  if (isPublicReportMode(data)) return publicAwareVerdict(opening?.verdict || opening?.fitVerdict, data, getOpeningGames(opening));
   if (winRate >= 55) return "Keep";
   if (winRate >= 42) return "Improve";
   return "Review";
@@ -1046,7 +1047,7 @@ function getNextActionLine(opening, data, sectionKey = "") {
   const context = opening?.contextLabel || contextLabel(itemContext(opening));
   const publicMode = isPublicReportMode(data);
 
-  if (games < 3 || sectionKey === "too_little_data" || opening?.context === "unknown_mixed") {
+  if (!getOpeningSignal(opening).canBePrimary || sectionKey === "too_little_data" || opening?.context === "unknown_mixed") {
     return `Next action: collect more games before changing anything in ${name}.`;
   }
 
@@ -1090,9 +1091,9 @@ function getPlayerBaselineScore(data) {
 
 function getOpeningSampleTier(games) {
   const count = Number(games || 0);
-  if (count >= 20) return "large";
-  if (count >= 8) return "medium";
-  if (count >= 3) return "small";
+  if (count >= 10) return "large";
+  if (count >= 5) return "medium";
+  if (count >= 1) return "tiny";
   return "tiny";
 }
 
@@ -1118,9 +1119,10 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   const tier = getPlayerTier(data);
   const publicMode = isPublicReportMode(data);
   const sampleTier = getOpeningSampleTier(games);
-  const isMainWeapon = index <= 2 && games >= 8;
+  const signal = getOpeningSignal(opening);
+  const isMainWeapon = index <= 2 && signal.tier === "strong";
   const largeSample = sampleTier === "large";
-  const frequentlyPlayed = isMainWeapon || games >= 20;
+  const frequentlyPlayed = isMainWeapon || games >= 10;
   const baseline = getPlayerBaselineScore(data);
   const highRatedPlayer = ["club", "strong", "elite"].includes(tier);
   const belowBaseline = winRate < baseline;
@@ -1145,7 +1147,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
     };
   }
 
-  if (sampleTier === "tiny") {
+  if (signal.tier === "none" || signal.tier === "low") {
     return {
       label: publicMode ? "Not enough context to judge" : "Experimental / not enough data",
       category: "neutral",
@@ -1154,20 +1156,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       message:
         publicMode
           ? "This is too small a recent online sample for a hard verdict. It may be an experiment, a content game, or a one-off opponent-specific choice."
-          : "There is not enough data here to make a confident recommendation yet. Treat this as a note, not a verdict.",
-    };
-  }
-
-  if (sampleTier === "small") {
-    return {
-      label: publicMode ? "Not enough context to judge" : "Low-confidence sample",
-      category: "neutral",
-      tone: "neutral",
-      severity: "neutral",
-      message:
-        publicMode
-          ? "This is a small, noisy sample from recent online games. OpeningFit is tracking it without judging the player's opening knowledge."
-          : "This opening has appeared a few times, but the sample is still too small for confident advice. Keep tracking it before changing the repertoire.",
+          : "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation.",
     };
   }
 
@@ -1285,7 +1274,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
     };
   }
 
-  if (isMainWeapon && games >= 8 && winRate >= 42) {
+  if (isMainWeapon && getOpeningSignal(opening).tier === "strong" && winRate >= 42) {
     return {
       label: "Main weapon",
       category: "keep",
@@ -1412,13 +1401,16 @@ function buildOpeningFitData(data) {
       const score = calculateOpeningFitScore(opening, playerStyle);
       const rank = volumeRank.get(getOpeningName(opening).toLowerCase()) ?? 99;
       const smartVerdict = getSmartOpeningVerdict(opening, data, rank);
+      const signal = getOpeningSignal(opening);
       const fitScore =
-        smartVerdict.label === "Main weapon" ||
-        smartVerdict.label === "Reliable choice"
-          ? Math.max(score, 78)
-          : smartVerdict.category === "review"
-          ? Math.max(score, 58)
-          : score;
+        signal.tier === "low" || signal.tier === "none"
+          ? Math.min(score, 54)
+          : smartVerdict.label === "Main weapon" ||
+              smartVerdict.label === "Reliable choice"
+            ? Math.max(score, signal.tier === "strong" ? 78 : 68)
+            : smartVerdict.category === "review"
+              ? Math.max(score, 58)
+              : score;
 
       return {
         ...opening,
@@ -1427,6 +1419,9 @@ function buildOpeningFitData(data) {
         fitCategory: smartVerdict.category,
         fitTone: smartVerdict.tone,
         fitSeverity: smartVerdict.severity,
+        fitConfidence: signal.badge,
+        fitSignalTier: signal.tier,
+        fitSignalExplanation: signal.explanation,
         fitSampleTier: getOpeningSampleTier(getOpeningGames(opening)),
         fitExplanation: getOpeningExplanation(
           opening,
@@ -1437,7 +1432,12 @@ function buildOpeningFitData(data) {
         ),
       };
     })
-    .sort((a, b) => b.fitScore - a.fitScore);
+    .sort((a, b) => {
+      const tierRank = { strong: 3, medium: 2, low: 1, none: 0 };
+      const byTier = (tierRank[b.fitSignalTier] ?? 0) - (tierRank[a.fitSignalTier] ?? 0);
+      if (byTier !== 0) return byTier;
+      return b.fitScore - a.fitScore;
+    });
 
   const recognised = scoredOpenings.filter(
     (opening) => !isUnknownOpeningName(getOpeningName(opening))
@@ -1455,7 +1455,7 @@ function buildOpeningFitData(data) {
 
   const weakestOpening =
     [...recognised]
-      .filter((opening) => getOpeningGames(opening) >= 3)
+      .filter((opening) => getOpeningSignal(opening).canBePrimary)
       .sort((a, b) => {
         const categoryDiff =
           (concernRank[a.fitCategory] ?? 3) - (concernRank[b.fitCategory] ?? 3);
@@ -3356,9 +3356,20 @@ function OpeningFitFullReport({ data }) {
     .filter((item) => item.winRate !== null && item.games >= 2)
     .sort((a, b) => a.winRate - b.winRate);
 
-  const bestOverall = ranked.find((item) => item.games >= 2) || ranked[0];
-  const improveOpening = weakest[0] || ranked[1] || ranked[0];
-  const avoidOpening = weakest[1] || weakest[0] || ranked[2] || ranked[0];
+  const primaryCandidates = ranked.filter((item) => getOpeningSignal(item).canBePrimary);
+  const watchCandidates = ranked.filter((item) => !getOpeningSignal(item).canBePrimary);
+  const bestOverall = primaryCandidates[0] || watchCandidates[0] || ranked[0];
+  const improveOpening =
+    weakest.find((item) => getOpeningSignal(item).canBePrimary) ||
+    primaryCandidates[1] ||
+    watchCandidates[0] ||
+    ranked[0];
+  const avoidOpening =
+    weakest.filter((item) => getOpeningSignal(item).canBePrimary)[1] ||
+    weakest.find((item) => getOpeningSignal(item).canBePrimary) ||
+    watchCandidates[1] ||
+    watchCandidates[0] ||
+    ranked[0];
   const colourAwareSections = getColourAwareRecommendationSections(data);
   const findSection = (key) =>
     colourAwareSections.find((section) => section.key === key)?.items || [];
@@ -3366,18 +3377,25 @@ function OpeningFitFullReport({ data }) {
   const whiteOpenings = ranked.filter((item) => item.colour.includes("white"));
   const blackOpenings = ranked.filter((item) => item.colour.includes("black"));
 
-  const bestWhite =
-    findSection("white_repertoire")[0] ||
-    whiteOpenings.find((item) =>
-      contextIsCompatible(item.displayName, "played_as_white")
-    );
+  const pickPrimarySignal = (items) =>
+    items.find((item) => getOpeningSignal(item).canBePrimary) || items[0];
 
-  const bestBlack =
-    findSection("black_vs_e4")[0] ||
-    findSection("black_vs_d4_other")[0] ||
-    blackOpenings.find((item) =>
+  const whiteSignals = [
+    ...findSection("white_repertoire"),
+    ...whiteOpenings.filter((item) =>
+      contextIsCompatible(item.displayName, "played_as_white")
+    ),
+  ];
+  const blackSignals = [
+    ...findSection("black_vs_e4"),
+    ...findSection("black_vs_d4_other"),
+    ...blackOpenings.filter((item) =>
       contextIsCompatible(item.displayName, "black_vs_e4")
-    );
+    ),
+  ];
+
+  const bestWhite = pickPrimarySignal(whiteSignals);
+  const bestBlack = pickPrimarySignal(blackSignals);
 
   const formatScore = (item) =>
     item?.winRate !== null && item?.winRate !== undefined
@@ -3409,6 +3427,10 @@ function OpeningFitFullReport({ data }) {
   const explainFit = (opening, type) => {
     if (!opening) {
       return "Import more games to make this recommendation more accurate.";
+    }
+
+    if (opening && !getOpeningSignal(opening).canBeFirm) {
+      return getOpeningSignal(opening).explanation;
     }
 
     if (type === "keep") {
@@ -5566,6 +5588,8 @@ function App() {
                               const isAmbiguous =
                                 section.key === "too_little_data" ||
                                 item.context === "unknown_mixed";
+                              const signal = getOpeningSignal(item);
+                              const shouldHold = isAmbiguous || !signal.canBePrimary;
                               const verdict = isAmbiguous
                                 ? "Not enough context"
                                 : getDataFirstVerdict(item, data);
@@ -5585,7 +5609,7 @@ function App() {
                                   key={`${section.key}-${item.name}-${index}`}
                                   type="button"
                                   onClick={() =>
-                                    !isAmbiguous && startOpeningPractice(item.name)
+                                    !shouldHold && startOpeningPractice(item.name)
                                   }
                                 >
                                   <div>
@@ -5597,7 +5621,7 @@ function App() {
                                       compact
                                     />
                                   </div>
-                                  <span>{isAmbiguous ? "Hold" : "Practice"}</span>
+                                  <span>{shouldHold ? "Track" : "Practice"}</span>
                                 </button>
                               );
                             })
