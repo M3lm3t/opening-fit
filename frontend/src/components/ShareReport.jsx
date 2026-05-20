@@ -163,7 +163,7 @@ ${weakest?.winRate ? `Score: ${weakest.winRate}%` : ""}${weakest?.games ? ` over
 Next study focus:
 Build around ${best?.name || "your strongest opening"} and fix ${weakest?.name || "your weakest opening area"}.
 
-Try it: https://openingfit.com`;
+Try it: https://www.openingfit.com`;
 
     return {
       username,
@@ -178,7 +178,7 @@ Try it: https://openingfit.com`;
   if (!data || !report) return null;
 
   const encodedText = encodeURIComponent(report.text);
-  const encodedUrl = encodeURIComponent("https://openingfit.com");
+  const encodedUrl = encodeURIComponent("https://www.openingfit.com");
 
   const copyReport = async () => {
     try {
