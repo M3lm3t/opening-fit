@@ -1875,47 +1875,77 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
 
   if (!fitData || !fitData.scoredOpenings?.length) return null;
 
-  const bestOpening = fitData.bestOpening;
-  const weakestOpening = fitData.weakestOpening;
   const scoredOpenings = fitData.scoredOpenings || [];
   const publicMode = fitData.reportMode !== "normal_user";
+  const usableWeaknesses = scoredOpenings
+    .filter((opening) => {
+      const name = getOpeningName(opening);
+      const games = getOpeningGames(opening);
+      return (
+        name &&
+        name !== "Unknown opening" &&
+        games >= 5 &&
+        ["avoid", "review", "improve"].includes(opening.fitCategory)
+      );
+    })
+    .sort((a, b) => {
+      const severity = { avoid: 0, review: 1, improve: 2 };
+      const categoryDiff = (severity[a.fitCategory] ?? 3) - (severity[b.fitCategory] ?? 3);
+      if (categoryDiff) return categoryDiff;
+      return a.fitScore - b.fitScore;
+    });
 
-  const bestName = bestOpening ? getOpeningName(bestOpening) : "your strongest opening";
-  const weakName = weakestOpening ? getOpeningName(weakestOpening) : publicMode ? "a lower-scoring sample" : "your weakest opening";
+  const studyOpening = usableWeaknesses[0] || null;
+  const hasFocusedSession = Boolean(studyOpening);
+  const studyName = studyOpening ? getOpeningName(studyOpening) : "one chosen opening";
+  const studyGames = studyOpening ? getOpeningGames(studyOpening) : 0;
+  const studyScore = studyOpening ? getWinRate(studyOpening) : 0;
+  const studySide = studyOpening
+    ? studyOpening.contextLabel || contextLabel(itemContext(studyOpening)) || getOpeningSide(studyOpening) || "in your games"
+    : "in your next games";
+  const averageScore = scoredOpenings.length
+    ? Math.round(
+        scoredOpenings.reduce((total, opening) => total + getWinRate(opening), 0) /
+          scoredOpenings.length
+      )
+    : 50;
+  const belowAverage = hasFocusedSession && studyScore < averageScore;
+  const reasonText = hasFocusedSession
+    ? publicMode
+      ? `You played ${studyName} ${studyGames} times ${studySide}, and this is the clearest lower-scoring recent sample to review without overclaiming.`
+      : `You played ${studyName} ${studyGames} times ${studySide}, scored ${studyScore}%, and ${belowAverage ? "it sits below your opening average" : "it is the clearest repeated weakness in the report"}.`
+    : "The current samples are too small or noisy for a confident opening-specific session.";
+  const reviewTask = hasFocusedSession
+    ? `Review the first 6 moves of ${studyName} and write your usual setup in one sentence.`
+    : "Choose one White opening or one Black defence and play it consistently for the next 10 games.";
+  const practiceTask = hasFocusedSession
+    ? `Practise the main ${studyName} structure: setup, typical pawn break, and one safe plan after move 10.`
+    : "Play 10 more games with that one chosen opening. Do not switch lines unless the opponent forces it.";
+  const gameReviewTask = hasFocusedSession
+    ? `Review your last 2 ${studyName} losses, or the closest recent games, and mark where you first left your plan.`
+    : "After the games, review the first 8 moves and note the position where you felt unsure most often.";
+  const nextImportCheck = hasFocusedSession
+    ? `After the next import, check whether ${studyName} gained sample size, improved its score, and produced fewer early uncomfortable positions.`
+    : "After the next import, check whether the chosen opening has at least 5 games and a clear score trend.";
 
   const reviewGames = recentGames.filter((game) => {
     const gameOpening = String(game?.opening || game?.name || "").toLowerCase();
-    return weakestOpening && gameOpening.includes(weakName.toLowerCase());
+    return hasFocusedSession && gameOpening.includes(studyName.toLowerCase());
   });
 
-  const fallbackGames = recentGames.slice(0, 3);
-  const gamesToReview = reviewGames.length ? reviewGames.slice(0, 3) : fallbackGames;
-
-  const whitePick =
-    scoredOpenings.find((opening) => {
-      const side = getOpeningSide(opening).toLowerCase();
-      const name = getOpeningName(opening).toLowerCase();
-      return side.includes("white") || /vienna|italian|london|queen|ruy|scotch|english|reti|gambit/.test(name);
-    }) || bestOpening;
-
-  const blackPick =
-    scoredOpenings.find((opening) => {
-      const side = getOpeningSide(opening).toLowerCase();
-      const name = getOpeningName(opening).toLowerCase();
-      return side.includes("black") || /sicilian|caro|french|scandinavian|pirc|modern|dutch|king|nimzo|slav|grunfeld|defence|defense/.test(name);
-    }) || scoredOpenings.find((opening) => getOpeningName(opening) !== getOpeningName(whitePick)) || bestOpening;
+  const gamesToReview = reviewGames.length ? reviewGames.slice(0, 2) : recentGames.slice(0, 2);
 
   const saveStudySession = () => {
     const payload = {
       savedAt: new Date().toISOString(),
-      bestOpening: bestName,
-      weakestOpening: weakName,
-      whiteOpening: whitePick ? getOpeningName(whitePick) : "",
-      blackOpening: blackPick ? getOpeningName(blackPick) : "",
+      opening: studyName,
+      focused: hasFocusedSession,
+      why: reasonText,
       tasks: [
-        `Review ${weakName}`,
-        `Practise ${bestName}`,
-        "Play a focused block using your saved repertoire",
+        reviewTask,
+        practiceTask,
+        gameReviewTask,
+        nextImportCheck,
       ],
     };
 
@@ -1933,104 +1963,69 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
   };
 
   return (
-    <section className="nextStudyShell card">
+    <section className="nextStudyShell card nextStudySession" id="next-study-session">
       <div className="nextStudyHero">
         <div>
-          <p className="eyebrow">Next Study Session</p>
-          <h2>{publicMode ? "Recent trend review" : "Your next 20 minutes of opening work"}</h2>
+          <p className="eyebrow">Next 20-minute study session</p>
+          <h2>
+            {hasFocusedSession
+              ? `Study: ${studyName}`
+              : "General session: build a clearer sample"}
+          </h2>
           <p className="muted">
-            {publicMode
-              ? "Opening Fit is treating this as a recent online sample: compare trend changes, opponent pool, and game context."
-              : "Opening Fit has turned your report into a focused training loop: review the weak spot, practise the best fit, then play a simple repertoire."}
+            {hasFocusedSession
+              ? reasonText
+              : "Play 10 more games with one chosen opening, then re-import."}
           </p>
         </div>
 
         <div className="nextStudyScore">
-          <strong>{fitData.overallScore || "—"}</strong>
-          <span>fit score</span>
+          <strong>20</strong>
+          <span>minutes</span>
         </div>
       </div>
 
-      <div className="nextStudyGrid">
+      <div className="nextStudySessionPlan">
         <article className="nextStudyCard nextStudyCardWarning">
-          <div className="nextStudyCardTop">
-            <span>1</span>
-            <p>{publicMode ? "Review lower-scoring sample" : "Review weak spot"}</p>
-          </div>
-
-          <h3>{weakName}</h3>
-
-          <p>
-            {weakestOpening
-              ? publicMode
-                ? `This is a lower-scoring recent sample at ${weakestOpening.fitScore}/100. Compare by time control, opponent pool, and whether the games were experimental.`
-                : `This is currently your lowest fit at ${weakestOpening.fitScore}/100. Review where your positions start becoming uncomfortable.`
-              : "Import more games to identify a clear weak opening."}
-          </p>
-
+          <span className="nextStudyStepLabel">Opening to study</span>
+          <h3>{studyName}</h3>
+          <p>{reasonText}</p>
           <div className="nextStudyMeta">
-            <span>{weakestOpening ? `${getOpeningGames(weakestOpening)} games` : "Needs data"}</span>
-            <span>{weakestOpening ? `${getWinRate(weakestOpening)}% score` : "—"}</span>
+            <span>{hasFocusedSession ? `${studyGames} games` : "General sample"}</span>
+            <span>{hasFocusedSession ? `${studyScore}% score` : "No hard verdict"}</span>
           </div>
+        </article>
 
+        <article className="nextStudyTask">
+          <span>5 min</span>
+          <strong>Review task</strong>
+          <p>{reviewTask}</p>
+        </article>
+
+        <article className="nextStudyTask nextStudyTaskPrimary">
+          <span>10 min</span>
+          <strong>Practice task</strong>
+          <p>{practiceTask}</p>
+          {hasFocusedSession && onPractice ? (
+            <button className="primaryBtn" type="button" onClick={() => onPractice(studyName)}>
+              Practise line
+            </button>
+          ) : null}
+        </article>
+
+        <article className="nextStudyTask">
+          <span>5 min</span>
+          <strong>Game review task</strong>
+          <p>{gameReviewTask}</p>
           <button className="secondaryBtn" type="button" onClick={goToGames}>
             Review games
           </button>
         </article>
 
-        <article className="nextStudyCard nextStudyCardBest">
-          <div className="nextStudyCardTop">
-            <span>2</span>
-            <p>Practise best fit</p>
-          </div>
-
-          <h3>{bestName}</h3>
-
-          <p>
-            {bestOpening
-              ? `This is your strongest current opening fit at ${bestOpening.fitScore}/100. Learn the first few moves and one simple middlegame plan.`
-              : "Import more games to identify your strongest opening."}
-          </p>
-
-          <div className="nextStudyMeta">
-            <span>{bestOpening ? `${getOpeningGames(bestOpening)} games` : "Needs data"}</span>
-            <span>{bestOpening ? `${getWinRate(bestOpening)}% score` : "—"}</span>
-          </div>
-
-          <button
-            className="primaryBtn"
-            type="button"
-            onClick={() => bestOpening && onPractice(bestName)}
-            disabled={!bestOpening}
-          >
-            Practise line
-          </button>
-        </article>
-
-        <article className="nextStudyCard nextStudyCardRepertoire">
-          <div className="nextStudyCardTop">
-            <span>3</span>
-            <p>Use simple repertoire</p>
-          </div>
-
-          <h3>Play a focused block</h3>
-
-          <div className="nextStudyRepertoire">
-            <div>
-              <span>White</span>
-              <strong>{whitePick ? getOpeningName(whitePick) : "Needs more games"}</strong>
-            </div>
-
-            <div>
-              <span>Black</span>
-              <strong>{blackPick ? getOpeningName(blackPick) : "Needs more games"}</strong>
-            </div>
-          </div>
-
-          <p>
-            For your next games, avoid switching openings randomly. Play these choices and compare the next import.
-          </p>
-
+        <article className="nextStudyTask nextStudyCheck">
+          <span>Next import</span>
+          <strong>What to check</strong>
+          <p>{nextImportCheck}</p>
           <button className="secondaryBtn" type="button" onClick={saveStudySession}>
             Save study session
           </button>
@@ -5481,6 +5476,13 @@ function App() {
                       onPractice={startOpeningPractice}
                     />
                   </div>
+
+                  <NextStudySession
+                    fitData={fitData}
+                    recentGames={filteredRecentGames}
+                    onPractice={startOpeningPractice}
+                    onViewChange={setActiveView}
+                  />
 
                   <Section
                     title="Optional detailed evidence"
