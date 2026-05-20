@@ -78,13 +78,38 @@ function isStrongProfile(data) {
   return tier === "elite" || tier === "strong";
 }
 
+function getReportMode(data) {
+  const direct = data?.reportMode || data?.report_mode;
+  if (["normal_user", "high_rated_user", "public_account_possible"].includes(direct)) return direct;
+  if (isStrongProfile(data)) return "high_rated_user";
+  return "normal_user";
+}
+
+function isPublicMode(data) {
+  return getReportMode(data) !== "normal_user";
+}
+
+function publicCaution(data) {
+  return (
+    data?.publicAccountCaution ||
+    data?.public_account_caution ||
+    "This appears to be a high-level or public account. OpeningFit is analysing recent online results only, not judging the player's actual opening knowledge."
+  );
+}
+
 function verdictFor(item, data, index = 0) {
   const verdict = String(item?.verdict || "").toLowerCase();
   const tier = getPlayerTier(data);
+  const publicMode = isPublicMode(data);
   const strongProfile = tier === "elite" || tier === "strong";
   const games = getGames(item);
   const winRate = getWinRate(item);
   const mainOpening = index <= 2 && games >= 8;
+
+  if (publicMode && games < 8) return "Not enough context to judge";
+  if (publicMode && (verdict.includes("avoid") || verdict.includes("review"))) return "Recent underperformer";
+  if (publicMode && (verdict.includes("improve") || verdict.includes("promising"))) return "Lower-scoring sample";
+  if (publicMode && (verdict.includes("keep") || verdict.includes("reliable"))) return "Recent strength";
 
   if (verdict.includes("main weapon") || verdict.includes("core") || verdict.includes("trusted")) return "Main weapon";
   if (verdict.includes("keep") || verdict.includes("reliable")) return "Reliable choice";
@@ -95,9 +120,9 @@ function verdictFor(item, data, index = 0) {
   if (games < 8) return "Low-confidence sample";
 
   if ((tier === "elite" || tier === "strong") && mainOpening && winRate >= 45) return "Main weapon";
-  if (strongProfile && mainOpening && winRate >= 35) return "Promising but unstable";
-  if (strongProfile && winRate < 45) return "Needs review";
-  if (strongProfile) return "Reliable choice";
+  if (strongProfile && mainOpening && winRate >= 35) return publicMode ? "Lower-scoring sample" : "Promising but unstable";
+  if (strongProfile && winRate < 45) return publicMode ? "Recent underperformer" : "Needs review";
+  if (strongProfile) return publicMode ? "Recent strength" : "Reliable choice";
 
   if (winRate >= 58) return "Reliable choice";
   if (winRate >= 45) return "Promising but unstable";
@@ -112,8 +137,11 @@ function buildSummary(data, username) {
   const openings = getArray(data?.top_openings, data?.opening_stats, data?.openings);
   const top = openings[0];
   const strongProfile = isStrongProfile(data);
+  const publicMode = isPublicMode(data);
   const keep = pickByVerdict(openings, "Main weapon", data) || pickByVerdict(openings, "Reliable choice", data) || top;
   const improve =
+    pickByVerdict(openings, "Lower-scoring sample", data) ||
+    pickByVerdict(openings, "Recent underperformer", data) ||
     pickByVerdict(openings, "Promising but unstable", data) ||
     pickByVerdict(openings, "Needs review", data) ||
     openings[1];
@@ -140,7 +168,7 @@ function buildSummary(data, username) {
     data?.score ||
     null;
 
-  return { openings, top, keep, improve, avoid, style, games, score, username, strongProfile };
+  return { openings, top, keep, improve, avoid, style, games, score, username, strongProfile, publicMode };
 }
 
 export default function OpeningFitReportHero({ data, username, onJump }) {
@@ -149,7 +177,9 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
   const report = buildSummary(data, username);
   const scoreText = report.score ? Math.round(Number(report.score)) : Math.min(92, Math.max(61, 70 + report.openings.length * 2));
 
-  const shareText = report.strongProfile
+  const shareText = report.publicMode
+    ? `OpeningFit flags ${getName(report.keep)} as a recent strength and ${getName(report.improve)} as a lower-scoring recent sample.`
+    : report.strongProfile
     ? `My OpeningFit report says ${getName(report.keep)} is a core opening and ${getName(report.improve)} is worth reviewing.`
     : `My OpeningFit report says I should keep ${getName(report.keep)}, improve ${getName(report.improve)}, and review ${getName(report.avoid)}.`;
 
@@ -169,7 +199,9 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
           <div className="ofEyebrow">Your OpeningFit Report</div>
           <h2>{report.username ? `${report.username}'s opening profile` : "Your opening profile"}</h2>
           <p>
-            {report.strongProfile
+            {report.publicMode
+              ? publicCaution(data)
+              : report.strongProfile
               ? "A repertoire audit built from recent games, highlighting core weapons, trend changes, and lines worth reviewing."
               : "A simple report built from your recent games, showing what to keep, what needs work, and where your opening study should go next."}
           </p>
@@ -190,7 +222,7 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
         </article>
 
         <article>
-          <span>Best fit</span>
+          <span>{report.publicMode ? "Recent strength" : "Best fit"}</span>
           <strong>{getName(report.keep)}</strong>
           <p>
             {getWinRate(report.keep) !== null ? `${getWinRate(report.keep)}% score` : "Strongest current signal"}
@@ -199,21 +231,21 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
         </article>
 
         <article>
-          <span>{report.strongProfile ? "Review target" : "Biggest study target"}</span>
+          <span>{report.publicMode ? "Lower-scoring sample" : report.strongProfile ? "Review target" : "Biggest study target"}</span>
           <strong>{getName(report.improve)}</strong>
           <p>
             {report.strongProfile
-              ? "Look for recurring loss patterns, move-order issues, or structures causing practical problems."
+              ? "Compare the trend by time control, opponent pool, and game context before drawing conclusions."
               : "This is the best place to gain rating without rebuilding everything."}
           </p>
         </article>
 
         <article>
-          <span>Review carefully</span>
+          <span>{report.publicMode ? "Experimental/content-game possible" : "Review carefully"}</span>
           <strong>{getName(report.avoid)}</strong>
           <p>
             {report.strongProfile
-              ? "Treat this as a trend signal before changing the repertoire."
+              ? "Treat this as a recent online trend signal, not a hard opening verdict."
               : "Low-confidence or poor-result openings should be simplified."}
           </p>
         </article>
@@ -221,7 +253,7 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
 
       <div className="ofActionStrip">
         <button type="button" onClick={() => onJump?.("keep-improve-avoid")}>
-          View keep / improve / avoid
+          {report.publicMode ? "View recent trends" : "View keep / improve / avoid"}
         </button>
 
         <button type="button" className="secondary" onClick={() => onJump?.("training-plan")}>

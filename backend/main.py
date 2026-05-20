@@ -791,6 +791,10 @@ def dominant_opening_colour(stats: Dict[str, int]) -> str:
 SAFE_CONTEXT_FALLBACK_COPY = (
     "We found this opening pattern, but not enough colour/context data to recommend it confidently."
 )
+PUBLIC_ACCOUNT_CAUTION_COPY = (
+    "This appears to be a high-level or public account. OpeningFit is analysing recent online results only, not judging the player’s actual opening knowledge."
+)
+MASTER_TITLES = {"gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm", "nm", "lm"}
 
 BLACK_OPENING_NAME_PATTERNS = [
     "defence",
@@ -919,6 +923,92 @@ def context_label(context: str) -> str:
         "black_vs_d4_other": "played as Black vs 1.d4 / 1.c4 / 1.Nf3",
         "unknown_mixed": "unknown / mixed",
     }.get(context, "unknown / mixed")
+
+
+def detect_report_mode(
+    *,
+    rating: Optional[int] = None,
+    title: Optional[str] = None,
+    total_games: int = 0,
+    player_level: Optional[str] = None,
+    username: str = "",
+) -> Dict[str, Any]:
+    clean_title = str(title or "").strip().lower()
+    clean_level = str(player_level or "").strip().lower()
+    reasons = []
+
+    if rating and rating >= 2200:
+        reasons.append(f"rating {rating}")
+
+    if clean_title in MASTER_TITLES:
+        reasons.append(f"title {clean_title.upper()}")
+
+    if any(word in clean_level for word in ["master", "elite", "grandmaster", "international master"]):
+        reasons.append(f"level {player_level}")
+
+    if total_games >= 250:
+        reasons.append(f"high recent game volume ({total_games})")
+
+    high_rated = bool(rating and rating >= 2200) or clean_title in MASTER_TITLES
+    public_possible = total_games >= 250 or any(
+        word in clean_level for word in ["master", "elite", "grandmaster", "international master"]
+    )
+
+    if public_possible:
+        mode = "public_account_possible"
+    elif high_rated:
+        mode = "high_rated_user"
+    else:
+        mode = "normal_user"
+
+    return {
+        "report_mode": mode,
+        "reportMode": mode,
+        "reportModeReasons": reasons,
+        "publicAccountCaution": PUBLIC_ACCOUNT_CAUTION_COPY if mode != "normal_user" else "",
+    }
+
+
+def public_mode_verdict(verdict: str, games: int) -> str:
+    if games < 8:
+        return "Not enough context to judge"
+
+    if verdict == "Keep":
+        return "Recent strength"
+
+    if verdict == "Improve":
+        return "Lower-scoring sample"
+
+    if verdict == "Avoid":
+        return "Recent underperformer"
+
+    return "Not enough context to judge"
+
+
+def adapt_openings_for_report_mode(
+    openings: List[Dict[str, Any]],
+    report_mode: str,
+) -> List[Dict[str, Any]]:
+    if report_mode == "normal_user":
+        return openings
+
+    adapted = []
+
+    for opening in openings:
+        games = int(opening.get("games", 0) or 0)
+        original_verdict = str(opening.get("verdict", ""))
+        verdict = public_mode_verdict(original_verdict, games)
+        adapted.append(
+            {
+                **opening,
+                "originalVerdict": original_verdict,
+                "verdict": verdict,
+                "fitVerdict": verdict,
+                "publicModeNote": PUBLIC_ACCOUNT_CAUTION_COPY,
+            }
+        )
+
+    return adapted
 
 
 def context_colour(context: str) -> str:
@@ -1320,19 +1410,35 @@ def build_training_plan(
     preferred_white: List[Dict[str, Any]],
     preferred_black: List[Dict[str, Any]],
     best_openings: List[Dict[str, Any]],
+    report_mode: str = "normal_user",
 ) -> List[str]:
     plan = []
+    public_mode = report_mode != "normal_user"
 
     if preferred_white:
-        plan.append(f"As White, play {preferred_white[0]['name']} for your next 10 to 15 games.")
+        if public_mode:
+            plan.append(f"As White, {preferred_white[0]['name']} is a recent recurring sample to review by move order and opponent pool.")
+        else:
+            plan.append(f"As White, play {preferred_white[0]['name']} for your next 10 to 15 games.")
 
     if preferred_black:
-        plan.append(f"As Black, stick with {preferred_black[0]['name']} and learn the first 6 to 8 moves well.")
+        if public_mode:
+            plan.append(f"As Black, review the recent {preferred_black[0]['name']} sample as an online-results trend, not a knowledge verdict.")
+        else:
+            plan.append(f"As Black, stick with {preferred_black[0]['name']} and learn the first 6 to 8 moves well.")
 
-    if best_openings:
-        top = best_openings[0]
+    usable_best_openings = [
+        opening for opening in best_openings if not is_unknown_opening_name(opening.get("name", ""))
+    ]
 
-        if top["games"] < 8:
+    if usable_best_openings:
+        top = usable_best_openings[0]
+
+        if public_mode and top["games"] < 8:
+            plan.append(f"{top['name']} is too small a sample for a hard verdict.")
+        elif public_mode:
+            plan.append(f"Treat {top['name']} as a recent performance trend and compare it with opponent strength and time control.")
+        elif top["games"] < 8:
             plan.append(f"Treat {top['name']} as an emerging pattern and collect more games before judging it.")
         elif top["verdict"] == "Keep":
             plan.append(f"Keep building around {top['name']}. It is currently your best practical opening.")
@@ -1365,22 +1471,43 @@ def build_recommendations(
     preferred_black: List[Dict[str, Any]],
     best_openings: List[Dict[str, Any]],
     style_profile: Dict[str, Any],
+    report_mode: str = "normal_user",
 ) -> List[str]:
     recommendations = []
+    public_mode = report_mode != "normal_user"
+
+    if public_mode:
+        recommendations.append(PUBLIC_ACCOUNT_CAUTION_COPY)
 
     if preferred_white:
         recommendations.append(
-            f"As White, your most common practical choice is {preferred_white[0]['name']}."
+            f"As White, the most common recent sample is {preferred_white[0]['name']}."
+            if public_mode
+            else f"As White, your most common practical choice is {preferred_white[0]['name']}."
         )
 
     if preferred_black:
         recommendations.append(
-            f"As Black, your most common structure is {preferred_black[0]['name']}."
+            f"As Black, the most common recent sample is {preferred_black[0]['name']}."
+            if public_mode
+            else f"As Black, your most common structure is {preferred_black[0]['name']}."
         )
 
-    if best_openings:
-        top = best_openings[0]
-        if top["games"] < 8:
+    usable_best_openings = [
+        opening for opening in best_openings if not is_unknown_opening_name(opening.get("name", ""))
+    ]
+
+    if usable_best_openings:
+        top = usable_best_openings[0]
+        if public_mode and top["games"] < 8:
+            recommendations.append(
+                f"{top['name']} is too small or noisy a sample for a hard verdict."
+            )
+        elif public_mode:
+            recommendations.append(
+                f"{top['name']} is a recent strength in this import, not a claim about the player's full repertoire."
+            )
+        elif top["games"] < 8:
             recommendations.append(
                 f"{top['name']} is an emerging pattern, but it needs more games before a strong verdict."
             )
@@ -1612,7 +1739,7 @@ def import_chesscom_logic(username: str, months: int = 3):
             **opening_explanation(n),
         }
         for n, g in white_opening_counter.most_common(5)
-        if context_is_compatible(n, "played_as_white")
+        if not is_unknown_opening_name(n) and context_is_compatible(n, "played_as_white")
     ]
 
     preferred_black = [
@@ -1627,18 +1754,34 @@ def import_chesscom_logic(username: str, months: int = 3):
             **opening_explanation(n),
         }
         for n, g in black_opening_counter.most_common(5)
-        if context_is_compatible(n, dominant_opening_context(opening_results[n]))
+        if not is_unknown_opening_name(n) and context_is_compatible(n, dominant_opening_context(opening_results[n]))
     ]
 
     style_profile = build_style_profile(all_games, username)
     best_openings = build_opening_scores(opening_results)
+    report_mode_data = detect_report_mode(
+        title=player.get("title"),
+        total_games=len(all_games),
+        player_level=player.get("title"),
+        username=player.get("username", username),
+    )
+    report_mode = report_mode_data["report_mode"]
+    best_openings = adapt_openings_for_report_mode(best_openings, report_mode)
+    top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
     opening_recommendations = build_colour_aware_recommendations(opening_results)
-    training_plan = build_training_plan(style_profile, preferred_white, preferred_black, best_openings)
+    training_plan = build_training_plan(
+        style_profile,
+        preferred_white,
+        preferred_black,
+        best_openings,
+        report_mode,
+    )
     recommendations = build_recommendations(
         preferred_white,
         preferred_black,
         best_openings,
         style_profile,
+        report_mode,
     )
 
     premium_data = build_premium_data(best_openings, style_profile)
@@ -1650,6 +1793,9 @@ def import_chesscom_logic(username: str, months: int = 3):
         "player_url": player.get("url"),
         "playerUrl": player.get("url"),
         "platform": "chess.com",
+        "title": player.get("title"),
+        "chessTitle": player.get("title"),
+        "chess_title": player.get("title"),
         "total_games": len(all_games),
         "totalGames": len(all_games),
         "gamesImported": len(all_games),
@@ -1676,6 +1822,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         "training_plan": training_plan,
         "trainingPlan": training_plan,
         "lastUpdated": now_iso(),
+        **report_mode_data,
         **premium_data,
     }
 
@@ -1913,7 +2060,7 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
             **opening_explanation(n),
         }
         for n, g in white_opening_counter.most_common(5)
-        if context_is_compatible(n, "played_as_white")
+        if not is_unknown_opening_name(n) and context_is_compatible(n, "played_as_white")
     ]
 
     preferred_black = [
@@ -1928,23 +2075,11 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
             **opening_explanation(n),
         }
         for n, g in black_opening_counter.most_common(5)
-        if context_is_compatible(n, dominant_opening_context(opening_results[n]))
+        if not is_unknown_opening_name(n) and context_is_compatible(n, dominant_opening_context(opening_results[n]))
     ]
 
     best_openings = build_opening_scores(opening_results)
     style_profile = build_lichess_style_profile(top_openings, preferred_white, preferred_black)
-    opening_recommendations = build_colour_aware_recommendations(opening_results)
-    training_plan = build_training_plan(style_profile, preferred_white, preferred_black, best_openings)
-    recommendations = build_recommendations(
-        preferred_white,
-        preferred_black,
-        best_openings,
-        style_profile,
-    )
-
-    premium_data = build_premium_data(best_openings, style_profile)
-    recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
-
     current_rating = max(player_ratings) if player_ratings else None
 
     if current_rating is None:
@@ -1959,6 +2094,34 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
         player_level = "Advanced"
     else:
         player_level = "Master"
+
+    report_mode_data = detect_report_mode(
+        rating=current_rating,
+        total_games=len(games),
+        player_level=player_level,
+        username=username,
+    )
+    report_mode = report_mode_data["report_mode"]
+    best_openings = adapt_openings_for_report_mode(best_openings, report_mode)
+    top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
+    opening_recommendations = build_colour_aware_recommendations(opening_results)
+    training_plan = build_training_plan(
+        style_profile,
+        preferred_white,
+        preferred_black,
+        best_openings,
+        report_mode,
+    )
+    recommendations = build_recommendations(
+        preferred_white,
+        preferred_black,
+        best_openings,
+        style_profile,
+        report_mode,
+    )
+
+    premium_data = build_premium_data(best_openings, style_profile)
+    recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
     result = {
         "username": username,
@@ -2008,6 +2171,7 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
         "training_plan": training_plan,
         "trainingPlan": training_plan,
         "lastUpdated": now_iso(),
+        **report_mode_data,
         **premium_data,
     }
 
@@ -2329,6 +2493,10 @@ def demo_profile():
         "player_url": None,
         "playerUrl": None,
         "platform": "demo",
+        "report_mode": "normal_user",
+        "reportMode": "normal_user",
+        "reportModeReasons": [],
+        "publicAccountCaution": "",
         "total_games": 24,
         "totalGames": 24,
         "gamesImported": 24,

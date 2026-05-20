@@ -122,6 +122,13 @@ function getPlayerTier(data) {
   return "developing";
 }
 
+function isPublicMode(data) {
+  const mode = data?.reportMode || data?.report_mode;
+  if (mode && mode !== "normal_user") return true;
+  const tier = getPlayerTier(data);
+  return tier === "elite" || tier === "strong";
+}
+
 function collectOpenings(data) {
   const sources = [
     data?.opening_stats,
@@ -183,6 +190,7 @@ function getVerdict(item, average, data, index = 0) {
     item?.fitVerdict || item?.fit_verdict || item?.verdict || item?.recommendation || ""
   ).toLowerCase();
   const tier = getPlayerTier(data);
+  const publicMode = isPublicMode(data);
   const games = getGames(item);
   const score = getScore(item);
   const mainOpening = index <= 2 && games >= 8;
@@ -196,11 +204,11 @@ function getVerdict(item, average, data, index = 0) {
   if (games < 8) return "Low-confidence sample";
 
   if (tier === "elite") {
-    if (mainOpening && score >= 45) return "Main weapon";
-    if (mainOpening) return "Needs review";
-    if (games >= 20 && score < 25) return "Needs review";
-    if (score < 45) return "Promising but unstable";
-    return "Reliable choice";
+    if (mainOpening && score >= 45) return publicMode ? "Recent strength" : "Main weapon";
+    if (mainOpening) return publicMode ? "Lower-scoring sample" : "Needs review";
+    if (games >= 20 && score < 25) return publicMode ? "Recent underperformer" : "Needs review";
+    if (score < 45) return publicMode ? "Lower-scoring sample" : "Promising but unstable";
+    return publicMode ? "Recent strength" : "Reliable choice";
   }
 
   if (tier === "strong") {
@@ -274,22 +282,39 @@ function buildReason(item, average, verdict) {
       ? `${wins} wins, ${draws} draws and ${losses} losses`
       : `${games} games reviewed`;
 
-  if (["Main weapon", "Reliable choice"].includes(verdict)) {
+  if (["Recent strength", "Main weapon", "Reliable choice"].includes(verdict)) {
     return {
       title:
-        verdict === "Main weapon"
+        verdict === "Recent strength"
+          ? `${name} is a recent strength sample.`
+          : verdict === "Main weapon"
           ? `${name} looks like a main weapon.`
           : `${name} is earning its place.`,
-      body: `You are scoring ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, so this looks like a meaningful repertoire signal rather than one isolated result.`,
-      action: "Keep it in the repertoire. Review the reply or structure that currently makes the position least comfortable instead of replacing the opening.",
+      body:
+        verdict === "Recent strength"
+          ? `This imported online sample scores ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, so this is a recent trend signal only.`
+          : `You are scoring ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, so this looks like a meaningful repertoire signal rather than one isolated result.`,
+      action:
+        verdict === "Recent strength"
+          ? "Compare this against time control, opponent pool, and event context before drawing broader repertoire conclusions."
+          : "Keep it in the repertoire. Review the reply or structure that currently makes the position least comfortable instead of replacing the opening.",
     };
   }
 
-  if (["Needs review", "Promising but unstable"].includes(verdict)) {
+  if (["Recent underperformer", "Lower-scoring sample", "Needs review", "Promising but unstable"].includes(verdict)) {
     return {
-      title: `${name} deserves targeted review.`,
-      body: `You are scoring ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, so this is worth treating as a practical problem, not just bad luck.`,
-      action: "Look for repeated loss patterns, move-order issues, or middlegame structures before making a repertoire change.",
+      title:
+        verdict === "Recent underperformer" || verdict === "Lower-scoring sample"
+          ? `${name} is a lower-scoring recent sample.`
+          : `${name} deserves targeted review.`,
+      body:
+        verdict === "Recent underperformer" || verdict === "Lower-scoring sample"
+          ? `This imported online sample scores ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, but this should not be treated as a judgement of actual opening knowledge.`
+          : `You are scoring ${score}% over ${games} games ${getSide(item)}, which is ${comparison}. The record behind that is ${record}, so this is worth treating as a practical problem, not just bad luck.`,
+      action:
+        verdict === "Recent underperformer" || verdict === "Lower-scoring sample"
+          ? "Check time control, opponent pool, colour/context, and whether these games were experimental before making claims."
+          : "Look for repeated loss patterns, move-order issues, or middlegame structures before making a repertoire change.",
     };
   }
 
@@ -405,3 +430,7 @@ export default function EvidenceBackedOpeningDiagnosis({ data, onPractice }) {
     </section>
   );
 }
+  if (publicMode && games < 8) return "Not enough context to judge";
+  if (publicMode && (explicit.includes("avoid") || explicit.includes("review"))) return "Recent underperformer";
+  if (publicMode && (explicit.includes("improve") || explicit.includes("promising"))) return "Lower-scoring sample";
+  if (publicMode && (explicit.includes("keep") || explicit.includes("reliable"))) return "Recent strength";
