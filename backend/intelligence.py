@@ -38,15 +38,19 @@ def as_list(value: Any) -> list:
     return []
 
 
-def get_opening_name(item: Any) -> str:
-    if isinstance(item, str):
-        return item
-
-    if not isinstance(item, dict):
-        return "Unclassified opening"
-
-    return (
-        item.get("name")
+            # Fallback tiers affect wording and confidence rather than blocking output.
+            if games >= 10:
+                # Strong signal — be decisive but balanced
+                if win_rate >= 55:
+                    verdict = "Keep"
+                else:
+                    verdict = "Review"
+            elif 5 <= games <= 9:
+                verdict = "Volatile sample"
+            elif 3 <= games <= 4:
+                verdict = "Low confidence"
+            else:
+                verdict = "Specialist line"
         or item.get("opening")
         or item.get("openingName")
         or item.get("opening_name")
@@ -525,27 +529,68 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
     openings = collect_openings(data, include_unknown=True)
     known_openings = [item for item in openings if not item.get("is_unknown_opening")]
     unknown_openings = [item for item in openings if item.get("is_unknown_opening")]
-
-    game_count = (
+    # Standardised import counts
+    games_imported = (
         safe_number(data.get("gamesImported"), None)
         or safe_number(data.get("games_imported"), None)
         or safe_number(data.get("totalGames"), None)
         or safe_number(data.get("total_games"), None)
         or safe_number(data.get("gameCount"), None)
         or safe_number(data.get("game_count"), None)
-        or sum(get_opening_games(item) for item in openings)
+        or 0
     )
 
+    # Count games with PGN where available
+    games_list = data.get("games") if isinstance(data.get("games"), list) else None
+    games_with_pgn = 0
+    games_parsed = 0
+    if games_list:
+        for g in games_list:
+            pgn = g.get("pgn") if isinstance(g, dict) else None
+            if pgn:
+                games_with_pgn += 1
+                games_parsed += 1
+
+    # Opening detection counts
+    games_with_opening = sum(get_opening_games(item) for item in openings)
+    openings_detected = len(openings)
+
+    # Usable games are those assigned to known openings (not unknown)
+    usable_games = sum(get_opening_games(item) for item in known_openings)
+
+    # Strict qualification (affects wording/confidence only)
+    qualified_openings = [item for item in known_openings if get_opening_games(item) >= 5]
+
+    # Repeat openings heuristic
     repeat_openings = len([item for item in known_openings if get_opening_games(item) >= 3])
 
-    if game_count < 30:
-        confidence = "low"
+    # Base confidence (legacy)
+    if games_imported < 30:
+        base_confidence = "low"
     elif level_profile.get("rating") is None:
-        confidence = "medium"
-    elif game_count >= 80 and repeat_openings >= 4:
-        confidence = "high"
+        base_confidence = "medium"
+    elif games_imported >= 80 and repeat_openings >= 4:
+        base_confidence = "high"
     else:
-        confidence = "medium"
+        base_confidence = "medium"
+
+    # Sample-size aware final confidence / tier
+    if usable_games >= 10:
+        sample_tier = "strong"
+    elif 5 <= usable_games <= 9:
+        sample_tier = "medium"
+    elif 3 <= usable_games <= 4:
+        sample_tier = "light"
+    else:
+        sample_tier = "aggregate"
+
+    final_confidence = sample_tier
+
+    not_enough_data_reason = None
+    if usable_games < 10:
+        not_enough_data_reason = (
+            f"Only {usable_games} usable games detected — fewer than the recommended 10 for a strong report."
+        )
 
     recommendation = build_recommendation(data, level_profile, openings)
 
@@ -558,12 +603,43 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
         "explanation": level_profile["unknown_explanation"],
     }
     data["data_quality"] = {
-        "confidence": confidence,
-        "games_checked": game_count,
+        "confidence": base_confidence,
+        "sample_tier": sample_tier,
+        "games_checked": games_imported,
+        "usable_games": usable_games,
+        "games_with_pgn": games_with_pgn,
+        "games_with_opening": games_with_opening,
         "repeat_openings": repeat_openings,
         "known_openings": len(known_openings),
         "rating_detected": level_profile["rating"],
     }
+    # Expose analysis-level fields required by the UI
+    data["gamesImported"] = games_imported
+    data["gamesWithPgn"] = games_with_pgn
+    data["gamesWithOpeningDetected"] = games_with_opening
+    data["gamesUsedForFit"] = usable_games
+    data["qualifiedOpenings"] = [get_opening_name(o) for o in qualified_openings]
+    data["analysisConfidence"] = final_confidence
+    data["notEnoughDataReason"] = not_enough_data_reason
+
+    # Debug / diagnostic payload for frontend
+    debug = {
+        "username": username or data.get("username") or data.get("playerName"),
+        "platform": platform or data.get("platform"),
+        "monthsRequested": data.get("months") or data.get("monthsChecked") or data.get("months_requested"),
+        "gamesFetched": games_imported,
+        "gamesWithPgn": games_with_pgn,
+        "gamesParsed": games_parsed,
+        "gamesWithOpening": games_with_opening,
+        "openingsDetected": openings_detected,
+        "qualifiedOpenings": [get_opening_name(o) for o in qualified_openings],
+        "topOpeningSamples": [get_opening_name(o) for o in sorted(openings, key=lambda x: get_opening_games(x), reverse=True)[:5]],
+        "rejectedReasonCounts": data.get("rejected") or {},
+        "finalConfidence": final_confidence,
+        "notEnoughDataReason": not_enough_data_reason,
+    }
+
+    data["import_debug"] = debug
     data["backend_recommendation"] = recommendation
     data["backend_coach_summary"] = level_profile["headline"]
     data["backend_next_action"] = recommendation["primary_action"]

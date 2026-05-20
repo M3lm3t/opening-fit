@@ -9,7 +9,7 @@ import PolishedOpeningFitReportHero from "./components/OpeningFitReportHero.jsx"
 import OpeningFitTrustSections from "./components/OpeningFitTrustSections.jsx";
 import OpeningFitPolishToast from "./components/OpeningFitPolishToast.jsx";
 import "./components/OpeningFitPolish.css";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
 import OpeningReportSummary from "./components/OpeningReportSummary";
@@ -18,7 +18,7 @@ import PremiumDashboard from "./components/PremiumDashboard";
 import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
 import AccountPanel from "./components/AccountPanel";
 import GameReplayBoard from "./components/GameReplayBoard";
-import OpeningPracticeLinesPanel from "./components/OpeningPracticeLinesPanel";
+import OpeningPracticeBoard from "./components/OpeningPracticeBoard";
 import PremiumPanel from "./components/PremiumPanel";
 import ResultsCommandCenter from "./components/ResultsCommandCenter";
 import OpeningHealthScore from "./components/OpeningHealthScore";
@@ -28,9 +28,6 @@ import PremiumCoachPlan from "./components/PremiumCoachPlan";
 import MyRepertoire from "./components/MyRepertoire";
 import PremiumTrustStrip from "./components/PremiumTrustStrip";
 import LandingModal from "./components/LandingModal";
-import ReportSnapshot from "./components/ReportSnapshot";
-import OpeningCoachPlan from "./components/OpeningCoachPlan";
-import OpeningProgressTracker from "./components/OpeningProgressTracker";
 import OpeningFitTrustUpgrade from "./components/OpeningFitTrustUpgrade";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
@@ -193,7 +190,6 @@ const USERNAME_KEY = "openingFit:lastUsername";
 const PREMIUM_KEY = "openingFit:isPremiumDemo";
 const PLATFORM_KEY = "openingFit:lastPlatform";
 const IMPORT_MONTHS_KEY = "openingFit:lastImportMonths";
-const OPENING_SAMPLE_PERCENT_KEY = "openingFit:openingSamplePercent";
 
 const platforms = {
   chesscom: {
@@ -205,129 +201,6 @@ const platforms = {
     label: "Lichess",
     apiPath: "lichess",
     usernamePlaceholder: "Lichess username",
-  },
-};
-
-const SITE_URL = "https://www.openingfit.com";
-
-const HOME_SEO = {
-  title: "Opening Fit | Chess Opening Analysis & Repertoire Builder",
-  description:
-    "Opening Fit analyses your Chess.com or Lichess games to find which openings fit your play style, what to keep, what to improve, and what to study next.",
-  path: "/",
-  h1: "Find the chess openings that fit how you actually play",
-};
-
-const SEO_LINKS = [
-  ["Chess Opening Analysis", "/chess-opening-analysis"],
-  ["Chess Repertoire Builder", "/chess-repertoire-builder"],
-  ["Chess.com Opening Analysis", "/chesscom-opening-analysis"],
-  ["Lichess Opening Analysis", "/lichess-opening-analysis"],
-  ["Find Openings for Your Style", "/best-chess-openings-for-your-style"],
-  ["FAQ", "/faq"],
-];
-
-const SEO_PAGES = {
-  "/chess-opening-analysis": {
-    title: "Chess Opening Analysis from Your Real Games | Opening Fit",
-    description:
-      "Analyse your real Chess.com or Lichess games to see which chess openings score best, where weak lines repeat, and what to study next.",
-    h1: "Chess opening analysis based on your actual games",
-    intro:
-      "Opening Fit turns public online games into a practical opening report, so your repertoire decisions come from positions you actually reach.",
-    sections: [
-      ["Analyse your Chess.com or Lichess games", "Import public games and review the openings you play most often as White and Black."],
-      ["See which openings score best", "Compare results, sample size, and fit so strong openings are easy to keep in your repertoire."],
-      ["Find weak lines and repeat problems", "Spot openings where one recurring line is hurting results without treating the whole opening as bad."],
-      ["Turn the report into a practical study plan", "Use the report to decide what to keep, what to repair, and what to study in short sessions."],
-    ],
-  },
-  "/chess-repertoire-builder": {
-    title: "Chess Repertoire Builder for Real Online Games | Opening Fit",
-    description:
-      "Build a chess repertoire around your own online games, using opening results, style fit, and repair targets.",
-    h1: "Build a chess repertoire around how you actually play",
-    intro:
-      "Opening Fit helps you choose openings from your own evidence instead of copying random grandmaster repertoires.",
-    sections: [
-      ["Do not copy random grandmaster openings", "A good repertoire should fit your rating, style, memory, and typical middlegames."],
-      ["Use your own results", "Start from the Chess.com or Lichess openings that already appear in your games."],
-      ["Keep openings that suit you", "Protect reliable choices that score well and create positions you understand."],
-      ["Repair openings with line-level weaknesses", "Improve can mean one variation needs attention, not that the whole opening is wrong for you."],
-      ["Replace openings that create bad positions for you", "When an opening repeatedly gives you uncomfortable positions, the report can flag it for review."],
-    ],
-  },
-  "/chesscom-opening-analysis": {
-    title: "Chess.com Opening Analysis Tool | Opening Fit",
-    description:
-      "Import public Chess.com games and analyse your openings by colour, result, sample size, and study priority.",
-    h1: "Analyse your Chess.com openings",
-    intro:
-      "Opening Fit reads public Chess.com games and turns your opening history into a compact repertoire report.",
-    sections: [
-      ["Import public Chess.com games", "Enter a username and choose the import window to analyse recent public games."],
-      ["Find your best and worst openings", "See which openings are reliable, which need repair, and which may be risky right now."],
-      ["See opening results by colour", "Separate White and Black patterns so repertoire choices stay practical."],
-      ["Get a simple study plan", "Turn the findings into a focused plan instead of a long theory list."],
-    ],
-  },
-  "/lichess-opening-analysis": {
-    title: "Lichess Opening Analysis Tool | Opening Fit",
-    description:
-      "Import public Lichess games and analyse opening patterns, colour results, and practical repertoire choices.",
-    h1: "Analyse your Lichess openings",
-    intro:
-      "Opening Fit uses your public Lichess games to show opening patterns and study priorities from real results.",
-    sections: [
-      ["Import public Lichess games", "Use a Lichess username to create an opening report from recent public games."],
-      ["Find opening patterns", "Review common openings, recurring problems, and choices that match your style."],
-      ["Compare White and Black results", "Understand where each side of your repertoire is strongest or most fragile."],
-      ["Build a practical repertoire", "Keep useful openings, repair weak lines, and focus study time where it matters."],
-    ],
-  },
-  "/best-chess-openings-for-your-style": {
-    title: "Find the Best Chess Openings for Your Style | Opening Fit",
-    description:
-      "Find chess openings that fit your style using real Chess.com and Lichess games instead of a quiz.",
-    h1: "Find chess openings that fit your style",
-    intro:
-      "Opening Fit looks at your real games to connect opening choices with the kinds of positions you handle well.",
-    sections: [
-      ["Tactical vs positional openings", "Some players score best in active positions; others do better with slower plans and structure."],
-      ["Open vs closed positions", "Your games can reveal whether open centres, locked pawn chains, or flexible structures fit you best."],
-      ["Aggressive vs solid repertoires", "A good repertoire can be ambitious or steady, as long as it matches your decisions at the board."],
-      ["Real games instead of a quiz", "Opening Fit uses Chess.com and Lichess results rather than asking you to guess your style."],
-    ],
-  },
-  "/about": {
-    title: "About Opening Fit | Chess Opening Analysis",
-    description:
-      "Opening Fit is a chess opening analysis and repertoire builder for Chess.com and Lichess players.",
-    h1: "About Opening Fit",
-    intro:
-      "Opening Fit helps chess players understand which openings fit their real online games, then turns that evidence into a compact report and study plan.",
-    sections: [
-      ["Built around real games", "The app analyses public Chess.com and Lichess games rather than generic opening lists."],
-      ["Designed for practical study", "Reports focus on what to keep, what to improve, and what to study next."],
-      ["Free report available", "You can import games without logging in and view a free opening report."],
-    ],
-  },
-  "/faq": {
-    title: "Opening Fit FAQ | Chess Opening Analysis Questions",
-    description:
-      "Common questions about Opening Fit, Chess.com opening analysis, Lichess opening analysis, and chess repertoire reports.",
-    h1: "Opening Fit FAQ",
-    intro:
-      "Quick answers about using Opening Fit for chess opening analysis and repertoire building.",
-    faqs: [
-      ["Is OpeningFit free?", "A free report is available. Paid access unlocks deeper analysis and longer-term study features."],
-      ["Does it work with Chess.com?", "Yes. Opening Fit can import public Chess.com games by username."],
-      ["Does it work with Lichess?", "Yes. Opening Fit can import public Lichess games by username."],
-      ["Do I need to log in?", "No login is required for the basic import flow because the app uses public games."],
-      ["What does Keep / Improve / Avoid mean?", "Keep means the opening is working well, Improve means a line or pattern needs repair, and Avoid means the opening may be a poor practical fit for now."],
-      ["Is this a chess engine?", "No. Opening Fit is not an engine. It analyses opening results, patterns, and study priorities from your games."],
-      ["How is this different from Chessable or an opening trainer?", "Opening Fit helps decide what to study from your own games; opening trainers usually help memorise chosen lines."],
-    ],
   },
 };
 
@@ -343,41 +216,13 @@ const closedSections = {
   top: false,
 };
 
-const clampOpeningSamplePercent = (value) => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return 2;
-  return Math.min(20, Math.max(0, Math.round(parsed)));
-};
-
-const getOpeningSampleMinimumGames = (totalGames, samplePercent) => {
-  const cleanPercent = clampOpeningSamplePercent(samplePercent);
-  const cleanTotal = Math.max(0, Number(totalGames) || 0);
-
-  if (!cleanPercent || !cleanTotal) return 1;
-
-  return Math.max(2, Math.ceil((cleanTotal * cleanPercent) / 100));
-};
-
-const filterOpeningsBySamplePercent = (items, totalGames, samplePercent) => {
-  if (!Array.isArray(items)) return [];
-
-  const minimumGames = getOpeningSampleMinimumGames(totalGames, samplePercent);
-
-  if (minimumGames <= 1) return items;
-
-  return items.filter((item) => {
-    if (typeof item === "string") return true;
-    return getOpeningGames(item) >= minimumGames;
-  });
-};
-
 const premiumFeatures = [
-  "Line-level opening diagnosis",
-  "12-month trend view",
-  "Saved report history",
-  "Confidence-aware opening verdicts",
-  "Full 7-day study plan",
-  "Deeper move-order explanations",
+  "12 months of game history",
+  "Full opening table",
+  "Keep / Improve / Avoid verdicts",
+  "Advanced personal training plan",
+  "Saved import history",
+  "Future Stockfish analysis",
 ];
 
 function safeNumber(value, fallback = 0) {
@@ -619,396 +464,49 @@ function calculateOpeningFitScore(opening, playerStyle) {
   return Math.max(1, Math.min(100, Math.round(score)));
 }
 
-function getProfileRating(data) {
-  const directValues = [
-    data?.rating,
-    data?.currentRating,
-    data?.current_rating,
-    data?.chesscomRating,
-    data?.chesscom_rating,
-    data?.lichessRating,
-    data?.lichess_rating,
-    data?.rapidRating,
-    data?.rapid_rating,
-    data?.blitzRating,
-    data?.blitz_rating,
-    data?.bulletRating,
-    data?.bullet_rating,
-    data?.player_level?.rating,
-    data?.playerLevel?.rating,
-  ];
-
-  const cleanRatings = directValues
-    .map((value) => Number(value))
-    .filter((value) => Number.isFinite(value) && value > 100 && value < 3500);
-
-  if (cleanRatings.length) return Math.max(...cleanRatings);
-
-  const recentGames = Array.isArray(data?.recent_games)
-    ? data.recent_games
-    : Array.isArray(data?.recentGames)
-    ? data.recentGames
-    : [];
-
-  const gameRatings = recentGames
-    .flatMap((game) => [
-      game?.player_rating,
-      game?.playerRating,
-      game?.rating,
-      game?.white_rating,
-      game?.whiteRating,
-      game?.black_rating,
-      game?.blackRating,
-    ])
-    .map((value) => Number(value))
-    .filter((value) => Number.isFinite(value) && value > 100 && value < 3500);
-
-  if (!gameRatings.length) return 0;
-
-  gameRatings.sort((a, b) => a - b);
-  return gameRatings[Math.floor(gameRatings.length / 2)];
-}
-
-function getPlayerTier(data) {
-  const rating = getProfileRating(data);
-  const level = String(
-    data?.playerLevel?.level ??
-      data?.playerLevel?.label ??
-      data?.playerLevel ??
-      data?.player_level?.level ??
-      data?.player_level?.label ??
-      data?.player_level ??
-      data?.level ??
-      ""
-  ).toLowerCase();
-  const title = String(
-    data?.title ??
-      data?.chessTitle ??
-      data?.chess_title ??
-      data?.fideTitle ??
-      data?.fide_title ??
-      data?.playerTitle ??
-      data?.player_title ??
-      data?.profile?.title ??
-      ""
-  )
-    .trim()
-    .toLowerCase();
-  const titledPlayer = ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(title);
-
-  if (
-    rating >= 2500 ||
-    titledPlayer ||
-    level.includes("elite") ||
-    level.includes("master") ||
-    level.includes("gm") ||
-    level.includes("grandmaster") ||
-    level.includes("international master")
-  ) {
-    return "elite";
-  }
-
-  if (
-    rating >= 2200 ||
-    level.includes("expert") ||
-    level.includes("candidate master") ||
-    level.includes("national master")
-  ) {
-    return "strong";
-  }
-
-  if (
-    rating >= 1600 ||
-    level.includes("advanced") ||
-    level.includes("club") ||
-    level.includes("strong")
-  ) {
-    return "club";
-  }
-
-  return "developing";
-}
-
-function getPlayerBaselineScore(data) {
-  const value = [
-    data?.score,
-    data?.scoreRate,
-    data?.score_rate,
-    data?.winRate,
-    data?.win_rate,
-    data?.overallScore,
-    data?.overall_score,
-    data?.summary?.score,
-    data?.summary?.winRate,
-  ]
-    .map((item) => safeNumber(item, NaN))
-    .find((item) => Number.isFinite(item) && item > 0);
-
-  if (!value) return 50;
-  return value <= 1 ? Math.round(value * 100) : Math.round(value);
-}
-
-function getOpeningSampleTier(games) {
-  const count = Number(games || 0);
-  if (count >= 20) return "large";
-  if (count >= 8) return "medium";
-  if (count >= 3) return "small";
-  return "tiny";
-}
-
-function getAverageOppositionRating(opening, data) {
-  const direct = Number(
-    opening?.averageOpponentRating ??
-      opening?.average_opponent_rating ??
-      opening?.avgOpponentRating ??
-      opening?.avg_opponent_rating ??
-      opening?.opponentRating ??
-      opening?.opponent_rating ??
-      data?.averageOpponentRating ??
-      data?.average_opponent_rating ??
-      0
-  );
-
-  return Number.isFinite(direct) ? direct : 0;
-}
-
-function getSmartOpeningVerdict(opening, data, index = 0) {
+function getOpeningVerdict(opening, score) {
   const games = getOpeningGames(opening);
   const winRate = getWinRate(opening);
-  const tier = getPlayerTier(data);
-  const sampleTier = getOpeningSampleTier(games);
-  const isMainWeapon = index <= 2 && games >= 8;
-  const largeSample = sampleTier === "large";
-  const frequentlyPlayed = isMainWeapon || games >= 20;
-  const baseline = getPlayerBaselineScore(data);
-  const highRatedPlayer = ["club", "strong", "elite"].includes(tier);
-  const belowBaseline = winRate < baseline;
-  const slightlyBelowBaseline = belowBaseline && baseline - winRate <= 8;
-  const rating = getProfileRating(data);
-  const opposition = getAverageOppositionRating(opening, data);
-  const strongOpposition =
-    rating && opposition ? opposition >= Math.max(1800, rating - 100) : false;
-  const highRatedRepertoireMessage =
-    "This looks like a serious part of your repertoire. Recent results are below your usual baseline, but this is more likely a form trend than a reason to abandon the opening.";
 
-  if (isUnknownOpeningName(getOpeningName(opening))) {
-    return {
-      label: "Needs review",
-      category: "review",
-      tone: "neutral",
-      severity: "neutral",
-      message:
-        "This opening was not clearly classified. Review the move order before treating it as a repertoire problem.",
-    };
-  }
+  if (score >= 75 && games >= 2) return "Keep";
+  if (score >= 55) return "Improve";
+  if (winRate < 40 || score < 55) return "Avoid for now";
 
-  if (sampleTier === "tiny") {
-    return {
-      label: "Experimental / not enough data",
-      category: "neutral",
-      tone: "neutral",
-      severity: "neutral",
-      message:
-        "There is not enough data here to make a confident recommendation yet. Treat this as a note, not a verdict.",
-    };
-  }
-
-  if (sampleTier === "small") {
-    return {
-      label: "Low-confidence sample",
-      category: "neutral",
-      tone: "neutral",
-      severity: "neutral",
-      message:
-        "This opening has appeared a few times, but the sample is still too small for confident advice. Keep tracking it before changing the repertoire.",
-    };
-  }
-
-  if (highRatedPlayer && frequentlyPlayed && belowBaseline && winRate >= 35) {
-    return {
-      label: isMainWeapon ? "Main weapon" : "Reliable choice",
-      category: slightlyBelowBaseline ? "keep" : "review",
-      tone: slightlyBelowBaseline ? "positive" : "warning",
-      severity: slightlyBelowBaseline ? "positive" : "warning",
-      message: highRatedRepertoireMessage,
-    };
-  }
-
-  if (tier === "elite") {
-    if (isMainWeapon && winRate >= 45) {
-      return {
-        label: "Main weapon",
-        category: "keep",
-        tone: "positive",
-        severity: "positive",
-        message:
-          belowBaseline
-            ? highRatedRepertoireMessage
-            : "This looks like a regular part of the repertoire. Recent results are worth reviewing, but the data points to targeted fine-tuning rather than replacing the opening.",
-      };
-    }
-
-    if (isMainWeapon) {
-      return {
-        label: "Needs review",
-        category: "review",
-        tone: "warning",
-        severity: "warning",
-        message:
-          highRatedRepertoireMessage,
-      };
-    }
-
-    if (largeSample && games >= 20 && winRate < 25) {
-      return {
-        label: "Needs review",
-        category: "review",
-        tone: "warning",
-        severity: "warning",
-        message:
-          "This is a large sample with unusually poor recent results. Even then, for an elite player this should be treated as a performance check before calling the opening a bad choice.",
-      };
-    }
-
-    if (winRate < 45) {
-      return {
-        label: "Promising but unstable",
-        category: "review",
-        tone: "warning",
-        severity: "warning",
-        message:
-          "Recent results in this opening are below the player's usual level. For a top player, frame this as a performance review, not beginner improvement advice.",
-      };
-    }
-
-    return {
-      label: "Reliable choice",
-      category: "keep",
-      tone: "positive",
-      severity: "positive",
-      message:
-        "This opening is performing well enough to remain part of the repertoire. Look for refinements rather than replacement ideas.",
-    };
-  }
-
-  if (tier === "strong") {
-    if (isMainWeapon && winRate >= 45) {
-      return {
-        label: "Main weapon",
-        category: "keep",
-        tone: "positive",
-        severity: "positive",
-        message:
-          belowBaseline
-            ? highRatedRepertoireMessage
-            : "This is used often enough to look like a trusted part of the repertoire. Review recent losses for patterns, but do not treat this as an opening to abandon.",
-      };
-    }
-
-    if (isMainWeapon && winRate >= 35) {
-      return {
-        label: "Promising but unstable",
-        category: "review",
-        tone: "warning",
-        severity: "warning",
-        message:
-          "This is probably still a useful part of the repertoire. Fine-tune the specific variations or middlegame structures where the recent results are slipping.",
-      };
-    }
-
-    if (winRate < 40) {
-      return {
-        label: "Needs review",
-        category: "review",
-        tone: "warning",
-        severity: "warning",
-        message: strongOpposition
-          ? "Recent results are under pressure against strong opposition. Review recurring loss patterns before deciding whether the opening itself is the issue."
-          : "Recent results suggest this line is worth reviewing. The issue may be a branch or structure, not the opening choice itself.",
-      };
-    }
-
-    return {
-      label: "Reliable choice",
-      category: "keep",
-      tone: "positive",
-      severity: "positive",
-      message:
-        "This opening is performing well enough to stay in the repertoire. Use the games to refine plans rather than replace the opening.",
-    };
-  }
-
-  if (isMainWeapon && games >= 8 && winRate >= 42) {
-    return {
-      label: "Main weapon",
-      category: "keep",
-      tone: "positive",
-      severity: "positive",
-      message:
-        "This is one of the player's main openings and the results are playable. Keep it, but review the recurring positions that decide games.",
-    };
-  }
-
-  if (winRate >= 55) {
-    return {
-      label: "Reliable choice",
-      category: "keep",
-      tone: "positive",
-      severity: "positive",
-      message:
-        "This opening is working well and should stay in the repertoire.",
-    };
-  }
-
-  if (winRate >= 45) {
-    return {
-      label: "Promising but unstable",
-      category: "improve",
-      tone: "warning",
-      severity: "warning",
-      message:
-        "This does not mean the whole opening is bad. It means one branch, move order, or opening-to-middlegame transition is likely costing points.",
-    };
-  }
-
-  if (isMainWeapon && winRate >= 35) {
-    return {
-      label: "Promising but unstable",
-      category: "review",
-      tone: "warning",
-      severity: "warning",
-      message:
-        "Because this is a main opening, do not abandon it too quickly. Review the specific line or structure where the losses start to repeat.",
-    };
-  }
-
-  return {
-    label: "Needs review",
-    category: "avoid",
-    tone: "danger",
-    severity: "danger",
-    message:
-      "The data points to a recurring problem inside this opening. Review the damaging line first before deciding whether the whole opening should leave the repertoire.",
-  };
+  return "Improve";
 }
 
-function getOpeningExplanation(opening, score, playerStyle, data, index = 0) {
+function getOpeningExplanation(opening, score, playerStyle) {
   const name = getOpeningName(opening);
-  const smartVerdict = getSmartOpeningVerdict(opening, data, index);
+  const games = getOpeningGames(opening);
+  const winRate = getWinRate(opening);
+  const tags = getOpeningTags(name);
+  const verdict = getOpeningVerdict(opening, score);
 
   if (isUnknownOpeningName(name)) {
-    return smartVerdict.message;
+    return "This opening was not clearly classified. It is worth reviewing the PGN or playing more recognised opening lines so the report can give better advice.";
   }
 
-  if (smartVerdict.message) {
-    return smartVerdict.message;
-  }
-
-  if (smartVerdict.category === "keep") {
+  if (verdict === "Keep") {
     return `This looks like a strong fit. You score well with it, it appears in your games enough to be meaningful, and it suits your ${playerStyle.title.toLowerCase()} profile.`;
   }
 
-  return smartVerdict.message;
+  if (verdict === "Improve") {
+    if (games < 3) {
+      return "This opening has potential, but you have not played it enough yet. Keep testing it before making it a main part of your repertoire.";
+    }
+
+    if (winRate >= 50) {
+      return "Your results are decent here, but there is room to improve. This could become a reliable weapon with a clearer plan after the opening.";
+    }
+
+    return "This opening is not failing badly, but your results suggest you need a simpler plan or a more comfortable variation.";
+  }
+
+  if (tags.includes("sharp")) {
+    return "This may be too sharp or theory-heavy for your current results. Consider a simpler alternative until your confidence improves.";
+  }
+
+  return "Your results suggest this opening is not fitting you well right now. It may be worth replacing it or keeping it as a lower-priority side option.";
 }
 
 function buildOpeningFitData(data) {
@@ -1052,40 +550,17 @@ function buildOpeningFitData(data) {
 
   const cleanOpenings = Array.from(mergedMap.values());
   const playerStyle = getPlayerStyleFromOpenings(cleanOpenings);
-  const volumeRank = new Map(
-    [...cleanOpenings]
-      .sort((a, b) => getOpeningGames(b) - getOpeningGames(a))
-      .map((opening, index) => [getOpeningName(opening).toLowerCase(), index])
-  );
 
   const scoredOpenings = cleanOpenings
     .map((opening) => {
       const score = calculateOpeningFitScore(opening, playerStyle);
-      const rank = volumeRank.get(getOpeningName(opening).toLowerCase()) ?? 99;
-      const smartVerdict = getSmartOpeningVerdict(opening, data, rank);
-      const fitScore =
-        smartVerdict.label === "Main weapon" ||
-        smartVerdict.label === "Reliable choice"
-          ? Math.max(score, 78)
-          : smartVerdict.category === "review"
-          ? Math.max(score, 58)
-          : score;
+      const verdict = getOpeningVerdict(opening, score);
 
       return {
         ...opening,
-        fitScore,
-        fitVerdict: smartVerdict.label,
-        fitCategory: smartVerdict.category,
-        fitTone: smartVerdict.tone,
-        fitSeverity: smartVerdict.severity,
-        fitSampleTier: getOpeningSampleTier(getOpeningGames(opening)),
-        fitExplanation: getOpeningExplanation(
-          opening,
-          fitScore,
-          playerStyle,
-          data,
-          rank
-        ),
+        fitScore: score,
+        fitVerdict: verdict,
+        fitExplanation: getOpeningExplanation(opening, score, playerStyle),
       };
     })
     .sort((a, b) => b.fitScore - a.fitScore);
@@ -1096,23 +571,10 @@ function buildOpeningFitData(data) {
 
   const bestOpening = recognised[0] || scoredOpenings[0] || null;
 
-  const concernRank = {
-    avoid: 0,
-    review: 1,
-    improve: 2,
-    neutral: 3,
-    keep: 4,
-  };
-
   const weakestOpening =
     [...recognised]
-      .filter((opening) => getOpeningGames(opening) >= 3)
-      .sort((a, b) => {
-        const categoryDiff =
-          (concernRank[a.fitCategory] ?? 3) - (concernRank[b.fitCategory] ?? 3);
-        if (categoryDiff) return categoryDiff;
-        return a.fitScore - b.fitScore;
-      })[0] ||
+      .filter((opening) => getOpeningGames(opening) >= 2)
+      .sort((a, b) => a.fitScore - b.fitScore)[0] ||
     [...recognised].sort((a, b) => a.fitScore - b.fitScore)[0] ||
     null;
 
@@ -1128,7 +590,6 @@ function buildOpeningFitData(data) {
 
   return {
     playerStyle,
-    playerTier: getPlayerTier(data),
     scoredOpenings,
     bestOpening,
     weakestOpening,
@@ -1136,7 +597,8 @@ function buildOpeningFitData(data) {
   };
 }
 
-function Section({ title, isOpen, onToggle, children, badge = null }) {
+function Section({ title, isOpen, onToggle, children, badge = null,
+  onViewChange,}) {
   return (
     <section className="card collapsibleCard">
       <button className="sectionToggle" onClick={onToggle} type="button">
@@ -1187,16 +649,15 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
   } = fitData;
 
   const keepCount = scoredOpenings.filter(
-    (opening) => opening.fitCategory === "keep"
+    (opening) => opening.fitVerdict === "Keep"
   ).length;
 
-  const reviewCount = scoredOpenings.filter(
-    (opening) =>
-      opening.fitCategory === "review" || opening.fitCategory === "improve"
+  const improveCount = scoredOpenings.filter(
+    (opening) => opening.fitVerdict === "Improve"
   ).length;
 
   const avoidCount = scoredOpenings.filter(
-    (opening) => opening.fitCategory === "avoid"
+    (opening) => opening.fitVerdict === "Avoid for now"
   ).length;
 
   return (
@@ -1242,7 +703,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
         <div className="fitMiniCard">
           <span className="fitLabel">Opening verdicts</span>
           <strong>
-            {keepCount} Reliable · {reviewCount} Review · {avoidCount} Caution
+            {keepCount} Keep · {improveCount} Improve · {avoidCount} Avoid
           </strong>
           <p>Based on your imported games and opening results.</p>
         </div>
@@ -1253,7 +714,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
         {bestOpening
           ? `Build your short repertoire around ${getOpeningName(
               bestOpening
-            )}, then review your least stable opening.`
+            )}, then improve or replace your weakest opening.`
           : "Import more games to get a stronger recommendation."}
 
         {bestOpening ? (
@@ -1278,7 +739,7 @@ function OpeningFitScoreList({ fitData, onPractice }) {
       <div className="sectionHeaderSimple">
         <div>
           <p className="eyebrow">Opening Fit Scores</p>
-          <h2>Opening verdicts</h2>
+          <h2>Keep / Improve / Avoid</h2>
           <p className="muted">
             These scores estimate which openings fit your results and playing
             style.
@@ -1318,133 +779,6 @@ function OpeningFitScoreList({ fitData, onPractice }) {
           );
         })}
       </div>
-    </section>
-  );
-}
-
-function BiggestInsightCard({ data, fitData }) {
-  if (!data || !fitData?.scoredOpenings?.length) return null;
-
-  const profile = getSmartPlayerLevelProfile(data);
-  const recommendation = getSmartLevelAwareRecommendation(data, fitData);
-  const openings = fitData.scoredOpenings || [];
-  const stable = openings.find((opening) => opening.fitCategory === "keep") || fitData.bestOpening;
-  const review =
-    openings.find((opening) => ["review", "improve", "avoid"].includes(opening.fitCategory)) ||
-    fitData.weakestOpening;
-  const white = openings.find((opening) =>
-    String(getOpeningSide(opening)).toLowerCase().includes("white")
-  );
-  const black = openings.find((opening) =>
-    String(getOpeningSide(opening)).toLowerCase().includes("black")
-  );
-  const sideFocus = white && black
-    ? getWinRate(white) < getWinRate(black)
-      ? "White"
-      : "Black"
-    : white
-    ? "White"
-    : black
-    ? "Black"
-    : "your most repeated side";
-  const stableName = stable ? getOpeningName(stable) : recommendation.bestName;
-  const reviewName = review ? getOpeningName(review) : recommendation.weakName;
-  const ratingLabel = profile.rating ? `${profile.rating} rating` : profile.label;
-  const levelText =
-    profile.level === "elite" || profile.level === "strong"
-      ? "Treat this as a repertoire audit, not a beginner verdict."
-      : profile.level === "beginner" || profile.level === "improver"
-      ? "The fastest gain is simpler choices and familiar positions."
-      : "The fastest gain is repairing one repeat branch while keeping your stable openings.";
-
-  return (
-    <section className="card biggestInsightCard">
-      <p className="eyebrow">Biggest insight</p>
-      <h2>{recommendation.title}</h2>
-      <p>
-        {levelText} Your {sideFocus} results point toward keeping{" "}
-        <strong>{stableName}</strong> as the reference point and reviewing{" "}
-        <strong>{reviewName}</strong> for a specific line, move order, or early
-        middlegame structure.
-      </p>
-      <div className="fitMiniGrid">
-        <div className="fitMiniCard">
-          <span className="fitLabel">Level read</span>
-          <strong>{ratingLabel}</strong>
-          <p>{profile.trainingFocus}</p>
-        </div>
-        <div className="fitMiniCard">
-          <span className="fitLabel">Action</span>
-          <strong>20 minutes today</strong>
-          <p>{recommendation.primaryAction}</p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CompactReportSummary({ data, fitData, onViewChange }) {
-  if (!data) return null;
-
-  const openings = fitData?.scoredOpenings || [];
-  const best = fitData?.bestOpening || openings[0] || null;
-  const repair =
-    openings.find((opening) => ["review", "improve"].includes(opening.fitCategory)) ||
-    fitData?.weakestOpening ||
-    openings[1] ||
-    null;
-  const avoid =
-    openings.find((opening) => opening.fitCategory === "avoid") ||
-    openings.find((opening) => opening.fitSeverity === "danger") ||
-    repair;
-  const playerName =
-    data.username ||
-    data.playerName ||
-    data.player_name ||
-    data.requestedUsername ||
-    "Your report";
-  const games =
-    data.total_games ||
-    data.gamesImported ||
-    data.games_imported ||
-    data.games_analyzed ||
-    0;
-
-  const card = (label, opening, fallback, className) => (
-    <article className={`compactVerdictCard ${className || ""}`}>
-      <span>{label}</span>
-      <strong>{opening ? getOpeningName(opening) : fallback}</strong>
-      <p>
-        {opening
-          ? `${getOpeningGames(opening)} games · ${getWinRate(opening)}% score`
-          : "Import more games to improve confidence."}
-      </p>
-    </article>
-  );
-
-  return (
-    <section className="compactReportDashboard">
-      <div className="compactReportTitle">
-        <p className="eyebrow">Opening Fit report</p>
-        <h1>{playerName} opening dashboard</h1>
-        <span>{games ? `${games} games analysed` : "Report ready"}</span>
-      </div>
-
-      <BiggestInsightCard data={data} fitData={fitData} />
-
-      <div className="compactVerdictGrid">
-        {card("Best fit", best, "Not enough data", "best")}
-        {card("Needs repair", repair, "No repair target yet", "repair")}
-        {card("Avoid for now", avoid, "No avoid target yet", "avoid")}
-      </div>
-
-      <button
-        className="primaryBtn compactStudyCta"
-        type="button"
-        onClick={() => onViewChange?.("training")}
-      >
-        Start my 20-minute study plan
-      </button>
     </section>
   );
 }
@@ -1644,25 +978,31 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
 function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange }) {
   const [open, setOpen] = useState(false);
 
-  const menuRoutes = data
-    ? [
-        { key: "overview", label: "Overview", view: "overview", target: "app-results", path: "/" },
-        { key: "recommendations", label: "Openings", view: "recommendations", target: "section-recommendations", path: "/" },
-        { key: "training", label: "Study plan", view: "training", target: "section-training", path: "/" },
-        { key: "games", label: "Games", view: "games", target: "section-replay", path: "/" },
-        { key: "upgrade", label: "Upgrade", view: "upgrade", target: "premium", path: "/upgrade" },
-        { key: "account", label: "Login / Payment", view: "account", target: "account", path: "/account" },
-        { key: "feedback", label: "Feedback", view: "feedback", target: "feedback", path: "/" },
-      ]
-    : [
-        { key: "import", label: "Import", target: "app-dashboard", path: "/" },
-        { key: "account", label: "Login / Payment", view: "account", target: "account", path: "/account" },
-        { key: "upgrade", label: "Founder Pass", view: "account", target: "account", path: "/account" },
-        { key: "feedback", label: "Feedback", view: "feedback", target: "feedback", path: "/" },
-      ];
+  const mainItems = [
+    { label: "Import", target: "app-dashboard" },
+    { label: "Ratings", target: "rating-openings" },
+    { label: "Premium", target: "premium" },
+    { label: "Feedback", target: "feedback", view: "feedback" },
+  ];
+
+  const appViews = [
+    { key: "overview", label: "Overview" },
+    { key: "recommendations", label: "Recommendations" },
+    { key: "training", label: "Study Session" },
+    { key: "games", label: "Games" },
+    { key: "data", label: "Data" },
+    { key: "repertoire", label: "Interactive" },
+    { key: "feedback", label: "Feedback" },
+  ];
+
+  const setBodyTab = (view) => {
+    document.body.classList.add("openingfitTabbedResults");
+    document.body.setAttribute("data-openingfit-tab", view);
+  };
 
   const scrollToElement = (target) => {
     if (!target) return false;
+
     const offset = window.innerWidth <= 760 ? 86 : 108;
     const top = target.getBoundingClientRect().top + window.scrollY - offset;
 
@@ -1674,80 +1014,160 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
     return true;
   };
 
-  const scrollToTarget = (targetId) => {
-    const target =
-      document.getElementById(targetId) ||
-      document.getElementById("app-results") ||
-      document.getElementById("app-dashboard");
+  const findTarget = (ids = []) => {
+    for (const id of ids) {
+      const el = document.getElementById(id);
+      if (el) return el;
+    }
 
-    scrollToElement(target);
+    return (
+      document.getElementById("app-results") ||
+      document.querySelector(".reportNavScrollAnchor") ||
+      document.querySelector(".appTabsCard") ||
+      document.getElementById("openingfit-report") ||
+      document.getElementById("opening-fit-report") ||
+      document.getElementById("app-dashboard")
+    );
   };
 
-  const navigate = (route) => {
-    if (route.view && typeof onViewChange === "function") {
-      onViewChange(route.view);
+  const scrollMain = (targetId) => {
+    const run = () => {
+      const target = findTarget([targetId, "app-dashboard"]);
+      if (scrollToElement(target)) {
+        try {
+          window.history.replaceState(null, "", `#${target.id || targetId}`);
+        } catch {
+          // Ignore hash update failures.
+        }
+      }
+    };
+
+    window.requestAnimationFrame(() => window.requestAnimationFrame(run));
+    setTimeout(run, 120);
+    setTimeout(run, 360);
+    setTimeout(run, 700);
+  };
+
+  const scrollReport = (view) => {
+    const nextView = view || "overview";
+
+    const reportTargets = {
+      overview: ["openingfit-report", "app-results", "app-dashboard"],
+      recommendations: ["app-results", "opening-fit-report", "keep-improve-avoid", "opening-suggestions"],
+      training: ["app-results", "training-plan", "study-plan"],
+      games: ["app-results", "game-replay", "games"],
+      data: ["app-results", "top-openings", "opening-data"],
+      repertoire: ["app-results", "interactive-repertoire", "opening-practice", "repertoire"],
+      feedback: ["feedback", "app-results"],
+    };
+
+    if (typeof onViewChange === "function") {
+      onViewChange(nextView);
     }
 
-    if (route.path && window.location.pathname !== route.path) {
-      window.history.pushState({}, "", route.path);
-    }
+    setBodyTab(nextView);
 
-    if (!route.view && typeof onJump === "function") {
-      onJump(route.target);
-    }
+    const run = () => {
+      const target = findTarget(reportTargets[nextView] || ["app-results"]);
+      if (scrollToElement(target)) {
+        try {
+          window.history.replaceState(null, "", `#${target.id || "app-results"}`);
+        } catch {
+          // Ignore hash update failures.
+        }
+      }
+    };
 
-    setOpen(false);
-
-    [80, 220, 480].forEach((delay) => {
-      setTimeout(() => scrollToTarget(route.target), delay);
-    });
+    window.requestAnimationFrame(() => window.requestAnimationFrame(run));
+    setTimeout(run, 120);
+    setTimeout(run, 360);
+    setTimeout(run, 700);
   };
 
   return (
-    <nav className={`openingAppMenu ${open ? "openingAppMenuOpen" : ""}`} aria-label="Opening Fit navigation">
+    <div className={`floatingMenu ${open ? "floatingMenuOpen" : ""}`}>
       <button
-        className="openingAppMenuToggle"
+        className="floatingMenuToggle"
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        aria-expanded={open}
-        aria-label={open ? "Close navigation menu" : "Open navigation menu"}
+        aria-label="Open navigation menu"
       >
-        {open ? "×" : "☰"}
+        ☰
       </button>
 
       {open ? (
-        <div className="openingAppMenuPanel">
-          <div className="openingAppMenuHeader">
-            <strong>Opening Fit</strong>
-            <span>{data ? "Report navigation" : "Start here"}</span>
+        <div className="floatingMenuPanel">
+          <div className="floatingMenuHeader">
+            <strong>Opening Fit Menu</strong>
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close menu">
+              ×
+            </button>
           </div>
 
-          <div className="openingAppMenuGrid">
-            {menuRoutes.map((route) => (
+          <p className="floatingMenuLabel">Main</p>
+          <div className="floatingMenuButtons">
+            {mainItems.map((item) => (
               <button
-                key={route.key}
+                key={item.target}
                 type="button"
-                className={activeView === route.view ? "isActive" : ""}
-                onClick={() => navigate(route)}
+                onClick={() => {
+                  if (item.view) {
+                    scrollReport(item.view);
+                  } else {
+                    if (typeof onJump === "function") {
+                      onJump(item.target);
+                    }
+                    scrollMain(item.target);
+                  }
+
+                  setOpen(false);
+                }}
               >
-                {route.label}
+                {item.label}
               </button>
             ))}
           </div>
+
+          {data || activeView === "feedback" ? (
+            <>
+              <p className="floatingMenuLabel">Report pages</p>
+              <div className="floatingMenuButtons floatingMenuButtonsSingle">
+                {appViews.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={activeView === item.key ? "floatingMenuActiveItem" : ""}
+                    onClick={() => {
+                      scrollReport(item.key);
+                      setOpen(false);
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="floatingMenuHint">
+              Import games first to unlock report pages.
+            </p>
+          )}
         </div>
       ) : null}
-    </nav>
+    </div>
   );
 }
 
 
 function AppViewTabs({ activeView, onChange }) {
   const tabs = [
-    { key: "overview", label: "Overview", icon: "⌂" },
-    { key: "recommendations", label: "Openings", icon: "◎" },
-    { key: "training", label: "Study Plan", icon: "◷" },
-    { key: "games", label: "Games", icon: "♟" },
-    { key: "upgrade", label: "Upgrade", icon: "◆" },
+    { key: "overview", label: "Overview", icon: "🏠" },
+    { key: "recommendations", label: "Recommendations", icon: "🎯" },
+    { key: "training", label: "Study Session", icon: "🚀" },
+    { key: "games", label: "Games", icon: "♟️" },
+    { key: "data", label: "Data", icon: "📊" },
+    { key: "repertoire", label: "Interactive", icon: "🧩" },
+    { key: "feedback", label: "Feedback", icon: "💬" },
   ];
 
   const selectTab = (view) => {
@@ -1755,10 +1175,15 @@ function AppViewTabs({ activeView, onChange }) {
       onChange(view);
     }
 
-    const scrollToTabs = () => {
+    document.body.classList.add("openingfitTabbedResults");
+    document.body.setAttribute("data-openingfit-tab", view);
+
+    const run = () => {
       const target =
         document.getElementById("app-results") ||
-        document.querySelector(".appTabsCard");
+        document.querySelector(".appTabsCard") ||
+        document.getElementById("openingfit-report") ||
+        document.getElementById("app-dashboard");
 
       if (!target) return;
 
@@ -1771,11 +1196,13 @@ function AppViewTabs({ activeView, onChange }) {
       });
     };
 
-    setTimeout(scrollToTabs, 80);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(run));
+    setTimeout(run, 120);
+    setTimeout(run, 360);
   };
 
   return (
-    <section className="card appTabsCard compactReportNav" id="app-view-tabs">
+    <section className="card appTabsCard" id="app-results">
       <div className="appTabsHeader">
         <div>
           <p className="eyebrow">Report navigation</p>
@@ -1918,145 +1345,6 @@ function Footer() {
         <a href="#premium">Premium</a>
       </div>
     </footer>
-  );
-}
-
-function getCurrentPath() {
-  if (typeof window === "undefined") return "/";
-  const path = window.location.pathname || "/";
-  return path.length > 1 ? path.replace(/\/+$/, "") : "/";
-}
-
-function getInitialAppView() {
-  const path = getCurrentPath();
-  if (path === "/account" || path === "/login") return "account";
-  if (path === "/upgrade" || path === "/premium") return "upgrade";
-  return "overview";
-}
-
-function getSeoData(path) {
-  const page = SEO_PAGES[path];
-  if (!page) return { ...HOME_SEO, url: `${SITE_URL}/` };
-  return { ...page, path, url: `${SITE_URL}${path}` };
-}
-
-function setMetaAttribute(selector, attributes) {
-  let tag = document.head.querySelector(selector);
-
-  if (!tag) {
-    tag = document.createElement("meta");
-    document.head.appendChild(tag);
-  }
-
-  Object.entries(attributes).forEach(([key, value]) => {
-    tag.setAttribute(key, value);
-  });
-}
-
-function setCanonical(url) {
-  let link = document.head.querySelector('link[rel="canonical"]');
-
-  if (!link) {
-    link = document.createElement("link");
-    link.setAttribute("rel", "canonical");
-    document.head.appendChild(link);
-  }
-
-  link.setAttribute("href", url);
-}
-
-function getSeoJsonLd(seoData) {
-  if (seoData.path === "/faq") {
-    return {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      mainEntity: seoData.faqs.map(([question, answer]) => ({
-        "@type": "Question",
-        name: question,
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: answer,
-        },
-      })),
-    };
-  }
-
-  if (seoData.path && seoData.path !== "/") {
-    return {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      name: seoData.title,
-      url: seoData.url,
-      description: seoData.description,
-      isPartOf: {
-        "@type": "WebSite",
-        name: "Opening Fit",
-        url: `${SITE_URL}/`,
-      },
-    };
-  }
-
-  return null;
-}
-
-function CompactSeoFooter() {
-  return (
-    <footer className="compactSeoFooter">
-      <nav aria-label="Opening Fit SEO links">
-        {SEO_LINKS.map(([label, href]) => (
-          <a key={href} href={href}>
-            {label}
-          </a>
-        ))}
-      </nav>
-      <p>
-        Chess opening analysis, repertoire builder, Chess.com and Lichess
-        opening report, study plan, and keep / improve / avoid guidance.
-        Founder Pass lifetime access: £8.
-      </p>
-    </footer>
-  );
-}
-
-function SeoRoutePage({ page }) {
-  return (
-    <>
-      <div className="page dark publicLandingPage" data-theme="dark">
-        <main className="container appShell seoRouteShell">
-          <section className="hero heroCard compactImportHero seoRouteHero">
-            <p className="eyebrow">Opening Fit</p>
-            <h1>{page.h1}</h1>
-            <p className="subtext">{page.intro}</p>
-            <a className="primaryBtn seoRouteCta" href="/">
-              Start a free opening report
-            </a>
-          </section>
-
-          {page.faqs ? (
-            <section className="seoRouteGrid seoFaqList" aria-label="FAQ">
-              {page.faqs.map(([question, answer]) => (
-                <article className="seoRouteCard" key={question}>
-                  <h2>{question}</h2>
-                  <p>{answer}</p>
-                </article>
-              ))}
-            </section>
-          ) : (
-            <section className="seoRouteGrid">
-              {page.sections.map(([title, text]) => (
-                <article className="seoRouteCard" key={title}>
-                  <h2>{title}</h2>
-                  <p>{text}</p>
-                </article>
-              ))}
-            </section>
-          )}
-
-          <CompactSeoFooter />
-        </main>
-      </div>
-      <Analytics />
-    </>
   );
 }
 
@@ -2611,29 +1899,6 @@ function ReportExportAndHistory({ data, onLoadReport }) {
         </p>
       </div>
 
-      {/* Diagnostic card for large imports with low qualification */}
-      {data?.import_debug ? (
-        (() => {
-          const dbg = data.import_debug;
-          const imported = dbg.gamesFetched || dbg.gamesFetched === 0 ? dbg.gamesFetched : gamesImported;
-          const openingsDetected = dbg.openingsDetected || (data.top_openings || []).length || 0;
-          const qualifiedCount = (dbg.qualifiedOpenings || []).length || 0;
-
-          if (imported >= 200 && qualifiedCount < 5) {
-            return (
-              <div className="importDiagnosticCard">
-                <strong>Diagnostic</strong>
-                <p>
-                  Imported {imported} games. Detected openings in {openingsDetected}. Your games are spread across {openingsDetected} opening names, so we’re showing lower-confidence patterns.
-                </p>
-              </div>
-            );
-          }
-
-          return null;
-        })()
-      ) : null}
-
       <div className="savedReportsPanel">
         <div className="savedReportsHeader">
           <div>
@@ -3005,11 +2270,11 @@ function OpeningFitFullReport({ data }) {
     }
 
     if (type === "improve") {
-      return `This is not a verdict that the whole opening is bad. It means one line, move order, or early middlegame structure is hurting the overall score.`;
+      return `This opening is worth studying because you already play it, but the results suggest there are recurring positions costing you points.`;
     }
 
     if (type === "avoid") {
-      return `Treat this as a review target first. If the same branch keeps causing trouble, simplify that line before replacing the entire opening.`;
+      return `Pause this for now unless you specifically want to study it. Your current results suggest there are easier ways to build a reliable repertoire.`;
     }
 
     return "Use this as a practical guide for what to study next.";
@@ -3035,8 +2300,7 @@ function OpeningFitFullReport({ data }) {
         <h2>What Opening Fit recommends next</h2>
         <p>
           This turns {playerName}’s recent games into a practical opening plan:
-          what is reliable, what branch needs review, and where the study time
-          should go next.
+          what to keep, what to improve, and what to avoid.
         </p>
       </div>
 
@@ -3053,7 +2317,7 @@ function OpeningFitFullReport({ data }) {
 
         <article className="adviceCard improve">
           <div className="adviceTopline">
-            <span>Promising but unstable</span>
+            <span>Improve</span>
             <small>{formatScore(improveOpening)}</small>
           </div>
           <h3>{improveOpening?.displayName || "Review your common losses"}</h3>
@@ -3063,7 +2327,7 @@ function OpeningFitFullReport({ data }) {
 
         <article className="adviceCard avoid">
           <div className="adviceTopline">
-            <span>Needs review</span>
+            <span>Avoid for now</span>
             <small>{formatScore(avoidOpening)}</small>
           </div>
           <h3>{avoidOpening?.displayName || "Low-sample experiments"}</h3>
@@ -3151,7 +2415,8 @@ function OpeningFitFullReport({ data }) {
 }
 
 
-function OpeningFitReportHero({ data }) {
+function OpeningFitReportHero({ data,
+  onViewChange,}) {
   if (!data) return null;
 
   const asArray = (value) => {
@@ -3306,6 +2571,25 @@ function OpeningFitReportHero({ data }) {
       ? `Build around ${bestOpening.displayName} positions and use weaker openings as your next study targets.`
       : "Import more games to unlock clearer opening recommendations.";
 
+
+  const handleReportHeroAction = (view, targetId) => {
+    if (typeof onViewChange === "function") {
+      onViewChange(view);
+    }
+
+    window.setTimeout(() => {
+      const target =
+        document.getElementById(targetId) ||
+        document.getElementById("app-results") ||
+        document.getElementById("opening-diagnosis") ||
+        document.getElementById("app-dashboard");
+
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 180);
+  };
+
   return (
     <section className="reportHero">
       <div className="reportHeroMain">
@@ -3319,12 +2603,20 @@ function OpeningFitReportHero({ data }) {
         <p>{styleSummary}</p>
 
         <div className="reportHeroActions">
-          <a href="#opening-suggestions" className="reportPrimaryLink">
+          <button
+            type="button"
+            className="reportPrimaryLink"
+            onClick={() => handleReportHeroAction("recommendations", "opening-suggestions")}
+          >
             View recommendations
-          </a>
-          <a href="#keep-improve-avoid" className="reportSecondaryLink">
+          </button>
+          <button
+            type="button"
+            className="reportSecondaryLink"
+            onClick={() => handleReportHeroAction("recommendations", "keep-improve-avoid")}
+          >
             See verdicts
-          </a>
+          </button>
         </div>
       </div>
 
@@ -3430,9 +2722,6 @@ function App() {
   const [accountUser, setAccountUser] = useState(null);
   const [platform, setPlatform] = useState("chesscom");
   const [importMonths, setImportMonths] = useState(3);
-  const [openingSamplePercent, setOpeningSamplePercent] = useState(() =>
-    clampOpeningSamplePercent(localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY) ?? 2)
-  );
   const [apiStatus, setApiStatus] = useState("checking");
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
@@ -3462,11 +2751,6 @@ function App() {
   };
 
   const handleFounderPassClick = () => {
-    setActiveView("account");
-    if (window.location.pathname !== "/account") {
-      window.history.pushState({}, "", "/account");
-    }
-
     window.dispatchEvent(
       new CustomEvent("openingfit:founder-pass-intent", {
         detail: {
@@ -3501,12 +2785,54 @@ function App() {
   const [feedbackStatus, setFeedbackStatus] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [localSavedAt, setLocalSavedAt] = useState("");
-  const [activeView, setActiveView] = useState(getInitialAppView);
+  const [activeView, setActiveView] = useState("overview");
+  const reportNavigationRequestedRef = useRef(false);
+
+  const scrollToReportTarget = (targetId = "app-results") => {
+    const target =
+      (targetId ? document.getElementById(targetId) : null) ||
+      document.getElementById("app-results") ||
+      document.querySelector("[data-report-nav-anchor='true']") ||
+      document.querySelector(".appTabsCard") ||
+      document.getElementById("opening-fit-report") ||
+      document.getElementById("openingfit-report") ||
+      document.getElementById("app-dashboard");
+
+    if (!target) return;
+
+    const offset = window.innerWidth <= 760 ? 84 : 104;
+    const top = target.getBoundingClientRect().top + window.scrollY - offset;
+
+    window.scrollTo({
+      top: Math.max(0, top),
+      behavior: "smooth",
+    });
+  };
+
+  const navigateReportView = (view, targetId = "app-results") => {
+    reportNavigationRequestedRef.current = true;
+    setActiveView(view);
+
+    window.setTimeout(() => scrollToReportTarget(targetId), 0);
+    window.setTimeout(() => scrollToReportTarget(targetId), 140);
+    window.setTimeout(() => scrollToReportTarget(targetId), 360);
+  };
+
+  useEffect(() => {
+    if (!data || !reportNavigationRequestedRef.current) return;
+
+    reportNavigationRequestedRef.current = false;
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        scrollToReportTarget("app-results");
+      });
+    });
+  }, [activeView, data]);
   const shouldShowLandingIntro = () => {
     const landingSeen = localStorage.getItem("openingfit_landing_seen") === "true";
-    const hasSavedReport = Boolean(localStorage.getItem(STORAGE_KEY));
     const hasAppHash = window.location.hash && window.location.hash !== "#";
-    return !hasSavedReport && !landingSeen && !hasAppHash;
+    return !landingSeen && !hasAppHash;
   };
 
   const [showLanding, setShowLanding] = useState(shouldShowLandingIntro);
@@ -3537,7 +2863,6 @@ function App() {
     const savedPremium = localStorage.getItem(PREMIUM_KEY);
     const savedPlatform = localStorage.getItem(PLATFORM_KEY);
     const savedMonths = localStorage.getItem(IMPORT_MONTHS_KEY);
-    const savedSamplePercent = localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY);
     const savedAnalysis = localStorage.getItem(STORAGE_KEY);
 
     if (savedUsername) setUsername(savedUsername);
@@ -3548,10 +2873,6 @@ function App() {
       if ([1, 3, 6, 12].includes(parsedMonths)) {
         setImportMonths(parsedMonths);
       }
-    }
-
-    if (savedSamplePercent !== null) {
-      setOpeningSamplePercent(clampOpeningSamplePercent(savedSamplePercent));
     }
 
     if (savedPlatform && platforms[savedPlatform]) {
@@ -3605,13 +2926,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem(PREMIUM_KEY, String(isPremium));
   }, [isPremium]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      OPENING_SAMPLE_PERCENT_KEY,
-      String(openingSamplePercent)
-    );
-  }, [openingSamplePercent]);
 
   useEffect(() => {
     const handleEscape = (event) => {
@@ -3898,13 +3212,10 @@ function App() {
 
   const monthsToImport = isPremium ? importMonths : Math.min(importMonths, 3);
 
-  const importGames = async (usernameOverride, platformOverride) => {
-    const selectedPlatformKey = platforms[platformOverride] ? platformOverride : platform;
-    const cleanUsername = String(usernameOverride ?? username).trim();
-
+  const importGames = async () => {
     setLoading(true);
     setLoadingStep(
-      `Finding your recent ${platforms[selectedPlatformKey]?.label || "chess"} games...`
+      `Finding your recent ${platforms[platform]?.label || "chess"} games...`
     );
     setError("");
     setSavedProfileMessage("");
@@ -3913,24 +3224,23 @@ function App() {
     setPracticeOpening(null);
     setOpenSections(closedSections);
 
+    const cleanUsername = username.trim();
+
     try {
       if (!cleanUsername) {
         throw new Error("Please enter a username.");
       }
 
-      const selectedPlatform = platforms[selectedPlatformKey] || platforms.chesscom;
+      const selectedPlatform = platforms[platform] || platforms.chesscom;
 
       localStorage.setItem(USERNAME_KEY, cleanUsername);
-      localStorage.setItem(PLATFORM_KEY, selectedPlatformKey);
+      localStorage.setItem(PLATFORM_KEY, platform);
       localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
-      setUsername(cleanUsername);
-      setPlatform(selectedPlatformKey);
 
       await trackEvent("frontend_import_started", {
         username: cleanUsername,
-        platform: selectedPlatformKey,
+        platform,
         months: monthsToImport,
-        openingSamplePercent,
         premiumDemo: isPremium,
       });
 
@@ -3983,10 +3293,9 @@ function App() {
 
       await trackEvent("frontend_import_completed", {
         username: cleanUsername,
-        platform: selectedPlatformKey,
+        platform,
         gamesImported: cleanData.gamesImported ?? cleanData.total_games,
         months: monthsToImport,
-        openingSamplePercent,
       });
 
       scrollToResults();
@@ -4191,67 +3500,29 @@ function App() {
   };
 
   const verdictClass = (verdict) => {
-    const normalized = String(verdict || "").toLowerCase();
-
-    if (
-      normalized.includes("keep") ||
-      normalized.includes("core weapon") ||
-      normalized.includes("trusted weapon") ||
-      normalized.includes("main weapon") ||
-      normalized.includes("reliable choice")
-    ) {
-      return "verdict keep";
-    }
-
-    if (
-      normalized.includes("improve") ||
-      normalized.includes("review") ||
-      normalized.includes("performance check") ||
-      normalized.includes("fine-tune") ||
-      normalized.includes("deep review") ||
-      normalized.includes("promising but unstable")
-    ) {
-      return "verdict improve";
-    }
-
-    if (normalized.includes("avoid")) {
+    if (verdict === "Keep") return "verdict keep";
+    if (verdict === "Improve") return "verdict improve";
+    if (verdict === "Avoid" || verdict === "Avoid for now") {
       return "verdict avoid";
     }
-
     return "verdict test";
   };
 
   const filteredTopOpenings = useMemo(() => {
-    return filterOpeningsBySamplePercent(
-      filterUnknownOpenings(data?.top_openings || []),
-      data?.total_games,
-      openingSamplePercent
-    );
-  }, [data, showUnknownOpenings, openingSamplePercent]);
+    return filterUnknownOpenings(data?.top_openings || []);
+  }, [data, showUnknownOpenings]);
 
   const filteredBestOpenings = useMemo(() => {
-    return filterOpeningsBySamplePercent(
-      filterUnknownOpenings(data?.best_openings || []),
-      data?.total_games,
-      openingSamplePercent
-    );
-  }, [data, showUnknownOpenings, openingSamplePercent]);
+    return filterUnknownOpenings(data?.best_openings || []);
+  }, [data, showUnknownOpenings]);
 
   const filteredPreferredWhite = useMemo(() => {
-    return filterOpeningsBySamplePercent(
-      filterUnknownOpenings(data?.preferred_white || []),
-      data?.total_games,
-      openingSamplePercent
-    );
-  }, [data, showUnknownOpenings, openingSamplePercent]);
+    return filterUnknownOpenings(data?.preferred_white || []);
+  }, [data, showUnknownOpenings]);
 
   const filteredPreferredBlack = useMemo(() => {
-    return filterOpeningsBySamplePercent(
-      filterUnknownOpenings(data?.preferred_black || []),
-      data?.total_games,
-      openingSamplePercent
-    );
-  }, [data, showUnknownOpenings, openingSamplePercent]);
+    return filterUnknownOpenings(data?.preferred_black || []);
+  }, [data, showUnknownOpenings]);
 
   const filteredRecentGames = useMemo(() => {
     return filterUnknownOpenings(data?.recent_games || []);
@@ -4260,11 +3531,6 @@ function App() {
   const chartData = useMemo(() => {
     return filteredTopOpenings.slice(0, isPremium ? 10 : 6);
   }, [filteredTopOpenings, isPremium]);
-
-  const openingSampleMinimumGames = getOpeningSampleMinimumGames(
-    data?.total_games,
-    openingSamplePercent
-  );
 
   const fitData = useMemo(() => {
     return buildOpeningFitData({
@@ -4542,114 +3808,26 @@ function App() {
     }
   }, [hasReport]);
 
-  const currentPath = getCurrentPath();
-  const seoPage = SEO_PAGES[currentPath] || null;
-  const seoData = useMemo(() => getSeoData(currentPath), [currentPath]);
 
-  useEffect(() => {
-    document.title = seoData.title;
-    setCanonical(seoData.url);
-    setMetaAttribute('meta[name="description"]', {
-      name: "description",
-      content: seoData.description,
-    });
-    setMetaAttribute('meta[property="og:title"]', {
-      property: "og:title",
-      content: seoData.title,
-    });
-    setMetaAttribute('meta[property="og:description"]', {
-      property: "og:description",
-      content:
-        currentPath === "/"
-          ? "Analyse your real Chess.com and Lichess games to build a practical opening repertoire."
-          : seoData.description,
-    });
-    setMetaAttribute('meta[property="og:url"]', {
-      property: "og:url",
-      content: seoData.url,
-    });
-    setMetaAttribute('meta[property="og:type"]', {
-      property: "og:type",
-      content: "website",
-    });
-    setMetaAttribute('meta[property="og:image"]', {
-      property: "og:image",
-      content: `${SITE_URL}/og-image.png`,
-    });
-    setMetaAttribute('meta[name="twitter:card"]', {
-      name: "twitter:card",
-      content: "summary_large_image",
-    });
-    setMetaAttribute('meta[name="twitter:title"]', {
-      name: "twitter:title",
-      content: seoData.title,
-    });
-    setMetaAttribute('meta[name="twitter:description"]', {
-      name: "twitter:description",
-      content:
-        currentPath === "/"
-          ? "Find the chess openings that fit how you actually play."
-          : seoData.description,
-    });
-    setMetaAttribute('meta[name="twitter:image"]', {
-      name: "twitter:image",
-      content: `${SITE_URL}/og-image.png`,
-    });
 
-    const existingJsonLd = document.getElementById("seo-route-jsonld");
-    if (existingJsonLd) existingJsonLd.remove();
 
-    const jsonLd = getSeoJsonLd(seoData);
-    if (jsonLd) {
-      const script = document.createElement("script");
-      script.id = "seo-route-jsonld";
-      script.type = "application/ld+json";
-      script.textContent = JSON.stringify(jsonLd);
-      document.head.appendChild(script);
+  const jumpToReportView = (view) => {
+    if (typeof setActiveView === "function") {
+      setActiveView(view);
     }
-  }, [currentPath, seoData]);
 
-  useEffect(() => {
-    const openAccountPage = () => {
-      setActiveView("account");
-      if (window.location.pathname !== "/account") {
-        window.history.pushState({}, "", "/account");
+    setTimeout(() => {
+      const target =
+        document.getElementById("app-results") ||
+        document.getElementById("opening-diagnosis") ||
+        document.getElementById("app-dashboard") ||
+        document.getElementById("opening-health");
+
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
       }
-
-      setTimeout(() => {
-        const accountTarget =
-          document.getElementById("account") ||
-          document.querySelector(".accountPanel");
-
-        if (accountTarget?.scrollIntoView) {
-          accountTarget.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      }, 120);
-    };
-
-    window.addEventListener("openingfit:open-account-payment", openAccountPage);
-
-    return () => {
-      window.removeEventListener("openingfit:open-account-payment", openAccountPage);
-    };
-  }, []);
-
-  useEffect(() => {
-    const syncViewFromPath = () => {
-      setActiveView(getInitialAppView());
-    };
-
-    window.addEventListener("popstate", syncViewFromPath);
-
-    return () => {
-      window.removeEventListener("popstate", syncViewFromPath);
-    };
-  }, []);
-
-  if (seoPage) {
-    return <SeoRoutePage page={seoData} />;
-  }
-
+    }, 80);
+  };
 
 
   return (
@@ -4657,17 +3835,36 @@ function App() {
       <div className={`page ${theme} ${isPublicLanding ? "publicLandingPage" : "appReportPage"}`} data-theme={theme}>
         {data ? (
           <>
-            {false ? <OpeningFitUXCleanup
+            <OpeningFitUXCleanup
               data={data}
               username={username}
               onJump={jumpToSection}
               activeView={activeView}
               onViewChange={setActiveView}
-            /> : null}
+            />
 
             <OpeningFitImportDoctor username={username} />
 
-            {false ? <AppActionRouter onViewChange={setActiveView} /> : null}
+            <div id="account">
+              <AccountPanel onUserChange={setAccountUser} />
+            </div>
+
+            <FounderPassLoginUpgrade accountUser={accountUser} />
+
+            <CheckoutStatusNotice
+              onRestoreAccess={() => {
+                window.dispatchEvent(
+                  new CustomEvent("openingfit:founder-pass-intent", {
+                    detail: {
+                      source: "checkout-success",
+                      plan: "founder_pass",
+                    },
+                  })
+                );
+              }}
+            />
+
+            <AppActionRouter onViewChange={setActiveView} />
             <AccountRestoreSync
               user={accountUser}
               username={username}
@@ -4679,6 +3876,14 @@ function App() {
               setIsPremium={setIsPremium}
             />
 
+            <FloatingAppMenu
+              data={data}
+              onJump={jumpToSection}
+              onPractice={startOpeningPractice}
+              activeView={activeView}
+              onViewChange={setActiveView}
+            />
+
             <MobileBottomNav
               data={data}
               activeView={activeView}
@@ -4687,34 +3892,11 @@ function App() {
           </>
         ) : null}
 
-        <FounderPassLoginUpgrade accountUser={accountUser} />
-
-        <CheckoutStatusNotice
-          onRestoreAccess={() => {
-            window.dispatchEvent(
-              new CustomEvent("openingfit:founder-pass-intent", {
-                detail: {
-                  source: "checkout-success",
-                  plan: "founder_pass",
-                },
-              })
-            );
-          }}
-        />
-
-        <FloatingAppMenu
-          data={data}
-          onJump={jumpToSection}
-          onPractice={startOpeningPractice}
-          activeView={activeView}
-          onViewChange={setActiveView}
-        />
-
         {loading ? <ImportLoadingOverlay platform={platform} /> : null}
 
-        {false && data ? <OpeningFitTrustBar data={data} /> : null}
+        {data ? <OpeningFitTrustBar data={data} /> : null}
 
-        {false && data ? (
+        {data ? (
           <OpeningFitTrustUpgrade
             onFounderPass={handleFounderPassClick}
             onDemo={loadDemoReport}
@@ -4733,7 +3915,7 @@ function App() {
           />
         ) : null}
 
-        {false && showLanding && !hasReport ? (
+        {showLanding && !hasReport ? (
           <LandingModal
             username={username}
             setUsername={setUsername}
@@ -4765,7 +3947,7 @@ function App() {
 ) : null}
 
 
-        {false && isPublicLanding ? (
+        {isPublicLanding ? (
           <div className="publicLandingTop" id="public-landing-top">
             <LandingSection onOpeningClick={startOpeningPractice} />
             <TrustFaq />
@@ -4773,16 +3955,15 @@ function App() {
         ) : null}
 
         <main className="container appShell" id="app-dashboard">
-          {!data && !loading ? (
-          <header className="hero heroCard compactImportHero">
-              <div className="heroTop">
+          <header className="hero heroCard">
+            <div className="heroTop">
               <div className="heroTitleWrap">
-                <p className="eyebrow">Opening Fit</p>
-                <h1>Find the chess openings that fit how you actually play</h1>
+                <p className="eyebrow">Opening Fit App</p>
+                <h1>Analyse your chess openings</h1>
                 <p className="subtext">
-                  Chess opening analysis for your public Chess.com or Lichess
-                  games, with a compact opening report, repertoire builder,
-                  keep / improve / avoid guidance, and a focused study plan.
+                  Your personal chess opening dashboard. Import your games, get a
+                  clean Opening Fit report, then follow a focused study session
+                  built from your real results.
                 </p>
               </div>
             </div>
@@ -4839,51 +4020,51 @@ function App() {
                 <button
                   className="primaryBtn"
                   type="button"
-                  onClick={() => importGames()}
+                  onClick={importGames}
                   disabled={loading || !username.trim()}
                 >
-                  {loading ? "Analysing..." : "Analyse"}
+                  {loading
+                    ? "Working..."
+                    : isPremium
+                    ? `Import ${monthsToImport} Month${
+                        monthsToImport === 1 ? "" : "s"
+                      } from ${platforms[platform]?.label || "Platform"}`
+                    : `Import ${monthsToImport} Month${
+                        monthsToImport === 1 ? "" : "s"
+                      } from ${platforms[platform]?.label || "Platform"}`}
+                </button>
+
+                <button
+                  className="secondaryButton savedProfileButton"
+                  type="button"
+                  onClick={loadSavedProfile}
+                  disabled={loading}
+                >
+                  Load Saved Profile
+                </button>
+
+                <button
+                  className="ghostButton demoAccountButton"
+                  type="button"
+                  onClick={loadDemoAccount}
+                  disabled={loading}
+                >
+                  Try Demo Account
+                </button>
+
+                <button
+                  className="ghostButton"
+                  type="button"
+                  onClick={importGames}
+                  disabled={loading || !username.trim()}
+                >
+                  Refresh Games
                 </button>
               </div>
             </div>
 
-            {false ? (
-            <div className="filtersRow importFiltersRow">
-              <label className="openingSampleControl">
-                <span className="openingSampleControlTop">
-                  <span>Opening sample filter</span>
-                  <strong>{openingSamplePercent}%</strong>
-                </span>
+            <div className="filtersRow">
 
-                <input
-                  type="range"
-                  min="0"
-                  max="20"
-                  step="1"
-                  value={openingSamplePercent}
-                  onChange={(event) =>
-                    setOpeningSamplePercent(
-                      clampOpeningSamplePercent(event.target.value)
-                    )
-                  }
-                  aria-label="Minimum percentage of games for an opening to appear in the report"
-                />
-
-                <span className="openingSampleHelp">
-                  {openingSamplePercent === 0
-                    ? "Showing every recognised opening, including one-game experiments."
-                    : data?.total_games
-                    ? `Ignoring openings below ${openingSampleMinimumGames} games in this report.`
-                    : "After import, one-game openings will be ignored by default."}
-                </span>
-              </label>
-            </div>
-            ) : null}
-
-            <div className="compactTrustRow">
-              <span>No login required</span>
-              <span>Uses public games</span>
-              <span>Free report available</span>
             </div>
 
             {apiStatus !== "online" ? (
@@ -4912,13 +4093,6 @@ function App() {
               <p className="successMessage">{savedProfileMessage}</p>
             ) : null}
           </header>
-          ) : null}
-
-          {!data && !loading ? <CompactSeoFooter /> : null}
-
-          {activeView === "account" ? <section className="loginScreenSection" id="account">
-            <AccountPanel variant="screen" onUserChange={setAccountUser} />
-          </section> : null}
 
           {loading && (
             <section className="card loadingCard">
@@ -4932,9 +4106,8 @@ function App() {
 
           {practiceOpening && (
             <div id="opening-practice">
-              <OpeningPracticeLinesPanel
+              <OpeningPracticeBoard
                 openingName={practiceOpening}
-                opening={practiceOpening}
                 onClose={() => setPracticeOpening(null)}
               />
             </div>
@@ -4942,7 +4115,7 @@ function App() {
 
           {error && <div className="errorBox">{error}</div>}
 
-          {false && !data && !loading && !error && (
+          {!data && !loading && !error && (
             <section className="placeholderGrid grid3">
               <div className="card smallCard">
                 <h3>Style profile</h3>
@@ -4966,32 +4139,88 @@ function App() {
             </section>
           )}
 
-          {data && activeView !== "account" && (
+          {data && (
             <div id="app-results">
-              <CompactReportSummary
+              <CleanReportHeader
                 data={data}
                 fitData={fitData}
                 onViewChange={setActiveView}
               />
 
+              <IntelligentCoachInsights data={data} />
+
+              <OpeningClassificationNotice data={data} />
+
+              <section className="statsGrid">
+                <div className="card statCard">
+                  <span className="statLabel">Player</span>
+                  <span className="statValue">{data.username}</span>
+                </div>
+
+                <div className="card statCard">
+                  <span className="statLabel">Platform</span>
+                  <span className="statValue smallStatValue">
+                    {platforms[platform]?.label || "Chess"}
+                  </span>
+                </div>
+
+                <div className="card statCard">
+                  <span className="statLabel">Games analysed</span>
+                  <span className="statValue">{data.total_games}</span>
+                </div>
+
+                <div className="card statCard">
+                  <span className="statLabel">Recent activity</span>
+                  <span className="statValue">
+                    {data.months_checked || monthsToImport} month
+                    {(data.months_checked || monthsToImport) === 1 ? "" : "s"}
+                  </span>
+                </div>
+
+                <div className="card statCard">
+                  <span className="statLabel">Plan</span>
+                  <span className="statValue smallStatValue">
+                    {isPremium ? "Premium demo" : "Free"}
+                  </span>
+                </div>
+
+                <div className="card statCard">
+                  <span className="statLabel">Last updated</span>
+                  <span className="statValue smallStatValue">
+                    {data.lastUpdated
+                      ? new Date(data.lastUpdated).toLocaleDateString()
+                      : "Today"}
+                  </span>
+                </div>
+              </section>
+
               <AppViewTabs
                 activeView={activeView}
-                onChange={(view) => {
-                  setActiveView(view);
-
-                  setTimeout(() => {
-                    const el = document.getElementById("app-results");
-                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }, 80);
-                }}
+                onChange={setActiveView}
               />
 
               {activeView === "overview" ? (
                 <>
-                  <div className="compactReportGrid">
-                    <ReportSnapshot data={data} onViewChange={setActiveView} />
+                  <div id="report-view-overview" className="reportViewAnchor" aria-hidden="true" />
+                  <PolishedOpeningFitReportHero
+                    data={data}
+                    username={username}
+                    onNavigate={navigateReportView}
+                    onJump={jumpToSection}
+                  />
+
+                  
+                  <div
+                    id="app-results"
+                    className="reportNavScrollAnchor"
+                    aria-hidden="true"
+                  />
+<div className="compactReportGrid">
+                    <CoachSummaryCard data={data} onViewChange={setActiveView} />
                     <AppOpeningHealthScore data={data} onViewChange={setActiveView} />
                   </div>
+
+                  <NextBestActions data={data} onViewChange={setActiveView} />
 
                   <div id="section-fit">
                     <OpeningFitSummaryCard
@@ -5000,25 +4229,62 @@ function App() {
                     />
                   </div>
 
-                  <Section
-                    title="Optional detailed evidence"
-                    isOpen={openSections.fit}
-                    onToggle={() => toggleSection("fit")}
-                    badge="Evidence"
-                  >
-                    <IntelligentCoachInsights data={data} />
-                    <OpeningClassificationNotice data={data} />
-                    <OpeningDiagnosisPanel data={data} onViewChange={setActiveView} />
-                    <EvidenceBackedOpeningDiagnosis
-                      data={data}
-                      onPractice={startOpeningPractice}
-                    />
-                  </Section>
+                  <OpeningDiagnosisPanel data={data} onViewChange={setActiveView} />
+
+                  <EvidenceBackedOpeningDiagnosis
+                    data={data}
+                    onPractice={startOpeningPractice}
+                  />
+
+                  <ResultsCommandCenter
+                    data={data}
+                    onPractice={startOpeningPractice}
+                  />
+
+                  <div className="compactReportGrid">
+                    <OpeningHealthScore data={data} />
+                    <ProgressTracker data={data} />
+                  </div>
+
+                  <ShareReport data={data} />
+
+                  {!isPremium ? (
+                    <section className="card premiumCard compactPremiumCard">
+                      <div className="premiumHeader">
+                        <span className="premiumBadge">Premium Preview</span>
+                        <h2>Unlock the full Opening Fit report</h2>
+                      </div>
+
+                      <p>
+                        Free gives you a useful opening snapshot. Premium will focus on longer
+                        imports, deeper stats, stronger training plans, and saved progress.
+                      </p>
+
+                      <div className="lockedFeatureGrid">
+                        {premiumFeatures.map((feature) => (
+                          <div className="lockedFeature" key={feature}>
+                            🔒 {feature}
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        className="primaryBtn"
+                        type="button"
+                        onClick={() => setIsPremium(true)}
+                      >
+                        Preview Premium Mode
+                      </button>
+                    </section>
+                  ) : null}
+
+                  <RetentionHub data={data} />
                 </>
               ) : null}
 
               {activeView === "recommendations" ? (
                 <>
+                  <div id="report-view-recommendations" className="reportViewAnchor" aria-hidden="true" />
                   <OpeningFitFullReport data={data} />
 
                   <div id="section-recommendations">
@@ -5051,7 +4317,8 @@ function App() {
                           <EmptyState
                             title="No White suggestions yet"
                             text="Import more games to unlock stronger White repertoire suggestions."
-                          />
+                          onViewChange={setActiveView}
+          />
                         )}
                       </div>
                     </div>
@@ -5171,7 +4438,7 @@ function App() {
 
               <div id="section-verdicts">
                 <Section
-                  title="Opening verdicts"
+                  title="Keep / Improve / Avoid"
                   isOpen={openSections.verdicts}
                   onToggle={() => toggleSection("verdicts")}
                   badge={`${fitData.scoredOpenings.length} tracked`}
@@ -5222,27 +4489,16 @@ function App() {
                 </>
               ) : null}
 
-              {activeView === "upgrade" ? (
+              {activeView === "data" ? (
                 <>
-                  <div id="premium">
-                    <PremiumPanel
-                      data={data}
-                      isPremium={isPremium}
-                      onUnlockDemo={unlockPremiumDemo}
-                      onResetDemo={resetPremiumDemo}
-                      onFounderPass={handleFounderPassClick}
-                    />
-                  </div>
-
-                  <SeriousPremiumStrip />
-
+                  <div id="report-view-data" className="reportViewAnchor" aria-hidden="true" />
                   <OpeningReportSummary
                     data={data}
                     username={username}
                     platform={platform}
                   />
 
-                  <RepertoireStudyPlan data={data} />
+                  <div id="training-plan"><RepertoireStudyPlan data={data} /></div>
 
                   <ReportHistoryVault data={data} onLoadReport={setData} />
 
@@ -5261,7 +4517,7 @@ function App() {
 
 
 
-        {false && data ? (
+        {data ? (
           <ReportCommandBar
             data={data}
             activeView={activeView}
@@ -5354,7 +4610,7 @@ function App() {
                 </>
               ) : null}
 
-        {false && data ? (
+        {data ? (
           <div className="productPolishFlow">
             <CoachVerdict data={data} />
             <RecommendedRepertoire data={data} />
@@ -5366,7 +4622,7 @@ function App() {
 
               {activeView === "training" ? (
                 <>
-                  <OpeningCoachPlan data={data} />
+                  <div id="report-view-training" className="reportViewAnchor" aria-hidden="true" />
                   <NextStudySession
                     fitData={fitData}
                     recentGames={filteredRecentGames}
@@ -5376,11 +4632,11 @@ function App() {
 
                   <OpeningFitStudyPlanner data={data} username={username} />
 
-                  {false ? <PremiumCoachPlan
+                  <PremiumCoachPlan
                     data={data}
                     isPremium={isPremium}
                     onUnlockDemo={unlockPremiumDemo}
-                  /> : null}
+                  />
 
                   <div id="section-training">
                 <Section
@@ -5425,6 +4681,7 @@ function App() {
 
               {activeView === "games" ? (
                 <>
+                  <div id="report-view-games" className="reportViewAnchor" aria-hidden="true" />
                   <div id="section-replay">
                 <Section
                   title="Game Replay"
@@ -5582,7 +4839,7 @@ function App() {
                 </>
               ) : null}
 
-              {activeView === "upgrade" ? (
+              {activeView === "data" ? (
                 <>
                   <div id="section-top">
                 <Section
@@ -5666,6 +4923,7 @@ function App() {
 
               {activeView === "repertoire" ? (
                 <>
+                  <div id="report-view-repertoire" className="reportViewAnchor" aria-hidden="true" />
                   <MyRepertoire
                     data={data}
                     isPremium={isPremium}
@@ -5677,21 +4935,18 @@ function App() {
                     onPractice={startOpeningPractice}
                   />
 
-                  <div id="premium">
-                    <PremiumPanel
-                      data={data}
-                      isPremium={isPremium}
-                      onUnlockDemo={unlockPremiumDemo}
-                      onResetDemo={resetPremiumDemo}
-                      onFounderPass={handleFounderPassClick}
-                    />
-                  </div>
+                  <PremiumPanel
+                    data={data}
+                    isPremium={isPremium}
+                    onUnlockDemo={unlockPremiumDemo}
+                    onResetDemo={resetPremiumDemo}
+                  />
 
                   <PremiumTrustStrip />
                 </>
               ) : null}
 
-              {false && activeView !== "feedback" ? (
+              {activeView !== "feedback" ? (
                 <OpeningFitFinalCTA
                   data={data}
                   username={username}
@@ -5738,7 +4993,7 @@ function App() {
           ) : null}
         </main>
 
-        {!data && !showLanding && activeView !== "feedback" ? (
+        {!showLanding && activeView !== "feedback" ? (
           <div className="landingWrap">
             <section className="card feedbackCard" id="feedback-static">
               <h2>Help improve Opening Fit</h2>
@@ -5776,9 +5031,9 @@ function App() {
           </div>
         ) : null}
 
-        {false ? <div className="landingWrap">
+        <div className="landingWrap">
           <Footer />
-        </div> : null}
+        </div>
       </div>
 
       <Analytics />
