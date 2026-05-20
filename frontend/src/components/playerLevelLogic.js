@@ -135,17 +135,38 @@ export function collectRatings(data) {
   return values[Math.floor(values.length / 2)];
 }
 
+export function getPlayerLevelLabel(value, fallback = "") {
+  if (!value) return fallback;
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value).trim() || fallback;
+  }
+
+  if (typeof value !== "object") return fallback;
+
+  return (
+    value.label ||
+    value.shortLabel ||
+    value.short_label ||
+    value.levelLabel ||
+    value.level_label ||
+    value.level ||
+    value.name ||
+    fallback
+  );
+}
+
+export function getPlayerLevelText(data, fallback = "") {
+  return (
+    getPlayerLevelLabel(data?.playerLevel, "") ||
+    getPlayerLevelLabel(data?.player_level, "") ||
+    getPlayerLevelLabel(data?.level, fallback)
+  );
+}
+
 export function getPlayerLevelProfile(data) {
   const rating = collectRatings(data);
-  const level = String(
-    data?.playerLevel?.level ??
-      data?.playerLevel?.label ??
-      data?.playerLevel ??
-      data?.player_level?.level ??
-      data?.player_level?.label ??
-      data?.player_level ??
-      ""
-  ).toLowerCase();
+  const level = getPlayerLevelText(data).toLowerCase();
   const title = String(
     data?.title ??
       data?.chessTitle ??

@@ -1,4 +1,5 @@
 import "./ReportSnapshot.css";
+import { getPlayerLevelText } from "./playerLevelLogic";
 
 function toNumber(value, fallback = 0) {
   const n = Number(value);
@@ -128,8 +129,14 @@ export default function ReportSnapshot({ data, onViewChange }) {
   const mainOpening = findMainOpening(data);
   const recommendation = getRecommendation(data);
 
-  const playerLevel = data?.playerLevel || data?.player_level || data?.level;
+  const playerLevel = getPlayerLevelText(data, "");
   const rating = data?.rating || data?.chesscomRating || data?.lichessRating;
+  const profileDetail = [
+    playerLevel || (rating ? "Current level" : ""),
+    rating ? `${rating} rating` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const cards = [
     {
@@ -151,10 +158,7 @@ export default function ReportSnapshot({ data, onViewChange }) {
     {
       eyebrow: "Next focus",
       title: recommendation || "Review your most repeated opening mistakes",
-      detail:
-        playerLevel || rating
-          ? `${playerLevel || "Current"} level${rating ? ` · ${rating} rating` : ""}`
-          : "Based on your imported games",
+      detail: profileDetail || "Based on your imported games",
       note: "One focused study session beats ten random opening videos.",
       action: "Start training",
       view: "training",
