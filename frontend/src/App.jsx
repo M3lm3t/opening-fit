@@ -1367,144 +1367,6 @@ function getOpeningExplanation(opening, score, playerStyle, data, index = 0) {
   return smartVerdict.message;
 }
 
-function weightedOpeningScore(openings = []) {
-  const totalGames = openings.reduce((total, opening) => total + getOpeningGames(opening), 0);
-  if (!totalGames) return null;
-
-  return Math.round(
-    openings.reduce(
-      (total, opening) => total + getWinRate(opening) * getOpeningGames(opening),
-      0
-    ) / totalGames
-  );
-}
-
-function getOpeningFitScoreProfile(data, scoredOpenings = [], playerStyle = {}) {
-  const backendScore = safeNumber(data?.openingFitScore ?? data?.opening_fit_score, 0);
-  const backendIdentity = data?.openingIdentity || data?.opening_identity;
-  const backendExplanation =
-    data?.openingFitScoreExplanation || data?.opening_fit_score_explanation;
-  const backendIdentityExplanation =
-    data?.openingIdentityExplanation || data?.opening_identity_explanation;
-
-  const openings = scoredOpenings.filter((opening) => !isUnknownOpeningName(getOpeningName(opening)));
-  const totalOpeningGames = openings.reduce((total, opening) => total + getOpeningGames(opening), 0);
-  const totalGames = safeNumber(data?.total_games ?? data?.totalGames ?? data?.gamesImported);
-
-  if (!openings.length || !totalOpeningGames) {
-    return {
-      score: backendScore || 0,
-      explanation: backendExplanation || "Import more games before assigning an OpeningFit Score.",
-      identity: backendIdentity || "Repertoire experimenter",
-      identityExplanation:
-        backendIdentityExplanation ||
-        "There is not enough stable opening data yet, so OpeningFit is treating this as an early repertoire snapshot.",
-      breakdown: data?.openingFitScoreBreakdown || {},
-    };
-  }
-
-  const topThreeGames = [...openings]
-    .sort((a, b) => getOpeningGames(b) - getOpeningGames(a))
-    .slice(0, 3)
-    .reduce((total, opening) => total + getOpeningGames(opening), 0);
-  const repeatCount = openings.filter((opening) => getOpeningGames(opening) >= 5).length;
-  const whiteOpenings = openings.filter((opening) => itemContext(opening) === "played_as_white" || getOpeningSide(opening).toLowerCase() === "white");
-  const blackOpenings = openings.filter((opening) => itemContext(opening).startsWith("black_") || getOpeningSide(opening).toLowerCase() === "black");
-  const blackVsE4 = openings.filter((opening) => itemContext(opening) === "black_vs_e4");
-  const rareCount =
-    (data?.opening_recommendations?.experimental_rare?.length || data?.openingRecommendations?.experimentalRare?.length || 0) +
-    (data?.opening_recommendations?.too_little_data?.length || data?.openingRecommendations?.tooLittleData?.length || 0);
-  const weakOpenings = openings.filter(
-    (opening) =>
-      getOpeningGames(opening) >= 3 &&
-      (opening.fitCategory === "avoid" || getWinRate(opening) < 40)
-  );
-
-  const stability = Math.min(
-    100,
-    Math.round((topThreeGames / totalOpeningGames) * 70 + Math.min(repeatCount, 3) * 10)
-  );
-  const whitePerformance = weightedOpeningScore(whiteOpenings) ?? weightedOpeningScore(openings) ?? 50;
-  const blackPerformance = weightedOpeningScore(blackOpenings) ?? weightedOpeningScore(openings) ?? 50;
-  const confidence = Math.min(
-    100,
-    Math.round((Math.min(totalGames || totalOpeningGames, 60) / 60) * 70 + Math.min(repeatCount, 4) * 7.5)
-  );
-  const weaknessControl = Math.max(25, 100 - weakOpenings.length * 18 - rareCount * 6);
-  const recentConsistency = safeNumber(data?.recentConsistency ?? data?.recent_consistency, totalGames >= 20 ? 72 : 58);
-  const calculatedScore = Math.max(
-    20,
-    Math.min(
-      95,
-      Math.round(
-        stability * 0.22 +
-          whitePerformance * 0.2 +
-          blackPerformance * 0.2 +
-          confidence * 0.18 +
-          weaknessControl * 0.12 +
-          recentConsistency * 0.08
-      )
-    )
-  );
-
-  const blackVsE4Score = weightedOpeningScore(blackVsE4);
-  const reasons = [];
-  if (blackVsE4Score !== null && blackVsE4Score < 45) reasons.push("unstable Black results against 1.e4");
-  else if (blackPerformance < 45) reasons.push("unstable Black results");
-  if (whitePerformance < 45) reasons.push("lower White performance");
-  if (confidence < 65) reasons.push("low confidence in the current sample");
-  if (rareCount >= 2) reasons.push("several rare or unclear openings");
-  if (weakOpenings.length) reasons.push(`${weakOpenings.length} clear lower-scoring sample${weakOpenings.length === 1 ? "" : "s"}`);
-
-  const explanation =
-    backendExplanation ||
-    (reasons.length
-      ? `Your score is held back by ${reasons.slice(0, 3).join(", ")}.`
-      : "Your score is supported by stable repeated openings, balanced White and Black results, and a useful sample size.");
-
-  const styleText = `${playerStyle.title || ""} ${playerStyle.description || ""} ${(data?.style_profile?.labels || []).join(" ")}`.toLowerCase();
-  let identity = backendIdentity;
-  let identityExplanation = backendIdentityExplanation;
-
-  if (!identity) {
-    if (blackPerformance < 45 && blackPerformance + 8 < whitePerformance) {
-      identity = "Needs a simpler Black repertoire";
-      identityExplanation = "Your White results are ahead of your Black results, so the report points toward simplifying the Black repertoire before adding new systems.";
-    } else if (rareCount >= 3 || stability < 55) {
-      identity = "Repertoire experimenter";
-      identityExplanation = "Your games are spread across several low-sample openings, which makes this read more like an experimentation snapshot than a settled repertoire.";
-    } else if (styleText.includes("aggressive") || styleText.includes("tactical")) {
-      identity = weakOpenings.length ? "Tactical but unstable" : "Sharp counter-attacker";
-      identityExplanation = "Your best results come from active positions, but the score still depends on whether those sharp lines repeat cleanly across a larger sample.";
-    } else if (stability >= 72 && Math.min(whitePerformance, blackPerformance) >= 50) {
-      identity = "Strong with familiar structures";
-      identityExplanation = "Your repeated openings are carrying the report, suggesting you score best when you reach familiar pawn structures and plans.";
-    } else if (styleText.includes("solid") || styleText.includes("positional")) {
-      identity = "Solid positional player";
-      identityExplanation = "Your opening profile leans toward steadier structures, so the best next step is improving one repeated branch rather than changing the whole repertoire.";
-    } else {
-      identity = "System-based improver";
-      identityExplanation = "Your report points toward a compact repertoire with repeatable plans, especially in the openings with the clearest sample size.";
-    }
-  }
-
-  return {
-    score: backendScore || calculatedScore,
-    explanation,
-    identity,
-    identityExplanation,
-    breakdown: {
-      stability,
-      whitePerformance,
-      blackPerformance,
-      confidence,
-      weaknessControl,
-      recentConsistency,
-      ...(data?.openingFitScoreBreakdown || {}),
-    },
-  };
-}
-
 function buildOpeningFitData(data) {
   const openings = [
     ...(Array.isArray(data?.top_openings) ? data.top_openings : []),
@@ -1619,7 +1481,14 @@ function buildOpeningFitData(data) {
             Math.min(recognised.length, 8)
         )
       : 0;
-  const scoreProfile = getOpeningFitScoreProfile(data, scoredOpenings, playerStyle);
+  const backendScore = safeNumber(data?.openingFitScore ?? data?.opening_fit_score, 0);
+  const openingIdentity =
+    data?.openingIdentity || data?.opening_identity || playerStyle.title || "Opening identity pending";
+  const identityExplanation =
+    data?.openingIdentityExplanation ||
+    data?.opening_identity_explanation ||
+    playerStyle.description ||
+    "Import more games to turn this into a clearer opening identity.";
 
   return {
     playerStyle,
@@ -1628,11 +1497,14 @@ function buildOpeningFitData(data) {
     scoredOpenings,
     bestOpening,
     weakestOpening,
-    overallScore: scoreProfile.score || overallScore,
-    scoreExplanation: scoreProfile.explanation,
-    openingIdentity: scoreProfile.identity,
-    identityExplanation: scoreProfile.identityExplanation,
-    scoreBreakdown: scoreProfile.breakdown,
+    overallScore: backendScore || overallScore,
+    scoreExplanation:
+      data?.openingFitScoreExplanation ||
+      data?.opening_fit_score_explanation ||
+      "OpeningFit combines repertoire stability, White and Black performance, sample confidence, clear lower-scoring samples, and recent consistency.",
+    openingIdentity,
+    identityExplanation,
+    scoreBreakdown: data?.openingFitScoreBreakdown || {},
   };
 }
 
