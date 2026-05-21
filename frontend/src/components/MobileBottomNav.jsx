@@ -1,18 +1,19 @@
-import { Crown, Dumbbell, Gamepad2, Home, Target } from "lucide-react";
+import { BarChart3, Dumbbell, Home, Search, Shield, Target } from "lucide-react";
 
 export default function MobileBottomNav({ data, activeView, onViewChange }) {
   const items = [
     { key: "overview", label: "Home", Icon: Home, target: "app-results", path: "/" },
+    { key: "repertoire", label: "Rep", Icon: Shield, target: "app-results", path: "/" },
     {
-      key: "recommendations",
+      key: "openings",
       label: "Openings",
       Icon: Target,
-      target: "section-recommendations",
+      target: "section-verdicts",
       path: "/",
     },
+    { key: "weakspots", label: "Leaks", Icon: Search, target: "app-results", path: "/" },
     { key: "training", label: "Plan", Icon: Dumbbell, target: "section-training", path: "/" },
-    { key: "games", label: "Games", Icon: Gamepad2, target: "section-replay", path: "/" },
-    { key: "upgrade", label: "Upgrade", Icon: Crown, target: "premium", path: "/upgrade" },
+    { key: "data", label: "Data", Icon: BarChart3, target: "section-replay", path: "/" },
   ];
 
   function scrollToTarget(targetId) {
