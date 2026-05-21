@@ -76,8 +76,16 @@ const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
   playerName: "DemoPlayer",
   requestedUsername: "DemoPlayer",
+  platform: "demo",
+  importPlatform: "demo",
   gamesImported: 84,
   totalGames: 84,
+  gamesFound: 84,
+  gamesAnalysed: 84,
+  gamesAnalyzed: 84,
+  skippedGames: 0,
+  monthsChecked: 3,
+  importedAt: new Date().toISOString(),
   styleLabel: "Attacking practical player",
   styleSummary:
     "Your strongest results come from active piece play, open centres, and positions where you can develop quickly before choosing a direct attacking plan.",
@@ -1750,6 +1758,133 @@ function OpeningFitScoreList({ fitData, onPractice }) {
   );
 }
 
+function formatImportPlatform(value) {
+  const raw = String(value || "").toLowerCase();
+  if (raw.includes("lichess")) return "Lichess";
+  if (raw.includes("chess.com") || raw.includes("chesscom")) return "Chess.com";
+  if (raw.includes("demo")) return "Demo report";
+  return value || "Chess platform";
+}
+
+function numberOrNull(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function getImportSummary(data) {
+  const archives = data?.archivesChecked || data?.archives_checked || [];
+  const archiveGames = Array.isArray(archives)
+    ? archives.reduce(
+        (total, item) =>
+          total +
+          (numberOrNull(item?.gamesFound ?? item?.games_found ?? item?.games) || 0),
+        0
+      )
+    : 0;
+  const gamesAnalysed =
+    numberOrNull(
+      data?.gamesAnalysed ??
+        data?.gamesAnalyzed ??
+        data?.games_analyzed ??
+        data?.gamesImported ??
+        data?.games_imported ??
+        data?.totalGames ??
+        data?.total_games
+    ) || 0;
+  const gamesFound =
+    numberOrNull(data?.gamesFound ?? data?.games_found) ||
+    archiveGames ||
+    gamesAnalysed ||
+    0;
+  const skipped =
+    numberOrNull(data?.skippedGames ?? data?.skipped_games) ??
+    Math.max(0, gamesFound - gamesAnalysed);
+  const months =
+    numberOrNull(
+      data?.monthsChecked ??
+        data?.months_checked ??
+        data?.monthsImported ??
+        data?.months_imported
+    ) || null;
+  const platform = formatImportPlatform(
+    data?.importPlatform || data?.import_platform || data?.platform || data?.source
+  );
+  const username =
+    data?.username ||
+    data?.playerName ||
+    data?.player_name ||
+    data?.requestedUsername ||
+    data?.requested_username ||
+    "Imported user";
+  const importedAt =
+    data?.importedAt ||
+    data?.imported_at ||
+    data?.lastUpdated ||
+    data?.last_updated ||
+    data?.savedProfile?.lastUpdated ||
+    "";
+  const confidence =
+    gamesAnalysed >= 50
+      ? "Strongest signals are based on repeated openings, not one-off games."
+      : gamesAnalysed >= 10
+        ? "Useful early sample. Repeated openings are more reliable than one-off games."
+        : "Small import sample. Treat recommendations as watch signals until more games are analysed.";
+
+  return {
+    platform,
+    username,
+    gamesFound,
+    gamesAnalysed,
+    skipped,
+    months,
+    importedAt,
+    confidence,
+  };
+}
+
+function ImportSummaryCard({ data }) {
+  if (!data) return null;
+
+  const summary = getImportSummary(data);
+  const rangeText = summary.months
+    ? `from the last ${summary.months} month${summary.months === 1 ? "" : "s"}`
+    : "from the selected recent range";
+  const analysedText = summary.gamesAnalysed
+    ? `Analysed ${summary.gamesAnalysed} recent ${summary.platform} game${summary.gamesAnalysed === 1 ? "" : "s"} ${rangeText}.`
+    : `Prepared a ${summary.platform} import summary for ${summary.username}.`;
+  const meta = [
+    ["Platform", summary.platform],
+    ["Username", summary.username],
+    ["Range", summary.months ? `${summary.months} month${summary.months === 1 ? "" : "s"}` : "Recent games"],
+    ["Found", summary.gamesFound ? `${summary.gamesFound}` : "Unavailable"],
+    ["Analysed", summary.gamesAnalysed ? `${summary.gamesAnalysed}` : "Unavailable"],
+    ...(summary.skipped ? [["Skipped", `${summary.skipped}`]] : []),
+    ["Updated", summary.importedAt ? safeDate(summary.importedAt) : "Just now"],
+  ];
+
+  return (
+    <section className="importSummaryCard" aria-label="Import summary">
+      <div className="importSummaryMain">
+        <span>Import summary</span>
+        <strong>{analysedText}</strong>
+        <p>
+          Some very short or unclear games may be ignored for opening recommendations.{" "}
+          {summary.confidence}
+        </p>
+      </div>
+
+      <div className="importSummaryMeta">
+        {meta.map(([label, value]) => (
+          <div key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function BiggestInsightCard({ data, fitData }) {
   if (!data || !fitData?.scoredOpenings?.length) return null;
 
@@ -1876,6 +2011,8 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
         <h1>{playerName} opening dashboard</h1>
         <span>{games ? `${games} games analysed` : "Report ready"}</span>
       </div>
+
+      <ImportSummaryCard data={data} />
 
       <div className="openingIdentityHero">
         <article className="openingScoreHeroCard">
@@ -4333,6 +4470,41 @@ function App() {
       total_games:
         incoming.total_games ?? incoming.totalGames ?? incoming.gamesImported ?? 0,
       months_checked: incoming.months_checked ?? incoming.monthsChecked ?? 0,
+      monthsChecked: incoming.monthsChecked ?? incoming.months_checked ?? 0,
+      gamesFound:
+        incoming.gamesFound ??
+        incoming.games_found ??
+        incoming.gamesImported ??
+        incoming.totalGames ??
+        incoming.total_games ??
+        0,
+      gamesAnalysed:
+        incoming.gamesAnalysed ??
+        incoming.gamesAnalyzed ??
+        incoming.games_analyzed ??
+        incoming.gamesImported ??
+        incoming.totalGames ??
+        incoming.total_games ??
+        0,
+      gamesAnalyzed:
+        incoming.gamesAnalyzed ??
+        incoming.gamesAnalysed ??
+        incoming.games_analyzed ??
+        incoming.gamesImported ??
+        incoming.totalGames ??
+        incoming.total_games ??
+        0,
+      skippedGames:
+        incoming.skippedGames ?? incoming.skipped_games ?? 0,
+      importPlatform:
+        incoming.importPlatform ?? incoming.import_platform ?? incoming.platform ?? platform,
+      importedAt:
+        incoming.importedAt ??
+        incoming.imported_at ??
+        incoming.lastUpdated ??
+        incoming.last_updated ??
+        incoming.savedProfile?.lastUpdated ??
+        new Date().toISOString(),
       top_openings: incoming.top_openings ?? incoming.topOpenings ?? [],
       best_openings: incoming.best_openings ?? incoming.bestOpenings ?? [],
       preferred_white: incoming.preferred_white ?? incoming.preferredWhite ?? [],
