@@ -1041,6 +1041,22 @@ def dominant_opening_context(stats: Dict[str, int]) -> str:
     return ranked[0][0]
 
 
+def empty_opening_stats() -> Dict[str, Any]:
+    return {
+        "name": "",
+        "games": 0,
+        "wins": 0,
+        "draws": 0,
+        "losses": 0,
+        "white": 0,
+        "black": 0,
+        "played_as_white": 0,
+        "black_vs_e4": 0,
+        "black_vs_d4_other": 0,
+        "unknown_mixed": 0,
+    }
+
+
 def opening_item(
     name: str,
     games: int,
@@ -1126,11 +1142,12 @@ def build_colour_aware_recommendations(
     }
 
     for name, stats in opening_results.items():
+        display_name = str(stats.get("name") or name).split("::")[0]
         games = int(stats.get("games", 0) or 0)
         context = dominant_opening_context(stats)
-        item = opening_item(name, games, context, stats)
+        item = opening_item(display_name, games, context, stats)
 
-        if is_unknown_opening_name(name):
+        if is_unknown_opening_name(display_name):
             sections["too_little_data"].append(
                 {
                     **item,
@@ -1148,7 +1165,7 @@ def build_colour_aware_recommendations(
             sections["experimental_rare"].append(item)
             continue
 
-        if context == "unknown_mixed" or not context_is_compatible(name, context):
+        if context == "unknown_mixed" or not context_is_compatible(display_name, context):
             sections["too_little_data"].append(
                 {
                     **item,
@@ -1226,6 +1243,7 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
     scored = []
 
     for opening, stats in opening_results.items():
+        display_name = str(stats.get("name") or opening).split("::")[0]
         games = stats["games"]
         wins = stats["wins"]
         draws = stats["draws"]
@@ -1251,7 +1269,7 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
 
         scored.append(
             {
-                "name": opening,
+                "name": display_name,
                 "games": games,
                 "wins": wins,
                 "draws": draws,
@@ -1794,20 +1812,8 @@ def import_chesscom_logic(username: str, months: int = 3):
     opening_counter = Counter()
     white_opening_counter = Counter()
     black_opening_counter = Counter()
-    opening_results = defaultdict(
-        lambda: {
-            "games": 0,
-            "wins": 0,
-            "draws": 0,
-            "losses": 0,
-            "white": 0,
-            "black": 0,
-            "played_as_white": 0,
-            "black_vs_e4": 0,
-            "black_vs_d4_other": 0,
-            "unknown_mixed": 0,
-        }
-    )
+    opening_results = defaultdict(empty_opening_stats)
+    context_opening_results = defaultdict(empty_opening_stats)
     recent_games = []
 
     for game in all_games:
@@ -1824,17 +1830,20 @@ def import_chesscom_logic(username: str, months: int = 3):
         elif colour == "black":
             black_opening_counter[opening] += 1
 
-        opening_results[opening]["games"] += 1
-        if colour in {"white", "black"}:
-            opening_results[opening][colour] += 1
-        opening_results[opening][repertoire_context] += 1
+        context_key = f"{opening}::{repertoire_context}"
+        for stats in (opening_results[opening], context_opening_results[context_key]):
+            stats["name"] = opening
+            stats["games"] += 1
+            if colour in {"white", "black"}:
+                stats[colour] += 1
+            stats[repertoire_context] += 1
 
-        if result == "win":
-            opening_results[opening]["wins"] += 1
-        elif result == "draw":
-            opening_results[opening]["draws"] += 1
-        elif result == "loss":
-            opening_results[opening]["losses"] += 1
+            if result == "win":
+                stats["wins"] += 1
+            elif result == "draw":
+                stats["draws"] += 1
+            elif result == "loss":
+                stats["losses"] += 1
 
         recent_games.append(
             {
@@ -1916,7 +1925,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     ]
 
     style_profile = build_style_profile(all_games, username)
-    best_openings = build_opening_scores(opening_results)
+    best_openings = build_opening_scores(context_opening_results)
     report_mode_data = detect_report_mode(
         title=player.get("title"),
         total_games=len(all_games),
@@ -1926,7 +1935,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     report_mode = report_mode_data["report_mode"]
     best_openings = adapt_openings_for_report_mode(best_openings, report_mode)
     top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
-    opening_recommendations = build_colour_aware_recommendations(opening_results)
+    opening_recommendations = build_colour_aware_recommendations(context_opening_results)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
         opening_recommendations,
@@ -2085,20 +2094,8 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
     opening_counter = Counter()
     white_opening_counter = Counter()
     black_opening_counter = Counter()
-    opening_results = defaultdict(
-        lambda: {
-            "games": 0,
-            "wins": 0,
-            "draws": 0,
-            "losses": 0,
-            "white": 0,
-            "black": 0,
-            "played_as_white": 0,
-            "black_vs_e4": 0,
-            "black_vs_d4_other": 0,
-            "unknown_mixed": 0,
-        }
-    )
+    opening_results = defaultdict(empty_opening_stats)
+    context_opening_results = defaultdict(empty_opening_stats)
     recent_games = []
     player_ratings = []
 
@@ -2156,17 +2153,20 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
         elif colour == "black":
             black_opening_counter[opening] += 1
 
-        opening_results[opening]["games"] += 1
-        if colour in {"white", "black"}:
-            opening_results[opening][colour] += 1
-        opening_results[opening][repertoire_context] += 1
+        context_key = f"{opening}::{repertoire_context}"
+        for stats in (opening_results[opening], context_opening_results[context_key]):
+            stats["name"] = opening
+            stats["games"] += 1
+            if colour in {"white", "black"}:
+                stats[colour] += 1
+            stats[repertoire_context] += 1
 
-        if result == "win":
-            opening_results[opening]["wins"] += 1
-        elif result == "draw":
-            opening_results[opening]["draws"] += 1
-        elif result == "loss":
-            opening_results[opening]["losses"] += 1
+            if result == "win":
+                stats["wins"] += 1
+            elif result == "draw":
+                stats["draws"] += 1
+            elif result == "loss":
+                stats["losses"] += 1
 
         recent_games.append(
             {
@@ -2249,7 +2249,7 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
         if not is_unknown_opening_name(n) and context_is_compatible(n, dominant_opening_context(opening_results[n]))
     ]
 
-    best_openings = build_opening_scores(opening_results)
+    best_openings = build_opening_scores(context_opening_results)
     style_profile = build_lichess_style_profile(top_openings, preferred_white, preferred_black)
     current_rating = max(player_ratings) if player_ratings else None
 
@@ -2275,7 +2275,7 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
     report_mode = report_mode_data["report_mode"]
     best_openings = adapt_openings_for_report_mode(best_openings, report_mode)
     top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
-    opening_recommendations = build_colour_aware_recommendations(opening_results)
+    opening_recommendations = build_colour_aware_recommendations(context_opening_results)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
         opening_recommendations,
