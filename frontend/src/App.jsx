@@ -489,6 +489,30 @@ function getOpeningContextTitle(opening, fallback = "Opening signal") {
   return `${name} (mixed signal)`;
 }
 
+function getOpeningIdentityKey(opening) {
+  if (!opening) return "";
+  const context = getOpeningContext(opening);
+  return [
+    getOpeningName(opening).toLowerCase(),
+    context.type || "mixed",
+    context.detail || context.label || "",
+  ].join("|");
+}
+
+function isSameOpeningContext(a, b) {
+  if (!a || !b) return false;
+  return getOpeningIdentityKey(a) === getOpeningIdentityKey(b);
+}
+
+function pickDistinctOpening(candidates, used = []) {
+  return candidates.find(
+    (opening) =>
+      opening &&
+      getOpeningIdentityKey(opening) &&
+      !used.some((usedOpening) => isSameOpeningContext(opening, usedOpening))
+  );
+}
+
 function canTreatAsRepertoireOpening(opening) {
   if (!opening) return false;
   const context = getOpeningContext(opening);
@@ -1953,16 +1977,33 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
 
   const publicMode = isPublicReportMode(data);
   const openings = fitData?.scoredOpenings || [];
-  const best = fitData?.bestOpening || openings[0] || null;
+  const reliableOpenings = openings.filter((opening) => getOpeningSignal(opening).canBePrimary);
+  const best = getOpeningSignal(fitData?.bestOpening || {}).canBePrimary
+    ? fitData.bestOpening
+    : pickDistinctOpening(
+        [
+          ...reliableOpenings.filter((opening) => opening.fitCategory === "keep"),
+          ...reliableOpenings,
+        ],
+        []
+      ) || null;
   const repair =
-    openings.find((opening) => ["review", "improve"].includes(opening.fitCategory)) ||
-    fitData?.weakestOpening ||
-    openings[1] ||
-    null;
+    pickDistinctOpening(
+      [
+        ...reliableOpenings.filter((opening) => ["review", "improve"].includes(opening.fitCategory)),
+        getOpeningSignal(fitData?.weakestOpening || {}).canBePrimary ? fitData.weakestOpening : null,
+        ...reliableOpenings,
+      ],
+      [best]
+    ) || null;
   const avoid =
-    openings.find((opening) => opening.fitCategory === "avoid") ||
-    openings.find((opening) => opening.fitSeverity === "danger") ||
-    repair;
+    pickDistinctOpening(
+      [
+        ...reliableOpenings.filter((opening) => opening.fitCategory === "avoid"),
+        ...reliableOpenings.filter((opening) => opening.fitSeverity === "danger"),
+      ],
+      [best, repair]
+    ) || null;
   const playerName =
     data.username ||
     data.playerName ||
@@ -1995,11 +2036,11 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
   const card = (label, opening, fallback, className) => (
     <article className={`compactVerdictCard ${className || ""}`}>
       <span>{label}</span>
-      <strong>{opening ? getOpeningName(opening) : fallback}</strong>
+      <strong>{opening ? getOpeningContextTitle(opening) : fallback}</strong>
       <p>
         {opening
-          ? `${getOpeningGames(opening)} games · ${getWinRate(opening)}% score`
-          : "Import more games before changing the repertoire."}
+          ? `${getOpeningGames(opening)} games · ${getWinRate(opening)}% score · ${getOpeningSignal(opening).badge}`
+          : "Not enough reliable data for a firm recommendation yet."}
       </p>
     </article>
   );
@@ -3544,18 +3585,23 @@ function OpeningFitFullReport({ data }) {
 
   const primaryCandidates = ranked.filter((item) => getOpeningSignal(item).canBePrimary);
   const watchCandidates = ranked.filter((item) => !getOpeningSignal(item).canBePrimary);
-  const bestOverall = primaryCandidates[0] || watchCandidates[0] || ranked[0];
+  const bestOverall = primaryCandidates[0] || null;
   const improveOpening =
-    weakest.find((item) => getOpeningSignal(item).canBePrimary) ||
-    primaryCandidates[1] ||
-    watchCandidates[0] ||
-    ranked[0];
+    pickDistinctOpening(
+      [
+        ...weakest.filter((item) => getOpeningSignal(item).canBePrimary),
+        ...primaryCandidates,
+      ],
+      [bestOverall]
+    ) || null;
   const avoidOpening =
-    weakest.filter((item) => getOpeningSignal(item).canBePrimary)[1] ||
-    weakest.find((item) => getOpeningSignal(item).canBePrimary) ||
-    watchCandidates[1] ||
-    watchCandidates[0] ||
-    ranked[0];
+    pickDistinctOpening(
+      [
+        ...weakest.filter((item) => getOpeningSignal(item).canBePrimary),
+        ...watchCandidates,
+      ],
+      [bestOverall, improveOpening]
+    ) || null;
   const colourAwareSections = getColourAwareRecommendationSections(data);
   const findSection = (key) =>
     colourAwareSections.find((section) => section.key === key)?.items || [];
@@ -5124,7 +5170,7 @@ function App() {
       summary.push(
         publicMode
           ? `${getOpeningContextTitle(weakFit)} is a lower-scoring recent sample at ${weakFit.fitScore}/100. Do not treat this as a hard opening verdict.`
-          : `${getOpeningContextTitle(weakFit)} may need attention. It currently scores ${weakFit.fitScore}/100, so review the first few moves and common plans only in that side/context.`
+          : `${getOpeningContextTitle(weakFit)} may need attention. It currently scores ${weakFit.fitScore}/100, so review your last 3 games there and mark the first repeated branch.`
       );
     }
 
