@@ -2785,27 +2785,96 @@ function RatingOpeningGuide({ onOpeningClick }) {
   );
 }
 
+function LandingSampleResultPreview({ onOpeningClick }) {
+  const rows = [
+    {
+      verdict: "Keep",
+      className: "keep",
+      opening: "Caro-Kann Defence",
+      context: "as Black",
+      text: "Reliable results, stable middlegames.",
+      actionOpening: "Caro-Kann Defence",
+    },
+    {
+      verdict: "Improve",
+      className: "improve",
+      opening: "Italian Game",
+      context: "as White",
+      text: "Good positions, but results drop after early exchanges.",
+      actionOpening: "Italian Game",
+    },
+    {
+      verdict: "Watch",
+      className: "avoid",
+      opening: "Unsound gambit lines",
+      context: "low confidence",
+      text: "Fun, but poor score and too few reliable games.",
+    },
+  ];
+
+  return (
+    <article className="landingSampleResultPreview" aria-label="Sample Opening Fit result">
+      <div className="landingSampleResultHeader">
+        <div>
+          <span>Opening Fit sample</span>
+          <h3>What your report looks like</h3>
+        </div>
+        <strong>Demo data</strong>
+      </div>
+
+      <div className="landingSampleResultRows">
+        {rows.map((row) => (
+          <div className="landingSampleResultRow" key={`${row.verdict}-${row.opening}`}>
+            <span className={`verdict ${row.className}`}>{row.verdict}</span>
+            <div>
+              {row.actionOpening && typeof onOpeningClick === "function" ? (
+                <button
+                  className="inlineOpeningBtn"
+                  type="button"
+                  onClick={() => onOpeningClick(row.actionOpening)}
+                >
+                  {row.opening} <small>{row.context}</small>
+                </button>
+              ) : (
+                <strong>
+                  {row.opening} <small>{row.context}</small>
+                </strong>
+              )}
+              <p>{row.text}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="landingSampleStudyNext">
+        <span>Study next</span>
+        <strong>Practise one simple plan against early ...c5.</strong>
+      </div>
+    </article>
+  );
+}
+
 function LandingSection({ onOpeningClick }) {
   const features = [
     {
-      icon: "♟️",
+      icon: "♟",
       title: "Import your games",
-      text: "Enter your Chess.com or Lichess username and analyse your recent games.",
+      text: "Pull recent Chess.com or Lichess games and analyse the openings you actually reach.",
     },
     {
-      icon: "📊",
-      title: "Find your patterns",
-      text: "See which openings you play most and where your results are strongest.",
+      icon: "◎",
+      title: "Colour-aware verdicts",
+      text: "Separate openings you play as White, as Black, and openings you only face.",
     },
     {
-      icon: "🎯",
-      title: "Get opening ideas",
-      text: "Receive simple repertoire suggestions based on your real games.",
+      icon: "◷",
+      title: "Confidence labels",
+      text: "Sample-size guardrails stop one-off games becoming fake certainty.",
     },
     {
-      icon: "🚀",
+      icon: "→",
       title: "Train smarter",
-      text: "Get a personal plan based on your strongest openings and weak spots.",
+      text: "Get one next study action based on your own repeated opening patterns.",
     },
   ];
 
@@ -2859,23 +2928,23 @@ function LandingSection({ onOpeningClick }) {
             <div className="landingPill">
               <span>New</span>
               <span className="landingDot">•</span>
-              <span>Personalised chess opening recommendations</span>
+              <span>Colour-aware opening verdicts from your games</span>
             </div>
 
-            <h1>Build a chess repertoire that fits how you actually play.</h1>
+            <h1>Know what to keep, fix, and study in your openings.</h1>
 
             <p className="landingSubtext">
-              Opening Fit reviews your recent games, finds your strongest
-              opening patterns, and recommends practical repertoire ideas based
-              on your own results.
+              Opening Fit imports your games and turns them into a practical
+              repertoire plan: keep the openings that work, improve the lines
+              that wobble, and watch low-confidence experiments.
             </p>
 
             <div className="landingHeroActions">
               <a className="landingPrimaryBtn" href="#app-dashboard">
                 Import games
               </a>
-              <a className="landingSecondaryBtn" href="#rating-openings">
-                Browse rating ranges
+              <a className="landingSecondaryBtn" href="#sample-report">
+                See sample result
               </a>
             </div>
 
@@ -2898,83 +2967,7 @@ function LandingSection({ onOpeningClick }) {
           </div>
 
           <div className="landingPreviewCard" id="sample-report">
-            <div className="landingPreviewTop">
-              <div>
-                <p className="landingMiniLabel">Sample Style Profile</p>
-                <h3>Aggressive counterpuncher</h3>
-              </div>
-
-              <span className="landingFitBadge">Strong fit</span>
-            </div>
-
-            <div className="landingPreviewGrid">
-              <div className="landingInfoCard">
-                <p className="landingMiniLabel">White repertoire</p>
-                <button
-                  className="landingOpeningBtn"
-                  type="button"
-                  onClick={() => onOpeningClick("Vienna Game")}
-                >
-                  Vienna Game
-                </button>
-                <p>Active development, attacking chances, and clear plans.</p>
-              </div>
-
-              <div className="landingInfoCard">
-                <p className="landingMiniLabel">Black repertoire</p>
-                <button
-                  className="landingOpeningBtn"
-                  type="button"
-                  onClick={() => onOpeningClick("Scandinavian Defence")}
-                >
-                  Scandinavian Defence
-                </button>
-                <p>Direct positions with practical club-level ideas.</p>
-              </div>
-            </div>
-
-            <div className="landingInfoCard">
-              <p className="landingMiniLabel">Opening verdicts</p>
-              <h4>Keep / Improve / Avoid</h4>
-
-              <div className="landingVerdictList">
-                <div className="landingVerdictRow">
-                  <div>
-                    <button
-                      className="inlineOpeningBtn"
-                      type="button"
-                      onClick={() => onOpeningClick("Vienna Game")}
-                    >
-                      Vienna Game
-                    </button>
-                    <span>Strong recent results</span>
-                  </div>
-                  <span className="verdict keep">Keep</span>
-                </div>
-
-                <div className="landingVerdictRow">
-                  <div>
-                    <button
-                      className="inlineOpeningBtn"
-                      type="button"
-                      onClick={() => onOpeningClick("Italian Game")}
-                    >
-                      Italian Game
-                    </button>
-                    <span>Playable, but needs work</span>
-                  </div>
-                  <span className="verdict improve">Improve</span>
-                </div>
-
-                <div className="landingVerdictRow">
-                  <div>
-                    <strong>Random sidelines</strong>
-                    <span>Low consistency</span>
-                  </div>
-                  <span className="verdict avoid">Avoid</span>
-                </div>
-              </div>
-            </div>
+            <LandingSampleResultPreview onOpeningClick={onOpeningClick} />
           </div>
         </div>
       </header>
@@ -5607,11 +5600,11 @@ function App() {
               <div className="heroTop">
               <div className="heroTitleWrap">
                 <p className="eyebrow">Opening Fit</p>
-                <h1>Find the chess openings that fit how you actually play</h1>
+                <h1>Know what to keep, fix, and study in your openings</h1>
                 <p className="subtext">
-                  Chess opening analysis for your public Chess.com or Lichess
-                  games, with a compact opening report, repertoire builder,
-                  keep / improve / avoid guidance, and a focused study plan.
+                  Import your Chess.com or Lichess games and get a practical
+                  repertoire plan: colour-aware verdicts, confidence labels,
+                  and one clear study action from your actual games.
                 </p>
               </div>
             </div>
@@ -5673,8 +5666,18 @@ function App() {
                 >
                   {loading ? "Analysing..." : "Analyse"}
                 </button>
+                <button
+                  className="secondaryBtn"
+                  type="button"
+                  onClick={loadDemoReport}
+                  disabled={loading}
+                >
+                  View sample
+                </button>
               </div>
             </div>
+
+            <LandingSampleResultPreview onOpeningClick={startOpeningPractice} />
 
             {false ? (
             <div className="filtersRow importFiltersRow">
@@ -5710,9 +5713,9 @@ function App() {
             ) : null}
 
             <div className="compactTrustRow">
-              <span>No login required</span>
-              <span>Uses public games</span>
-              <span>Free report available</span>
+              <span>Colour-aware</span>
+              <span>Sample-size aware</span>
+              <span>Based on actual games</span>
             </div>
 
             {apiStatus !== "online" ? (

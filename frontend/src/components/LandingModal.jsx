@@ -22,6 +22,12 @@ export default function LandingModal({
     onDemoReport?.();
   };
 
+  const sampleRows = [
+    ["Keep", "Caro-Kann as Black", "Reliable results, stable middlegames."],
+    ["Improve", "Italian Game as White", "Good positions, but results drop after early exchanges."],
+    ["Watch", "Unsound gambit lines", "Fun, but poor score and low confidence."],
+  ];
+
   return (
     <div className="landingOverlay" onClick={onClose}>
       <div className="landingModal landingModal--beta" onClick={(event) => event.stopPropagation()}>
@@ -37,10 +43,31 @@ export default function LandingModal({
         <div className="landingBetaPill">Beta version</div>
 
         <div className="landingHeroCopy">
-          <h1>Find the chess openings that actually fit your games.</h1>
+          <h1>Know what to keep, fix, and study in your openings.</h1>
           <p>
-            OpeningFit looks at your recent games, spots which openings are working,
-            and turns them into a simple repertoire and study plan.
+            Opening Fit imports your games and turns them into colour-aware
+            opening verdicts, confidence labels, and one practical study action.
+          </p>
+        </div>
+
+        <div className="landingModalSampleResult" aria-label="Sample result">
+          <div className="landingModalSampleTop">
+            <span>Opening Fit sample</span>
+            <strong>Demo data</strong>
+          </div>
+
+          {sampleRows.map(([verdict, opening, text]) => (
+            <div className="landingModalSampleRow" key={opening}>
+              <span>{verdict}</span>
+              <div>
+                <strong>{opening}</strong>
+                <p>{text}</p>
+              </div>
+            </div>
+          ))}
+
+          <p className="landingModalStudyNext">
+            Study next: practise one simple plan against early ...c5.
           </p>
         </div>
 
@@ -67,7 +94,7 @@ export default function LandingModal({
         <div className="landingImportPanel">
           <div className="landingImportHeader">
             <h2>Import your games</h2>
-            <p>No account needed. Enter a public Chess.com username to generate a report.</p>
+            <p>Enter a Chess.com or Lichess username to generate a report.</p>
           </div>
 
           <div className="landingPlatformTabs" role="tablist" aria-label="Choose platform">
@@ -127,9 +154,9 @@ export default function LandingModal({
         </div>
 
         <div className="landingTrustRow">
-          <span>Built for club players</span>
-          <span>Uses public game data</span>
-          <span>Free beta access</span>
+          <span>Colour-aware</span>
+          <span>Sample-size aware</span>
+          <span>Based on actual games</span>
         </div>
 
         <button
