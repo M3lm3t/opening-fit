@@ -27434,10 +27434,6 @@ textarea {
     gap: 10px;
   }
 
-  .appReportPage .openingAppMenu {
-    display: none !important;
-  }
-
   .compactReportDashboard {
     gap: 10px !important;
   }
