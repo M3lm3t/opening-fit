@@ -286,7 +286,7 @@ async function createReportPdf({ username, platform, gamesImported, openings = [
   y = addSectionTitle(doc, "Next steps", y);
 
   const nextSteps = [
-    "Review your weakest opening first and check where the losses happen.",
+    "Review the lowest-scoring repeated sample first and check where the pattern starts.",
     "Keep playing openings marked Keep if they match your style and results.",
     "Use the practice lines to drill common move orders.",
     "Import again after more games to see if your opening report improves.",

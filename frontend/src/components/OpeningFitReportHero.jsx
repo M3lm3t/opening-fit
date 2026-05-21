@@ -82,7 +82,7 @@ function getPlayerTier(data) {
     .toLowerCase();
 
   return (
-    rating >= 2500 ||
+    rating >= 2400 ||
     ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(title) ||
     level.includes("master") ||
     level.includes("elite")
@@ -90,7 +90,7 @@ function getPlayerTier(data) {
     ? "elite"
     : rating >= 2200 || level.includes("expert")
     ? "strong"
-    : rating >= 1600 || level.includes("advanced")
+    : rating >= 1800 || level.includes("advanced")
     ? "club"
     : "developing";
 }

@@ -75,8 +75,14 @@ function getRating(data) {
     data?.rating ??
       data?.currentRating ??
       data?.current_rating ??
+      data?.chesscomRating ??
       data?.chesscom_rating ??
+      data?.lichessRating ??
       data?.lichess_rating ??
+      data?.rapidRating ??
+      data?.rapid_rating ??
+      data?.blitzRating ??
+      data?.blitz_rating ??
       data?.player_level?.rating ??
       data?.playerLevel?.rating,
     null
@@ -87,11 +93,20 @@ function getLevel(data) {
   const rating = getRating(data);
   const level = getPlayerLevelText(data).toLowerCase();
 
-  if (rating >= 2200 || level.includes("master") || level.includes("expert") || level.includes("elite")) {
+  if (rating >= 2400 || level.includes("master") || level.includes("elite")) {
+    return "master";
+  }
+  if (rating >= 2200 || level.includes("expert")) {
+    return "expert";
+  }
+  if (rating >= 1800 || level.includes("advanced")) {
     return "advanced";
   }
-  if (rating >= 1200 || level.includes("club") || level.includes("intermediate")) {
+  if (rating >= 1400 || level.includes("club") || level.includes("intermediate")) {
     return "intermediate";
+  }
+  if (rating >= 900 || level.includes("developing") || level.includes("improver")) {
+    return "developing";
   }
   return "beginner";
 }
@@ -158,16 +173,20 @@ function buildPlan(data) {
   const recommendation = getMainRecommendation(data);
   const level = getLevel(data);
   const advancedMode =
-    level === "advanced" ||
+    ["advanced", "expert", "master"].includes(level) ||
     ["high_rated_user", "public_account_possible"].includes(data?.reportMode || data?.report_mode);
   const reviewLanguage =
-    advancedMode
+    level === "master"
+      ? `${evidence(weak)} Action: audit move-order precision, opponent preparation, and the first recurring branch where the score drops.`
+      : advancedMode
       ? `${evidence(weak)} Action: audit move order, opponent rating band, and the first recurring middlegame structure.`
       : level === "intermediate"
       ? `${evidence(weak)} Action: find the first repeated position where your plan becomes unclear.`
       : `${evidence(weak)} Action: mark the first move where development, king safety, or the centre plan went wrong.`;
   const strengthLanguage =
-    advancedMode
+    level === "master"
+      ? `${evidence(best)} Action: treat this as a known repertoire weapon and check whether recent opponents are steering you into one specific branch.`
+      : advancedMode
       ? `${evidence(best)} Action: add one branch-level note on the reply causing the most practical problems.`
       : level === "intermediate"
       ? `${evidence(best)} Action: choose one repeatable line and write the plan in one sentence.`

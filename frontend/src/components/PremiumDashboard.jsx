@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
 import "./PremiumDashboard.css";
+import {
+  canGiveAvoidVerdict,
+  getSmartPlayerLevelProfile,
+  isAdvancedOrStrongerLevel,
+} from "./playerLevelLogic";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 const PREMIUM_DEMO_KEY = "openingFit:premiumDemo";
@@ -89,6 +94,8 @@ function getGameCount(row) {
 }
 
 function buildRepertoire(data) {
+  const level = getSmartPlayerLevelProfile(data).level;
+  const advancedOrHigher = isAdvancedOrStrongerLevel(level);
   const rows = getOpeningRows(data)
     .map((row) => ({
       ...row,
@@ -111,12 +118,18 @@ function buildRepertoire(data) {
     .slice(0, 3);
 
   const improve = [...pool]
-    .filter((row) => row.winRate > 35 && row.winRate < 55)
+    .filter((row) =>
+      advancedOrHigher
+        ? row.winRate < 55 && !canGiveAvoidVerdict({ level, games: row.games, score: row.winRate })
+        : row.winRate > 35 && row.winRate < 55
+    )
     .sort((a, b) => b.games - a.games)
     .slice(0, 3);
 
   const avoid = [...pool]
-    .filter((row) => row.winRate <= 35)
+    .filter((row) =>
+      !advancedOrHigher && canGiveAvoidVerdict({ level, games: row.games, score: row.winRate })
+    )
     .sort((a, b) => b.games - a.games)
     .slice(0, 3);
 
