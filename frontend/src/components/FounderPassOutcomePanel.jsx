@@ -44,11 +44,11 @@ export default function FounderPassOutcomePanel({
     <section className="founderOutcome" id="founder-pass-outcome">
       <div className="founderOutcome__copy">
         <p className="founderOutcome__eyebrow">Founder Pass</p>
-        <h2>Unlock deeper reports and support early development.</h2>
+        <h2>Unlock your full repertoire audit.</h2>
         <p>
-          Your free report shows the headline signals. Founder Pass is for players
-          who want deeper history, saved reports, fuller opening tables, and future
-          premium tools as Opening Fit improves.
+          Your free report shows the headline patterns. Founder Pass unlocks
+          the full colour-split repertoire review, confidence-scored verdicts,
+          weak spot diagnosis, and a practical training plan.
         </p>
 
         <div className="founderOutcome__trust">
@@ -69,8 +69,8 @@ export default function FounderPassOutcomePanel({
 
         <ul>
           <li>
-            <strong>Deeper repertoire plan</strong>
-            <span>See more context behind Keep / Improve / Avoid verdicts.</span>
+            <strong>Full repertoire audit</strong>
+            <span>White/Black split with confidence-scored verdicts.</span>
           </li>
           <li>
             <strong>12 months of games</strong>
@@ -79,17 +79,17 @@ export default function FounderPassOutcomePanel({
             </span>
           </li>
           <li>
-            <strong>Clearer opening verdicts</strong>
-            <span>Know what to keep, improve, avoid, and study next.</span>
+            <strong>Better opening decisions</strong>
+            <span>Know what to keep, improve, drop, and study next.</span>
           </li>
           <li>
-            <strong>Future premium upgrades</strong>
+            <strong>Future deeper analysis</strong>
             <span>Includes planned saved history and deeper analysis tools.</span>
           </li>
         </ul>
 
         <button type="button" className="founderOutcome__cta" onClick={handleUpgrade}>
-          Get Founder Pass
+          Unlock Founder Pass
         </button>
 
         <button
@@ -104,7 +104,7 @@ export default function FounderPassOutcomePanel({
           {totalGames
             ? `Your current report is based on ${totalGames} imported games.`
             : "Your current report is based on your imported games."}{" "}
-          Opening Fit is still improving. Founder Pass helps fund development and gives you early access to premium features.
+          Founder Pass turns the snapshot into a practical repertoire audit.
         </p>
       </div>
     </section>

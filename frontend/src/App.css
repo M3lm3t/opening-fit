@@ -27584,6 +27584,44 @@ textarea {
   border: 1px solid rgba(248, 214, 109, 0.45);
 }
 
+.upgradeAuditPreviewCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(248, 214, 109, 0.32);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(248, 214, 109, 0.08);
+}
+
+.upgradeAuditPreviewCard span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.upgradeAuditPreviewCard h3 {
+  margin: 3px 0 5px;
+}
+
+.upgradeAuditPreviewCard p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.upgradeAuditPreviewCard button {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 13px;
+  font-weight: 900;
+  color: #061019;
+  background: #f8d66d;
+  cursor: pointer;
+}
+
 .commandTabs {
   position: sticky;
   top: 10px;
@@ -28090,6 +28128,10 @@ textarea {
   }
 
   .nextBestActionCard {
+    display: grid;
+  }
+
+  .upgradeAuditPreviewCard {
     display: grid;
   }
 

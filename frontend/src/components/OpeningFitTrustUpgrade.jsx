@@ -138,15 +138,15 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onF
             <strong>£8</strong>
           </div>
 
-          <h2>Lifetime OpeningFit Premium for early supporters.</h2>
+          <h2>Unlock your full repertoire audit.</h2>
 
           <p>
-            Get lifetime access while OpeningFit is still in early build. The price increases later
-            as more premium features are added.
+            Founder Pass turns your recent games into better opening decisions:
+            what to keep, what to improve, and what to drop.
           </p>
 
           <button type="button" className="founderButton" onClick={onFounderPass}>
-            Get Founder Pass
+            Unlock Founder Pass
           </button>
         </article>
       </div>

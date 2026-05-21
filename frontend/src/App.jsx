@@ -1982,7 +1982,7 @@ function LockedPremiumCard({ title, text }) {
   return (
     <div className="premiumLockedInline">
       <div>
-        <span className="premiumBadge">Premium</span>
+        <span className="premiumBadge">Founder Pass</span>
         <h3>{title}</h3>
         <p>{text}</p>
       </div>
@@ -2547,8 +2547,23 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
         </div>
       </div>
 
+      <article className="upgradeAuditPreviewCard">
+        <div>
+          <span>Founder Pass</span>
+          <h3>Want the full repertoire audit?</h3>
+          <p>
+            Your free report shows the headline patterns. Founder Pass unlocks
+            the full colour-split repertoire review, confidence-scored verdicts,
+            and a practical training plan.
+          </p>
+        </div>
+        <button type="button" onClick={() => onViewChange?.("upgrade")}>
+          Unlock Founder Pass
+        </button>
+      </article>
+
       <button className="commandUpgradeCta" type="button" onClick={() => onViewChange?.("upgrade")}>
-        Unlock full repertoire audit
+        Unlock your full repertoire audit
       </button>
     </section>
   );
@@ -3846,22 +3861,20 @@ function LandingSection({ onOpeningClick }) {
       <section className="landingContentSection" id="premium">
         <div className="landingSectionHeading">
           <p className="landingEyebrow">Pricing</p>
-          <h2>Start free. Upgrade when you want deeper analysis.</h2>
+          <h2>Start with a snapshot. Unlock the full repertoire audit.</h2>
         </div>
 
         <div className="landingPricingGrid">
           <article className="landingPriceCard">
             <p className="landingMiniLabel">Free</p>
-            <h3>Opening snapshot</h3>
-            <p>Good for trying the app and seeing your main opening trends.</p>
+            <h3>Quick opening snapshot</h3>
+            <p>Good for seeing the headline patterns in your recent games.</p>
 
             <ul>
-              <li>Import recent Chess.com and Lichess games</li>
-              <li>View your style profile</li>
-              <li>See top openings and win rates</li>
-              <li>Basic opening suggestions</li>
-              <li>Practise supported opening lines</li>
-              <li>Popular openings by rating range</li>
+              <li>Limited recent Chess.com or Lichess games</li>
+              <li>Quick opening snapshot</li>
+              <li>Basic top openings</li>
+              <li>Basic recommendation</li>
             </ul>
           </article>
 
@@ -3869,24 +3882,24 @@ function LandingSection({ onOpeningClick }) {
             <div className="landingPriceTop">
               <div>
                 <p className="landingMiniLabel">Founder Pass</p>
-                <h3>Early lifetime access</h3>
+                <h3>Full repertoire audit</h3>
               </div>
 
               <span className="landingPriceBadge">£8 once-off</span>
             </div>
 
             <p>
-              Support Opening Fit while it is still early and unlock deeper reports
-              plus future premium features.
+              Unlock better opening decisions: what to keep, what to improve,
+              and what to drop from your practical repertoire.
             </p>
 
             <ul>
-              <li>Longer game import history</li>
-              <li>Full opening table and trend tracking</li>
-              <li>Deeper repertoire plan context</li>
-              <li>More focused study actions</li>
-              <li>Save reports and favourite openings</li>
-              <li>Future premium tools as they ship</li>
+              <li>12 months of games</li>
+              <li>White / Black split</li>
+              <li>Keep / Improve / Avoid verdicts</li>
+              <li>Confidence scoring and weak spot diagnosis</li>
+              <li>7-day training plan and saved report history</li>
+              <li>Future deeper analysis features</li>
             </ul>
           </article>
         </div>
@@ -6912,7 +6925,7 @@ function App() {
                   ) : !isPremium ? (
                     <LockedPremiumCard
                       title="Detailed opening explanations are premium"
-                      text="Free shows basic suggestions. Premium explains why each opening fits you and what mistakes to avoid."
+                      text="Your free report shows the headline patterns. Founder Pass unlocks the full colour-split repertoire review and confidence-scored verdicts."
                     />
                   ) : null}
 
@@ -7241,8 +7254,8 @@ function App() {
 
                   {!isPremium ? (
                     <LockedPremiumCard
-                      title="Advanced training plan locked"
-                      text="Premium will show more steps, deeper weaknesses, and longer import history."
+                      title="Full repertoire audit locked"
+                      text="Founder Pass unlocks weak spot diagnosis, a 7-day training plan, and saved report history."
                     />
                   ) : null}
                 </Section>
@@ -7488,8 +7501,8 @@ function App() {
 
                       {!isPremium && filteredTopOpenings.length > 8 ? (
                         <LockedPremiumCard
-                          title="Full opening table locked"
-                          text={`Free shows your top 8 rows. Premium would show all ${filteredTopOpenings.length} tracked openings.`}
+                          title="Full repertoire audit locked"
+                          text={`Your free report shows the headline patterns. Founder Pass unlocks all ${filteredTopOpenings.length} tracked openings with fuller context.`}
                         />
                       ) : null}
                       </div>

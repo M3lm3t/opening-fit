@@ -211,12 +211,12 @@ function buildWeakLines(data) {
 }
 
 
-function LockedOverlay({ title = "Premium feature", children, onUnlock, actionLabel = "Get Founder Pass" }) {
+function LockedOverlay({ title = "Founder Pass unlock", children, onUnlock, actionLabel = "Unlock Founder Pass" }) {
   return (
     <div className="premiumLockedOverlay">
       <div className="premiumLockIcon">🔒</div>
       <strong>{title}</strong>
-      <p>{children || "Unlock the full version to use this feature."}</p>
+      <p>{children || "Unlock the full repertoire audit to make better opening decisions."}</p>
       <button className="premiumUnlockBtn" type="button" onClick={onUnlock}>
         {actionLabel}
       </button>
@@ -429,7 +429,7 @@ export default function PremiumDashboard({
 
   const runStockfish = async () => {
     if (!premiumActive) {
-      setStockfishError("Engine review is a premium feature. Get Founder Pass or preview it first.");
+      setStockfishError("Engine review is part of the full repertoire audit. Unlock Founder Pass or preview it first.");
       return;
     }
 
@@ -473,12 +473,13 @@ export default function PremiumDashboard({
       <div className="premiumHero">
         <div>
           <span className="premiumEyebrow">
-            {isPremium ? "Premium active" : isPremiumDemo ? "Premium preview" : "Premium"}
+            {isPremium ? "Founder Pass active" : isPremiumDemo ? "Audit preview" : "Founder Pass"}
           </span>
-          <h2>Deeper Opening Fit report</h2>
+          <h2>Unlock your full repertoire audit</h2>
           <p>
-            Founder Pass adds longer history, saved reports, fuller opening tables,
-            and future premium tools as the product develops.
+            See which openings to keep, improve, or drop. Founder Pass adds
+            12 months of games, colour-split verdicts, confidence scoring,
+            weak spot diagnosis, and the 7-day training plan.
           </p>
         </div>
 
@@ -487,14 +488,14 @@ export default function PremiumDashboard({
           <strong>£8 one-time</strong>
           <small>
             {isPremium
-              ? "Premium tools are unlocked for this report."
-              : "Early lifetime access while Opening Fit is still improving."}
+              ? "Your full repertoire audit is unlocked for this report."
+              : "Turn your recent games into a practical opening plan."}
           </small>
 
           {!isPremium ? (
             <>
               <button className="premiumCheckoutButton" type="button" onClick={unlockAction}>
-                Get Founder Pass
+                Unlock Founder Pass
               </button>
               <button className="premiumDemoToggle" type="button" onClick={togglePremiumDemo}>
                 {isPremiumDemo ? "Preview on" : "Preview premium"}
