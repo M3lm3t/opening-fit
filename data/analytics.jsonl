@@ -1,0 +1,4 @@
+{"event": "import_started", "date": "2026-05-21T14:34:20.825934+00:00", "data": {"username": "Hikaru", "platform": "chess.com", "months": 1}}
+{"event": "import_started", "date": "2026-05-21T14:34:20.836604+00:00", "data": {"username": "QueenMaster77", "platform": "lichess", "months": 6}}
+{"event": "games_imported", "date": "2026-05-21T14:34:22.116438+00:00", "data": {"username": "Hikaru", "platform": "chess.com", "gamesImported": 305, "monthsChecked": 1}}
+{"event": "games_imported", "date": "2026-05-21T14:34:25.459274+00:00", "data": {"username": "QueenMaster77", "platform": "lichess", "gamesImported": 100, "monthsChecked": 6}}

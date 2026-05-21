@@ -28288,3 +28288,773 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   Premium chess dashboard visual pass
+========================================================= */
+
+:root {
+  --of-ink: #f8fafc;
+  --of-soft: #cbd5e1;
+  --of-muted: #94a3b8;
+  --of-panel: rgba(11, 18, 32, 0.82);
+  --of-panel-strong: rgba(15, 23, 42, 0.96);
+  --of-border: rgba(148, 163, 184, 0.22);
+  --of-accent: #38bdf8;
+  --of-accent-strong: #0ea5e9;
+  --of-gold: #f6c453;
+  --of-shadow: 0 26px 80px rgba(0, 0, 0, 0.34);
+  --of-shadow-soft: 0 18px 46px rgba(15, 23, 42, 0.12);
+}
+
+body,
+.page.dark,
+[data-theme="dark"] {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(14, 165, 233, 0.18), transparent 28rem),
+    radial-gradient(circle at 88% 2%, rgba(246, 196, 83, 0.10), transparent 22rem),
+    linear-gradient(180deg, #050a14 0%, #08111f 44%, #020617 100%);
+}
+
+.page.light,
+[data-theme="light"],
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(14, 165, 233, 0.13), transparent 26rem),
+    radial-gradient(circle at 90% 4%, rgba(246, 196, 83, 0.16), transparent 22rem),
+    linear-gradient(180deg, #f8fafc 0%, #eef4fb 46%, #ffffff 100%);
+  color: #0f172a;
+}
+
+.landingHero,
+.reportHero,
+.ofReportHero,
+.resultsCommandShell,
+.sevenDayPlanShell,
+.card,
+.heroCard,
+.statCard,
+.landingPreviewCard,
+.landingFeatureCard,
+.landingPriceCard,
+.landingInfoCard,
+.colourRepertoireSection {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(148, 163, 184, 0.26);
+  box-shadow: var(--of-shadow);
+}
+
+.landingHero::after,
+.reportHero::after,
+.ofReportHero::after,
+.resultsCommandShell::after,
+.sevenDayPlanShell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 22%, transparent 78%, rgba(255, 255, 255, 0.04)),
+    repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.035) 0 1px, transparent 1px 96px);
+  opacity: 0.45;
+  mask-image: linear-gradient(180deg, #000, transparent 78%);
+}
+
+.landingHero > *,
+.reportHero > *,
+.ofReportHero > *,
+.resultsCommandShell > *,
+.sevenDayPlanShell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.landingHero {
+  isolation: isolate;
+  padding: clamp(22px, 3vw, 34px);
+  border-radius: 30px;
+  border-color: rgba(125, 211, 252, 0.22);
+  background:
+    radial-gradient(circle at 20% 12%, rgba(56, 189, 248, 0.22), transparent 30rem),
+    radial-gradient(circle at 76% 18%, rgba(246, 196, 83, 0.16), transparent 24rem),
+    linear-gradient(145deg, rgba(4, 12, 26, 0.98), rgba(10, 18, 33, 0.96));
+}
+
+.page.light .landingHero,
+[data-theme="light"] .landingHero {
+  background:
+    radial-gradient(circle at 20% 12%, rgba(14, 165, 233, 0.16), transparent 30rem),
+    radial-gradient(circle at 76% 18%, rgba(246, 196, 83, 0.22), transparent 24rem),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.94));
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.14);
+}
+
+.landingHeroBoardPattern {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(45deg, rgba(148, 163, 184, 0.10) 25%, transparent 25% 75%, rgba(148, 163, 184, 0.10) 75%),
+    linear-gradient(45deg, rgba(148, 163, 184, 0.10) 25%, transparent 25% 75%, rgba(148, 163, 184, 0.10) 75%);
+  background-position: 0 0, 24px 24px;
+  background-size: 48px 48px;
+  opacity: 0.16;
+  transform: rotate(-2deg) scale(1.08);
+  mask-image: radial-gradient(circle at 74% 44%, #000 0 30%, transparent 70%);
+}
+
+.floatingRepertoireCard {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  gap: 4px;
+  width: 190px;
+  padding: 14px;
+  border: 1px solid rgba(125, 211, 252, 0.25);
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.58);
+  color: #f8fafc;
+  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.28);
+  backdrop-filter: blur(16px);
+}
+
+.floatingRepertoireCard span {
+  color: var(--of-accent);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.floatingRepertoireCard strong {
+  font-size: 1.02rem;
+}
+
+.floatingRepertoireCard small {
+  color: #cbd5e1;
+  font-weight: 800;
+}
+
+.floatingRepertoireCardWhite {
+  right: clamp(18px, 5vw, 76px);
+  top: 118px;
+  transform: rotate(2deg);
+}
+
+.floatingRepertoireCardBlack {
+  right: clamp(120px, 15vw, 250px);
+  bottom: 54px;
+  border-color: rgba(246, 196, 83, 0.34);
+  transform: rotate(-2deg);
+}
+
+.page.light .floatingRepertoireCard,
+[data-theme="light"] .floatingRepertoireCard {
+  background: rgba(255, 255, 255, 0.72);
+  color: #0f172a;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+}
+
+.page.light .floatingRepertoireCard small,
+[data-theme="light"] .floatingRepertoireCard small {
+  color: #475569;
+}
+
+.landingBrandIcon {
+  background:
+    linear-gradient(135deg, rgba(56, 189, 248, 0.98), rgba(37, 99, 235, 0.96));
+  box-shadow:
+    0 16px 38px rgba(14, 165, 233, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.landingPill,
+.landingEyebrow,
+.ofEyebrow,
+.reportEyebrow,
+.resultsCommandEyebrow {
+  border-color: rgba(56, 189, 248, 0.34);
+  background: rgba(14, 165, 233, 0.13);
+  color: #bae6fd;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.page.light .landingPill,
+.page.light .landingEyebrow,
+.page.light .ofEyebrow,
+.page.light .reportEyebrow,
+.page.light .resultsCommandEyebrow,
+[data-theme="light"] .landingPill,
+[data-theme="light"] .landingEyebrow,
+[data-theme="light"] .ofEyebrow,
+[data-theme="light"] .reportEyebrow,
+[data-theme="light"] .resultsCommandEyebrow {
+  color: #0369a1;
+  background: rgba(14, 165, 233, 0.10);
+}
+
+.landingHeroCopy h1,
+.reportHero h1,
+.ofReportHero h2,
+.resultsCommandHero h2,
+.sevenDayPlanHeader h2 {
+  letter-spacing: -0.04em;
+}
+
+.landingPreviewCard,
+.landingSampleResultPreview {
+  background:
+    radial-gradient(circle at 90% 0%, rgba(56, 189, 248, 0.13), transparent 18rem),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.72));
+  border-color: rgba(125, 211, 252, 0.22);
+}
+
+.page.light .landingPreviewCard,
+.page.light .landingSampleResultPreview,
+[data-theme="light"] .landingPreviewCard,
+[data-theme="light"] .landingSampleResultPreview {
+  background:
+    radial-gradient(circle at 90% 0%, rgba(14, 165, 233, 0.12), transparent 18rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.86));
+}
+
+.sampleBoardCoordinates,
+.landingOpeningLineChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.sampleBoardCoordinates {
+  justify-content: flex-end;
+  margin-bottom: 10px;
+  color: rgba(148, 163, 184, 0.6);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.landingOpeningLineChips {
+  margin: 12px 0 6px;
+}
+
+.landingOpeningLineChips span,
+.openingLineChip {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: rgba(14, 165, 233, 0.11);
+  color: #bae6fd;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.openingLineChip {
+  margin-top: 7px;
+}
+
+.page.light .landingOpeningLineChips span,
+.page.light .openingLineChip,
+[data-theme="light"] .landingOpeningLineChips span,
+[data-theme="light"] .openingLineChip {
+  color: #0369a1;
+  background: rgba(14, 165, 233, 0.09);
+}
+
+.landingSampleResultRow,
+.landingVerdictRow,
+.landingStatCard,
+.landingFeatureCard,
+.landingInfoCard,
+.reportMetricCard,
+.ofInsightGrid article,
+.resultsCommandScore,
+.resultsCommandActions button,
+.sevenDayCard,
+.sevenDayPlanStats div,
+.repertoireBucket,
+.colourRepertoireSection {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.landingSampleResultRow:hover,
+.landingVerdictRow:hover,
+.landingStatCard:hover,
+.landingFeatureCard:hover,
+.landingInfoCard:hover,
+.reportMetricCard:hover,
+.ofInsightGrid article:hover,
+.resultsCommandActions button:hover,
+.sevenDayCard:hover,
+.repertoireBucket:hover,
+.colourRepertoireSection:hover {
+  transform: translateY(-3px);
+  border-color: rgba(56, 189, 248, 0.38);
+  box-shadow: 0 22px 54px rgba(2, 6, 23, 0.24);
+}
+
+.page.light .landingSampleResultRow:hover,
+.page.light .landingVerdictRow:hover,
+.page.light .landingStatCard:hover,
+.page.light .landingFeatureCard:hover,
+.page.light .landingInfoCard:hover,
+.page.light .reportMetricCard:hover,
+.page.light .ofInsightGrid article:hover,
+.page.light .resultsCommandActions button:hover,
+.page.light .sevenDayCard:hover,
+.page.light .repertoireBucket:hover,
+.page.light .colourRepertoireSection:hover,
+[data-theme="light"] .landingSampleResultRow:hover,
+[data-theme="light"] .landingVerdictRow:hover,
+[data-theme="light"] .landingStatCard:hover,
+[data-theme="light"] .landingFeatureCard:hover,
+[data-theme="light"] .landingInfoCard:hover,
+[data-theme="light"] .reportMetricCard:hover,
+[data-theme="light"] .ofInsightGrid article:hover,
+[data-theme="light"] .resultsCommandActions button:hover,
+[data-theme="light"] .sevenDayCard:hover,
+[data-theme="light"] .repertoireBucket:hover,
+[data-theme="light"] .colourRepertoireSection:hover {
+  box-shadow: 0 22px 46px rgba(15, 23, 42, 0.13);
+}
+
+.primaryBtn,
+.landingPrimaryBtn,
+.reportPrimaryLink,
+.ofActionStrip button,
+.sevenDayActions button,
+.reportCommandBar__upgrade {
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  box-shadow:
+    0 18px 42px rgba(14, 165, 233, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+}
+
+.primaryBtn:hover,
+.landingPrimaryBtn:hover,
+.reportPrimaryLink:hover,
+.ofActionStrip button:hover,
+.sevenDayActions button:hover,
+.reportCommandBar__upgrade:hover {
+  animation: openingFitCtaGlow 1.6s ease-in-out infinite alternate;
+}
+
+.primaryBtn:active,
+.secondaryBtn:active,
+.landingPrimaryBtn:active,
+.landingSecondaryBtn:active,
+.reportPrimaryLink:active,
+.reportSecondaryLink:active,
+.ofActionStrip button:active,
+.resultsCommandActions button:active,
+.sevenDayActions button:active,
+.reportCommandBar__tabs button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+@keyframes openingFitCtaGlow {
+  from {
+    box-shadow: 0 18px 42px rgba(14, 165, 233, 0.26);
+  }
+  to {
+    box-shadow: 0 18px 46px rgba(14, 165, 233, 0.44), 0 0 22px rgba(56, 189, 248, 0.28);
+  }
+}
+
+.landingPriceCardPremium,
+.premiumMiniCard,
+.reportCommandBar__upgrade {
+  border-color: rgba(246, 196, 83, 0.38);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(246, 196, 83, 0.18), transparent 16rem),
+    linear-gradient(145deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.94));
+}
+
+.page.light .landingPriceCardPremium,
+.page.light .premiumMiniCard,
+[data-theme="light"] .landingPriceCardPremium,
+[data-theme="light"] .premiumMiniCard {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(246, 196, 83, 0.28), transparent 16rem),
+    #ffffff;
+}
+
+.verdict,
+.landingFitBadge,
+.landingPriceBadge,
+.chip,
+.sectionBadge {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+.verdict.keep {
+  background: rgba(34, 197, 94, 0.14);
+  color: #86efac;
+}
+
+.verdict.improve {
+  background: rgba(246, 196, 83, 0.16);
+  color: #fde68a;
+}
+
+.verdict.avoid {
+  background: rgba(248, 113, 113, 0.14);
+  color: #fecaca;
+}
+
+.page.light .verdict.keep,
+[data-theme="light"] .verdict.keep {
+  color: #15803d;
+}
+
+.page.light .verdict.improve,
+[data-theme="light"] .verdict.improve {
+  color: #a16207;
+}
+
+.page.light .verdict.avoid,
+[data-theme="light"] .verdict.avoid {
+  color: #b91c1c;
+}
+
+.reportHero,
+.ofReportHero {
+  background:
+    radial-gradient(circle at 14% 10%, rgba(56, 189, 248, 0.18), transparent 28rem),
+    radial-gradient(circle at 86% 14%, rgba(246, 196, 83, 0.12), transparent 22rem),
+    linear-gradient(145deg, rgba(6, 14, 28, 0.96), rgba(12, 22, 38, 0.92));
+  border-color: rgba(125, 211, 252, 0.22);
+}
+
+.page.light .reportHero,
+.page.light .ofReportHero,
+[data-theme="light"] .reportHero,
+[data-theme="light"] .ofReportHero {
+  background:
+    radial-gradient(circle at 14% 10%, rgba(14, 165, 233, 0.12), transparent 28rem),
+    radial-gradient(circle at 86% 14%, rgba(246, 196, 83, 0.17), transparent 22rem),
+    rgba(255, 255, 255, 0.92);
+}
+
+.ofScoreCard {
+  position: relative;
+  border-radius: 22px;
+  background:
+    conic-gradient(from 220deg, rgba(56, 189, 248, 0.55), rgba(246, 196, 83, 0.35), rgba(56, 189, 248, 0.12), rgba(56, 189, 248, 0.55));
+  padding: 1px;
+}
+
+.ofScoreCard::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 21px;
+  background: rgba(2, 6, 23, 0.84);
+}
+
+.ofScoreCard > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ofScoreCard strong {
+  color: #f8fafc;
+  text-shadow: 0 0 28px rgba(56, 189, 248, 0.35);
+}
+
+.page.light .ofScoreCard::before,
+[data-theme="light"] .ofScoreCard::before {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.page.light .ofScoreCard strong,
+[data-theme="light"] .ofScoreCard strong {
+  color: #0f172a;
+}
+
+.ofInsightGrid article,
+.resultsCommandScore,
+.reportMetricCard {
+  border-radius: 18px;
+}
+
+.ofInsightGrid article::before,
+.reportMetricCard::before,
+.resultsCommandScore::before {
+  content: "";
+  display: block;
+  width: 42px;
+  height: 4px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: var(--of-accent);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.42);
+}
+
+.reportMetricCard.best::before,
+.ofInsightGrid article:nth-child(2)::before {
+  background: #22c55e;
+  box-shadow: 0 0 18px rgba(34, 197, 94, 0.36);
+}
+
+.reportMetricCard.improve::before,
+.ofInsightGrid article:nth-child(3)::before {
+  background: var(--of-gold);
+  box-shadow: 0 0 18px rgba(246, 196, 83, 0.36);
+}
+
+.reportMetricCard.plan::before,
+.ofInsightGrid article:nth-child(4)::before {
+  background: #f87171;
+  box-shadow: 0 0 18px rgba(248, 113, 113, 0.28);
+}
+
+.reportCommandBar {
+  border-color: rgba(125, 211, 252, 0.20);
+  background:
+    linear-gradient(145deg, rgba(4, 12, 26, 0.88), rgba(15, 23, 42, 0.82));
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.30);
+  backdrop-filter: blur(18px);
+}
+
+.page.light .reportCommandBar,
+[data-theme="light"] .reportCommandBar {
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+}
+
+.reportCommandBar__tabs {
+  scroll-snap-type: x proximity;
+}
+
+.reportCommandBar__tabs button {
+  transition:
+    transform 0.16s ease,
+    background 0.16s ease,
+    color 0.16s ease;
+  scroll-snap-align: start;
+}
+
+.reportCommandBar__tabs button.is-active {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.26), rgba(37, 99, 235, 0.20));
+  color: #e0f2fe;
+}
+
+.page.light .reportCommandBar__tabs button.is-active,
+[data-theme="light"] .reportCommandBar__tabs button.is-active {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(37, 99, 235, 0.10));
+  color: #075985;
+}
+
+.resultsCommandShell {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(246, 196, 83, 0.16), transparent 22rem),
+    radial-gradient(circle at 88% 18%, rgba(56, 189, 248, 0.14), transparent 28rem),
+    linear-gradient(145deg, rgba(5, 12, 24, 0.96), rgba(15, 23, 42, 0.92));
+}
+
+.page.light .resultsCommandShell,
+[data-theme="light"] .resultsCommandShell {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(246, 196, 83, 0.24), transparent 22rem),
+    radial-gradient(circle at 88% 18%, rgba(56, 189, 248, 0.12), transparent 28rem),
+    rgba(255, 255, 255, 0.92);
+}
+
+.resultsCommandActions button span {
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.24);
+}
+
+.sevenDayPlanShell {
+  padding: clamp(18px, 3vw, 26px);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(56, 189, 248, 0.14), transparent 24rem),
+    linear-gradient(145deg, rgba(5, 12, 24, 0.96), rgba(15, 23, 42, 0.9));
+}
+
+.page.light .sevenDayPlanShell,
+[data-theme="light"] .sevenDayPlanShell {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(14, 165, 233, 0.11), transparent 24rem),
+    rgba(255, 255, 255, 0.92);
+}
+
+.sevenDayGrid {
+  position: relative;
+  grid-template-columns: repeat(7, minmax(118px, 1fr));
+}
+
+.sevenDayGrid::before {
+  content: "";
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 30px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.12), rgba(56, 189, 248, 0.54), rgba(246, 196, 83, 0.30));
+}
+
+.sevenDayCard {
+  position: relative;
+  padding-top: 46px;
+  background: rgba(2, 6, 23, 0.46);
+}
+
+.sevenDayCard::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(56, 189, 248, 0.38);
+  border-radius: 999px;
+  background: #07111f;
+  box-shadow: 0 0 0 5px rgba(56, 189, 248, 0.08);
+}
+
+.sevenDayCard:nth-child(7)::before {
+  border-color: rgba(246, 196, 83, 0.7);
+  box-shadow: 0 0 0 5px rgba(246, 196, 83, 0.10);
+}
+
+.page.light .sevenDayCard::before,
+[data-theme="light"] .sevenDayCard::before {
+  background: #ffffff;
+}
+
+.sevenDayCard span {
+  color: #7dd3fc;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page.light .sevenDayCard span,
+[data-theme="light"] .sevenDayCard span {
+  color: #0369a1;
+}
+
+.colourRepertoireSection {
+  background:
+    linear-gradient(145deg, rgba(15, 23, 42, 0.76), rgba(2, 6, 23, 0.56));
+}
+
+.page.light .colourRepertoireSection,
+[data-theme="light"] .colourRepertoireSection {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.86));
+}
+
+.repertoireBucket {
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.34), rgba(15, 23, 42, 0.16));
+}
+
+.page.light .repertoireBucket,
+[data-theme="light"] .repertoireBucket {
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.94), rgba(255, 255, 255, 0.82));
+}
+
+@media (max-width: 1100px) {
+  .floatingRepertoireCard {
+    display: none;
+  }
+
+  .sevenDayGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sevenDayGrid::before {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .landingHero,
+  .reportHero,
+  .ofReportHero,
+  .resultsCommandShell,
+  .sevenDayPlanShell {
+    border-radius: 22px;
+  }
+
+  .landingNav {
+    margin-bottom: 34px;
+  }
+
+  .landingHeroActions,
+  .reportHeroActions,
+  .ofActionStrip,
+  .sevenDayActions {
+    width: 100%;
+  }
+
+  .landingHeroActions > *,
+  .reportHeroActions > *,
+  .ofActionStrip button,
+  .sevenDayActions button {
+    width: 100%;
+    min-height: 52px;
+  }
+
+  .landingStats,
+  .sevenDayPlanStats,
+  .sevenDayGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sevenDayCard {
+    padding: 44px 14px 14px;
+  }
+
+  .reportCommandBar__tabs {
+    border-radius: 18px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .reportCommandBar__tabs button {
+    min-height: 42px;
+    font-size: 0.92rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryBtn:hover,
+  .landingPrimaryBtn:hover,
+  .reportPrimaryLink:hover,
+  .ofActionStrip button:hover,
+  .sevenDayActions button:hover,
+  .reportCommandBar__upgrade:hover {
+    animation: none;
+  }
+
+  .landingSampleResultRow,
+  .landingVerdictRow,
+  .landingStatCard,
+  .landingFeatureCard,
+  .landingInfoCard,
+  .reportMetricCard,
+  .ofInsightGrid article,
+  .resultsCommandActions button,
+  .sevenDayCard,
+  .repertoireBucket,
+  .colourRepertoireSection,
+  .reportCommandBar__tabs button {
+    transition: none;
+  }
+}
