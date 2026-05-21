@@ -198,7 +198,7 @@ function buildWeakLines(data) {
 }
 
 
-function LockedOverlay({ title = "Premium feature", children, onUnlock, actionLabel = "Unlock premium" }) {
+function LockedOverlay({ title = "Premium feature", children, onUnlock, actionLabel = "Get Founder Pass" }) {
   return (
     <div className="premiumLockedOverlay">
       <div className="premiumLockIcon">🔒</div>
@@ -416,7 +416,7 @@ export default function PremiumDashboard({
 
   const runStockfish = async () => {
     if (!premiumActive) {
-      setStockfishError("Stockfish coach is a premium feature. Unlock premium or preview it first.");
+      setStockfishError("Engine review is a premium feature. Get Founder Pass or preview it first.");
       return;
     }
 
@@ -462,10 +462,10 @@ export default function PremiumDashboard({
           <span className="premiumEyebrow">
             {isPremium ? "Premium active" : isPremiumDemo ? "Premium preview" : "Premium"}
           </span>
-          <h2>Your personal opening coach</h2>
+          <h2>Deeper Opening Fit report</h2>
           <p>
-            Turn your imported games into a complete repertoire plan, weak-line tracker,
-            training focus list, exportable report, and optional engine-backed review when it is available.
+            Founder Pass adds longer history, saved reports, fuller opening tables,
+            and future premium tools as the product develops.
           </p>
         </div>
 
@@ -475,13 +475,13 @@ export default function PremiumDashboard({
           <small>
             {isPremium
               ? "Premium tools are unlocked for this report."
-              : "Unlock deeper reports while the app is growing."}
+              : "Early lifetime access while Opening Fit is still improving."}
           </small>
 
           {!isPremium ? (
             <>
               <button className="premiumCheckoutButton" type="button" onClick={unlockAction}>
-                Unlock premium
+                Get Founder Pass
               </button>
               <button className="premiumDemoToggle" type="button" onClick={togglePremiumDemo}>
                 {isPremiumDemo ? "Preview on" : "Preview premium"}
@@ -525,10 +525,10 @@ export default function PremiumDashboard({
         <div className="premiumPanel premiumWide">
           <div className="premiumPanelHeader">
             <div>
-              <span className="premiumEyebrow">Repertoire builder</span>
+              <span className="premiumEyebrow">Repertoire plan</span>
               <h3>Your suggested opening setup</h3>
             </div>
-            <span className="premiumBadge">Premium core</span>
+            <span className="premiumBadge">Founder Pass</span>
           </div>
 
           <div className="premiumOpeningGrid">
@@ -641,8 +641,8 @@ export default function PremiumDashboard({
         <div className="premiumPanel premiumWide">
           <div className="premiumPanelHeader">
             <div>
-              <span className="premiumEyebrow">Stockfish coach</span>
-              <h3>Engine-backed game review</h3>
+              <span className="premiumEyebrow">Engine review</span>
+              <h3>Optional game review</h3>
             </div>
             <button className="premiumActionBtn" onClick={runStockfish} disabled={stockfishLoading}>
               {stockfishLoading ? "Analysing..." : "Analyse latest game"}
@@ -685,8 +685,8 @@ export default function PremiumDashboard({
             ) : null}
 
             {!premiumActive ? (
-              <LockedOverlay title="Stockfish coach" onUnlock={unlockAction}>
-                Preview the premium coach panel. Engine analysis activates when Stockfish is available on the backend.
+              <LockedOverlay title="Engine review" onUnlock={unlockAction}>
+                Preview the review panel. Engine analysis activates only when Stockfish is available on the backend.
               </LockedOverlay>
             ) : null}
           </div>

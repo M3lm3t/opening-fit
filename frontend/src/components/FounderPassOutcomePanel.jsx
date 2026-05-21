@@ -44,17 +44,17 @@ export default function FounderPassOutcomePanel({
     <section className="founderOutcome" id="founder-pass-outcome">
       <div className="founderOutcome__copy">
         <p className="founderOutcome__eyebrow">Founder Pass</p>
-        <h2>Turn your quick diagnosis into a full opening plan.</h2>
+        <h2>Unlock deeper reports and support early development.</h2>
         <p>
-          Your free report shows the headline leaks. Founder Pass is for players
-          who want the full repertoire picture: deeper history, clearer verdicts,
-          and a practical study path built around how they actually play.
+          Your free report shows the headline signals. Founder Pass is for players
+          who want deeper history, saved reports, fuller opening tables, and future
+          premium tools as Opening Fit improves.
         </p>
 
         <div className="founderOutcome__trust">
-          <span>No password needed</span>
-          <span>One-time early access</span>
-          <span>Built for club players</span>
+          <span>Early lifetime access</span>
+          <span>One-off payment</span>
+          <span>Supports development</span>
         </div>
       </div>
 
@@ -69,8 +69,8 @@ export default function FounderPassOutcomePanel({
 
         <ul>
           <li>
-            <strong>Full repertoire diagnosis</strong>
-            <span>See more than the quick Keep / Fix / Try summary.</span>
+            <strong>Deeper repertoire plan</strong>
+            <span>See more context behind Keep / Improve / Avoid verdicts.</span>
           </li>
           <li>
             <strong>12 months of games</strong>
@@ -89,7 +89,7 @@ export default function FounderPassOutcomePanel({
         </ul>
 
         <button type="button" className="founderOutcome__cta" onClick={handleUpgrade}>
-          Unlock full repertoire diagnosis
+          Get Founder Pass
         </button>
 
         <button
@@ -104,7 +104,7 @@ export default function FounderPassOutcomePanel({
           {totalGames
             ? `Your current report is based on ${totalGames} imported games.`
             : "Your current report is based on your imported games."}{" "}
-          Founder Pass is optional — the free diagnosis still works.
+          Opening Fit is still improving. Founder Pass helps fund development and gives you early access to premium features.
         </p>
       </div>
     </section>

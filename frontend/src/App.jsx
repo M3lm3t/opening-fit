@@ -3046,25 +3046,25 @@ function LandingSection({ onOpeningClick }) {
           <article className="landingPriceCard landingPriceCardPremium">
             <div className="landingPriceTop">
               <div>
-                <p className="landingMiniLabel">Premium</p>
-                <h3>Full repertoire builder</h3>
+                <p className="landingMiniLabel">Founder Pass</p>
+                <h3>Early lifetime access</h3>
               </div>
 
               <span className="landingPriceBadge">£8 once-off</span>
             </div>
 
             <p>
-              For players who want clearer verdicts, stronger recommendations,
-              and a more useful training plan.
+              Support Opening Fit while it is still early and unlock deeper reports
+              plus future premium features.
             </p>
 
             <ul>
               <li>Longer game import history</li>
-              <li>Full opening history and trend tracking</li>
-              <li>More practice lines and repertoire tools</li>
-              <li>Deeper personal training plans</li>
+              <li>Full opening table and trend tracking</li>
+              <li>Deeper repertoire plan context</li>
+              <li>More focused study actions</li>
               <li>Save reports and favourite openings</li>
-              <li>Future PDF export and progress tracking</li>
+              <li>Future premium tools as they ship</li>
             </ul>
           </article>
         </div>
@@ -6640,44 +6640,6 @@ function App() {
             </section>
           ) : null}
         </main>
-
-        {!data && !showLanding && activeView !== "feedback" ? (
-          <div className="landingWrap">
-            <section className="card feedbackCard" id="feedback-static">
-              <h2>Help improve Opening Fit</h2>
-              <p>
-                Found a bug, confusing result, or feature idea? Send quick feedback
-                before launch.
-              </p>
-
-              <textarea
-                value={feedbackMessage}
-                onChange={(e) => setFeedbackMessage(e.target.value)}
-                placeholder="What should be improved?"
-                rows={4}
-              />
-
-              <input
-                value={feedbackContact}
-                onChange={(e) => setFeedbackContact(e.target.value)}
-                placeholder="Email or TikTok username optional"
-              />
-
-              <button
-                className="secondaryButton"
-                type="button"
-                onClick={submitFeedback}
-                disabled={feedbackSending}
-              >
-                {feedbackSending ? "Sending..." : "Send Feedback"}
-              </button>
-
-              {feedbackStatus ? (
-                <p className="statusMessage">{feedbackStatus}</p>
-              ) : null}
-            </section>
-          </div>
-        ) : null}
 
         {false ? <div className="landingWrap">
           <Footer />

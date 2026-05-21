@@ -159,7 +159,7 @@ export function CoachSummaryCard({ data, onViewChange }) {
       <div className="coachSummaryHero">
         <div>
           <p className="eyebrow">Opening Fit Report</p>
-          <h2>Your personal opening coach</h2>
+          <h2>Your opening report</h2>
           <p>
             Based on {summary.gamesImported || "your recent"} games for{" "}
             <strong>{summary.username}</strong>, your current profile looks like a{" "}
@@ -245,8 +245,8 @@ export function SeriousPremiumStrip() {
   return (
     <section className="seriousPremiumStrip" id="premium-value">
       <div>
-        <p className="eyebrow">Premium direction</p>
-        <h2>Premium unlocks depth, not just more rows.</h2>
+        <p className="eyebrow">Founder Pass</p>
+        <h2>Support early development and unlock deeper reports.</h2>
       </div>
 
       <div className="premiumMiniGrid">
@@ -264,7 +264,7 @@ export function SeriousPremiumStrip() {
         </div>
         <div>
           <strong>Full study plan</strong>
-          <span>Turn the diagnosis into deeper weekly training blocks.</span>
+          <span>Turn the diagnosis into more focused study blocks.</span>
         </div>
       </div>
     </section>

@@ -3,17 +3,17 @@ export default function PremiumTrustStrip() {
     <section className="premiumTrustStrip" id="premium-roadmap">
       <div className="premiumTrustCard">
         <span>Why Premium exists</span>
-        <h3>Premium should save study time, not just unlock more charts.</h3>
+        <h3>Founder Pass funds the deeper report layer.</h3>
         <p>
-          The paid version of OpeningFit should help players make one clear decision:
-          what to play next, what to stop playing, and how to build a simple repertoire
-          from their own games.
+          Opening Fit stays useful for free. Founder Pass supports development and
+          unlocks deeper history, saved reports, fuller opening tables, and future
+          premium tools.
         </p>
       </div>
 
       <div className="premiumRoadmapCard">
-        <span>Premium roadmap</span>
-        <h3>What paying users should get next</h3>
+        <span>Founder roadmap</span>
+        <h3>What early supporters help build next</h3>
 
         <div className="premiumRoadmapList">
           <div>
@@ -22,7 +22,7 @@ export default function PremiumTrustStrip() {
           </div>
 
           <div>
-            <strong>7-day coach plan</strong>
+            <strong>Deeper study plan</strong>
             <small>Live</small>
           </div>
 
