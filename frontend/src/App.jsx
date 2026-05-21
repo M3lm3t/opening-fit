@@ -539,6 +539,30 @@ function canTreatAsRepertoireOpening(opening) {
   return context.canRecommend && signal.canBePrimary;
 }
 
+function commandVerdictClass(verdict) {
+  const lower = String(verdict || "").toLowerCase();
+  if (lower.includes("keep") || lower.includes("main") || lower.includes("reliable")) return "verdict keep";
+  if (lower.includes("avoid")) return "verdict avoid";
+  if (lower.includes("review") || lower.includes("improve") || lower.includes("unstable")) return "verdict improve";
+  return "verdict test";
+}
+
+function ThemeToggle({ theme, onToggle }) {
+  const isLight = theme === "light";
+
+  return (
+    <button
+      className="themeToggle"
+      type="button"
+      onClick={onToggle}
+      aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
+    >
+      <span>{isLight ? "Light" : "Dark"}</span>
+      <strong>{isLight ? "☀" : "☾"}</strong>
+    </button>
+  );
+}
+
 const SAFE_CONTEXT_FALLBACK_COPY =
   "We found this opening pattern, but not enough colour/context data to recommend it confidently.";
 const PUBLIC_ACCOUNT_CAUTION_COPY =
@@ -2350,6 +2374,7 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
   if (!data) return null;
 
   const publicMode = isPublicReportMode(data);
+  const profile = getSmartPlayerLevelProfile(data);
   const openings = fitData?.scoredOpenings || [];
   const reliableOpenings = openings.filter((opening) => getOpeningSignal(opening).canBePrimary);
   const best = getOpeningSignal(fitData?.bestOpening || {}).canBePrimary
@@ -2384,6 +2409,12 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
     data.player_name ||
     data.requestedUsername ||
     "Your report";
+  const platformLabel =
+    data.platform === "lichess" || data.importPlatform === "lichess"
+      ? "Lichess"
+      : data.platform === "chesscom" || data.importPlatform === "chesscom"
+        ? "Chess.com"
+        : data.platform || data.importPlatform || "Chess profile";
   const games =
     data.total_games ||
     data.gamesImported ||
@@ -2391,71 +2422,111 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
     data.games_analyzed ||
     0;
   const score = fitData?.overallScore || data?.openingFitScore || data?.opening_fit_score || 0;
-  const scoreExplanation =
-    fitData?.scoreExplanation ||
-    data?.openingFitScoreExplanation ||
-    data?.opening_fit_score_explanation ||
-    "OpeningFit combines repertoire stability, White and Black performance, sample confidence, clear lower-scoring samples, and recent consistency.";
-  const identity =
-    fitData?.openingIdentity ||
-    data?.openingIdentity ||
-    data?.opening_identity ||
-    "Opening identity pending";
-  const identityExplanation =
-    fitData?.identityExplanation ||
-    data?.openingIdentityExplanation ||
-    data?.opening_identity_explanation ||
-    "Import more games to turn this into a clearer opening identity.";
   const repertoireReportSections = buildRepertoireReportSections(data);
   const repertoireShape = repertoireShapeSummary(repertoireReportSections);
+  const months =
+    data.monthsChecked ||
+    data.months_checked ||
+    data.importMonths ||
+    data.import_months ||
+    null;
+  const timeRange = months
+    ? `Last ${months} month${Number(months) === 1 ? "" : "s"}`
+    : data.dateRange || data.date_range || "Recent import";
+  const summarySentence = repertoireShape.text;
+  const nextFocus = repair || avoid || best;
+  const nextFocusName = nextFocus ? getOpeningName(nextFocus) : repertoireShape.study;
+  const nextFocusContext = nextFocus ? getOpeningContextTitle(nextFocus) : "your next study target";
+  const nextBestAction = nextFocus
+    ? `This week: review ${nextFocusContext} and play 5 rapid games testing the same line.`
+    : "This week: collect more colour-specific games before changing your repertoire.";
 
-  const card = (label, opening, fallback, className) => (
-    <article className={`compactVerdictCard ${className || ""}`}>
+  const card = (label, opening, fallback, className, action) => (
+    <article className={`commandHeroCard ${className || ""}`}>
       <span>{label}</span>
       <strong>{opening ? getOpeningContextTitle(opening) : fallback}</strong>
       {opening ? (
-        <OpeningEvidenceBlock opening={opening} data={data} compact hideNextAction />
+        <p>
+          {getOpeningGames(opening)} games · {getWinRate(opening)}% score · {opening.fitVerdict || "Tracked"}
+        </p>
       ) : (
-        <p>Not enough reliable data for a firm recommendation yet.</p>
+        <p>Not enough reliable data yet.</p>
       )}
+      <small>{action}</small>
     </article>
   );
 
   return (
-    <section className="compactReportDashboard" id="style-profile">
-      <div className="compactReportTitle">
-        <p className="eyebrow">Opening Fit report</p>
-        <h1>{playerName} opening dashboard</h1>
-        <span>{games ? `${games} games analysed` : "Report ready"}</span>
+    <section className="reportCommandCenter" id="style-profile">
+      <div className="reportCommandHero">
+        <div>
+          <p className="eyebrow">Opening Fit report</p>
+          <h1>Your OpeningFit report for {playerName}</h1>
+          <p>{summarySentence}</p>
+        </div>
+
+        <div className="reportHealthDial">
+          <span>Repertoire health</span>
+          <strong>{score || "—"}</strong>
+          <small>/100</small>
+        </div>
       </div>
 
-      <ImportSummaryCard data={data} />
-
-      <OpeningFitMethodCard />
-
-      <div className="openingIdentityHero">
-        <article className="openingScoreHeroCard">
-          <span>OpeningFit Score</span>
-          <div className="openingScoreHeroValue">
-            <strong>{score || "—"}</strong>
-            <small>/100</small>
-          </div>
-          <p>{scoreExplanation}</p>
-        </article>
-
-        <article className="openingIdentityCard">
-          <span>Opening Identity</span>
-          <strong>{identity}</strong>
-          <p>{identityExplanation}</p>
-        </article>
+      <div className="reportHeroMeta">
+        <div>
+          <span>Platform</span>
+          <strong>{platformLabel}</strong>
+        </div>
+        <div>
+          <span>Games analysed</span>
+          <strong>{games || "—"}</strong>
+        </div>
+        <div>
+          <span>Time range</span>
+          <strong>{timeRange}</strong>
+        </div>
+        <div>
+          <span>Player level</span>
+          <strong>{profile.shortLabel || profile.label}</strong>
+        </div>
       </div>
 
-      <BiggestInsightCard data={data} fitData={fitData} />
+      <div className="commandHeroGrid">
+        {card(
+          publicMode ? "Recent strength" : "Best fit",
+          best,
+          "Not enough data",
+          "best",
+          "Keep this as your reference point."
+        )}
+        {card(
+          publicMode ? "Lower-scoring sample" : "Biggest leak",
+          repair || avoid,
+          "No clear leak yet",
+          "repair",
+          "Review the first repeated branch."
+        )}
+        {card(
+          "Next study focus",
+          nextFocus,
+          nextFocusName,
+          "study",
+          "Turn this into one short training block."
+        )}
+      </div>
+
+      <div className="nextBestActionCard">
+        <div>
+          <span>Next best action</span>
+          <strong>{nextBestAction}</strong>
+        </div>
+        <button type="button" onClick={() => onViewChange?.("training")}>
+          Open plan
+        </button>
+      </div>
 
       <div className="repertoireShapeCard compactRepertoireShapeCard">
         <p className="eyebrow">Your repertoire shape</p>
-        <h3>Your repertoire shape</h3>
-        <p>{repertoireShape.text}</p>
         <div className="repertoireShapeAnswers">
           <div>
             <span>Play as White</span>
@@ -2476,19 +2547,315 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
         </div>
       </div>
 
-      <div className="compactVerdictGrid">
-        {card(publicMode ? "Recent strength" : "Best fit", best, "Not enough data", "best")}
-        {card(publicMode ? "Lower-scoring sample" : "Needs repair", repair, "No repair target yet", "repair")}
-        {card(publicMode ? "Experimental/content-game possible" : "Avoid for now", avoid, "No avoid target yet", "avoid")}
+      <button className="commandUpgradeCta" type="button" onClick={() => onViewChange?.("upgrade")}>
+        Unlock full repertoire audit
+      </button>
+    </section>
+  );
+}
+
+function RepertoireCommandPanel({ data, onPractice }) {
+  const sections = buildRepertoireReportSections(data);
+
+  return (
+    <section className="commandPanel">
+      <div className="commandPanelHeader">
+        <p className="eyebrow">Repertoire</p>
+        <h2>What to play by colour</h2>
       </div>
 
-      <button
-        className="primaryBtn compactStudyCta"
-        type="button"
-        onClick={() => onViewChange?.("training")}
-      >
-        {publicMode ? "Review recent performance trends" : "Start my 20-minute study plan"}
-      </button>
+      <div className="colourRepertoireGrid commandRepertoireGrid">
+        {sections.map((section) => (
+          <article className="colourRepertoireSection" key={section.key}>
+            <div className="colourRepertoireHeader">
+              <p className="eyebrow">{sectionHealth(section)}</p>
+              <h3>{section.title}</h3>
+            </div>
+
+            <div className="colourRepertoireBuckets">
+              {REPERTOIRE_BUCKETS.map((bucket) => {
+                const items = section.buckets[bucket.key] || [];
+                const first = items[0];
+
+                return (
+                  <div className="repertoireBucket" key={`${section.key}-${bucket.key}`}>
+                    <div className="repertoireBucketHeader">
+                      <h4>{bucket.title}</h4>
+                      <span>{items.length}</span>
+                    </div>
+                    <p>{colourAwareBucketCopy(section.key, bucket.key)}</p>
+                    {first ? (
+                      <button
+                        type="button"
+                        className="commandMiniOpening"
+                        onClick={() => onPractice?.(first.name)}
+                      >
+                        <strong>{first.name}</strong>
+                        <span>
+                          {getOpeningGames(first)} games · {getWinRate(first)}% score
+                        </span>
+                      </button>
+                    ) : (
+                      <small className="commandEmptyText">{section.empty}</small>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function OpeningsCommandPanel({ data, fitData, onPractice }) {
+  const openings = fitData?.scoredOpenings || [];
+
+  return (
+    <section className="commandPanel" id="section-verdicts">
+      <div className="commandPanelHeader">
+        <p className="eyebrow">Openings</p>
+        <h2>Opening verdicts</h2>
+      </div>
+
+      <div className="commandOpeningList">
+        {openings.length ? (
+          openings.slice(0, 12).map((item, index) => (
+            <button
+              className="commandOpeningRow"
+              key={`${getOpeningName(item)}-${index}`}
+              type="button"
+              disabled={!canTreatAsRepertoireOpening(item)}
+              onClick={() => canTreatAsRepertoireOpening(item) && onPractice?.(getOpeningName(item))}
+            >
+              <div>
+                <strong>{getOpeningContextTitle(item)}</strong>
+                <span>{item.fitExplanation || getLevelToneCopy(getSmartPlayerLevelProfile(data).level).reason}</span>
+              </div>
+              <em className={commandVerdictClass(item.fitVerdict)}>{item.fitVerdict}</em>
+            </button>
+          ))
+        ) : (
+          <EmptyState
+            title="No opening verdicts yet"
+            text="Verdicts appear once OpeningFit has enough recognised games."
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
+  const weak = [...(fitData?.scoredOpenings || [])]
+    .filter((item) => ["avoid", "review", "improve"].includes(item.fitCategory))
+    .sort((a, b) => {
+      const rank = { avoid: 0, review: 1, improve: 2 };
+      const categoryDiff = (rank[a.fitCategory] ?? 3) - (rank[b.fitCategory] ?? 3);
+      if (categoryDiff) return categoryDiff;
+      return (a.fitScore || 100) - (b.fitScore || 100);
+    });
+  const focus = weak[0];
+
+  return (
+    <section className="commandPanel">
+      <div className="commandPanelHeader">
+        <p className="eyebrow">Weak spots</p>
+        <h2>Where points are leaking</h2>
+      </div>
+
+      {focus ? (
+        <article className="nextBestActionCard weakSpotFeature">
+          <div>
+            <span>Primary leak</span>
+            <strong>{getOpeningContextTitle(focus)}</strong>
+            <p>{focus.fitExplanation}</p>
+          </div>
+          <button type="button" onClick={() => onViewChange?.("training")}>
+            Build drill
+          </button>
+        </article>
+      ) : (
+        <EmptyState title="No urgent leak found" text="Your current import does not show a clear repeated weak spot." />
+      )}
+
+      <div className="commandOpeningList">
+        {weak.slice(0, 8).map((item, index) => (
+          <button
+            className="commandOpeningRow"
+            type="button"
+            key={`${getOpeningName(item)}-${index}`}
+            onClick={() => onPractice?.(getOpeningName(item))}
+          >
+            <div>
+              <strong>{getOpeningContextTitle(item)}</strong>
+              <span>{getOpeningGames(item)} games · {getWinRate(item)}% score</span>
+            </div>
+            <em className={commandVerdictClass(item.fitVerdict)}>{item.fitVerdict}</em>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function buildSevenDayPlanCopy(level, targetName) {
+  const cleanLevel = String(level || "").toLowerCase();
+
+  if (isMasterLevel(cleanLevel)) {
+    return {
+      expectedOutcome:
+        "A clearer read on whether the result drop is preparation, move-order precision, or recent opponent targeting.",
+      successMetric:
+        `Success: identify one recurring prep issue in ${targetName} and test the same correction in 4 out of your next 5 games.`,
+      days: [
+        "Review 3 recent losses and tag the first move-order or prep moment where the position drifted.",
+        "Choose one precision improvement or safer transposition to test.",
+        "Play 3-5 rapid/blitz games deliberately entering the same target branch.",
+        "Check whether the middlegame matched your intended structure and prep file.",
+        "Review the most common opponent response and note the practical adjustment.",
+        "Repeat the opening and log recurring problems by branch, clock pressure, and opponent rating band.",
+        "Decide whether this remains a main weapon, needs maintenance, or should be parked for specific pairings.",
+      ],
+    };
+  }
+
+  if (cleanLevel === "advanced" || cleanLevel === "expert" || cleanLevel === "strong") {
+    return {
+      expectedOutcome:
+        "A more reliable version of the opening, focused on move-order issues and repertoire refinement.",
+      successMetric:
+        `Success: reach a playable middlegame in 4 out of your next 5 games with ${targetName}.`,
+      days: [
+        "Review 3 recent losses and mark the first repeated move-order or structure problem.",
+        "Learn one safer line or cleaner move order for that exact branch.",
+        "Play 3-5 rapid/blitz games using the target opening.",
+        "Check whether you reached a playable middlegame with your intended pawn structure.",
+        "Review the most common opponent response and prepare one practical answer.",
+        "Repeat the opening in games and note recurring move-order or plan problems.",
+        "Decide whether to keep it, improve the branch, or replace it in that repertoire slot.",
+      ],
+    };
+  }
+
+  if (cleanLevel === "intermediate") {
+    return {
+      expectedOutcome:
+        "A repeatable plan you can trust, plus awareness of the common trap or response causing problems.",
+      successMetric:
+        `Success: reach a familiar middlegame in 4 out of your next 5 games with ${targetName}.`,
+      days: [
+        "Review 3 recent losses and find the first moment your plan became unclear.",
+        "Learn one simple improvement or safer line you can repeat.",
+        "Play 3-5 rapid/blitz games using the target opening.",
+        "Check whether you reached a playable middlegame with a clear plan.",
+        "Review the most common opponent response and learn one answer.",
+        "Repeat the opening and write down recurring problems after each game.",
+        "Decide whether to keep, improve, or replace this opening.",
+      ],
+    };
+  }
+
+  return {
+    expectedOutcome:
+      "A simpler opening habit and fewer early positions where you feel lost.",
+    successMetric:
+      `Success: get developed, castle, and reach a playable middlegame in 4 out of your next 5 games with ${targetName}.`,
+    days: [
+      "Review 3 recent losses and find where you first felt unsure.",
+      "Learn one simple safer setup. Keep it short.",
+      "Play 3-5 rapid/blitz games using the same opening.",
+      "Check whether your pieces got developed and your king was safe.",
+      "Review the move your opponents played most often and learn one easy reply.",
+      "Repeat the opening and write down one recurring problem.",
+      "Decide whether to keep, improve, or replace this opening.",
+    ],
+  };
+}
+
+function SevenDayOpeningFitPlan({ data, fitData, recentGames = [], onPractice }) {
+  const profile = getSmartPlayerLevelProfile(data);
+  const openings = fitData?.scoredOpenings || [];
+  const reliableWeak = [...openings]
+    .filter((opening) => {
+      const games = getOpeningGames(opening);
+      return getOpeningSignal(opening).canBePrimary && games >= 5 && ["avoid", "review", "improve"].includes(opening.fitCategory);
+    })
+    .sort((a, b) => {
+      const rank = { avoid: 0, review: 1, improve: 2 };
+      const byCategory = (rank[a.fitCategory] ?? 3) - (rank[b.fitCategory] ?? 3);
+      if (byCategory) return byCategory;
+      return (a.fitScore || 100) - (b.fitScore || 100);
+    });
+  const repertoireSections = buildRepertoireReportSections(data);
+  const gapSection = repertoireSections.find((section) => !section.primary || sectionHealth(section) === "not enough evidence");
+  const target = reliableWeak[0] || fitData?.weakestOpening || fitData?.bestOpening || null;
+  const targetName = target ? getOpeningName(target) : gapSection?.title || "your biggest repertoire gap";
+  const targetContext = target ? getOpeningContextTitle(target) : gapSection?.title || "Biggest repertoire gap";
+  const confidence = target
+    ? getOpeningConfidence(target)
+    : gapSection
+      ? "Low confidence"
+      : "Needs more data";
+  const why = target
+    ? `${targetContext} was selected because it is the clearest reliable lower-scoring opening in this report.`
+    : `${targetName} was selected because the report does not yet have enough evidence in that repertoire slot.`;
+  const plan = buildSevenDayPlanCopy(profile.level, targetName);
+  const matchingGames = recentGames
+    .filter((game) => String(game.opening || "").toLowerCase().includes(String(targetName || "").toLowerCase().split(":")[0]))
+    .slice(0, 3);
+
+  return (
+    <section className="sevenDayPlanShell" id="seven-day-plan">
+      <div className="sevenDayPlanHeader">
+        <div>
+          <p className="eyebrow">7-day OpeningFit Plan</p>
+          <h2>{targetName}</h2>
+          <p>{why}</p>
+        </div>
+        <div className="sevenDayPlanMeta">
+          <span>Confidence</span>
+          <strong>{confidence}</strong>
+        </div>
+      </div>
+
+      <div className="sevenDayPlanStats">
+        <div>
+          <span>Target opening</span>
+          <strong>{targetContext}</strong>
+        </div>
+        <div>
+          <span>Expected outcome</span>
+          <strong>{plan.expectedOutcome}</strong>
+        </div>
+        <div>
+          <span>Success metric</span>
+          <strong>{plan.successMetric}</strong>
+        </div>
+      </div>
+
+      <div className="sevenDayGrid">
+        {plan.days.map((text, index) => (
+          <article className="sevenDayCard" key={text}>
+            <span>Day {index + 1}</span>
+            <p>{text}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="sevenDayActions">
+        {target ? (
+          <button type="button" onClick={() => onPractice?.(targetName)}>
+            Practise {targetName}
+          </button>
+        ) : null}
+        <small>
+          {matchingGames.length
+            ? `${matchingGames.length} recent games match this target opening.`
+            : "Use your next games to build the sample for this target."}
+        </small>
+      </div>
     </section>
   );
 }
@@ -2577,7 +2944,7 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
   };
 
   const goToGames = () => {
-    if (onViewChange) onViewChange("games");
+    if (onViewChange) onViewChange("data");
 
     setTimeout(() => {
       const el = document.getElementById("app-results");
@@ -2690,9 +3057,11 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
   const menuRoutes = data
     ? [
         { key: "overview", label: "Overview", view: "overview", target: "app-results", path: "/" },
-        { key: "recommendations", label: "Openings", view: "recommendations", target: "section-recommendations", path: "/" },
+        { key: "repertoire", label: "Repertoire", view: "repertoire", target: "app-results", path: "/" },
+        { key: "openings", label: "Openings", view: "openings", target: "section-verdicts", path: "/" },
+        { key: "weakspots", label: "Weak spots", view: "weakspots", target: "app-results", path: "/" },
         { key: "training", label: "Study plan", view: "training", target: "section-training", path: "/" },
-        { key: "games", label: "Games", view: "games", target: "section-replay", path: "/" },
+        { key: "data", label: "Data", view: "data", target: "section-replay", path: "/" },
         { key: "upgrade", label: "Upgrade", view: "upgrade", target: "premium", path: "/upgrade" },
         { key: "account", label: "Login / Payment", view: "account", target: "account", path: "/account" },
         { key: "feedback", label: "Feedback", view: "feedback", target: "feedback", path: "/" },
@@ -2790,10 +3159,11 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
 function AppViewTabs({ activeView, onChange }) {
   const tabs = [
     { key: "overview", label: "Overview", icon: "⌂" },
-    { key: "recommendations", label: "Openings", icon: "◎" },
-    { key: "training", label: "Study Plan", icon: "◷" },
-    { key: "games", label: "Games", icon: "♟" },
-    { key: "upgrade", label: "Upgrade", icon: "◆" },
+    { key: "repertoire", label: "Repertoire", icon: "♙" },
+    { key: "openings", label: "Openings", icon: "◎" },
+    { key: "weakspots", label: "Weak spots", icon: "!" },
+    { key: "training", label: "Training plan", icon: "◷" },
+    { key: "data", label: "Data", icon: "♟" },
   ];
 
   const selectTab = (view) => {
@@ -2821,14 +3191,7 @@ function AppViewTabs({ activeView, onChange }) {
   };
 
   return (
-    <section className="card appTabsCard compactReportNav" id="app-view-tabs">
-      <div className="appTabsHeader">
-        <div>
-          <p className="eyebrow">Report navigation</p>
-          <h2>Your Opening Fit report</h2>
-        </div>
-      </div>
-
+    <section className="appTabsCard compactReportNav commandTabs" id="app-view-tabs">
       <div className="appTabs">
         {tabs.map((tab) => (
           <button
@@ -3065,9 +3428,25 @@ function CompactSeoFooter() {
 }
 
 function SeoRoutePage({ page }) {
+  const [seoTheme, setSeoTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
+
+  useEffect(() => {
+    localStorage.setItem("openingFit:theme", seoTheme);
+    document.documentElement.setAttribute("data-theme", seoTheme);
+    document.body.classList.remove("light", "dark");
+    document.body.classList.add(seoTheme);
+  }, [seoTheme]);
+
   return (
     <>
-      <div className="page dark publicLandingPage" data-theme="dark">
+      <div className={`page ${seoTheme} publicLandingPage`} data-theme={seoTheme}>
+        <ThemeToggle
+          theme={seoTheme}
+          onToggle={() =>
+            setSeoTheme((current) => (current === "dark" ? "light" : "dark"))
+          }
+        />
+
         <main className="container appShell seoRouteShell">
           <section className="hero heroCard compactImportHero seoRouteHero">
             <p className="eyebrow">Opening Fit</p>
@@ -5976,6 +6355,13 @@ function App() {
   return (
     <>
       <div className={`page ${theme} ${isPublicLanding ? "publicLandingPage" : "appReportPage"}`} data-theme={theme}>
+        <ThemeToggle
+          theme={theme}
+          onToggle={() =>
+            setTheme((current) => (current === "dark" ? "light" : "dark"))
+          }
+        />
+
         {data ? (
           <>
             {false ? <OpeningFitUXCleanup
@@ -6319,13 +6705,6 @@ function App() {
 
               {activeView === "overview" ? (
                 <>
-                  <div className="compactReportGrid">
-                    <ReportSnapshot data={data} onViewChange={setActiveView} />
-                    <AppOpeningHealthScore data={data} onViewChange={setActiveView} />
-                  </div>
-
-                  <OpeningFitRepertoirePlan data={data} />
-
                   <NextStudySession
                     fitData={fitData}
                     recentGames={filteredRecentGames}
@@ -6335,7 +6714,28 @@ function App() {
                 </>
               ) : null}
 
-              {activeView === "recommendations" ? (
+              {activeView === "repertoire" ? (
+                <RepertoireCommandPanel data={data} onPractice={startOpeningPractice} />
+              ) : null}
+
+              {activeView === "openings" ? (
+                <OpeningsCommandPanel
+                  data={data}
+                  fitData={fitData}
+                  onPractice={startOpeningPractice}
+                />
+              ) : null}
+
+              {activeView === "weakspots" ? (
+                <WeakSpotsCommandPanel
+                  data={data}
+                  fitData={fitData}
+                  onPractice={startOpeningPractice}
+                  onViewChange={setActiveView}
+                />
+              ) : null}
+
+              {false && activeView === "recommendations" ? (
                 <>
                   <OpeningFitRepertoirePlan data={data} />
 
@@ -6785,6 +7185,13 @@ function App() {
 
               {activeView === "training" ? (
                 <>
+                  <SevenDayOpeningFitPlan
+                    data={data}
+                    fitData={fitData}
+                    recentGames={filteredRecentGames}
+                    onPractice={startOpeningPractice}
+                  />
+
                   <OpeningCoachPlan data={data} />
                   <NextStudySession
                     fitData={fitData}
@@ -6844,7 +7251,7 @@ function App() {
                 </>
               ) : null}
 
-              {activeView === "games" ? (
+              {activeView === "data" ? (
                 <>
                   <div id="game-replay">
                   <div id="section-replay">
@@ -6943,7 +7350,7 @@ function App() {
                 </>
               ) : null}
 
-              {activeView === "recommendations" ? (
+              {false && activeView === "recommendations" ? (
                 <>
                   <div id="section-preferred">
                 <Section
@@ -7005,7 +7412,7 @@ function App() {
                 </>
               ) : null}
 
-              {activeView === "recommendations" ? (
+              {false && activeView === "recommendations" ? (
                 <>
                   <div id="top-openings-table">
                   <div id="section-top">
@@ -7101,7 +7508,7 @@ function App() {
                 <RetentionHub data={data} />
               ) : null}
 
-              {activeView === "repertoire" ? (
+              {false && activeView === "repertoire" ? (
                 <>
                   <MyRepertoire
                     data={data}
