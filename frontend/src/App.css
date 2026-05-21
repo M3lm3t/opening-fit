@@ -26935,3 +26935,117 @@ textarea {
     touch-action: manipulation;
   }
 }
+
+/* Compact trust card explaining what the import actually analysed. */
+.importSummaryCard {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 12px;
+  align-items: stretch;
+  padding: 14px;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(15, 23, 42, 0.72)),
+    rgba(15, 23, 42, 0.82);
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.18);
+}
+
+.page.light .importSummaryCard,
+[data-theme="light"] .importSummaryCard {
+  background:
+    linear-gradient(135deg, rgba(219, 234, 254, 0.9), rgba(255, 255, 255, 0.96)),
+    #ffffff;
+  border-color: rgba(37, 99, 235, 0.16);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+}
+
+.importSummaryMain {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.importSummaryMain span,
+.importSummaryMeta span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.importSummaryMain strong {
+  color: var(--text);
+  font-size: clamp(1rem, 2vw, 1.18rem);
+  line-height: 1.25;
+}
+
+.importSummaryMain p {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.page.light .importSummaryMain strong,
+[data-theme="light"] .importSummaryMain strong,
+.page.light .importSummaryMeta strong,
+[data-theme="light"] .importSummaryMeta strong {
+  color: #0f172a;
+}
+
+.page.light .importSummaryMain p,
+[data-theme="light"] .importSummaryMain p {
+  color: #475569 !important;
+}
+
+.importSummaryMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.importSummaryMeta div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.44);
+}
+
+.page.light .importSummaryMeta div,
+[data-theme="light"] .importSummaryMeta div {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.importSummaryMeta strong {
+  display: block;
+  margin-top: 3px;
+  color: #f8fafc;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .importSummaryCard {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 13px;
+    border-radius: 18px;
+  }
+
+  .importSummaryMeta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 380px) {
+  .importSummaryMeta {
+    grid-template-columns: 1fr;
+  }
+}
