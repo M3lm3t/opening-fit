@@ -1,5 +1,5 @@
 import { getPlayerLevelText } from "./playerLevelLogic";
-import { getOpeningSignal } from "./OpeningEvidence";
+import { getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 
 function getArray(...values) {
   for (const value of values) {
@@ -21,6 +21,27 @@ function getWinRate(item) {
   const value = Number(raw);
   if (!Number.isFinite(value)) return null;
   return value <= 1 ? Math.round(value * 100) : Math.round(value);
+}
+
+function openingKey(item) {
+  if (!item) return "";
+  const context = getOpeningContext(item);
+  return `${getName(item).toLowerCase()}|${context.type}|${context.detail || context.label || ""}`;
+}
+
+function pickDistinct(items, used = []) {
+  return items.find((item) => item && !used.some((usedItem) => openingKey(usedItem) === openingKey(item)));
+}
+
+function getContextTitle(item) {
+  if (!item) return "Not enough reliable data yet";
+  const name = getName(item);
+  const context = getOpeningContext(item);
+
+  if (context.type === "white") return `${name} as White`;
+  if (context.type === "black") return `${name} as Black`;
+  if (context.type === "faced") return `Facing ${name}`;
+  return `${name} (mixed signal)`;
 }
 
 function getRating(data) {
@@ -140,14 +161,32 @@ function buildSummary(data, username) {
   const top = openings[0];
   const strongProfile = isStrongProfile(data);
   const publicMode = isPublicMode(data);
-  const keep = pickByVerdict(openings, "Main weapon", data) || pickByVerdict(openings, "Reliable choice", data) || top;
+  const reliable = openings.filter((item) => getOpeningSignal(item).canBePrimary);
+  const keep =
+    pickByVerdict(reliable, "Main weapon", data) ||
+    pickByVerdict(reliable, "Reliable choice", data) ||
+    reliable[0] ||
+    null;
   const improve =
-    pickByVerdict(openings, "Lower-scoring sample", data) ||
-    pickByVerdict(openings, "Recent underperformer", data) ||
-    pickByVerdict(openings, "Promising but unstable", data) ||
-    pickByVerdict(openings, "Needs review", data) ||
-    openings[1];
-  const avoid = pickByVerdict(openings, "Needs review", data) || openings[2];
+    pickDistinct(
+      [
+        pickByVerdict(reliable, "Lower-scoring sample", data),
+        pickByVerdict(reliable, "Recent underperformer", data),
+        pickByVerdict(reliable, "Promising but unstable", data),
+        pickByVerdict(reliable, "Needs review", data),
+        ...reliable,
+      ],
+      [keep]
+    ) || null;
+  const avoid =
+    pickDistinct(
+      [
+        pickByVerdict(reliable, "Needs review", data),
+        pickByVerdict(openings.filter((item) => !getOpeningSignal(item).canBePrimary), "Too few games", data),
+        openings[2],
+      ],
+      [keep, improve]
+    ) || null;
 
   const style =
     data?.style_profile?.label ||
@@ -180,10 +219,10 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
   const scoreText = report.score ? Math.round(Number(report.score)) : Math.min(92, Math.max(61, 70 + report.openings.length * 2));
 
   const shareText = report.publicMode
-    ? `OpeningFit flags ${getName(report.keep)} as a recent strength and ${getName(report.improve)} as a lower-scoring recent sample.`
+    ? `OpeningFit flags ${getContextTitle(report.keep)} as a recent strength and ${getContextTitle(report.improve)} as a lower-scoring recent sample.`
     : report.strongProfile
-    ? `My OpeningFit report says ${getName(report.keep)} is a core opening and ${getName(report.improve)} is worth reviewing.`
-    : `My OpeningFit report says I should keep ${getName(report.keep)}, improve ${getName(report.improve)}, and review ${getName(report.avoid)}.`;
+    ? `My OpeningFit report says ${getContextTitle(report.keep)} is a core opening and ${getContextTitle(report.improve)} is worth reviewing.`
+    : `My OpeningFit report says I should keep ${getContextTitle(report.keep)}, improve ${getContextTitle(report.improve)}, and review ${getContextTitle(report.avoid)}.`;
 
   const copyShareText = async () => {
     try {
@@ -225,30 +264,34 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
 
         <article>
           <span>{report.publicMode ? "Recent strength" : "Best fit"}</span>
-          <strong>{getName(report.keep)}</strong>
+          <strong>{getContextTitle(report.keep)}</strong>
           <p>
-            {getWinRate(report.keep) !== null ? `${getWinRate(report.keep)}% score` : "Strongest current signal"}
+            {report.keep && getWinRate(report.keep) !== null ? `${getWinRate(report.keep)}% score` : "Not enough reliable data yet"}
             {getGames(report.keep) ? ` across ${getGames(report.keep)} games.` : "."}
           </p>
         </article>
 
         <article>
           <span>{report.publicMode ? "Lower-scoring sample" : report.strongProfile ? "Review target" : "Biggest study target"}</span>
-          <strong>{getName(report.improve)}</strong>
+          <strong>{getContextTitle(report.improve)}</strong>
           <p>
-            {report.strongProfile
+            {!report.improve
+              ? "Import more repeated games before making this a study target."
+              : report.strongProfile
               ? "Compare the trend by time control, opponent pool, and game context before drawing conclusions."
-              : "This is the best place to gain rating without rebuilding everything."}
+              : "Review the repeated branch here before changing the whole repertoire."}
           </p>
         </article>
 
         <article>
           <span>{report.publicMode ? "Experimental/content-game possible" : "Review carefully"}</span>
-          <strong>{getName(report.avoid)}</strong>
+          <strong>{getContextTitle(report.avoid)}</strong>
           <p>
-            {report.strongProfile
+            {!report.avoid
+              ? "Low-sample openings will be tracked here instead of shown as firm advice."
+              : report.strongProfile
               ? "Treat this as a recent online trend signal, not a hard opening verdict."
-              : "Low-confidence or poor-result openings should be simplified."}
+              : "Low-confidence or poor-result openings should be simplified before being abandoned."}
           </p>
         </article>
       </div>
