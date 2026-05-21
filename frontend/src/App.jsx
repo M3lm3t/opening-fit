@@ -475,7 +475,16 @@ function getOpeningDraws(opening) {
 
 function getOpeningSide(opening) {
   if (!opening || typeof opening === "string") return "";
-  return opening.side || opening.colour || opening.color || "";
+  return (
+    opening.side ||
+    opening.colour ||
+    opening.color ||
+    opening.player_color ||
+    opening.playerColor ||
+    opening.player_colour ||
+    opening.as ||
+    ""
+  );
 }
 
 function getOpeningContextTitle(opening, fallback = "Opening signal") {
@@ -628,9 +637,15 @@ function itemContext(item, fallback = "unknown_mixed") {
   }
 
   const side = String(getOpeningSide(item)).toLowerCase();
+  const firstMoveBucket = firstMoveBucketForOpening(item);
 
   if (side.includes("white")) return "played_as_white";
-  if (side.includes("black")) return fallback === "played_as_white" ? "unknown_mixed" : fallback;
+  if (side.includes("black")) {
+    if (firstMoveBucket) return firstMoveBucket;
+    return fallback === "played_as_white" ? "unknown_mixed" : fallback;
+  }
+
+  if (fallback !== "played_as_white" && firstMoveBucket) return firstMoveBucket;
 
   return fallback;
 }
@@ -841,6 +856,26 @@ function firstMoveBucketForOpening(opening) {
       opening?.name ||
       ""
   ).toLowerCase();
+  const cleanFirstMove = String(
+    opening?.firstWhiteMove ||
+      opening?.first_white_move ||
+      opening?.whiteFirstMove ||
+      opening?.white_first_move ||
+      opening?.opponentFirstMove ||
+      opening?.opponent_first_move ||
+      opening?.firstMove ||
+      opening?.first_move ||
+      ""
+  )
+    .trim()
+    .toLowerCase()
+    .replace(/^1\./, "");
+
+  if (cleanFirstMove === "e4") return "black_vs_e4";
+
+  if (["d4", "c4", "nf3", "g3", "b3"].includes(cleanFirstMove)) {
+    return "black_vs_d4_other";
+  }
 
   if (text.includes("black_vs_e4") || text.includes("vs 1.e4") || text.includes("vs e4")) {
     return "black_vs_e4";
@@ -872,6 +907,35 @@ function buildRepertoireReportSections(data) {
   const colourSections = getColourAwareRecommendationSections(data);
   const findSectionItems = (key) =>
     colourSections.find((section) => section.key === key)?.items || [];
+  const sectionFallbackItems = (section) => {
+    const bestOpenings = Array.isArray(data?.best_openings) ? data.best_openings : [];
+    const topOpenings = Array.isArray(data?.top_openings) ? data.top_openings : [];
+    const preferredWhite = Array.isArray(data?.preferred_white) ? data.preferred_white : [];
+    const preferredBlack = Array.isArray(data?.preferred_black) ? data.preferred_black : [];
+    const candidates = [
+      ...(section.key === "white_repertoire" ? preferredWhite : []),
+      ...(section.key !== "white_repertoire" ? preferredBlack : []),
+      ...bestOpenings,
+      ...topOpenings,
+    ];
+
+    return candidates.filter((item) => {
+      const name = getOpeningName(item);
+      const explicitContext = itemContext(item, "unknown_mixed");
+      const bucket = firstMoveBucketForOpening(item);
+      const hint = openingNameColourHint(name);
+      const side = String(getOpeningSide(item)).toLowerCase();
+
+      if (!contextIsCompatible(name, section.context)) return false;
+      if (explicitContext === section.context) return true;
+
+      if (section.context === "played_as_white") return hint === "white";
+      if (section.context === "black_vs_e4") {
+        return (hint === "black" || side.includes("black")) && bucket !== "black_vs_d4_other";
+      }
+      return (hint === "black" || side.includes("black")) && bucket === "black_vs_d4_other";
+    });
+  };
 
   return REPERTOIRE_SECTION_ORDER.map((section) => {
     const uncertainItems = findSectionItems("too_little_data").filter((item) => {
@@ -902,11 +966,7 @@ function buildRepertoireReportSections(data) {
       section.context
     );
     const fallbackItems = normalizeRecommendationSection(
-      [
-        ...(section.key === "white_repertoire" ? data?.preferred_white || [] : []),
-        ...(section.key !== "white_repertoire" ? data?.preferred_black || [] : []),
-        ...(data?.best_openings || []).filter((item) => itemContext(item, section.context) === section.context),
-      ],
+      sectionFallbackItems(section),
       section.context
     );
     const items = uniqueOpeningsByNameAndContext([
@@ -2346,6 +2406,8 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
     data?.openingIdentityExplanation ||
     data?.opening_identity_explanation ||
     "Import more games to turn this into a clearer opening identity.";
+  const repertoireReportSections = buildRepertoireReportSections(data);
+  const repertoireShape = repertoireShapeSummary(repertoireReportSections);
 
   const card = (label, opening, fallback, className) => (
     <article className={`compactVerdictCard ${className || ""}`}>
@@ -2389,6 +2451,30 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
       </div>
 
       <BiggestInsightCard data={data} fitData={fitData} />
+
+      <div className="repertoireShapeCard compactRepertoireShapeCard">
+        <p className="eyebrow">Your repertoire shape</p>
+        <h3>Your repertoire shape</h3>
+        <p>{repertoireShape.text}</p>
+        <div className="repertoireShapeAnswers">
+          <div>
+            <span>Play as White</span>
+            <strong>{repertoireShape.white}</strong>
+          </div>
+          <div>
+            <span>Against e4</span>
+            <strong>{repertoireShape.e4}</strong>
+          </div>
+          <div>
+            <span>Against d4 / other</span>
+            <strong>{repertoireShape.d4}</strong>
+          </div>
+          <div>
+            <span>Study next</span>
+            <strong>{repertoireShape.study}</strong>
+          </div>
+        </div>
+      </div>
 
       <div className="compactVerdictGrid">
         {card(publicMode ? "Recent strength" : "Best fit", best, "Not enough data", "best")}
