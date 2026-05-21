@@ -5827,6 +5827,21 @@ function App() {
 
                   <OpeningFitRepertoirePlan data={data} />
 
+                  <NextStudySession
+                    fitData={fitData}
+                    recentGames={filteredRecentGames}
+                    onPractice={startOpeningPractice}
+                    onViewChange={setActiveView}
+                  />
+                </>
+              ) : null}
+
+              {activeView === "recommendations" ? (
+                <>
+                  <OpeningFitRepertoirePlan data={data} />
+
+                  <OpeningFitFullReport data={data} />
+
                   <div id="section-fit">
                     <OpeningFitSummaryCard
                       fitData={fitData}
@@ -5834,15 +5849,8 @@ function App() {
                     />
                   </div>
 
-                  <NextStudySession
-                    fitData={fitData}
-                    recentGames={filteredRecentGames}
-                    onPractice={startOpeningPractice}
-                    onViewChange={setActiveView}
-                  />
-
                   <Section
-                    title="Optional detailed evidence"
+                    title="Detailed evidence"
                     isOpen={openSections.fit}
                     onToggle={() => toggleSection("fit")}
                     badge="Evidence"
@@ -5855,14 +5863,6 @@ function App() {
                       onPractice={startOpeningPractice}
                     />
                   </Section>
-                </>
-              ) : null}
-
-              {activeView === "recommendations" ? (
-                <>
-                  <OpeningFitRepertoirePlan data={data} />
-
-                  <OpeningFitFullReport data={data} />
 
                   <div id="section-recommendations">
                 <Section
@@ -6471,7 +6471,7 @@ function App() {
                 </>
               ) : null}
 
-              {activeView === "upgrade" ? (
+              {activeView === "recommendations" ? (
                 <>
                   <div id="top-openings-table">
                   <div id="section-top">
@@ -6563,7 +6563,7 @@ function App() {
               </div>
                 </>
               ) : null}
-              {activeView === "overview" ? (
+              {false && activeView === "overview" ? (
                 <RetentionHub data={data} />
               ) : null}
 

@@ -27313,3 +27313,308 @@ textarea {
     align-items: flex-start;
   }
 }
+
+/* Final report app shell: compact, tabbed, and mobile-first after import. */
+#app-results {
+  width: 100%;
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+
+.compactReportDashboard {
+  width: 100%;
+  display: grid;
+  gap: 12px !important;
+  margin: 0 !important;
+}
+
+.compactReportTitle {
+  padding: 0 2px;
+}
+
+.compactReportTitle h1 {
+  max-width: 16ch;
+}
+
+.openingIdentityHero,
+.compactVerdictGrid,
+.compactReportGrid,
+.reportTwoColumn,
+.openingFitPlanGrid,
+.repertoirePreviewGrid,
+.openingExplainGrid,
+.analysisGrid,
+.boardSection,
+.twoCol {
+  min-width: 0;
+}
+
+.compactReportGrid {
+  align-items: stretch;
+}
+
+.openingFitPlanShell,
+.fullReportShell,
+.nextStudySession,
+.openingCoachPlan,
+.openingProgressTracker,
+.evidenceDiagnosisShell,
+.premiumDashboardShell,
+.reportSnapshot,
+.openingHealthScore,
+.openingFitHeroCard,
+.openingFitScoreCard,
+.exportHistoryShell,
+.opponentPrepShell {
+  scroll-margin-top: 104px;
+}
+
+.appTabsCard.compactReportNav {
+  backdrop-filter: blur(18px);
+}
+
+.appTabs {
+  align-items: stretch;
+}
+
+.appTabButton {
+  white-space: normal !important;
+}
+
+.tableWrap {
+  border-radius: 16px;
+}
+
+.tableWrap table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.tableOpeningBtn,
+.inlineOpeningBtn,
+.openingPracticeLink,
+.gamePickerButton,
+.chartRow {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1100px) {
+  .appReportPage .appShell,
+  .appReportPage .container {
+    width: min(1120px, calc(100vw - 40px)) !important;
+    max-width: 1120px !important;
+  }
+
+  .compactReportTitle h1 {
+    max-width: 22ch;
+  }
+
+  .compactReportGrid,
+  .openingIdentityHero {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .openingFitPlanGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .openingFitPlanGrid .fitPlanActionsCard {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .appReportPage .appShell {
+    gap: 0 !important;
+    padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important;
+  }
+
+  #app-results {
+    gap: 10px;
+  }
+
+  .appReportPage .openingAppMenu {
+    display: none !important;
+  }
+
+  .compactReportDashboard {
+    gap: 10px !important;
+  }
+
+  .compactReportTitle {
+    display: grid !important;
+    gap: 4px !important;
+  }
+
+  .compactReportTitle h1 {
+    max-width: 100%;
+    font-size: clamp(1.55rem, 8vw, 2.05rem) !important;
+    line-height: 1.04 !important;
+  }
+
+  .compactReportTitle span {
+    justify-self: start;
+    font-size: 0.82rem !important;
+  }
+
+  .openingIdentityHero,
+  .compactVerdictGrid,
+  .compactReportGrid,
+  .reportTwoColumn,
+  .openingFitPlanGrid,
+  .repertoirePreviewGrid,
+  .openingExplainGrid,
+  .analysisGrid,
+  .boardSection,
+  .twoCol {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .openingScoreHeroCard,
+  .openingIdentityCard,
+  .biggestInsightCard,
+  .compactVerdictCard,
+  .fitPlanCard,
+  .nextStudySession,
+  .reportSnapshotCard,
+  .openingHealthScore,
+  .openingFitHeroCard,
+  .openingFitScoreCard,
+  .repertoireCard,
+  .openingExplainCard,
+  .studyPlanCard,
+  .card.collapsibleCard {
+    border-radius: 16px !important;
+  }
+
+  .openingScoreHeroCard,
+  .openingIdentityCard,
+  .biggestInsightCard,
+  .compactVerdictCard,
+  .fitPlanCard,
+  .nextStudySession,
+  .reportSnapshotCard,
+  .openingFitHeroCard,
+  .openingFitScoreCard,
+  .studyPlanCard {
+    padding: 13px !important;
+  }
+
+  .openingScoreHeroValue strong {
+    font-size: clamp(2rem, 13vw, 3rem) !important;
+  }
+
+  .biggestInsightCard .fitMiniGrid,
+  .fitHeroGrid,
+  .nextStudyGrid,
+  .openingReportStats,
+  .openingHealthStats {
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+  }
+
+  .appTabsCard,
+  .compactReportNav {
+    position: sticky !important;
+    top: max(0px, env(safe-area-inset-top)) !important;
+    z-index: 80 !important;
+    padding: 7px !important;
+    margin-top: 2px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .appTabs {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+  }
+
+  .appTabButton {
+    min-height: 40px !important;
+    padding: 7px 3px !important;
+    border-radius: 12px !important;
+    font-size: clamp(0.56rem, 2.5vw, 0.72rem) !important;
+    line-height: 1.05 !important;
+  }
+
+  .appTabButton span {
+    display: none;
+  }
+
+  .sectionToggle {
+    min-height: 44px !important;
+    padding: 10px 12px !important;
+  }
+
+  .sectionToggleLeft h2 {
+    font-size: 1rem !important;
+  }
+
+  .sectionBody {
+    padding-top: 10px !important;
+  }
+
+  .listItem,
+  .evidenceListItem,
+  .chartRow,
+  .gamePickerButton,
+  .trainingPlanItem,
+  .repertoireRow {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .rightStat {
+    width: 100%;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
+  .tableWrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tableWrap table {
+    min-width: 640px !important;
+  }
+
+  .boardSection {
+    align-items: stretch !important;
+  }
+
+  .movesPanel,
+  .gamePickerList {
+    max-width: 100%;
+  }
+
+  .boardMeta {
+    display: grid !important;
+    gap: 8px !important;
+  }
+
+  .premiumUpgradeShell,
+  .premiumDashboardShell,
+  .exportHistoryShell,
+  .reportSnapshot,
+  .openingFitPlanShell,
+  .fullReportShell {
+    margin-top: 10px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .appTabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .appTabButton {
+    font-size: 0.64rem !important;
+  }
+}
