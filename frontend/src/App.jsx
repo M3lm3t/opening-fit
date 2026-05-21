@@ -2146,7 +2146,10 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
     scrollToElement(target);
   };
 
-  const navigate = (route) => {
+  const navigate = (event, route) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+
     if (route.view && typeof onViewChange === "function") {
       onViewChange(route.view);
     }
@@ -2191,7 +2194,7 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
                 key={route.key}
                 type="button"
                 className={activeView === route.view ? "isActive" : ""}
-                onClick={() => navigate(route)}
+                onClick={(event) => navigate(event, route)}
               >
                 {route.label}
               </button>
