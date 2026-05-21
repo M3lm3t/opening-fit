@@ -1972,6 +1972,22 @@ function BiggestInsightCard({ data, fitData }) {
   );
 }
 
+function OpeningFitMethodCard() {
+  return (
+    <section className="openingMethodCard" aria-label="Opening Fit method">
+      <div>
+        <span>Method</span>
+        <strong>Pattern analysis, not engine analysis</strong>
+      </div>
+      <p>
+        OpeningFit reviews your recent public games, groups them by opening,
+        filters tiny samples, compares results by colour, and turns the patterns
+        into practical repertoire suggestions.
+      </p>
+    </section>
+  );
+}
+
 function CompactReportSummary({ data, fitData, onViewChange }) {
   if (!data) return null;
 
@@ -2037,11 +2053,11 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
     <article className={`compactVerdictCard ${className || ""}`}>
       <span>{label}</span>
       <strong>{opening ? getOpeningContextTitle(opening) : fallback}</strong>
-      <p>
-        {opening
-          ? `${getOpeningGames(opening)} games · ${getWinRate(opening)}% score · ${getOpeningSignal(opening).badge}`
-          : "Not enough reliable data for a firm recommendation yet."}
-      </p>
+      {opening ? (
+        <OpeningEvidenceBlock opening={opening} data={data} compact hideNextAction />
+      ) : (
+        <p>Not enough reliable data for a firm recommendation yet.</p>
+      )}
     </article>
   );
 
@@ -2054,6 +2070,8 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
       </div>
 
       <ImportSummaryCard data={data} />
+
+      <OpeningFitMethodCard />
 
       <div className="openingIdentityHero">
         <article className="openingScoreHeroCard">

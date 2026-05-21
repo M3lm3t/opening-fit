@@ -1,5 +1,5 @@
 export const CONFIDENCE_THRESHOLDS = {
-  strongGames: 10,
+  highGames: 10,
   mediumGames: 5,
 };
 
@@ -251,6 +251,90 @@ export function getEvidenceSide(opening) {
   return explicit || "Side unclear";
 }
 
+export function getEvidenceColour(opening) {
+  const context = getOpeningContext(opening);
+
+  if (context.type === "white") return "White";
+  if (context.type === "black") return "Black";
+  if (context.type === "faced" && String(context.detail || "").toLowerCase().includes("white")) return "White";
+  if (context.type === "faced" && String(context.detail || "").toLowerCase().includes("black")) return "Black";
+
+  return "Both / unclear";
+}
+
+export function getConfidenceDetails(opening) {
+  const games = getEvidenceGames(opening);
+  const score = getEvidenceScore(opening);
+  const context = getOpeningContext(opening);
+
+  if (!context.canRecommend) {
+    return {
+      tier: "insufficient",
+      label: "Insufficient data",
+      badge: "Insufficient data",
+      className: "insufficient",
+      canBePrimary: false,
+      canBeFirm: false,
+      evidenceLine:
+        context.type === "faced"
+          ? "Insufficient data: this appears to be an opening you faced, not a clean repertoire choice from your side."
+          : "Insufficient data: the side or context is unclear, so this is not a firm recommendation.",
+      explanation:
+        "The current data is not clear enough to treat this as a clean repertoire recommendation.",
+    };
+  }
+
+  if (!games || score === null) {
+    return {
+      tier: "insufficient",
+      label: "Insufficient data",
+      badge: "Insufficient data",
+      className: "insufficient",
+      canBePrimary: false,
+      canBeFirm: false,
+      evidenceLine: "Insufficient data: game count or score is unavailable.",
+      explanation: "No reliable game sample is available yet.",
+    };
+  }
+
+  if (games >= CONFIDENCE_THRESHOLDS.highGames) {
+    return {
+      tier: "high",
+      label: "High confidence",
+      badge: "High confidence",
+      className: "high",
+      canBePrimary: true,
+      canBeFirm: true,
+      evidenceLine: `High confidence: ${games} games, ${score}% score, repeated enough to treat as a reliable pattern.`,
+      explanation: "Strong sample size from repeated use in your recent games.",
+    };
+  }
+
+  if (games >= CONFIDENCE_THRESHOLDS.mediumGames) {
+    return {
+      tier: "medium",
+      label: "Medium confidence",
+      badge: "Medium confidence",
+      className: "medium",
+      canBePrimary: true,
+      canBeFirm: false,
+      evidenceLine: `Medium confidence: ${games} games, ${score}% score. Useful signal, but not definitive yet.`,
+      explanation: "Useful signal, but still worth confirming with more games.",
+    };
+  }
+
+  return {
+    tier: "low",
+    label: "Low confidence",
+    badge: "Low confidence",
+    className: "low",
+    canBePrimary: false,
+    canBeFirm: false,
+    evidenceLine: `Low confidence: only ${games} game${games === 1 ? "" : "s"}. Treat this as a clue, not a recommendation.`,
+    explanation: "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation.",
+  };
+}
+
 export function getOpeningConfidence(opening) {
   const explicit = textField(opening, [
     "confidenceLabel",
@@ -262,32 +346,35 @@ export function getOpeningConfidence(opening) {
 
   if (explicit) {
     const lower = explicit.toLowerCase();
-    if (lower.includes("strong") || lower.includes("high")) return "Strong";
-    if (lower.includes("medium")) return "Medium";
-    if (lower.includes("low") || lower.includes("little") || lower.includes("thin")) return "Low sample";
+    if (lower.includes("strong") || lower.includes("high")) return "High confidence";
+    if (lower.includes("medium")) return "Medium confidence";
+    if (lower.includes("low") || lower.includes("little") || lower.includes("thin")) return "Low confidence";
+    if (lower.includes("insufficient") || lower.includes("no reliable")) return "Insufficient data";
     return explicit;
   }
 
   const games = getEvidenceGames(opening);
-  if (games >= CONFIDENCE_THRESHOLDS.strongGames) return "Strong";
-  if (games >= CONFIDENCE_THRESHOLDS.mediumGames) return "Medium";
-  if (games <= 0) return "No reliable data";
-  return "Low sample";
+  const score = getEvidenceScore(opening);
+
+  if (!games || score === null) return "Insufficient data";
+  if (games >= CONFIDENCE_THRESHOLDS.highGames) return "High confidence";
+  if (games >= CONFIDENCE_THRESHOLDS.mediumGames) return "Medium confidence";
+  return "Low confidence";
 }
 
 export function getOpeningSignal(opening) {
-  const games = getEvidenceGames(opening);
-  const score = getEvidenceScore(opening);
-  const confidence = getOpeningConfidence(opening);
+  const confidence = getConfidenceDetails(opening);
   const context = getOpeningContext(opening);
 
   if (context.type === "faced") {
     return {
       tier: "faced",
       label: "You faced this",
-      badge: "You faced this",
+      badge: "Insufficient data",
+      className: "insufficient",
       canBePrimary: false,
       canBeFirm: false,
+      evidenceLine: confidence.evidenceLine,
       explanation:
         "This looks like an opening you faced from the opponent side, so it is not a clean repertoire recommendation.",
     };
@@ -297,54 +384,64 @@ export function getOpeningSignal(opening) {
     return {
       tier: "mixed",
       label: "Mixed signal",
-      badge: "Mixed signal",
+      badge: "Insufficient data",
+      className: "insufficient",
       canBePrimary: false,
       canBeFirm: false,
+      evidenceLine: confidence.evidenceLine,
       explanation:
         "This opening appears in your games, but the current data is not clear enough to treat it as a clean repertoire recommendation.",
     };
   }
 
-  if (!games || score === null) {
+  if (confidence.tier === "insufficient") {
     return {
       tier: "none",
       label: "No reliable data",
-      badge: "No reliable data",
+      badge: "Insufficient data",
+      className: "insufficient",
       canBePrimary: false,
       canBeFirm: false,
+      evidenceLine: confidence.evidenceLine,
       explanation: "No reliable game sample is available yet.",
     };
   }
 
-  if (games >= CONFIDENCE_THRESHOLDS.strongGames) {
+  if (confidence.tier === "high") {
     return {
       tier: "strong",
       label: "Strong signal",
-      badge: "Strong",
+      badge: "High confidence",
+      className: "high",
       canBePrimary: true,
       canBeFirm: true,
-      explanation: "Reliable signal from your recent games.",
+      evidenceLine: confidence.evidenceLine,
+      explanation: confidence.explanation,
     };
   }
 
-  if (games >= CONFIDENCE_THRESHOLDS.mediumGames) {
+  if (confidence.tier === "medium") {
     return {
       tier: "medium",
       label: "Medium signal",
-      badge: "Medium",
+      badge: "Medium confidence",
+      className: "medium",
       canBePrimary: true,
       canBeFirm: false,
-      explanation: "Useful signal, but still worth confirming with more games.",
+      evidenceLine: confidence.evidenceLine,
+      explanation: confidence.explanation,
     };
   }
 
   return {
     tier: "low",
-    label: confidence || "Low sample",
-    badge: "Low sample",
+    label: "Low confidence",
+    badge: "Low confidence",
+    className: "low",
     canBePrimary: false,
     canBeFirm: false,
-    explanation: "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation.",
+    evidenceLine: confidence.evidenceLine,
+    explanation: confidence.explanation,
   };
 }
 
@@ -403,6 +500,38 @@ function verdictText(opening) {
     "recommendation",
     "status",
   ]);
+}
+
+export function getEvidenceVerdict(opening) {
+  const signal = getOpeningSignal(opening);
+  const score = getEvidenceScore(opening);
+  const explicit = verdictText(opening).toLowerCase();
+
+  if (!signal.canBePrimary) {
+    return signal.tier === "low" ? "Explore" : "Not enough data";
+  }
+
+  if (!signal.canBeFirm && explicit.includes("avoid")) {
+    return "Improve";
+  }
+
+  if (explicit.includes("keep") || explicit.includes("reliable") || explicit.includes("main")) {
+    return "Keep";
+  }
+
+  if (explicit.includes("improve") || explicit.includes("review") || explicit.includes("repair")) {
+    return "Improve";
+  }
+
+  if (signal.canBeFirm && explicit.includes("avoid")) {
+    return "Avoid";
+  }
+
+  if (score === null) return "Not enough data";
+  if (score >= 58) return "Keep";
+  if (score >= 42) return "Improve";
+
+  return signal.canBeFirm ? "Avoid" : "Improve";
 }
 
 export function getEvidenceReason(opening, data) {
@@ -513,18 +642,22 @@ export function getOpeningEvidence(opening, data, options = {}) {
   const score = getEvidenceScore(opening);
   const signal = getOpeningSignal(opening);
   const baseline = baselineComparison(opening, data);
+  const verdict = getEvidenceVerdict(opening);
   const chips = [
-    getEvidenceSide(opening),
+    `Colour: ${getEvidenceColour(opening)}`,
+    `Verdict: ${verdict}`,
     games ? `${games} game${games === 1 ? "" : "s"}` : "Game count unavailable",
     score !== null ? `${score}% score` : "Score unavailable",
     baseline,
-    `Confidence: ${signal.badge}`,
+    signal.badge,
   ].filter(Boolean);
 
   return {
     chips: [...new Set(chips)],
+    verdict,
     reason: getEvidenceReason(opening, data),
     nextAction: getEvidenceNextAction(opening, options.slot || options.sectionKey || ""),
+    why: signal.evidenceLine,
     signal,
     context: getOpeningContext(opening),
   };
@@ -539,20 +672,32 @@ export default function OpeningEvidenceBlock({
   hideNextAction = false,
 }) {
   const evidence = getOpeningEvidence(opening || {}, data, { slot });
+  const chipClassName = (chip) => {
+    const lower = String(chip || "").toLowerCase();
+    if (lower.includes("high confidence")) return "confidenceBadge confidenceBadgeHigh";
+    if (lower.includes("medium confidence")) return "confidenceBadge confidenceBadgeMedium";
+    if (lower.includes("low confidence")) return "confidenceBadge confidenceBadgeLow";
+    if (lower.includes("insufficient")) return "confidenceBadge confidenceBadgeInsufficient";
+    return "";
+  };
 
   return (
     <div className={`openingEvidenceBlock ${compact ? "openingEvidenceBlockCompact" : ""}`}>
       <div className="openingEvidenceChips" aria-label="Opening evidence">
         {evidence.chips.map((chip) => (
-          <span key={chip}>{chip}</span>
+          <span className={chipClassName(chip)} key={chip}>{chip}</span>
         ))}
       </div>
 
       {compact ? null : (
         <p className="openingEvidenceHelp">
-          Confidence is based mainly on game count and signal clarity.
+          Confidence is based mainly on game count, score availability, repeated use, and signal clarity.
         </p>
       )}
+
+      <p>
+        <strong>Why this?</strong> {evidence.why}
+      </p>
 
       {!hideReason ? (
         <p>

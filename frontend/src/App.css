@@ -1046,6 +1046,35 @@ table {
   overflow-wrap: anywhere;
 }
 
+.openingEvidenceChips .confidenceBadge {
+  border-color: rgba(148, 163, 184, 0.24);
+  font-weight: 950;
+}
+
+.openingEvidenceChips .confidenceBadgeHigh {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.34);
+  color: #bbf7d0;
+}
+
+.openingEvidenceChips .confidenceBadgeMedium {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.34);
+  color: #bfdbfe;
+}
+
+.openingEvidenceChips .confidenceBadgeLow {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.34);
+  color: #fde68a;
+}
+
+.openingEvidenceChips .confidenceBadgeInsufficient {
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.28);
+  color: #cbd5e1;
+}
+
 .openingEvidenceBlock p {
   margin: 0;
   color: #94a3b8;
@@ -1071,6 +1100,38 @@ table {
   background: rgba(15, 23, 42, 0.045);
   border-color: rgba(15, 23, 42, 0.08);
   color: #475569;
+}
+
+:root[data-theme="light"] .openingEvidenceChips .confidenceBadgeHigh,
+.page.light .openingEvidenceChips .confidenceBadgeHigh,
+[data-theme="light"] .openingEvidenceChips .confidenceBadgeHigh {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+:root[data-theme="light"] .openingEvidenceChips .confidenceBadgeMedium,
+.page.light .openingEvidenceChips .confidenceBadgeMedium,
+[data-theme="light"] .openingEvidenceChips .confidenceBadgeMedium {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
+:root[data-theme="light"] .openingEvidenceChips .confidenceBadgeLow,
+.page.light .openingEvidenceChips .confidenceBadgeLow,
+[data-theme="light"] .openingEvidenceChips .confidenceBadgeLow {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+:root[data-theme="light"] .openingEvidenceChips .confidenceBadgeInsufficient,
+.page.light .openingEvidenceChips .confidenceBadgeInsufficient,
+[data-theme="light"] .openingEvidenceChips .confidenceBadgeInsufficient {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
 }
 
 :root[data-theme="light"] .openingEvidenceBlock p,
@@ -25516,6 +25577,46 @@ textarea,
   gap: 10px;
 }
 
+.openingMethodCard {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
+  gap: 14px;
+  align-items: center;
+  padding: 13px 14px;
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.openingMethodCard span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.openingMethodCard strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.96rem;
+}
+
+.openingMethodCard p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+[data-theme="light"] .openingMethodCard,
+.page.light .openingMethodCard {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
 .compactVerdictCard {
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 8px;
@@ -25684,6 +25785,7 @@ textarea,
 
   .openingIdentityHero,
   .compactVerdictGrid,
+  .openingMethodCard,
   .biggestInsightCard .fitMiniGrid {
     grid-template-columns: 1fr;
   }
