@@ -3654,22 +3654,11 @@ function LandingSampleResultPreview({ onOpeningClick }) {
 
   return (
     <article className="landingSampleResultPreview" aria-label="Sample Opening Fit result">
-      <div className="sampleBoardCoordinates" aria-hidden="true">
-        <span>a</span>
-        <span>b</span>
-        <span>c</span>
-        <span>d</span>
-        <span>e</span>
-        <span>f</span>
-        <span>g</span>
-        <span>h</span>
-      </div>
       <div className="landingSampleResultHeader">
         <div>
           <span>Opening Fit sample</span>
           <h3>What your report looks like</h3>
         </div>
-        <strong>Live-style audit</strong>
       </div>
 
       <div className="landingOpeningLineChips" aria-label="Sample opening lines">
@@ -3701,11 +3690,6 @@ function LandingSampleResultPreview({ onOpeningClick }) {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="landingSampleStudyNext">
-        <span>Study next</span>
-        <strong>Practise one simple plan against early ...c5.</strong>
       </div>
     </article>
   );
