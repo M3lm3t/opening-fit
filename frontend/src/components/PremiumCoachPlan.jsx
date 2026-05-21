@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { getSmartPlayerLevelProfile } from "./playerLevelLogic";
 
 function getOpeningName(item) {
   return (
@@ -150,7 +151,19 @@ export default function PremiumCoachPlan({ data, isPremium, onUnlockDemo }) {
 
     const mainName = mainOpening?.displayName || "your most reliable opening";
     const weakName = weakOpening?.displayName || "your least consistent opening";
-    const theme = getPlanTheme(mainName);
+    const profile = getSmartPlayerLevelProfile(data);
+    const advancedOrHigher = ["advanced", "expert", "master", "elite", "strong"].includes(profile.level);
+    const theme = advancedOrHigher
+      ? {
+          plan: profile.level === "master" || profile.level === "elite"
+            ? "Master-level trend audit"
+            : "Repertoire refinement",
+          focus: profile.level === "master" || profile.level === "elite"
+            ? "Check move-order precision, opponent preparation, and whether one branch is driving the recent score."
+            : "Use the report to isolate a specific branch, structure, or preparation gap rather than replacing the opening.",
+          rule: "Do not treat a lower score as a basic opening failure unless the sample is large and extremely clear.",
+        }
+      : getPlanTheme(mainName);
 
     return {
       mainName,
@@ -159,6 +172,7 @@ export default function PremiumCoachPlan({ data, isPremium, onUnlockDemo }) {
       weakWinRate: weakOpening?.winRate || null,
       mainGames: mainOpening?.games || null,
       weakGames: weakOpening?.games || null,
+      advancedOrHigher,
       ...theme,
     };
   }, [data]);
@@ -168,7 +182,7 @@ export default function PremiumCoachPlan({ data, isPremium, onUnlockDemo }) {
   const copyText = `OpeningFit Premium Coach Plan
 
 Main opening to build around: ${plan.mainName}
-Opening weakness to fix: ${plan.weakName}
+Review area: ${plan.weakName}
 
 Plan theme: ${plan.plan}
 Main focus: ${plan.focus}
@@ -177,7 +191,7 @@ Rule for next 10 games: ${plan.rule}
 7-day plan:
 Day 1: Write down your first 6-8 moves in ${plan.mainName}.
 Day 2: Review two wins in ${plan.mainName} and note what worked.
-Day 3: Review two losses in ${plan.weakName} and find where you left comfort.
+Day 3: Review two losses in ${plan.weakName} and identify the first recurring branch.
 Day 4: Play three rapid games using only the recommended setup.
 Day 5: Study one common sideline you faced.
 Day 6: Play five more games and avoid experimenting.

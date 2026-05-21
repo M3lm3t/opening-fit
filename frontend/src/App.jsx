@@ -65,7 +65,17 @@ import CleanReportHeader from "./components/CleanReportHeader";
 import IntelligentCoachInsights from "./components/IntelligentCoachInsights";
 
 import OpeningClassificationNotice from "./components/OpeningClassificationNotice";
-import { displayOpeningName, getPlayerLevelText, getSmartLevelAwareRecommendation, getSmartPlayerLevelProfile } from "./components/playerLevelLogic";
+import {
+  adaptVerdictForPlayerLevel,
+  canGiveAvoidVerdict,
+  displayOpeningName,
+  getLevelToneCopy,
+  getPlayerLevelText,
+  getSmartLevelAwareRecommendation,
+  getSmartPlayerLevelProfile,
+  isAdvancedOrStrongerLevel,
+  isMasterLevel,
+} from "./components/playerLevelLogic";
 import AccountRestoreSync from "./components/AccountRestoreSync";
 import { DEMO_REPORT } from "./demoReportData";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
@@ -732,6 +742,259 @@ function getColourAwareRecommendationSections(data) {
   ];
 }
 
+const REPERTOIRE_SECTION_ORDER = [
+  {
+    key: "white_repertoire",
+    title: "White repertoire",
+    context: "played_as_white",
+    empty: "No clean White repertoire signal yet.",
+  },
+  {
+    key: "black_vs_e4",
+    title: "Black vs e4",
+    context: "black_vs_e4",
+    empty: "No clean Black response to 1.e4 yet.",
+  },
+  {
+    key: "black_vs_d4_other",
+    title: "Black vs d4 / other first moves",
+    context: "black_vs_d4_other",
+    empty: "No clean Black response to 1.d4, 1.c4, or 1.Nf3 yet.",
+  },
+];
+
+const REPERTOIRE_BUCKETS = [
+  { key: "bestFit", title: "Best fit" },
+  { key: "needsReview", title: "Needs review" },
+  { key: "risky", title: "Risky / unstable" },
+  { key: "notEnoughData", title: "Not enough data" },
+];
+
+function repertoireBucketForOpening(opening) {
+  const signal = getOpeningSignal(opening);
+  const score = getWinRate(opening);
+  const games = getOpeningGames(opening);
+  const verdict = String(
+    opening?.verdict ||
+      opening?.fitVerdict ||
+      opening?.recommendation ||
+      ""
+  ).toLowerCase();
+
+  if (
+    opening?.forceNotEnoughData ||
+    !signal.canBePrimary ||
+    opening?.context === "unknown_mixed" ||
+    games < 2
+  ) {
+    return "notEnoughData";
+  }
+
+  if (
+    verdict.includes("avoid") ||
+    verdict.includes("risky") ||
+    verdict.includes("unstable") ||
+    score < 40
+  ) {
+    return "risky";
+  }
+
+  if (
+    verdict.includes("review") ||
+    verdict.includes("improve") ||
+    verdict.includes("mixed") ||
+    score < 55
+  ) {
+    return "needsReview";
+  }
+
+  return "bestFit";
+}
+
+function uniqueOpeningsByNameAndContext(items) {
+  const seen = new Set();
+  const result = [];
+
+  items.forEach((item) => {
+    const name = getOpeningName(item);
+    const context = item?.context || itemContext(item);
+    const key = `${String(name).toLowerCase()}::${context}`;
+
+    if (!name || isUnknownOpeningName(name) || seen.has(key)) return;
+
+    seen.add(key);
+    result.push(item);
+  });
+
+  return result;
+}
+
+function firstMoveBucketForOpening(opening) {
+  const text = String(
+    opening?.context ||
+      opening?.repertoireContext ||
+      opening?.contextLabel ||
+      opening?.firstMove ||
+      opening?.first_move ||
+      opening?.opponentFirstMove ||
+      opening?.opponent_first_move ||
+      opening?.name ||
+      ""
+  ).toLowerCase();
+
+  if (text.includes("black_vs_e4") || text.includes("vs 1.e4") || text.includes("vs e4")) {
+    return "black_vs_e4";
+  }
+
+  if (
+    text.includes("black_vs_d4") ||
+    text.includes("vs 1.d4") ||
+    text.includes("vs d4") ||
+    text.includes("1.c4") ||
+    text.includes("1.nf3") ||
+    text.includes("queen's gambit") ||
+    text.includes("dutch") ||
+    text.includes("nimzo") ||
+    text.includes("king's indian") ||
+    text.includes("queen's indian") ||
+    text.includes("slav") ||
+    text.includes("benoni") ||
+    text.includes("benko") ||
+    text.includes("englund")
+  ) {
+    return "black_vs_d4_other";
+  }
+
+  return "";
+}
+
+function buildRepertoireReportSections(data) {
+  const colourSections = getColourAwareRecommendationSections(data);
+  const findSectionItems = (key) =>
+    colourSections.find((section) => section.key === key)?.items || [];
+
+  return REPERTOIRE_SECTION_ORDER.map((section) => {
+    const uncertainItems = findSectionItems("too_little_data").filter((item) => {
+      const context = itemContext(item);
+      const hint = openingNameColourHint(getOpeningName(item));
+
+      if (context === section.context) return true;
+      if (section.context === "played_as_white") return hint === "white";
+      if (section.context === "black_vs_e4") {
+        return hint === "black" && firstMoveBucketForOpening(item) !== "black_vs_d4_other";
+      }
+      return hint === "black" && firstMoveBucketForOpening(item) === "black_vs_d4_other";
+    });
+    const sectionItems = normalizeRecommendationSection(
+      findSectionItems(section.key),
+      section.context
+    );
+    const rareItems = normalizeRecommendationSection(
+      findSectionItems("experimental_rare").filter((item) => itemContext(item) === section.context),
+      section.context
+    );
+    const notEnoughItems = normalizeRecommendationSection(
+      uncertainItems.map((item) => ({
+        ...item,
+        context: section.context,
+        forceNotEnoughData: true,
+      })),
+      section.context
+    );
+    const fallbackItems = normalizeRecommendationSection(
+      [
+        ...(section.key === "white_repertoire" ? data?.preferred_white || [] : []),
+        ...(section.key !== "white_repertoire" ? data?.preferred_black || [] : []),
+        ...(data?.best_openings || []).filter((item) => itemContext(item, section.context) === section.context),
+      ],
+      section.context
+    );
+    const items = uniqueOpeningsByNameAndContext([
+      ...sectionItems,
+      ...rareItems,
+      ...notEnoughItems,
+      ...fallbackItems,
+    ]).sort((a, b) => {
+      const scoreDelta = getWinRate(b) - getWinRate(a);
+      if (scoreDelta) return scoreDelta;
+      return getOpeningGames(b) - getOpeningGames(a);
+    });
+    const buckets = {
+      bestFit: [],
+      needsReview: [],
+      risky: [],
+      notEnoughData: [],
+    };
+
+    items.forEach((item) => {
+      buckets[repertoireBucketForOpening(item)].push(item);
+    });
+
+    return {
+      ...section,
+      buckets,
+      totalItems: items.length,
+      primary: buckets.bestFit[0] || buckets.needsReview[0] || buckets.risky[0] || null,
+    };
+  });
+}
+
+function sectionHealth(section) {
+  if (section?.buckets?.bestFit?.length) return "stable";
+  if (section?.buckets?.needsReview?.length) return "needs review";
+  if (section?.buckets?.risky?.length) return "unstable";
+  return "not enough evidence";
+}
+
+function repertoireShapeSummary(sections) {
+  const white = sections.find((section) => section.key === "white_repertoire");
+  const e4 = sections.find((section) => section.key === "black_vs_e4");
+  const d4 = sections.find((section) => section.key === "black_vs_d4_other");
+  const study = sections.find((section) => section.buckets.risky.length || section.buckets.needsReview.length);
+
+  const whiteHealth = sectionHealth(white);
+  const e4Health = sectionHealth(e4);
+  const d4Health = sectionHealth(d4);
+
+  return {
+    text: `Your White repertoire looks ${whiteHealth}, your Black responses to 1.e4 look ${e4Health}, and your Black responses to 1.d4 / other first moves show ${d4Health}.`,
+    white: white?.primary?.name || "Needs more White games",
+    e4: e4?.primary?.name || "Needs more games against 1.e4",
+    d4: d4?.primary?.name || "Needs more games against 1.d4 / other starts",
+    study:
+      study?.buckets.risky[0]?.name ||
+      study?.buckets.needsReview[0]?.name ||
+      "Collect more colour-specific games before changing the repertoire",
+  };
+}
+
+function colourAwareBucketCopy(sectionKey, bucketKey) {
+  if (sectionKey === "white_repertoire") {
+    return {
+      bestFit: "As White, this looks like a strong practical fit.",
+      needsReview: "As White, this is playable but worth reviewing before you build around it.",
+      risky: "As White, this is producing unstable results.",
+      notEnoughData: "As White, there is not enough evidence yet.",
+    }[bucketKey];
+  }
+
+  if (sectionKey === "black_vs_e4") {
+    return {
+      bestFit: "Against 1.e4, this defence looks like your best current fit.",
+      needsReview: "Against 1.e4, this defence is producing mixed results.",
+      risky: "Against 1.e4, this defence looks risky or unstable.",
+      notEnoughData: "Against 1.e4, there is not enough evidence yet.",
+    }[bucketKey];
+  }
+
+  return {
+    bestFit: "Against 1.d4 and other first moves, this looks like your best current fit.",
+    needsReview: "Against 1.d4 and other first moves, this needs review.",
+    risky: "Against 1.d4 and other first moves, this looks risky or unstable.",
+    notEnoughData: "Against 1.d4, there is not enough evidence yet.",
+  }[bucketKey];
+}
+
 function isUnknownOpeningName(name) {
   const normalized = (name || "").toLowerCase().trim();
 
@@ -977,7 +1240,7 @@ function getPlayerTier(data) {
   const titledPlayer = ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(title);
 
   if (
-    rating >= 2500 ||
+    rating >= 2400 ||
     titledPlayer ||
     level.includes("elite") ||
     level.includes("master") ||
@@ -998,13 +1261,15 @@ function getPlayerTier(data) {
   }
 
   if (
-    rating >= 1600 ||
+    rating >= 1800 ||
     level.includes("advanced") ||
     level.includes("club") ||
     level.includes("strong")
   ) {
     return "club";
   }
+
+  if (rating >= 1400 || level.includes("intermediate")) return "club";
 
   return "developing";
 }
@@ -1064,13 +1329,15 @@ function publicAccountCaution(data) {
 function getDataFirstVerdict(opening, data) {
   const winRate = getWinRate(opening);
   const signal = getOpeningSignal(opening);
+  const level = getSmartPlayerLevelProfile(data).level;
+  const games = getOpeningGames(opening);
 
   if (signal.tier === "none") return "No reliable data";
   if (signal.tier === "low") return "Too few games";
-  if (isPublicReportMode(data)) return publicAwareVerdict(opening?.verdict || opening?.fitVerdict, data, getOpeningGames(opening));
+  if (isPublicReportMode(data)) return publicAwareVerdict(opening?.verdict || opening?.fitVerdict, data, games);
   if (winRate >= 55) return "Keep";
   if (winRate >= 42) return "Improve";
-  return "Review";
+  return adaptVerdictForPlayerLevel("Avoid", { level, games, score: winRate }) || "Review";
 }
 
 function getEvidenceLine(opening, data) {
@@ -1106,6 +1373,8 @@ function getNextActionLine(opening, data, sectionKey = "") {
   const games = getOpeningGames(opening);
   const context = opening?.contextLabel || contextLabel(itemContext(opening));
   const publicMode = isPublicReportMode(data);
+  const level = getSmartPlayerLevelProfile(data).level;
+  const levelCopy = getLevelToneCopy(level);
 
   if (!getOpeningSignal(opening).canBePrimary || sectionKey === "too_little_data" || opening?.context === "unknown_mixed") {
     return `Next action: collect more games before changing anything in ${name}.`;
@@ -1113,6 +1382,10 @@ function getNextActionLine(opening, data, sectionKey = "") {
 
   if (publicMode) {
     return `Next action: compare ${name} by time control, opponent pool, and game context.`;
+  }
+
+  if (isAdvancedOrStrongerLevel(level)) {
+    return `Next action: ${levelCopy.action.replace(/\.$/, "")} in ${name}.`;
   }
 
   if (sectionKey === "white_repertoire") {
@@ -1184,7 +1457,12 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   const largeSample = sampleTier === "large";
   const frequentlyPlayed = isMainWeapon || games >= 10;
   const baseline = getPlayerBaselineScore(data);
-  const highRatedPlayer = ["club", "strong", "elite"].includes(tier);
+  const levelProfile = getSmartPlayerLevelProfile(data);
+  const level = levelProfile.level;
+  const levelCopy = getLevelToneCopy(level);
+  const advancedOrHigher = isAdvancedOrStrongerLevel(level);
+  const masterLevel = isMasterLevel(level);
+  const highRatedPlayer = advancedOrHigher || ["club", "strong", "elite"].includes(tier);
   const belowBaseline = winRate < baseline;
   const slightlyBelowBaseline = belowBaseline && baseline - winRate <= 8;
   const rating = getProfileRating(data);
@@ -1192,7 +1470,9 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   const strongOpposition =
     rating && opposition ? opposition >= Math.max(1800, rating - 100) : false;
   const highRatedRepertoireMessage =
-    "This looks like a serious part of your repertoire. Recent results are below your usual baseline, but this is more likely a form trend than a reason to abandon the opening.";
+    masterLevel
+      ? "This looks like a serious part of the repertoire. At your level, this is likely about move-order precision, opponent preparation, or a recent trend in one branch, not basic understanding."
+      : "This may be a practical review area. Recent results are below the usual baseline, but this is more likely a branch or structure issue than a reason to abandon the opening.";
 
   if (isUnknownOpeningName(getOpeningName(opening))) {
     return {
@@ -1217,6 +1497,16 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
         publicMode
           ? "This is too small a recent online sample for a hard verdict. It may be an experiment, a content game, or a one-off opponent-specific choice."
           : "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation.",
+    };
+  }
+
+  if (masterLevel && frequentlyPlayed && games >= 10) {
+    return {
+      label: winRate >= 45 ? "Main weapon" : levelCopy.lowResultLabel,
+      category: winRate >= 45 ? "keep" : "review",
+      tone: winRate >= 45 ? "positive" : "warning",
+      severity: winRate >= 45 ? "positive" : "warning",
+      message: highRatedRepertoireMessage,
     };
   }
 
@@ -1255,14 +1545,14 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       };
     }
 
-    if (largeSample && games >= 20 && winRate < 25) {
+    if (largeSample && canGiveAvoidVerdict({ level, games, score: winRate })) {
       return {
-        label: "Recent underperformer",
+        label: levelCopy.lowResultLabel,
         category: "review",
         tone: "warning",
         severity: "warning",
         message:
-          "This is a large sample with unusually poor recent results. Even then, for an elite player this should be treated as a performance check before calling the opening a bad choice.",
+          "This is a large sample with unusually poor recent results. Even then, for a master-level player this should be treated as a trend and preparation audit before calling the opening a bad choice.",
       };
     }
 
@@ -1359,11 +1649,13 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   if (winRate >= 45) {
     return {
       label: "Promising but unstable",
-      category: "improve",
+      category: advancedOrHigher ? "review" : "improve",
       tone: "warning",
       severity: "warning",
       message:
-        "This does not mean the whole opening is bad. It means one branch, move order, or opening-to-middlegame transition is likely costing points.",
+        advancedOrHigher
+          ? levelCopy.reason
+          : "This does not mean the whole opening is bad. It means one branch, move order, or opening-to-middlegame transition is likely costing points.",
     };
   }
 
@@ -1379,14 +1671,18 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   }
 
   return {
-    label: publicMode ? "Recent underperformer" : "Needs review",
-    category: "avoid",
-    tone: "danger",
-    severity: "danger",
+    label: publicMode
+      ? "Recent underperformer"
+      : adaptVerdictForPlayerLevel("Avoid", { level, games, score: winRate }) || "Needs review",
+    category: canGiveAvoidVerdict({ level, games, score: winRate }) && !advancedOrHigher ? "avoid" : "review",
+    tone: canGiveAvoidVerdict({ level, games, score: winRate }) && !advancedOrHigher ? "danger" : "warning",
+    severity: canGiveAvoidVerdict({ level, games, score: winRate }) && !advancedOrHigher ? "danger" : "warning",
     message:
       publicMode
         ? "This is a lower-scoring recent online sample. Treat it as trend evidence only, not a judgement of the player's opening knowledge."
-        : "The data points to a recurring problem inside this opening. Review the damaging line first before deciding whether the whole opening should leave the repertoire.",
+        : advancedOrHigher
+          ? levelCopy.reason
+          : "The data points to a recurring problem inside this opening. Review the damaging line first before deciding whether the whole opening should leave the repertoire.",
   };
 }
 
@@ -1941,9 +2237,11 @@ function BiggestInsightCard({ data, fitData }) {
   const levelText =
     publicMode
       ? publicAccountCaution(data)
-      : profile.level === "elite" || profile.level === "strong"
+      : ["master", "elite", "expert"].includes(profile.level)
       ? "Treat this as a repertoire audit, not a beginner verdict."
-      : profile.level === "beginner" || profile.level === "improver"
+      : profile.level === "advanced"
+      ? "The fastest gain is repertoire refinement: one branch, one move order, one recurring structure."
+      : profile.level === "beginner" || profile.level === "developing" || profile.level === "improver"
       ? "The fastest gain is simpler choices and familiar positions."
       : "The fastest gain is repairing one repeat branch while keeping your stable openings.";
 
@@ -5144,6 +5442,29 @@ function App() {
     }));
   }, [data, showUnknownOpenings]);
 
+  const repertoireReportSections = useMemo(() => {
+    return buildRepertoireReportSections({
+      ...data,
+      opening_recommendations: {
+        ...(data?.opening_recommendations || {}),
+        sections: colourAwareRecommendationSections,
+      },
+    }).map((section) => ({
+      ...section,
+      buckets: Object.fromEntries(
+        Object.entries(section.buckets).map(([key, items]) => [
+          key,
+          filterUnknownOpenings(items || []),
+        ])
+      ),
+    }));
+  }, [data, colourAwareRecommendationSections, showUnknownOpenings]);
+
+  const repertoireShape = useMemo(
+    () => repertoireShapeSummary(repertoireReportSections),
+    [repertoireReportSections]
+  );
+
   const smartRecommendationSummary = useMemo(() => {
     const levelProfile = getSmartPlayerLevelProfile(data);
     const levelAware = getSmartLevelAwareRecommendation(data, fitData);
@@ -5180,7 +5501,7 @@ function App() {
       summary.push(
         topContext.canRecommend
           ? `Your most common opening signal is ${topTitle}. Because it appears often, improving this side-specific line should give you the biggest overall return.`
-          : `Your most common opening signal is ${topTitle}. Track it by side before treating it as something to play or drop.`
+          : `Your most common opening signal is ${topTitle}. Track it by side before treating it as a repertoire decision.`
       );
     }
 
@@ -5232,16 +5553,22 @@ function App() {
       ];
     }
 
-    if (levelProfile.level === "advanced") {
+    const advancedOrHigher = ["advanced", "expert", "master", "elite", "strong"].includes(levelProfile.level);
+
+    if (advancedOrHigher) {
       plan.push({
-        title: "Refine, do not replace",
-        text: "This player likely already has opening knowledge. Focus on weak branches, repeated structures, and recent performance changes rather than generic opening swaps.",
+        title: levelProfile.level === "master" || levelProfile.level === "elite"
+          ? "Audit trends, do not replace weapons"
+          : "Refine, do not replace",
+        text: levelProfile.level === "master" || levelProfile.level === "elite"
+          ? "At this level, a lower score is more likely about move-order precision, opponent preparation, or a recent trend in one branch than basic opening understanding."
+          : "This player likely already has opening knowledge. Focus on weak branches, repeated structures, and recent performance changes rather than generic opening swaps.",
         action: null,
         opening: null,
       });
     }
 
-    if (levelProfile.level === "beginner" || levelProfile.level === "improver") {
+    if (levelProfile.level === "beginner" || levelProfile.level === "developing" || levelProfile.level === "improver") {
       plan.push({
         title: "Simplify the repertoire first",
         text: "Use fewer openings for the next block of games. Pick one White setup and one simple Black setup so the same middlegame plans appear repeatedly.",
@@ -5261,8 +5588,12 @@ function App() {
     if (bestFit) {
       if (canTreatAsRepertoireOpening(bestFit)) {
         plan.push({
-          title: `Build around ${getOpeningContextTitle(bestFit)}`,
-          text: `This is your best current clean Opening Fit at ${bestFit.fitScore}/100. Keep it in that side of your repertoire and learn one simple plan after the first few moves.`,
+          title: advancedOrHigher
+            ? `Maintain ${getOpeningContextTitle(bestFit)}`
+            : `Build around ${getOpeningContextTitle(bestFit)}`,
+          text: advancedOrHigher
+            ? `This is the strongest clean signal at ${bestFit.fitScore}/100. Use it as a stable reference point and check whether recent opponents are steering you into one branch.`
+            : `This is your best current clean Opening Fit at ${bestFit.fitScore}/100. Keep it in that side of your repertoire and learn one simple plan after the first few moves.`,
           action: `Practise ${getOpeningName(bestFit)}`,
           opening: getOpeningName(bestFit),
         });
@@ -5294,10 +5625,14 @@ function App() {
       const canPracticeWeak = canTreatAsRepertoireOpening(weakFit);
       plan.push({
         title: canPracticeWeak
-          ? `Repair ${getOpeningContextTitle(weakFit)}`
+          ? advancedOrHigher
+            ? `Analyse ${getOpeningContextTitle(weakFit)}`
+            : `Repair ${getOpeningContextTitle(weakFit)}`
           : `Track ${getOpeningContextTitle(weakFit)} before judging it`,
         text: canPracticeWeak
-          ? `This side-specific opening signal is your weakest current fit at ${weakFit.fitScore}/100. Try one simpler variation before dropping it completely.`
+          ? advancedOrHigher
+            ? `This may be a practical review area at ${weakFit.fitScore}/100. Check move-order precision, opponent prep, and the first recurring branch where the score drops.`
+            : `This side-specific opening signal is your lowest current fit at ${weakFit.fitScore}/100. Try one simpler variation before changing the whole opening.`
           : "This is not clean enough to call a repertoire weakness. Treat it as a trend to separate by side/context.",
         action: canPracticeWeak ? `Practise ${getOpeningName(weakFit)}` : null,
         opening: canPracticeWeak ? getOpeningName(weakFit) : null,
@@ -5305,18 +5640,28 @@ function App() {
     }
 
     if (whitePick) {
+      const levelCopy = getLevelToneCopy(levelProfile.level);
       plan.push({
-        title: `Build your White repertoire around ${whitePick.name}`,
-        text: "This appears often in your White games. Learn the first 6 moves, then one simple plan for what to do after development.",
+        title: advancedOrHigher
+          ? `Audit your White ${whitePick.name} sample`
+          : `Build your White repertoire around ${whitePick.name}`,
+        text: advancedOrHigher
+          ? `This appears often in your White games. ${levelCopy.reason}`
+          : "This appears often in your White games. Learn the first 6 moves, then one simple plan for what to do after development.",
         action: "Practise as White",
         opening: whitePick.name,
       });
     }
 
     if (blackPick) {
+      const levelCopy = getLevelToneCopy(levelProfile.level);
       plan.push({
-        title: `Tighten your Black repertoire with ${blackPick.name}`,
-        text: "This is one of your regular Black openings. Focus on reaching a familiar setup instead of memorising too many sidelines.",
+        title: advancedOrHigher
+          ? `Audit your Black ${blackPick.name} sample`
+          : `Tighten your Black repertoire with ${blackPick.name}`,
+        text: advancedOrHigher
+          ? `This is one of your regular Black openings. ${levelCopy.action}`
+          : "This is one of your regular Black openings. Focus on reaching a familiar setup instead of memorising too many sidelines.",
         action: "Practise as Black",
         opening: blackPick.name,
       });
@@ -5325,9 +5670,13 @@ function App() {
     if (Array.isArray(data?.training_plan) && data.training_plan.length) {
       data.training_plan.forEach((step, index) => {
         if (typeof step === "string") {
+          const unsafeForStrongPlayer = /learn the basics|stop playing|avoid this opening|drop this opening|stick with|first 6 to 8 moves well/i.test(step);
           plan.push({
             title: `Backend suggestion ${index + 1}`,
-            text: step,
+            text:
+              advancedOrHigher && unsafeForStrongPlayer
+                ? getLevelToneCopy(levelProfile.level).training
+                : step,
             action: null,
             opening: null,
           });
@@ -5934,65 +6283,100 @@ function App() {
                   isOpen={openSections.recommendations}
                   onToggle={() => toggleSection("recommendations")}
                 >
-                  <div className="repertoirePreviewGrid">
-                    {colourAwareRecommendationSections.map((section) => (
-                      <div className="repertoireCard" key={section.key}>
-                        <h3>{section.title}</h3>
-                        <div className="list">
-                          {section.items.length ? (
-                            section.items.map((item, index) => {
-                              const isAmbiguous =
-                                section.key === "too_little_data" ||
-                                item.context === "unknown_mixed";
-                              const signal = getOpeningSignal(item);
-                              const shouldHold = isAmbiguous || !signal.canBePrimary;
-                              const verdict = isAmbiguous
-                                ? "Not enough context"
-                                : getDataFirstVerdict(item, data);
-                              const evidenceItem = {
-                                ...item,
-                                confidence: getOpeningConfidence(item),
-                                verdict,
-                                reason: isAmbiguous
-                                  ? item.recommendationCopy || SAFE_CONTEXT_FALLBACK_COPY
-                                  : item.reason,
-                                nextAction: getNextActionLine(item, data, section.key),
-                              };
-
-                              return (
-                                <button
-                                  className="listItem openingPracticeLink evidenceListItem"
-                                  key={`${section.key}-${item.name}-${index}`}
-                                  type="button"
-                                  onClick={() =>
-                                    !shouldHold && startOpeningPractice(item.name)
-                                  }
-                                >
-                                  <div>
-                                    <strong>{verdict}: {item.name} · {getOpeningContext(evidenceItem).label}</strong>
-                                    <OpeningEvidenceBlock
-                                      opening={evidenceItem}
-                                      data={data}
-                                      slot={section.key}
-                                      compact
-                                    />
-                                  </div>
-                                  <span>{shouldHold ? "Track" : "Practice"}</span>
-                                </button>
-                              );
-                            })
-                          ) : (
-                            <EmptyState
-                              title={`No ${section.title.toLowerCase()} yet`}
-                              text={
-                                section.key === "too_little_data"
-                                  ? "Ambiguous opening patterns will appear here instead of being treated as confident advice."
-                                  : "Import more games to unlock a confident colour-aware recommendation."
-                              }
-                            />
-                          )}
-                        </div>
+                  <div className="repertoireShapeCard">
+                    <p className="eyebrow">Your repertoire shape</p>
+                    <h3>Your repertoire shape</h3>
+                    <p>{repertoireShape.text}</p>
+                    <div className="repertoireShapeAnswers">
+                      <div>
+                        <span>Play as White</span>
+                        <strong>{repertoireShape.white}</strong>
                       </div>
+                      <div>
+                        <span>Against e4</span>
+                        <strong>{repertoireShape.e4}</strong>
+                      </div>
+                      <div>
+                        <span>Against d4 / other</span>
+                        <strong>{repertoireShape.d4}</strong>
+                      </div>
+                      <div>
+                        <span>Study next</span>
+                        <strong>{repertoireShape.study}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="colourRepertoireGrid">
+                    {repertoireReportSections.map((section) => (
+                      <article className="colourRepertoireSection" key={section.key}>
+                        <div className="colourRepertoireHeader">
+                          <p className="eyebrow">{sectionHealth(section)}</p>
+                          <h3>{section.title}</h3>
+                        </div>
+
+                        <div className="colourRepertoireBuckets">
+                          {REPERTOIRE_BUCKETS.map((bucket) => {
+                            const items = section.buckets[bucket.key] || [];
+
+                            return (
+                              <div className="repertoireBucket" key={`${section.key}-${bucket.key}`}>
+                                <div className="repertoireBucketHeader">
+                                  <h4>{bucket.title}</h4>
+                                  <span>{items.length}</span>
+                                </div>
+                                <p>{colourAwareBucketCopy(section.key, bucket.key)}</p>
+
+                                <div className="list">
+                                  {items.length ? (
+                                    items.slice(0, 3).map((item, index) => {
+                                      const signal = getOpeningSignal(item);
+                                      const shouldHold = !signal.canBePrimary;
+                                      const verdict = shouldHold
+                                        ? "Not enough data"
+                                        : getDataFirstVerdict(item, data);
+                                      const evidenceItem = {
+                                        ...item,
+                                        confidence: getOpeningConfidence(item),
+                                        verdict,
+                                        reason: item.reason || colourAwareBucketCopy(section.key, bucket.key),
+                                        nextAction: getNextActionLine(item, data, section.key),
+                                      };
+
+                                      return (
+                                        <button
+                                          className="listItem openingPracticeLink evidenceListItem"
+                                          key={`${section.key}-${bucket.key}-${item.name}-${index}`}
+                                          type="button"
+                                          onClick={() =>
+                                            !shouldHold && startOpeningPractice(item.name)
+                                          }
+                                        >
+                                          <div>
+                                            <strong>{verdict}: {item.name}</strong>
+                                            <OpeningEvidenceBlock
+                                              opening={evidenceItem}
+                                              data={data}
+                                              slot={section.key}
+                                              compact
+                                            />
+                                          </div>
+                                          <span>{shouldHold ? "Track" : "Practice"}</span>
+                                        </button>
+                                      );
+                                    })
+                                  ) : (
+                                    <EmptyState
+                                      title={bucket.key === "notEnoughData" ? "No unclear samples here" : `No ${bucket.title.toLowerCase()} yet`}
+                                      text={bucket.key === "notEnoughData" ? section.empty : "This bucket will fill once your games show a colour-specific signal."}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </article>
                     ))}
                   </div>
 

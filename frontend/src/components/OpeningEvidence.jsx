@@ -1,3 +1,11 @@
+import {
+  adaptVerdictForPlayerLevel,
+  canGiveAvoidVerdict,
+  getLevelToneCopy,
+  getSmartPlayerLevelProfile,
+  isAdvancedOrStrongerLevel,
+} from "./playerLevelLogic";
+
 export const CONFIDENCE_THRESHOLDS = {
   highGames: 10,
   mediumGames: 5,
@@ -109,6 +117,14 @@ function textField(opening, keys) {
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return "";
+}
+
+function getSmartLevel(data) {
+  return getSmartPlayerLevelProfile(data).level;
+}
+
+function isAdvancedPlayer(data) {
+  return isAdvancedOrStrongerLevel(getSmartLevel(data));
 }
 
 function sideFromText(value) {
@@ -502,17 +518,21 @@ function verdictText(opening) {
   ]);
 }
 
-export function getEvidenceVerdict(opening) {
+export function getEvidenceVerdict(opening, data) {
   const signal = getOpeningSignal(opening);
   const score = getEvidenceScore(opening);
+  const games = getEvidenceGames(opening);
   const explicit = verdictText(opening).toLowerCase();
+  const level = getSmartLevel(data);
+  const advanced = isAdvancedOrStrongerLevel(level);
+  const avoidAllowed = signal.canBeFirm && canGiveAvoidVerdict({ level, games, score });
 
   if (!signal.canBePrimary) {
     return signal.tier === "low" ? "Explore" : "Not enough data";
   }
 
-  if (!signal.canBeFirm && explicit.includes("avoid")) {
-    return "Improve";
+  if ((!signal.canBeFirm || !avoidAllowed) && explicit.includes("avoid")) {
+    return adaptVerdictForPlayerLevel("Avoid", { level, games, score });
   }
 
   if (explicit.includes("keep") || explicit.includes("reliable") || explicit.includes("main")) {
@@ -523,7 +543,7 @@ export function getEvidenceVerdict(opening) {
     return "Improve";
   }
 
-  if (signal.canBeFirm && explicit.includes("avoid")) {
+  if (avoidAllowed && explicit.includes("avoid")) {
     return "Avoid";
   }
 
@@ -531,7 +551,8 @@ export function getEvidenceVerdict(opening) {
   if (score >= 58) return "Keep";
   if (score >= 42) return "Improve";
 
-  return signal.canBeFirm ? "Avoid" : "Improve";
+  if (avoidAllowed) return "Avoid";
+  return advanced ? getLevelToneCopy(level).lowResultLabel : signal.canBeFirm ? "Review" : "Improve";
 }
 
 export function getEvidenceReason(opening, data) {
@@ -574,6 +595,12 @@ export function getEvidenceReason(opening, data) {
 
   const score = getEvidenceScore(opening);
   const verdict = verdictText(opening).toLowerCase();
+  const level = getSmartLevel(data);
+  const advanced = isAdvancedOrStrongerLevel(level);
+
+  if (advanced && score !== null && score < 45) {
+    return getLevelToneCopy(level).reason;
+  }
 
   if (score === null) return "The report has a sample, but no score for this opening yet.";
   if (verdict.includes("keep") || verdict.includes("reliable") || score >= 58) {
@@ -586,7 +613,7 @@ export function getEvidenceReason(opening, data) {
   return data ? "The result is usable, but not conclusive enough to make this a settled repertoire choice." : "The result is usable, but not conclusive.";
 }
 
-export function getEvidenceNextAction(opening, slot = "") {
+export function getEvidenceNextAction(opening, slot = "", data = null) {
   const name = getEvidenceOpeningName(opening);
   const score = getEvidenceScore(opening);
   const lowConfidence = confidenceIsLow(opening);
@@ -622,7 +649,20 @@ export function getEvidenceNextAction(opening, slot = "") {
     return `Collect 5 more games with ${name} before changing the repertoire.`;
   }
 
-  if (explicit) return explicit;
+  if (explicit) {
+    const lower = explicit.toLowerCase();
+    if (
+      isAdvancedPlayer(data) &&
+      /learn the basics|stop playing|avoid this opening|drop this opening|switch openings/i.test(lower)
+    ) {
+      return getLevelToneCopy(getSmartLevel(data)).action;
+    }
+    return explicit;
+  }
+
+  if (score !== null && score < 45 && isAdvancedPlayer(data)) {
+    return `${getLevelToneCopy(getSmartLevel(data)).action.replace(/\.$/, "")} in ${name}.`;
+  }
 
   if (score !== null && score < 45) {
     return `Review your last 3 ${name} losses and mark the first repeated problem.`;
@@ -642,7 +682,7 @@ export function getOpeningEvidence(opening, data, options = {}) {
   const score = getEvidenceScore(opening);
   const signal = getOpeningSignal(opening);
   const baseline = baselineComparison(opening, data);
-  const verdict = getEvidenceVerdict(opening);
+  const verdict = getEvidenceVerdict(opening, data);
   const chips = [
     `Colour: ${getEvidenceColour(opening)}`,
     `Verdict: ${verdict}`,
@@ -656,7 +696,7 @@ export function getOpeningEvidence(opening, data, options = {}) {
     chips: [...new Set(chips)],
     verdict,
     reason: getEvidenceReason(opening, data),
-    nextAction: getEvidenceNextAction(opening, options.slot || options.sectionKey || ""),
+    nextAction: getEvidenceNextAction(opening, options.slot || options.sectionKey || "", data),
     why: signal.evidenceLine,
     signal,
     context: getOpeningContext(opening),

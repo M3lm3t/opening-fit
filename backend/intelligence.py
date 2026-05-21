@@ -215,6 +215,47 @@ def opening_sample_evidence(
         or item.get("status")
         or ""
     ).strip()
+    advanced_levels = {"advanced", "expert", "master", "elite", "strong"}
+    master_levels = {"master", "elite"}
+
+    def level_tone_reason() -> str:
+        if level in master_levels:
+            return (
+                "At this level, this is likely about move-order precision, "
+                "opponent preparation, or a recent trend in one branch, not basic understanding."
+            )
+        if level in advanced_levels:
+            return (
+                "This may be a practical review area. Your results suggest this line "
+                "deserves targeted analysis before making a repertoire decision."
+            )
+        if level in {"intermediate", "club"}:
+            return "This is a study-plan target: review the first uncomfortable position and build one clear plan."
+        return "Keep the advice simple and practical: focus on development, king safety, and familiar positions."
+
+    def avoid_allowed() -> bool:
+        if score is None:
+            return False
+        if level in master_levels:
+            return games >= 30 and score <= 20
+        if level == "expert":
+            return games >= 24 and score <= 24
+        if level in {"advanced", "strong"}:
+            return games >= 20 and score <= 28
+        if level in {"intermediate", "club"}:
+            return games >= 12 and score <= 30
+        if level in {"developing", "improver"}:
+            return games >= 10 and score <= 32
+        return games >= 8 and score <= 35
+
+    def review_verdict() -> str:
+        if level in master_levels:
+            return "Targeted review"
+        if level in advanced_levels:
+            return "Practical review"
+        if level in {"intermediate", "club"}:
+            return "Improve"
+        return "Review"
 
     if games <= 2:
         confidence_label = "Too little data"
@@ -247,7 +288,7 @@ def opening_sample_evidence(
         if rating:
             sample_points += 1
 
-        if level in {"advanced", "elite"} and games < 12:
+        if level in advanced_levels and games < 12:
             sample_points -= 1
 
         if games < 10 and sample_percent < 10:
@@ -266,13 +307,17 @@ def opening_sample_evidence(
             verdict = "Keep"
         elif score >= 42:
             verdict = "Improve"
-        else:
+        elif avoid_allowed():
             verdict = "Avoid"
+        else:
+            verdict = review_verdict()
 
         if confidence_label == "Low confidence" and verdict in {"Keep", "Improve", "Avoid"}:
             verdict = "Needs more games before judging"
 
-        if confidence_label == "High confidence":
+        if score is not None and score < 42 and level in advanced_levels:
+            reason = level_tone_reason()
+        elif confidence_label == "High confidence":
             reason = "This opening has repeated across a meaningful share of the import, so the verdict is more reliable."
         elif confidence_label == "Medium confidence":
             reason = "This opening repeats enough to inform a cautious recommendation, but more games would improve certainty."
@@ -503,21 +548,21 @@ def get_player_level(data: dict, username: str | None = None) -> dict:
     }
 
     if likely_elite_name and (rating is None or rating >= 2200):
-        level = "elite"
+        level = "master"
     elif rating is None:
         level = "unknown"
-    elif rating < 800:
+    elif rating < 900:
         level = "beginner"
-    elif rating < 1200:
-        level = "improver"
-    elif rating < 1600:
-        level = "club"
-    elif rating < 2000:
-        level = "strong"
-    elif rating < 2400:
+    elif rating < 1400:
+        level = "developing"
+    elif rating < 1800:
+        level = "intermediate"
+    elif rating < 2200:
         level = "advanced"
+    elif rating < 2400:
+        level = "expert"
     else:
-        level = "elite"
+        level = "master"
 
     profiles = {
         "unknown": {
@@ -540,9 +585,9 @@ def get_player_level(data: dict, username: str | None = None) -> dict:
             "training_focus": "Development, king safety, and reaching familiar positions.",
             "unknown_explanation": "At beginner level, this usually means the game left known opening paths early.",
         },
-        "improver": {
-            "label": "Improving beginner",
-            "short_label": "Improver",
+        "developing": {
+            "label": "Developing",
+            "short_label": "Developing",
             "tone": "simple",
             "opening_unknown_label": "Unclassified setup",
             "headline": "This player should reduce opening variety and build reliable habits.",
@@ -550,9 +595,9 @@ def get_player_level(data: dict, username: str | None = None) -> dict:
             "training_focus": "Repeatable setup, first 6 moves, and avoiding random sidelines.",
             "unknown_explanation": "This normally means the move order left common book lines early.",
         },
-        "club": {
-            "label": "Club player",
-            "short_label": "Club",
+        "intermediate": {
+            "label": "Intermediate",
+            "short_label": "Intermediate",
             "tone": "coach",
             "opening_unknown_label": "Unclassified opening",
             "headline": "This player can build a practical repertoire from repeated patterns.",
@@ -560,19 +605,19 @@ def get_player_level(data: dict, username: str | None = None) -> dict:
             "training_focus": "Common plans, recurring early mistakes, and colour-specific repertoire choices.",
             "unknown_explanation": "This may be a transposition or an opening that the detector could not classify.",
         },
-        "strong": {
-            "label": "Strong club player",
-            "short_label": "Strong club",
+        "advanced": {
+            "label": "Advanced",
+            "short_label": "Advanced",
             "tone": "refine",
             "opening_unknown_label": "Rare line / transposition",
-            "headline": "This player needs refinement, not generic opening advice.",
+            "headline": "This player needs repertoire refinement, not generic opening advice.",
             "recommendation": "Use colour splits, weak branches, and repeated middlegame structures to refine the repertoire.",
             "training_focus": "Opening branches, time-control trends, and move-order issues.",
             "unknown_explanation": "For stronger players, this often means a transposition, sideline, or incomplete ECO detection.",
         },
-        "advanced": {
-            "label": "Advanced player",
-            "short_label": "Advanced",
+        "expert": {
+            "label": "Expert",
+            "short_label": "Expert",
             "tone": "audit",
             "opening_unknown_label": "Rare line / transposition",
             "headline": "This player probably already has a repertoire. Audit it instead of replacing it.",
@@ -580,15 +625,15 @@ def get_player_level(data: dict, username: str | None = None) -> dict:
             "training_focus": "Repertoire refinement, sideline performance, and recent trend changes.",
             "unknown_explanation": "At advanced level, unclassified openings are more likely to be transpositions, sidelines, or detector limitations.",
         },
-        "elite": {
-            "label": "Elite / master-level profile",
-            "short_label": "Elite",
+        "master": {
+            "label": "Master",
+            "short_label": "Master",
             "tone": "audit",
             "opening_unknown_label": "Rare line / transposition",
-            "headline": "This profile is beyond normal club-player coaching.",
-            "recommendation": "Use OpeningFit as a trend, prep, and repertoire audit tool.",
+            "headline": "This is a master-level profile. Treat the report as a repertoire audit, not basic coaching.",
+            "recommendation": "Use OpeningFit as a trend, prep, precision, and repertoire audit tool.",
             "training_focus": "Deep trend detection, opponent prep, colour splits, and weak-scoring sidelines.",
-            "unknown_explanation": "At elite level, unclassified openings are usually a classification limitation, rare sideline, or transposition — not a beginner-style mistake.",
+            "unknown_explanation": "At master level, unclassified openings are usually a classification limitation, rare sideline, or transposition — not a beginner-style mistake.",
         },
     }
 
@@ -630,12 +675,22 @@ def build_recommendation(data: dict, level_profile: dict, openings: list[dict]) 
 
     level = level_profile["level"]
 
-    if level == "elite":
+    if level in {"master", "elite"}:
         return {
-            "type": "elite_audit",
-            "title": "Elite-level repertoire audit",
-            "summary": "Do not give this player beginner-style opening advice. The useful output is a high-level audit of trends, underperforming branches, and preparation gaps.",
+            "type": "master_audit",
+            "title": "Master-level repertoire audit",
+            "summary": "This is a master-level repertoire audit. Treat heavily played openings as trusted weapons unless the data is large and extremely clear.",
             "primary_action": "Prioritise colour splits, time-control splits, opponent-rating bands, and openings that have changed performance recently.",
+            "best_opening": best_name,
+            "weak_opening": weak_name,
+        }
+
+    if level == "expert":
+        return {
+            "type": "expert_audit",
+            "title": "Expert repertoire audit",
+            "summary": "This player likely already has serious opening knowledge. Recommendations should identify practical review areas, not prescribe basic replacements.",
+            "primary_action": f"Use {best_name} as the stable reference point, then investigate {weak_name} for branches, move-order issues, or recent trend changes.",
             "best_opening": best_name,
             "weak_opening": weak_name,
         }
@@ -650,27 +705,17 @@ def build_recommendation(data: dict, level_profile: dict, openings: list[dict]) 
             "weak_opening": weak_name,
         }
 
-    if level == "strong":
+    if level == "intermediate":
         return {
-            "type": "strong_club_refinement",
-            "title": "Strong club-player refinement",
-            "summary": "The goal is not just choosing openings — it is improving the branches and structures that appear most often.",
-            "primary_action": f"Keep {best_name} as a main weapon and use {weak_name} as the next repair target.",
-            "best_opening": best_name,
-            "weak_opening": weak_name,
-        }
-
-    if level == "club":
-        return {
-            "type": "club_repertoire",
-            "title": "Practical club repertoire",
+            "type": "intermediate_repertoire",
+            "title": "Practical intermediate repertoire",
             "summary": "This player should build around repeated strengths and study typical middlegame plans rather than memorising lots of theory.",
             "primary_action": f"Build around {best_name}, then review the first uncomfortable position in {weak_name}.",
             "best_opening": best_name,
             "weak_opening": weak_name,
         }
 
-    if level in {"beginner", "improver"}:
+    if level in {"beginner", "developing", "improver"}:
         return {
             "type": "simplify_repertoire",
             "title": "Simplify the opening choices",

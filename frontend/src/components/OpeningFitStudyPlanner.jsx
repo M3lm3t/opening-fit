@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { getOpeningSignal } from "./OpeningEvidence";
+import {
+  adaptVerdictForPlayerLevel,
+  getLevelToneCopy,
+  getSmartPlayerLevelProfile,
+  isAdvancedOrStrongerLevel,
+} from "./playerLevelLogic";
 
 function getOpenings(data) {
   return [
@@ -26,8 +32,9 @@ function getWinRate(item) {
   return value <= 1 ? Math.round(value * 100) : Math.round(value);
 }
 
-function verdictFor(item) {
+function verdictFor(item, data) {
   const signal = getOpeningSignal(item);
+  const level = getSmartPlayerLevelProfile(data).level;
   const verdict = String(item?.verdict || "").toLowerCase();
 
   if (signal.tier === "none") return "No reliable data";
@@ -39,7 +46,9 @@ function verdictFor(item) {
   if (verdict.includes("improve") || verdict.includes("promising")) {
     return "Promising but unstable";
   }
-  if (verdict.includes("avoid") || verdict.includes("review")) return "Needs review";
+  if (verdict.includes("avoid") || verdict.includes("review")) {
+    return adaptVerdictForPlayerLevel("Avoid", { level, games: getGames(item), score: getWinRate(item) }) || "Needs review";
+  }
 
   const winRate = getWinRate(item);
   const games = getGames(item);
@@ -47,7 +56,7 @@ function verdictFor(item) {
   if (games < 5) return "Too few games";
   if (winRate >= 58) return "Reliable choice";
   if (winRate >= 45) return "Promising but unstable";
-  return "Needs review";
+  return adaptVerdictForPlayerLevel("Avoid", { level, games, score: winRate }) || "Needs review";
 }
 
 function storageKey(username) {
@@ -58,15 +67,20 @@ function toast(message) {
   window.dispatchEvent(new CustomEvent("openingfit-toast", { detail: message }));
 }
 
-function buildTasks(opening, side) {
+function buildTasks(opening, side, data) {
   const name = openingName(opening);
-  const verdict = verdictFor(opening);
+  const verdict = verdictFor(opening, data);
+  const level = getSmartPlayerLevelProfile(data).level;
+  const advancedOrHigher = isAdvancedOrStrongerLevel(level);
+  const levelCopy = getLevelToneCopy(level);
 
   const baseTasks = [
     {
       id: "setup",
-      title: `Write down your main ${side} setup for ${name}`,
-      detail: "Keep this simple: first 6–8 moves, ideal piece placement, and one common pawn break.",
+      title: advancedOrHigher ? `Map the key ${side} move order for ${name}` : `Write down your main ${side} setup for ${name}`,
+      detail: advancedOrHigher
+        ? "Focus on move-order precision, opponent preparation, and the branch where practical results start to change."
+        : "Keep this simple: first 6-8 moves, ideal piece placement, and one common pawn break.",
       minutes: 10,
     },
     {
@@ -101,7 +115,7 @@ function buildTasks(opening, side) {
     ];
   }
 
-  if (verdict === "Avoid") {
+  if (verdict === "Avoid" && !advancedOrHigher) {
     return [
       {
         id: "simplify",
@@ -116,6 +130,18 @@ function buildTasks(opening, side) {
         minutes: 20,
       },
       ...baseTasks.slice(0, 2),
+    ];
+  }
+
+  if (advancedOrHigher && verdict.toLowerCase().includes("review")) {
+    return [
+      {
+        id: "targeted-review",
+        title: `Run targeted analysis on ${name}`,
+        detail: levelCopy.reason,
+        minutes: 20,
+      },
+      ...baseTasks.slice(1, 4),
     ];
   }
 
@@ -135,8 +161,8 @@ export default function OpeningFitStudyPlanner({ data, username }) {
 
   const tasks = useMemo(() => {
     if (!selectedOpening) return [];
-    return buildTasks(selectedOpening, side);
-  }, [selectedOpening, side]);
+    return buildTasks(selectedOpening, side, data);
+  }, [selectedOpening, side, data]);
 
   const key = storageKey(username);
 

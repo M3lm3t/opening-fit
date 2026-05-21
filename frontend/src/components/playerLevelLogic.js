@@ -164,6 +164,185 @@ export function getPlayerLevelText(data, fallback = "") {
   );
 }
 
+export function classifyPlayerLevel({ rating = null, level = "", title = "" } = {}) {
+  const cleanLevel = String(level || "").toLowerCase();
+  const cleanTitle = String(title || "").trim().toLowerCase();
+  const titledPlayer = ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(cleanTitle);
+
+  if (
+    titledPlayer ||
+    rating >= 2400 ||
+    cleanLevel.includes("master") ||
+    cleanLevel.includes("elite") ||
+    cleanLevel.includes("gm") ||
+    cleanLevel.includes("grandmaster") ||
+    cleanLevel.includes("international master")
+  ) {
+    return {
+      level: "master",
+      label: "Master",
+      shortLabel: "Master",
+      tone: "audit",
+    };
+  }
+
+  if (
+    rating >= 2200 ||
+    cleanLevel.includes("expert") ||
+    cleanLevel.includes("candidate master") ||
+    cleanLevel.includes("national master")
+  ) {
+    return {
+      level: "expert",
+      label: "Expert",
+      shortLabel: "Expert",
+      tone: "audit",
+    };
+  }
+
+  if (rating >= 1800 || cleanLevel.includes("advanced")) {
+    return {
+      level: "advanced",
+      label: "Advanced",
+      shortLabel: "Advanced",
+      tone: "refine",
+    };
+  }
+
+  if (rating >= 1400 || cleanLevel.includes("intermediate") || cleanLevel.includes("club")) {
+    return {
+      level: "intermediate",
+      label: "Intermediate",
+      shortLabel: "Intermediate",
+      tone: "coach",
+    };
+  }
+
+  if (rating >= 900 || cleanLevel.includes("developing") || cleanLevel.includes("improver")) {
+    return {
+      level: "developing",
+      label: "Developing",
+      shortLabel: "Developing",
+      tone: "simple",
+    };
+  }
+
+  return {
+    level: "beginner",
+    label: "Beginner",
+    shortLabel: "Beginner",
+    tone: "simple",
+  };
+}
+
+export function isAdvancedOrStrongerLevel(level) {
+  return ["advanced", "expert", "master", "elite", "strong"].includes(String(level || "").toLowerCase());
+}
+
+export function isMasterLevel(level) {
+  return ["master", "elite"].includes(String(level || "").toLowerCase());
+}
+
+export function getLevelToneCopy(level) {
+  const cleanLevel = String(level || "").toLowerCase();
+
+  if (isMasterLevel(cleanLevel)) {
+    return {
+      reviewLabel: "Trend review",
+      weakLabel: "Review",
+      lowResultLabel: "Targeted review",
+      reason:
+        "At your level, this is likely about move-order precision, opponent preparation, or a recent trend in one branch, not basic understanding.",
+      action:
+        "Run targeted analysis on the repeated branch: compare move orders, opponent preparation, colour splits, and recent trend changes.",
+      training:
+        "Audit trend changes, move-order precision, opponent preparation, and high-sample branches.",
+    };
+  }
+
+  if (cleanLevel === "expert") {
+    return {
+      reviewLabel: "Practical review",
+      weakLabel: "Review",
+      lowResultLabel: "Targeted review",
+      reason:
+        "Your results suggest this line deserves targeted analysis before making any repertoire decision.",
+      action:
+        "Review the repeated branch for move-order issues, opponent preparation, and recurring middlegame structures.",
+      training:
+        "Refine the repertoire with branch-level review, opponent pools, and recent trend checks.",
+    };
+  }
+
+  if (cleanLevel === "advanced" || cleanLevel === "strong") {
+    return {
+      reviewLabel: "Review",
+      weakLabel: "Improve",
+      lowResultLabel: "Practical review",
+      reason:
+        "This may be a practical review area. The useful question is which branch or structure is costing points.",
+      action:
+        "Review recurring loss patterns, move orders, and early middlegame structures before changing the opening.",
+      training:
+        "Refine the repertoire by checking branches, structures, and side-specific performance.",
+    };
+  }
+
+  if (cleanLevel === "intermediate") {
+    return {
+      reviewLabel: "Study next",
+      weakLabel: "Improve",
+      lowResultLabel: "Improve",
+      reason:
+        "This is a useful study-plan target. Review the first uncomfortable position and build one clear plan from there.",
+      action:
+        "Review recent losses, identify the first repeated problem, and practise one plan for the resulting middlegame.",
+      training:
+        "Build a study plan around repeated openings, typical plans, and recurring early mistakes.",
+    };
+  }
+
+  return {
+    reviewLabel: "Study next",
+    weakLabel: "Improve",
+    lowResultLabel: "Review",
+    reason:
+      "Keep this simple and practical: focus on development, king safety, and reaching familiar positions.",
+    action:
+      "Play fewer openings, learn the first few moves, and review one repeated mistake after each game.",
+    training:
+      "Use simple opening habits: develop pieces, castle, avoid early queen moves, and repeat familiar setups.",
+  };
+}
+
+export function canGiveAvoidVerdict({ level = "", games = 0, score = null } = {}) {
+  const cleanLevel = String(level || "").toLowerCase();
+  const count = Number(games || 0);
+  const result = score === null || score === undefined ? null : Number(score);
+
+  if (!Number.isFinite(result)) return false;
+
+  if (isMasterLevel(cleanLevel)) return count >= 30 && result <= 20;
+  if (cleanLevel === "expert") return count >= 24 && result <= 24;
+  if (cleanLevel === "advanced" || cleanLevel === "strong") return count >= 20 && result <= 28;
+  if (cleanLevel === "intermediate") return count >= 12 && result <= 30;
+  if (cleanLevel === "developing" || cleanLevel === "improver") return count >= 10 && result <= 32;
+
+  return count >= 8 && result <= 35;
+}
+
+export function adaptVerdictForPlayerLevel(verdict, { level = "", games = 0, score = null } = {}) {
+  const cleanVerdict = String(verdict || "").trim();
+  const lower = cleanVerdict.toLowerCase();
+
+  if (!lower.includes("avoid")) return cleanVerdict;
+
+  if (canGiveAvoidVerdict({ level, games, score })) return cleanVerdict || "Avoid";
+
+  const copy = getLevelToneCopy(level);
+  return isAdvancedOrStrongerLevel(level) ? copy.lowResultLabel : copy.weakLabel;
+}
+
 export function getPlayerLevelProfile(data) {
   const rating = collectRatings(data);
   const level = getPlayerLevelText(data).toLowerCase();
@@ -181,36 +360,32 @@ export function getPlayerLevelProfile(data) {
     .trim()
     .toLowerCase();
   const titledPlayer = ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(title);
+  const band = classifyPlayerLevel({ rating, level, title });
 
-  if (
-    rating >= 2500 ||
-    titledPlayer ||
-    level.includes("master") ||
-    level.includes("elite")
-  ) {
+  if (band.level === "master") {
     return {
       rating,
-      level: "elite",
-      label: "Elite / master-level profile",
-      shortLabel: "Elite",
+      level: "master",
+      label: "Master",
+      shortLabel: "Master",
       tone: "audit",
       openingUnknownLabel: "Rare line / transposition",
       unknownExplanation:
         "At this level, unclassified openings often mean rare move orders, transpositions, or a limitation in the opening detector — not bad opening play.",
       headline:
-        "This profile is too strong for basic club-player advice. Treat the report as a repertoire audit.",
+        "This is a master-level profile. Treat the report as a repertoire audit, not basic coaching.",
       recommendation:
-        "Focus on trend detection, colour splits, opponent prep, weak-scoring sidelines, and changes over time.",
+        "Focus on trend detection, colour splits, opponent prep, move-order precision, and changes over time.",
       trainingFocus:
-        "Review high-sample repertoire trends and identify specific branches that underperform.",
+        "Trend analysis, move-order precision, opponent preparation, and high-sample branch review.",
     };
   }
 
-  if (rating >= 2200 || level.includes("expert")) {
+  if (band.level === "expert") {
     return {
       rating,
-      level: "strong",
-      label: "Expert / strong player",
+      level: "expert",
+      label: "Expert",
       shortLabel: "Expert",
       tone: "audit",
       openingUnknownLabel: "Rare line / transposition",
@@ -221,15 +396,15 @@ export function getPlayerLevelProfile(data) {
       recommendation:
         "Use colour splits, weak branches, and repeated middlegame structures to refine the repertoire.",
       trainingFocus:
-        "Opening branches, time-control trends, opponent rating bands, and move-order issues.",
+        "Repertoire refinement, move-order issues, time-control trends, and opponent rating bands.",
     };
   }
 
-  if (level.includes("advanced")) {
+  if (band.level === "advanced") {
     return {
       rating,
-      level: "club",
-      label: "Advanced / club player",
+      level: "advanced",
+      label: "Advanced",
       shortLabel: "Advanced",
       tone: "refine",
       openingUnknownLabel: "Rare line / transposition",
@@ -263,7 +438,7 @@ export function getPlayerLevelProfile(data) {
     };
   }
 
-  if (rating < 800) {
+  if (band.level === "beginner") {
     return {
       rating,
       level: "beginner",
@@ -282,12 +457,12 @@ export function getPlayerLevelProfile(data) {
     };
   }
 
-  if (rating < 1200) {
+  if (band.level === "developing") {
     return {
       rating,
-      level: "improver",
-      label: "Improving beginner",
-      shortLabel: "Improver",
+      level: "developing",
+      label: "Developing",
+      shortLabel: "Developing",
       tone: "simple",
       openingUnknownLabel: "Unclassified setup",
       unknownExplanation:
@@ -301,12 +476,12 @@ export function getPlayerLevelProfile(data) {
     };
   }
 
-  if (rating < 1600) {
+  if (band.level === "intermediate") {
     return {
       rating,
-      level: "club",
-      label: "Club player",
-      shortLabel: "Club",
+      level: "intermediate",
+      label: "Intermediate",
+      shortLabel: "Intermediate",
       tone: "coach",
       openingUnknownLabel: "Unclassified opening",
       unknownExplanation:
@@ -320,20 +495,18 @@ export function getPlayerLevelProfile(data) {
     };
   }
 
-  if (rating < 2200) {
+  if (band.level === "advanced") {
     return {
       rating,
-      level: "club",
-      label: rating >= 1600 ? "Advanced / club player" : "Club player",
-      shortLabel: rating >= 1600 ? "Advanced" : "Club",
+      level: "advanced",
+      label: "Advanced",
+      shortLabel: "Advanced",
       tone: "refine",
       openingUnknownLabel: "Rare line / transposition",
       unknownExplanation:
         "For stronger players, this often means a transposition, sideline, or incomplete ECO detection rather than a random opening.",
       headline:
-        rating >= 1600
-          ? "This player can refine a practical repertoire from repeated structures."
-          : "This player can build a practical repertoire from repeated patterns.",
+        "This player can refine a practical repertoire from repeated structures.",
       recommendation:
         "Use colour splits, weak branches, and repeated middlegame structures to refine the repertoire.",
       trainingFocus:
@@ -341,11 +514,11 @@ export function getPlayerLevelProfile(data) {
     };
   }
 
-  if (rating < 2500) {
+  if (band.level === "expert") {
     return {
       rating,
-      level: "strong",
-      label: "Expert / strong player",
+      level: "expert",
+      label: "Expert",
       shortLabel: "Expert",
       tone: "audit",
       openingUnknownLabel: "Rare line / transposition",
@@ -362,9 +535,9 @@ export function getPlayerLevelProfile(data) {
 
   return {
     rating,
-    level: "elite",
-    label: "Elite / master-level profile",
-    shortLabel: "Elite",
+    level: "master",
+    label: "Master",
+    shortLabel: "Master",
     tone: "audit",
     openingUnknownLabel: "Rare line / transposition",
     unknownExplanation:
@@ -489,13 +662,25 @@ export function buildLevelAwareRecommendation(data, fitData) {
   const bestName = best ? displayOpeningName(best, data) : "your strongest repeated opening";
   const weakName = weakest ? displayOpeningName(weakest, data) : "your weakest repeated opening";
 
-  if (profile.level === "elite") {
+  if (profile.level === "master" || profile.level === "elite") {
     return {
-      title: "Elite-level repertoire audit",
+      title: "Master-level repertoire audit",
       summary:
-        "This is a master-level repertoire audit. Treat heavily played openings as trusted weapons unless the data strongly proves otherwise.",
+        "This is a master-level repertoire audit. Treat heavily played openings as trusted weapons unless the data is large and extremely clear.",
       primaryAction:
-        `Review ${weakName} for specific branches, colour splits, opponent-rating bands, and recurring middlegame structures rather than replacing the opening.`,
+        `Review ${weakName} for move-order precision, opponent preparation, colour splits, and recurring middlegame structures rather than replacing the opening.`,
+      bestName,
+      weakName,
+    };
+  }
+
+  if (profile.level === "expert") {
+    return {
+      title: "Expert repertoire audit",
+      summary:
+        "This player likely already has serious opening knowledge. Recommendations should identify practical review areas, not prescribe basic replacements.",
+      primaryAction:
+        `Use ${bestName} as the stable side-specific reference point, then review ${weakName} for specific branches, move-order issues, or recent trend changes.`,
       bestName,
       weakName,
     };
@@ -505,19 +690,7 @@ export function buildLevelAwareRecommendation(data, fitData) {
     return {
       title: "Advanced repertoire refinement",
       summary:
-        "This player likely already has opening knowledge. Recommendations should refine what they play, not replace it with beginner systems.",
-      primaryAction:
-        `Use ${bestName} as the stable side-specific reference point, then review ${weakName} for specific branches, move-order issues, or recent trend changes.`,
-      bestName,
-      weakName,
-    };
-  }
-
-  if (profile.level === "strong") {
-    return {
-      title: "Strong club-player refinement",
-      summary:
-        "The goal is not replacing openings too quickly — it is refining the branches and structures that appear most often.",
+        "The goal is repertoire refinement: keep the useful structures and target the branches that are costing practical points.",
       primaryAction:
         `Keep ${bestName} only in the side/context where the report shows it is yours, and fine-tune ${weakName} by checking recurring loss patterns.`,
       bestName,
@@ -525,11 +698,11 @@ export function buildLevelAwareRecommendation(data, fitData) {
     };
   }
 
-  if (profile.level === "club") {
+  if (profile.level === "intermediate") {
     return {
-      title: "Practical club repertoire",
+      title: "Practical intermediate repertoire",
       summary:
-        "This player should build around repeated side-specific strengths and study typical middlegame plans rather than memorising lots of theory.",
+        "This player should build around repeated side-specific strengths and turn weak samples into concrete study tasks.",
       primaryAction:
         `Build around ${bestName} only if the report shows it is yours in that side/context, then review the first uncomfortable position in ${weakName}.`,
       bestName,
@@ -537,7 +710,7 @@ export function buildLevelAwareRecommendation(data, fitData) {
     };
   }
 
-  if (profile.level === "beginner" || profile.level === "improver") {
+  if (profile.level === "beginner" || profile.level === "developing" || profile.level === "improver") {
     return {
       title: "Simplify the opening choices",
       summary:
@@ -580,12 +753,27 @@ export function getSmartPlayerLevelProfile(data) {
   const backend = getBackendPlayerLevel(data);
 
   if (backend && typeof backend === "object") {
+    const backendBand = classifyPlayerLevel({
+      rating: backend.rating ?? collectRatings(data),
+      level: backend.level || backend.label || "",
+      title:
+        data?.title ||
+        data?.chessTitle ||
+        data?.chess_title ||
+        data?.fideTitle ||
+        data?.fide_title ||
+        data?.playerTitle ||
+        data?.player_title ||
+        data?.profile?.title ||
+        "",
+    });
+
     return {
       rating: backend.rating ?? null,
-      level: backend.level || "unknown",
-      label: backend.label || "Unknown level",
-      shortLabel: backend.short_label || backend.shortLabel || backend.label || "Unknown",
-      tone: backend.tone || "balanced",
+      level: backendBand.level || backend.level || "unknown",
+      label: backend.label || backendBand.label || "Unknown level",
+      shortLabel: backend.short_label || backend.shortLabel || backendBand.shortLabel || backend.label || "Unknown",
+      tone: backend.tone || backendBand.tone || "balanced",
       openingUnknownLabel:
         backend.opening_unknown_label ||
         backend.openingUnknownLabel ||
@@ -618,6 +806,18 @@ export function getSmartLevelAwareRecommendation(data, fitData) {
   const backend = getBackendRecommendation(data);
 
   if (backend && typeof backend === "object") {
+    const profile = getSmartPlayerLevelProfile(data);
+    const advancedOrHigher = ["advanced", "expert", "master", "elite", "strong"].includes(profile.level);
+    const rawPrimaryAction =
+      backend.primary_action ||
+      backend.primaryAction ||
+      data?.backend_next_action ||
+      "Review the strongest and weakest repeated openings.";
+    const primaryAction =
+      advancedOrHigher && /learn the basics|stop playing|avoid this opening|drop this opening/i.test(rawPrimaryAction)
+        ? "Treat the lower-scoring sample as a practical review area. Check move-order precision, opponent preparation, and recurring branches before changing the repertoire."
+        : rawPrimaryAction;
+
     return {
       type: backend.type || "backend_recommendation",
       title: backend.title || "OpeningFit recommendation",
@@ -625,11 +825,7 @@ export function getSmartLevelAwareRecommendation(data, fitData) {
         backend.summary ||
         data?.backend_coach_summary ||
         "OpeningFit has generated a player-specific recommendation.",
-      primaryAction:
-        backend.primary_action ||
-        backend.primaryAction ||
-        data?.backend_next_action ||
-        "Review the strongest and weakest repeated openings.",
+      primaryAction,
       bestName:
         backend.best_opening ||
         backend.bestOpening ||

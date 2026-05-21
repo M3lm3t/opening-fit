@@ -1,4 +1,12 @@
-import { getPlayerLevelText } from "./playerLevelLogic";
+import {
+  adaptVerdictForPlayerLevel,
+  canGiveAvoidVerdict,
+  getLevelToneCopy,
+  getPlayerLevelText,
+  getSmartPlayerLevelProfile,
+  isAdvancedOrStrongerLevel,
+  isMasterLevel,
+} from "./playerLevelLogic";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 
 function normaliseOpeningName(opening) {
@@ -133,12 +141,12 @@ function getPlayerTier(data) {
     .toLowerCase();
   const titledPlayer = ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(title);
 
-  if (rating >= 2500 || titledPlayer || level.includes("master") || level.includes("elite")) {
+  if (rating >= 2400 || titledPlayer || level.includes("master") || level.includes("elite")) {
     return "elite";
   }
 
   if (rating >= 2200 || level.includes("expert")) return "strong";
-  if (rating >= 1600 || level.includes("advanced")) return "club";
+  if (rating >= 1800 || level.includes("advanced")) return "club";
   return "developing";
 }
 
@@ -158,6 +166,9 @@ function getVerdict(opening, data, index = 0) {
   const sampleTier = getSampleTier(games);
   const signal = getOpeningSignal(opening);
   const mainOpening = index <= 2 && signal.tier === "strong";
+  const level = getSmartPlayerLevelProfile(data).level;
+  const levelCopy = getLevelToneCopy(level);
+  const advancedOrHigher = isAdvancedOrStrongerLevel(level);
 
   if (signal.tier === "none") return "No reliable data";
   if (signal.tier === "low") return "Too few games";
@@ -177,8 +188,12 @@ function getVerdict(opening, data, index = 0) {
       return mainOpening ? "Main weapon" : "Reliable choice";
     }
 
-    if (lower.includes("improve") || lower.includes("fine-tune")) return "Promising but unstable";
-    if (lower.includes("avoid") || lower.includes("review")) return "Needs review";
+    if (lower.includes("improve") || lower.includes("fine-tune")) {
+      return advancedOrHigher ? levelCopy.lowResultLabel : "Promising but unstable";
+    }
+    if (lower.includes("avoid") || lower.includes("review")) {
+      return adaptVerdictForPlayerLevel(existing, { level, games, score: winRate }) || "Needs review";
+    }
 
     return String(existing);
   }
@@ -186,7 +201,7 @@ function getVerdict(opening, data, index = 0) {
   if (tier === "elite") {
     if (mainOpening && winRate >= 45) return "Main weapon";
     if (mainOpening) return "Needs review";
-    if (sampleTier === "large" && winRate < 25) return "Needs review";
+    if (sampleTier === "large" && winRate < 25) return levelCopy.lowResultLabel;
     if (winRate < 45) return "Promising but unstable";
     return "Reliable choice";
   }
@@ -201,7 +216,7 @@ function getVerdict(opening, data, index = 0) {
   if (winRate >= 58) return "Reliable choice";
   if (winRate >= 45) return "Promising but unstable";
   if (mainOpening && winRate >= 35) return "Promising but unstable";
-  return "Needs review";
+  return adaptVerdictForPlayerLevel("Avoid", { level, games, score: winRate }) || "Needs review";
 }
 
 function isStrongProfile(data) {
@@ -257,6 +272,13 @@ function getTotalGames(data, openings) {
 }
 
 function buildReportCards(openings, data) {
+  const level = getSmartPlayerLevelProfile(data).level;
+  const avoidAllowedFor = (opening) =>
+    canGiveAvoidVerdict({
+      level,
+      games: opening.games,
+      score: opening.winRate,
+    });
   const cleaned = openings
     .map((opening) => ({
       raw: opening,
@@ -292,7 +314,13 @@ function buildReportCards(openings, data) {
 
   const avoid =
     cleaned
-      .filter((opening) => opening.winRate < 42 && getOpeningSignal(opening.raw).canBePrimary)
+      .filter((opening) => {
+        const signal = getOpeningSignal(opening.raw);
+        if (!signal.canBePrimary) return false;
+        if (isMasterLevel(level)) return opening.winRate < 35 && opening.games >= 10;
+        if (isAdvancedOrStrongerLevel(level)) return opening.winRate < 40 && opening.games >= 8;
+        return opening.winRate < 42 && (avoidAllowedFor(opening) || signal.canBeFirm);
+      })
       .sort((a, b) => a.winRate - b.winRate)[0] || cleaned[2];
 
   return { keep, improve, avoid, cleaned };
@@ -371,6 +399,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
           fallbackTitle="Best repeated opening"
           fallbackText="Once more games are imported, this will show the opening that best fits your current results."
           type="keep"
+          data={data}
         />
 
         <ReportCard
@@ -383,6 +412,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
               : "This will highlight an opening with enough promise to keep, but enough weakness to study."
           }
           type="improve"
+          data={data}
         />
 
         <ReportCard
@@ -395,6 +425,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
               : "This will flag openings that are repeatedly costing you games or producing poor positions."
           }
           type="avoid"
+          data={data}
         />
       </div>
 
@@ -419,7 +450,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   );
 }
 
-function ReportCard({ title, opening, fallbackTitle, fallbackText, type }) {
+function ReportCard({ title, opening, fallbackTitle, fallbackText, type, data }) {
   const name = opening?.name || fallbackTitle;
   const context = getOpeningContext(opening?.raw || opening || {});
   const contextualName =
@@ -476,6 +507,7 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type }) {
                   ? `Review your last 3 ${name} losses before changing the whole opening.`
                   : `Keep tracking ${name} and review the next recurring branch.`,
             }}
+            data={data}
             compact
           />
         </>
