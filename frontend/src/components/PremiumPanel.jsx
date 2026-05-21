@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 
 function getOpeningName(item) {
   return (
@@ -64,6 +65,25 @@ function isUnknownOpening(name) {
   );
 }
 
+function canUseAsRepertoire(item) {
+  if (!item) return false;
+  const context = getOpeningContext(item);
+  const signal = getOpeningSignal(item);
+  return context.canRecommend && signal.canBePrimary;
+}
+
+function openingContextTitle(item, fallback = "your strongest side-specific opening") {
+  if (!item) return fallback;
+
+  const name = item.displayName || getOpeningName(item);
+  const context = getOpeningContext(item);
+
+  if (context.type === "white") return `${name} as White`;
+  if (context.type === "black") return `${name} as Black`;
+  if (context.type === "faced") return `${name} you faced`;
+  return `${name} (mixed signal)`;
+}
+
 function FeatureRow({ label, free, premium }) {
   return (
     <div className="premiumCompareRow">
@@ -103,20 +123,21 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
       });
 
     const reliable = openings.filter((item) => item.games >= 2);
+    const repertoireReliable = reliable.filter(canUseAsRepertoire);
     const strong = reliable.filter((item) => item.winRate >= 55).sort((a, b) => b.winRate - a.winRate);
     const weak = reliable.filter((item) => item.winRate < 45).sort((a, b) => a.winRate - b.winRate);
 
     return {
-      best: strong[0] || reliable[0] || openings[0],
-      weak: weak[0] || reliable[1] || openings[1],
+      best: strong.find(canUseAsRepertoire) || repertoireReliable[0] || strong[0] || reliable[0] || openings[0],
+      weak: weak.find(canUseAsRepertoire) || repertoireReliable[1] || weak[0] || reliable[1] || openings[1],
       totalOpenings: openings.length,
     };
   }, [data]);
 
   if (!data) return null;
 
-  const bestOpening = premiumInsights.best?.displayName || "your strongest opening";
-  const weakOpening = premiumInsights.weak?.displayName || "your weakest opening area";
+  const bestOpening = openingContextTitle(premiumInsights.best, "your strongest side-specific opening");
+  const weakOpening = openingContextTitle(premiumInsights.weak, "your weakest side-specific opening area");
 
   return (
     <section className="premiumUpgradeShell" id="premium-offer">
@@ -186,7 +207,7 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
         <LockedPreview
           isPremium={isPremium}
           title="Full repertoire builder"
-          text={`Build a practical White and Black repertoire around ${bestOpening}, instead of jumping between random openings.`}
+          text={`Build a practical White and Black repertoire from side-specific signals like ${bestOpening}, instead of jumping between random openings.`}
         />
 
         <LockedPreview

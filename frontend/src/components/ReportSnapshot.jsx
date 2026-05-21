@@ -1,5 +1,6 @@
 import "./ReportSnapshot.css";
 import { getPlayerLevelText } from "./playerLevelLogic";
+import { getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 
 function toNumber(value, fallback = 0) {
   const n = Number(value);
@@ -45,6 +46,34 @@ function sortByGamesAndWinRate(openings = []) {
   });
 }
 
+function openingContextTitle(item, fallback = "Opening signal") {
+  if (!item) return fallback;
+
+  const name = getOpeningName(item, fallback);
+  const context = getOpeningContext(item);
+
+  if (context.type === "white") return `${name} as White`;
+  if (context.type === "black") return `${name} as Black`;
+  if (context.type === "faced") {
+    if (String(context.detail || "").toLowerCase().includes("white")) {
+      return `Facing ${name} as White`;
+    }
+    if (String(context.detail || "").toLowerCase().includes("black")) {
+      return `Facing ${name} as Black`;
+    }
+    return `${name} you faced`;
+  }
+
+  return `${name} (mixed signal)`;
+}
+
+function canUseAsRepertoire(item) {
+  if (!item) return false;
+  const context = getOpeningContext(item);
+  const signal = getOpeningSignal(item);
+  return context.canRecommend && signal.canBePrimary;
+}
+
 function findBestFit(data) {
   const candidates = [
     ...(Array.isArray(data?.best_openings) ? data.best_openings : []),
@@ -54,13 +83,15 @@ function findBestFit(data) {
 
   if (!candidates.length) return null;
 
-  return [...candidates].sort((a, b) => {
+  const sorted = [...candidates].sort((a, b) => {
     const aWin = getWinRate(a) ?? 0;
     const bWin = getWinRate(b) ?? 0;
     const aGames = getGames(a);
     const bGames = getGames(b);
     return bWin + Math.min(aGames, 20) - (aWin + Math.min(bGames, 20));
-  })[0];
+  });
+
+  return sorted.find(canUseAsRepertoire) || sorted[0];
 }
 
 function findWeakSpot(data) {
@@ -143,21 +174,25 @@ export default function ReportSnapshot({ data, onViewChange }) {
   const cards = [
     {
       eyebrow: publicMode ? "Recent strength" : "Best fit",
-      title: getOpeningName(bestFit || mainOpening, "Your strongest opening"),
+      title: openingContextTitle(bestFit || mainOpening, "Your strongest opening"),
       detail: formatMeta(bestFit || mainOpening),
       note: publicMode
         ? "A higher-scoring recent online sample, not a judgement of full opening knowledge."
-        : "Keep this in your repertoire and build around it.",
+        : canUseAsRepertoire(bestFit || mainOpening)
+          ? "Keep this only in the side/context shown here."
+          : "This is not clean enough to treat as a repertoire recommendation yet.",
       action: "See recommendations",
       view: "recommendations",
     },
     {
       eyebrow: publicMode ? "Lower-scoring sample" : "Needs work",
-      title: getOpeningName(weakSpot, publicMode ? "Recent underperformer" : "Your weakest recurring opening"),
+      title: openingContextTitle(weakSpot, publicMode ? "Recent underperformer" : "Your weakest recurring opening"),
       detail: formatMeta(weakSpot),
       note: publicMode
         ? "Compare by time control, opponent pool, and whether the games were experimental."
-        : "This is the fastest place to gain practical rating points.",
+        : canUseAsRepertoire(weakSpot)
+          ? "Review this only in the side/context shown here."
+          : "Separate played and faced games before calling this a weakness.",
       action: "Open study plan",
       view: "training",
     },

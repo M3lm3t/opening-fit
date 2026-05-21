@@ -529,9 +529,9 @@ export function buildLevelAwareRecommendation(data, fitData) {
     return {
       title: "Practical club repertoire",
       summary:
-        "This player should build around repeated strengths and study typical middlegame plans rather than memorising lots of theory.",
+        "This player should build around repeated side-specific strengths and study typical middlegame plans rather than memorising lots of theory.",
       primaryAction:
-        `Build around ${bestName}, then review the first uncomfortable position in ${weakName}.`,
+        `Build around ${bestName} only if the report shows it is yours in that side/context, then review the first uncomfortable position in ${weakName}.`,
       bestName,
       weakName,
     };
