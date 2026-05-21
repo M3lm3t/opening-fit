@@ -237,11 +237,12 @@ export function PremiumPath() {
   return (
     <section className="productPolish premiumPath" id="premium-path">
       <div>
-        <div className="productPolishEyebrow">Premium direction</div>
-        <h2>Free report first. Full repertoire later.</h2>
+        <div className="productPolishEyebrow">Founder Pass</div>
+        <h2>Free report first. Deeper reports when you need them.</h2>
         <p>
-          The free version should give players the “aha” moment. Premium should turn that
-          report into saved progress, deeper imports, PDF export, and a weekly training path.
+          The free version should show useful opening signals first. Founder Pass
+          supports early development and unlocks saved progress, deeper imports,
+          fuller tables, and future premium tools.
         </p>
       </div>
 
@@ -252,9 +253,9 @@ export function PremiumPath() {
           <p>Import games, see top openings, leaks, and a basic study recommendation.</p>
         </article>
         <article>
-          <span>Premium</span>
-          <strong>Build the repertoire</strong>
-          <p>Saved reports, full history, deeper colour splits, PDF export, and progress tracking.</p>
+          <span>Founder Pass</span>
+          <strong>Go deeper</strong>
+          <p>Saved reports, longer history, deeper colour splits, and future report tools.</p>
         </article>
       </div>
     </section>

@@ -67,14 +67,14 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
 
         <div className="founderPassUpgradeHeader">
           <span>Founder Pass</span>
-          <strong>£8 lifetime</strong>
+          <strong>£8 early lifetime access</strong>
         </div>
 
-        <h2>Unlock OpeningFit Premium while it is still early.</h2>
+        <h2>Support Opening Fit while it is still early.</h2>
 
         <p>
-          Get lifetime access to the Founder Pass price before premium features expand.
-          Login first so your purchase can be linked to your account.
+          Founder Pass unlocks deeper reports and future premium features.
+          Login first so your access can be linked to your account.
         </p>
 
         <div className="founderPassUpgradeSteps">
@@ -91,7 +91,7 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
           <div>
             <span>2</span>
             <strong>Secure Stripe checkout</strong>
-            <p>Pay once and keep access as the product grows.</p>
+            <p>Pay once for early lifetime access.</p>
           </div>
 
           <div>
@@ -102,10 +102,15 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
         </div>
 
         <div className="founderPassUpgradeTrust">
-          <span>Lifetime early supporter price</span>
+          <span>Early lifetime access</span>
           <span>One-off payment</span>
-          <span>Future premium upgrades included</span>
+          <span>Future premium tools included</span>
         </div>
+
+        <p className="founderPassUpgradeNote">
+          Opening Fit is still improving. Founder Pass helps fund development and
+          gives you early access to premium features.
+        </p>
 
         <button
           className="founderPassUpgradePrimary"

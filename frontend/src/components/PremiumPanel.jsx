@@ -143,37 +143,37 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
     <section className="premiumUpgradeShell" id="premium-offer">
       <div className="premiumUpgradeHero">
         <div className="premiumUpgradeCopy">
-          <div className="premiumUpgradeEyebrow">OpeningFit Premium</div>
+          <div className="premiumUpgradeEyebrow">Founder Pass</div>
 
-          <h2>Stop guessing what openings to study.</h2>
+          <h2>Support early development and unlock deeper reports.</h2>
 
           <p>
-            Premium turns your imported games into a clear opening repertoire, trend report
-            and weekly training plan — built around how you actually play.
+            Founder Pass is early lifetime access to the deeper Opening Fit report:
+            longer history, saved reports, full opening tables, and future premium tools.
           </p>
 
           <div className="premiumHeroBullets">
-            <span>✓ Full White and Black repertoire</span>
-            <span>✓ Lower-scoring trends from your own games</span>
-            <span>✓ Weekly opening training plan</span>
+            <span>✓ Deeper White and Black repertoire view</span>
+            <span>✓ More history behind each verdict</span>
+            <span>✓ Saved reports and future premium features</span>
           </div>
         </div>
 
         <div className="premiumPriceCard">
-          <div className="premiumPriceTag">Early access</div>
+          <div className="premiumPriceTag">Early lifetime access</div>
           <div className="premiumPrice">£8</div>
-          <p>One-time lifetime unlock while OpeningFit is still improving.</p>
+          <p>Support Opening Fit while it is still early.</p>
 
           <button
             type="button"
             className="premiumCheckoutBtn"
             onClick={onFounderPass}
           >
-            Unlock Premium
+            Get Founder Pass
           </button>
 
           <button type="button" className="premiumDemoBtn" onClick={onUnlockDemo}>
-            Preview Premium
+            Preview deeper report
           </button>
 
           <button type="button" className="premiumResetBtn" onClick={onResetDemo}>
@@ -181,7 +181,9 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
           </button>
 
           <small>
-            {isPremium ? "Premium tools are available in this report." : "Login first, then continue to secure Stripe checkout."}
+            {isPremium
+              ? "Premium tools are available in this report."
+              : "Opening Fit is still improving. Founder Pass helps fund development and gives you early access to premium features."}
           </small>
         </div>
       </div>
@@ -206,20 +208,20 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
       <div className="premiumPreviewGrid">
         <LockedPreview
           isPremium={isPremium}
-          title="Full repertoire builder"
-          text={`Build a practical White and Black repertoire from side-specific signals like ${bestOpening}, instead of jumping between random openings.`}
+          title="Deeper repertoire plan"
+          text={`Use side-specific signals like ${bestOpening} to shape a more practical White and Black repertoire.`}
         />
 
         <LockedPreview
           isPremium={isPremium}
           title="Opening weakness report"
-          text={`Find where your results drop, starting with ${weakOpening}, then get a clear fix instead of just another chart.`}
+          text={`See where your results drop, starting with ${weakOpening}, and turn that into a specific review target.`}
         />
 
         <LockedPreview
           isPremium={isPremium}
           title="Weekly training plan"
-          text="Get a narrow 5-day study plan using your real games, so you know exactly what to review next."
+          text="Get a narrow study plan using your real games, so the next review has a clear target."
         />
 
         <LockedPreview
@@ -233,7 +235,7 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
         <div className="premiumComparisonHeader">
           <div>
             <span>Free vs Premium</span>
-            <h3>Keep the free version useful. Make Premium genuinely actionable.</h3>
+            <h3>Keep the free report useful. Make Founder Pass meaningfully deeper.</h3>
           </div>
         </div>
 
@@ -248,7 +250,7 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
           <FeatureRow label="Basic style profile" free premium="Included" />
           <FeatureRow label="Opening win-rate chart" free premium="Included" />
           <FeatureRow label="Keep / Improve / Avoid verdicts" free premium="Deeper verdicts" />
-          <FeatureRow label="Full repertoire builder" free={false} premium="Unlocked" />
+          <FeatureRow label="Deeper repertoire plan" free={false} premium="Unlocked" />
           <FeatureRow label="Opening weakness detection" free={false} premium="Unlocked" />
           <FeatureRow label="Weekly training plan" free={false} premium="Unlocked" />
           <FeatureRow label="Saved progress history" free={false} premium="Coming soon" />
@@ -257,15 +259,15 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
 
       <div className="premiumFinalCta">
         <div>
-          <h3>Premium should feel like a coach, not just more stats.</h3>
+          <h3>Founder Pass adds depth after the free report has shown value.</h3>
           <p>
-            Premium gives the report a clear next step: what to keep, what to repair,
-            and what to practise this week.
+            It is for deeper history, saved reports, fuller opening tables, and
+            future tools as Opening Fit develops.
           </p>
         </div>
 
         <button type="button" onClick={onUnlockDemo}>
-          Preview Premium
+          Preview deeper report
         </button>
       </div>
     </section>

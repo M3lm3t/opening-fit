@@ -379,7 +379,7 @@ export default function AccountPanel({ variant = "floating",
                   <p>
                     {profile?.is_premium
                       ? "Your account has premium access saved in the cloud."
-                      : "Support Opening Fit early and unlock premium on this account."}
+                      : "Support early development and unlock deeper reports on this account."}
                   </p>
                 </div>
 
@@ -389,7 +389,7 @@ export default function AccountPanel({ variant = "floating",
                     type="button"
                     onClick={handlePremiumCheckout}
                   >
-                    Unlock premium
+                    Get Founder Pass
                   </button>
                 ) : (
                   <span className="accountPremiumBadge">Premium</span>
