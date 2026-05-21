@@ -460,6 +460,34 @@ function getOpeningSide(opening) {
   return opening.side || opening.colour || opening.color || "";
 }
 
+function getOpeningContextTitle(opening, fallback = "Opening signal") {
+  if (!opening) return fallback;
+
+  const name = getOpeningName(opening);
+  const context = getOpeningContext(opening);
+
+  if (context.type === "white") return `${name} as White`;
+  if (context.type === "black") return `${name} as Black`;
+  if (context.type === "faced") {
+    if (String(context.detail || "").toLowerCase().includes("white")) {
+      return `Facing ${name} as White`;
+    }
+    if (String(context.detail || "").toLowerCase().includes("black")) {
+      return `Facing ${name} as Black`;
+    }
+    return `${name} you faced`;
+  }
+
+  return `${name} (mixed signal)`;
+}
+
+function canTreatAsRepertoireOpening(opening) {
+  if (!opening) return false;
+  const context = getOpeningContext(opening);
+  const signal = getOpeningSignal(opening);
+  return context.canRecommend && signal.canBePrimary;
+}
+
 const SAFE_CONTEXT_FALLBACK_COPY =
   "We found this opening pattern, but not enough colour/context data to recommend it confidently.";
 const PUBLIC_ACCOUNT_CAUTION_COPY =
@@ -1361,7 +1389,8 @@ function buildOpeningFitData(data) {
 
   openings.forEach((opening) => {
     const name = getOpeningName(opening);
-    const key = name.toLowerCase();
+    const context = getOpeningContext(opening);
+    const key = `${name.toLowerCase()}::${context.type}::${context.detail}`;
 
     if (!mergedMap.has(key)) {
       mergedMap.set(key, {
@@ -1393,13 +1422,19 @@ function buildOpeningFitData(data) {
   const volumeRank = new Map(
     [...cleanOpenings]
       .sort((a, b) => getOpeningGames(b) - getOpeningGames(a))
-      .map((opening, index) => [getOpeningName(opening).toLowerCase(), index])
+      .map((opening, index) => {
+        const context = getOpeningContext(opening);
+        return [`${getOpeningName(opening).toLowerCase()}::${context.type}::${context.detail}`, index];
+      })
   );
 
   const scoredOpenings = cleanOpenings
     .map((opening) => {
       const score = calculateOpeningFitScore(opening, playerStyle);
-      const rank = volumeRank.get(getOpeningName(opening).toLowerCase()) ?? 99;
+      const context = getOpeningContext(opening);
+      const rank =
+        volumeRank.get(`${getOpeningName(opening).toLowerCase()}::${context.type}::${context.detail}`) ??
+        99;
       const smartVerdict = getSmartOpeningVerdict(opening, data, rank);
       const signal = getOpeningSignal(opening);
       const fitScore =
@@ -1443,7 +1478,11 @@ function buildOpeningFitData(data) {
     (opening) => !isUnknownOpeningName(getOpeningName(opening))
   );
 
-  const bestOpening = recognised[0] || scoredOpenings[0] || null;
+  const bestOpening =
+    recognised.find((opening) => canTreatAsRepertoireOpening(opening)) ||
+    recognised[0] ||
+    scoredOpenings[0] ||
+    null;
 
   const concernRank = {
     avoid: 0,
@@ -1551,6 +1590,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
     scoredOpenings,
   } = fitData;
   const publicMode = fitData.reportMode !== "normal_user";
+  const bestCanBeRepertoire = canTreatAsRepertoireOpening(bestOpening);
 
   const keepCount = scoredOpenings.filter(
     (opening) => opening.fitCategory === "keep"
@@ -1583,9 +1623,15 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
 
       <div className="fitHeroGrid">
         <div className="fitMiniCard">
-          <span className="fitLabel">{publicMode ? "Recent strength" : "Best current fit"}</span>
+          <span className="fitLabel">
+            {bestCanBeRepertoire
+              ? publicMode
+                ? "Recent strength"
+                : "Best clean repertoire fit"
+              : "Signal to verify"}
+          </span>
           <strong>
-            {bestOpening ? getOpeningName(bestOpening) : "Not enough data"}
+            {bestOpening ? getOpeningContextTitle(bestOpening) : "Not enough data"}
           </strong>
           {bestOpening ? (
             <p>
@@ -1624,14 +1670,16 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
       <div className="fitRecommendationBox">
         <strong>Recommended next step:</strong>{" "}
         {bestOpening
-          ? publicMode
+          ? !bestCanBeRepertoire
+            ? `${getOpeningContextTitle(bestOpening)} is not clean enough to use as a repertoire recommendation yet. Track more side-specific games first.`
+            : publicMode
             ? `Use ${getOpeningName(bestOpening)} as the recent strength sample, then compare lower-scoring samples by time control and opponent pool.`
-            : `Build your short repertoire around ${getOpeningName(
+            : `Build your short repertoire around ${getOpeningContextTitle(
                 bestOpening
               )}, then review your least stable opening.`
           : "Import more games to get a stronger recommendation."}
 
-        {bestOpening ? (
+        {bestOpening && bestCanBeRepertoire ? (
           <button
             className="secondaryBtn fitPracticeBtn"
             type="button"
@@ -1668,17 +1716,19 @@ function OpeningFitScoreList({ fitData, onPractice }) {
           const name = getOpeningName(opening);
           const games = getOpeningGames(opening);
           const winRate = getWinRate(opening);
+          const canPractice = canTreatAsRepertoireOpening(opening);
 
           return (
             <button
               className="fitOpeningRow"
               key={`${name}-${index}`}
               type="button"
-              onClick={() => onPractice(name)}
+              disabled={!canPractice}
+              onClick={() => canPractice && onPractice(name)}
             >
               <div className="fitOpeningMain">
                 <div>
-                  <strong>{name}</strong>
+                  <strong>{getOpeningContextTitle(opening, name)}</strong>
                   <p>
                     {games} games · {winRate}% score ·{" "}
                     {publicAwareVerdict(opening.fitVerdict, { reportMode: fitData.reportMode }, games)}
@@ -3223,7 +3273,7 @@ function OpponentPrepPreview({ data }) {
           <p>
             {hasPrep
               ? weakness
-              : `${playerName} should build around their strongest Opening Fit recommendation first.`}
+              : `${playerName} should start with the strongest side-specific Opening Fit recommendation first.`}
           </p>
         </article>
       </div>
@@ -3474,6 +3524,11 @@ function OpeningFitFullReport({ data }) {
     bestOverall?.displayName ||
     "your most common opening";
   const adviceAction = (opening, type) => {
+    if (opening && !canTreatAsRepertoireOpening(opening)) {
+      const name = opening?.displayName || opening?.name || "this opening";
+      return `Next action: track ${name} by side/context before treating it as repertoire advice.`;
+    }
+
     if (publicMode) {
       return `Next action: compare ${opening?.displayName || opening?.name || "this sample"} by time control and opponent pool.`;
     }
@@ -3483,6 +3538,11 @@ function OpeningFitFullReport({ data }) {
     }
 
     return `Next action: review your last 3 ${opening?.displayName || opening?.name || "opening"} losses and mark the first repeated problem.`;
+  };
+  const adviceTitle = (label, opening, fallback) => {
+    if (!opening) return fallback;
+    const prefix = canTreatAsRepertoireOpening(opening) ? label : "Track";
+    return `${prefix}: ${getOpeningContextTitle(opening)}`;
   };
 
   return (
@@ -3503,7 +3563,7 @@ function OpeningFitFullReport({ data }) {
             <span>{publicMode ? "Recent strength" : "Keep"}</span>
             <small>{formatScore(bestOverall)}</small>
           </div>
-          <h3>{bestOverall ? `${bestOverall.displayName} ${getOpeningContext(bestOverall).label === "You faced this" ? "you faced" : getOpeningContext(bestOverall).label.toLowerCase()}` : (publicMode ? "Recent strength sample" : "Keep building your main repertoire")}</h3>
+          <h3>{adviceTitle(publicMode ? "Recent strength" : "Keep", bestOverall, publicMode ? "Recent strength sample" : "No clean repertoire recommendation yet")}</h3>
           <OpeningEvidenceBlock
             opening={{
               ...(bestOverall || {}),
@@ -3521,7 +3581,7 @@ function OpeningFitFullReport({ data }) {
             <span>{publicMode ? "Lower-scoring sample" : "Promising but unstable"}</span>
             <small>{formatScore(improveOpening)}</small>
           </div>
-          <h3>{improveOpening ? `${improveOpening.displayName} ${getOpeningContext(improveOpening).label === "You faced this" ? "you faced" : getOpeningContext(improveOpening).label.toLowerCase()}` : (publicMode ? "Noisy recent sample" : "Review your common losses")}</h3>
+          <h3>{adviceTitle(publicMode ? "Lower-scoring sample" : "Improve", improveOpening, publicMode ? "Noisy recent sample" : "Review your common losses")}</h3>
           <OpeningEvidenceBlock
             opening={{
               ...(improveOpening || {}),
@@ -3539,7 +3599,7 @@ function OpeningFitFullReport({ data }) {
             <span>{publicMode ? "Experimental/content-game possible" : "Needs review"}</span>
             <small>{formatScore(avoidOpening)}</small>
           </div>
-          <h3>{avoidOpening ? `${avoidOpening.displayName} ${getOpeningContext(avoidOpening).label === "You faced this" ? "you faced" : getOpeningContext(avoidOpening).label.toLowerCase()}` : "Low-sample experiments"}</h3>
+          <h3>{adviceTitle(publicMode ? "Experimental sample" : "Review", avoidOpening, "Low-sample experiments")}</h3>
           <OpeningEvidenceBlock
             opening={{
               ...(avoidOpening || {}),
@@ -3837,7 +3897,9 @@ function OpeningFitReportHero({ data }) {
 
   const recommendation =
     bestOpening?.displayName && bestOpening.displayName !== "Not enough data yet"
-      ? `Build around ${bestOpening.displayName} positions and use weaker openings as your next study targets.`
+      ? canTreatAsRepertoireOpening(bestOpening)
+        ? `Build around ${getOpeningContextTitle(bestOpening)} positions and use weaker openings as your next study targets.`
+        : `Track ${getOpeningContextTitle(bestOpening)} by side/context before treating it as a repertoire recommendation.`
       : "Import more games to unlock clearer opening recommendations.";
 
   return (
@@ -4823,17 +4885,23 @@ function App() {
 
   const whiteDetailedRecommendations = useMemo(() => {
     return filterUnknownOpenings(
-      data?.opening_recommendations?.whiteDetailed ||
-        data?.recommendedOpenings?.whiteDetailed ||
-        []
+      normalizeRecommendationSection(
+        data?.opening_recommendations?.whiteDetailed ||
+          data?.recommendedOpenings?.whiteDetailed ||
+          [],
+        "played_as_white"
+      )
     );
   }, [data, showUnknownOpenings]);
 
   const blackDetailedRecommendations = useMemo(() => {
     return filterUnknownOpenings(
-      data?.opening_recommendations?.blackDetailed ||
-        data?.recommendedOpenings?.blackDetailed ||
-        []
+      normalizeRecommendationSection(
+        data?.opening_recommendations?.blackDetailed ||
+          data?.recommendedOpenings?.blackDetailed ||
+          [],
+        "unknown_mixed"
+      )
     );
   }, [data, showUnknownOpenings]);
 
@@ -4867,22 +4935,28 @@ function App() {
     if (bestFit) {
       summary.push(
         publicMode
-          ? `${displayOpeningName(bestFit, data)} is the recent strength sample in this import at ${bestFit.fitScore}/100.`
-          : `${displayOpeningName(bestFit, data)} currently looks like your strongest Opening Fit. It scores ${bestFit.fitScore}/100 and matches the ${levelProfile.shortLabel.toLowerCase()} profile read.`
+          ? `${getOpeningContextTitle(bestFit)} is the recent strength sample in this import at ${bestFit.fitScore}/100.`
+          : canTreatAsRepertoireOpening(bestFit)
+            ? `${getOpeningContextTitle(bestFit)} currently looks like your strongest clean Opening Fit. It scores ${bestFit.fitScore}/100 and matches the ${levelProfile.shortLabel.toLowerCase()} profile read.`
+            : `${getOpeningContextTitle(bestFit)} is visible in the data, but the side/context is not clean enough for a repertoire recommendation yet.`
       );
     }
 
     if (top && levelProfile.level !== "elite") {
+      const topTitle = getOpeningContextTitle(top);
+      const topContext = getOpeningContext(top);
       summary.push(
-        `Your most common opening is ${displayOpeningName(top, data)}. Because it appears often, improving this opening should give you the biggest overall return.`
+        topContext.canRecommend
+          ? `Your most common opening signal is ${topTitle}. Because it appears often, improving this side-specific line should give you the biggest overall return.`
+          : `Your most common opening signal is ${topTitle}. Track it by side before treating it as something to play or drop.`
       );
     }
 
     if (weakFit && getOpeningName(weakFit) !== getOpeningName(bestFit)) {
       summary.push(
         publicMode
-          ? `${displayOpeningName(weakFit, data)} is a lower-scoring recent sample at ${weakFit.fitScore}/100. Do not treat this as a hard opening verdict.`
-          : `${displayOpeningName(weakFit, data)} may need attention. It currently scores ${weakFit.fitScore}/100, so review the first few moves and common plans.`
+          ? `${getOpeningContextTitle(weakFit)} is a lower-scoring recent sample at ${weakFit.fitScore}/100. Do not treat this as a hard opening verdict.`
+          : `${getOpeningContextTitle(weakFit)} may need attention. It currently scores ${weakFit.fitScore}/100, so review the first few moves and common plans only in that side/context.`
       );
     }
 
@@ -4953,29 +5027,48 @@ function App() {
     const blackPick = filteredPreferredBlack?.[0];
 
     if (bestFit) {
-      plan.push({
-        title: `Build around ${getOpeningName(bestFit)}`,
-        text: `This is your best current Opening Fit at ${bestFit.fitScore}/100. Keep it in your repertoire and learn one simple plan after the first few moves.`,
-        action: `Practise ${getOpeningName(bestFit)}`,
-        opening: getOpeningName(bestFit),
-      });
+      if (canTreatAsRepertoireOpening(bestFit)) {
+        plan.push({
+          title: `Build around ${getOpeningContextTitle(bestFit)}`,
+          text: `This is your best current clean Opening Fit at ${bestFit.fitScore}/100. Keep it in that side of your repertoire and learn one simple plan after the first few moves.`,
+          action: `Practise ${getOpeningName(bestFit)}`,
+          opening: getOpeningName(bestFit),
+        });
+      } else {
+        plan.push({
+          title: `Track ${getOpeningContextTitle(bestFit)}`,
+          text: "This appears in the data, but Opening Fit is not treating it as a clean repertoire recommendation until the side/context is clearer.",
+          action: null,
+          opening: null,
+        });
+      }
     }
 
     if (mainOpening && getOpeningName(mainOpening) !== getOpeningName(bestFit)) {
+      const canPracticeMain = canTreatAsRepertoireOpening(mainOpening);
       plan.push({
-        title: `Make ${mainOpening.name} more reliable`,
-        text: `You have played this ${mainOpening.games} times, so small improvements here will affect a lot of your games. Review the first 6 moves and the main middlegame plan.`,
-        action: `Practise ${mainOpening.name}`,
-        opening: mainOpening.name,
+        title: canPracticeMain
+          ? `Make ${getOpeningContextTitle(mainOpening)} more reliable`
+          : `Separate the context for ${getOpeningContextTitle(mainOpening)}`,
+        text: canPracticeMain
+          ? `You have played this ${mainOpening.games} times in that context, so small improvements there will affect a lot of your games. Review the first 6 moves and the main middlegame plan.`
+          : "This appears often, but the current data does not prove it is an opening you should play. Separate played and faced games first.",
+        action: canPracticeMain ? `Practise ${mainOpening.name}` : null,
+        opening: canPracticeMain ? mainOpening.name : null,
       });
     }
 
     if (weakFit && getOpeningName(weakFit) !== getOpeningName(bestFit)) {
+      const canPracticeWeak = canTreatAsRepertoireOpening(weakFit);
       plan.push({
-        title: `Repair or replace ${getOpeningName(weakFit)}`,
-        text: `This opening is your weakest current fit at ${weakFit.fitScore}/100. Try one simpler variation before dropping it completely.`,
-        action: `Practise ${getOpeningName(weakFit)}`,
-        opening: getOpeningName(weakFit),
+        title: canPracticeWeak
+          ? `Repair ${getOpeningContextTitle(weakFit)}`
+          : `Track ${getOpeningContextTitle(weakFit)} before judging it`,
+        text: canPracticeWeak
+          ? `This side-specific opening signal is your weakest current fit at ${weakFit.fitScore}/100. Try one simpler variation before dropping it completely.`
+          : "This is not clean enough to call a repertoire weakness. Treat it as a trend to separate by side/context.",
+        action: canPracticeWeak ? `Practise ${getOpeningName(weakFit)}` : null,
+        opening: canPracticeWeak ? getOpeningName(weakFit) : null,
       });
     }
 
@@ -5663,7 +5756,7 @@ function App() {
 
                   {isPremium && whiteDetailedRecommendations.length ? (
                     <div className="recommendationDetails">
-                      <h3>Why these openings fit you as White</h3>
+                      <h3>White-side opening evidence</h3>
 
                       <div className="openingExplainGrid">
                         {whiteDetailedRecommendations.map((opening) => (
@@ -5671,7 +5764,7 @@ function App() {
                             className="openingExplainCard"
                             key={opening.name}
                           >
-                            <h4>{opening.name}</h4>
+                            <h4>{getOpeningContextTitle(opening, opening.name)}</h4>
                             <OpeningEvidenceBlock
                               opening={{
                                 ...opening,
@@ -5692,9 +5785,13 @@ function App() {
                             <button
                               className="secondaryBtn explainPracticeBtn"
                               type="button"
-                              onClick={() => startOpeningPractice(opening.name)}
+                              disabled={!canTreatAsRepertoireOpening(opening)}
+                              onClick={() =>
+                                canTreatAsRepertoireOpening(opening) &&
+                                startOpeningPractice(opening.name)
+                              }
                             >
-                              Practise
+                              {canTreatAsRepertoireOpening(opening) ? "Practise" : "Track"}
                             </button>
                           </article>
                         ))}
@@ -5709,7 +5806,7 @@ function App() {
 
                   {isPremium && blackDetailedRecommendations.length ? (
                     <div className="recommendationDetails">
-                      <h3>Why these openings fit you as Black</h3>
+                      <h3>Black-side opening evidence</h3>
 
                       <div className="openingExplainGrid">
                         {blackDetailedRecommendations.map((opening) => (
@@ -5717,7 +5814,7 @@ function App() {
                             className="openingExplainCard"
                             key={opening.name}
                           >
-                            <h4>{opening.name}</h4>
+                            <h4>{getOpeningContextTitle(opening, opening.name)}</h4>
                             <OpeningEvidenceBlock
                               opening={{
                                 ...opening,
@@ -5738,9 +5835,13 @@ function App() {
                             <button
                               className="secondaryBtn explainPracticeBtn"
                               type="button"
-                              onClick={() => startOpeningPractice(opening.name)}
+                              disabled={!canTreatAsRepertoireOpening(opening)}
+                              onClick={() =>
+                                canTreatAsRepertoireOpening(opening) &&
+                                startOpeningPractice(opening.name)
+                              }
                             >
-                              Practise
+                              {canTreatAsRepertoireOpening(opening) ? "Practise" : "Track"}
                             </button>
                           </article>
                         ))}
@@ -5772,18 +5873,20 @@ function App() {
                     {fitData.scoredOpenings.length ? (
                       fitData.scoredOpenings.map((item, index) => {
                         const rate = getWinRate(item);
+                        const canPractice = canTreatAsRepertoireOpening(item);
 
                         return (
                           <button
                             className="listItem openingPracticeLink evidenceListItem"
                             key={index}
                             type="button"
+                            disabled={!canPractice}
                             onClick={() =>
-                              startOpeningPractice(getOpeningName(item))
+                              canPractice && startOpeningPractice(getOpeningName(item))
                             }
                           >
                             <div>
-                              <strong>{getOpeningName(item)}</strong>
+                              <strong>{getOpeningContextTitle(item)}</strong>
                               <OpeningEvidenceBlock
                                 opening={{
                                   ...item,

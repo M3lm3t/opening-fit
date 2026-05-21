@@ -1087,6 +1087,32 @@ def context_is_compatible(name: str, context: str) -> bool:
     return False
 
 
+def repertoire_context_title(opening: Dict[str, Any]) -> str:
+    name = str(opening.get("name", "this opening"))
+    context = str(opening.get("context") or opening.get("repertoireContext") or "unknown_mixed")
+    hint = opening_name_colour_hint(name)
+
+    if context == "played_as_white" and hint == "black":
+        return f"facing {name} as White"
+
+    if context in {"black_vs_e4", "black_vs_d4_other"} and hint == "white":
+        return f"facing {name} as Black"
+
+    if context == "played_as_white":
+        return f"{name} as White"
+
+    if context in {"black_vs_e4", "black_vs_d4_other"}:
+        return f"{name} as Black"
+
+    return f"{name} as a mixed signal"
+
+
+def is_clean_repertoire_context(opening: Dict[str, Any]) -> bool:
+    name = str(opening.get("name", ""))
+    context = str(opening.get("context") or opening.get("repertoireContext") or "unknown_mixed")
+    return context_is_compatible(name, context)
+
+
 def build_colour_aware_recommendations(
     opening_results: Dict[str, Dict[str, int]],
     max_items: int = 5,
@@ -1555,19 +1581,23 @@ def build_training_plan(
 
     if usable_best_openings:
         top = usable_best_openings[0]
+        top_title = repertoire_context_title(top)
+        top_is_clean = is_clean_repertoire_context(top)
 
         if public_mode and top["games"] < 8:
-            plan.append(f"{top['name']} is too small a sample for a hard verdict.")
+            plan.append(f"{top_title} is too small a sample for a hard verdict.")
         elif public_mode:
-            plan.append(f"Treat {top['name']} as a recent performance trend and compare it with opponent strength and time control.")
+            plan.append(f"Treat {top_title} as a recent performance trend and compare it with opponent strength and time control.")
+        elif not top_is_clean:
+            plan.append(f"Track {top_title} by side/context before treating it as a repertoire recommendation.")
         elif top["games"] < 8:
-            plan.append(f"Treat {top['name']} as an emerging pattern and collect more games before judging it.")
+            plan.append(f"Treat {top_title} as an emerging pattern and collect more games before judging it.")
         elif top["verdict"] == "Keep":
-            plan.append(f"Keep building around {top['name']}. It is currently your best practical opening.")
+            plan.append(f"Keep building around {top_title}. It is currently your best practical opening in that context.")
         elif top["verdict"] == "Improve":
-            plan.append(f"Keep {top['name']} in your pool, but review the early middlegame plans.")
+            plan.append(f"Keep {top_title} in your pool, but review the early middlegame plans.")
         elif top["verdict"] == "Avoid":
-            plan.append(f"Reduce how often you play {top['name']} until your understanding improves.")
+            plan.append(f"Review {top_title} before using it again as a main repertoire choice.")
 
     labels = style_profile.get("labels", [])
 
@@ -1621,21 +1651,27 @@ def build_recommendations(
 
     if usable_best_openings:
         top = usable_best_openings[0]
+        top_title = repertoire_context_title(top)
+        top_is_clean = is_clean_repertoire_context(top)
         if public_mode and top["games"] < 8:
             recommendations.append(
-                f"{top['name']} is too small or noisy a sample for a hard verdict."
+                f"{top_title} is too small or noisy a sample for a hard verdict."
             )
         elif public_mode:
             recommendations.append(
-                f"{top['name']} is a recent strength in this import, not a claim about the player's full repertoire."
+                f"{top_title} is a recent strength in this import, not a claim about the player's full repertoire."
+            )
+        elif not top_is_clean:
+            recommendations.append(
+                f"{top_title} appears in the data, but it is not clean enough to recommend as something to play."
             )
         elif top["games"] < 8:
             recommendations.append(
-                f"{top['name']} is an emerging pattern, but it needs more games before a strong verdict."
+                f"{top_title} is an emerging pattern, but it needs more games before a strong verdict."
             )
         else:
             recommendations.append(
-                f"Your best-scoring recurring opening is {top['name']}."
+                f"Your best-scoring recurring opening is {top_title}."
             )
 
     labels = style_profile.get("labels", [])

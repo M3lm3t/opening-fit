@@ -422,6 +422,7 @@ function meaning(item, slot) {
 }
 
 function nextAction(item, slot) {
+  const context = getOpeningContext(item || {});
   const explicitAction = textField(item, [
     "nextStudyAction",
     "next_study_action",
@@ -431,11 +432,17 @@ function nextAction(item, slot) {
     "plan",
   ]);
 
+  if (item && !context.canRecommend) {
+    return context.type === "faced"
+      ? `Review how you handled ${openingName(item, "this opening")}; do not add it to your repertoire unless your games also show you play it from your side.`
+      : `Track ${openingName(item, "this opening")} by side/context before treating it as repertoire advice.`;
+  }
+
   if (explicitAction) return explicitAction;
 
   if (!hasReliableEvidence(item)) {
     if (item) {
-      return `Play 5 focused games with ${openingName(item, "this opening")} and re-import so the report can measure it properly.`;
+      return `Collect 5 more side-specific games with ${openingName(item, "this opening")} and re-import so the report can measure it properly.`;
     }
 
     if (slot === "white") return "Play 5 to 8 White games with one consistent first-move setup, then import again.";
