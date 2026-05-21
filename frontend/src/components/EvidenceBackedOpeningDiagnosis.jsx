@@ -233,10 +233,10 @@ function getVerdict(item, average, data, index = 0) {
 
 function getConfidence(games) {
   const label = getOpeningConfidence({ games, score: 50 });
-  if (label === "Strong") return "Strong signal — reliable signal from your recent games.";
-  if (label === "Medium") return "Medium signal — useful, but still worth confirming with more games.";
-  if (label === "No reliable data") return "No reliable data — import games before making a verdict.";
-  return "Low sample — too few games for a hard verdict yet.";
+  if (label === "High confidence") return "High confidence: repeated enough to treat as a reliable pattern.";
+  if (label === "Medium confidence") return "Medium confidence: useful, but still worth confirming with more games.";
+  if (label === "Insufficient data") return "Insufficient data: import games before making a verdict.";
+  return "Low confidence: too few games for a hard verdict yet.";
 }
 
 function getOpeningRead(name) {
