@@ -4,7 +4,9 @@ export default function ImportLoadingOverlay({ platform = "Chess.com", username 
   return (
     <div className="importLoadingOverlay" role="status" aria-live="polite">
       <div className="importLoadingCard">
-        <div className="importLoadingSpinner" />
+        <div className="importLoadingBoard" aria-hidden="true">
+          <span>♞</span>
+        </div>
 
         <div>
           <span className="importLoadingEyebrow">Importing games</span>

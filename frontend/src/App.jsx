@@ -3629,6 +3629,7 @@ function LandingSampleResultPreview({ onOpeningClick }) {
       className: "keep",
       opening: "Caro-Kann Defence",
       context: "as Black",
+      line: "1.e4 c6",
       text: "Reliable results, stable middlegames.",
       actionOpening: "Caro-Kann Defence",
     },
@@ -3637,6 +3638,7 @@ function LandingSampleResultPreview({ onOpeningClick }) {
       className: "improve",
       opening: "Italian Game",
       context: "as White",
+      line: "1.e4 e5 2.Nf3",
       text: "Good positions, but results drop after early exchanges.",
       actionOpening: "Italian Game",
     },
@@ -3645,18 +3647,35 @@ function LandingSampleResultPreview({ onOpeningClick }) {
       className: "avoid",
       opening: "Unsound gambit lines",
       context: "low confidence",
+      line: "sample too small",
       text: "Fun, but poor score and too few reliable games.",
     },
   ];
 
   return (
     <article className="landingSampleResultPreview" aria-label="Sample Opening Fit result">
+      <div className="sampleBoardCoordinates" aria-hidden="true">
+        <span>a</span>
+        <span>b</span>
+        <span>c</span>
+        <span>d</span>
+        <span>e</span>
+        <span>f</span>
+        <span>g</span>
+        <span>h</span>
+      </div>
       <div className="landingSampleResultHeader">
         <div>
           <span>Opening Fit sample</span>
           <h3>What your report looks like</h3>
         </div>
-        <strong>Demo data</strong>
+        <strong>Live-style audit</strong>
+      </div>
+
+      <div className="landingOpeningLineChips" aria-label="Sample opening lines">
+        <span>1.e4 c6</span>
+        <span>1.d4 Nf6</span>
+        <span>1.e4 e5</span>
       </div>
 
       <div className="landingSampleResultRows">
@@ -3677,6 +3696,7 @@ function LandingSampleResultPreview({ onOpeningClick }) {
                   {row.opening} <small>{row.context}</small>
                 </strong>
               )}
+              <span className="openingLineChip">{row.line}</span>
               <p>{row.text}</p>
             </div>
           </div>
@@ -3737,6 +3757,17 @@ function LandingSection({ onOpeningClick }) {
   return (
     <div className="landingWrap">
       <header className="landingHero">
+        <div className="landingHeroBoardPattern" aria-hidden="true" />
+        <div className="floatingRepertoireCard floatingRepertoireCardWhite" aria-hidden="true">
+          <span>White</span>
+          <strong>Italian Game</strong>
+          <small>stable fit · 64%</small>
+        </div>
+        <div className="floatingRepertoireCard floatingRepertoireCardBlack" aria-hidden="true">
+          <span>Black vs e4</span>
+          <strong>Caro-Kann</strong>
+          <small>review Advance line</small>
+        </div>
         <div className="landingNav">
           <div className="landingBrand">
             <div className="landingBrandIcon">♞</div>
