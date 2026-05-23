@@ -600,8 +600,8 @@ export default function PremiumDashboard({
         <div className="premiumPanel">
           <div className="premiumPanelHeader">
             <div>
-              <span className="premiumEyebrow">Avoid</span>
-              <h3>Openings hurting results</h3>
+              <span className="premiumEyebrow">Improve</span>
+              <h3>Openings to review carefully</h3>
             </div>
           </div>
 

@@ -67,7 +67,6 @@ import IntelligentCoachInsights from "./components/IntelligentCoachInsights";
 
 import OpeningClassificationNotice from "./components/OpeningClassificationNotice";
 import {
-  adaptVerdictForPlayerLevel,
   canGiveAvoidVerdict,
   displayOpeningName,
   getLevelToneCopy,
@@ -427,7 +426,8 @@ function canTreatAsRepertoireOpening(opening) {
 function commandVerdictClass(verdict) {
   const lower = String(verdict || "").toLowerCase();
   if (lower.includes("keep") || lower.includes("main") || lower.includes("reliable")) return "verdict keep";
-  if (lower.includes("avoid")) return "verdict avoid";
+  if (lower.includes("too little") || lower.includes("interesting") || lower.includes("early pattern") || lower.includes("low confidence")) return "verdict test";
+  if (lower.includes("avoid")) return "verdict improve";
   if (lower.includes("review") || lower.includes("improve") || lower.includes("unstable")) return "verdict improve";
   return "verdict test";
 }
@@ -574,12 +574,17 @@ function normalizeRecommendationItem(item, fallbackContext = "unknown_mixed") {
   const context = itemContext(source, fallbackContext);
   const compatible = contextIsCompatible(name, context);
   const safeContext = compatible ? context : "unknown_mixed";
-
-  return {
+  const normalizedBase = {
     ...source,
     name,
     context: safeContext,
     contextLabel: contextLabel(safeContext),
+  };
+
+  return {
+    ...normalizedBase,
+    confidenceLabel: source.confidenceLabel || getOpeningConfidence(normalizedBase),
+    confidenceReason: source.confidenceReason || getOpeningConfidenceReason(normalizedBase),
     recommendationCopy:
       safeContext === "unknown_mixed"
         ? source.recommendationCopy || SAFE_CONTEXT_FALLBACK_COPY
@@ -1298,15 +1303,16 @@ function publicAccountCaution(data) {
 function getDataFirstVerdict(opening, data) {
   const winRate = getWinRate(opening);
   const signal = getOpeningSignal(opening);
-  const level = getSmartPlayerLevelProfile(data).level;
   const games = getOpeningGames(opening);
 
-  if (signal.tier === "none") return "No reliable data";
-  if (signal.tier === "low") return "Too few games";
-  if (isPublicReportMode(data)) return publicAwareVerdict(opening?.verdict || opening?.fitVerdict, data, games);
-  if (winRate >= 55) return "Keep";
-  if (winRate >= 42) return "Improve";
-  return adaptVerdictForPlayerLevel("Avoid", { level, games, score: winRate }) || "Review";
+  if (games <= 2 || signal.badge === "Too little data") return "Too little data — not used for verdict";
+  if (games <= 7 || signal.badge === "Low confidence") return "Interesting signal — Low confidence";
+  if (isPublicReportMode(data)) {
+    const publicLabel = publicAwareVerdict(opening?.verdict || opening?.fitVerdict, data, games);
+    return `${publicLabel} — ${getOpeningConfidence(opening)}`;
+  }
+  if (winRate >= 55) return `Keep — ${getOpeningConfidence(opening)}`;
+  return `Improve — ${getOpeningConfidence(opening)}`;
 }
 
 function getEvidenceLine(opening, data) {
@@ -1393,10 +1399,52 @@ function getPlayerBaselineScore(data) {
 
 function getOpeningSampleTier(games) {
   const count = Number(games || 0);
-  if (count >= 10) return "large";
-  if (count >= 5) return "medium";
-  if (count >= 1) return "tiny";
-  return "tiny";
+  if (count >= 20) return "high";
+  if (count >= 8) return "medium";
+  if (count >= 3) return "low";
+  if (count >= 1) return "tooLittle";
+  return "none";
+}
+
+function getOpeningConfidenceReason(opening) {
+  const games = getOpeningGames(opening);
+  const signal = getOpeningSignal(opening);
+
+  if (signal?.explanation) return signal.explanation;
+  if (games >= 20) return "20+ games in this opening or family.";
+  if (games >= 8) return "8-19 games: useful sample, but still worth confirming.";
+  if (games >= 3) return "3-7 games: early pattern only.";
+  if (games >= 1) return "1-2 games: too little data for a verdict.";
+  return "Game count unavailable.";
+}
+
+function baseConfidenceVerdict(opening, data, fallback = "") {
+  const games = getOpeningGames(opening);
+  const signal = getOpeningSignal(opening);
+  const label = String(fallback || opening?.fitVerdict || opening?.verdict || "").toLowerCase();
+
+  if (games <= 2 || signal.badge === "Too little data") return "Too little data";
+  if (games <= 7 || signal.badge === "Low confidence") return "Interesting signal";
+  if (label.includes("keep") || label.includes("main") || label.includes("reliable")) return "Keep";
+  if (label.includes("improve") || label.includes("review") || label.includes("avoid") || label.includes("unstable") || label.includes("underperform")) return "Improve";
+
+  const score = getWinRate(opening);
+  if (score >= 55) return "Keep";
+  return "Improve";
+}
+
+function confidenceVerdictLabel(opening, data, fallback = "") {
+  const base = baseConfidenceVerdict(opening, data, fallback);
+  const confidence = getOpeningConfidence(opening);
+
+  if (base === "Too little data") return "Too little data — not used for verdict";
+  return `${base} — ${confidence}`;
+}
+
+function confidenceRowText(opening) {
+  const games = getOpeningGames(opening);
+  const score = getWinRate(opening);
+  return `${games} game${games === 1 ? "" : "s"} analysed · ${score}% score · ${getOpeningConfidence(opening)}. ${getOpeningConfidenceReason(opening)}`;
 }
 
 function getAverageOppositionRating(opening, data) {
@@ -1423,7 +1471,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   const sampleTier = getOpeningSampleTier(games);
   const signal = getOpeningSignal(opening);
   const isMainWeapon = index <= 2 && signal.tier === "strong";
-  const largeSample = sampleTier === "large";
+  const largeSample = sampleTier === "high";
   const frequentlyPlayed = isMainWeapon || games >= 10;
   const baseline = getPlayerBaselineScore(data);
   const levelProfile = getSmartPlayerLevelProfile(data);
@@ -1442,6 +1490,27 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
     masterLevel
       ? "This looks like a serious part of the repertoire. At your level, this is likely about move-order precision, opponent preparation, or a recent trend in one branch, not basic understanding."
       : "This may be a practical review area. Recent results are below the usual baseline, but this is more likely a branch or structure issue than a reason to abandon the opening.";
+
+  if (games <= 2 || signal.badge === "Too little data") {
+    return {
+      label: "Too little data",
+      category: "neutral",
+      tone: "neutral",
+      severity: "neutral",
+      message: "Only 1-2 games. Not enough data for a full verdict.",
+    };
+  }
+
+  if (games <= 7 || signal.badge === "Low confidence") {
+    return {
+      label: "Interesting signal",
+      category: "neutral",
+      tone: "neutral",
+      severity: "neutral",
+      message:
+        "Early pattern from 3-7 games. Treat this as a watch signal, not a firm keep/improve/avoid verdict.",
+    };
+  }
 
   if (isUnknownOpeningName(getOpeningName(opening))) {
     return {
@@ -1640,12 +1709,10 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   }
 
   return {
-    label: publicMode
-      ? "Recent underperformer"
-      : adaptVerdictForPlayerLevel("Avoid", { level, games, score: winRate }) || "Needs review",
-    category: canGiveAvoidVerdict({ level, games, score: winRate }) && !advancedOrHigher ? "avoid" : "review",
-    tone: canGiveAvoidVerdict({ level, games, score: winRate }) && !advancedOrHigher ? "danger" : "warning",
-    severity: canGiveAvoidVerdict({ level, games, score: winRate }) && !advancedOrHigher ? "danger" : "warning",
+    label: publicMode ? "Recent underperformer" : "Improve",
+    category: "review",
+    tone: "warning",
+    severity: "warning",
     message:
       publicMode
         ? "This is a lower-scoring recent online sample. Treat it as trend evidence only, not a judgement of the player's opening knowledge."
@@ -1748,10 +1815,12 @@ function buildOpeningFitData(data) {
         ...opening,
         fitScore,
         fitVerdict: smartVerdict.label,
+        fitDisplayVerdict: confidenceVerdictLabel(opening, data, smartVerdict.label),
         fitCategory: smartVerdict.category,
         fitTone: smartVerdict.tone,
         fitSeverity: smartVerdict.severity,
         fitConfidence: signal.badge,
+        fitConfidenceReason: getOpeningConfidenceReason(opening),
         fitSignalTier: signal.tier,
         fitSignalExplanation: signal.explanation,
         fitSampleTier: getOpeningSampleTier(getOpeningGames(opening)),
@@ -1932,7 +2001,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
           </strong>
           {bestOpening ? (
             <p>
-              {bestOpening.fitScore}/100 — {publicAwareVerdict(bestOpening.fitVerdict, { reportMode: fitData.reportMode }, getOpeningGames(bestOpening))}
+              {bestOpening.fitScore}/100 — {bestOpening.fitDisplayVerdict || confidenceVerdictLabel(bestOpening, {}, bestOpening.fitVerdict)}
             </p>
           ) : null}
         </div>
@@ -1944,7 +2013,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
           </strong>
           {weakestOpening ? (
             <p>
-              {weakestOpening.fitScore}/100 — {publicAwareVerdict(weakestOpening.fitVerdict, { reportMode: fitData.reportMode }, getOpeningGames(weakestOpening))}
+              {weakestOpening.fitScore}/100 — {weakestOpening.fitDisplayVerdict || confidenceVerdictLabel(weakestOpening, {}, weakestOpening.fitVerdict)}
             </p>
           ) : null}
         </div>
@@ -2027,8 +2096,7 @@ function OpeningFitScoreList({ fitData, onPractice }) {
                 <div>
                   <strong>{getOpeningContextTitle(opening, name)}</strong>
                   <p>
-                    {games} games · {winRate}% score ·{" "}
-                    {publicAwareVerdict(opening.fitVerdict, { reportMode: fitData.reportMode }, games)}
+                    {confidenceRowText(opening)}
                   </p>
                 </div>
 
@@ -2038,7 +2106,10 @@ function OpeningFitScoreList({ fitData, onPractice }) {
                 </div>
               </div>
 
-              <p className="fitOpeningReason">{opening.fitExplanation}</p>
+              <p className="fitOpeningReason">
+                {opening.fitDisplayVerdict || confidenceVerdictLabel(opening, {}, opening.fitVerdict)}.{" "}
+                {opening.fitConfidenceReason || opening.fitExplanation}
+              </p>
             </button>
           );
         })}
@@ -2580,7 +2651,7 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
       <strong>{opening ? getOpeningContextTitle(opening) : fallback}</strong>
       {opening ? (
         <p>
-          {getOpeningGames(opening)} games · {getWinRate(opening)}% score · {opening.fitVerdict || "Tracked"}
+          {confidenceRowText(opening)}
         </p>
       ) : (
         <p>Not enough reliable data yet.</p>
@@ -2740,7 +2811,7 @@ function RepertoireCommandPanel({ data, onPractice }) {
                       >
                         <strong>{first.name}</strong>
                         <span>
-                          {getOpeningGames(first)} games · {getWinRate(first)}% score
+                          {confidenceRowText(first)}
                         </span>
                       </button>
                     ) : (
@@ -2771,7 +2842,7 @@ function OpeningsCommandPanel({ data, fitData, onPractice }) {
         {openings.length ? (
           openings.slice(0, 12).map((item, index) => (
             <button
-              className="commandOpeningRow"
+              className={`commandOpeningRow confidence-${getOpeningSignal(item).className || "medium"}`}
               key={`${getOpeningName(item)}-${index}`}
               type="button"
               disabled={!canTreatAsRepertoireOpening(item)}
@@ -2779,9 +2850,12 @@ function OpeningsCommandPanel({ data, fitData, onPractice }) {
             >
               <div>
                 <strong>{getOpeningContextTitle(item)}</strong>
-                <span>{item.fitExplanation || getLevelToneCopy(getSmartPlayerLevelProfile(data).level).reason}</span>
+                <span>{confidenceRowText(item)}</span>
+                <small>{item.fitConfidenceReason || item.fitExplanation || getLevelToneCopy(getSmartPlayerLevelProfile(data).level).reason}</small>
               </div>
-              <em className={commandVerdictClass(item.fitVerdict)}>{item.fitVerdict}</em>
+              <em className={commandVerdictClass(item.fitDisplayVerdict || item.fitVerdict)}>
+                {item.fitDisplayVerdict || confidenceVerdictLabel(item, data, item.fitVerdict)}
+              </em>
             </button>
           ))
         ) : (
@@ -2831,16 +2905,19 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
       <div className="commandOpeningList">
         {weak.slice(0, 8).map((item, index) => (
           <button
-            className="commandOpeningRow"
+            className={`commandOpeningRow confidence-${getOpeningSignal(item).className || "medium"}`}
             type="button"
             key={`${getOpeningName(item)}-${index}`}
             onClick={() => onPractice?.(getOpeningName(item))}
           >
             <div>
               <strong>{getOpeningContextTitle(item)}</strong>
-              <span>{getOpeningGames(item)} games · {getWinRate(item)}% score</span>
+              <span>{confidenceRowText(item)}</span>
+              <small>{item.fitConfidenceReason || getOpeningConfidenceReason(item)}</small>
             </div>
-            <em className={commandVerdictClass(item.fitVerdict)}>{item.fitVerdict}</em>
+            <em className={commandVerdictClass(item.fitDisplayVerdict || item.fitVerdict)}>
+              {item.fitDisplayVerdict || confidenceVerdictLabel(item, data, item.fitVerdict)}
+            </em>
           </button>
         ))}
       </div>
@@ -6918,13 +6995,13 @@ function App() {
                                       const signal = getOpeningSignal(item);
                                       const shouldHold = !signal.canBePrimary;
                                       const verdict = shouldHold
-                                        ? "Not enough data"
+                                        ? confidenceVerdictLabel(item, data)
                                         : getDataFirstVerdict(item, data);
                                       const evidenceItem = {
                                         ...item,
                                         confidence: getOpeningConfidence(item),
                                         verdict,
-                                        reason: item.reason || colourAwareBucketCopy(section.key, bucket.key),
+                                        reason: getOpeningConfidenceReason(item),
                                         nextAction: getNextActionLine(item, data, section.key),
                                       };
 
@@ -7085,10 +7162,12 @@ function App() {
                       fitData.scoredOpenings.map((item, index) => {
                         const rate = getWinRate(item);
                         const canPractice = canTreatAsRepertoireOpening(item);
+                        const displayVerdict =
+                          item.fitDisplayVerdict || confidenceVerdictLabel(item, data, item.fitVerdict);
 
                         return (
                           <button
-                            className="listItem openingPracticeLink evidenceListItem"
+                            className={`listItem openingPracticeLink evidenceListItem confidence-${getOpeningSignal(item).className || "medium"}`}
                             key={index}
                             type="button"
                             disabled={!canPractice}
@@ -7102,8 +7181,8 @@ function App() {
                                 opening={{
                                   ...item,
                                   winRate: rate,
-                                  verdict: item.fitVerdict,
-                                  reason: item.fitExplanation,
+                                  verdict: displayVerdict,
+                                  reason: item.fitConfidenceReason || item.fitExplanation,
                                 }}
                                 data={data}
                                 compact
@@ -7112,8 +7191,9 @@ function App() {
 
                             <div className="rightStat">
                               <div>{rate}%</div>
-                              <div className={verdictClass(item.fitVerdict)}>
-                                {item.fitVerdict}
+                              <small>{getOpeningGames(item)} games</small>
+                              <div className={verdictClass(displayVerdict)}>
+                                {displayVerdict}
                               </div>
                             </div>
                           </button>
@@ -7564,8 +7644,12 @@ function App() {
                                     opening={{
                                       ...opening,
                                       winRate: rate,
-                                      verdict: fitOpening?.fitVerdict,
-                                      reason: fitOpening?.fitExplanation,
+                                      verdict:
+                                        fitOpening?.fitDisplayVerdict ||
+                                        confidenceVerdictLabel(fitOpening || opening, data, fitOpening?.fitVerdict),
+                                      reason:
+                                        fitOpening?.fitConfidenceReason ||
+                                        fitOpening?.fitExplanation,
                                     }}
                                     data={data}
                                     compact

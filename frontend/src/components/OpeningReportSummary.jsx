@@ -1,7 +1,5 @@
 import {
-  adaptVerdictForPlayerLevel,
   canGiveAvoidVerdict,
-  getLevelToneCopy,
   getPlayerLevelText,
   getSmartPlayerLevelProfile,
   isAdvancedOrStrongerLevel,
@@ -152,10 +150,11 @@ function getPlayerTier(data) {
 
 function getSampleTier(games) {
   const count = Number(games || 0);
-  if (count >= 10) return "large";
-  if (count >= 5) return "medium";
+  if (count >= 20) return "large";
+  if (count >= 8) return "medium";
+  if (count >= 3) return "low";
   if (count >= 1) return "tiny";
-  return "tiny";
+  return "none";
 }
 
 function getVerdict(opening, data, index = 0) {
@@ -167,11 +166,9 @@ function getVerdict(opening, data, index = 0) {
   const signal = getOpeningSignal(opening);
   const mainOpening = index <= 2 && signal.tier === "strong";
   const level = getSmartPlayerLevelProfile(data).level;
-  const levelCopy = getLevelToneCopy(level);
-  const advancedOrHigher = isAdvancedOrStrongerLevel(level);
 
-  if (signal.tier === "none") return "No reliable data";
-  if (signal.tier === "low") return "Too few games";
+  if (games <= 2 || signal.badge === "Too little data") return "Too little data — not used for verdict";
+  if (games <= 7 || signal.badge === "Low confidence") return "Interesting signal — Low confidence";
 
   if (existing) {
     const lower = String(existing).toLowerCase();
@@ -185,38 +182,36 @@ function getVerdict(opening, data, index = 0) {
     }
 
     if (lower.includes("keep") || lower.includes("core weapon") || lower.includes("trusted weapon")) {
-      return mainOpening ? "Main weapon" : "Reliable choice";
+      return `Keep — ${getConfidenceLabel(opening)}`;
     }
 
     if (lower.includes("improve") || lower.includes("fine-tune")) {
-      return advancedOrHigher ? levelCopy.lowResultLabel : "Promising but unstable";
+      return `Improve — ${getConfidenceLabel(opening)}`;
     }
     if (lower.includes("avoid") || lower.includes("review")) {
-      return adaptVerdictForPlayerLevel(existing, { level, games, score: winRate }) || "Needs review";
+      return `Improve — ${getConfidenceLabel(opening)}`;
     }
 
-    return String(existing);
+    return `Interesting signal — ${getConfidenceLabel(opening)}`;
   }
 
   if (tier === "elite") {
-    if (mainOpening && winRate >= 45) return "Main weapon";
-    if (mainOpening) return "Needs review";
-    if (sampleTier === "large" && winRate < 25) return levelCopy.lowResultLabel;
-    if (winRate < 45) return "Promising but unstable";
-    return "Reliable choice";
+    if (mainOpening && winRate >= 45) return `Keep — ${getConfidenceLabel(opening)}`;
+    if (mainOpening) return `Improve — ${getConfidenceLabel(opening)}`;
+    if (sampleTier === "large" && winRate < 25) return `Improve — ${getConfidenceLabel(opening)}`;
+    if (winRate < 45) return `Improve — ${getConfidenceLabel(opening)}`;
+    return `Keep — ${getConfidenceLabel(opening)}`;
   }
 
   if (tier === "strong") {
-    if (mainOpening && winRate >= 45) return "Main weapon";
-    if (mainOpening && winRate >= 35) return "Promising but unstable";
-    if (winRate < 40) return "Needs review";
-    return "Reliable choice";
+    if (mainOpening && winRate >= 45) return `Keep — ${getConfidenceLabel(opening)}`;
+    if (mainOpening && winRate >= 35) return `Improve — ${getConfidenceLabel(opening)}`;
+    if (winRate < 40) return `Improve — ${getConfidenceLabel(opening)}`;
+    return `Keep — ${getConfidenceLabel(opening)}`;
   }
 
-  if (winRate >= 58) return "Reliable choice";
-  if (winRate >= 45) return "Promising but unstable";
-  if (mainOpening && winRate >= 35) return "Promising but unstable";
-  return adaptVerdictForPlayerLevel("Avoid", { level, games, score: winRate }) || "Needs review";
+  if (winRate >= 58) return `Keep — ${getConfidenceLabel(opening)}`;
+  return `Improve — ${getConfidenceLabel(opening)}`;
 }
 
 function isStrongProfile(data) {
