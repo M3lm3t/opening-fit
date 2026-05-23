@@ -1,0 +1,411 @@
+.seoPage {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.seoPageShell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.seoTopNav,
+.seoHero,
+.seoProblemSolution article,
+.seoMiniReport,
+.seoFaq article,
+.seoInternalLinks,
+.seoBottomCta {
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(14, 165, 233, 0.13), transparent 18rem),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.86));
+  box-shadow: 0 22px 58px rgba(2, 6, 23, 0.24);
+}
+
+.seoTopNav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  border-radius: 20px;
+  padding: 12px 14px;
+}
+
+.seoTopNav a {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-weight: 900;
+}
+
+.seoTopNav > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.seoBrandLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #f8fafc !important;
+}
+
+.seoBrandLink span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+}
+
+.seoHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 430px);
+  gap: clamp(18px, 4vw, 42px);
+  align-items: center;
+  border-radius: 30px;
+  padding: clamp(24px, 5vw, 54px);
+}
+
+.seoEyebrow {
+  width: fit-content;
+  margin: 0 0 12px;
+  padding: 7px 11px;
+  border: 1px solid rgba(56, 189, 248, 0.34);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.13);
+  color: #bae6fd;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.seoHero h1,
+.seoMiniReport h2,
+.seoSectionHeading h2,
+.seoInternalLinks h2,
+.seoBottomCta h2 {
+  margin: 0;
+  color: #f8fafc;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.seoHero h1 {
+  max-width: 880px;
+  font-size: clamp(2.3rem, 7vw, 5.6rem);
+}
+
+.seoHero p,
+.seoProblemSolution p,
+.seoMiniReport p,
+.seoFaq p,
+.seoBottomCta p {
+  color: #cbd5e1;
+  line-height: 1.65;
+}
+
+.seoHero > div > p:not(.seoEyebrow) {
+  max-width: 700px;
+  margin: 18px 0 0;
+  font-size: clamp(1rem, 2vw, 1.18rem);
+}
+
+.seoHeroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.seoPrimaryCta,
+.seoSecondaryCta {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 18px;
+  text-decoration: none;
+  font-weight: 950;
+}
+
+.seoPrimaryCta {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.34);
+}
+
+.seoSecondaryCta {
+  color: #dbeafe;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.seoExampleCards {
+  display: grid;
+  gap: 12px;
+}
+
+.seoExampleCard {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.seoExampleCard span,
+.seoProblemSolution span,
+.seoReportRows span {
+  color: #7dd3fc;
+  font-size: 0.74rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.seoExampleCard h3 {
+  margin: 8px 0 4px;
+  color: #f8fafc;
+}
+
+.seoExampleCard p,
+.seoExampleCard strong {
+  display: block;
+  margin: 0;
+  color: #cbd5e1;
+}
+
+.seoExampleCard strong {
+  margin-top: 8px;
+  color: #f8fafc;
+}
+
+.seoExampleCardKeep {
+  border-color: rgba(34, 197, 94, 0.32);
+}
+
+.seoExampleCardImprove {
+  border-color: rgba(245, 158, 11, 0.34);
+}
+
+.seoExampleCardWatch {
+  border-color: rgba(96, 165, 250, 0.34);
+}
+
+.seoProblemSolution {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.seoProblemSolution article,
+.seoMiniReport,
+.seoFaq article,
+.seoInternalLinks,
+.seoBottomCta {
+  border-radius: 24px;
+  padding: clamp(18px, 3vw, 26px);
+}
+
+.seoProblemSolution h2,
+.seoFaq h3 {
+  margin: 8px 0 0;
+  color: #f8fafc;
+  letter-spacing: -0.03em;
+}
+
+.seoProblemSolution p,
+.seoFaq p,
+.seoBottomCta p {
+  margin: 10px 0 0;
+}
+
+.seoMiniReport {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(300px, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.seoReportRows {
+  display: grid;
+  gap: 10px;
+}
+
+.seoReportRows div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 4px 12px;
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.seoReportRows strong,
+.seoReportRows small {
+  color: #f8fafc;
+}
+
+.seoReportRows small {
+  grid-column: 2;
+  color: #cbd5e1;
+  font-weight: 800;
+}
+
+.seoFaq {
+  display: grid;
+  gap: 14px;
+}
+
+.seoFaqGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.seoInternalLinks {
+  display: grid;
+  grid-template-columns: minmax(0, 0.45fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.seoInternalLinks nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.seoInternalLinks a {
+  color: #dbeafe;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  padding: 9px 12px;
+  background: rgba(15, 23, 42, 0.48);
+  text-decoration: none;
+  font-weight: 900;
+}
+
+.seoInternalLinks a.active {
+  color: #ffffff;
+  border-color: rgba(14, 165, 233, 0.5);
+  background: rgba(14, 165, 233, 0.18);
+}
+
+.seoBottomCta {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.seoBottomCta .seoPrimaryCta {
+  margin-top: 18px;
+}
+
+[data-theme="light"] .seoPage {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(14, 165, 233, 0.13), transparent 26rem),
+    linear-gradient(180deg, #f8fafc 0%, #eef4fb 52%, #ffffff 100%);
+}
+
+[data-theme="light"] .seoTopNav,
+[data-theme="light"] .seoHero,
+[data-theme="light"] .seoProblemSolution article,
+[data-theme="light"] .seoMiniReport,
+[data-theme="light"] .seoFaq article,
+[data-theme="light"] .seoInternalLinks,
+[data-theme="light"] .seoBottomCta {
+  background:
+    radial-gradient(circle at 90% 0%, rgba(14, 165, 233, 0.1), transparent 18rem),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92));
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="light"] .seoHero h1,
+[data-theme="light"] .seoMiniReport h2,
+[data-theme="light"] .seoSectionHeading h2,
+[data-theme="light"] .seoInternalLinks h2,
+[data-theme="light"] .seoBottomCta h2,
+[data-theme="light"] .seoProblemSolution h2,
+[data-theme="light"] .seoFaq h3,
+[data-theme="light"] .seoExampleCard h3,
+[data-theme="light"] .seoExampleCard strong,
+[data-theme="light"] .seoReportRows strong {
+  color: #0f172a;
+}
+
+[data-theme="light"] .seoHero p,
+[data-theme="light"] .seoProblemSolution p,
+[data-theme="light"] .seoMiniReport p,
+[data-theme="light"] .seoFaq p,
+[data-theme="light"] .seoBottomCta p,
+[data-theme="light"] .seoExampleCard p,
+[data-theme="light"] .seoReportRows small,
+[data-theme="light"] .seoTopNav a {
+  color: #475569;
+}
+
+[data-theme="light"] .seoBrandLink {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .seoExampleCard,
+[data-theme="light"] .seoReportRows div,
+[data-theme="light"] .seoSecondaryCta,
+[data-theme="light"] .seoInternalLinks a {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+@media (max-width: 820px) {
+  .seoPage {
+    padding: 12px;
+  }
+
+  .seoHero,
+  .seoProblemSolution,
+  .seoMiniReport,
+  .seoFaqGrid,
+  .seoInternalLinks {
+    grid-template-columns: 1fr;
+  }
+
+  .seoInternalLinks nav {
+    justify-content: flex-start;
+  }
+
+  .seoTopNav {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .seoTopNav > div {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .seoHeroActions,
+  .seoPrimaryCta,
+  .seoSecondaryCta {
+    width: 100%;
+  }
+
+  .seoReportRows div {
+    grid-template-columns: 1fr;
+  }
+
+  .seoReportRows small {
+    grid-column: auto;
+  }
+}
