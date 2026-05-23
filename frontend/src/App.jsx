@@ -1404,6 +1404,113 @@ function getPlayerStyleFromOpenings(openings = []) {
   };
 }
 
+function pushUniqueReason(reasons, text) {
+  if (text && !reasons.includes(text)) reasons.push(text);
+}
+
+function getOpeningLossRate(opening) {
+  const games = getOpeningGames(opening);
+  const losses = getOpeningLosses(opening);
+
+  if (!games) return null;
+  return Math.round((losses / games) * 100);
+}
+
+function getOpeningFitReasonBullets(opening, data, smartVerdict, playerStyle) {
+  const reasons = [];
+  const name = getOpeningName(opening);
+  const tags = getOpeningTags(name);
+  const games = getOpeningGames(opening);
+  const score = getWinRate(opening);
+  const lossRate = getOpeningLossRate(opening);
+  const wins = getOpeningWins(opening);
+  const draws = getOpeningDraws(opening);
+  const losses = getOpeningLosses(opening);
+  const context = itemContext(opening);
+  const signal = getOpeningSignal(opening);
+  const levelProfile = getSmartPlayerLevelProfile(data);
+  const category = smartVerdict?.category || "";
+  const verdictLabel = String(smartVerdict?.label || opening?.fitVerdict || opening?.verdict || "").toLowerCase();
+  const isPositive = category === "keep" || verdictLabel.includes("keep") || score >= 55;
+  const isConcern = !isPositive || ["review", "improve", "avoid"].includes(category);
+
+  if (!signal.canBePrimary || games <= 7) {
+    pushUniqueReason(
+      reasons,
+      `${games} game${games === 1 ? "" : "s"} is still a small sample, so this should be treated as a watch signal rather than a main repertoire verdict.`
+    );
+  }
+
+  if (isPositive) {
+    if (tags.includes("solid")) {
+      pushUniqueReason(reasons, "Solid structure: this opening tends to reach steadier pawn structures with fewer forced early tactics.");
+    }
+
+    if (tags.includes("system") || tags.includes("solid") || tags.includes("classical")) {
+      pushUniqueReason(reasons, "Simple plans: the setup gives you repeatable development patterns instead of asking you to solve a new sharp position every game.");
+    }
+
+    if (context.startsWith("black") && score >= 52) {
+      pushUniqueReason(reasons, `Strong results as Black: your imported games show a ${score}% score in this Black-side role.`);
+    }
+
+    if (lossRate !== null && lossRate <= 32 && games >= 5) {
+      pushUniqueReason(reasons, `Low loss rate: only ${lossRate}% of the sample is losses, which suggests you are reaching playable middlegames more often.`);
+    }
+
+    if (games >= 8 && confidencePriority(opening) >= 2) {
+      pushUniqueReason(reasons, `Consistent results across multiple games: ${games} games gives this signal more weight than a one-off result.`);
+    }
+
+    if (wins > losses && draws > 0) {
+      pushUniqueReason(reasons, "Good conversion from balanced positions: when games stay close enough to produce draws, your wins still outnumber your losses.");
+    }
+
+    if (["beginner", "developing", "intermediate"].some((word) => String(levelProfile.label || levelProfile.level || "").toLowerCase().includes(word)) || getProfileRating(data) < 1600) {
+      pushUniqueReason(reasons, "Good match for your current rating level: the plans are clear enough to repeat without needing heavy memorised theory.");
+    }
+
+    if (playerStyle?.title && tags.some((tag) => String(playerStyle.title).toLowerCase().includes(tag))) {
+      pushUniqueReason(reasons, `Style match: it lines up with your ${playerStyle.title.toLowerCase()} profile from the rest of your opening results.`);
+    }
+  }
+
+  if (isConcern) {
+    if (lossRate !== null && lossRate >= 45 && games >= 5) {
+      pushUniqueReason(reasons, `Too many losses: ${lossRate}% of this sample is losses, so the opening is not reliably getting you into safe middlegames yet.`);
+    }
+
+    if ((tags.includes("sharp") || tags.includes("attacking")) && score < 50) {
+      pushUniqueReason(reasons, `Low score in sharp positions: this opening often creates tactical middlegames, and your current score there is ${score}%.`);
+    }
+
+    if (name.toLowerCase().includes("gambit") && score < 50) {
+      pushUniqueReason(reasons, "Poor results after gambit positions: the compensation is not showing up clearly in your results yet.");
+    }
+
+    if (games >= 8 && score < 50) {
+      pushUniqueReason(reasons, "Repeated early move-order issues are likely: the problem appears across multiple games, not just one unlucky result.");
+    }
+
+    if ((tags.includes("sharp") || name.toLowerCase().includes("gambit")) && lossRate !== null && lossRate >= 40) {
+      pushUniqueReason(reasons, "The opening is creating difficult middlegames for you: the loss rate is high in positions that demand precise early choices.");
+    }
+
+    if (context === "played_as_white" && score < 50 && games >= 5) {
+      pushUniqueReason(reasons, "Your White repertoire is less stable here: the score suggests the setup needs a clearer move order before you build around it.");
+    }
+  }
+
+  if (!reasons.length) {
+    pushUniqueReason(
+      reasons,
+      `${games} game${games === 1 ? "" : "s"} with a ${score}% score gives OpeningFit a starting point, but not enough detail for a deeper fit claim yet.`
+    );
+  }
+
+  return reasons.slice(0, 4);
+}
+
 function calculateOpeningFitScore(opening, playerStyle) {
   const name = getOpeningName(opening);
   const games = getOpeningGames(opening);
@@ -2028,7 +2135,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
   };
 }
 
-function getOpeningExplanation(opening, score, playerStyle, data, index = 0) {
+function getOpeningExplanation(opening, data, index = 0) {
   const name = getOpeningName(opening);
   const smartVerdict = getSmartOpeningVerdict(opening, data, index);
 
@@ -2036,15 +2143,15 @@ function getOpeningExplanation(opening, score, playerStyle, data, index = 0) {
     return smartVerdict.message;
   }
 
-  if (smartVerdict.message) {
-    return smartVerdict.message;
-  }
-
   if (smartVerdict.category === "keep") {
-    return `This looks like a strong fit. You score well with it, it appears in your games enough to be meaningful, and it suits your ${playerStyle.title.toLowerCase()} profile.`;
+    return `${name} fits your current repertoire because the imported games show a repeatable, evidence-backed pattern.`;
   }
 
-  return smartVerdict.message;
+  if (smartVerdict.category === "review" || smartVerdict.category === "improve" || smartVerdict.category === "avoid") {
+    return `${name} is not a clean fit yet because the results point to a specific recurring problem rather than a stable repertoire weapon.`;
+  }
+
+  return smartVerdict.message || `${name} needs more evidence before OpeningFit can make a strong fit claim.`;
 }
 
 function buildOpeningFitData(data) {
@@ -2107,6 +2214,7 @@ function buildOpeningFitData(data) {
         99;
       const smartVerdict = getSmartOpeningVerdict(opening, data, rank);
       const signal = getOpeningSignal(opening);
+      const fitReasonBullets = getOpeningFitReasonBullets(opening, data, smartVerdict, playerStyle);
       const fitScore =
         signal.tier === "low" || signal.tier === "none"
           ? Math.min(score, 54)
@@ -2127,13 +2235,12 @@ function buildOpeningFitData(data) {
         fitSeverity: smartVerdict.severity,
         fitConfidence: signal.badge,
         fitConfidenceReason: getOpeningConfidenceReason(opening),
+        fitReasonBullets,
         fitSignalTier: signal.tier,
         fitSignalExplanation: signal.explanation,
         fitSampleTier: getOpeningSampleTier(getOpeningGames(opening)),
         fitExplanation: getOpeningExplanation(
           opening,
-          fitScore,
-          playerStyle,
           data,
           rank
         ),
@@ -2365,6 +2472,22 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
   );
 }
 
+function FitReasonList({ opening, compact = false }) {
+  const reasons = Array.isArray(opening?.fitReasonBullets)
+    ? opening.fitReasonBullets.filter(Boolean)
+    : [];
+
+  if (!reasons.length) return null;
+
+  return (
+    <ul className={`fitReasonList ${compact ? "fitReasonListCompact" : ""}`}>
+      {reasons.slice(0, compact ? 3 : 4).map((reason, index) => (
+        <li key={`${reason}-${index}`}>{reason}</li>
+      ))}
+    </ul>
+  );
+}
+
 function OpeningFitScoreList({ fitData, onPractice }) {
   if (!fitData || !fitData.scoredOpenings?.length) return null;
   const publicMode = fitData.reportMode !== "normal_user";
@@ -2416,6 +2539,7 @@ function OpeningFitScoreList({ fitData, onPractice }) {
                 {opening.fitDisplayVerdict || confidenceVerdictLabel(opening, {}, opening.fitVerdict)}.{" "}
                 {opening.fitConfidenceReason || opening.fitExplanation}
               </p>
+              <FitReasonList opening={opening} />
             </button>
           );
         })}
@@ -3282,6 +3406,7 @@ function RepertoireRoleCard({ section, data, onPractice }) {
           <p className="roleReportExplanation">
             {opening.fitExplanation || roleOpeningExplanation(opening, section)}
           </p>
+          <FitReasonList opening={opening} compact />
 
           {canPractice ? (
             <button type="button" className="secondaryBtn rolePracticeBtn" onClick={() => onPractice?.(getOpeningName(opening))}>
@@ -3347,6 +3472,7 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
             <span>Primary leak</span>
             <strong>{getOpeningContextTitle(focus)}</strong>
             <p>{focus.fitExplanation}</p>
+            <FitReasonList opening={focus} compact />
           </div>
           <button type="button" onClick={() => onViewChange?.("training")}>
             Build drill
@@ -3367,7 +3493,7 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
             <div>
               <strong>{getOpeningContextTitle(item)}</strong>
               <span>{confidenceRowText(item)}</span>
-              <small>{item.fitConfidenceReason || getOpeningConfidenceReason(item)}</small>
+              <small>{item.fitReasonBullets?.[0] || item.fitConfidenceReason || getOpeningConfidenceReason(item)}</small>
             </div>
             <em className={commandVerdictClass(item.fitDisplayVerdict || item.fitVerdict)}>
               {item.fitDisplayVerdict || confidenceVerdictLabel(item, data, item.fitVerdict)}

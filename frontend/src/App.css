@@ -1547,6 +1547,25 @@ th {
   line-height: 1.5;
 }
 
+.fitReasonList {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.fitReasonList li {
+  padding-left: 2px;
+}
+
+.fitReasonListCompact {
+  margin-top: 2px;
+  font-size: 0.84rem;
+}
+
 /* ================================
    SAVED HISTORY / PREMIUM LOCK
 ================================ */
