@@ -1271,6 +1271,59 @@ function buildInterestingButThinOpenings(data, fitData, sections = []) {
     }));
 }
 
+function buildStudyThisNextTarget(fitData) {
+  const openings = Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : [];
+  const weaknessCategories = new Set(["review", "improve", "avoid"]);
+  const reliableWeaknesses = openings
+    .filter((opening) => canTreatAsRepertoireOpening(opening))
+    .filter((opening) => weaknessCategories.has(opening.fitCategory) || getWinRate(opening) < 55)
+    .filter((opening) => confidencePriority(opening) >= 2)
+    .sort((a, b) => {
+      const confidenceDelta = confidencePriority(b) - confidencePriority(a);
+      if (confidenceDelta) return confidenceDelta;
+      const scoreDelta = getWinRate(a) - getWinRate(b);
+      if (scoreDelta) return scoreDelta;
+      return getOpeningGames(b) - getOpeningGames(a);
+    });
+  const lowConfidenceFallback = openings
+    .filter((opening) => canTreatAsRepertoireOpening(opening))
+    .filter((opening) => weaknessCategories.has(opening.fitCategory) || getWinRate(opening) < 50)
+    .filter((opening) => confidencePriority(opening) < 2)
+    .sort((a, b) => getOpeningGames(b) - getOpeningGames(a))[0];
+  const target = reliableWeaknesses[0] || lowConfidenceFallback || null;
+
+  if (!target) return null;
+
+  const lowConfidence = confidencePriority(target) < 2;
+  const name = getOpeningName(target);
+  const context = roleNameForAction(target);
+  const reason =
+    target.fitReasonBullets?.find((item) =>
+      /loss|score|move-order|difficult|stable|repertoire/i.test(item)
+    ) ||
+    `This is the clearest ${lowConfidence ? "early" : "reliable"} weakness in the filtered report.`;
+  const goal = lowConfidence
+    ? "Collect a few more games, then learn the first 6-8 moves only if the pattern repeats."
+    : "Learn the first 6-8 moves and the basic middlegame plan.";
+
+  return {
+    opening: target,
+    name,
+    context,
+    lowConfidence,
+    confidence: getOpeningConfidence(target),
+    why: lowConfidence ? `${reason} This is low confidence, so treat it as a watch target.` : reason,
+    goal,
+    timeNeeded: "20 minutes",
+    weeklyPlan: [
+      `Day 1: Review your 3 losses in ${name}.`,
+      "Day 2: Learn the main setup and write one move-10 plan.",
+      `Day 3: Play 5 rapid/blitz games using only ${name}.`,
+      "Day 4: Re-import and check whether results changed.",
+    ],
+  };
+}
+
 function isUnknownOpeningName(name) {
   const normalized = (name || "").toLowerCase().trim();
 
@@ -3258,7 +3311,57 @@ function ReportFilters({ filters, onChange, data }) {
   );
 }
 
-function CompactReportSummary({ data, fitData, onViewChange }) {
+function StudyThisNextCard({ target, onPractice, onViewChange }) {
+  if (!target) return null;
+
+  return (
+    <section className={`studyThisNextCard ${target.lowConfidence ? "studyThisNextCardLow" : ""}`}>
+      <div className="studyThisNextHeader">
+        <div>
+          <p className="eyebrow">Study this next</p>
+          <h2>Your next study target</h2>
+        </div>
+        <span>{target.lowConfidence ? `Low confidence · ${target.confidence}` : target.confidence}</span>
+      </div>
+
+      <div className="studyThisNextMain">
+        <div>
+          <span>Study</span>
+          <strong>{target.name} {target.context}</strong>
+        </div>
+        <div>
+          <span>Time needed</span>
+          <strong>{target.timeNeeded}</strong>
+        </div>
+      </div>
+
+      <div className="studyThisNextWhy">
+        <p><strong>Why:</strong> {target.why}</p>
+        <p><strong>Goal:</strong> {target.goal}</p>
+      </div>
+
+      <div className="studyThisNextWeek">
+        <span>This week’s plan</span>
+        <ol>
+          {target.weeklyPlan.map((item, index) => (
+            <li key={`${item}-${index}`}>{item}</li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="studyThisNextActions">
+        <button type="button" onClick={() => onPractice?.(target.name)}>
+          Practise target
+        </button>
+        <button type="button" onClick={() => onViewChange?.("training")}>
+          Open study plan
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function CompactReportSummary({ data, fitData, onViewChange, onPractice }) {
   if (!data) return null;
 
   const publicMode = isPublicReportMode(data);
@@ -3314,6 +3417,7 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
   const repertoireShape = repertoireShapeSummary(repertoireReportSections);
   const openingFitVerdict = buildOpeningFitVerdict(fitData, repertoireReportSections);
   const interestingThinOpenings = buildInterestingButThinOpenings(data, fitData, repertoireReportSections);
+  const studyTarget = buildStudyThisNextTarget(fitData);
   const months =
     data.monthsChecked ||
     data.months_checked ||
@@ -3429,6 +3533,12 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
           </ul>
         </section>
       ) : null}
+
+      <StudyThisNextCard
+        target={studyTarget}
+        onPractice={onPractice}
+        onViewChange={onViewChange}
+      />
 
       <div className="commandHeroGrid">
         {card(
@@ -7716,6 +7826,7 @@ function App() {
                 data={reportData}
                 fitData={fitData}
                 onViewChange={setActiveView}
+                onPractice={startOpeningPractice}
               />
 
               <ReportFilters

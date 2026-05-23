@@ -17019,7 +17019,9 @@ html {
   }
 
   .reportFiltersHeader,
-  .reportFilterControls {
+  .reportFilterControls,
+  .studyThisNextHeader,
+  .studyThisNextMain {
     display: grid;
     grid-template-columns: 1fr;
   }
@@ -17073,6 +17075,119 @@ html {
 }
 
 /* Next Study Session */
+.studyThisNextCard {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(96, 165, 250, 0.26);
+  border-radius: 8px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(15, 23, 42, 0.3));
+}
+
+.light .studyThisNextCard,
+[data-theme="light"] .studyThisNextCard {
+  background:
+    linear-gradient(135deg, rgba(219, 234, 254, 0.82), rgba(255, 255, 255, 0.78));
+}
+
+.studyThisNextCardLow {
+  border-color: rgba(248, 214, 109, 0.3);
+}
+
+.studyThisNextHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.studyThisNextHeader h2 {
+  margin: 3px 0 0;
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+}
+
+.studyThisNextHeader > span {
+  flex: 0 0 auto;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #bfdbfe;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.light .studyThisNextHeader > span,
+[data-theme="light"] .studyThisNextHeader > span {
+  color: #1d4ed8;
+}
+
+.studyThisNextMain {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, auto);
+  gap: 10px;
+}
+
+.studyThisNextMain div,
+.studyThisNextWeek {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.2);
+}
+
+.light .studyThisNextMain div,
+.light .studyThisNextWeek,
+[data-theme="light"] .studyThisNextMain div,
+[data-theme="light"] .studyThisNextWeek {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.studyThisNextMain span,
+.studyThisNextWeek span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.studyThisNextMain strong {
+  display: block;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+
+.studyThisNextWhy p {
+  margin: 0 0 6px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.studyThisNextWeek ol {
+  display: grid;
+  gap: 7px;
+  margin: 9px 0 0;
+  padding-left: 19px;
+}
+
+.studyThisNextActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.studyThisNextActions button {
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 999px;
+  padding: 9px 12px;
+  color: inherit;
+  background: rgba(59, 130, 246, 0.16);
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .nextStudyShell {
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.16);
