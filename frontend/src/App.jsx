@@ -3730,6 +3730,210 @@ function RepertoireCommandPanel({ data, onPractice }) {
   );
 }
 
+function inferWhiteMapMove(opening) {
+  const explicit =
+    opening?.firstWhiteMove ||
+    opening?.first_white_move ||
+    opening?.firstMove ||
+    opening?.first_move;
+  if (explicit) return String(explicit);
+
+  const name = getOpeningName(opening).toLowerCase();
+  if (
+    name.includes("london") ||
+    name.includes("queen's gambit") ||
+    name.includes("queen pawn") ||
+    name.includes("queen's pawn") ||
+    name.includes("colle") ||
+    name.includes("trompowsky")
+  ) {
+    return "1.d4";
+  }
+  if (name.includes("english")) return "1.c4";
+  if (name.includes("reti") || name.includes("réti") || name.includes("zukertort")) return "1.Nf3";
+  if (name.includes("bird")) return "1.f4";
+  return "1.e4";
+}
+
+function inferBlackMapMove(opening, sectionKey) {
+  const explicit =
+    opening?.blackFirstMove ||
+    opening?.black_first_move ||
+    opening?.responseMove ||
+    opening?.response_move;
+  if (explicit) return String(explicit);
+
+  const name = getOpeningName(opening).toLowerCase();
+
+  if (sectionKey === "black_vs_e4") {
+    if (name.includes("caro-kann")) return "...c6";
+    if (name.includes("sicilian")) return "...c5";
+    if (name.includes("french")) return "...e6";
+    if (name.includes("scandinavian")) return "...d5";
+    if (name.includes("pirc")) return "...d6";
+    if (name.includes("modern")) return "...g6";
+    if (name.includes("open game") || name.includes("petrov") || name.includes("philidor")) return "...e5";
+    return "vs 1.e4";
+  }
+
+  if (sectionKey === "black_vs_d4") {
+    if (name.includes("dutch")) return "...f5";
+    if (
+      name.includes("king's indian") ||
+      name.includes("queen's indian") ||
+      name.includes("nimzo") ||
+      name.includes("grunfeld") ||
+      name.includes("grünfeld") ||
+      name.includes("benoni") ||
+      name.includes("benko")
+    ) {
+      return "...Nf6";
+    }
+    if (name.includes("slav") || name.includes("queen's gambit")) return "...d5";
+    return "vs 1.d4";
+  }
+
+  return "vs other";
+}
+
+function repertoireMapStem(opening, section) {
+  if (!opening) return section.title;
+  if (section.key === "white_repertoire") return inferWhiteMapMove(opening);
+  return inferBlackMapMove(opening, section.key);
+}
+
+function repertoireMapStatus(opening, bucketKey) {
+  if (!opening) {
+    return {
+      key: "grey",
+      label: "Not enough data",
+      legend: "not enough data",
+    };
+  }
+
+  if (bucketKey === "bestFit") {
+    return { key: "green", label: "Working", legend: "working" };
+  }
+  if (bucketKey === "risky") {
+    return { key: "red", label: "Costing points", legend: "costing points" };
+  }
+  if (bucketKey === "notEnoughData") {
+    return { key: "grey", label: "Not enough data", legend: "not enough data" };
+  }
+
+  return { key: "amber", label: "Unstable", legend: "unstable" };
+}
+
+function repertoireMapRows(section) {
+  const rows = [
+    ...(section.buckets.bestFit || []).map((opening) => ({ opening, bucketKey: "bestFit" })),
+    ...(section.buckets.needsReview || []).map((opening) => ({ opening, bucketKey: "needsReview" })),
+    ...(section.buckets.risky || []).map((opening) => ({ opening, bucketKey: "risky" })),
+    ...(section.buckets.notEnoughData || []).map((opening) => ({ opening, bucketKey: "notEnoughData" })),
+  ];
+
+  return rows.slice(0, 4);
+}
+
+function RepertoireMap({ data }) {
+  const sections = buildRepertoireReportSections(data);
+  const totalItems = sections.reduce((total, section) => total + section.totalItems, 0);
+
+  return (
+    <section className="repertoireMapSection" id="repertoire-map">
+      <div className="repertoireMapHeader">
+        <div>
+          <p className="eyebrow">Repertoire map</p>
+          <h2>Your current repertoire</h2>
+          <p>
+            A visual map of what you are actually playing, split by repertoire role so White systems and Black defences stay separate.
+          </p>
+        </div>
+
+        <div className="repertoireMapLegend" aria-label="Repertoire map legend">
+          <span><i className="mapDot mapDotGreen" />Working</span>
+          <span><i className="mapDot mapDotAmber" />Unstable</span>
+          <span><i className="mapDot mapDotRed" />Costing points</span>
+          <span><i className="mapDot mapDotGrey" />Not enough data</span>
+        </div>
+      </div>
+
+      {totalItems ? (
+        <div className="repertoireMapGrid">
+          {sections.map((section) => {
+            const rows = repertoireMapRows(section);
+
+            return (
+              <article className="repertoireMapLane" key={section.key}>
+                <div className="repertoireMapLaneHeader">
+                  <span>{section.title}</span>
+                  <strong>{sectionHealth(section)}</strong>
+                </div>
+
+                <div className="repertoireMapTree">
+                  {rows.length ? (
+                    rows.map(({ opening, bucketKey }) => {
+                      const status = repertoireMapStatus(opening, bucketKey);
+                      const verdict =
+                        opening.fitDisplayVerdict ||
+                        confidenceVerdictLabel(opening, data, opening.fitVerdict || opening.verdict);
+
+                      return (
+                        <div className={`repertoireMapNode mapStatus-${status.key}`} key={getOpeningIdentityKey(opening)}>
+                          <div className="repertoireMapPath">
+                            <span>{repertoireMapStem(opening, section)}</span>
+                            <b aria-hidden="true">&rarr;</b>
+                            <strong>{getOpeningName(opening)}</strong>
+                          </div>
+
+                          <div className="repertoireMapMeta">
+                            <span>{getOpeningGames(opening)} games</span>
+                            <span>{getWinRate(opening)}% score</span>
+                            <span>{getOpeningConfidence(opening)}</span>
+                            <em>{verdict}</em>
+                          </div>
+
+                          <div className="repertoireMapStatus">
+                            <i className={`mapDot mapDot${status.key.charAt(0).toUpperCase()}${status.key.slice(1)}`} />
+                            {status.label}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="repertoireMapNode mapStatus-grey">
+                      <div className="repertoireMapPath">
+                        <span>{section.title}</span>
+                        <b aria-hidden="true">&rarr;</b>
+                        <strong>{section.empty}</strong>
+                      </div>
+                      <div className="repertoireMapMeta">
+                        <span>0 games</span>
+                        <span>Score unavailable</span>
+                        <span>No confidence yet</span>
+                        <em>Not enough data</em>
+                      </div>
+                      <div className="repertoireMapStatus">
+                        <i className="mapDot mapDotGrey" />
+                        Not enough data
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <EmptyState
+          title="No repertoire map yet"
+          text="Import more recognised games and OpeningFit will map your White openings, Black defences, and low-sample experiments."
+        />
+      )}
+    </section>
+  );
+}
+
 function getRolePrimaryOpening(section) {
   const items = [
     ...(section?.buckets?.bestFit || []),
@@ -7886,6 +8090,8 @@ function App() {
               />
 
               <ImportQualitySummary data={reportData} />
+
+              <RepertoireMap data={reportData} />
 
               {accountUser ? (
                 <ReportHistoryVault
