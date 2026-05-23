@@ -16644,6 +16644,181 @@ html {
   margin-top: 1rem;
 }
 
+.importQualitySummary {
+  margin: 1rem 0;
+  padding: clamp(16px, 2.5vw, 22px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.72);
+  box-shadow: 0 18px 48px rgba(2, 6, 23, 0.18);
+}
+
+.light .importQualitySummary,
+[data-theme="light"] .importQualitySummary {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+}
+
+.importQualityHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.importQualityHeader h2 {
+  margin: 0.15rem 0 0;
+  color: #f8fafc;
+  font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+  letter-spacing: 0;
+}
+
+.light .importQualityHeader h2,
+[data-theme="light"] .importQualityHeader h2 {
+  color: #0f172a;
+}
+
+.importQualityBadge {
+  min-width: 150px;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  text-align: right;
+}
+
+.light .importQualityBadge,
+[data-theme="light"] .importQualityBadge {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.importQualityBadge span,
+.importQualityGrid span,
+.skippedReasons > span {
+  display: block;
+  color: rgba(226, 232, 240, 0.64);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.light .importQualityBadge span,
+.light .importQualityGrid span,
+.light .skippedReasons > span,
+[data-theme="light"] .importQualityBadge span,
+[data-theme="light"] .importQualityGrid span,
+[data-theme="light"] .skippedReasons > span {
+  color: rgba(15, 23, 42, 0.58);
+}
+
+.importQualityBadge strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: #f8fafc;
+  font-size: 1.1rem;
+}
+
+.quality-excellent strong {
+  color: #86efac;
+}
+
+.quality-good strong {
+  color: #93c5fd;
+}
+
+.quality-limited strong {
+  color: #fde68a;
+}
+
+.quality-too-little-data strong {
+  color: #fca5a5;
+}
+
+.light .importQualityBadge strong,
+[data-theme="light"] .importQualityBadge strong {
+  color: #0f172a;
+}
+
+.importQualityGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.importQualityGrid div {
+  min-height: 76px;
+  padding: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.22);
+}
+
+.light .importQualityGrid div,
+[data-theme="light"] .importQualityGrid div {
+  background: rgba(248, 250, 252, 0.72);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.importQualityGrid strong {
+  display: block;
+  margin-top: 0.35rem;
+  color: #f8fafc;
+  font-size: 1rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.light .importQualityGrid strong,
+[data-theme="light"] .importQualityGrid strong {
+  color: #0f172a;
+}
+
+.importQualityCopy {
+  margin: 1rem 0 0;
+  color: rgba(226, 232, 240, 0.78);
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.light .importQualityCopy,
+[data-theme="light"] .importQualityCopy {
+  color: rgba(15, 23, 42, 0.68);
+}
+
+.skippedReasons {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.skippedReasons div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.skippedReasons small {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(226, 232, 240, 0.78);
+  font-weight: 800;
+}
+
+.light .skippedReasons small,
+[data-theme="light"] .skippedReasons small {
+  background: rgba(15, 23, 42, 0.04);
+  color: rgba(15, 23, 42, 0.68);
+}
+
 .appTabsCard {
   position: sticky;
   top: 0.75rem;
@@ -16728,6 +16903,19 @@ html {
   .compactReportGrid {
     grid-template-columns: 1fr;
     gap: 0.75rem;
+  }
+
+  .importQualityHeader {
+    display: grid;
+  }
+
+  .importQualityBadge {
+    width: 100%;
+    text-align: left;
+  }
+
+  .importQualityGrid {
+    grid-template-columns: 1fr;
   }
 
   .appTabsCard {

@@ -45,6 +45,7 @@ import InteractiveRepertoire from "./components/InteractiveRepertoire";
 import DashboardHome from "./components/DashboardHome";
 import MobileBottomNav from "./components/MobileBottomNav";
 import LaunchReadySections from "./components/LaunchReadySections";
+import { useAuth } from "./context/AuthDataProvider";
 
 
 import { CoachSummaryCard, SeriousAppTabs, SeriousPremiumStrip, NextBestActions } from "./components/SeriousAppUpgrade";
@@ -2250,6 +2251,254 @@ function OpeningFitMethodCard() {
         filters tiny samples, compares results by colour, and turns the patterns
         into practical repertoire suggestions.
       </p>
+    </section>
+  );
+}
+
+const importQualityLabel = (usableGames) => {
+  const games = Number(usableGames) || 0;
+  if (games >= 100) return "Excellent";
+  if (games >= 50) return "Good";
+  if (games >= 15) return "Limited";
+  return "Too little data";
+};
+
+const importQualityCopy = (usableGames) => {
+  const games = Number(usableGames) || 0;
+
+  if (games >= 100) {
+    return `${games} usable games found. Strong sample size for a reliable opening report.`;
+  }
+
+  if (games >= 50) {
+    return `${games} usable games found. Enough data for a useful opening report.`;
+  }
+
+  if (games >= 15) {
+    return `Only ${games} usable games found. Treat this as a light snapshot, not a final repertoire recommendation.`;
+  }
+
+  return `Only ${games} usable game${games === 1 ? "" : "s"} found. Import more games before making repertoire decisions from this report.`;
+};
+
+const monthYearFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  year: "numeric",
+});
+
+const normaliseTimestamp = (value) => {
+  if (!value) return null;
+  const numeric = Number(value);
+
+  if (Number.isFinite(numeric)) {
+    return numeric > 100000000000 ? numeric : numeric * 1000;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatImportRange = (data) => {
+  const explicit =
+    data?.timeRange ||
+    data?.time_range ||
+    data?.dateRange ||
+    data?.date_range ||
+    data?.importWindow ||
+    data?.import_window;
+
+  if (explicit) return explicit;
+
+  const games = [
+    ...(Array.isArray(data?.recent_games) ? data.recent_games : []),
+    ...(Array.isArray(data?.recentGames) ? data.recentGames : []),
+  ];
+  const timestamps = games
+    .map((game) =>
+      normaliseTimestamp(
+        game?.end_time ||
+          game?.endTime ||
+          game?.played_at ||
+          game?.playedAt ||
+          game?.date
+      )
+    )
+    .filter(Boolean)
+    .sort((a, b) => a - b);
+
+  if (timestamps.length) {
+    const start = monthYearFormatter.format(new Date(timestamps[0]));
+    const end = monthYearFormatter.format(new Date(timestamps[timestamps.length - 1]));
+    return start === end ? start : `${start} - ${end}`;
+  }
+
+  const months = Number(data?.monthsChecked || data?.months_checked || data?.importMonths);
+  const importedAt = normaliseTimestamp(data?.importedAt || data?.imported_at || data?.lastUpdated);
+
+  if (months && importedAt) {
+    const end = new Date(importedAt);
+    const start = new Date(importedAt);
+    start.setMonth(start.getMonth() - Math.max(months - 1, 0));
+    return `${monthYearFormatter.format(start)} - ${monthYearFormatter.format(end)}`;
+  }
+
+  return months ? `Last ${months} month${months === 1 ? "" : "s"}` : "Recent import";
+};
+
+const normaliseSkippedReasons = (data, skippedGames) => {
+  const knownReasons = [
+    ["bullet", "Bullet games"],
+    ["variants", "Variants"],
+    ["veryShort", "Very short games"],
+    ["missingOpening", "Missing opening/ECO data"],
+    ["outsideWindow", "Games outside selected import window"],
+  ];
+  const source =
+    data?.skippedGameReasons ||
+    data?.skipped_game_reasons ||
+    data?.skippedReasons ||
+    data?.skipped_reasons ||
+    data?.importSummary?.skippedReasons ||
+    data?.import_summary?.skipped_reasons ||
+    null;
+
+  if (Array.isArray(source)) {
+    return source
+      .map((item) => {
+        if (typeof item === "string") return { label: item, count: null };
+        return {
+          label: item?.label || item?.reason || item?.name || "Other skipped games",
+          count: item?.count ?? item?.games ?? null,
+        };
+      })
+      .filter((item) => item.label);
+  }
+
+  if (source && typeof source === "object") {
+    return knownReasons
+      .map(([key, label]) => ({
+        label,
+        count:
+          source[key] ??
+          source[label] ??
+          source[label.toLowerCase()] ??
+          source[label.replaceAll("/", "").replaceAll(" ", "_").toLowerCase()] ??
+          0,
+      }))
+      .filter((item) => Number(item.count) > 0);
+  }
+
+  return skippedGames > 0
+    ? [{ label: "Reason breakdown not separately reported by this import", count: skippedGames }]
+    : [];
+};
+
+function ImportQualitySummary({ data }) {
+  if (!data) return null;
+
+  const platformKey = String(data.platform || data.importPlatform || data.source || "").toLowerCase();
+  const isImportedPlatform =
+    platformKey.includes("chesscom") ||
+    platformKey.includes("chess.com") ||
+    platformKey.includes("lichess");
+
+  if (!isImportedPlatform) return null;
+
+  const platformLabel =
+    platformKey.includes("lichess") ? "Lichess" : "Chess.com";
+  const username =
+    data.username ||
+    data.playerName ||
+    data.player_name ||
+    data.requestedUsername ||
+    data.requested_username ||
+    "Unknown";
+  const gamesFound =
+    data.gamesFound ??
+    data.games_found ??
+    data.totalGames ??
+    data.total_games ??
+    data.gamesImported ??
+    0;
+  const gamesAnalysed =
+    data.gamesAnalysed ??
+    data.gamesAnalyzed ??
+    data.games_analyzed ??
+    data.gamesImported ??
+    data.games_imported ??
+    0;
+  const skippedGames =
+    data.skippedGames ??
+    data.skipped_games ??
+    Math.max(0, Number(gamesFound || 0) - Number(gamesAnalysed || 0));
+  const months =
+    data.importMonths ||
+    data.import_months ||
+    data.monthsChecked ||
+    data.months_checked ||
+    "Recent";
+  const quality = importQualityLabel(gamesAnalysed);
+  const skippedReasons = normaliseSkippedReasons(data, Number(skippedGames) || 0);
+
+  return (
+    <section className="importQualitySummary" aria-label="Import quality summary">
+      <div className="importQualityHeader">
+        <div>
+          <p className="eyebrow">Import quality summary</p>
+          <h2>Imported data used for this report</h2>
+        </div>
+        <div className={`importQualityBadge quality-${quality.toLowerCase().replaceAll(" ", "-")}`}>
+          <span>Analysis quality</span>
+          <strong>{quality}</strong>
+        </div>
+      </div>
+
+      <div className="importQualityGrid">
+        <div>
+          <span>Platform</span>
+          <strong>{platformLabel}</strong>
+        </div>
+        <div>
+          <span>Username</span>
+          <strong>{username}</strong>
+        </div>
+        <div>
+          <span>Games found</span>
+          <strong>{gamesFound || 0}</strong>
+        </div>
+        <div>
+          <span>Games analysed</span>
+          <strong>{gamesAnalysed || 0}</strong>
+        </div>
+        <div>
+          <span>Skipped</span>
+          <strong>{skippedGames || 0}</strong>
+        </div>
+        <div>
+          <span>Time range</span>
+          <strong>{formatImportRange(data)}</strong>
+        </div>
+        <div>
+          <span>Import months selected</span>
+          <strong>{months === "Recent" ? months : `${months} month${Number(months) === 1 ? "" : "s"}`}</strong>
+        </div>
+      </div>
+
+      <p className="importQualityCopy">{importQualityCopy(gamesAnalysed)}</p>
+
+      {skippedReasons.length ? (
+        <div className="skippedReasons">
+          <span>Skipped-game reasons</span>
+          <div>
+            {skippedReasons.map((reason) => (
+              <small key={`${reason.label}-${reason.count ?? "unknown"}`}>
+                {reason.label}
+                {reason.count !== null && reason.count !== undefined ? `: ${reason.count}` : ""}
+              </small>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -4742,6 +4991,12 @@ function OpeningFitReportHero({ data }) {
 
 export default 
 function App() {
+  const {
+    user: supabaseUser,
+    saveReport: saveCloudReport,
+    recordActivity: recordCloudActivity,
+  } = useAuth();
+
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
@@ -4814,6 +5069,10 @@ function App() {
   const [loadingStep, setLoadingStep] = useState("");
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
+
+  useEffect(() => {
+    setAccountUser(supabaseUser || null);
+  }, [supabaseUser]);
 
   const loadDemoReport = () => {
     setData(DEMO_REPORT);
@@ -5388,13 +5647,31 @@ function App() {
       const cleanData = normaliseData(json);
       setData(cleanData);
       saveLocalAnalysis(cleanData, cleanUsername);
+
+      if (supabaseUser?.id) {
+        try {
+          await saveCloudReport(cleanData, {
+            username: cleanData.username || cleanUsername,
+            platform: selectedPlatformKey,
+            games: cleanData.gamesImported ?? cleanData.total_games,
+          });
+          await recordCloudActivity("report_imported", {
+            username: cleanData.username || cleanUsername,
+            platform: selectedPlatformKey,
+            games: cleanData.gamesImported ?? cleanData.total_games,
+          });
+        } catch (cloudError) {
+          console.warn("Could not save imported report to Supabase", cloudError);
+        }
+      }
+
       rememberLandingSeen({ keepPublicLanding: false });
       setActiveView("overview");
 
       setSavedProfileMessage(
         `Import complete for ${
           cleanData.username || cleanUsername
-        }. Saved locally so you can load it next time.`
+        }. Saved ${supabaseUser?.id ? "to your account" : "locally"} so you can load it next time.`
       );
 
       await trackEvent("frontend_import_completed", {
@@ -6195,17 +6472,6 @@ function App() {
             <OpeningFitImportDoctor username={username} />
 
             {false ? <AppActionRouter onViewChange={setActiveView} /> : null}
-            <AccountRestoreSync
-              user={accountUser}
-              username={username}
-              setUsername={setUsername}
-              platform={platform}
-              setPlatform={setPlatform}
-              data={data}
-              setData={setData}
-              setIsPremium={setIsPremium}
-            />
-
             <MobileBottomNav
               data={data}
               activeView={activeView}
@@ -6227,6 +6493,17 @@ function App() {
               })
             );
           }}
+        />
+
+        <AccountRestoreSync
+          user={accountUser}
+          username={username}
+          setUsername={setUsername}
+          platform={platform}
+          setPlatform={setPlatform}
+          data={data}
+          setData={setData}
+          setIsPremium={setIsPremium}
         />
 
         <FloatingAppMenu
@@ -6510,6 +6787,8 @@ function App() {
                 fitData={fitData}
                 onViewChange={setActiveView}
               />
+
+              <ImportQualitySummary data={data} />
 
               <AppViewTabs
                 activeView={activeView}

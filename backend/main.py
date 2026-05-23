@@ -539,6 +539,85 @@ def guess_opening_from_pgn(pgn: str) -> str:
     return normalize_opening_name(opening_from_move_sequence(moves))
 
 
+SKIPPED_REASON_LABELS = {
+    "bullet": "Bullet games",
+    "variants": "Variants",
+    "veryShort": "Very short games",
+    "missingOpening": "Missing opening/ECO data",
+    "outsideWindow": "Games outside selected import window",
+}
+
+
+def skipped_reason_items(reason_counts: Dict[str, int]) -> List[Dict[str, Any]]:
+    return [
+        {
+            "key": key,
+            "label": SKIPPED_REASON_LABELS.get(key, key),
+            "count": count,
+        }
+        for key, count in reason_counts.items()
+        if count
+    ]
+
+
+def chesscom_skip_reason(game: Dict[str, Any]) -> Optional[str]:
+    if str(game.get("time_class", "")).lower() == "bullet":
+        return "bullet"
+
+    if str(game.get("rules", "chess")).lower() not in {"", "chess"}:
+        return "variants"
+
+    pgn = game.get("pgn", "")
+    moves = clean_moves_from_pgn(pgn)
+
+    if len(moves) < 8:
+        return "veryShort"
+
+    if is_unknown_opening_name(guess_opening_from_pgn(pgn)):
+        return "missingOpening"
+
+    return None
+
+
+def lichess_skip_reason(game: Dict[str, Any]) -> Optional[str]:
+    if str(game.get("speed") or game.get("perf") or "").lower() == "bullet":
+        return "bullet"
+
+    variant = game.get("variant") or {}
+    variant_key = variant.get("key") if isinstance(variant, dict) else variant
+
+    if str(variant_key or "standard").lower() not in {"", "standard"}:
+        return "variants"
+
+    moves = str(game.get("moves") or "").split()
+
+    if len(moves) < 8:
+        return "veryShort"
+
+    if is_unknown_opening_name(get_lichess_opening_name(game)):
+        return "missingOpening"
+
+    return None
+
+
+def split_usable_games(
+    games: List[Dict[str, Any]],
+    reason_getter,
+) -> tuple[List[Dict[str, Any]], Dict[str, int]]:
+    usable_games = []
+    reason_counts = {key: 0 for key in SKIPPED_REASON_LABELS}
+
+    for game in games:
+        reason = reason_getter(game)
+
+        if reason:
+            reason_counts[reason] = reason_counts.get(reason, 0) + 1
+        else:
+            usable_games.append(game)
+
+    return usable_games, reason_counts
+
+
 def result_for_user(game: Dict[str, Any], username: str) -> str:
     username = username.lower()
     white_user = game.get("white", {}).get("username", "").lower()
@@ -1809,6 +1888,8 @@ def import_chesscom_logic(username: str, months: int = 3):
             detail=f"No games found for Chess.com user '{username}' in the selected archives.",
         )
 
+    analysed_games, skipped_reason_counts = split_usable_games(all_games, chesscom_skip_reason)
+
     opening_counter = Counter()
     white_opening_counter = Counter()
     black_opening_counter = Counter()
@@ -1816,7 +1897,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     context_opening_results = defaultdict(empty_opening_stats)
     recent_games = []
 
-    for game in all_games:
+    for game in analysed_games:
         opening = guess_opening_from_pgn(game.get("pgn", ""))
         colour = colour_for_user(game, username)
         result = result_for_user(game, username)
@@ -1924,11 +2005,11 @@ def import_chesscom_logic(username: str, months: int = 3):
         if not is_unknown_opening_name(n) and context_is_compatible(n, dominant_opening_context(opening_results[n]))
     ]
 
-    style_profile = build_style_profile(all_games, username)
+    style_profile = build_style_profile(analysed_games, username)
     best_openings = build_opening_scores(context_opening_results)
     report_mode_data = detect_report_mode(
         title=player.get("title"),
-        total_games=len(all_games),
+        total_games=len(analysed_games),
         player_level=player.get("title"),
         username=player.get("username", username),
     )
@@ -1939,7 +2020,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
         opening_recommendations,
-        len(all_games),
+        len(analysed_games),
         style_profile,
     )
     training_plan = build_training_plan(
@@ -1970,13 +2051,15 @@ def import_chesscom_logic(username: str, months: int = 3):
         "title": player.get("title"),
         "chessTitle": player.get("title"),
         "chess_title": player.get("title"),
-        "total_games": len(all_games),
-        "totalGames": len(all_games),
-        "gamesImported": len(all_games),
+        "total_games": len(analysed_games),
+        "totalGames": len(analysed_games),
+        "gamesImported": len(analysed_games),
         "gamesFound": len(all_games),
-        "gamesAnalysed": len(all_games),
-        "gamesAnalyzed": len(all_games),
-        "skippedGames": 0,
+        "gamesAnalysed": len(analysed_games),
+        "gamesAnalyzed": len(analysed_games),
+        "skippedGames": len(all_games) - len(analysed_games),
+        "skipped_game_reasons": skipped_reason_counts,
+        "skippedGameReasons": skipped_reason_items(skipped_reason_counts),
         "months_checked": len(selected_archives),
         "monthsChecked": len(selected_archives),
         "archives_checked": archive_breakdown,
@@ -2013,7 +2096,9 @@ def import_chesscom_logic(username: str, months: int = 3):
         {
             "username": username,
             "platform": "chess.com",
-            "gamesImported": len(all_games),
+            "gamesImported": len(analysed_games),
+            "gamesFound": len(all_games),
+            "skippedGames": len(all_games) - len(analysed_games),
             "monthsChecked": len(selected_archives),
         },
     )
@@ -2090,7 +2175,15 @@ def lichess_time_class(game: Dict[str, Any]) -> str:
     return game.get("speed") or game.get("perf") or "unknown"
 
 
-def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: int):
+def build_lichess_analysis(
+    username: str,
+    games: List[Dict[str, Any]],
+    months: int,
+    games_found: Optional[int] = None,
+    skipped_reason_counts: Optional[Dict[str, int]] = None,
+):
+    games_found = games_found if games_found is not None else len(games)
+    skipped_reason_counts = skipped_reason_counts or {key: 0 for key in SKIPPED_REASON_LABELS}
     opening_counter = Counter()
     white_opening_counter = Counter()
     black_opening_counter = Counter()
@@ -2314,24 +2407,26 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
         "total_games": len(games),
         "totalGames": len(games),
         "gamesImported": len(games),
-        "gamesFound": len(games),
+        "gamesFound": games_found,
         "gamesAnalysed": len(games),
         "gamesAnalyzed": len(games),
-        "skippedGames": 0,
+        "skippedGames": max(0, games_found - len(games)),
+        "skipped_game_reasons": skipped_reason_counts,
+        "skippedGameReasons": skipped_reason_items(skipped_reason_counts),
         "months_checked": months,
         "monthsChecked": months,
         "archives_checked": [
             {
                 "archive": f"lichess-last-{months}-months",
-                "games_found": len(games),
-                "gamesFound": len(games),
+                "games_found": games_found,
+                "gamesFound": games_found,
             }
         ],
         "archivesChecked": [
             {
                 "archive": f"lichess-last-{months}-months",
-                "games_found": len(games),
-                "gamesFound": len(games),
+                "games_found": games_found,
+                "gamesFound": games_found,
             }
         ],
         "top_openings": top_openings,
@@ -2367,6 +2462,8 @@ def build_lichess_analysis(username: str, games: List[Dict[str, Any]], months: i
             "username": username,
             "platform": "lichess",
             "gamesImported": len(games),
+            "gamesFound": games_found,
+            "skippedGames": max(0, games_found - len(games)),
             "monthsChecked": months,
         },
     )
@@ -2463,7 +2560,15 @@ def import_lichess_logic(username: str, months: int = 3):
             detail="This Lichess profile exists, but no recent blitz, rapid, or classical public games were found.",
         )
 
-    return build_lichess_analysis(username, games, months)
+    analysed_games, skipped_reason_counts = split_usable_games(games, lichess_skip_reason)
+
+    return build_lichess_analysis(
+        username,
+        analysed_games,
+        months,
+        games_found=len(games),
+        skipped_reason_counts=skipped_reason_counts,
+    )
 
 
 @app.get("/import/chesscom/{username}")

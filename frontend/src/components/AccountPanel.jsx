@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 import "./AccountPanel.css";
 import { startPremiumCheckout, deleteOpeningFitAccount } from "../accountApi";
+import { useAuth } from "../context/AuthDataProvider";
 
 const EMPTY_PROFILE = {
   chesscom_username: "",
@@ -12,14 +13,19 @@ const EMPTY_PROFILE = {
 export default function AccountPanel({ variant = "floating",
   onUserChange,}) {
   const isScreen = variant === "screen";
+  const {
+    user,
+    profile: cloudProfile,
+    loading: accountLoading,
+    error: accountError,
+    refreshUserData,
+    upsertUserData,
+  } = useAuth();
   const [isOpen, setIsOpen] = useState(isScreen);
-  const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
-
-  const user = session?.user || null;
 
   useEffect(() => {
     if (isScreen) setIsOpen(true);
@@ -37,79 +43,17 @@ export default function AccountPanel({ variant = "floating",
   }, [user]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return undefined;
-
-    let mounted = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setSession(data?.session || null);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession || null);
-    });
-
-    return () => {
-      mounted = false;
-      listener?.subscription?.unsubscribe?.();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !user) {
+    if (!user) {
       setProfile(EMPTY_PROFILE);
       return;
     }
 
-    let mounted = true;
-
-    async function loadProfile() {
-      setStatus("");
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("chesscom_username, lichess_username, is_premium")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (!mounted) return;
-
-      if (error) {
-        setStatus(`Could not load profile: ${error.message}`);
-        return;
-      }
-
-      if (data) {
-        setProfile({
-          chesscom_username: data.chesscom_username || "",
-          lichess_username: data.lichess_username || "",
-          is_premium: Boolean(data.is_premium),
-        });
-        return;
-      }
-
-      const { error: insertError } = await supabase.from("profiles").insert({
-        id: user.id,
-        email: user.email || "",
-        chesscom_username: "",
-        lichess_username: "",
-        is_premium: false,
-      });
-
-      if (!mounted) return;
-
-      if (insertError) {
-        setStatus(`Could not create profile: ${insertError.message}`);
-      }
-    }
-
-    loadProfile();
-
-    return () => {
-      mounted = false;
-    };
-  }, [user]);
+    setProfile({
+      chesscom_username: cloudProfile?.chesscom_username || "",
+      lichess_username: cloudProfile?.lichess_username || "",
+      is_premium: Boolean(cloudProfile?.is_premium),
+    });
+  }, [cloudProfile, user]);
 
   const signInWithGoogle = async () => {
     if (!supabase) return;
@@ -156,21 +100,32 @@ export default function AccountPanel({ variant = "floating",
     setSaving(true);
     setStatus("Saving account...");
 
-    const { error } = await supabase.from("profiles").upsert({
-      id: user.id,
-      email: user.email || "",
-      chesscom_username: profile.chesscom_username.trim(),
-      lichess_username: profile.lichess_username.trim(),
-      is_premium: Boolean(profile.is_premium),
-    });
+    try {
+      await upsertUserData(
+        "profiles",
+        {
+          ...(cloudProfile?.id ? { id: cloudProfile.id } : {}),
+          email: user.email || "",
+          display_name:
+            user.user_metadata?.full_name ||
+            user.user_metadata?.display_name ||
+            user.email ||
+            "",
+          chesscom_username: profile.chesscom_username.trim(),
+          lichess_username: profile.lichess_username.trim(),
+          is_premium: Boolean(profile.is_premium),
+        },
+        { onConflict: "user_id" }
+      );
+      await refreshUserData(user);
 
-    setSaving(false);
-
-    if (error) {
-      setStatus(error.message);
-    } else {
+      setSaving(false);
       setStatus("Account saved.");
+    } catch (error) {
+      setSaving(false);
+      setStatus(error.message || "Could not save account.");
     }
+
   };
 
   const signOut = async () => {
@@ -214,7 +169,7 @@ export default function AccountPanel({ variant = "floating",
       setStatus("Deleting account...");
       await deleteOpeningFitAccount(user.id);
       await supabase.auth.signOut();
-      setProfile(null);
+      setProfile(EMPTY_PROFILE);
       setStatus("Account deleted.");
       window.location.reload();
     } catch (error) {
@@ -294,9 +249,15 @@ export default function AccountPanel({ variant = "floating",
           {!isSupabaseConfigured ? (
             <div className="accountNotice">
               Supabase is not configured yet. Add your VITE_SUPABASE_URL and
-              VITE_SUPABASE_ANON_KEY values to <code>frontend/.env.local</code>.
+              VITE_SUPABASE_ANON_KEY (or VITE_SUPABASE_PUBLISHABLE_KEY) values to <code>frontend/.env.local</code>.
             </div>
           ) : null}
+
+          {accountLoading ? (
+            <div className="accountNotice">Restoring your saved account data...</div>
+          ) : null}
+
+          {accountError ? <div className="accountStatus">{accountError}</div> : null}
 
           {isSupabaseConfigured && !user ? (
             <div className="accountAuthStack">

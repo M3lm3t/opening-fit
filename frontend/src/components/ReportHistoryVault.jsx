@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../context/AuthDataProvider";
 
 const HISTORY_KEY = "openingFit:reportHistory:v1";
 
@@ -76,6 +77,7 @@ function writeHistory(items) {
 }
 
 export default function ReportHistoryVault({ data, onLoadReport }) {
+  const { user, reportHistory, saveReport, deleteUserData, refreshUserData } = useAuth();
   const [history, setHistory] = useState(() => readHistory());
   const [status, setStatus] = useState("");
 
@@ -91,12 +93,27 @@ export default function ReportHistoryVault({ data, onLoadReport }) {
   }, [data]);
 
   useEffect(() => {
+    if (user?.id) {
+      setHistory(
+        (reportHistory || []).map((item) => ({
+          id: item.id,
+          createdAt: item.created_at,
+          username: item.username,
+          platform: item.platform,
+          games: item.summary?.games,
+          topOpening: item.summary?.topOpening,
+          data: item.report,
+        }))
+      );
+      return;
+    }
+
     setHistory(readHistory());
-  }, []);
+  }, [reportHistory, user?.id]);
 
   if (!data || !currentSummary) return null;
 
-  const saveCurrentReport = () => {
+  const saveCurrentReport = async () => {
     const now = new Date().toISOString();
 
     const item = {
@@ -108,6 +125,17 @@ export default function ReportHistoryVault({ data, onLoadReport }) {
       topOpening: currentSummary.topOpening,
       data,
     };
+
+    if (user?.id) {
+      try {
+        await saveReport(data, currentSummary);
+        await refreshUserData(user);
+        setStatus("Report saved to your account.");
+      } catch (error) {
+        setStatus(error.message || "Could not save report.");
+      }
+      return;
+    }
 
     const next = [
       item,
@@ -127,7 +155,18 @@ export default function ReportHistoryVault({ data, onLoadReport }) {
     }
   };
 
-  const deleteReport = (id) => {
+  const deleteReport = async (id) => {
+    if (user?.id) {
+      try {
+        await deleteUserData("report_history", id);
+        await refreshUserData(user);
+        setStatus("Saved report removed.");
+      } catch (error) {
+        setStatus(error.message || "Could not remove report.");
+      }
+      return;
+    }
+
     const next = history.filter((item) => item.id !== id);
     writeHistory(next);
     setHistory(next);
@@ -135,6 +174,11 @@ export default function ReportHistoryVault({ data, onLoadReport }) {
   };
 
   const clearHistory = () => {
+    if (user?.id) {
+      setStatus("Delete saved account reports one at a time.");
+      return;
+    }
+
     writeHistory([]);
     setHistory([]);
     setStatus("Report history cleared.");
@@ -147,8 +191,7 @@ export default function ReportHistoryVault({ data, onLoadReport }) {
           <p className="eyebrow">Saved reports</p>
           <h2>Keep your Opening Fit history</h2>
           <p>
-            Save this analysis and reload it later. This is the first step towards
-            proper account history and long-term progress tracking.
+            Save this analysis and reload it automatically from your account on any device.
           </p>
         </div>
 
