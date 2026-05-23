@@ -1202,6 +1202,75 @@ function buildOpeningFitVerdict(fitData, sections = []) {
   };
 }
 
+function weakDataReason(opening) {
+  const context = getOpeningContext(opening);
+  const signal = getOpeningSignal(opening);
+  const games = getOpeningGames(opening);
+
+  if (context.type === "mixed" || context.type === "faced" || itemContext(opening) === "unknown_mixed") {
+    return "context unclear";
+  }
+
+  if (games <= 2 || signal.tier === "tooLittle" || signal.tier === "none") {
+    return "sample too small";
+  }
+
+  if (games <= 7 || signal.tier === "low") {
+    return "early signal only";
+  }
+
+  return "not a clear repertoire signal";
+}
+
+function buildInterestingButThinOpenings(data, fitData, sections = []) {
+  const recommendations =
+    data?.opening_recommendations ||
+    data?.openingRecommendations ||
+    data?.recommendedOpenings ||
+    {};
+  const recommendationItems = [
+    ...(Array.isArray(recommendations.experimental_rare) ? recommendations.experimental_rare : []),
+    ...(Array.isArray(recommendations.experimentalRare) ? recommendations.experimentalRare : []),
+    ...(Array.isArray(recommendations.too_little_data) ? recommendations.too_little_data : []),
+    ...(Array.isArray(recommendations.tooLittleData) ? recommendations.tooLittleData : []),
+  ];
+  const bucketItems = sections.flatMap((section) => section?.buckets?.notEnoughData || []);
+  const scoredItems = (fitData?.scoredOpenings || []).filter((opening) => {
+    const games = getOpeningGames(opening);
+    const context = getOpeningContext(opening);
+    const signal = getOpeningSignal(opening);
+
+    return (
+      games >= 1 &&
+      (games <= 7 ||
+        !signal.canBePrimary ||
+        context.type === "mixed" ||
+        context.type === "faced" ||
+        itemContext(opening) === "unknown_mixed")
+    );
+  });
+
+  return uniqueOpeningsByNameAndContext([
+    ...bucketItems,
+    ...recommendationItems,
+    ...scoredItems,
+  ])
+    .filter((opening) => {
+      const games = getOpeningGames(opening);
+      return games >= 1 && !isUnknownOpeningName(getOpeningName(opening));
+    })
+    .sort((a, b) => {
+      const confidenceDelta = confidencePriority(b) - confidencePriority(a);
+      if (confidenceDelta) return confidenceDelta;
+      return getOpeningGames(b) - getOpeningGames(a);
+    })
+    .slice(0, 8)
+    .map((opening) => ({
+      ...opening,
+      weakDataReason: weakDataReason(opening),
+    }));
+}
+
 function isUnknownOpeningName(name) {
   const normalized = (name || "").toLowerCase().trim();
 
@@ -2866,6 +2935,7 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
   const repertoireReportSections = buildRepertoireReportSections(data);
   const repertoireShape = repertoireShapeSummary(repertoireReportSections);
   const openingFitVerdict = buildOpeningFitVerdict(fitData, repertoireReportSections);
+  const interestingThinOpenings = buildInterestingButThinOpenings(data, fitData, repertoireReportSections);
   const months =
     data.monthsChecked ||
     data.months_checked ||
@@ -2950,6 +3020,37 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
           </ol>
         </div>
       </section>
+
+      {interestingThinOpenings.length ? (
+        <section className="interestingThinDataCard" aria-labelledby="interesting-thin-title">
+          <div className="interestingThinDataHeader">
+            <div>
+              <p className="eyebrow">Interesting but not enough data</p>
+              <h2 id="interesting-thin-title">Interesting but not enough data</h2>
+            </div>
+            <span>{interestingThinOpenings.length}</span>
+          </div>
+
+          <p>
+            These openings were found in your games, but they are not included in your main verdict because the sample size is too small.
+          </p>
+
+          <ul className="interestingThinDataList">
+            {interestingThinOpenings.map((opening, index) => {
+              const games = getOpeningGames(opening);
+
+              return (
+                <li key={`${getOpeningName(opening)}-${itemContext(opening)}-${index}`}>
+                  <strong>{getOpeningName(opening)}</strong>
+                  <span>
+                    {games} game{games === 1 ? "" : "s"} · {opening.weakDataReason}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="commandHeroGrid">
         {card(
@@ -3093,17 +3194,14 @@ function getRolePrimaryOpening(section) {
     ...(section?.buckets?.bestFit || []),
     ...(section?.buckets?.needsReview || []),
     ...(section?.buckets?.risky || []),
-    ...(section?.buckets?.notEnoughData || []),
-  ];
+  ].filter((opening) => getOpeningSignal(opening).canBePrimary && canTreatAsRepertoireOpening(opening));
 
   return (
     [...items].sort((a, b) => {
-      const signalDelta =
-        Number(getOpeningSignal(b).canBePrimary) - Number(getOpeningSignal(a).canBePrimary);
-      if (signalDelta) return signalDelta;
+      const confidenceDelta = confidencePriority(b) - confidencePriority(a);
+      if (confidenceDelta) return confidenceDelta;
       return getOpeningGames(b) - getOpeningGames(a);
     })[0] ||
-    section?.primary ||
     null
   );
 }
