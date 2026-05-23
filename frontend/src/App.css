@@ -27789,6 +27789,78 @@ textarea {
   line-height: 1.35;
 }
 
+.interestingThinDataCard {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.24);
+}
+
+.page.light .interestingThinDataCard,
+[data-theme="light"] .interestingThinDataCard {
+  background: rgba(248, 250, 252, 0.82);
+}
+
+.interestingThinDataHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.interestingThinDataHeader h2 {
+  margin: 4px 0 0;
+  font-size: 1.15rem;
+}
+
+.interestingThinDataHeader > span {
+  min-width: 34px;
+  min-height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #061019;
+  background: #f8d66d;
+  font-weight: 900;
+}
+
+.interestingThinDataCard > p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.interestingThinDataList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.interestingThinDataList li {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.interestingThinDataList strong,
+.interestingThinDataList span {
+  overflow-wrap: anywhere;
+}
+
+.interestingThinDataList span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
 .nextBestActionCard button,
 .commandUpgradeCta {
   border: 0;
@@ -28452,6 +28524,7 @@ textarea {
   .roleReportGrid,
   .roleReportStats,
   .openingFitVerdictCard,
+  .interestingThinDataHeader,
   .nextBestActionCard,
   .commandOpeningRow,
   .sevenDayPlanHeader,
