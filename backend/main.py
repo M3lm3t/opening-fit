@@ -890,6 +890,8 @@ BLACK_OPENING_NAME_PATTERNS = [
     "nimzo",
     "queen's indian",
     "king's indian",
+    "queen's gambit declined",
+    "queen's gambit accepted",
     "grunfeld",
     "grünfeld",
     "slav",
@@ -979,8 +981,11 @@ def black_context_from_first_white_move(first_white_move: str) -> str:
     if clean == "e4":
         return "black_vs_e4"
 
-    if clean in {"d4", "c4", "Nf3", "g3", "b3"}:
-        return "black_vs_d4_other"
+    if clean == "d4":
+        return "black_vs_d4"
+
+    if clean in {"c4", "Nf3", "g3", "b3"}:
+        return "black_vs_other"
 
     return "unknown_mixed"
 
@@ -999,7 +1004,9 @@ def context_label(context: str) -> str:
     return {
         "played_as_white": "played as White",
         "black_vs_e4": "played as Black vs 1.e4",
-        "black_vs_d4_other": "played as Black vs 1.d4 / 1.c4 / 1.Nf3",
+        "black_vs_d4": "played as Black vs 1.d4",
+        "black_vs_other": "played as Black vs other first moves",
+        "black_vs_d4_other": "played as Black vs 1.d4 / other first moves",
         "unknown_mixed": "unknown / mixed",
     }.get(context, "unknown / mixed")
 
@@ -1094,7 +1101,7 @@ def context_colour(context: str) -> str:
     if context == "played_as_white":
         return "white"
 
-    if context in {"black_vs_e4", "black_vs_d4_other"}:
+    if context in {"black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other"}:
         return "black"
 
     return "mixed"
@@ -1104,6 +1111,8 @@ def dominant_opening_context(stats: Dict[str, int]) -> str:
     context_counts = {
         "played_as_white": int(stats.get("played_as_white", 0) or 0),
         "black_vs_e4": int(stats.get("black_vs_e4", 0) or 0),
+        "black_vs_d4": int(stats.get("black_vs_d4", 0) or 0),
+        "black_vs_other": int(stats.get("black_vs_other", 0) or 0),
         "black_vs_d4_other": int(stats.get("black_vs_d4_other", 0) or 0),
         "unknown_mixed": int(stats.get("unknown_mixed", 0) or 0),
     }
@@ -1131,6 +1140,8 @@ def empty_opening_stats() -> Dict[str, Any]:
         "black": 0,
         "played_as_white": 0,
         "black_vs_e4": 0,
+        "black_vs_d4": 0,
+        "black_vs_other": 0,
         "black_vs_d4_other": 0,
         "unknown_mixed": 0,
     }
@@ -1176,7 +1187,7 @@ def context_is_compatible(name: str, context: str) -> bool:
     if context == "played_as_white":
         return hint != "black"
 
-    if context in {"black_vs_e4", "black_vs_d4_other"}:
+    if context in {"black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other"}:
         return hint != "white"
 
     return False
@@ -1190,13 +1201,13 @@ def repertoire_context_title(opening: Dict[str, Any]) -> str:
     if context == "played_as_white" and hint == "black":
         return f"facing {name} as White"
 
-    if context in {"black_vs_e4", "black_vs_d4_other"} and hint == "white":
+    if context in {"black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other"} and hint == "white":
         return f"facing {name} as Black"
 
     if context == "played_as_white":
         return f"{name} as White"
 
-    if context in {"black_vs_e4", "black_vs_d4_other"}:
+    if context in {"black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other"}:
         return f"{name} as Black"
 
     return f"{name} as a mixed signal"
@@ -1215,7 +1226,8 @@ def build_colour_aware_recommendations(
     sections = {
         "white_repertoire": [],
         "black_vs_e4": [],
-        "black_vs_d4_other": [],
+        "black_vs_d4": [],
+        "black_vs_other": [],
         "experimental_rare": [],
         "too_little_data": [],
     }
@@ -1259,6 +1271,8 @@ def build_colour_aware_recommendations(
             continue
 
         section_key = "white_repertoire" if context == "played_as_white" else context
+        if section_key == "black_vs_d4_other":
+            section_key = "black_vs_d4"
 
         if section_key in sections:
             sections[section_key].append(item)
@@ -1274,18 +1288,24 @@ def build_colour_aware_recommendations(
         )[:max_items]
 
     sections = {key: rank(value) for key, value in sections.items()}
-    black_combined = sections["black_vs_e4"] + sections["black_vs_d4_other"]
+    black_combined = sections["black_vs_e4"] + sections["black_vs_d4"] + sections["black_vs_other"]
+    black_d4_other = sections["black_vs_d4"] + sections["black_vs_other"]
 
     return {
         **sections,
+        "black_vs_d4_other": black_d4_other,
         "white": [item["name"] for item in sections["white_repertoire"]],
         "black": [item["name"] for item in black_combined[:max_items]],
         "blackVsE4": [item["name"] for item in sections["black_vs_e4"]],
-        "blackVsD4Other": [item["name"] for item in sections["black_vs_d4_other"]],
+        "blackVsD4": [item["name"] for item in sections["black_vs_d4"]],
+        "blackVsOther": [item["name"] for item in sections["black_vs_other"]],
+        "blackVsD4Other": [item["name"] for item in black_d4_other],
         "whiteDetailed": sections["white_repertoire"],
         "blackDetailed": black_combined[:max_items],
         "blackVsE4Detailed": sections["black_vs_e4"],
-        "blackVsD4OtherDetailed": sections["black_vs_d4_other"],
+        "blackVsD4Detailed": sections["black_vs_d4"],
+        "blackVsOtherDetailed": sections["black_vs_other"],
+        "blackVsD4OtherDetailed": black_d4_other,
         "experimentalRare": sections["experimental_rare"],
         "tooLittleData": sections["too_little_data"],
         "sections": [
@@ -1300,9 +1320,14 @@ def build_colour_aware_recommendations(
                 "items": sections["black_vs_e4"],
             },
             {
-                "key": "black_vs_d4_other",
-                "title": "Black vs 1.d4 / 1.c4 / 1.Nf3",
-                "items": sections["black_vs_d4_other"],
+                "key": "black_vs_d4",
+                "title": "Black vs 1.d4",
+                "items": sections["black_vs_d4"],
+            },
+            {
+                "key": "black_vs_other",
+                "title": "Black vs other first moves",
+                "items": sections["black_vs_other"],
             },
             {
                 "key": "experimental_rare",
@@ -1390,7 +1415,12 @@ def build_opening_fit_profile(
     openings = [item for item in best_openings if not is_unknown_opening_name(item.get("name", ""))]
     total_opening_games = sum(int(item.get("games", 0) or 0) for item in openings)
     white_items = [item for item in openings if item.get("context") == "played_as_white" or item.get("colour") == "white"]
-    black_items = [item for item in openings if item.get("context") in {"black_vs_e4", "black_vs_d4_other"} or item.get("colour") == "black"]
+    black_items = [
+        item
+        for item in openings
+        if item.get("context") in {"black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other"}
+        or item.get("colour") == "black"
+    ]
     black_e4_items = [item for item in openings if item.get("context") == "black_vs_e4"]
     rare_count = len(opening_recommendations.get("experimental_rare", [])) + len(opening_recommendations.get("too_little_data", []))
     weak_items = [
@@ -2729,11 +2759,14 @@ def demo_profile():
             opening_item("Scandinavian Defence", 7, "black_vs_e4", {"games": 7, "wins": 4}),
             opening_item("Caro-Kann Defence", 4, "black_vs_e4", {"games": 4, "wins": 2}),
         ],
-        "black_vs_d4_other": [
-            opening_item("Queen's Gambit Declined", 3, "black_vs_d4_other", {"games": 3, "wins": 1}),
+        "black_vs_d4": [
+            opening_item("Queen's Gambit Declined", 3, "black_vs_d4", {"games": 3, "wins": 1}),
+        ],
+        "black_vs_other": [
+            opening_item("King's Indian setup", 2, "black_vs_other", {"games": 2, "wins": 1}),
         ],
         "experimental_rare": [
-            opening_item("Englund Gambit", 1, "black_vs_d4_other", {"games": 1, "wins": 0}),
+            opening_item("Englund Gambit", 1, "black_vs_d4", {"games": 1, "wins": 0}),
         ],
         "too_little_data": [
             {
@@ -2749,26 +2782,40 @@ def demo_profile():
                 item["name"]
                 for item in (
                     opening_recommendations["black_vs_e4"]
-                    + opening_recommendations["black_vs_d4_other"]
+                    + opening_recommendations["black_vs_d4"]
+                    + opening_recommendations["black_vs_other"]
                 )
             ],
             "blackVsE4": [item["name"] for item in opening_recommendations["black_vs_e4"]],
+            "blackVsD4": [item["name"] for item in opening_recommendations["black_vs_d4"]],
+            "blackVsOther": [item["name"] for item in opening_recommendations["black_vs_other"]],
             "blackVsD4Other": [
-                item["name"] for item in opening_recommendations["black_vs_d4_other"]
+                item["name"]
+                for item in (
+                    opening_recommendations["black_vs_d4"]
+                    + opening_recommendations["black_vs_other"]
+                )
             ],
             "whiteDetailed": opening_recommendations["white_repertoire"],
             "blackDetailed": (
                 opening_recommendations["black_vs_e4"]
-                + opening_recommendations["black_vs_d4_other"]
+                + opening_recommendations["black_vs_d4"]
+                + opening_recommendations["black_vs_other"]
             ),
             "blackVsE4Detailed": opening_recommendations["black_vs_e4"],
-            "blackVsD4OtherDetailed": opening_recommendations["black_vs_d4_other"],
+            "blackVsD4Detailed": opening_recommendations["black_vs_d4"],
+            "blackVsOtherDetailed": opening_recommendations["black_vs_other"],
+            "blackVsD4OtherDetailed": (
+                opening_recommendations["black_vs_d4"]
+                + opening_recommendations["black_vs_other"]
+            ),
             "experimentalRare": opening_recommendations["experimental_rare"],
             "tooLittleData": opening_recommendations["too_little_data"],
             "sections": [
                 {"key": "white_repertoire", "title": "White repertoire", "items": opening_recommendations["white_repertoire"]},
                 {"key": "black_vs_e4", "title": "Black vs 1.e4", "items": opening_recommendations["black_vs_e4"]},
-                {"key": "black_vs_d4_other", "title": "Black vs 1.d4 / 1.c4 / 1.Nf3", "items": opening_recommendations["black_vs_d4_other"]},
+                {"key": "black_vs_d4", "title": "Black vs 1.d4", "items": opening_recommendations["black_vs_d4"]},
+                {"key": "black_vs_other", "title": "Black vs other first moves", "items": opening_recommendations["black_vs_other"]},
                 {"key": "experimental_rare", "title": "Experimental / rare openings", "items": opening_recommendations["experimental_rare"]},
                 {"key": "too_little_data", "title": "Too little data", "items": opening_recommendations["too_little_data"]},
             ],

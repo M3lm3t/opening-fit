@@ -75,8 +75,12 @@ function guessWhiteOpening(data) {
 function guessBlackOpening(data) {
   const vsE4 = data?.opening_recommendations?.black_vs_e4?.[0];
   if (vsE4?.name) return `${vsE4.name} vs 1.e4`;
-  const vsD4 = data?.opening_recommendations?.black_vs_d4_other?.[0];
-  if (vsD4?.name) return `${vsD4.name} vs 1.d4 / 1.c4 / 1.Nf3`;
+  const vsD4 =
+    data?.opening_recommendations?.black_vs_d4?.[0] ||
+    data?.opening_recommendations?.black_vs_d4_other?.[0];
+  if (vsD4?.name) return `${vsD4.name} vs 1.d4`;
+  const vsOther = data?.opening_recommendations?.black_vs_other?.[0];
+  if (vsOther?.name) return `${vsOther.name} vs other first moves`;
 
   const blackTop = pickTopOpenings(data).find((item) => {
     const colour = String(item?.colour || item?.color || "").toLowerCase();
