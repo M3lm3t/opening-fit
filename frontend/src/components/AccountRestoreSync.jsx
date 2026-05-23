@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { loadAccountProfile, syncAccountProfile } from "../accountApi";
+import { useAuth } from "../context/AuthDataProvider";
 
 export default function AccountRestoreSync({
   user,
@@ -11,53 +11,50 @@ export default function AccountRestoreSync({
   setData,
   setIsPremium,
 }) {
+  const {
+    loading,
+    profile,
+    reportHistory,
+    saveSettings,
+    upsertUserData,
+    refreshUserData,
+  } = useAuth();
   const restoredUserRef = useRef(null);
   const lastSavedRef = useRef("");
 
   useEffect(() => {
-    let cancelled = false;
+    if (loading || !user?.id) return;
+    if (restoredUserRef.current === user.id) return;
 
-    async function restoreAccount() {
-      if (!user?.id) return;
-      if (restoredUserRef.current === user.id) return;
+    const latestReport = profile?.last_report || reportHistory?.[0]?.report || null;
 
-      try {
-        const result = await loadAccountProfile(user.id);
-        const profile = result?.profile;
-
-        if (!profile || cancelled) {
-          restoredUserRef.current = user.id;
-          return;
-        }
-
-        if (profile.username && typeof setUsername === "function") {
-          setUsername(profile.username);
-        }
-
-        if (profile.platform && typeof setPlatform === "function") {
-          setPlatform(profile.platform);
-        }
-
-        if (profile.last_report && typeof setData === "function") {
-          setData(profile.last_report);
-        }
-
-        if (typeof setIsPremium === "function") {
-          setIsPremium(Boolean(profile.is_premium));
-        }
-
-        restoredUserRef.current = user.id;
-      } catch (error) {
-        console.warn("Could not restore Opening Fit account profile", error);
-      }
+    if (profile?.username && typeof setUsername === "function") {
+      setUsername(profile.username);
     }
 
-    restoreAccount();
+    if (profile?.platform && typeof setPlatform === "function") {
+      setPlatform(profile.platform);
+    }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, setUsername, setPlatform, setData, setIsPremium]);
+    if (latestReport && typeof setData === "function") {
+      setData(latestReport);
+    }
+
+    if (typeof setIsPremium === "function") {
+      setIsPremium(Boolean(profile?.is_premium));
+    }
+
+    restoredUserRef.current = user.id;
+  }, [
+    loading,
+    profile,
+    reportHistory,
+    user?.id,
+    setUsername,
+    setPlatform,
+    setData,
+    setIsPremium,
+  ]);
 
   useEffect(() => {
     async function saveAccount() {
@@ -83,22 +80,47 @@ export default function AccountRestoreSync({
       });
 
       if (lastSavedRef.current === saveSignature) return;
+
+      if (data && profile?.last_report === data && !lastSavedRef.current) {
+        lastSavedRef.current = saveSignature;
+        return;
+      }
+
       lastSavedRef.current = saveSignature;
 
       try {
-        await syncAccountProfile({
-          user,
-          username,
-          platform,
-          lastReport: data || null,
+        await upsertUserData(
+          "profiles",
+          {
+            ...(profile?.id ? { id: profile.id } : {}),
+            email: user.email || "",
+            display_name:
+              user.user_metadata?.full_name ||
+              user.user_metadata?.display_name ||
+              user.email ||
+              "",
+            username: username || null,
+            platform: platform || null,
+            last_report: data || null,
+          },
+          { onConflict: "user_id" }
+        );
+
+        await saveSettings({
+          preferences: {
+            lastUsername: username || "",
+            lastPlatform: platform || "",
+          },
         });
+
+        await refreshUserData(user);
       } catch (error) {
-        console.warn("Could not save Opening Fit account profile", error);
+        console.warn("Could not save Opening Fit account data", error);
       }
     }
 
     saveAccount();
-  }, [user, username, platform, data]);
+  }, [data, platform, profile?.id, refreshUserData, saveSettings, upsertUserData, user, username]);
 
   return null;
 }

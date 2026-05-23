@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+import { getSettings, saveSettings } from "../services/userDataService";
 
 function normalisePlatform(value) {
   const platform = String(value || "unknown").trim().toLowerCase();
@@ -47,43 +47,30 @@ export async function fetchOpeningFitCloudState(user, data = {}) {
   const identity = getCloudIdentity(user, data);
   if (!identity) return null;
 
-  const params = new URLSearchParams({
-    platform: identity.platform,
-    username: identity.username,
-  });
-
-  const response = await fetch(
-    `${API_BASE}/api/account/state/${identity.userId}?${params.toString()}`
-  );
-
-  if (!response.ok) {
-    throw new Error(`Cloud state fetch failed: ${response.status}`);
-  }
-
-  return response.json();
+  const settings = await getSettings(identity.userId);
+  const stateKey = `${identity.platform}:${identity.username}`.toLowerCase();
+  return settings?.preferences?.openingFitState?.[stateKey] || null;
 }
 
 export async function saveOpeningFitCloudState(user, data = {}, partialState = {}) {
   const identity = getCloudIdentity(user, data);
   if (!identity) return null;
 
-  const response = await fetch(`${API_BASE}/api/account/state`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const settings = await getSettings(identity.userId);
+  const stateKey = `${identity.platform}:${identity.username}`.toLowerCase();
+  const currentState = settings?.preferences?.openingFitState || {};
+
+  return saveSettings(identity.userId, {
+    preferences: {
+      openingFitState: {
+        ...currentState,
+        [stateKey]: {
+          ...(currentState[stateKey] || {}),
+          platform: identity.platform,
+          username: identity.username,
+          ...partialState,
+        },
+      },
     },
-    body: JSON.stringify({
-      user_id: identity.userId,
-      platform: identity.platform,
-      username: identity.username,
-      ...partialState,
-    }),
   });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || `Cloud state save failed: ${response.status}`);
-  }
-
-  return response.json();
 }
