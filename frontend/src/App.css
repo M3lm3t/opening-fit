@@ -15783,6 +15783,93 @@ textarea {
   line-height: 1.45;
 }
 
+.historyLoginNote {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  border-radius: 16px;
+  color: #fde68a;
+  background: rgba(251, 191, 36, 0.08);
+  font-weight: 800;
+}
+
+.historySnapshotGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.historyComparisonTable {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.historyComparisonHeader,
+.historyComparisonRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(120px, 0.65fr) minmax(120px, 0.65fr) minmax(100px, 0.45fr);
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.historyComparisonHeader {
+  color: rgba(248, 250, 252, 0.58);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.historyComparisonRow {
+  padding: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.065);
+}
+
+.historyComparisonRow strong,
+.historyComparisonRow span,
+.historyComparisonRow small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.historyComparisonRow small {
+  display: block;
+  margin-top: 0.2rem;
+  color: rgba(248, 250, 252, 0.55);
+  font-size: 0.76rem;
+}
+
+.trendPill {
+  justify-self: start;
+  border-radius: 999px;
+  padding: 0.35rem 0.55rem;
+  color: #f8fafc;
+  background: rgba(148, 163, 184, 0.18);
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.trend-improving {
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.18);
+}
+
+.trend-declining,
+.trend-still-weak {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.trend-stable {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.16);
+}
+
 .historyStatus {
   margin: 0.85rem 0 0;
   color: #86efac;
@@ -15874,7 +15961,10 @@ textarea {
   }
 
   .reportHistoryHeader,
-  .historyItem {
+  .historyItem,
+  .historySnapshotGrid,
+  .historyComparisonHeader,
+  .historyComparisonRow {
     grid-template-columns: 1fr;
   }
 
