@@ -227,12 +227,26 @@ export function getOpeningContext(opening) {
   }
 
   if (isBlackContext) {
+    const isVsOther =
+      rawContext.includes("black_vs_other") ||
+      rawContext.includes("other first") ||
+      rawContext.includes("1.c4") ||
+      rawContext.includes("1.nf3") ||
+      rawContext.includes("c4") ||
+      rawContext.includes("nf3");
+    const isVsD4 =
+      rawContext.includes("black_vs_d4") ||
+      rawContext.includes("vs 1.d4") ||
+      rawContext.includes("vs d4");
+
     return {
       type: "black",
       label: "As Black",
-      detail: rawContext.includes("d4") || rawContext.includes("c4") || rawContext.includes("nf3")
-        ? "played as Black vs 1.d4 / other setups"
-        : rawContext.includes("e4")
+      detail: isVsOther
+        ? "played as Black vs other first moves"
+        : isVsD4
+          ? "played as Black vs 1.d4"
+          : rawContext.includes("e4")
           ? "played as Black vs 1.e4"
           : "played as Black",
       canRecommend: true,
@@ -697,7 +711,8 @@ export function getEvidenceNextAction(opening, slot = "", data = null) {
   }
 
   if (slot === "black_vs_e4") return `Save one clear plan for ${name} against 1.e4.`;
-  if (slot === "black_vs_d4_other") return `Check the first 8 moves of your ${name} games against queen-pawn or flank setups.`;
+  if (slot === "black_vs_d4") return `Check the first 8 moves of your ${name} games against 1.d4.`;
+  if (slot === "black_vs_other" || slot === "black_vs_d4_other") return `Check the first 8 moves of your ${name} games against flank and other first-move setups.`;
   if (slot === "white_repertoire") return `Write one move-10 plan for ${name} and test it in your next White games.`;
   if (context.type === "white") return `Write one move-10 plan for ${name} and test it in your next White games.`;
   if (context.type === "black") return `Save one clear Black plan for ${name} and review the first repeated branch.`;

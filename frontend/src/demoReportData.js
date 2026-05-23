@@ -100,15 +100,26 @@ export const DEMO_REPORT = {
         reason: "Playable, but your early queen moves need tidying up.",
       },
     ],
-    black_vs_d4_other: [
+    black_vs_d4: [
       {
         name: "Queen's Gambit Declined",
         games: 6,
         colour: "black",
         color: "black",
-        context: "black_vs_d4_other",
-        contextLabel: "played as Black vs 1.d4 / 1.c4 / 1.Nf3",
+        context: "black_vs_d4",
+        contextLabel: "played as Black vs 1.d4",
         reason: "Use it as the calmer answer to queen-pawn and flank starts.",
+      },
+    ],
+    black_vs_other: [
+      {
+        name: "King's Indian setup",
+        games: 4,
+        colour: "black",
+        color: "black",
+        context: "black_vs_other",
+        contextLabel: "played as Black vs other first moves",
+        reason: "Use a compact setup against 1.c4, 1.Nf3, and other flank starts.",
       },
     ],
     experimental_rare: [
@@ -117,8 +128,8 @@ export const DEMO_REPORT = {
         games: 1,
         colour: "black",
         color: "black",
-        context: "black_vs_d4_other",
-        contextLabel: "played as Black vs 1.d4 / 1.c4 / 1.Nf3",
+        context: "black_vs_d4",
+        contextLabel: "played as Black vs 1.d4",
         reason: "Treat this as a rare experiment, not a core defence.",
       },
     ],

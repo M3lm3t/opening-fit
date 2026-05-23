@@ -290,6 +290,16 @@ function recommendationBuckets(data) {
       ...asArray(rec.blackVsE4),
     ],
     blackVsD4: [
+      ...asArray(rec.black_vs_d4),
+      ...asArray(rec.blackVsD4Detailed),
+      ...asArray(rec.blackVsD4),
+    ],
+    blackVsOther: [
+      ...asArray(rec.black_vs_other),
+      ...asArray(rec.blackVsOtherDetailed),
+      ...asArray(rec.blackVsOther),
+    ],
+    blackLegacyD4Other: [
       ...asArray(rec.black_vs_d4_other),
       ...asArray(rec.blackVsD4OtherDetailed),
       ...asArray(rec.blackVsD4Other),
@@ -469,7 +479,17 @@ function buildPlan(data) {
     pickBest(sideAwareStats(statsByName, "white"), statsByName, "played_as_white", "white");
 
   const blackVsE4 = pickBest(buckets.blackVsE4, statsByName, "black_vs_e4", "e4");
-  const explicitD4 = pickBest(buckets.blackVsD4, statsByName, "black_vs_d4_other", "d4");
+  const explicitD4 =
+    pickBest(buckets.blackVsD4, statsByName, "black_vs_d4", "d4") ||
+    pickBest(buckets.blackLegacyD4Other, statsByName, "black_vs_d4", "d4");
+  const blackVsOther =
+    pickBest(buckets.blackVsOther, statsByName, "black_vs_other", "black") ||
+    pickBest(
+      buckets.blackLegacyD4Other.filter((item) => !/queen|dutch|nimzo|king.?s indian|slav|benoni|benko|englund/i.test(String(item?.name || ""))),
+      statsByName,
+      "black_vs_other",
+      "black"
+    );
   const blackFallback =
     explicitD4 ||
     pickBest(
@@ -496,6 +516,7 @@ function buildPlan(data) {
     { item: white, slot: "white" },
     { item: blackVsE4, slot: "black-e4" },
     { item: explicitD4 || blackFallback, slot: "black-d4" },
+    { item: blackVsOther, slot: "black-other" },
   ];
   const actions = actionSources
     .map(({ item, slot }) => nextAction(item, slot))
@@ -515,6 +536,7 @@ function buildPlan(data) {
     white,
     blackVsE4,
     blackVsD4: explicitD4 || blackFallback,
+    blackVsOther,
     mixedSignals,
     d4Cautious,
     actions: actions.slice(0, 3),
@@ -609,7 +631,7 @@ export default function OpeningFitRepertoirePlan({ data }) {
         <PlanCard title="Your White plan" item={plan.white} slot="white" />
         <PlanCard title="Black vs 1.e4" item={plan.blackVsE4} slot="black-e4" />
         <PlanCard
-          title="Black vs 1.d4 / other setups"
+          title="Black vs 1.d4"
           item={plan.blackVsD4}
           slot="black-d4"
           cautiousLabel={
@@ -618,6 +640,7 @@ export default function OpeningFitRepertoirePlan({ data }) {
               : null
           }
         />
+        <PlanCard title="Black vs other first moves" item={plan.blackVsOther} slot="black-other" />
         <MixedSignalsCard items={plan.mixedSignals} />
         <article className="fitPlanCard fitPlanActionsCard">
           <div className="fitPlanCardTop">

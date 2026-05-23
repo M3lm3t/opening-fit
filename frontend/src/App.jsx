@@ -468,6 +468,8 @@ const BLACK_OPENING_NAME_PATTERNS = [
   "nimzo",
   "queen's indian",
   "king's indian",
+  "queen's gambit declined",
+  "queen's gambit accepted",
   "grunfeld",
   "grünfeld",
   "slav",
@@ -522,10 +524,28 @@ function contextLabel(context = "") {
     {
       played_as_white: "played as White",
       black_vs_e4: "played as Black vs 1.e4",
-      black_vs_d4_other: "played as Black vs 1.d4 / 1.c4 / 1.Nf3",
+      black_vs_d4: "played as Black vs 1.d4",
+      black_vs_other: "played as Black vs other first moves",
+      black_vs_d4_other: "played as Black vs 1.d4 / other first moves",
       unknown_mixed: "unknown / mixed",
     }[context] || "unknown / mixed"
   );
+}
+
+const BLACK_REPERTOIRE_CONTEXTS = new Set([
+  "black_vs_e4",
+  "black_vs_d4",
+  "black_vs_other",
+  "black_vs_d4_other",
+]);
+
+function normalizeBlackRepertoireContext(context, item = null) {
+  if (context !== "black_vs_d4_other") return context;
+
+  const firstMoveBucket = firstMoveBucketForOpening(item || {});
+  return firstMoveBucket && firstMoveBucket !== "black_vs_e4"
+    ? firstMoveBucket
+    : "black_vs_d4";
 }
 
 function itemContext(item, fallback = "unknown_mixed") {
@@ -537,33 +557,36 @@ function itemContext(item, fallback = "unknown_mixed") {
     "";
   const context = String(raw).trim();
 
-  if (
-    ["played_as_white", "black_vs_e4", "black_vs_d4_other", "unknown_mixed"].includes(
-      context
-    )
-  ) {
+  if (["played_as_white", "unknown_mixed"].includes(context)) {
     return context;
   }
 
-  const side = String(getOpeningSide(item)).toLowerCase();
   const firstMoveBucket = firstMoveBucketForOpening(item);
+
+  if (BLACK_REPERTOIRE_CONTEXTS.has(context)) {
+    return normalizeBlackRepertoireContext(context, item);
+  }
+
+  const side = String(getOpeningSide(item)).toLowerCase();
 
   if (side.includes("white")) return "played_as_white";
   if (side.includes("black")) {
     if (firstMoveBucket) return firstMoveBucket;
-    return fallback === "played_as_white" ? "unknown_mixed" : fallback;
+    return fallback === "played_as_white"
+      ? "unknown_mixed"
+      : normalizeBlackRepertoireContext(fallback, item);
   }
 
   if (fallback !== "played_as_white" && firstMoveBucket) return firstMoveBucket;
 
-  return fallback;
+  return normalizeBlackRepertoireContext(fallback, item);
 }
 
 function contextIsCompatible(name, context) {
   const hint = openingNameColourHint(name);
 
   if (context === "played_as_white") return hint !== "black";
-  if (context === "black_vs_e4" || context === "black_vs_d4_other") return hint !== "white";
+  if (BLACK_REPERTOIRE_CONTEXTS.has(context)) return hint !== "white";
 
   return false;
 }
@@ -597,6 +620,8 @@ function normalizeRecommendationSection(items, fallbackContext) {
     {
       white_repertoire: "played_as_white",
       black_vs_e4: "black_vs_e4",
+      black_vs_d4: "black_vs_d4",
+      black_vs_other: "black_vs_other",
       black_vs_d4_other: "black_vs_d4_other",
       experimental_rare: "unknown_mixed",
       too_little_data: "unknown_mixed",
@@ -615,11 +640,32 @@ function getColourAwareRecommendationSections(data) {
     {};
 
   const fromBackend = Array.isArray(recommendations.sections)
-    ? recommendations.sections.map((section) => ({
-        key: section.key,
-        title: section.title,
-        items: normalizeRecommendationSection(section.items, section.key),
-      }))
+    ? recommendations.sections.flatMap((section) => {
+        const items = normalizeRecommendationSection(section.items, section.key);
+
+        if (section.key !== "black_vs_d4_other") {
+          return [
+            {
+              key: section.key,
+              title: section.title,
+              items,
+            },
+          ];
+        }
+
+        return [
+          {
+            key: "black_vs_d4",
+            title: "Black vs 1.d4",
+            items: items.filter((item) => item.context === "black_vs_d4"),
+          },
+          {
+            key: "black_vs_other",
+            title: "Black vs other first moves",
+            items: items.filter((item) => item.context === "black_vs_other"),
+          },
+        ];
+      })
     : null;
 
   if (fromBackend) return fromBackend;
@@ -643,6 +689,20 @@ function getColourAwareRecommendationSections(data) {
     "black_vs_e4"
   );
   const blackVsD4 = normalizeRecommendationSection(
+    recommendations.black_vs_d4 ||
+      recommendations.blackVsD4Detailed ||
+      recommendations.blackVsD4 ||
+      [],
+    "black_vs_d4"
+  );
+  const blackVsOther = normalizeRecommendationSection(
+    recommendations.black_vs_other ||
+      recommendations.blackVsOtherDetailed ||
+      recommendations.blackVsOther ||
+      [],
+    "black_vs_other"
+  );
+  const legacyBlackVsD4Other = normalizeRecommendationSection(
     recommendations.black_vs_d4_other ||
       recommendations.blackVsD4OtherDetailed ||
       recommendations.blackVsD4Other ||
@@ -662,9 +722,14 @@ function getColourAwareRecommendationSections(data) {
     { key: "white_repertoire", title: "White repertoire", items: white },
     { key: "black_vs_e4", title: "Black vs 1.e4", items: blackVsE4 },
     {
-      key: "black_vs_d4_other",
-      title: "Black vs 1.d4 / 1.c4 / 1.Nf3",
-      items: blackVsD4,
+      key: "black_vs_d4",
+      title: "Black vs 1.d4",
+      items: [...blackVsD4, ...legacyBlackVsD4Other.filter((item) => item.context === "black_vs_d4")],
+    },
+    {
+      key: "black_vs_other",
+      title: "Black vs other first moves",
+      items: [...blackVsOther, ...legacyBlackVsD4Other.filter((item) => item.context === "black_vs_other")],
     },
     { key: "experimental_rare", title: "Experimental / rare openings", items: experimental },
     { key: "too_little_data", title: "Too little data", items: tooLittle },
@@ -674,21 +739,31 @@ function getColourAwareRecommendationSections(data) {
 const REPERTOIRE_SECTION_ORDER = [
   {
     key: "white_repertoire",
-    title: "White repertoire",
+    title: "As White",
     context: "played_as_white",
     empty: "No clean White repertoire signal yet.",
+    roleLabel: "Main opening or setup",
   },
   {
     key: "black_vs_e4",
-    title: "Black vs e4",
+    title: "As Black vs 1.e4",
     context: "black_vs_e4",
     empty: "No clean Black response to 1.e4 yet.",
+    roleLabel: "Main defence",
   },
   {
-    key: "black_vs_d4_other",
-    title: "Black vs d4 / other first moves",
-    context: "black_vs_d4_other",
-    empty: "No clean Black response to 1.d4, 1.c4, or 1.Nf3 yet.",
+    key: "black_vs_d4",
+    title: "As Black vs 1.d4",
+    context: "black_vs_d4",
+    empty: "No clean Black response to 1.d4 yet.",
+    roleLabel: "Main defence",
+  },
+  {
+    key: "black_vs_other",
+    title: "As Black vs other first moves",
+    context: "black_vs_other",
+    empty: "No clean Black response to 1.c4, 1.Nf3, or other starts yet.",
+    roleLabel: "Main setup",
   },
 ];
 
@@ -787,20 +862,18 @@ function firstMoveBucketForOpening(opening) {
 
   if (cleanFirstMove === "e4") return "black_vs_e4";
 
-  if (["d4", "c4", "nf3", "g3", "b3"].includes(cleanFirstMove)) {
-    return "black_vs_d4_other";
-  }
+  if (cleanFirstMove === "d4") return "black_vs_d4";
+
+  if (["c4", "nf3", "g3", "b3"].includes(cleanFirstMove)) return "black_vs_other";
 
   if (text.includes("black_vs_e4") || text.includes("vs 1.e4") || text.includes("vs e4")) {
     return "black_vs_e4";
   }
 
   if (
-    text.includes("black_vs_d4") ||
+    (text.includes("black_vs_d4") && !text.includes("black_vs_d4_other")) ||
     text.includes("vs 1.d4") ||
     text.includes("vs d4") ||
-    text.includes("1.c4") ||
-    text.includes("1.nf3") ||
     text.includes("queen's gambit") ||
     text.includes("dutch") ||
     text.includes("nimzo") ||
@@ -811,7 +884,25 @@ function firstMoveBucketForOpening(opening) {
     text.includes("benko") ||
     text.includes("englund")
   ) {
-    return "black_vs_d4_other";
+    return "black_vs_d4";
+  }
+
+  if (
+    text.includes("black_vs_other") ||
+    text.includes("other first") ||
+    text.includes("vs 1.c4") ||
+    text.includes("vs c4") ||
+    text.includes("1.c4") ||
+    text.includes("vs 1.nf3") ||
+    text.includes("vs nf3") ||
+    text.includes("1.nf3") ||
+    text.includes("english opening") ||
+    text.includes("reti") ||
+    text.includes("réti") ||
+    text.includes("bird's opening") ||
+    text.includes("polish opening")
+  ) {
+    return "black_vs_other";
   }
 
   return "";
@@ -845,9 +936,12 @@ function buildRepertoireReportSections(data) {
 
       if (section.context === "played_as_white") return hint === "white";
       if (section.context === "black_vs_e4") {
-        return (hint === "black" || side.includes("black")) && bucket !== "black_vs_d4_other";
+        return (hint === "black" || side.includes("black")) && bucket === "black_vs_e4";
       }
-      return (hint === "black" || side.includes("black")) && bucket === "black_vs_d4_other";
+      if (section.context === "black_vs_d4") {
+        return (hint === "black" || side.includes("black")) && bucket === "black_vs_d4";
+      }
+      return (hint === "black" || side.includes("black")) && bucket === "black_vs_other";
     });
   };
 
@@ -859,9 +953,12 @@ function buildRepertoireReportSections(data) {
       if (context === section.context) return true;
       if (section.context === "played_as_white") return hint === "white";
       if (section.context === "black_vs_e4") {
-        return hint === "black" && firstMoveBucketForOpening(item) !== "black_vs_d4_other";
+        return hint === "black" && firstMoveBucketForOpening(item) === "black_vs_e4";
       }
-      return hint === "black" && firstMoveBucketForOpening(item) === "black_vs_d4_other";
+      if (section.context === "black_vs_d4") {
+        return hint === "black" && firstMoveBucketForOpening(item) === "black_vs_d4";
+      }
+      return hint === "black" && firstMoveBucketForOpening(item) === "black_vs_other";
     });
     const sectionItems = normalizeRecommendationSection(
       findSectionItems(section.key),
@@ -923,18 +1020,21 @@ function sectionHealth(section) {
 function repertoireShapeSummary(sections) {
   const white = sections.find((section) => section.key === "white_repertoire");
   const e4 = sections.find((section) => section.key === "black_vs_e4");
-  const d4 = sections.find((section) => section.key === "black_vs_d4_other");
+  const d4 = sections.find((section) => section.key === "black_vs_d4");
+  const other = sections.find((section) => section.key === "black_vs_other");
   const study = sections.find((section) => section.buckets.risky.length || section.buckets.needsReview.length);
 
   const whiteHealth = sectionHealth(white);
   const e4Health = sectionHealth(e4);
   const d4Health = sectionHealth(d4);
+  const otherHealth = sectionHealth(other);
 
   return {
-    text: `Your White repertoire looks ${whiteHealth}, your Black responses to 1.e4 look ${e4Health}, and your Black responses to 1.d4 / other first moves show ${d4Health}.`,
+    text: `Your White repertoire looks ${whiteHealth}, your Black responses to 1.e4 look ${e4Health}, your 1.d4 defences show ${d4Health}, and other first moves look ${otherHealth}.`,
     white: white?.primary?.name || "Needs more White games",
     e4: e4?.primary?.name || "Needs more games against 1.e4",
-    d4: d4?.primary?.name || "Needs more games against 1.d4 / other starts",
+    d4: d4?.primary?.name || "Needs more games against 1.d4",
+    other: other?.primary?.name || "Needs more games against other starts",
     study:
       study?.buckets.risky[0]?.name ||
       study?.buckets.needsReview[0]?.name ||
@@ -961,12 +1061,145 @@ function colourAwareBucketCopy(sectionKey, bucketKey) {
     }[bucketKey];
   }
 
+  if (sectionKey === "black_vs_d4") {
+    return {
+      bestFit: "Against 1.d4, this defence looks like your best current fit.",
+      needsReview: "Against 1.d4, this defence needs review.",
+      risky: "Against 1.d4, this defence looks risky or unstable.",
+      notEnoughData: "Against 1.d4, there is not enough evidence yet.",
+    }[bucketKey];
+  }
+
   return {
-    bestFit: "Against 1.d4 and other first moves, this looks like your best current fit.",
-    needsReview: "Against 1.d4 and other first moves, this needs review.",
-    risky: "Against 1.d4 and other first moves, this looks risky or unstable.",
-    notEnoughData: "Against 1.d4, there is not enough evidence yet.",
+    bestFit: "Against other first moves, this setup looks like your best current fit.",
+    needsReview: "Against other first moves, this setup needs review.",
+    risky: "Against other first moves, this setup looks risky or unstable.",
+    notEnoughData: "Against other first moves, there is not enough evidence yet.",
   }[bucketKey];
+}
+
+function confidencePriority(opening) {
+  const label = String(getOpeningConfidence(opening)).toLowerCase();
+  const signal = getOpeningSignal(opening);
+
+  if (label.includes("high") || signal.tier === "strong") return 3;
+  if (label.includes("medium") || signal.tier === "medium") return 2;
+  return 0;
+}
+
+function evidenceSort(a, b) {
+  const confidenceDelta = confidencePriority(b) - confidencePriority(a);
+  if (confidenceDelta) return confidenceDelta;
+  return getOpeningGames(b) - getOpeningGames(a);
+}
+
+function roleNameForAction(opening) {
+  const context = itemContext(opening);
+
+  if (context === "played_as_white") return "as White";
+  if (context === "black_vs_e4") return "as Black vs 1.e4";
+  if (context === "black_vs_d4") return "as Black vs 1.d4";
+  if (context === "black_vs_other") return "as Black vs other first moves";
+  return "in your repertoire";
+}
+
+function buildOpeningFitVerdict(fitData, sections = []) {
+  const reliableOpenings = [...(fitData?.scoredOpenings || [])]
+    .filter((opening) => confidencePriority(opening) >= 2 && canTreatAsRepertoireOpening(opening))
+    .sort(evidenceSort);
+  const rolePrimaries = sections
+    .map((section) => getRolePrimaryOpening(section))
+    .filter(Boolean)
+    .filter((opening) => confidencePriority(opening) >= 2 && canTreatAsRepertoireOpening(opening))
+    .sort(evidenceSort);
+  const evidenceOpenings = uniqueOpeningsByNameAndContext([
+    ...rolePrimaries,
+    ...reliableOpenings,
+  ]).sort(evidenceSort);
+  const keep =
+    evidenceOpenings.find((opening) => {
+      const label = String(opening.fitVerdict || opening.verdict || "").toLowerCase();
+      return opening.fitCategory === "keep" || label.includes("keep") || getWinRate(opening) >= 55;
+    }) || null;
+  const improve =
+    evidenceOpenings.find((opening) => {
+      if (keep && isSameOpeningContext(opening, keep)) return false;
+      const label = String(opening.fitVerdict || opening.verdict || "").toLowerCase();
+      return (
+        ["review", "improve"].includes(opening.fitCategory) ||
+        label.includes("improve") ||
+        label.includes("review") ||
+        getWinRate(opening) < 55
+      );
+    }) || null;
+  const risky =
+    evidenceOpenings.find((opening) => {
+      if ((keep && isSameOpeningContext(opening, keep)) || (improve && isSameOpeningContext(opening, improve))) {
+        return false;
+      }
+      const name = getOpeningName(opening).toLowerCase();
+      return name.includes("gambit") || opening.fitSeverity === "danger" || getWinRate(opening) < 40;
+    }) || null;
+
+  const whiteSection = sections.find((section) => section.key === "white_repertoire");
+  const blackSections = sections.filter((section) => section.key !== "white_repertoire");
+  const whitePrimary = getRolePrimaryOpening(whiteSection);
+  const blackPrimary = blackSections
+    .map((section) => getRolePrimaryOpening(section))
+    .filter(Boolean)
+    .filter((opening) => confidencePriority(opening) >= 2)
+    .sort(evidenceSort)[0];
+  const whiteReliable = whitePrimary && confidencePriority(whitePrimary) >= 2;
+  const blackReliable = blackPrimary && confidencePriority(blackPrimary) >= 2;
+  const whiteName = whiteReliable ? getOpeningName(whitePrimary) : "one main White system";
+  const blackName = blackReliable ? getOpeningName(blackPrimary) : "one Black defence";
+  const whiteScore = whiteReliable ? getWinRate(whitePrimary) : null;
+  const blackScore = blackReliable ? getWinRate(blackPrimary) : null;
+  const opportunity =
+    whiteReliable && blackReliable && whiteScore < blackScore
+      ? `Your biggest opportunity is to stabilise ${whiteName} as White instead of switching plans.`
+      : improve
+        ? `Your biggest opportunity is to clean up ${getOpeningName(improve)} ${roleNameForAction(improve)}.`
+        : "Your biggest opportunity is to pick one repeatable White system and one repeatable Black defence long enough for the data to become clear.";
+  const profile = blackReliable
+    ? `You are getting your clearest repertoire signal from ${blackName} ${roleNameForAction(blackPrimary)}. ${whiteReliable ? `${whiteName} is your main White signal, but it needs a more consistent plan.` : "Your White repertoire is less clear and needs one main system."} ${opportunity}`
+    : `${whiteReliable ? `${whiteName} is your clearest White-side signal.` : "Your report does not yet show a fully stable opening anchor."} ${opportunity}`;
+
+  const actions = [];
+
+  if (keep) {
+    actions.push(`Keep playing ${getOpeningName(keep)} ${roleNameForAction(keep)}.`);
+  }
+
+  if (improve) {
+    actions.push(`Improve your ${getOpeningName(improve)} move order ${roleNameForAction(improve)}.`);
+  }
+
+  if (risky) {
+    actions.push(`Stop experimenting with ${getOpeningName(risky)} until your results stabilise.`);
+  }
+
+  const fallbackActions = [
+    whiteReliable
+      ? `Make ${whiteName} your main White system for the next focused block.`
+      : "Choose one main White system and stop switching for the next focused block.",
+    blackReliable
+      ? `Keep ${blackName} as your main Black reference point.`
+      : "Choose one main Black defence and repeat it long enough to build a reliable sample.",
+    "Do not make major repertoire changes from low-confidence opening samples.",
+  ];
+
+  fallbackActions.forEach((action) => {
+    if (actions.length < 3 && !actions.includes(action)) actions.push(action);
+  });
+
+  return {
+    profile,
+    actions: actions.slice(0, 3),
+    evidenceNote: evidenceOpenings.length
+      ? "Top actions use high-confidence evidence first, then medium-confidence evidence. Low-confidence samples stay out of major recommendations."
+      : "There is not enough medium-confidence evidence yet, so the advice focuses on consistency before repertoire changes.",
+  };
 }
 
 function isUnknownOpeningName(name) {
@@ -1371,8 +1604,12 @@ function getNextActionLine(opening, data, sectionKey = "") {
     return `Next action: review your last 3 ${name} games vs 1.e4 and fix one repeated branch.`;
   }
 
-  if (sectionKey === "black_vs_d4_other") {
-    return `Next action: review your last 3 ${name} games vs 1.d4, 1.c4, or 1.Nf3.`;
+  if (sectionKey === "black_vs_d4") {
+    return `Next action: review your last 3 ${name} games vs 1.d4.`;
+  }
+
+  if (sectionKey === "black_vs_other" || sectionKey === "black_vs_d4_other") {
+    return `Next action: review your last 3 ${name} games vs 1.c4, 1.Nf3, or other first moves.`;
   }
 
   return `Next action: review your last 3 ${name} games in ${context}.`;
@@ -2628,6 +2865,7 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
   const score = fitData?.overallScore || data?.openingFitScore || data?.opening_fit_score || 0;
   const repertoireReportSections = buildRepertoireReportSections(data);
   const repertoireShape = repertoireShapeSummary(repertoireReportSections);
+  const openingFitVerdict = buildOpeningFitVerdict(fitData, repertoireReportSections);
   const months =
     data.monthsChecked ||
     data.months_checked ||
@@ -2695,6 +2933,24 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
         </div>
       </div>
 
+      <section className="openingFitVerdictCard" aria-labelledby="openingfit-verdict-title">
+        <div className="openingFitVerdictIntro">
+          <p className="eyebrow">OpeningFit verdict</p>
+          <h2 id="openingfit-verdict-title">What this means for your repertoire</h2>
+          <p>{openingFitVerdict.profile}</p>
+          <small>{openingFitVerdict.evidenceNote}</small>
+        </div>
+
+        <div className="openingFitVerdictActions">
+          <span>Top 3 actions</span>
+          <ol>
+            {openingFitVerdict.actions.map((action, index) => (
+              <li key={`${action}-${index}`}>{action}</li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
       <div className="commandHeroGrid">
         {card(
           publicMode ? "Recent strength" : "Best fit",
@@ -2741,8 +2997,12 @@ function CompactReportSummary({ data, fitData, onViewChange }) {
             <strong>{repertoireShape.e4}</strong>
           </div>
           <div>
-            <span>Against d4 / other</span>
+            <span>Against d4</span>
             <strong>{repertoireShape.d4}</strong>
+          </div>
+          <div>
+            <span>Other first moves</span>
+            <strong>{repertoireShape.other}</strong>
           </div>
           <div>
             <span>Study next</span>
@@ -2828,42 +3088,138 @@ function RepertoireCommandPanel({ data, onPractice }) {
   );
 }
 
-function OpeningsCommandPanel({ data, fitData, onPractice }) {
-  const openings = fitData?.scoredOpenings || [];
+function getRolePrimaryOpening(section) {
+  const items = [
+    ...(section?.buckets?.bestFit || []),
+    ...(section?.buckets?.needsReview || []),
+    ...(section?.buckets?.risky || []),
+    ...(section?.buckets?.notEnoughData || []),
+  ];
+
+  return (
+    [...items].sort((a, b) => {
+      const signalDelta =
+        Number(getOpeningSignal(b).canBePrimary) - Number(getOpeningSignal(a).canBePrimary);
+      if (signalDelta) return signalDelta;
+      return getOpeningGames(b) - getOpeningGames(a);
+    })[0] ||
+    section?.primary ||
+    null
+  );
+}
+
+function resultTrendText(opening) {
+  if (!opening) return "Not enough data";
+
+  const score = getWinRate(opening);
+  const wins = getOpeningWins(opening);
+  const draws = getOpeningDraws(opening);
+  const losses = getOpeningLosses(opening);
+  const record = wins || draws || losses ? ` (${wins}W-${draws}D-${losses}L)` : "";
+
+  return Number.isFinite(score) ? `${score}% score${record}` : "Score unavailable";
+}
+
+function roleOpeningExplanation(opening, section) {
+  if (!opening) return section.empty;
+
+  const signal = getOpeningSignal(opening);
+  const name = getOpeningName(opening);
+
+  if (!signal.canBePrimary) return getOpeningConfidenceReason(opening);
+
+  if (section.key === "white_repertoire") {
+    return `This is the clearest White-side repertoire signal from your imported games: ${name} was played as White, not as an opening you merely faced.`;
+  }
+
+  if (section.key === "black_vs_e4") {
+    return `This is your clearest response when White starts 1.e4, based on games where you had the Black pieces.`;
+  }
+
+  if (section.key === "black_vs_d4") {
+    return `This is your clearest response when White starts 1.d4, kept separate from flank openings and other first moves.`;
+  }
+
+  return `This is your clearest setup against non-1.e4 and non-1.d4 starts such as 1.c4, 1.Nf3, or other first moves.`;
+}
+
+function RepertoireRoleCard({ section, data, onPractice }) {
+  const opening = getRolePrimaryOpening(section);
+  const canPractice = canTreatAsRepertoireOpening(opening);
+  const verdict = opening
+    ? opening.fitDisplayVerdict || confidenceVerdictLabel(opening, data, opening.fitVerdict || opening.verdict)
+    : "Not enough data";
+
+  return (
+    <article className={`roleReportCard ${opening ? `confidence-${getOpeningSignal(opening).className || "medium"}` : ""}`}>
+      <div className="roleReportHeader">
+        <div>
+          <p className="eyebrow">{sectionHealth(section)}</p>
+          <h3>{section.title}</h3>
+        </div>
+        <em className={commandVerdictClass(verdict)}>{verdict}</em>
+      </div>
+
+      {opening ? (
+        <>
+          <dl className="roleReportStats">
+            <div>
+              <dt>{section.roleLabel}</dt>
+              <dd>{getOpeningName(opening)}</dd>
+            </div>
+            <div>
+              <dt>Games analysed</dt>
+              <dd>{getOpeningGames(opening)}</dd>
+            </div>
+            <div>
+              <dt>Score / result trend</dt>
+              <dd>{resultTrendText(opening)}</dd>
+            </div>
+            <div>
+              <dt>Confidence</dt>
+              <dd>{getOpeningConfidence(opening)}</dd>
+            </div>
+          </dl>
+
+          <p className="roleReportExplanation">
+            {opening.fitExplanation || roleOpeningExplanation(opening, section)}
+          </p>
+
+          {canPractice ? (
+            <button type="button" className="secondaryBtn rolePracticeBtn" onClick={() => onPractice?.(getOpeningName(opening))}>
+              Practise this role
+            </button>
+          ) : null}
+        </>
+      ) : (
+        <EmptyState title="No role signal yet" text={section.empty} />
+      )}
+    </article>
+  );
+}
+
+function OpeningsCommandPanel({ data, onPractice }) {
+  const sections = buildRepertoireReportSections(data);
 
   return (
     <section className="commandPanel" id="section-verdicts">
       <div className="commandPanelHeader">
         <p className="eyebrow">Openings</p>
-        <h2>Opening verdicts</h2>
+        <h2>Report by repertoire role</h2>
+        <p>
+          Openings are grouped by how they function in your repertoire, so White openings you faced are not treated as Black recommendations.
+        </p>
       </div>
 
-      <div className="commandOpeningList">
-        {openings.length ? (
-          openings.slice(0, 12).map((item, index) => (
-            <button
-              className={`commandOpeningRow confidence-${getOpeningSignal(item).className || "medium"}`}
-              key={`${getOpeningName(item)}-${index}`}
-              type="button"
-              disabled={!canTreatAsRepertoireOpening(item)}
-              onClick={() => canTreatAsRepertoireOpening(item) && onPractice?.(getOpeningName(item))}
-            >
-              <div>
-                <strong>{getOpeningContextTitle(item)}</strong>
-                <span>{confidenceRowText(item)}</span>
-                <small>{item.fitConfidenceReason || item.fitExplanation || getLevelToneCopy(getSmartPlayerLevelProfile(data).level).reason}</small>
-              </div>
-              <em className={commandVerdictClass(item.fitDisplayVerdict || item.fitVerdict)}>
-                {item.fitDisplayVerdict || confidenceVerdictLabel(item, data, item.fitVerdict)}
-              </em>
-            </button>
-          ))
-        ) : (
-          <EmptyState
-            title="No opening verdicts yet"
-            text="Verdicts appear once OpeningFit has enough recognised games."
+      <div className="roleReportGrid">
+        {sections.map((section) => (
+          <RepertoireRoleCard
+            key={section.key}
+            section={section}
+            data={data}
+            onPractice={onPractice}
           />
-        )}
+        ))}
       </div>
     </section>
   );
@@ -4547,7 +4903,8 @@ function OpeningFitFullReport({ data }) {
   ];
   const blackSignals = [
     ...findSection("black_vs_e4"),
-    ...findSection("black_vs_d4_other"),
+    ...findSection("black_vs_d4"),
+    ...findSection("black_vs_other"),
     ...blackOpenings.filter((item) =>
       contextIsCompatible(item.displayName, "black_vs_e4")
     ),
@@ -6959,8 +7316,12 @@ function App() {
                         <strong>{repertoireShape.e4}</strong>
                       </div>
                       <div>
-                        <span>Against d4 / other</span>
+                        <span>Against d4</span>
                         <strong>{repertoireShape.d4}</strong>
+                      </div>
+                      <div>
+                        <span>Other first moves</span>
+                        <strong>{repertoireShape.other}</strong>
                       </div>
                       <div>
                         <span>Study next</span>
