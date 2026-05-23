@@ -1,5 +1,4 @@
 import {
-  adaptVerdictForPlayerLevel,
   canGiveAvoidVerdict,
   getLevelToneCopy,
   getSmartPlayerLevelProfile,
@@ -7,8 +6,9 @@ import {
 } from "./playerLevelLogic";
 
 export const CONFIDENCE_THRESHOLDS = {
-  highGames: 10,
-  mediumGames: 5,
+  highGames: 20,
+  mediumGames: 8,
+  lowGames: 3,
 };
 
 const BLACK_OPENING_NAME_PATTERNS = [
@@ -339,15 +339,28 @@ export function getConfidenceDetails(opening) {
     };
   }
 
+  if (games >= CONFIDENCE_THRESHOLDS.lowGames) {
+    return {
+      tier: "low",
+      label: "Low confidence",
+      badge: "Low confidence",
+      className: "low",
+      canBePrimary: false,
+      canBeFirm: false,
+      evidenceLine: `Low confidence: ${games} games, ${score}% score. Interesting early pattern, but not enough for a firm verdict.`,
+      explanation: "Early pattern from 3-7 games. Useful to watch, not strong enough for repertoire advice.",
+    };
+  }
+
   return {
-    tier: "low",
-    label: "Low confidence",
-    badge: "Low confidence",
-    className: "low",
+    tier: "tooLittle",
+    label: "Too little data",
+    badge: "Too little data",
+    className: "insufficient",
     canBePrimary: false,
     canBeFirm: false,
-    evidenceLine: `Low confidence: only ${games} game${games === 1 ? "" : "s"}. Treat this as a clue, not a recommendation.`,
-    explanation: "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation.",
+    evidenceLine: `Too little data: only ${games} game${games === 1 ? "" : "s"}. Not used for a repertoire verdict.`,
+    explanation: "Only 1-2 games. Not enough data for a full verdict.",
   };
 }
 
@@ -364,8 +377,8 @@ export function getOpeningConfidence(opening) {
     const lower = explicit.toLowerCase();
     if (lower.includes("strong") || lower.includes("high")) return "High confidence";
     if (lower.includes("medium")) return "Medium confidence";
-    if (lower.includes("low") || lower.includes("little") || lower.includes("thin")) return "Low confidence";
-    if (lower.includes("insufficient") || lower.includes("no reliable")) return "Insufficient data";
+    if (lower.includes("too little") || lower.includes("insufficient") || lower.includes("no reliable")) return "Too little data";
+    if (lower.includes("low") || lower.includes("thin")) return "Low confidence";
     return explicit;
   }
 
@@ -375,7 +388,8 @@ export function getOpeningConfidence(opening) {
   if (!games || score === null) return "Insufficient data";
   if (games >= CONFIDENCE_THRESHOLDS.highGames) return "High confidence";
   if (games >= CONFIDENCE_THRESHOLDS.mediumGames) return "Medium confidence";
-  return "Low confidence";
+  if (games >= CONFIDENCE_THRESHOLDS.lowGames) return "Low confidence";
+  return "Too little data";
 }
 
 export function getOpeningSignal(opening) {
@@ -449,11 +463,24 @@ export function getOpeningSignal(opening) {
     };
   }
 
+  if (confidence.tier === "low") {
+    return {
+      tier: "low",
+      label: "Low confidence",
+      badge: "Low confidence",
+      className: "low",
+      canBePrimary: false,
+      canBeFirm: false,
+      evidenceLine: confidence.evidenceLine,
+      explanation: confidence.explanation,
+    };
+  }
+
   return {
-    tier: "low",
-    label: "Low confidence",
-    badge: "Low confidence",
-    className: "low",
+    tier: "tooLittle",
+    label: "Too little data",
+    badge: "Too little data",
+    className: "insufficient",
     canBePrimary: false,
     canBeFirm: false,
     evidenceLine: confidence.evidenceLine,
@@ -463,7 +490,7 @@ export function getOpeningSignal(opening) {
 
 function confidenceIsLow(opening) {
   const signal = getOpeningSignal(opening);
-  return signal.tier === "low" || signal.tier === "none";
+  return signal.tier === "low" || signal.tier === "tooLittle" || signal.tier === "none";
 }
 
 function baselineComparison(opening, data) {
@@ -524,15 +551,14 @@ export function getEvidenceVerdict(opening, data) {
   const games = getEvidenceGames(opening);
   const explicit = verdictText(opening).toLowerCase();
   const level = getSmartLevel(data);
-  const advanced = isAdvancedOrStrongerLevel(level);
   const avoidAllowed = signal.canBeFirm && canGiveAvoidVerdict({ level, games, score });
 
   if (!signal.canBePrimary) {
-    return signal.tier === "low" ? "Explore" : "Not enough data";
+    return signal.badge === "Low confidence" ? "Interesting signal" : "Too little data";
   }
 
   if ((!signal.canBeFirm || !avoidAllowed) && explicit.includes("avoid")) {
-    return adaptVerdictForPlayerLevel("Avoid", { level, games, score });
+    return "Improve";
   }
 
   if (explicit.includes("keep") || explicit.includes("reliable") || explicit.includes("main")) {
@@ -544,15 +570,15 @@ export function getEvidenceVerdict(opening, data) {
   }
 
   if (avoidAllowed && explicit.includes("avoid")) {
-    return "Avoid";
+    return "Improve";
   }
 
   if (score === null) return "Not enough data";
   if (score >= 58) return "Keep";
   if (score >= 42) return "Improve";
 
-  if (avoidAllowed) return "Avoid";
-  return advanced ? getLevelToneCopy(level).lowResultLabel : signal.canBeFirm ? "Review" : "Improve";
+  if (avoidAllowed) return "Improve";
+  return "Improve";
 }
 
 export function getEvidenceReason(opening, data) {
@@ -586,9 +612,11 @@ export function getEvidenceReason(opening, data) {
       return explicit;
     }
 
-    return games
-      ? "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation."
-      : "No reliable game sample is available yet.";
+    return games >= CONFIDENCE_THRESHOLDS.lowGames
+      ? "Early pattern from 3-7 games. Treat it as a watch signal, not a full verdict."
+      : games
+        ? "Only 1-2 games. Not enough data for a full verdict."
+        : "No reliable game sample is available yet.";
   }
 
   if (explicit) return explicit;
@@ -682,7 +710,11 @@ export function getOpeningEvidence(opening, data, options = {}) {
   const score = getEvidenceScore(opening);
   const signal = getOpeningSignal(opening);
   const baseline = baselineComparison(opening, data);
-  const verdict = getEvidenceVerdict(opening, data);
+  const baseVerdict = getEvidenceVerdict(opening, data);
+  const verdict =
+    baseVerdict === "Too little data"
+      ? "Too little data — not used for verdict"
+      : `${baseVerdict} — ${signal.badge}`;
   const chips = [
     `Colour: ${getEvidenceColour(opening)}`,
     `Verdict: ${verdict}`,
@@ -717,7 +749,7 @@ export default function OpeningEvidenceBlock({
     if (lower.includes("high confidence")) return "confidenceBadge confidenceBadgeHigh";
     if (lower.includes("medium confidence")) return "confidenceBadge confidenceBadgeMedium";
     if (lower.includes("low confidence")) return "confidenceBadge confidenceBadgeLow";
-    if (lower.includes("insufficient")) return "confidenceBadge confidenceBadgeInsufficient";
+    if (lower.includes("insufficient") || lower.includes("too little")) return "confidenceBadge confidenceBadgeInsufficient";
     return "";
   };
 

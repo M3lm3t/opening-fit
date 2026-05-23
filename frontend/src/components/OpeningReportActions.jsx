@@ -263,7 +263,7 @@ async function createReportPdf({ username, platform, gamesImported, openings = [
 
   y = addOpeningList(doc, "Keep", keepOpenings, y, 5);
   y = addOpeningList(doc, "Improve", improveOpenings, y, 5);
-  y = addOpeningList(doc, "Avoid / Review", avoidOpenings, y, 5);
+  y = addOpeningList(doc, "Improve / review", avoidOpenings, y, 5);
 
   const styleText = fitData?.summary || fitData?.styleSummary || fitData?.profileSummary;
 
