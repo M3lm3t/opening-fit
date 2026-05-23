@@ -561,9 +561,6 @@ def skipped_reason_items(reason_counts: Dict[str, int]) -> List[Dict[str, Any]]:
 
 
 def chesscom_skip_reason(game: Dict[str, Any]) -> Optional[str]:
-    if str(game.get("time_class", "")).lower() == "bullet":
-        return "bullet"
-
     if str(game.get("rules", "chess")).lower() not in {"", "chess"}:
         return "variants"
 
@@ -580,9 +577,6 @@ def chesscom_skip_reason(game: Dict[str, Any]) -> Optional[str]:
 
 
 def lichess_skip_reason(game: Dict[str, Any]) -> Optional[str]:
-    if str(game.get("speed") or game.get("perf") or "").lower() == "bullet":
-        return "bullet"
-
     variant = game.get("variant") or {}
     variant_key = variant.get("key") if isinstance(variant, dict) else variant
 
@@ -1926,6 +1920,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     opening_results = defaultdict(empty_opening_stats)
     context_opening_results = defaultdict(empty_opening_stats)
     recent_games = []
+    opening_game_samples = []
 
     for game in analysed_games:
         opening = guess_opening_from_pgn(game.get("pgn", ""))
@@ -1976,6 +1971,24 @@ def import_chesscom_logic(username: str, months: int = 3):
                 "whiteUsername": game.get("white", {}).get("username", ""),
                 "black_username": game.get("black", {}).get("username", ""),
                 "blackUsername": game.get("black", {}).get("username", ""),
+            }
+        )
+        opening_game_samples.append(
+            {
+                "url": game.get("url"),
+                "time_class": game.get("time_class"),
+                "timeClass": game.get("time_class"),
+                "rated": game.get("rated"),
+                "colour": colour,
+                "color": colour,
+                "result": result,
+                "opening": opening,
+                "name": opening,
+                "context": repertoire_context,
+                "contextLabel": context_label(repertoire_context),
+                "repertoireContext": repertoire_context,
+                "end_time": game.get("end_time"),
+                "endTime": game.get("end_time"),
             }
         )
 
@@ -2103,6 +2116,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "recommendations": recommendations,
         "recent_games": recent_games,
         "recentGames": recent_games,
+        "opening_games": opening_game_samples,
+        "openingGames": opening_game_samples,
         "style_profile": style_profile,
         "styleProfile": style_profile,
         "best_openings": best_openings[:8],
@@ -2220,6 +2235,7 @@ def build_lichess_analysis(
     opening_results = defaultdict(empty_opening_stats)
     context_opening_results = defaultdict(empty_opening_stats)
     recent_games = []
+    opening_game_samples = []
     player_ratings = []
 
     for game in games:
@@ -2313,6 +2329,24 @@ def build_lichess_analysis(
                 "whiteUsername": white_name,
                 "black_username": black_name,
                 "blackUsername": black_name,
+            }
+        )
+        opening_game_samples.append(
+            {
+                "url": f"https://lichess.org/{game.get('id')}" if game.get("id") else "",
+                "time_class": lichess_time_class(game),
+                "timeClass": lichess_time_class(game),
+                "rated": game.get("rated"),
+                "colour": colour,
+                "color": colour,
+                "result": result,
+                "opening": opening,
+                "name": opening,
+                "context": repertoire_context,
+                "contextLabel": context_label(repertoire_context),
+                "repertoireContext": repertoire_context,
+                "end_time": game.get("lastMoveAt") or game.get("createdAt"),
+                "endTime": game.get("lastMoveAt") or game.get("createdAt"),
             }
         )
 
@@ -2468,6 +2502,8 @@ def build_lichess_analysis(
         "recommendations": recommendations,
         "recent_games": recent_games,
         "recentGames": recent_games,
+        "opening_games": opening_game_samples,
+        "openingGames": opening_game_samples,
         "style_profile": style_profile,
         "styleProfile": style_profile,
         "best_openings": best_openings[:8],

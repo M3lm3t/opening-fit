@@ -2846,6 +2846,202 @@ const formatImportRange = (data) => {
   return months ? `Last ${months} month${months === 1 ? "" : "s"}` : "Recent import";
 };
 
+const TIME_CONTROL_FILTERS = [
+  { key: "serious", label: "Rapid + Blitz" },
+  { key: "all", label: "All games" },
+  { key: "rapid", label: "Rapid" },
+  { key: "blitz", label: "Blitz" },
+  { key: "bullet", label: "Bullet" },
+];
+
+const DATE_RANGE_FILTERS = [
+  { key: "30", label: "Last 30 days", days: 30 },
+  { key: "90", label: "Last 90 days", days: 90 },
+  { key: "180", label: "Last 6 months", days: 180 },
+  { key: "365", label: "Last 12 months", days: 365 },
+];
+
+function getGameTimeControl(game) {
+  return String(
+    game?.time_class ||
+      game?.timeClass ||
+      game?.speed ||
+      game?.perf ||
+      game?.perfType ||
+      ""
+  ).toLowerCase();
+}
+
+function gamePassesReportFilters(game, filters) {
+  const timeClass = getGameTimeControl(game);
+  const timeFilter = filters?.timeControl || "serious";
+
+  if (timeFilter === "serious" && !["rapid", "blitz"].includes(timeClass)) return false;
+  if (timeFilter !== "all" && timeFilter !== "serious" && timeClass !== timeFilter) return false;
+
+  const days = DATE_RANGE_FILTERS.find((item) => item.key === filters?.dateRange)?.days;
+  if (!days) return true;
+
+  const timestamp = normaliseTimestamp(
+    game?.end_time ||
+      game?.endTime ||
+      game?.played_at ||
+      game?.playedAt ||
+      game?.date
+  );
+
+  if (!timestamp) return true;
+  return timestamp >= Date.now() - days * 24 * 60 * 60 * 1000;
+}
+
+function gameResultStats(result) {
+  const clean = String(result || "").toLowerCase();
+
+  if (clean.includes("win") || clean === "1-0") return { wins: 1, draws: 0, losses: 0 };
+  if (clean.includes("draw") || clean.includes("1/2")) return { wins: 0, draws: 1, losses: 0 };
+  if (clean.includes("loss") || clean.includes("lose") || clean === "0-1") return { wins: 0, draws: 0, losses: 1 };
+  return { wins: 0, draws: 0, losses: 0 };
+}
+
+function aggregateFilteredOpeningGames(data, filters) {
+  const allGames = [
+    ...(Array.isArray(data?.opening_games) ? data.opening_games : []),
+    ...(Array.isArray(data?.openingGames) ? data.openingGames : []),
+  ];
+  const uniqueGames = [];
+  const seen = new Set();
+
+  allGames.forEach((game, index) => {
+    const key = game?.url || `${game?.opening || game?.name}-${game?.end_time || game?.endTime || index}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    uniqueGames.push(game);
+  });
+
+  if (!uniqueGames.length) return null;
+
+  const filteredGames = uniqueGames.filter((game) => gamePassesReportFilters(game, filters));
+  const statsByContext = new Map();
+  const addGame = (game) => {
+    const name = getOpeningName(game);
+    if (!name || isUnknownOpeningName(name)) return;
+
+    const context = itemContext(game);
+    const key = `${name.toLowerCase()}::${context}`;
+
+    if (!statsByContext.has(key)) {
+      statsByContext.set(key, {
+        name,
+        opening: name,
+        games: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        colour: context === "played_as_white" ? "white" : context.startsWith("black") ? "black" : game?.colour || game?.color || "mixed",
+        color: context === "played_as_white" ? "white" : context.startsWith("black") ? "black" : game?.colour || game?.color || "mixed",
+        context,
+        contextLabel: contextLabel(context),
+        repertoireContext: context,
+      });
+    }
+
+    const stats = statsByContext.get(key);
+    const resultStats = gameResultStats(game?.result);
+    stats.games += 1;
+    stats.wins += resultStats.wins;
+    stats.draws += resultStats.draws;
+    stats.losses += resultStats.losses;
+  };
+
+  filteredGames.forEach(addGame);
+
+  const openings = Array.from(statsByContext.values()).map((item) => {
+    const winRate = item.games
+      ? Math.round(((item.wins + item.draws * 0.5) / item.games) * 100)
+      : 0;
+
+    return {
+      ...item,
+      win_rate: winRate,
+      winRate,
+    };
+  });
+  const byGames = [...openings].sort((a, b) => {
+    if (b.games !== a.games) return b.games - a.games;
+    return getWinRate(b) - getWinRate(a);
+  });
+  const byScore = [...openings].sort((a, b) => {
+    if (getWinRate(b) !== getWinRate(a)) return getWinRate(b) - getWinRate(a);
+    return b.games - a.games;
+  });
+  const preferredWhite = byGames.filter((item) => item.context === "played_as_white");
+  const preferredBlack = byGames.filter((item) => item.context.startsWith("black"));
+
+  return {
+    topOpenings: byGames,
+    bestOpenings: byScore,
+    preferredWhite,
+    preferredBlack,
+    filteredGames,
+    totalGames: filteredGames.length,
+    sourceGames: uniqueGames.length,
+  };
+}
+
+function applyReportFilters(data, filters) {
+  if (!data) return null;
+
+  const aggregate = aggregateFilteredOpeningGames(data, filters);
+  const timeLabel = TIME_CONTROL_FILTERS.find((item) => item.key === filters.timeControl)?.label || "Rapid + Blitz";
+  const dateLabel = DATE_RANGE_FILTERS.find((item) => item.key === filters.dateRange)?.label || "Last 90 days";
+
+  if (!aggregate) {
+    return {
+      ...data,
+      reportFilters: { ...filters, timeLabel, dateLabel, limited: true },
+      filterSummary: `${timeLabel}, ${dateLabel}`,
+    };
+  }
+
+  return {
+    ...data,
+    top_openings: aggregate.topOpenings,
+    topOpenings: aggregate.topOpenings,
+    best_openings: aggregate.bestOpenings,
+    bestOpenings: aggregate.bestOpenings,
+    preferred_white: aggregate.preferredWhite,
+    preferredWhite: aggregate.preferredWhite,
+    preferred_black: aggregate.preferredBlack,
+    preferredBlack: aggregate.preferredBlack,
+    total_games: aggregate.totalGames,
+    totalGames: aggregate.totalGames,
+    gamesImported: aggregate.totalGames,
+    gamesAnalysed: aggregate.totalGames,
+    gamesAnalyzed: aggregate.totalGames,
+    skippedGames: Math.max(0, aggregate.sourceGames - aggregate.totalGames),
+    skipped_games: Math.max(0, aggregate.sourceGames - aggregate.totalGames),
+    skippedGameReasons:
+      aggregate.sourceGames > aggregate.totalGames
+        ? [
+            {
+              label: "Excluded by report filters",
+              count: Math.max(0, aggregate.sourceGames - aggregate.totalGames),
+            },
+          ]
+        : [],
+    filterSummary: `${timeLabel}, ${dateLabel}`,
+    timeRange: dateLabel,
+    dateRange: dateLabel,
+    reportFilters: {
+      ...filters,
+      timeLabel,
+      dateLabel,
+      limited: false,
+      sourceGames: aggregate.sourceGames,
+    },
+  };
+}
+
 const normaliseSkippedReasons = (data, skippedGames) => {
   const knownReasons = [
     ["bullet", "Bullet games"],
@@ -3000,6 +3196,64 @@ function ImportQualitySummary({ data }) {
           </div>
         </div>
       ) : null}
+    </section>
+  );
+}
+
+function ReportFilters({ filters, onChange, data }) {
+  const limited = data?.reportFilters?.limited;
+  const setFilter = (key, value) => onChange?.({ ...filters, [key]: value });
+
+  return (
+    <section className="reportFilters" aria-label="Report filters">
+      <div className="reportFiltersHeader">
+        <div>
+          <p className="eyebrow">Report filters</p>
+          <h2>Focus the advice on useful repertoire games</h2>
+        </div>
+        <span>{data?.filterSummary || "Rapid + Blitz, Last 90 days"}</span>
+      </div>
+
+      <div className="reportFilterControls">
+        <div>
+          <span>Time control</span>
+          <div className="segmentedControl" role="group" aria-label="Time control filter">
+            {TIME_CONTROL_FILTERS.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={filters.timeControl === item.key ? "active" : ""}
+                onClick={() => setFilter("timeControl", item.key)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <span>Date range</span>
+          <div className="segmentedControl" role="group" aria-label="Date range filter">
+            {DATE_RANGE_FILTERS.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={filters.dateRange === item.key ? "active" : ""}
+                onClick={() => setFilter("dateRange", item.key)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <p>
+        Bullet games can be noisy, so OpeningFit focuses on games that are more useful for repertoire decisions.
+        {limited
+          ? " This saved report does not include full per-game filter data yet, so filters apply only where enough game-level data is available after your next import."
+          : null}
+      </p>
     </section>
   );
 }
@@ -5719,6 +5973,10 @@ function App() {
   const [accountUser, setAccountUser] = useState(null);
   const [platform, setPlatform] = useState("chesscom");
   const [importMonths, setImportMonths] = useState(3);
+  const [reportFilters, setReportFilters] = useState({
+    timeControl: "serious",
+    dateRange: "90",
+  });
   const [openingSamplePercent, setOpeningSamplePercent] = useState(() =>
     clampOpeningSamplePercent(localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY) ?? 2)
   );
@@ -6067,6 +6325,9 @@ function App() {
       preferred_white: incoming.preferred_white ?? incoming.preferredWhite ?? [],
       preferred_black: incoming.preferred_black ?? incoming.preferredBlack ?? [],
       recent_games: incoming.recent_games ?? incoming.recentGames ?? [],
+      recentGames: incoming.recentGames ?? incoming.recent_games ?? [],
+      opening_games: incoming.opening_games ?? incoming.openingGames ?? [],
+      openingGames: incoming.openingGames ?? incoming.opening_games ?? [],
       style_profile: incoming.style_profile ?? incoming.styleProfile ?? {},
       opening_recommendations:
         incoming.opening_recommendations ??
@@ -6572,61 +6833,72 @@ function App() {
     return "verdict test";
   };
 
+  const reportData = useMemo(
+    () => applyReportFilters(data, reportFilters) || data,
+    [data, reportFilters]
+  );
+
+  useEffect(() => {
+    setSelectedGameIndex(0);
+  }, [reportFilters.timeControl, reportFilters.dateRange]);
+
   const filteredTopOpenings = useMemo(() => {
     return filterOpeningsBySamplePercent(
-      filterUnknownOpenings(data?.top_openings || []),
-      data?.total_games,
+      filterUnknownOpenings(reportData?.top_openings || []),
+      reportData?.total_games,
       openingSamplePercent
     );
-  }, [data, showUnknownOpenings, openingSamplePercent]);
+  }, [reportData, showUnknownOpenings, openingSamplePercent]);
 
   const filteredBestOpenings = useMemo(() => {
     return filterOpeningsBySamplePercent(
-      filterUnknownOpenings(data?.best_openings || []),
-      data?.total_games,
+      filterUnknownOpenings(reportData?.best_openings || []),
+      reportData?.total_games,
       openingSamplePercent
     );
-  }, [data, showUnknownOpenings, openingSamplePercent]);
+  }, [reportData, showUnknownOpenings, openingSamplePercent]);
 
   const filteredPreferredWhite = useMemo(() => {
     return filterOpeningsBySamplePercent(
-      filterUnknownOpenings(data?.preferred_white || []),
-      data?.total_games,
+      filterUnknownOpenings(reportData?.preferred_white || []),
+      reportData?.total_games,
       openingSamplePercent
     );
-  }, [data, showUnknownOpenings, openingSamplePercent]);
+  }, [reportData, showUnknownOpenings, openingSamplePercent]);
 
   const filteredPreferredBlack = useMemo(() => {
     return filterOpeningsBySamplePercent(
-      filterUnknownOpenings(data?.preferred_black || []),
-      data?.total_games,
+      filterUnknownOpenings(reportData?.preferred_black || []),
+      reportData?.total_games,
       openingSamplePercent
     );
-  }, [data, showUnknownOpenings, openingSamplePercent]);
+  }, [reportData, showUnknownOpenings, openingSamplePercent]);
 
   const filteredRecentGames = useMemo(() => {
-    return filterUnknownOpenings(data?.recent_games || []);
-  }, [data, showUnknownOpenings]);
+    return filterUnknownOpenings(
+      (reportData?.recent_games || []).filter((game) => gamePassesReportFilters(game, reportFilters))
+    );
+  }, [reportData, reportFilters, showUnknownOpenings]);
 
   const chartData = useMemo(() => {
     return filteredTopOpenings.slice(0, isPremium ? 10 : 6);
   }, [filteredTopOpenings, isPremium]);
 
   const openingSampleMinimumGames = getOpeningSampleMinimumGames(
-    data?.total_games,
+    reportData?.total_games,
     openingSamplePercent
   );
 
   const fitData = useMemo(() => {
     return buildOpeningFitData({
-      ...data,
+      ...reportData,
       top_openings: filteredTopOpenings,
       best_openings: filteredBestOpenings,
       preferred_white: filteredPreferredWhite,
       preferred_black: filteredPreferredBlack,
     });
   }, [
-    data,
+    reportData,
     filteredTopOpenings,
     filteredBestOpenings,
     filteredPreferredWhite,
@@ -6636,37 +6908,37 @@ function App() {
   const whiteDetailedRecommendations = useMemo(() => {
     return filterUnknownOpenings(
       normalizeRecommendationSection(
-        data?.opening_recommendations?.whiteDetailed ||
-          data?.recommendedOpenings?.whiteDetailed ||
+        reportData?.opening_recommendations?.whiteDetailed ||
+          reportData?.recommendedOpenings?.whiteDetailed ||
           [],
         "played_as_white"
       )
     );
-  }, [data, showUnknownOpenings]);
+  }, [reportData, showUnknownOpenings]);
 
   const blackDetailedRecommendations = useMemo(() => {
     return filterUnknownOpenings(
       normalizeRecommendationSection(
-        data?.opening_recommendations?.blackDetailed ||
-          data?.recommendedOpenings?.blackDetailed ||
+        reportData?.opening_recommendations?.blackDetailed ||
+          reportData?.recommendedOpenings?.blackDetailed ||
           [],
         "unknown_mixed"
       )
     );
-  }, [data, showUnknownOpenings]);
+  }, [reportData, showUnknownOpenings]);
 
   const colourAwareRecommendationSections = useMemo(() => {
-    return getColourAwareRecommendationSections(data).map((section) => ({
+    return getColourAwareRecommendationSections(reportData).map((section) => ({
       ...section,
       items: filterUnknownOpenings(section.items || []),
     }));
-  }, [data, showUnknownOpenings]);
+  }, [reportData, showUnknownOpenings]);
 
   const repertoireReportSections = useMemo(() => {
     return buildRepertoireReportSections({
-      ...data,
+      ...reportData,
       opening_recommendations: {
-        ...(data?.opening_recommendations || {}),
+        ...(reportData?.opening_recommendations || {}),
         sections: colourAwareRecommendationSections,
       },
     }).map((section) => ({
@@ -6678,7 +6950,7 @@ function App() {
         ])
       ),
     }));
-  }, [data, colourAwareRecommendationSections, showUnknownOpenings]);
+  }, [reportData, colourAwareRecommendationSections, showUnknownOpenings]);
 
   const repertoireShape = useMemo(
     () => repertoireShapeSummary(repertoireReportSections),
@@ -6686,13 +6958,13 @@ function App() {
   );
 
   const smartRecommendationSummary = useMemo(() => {
-    const levelProfile = getSmartPlayerLevelProfile(data);
-    const levelAware = getSmartLevelAwareRecommendation(data, fitData);
-    const publicMode = isPublicReportMode(data);
+    const levelProfile = getSmartPlayerLevelProfile(reportData);
+    const levelAware = getSmartLevelAwareRecommendation(reportData, fitData);
+    const publicMode = isPublicReportMode(reportData);
     const summary = [];
 
     if (publicMode) {
-      summary.push(publicAccountCaution(data));
+      summary.push(publicAccountCaution(reportData));
       summary.push(
         "Treat these as recent online performance trends. Small samples may be experiments, prep choices, or content-game noise."
       );
@@ -6740,12 +7012,12 @@ function App() {
     }
 
     return summary;
-  }, [data, fitData, filteredTopOpenings]);
+  }, [reportData, fitData, filteredTopOpenings]);
 
   const personalTrainingPlan = useMemo(() => {
     const plan = [];
-    const levelProfile = getSmartPlayerLevelProfile(data);
-    const publicMode = isPublicReportMode(data);
+    const levelProfile = getSmartPlayerLevelProfile(reportData);
+    const publicMode = isPublicReportMode(reportData);
 
     const bestFit = fitData.bestOpening;
     const weakFit = fitData.weakestOpening;
@@ -6754,7 +7026,7 @@ function App() {
       return [
         {
           title: "Run this as a recent-results audit",
-          text: publicAccountCaution(data),
+          text: publicAccountCaution(reportData),
           action: null,
           opening: null,
         },
@@ -6887,8 +7159,8 @@ function App() {
       });
     }
 
-    if (Array.isArray(data?.training_plan) && data.training_plan.length) {
-      data.training_plan.forEach((step, index) => {
+    if (Array.isArray(reportData?.training_plan) && reportData.training_plan.length) {
+      reportData.training_plan.forEach((step, index) => {
         if (typeof step === "string") {
           const unsafeForStrongPlayer = /learn the basics|stop playing|avoid this opening|drop this opening|stick with|first 6 to 8 moves well/i.test(step);
           plan.push({
@@ -6927,7 +7199,7 @@ function App() {
 
     return uniquePlan.slice(0, isPremium ? 8 : 4);
   }, [
-    data,
+    reportData,
     fitData,
     filteredTopOpenings,
     filteredPreferredWhite,
@@ -7438,15 +7710,21 @@ function App() {
             </section>
           )}
 
-          {data && activeView !== "account" && (
+          {reportData && activeView !== "account" && (
             <div id="app-results">
               <CompactReportSummary
-                data={data}
+                data={reportData}
                 fitData={fitData}
                 onViewChange={setActiveView}
               />
 
-              <ImportQualitySummary data={data} />
+              <ReportFilters
+                filters={reportFilters}
+                onChange={setReportFilters}
+                data={reportData}
+              />
+
+              <ImportQualitySummary data={reportData} />
 
               <AppViewTabs
                 activeView={activeView}
@@ -7472,12 +7750,12 @@ function App() {
               ) : null}
 
               {activeView === "repertoire" ? (
-                <RepertoireCommandPanel data={data} onPractice={startOpeningPractice} />
+                <RepertoireCommandPanel data={reportData} onPractice={startOpeningPractice} />
               ) : null}
 
               {activeView === "openings" ? (
                 <OpeningsCommandPanel
-                  data={data}
+                  data={reportData}
                   fitData={fitData}
                   onPractice={startOpeningPractice}
                 />
@@ -7485,7 +7763,7 @@ function App() {
 
               {activeView === "weakspots" ? (
                 <WeakSpotsCommandPanel
-                  data={data}
+                  data={reportData}
                   fitData={fitData}
                   onPractice={startOpeningPractice}
                   onViewChange={setActiveView}
@@ -7950,13 +8228,13 @@ function App() {
               {activeView === "training" ? (
                 <>
                   <SevenDayOpeningFitPlan
-                    data={data}
+                    data={reportData}
                     fitData={fitData}
                     recentGames={filteredRecentGames}
                     onPractice={startOpeningPractice}
                   />
 
-                  <OpeningCoachPlan data={data} />
+                  <OpeningCoachPlan data={reportData} />
                   <NextStudySession
                     fitData={fitData}
                     recentGames={filteredRecentGames}
@@ -7964,10 +8242,10 @@ function App() {
                     onViewChange={setActiveView}
                   />
 
-                  <OpeningFitStudyPlanner data={data} username={username} />
+                  <OpeningFitStudyPlanner data={reportData} username={username} />
 
                   {false ? <PremiumCoachPlan
-                    data={data}
+                    data={reportData}
                     isPremium={isPremium}
                     onUnlockDemo={unlockPremiumDemo}
                   /> : null}
