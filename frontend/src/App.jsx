@@ -3095,6 +3095,59 @@ function applyReportFilters(data, filters) {
   };
 }
 
+function buildReportHistorySummary(data, fitData = null) {
+  const openings = Array.isArray(fitData?.scoredOpenings) && fitData.scoredOpenings.length
+    ? fitData.scoredOpenings
+    : Array.isArray(data?.top_openings)
+      ? data.top_openings
+      : Array.isArray(data?.topOpenings)
+        ? data.topOpenings
+        : [];
+  const topOpenings = openings.slice(0, 8).map((item) => {
+    const rawScore = item?.winRate ?? item?.win_rate ?? item?.score ?? item?.scoreRate;
+    const scoreNumber = Number(String(rawScore ?? "").replace("%", ""));
+    const score = Number.isFinite(scoreNumber)
+      ? scoreNumber <= 1
+        ? Math.round(scoreNumber * 100)
+        : Math.round(scoreNumber)
+      : null;
+
+    return {
+      name: getOpeningName(item),
+      games: getOpeningGames(item),
+      score,
+      verdict: item?.fitDisplayVerdict || item?.fitVerdict || item?.verdict || "Tracked",
+      confidence: item?.fitConfidence || item?.confidenceLabel || item?.confidence || "Unlabelled",
+    };
+  });
+  const studyTarget =
+    buildStudyThisNextTarget(fitData)?.name ||
+    topOpenings
+      .filter((item) => item.score !== null)
+      .sort((a, b) => a.score - b.score)[0]?.name ||
+    topOpenings[0]?.name ||
+    "No clear target yet";
+
+  return {
+    reportDate: new Date().toISOString(),
+    username: data?.username || data?.playerName || data?.player_name || "Unknown player",
+    platform: data?.platform || data?.importPlatform || "unknown",
+    importMonths: data?.monthsChecked || data?.months_checked || data?.importMonths || "Recent",
+    games: data?.gamesAnalysed || data?.gamesAnalyzed || data?.gamesImported || data?.total_games || 0,
+    topOpening: topOpenings[0]?.name || "No clear top opening yet",
+    topOpenings,
+    verdicts: Object.fromEntries(topOpenings.map((item) => [item.name, item.verdict])),
+    confidenceLevels: Object.fromEntries(topOpenings.map((item) => [item.name, item.confidence])),
+    studyTarget,
+    healthScore:
+      fitData?.overallScore ??
+      data?.openingFitScore ??
+      data?.opening_fit_score ??
+      data?.opening_health_score ??
+      null,
+  };
+}
+
 const normaliseSkippedReasons = (data, skippedGames) => {
   const knownReasons = [
     ["bullet", "Bullet games"],
@@ -6679,11 +6732,8 @@ function App() {
 
       if (supabaseUser?.id) {
         try {
-          await saveCloudReport(cleanData, {
-            username: cleanData.username || cleanUsername,
-            platform: selectedPlatformKey,
-            games: cleanData.gamesImported ?? cleanData.total_games,
-          });
+          const importFitData = buildOpeningFitData(cleanData);
+          await saveCloudReport(cleanData, buildReportHistorySummary(cleanData, importFitData));
           await recordCloudActivity("report_imported", {
             username: cleanData.username || cleanUsername,
             platform: selectedPlatformKey,
@@ -7837,6 +7887,14 @@ function App() {
 
               <ImportQualitySummary data={reportData} />
 
+              {accountUser ? (
+                <ReportHistoryVault
+                  data={reportData}
+                  fitData={fitData}
+                  onLoadReport={setData}
+                />
+              ) : null}
+
               <AppViewTabs
                 activeView={activeView}
                 onChange={(view) => {
@@ -8216,35 +8274,30 @@ function App() {
 
                   <RepertoireStudyPlan data={data} />
 
-                  <ReportHistoryVault data={data} onLoadReport={setData} />
+                  {data ? (
+                    <OpeningFitDiagnosisFirst
+                      data={data}
+                      isPremium={isPremium}
+                      onUpgrade={() => {
+                        const el = document.getElementById("premium");
+                        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                      onViewChange={setActiveView}
+                    />
+                  ) : null}
 
-          
-        {data ? (
-          <OpeningFitDiagnosisFirst
-            data={data}
-            isPremium={isPremium}
-            onUpgrade={() => {
-              const el = document.getElementById("premium");
-              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-            onViewChange={setActiveView}
-          />
-        ) : null}
-
-
-
-        {false && data ? (
-          <ReportCommandBar
-            data={data}
-            activeView={activeView}
-            onViewChange={setActiveView}
-            isPremium={isPremium}
-            onUpgrade={() => {
-              const el = document.getElementById("premium");
-              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-          />
-        ) : null}
+                  {false && data ? (
+                    <ReportCommandBar
+                      data={data}
+                      activeView={activeView}
+                      onViewChange={setActiveView}
+                      isPremium={isPremium}
+                      onUpgrade={() => {
+                        const el = document.getElementById("premium");
+                        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                    />
+                  ) : null}
 
         {data && !isPremium ? (
           <FounderPassOutcomePanel
