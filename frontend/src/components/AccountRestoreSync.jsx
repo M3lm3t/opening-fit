@@ -14,6 +14,7 @@ export default function AccountRestoreSync({
   const {
     loading,
     profile,
+    openingFitUserState,
     reportHistory,
     saveSettings,
     upsertUserData,
@@ -26,14 +27,19 @@ export default function AccountRestoreSync({
     if (loading || !user?.id) return;
     if (restoredUserRef.current === user.id) return;
 
-    const latestReport = profile?.last_report || reportHistory?.[0]?.report || null;
+    const primaryWorkspace = openingFitUserState?.[0] || null;
+    const latestReport =
+      primaryWorkspace?.last_report ||
+      profile?.last_report ||
+      reportHistory?.[0]?.report ||
+      null;
 
-    if (profile?.username && typeof setUsername === "function") {
-      setUsername(profile.username);
+    if ((primaryWorkspace?.username || profile?.username) && typeof setUsername === "function") {
+      setUsername(primaryWorkspace?.username || profile.username);
     }
 
-    if (profile?.platform && typeof setPlatform === "function") {
-      setPlatform(profile.platform);
+    if ((primaryWorkspace?.platform || profile?.platform) && typeof setPlatform === "function") {
+      setPlatform(primaryWorkspace?.platform || profile.platform);
     }
 
     if (latestReport && typeof setData === "function") {
@@ -47,6 +53,7 @@ export default function AccountRestoreSync({
     restoredUserRef.current = user.id;
   }, [
     loading,
+    openingFitUserState,
     profile,
     reportHistory,
     user?.id,
@@ -59,6 +66,7 @@ export default function AccountRestoreSync({
   useEffect(() => {
     async function saveAccount() {
       if (!user?.id) return;
+      if (restoredUserRef.current !== user.id) return;
 
       const saveSignature = JSON.stringify({
         userId: user.id,
@@ -89,6 +97,16 @@ export default function AccountRestoreSync({
       lastSavedRef.current = saveSignature;
 
       try {
+        await upsertUserData(
+          "openingfit_user_state",
+          {
+            platform: platform || "unknown",
+            username: username || "guest",
+            last_report: data || null,
+          },
+          { onConflict: "user_id,platform,username" }
+        );
+
         await upsertUserData(
           "profiles",
           {

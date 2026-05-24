@@ -280,6 +280,7 @@ export function AuthDataProvider({ children }) {
       aiGenerations: userData?.ai_generations || [],
       settings: userData?.settings?.[0] || null,
       history: userData?.activity_history || [],
+      openingFitUserState: userData?.openingfit_user_state || [],
       reportHistory: userData?.report_history || [],
       userData,
       loading: loading || !hydrated,
