@@ -15,6 +15,21 @@ export const USER_DATA_TABLES = [
 
 export const USER_FILE_BUCKET = "user-uploads";
 
+function createDefaultUserData(profile = null) {
+  return {
+    profile,
+    onboarding_answers: [],
+    measurements: [],
+    outfits: [],
+    favorites: [],
+    uploads: [],
+    ai_generations: [],
+    settings: [],
+    activity_history: [],
+    report_history: [],
+  };
+}
+
 function requireClient() {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error("Supabase is not configured.");
@@ -64,16 +79,29 @@ async function selectUserRows(table, userId) {
 }
 
 export async function fetchAllUserData(user) {
-  if (!user?.id) return null;
+  if (!user?.id) return createDefaultUserData();
 
-  const profile = await ensureProfile(user);
+  let profile = null;
+  try {
+    profile = await ensureProfile(user);
+  } catch (profileError) {
+    console.warn("OpeningFit could not restore profile row; using default profile.", profileError);
+  }
+
   const tableNames = USER_DATA_TABLES.filter((table) => table !== "profiles");
   const results = await Promise.all(
-    tableNames.map(async (table) => [table, await selectUserRows(table, user.id)])
+    tableNames.map(async (table) => {
+      try {
+        return [table, await selectUserRows(table, user.id)];
+      } catch (tableError) {
+        console.warn(`OpeningFit could not restore ${table}; using empty rows.`, tableError);
+        return [table, []];
+      }
+    })
   );
 
   return {
-    profile,
+    ...createDefaultUserData(profile),
     ...Object.fromEntries(results),
   };
 }

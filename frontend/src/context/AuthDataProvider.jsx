@@ -22,6 +22,38 @@ const AuthDataContext = createContext(null);
 
 const LEGACY_KEY_PREFIXES = ["openingFit:", "openingfit."];
 const LEGACY_EXACT_KEYS = ["openingfit_landing_seen"];
+const RESTORE_TIMEOUT_MS = 6500;
+
+function createRestoreTimeout() {
+  let timeoutId;
+  const promise = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      const error = new Error("Workspace restore timed out.");
+      error.name = "WorkspaceRestoreTimeout";
+      reject(error);
+    }, RESTORE_TIMEOUT_MS);
+  });
+
+  return {
+    promise,
+    clear: () => window.clearTimeout(timeoutId),
+  };
+}
+
+async function withRestoreTimeout(work, label = "workspace restore") {
+  const timeout = createRestoreTimeout();
+
+  try {
+    return await Promise.race([work, timeout.promise]);
+  } catch (restoreError) {
+    if (restoreError?.name === "WorkspaceRestoreTimeout") {
+      console.warn(`OpeningFit ${label} timed out; continuing with default workspace.`);
+    }
+    throw restoreError;
+  } finally {
+    timeout.clear();
+  }
+}
 
 function isPersistedLegacyKey(key) {
   return (
@@ -83,14 +115,18 @@ export function AuthDataProvider({ children }) {
 
       try {
         const data = await fetchAllUserData(nextUser);
-        setUserData(data);
+        setUserData(data || null);
         hydrateLegacyStorage(data?.settings?.[0]?.preferences?.legacyStorage || {});
         setHydrated(true);
         return data;
       } catch (refreshError) {
+        console.warn("OpeningFit could not restore saved workspace; using default state.", refreshError);
         setError(refreshError.message || "Could not load your saved data.");
+        setUserData(null);
         setHydrated(true);
         throw refreshError;
+      } finally {
+        setHydrated(true);
       }
     },
     []
@@ -105,30 +141,71 @@ export function AuthDataProvider({ children }) {
 
     let mounted = true;
 
-    supabase.auth.getSession().then(async ({ data, error: sessionError }) => {
-      if (!mounted) return;
-      if (sessionError) setError(sessionError.message);
+    async function restoreInitialWorkspace() {
+      setLoading(true);
 
-      const nextSession = data?.session || null;
-      setSession(nextSession);
+      try {
+        await withRestoreTimeout(
+          (async () => {
+            const { data, error: sessionError } = await supabase.auth.getSession();
+            if (!mounted) return;
+            if (sessionError) {
+              console.warn("OpeningFit auth session restore failed; continuing.", sessionError);
+              setError(sessionError.message || "Could not restore your session.");
+            }
 
-      if (nextSession?.user) {
-        await refreshUserData(nextSession.user).catch(() => {});
-      } else {
-        setHydrated(true);
+            const nextSession = data?.session || null;
+            setSession(nextSession);
+
+            if (nextSession?.user) {
+              await refreshUserData(nextSession.user);
+            } else {
+              setUserData(null);
+              setHydrated(true);
+            }
+          })(),
+          "initial workspace restore"
+        );
+      } catch (restoreError) {
+        console.warn("OpeningFit initial workspace restore failed; using default state.", restoreError);
+        if (mounted) {
+          setUserData(null);
+          setHydrated(true);
+        }
+      } finally {
+        if (mounted) {
+          setHydrated(true);
+          setLoading(false);
+        }
       }
+    }
 
-      if (mounted) setLoading(false);
-    });
+    restoreInitialWorkspace();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (_event, nextSession) => {
+        if (!mounted) return;
         setSession(nextSession || null);
 
         if (nextSession?.user) {
           setLoading(true);
-          await refreshUserData(nextSession.user).catch(() => {});
-          setLoading(false);
+          try {
+            await withRestoreTimeout(
+              refreshUserData(nextSession.user),
+              "auth workspace restore"
+            );
+          } catch (restoreError) {
+            console.warn("OpeningFit auth workspace restore failed; using default state.", restoreError);
+            if (mounted) {
+              setUserData(null);
+              setHydrated(true);
+            }
+          } finally {
+            if (mounted) {
+              setHydrated(true);
+              setLoading(false);
+            }
+          }
         } else {
           setUserData(null);
           setHydrated(true);
