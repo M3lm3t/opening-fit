@@ -1,4 +1,4 @@
-import { getSettings, saveSettings } from "../services/userDataService";
+import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 
 function normalisePlatform(value) {
   const platform = String(value || "unknown").trim().toLowerCase();
@@ -47,30 +47,40 @@ export async function fetchOpeningFitCloudState(user, data = {}) {
   const identity = getCloudIdentity(user, data);
   if (!identity) return null;
 
-  const settings = await getSettings(identity.userId);
-  const stateKey = `${identity.platform}:${identity.username}`.toLowerCase();
-  return settings?.preferences?.openingFitState?.[stateKey] || null;
+  if (!isSupabaseConfigured || !supabase) return null;
+
+  const { data: row, error } = await supabase
+    .from("openingfit_user_state")
+    .select("platform, username, last_report, coach_progress, progress_history, import_history, updated_at")
+    .eq("user_id", identity.userId)
+    .eq("platform", identity.platform)
+    .eq("username", identity.username)
+    .maybeSingle();
+
+  if (error) throw error;
+  return row || null;
 }
 
 export async function saveOpeningFitCloudState(user, data = {}, partialState = {}) {
   const identity = getCloudIdentity(user, data);
   if (!identity) return null;
 
-  const settings = await getSettings(identity.userId);
-  const stateKey = `${identity.platform}:${identity.username}`.toLowerCase();
-  const currentState = settings?.preferences?.openingFitState || {};
+  if (!isSupabaseConfigured || !supabase) return null;
 
-  return saveSettings(identity.userId, {
-    preferences: {
-      openingFitState: {
-        ...currentState,
-        [stateKey]: {
-          ...(currentState[stateKey] || {}),
-          platform: identity.platform,
-          username: identity.username,
-          ...partialState,
-        },
-      },
-    },
-  });
+  const payload = Object.fromEntries(
+    Object.entries({
+      user_id: identity.userId,
+      platform: identity.platform,
+      username: identity.username,
+      ...partialState,
+    }).filter(([, value]) => value !== undefined)
+  );
+
+  const { data: rows, error } = await supabase
+    .from("openingfit_user_state")
+    .upsert(payload, { onConflict: "user_id,platform,username" })
+    .select("*");
+
+  if (error) throw error;
+  return rows?.[0] || null;
 }

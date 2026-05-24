@@ -2,6 +2,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 
 export const USER_DATA_TABLES = [
   "profiles",
+  "openingfit_user_state",
   "onboarding_answers",
   "measurements",
   "outfits",
@@ -18,6 +19,7 @@ export const USER_FILE_BUCKET = "user-uploads";
 function createDefaultUserData(profile = null) {
   return {
     profile,
+    openingfit_user_state: [],
     onboarding_answers: [],
     measurements: [],
     outfits: [],
