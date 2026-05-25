@@ -31079,6 +31079,98 @@ body,
   line-height: 1.55;
 }
 
+.profileIdentityCard,
+.profileHubSection {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.page.light .profileIdentityCard,
+.page.light .profileHubSection,
+[data-theme="light"] .profileIdentityCard,
+[data-theme="light"] .profileHubSection {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+}
+
+.profileIdentityMain h2,
+.profileIdentityMain p,
+.profileHubSectionHeader h2,
+.profileHubSectionHeader p {
+  margin: 0;
+}
+
+.profileIdentityMain h2 {
+  margin-top: 3px;
+  font-size: clamp(1.7rem, 3vw, 2.55rem);
+  letter-spacing: 0;
+}
+
+.profileIdentityMain p {
+  max-width: 760px;
+  margin-top: 8px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.profileIdentityStats,
+.profileRepertoireSnapshot {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profileRepertoireSnapshot {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profileIdentityStats div,
+.profileRepertoireSnapshot div {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.2);
+}
+
+.page.light .profileIdentityStats div,
+.page.light .profileRepertoireSnapshot div,
+[data-theme="light"] .profileIdentityStats div,
+[data-theme="light"] .profileRepertoireSnapshot div {
+  background: #f8fafc;
+}
+
+.profileIdentityStats span,
+.profileRepertoireSnapshot span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.profileIdentityStats strong,
+.profileRepertoireSnapshot strong {
+  display: block;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+
+.profileHubSectionHeader {
+  display: grid;
+  gap: 4px;
+}
+
+.profileHubSectionHeader h2 {
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+  letter-spacing: 0;
+}
+
 .profileGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -31086,8 +31178,32 @@ body,
   align-items: start;
 }
 
+.profileGrid > * {
+  min-width: 0;
+}
+
 .profilePremiumBlock {
   scroll-margin-top: 94px;
+}
+
+.profileMutedPanel {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.profileMutedPanel h3,
+.profileMutedPanel p {
+  margin: 0;
+}
+
+.profileMutedPanel p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.profileEmptyState {
+  margin-top: 24px;
 }
 
 .appEmptySection {
@@ -31405,6 +31521,16 @@ body,
 
   .profileSectionHeader h1 {
     font-size: 2rem;
+  }
+
+  .profileIdentityCard,
+  .profileHubSection {
+    padding: 14px;
+  }
+
+  .profileIdentityStats,
+  .profileRepertoireSnapshot {
+    grid-template-columns: 1fr;
   }
 
   .analyseImportHero {

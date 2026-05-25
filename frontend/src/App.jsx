@@ -3881,6 +3881,101 @@ function CurrentReportSummary({
   );
 }
 
+function ProfileIdentityCard({
+  data,
+  fitData,
+  accountUser,
+  username,
+  platform,
+  isPremium,
+}) {
+  if (!data) return null;
+
+  const playerName =
+    data.username ||
+    data.playerName ||
+    data.player_name ||
+    data.requestedUsername ||
+    username ||
+    "OpeningFit player";
+  const platformLabel =
+    data.platform === "lichess" || data.importPlatform === "lichess" || platform === "lichess"
+      ? "Lichess"
+      : "Chess.com";
+  const games =
+    data.gamesAnalysed ||
+    data.gamesAnalyzed ||
+    data.games_analyzed ||
+    data.gamesImported ||
+    data.total_games ||
+    0;
+  const rating = getProfileRating(data);
+  const style =
+    fitData?.playerStyle?.title ||
+    data.styleLabel ||
+    data.style_label ||
+    data.style_profile?.labels?.[0] ||
+    "Opening improver";
+  const analysedAt =
+    data.importedAt ||
+    data.imported_at ||
+    data.lastUpdated ||
+    data.last_updated ||
+    "";
+  const bestOpening = fitData?.bestOpening;
+  const weakOpening = fitData?.weakestOpening;
+
+  return (
+    <section className="profileIdentityCard" aria-label="Player identity">
+      <div className="profileIdentityMain">
+        <p className="eyebrow">Player identity</p>
+        <h2>{playerName}</h2>
+        <p>
+          {style}. Your profile tracks how your repertoire changes as new reports are imported.
+        </p>
+      </div>
+
+      <div className="profileIdentityStats">
+        <div>
+          <span>Linked username</span>
+          <strong>{platformLabel} · {playerName}</strong>
+        </div>
+        <div>
+          <span>Account status</span>
+          <strong>{accountUser ? "Signed in" : "Local profile"}</strong>
+        </div>
+        <div>
+          <span>Premium status</span>
+          <strong>{isPremium ? "Founder Pass active" : "Free"}</strong>
+        </div>
+        <div>
+          <span>Rating</span>
+          <strong>{rating || "Not available"}</strong>
+        </div>
+        <div>
+          <span>Games analysed</span>
+          <strong>{games || "—"}</strong>
+        </div>
+        <div>
+          <span>Last analysed</span>
+          <strong>{analysedAt ? safeDate(analysedAt) : "Today"}</strong>
+        </div>
+      </div>
+
+      <div className="profileRepertoireSnapshot">
+        <div>
+          <span>Best current fit</span>
+          <strong>{bestOpening ? getOpeningContextTitle(bestOpening) : "Not enough data yet"}</strong>
+        </div>
+        <div>
+          <span>Current repair area</span>
+          <strong>{weakOpening ? getOpeningContextTitle(weakOpening) : "No clear leak yet"}</strong>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function CompactReportSummary({ data, fitData, onViewChange, onPractice }) {
   if (!data) return null;
 
@@ -9656,115 +9751,122 @@ function App() {
 
           {activeAppSection === "profile" && activeView !== "feedback" ? (
             <section className="profileSection" id="profile">
-              <div className="profileSectionHeader">
-                <p className="eyebrow">Profile</p>
-                <h1>Progress, saved reports, and account</h1>
-                <p>
-                  Your long-term OpeningFit workspace lives here, away from the current report.
-                </p>
-              </div>
-
-              {accountUser ? (
-                <TodayDashboard
-                  user={accountUser}
-                  onPrimaryAction={() => {
-                    setActiveView("report");
-                    if (window.location.pathname !== "/report") {
-                      window.history.pushState({}, "", "/report");
-                    }
-                    setTimeout(() => {
-                      const target =
-                        document.getElementById("app-results") ||
-                        document.querySelector(".finalReportFlow");
-                      if (target?.scrollIntoView) {
-                        target.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }
-                    }, 80);
-                  }}
-                />
-              ) : null}
-
-              <section className="loginScreenSection" id="account">
-                <AccountPanel variant="screen" onUserChange={setAccountUser} />
-              </section>
-
               {reportData ? (
                 <>
-                  <div className="profileGrid">
-                    <ReportHistoryVault data={reportData} fitData={fitData} onLoadReport={setData} />
-                    {accountUser ? (
-                      <OpeningProgressTracker data={reportData} user={accountUser} compact />
-                    ) : null}
+                  <div className="profileSectionHeader">
+                    <p className="eyebrow">Profile</p>
+                    <h1>Player progress hub</h1>
+                    <p>
+                      Who you are as a player, what you have achieved, and how your repertoire is changing over time.
+                    </p>
                   </div>
 
-                  {accountUser ? (
-                    <AchievementsPanel userId={accountUser.id} compact />
-                  ) : null}
-
-                  <ReportExportAndHistory
+                  <ProfileIdentityCard
                     data={reportData}
+                    fitData={fitData}
+                    accountUser={accountUser}
+                    username={username}
+                    platform={platform}
                     isPremium={isPremium}
-                    onUpgrade={() => setActiveView("profile")}
-                    onLoadReport={setData}
                   />
+
+                  <section className="profileHubSection" id="profile-achievements">
+                    <div className="profileHubSectionHeader">
+                      <p className="eyebrow">Achievements / milestones</p>
+                      <h2>Milestones</h2>
+                    </div>
+                    {accountUser ? (
+                      <>
+                        <TodayDashboard
+                          user={accountUser}
+                          onPrimaryAction={() => {
+                            setActiveView("report");
+                            if (window.location.pathname !== "/report") {
+                              window.history.pushState({}, "", "/report");
+                            }
+                            setTimeout(() => {
+                              const target =
+                                document.getElementById("app-results") ||
+                                document.querySelector(".finalReportFlow");
+                              if (target?.scrollIntoView) {
+                                target.scrollIntoView({ behavior: "smooth", block: "start" });
+                              }
+                            }, 80);
+                          }}
+                        />
+                        <AchievementsPanel userId={accountUser.id} compact />
+                      </>
+                    ) : (
+                      <section className="card profileMutedPanel">
+                        <h3>Milestones unlock when you sign in</h3>
+                        <p>Your current report is saved locally. Sign in to track streaks, XP, and achievements across devices.</p>
+                      </section>
+                    )}
+                  </section>
+
+                  <section className="profileHubSection" id="profile-saved-reports">
+                    <div className="profileHubSectionHeader">
+                      <p className="eyebrow">Saved reports / previous imports</p>
+                      <h2>Report history</h2>
+                    </div>
+                    <div className="profileGrid">
+                      <ReportHistoryVault data={reportData} fitData={fitData} onLoadReport={setData} />
+                      <ReportExportAndHistory
+                        data={reportData}
+                        isPremium={isPremium}
+                        onUpgrade={() => setActiveView("profile")}
+                        onLoadReport={setData}
+                      />
+                    </div>
+                  </section>
+
+                  <section className="profileHubSection" id="profile-progress">
+                    <div className="profileHubSectionHeader">
+                      <p className="eyebrow">Progress over time</p>
+                      <h2>Repertoire progress</h2>
+                    </div>
+                    {accountUser ? (
+                      <OpeningProgressTracker data={reportData} user={accountUser} compact />
+                    ) : (
+                      <section className="card profileMutedPanel">
+                        <h3>Long-term progress is local-only for now</h3>
+                        <p>Import again after more games to compare the current report. Sign in to keep progress history attached to your account.</p>
+                      </section>
+                    )}
+                  </section>
+
+                  <section className="profileHubSection" id="profile-account">
+                    <div className="profileHubSectionHeader">
+                      <p className="eyebrow">Account / premium</p>
+                      <h2>Account status, privacy, and premium</h2>
+                    </div>
+                    <div className="profileGrid">
+                      <section className="loginScreenSection" id="account">
+                        <AccountPanel variant="screen" onUserChange={setAccountUser} />
+                      </section>
+                      <div id="premium" className="profilePremiumBlock">
+                        <PremiumPanel
+                          data={reportData}
+                          isPremium={isPremium}
+                          onUnlockDemo={unlockPremiumDemo}
+                          onResetDemo={resetPremiumDemo}
+                          onFounderPass={handleFounderPassClick}
+                        />
+                      </div>
+                    </div>
+                    <SeriousPremiumStrip />
+                  </section>
                 </>
               ) : (
-                <section className="card appEmptySection">
-                  <h2>No saved report loaded</h2>
-                  <p>Import or load a report to start tracking profile history and progress.</p>
+                <section className="card appEmptySection profileEmptyState">
+                  <p className="eyebrow">Profile</p>
+                  <h2>Import your first games to build your OpeningFit profile.</h2>
+                  <p>Your player identity, milestones, saved reports, and repertoire progress will appear here after your first analysis.</p>
                   <button className="primaryBtn" type="button" onClick={() => setActiveView("analyse")}>
                     Go to Analyse
                   </button>
                 </section>
               )}
-
-              <div id="premium" className="profilePremiumBlock">
-                <PremiumPanel
-                  data={data}
-                  isPremium={isPremium}
-                  onUnlockDemo={unlockPremiumDemo}
-                  onResetDemo={resetPremiumDemo}
-                  onFounderPass={handleFounderPassClick}
-                />
-              </div>
-
-              {reportData ? (
-                <>
-                  {!isPremium ? (
-                    <FounderPassOutcomePanel
-                      data={reportData}
-                      isPremium={isPremium}
-                      onUpgrade={() => setActiveView("profile")}
-                      onViewChange={setActiveView}
-                    />
-                  ) : null}
-
-                  <PremiumDashboard
-                    data={reportData}
-                    username={username}
-                    isPremium={isPremium}
-                    onFounderPass={handleFounderPassClick}
-                    onUnlockDemo={unlockPremiumDemo}
-                    onPractice={startOpeningPractice}
-                  />
-
-                  <SeriousPremiumStrip />
-
-                  <OpeningFitFunctionalityHub
-                    data={reportData}
-                    username={username}
-                    onLoadReport={setData}
-                    onJump={jumpToSection}
-                  />
-
-                  <OpeningFitFunctionalTools
-                    data={reportData}
-                    username={username}
-                    onLoadReport={setData}
-                    onJump={jumpToSection}
-                  />
-                </>
-              ) : null}
             </section>
           ) : null}
 
