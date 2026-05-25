@@ -3619,6 +3619,13 @@ function FinalReportFlow({
 
   return (
     <div className="finalReportFlow">
+      <CurrentReportSummary
+        data={data}
+        fitData={fitData}
+        onPractice={onPractice}
+        onViewChange={onViewChange}
+      />
+
       <ImportQualitySummary data={data} />
 
       <OpeningFitVerdictSection data={data} fitData={fitData} />
@@ -3639,6 +3646,72 @@ function FinalReportFlow({
       <StudyThisNextCard target={studyTarget} onPractice={onPractice} onViewChange={onViewChange} />
 
     </div>
+  );
+}
+
+function CurrentReportSummary({ data, fitData, onPractice, onViewChange }) {
+  if (!data) return null;
+
+  const playerName =
+    data.username ||
+    data.playerName ||
+    data.player_name ||
+    data.requestedUsername ||
+    "your account";
+  const games =
+    data.gamesAnalysed ||
+    data.gamesAnalyzed ||
+    data.games_analyzed ||
+    data.gamesImported ||
+    data.total_games ||
+    0;
+  const platformLabel =
+    data.platform === "lichess" || data.importPlatform === "lichess"
+      ? "Lichess"
+      : data.platform === "chesscom" || data.importPlatform === "chesscom"
+        ? "Chess.com"
+        : data.platform || data.importPlatform || "Chess profile";
+  const bestOpening = fitData?.bestOpening;
+  const weakOpening = fitData?.weakestOpening;
+  const studyTarget = buildStudyThisNextTarget(fitData);
+
+  return (
+    <section className="currentReportSummaryCard" aria-label="Current report summary">
+      <div className="currentReportSummaryMain">
+        <p className="eyebrow">Current report</p>
+        <h1>{playerName}'s opening analysis</h1>
+        <p>
+          {platformLabel} import complete. OpeningFit reviewed {games || "your recent"} games
+          and turned them into repertoire decisions and training actions.
+        </p>
+      </div>
+
+      <div className="currentReportSummaryGrid">
+        <div>
+          <span>Fit score</span>
+          <strong>{fitData?.overallScore || data?.openingFitScore || "—"}</strong>
+        </div>
+        <div>
+          <span>Best signal</span>
+          <strong>{bestOpening ? getOpeningName(bestOpening) : "Not enough data"}</strong>
+        </div>
+        <div>
+          <span>Needs work</span>
+          <strong>{weakOpening ? getOpeningName(weakOpening) : "No clear leak yet"}</strong>
+        </div>
+      </div>
+
+      <div className="currentReportSummaryActions">
+        {studyTarget?.name ? (
+          <button type="button" className="primaryBtn" onClick={() => onPractice?.(studyTarget.name)}>
+            Practise next line
+          </button>
+        ) : null}
+        <button type="button" className="secondaryBtn" onClick={() => onViewChange?.("train")}>
+          Open training
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -6822,12 +6895,12 @@ function App() {
   const [selectedGameIndex, setSelectedGameIndex] = useState(0);
   const [practiceOpening, setPracticeOpening] = useState(null);
   const [openSections, setOpenSections] = useState(closedSections);
-  const [savedProfileMessage, setSavedProfileMessage] = useState("");
+  const [, setSavedProfileMessage] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackContact, setFeedbackContact] = useState("");
   const [feedbackStatus, setFeedbackStatus] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
-  const [localSavedAt, setLocalSavedAt] = useState("");
+  const [, setLocalSavedAt] = useState("");
   const [activeView, setActiveView] = useState(getInitialAppView);
   const shouldShowLandingIntro = () => {
     const landingSeen = localStorage.getItem("openingfit_landing_seen") === "true";
@@ -7192,12 +7265,6 @@ function App() {
     }
   };
 
-  const clearLocalAnalysis = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setLocalSavedAt("");
-    setSavedProfileMessage("Local saved report cleared.");
-  };
-
   const toggleSection = (key) => {
     setOpenSections((prev) => ({
       ...prev,
@@ -7449,6 +7516,9 @@ function App() {
 
       rememberLandingSeen({ keepPublicLanding: false });
       setActiveView("report");
+      if (window.location.pathname !== "/report") {
+        window.history.pushState({}, "", "/report");
+      }
 
       setSavedProfileMessage(
         `Import complete for ${
@@ -7767,11 +7837,6 @@ function App() {
   const chartData = useMemo(() => {
     return filteredTopOpenings.slice(0, isPremium ? 10 : 6);
   }, [filteredTopOpenings, isPremium]);
-
-  const openingSampleMinimumGames = getOpeningSampleMinimumGames(
-    reportData?.total_games,
-    openingSamplePercent
-  );
 
   const fitData = useMemo(() => {
     return buildOpeningFitData({
@@ -8341,7 +8406,9 @@ function App() {
           onViewChange={setActiveView}
         />
 
-        {loading ? <ImportLoadingOverlay platform={platform} /> : null}
+        {loading && activeAppSection !== "analyse" ? (
+          <ImportLoadingOverlay platform={platform} />
+        ) : null}
 
         {false && data ? <OpeningFitTrustBar data={data} /> : null}
 
@@ -8404,16 +8471,15 @@ function App() {
         ) : null}
 
         <main className="container appShell" id="app-dashboard">
-          {activeAppSection === "analyse" && !loading ? (
-          <header className="hero heroCard compactImportHero">
+          {activeAppSection === "analyse" ? (
+          <header className="hero heroCard compactImportHero analyseImportHero" aria-busy={loading}>
               <div className="heroTop">
               <div className="heroTitleWrap">
-                <p className="eyebrow">Opening Fit</p>
-                <h1>Know what to keep, fix, and study in your openings</h1>
+                <p className="eyebrow">Analyse</p>
+                <h1>Start a fresh opening analysis</h1>
                 <p className="subtext">
-                  Import your Chess.com or Lichess games and get a practical
-                  repertoire plan: colour-aware verdicts, confidence labels,
-                  and one clear study action from your actual games.
+                  Choose your platform, enter a username, and OpeningFit will turn
+                  recent games into a focused opening report.
                 </p>
               </div>
             </div>
@@ -8426,6 +8492,7 @@ function App() {
                     platform === "chesscom" ? "platformButtonActive" : ""
                   }`}
                   onClick={() => setPlatform("chesscom")}
+                  disabled={loading}
                 >
                   Chess.com
                 </button>
@@ -8436,6 +8503,7 @@ function App() {
                     platform === "lichess" ? "platformButtonActive" : ""
                   }`}
                   onClick={() => setPlatform("lichess")}
+                  disabled={loading}
                 >
                   Lichess
                 </button>
@@ -8445,6 +8513,7 @@ function App() {
                 className="input"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                disabled={loading}
                 placeholder={
                   platforms[platform]?.usernamePlaceholder || "Chess username"
                 }
@@ -8455,6 +8524,7 @@ function App() {
                 value={importMonths}
                 onChange={(e) => setImportMonths(Number(e.target.value))}
                 aria-label="Months to import"
+                disabled={loading}
               >
                 <option value={1}>1 month</option>
                 <option value={3}>3 months</option>
@@ -8481,52 +8551,15 @@ function App() {
                   onClick={loadDemoReport}
                   disabled={loading}
                 >
-                  View sample
+                  Demo report
                 </button>
               </div>
             </div>
 
-            <LandingSampleResultPreview onOpeningClick={startOpeningPractice} />
-
-            <OpeningFitPositioningSection compact />
-
-            {false ? (
-            <div className="filtersRow importFiltersRow">
-              <label className="openingSampleControl">
-                <span className="openingSampleControlTop">
-                  <span>Opening sample filter</span>
-                  <strong>{openingSamplePercent}%</strong>
-                </span>
-
-                <input
-                  type="range"
-                  min="0"
-                  max="20"
-                  step="1"
-                  value={openingSamplePercent}
-                  onChange={(event) =>
-                    setOpeningSamplePercent(
-                      clampOpeningSamplePercent(event.target.value)
-                    )
-                  }
-                  aria-label="Minimum percentage of games for an opening to appear in the report"
-                />
-
-                <span className="openingSampleHelp">
-                  {openingSamplePercent === 0
-                    ? "Showing every recognised opening, including one-game experiments."
-                    : data?.total_games
-                    ? `Ignoring openings below ${openingSampleMinimumGames} games in this report.`
-                    : "After import, one-game openings will be ignored by default."}
-                </span>
-              </label>
-            </div>
-            ) : null}
-
             <div className="compactTrustRow">
-              <span>Colour-aware</span>
-              <span>Sample-size aware</span>
-              <span>Based on actual games</span>
+              <span>No password needed</span>
+              <span>Uses public games</span>
+              <span>Current report updates after import</span>
             </div>
 
             {apiStatus !== "online" ? (
@@ -8536,28 +8569,14 @@ function App() {
               </p>
             ) : null}
 
-            {localSavedAt ? (
-              <div className="savedHistoryRow">
-                <span>Local saved report: {safeDate(localSavedAt)}</span>
-                <button
-                  className="ghostButton"
-                  type="button"
-                  onClick={clearLocalAnalysis}
-                >
-                  Clear local save
-                </button>
+            {loading ? (
+              <div className="analyseLoadingState" role="status" aria-live="polite">
+                <span className="loadingSpinner" />
+                <p>{loadingStep || "Starting your analysis..."}</p>
               </div>
-            ) : null}
-
-            {loadingStep ? <p className="statusMessage">{loadingStep}</p> : null}
-
-            {savedProfileMessage ? (
-              <p className="successMessage">{savedProfileMessage}</p>
             ) : null}
           </header>
           ) : null}
-
-          {activeAppSection === "analyse" && !data && !loading ? <CompactSeoFooter /> : null}
 
           {activeAppSection === "report" && !reportData && !loading ? (
             <section className="card appEmptySection" id="app-results">
@@ -8581,7 +8600,7 @@ function App() {
             </section>
           ) : null}
 
-          {loading && (
+          {loading && activeAppSection !== "analyse" && (
             <section className="card loadingCard">
               <div className="loadingSpinner" />
               <div>
