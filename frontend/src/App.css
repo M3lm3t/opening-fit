@@ -7677,6 +7677,103 @@ button[aria-label="Open navigation menu"] {
   min-height: 42px;
 }
 
+.notificationPreferences {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.13), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.78));
+  border-radius: 1.25rem;
+  padding: 1rem;
+  box-shadow: 0 22px 70px rgba(2, 6, 23, 0.22);
+}
+
+.notificationPreferenceList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.notificationPreferenceToggle {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 96px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.58);
+  padding: 0.85rem;
+  cursor: pointer;
+}
+
+.notificationPreferenceToggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.notificationSwitch {
+  position: relative;
+  width: 2.9rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(71, 85, 105, 0.4);
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.notificationSwitch::after {
+  content: "";
+  position: absolute;
+  left: 0.2rem;
+  top: 0.2rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: #cbd5e1;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.notificationPreferenceToggle input:checked + .notificationSwitch {
+  border-color: rgba(34, 197, 94, 0.44);
+  background: rgba(34, 197, 94, 0.22);
+}
+
+.notificationPreferenceToggle input:checked + .notificationSwitch::after {
+  transform: translateX(1.32rem);
+  background: #86efac;
+}
+
+.notificationPreferenceToggle input:focus-visible + .notificationSwitch {
+  outline: 2px solid rgba(96, 165, 250, 0.8);
+  outline-offset: 3px;
+}
+
+.notificationPreferenceToggle strong,
+.notificationPreferenceToggle small {
+  display: block;
+}
+
+.notificationPreferenceToggle small,
+.notificationPreferenceNote {
+  color: var(--text-soft);
+  line-height: 1.45;
+}
+
+.notificationPreferenceToggle small {
+  margin-top: 0.25rem;
+}
+
+.notificationPreferenceNote,
+.notificationPreferenceError {
+  margin: 0.85rem 0 0;
+}
+
+.notificationPreferenceError {
+  color: #fca5a5;
+  font-weight: 800;
+}
+
 .todayDashboardEmpty .todayDashboardHero {
   background:
     radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 34%),
@@ -7884,6 +7981,10 @@ button[aria-label="Open navigation menu"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .notificationPreferenceList {
+    grid-template-columns: 1fr;
+  }
+
   .dashboardActionButtons {
     justify-content: flex-start;
   }
@@ -7915,6 +8016,7 @@ button[aria-label="Open navigation menu"] {
   .todayStatCard,
   .todayPanel,
   .achievementsPanel,
+  .notificationPreferences,
   .weeklyReportCard,
   .dashboardActionStrip,
   .launchTile {

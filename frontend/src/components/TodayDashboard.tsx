@@ -4,6 +4,7 @@ import { generateWeeklyReport, getTodayDashboard } from "../services/retentionSe
 import { logRetentionEvent } from "../services/retentionEvents";
 import AchievementsPanel from "./AchievementsPanel";
 import WeeklyReportCard from "./WeeklyReportCard";
+import NotificationPreferences from "./NotificationPreferences";
 
 type TodayDashboardProps = {
   user?: {
@@ -323,6 +324,8 @@ export default function TodayDashboard({ user, onPrimaryAction }: TodayDashboard
           onGenerate={handleGenerateWeeklyReport}
           onViewHistory={handleViewWeeklyHistory}
         />
+
+        <NotificationPreferences userId={user.id} />
       </section>
     );
   }
@@ -434,6 +437,8 @@ export default function TodayDashboard({ user, onPrimaryAction }: TodayDashboard
         onGenerate={handleGenerateWeeklyReport}
         onViewHistory={handleViewWeeklyHistory}
       />
+
+      <NotificationPreferences userId={user.id} />
     </section>
   );
 }
