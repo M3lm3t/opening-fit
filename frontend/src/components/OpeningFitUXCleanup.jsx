@@ -148,12 +148,12 @@ export default function OpeningFitUXCleanup({ data, username, onJump, activeView
 
   const tabs = [
     { key: "overview", label: "Summary", view: "overview", target: "openingfit-report" },
-    { key: "recommendations", label: "Openings", view: "recommendations", target: "keep-improve-avoid" },
+    { key: "openings", label: "Openings", view: "openings", target: "section-verdicts" },
     { key: "training", label: "Study Plan", view: "training", target: "study-planner" },
-    { key: "games", label: "Games", view: "games", target: "game-replay" },
-    { key: "upgrade", label: "Upgrade", view: "upgrade", target: "top-openings-table" },
+    { key: "data", label: "Games", view: "data", target: "game-replay" },
+    { key: "upgrade", label: "Upgrade", view: "upgrade", target: "premium" },
     { key: "feedback", label: "Feedback", view: "feedback", target: "feedback" },
-    { key: "tools", label: "Tools", view: "tools", target: "functionality-hub" },
+    { key: "tools", label: "Tools", view: "upgrade", target: "functionality-hub" },
   ];
 
   return (

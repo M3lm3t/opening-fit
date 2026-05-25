@@ -186,7 +186,7 @@ export default function ResultsCommandCenter({ data, onPractice }) {
         </button>
 
         {onPractice ? (
-          <button type="button" onClick={onPractice}>
+          <button type="button" onClick={() => onPractice(result.best?.name || result.fix?.name)}>
             Start practice
           </button>
         ) : null}

@@ -224,7 +224,7 @@ export function CoachSummaryCard({ data, onViewChange }) {
         <button
           type="button"
           className="primaryCoachButton"
-          onClick={() => typeof onViewChange === "function" && onViewChange("recommendations")}
+          onClick={() => typeof onViewChange === "function" && onViewChange("repertoire")}
         >
           View repertoire plan
         </button>
@@ -246,25 +246,25 @@ export function SeriousPremiumStrip() {
     <section className="seriousPremiumStrip" id="premium-value">
       <div>
         <p className="eyebrow">Founder Pass</p>
-        <h2>Support early development and unlock deeper reports.</h2>
+        <h2>Keep the free report useful. Upgrade for depth and convenience.</h2>
       </div>
 
       <div className="premiumMiniGrid">
         <div>
-          <strong>Line-level diagnosis</strong>
-          <span>See which branch inside an opening is hurting results.</span>
+          <strong>12-month import</strong>
+          <span>Separate one recent streak from long-term repertoire patterns.</span>
         </div>
         <div>
-          <strong>12-month trend</strong>
-          <span>Separate current form from long-term repertoire problems.</span>
+          <strong>Advanced filters</strong>
+          <span>Compare openings by side, sample size, confidence, and score.</span>
         </div>
         <div>
-          <strong>Saved reports</strong>
-          <span>Compare imports and keep a real training history.</span>
+          <strong>Saved progress</strong>
+          <span>Compare imports and keep a real opening-training history.</span>
         </div>
         <div>
-          <strong>Full study plan</strong>
-          <span>Turn the diagnosis into more focused study blocks.</span>
+          <strong>Exportable study plan</strong>
+          <span>Turn the diagnosis into a plan you can keep using after the report.</span>
         </div>
       </div>
     </section>
@@ -303,8 +303,8 @@ export function NextBestActions({ data, onViewChange }) {
       title: `Keep building around ${strongestName}`,
       text: "Do not abandon what is working. Your best openings should become the spine of your repertoire before adding new theory.",
       button: "View repertoire",
-      view: "recommendations",
-      target: "premium-value",
+      view: "repertoire",
+      target: "repertoire-map",
     },
     {
       label: "Step 3",

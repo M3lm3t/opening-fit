@@ -204,25 +204,25 @@ export default function AppActionRouter({ onViewChange }) {
 
   useEffect(() => {
     const routeMap = {
-      "overview": { view: "overview", target: "coach-summary" },
-      "view overview": { view: "overview", target: "coach-summary" },
-      "dashboard": { view: "overview", target: "coach-summary" },
+      "overview": { view: "overview", target: "app-results" },
+      "view overview": { view: "overview", target: "app-results" },
+      "dashboard": { view: "overview", target: "app-results" },
 
-      "repertoire": { view: "recommendations", target: "premium-value" },
-      "view repertoire": { view: "recommendations", target: "premium-value" },
-      "view repertoire plan": { view: "recommendations", target: "premium-value" },
-      "opening suggestions": { view: "recommendations", target: "premium-value" },
-      "recommendations": { view: "recommendations", target: "premium-value" },
+      "repertoire": { view: "repertoire", target: "repertoire-map" },
+      "view repertoire": { view: "repertoire", target: "repertoire-map" },
+      "view repertoire plan": { view: "repertoire", target: "repertoire-map" },
+      "opening suggestions": { view: "openings", target: "section-verdicts" },
+      "recommendations": { view: "repertoire", target: "repertoire-map" },
 
-      "training": { view: "training", target: "next-actions" },
-      "start training": { view: "training", target: "next-actions" },
-      "start training focus": { view: "training", target: "next-actions" },
-      "open training": { view: "training", target: "next-actions" },
-      "improve weakest opening": { view: "training", target: "next-actions" },
+      "training": { view: "training", target: "seven-day-plan" },
+      "start training": { view: "training", target: "seven-day-plan" },
+      "start training focus": { view: "training", target: "seven-day-plan" },
+      "open training": { view: "training", target: "seven-day-plan" },
+      "improve weakest opening": { view: "training", target: "seven-day-plan" },
 
-      "games": { view: "games", target: "game-replay" },
-      "game replay": { view: "games", target: "game-replay" },
-      "view games": { view: "games", target: "game-replay" },
+      "games": { view: "data", target: "game-replay" },
+      "game replay": { view: "data", target: "game-replay" },
+      "view games": { view: "data", target: "game-replay" },
 
       "progress": { view: "upgrade", target: "report-history" },
       "view progress": { view: "upgrade", target: "report-history" },
@@ -234,10 +234,10 @@ export default function AppActionRouter({ onViewChange }) {
       "leave feedback": { view: "feedback", target: "feedback" },
       "send feedback": { view: "feedback", target: "feedback" },
 
-      "premium": { view: "recommendations", target: "premium-value" },
-      "upgrade": { view: "recommendations", target: "premium-value" },
-      "upgrade to premium": { view: "recommendations", target: "premium-value" },
-      "learn more": { view: "recommendations", target: "premium-value" },
+      "premium": { view: "upgrade", target: "premium" },
+      "upgrade": { view: "upgrade", target: "premium" },
+      "upgrade to premium": { view: "upgrade", target: "premium" },
+      "learn more": { view: "upgrade", target: "premium" },
     };
 
     const comingSoonMap = {
@@ -281,8 +281,8 @@ export default function AppActionRouter({ onViewChange }) {
 
         setTimeout(() => {
           const moved = scrollToTarget(route.target);
-          if (!moved && route.target !== "coach-summary") {
-            scrollToTarget("coach-summary");
+          if (!moved && route.target !== "app-results") {
+            scrollToTarget("app-results");
           }
         }, 80);
 

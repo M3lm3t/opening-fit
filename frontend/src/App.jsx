@@ -71,6 +71,7 @@ import {
   displayOpeningName,
   getLevelToneCopy,
   getPlayerLevelText,
+  getRatingAwareRecommendationCopy,
   getSmartLevelAwareRecommendation,
   getSmartPlayerLevelProfile,
   isAdvancedOrStrongerLevel,
@@ -276,12 +277,12 @@ const filterOpeningsBySamplePercent = (items, totalGames, samplePercent) => {
 };
 
 const premiumFeatures = [
-  "Line-level opening diagnosis",
-  "12-month trend view",
+  "12-month import",
   "Saved report history",
-  "Confidence-aware opening verdicts",
-  "Full 7-day study plan",
-  "Deeper move-order explanations",
+  "Full opening table",
+  "Advanced filters",
+  "Progress tracking",
+  "Exportable study plan",
 ];
 
 function safeNumber(value, fallback = 0) {
@@ -3306,9 +3307,21 @@ function ImportQualitySummary({ data }) {
   );
 }
 
-function ReportFilters({ filters, onChange, data }) {
+function ReportFilters({ filters, onChange, data, isPremium = false, onUpgrade }) {
   const limited = data?.reportFilters?.limited;
-  const setFilter = (key, value) => onChange?.({ ...filters, [key]: value });
+  const isPremiumFilter = (key, item) => {
+    if (key === "dateRange") return Number(item.days || 0) > 90;
+    if (key === "timeControl") return ["all", "bullet"].includes(item.key);
+    return false;
+  };
+  const setFilter = (key, item) => {
+    if (!isPremium && isPremiumFilter(key, item)) {
+      onUpgrade?.();
+      return;
+    }
+
+    onChange?.({ ...filters, [key]: item.key });
+  };
 
   return (
     <section className="reportFilters" aria-label="Report filters">
@@ -3329,9 +3342,10 @@ function ReportFilters({ filters, onChange, data }) {
                 key={item.key}
                 type="button"
                 className={filters.timeControl === item.key ? "active" : ""}
-                onClick={() => setFilter("timeControl", item.key)}
+                onClick={() => setFilter("timeControl", item)}
               >
                 {item.label}
+                {!isPremium && isPremiumFilter("timeControl", item) ? <small>Founder Pass</small> : null}
               </button>
             ))}
           </div>
@@ -3345,9 +3359,10 @@ function ReportFilters({ filters, onChange, data }) {
                 key={item.key}
                 type="button"
                 className={filters.dateRange === item.key ? "active" : ""}
-                onClick={() => setFilter("dateRange", item.key)}
+                onClick={() => setFilter("dateRange", item)}
               >
                 {item.label}
+                {!isPremium && isPremiumFilter("dateRange", item) ? <small>Founder Pass</small> : null}
               </button>
             ))}
           </div>
@@ -3356,6 +3371,9 @@ function ReportFilters({ filters, onChange, data }) {
 
       <p>
         Bullet games can be noisy, so OpeningFit focuses on games that are more useful for repertoire decisions.
+        {!isPremium
+          ? " Free keeps filters simple. Founder Pass unlocks longer date ranges and noisier/deeper filter cuts."
+          : " Founder Pass filters let you compare short-term form against deeper history."}
         {limited
           ? " This saved report does not include full per-game filter data yet, so filters apply only where enough game-level data is available after your next import."
           : null}
@@ -3368,7 +3386,7 @@ function StudyThisNextCard({ target, onPractice, onViewChange }) {
   if (!target) return null;
 
   return (
-    <section className={`studyThisNextCard ${target.lowConfidence ? "studyThisNextCardLow" : ""}`}>
+    <section id="study-this-next" className={`studyThisNextCard ${target.lowConfidence ? "studyThisNextCardLow" : ""}`}>
       <div className="studyThisNextHeader">
         <div>
           <p className="eyebrow">Study this next</p>
@@ -3411,6 +3429,221 @@ function StudyThisNextCard({ target, onPractice, onViewChange }) {
         </button>
       </div>
     </section>
+  );
+}
+
+function OpeningFitVerdictSection({ data, fitData }) {
+  const sections = buildRepertoireReportSections(data);
+  const verdict = buildOpeningFitVerdict(fitData, sections);
+  const profile = getSmartPlayerLevelProfile(data);
+  const score = fitData?.overallScore || data?.openingFitScore || data?.opening_fit_score || 0;
+
+  return (
+    <section id="openingfit-verdict" className="openingFitVerdictCard finalReportBlock" aria-labelledby="openingfit-verdict-title">
+      <div className="openingFitVerdictIntro">
+        <p className="eyebrow">OpeningFit verdict</p>
+        <h2 id="openingfit-verdict-title">Your opening profile in one decision</h2>
+        <p>{verdict.profile}</p>
+        <small>{verdict.evidenceNote}</small>
+      </div>
+
+      <div className="reportHealthDial compactReportHealth">
+        <span>{profile.shortLabel || profile.label || "Profile"}</span>
+        <strong>{score || "—"}</strong>
+        <small>{score ? "/100" : "score pending"}</small>
+      </div>
+    </section>
+  );
+}
+
+function TopActionsSection({ data, fitData, onPractice }) {
+  const sections = buildRepertoireReportSections(data);
+  const verdict = buildOpeningFitVerdict(fitData, sections);
+
+  return (
+    <section className="topActionsSection finalReportBlock" id="top-actions">
+      <div className="commandPanelHeader">
+        <p className="eyebrow">Top 3 actions</p>
+        <h2>The next three things to do</h2>
+      </div>
+
+      <ol className="topActionsList">
+        {verdict.actions.map((action, index) => (
+          <li key={`${action}-${index}`}>
+            <span>{index + 1}</span>
+            <strong>{action}</strong>
+          </li>
+        ))}
+      </ol>
+
+      {fitData?.bestOpening ? (
+        <button
+          className="secondaryBtn"
+          type="button"
+          onClick={() => onPractice?.(getOpeningName(fitData.bestOpening))}
+        >
+          Practise strongest opening
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
+function EvidenceTableSection({ data, fitData, isPremium = false, onPractice }) {
+  const rows = uniqueOpeningsByNameAndContext(
+    Array.isArray(fitData?.scoredOpenings) && fitData.scoredOpenings.length
+      ? fitData.scoredOpenings
+      : [
+          ...(Array.isArray(data?.best_openings) ? data.best_openings : []),
+          ...(Array.isArray(data?.top_openings) ? data.top_openings : []),
+          ...(Array.isArray(data?.opening_stats) ? data.opening_stats : []),
+        ]
+  )
+    .filter((opening) => !isUnknownOpeningName(getOpeningName(opening)))
+    .sort(evidenceSort);
+  const visibleRows = isPremium ? rows : rows.slice(0, 8);
+
+  return (
+    <section className="evidenceTableSection finalReportBlock" id="evidence-table">
+      <div className="commandPanelHeader">
+        <p className="eyebrow">Evidence table</p>
+        <h2>Opening evidence behind the verdict</h2>
+        <p>Opening, colour/context, games, score, confidence, and verdict in one scannable table.</p>
+      </div>
+
+      {visibleRows.length ? (
+        <div className="tableWrap compactEvidenceTableWrap">
+          <table className="compactEvidenceTable">
+            <thead>
+              <tr>
+                <th>Opening</th>
+                <th>Colour</th>
+                <th>Games</th>
+                <th>Score</th>
+                <th>Confidence</th>
+                <th>Verdict</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRows.map((opening, index) => {
+                const verdict =
+                  opening.fitDisplayVerdict ||
+                  confidenceVerdictLabel(opening, data, opening.fitVerdict || opening.verdict);
+
+                return (
+                  <tr key={`${getOpeningName(opening)}-${itemContext(opening)}-${index}`}>
+                    <td>
+                      <button
+                        className="tableOpeningBtn"
+                        type="button"
+                        onClick={() => onPractice?.(getOpeningName(opening))}
+                      >
+                        {getOpeningName(opening)}
+                      </button>
+                    </td>
+                    <td>{getOpeningContext(opening).label}</td>
+                    <td>{getOpeningGames(opening)}</td>
+                    <td>{getWinRate(opening)}%</td>
+                    <td>{getOpeningConfidence(opening)}</td>
+                    <td><span className={commandVerdictClass(verdict)}>{verdict}</span></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <EmptyState title="No evidence table yet" text="Opening evidence appears after imported games include recognised openings." />
+      )}
+
+      {!isPremium && rows.length > visibleRows.length ? (
+        <LockedPremiumCard
+          title="Full evidence table available with Founder Pass"
+          text={`The free report shows the first ${visibleRows.length} rows. Founder Pass unlocks all ${rows.length} openings plus advanced filters and saved progress.`}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function InterestingThinDataSection({ data, fitData }) {
+  const sections = buildRepertoireReportSections(data);
+  const items = buildInterestingButThinOpenings(data, fitData, sections);
+
+  if (!items.length) return null;
+
+  return (
+    <section className="interestingThinDataCard finalReportBlock" aria-labelledby="interesting-thin-title">
+      <div className="interestingThinDataHeader">
+        <div>
+          <p className="eyebrow">Interesting but not enough data</p>
+          <h2 id="interesting-thin-title">Small samples and noisy openings</h2>
+        </div>
+        <span>{items.length}</span>
+      </div>
+
+      <p>
+        These openings appeared in the import, but they are not driving the main verdict yet.
+      </p>
+
+      <ul className="interestingThinDataList">
+        {items.map((opening, index) => {
+          const games = getOpeningGames(opening);
+
+          return (
+            <li key={`${getOpeningName(opening)}-${itemContext(opening)}-${index}`}>
+              <strong>{getOpeningName(opening)}</strong>
+              <span>{games} game{games === 1 ? "" : "s"} · {opening.weakDataReason}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function FinalReportFlow({
+  data,
+  fitData,
+  filters,
+  onFilterChange,
+  isPremium,
+  onUpgrade,
+  onPractice,
+  onViewChange,
+  accountUser,
+  onLoadReport,
+}) {
+  const studyTarget = buildStudyThisNextTarget(fitData);
+
+  return (
+    <div className="finalReportFlow">
+      <ImportQualitySummary data={data} />
+
+      <OpeningFitVerdictSection data={data} fitData={fitData} />
+      <TopActionsSection data={data} fitData={fitData} onPractice={onPractice} />
+
+      <ReportFilters
+        filters={filters}
+        onChange={onFilterChange}
+        data={data}
+        isPremium={isPremium}
+        onUpgrade={onUpgrade}
+      />
+
+      <RepertoireCommandPanel data={data} onPractice={onPractice} />
+      <RepertoireMap data={data} />
+      <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
+      <InterestingThinDataSection data={data} fitData={fitData} />
+      <StudyThisNextCard target={studyTarget} onPractice={onPractice} onViewChange={onViewChange} />
+
+      {accountUser ? (
+        <section className="finalReportHistoryBlock" id="saved-history-progress">
+          <ReportHistoryVault data={data} fitData={fitData} onLoadReport={onLoadReport} />
+          <OpeningProgressTracker data={data} user={accountUser} compact />
+        </section>
+      ) : null}
+    </div>
   );
 }
 
@@ -3835,6 +4068,11 @@ function repertoireMapRows(section) {
   return rows.slice(0, 4);
 }
 
+function repertoireMapScore(opening) {
+  if (!opening || getOpeningGames(opening) === 0) return "Unavailable";
+  return `${getWinRate(opening)}%`;
+}
+
 function RepertoireMap({ data }) {
   const sections = buildRepertoireReportSections(data);
   const totalItems = sections.reduce((total, section) => total + section.totalItems, 0);
@@ -3848,6 +4086,11 @@ function RepertoireMap({ data }) {
           <p>
             A visual map of what you are actually playing, split by repertoire role so White systems and Black defences stay separate.
           </p>
+          <span className="repertoireMapCount">
+            {totalItems
+              ? `${totalItems} recognised repertoire signal${totalItems === 1 ? "" : "s"}`
+              : "No recognised repertoire signals yet"}
+          </span>
         </div>
 
         <div className="repertoireMapLegend" aria-label="Repertoire map legend">
@@ -3858,39 +4101,32 @@ function RepertoireMap({ data }) {
         </div>
       </div>
 
-      {totalItems ? (
-        <div className="repertoireMapGrid">
-          {sections.map((section) => {
-            const rows = repertoireMapRows(section);
+      <div className="repertoireMapGrid">
+        {sections.map((section) => {
+          const rows = repertoireMapRows(section);
 
-            return (
-              <article className="repertoireMapLane" key={section.key}>
-                <div className="repertoireMapLaneHeader">
-                  <span>{section.title}</span>
-                  <strong>{sectionHealth(section)}</strong>
-                </div>
+          return (
+            <article className="repertoireMapLane" key={section.key}>
+              <div className="repertoireMapLaneHeader">
+                <span>{section.title}</span>
+                <strong>{sectionHealth(section)}</strong>
+              </div>
 
-                <div className="repertoireMapTree">
-                  {rows.length ? (
-                    rows.map(({ opening, bucketKey }) => {
-                      const status = repertoireMapStatus(opening, bucketKey);
-                      const verdict =
-                        opening.fitDisplayVerdict ||
-                        confidenceVerdictLabel(opening, data, opening.fitVerdict || opening.verdict);
+              <div className="repertoireMapTree">
+                {rows.length ? (
+                  rows.map(({ opening, bucketKey }) => {
+                    const status = repertoireMapStatus(opening, bucketKey);
+                    const verdict =
+                      opening.fitDisplayVerdict ||
+                      confidenceVerdictLabel(opening, data, opening.fitVerdict || opening.verdict);
 
-                      return (
-                        <div className={`repertoireMapNode mapStatus-${status.key}`} key={getOpeningIdentityKey(opening)}>
+                    return (
+                      <div className={`repertoireMapNode mapStatus-${status.key}`} key={getOpeningIdentityKey(opening)}>
+                        <div className="repertoireMapNodeTop">
                           <div className="repertoireMapPath">
                             <span>{repertoireMapStem(opening, section)}</span>
                             <b aria-hidden="true">&rarr;</b>
                             <strong>{getOpeningName(opening)}</strong>
-                          </div>
-
-                          <div className="repertoireMapMeta">
-                            <span>{getOpeningGames(opening)} games</span>
-                            <span>{getWinRate(opening)}% score</span>
-                            <span>{getOpeningConfidence(opening)}</span>
-                            <em>{verdict}</em>
                           </div>
 
                           <div className="repertoireMapStatus">
@@ -3898,38 +4134,66 @@ function RepertoireMap({ data }) {
                             {status.label}
                           </div>
                         </div>
-                      );
-                    })
-                  ) : (
-                    <div className="repertoireMapNode mapStatus-grey">
+
+                        <dl className="repertoireMapMeta">
+                          <div>
+                            <dt>Games</dt>
+                            <dd>{getOpeningGames(opening)}</dd>
+                          </div>
+                          <div>
+                            <dt>Score</dt>
+                            <dd>{repertoireMapScore(opening)}</dd>
+                          </div>
+                          <div>
+                            <dt>Confidence</dt>
+                            <dd>{getOpeningConfidence(opening)}</dd>
+                          </div>
+                          <div>
+                            <dt>Verdict</dt>
+                            <dd>{verdict}</dd>
+                          </div>
+                        </dl>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="repertoireMapNode mapStatus-grey">
+                    <div className="repertoireMapNodeTop">
                       <div className="repertoireMapPath">
                         <span>{section.title}</span>
                         <b aria-hidden="true">&rarr;</b>
                         <strong>{section.empty}</strong>
-                      </div>
-                      <div className="repertoireMapMeta">
-                        <span>0 games</span>
-                        <span>Score unavailable</span>
-                        <span>No confidence yet</span>
-                        <em>Not enough data</em>
                       </div>
                       <div className="repertoireMapStatus">
                         <i className="mapDot mapDotGrey" />
                         Not enough data
                       </div>
                     </div>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      ) : (
-        <EmptyState
-          title="No repertoire map yet"
-          text="Import more recognised games and OpeningFit will map your White openings, Black defences, and low-sample experiments."
-        />
-      )}
+                    <dl className="repertoireMapMeta">
+                      <div>
+                        <dt>Games</dt>
+                        <dd>0</dd>
+                      </div>
+                      <div>
+                        <dt>Score</dt>
+                        <dd>Unavailable</dd>
+                      </div>
+                      <div>
+                        <dt>Confidence</dt>
+                        <dd>No confidence yet</dd>
+                      </div>
+                      <div>
+                        <dt>Verdict</dt>
+                        <dd>Not enough data</dd>
+                      </div>
+                    </dl>
+                  </div>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -4726,6 +4990,44 @@ function SeoLandingSection() {
   );
 }
 
+function OpeningFitPositioningSection({ compact = false }) {
+  const additions = [
+    "Keep / Improve / Avoid verdicts",
+    "Repertoire map",
+    "Study priority",
+    "Confidence labels",
+    "Progress tracking",
+    "Personal opening direction",
+  ];
+
+  return (
+    <section
+      className={`openingFitPositioning ${compact ? "openingFitPositioningCompact" : ""}`}
+      id={compact ? "report-positioning" : "why-openingfit"}
+    >
+      <div className="openingFitPositioningCopy">
+        <p className="landingEyebrow">Why OpeningFit</p>
+        <h2>Stats are useful. Decisions are better.</h2>
+        <p>
+          Chess.com and Lichess show your opening stats. OpeningFit turns those
+          stats into a practical repertoire decision.
+        </p>
+      </div>
+
+      <div className="openingFitPositioningPanel">
+        <span>What OpeningFit adds</span>
+        <div className="openingFitPositioningGrid">
+          {additions.map((item) => (
+            <div key={item}>
+              <strong>{item}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Footer() {
   return (
     <footer className="siteFooter">
@@ -5167,6 +5469,8 @@ function LandingSection({ onOpeningClick }) {
         </div>
       </section>
 
+      <OpeningFitPositioningSection />
+
       <AboutSection />
 
       <SeoLandingSection />
@@ -5201,14 +5505,18 @@ function LandingSection({ onOpeningClick }) {
         <div className="landingPricingGrid">
           <article className="landingPriceCard">
             <p className="landingMiniLabel">Free</p>
-            <h3>Quick opening snapshot</h3>
-            <p>Good for seeing the headline patterns in your recent games.</p>
+            <h3>Useful opening snapshot</h3>
+            <p>
+              Enough to get a real “what should I do next?” moment from your
+              recent games.
+            </p>
 
             <ul>
-              <li>Limited recent Chess.com or Lichess games</li>
-              <li>Quick opening snapshot</li>
-              <li>Basic top openings</li>
-              <li>Basic recommendation</li>
+              <li>Basic Chess.com or Lichess import</li>
+              <li>Main repertoire verdict</li>
+              <li>Top 3 actions</li>
+              <li>A few opening recommendations</li>
+              <li>Limited opening table</li>
             </ul>
           </article>
 
@@ -5216,24 +5524,24 @@ function LandingSection({ onOpeningClick }) {
             <div className="landingPriceTop">
               <div>
                 <p className="landingMiniLabel">Founder Pass</p>
-                <h3>Full repertoire audit</h3>
+                <h3>Depth and convenience</h3>
               </div>
 
               <span className="landingPriceBadge">£8 once-off</span>
             </div>
 
             <p>
-              Unlock better opening decisions: what to keep, what to improve,
-              and what to drop from your practical repertoire.
+              Founder Pass keeps the free report useful, then adds the deeper
+              tools for tracking and improving your repertoire over time.
             </p>
 
             <ul>
-              <li>12 months of games</li>
-              <li>White / Black split</li>
-              <li>Keep / Improve / Avoid verdicts</li>
-              <li>Confidence scoring and weak spot diagnosis</li>
-              <li>7-day training plan and saved report history</li>
-              <li>Future deeper analysis features</li>
+              <li>12-month import</li>
+              <li>Saved report history and progress tracking</li>
+              <li>Full opening table and advanced filters</li>
+              <li>Full repertoire map and tools</li>
+              <li>Exportable study plan</li>
+              <li>Future: Stockfish diagnosis, line mistakes, drills, PDF export</li>
             </ul>
           </article>
         </div>
@@ -5250,7 +5558,7 @@ function LandingSection({ onOpeningClick }) {
 
 const REPORT_HISTORY_KEY = "openingFit:reportHistory";
 
-function ReportExportAndHistory({ data, onLoadReport }) {
+function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgrade }) {
   const [savedReports, setSavedReports] = useState([]);
 
   useEffect(() => {
@@ -5297,6 +5605,11 @@ function ReportExportAndHistory({ data, onLoadReport }) {
   });
 
   const saveReport = () => {
+    if (!isPremium) {
+      onUpgrade?.();
+      return;
+    }
+
     const reportRecord = {
       id: `${Date.now()}`,
       savedAt: new Date().toISOString(),
@@ -5321,6 +5634,11 @@ function ReportExportAndHistory({ data, onLoadReport }) {
   };
 
   const exportPdf = () => {
+    if (!isPremium) {
+      onUpgrade?.();
+      return;
+    }
+
     const previousTitle = document.title;
     document.title = `Opening Fit Report - ${playerName}`;
     window.print();
@@ -5345,26 +5663,28 @@ function ReportExportAndHistory({ data, onLoadReport }) {
   return (
     <section className="exportHistoryShell" id="report-history">
       <div className="exportHistoryIntro">
-        <span>Export & history</span>
-        <h2>Save this report or export it as a PDF.</h2>
+        <span>{isPremium ? "Export & history" : "Founder Pass depth tools"}</span>
+        <h2>{isPremium ? "Save this report or export it as a study plan." : "Save progress and export plans with Founder Pass."}</h2>
         <p>
-          Keep a local copy of your Opening Fit reports so you can compare your
-          opening progress over time.
+          {isPremium
+            ? "Keep a local copy of your Opening Fit reports so you can compare your opening progress over time."
+            : "The free report gives the verdict and first actions. Founder Pass adds saved history and exportable study plans for longer-term improvement."}
         </p>
 
         <div className="exportHistoryActions">
           <button type="button" onClick={exportPdf} className="exportPrimaryBtn">
-            Export / print PDF
+            {isPremium ? "Export study plan" : "Unlock export"}
           </button>
 
           <button type="button" onClick={saveReport} className="exportSecondaryBtn">
-            Save report
+            {isPremium ? "Save report" : "Unlock saved history"}
           </button>
         </div>
 
         <small>
-          Saved reports are stored in this browser only. Cloud sync can be added
-          later with Supabase accounts.
+          {isPremium
+            ? "Saved reports are stored in this browser only. Cloud sync can be added later with Supabase accounts."
+            : "PDF export, cloud history, and deeper line diagnosis are planned as later premium upgrades."}
         </small>
       </div>
 
@@ -6804,8 +7124,38 @@ function App() {
     scrollToId(`section-${key}`);
   };
 
+  const sectionRouteMap = {
+    "feedback": { view: "feedback", target: "feedback" },
+    "premium": { view: "upgrade", target: "premium" },
+    "premium-offer": { view: "upgrade", target: "premium" },
+    "premium-workspace": { view: "upgrade", target: "premium-workspace" },
+    "training-plan": { view: "training", target: "training-plan" },
+    "section-training": { view: "training", target: "section-training" },
+    "seven-day-plan": { view: "training", target: "seven-day-plan" },
+    "coach-plan": { view: "training", target: "seven-day-plan" },
+    "study-planner": { view: "training", target: "study-planner" },
+    "game-replay": { view: "data", target: "game-replay" },
+    "section-replay": { view: "data", target: "section-replay" },
+    "section-verdicts": { view: "openings", target: "evidence-table" },
+    "keep-improve-avoid": { view: "openings", target: "evidence-table" },
+    "opening-suggestions": { view: "repertoire", target: "repertoire-map" },
+    "section-recommendations": { view: "repertoire", target: "repertoire-map" },
+    "recommended-repertoire": { view: "repertoire", target: "repertoire-map" },
+    "repertoire-plan": { view: "repertoire", target: "repertoire-map" },
+    "my-repertoire": { view: "repertoire", target: "repertoire-map" },
+    "progress-tracker": { view: "training", target: "next-study-session" },
+    "share-report": { view: "upgrade", target: "report-history" },
+    "report-history": { view: "upgrade", target: "report-history" },
+    "top-openings-table": { view: "openings", target: "evidence-table" },
+    "section-top": { view: "openings", target: "evidence-table" },
+    "section-chart": { view: "openings", target: "evidence-table" },
+  };
+
   const jumpToSection = (target) => {
-    const sectionKey = target.replace("section-", "");
+    const requestedTarget = String(target || "app-results");
+    const route = sectionRouteMap[requestedTarget] || { target: requestedTarget };
+    const targetId = route.target || requestedTarget;
+    const sectionKey = targetId.replace("section-", "");
 
     if (closedSections[sectionKey] !== undefined) {
       setOpenSections((prev) => ({
@@ -6814,8 +7164,15 @@ function App() {
       }));
     }
 
+    if (route.view) {
+      setActiveView(route.view);
+    }
+
     setTimeout(() => {
-      const el = document.getElementById(target);
+      const el =
+        document.getElementById(targetId) ||
+        document.getElementById(requestedTarget) ||
+        document.getElementById("app-results");
 
       if (el) {
         const y = el.getBoundingClientRect().top + window.scrollY - 18;
@@ -6833,7 +7190,7 @@ function App() {
           block: "start",
         });
       }
-    }, 160);
+    }, route.view ? 240 : 160);
   };
 
   const startOpeningPractice = (openingName) => {
@@ -7127,33 +7484,54 @@ function App() {
     setFeedbackStatus("Sending feedback...");
 
     try {
-      const response = await fetch(`${API_BASE}/api/feedback`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message,
-          contact: feedbackContact.trim() || null,
-          username: username.trim() || null,
-          platform,
-          page: "Opening Fit app",
-          createdAt: new Date().toISOString(),
-        }),
-      });
+      const createdAt = new Date().toISOString();
+      const contact = feedbackContact.trim() || null;
+      const payload = {
+        message,
+        contact,
+        email: contact,
+        username: username.trim() || null,
+        platform,
+        page: "Opening Fit app",
+        createdAt,
+        created_at: createdAt,
+      };
 
-      const text = await response.text();
+      let lastError = null;
 
-      let parsed = null;
+      for (const endpoint of ["/api/feedback", "/api/feedback-local"]) {
+        try {
+          const response = await fetch(`${API_BASE}${endpoint}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
 
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        parsed = null;
+          const text = await response.text();
+
+          let parsed = null;
+
+          try {
+            parsed = JSON.parse(text);
+          } catch {
+            parsed = null;
+          }
+
+          if (!response.ok) {
+            throw new Error(parsed?.detail || parsed?.message || text);
+          }
+
+          lastError = null;
+          break;
+        } catch (endpointError) {
+          lastError = endpointError;
+        }
       }
 
-      if (!response.ok) {
-        throw new Error(parsed?.detail || parsed?.message || text);
+      if (lastError) {
+        throw lastError;
       }
 
       setFeedbackMessage("");
@@ -7340,13 +7718,19 @@ function App() {
     const bestFit = fitData.bestOpening;
     const weakFit = fitData.weakestOpening;
     const top = filteredTopOpenings[0];
+    const ratingCopy = getRatingAwareRecommendationCopy({
+      level: levelProfile.level,
+      label: levelProfile.shortLabel || levelProfile.label,
+      bestName: bestFit ? getOpeningContextTitle(bestFit) : levelAware.bestName,
+      weakName: weakFit ? getOpeningContextTitle(weakFit) : levelAware.weakName,
+    });
 
     if (bestFit) {
       summary.push(
         publicMode
           ? `${getOpeningContextTitle(bestFit)} is the recent strength sample in this import at ${bestFit.fitScore}/100.`
           : canTreatAsRepertoireOpening(bestFit)
-            ? `${getOpeningContextTitle(bestFit)} currently looks like your strongest clean Opening Fit. It scores ${bestFit.fitScore}/100 and matches the ${levelProfile.shortLabel.toLowerCase()} profile read.`
+            ? `${getOpeningContextTitle(bestFit)} currently looks like your strongest clean Opening Fit at ${bestFit.fitScore}/100. ${ratingCopy.keepAction}`
             : `${getOpeningContextTitle(bestFit)} is visible in the data, but the side/context is not clean enough for a repertoire recommendation yet.`
       );
     }
@@ -7356,7 +7740,7 @@ function App() {
       const topContext = getOpeningContext(top);
       summary.push(
         topContext.canRecommend
-          ? `Your most common opening signal is ${topTitle}. Because it appears often, improving this side-specific line should give you the biggest overall return.`
+          ? `Your most common opening signal is ${topTitle}. ${ratingCopy.training}`
           : `Your most common opening signal is ${topTitle}. Track it by side before treating it as a repertoire decision.`
       );
     }
@@ -7365,7 +7749,7 @@ function App() {
       summary.push(
         publicMode
           ? `${getOpeningContextTitle(weakFit)} is a lower-scoring recent sample at ${weakFit.fitScore}/100. Do not treat this as a hard opening verdict.`
-          : `${getOpeningContextTitle(weakFit)} may need attention. It currently scores ${weakFit.fitScore}/100, so review your last 3 games there and mark the first repeated branch.`
+          : `${getOpeningContextTitle(weakFit)} may need attention at ${weakFit.fitScore}/100. ${ratingCopy.weakAction}`
       );
     }
 
@@ -7427,7 +7811,7 @@ function App() {
     if (levelProfile.level === "beginner" || levelProfile.level === "developing" || levelProfile.level === "improver") {
       plan.push({
         title: "Simplify the repertoire first",
-        text: "Use fewer openings for the next block of games. Pick one White setup and one simple Black setup so the same middlegame plans appear repeatedly.",
+        text: ratingCopy.summary,
         action: null,
         opening: null,
       });
@@ -7448,8 +7832,8 @@ function App() {
             ? `Maintain ${getOpeningContextTitle(bestFit)}`
             : `Build around ${getOpeningContextTitle(bestFit)}`,
           text: advancedOrHigher
-            ? `This is the strongest clean signal at ${bestFit.fitScore}/100. Use it as a stable reference point and check whether recent opponents are steering you into one branch.`
-            : `This is your best current clean Opening Fit at ${bestFit.fitScore}/100. Keep it in that side of your repertoire and learn one simple plan after the first few moves.`,
+            ? `This is the strongest clean signal at ${bestFit.fitScore}/100. ${ratingCopy.keepAction}`
+            : `This is your best current clean Opening Fit at ${bestFit.fitScore}/100. ${ratingCopy.keepAction}`,
           action: `Practise ${getOpeningName(bestFit)}`,
           opening: getOpeningName(bestFit),
         });
@@ -7470,7 +7854,7 @@ function App() {
           ? `Make ${getOpeningContextTitle(mainOpening)} more reliable`
           : `Separate the context for ${getOpeningContextTitle(mainOpening)}`,
         text: canPracticeMain
-          ? `You have played this ${mainOpening.games} times in that context, so small improvements there will affect a lot of your games. Review the first 6 moves and the main middlegame plan.`
+          ? `You have played this ${mainOpening.games} times in that context, so small improvements there will affect a lot of your games. ${ratingCopy.training}`
           : "This appears often, but the current data does not prove it is an opening you should play. Separate played and faced games first.",
         action: canPracticeMain ? `Practise ${mainOpening.name}` : null,
         opening: canPracticeMain ? mainOpening.name : null,
@@ -7487,8 +7871,8 @@ function App() {
           : `Track ${getOpeningContextTitle(weakFit)} before judging it`,
         text: canPracticeWeak
           ? advancedOrHigher
-            ? `This may be a practical review area at ${weakFit.fitScore}/100. Check move-order precision, opponent prep, and the first recurring branch where the score drops.`
-            : `This side-specific opening signal is your lowest current fit at ${weakFit.fitScore}/100. Try one simpler variation before changing the whole opening.`
+            ? `This may be a practical review area at ${weakFit.fitScore}/100. ${ratingCopy.weakAction}`
+            : `This side-specific opening signal is your lowest current fit at ${weakFit.fitScore}/100. ${ratingCopy.weakAction}`
           : "This is not clean enough to call a repertoire weakness. Treat it as a trend to separate by side/context.",
         action: canPracticeWeak ? `Practise ${getOpeningName(weakFit)}` : null,
         opening: canPracticeWeak ? getOpeningName(weakFit) : null,
@@ -7955,6 +8339,8 @@ function App() {
 
             <LandingSampleResultPreview onOpeningClick={startOpeningPractice} />
 
+            <OpeningFitPositioningSection compact />
+
             {false ? (
             <div className="filtersRow importFiltersRow">
               <label className="openingSampleControl">
@@ -8076,74 +8462,18 @@ function App() {
 
           {reportData && activeView !== "account" && (
             <div id="app-results">
-              <CompactReportSummary
+              <FinalReportFlow
                 data={reportData}
                 fitData={fitData}
-                onViewChange={setActiveView}
-                onPractice={startOpeningPractice}
-              />
-
-              <ReportFilters
                 filters={reportFilters}
-                onChange={setReportFilters}
-                data={reportData}
+                onFilterChange={setReportFilters}
+                isPremium={isPremium}
+                onUpgrade={() => setActiveView("upgrade")}
+                onPractice={startOpeningPractice}
+                onViewChange={setActiveView}
+                accountUser={accountUser}
+                onLoadReport={setData}
               />
-
-              <ImportQualitySummary data={reportData} />
-
-              <RepertoireMap data={reportData} />
-
-              {accountUser ? (
-                <ReportHistoryVault
-                  data={reportData}
-                  fitData={fitData}
-                  onLoadReport={setData}
-                />
-              ) : null}
-
-              <AppViewTabs
-                activeView={activeView}
-                onChange={(view) => {
-                  setActiveView(view);
-
-                  setTimeout(() => {
-                    const el = document.getElementById("app-results");
-                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }, 80);
-                }}
-              />
-
-              {activeView === "overview" ? (
-                <>
-                  <NextStudySession
-                    fitData={fitData}
-                    recentGames={filteredRecentGames}
-                    onPractice={startOpeningPractice}
-                    onViewChange={setActiveView}
-                  />
-                </>
-              ) : null}
-
-              {activeView === "repertoire" ? (
-                <RepertoireCommandPanel data={reportData} onPractice={startOpeningPractice} />
-              ) : null}
-
-              {activeView === "openings" ? (
-                <OpeningsCommandPanel
-                  data={reportData}
-                  fitData={fitData}
-                  onPractice={startOpeningPractice}
-                />
-              ) : null}
-
-              {activeView === "weakspots" ? (
-                <WeakSpotsCommandPanel
-                  data={reportData}
-                  fitData={fitData}
-                  onPractice={startOpeningPractice}
-                  onViewChange={setActiveView}
-                />
-              ) : null}
 
               {false && activeView === "recommendations" ? (
                 <>
@@ -8520,6 +8850,11 @@ function App() {
 
         <ReportExportAndHistory
                     data={data}
+                    isPremium={isPremium}
+                    onUpgrade={() => {
+                      const el = document.getElementById("premium");
+                      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
                     onLoadReport={(reportData) => {
                       setData(reportData);
                     }}
@@ -8653,8 +8988,8 @@ function App() {
 
                   {!isPremium ? (
                     <LockedPremiumCard
-                      title="Full repertoire audit locked"
-                      text="Founder Pass unlocks weak spot diagnosis, a 7-day training plan, and saved report history."
+                      title="Depth tools available with Founder Pass"
+                      text="Your free plan gives the first actions. Founder Pass adds saved progress, exportable study plans, and deeper repertoire workflow."
                     />
                   ) : null}
                 </Section>
@@ -8904,8 +9239,8 @@ function App() {
 
                       {!isPremium && filteredTopOpenings.length > 8 ? (
                         <LockedPremiumCard
-                          title="Full repertoire audit locked"
-                          text={`Your free report shows the headline patterns. Founder Pass unlocks all ${filteredTopOpenings.length} tracked openings with fuller context.`}
+                          title="Full table available with Founder Pass"
+                          text={`Your free report shows the most useful rows. Founder Pass unlocks all ${filteredTopOpenings.length} tracked openings, advanced filters, and deeper context.`}
                         />
                       ) : null}
                       </div>

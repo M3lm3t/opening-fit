@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import ChessPositionBoard from "./ChessPositionBoard";
-import { findOpeningPracticePack } from "../data/openingPracticeLines";
+import { findOpeningPracticePack, openingPracticePacks } from "../data/openingPracticeLines";
 
 function getOpeningName(opening) {
   if (typeof opening === "string") return opening;
@@ -86,7 +86,8 @@ function explainMove(line, moves, index) {
 
 export default function OpeningPracticeLinesPanel({ opening, onClose }) {
   const openingName = getOpeningName(opening);
-  const pack = useMemo(() => findOpeningPracticePack(openingName), [openingName]);
+  const [activeOpeningName, setActiveOpeningName] = useState(openingName);
+  const pack = useMemo(() => findOpeningPracticePack(activeOpeningName), [activeOpeningName]);
 
   const [selectedLineIndex, setSelectedLineIndex] = useState(0);
   const [moveIndex, setMoveIndex] = useState(0);
@@ -106,9 +107,13 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
     : selectedLine?.finishIdea || "You reached the target position. Review the plan, not just the move order.";
 
   useEffect(() => {
+    setActiveOpeningName(openingName);
+  }, [openingName]);
+
+  useEffect(() => {
     setSelectedLineIndex(0);
     resetBoard();
-  }, [openingName]);
+  }, [activeOpeningName]);
 
   useEffect(() => {
     const game = buildGameToMove(moves, moveIndex);
@@ -118,6 +123,8 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
   if (!opening) return null;
 
   if (!pack) {
+    const suggestedPacks = openingPracticePacks.slice(0, 8);
+
     return (
       <section className="card practiceLinesPanel" id="practice-main-lines">
         <div className="practiceLinesHeader">
@@ -132,11 +139,26 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
         </div>
 
         <div className="practiceComingSoon">
-          <h3>Practice pack coming soon</h3>
+          <h3>No exact pack for {openingName} yet</h3>
           <p>
-            I have not added 3 main lines for this opening yet. Start with the common openings first,
-            then we can keep expanding the library.
+            Pick a working practice pack below. These boards are live now and cover common structures while this specific opening is added.
           </p>
+
+          <div className="supportedOpeningGrid">
+            {suggestedPacks.map((suggestedPack) => {
+              const label = suggestedPack.aliases?.[0] || suggestedPack.key;
+
+              return (
+                <button
+                  type="button"
+                  key={suggestedPack.key}
+                  onClick={() => setActiveOpeningName(label)}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
     );
@@ -283,7 +305,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
       <div className="practiceLinesHeader">
         <div>
           <p className="eyebrow">Practice pack</p>
-          <h2>{openingName}</h2>
+          <h2>{activeOpeningName}</h2>
         </div>
 
         <button className="practiceCloseButton" type="button" onClick={onClose}>

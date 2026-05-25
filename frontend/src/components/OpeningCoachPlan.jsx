@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./OpeningCoachPlan.css";
-import { getPlayerLevelText } from "./playerLevelLogic";
+import { getPlayerLevelText, getRatingAwareRecommendationCopy } from "./playerLevelLogic";
 import { getOpeningContext } from "./OpeningEvidence";
 
 function toNumber(value, fallback = 0) {
@@ -172,6 +172,11 @@ function buildPlan(data) {
   const weak = getWeakOpening(data);
   const recommendation = getMainRecommendation(data);
   const level = getLevel(data);
+  const ratingCopy = getRatingAwareRecommendationCopy({
+    level,
+    bestName: openingName(best, "your best-fit opening"),
+    weakName: openingName(weak, "your weakest recurring opening"),
+  });
   const advancedMode =
     ["advanced", "expert", "master"].includes(level) ||
     ["high_rated_user", "public_account_possible"].includes(data?.reportMode || data?.report_mode);
@@ -179,19 +184,19 @@ function buildPlan(data) {
     level === "master"
       ? `${evidence(weak)} Action: audit move-order precision, opponent preparation, and the first recurring branch where the score drops.`
       : advancedMode
-      ? `${evidence(weak)} Action: audit move order, opponent rating band, and the first recurring middlegame structure.`
+      ? `${evidence(weak)} Action: ${ratingCopy.weakAction}`
       : level === "intermediate"
-      ? `${evidence(weak)} Action: find the first repeated position where your plan becomes unclear.`
-      : `${evidence(weak)} Action: mark the first move where development, king safety, or the centre plan went wrong.`;
+      ? `${evidence(weak)} Action: ${ratingCopy.weakAction}`
+      : `${evidence(weak)} Action: ${ratingCopy.weakAction}`;
   const strengthLanguage =
     level === "master"
       ? `${evidence(best)} Action: treat this as a known repertoire weapon and check whether recent opponents are steering you into one specific branch.`
       : advancedMode
-      ? `${evidence(best)} Action: add one branch-level note on the reply causing the most practical problems.`
+      ? `${evidence(best)} Action: ${ratingCopy.keepAction}`
       : level === "intermediate"
-      ? `${evidence(best)} Action: choose one repeatable line and write the plan in one sentence.`
+      ? `${evidence(best)} Action: ${ratingCopy.keepAction}`
       : getOpeningContext(best).canRecommend
-        ? `${evidence(best)} Action: play this opening again from your side and aim for the same move-10 structure.`
+        ? `${evidence(best)} Action: ${ratingCopy.keepAction}`
         : `${evidence(best)} Action: review how you handled this opening; do not add it to your repertoire unless you also play it from your side.`;
   const reviewTitle = advancedMode
     ? `20 minutes on ${openingName(weak, "a lower-scoring sample")}`
@@ -220,8 +225,8 @@ function buildPlan(data) {
       title: advancedMode ? "20 minutes on the lower-scoring branch" : "20 minutes on the damaging line",
       meta: weak ? openingMeta(weak) : "Needs a larger sample",
       detail: advancedMode
-        ? "Verdict: Lower-scoring sample. Evidence: this branch underperformed in the import. Action: compare moves 1-12 across three recent games."
-        : "Verdict: Improve. Evidence: this is the lower-scoring repeated sample. Action: replay only moves 1-12 of three games and mark the repeated branch.",
+        ? `Verdict: Lower-scoring sample. Evidence: this branch underperformed in the import. Action: ${ratingCopy.training}`
+        : `Verdict: Improve. Evidence: this is the lower-scoring repeated sample. Action: ${ratingCopy.training}`,
       tag: "Review",
     },
     {
@@ -239,7 +244,7 @@ function buildPlan(data) {
       title: "20 minutes of line practice",
       meta: "Use the practice pack for your most relevant opening",
       detail:
-        "Play through three lines slowly. Say out loud why each move works: centre, development, king safety, pressure, or a useful pawn break.",
+        ratingCopy.training,
       tag: "Drill",
     },
     {

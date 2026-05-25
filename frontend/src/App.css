@@ -628,7 +628,8 @@ table {
 }
 
 .ratingOpeningBtn,
-.supportedOpeningGrid span {
+.supportedOpeningGrid span,
+.supportedOpeningGrid button {
   display: inline-flex;
   padding: 7px 9px;
   border-radius: 999px;
@@ -638,6 +639,122 @@ table {
   font-size: 0.78rem;
   font-weight: 850;
   text-align: left;
+  cursor: pointer;
+}
+
+.openingFitPositioning {
+  width: min(1120px, calc(100% - 1.5rem));
+  margin: 1rem auto 1.35rem;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+  gap: clamp(1rem, 2.4vw, 1.4rem);
+  align-items: stretch;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 24px;
+  padding: clamp(1rem, 2.5vw, 1.35rem);
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(11, 18, 32, 0.94));
+  box-shadow: 0 22px 70px rgba(2, 6, 23, 0.22);
+}
+
+.openingFitPositioningCompact {
+  margin-top: 0.95rem;
+}
+
+.openingFitPositioningCopy {
+  display: grid;
+  align-content: center;
+}
+
+.openingFitPositioningCopy h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  line-height: 1.08;
+}
+
+.openingFitPositioningCopy p:not(.landingEyebrow) {
+  max-width: 620px;
+  margin: 0.7rem 0 0;
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 0.98rem;
+  line-height: 1.65;
+}
+
+.openingFitPositioningPanel {
+  display: grid;
+  gap: 0.8rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.openingFitPositioningPanel > span {
+  color: rgba(248, 250, 252, 0.62);
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.openingFitPositioningGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.openingFitPositioningGrid div {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 14px;
+  padding: 0.72rem 0.78rem;
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.openingFitPositioningGrid strong {
+  color: rgba(248, 250, 252, 0.92);
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+[data-theme="light"] .openingFitPositioning,
+.page.light .openingFitPositioning {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.1);
+}
+
+[data-theme="light"] .openingFitPositioningCopy h2,
+.page.light .openingFitPositioningCopy h2 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .openingFitPositioningCopy p:not(.landingEyebrow),
+.page.light .openingFitPositioningCopy p:not(.landingEyebrow) {
+  color: #475569;
+}
+
+[data-theme="light"] .openingFitPositioningPanel,
+.page.light .openingFitPositioningPanel {
+  border-color: rgba(15, 23, 42, 0.1);
+  background: #f8fafc;
+}
+
+[data-theme="light"] .openingFitPositioningPanel > span,
+.page.light .openingFitPositioningPanel > span {
+  color: #64748b;
+}
+
+[data-theme="light"] .openingFitPositioningGrid div,
+.page.light .openingFitPositioningGrid div {
+  border-color: rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+}
+
+[data-theme="light"] .openingFitPositioningGrid strong,
+.page.light .openingFitPositioningGrid strong {
+  color: #0f172a;
 }
 
 .ratingOpeningBtn:hover,
@@ -15673,6 +15790,19 @@ textarea {
   line-height: 1.6;
 }
 
+.repertoireMapCount {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  padding: 0.38rem 0.65rem;
+  color: rgba(248, 250, 252, 0.72);
+  background: rgba(15, 23, 42, 0.6);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
 .repertoireMapLegend {
   display: grid;
   gap: 0.45rem;
@@ -15809,6 +15939,13 @@ textarea {
   border-left-color: #94a3b8;
 }
 
+.repertoireMapNodeTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: start;
+}
+
 .repertoireMapPath {
   display: flex;
   flex-wrap: wrap;
@@ -15834,25 +15971,48 @@ textarea {
 }
 
 .repertoireMapMeta {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.45rem;
+  margin: 0;
 }
 
-.repertoireMapMeta span,
-.repertoireMapMeta em {
+.repertoireMapMeta div {
   min-width: 0;
-  border-radius: 999px;
-  padding: 0.35rem 0.55rem;
-  color: rgba(248, 250, 252, 0.78);
+  border-radius: 14px;
+  padding: 0.5rem 0.55rem;
   background: rgba(255, 255, 255, 0.08);
-  font-size: 0.76rem;
-  font-style: normal;
+}
+
+.repertoireMapMeta dt {
+  margin: 0 0 0.18rem;
+  color: rgba(248, 250, 252, 0.48);
+  font-size: 0.64rem;
   font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.repertoireMapMeta dd {
+  margin: 0;
+  color: rgba(248, 250, 252, 0.88);
+  font-size: 0.78rem;
+  font-weight: 950;
+  line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
 @media (max-width: 760px) {
+  .openingFitPositioning,
+  .openingFitPositioningGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .openingFitPositioning {
+    width: calc(100% - 0.8rem);
+    border-radius: 20px;
+  }
+
   .seriousTabs {
     top: 0.4rem;
     width: calc(100% - 0.8rem);
@@ -15907,6 +16067,11 @@ textarea {
   .repertoireMapLegend {
     width: 100%;
     min-width: 0;
+  }
+
+  .repertoireMapNodeTop,
+  .repertoireMapMeta {
+    grid-template-columns: 1fr;
   }
 
   .floatingAppMenu,
@@ -17057,6 +17222,9 @@ html {
 }
 
 .segmentedControl button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 999px;
   padding: 7px 10px;
@@ -17064,6 +17232,21 @@ html {
   background: rgba(15, 23, 42, 0.28);
   font-weight: 800;
   cursor: pointer;
+}
+
+.segmentedControl button small {
+  border-radius: 999px;
+  padding: 2px 5px;
+  background: rgba(248, 214, 109, 0.14);
+  color: #fde68a;
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+.light .segmentedControl button small,
+[data-theme="light"] .segmentedControl button small {
+  background: rgba(180, 83, 9, 0.1);
+  color: #92400e;
 }
 
 .light .segmentedControl button,
@@ -28486,6 +28669,122 @@ textarea {
   color: var(--muted);
 }
 
+.finalReportFlow {
+  display: grid;
+  gap: 14px;
+  scroll-margin-top: 104px;
+}
+
+.finalReportBlock,
+.finalReportFlow .commandPanel,
+.finalReportFlow .repertoireMapSection,
+.finalReportFlow .reportFilters,
+.finalReportFlow .importQualitySummary,
+.finalReportFlow .studyThisNextCard {
+  margin: 0;
+}
+
+.topActionsSection {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.page.light .topActionsSection,
+[data-theme="light"] .topActionsSection {
+  background: #f8fafc;
+}
+
+.topActionsList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.topActionsList li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.22);
+}
+
+.page.light .topActionsList li,
+[data-theme="light"] .topActionsList li {
+  background: #ffffff;
+}
+
+.topActionsList li > span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #f8d66d;
+  color: #061019;
+  font-weight: 950;
+  font-size: 0.82rem;
+}
+
+.topActionsList strong {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.topActionsSection > .secondaryBtn {
+  justify-self: start;
+}
+
+.evidenceTableSection {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.page.light .evidenceTableSection,
+[data-theme="light"] .evidenceTableSection {
+  background: #ffffff;
+}
+
+.compactEvidenceTableWrap {
+  border-radius: 8px;
+}
+
+.compactEvidenceTable th,
+.compactEvidenceTable td {
+  padding: 11px 12px;
+  vertical-align: middle;
+}
+
+.compactEvidenceTable th {
+  font-size: 0.74rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.compactEvidenceTable td {
+  font-size: 0.92rem;
+}
+
+.finalReportHistoryBlock {
+  display: grid;
+  gap: 14px;
+}
+
 .roleReportGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -29065,6 +29364,7 @@ textarea {
   .reportCommandHero,
   .reportHeroMeta,
   .commandHeroGrid,
+  .topActionsList,
   .roleReportGrid,
   .roleReportStats,
   .openingFitVerdictCard,
