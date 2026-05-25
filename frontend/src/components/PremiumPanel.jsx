@@ -86,7 +86,7 @@ function openingContextTitle(item, fallback = "your strongest side-specific open
 
 function FeatureRow({ label, free, premium }) {
   const freeLabel = free === true ? "Included" : free || "Limited";
-  const freeIncluded = freeLabel === "Included";
+  const freeIncluded = !/not included/i.test(freeLabel);
 
   return (
     <div className="premiumCompareRow">
@@ -148,18 +148,18 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
         <div className="premiumUpgradeCopy">
           <div className="premiumUpgradeEyebrow">Founder Pass</div>
 
-          <h2>Unlock your full repertoire audit.</h2>
+          <h2>Go deeper when the free snapshot gives you a direction.</h2>
 
           <p>
-            Turn your recent games into a practical opening plan. Founder Pass
-            shows which openings to keep, improve, or drop with colour-split
-            verdicts and confidence scoring.
+            The free report gives the main verdict and first actions. Founder
+            Pass adds the depth and convenience for players who want to track,
+            filter, export, and refine a repertoire over time.
           </p>
 
           <div className="premiumHeroBullets">
-            <span>✓ Full White / Black repertoire audit</span>
-            <span>✓ Keep / Improve / Avoid verdicts with confidence</span>
-            <span>✓ Weak spot diagnosis and 7-day training plan</span>
+            <span>✓ 12-month import and deeper history</span>
+            <span>✓ Full opening table, advanced filters, and saved progress</span>
+            <span>✓ Exportable study plan and full repertoire tools</span>
           </div>
         </div>
 
@@ -186,8 +186,8 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
 
           <small>
             {isPremium
-              ? "Your full repertoire audit is unlocked for this report."
-              : "Free shows the snapshot. Founder Pass unlocks the decision layer: what to keep, what to improve, and what to drop."}
+              ? "Depth tools are unlocked for this report."
+              : "Free gives the useful verdict. Founder Pass adds history, filtering, exports, and repertoire workflow."}
           </small>
         </div>
       </div>
@@ -212,26 +212,26 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
       <div className="premiumPreviewGrid">
         <LockedPreview
           isPremium={isPremium}
-          title="Full repertoire audit"
-          text={`Use side-specific signals like ${bestOpening} to decide what belongs in your White and Black repertoire.`}
+          title="Deeper history"
+          text="Import up to 12 months so one recent streak does not distort the whole repertoire decision."
         />
 
         <LockedPreview
           isPremium={isPremium}
-          title="Weak spot diagnosis"
-          text={`See where your results drop, starting with ${weakOpening}, and turn that into a specific review target.`}
+          title="Full filters and table"
+          text="Use the full opening table and advanced filters to compare side, sample size, score, and confidence."
         />
 
         <LockedPreview
           isPremium={isPremium}
-          title="7-day training plan"
-          text="Turn your recent games into a practical opening plan with one target, one metric, and seven clear actions."
+          title="Saved progress"
+          text="Save reports, compare imports, and track whether your opening decisions are actually improving."
         />
 
         <LockedPreview
           isPremium={isPremium}
-          title="Saved report history"
-          text="Save your profile, re-import later, and see whether your opening decisions are improving."
+          title="Full repertoire tools"
+          text={`Turn signals like ${bestOpening} and ${weakOpening} into an exportable study plan and clearer repertoire map.`}
         />
       </div>
 
@@ -239,7 +239,7 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
         <div className="premiumComparisonHeader">
           <div>
             <span>Free vs Founder Pass</span>
-            <h3>Free shows the snapshot. Founder Pass unlocks better decisions.</h3>
+            <h3>Free gives the wow moment. Founder Pass adds depth and workflow.</h3>
           </div>
         </div>
 
@@ -250,26 +250,25 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
             <div>Premium</div>
           </div>
 
-          <FeatureRow label="Quick opening snapshot" free="Included" premium="Included" />
-          <FeatureRow label="Recent game import" free="Limited" premium="12 months" />
-          <FeatureRow label="Basic top openings" free="Included" premium="Full context" />
-          <FeatureRow label="Basic recommendation" free="Included" premium="Decision-ready plan" />
-          <FeatureRow label="White / Black split" free="Limited" premium="Full audit" />
-          <FeatureRow label="Keep / Improve / Avoid verdicts" free="Limited" premium="Confidence-scored" />
-          <FeatureRow label="Weak spot diagnosis" free="Limited" premium="Unlocked" />
-          <FeatureRow label="7-day training plan" free="Limited" premium="Unlocked" />
-          <FeatureRow label="Saved report history" free="Limited" premium="Unlocked" />
-          <FeatureRow label="Future deeper analysis features" free="Limited" premium="Included" />
+          <FeatureRow label="Basic import" free="Included" premium="12 months" />
+          <FeatureRow label="Main verdict" free="Included" premium="Deeper context" />
+          <FeatureRow label="Top 3 actions" free="Included" premium="Full study plan" />
+          <FeatureRow label="Opening recommendations" free="A few" premium="Full repertoire tools" />
+          <FeatureRow label="Repertoire map" free="Basic map" premium="Full map and builder tools" />
+          <FeatureRow label="Opening table" free="Limited" premium="Full table" />
+          <FeatureRow label="Filters" free="Basic" premium="Advanced" />
+          <FeatureRow label="Progress tracking" free="Preview" premium="Saved history" />
+          <FeatureRow label="Exportable study plan" free="Not included" premium="Included" />
+          <FeatureRow label="Later premium tools" free="Not included" premium="Stockfish, line mistakes, drills, PDF" />
         </div>
       </div>
 
       <div className="premiumFinalCta">
         <div>
-          <h3>Founder Pass turns the snapshot into a repertoire audit.</h3>
+          <h3>Founder Pass turns a useful snapshot into a long-term repertoire workflow.</h3>
           <p>
-            Unlock your full repertoire audit, see which openings to keep,
-            improve, or drop, and turn your recent games into a practical
-            opening plan.
+            Keep using the free verdict. Upgrade when you want deeper history,
+            better filters, saved progress, and exportable study plans.
           </p>
         </div>
 

@@ -243,6 +243,77 @@ export function isMasterLevel(level) {
   return ["master", "elite"].includes(String(level || "").toLowerCase());
 }
 
+export function getRecommendationRatingBand(level) {
+  const cleanLevel = String(level || "").toLowerCase();
+
+  if (["advanced", "expert", "master", "elite", "strong"].includes(cleanLevel)) {
+    return "advanced";
+  }
+
+  if (cleanLevel === "intermediate") return "intermediate";
+
+  return "lower_club";
+}
+
+export function getRatingAwareRecommendationCopy({ level = "", label = "", bestName = "", weakName = "" } = {}) {
+  const band = getRecommendationRatingBand(level);
+  const levelLabel = label || (band === "advanced" ? "Advanced" : band === "intermediate" ? "Intermediate" : "Beginner / lower club");
+  const safeBest = bestName || "your strongest repeated opening";
+  const safeWeak = weakName || "your weakest repeated opening";
+
+  if (band === "advanced") {
+    return {
+      band,
+      levelLabel,
+      title: "Advanced repertoire refinement",
+      summary:
+        `${levelLabel} recommendation: the opening choice is probably not the whole issue. Look for transpositions, sidelines, move-order precision, and whether your repertoire covers the positions opponents are steering you into.`,
+      primaryAction:
+        `Use ${safeBest} as the stable reference point, then audit ${safeWeak} for move-order precision, specific sidelines, transpositions, and the first recurring branch where the score drops.`,
+      keepAction:
+        `Keep ${safeBest} as a repertoire weapon only in the side/context shown, then check whether opponents are reaching one awkward sideline.`,
+      weakAction:
+        `Do not replace ${safeWeak} from one score line. Compare move orders, transpositions, and specific branches before changing the repertoire.`,
+      training:
+        "Audit move-order precision, sideline coverage, transpositions, colour splits, and the exact branch where practical results start changing.",
+    };
+  }
+
+  if (band === "intermediate") {
+    return {
+      band,
+      levelLabel,
+      title: "Intermediate repertoire plan",
+      summary:
+        `${levelLabel} recommendation: you probably know the setup. The useful question is what middlegame plan appears after development, which common branch repeats, and whether your move order is disciplined enough to reach it.`,
+      primaryAction:
+        `Build around ${safeBest}, then review ${safeWeak} by finding the first uncomfortable middlegame position after development and writing one repeatable plan for it.`,
+      keepAction:
+        `Keep ${safeBest}, but connect the opening to the first middlegame plan: pawn break, piece placement, and the common branch you see most often.`,
+      weakAction:
+        `For ${safeWeak}, study the common branches and the first middlegame plan after development before changing openings.`,
+      training:
+        "Review structures, common branches, repeated middlegame plans, and the move order that gets you into those positions.",
+    };
+  }
+
+  return {
+    band,
+    levelLabel,
+    title: "Simple opening plan",
+    summary:
+      `${levelLabel} recommendation: do not memorise 15 moves. Learn the setup, common traps, development pattern, castling plan, and where your pieces belong.`,
+    primaryAction:
+      `Use ${safeBest} as a simple repeatable setup, and simplify ${safeWeak}: learn the first few moves, castle, develop every piece, and watch for the same trap or early mistake.`,
+    keepAction:
+      `Keep ${safeBest} simple: learn the setup, the common trap to avoid, where the pieces go, and when to castle.`,
+    weakAction:
+      `Do not fix ${safeWeak} with deep theory. Pick one safer setup, avoid early queen adventures, develop pieces, castle, and review the first repeated mistake.`,
+    training:
+      "Focus on simple plans, development, castling, common traps, safe setups, and repeating the same opening often enough to recognise the position.",
+  };
+}
+
 export function getLevelToneCopy(level) {
   const cleanLevel = String(level || "").toLowerCase();
 
@@ -254,9 +325,9 @@ export function getLevelToneCopy(level) {
       reason:
         "At your level, this is likely about move-order precision, opponent preparation, or a recent trend in one branch, not basic understanding.",
       action:
-        "Run targeted analysis on the repeated branch: compare move orders, opponent preparation, colour splits, and recent trend changes.",
+        "Run targeted analysis on the repeated branch: compare transpositions, sidelines, move orders, opponent preparation, colour splits, and recent trend changes.",
       training:
-        "Audit trend changes, move-order precision, opponent preparation, and high-sample branches.",
+        "Audit trend changes, transpositions, sideline coverage, move-order precision, opponent preparation, and high-sample branches.",
     };
   }
 
@@ -268,9 +339,9 @@ export function getLevelToneCopy(level) {
       reason:
         "Your results suggest this line deserves targeted analysis before making any repertoire decision.",
       action:
-        "Review the repeated branch for move-order issues, opponent preparation, and recurring middlegame structures.",
+        "Review the repeated branch for transpositions, sidelines, move-order issues, opponent preparation, and recurring middlegame structures.",
       training:
-        "Refine the repertoire with branch-level review, opponent pools, and recent trend checks.",
+        "Refine the repertoire with branch-level review, sideline coverage, opponent pools, and recent trend checks.",
     };
   }
 
@@ -282,9 +353,9 @@ export function getLevelToneCopy(level) {
       reason:
         "This may be a practical review area. The useful question is which branch or structure is costing points.",
       action:
-        "Review recurring loss patterns, move orders, and early middlegame structures before changing the opening.",
+        "Review recurring loss patterns, transpositions, move orders, and early middlegame structures before changing the opening.",
       training:
-        "Refine the repertoire by checking branches, structures, and side-specific performance.",
+        "Refine the repertoire by checking branches, sidelines, structures, transpositions, and side-specific performance.",
     };
   }
 
@@ -296,9 +367,9 @@ export function getLevelToneCopy(level) {
       reason:
         "This is a useful study-plan target. Review the first uncomfortable position and build one clear plan from there.",
       action:
-        "Review recent losses, identify the first repeated problem, and practise one plan for the resulting middlegame.",
+        "Review recent losses, identify the first repeated structure or branch, and practise one plan for the resulting middlegame.",
       training:
-        "Build a study plan around repeated openings, typical plans, and recurring early mistakes.",
+        "Build a study plan around structures, common branches, repeated middlegame plans, and move-order discipline.",
     };
   }
 
@@ -309,9 +380,9 @@ export function getLevelToneCopy(level) {
     reason:
       "Keep this simple and practical: focus on development, king safety, and reaching familiar positions.",
     action:
-      "Play fewer openings, learn the first few moves, and review one repeated mistake after each game.",
+      "Do not memorise deep theory. Play fewer openings, learn the setup, common traps, development, castling, and one repeated mistake after each game.",
     training:
-      "Use simple opening habits: develop pieces, castle, avoid early queen moves, and repeat familiar setups.",
+      "Use simple opening habits: learn the setup, develop pieces, castle, avoid early queen moves, know common traps, and repeat familiar plans.",
   };
 }
 
@@ -661,14 +732,20 @@ export function buildLevelAwareRecommendation(data, fitData) {
   const best = fitData?.bestOpening || ranked[0];
   const bestName = best ? displayOpeningName(best, data) : "your strongest repeated opening";
   const weakName = weakest ? displayOpeningName(weakest, data) : "your weakest repeated opening";
+  const ratingCopy = getRatingAwareRecommendationCopy({
+    level: profile.level,
+    label: profile.shortLabel || profile.label,
+    bestName,
+    weakName,
+  });
 
   if (profile.level === "master" || profile.level === "elite") {
     return {
       title: "Master-level repertoire audit",
-      summary:
-        "This is a master-level repertoire audit. Treat heavily played openings as trusted weapons unless the data is large and extremely clear.",
-      primaryAction:
-        `Review ${weakName} for move-order precision, opponent preparation, colour splits, and recurring middlegame structures rather than replacing the opening.`,
+      summary: ratingCopy.summary,
+      primaryAction: ratingCopy.primaryAction,
+      ratingBand: ratingCopy.band,
+      trainingFocus: ratingCopy.training,
       bestName,
       weakName,
     };
@@ -677,10 +754,10 @@ export function buildLevelAwareRecommendation(data, fitData) {
   if (profile.level === "expert") {
     return {
       title: "Expert repertoire audit",
-      summary:
-        "This player likely already has serious opening knowledge. Recommendations should identify practical review areas, not prescribe basic replacements.",
-      primaryAction:
-        `Use ${bestName} as the stable side-specific reference point, then review ${weakName} for specific branches, move-order issues, or recent trend changes.`,
+      summary: ratingCopy.summary,
+      primaryAction: ratingCopy.primaryAction,
+      ratingBand: ratingCopy.band,
+      trainingFocus: ratingCopy.training,
       bestName,
       weakName,
     };
@@ -688,11 +765,11 @@ export function buildLevelAwareRecommendation(data, fitData) {
 
   if (profile.level === "advanced") {
     return {
-      title: "Advanced repertoire refinement",
-      summary:
-        "The goal is repertoire refinement: keep the useful structures and target the branches that are costing practical points.",
-      primaryAction:
-        `Keep ${bestName} only in the side/context where the report shows it is yours, and fine-tune ${weakName} by checking recurring loss patterns.`,
+      title: ratingCopy.title,
+      summary: ratingCopy.summary,
+      primaryAction: ratingCopy.primaryAction,
+      ratingBand: ratingCopy.band,
+      trainingFocus: ratingCopy.training,
       bestName,
       weakName,
     };
@@ -700,11 +777,11 @@ export function buildLevelAwareRecommendation(data, fitData) {
 
   if (profile.level === "intermediate") {
     return {
-      title: "Practical intermediate repertoire",
-      summary:
-        "This player should build around repeated side-specific strengths and turn weak samples into concrete study tasks.",
-      primaryAction:
-        `Build around ${bestName} only if the report shows it is yours in that side/context, then review the first uncomfortable position in ${weakName}.`,
+      title: ratingCopy.title,
+      summary: ratingCopy.summary,
+      primaryAction: ratingCopy.primaryAction,
+      ratingBand: ratingCopy.band,
+      trainingFocus: ratingCopy.training,
       bestName,
       weakName,
     };
@@ -712,11 +789,11 @@ export function buildLevelAwareRecommendation(data, fitData) {
 
   if (profile.level === "beginner" || profile.level === "developing" || profile.level === "improver") {
     return {
-      title: "Simplify the opening choices",
-      summary:
-        `Verdict: simplify. Evidence: ${bestName} is the strongest repeated opening and ${weakName} is the lower-scoring repeated sample.`,
-      primaryAction:
-        "Choose one White setup, one Black defence against 1.e4, and one simple setup against 1.d4 for the next 20 games.",
+      title: ratingCopy.title,
+      summary: ratingCopy.summary,
+      primaryAction: ratingCopy.primaryAction,
+      ratingBand: ratingCopy.band,
+      trainingFocus: ratingCopy.training,
       bestName,
       weakName,
     };
@@ -808,32 +885,39 @@ export function getSmartLevelAwareRecommendation(data, fitData) {
   if (backend && typeof backend === "object") {
     const profile = getSmartPlayerLevelProfile(data);
     const advancedOrHigher = ["advanced", "expert", "master", "elite", "strong"].includes(profile.level);
+    const bestName =
+      backend.best_opening ||
+      backend.bestOpening ||
+      "your strongest repeated opening";
+    const weakName =
+      backend.weak_opening ||
+      backend.weakOpening ||
+      "your weakest repeated opening";
+    const ratingCopy = getRatingAwareRecommendationCopy({
+      level: profile.level,
+      label: profile.shortLabel || profile.label,
+      bestName,
+      weakName,
+    });
     const rawPrimaryAction =
       backend.primary_action ||
       backend.primaryAction ||
       data?.backend_next_action ||
-      "Review the strongest and weakest repeated openings.";
+      ratingCopy.primaryAction;
     const primaryAction =
-      advancedOrHigher && /learn the basics|stop playing|avoid this opening|drop this opening/i.test(rawPrimaryAction)
-        ? "Treat the lower-scoring sample as a practical review area. Check move-order precision, opponent preparation, and recurring branches before changing the repertoire."
-        : rawPrimaryAction;
+      advancedOrHigher && /learn the basics|stop playing|avoid this opening|drop this opening|memorise 15 moves|simple setup/i.test(rawPrimaryAction)
+        ? ratingCopy.primaryAction
+        : `${rawPrimaryAction} ${ratingCopy.training}`;
 
     return {
       type: backend.type || "backend_recommendation",
-      title: backend.title || "OpeningFit recommendation",
-      summary:
-        backend.summary ||
-        data?.backend_coach_summary ||
-        "OpeningFit has generated a player-specific recommendation.",
+      title: backend.title || ratingCopy.title || "OpeningFit recommendation",
+      summary: ratingCopy.summary,
       primaryAction,
-      bestName:
-        backend.best_opening ||
-        backend.bestOpening ||
-        "your strongest repeated opening",
-      weakName:
-        backend.weak_opening ||
-        backend.weakOpening ||
-        "your weakest repeated opening",
+      ratingBand: ratingCopy.band,
+      trainingFocus: ratingCopy.training,
+      bestName,
+      weakName,
       source: "backend",
     };
   }

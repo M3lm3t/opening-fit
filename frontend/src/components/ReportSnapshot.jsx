@@ -182,7 +182,7 @@ export default function ReportSnapshot({ data, onViewChange }) {
           ? "Keep this only in the side/context shown here."
           : "This is not clean enough to treat as a repertoire recommendation yet.",
       action: "See recommendations",
-      view: "recommendations",
+      view: "repertoire",
     },
     {
       eyebrow: publicMode ? "Lower-scoring sample" : "Needs work",

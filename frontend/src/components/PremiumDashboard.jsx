@@ -475,11 +475,12 @@ export default function PremiumDashboard({
           <span className="premiumEyebrow">
             {isPremium ? "Founder Pass active" : isPremiumDemo ? "Audit preview" : "Founder Pass"}
           </span>
-          <h2>Unlock your full repertoire audit</h2>
+          <h2>Founder Pass adds depth and convenience</h2>
           <p>
-            See which openings to keep, improve, or drop. Founder Pass adds
-            12 months of games, colour-split verdicts, confidence scoring,
-            weak spot diagnosis, and the 7-day training plan.
+            Your free report gives the main verdict, top actions, and a useful
+            opening snapshot. Founder Pass unlocks the longer workflow:
+            12-month imports, saved history, full tables, advanced filters,
+            progress tracking, and exportable study plans.
           </p>
         </div>
 
@@ -488,8 +489,8 @@ export default function PremiumDashboard({
           <strong>£8 one-time</strong>
           <small>
             {isPremium
-              ? "Your full repertoire audit is unlocked for this report."
-              : "Turn your recent games into a practical opening plan."}
+              ? "Depth tools are unlocked for this report."
+              : "Upgrade when you want deeper history, filters, and saved progress."}
           </small>
 
           {!isPremium ? (
@@ -507,7 +508,7 @@ export default function PremiumDashboard({
 
       <div className="premiumCommandStrip">
         <button type="button" onClick={downloadPremiumReport}>
-          Export premium report
+          Export study plan
         </button>
         <button type="button" onClick={copyWeeklyPlan}>
           Copy weekly plan
@@ -655,8 +656,8 @@ export default function PremiumDashboard({
         <div className="premiumPanel premiumWide">
           <div className="premiumPanelHeader">
             <div>
-              <span className="premiumEyebrow">Engine review</span>
-              <h3>Optional game review</h3>
+              <span className="premiumEyebrow">Later premium roadmap</span>
+              <h3>Stockfish-assisted opening diagnosis</h3>
             </div>
             <button className="premiumActionBtn" onClick={runStockfish} disabled={stockfishLoading}>
               {stockfishLoading ? "Analysing..." : "Analyse latest game"}
@@ -665,8 +666,9 @@ export default function PremiumDashboard({
 
           <div className={`premiumLockedArea ${!premiumActive ? "isLocked" : ""}`}>
             <p className="premiumPanelText">
-              Review the latest imported PGN for engine-backed mistakes when Stockfish is available.
-              If the live backend has no engine configured, this panel will explain that clearly.
+              This is a later premium direction: engine-assisted review of the
+              latest imported PGN, line-specific mistake detection, and clearer
+              opening diagnosis when Stockfish is available.
             </p>
 
             {stockfishError ? <div className="premiumError">{stockfishError}</div> : null}
@@ -699,8 +701,8 @@ export default function PremiumDashboard({
             ) : null}
 
             {!premiumActive ? (
-              <LockedOverlay title="Engine review" onUnlock={unlockAction}>
-                Preview the review panel. Engine analysis activates only when Stockfish is available on the backend.
+              <LockedOverlay title="Later premium tool" onUnlock={unlockAction}>
+                Founder Pass includes early access to deeper tools as they are added. Engine analysis activates only when Stockfish is available on the backend.
               </LockedOverlay>
             ) : null}
           </div>

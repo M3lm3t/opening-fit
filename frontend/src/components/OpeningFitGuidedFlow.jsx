@@ -50,7 +50,7 @@ export default function OpeningFitGuidedFlow({ data, onJump, activeView, onViewC
       title: "Understand your playing style",
       text: `OpeningFit currently reads you as: ${style}. Use this to choose openings that suit how you naturally win games.`,
       action: "View style profile",
-      target: "style-profile",
+      target: "app-results",
       view: "overview",
     },
     {
@@ -60,7 +60,7 @@ export default function OpeningFitGuidedFlow({ data, onJump, activeView, onViewC
       text: `${openingName(topOpening)} looks like one of the main signals in your current opening profile.`,
       action: "View opening verdicts",
       target: "keep-improve-avoid",
-      view: "recommendations",
+      view: "openings",
     },
     {
       number: "03",
@@ -78,7 +78,7 @@ export default function OpeningFitGuidedFlow({ data, onJump, activeView, onViewC
       text: "Use your own games to check whether the recommendation feels right in real positions.",
       action: "Open game replay",
       target: "game-replay",
-      view: "games",
+      view: "data",
     },
     {
       number: "05",
@@ -86,8 +86,8 @@ export default function OpeningFitGuidedFlow({ data, onJump, activeView, onViewC
       title: "Check the detailed numbers",
       text: "Use the tables and charts as supporting evidence, not as the first thing you read.",
       action: "View detailed stats",
-      target: "top-openings-table",
-      view: "upgrade",
+      target: "section-verdicts",
+      view: "openings",
     },
   ];
 

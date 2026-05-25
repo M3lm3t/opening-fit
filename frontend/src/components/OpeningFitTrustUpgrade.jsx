@@ -30,18 +30,20 @@ const checks = [
 ];
 
 const freeItems = [
-  "Recent game import",
-  "Basic style profile",
-  "Top opening stats",
-  "3 Keep / Improve / Avoid recommendations",
+  "Basic import",
+  "Main verdict",
+  "Top 3 actions",
+  "A few opening recommendations",
+  "Limited opening table",
 ];
 
 const premiumItems = [
-  "More months of games",
-  "Full opening history",
-  "Deeper repertoire review",
+  "12-month import",
+  "Saved report history",
+  "Full opening table and advanced filters",
   "Progress tracking over time",
-  "Future premium upgrades",
+  "Exportable study plan",
+  "Later: engine diagnosis, line mistakes, drills, PDF export",
 ];
 
 export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onFounderPass }) {
@@ -138,11 +140,12 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onF
             <strong>£8</strong>
           </div>
 
-          <h2>Unlock your full repertoire audit.</h2>
+          <h2>Upgrade for depth, history, and workflow.</h2>
 
           <p>
-            Founder Pass turns your recent games into better opening decisions:
-            what to keep, what to improve, and what to drop.
+            The free report gives the useful opening snapshot. Founder Pass
+            adds deeper history, saved progress, advanced filters, and
+            exportable study plans.
           </p>
 
           <button type="button" className="founderButton" onClick={onFounderPass}>
@@ -164,7 +167,7 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onF
 
         <div className="tierCard tierCard--premium">
           <h2>Founder Pass</h2>
-          <p>For players who want the full repertoire report and future premium tools.</p>
+          <p>For players who want deeper history, full repertoire tools, and saved progress.</p>
           <ul>
             {premiumItems.map((item) => (
               <li key={item}>{item}</li>
