@@ -1,0 +1,471 @@
+import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
+
+type JsonObject = Record<string, unknown>;
+
+type UserProfile = {
+  id: string;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  goal_text?: string | null;
+  current_level?: string | null;
+  xp?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type UserStreak = {
+  user_id: string;
+  current_streak?: number | null;
+  best_streak?: number | null;
+  last_active_date?: string | null;
+  streak_freezes?: number | null;
+  updated_at?: string | null;
+};
+
+type WeeklyGoal = {
+  id: string;
+  user_id: string;
+  goal_type: string;
+  target_value: number;
+  current_value?: number | null;
+  period?: string | null;
+  starts_on?: string | null;
+  ends_on?: string | null;
+  completed?: boolean | null;
+  created_at?: string | null;
+};
+
+type RetentionDashboard = {
+  profile: UserProfile | null;
+  currentStreak: UserStreak | null;
+  weeklyGoalProgress: WeeklyGoal | null;
+  recentActivity: JsonObject[];
+  achievements: JsonObject[];
+  xp: number;
+  level: string;
+  suggestedNextAction: string;
+};
+
+const LEVELS = [
+  { name: "Elite", minXp: 3000 },
+  { name: "Advanced", minXp: 1500 },
+  { name: "Intermediate", minXp: 500 },
+  { name: "Beginner", minXp: 0 },
+];
+
+const ACHIEVEMENTS = {
+  first_session: {
+    title: "First Session",
+    description: "Logged your first OpeningFit activity.",
+  },
+  three_day_streak: {
+    title: "Three Day Streak",
+    description: "Stayed active for three days in a row.",
+  },
+  seven_day_streak: {
+    title: "Seven Day Streak",
+    description: "Stayed active for seven days in a row.",
+  },
+  first_week_complete: {
+    title: "First Week Complete",
+    description: "Completed your first weekly OpeningFit goal.",
+  },
+  level_intermediate: {
+    title: "Intermediate",
+    description: "Reached Intermediate level.",
+  },
+  level_advanced: {
+    title: "Advanced",
+    description: "Reached Advanced level.",
+  },
+  level_elite: {
+    title: "Elite",
+    description: "Reached Elite level.",
+  },
+};
+
+function getClient() {
+  if (!isSupabaseConfigured || !supabase) {
+    return null;
+  }
+
+  return supabase;
+}
+
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isoDateDaysAgo(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().slice(0, 10);
+}
+
+function getLevelFromXp(xp: number) {
+  return LEVELS.find((level) => xp >= level.minXp)?.name || "Beginner";
+}
+
+function getSuggestedNextAction(
+  profile: UserProfile | null,
+  streak: UserStreak | null,
+  weeklyGoal: WeeklyGoal | null
+) {
+  if (!profile) return "Create your OpeningFit profile.";
+
+  const currentValue = Number(weeklyGoal?.current_value || 0);
+  const targetValue = Number(weeklyGoal?.target_value || 0);
+
+  if (weeklyGoal && !weeklyGoal.completed && targetValue > currentValue) {
+    return `Make progress on your weekly ${weeklyGoal.goal_type} goal.`;
+  }
+
+  if (!streak?.last_active_date || streak.last_active_date !== todayIsoDate()) {
+    return "Log one OpeningFit activity today to protect your streak.";
+  }
+
+  return "Review your next opening task and keep the streak alive.";
+}
+
+async function getCurrentUserId() {
+  const client = getClient();
+  if (!client) return null;
+
+  const { data, error } = await client.auth.getUser();
+  if (error) {
+    console.error("OpeningFit retention could not read the current user.", error);
+    return null;
+  }
+
+  return data.user?.id || null;
+}
+
+async function ensureRetentionProfile(userId: string) {
+  const client = getClient();
+  if (!client || !userId) return null;
+
+  const { data, error } = await client
+    .from("user_profiles")
+    .upsert({ id: userId }, { onConflict: "id" })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as UserProfile;
+}
+
+async function getActiveWeeklyGoal(userId: string) {
+  const client = getClient();
+  if (!client || !userId) return null;
+
+  const today = todayIsoDate();
+  const { data, error } = await client
+    .from("user_goals")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("period", "weekly")
+    .or(`ends_on.is.null,ends_on.gte.${today}`)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as WeeklyGoal | null;
+}
+
+async function incrementWeeklyGoalProgress(userId: string) {
+  const client = getClient();
+  if (!client || !userId) return null;
+
+  const goal = await getActiveWeeklyGoal(userId);
+  if (!goal || goal.completed) return goal;
+
+  const currentValue = Number(goal.current_value || 0) + 1;
+  const targetValue = Number(goal.target_value || 0);
+  const completed = targetValue > 0 && currentValue >= targetValue;
+
+  const { data, error } = await client
+    .from("user_goals")
+    .update({ current_value: currentValue, completed })
+    .eq("id", goal.id)
+    .eq("user_id", userId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as WeeklyGoal;
+}
+
+async function unlockAchievement(
+  userId: string,
+  achievementKey: keyof typeof ACHIEVEMENTS
+) {
+  const client = getClient();
+  if (!client || !userId) return null;
+
+  const achievement = ACHIEVEMENTS[achievementKey];
+  const { data, error } = await client
+    .from("user_achievements")
+    .upsert(
+      {
+        user_id: userId,
+        achievement_key: achievementKey,
+        title: achievement.title,
+        description: achievement.description,
+      },
+      { onConflict: "user_id,achievement_key", ignoreDuplicates: true }
+    )
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getTodayDashboard(userId: string): Promise<RetentionDashboard | null> {
+  const client = getClient();
+  if (!client || !userId) return null;
+
+  try {
+    const profile = await ensureRetentionProfile(userId);
+
+    const [
+      { data: streak, error: streakError },
+      weeklyGoalProgress,
+      { data: recentActivity, error: activityError },
+      { data: achievements, error: achievementError },
+    ] = await Promise.all([
+      client
+        .from("user_streaks")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      getActiveWeeklyGoal(userId),
+      client
+        .from("user_activity_log")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(10),
+      client
+        .from("user_achievements")
+        .select("*")
+        .eq("user_id", userId)
+        .order("unlocked_at", { ascending: false }),
+    ]);
+
+    if (streakError) throw streakError;
+    if (activityError) throw activityError;
+    if (achievementError) throw achievementError;
+
+    const xp = Number(profile?.xp || 0);
+    const level = profile?.current_level || getLevelFromXp(xp);
+
+    return {
+      profile,
+      currentStreak: (streak as UserStreak | null) || null,
+      weeklyGoalProgress,
+      recentActivity: (recentActivity as JsonObject[]) || [],
+      achievements: (achievements as JsonObject[]) || [],
+      xp,
+      level,
+      suggestedNextAction: getSuggestedNextAction(
+        profile,
+        (streak as UserStreak | null) || null,
+        weeklyGoalProgress
+      ),
+    };
+  } catch (error) {
+    console.error("OpeningFit retention dashboard failed.", error);
+    return null;
+  }
+}
+
+export async function logUserActivity(
+  activityType: string,
+  points: number,
+  metadata: JsonObject = {}
+) {
+  const client = getClient();
+  if (!client || !activityType) return null;
+
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return null;
+
+    const safePoints = Number.isFinite(points) ? points : 0;
+    const { data, error } = await client
+      .from("user_activity_log")
+      .insert({
+        user_id: userId,
+        activity_type: activityType,
+        points: safePoints,
+        metadata,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+
+    await Promise.allSettled([
+      addXp(userId, safePoints),
+      updateUserStreak(userId),
+      incrementWeeklyGoalProgress(userId),
+    ]);
+
+    await checkAndUnlockAchievements(userId);
+
+    return data;
+  } catch (error) {
+    console.error("OpeningFit retention activity logging failed.", error);
+    return null;
+  }
+}
+
+export async function updateUserStreak(userId: string) {
+  const client = getClient();
+  if (!client || !userId) return null;
+
+  try {
+    const today = todayIsoDate();
+    const yesterday = isoDateDaysAgo(1);
+    const missedOneDay = isoDateDaysAgo(2);
+
+    const { data: existing, error: fetchError } = await client
+      .from("user_streaks")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+
+    const streak = (existing as UserStreak | null) || null;
+    if (streak?.last_active_date === today) return streak;
+
+    const currentStreak = Number(streak?.current_streak || 0);
+    const bestStreak = Number(streak?.best_streak || 0);
+    const streakFreezes = Number(streak?.streak_freezes ?? 1);
+    let nextCurrentStreak = 1;
+    let nextFreezes = streakFreezes;
+
+    if (streak?.last_active_date === yesterday) {
+      nextCurrentStreak = currentStreak + 1;
+    } else if (streak?.last_active_date === missedOneDay && streakFreezes > 0) {
+      nextCurrentStreak = Math.max(currentStreak, 1);
+      nextFreezes = streakFreezes - 1;
+    }
+
+    const payload = {
+      user_id: userId,
+      current_streak: nextCurrentStreak,
+      best_streak: Math.max(bestStreak, nextCurrentStreak),
+      last_active_date: today,
+      streak_freezes: nextFreezes,
+    };
+
+    const { data, error } = await client
+      .from("user_streaks")
+      .upsert(payload, { onConflict: "user_id" })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return data as UserStreak;
+  } catch (error) {
+    console.error("OpeningFit retention streak update failed.", error);
+    return null;
+  }
+}
+
+export async function addXp(userId: string, points: number) {
+  const client = getClient();
+  if (!client || !userId) return null;
+
+  try {
+    const safePoints = Number.isFinite(points) ? points : 0;
+    const profile = await ensureRetentionProfile(userId);
+    const nextXp = Math.max(0, Number(profile?.xp || 0) + safePoints);
+    const nextLevel = getLevelFromXp(nextXp);
+
+    const { data, error } = await client
+      .from("user_profiles")
+      .update({
+        xp: nextXp,
+        current_level: nextLevel,
+      })
+      .eq("id", userId)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return data as UserProfile;
+  } catch (error) {
+    console.error("OpeningFit retention XP update failed.", error);
+    return null;
+  }
+}
+
+export async function checkAndUnlockAchievements(userId: string) {
+  const client = getClient();
+  if (!client || !userId) return [];
+
+  try {
+    const [
+      { count: activityCount, error: activityError },
+      { data: streak, error: streakError },
+      { data: profile, error: profileError },
+      { data: completedGoals, error: goalError },
+    ] = await Promise.all([
+      client
+        .from("user_activity_log")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId),
+      client
+        .from("user_streaks")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      client
+        .from("user_profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle(),
+      client
+        .from("user_goals")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("period", "weekly")
+        .eq("completed", true)
+        .limit(1),
+    ]);
+
+    if (activityError) throw activityError;
+    if (streakError) throw streakError;
+    if (profileError) throw profileError;
+    if (goalError) throw goalError;
+
+    const keysToUnlock: Array<keyof typeof ACHIEVEMENTS> = [];
+    const currentStreak = Number((streak as UserStreak | null)?.current_streak || 0);
+    const xp = Number((profile as UserProfile | null)?.xp || 0);
+
+    if (Number(activityCount || 0) > 0) keysToUnlock.push("first_session");
+    if (currentStreak >= 3) keysToUnlock.push("three_day_streak");
+    if (currentStreak >= 7) keysToUnlock.push("seven_day_streak");
+    if ((completedGoals || []).length > 0) keysToUnlock.push("first_week_complete");
+    if (xp >= 500) keysToUnlock.push("level_intermediate");
+    if (xp >= 1500) keysToUnlock.push("level_advanced");
+    if (xp >= 3000) keysToUnlock.push("level_elite");
+
+    const results = await Promise.allSettled(
+      keysToUnlock.map((key) => unlockAchievement(userId, key))
+    );
+
+    return results
+      .filter((result): result is PromiseFulfilledResult<unknown> => result.status === "fulfilled")
+      .map((result) => result.value)
+      .filter(Boolean);
+  } catch (error) {
+    console.error("OpeningFit retention achievement check failed.", error);
+    return [];
+  }
+}
