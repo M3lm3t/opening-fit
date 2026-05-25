@@ -44,6 +44,7 @@ import RetentionHub from "./components/RetentionHub";
 import InteractiveRepertoire from "./components/InteractiveRepertoire";
 import DashboardHome from "./components/DashboardHome";
 import TodayDashboard from "./components/TodayDashboard";
+import AchievementsPanel from "./components/AchievementsPanel";
 import MobileBottomNav from "./components/MobileBottomNav";
 import LaunchReadySections from "./components/LaunchReadySections";
 import { useAuth } from "./context/AuthDataProvider";
@@ -3613,8 +3614,6 @@ function FinalReportFlow({
   onUpgrade,
   onPractice,
   onViewChange,
-  accountUser,
-  onLoadReport,
 }) {
   const studyTarget = buildStudyThisNextTarget(fitData);
 
@@ -3639,12 +3638,6 @@ function FinalReportFlow({
       <InterestingThinDataSection data={data} fitData={fitData} />
       <StudyThisNextCard target={studyTarget} onPractice={onPractice} onViewChange={onViewChange} />
 
-      {accountUser ? (
-        <section className="finalReportHistoryBlock" id="saved-history-progress">
-          <ReportHistoryVault data={data} fitData={fitData} onLoadReport={onLoadReport} />
-          <OpeningProgressTracker data={data} user={accountUser} compact />
-        </section>
-      ) : null}
     </div>
   );
 }
@@ -4745,23 +4738,21 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
 
 function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange }) {
   const [open, setOpen] = useState(false);
+  const activeSection = getAppSection(activeView);
 
   const menuRoutes = data
     ? [
-        { key: "overview", label: "Overview", view: "overview", target: "app-results", path: "/" },
-        { key: "repertoire", label: "Repertoire", view: "repertoire", target: "app-results", path: "/" },
-        { key: "openings", label: "Openings", view: "openings", target: "section-verdicts", path: "/" },
-        { key: "weakspots", label: "Weak spots", view: "weakspots", target: "app-results", path: "/" },
-        { key: "training", label: "Study plan", view: "training", target: "section-training", path: "/" },
-        { key: "data", label: "Data", view: "data", target: "section-replay", path: "/" },
-        { key: "upgrade", label: "Upgrade", view: "upgrade", target: "premium", path: "/upgrade" },
-        { key: "account", label: "Login / Payment", view: "account", target: "account", path: "/account" },
+        { key: "analyse", label: "Analyse", view: "analyse", target: "app-dashboard", path: "/" },
+        { key: "report", label: "Report", view: "report", target: "app-results", path: "/report" },
+        { key: "train", label: "Train", view: "train", target: "training-plan", path: "/train" },
+        { key: "profile", label: "Profile", view: "profile", target: "profile", path: "/account" },
         { key: "feedback", label: "Feedback", view: "feedback", target: "feedback", path: "/" },
       ]
     : [
-        { key: "import", label: "Import", target: "app-dashboard", path: "/" },
-        { key: "account", label: "Login / Payment", view: "account", target: "account", path: "/account" },
-        { key: "upgrade", label: "Founder Pass", view: "account", target: "account", path: "/account" },
+        { key: "analyse", label: "Analyse", view: "analyse", target: "app-dashboard", path: "/" },
+        { key: "report", label: "Report", view: "report", target: "app-results", path: "/report" },
+        { key: "train", label: "Train", view: "train", target: "training-plan", path: "/train" },
+        { key: "profile", label: "Profile", view: "profile", target: "profile", path: "/account" },
         { key: "feedback", label: "Feedback", view: "feedback", target: "feedback", path: "/" },
       ];
 
@@ -4834,7 +4825,12 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
               <button
                 key={route.key}
                 type="button"
-                className={activeView === route.view ? "isActive" : ""}
+                className={
+                  activeView === route.view ||
+                  (route.key !== "feedback" && activeSection === getAppSection(route.view))
+                    ? "isActive"
+                    : ""
+                }
                 onClick={(event) => navigate(event, route)}
               >
                 {route.label}
@@ -4843,6 +4839,72 @@ function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange })
           </div>
         </div>
       ) : null}
+    </nav>
+  );
+}
+
+function AppPrimaryNav({ activeView, hasReport, onViewChange }) {
+  const activeSection = getAppSection(activeView);
+  const items = [
+    { key: "analyse", label: "Analyse", path: "/", target: "app-dashboard" },
+    { key: "report", label: "Report", path: "/report", target: "app-results" },
+    { key: "train", label: "Train", path: "/train", target: "training-plan" },
+    { key: "profile", label: "Profile", path: "/account", target: "profile" },
+  ];
+
+  const navigate = (event, item) => {
+    event.preventDefault();
+
+    if (typeof onViewChange === "function") {
+      onViewChange(item.key);
+    }
+
+    if (item.path && window.location.pathname !== item.path) {
+      window.history.pushState({}, "", item.path);
+    }
+
+    setTimeout(() => {
+      const target =
+        document.getElementById(item.target) ||
+        document.getElementById("app-dashboard") ||
+        document.querySelector(".appShell");
+
+      if (!target) return;
+
+      const offset = window.innerWidth <= 760 ? 18 : 92;
+      const top = target.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    }, 80);
+  };
+
+  return (
+    <nav className="appPrimaryNav" aria-label="OpeningFit sections">
+      <div className="appPrimaryNavInner">
+        <a className="appPrimaryBrand" href="#app-dashboard" onClick={(event) => navigate(event, items[0])}>
+          <span>OpeningFit</span>
+        </a>
+
+        <div className="appPrimaryTabs" role="list">
+          {items.map((item) => {
+            const isActive = activeSection === item.key;
+            const isUnavailable = !hasReport && ["report", "train"].includes(item.key);
+
+            return (
+              <a
+                key={item.key}
+                href={item.path}
+                role="listitem"
+                className={isActive ? "appPrimaryTab appPrimaryTabActive" : "appPrimaryTab"}
+                aria-current={isActive ? "page" : undefined}
+                aria-disabled={isUnavailable ? "true" : undefined}
+                onClick={(event) => navigate(event, item)}
+              >
+                {item.label}
+              </a>
+            );
+          })}
+        </div>
+      </div>
     </nav>
   );
 }
@@ -5073,9 +5135,34 @@ function getCurrentPath() {
 
 function getInitialAppView() {
   const path = getCurrentPath();
-  if (path === "/account" || path === "/login") return "account";
-  if (path === "/upgrade" || path === "/premium") return "upgrade";
-  return "overview";
+  if (path === "/account" || path === "/login") return "profile";
+  if (path === "/upgrade" || path === "/premium") return "profile";
+  if (path === "/train") return "train";
+  if (path === "/report") return "report";
+  return "analyse";
+}
+
+function getAppSection(view) {
+  const aliases = {
+    import: "analyse",
+    analyse: "analyse",
+    analyze: "analyse",
+    overview: "report",
+    report: "report",
+    repertoire: "report",
+    openings: "report",
+    weakspots: "report",
+    recommendations: "report",
+    data: "train",
+    training: "train",
+    train: "train",
+    profile: "profile",
+    account: "profile",
+    upgrade: "profile",
+    feedback: "profile",
+  };
+
+  return aliases[String(view || "").toLowerCase()] || "analyse";
 }
 
 function setMetaAttribute(selector, attributes) {
@@ -6683,7 +6770,7 @@ function App() {
     setData(DEMO_REPORT);
 
     if (typeof setActiveView === "function") {
-      setActiveView("overview");
+      setActiveView("report");
     }
 
     if (typeof setShowLanding === "function") {
@@ -6702,7 +6789,7 @@ function App() {
   };
 
   const handleFounderPassClick = () => {
-    setActiveView("account");
+    setActiveView("profile");
     if (window.location.pathname !== "/account") {
       window.history.pushState({}, "", "/account");
     }
@@ -7097,6 +7184,7 @@ function App() {
       );
 
       scrollToResults();
+      setActiveView("report");
       return true;
     } catch {
       localStorage.removeItem(STORAGE_KEY);
@@ -7128,16 +7216,16 @@ function App() {
 
   const sectionRouteMap = {
     "feedback": { view: "feedback", target: "feedback" },
-    "premium": { view: "upgrade", target: "premium" },
-    "premium-offer": { view: "upgrade", target: "premium" },
-    "premium-workspace": { view: "upgrade", target: "premium-workspace" },
-    "training-plan": { view: "training", target: "training-plan" },
-    "section-training": { view: "training", target: "section-training" },
-    "seven-day-plan": { view: "training", target: "seven-day-plan" },
-    "coach-plan": { view: "training", target: "seven-day-plan" },
-    "study-planner": { view: "training", target: "study-planner" },
-    "game-replay": { view: "data", target: "game-replay" },
-    "section-replay": { view: "data", target: "section-replay" },
+    "premium": { view: "profile", target: "premium" },
+    "premium-offer": { view: "profile", target: "premium" },
+    "premium-workspace": { view: "profile", target: "premium-workspace" },
+    "training-plan": { view: "train", target: "training-plan" },
+    "section-training": { view: "train", target: "section-training" },
+    "seven-day-plan": { view: "train", target: "seven-day-plan" },
+    "coach-plan": { view: "train", target: "seven-day-plan" },
+    "study-planner": { view: "train", target: "study-planner" },
+    "game-replay": { view: "train", target: "game-replay" },
+    "section-replay": { view: "train", target: "section-replay" },
     "section-verdicts": { view: "openings", target: "evidence-table" },
     "keep-improve-avoid": { view: "openings", target: "evidence-table" },
     "opening-suggestions": { view: "repertoire", target: "repertoire-map" },
@@ -7145,9 +7233,9 @@ function App() {
     "recommended-repertoire": { view: "repertoire", target: "repertoire-map" },
     "repertoire-plan": { view: "repertoire", target: "repertoire-map" },
     "my-repertoire": { view: "repertoire", target: "repertoire-map" },
-    "progress-tracker": { view: "training", target: "next-study-session" },
-    "share-report": { view: "upgrade", target: "report-history" },
-    "report-history": { view: "upgrade", target: "report-history" },
+    "progress-tracker": { view: "profile", target: "profile" },
+    "share-report": { view: "profile", target: "report-history" },
+    "report-history": { view: "profile", target: "report-history" },
     "top-openings-table": { view: "openings", target: "evidence-table" },
     "section-top": { view: "openings", target: "evidence-table" },
     "section-chart": { view: "openings", target: "evidence-table" },
@@ -7360,7 +7448,7 @@ function App() {
       }
 
       rememberLandingSeen({ keepPublicLanding: false });
-      setActiveView("overview");
+      setActiveView("report");
 
       setSavedProfileMessage(
         `Import complete for ${
@@ -7508,7 +7596,7 @@ function App() {
       setPracticeOpening(null);
       setOpenSections(closedSections);
       rememberLandingSeen({ keepPublicLanding: false });
-      setActiveView("overview");
+      setActiveView("report");
       setSavedProfileMessage(
         "Demo profile loaded. This is sample data, so use Import Games for your real saved profile."
       );
@@ -8056,6 +8144,7 @@ function App() {
         data.openings?.length
       )
   );
+  const activeAppSection = getAppSection(activeView);
 
 
   useEffect(() => {
@@ -8140,7 +8229,7 @@ function App() {
 
   useEffect(() => {
     const openAccountPage = () => {
-      setActiveView("account");
+      setActiveView("profile");
       if (window.location.pathname !== "/account") {
         window.history.pushState({}, "", "/account");
       }
@@ -8191,6 +8280,11 @@ function App() {
           }
         />
         <OpeningFitPolishToast />
+        <AppPrimaryNav
+          activeView={activeView}
+          hasReport={hasReport}
+          onViewChange={setActiveView}
+        />
 
         {data ? (
           <>
@@ -8205,13 +8299,13 @@ function App() {
             <OpeningFitImportDoctor username={username} />
 
             {false ? <AppActionRouter onViewChange={setActiveView} /> : null}
-            <MobileBottomNav
-              data={data}
-              activeView={activeView}
-              onViewChange={setActiveView}
-            />
           </>
         ) : null}
+
+        <MobileBottomNav
+          activeView={activeView}
+          onViewChange={setActiveView}
+        />
 
         <FounderPassLoginUpgrade accountUser={accountUser} />
 
@@ -8289,7 +8383,7 @@ function App() {
             setUsername("DemoPlayer");
             setPlatform("chesscom");
             rememberLandingSeen({ keepPublicLanding: false });
-            setActiveView("overview");
+            setActiveView("report");
 
             setTimeout(() => {
               const el = document.getElementById("app-results");
@@ -8310,33 +8404,7 @@ function App() {
         ) : null}
 
         <main className="container appShell" id="app-dashboard">
-          {accountUser ? (
-            <TodayDashboard
-              user={accountUser}
-              onPrimaryAction={() => {
-                if (activeView === "account") {
-                  setActiveView("overview");
-                  if (window.location.pathname === "/account") {
-                    window.history.pushState({}, "", "/");
-                  }
-                }
-
-                setTimeout(() => {
-                  const target =
-                    document.getElementById("app-results") ||
-                    document.getElementById("import") ||
-                    document.querySelector(".compactImportHero") ||
-                    document.querySelector(".finalReportFlow");
-
-                  if (target?.scrollIntoView) {
-                    target.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }
-                }, 80);
-              }}
-            />
-          ) : null}
-
-          {!data && !loading ? (
+          {activeAppSection === "analyse" && !loading ? (
           <header className="hero heroCard compactImportHero">
               <div className="heroTop">
               <div className="heroTitleWrap">
@@ -8489,11 +8557,29 @@ function App() {
           </header>
           ) : null}
 
-          {!data && !loading ? <CompactSeoFooter /> : null}
+          {activeAppSection === "analyse" && !data && !loading ? <CompactSeoFooter /> : null}
 
-          {activeView === "account" ? <section className="loginScreenSection" id="account">
-            <AccountPanel variant="screen" onUserChange={setAccountUser} />
-          </section> : null}
+          {activeAppSection === "report" && !reportData && !loading ? (
+            <section className="card appEmptySection" id="app-results">
+              <p className="eyebrow">Report</p>
+              <h2>No opening analysis yet</h2>
+              <p>Import your recent Chess.com or Lichess games first, then your latest report will live here.</p>
+              <button className="primaryBtn" type="button" onClick={() => setActiveView("analyse")}>
+                Go to Analyse
+              </button>
+            </section>
+          ) : null}
+
+          {activeAppSection === "train" && !reportData && !loading ? (
+            <section className="card appEmptySection" id="training-plan">
+              <p className="eyebrow">Train</p>
+              <h2>No training plan yet</h2>
+              <p>Training actions are generated from your current opening report.</p>
+              <button className="primaryBtn" type="button" onClick={() => setActiveView("analyse")}>
+                Start an import
+              </button>
+            </section>
+          ) : null}
 
           {loading && (
             <section className="card loadingCard">
@@ -8541,20 +8627,20 @@ function App() {
             </section>
           )}
 
-          {reportData && activeView !== "account" && (
+          {reportData && ["report", "train"].includes(activeAppSection) && (
             <div id="app-results">
-              <FinalReportFlow
-                data={reportData}
-                fitData={fitData}
-                filters={reportFilters}
-                onFilterChange={setReportFilters}
-                isPremium={isPremium}
-                onUpgrade={() => setActiveView("upgrade")}
-                onPractice={startOpeningPractice}
-                onViewChange={setActiveView}
-                accountUser={accountUser}
-                onLoadReport={setData}
-              />
+              {activeAppSection === "report" ? (
+                <FinalReportFlow
+                  data={reportData}
+                  fitData={fitData}
+                  filters={reportFilters}
+                  onFilterChange={setReportFilters}
+                  isPremium={isPremium}
+                  onUpgrade={() => setActiveView("profile")}
+                  onPractice={startOpeningPractice}
+                  onViewChange={setActiveView}
+                />
+              ) : null}
 
               {false && activeView === "recommendations" ? (
                 <>
@@ -9011,7 +9097,7 @@ function App() {
 
 
 
-              {activeView === "training" ? (
+              {activeAppSection === "train" ? (
                 <>
                   <SevenDayOpeningFitPlan
                     data={reportData}
@@ -9021,6 +9107,7 @@ function App() {
                   />
 
                   <OpeningCoachPlan data={reportData} />
+                  <RepertoireStudyPlan data={reportData} />
                   <NextStudySession
                     fitData={fitData}
                     recentGames={filteredRecentGames}
@@ -9079,7 +9166,7 @@ function App() {
                 </>
               ) : null}
 
-              {activeView === "data" ? (
+              {activeAppSection === "train" ? (
                 <>
                   <div id="game-replay">
                   <div id="section-replay">
@@ -9376,6 +9463,120 @@ function App() {
               ) : null}
             </div>
           )}
+
+          {activeAppSection === "profile" && activeView !== "feedback" ? (
+            <section className="profileSection" id="profile">
+              <div className="profileSectionHeader">
+                <p className="eyebrow">Profile</p>
+                <h1>Progress, saved reports, and account</h1>
+                <p>
+                  Your long-term OpeningFit workspace lives here, away from the current report.
+                </p>
+              </div>
+
+              {accountUser ? (
+                <TodayDashboard
+                  user={accountUser}
+                  onPrimaryAction={() => {
+                    setActiveView("report");
+                    if (window.location.pathname !== "/report") {
+                      window.history.pushState({}, "", "/report");
+                    }
+                    setTimeout(() => {
+                      const target =
+                        document.getElementById("app-results") ||
+                        document.querySelector(".finalReportFlow");
+                      if (target?.scrollIntoView) {
+                        target.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }
+                    }, 80);
+                  }}
+                />
+              ) : null}
+
+              <section className="loginScreenSection" id="account">
+                <AccountPanel variant="screen" onUserChange={setAccountUser} />
+              </section>
+
+              {reportData ? (
+                <>
+                  <div className="profileGrid">
+                    <ReportHistoryVault data={reportData} fitData={fitData} onLoadReport={setData} />
+                    {accountUser ? (
+                      <OpeningProgressTracker data={reportData} user={accountUser} compact />
+                    ) : null}
+                  </div>
+
+                  {accountUser ? (
+                    <AchievementsPanel userId={accountUser.id} compact />
+                  ) : null}
+
+                  <ReportExportAndHistory
+                    data={reportData}
+                    isPremium={isPremium}
+                    onUpgrade={() => setActiveView("profile")}
+                    onLoadReport={setData}
+                  />
+                </>
+              ) : (
+                <section className="card appEmptySection">
+                  <h2>No saved report loaded</h2>
+                  <p>Import or load a report to start tracking profile history and progress.</p>
+                  <button className="primaryBtn" type="button" onClick={() => setActiveView("analyse")}>
+                    Go to Analyse
+                  </button>
+                </section>
+              )}
+
+              <div id="premium" className="profilePremiumBlock">
+                <PremiumPanel
+                  data={data}
+                  isPremium={isPremium}
+                  onUnlockDemo={unlockPremiumDemo}
+                  onResetDemo={resetPremiumDemo}
+                  onFounderPass={handleFounderPassClick}
+                />
+              </div>
+
+              {reportData ? (
+                <>
+                  {!isPremium ? (
+                    <FounderPassOutcomePanel
+                      data={reportData}
+                      isPremium={isPremium}
+                      onUpgrade={() => setActiveView("profile")}
+                      onViewChange={setActiveView}
+                    />
+                  ) : null}
+
+                  <PremiumDashboard
+                    data={reportData}
+                    username={username}
+                    isPremium={isPremium}
+                    onFounderPass={handleFounderPassClick}
+                    onUnlockDemo={unlockPremiumDemo}
+                    onPractice={startOpeningPractice}
+                  />
+
+                  <SeriousPremiumStrip />
+
+                  <OpeningFitFunctionalityHub
+                    data={reportData}
+                    username={username}
+                    onLoadReport={setData}
+                    onJump={jumpToSection}
+                  />
+
+                  <OpeningFitFunctionalTools
+                    data={reportData}
+                    username={username}
+                    onLoadReport={setData}
+                    onJump={jumpToSection}
+                  />
+                </>
+              ) : null}
+            </section>
+          ) : null}
 
           {activeView === "feedback" ? (
             <section className="card feedbackCard" id="feedback">
