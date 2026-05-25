@@ -430,7 +430,7 @@ function canTreatAsRepertoireOpening(opening) {
 function commandVerdictClass(verdict) {
   const lower = String(verdict || "").toLowerCase();
   if (lower.includes("keep") || lower.includes("main") || lower.includes("reliable")) return "verdict keep";
-  if (lower.includes("too little") || lower.includes("interesting") || lower.includes("early pattern") || lower.includes("low confidence")) return "verdict test";
+  if (lower.includes("not enough") || lower.includes("too little") || lower.includes("interesting") || lower.includes("early pattern") || lower.includes("low confidence")) return "verdict test";
   if (lower.includes("avoid")) return "verdict improve";
   if (lower.includes("review") || lower.includes("improve") || lower.includes("unstable")) return "verdict improve";
   return "verdict test";
@@ -793,7 +793,7 @@ function repertoireBucketForOpening(opening) {
     opening?.forceNotEnoughData ||
     !signal.canBePrimary ||
     opening?.context === "unknown_mixed" ||
-    games < 2
+    games < 10
   ) {
     return "notEnoughData";
   }
@@ -1771,12 +1771,13 @@ function getDataFirstVerdict(opening, data) {
   const signal = getOpeningSignal(opening);
   const games = getOpeningGames(opening);
 
-  if (games <= 2 || signal.badge === "Too little data") return "Too little data — not used for verdict";
-  if (games <= 7 || signal.badge === "Low confidence") return "Interesting signal — Low confidence";
+  if (games < 5 || signal.badge === "Too little data") return "Not enough data";
+  if (games < 10 || signal.badge === "Low") return "Not enough data";
   if (isPublicReportMode(data)) {
     const publicLabel = publicAwareVerdict(opening?.verdict || opening?.fitVerdict, data, games);
     return `${publicLabel} — ${getOpeningConfidence(opening)}`;
   }
+  if (winRate < 35 && games >= 25) return `Avoid — ${getOpeningConfidence(opening)}`;
   if (winRate >= 55) return `Keep — ${getOpeningConfidence(opening)}`;
   return `Improve — ${getOpeningConfidence(opening)}`;
 }
@@ -1869,9 +1870,9 @@ function getPlayerBaselineScore(data) {
 
 function getOpeningSampleTier(games) {
   const count = Number(games || 0);
-  if (count >= 20) return "high";
-  if (count >= 8) return "medium";
-  if (count >= 3) return "low";
+  if (count >= 25) return "high";
+  if (count >= 10) return "medium";
+  if (count >= 5) return "low";
   if (count >= 1) return "tooLittle";
   return "none";
 }
@@ -1881,10 +1882,10 @@ function getOpeningConfidenceReason(opening) {
   const signal = getOpeningSignal(opening);
 
   if (signal?.explanation) return signal.explanation;
-  if (games >= 20) return "20+ games in this opening or family.";
-  if (games >= 8) return "8-19 games: useful sample, but still worth confirming.";
-  if (games >= 3) return "3-7 games: early pattern only.";
-  if (games >= 1) return "1-2 games: too little data for a verdict.";
+  if (games >= 25) return "25+ games in this opening or family.";
+  if (games >= 10) return "10-24 games: useful sample, but still worth confirming.";
+  if (games >= 5) return "5-9 games: early pattern only.";
+  if (games >= 1) return "0-4 games: too little data for a verdict.";
   return "Game count unavailable.";
 }
 
@@ -1893,12 +1894,13 @@ function baseConfidenceVerdict(opening, data, fallback = "") {
   const signal = getOpeningSignal(opening);
   const label = String(fallback || opening?.fitVerdict || opening?.verdict || "").toLowerCase();
 
-  if (games <= 2 || signal.badge === "Too little data") return "Too little data";
-  if (games <= 7 || signal.badge === "Low confidence") return "Interesting signal";
+  if (games < 10 || signal.badge === "Too little data" || signal.badge === "Low") return "Not enough data";
+  if (label.includes("avoid") || label.includes("underperform")) return games >= 25 ? "Avoid" : "Improve";
   if (label.includes("keep") || label.includes("main") || label.includes("reliable")) return "Keep";
-  if (label.includes("improve") || label.includes("review") || label.includes("avoid") || label.includes("unstable") || label.includes("underperform")) return "Improve";
+  if (label.includes("improve") || label.includes("review") || label.includes("unstable")) return "Improve";
 
   const score = getWinRate(opening);
+  if (score < 35 && games >= 25) return "Avoid";
   if (score >= 55) return "Keep";
   return "Improve";
 }
@@ -1907,14 +1909,39 @@ function confidenceVerdictLabel(opening, data, fallback = "") {
   const base = baseConfidenceVerdict(opening, data, fallback);
   const confidence = getOpeningConfidence(opening);
 
-  if (base === "Too little data") return "Too little data — not used for verdict";
+  if (base === "Not enough data") return "Not enough data";
   return `${base} — ${confidence}`;
+}
+
+function openingVerdictLabel(opening, data, fallback = "") {
+  return baseConfidenceVerdict(opening, data, fallback);
 }
 
 function confidenceRowText(opening) {
   const games = getOpeningGames(opening);
   const score = getWinRate(opening);
   return `${games} game${games === 1 ? "" : "s"} analysed · ${score}% score · ${getOpeningConfidence(opening)}. ${getOpeningConfidenceReason(opening)}`;
+}
+
+function getOpeningSharePercent(opening, data) {
+  const games = getOpeningGames(opening);
+  const total = Number(
+    data?.total_games ||
+      data?.totalGames ||
+      data?.gamesAnalysed ||
+      data?.gamesAnalyzed ||
+      data?.games_analyzed ||
+      data?.gamesImported ||
+      0
+  );
+
+  if (!games || !total) return null;
+  return Math.max(1, Math.round((games / total) * 100));
+}
+
+function openingShareText(opening, data) {
+  const share = getOpeningSharePercent(opening, data);
+  return share === null ? "Share unavailable" : `${share}% of analysed games`;
 }
 
 function getAverageOppositionRating(opening, data) {
@@ -1961,24 +1988,27 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       ? "This looks like a serious part of the repertoire. At your level, this is likely about move-order precision, opponent preparation, or a recent trend in one branch, not basic understanding."
       : "This may be a practical review area. Recent results are below the usual baseline, but this is more likely a branch or structure issue than a reason to abandon the opening.";
 
-  if (games <= 2 || signal.badge === "Too little data") {
+  if (games < 5 || signal.badge === "Too little data") {
     return {
-      label: "Too little data",
+      label: "Not enough data",
       category: "neutral",
       tone: "neutral",
       severity: "neutral",
-      message: "Only 1-2 games. Not enough data for a full verdict.",
+      message: "0-4 games. Not enough data for a full verdict.",
     };
   }
 
-  if (games <= 7 || signal.badge === "Low confidence") {
+  if (games < 10 || signal.badge === "Low") {
+    const lowWinRate = winRate < 45;
     return {
-      label: "Interesting signal",
+      label: "Not enough data",
       category: "neutral",
       tone: "neutral",
       severity: "neutral",
       message:
-        "Early pattern from 3-7 games. Treat this as a watch signal, not a firm keep/improve/avoid verdict.",
+        lowWinRate
+          ? "Too few games to judge. Review only if this opening keeps appearing."
+          : "Interesting signal, but too few games for a confident verdict.",
     };
   }
 
@@ -3310,81 +3340,6 @@ function ImportQualitySummary({ data }) {
   );
 }
 
-function ReportFilters({ filters, onChange, data, isPremium = false, onUpgrade }) {
-  const limited = data?.reportFilters?.limited;
-  const isPremiumFilter = (key, item) => {
-    if (key === "dateRange") return Number(item.days || 0) > 90;
-    if (key === "timeControl") return ["all", "bullet"].includes(item.key);
-    return false;
-  };
-  const setFilter = (key, item) => {
-    if (!isPremium && isPremiumFilter(key, item)) {
-      onUpgrade?.();
-      return;
-    }
-
-    onChange?.({ ...filters, [key]: item.key });
-  };
-
-  return (
-    <section className="reportFilters" aria-label="Report filters">
-      <div className="reportFiltersHeader">
-        <div>
-          <p className="eyebrow">Report filters</p>
-          <h2>Focus the advice on useful repertoire games</h2>
-        </div>
-        <span>{data?.filterSummary || "Rapid + Blitz, Last 90 days"}</span>
-      </div>
-
-      <div className="reportFilterControls">
-        <div>
-          <span>Time control</span>
-          <div className="segmentedControl" role="group" aria-label="Time control filter">
-            {TIME_CONTROL_FILTERS.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={filters.timeControl === item.key ? "active" : ""}
-                onClick={() => setFilter("timeControl", item)}
-              >
-                {item.label}
-                {!isPremium && isPremiumFilter("timeControl", item) ? <small>Founder Pass</small> : null}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <span>Date range</span>
-          <div className="segmentedControl" role="group" aria-label="Date range filter">
-            {DATE_RANGE_FILTERS.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={filters.dateRange === item.key ? "active" : ""}
-                onClick={() => setFilter("dateRange", item)}
-              >
-                {item.label}
-                {!isPremium && isPremiumFilter("dateRange", item) ? <small>Founder Pass</small> : null}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <p>
-        Bullet games can be noisy, so OpeningFit focuses on games that are more useful for repertoire decisions.
-        {!isPremium
-          ? " Free keeps filters simple. Founder Pass unlocks longer date ranges and noisier/deeper filter cuts."
-          : " Founder Pass filters let you compare short-term form against deeper history."}
-        {limited
-          ? " This saved report does not include full per-game filter data yet, so filters apply only where enough game-level data is available after your next import."
-          : null}
-      </p>
-    </section>
-  );
-}
-
 function StudyThisNextCard({ target, onPractice, onViewChange }) {
   if (!target) return null;
 
@@ -3522,6 +3477,7 @@ function EvidenceTableSection({ data, fitData, isPremium = false, onPractice }) 
                 <th>Opening</th>
                 <th>Colour</th>
                 <th>Games</th>
+                <th>Share</th>
                 <th>Score</th>
                 <th>Confidence</th>
                 <th>Verdict</th>
@@ -3529,9 +3485,11 @@ function EvidenceTableSection({ data, fitData, isPremium = false, onPractice }) 
             </thead>
             <tbody>
               {visibleRows.map((opening, index) => {
-                const verdict =
-                  opening.fitDisplayVerdict ||
-                  confidenceVerdictLabel(opening, data, opening.fitVerdict || opening.verdict);
+                const verdict = openingVerdictLabel(
+                  opening,
+                  data,
+                  opening.fitVerdict || opening.verdict
+                );
 
                 return (
                   <tr key={`${getOpeningName(opening)}-${itemContext(opening)}-${index}`}>
@@ -3546,6 +3504,7 @@ function EvidenceTableSection({ data, fitData, isPremium = false, onPractice }) 
                     </td>
                     <td>{getOpeningContext(opening).label}</td>
                     <td>{getOpeningGames(opening)}</td>
+                    <td>{openingShareText(opening, data)}</td>
                     <td>{getWinRate(opening)}%</td>
                     <td>{getOpeningConfidence(opening)}</td>
                     <td><span className={commandVerdictClass(verdict)}>{verdict}</span></td>
@@ -3608,50 +3567,205 @@ function InterestingThinDataSection({ data, fitData }) {
 function FinalReportFlow({
   data,
   fitData,
-  filters,
-  onFilterChange,
-  isPremium,
-  onUpgrade,
   onPractice,
   onViewChange,
 }) {
   const studyTarget = buildStudyThisNextTarget(fitData);
+  const [reportMode, setReportMode] = useState("summary");
+  const showFullReport = reportMode === "full";
+  const showOpeningTable = reportMode === "table";
 
   return (
     <div className="finalReportFlow">
       <CurrentReportSummary
         data={data}
         fitData={fitData}
-        onPractice={onPractice}
         onViewChange={onViewChange}
+        reportMode={reportMode}
+        onReportModeChange={setReportMode}
       />
 
-      <ImportQualitySummary data={data} />
+      {showFullReport ? (
+        <>
+          <ImportQualitySummary data={data} />
 
-      <OpeningFitVerdictSection data={data} fitData={fitData} />
-      <TopActionsSection data={data} fitData={fitData} onPractice={onPractice} />
+          <OpeningFitVerdictSection data={data} fitData={fitData} />
+          <TopActionsSection data={data} fitData={fitData} onPractice={onPractice} />
+          <FullReportHighlights data={data} fitData={fitData} onPractice={onPractice} />
 
-      <ReportFilters
-        filters={filters}
-        onChange={onFilterChange}
-        data={data}
-        isPremium={isPremium}
-        onUpgrade={onUpgrade}
-      />
+          <RepertoireCommandPanel data={data} onPractice={onPractice} />
+          <RepertoireMap data={data} />
+          <EvidenceTableSection data={data} fitData={fitData} isPremium onPractice={onPractice} />
+          <InterestingThinDataSection data={data} fitData={fitData} />
+          <StudyThisNextCard target={studyTarget} onPractice={onPractice} onViewChange={onViewChange} />
+        </>
+      ) : null}
 
-      <RepertoireCommandPanel data={data} onPractice={onPractice} />
-      <RepertoireMap data={data} />
-      <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
-      <InterestingThinDataSection data={data} fitData={fitData} />
-      <StudyThisNextCard target={studyTarget} onPractice={onPractice} onViewChange={onViewChange} />
+      {showOpeningTable ? (
+        <EvidenceTableSection data={data} fitData={fitData} isPremium onPractice={onPractice} />
+      ) : null}
 
     </div>
   );
 }
 
-function CurrentReportSummary({ data, fitData, onPractice, onViewChange }) {
+function FullReportHighlights({ data, fitData, onPractice }) {
+  const openings = Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : [];
+  const usableOpenings = openings
+    .filter((opening) => !isUnknownOpeningName(getOpeningName(opening)))
+    .sort(evidenceSort);
+  const verdictFor = (opening) =>
+    openingVerdictLabel(opening, data, opening.fitVerdict || opening.verdict);
+  const bestOpenings = usableOpenings
+    .filter((opening) => verdictFor(opening) === "Keep")
+    .slice(0, 3);
+  const weakOpenings = usableOpenings
+    .filter((opening) => ["Improve", "Avoid"].includes(verdictFor(opening)))
+    .sort((a, b) => getWinRate(a) - getWinRate(b))
+    .slice(0, 3);
+  const verdictGroups = [
+    {
+      key: "keep",
+      title: "Keep",
+      items: usableOpenings.filter((opening) => verdictFor(opening) === "Keep").slice(0, 3),
+    },
+    {
+      key: "improve",
+      title: "Improve",
+      items: usableOpenings
+        .filter((opening) => verdictFor(opening) === "Improve")
+        .slice(0, 3),
+    },
+    {
+      key: "avoid",
+      title: "Avoid",
+      items: usableOpenings.filter((opening) => verdictFor(opening) === "Avoid").slice(0, 3),
+    },
+    {
+      key: "not-enough-data",
+      title: "Not enough data",
+      items: usableOpenings
+        .filter((opening) => verdictFor(opening) === "Not enough data")
+        .slice(0, 3),
+    },
+  ];
+
+  const renderOpening = (opening, fallbackContext = "") => {
+    const verdict = openingVerdictLabel(
+      opening,
+      data,
+      opening.fitVerdict || opening.verdict
+    );
+    const canPractice = canTreatAsRepertoireOpening(opening);
+
+    return (
+      <button
+        key={getOpeningIdentityKey(opening)}
+        type="button"
+        className="fullReportOpeningRow"
+        disabled={!canPractice}
+        onClick={() => canPractice && onPractice?.(getOpeningName(opening))}
+      >
+        <div>
+          <strong>{getOpeningContextTitle(opening)}</strong>
+          <span>{fallbackContext || getNextActionLine(opening, data, itemContext(opening))}</span>
+        </div>
+        <dl>
+          <div>
+            <dt>Games</dt>
+            <dd>{getOpeningGames(opening)}</dd>
+          </div>
+          <div>
+            <dt>Win rate</dt>
+            <dd>{getWinRate(opening)}%</dd>
+          </div>
+          <div>
+            <dt>Share</dt>
+            <dd>{openingShareText(opening, data)}</dd>
+          </div>
+          <div>
+            <dt>Confidence</dt>
+            <dd>{getOpeningConfidence(opening)}</dd>
+          </div>
+          <div>
+            <dt>Verdict</dt>
+            <dd className={commandVerdictClass(verdict)}>{verdict}</dd>
+          </div>
+        </dl>
+      </button>
+    );
+  };
+
+  return (
+    <section className="fullReportHighlights finalReportBlock" id="full-report-highlights">
+      <div className="commandPanelHeader">
+        <p className="eyebrow">Full report</p>
+        <h2>Best openings, weak openings, and verdicts</h2>
+        <p>Each row includes confidence, games analysed, win rate, and the practical next step.</p>
+      </div>
+
+      <div className="fullReportColumns">
+        <article>
+          <h3>Best openings</h3>
+          <div className="fullReportOpeningList">
+            {bestOpenings.length ? (
+              bestOpenings.map((opening) => renderOpening(opening, "Keep this as a reference point."))
+            ) : (
+              <EmptyState title="No clear best fit yet" text="Import more games to identify your strongest opening signals." />
+            )}
+          </div>
+        </article>
+
+        <article>
+          <h3>Weak openings</h3>
+          <div className="fullReportOpeningList">
+            {weakOpenings.length ? (
+              weakOpenings.map((opening) => renderOpening(opening, "Review this before adding new opening material."))
+            ) : (
+              <EmptyState title="No clear weak spot yet" text="OpeningFit has not found a repeated opening leak in this import." />
+            )}
+          </div>
+        </article>
+      </div>
+
+      <div className="fullReportVerdictGrid">
+        {verdictGroups.map((group) => (
+          <article key={group.key}>
+            <h3>{group.title}</h3>
+            <div className="fullReportOpeningList">
+              {group.items.length ? (
+                group.items.map((opening) => renderOpening(opening))
+              ) : (
+                <p className="fullReportEmptyText">No {group.title.toLowerCase()} verdicts in this import yet.</p>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CurrentReportSummary({
+  data,
+  fitData,
+  onViewChange,
+  reportMode = "summary",
+  onReportModeChange,
+}) {
   if (!data) return null;
 
+  const sections = buildRepertoireReportSections(data);
+  const verdict = buildOpeningFitVerdict(fitData, sections);
+  const reliableSection =
+    [...sections]
+      .filter((section) => section.primary)
+      .sort((a, b) => {
+        const confidenceDelta =
+          confidencePriority(b.primary) - confidencePriority(a.primary);
+        if (confidenceDelta) return confidenceDelta;
+        return getOpeningGames(b.primary) - getOpeningGames(a.primary);
+      })[0] || null;
   const playerName =
     data.username ||
     data.playerName ||
@@ -3665,6 +3779,14 @@ function CurrentReportSummary({ data, fitData, onPractice, onViewChange }) {
     data.gamesImported ||
     data.total_games ||
     0;
+  const analysedAt =
+    data.importedAt ||
+    data.imported_at ||
+    data.lastUpdated ||
+    data.last_updated ||
+    data.savedProfile?.lastUpdated ||
+    "";
+  const analysedDate = analysedAt ? safeDate(analysedAt) : "Today";
   const platformLabel =
     data.platform === "lichess" || data.importPlatform === "lichess"
       ? "Lichess"
@@ -3674,41 +3796,85 @@ function CurrentReportSummary({ data, fitData, onPractice, onViewChange }) {
   const bestOpening = fitData?.bestOpening;
   const weakOpening = fitData?.weakestOpening;
   const studyTarget = buildStudyThisNextTarget(fitData);
+  const mainRecommendation =
+    studyTarget?.name && studyTarget?.context
+      ? `Study ${studyTarget.name} ${studyTarget.context}`
+      : verdict.actions?.[0] || "Review the highest-confidence repertoire signal first.";
+  const chooseReportMode = (mode) => {
+    onReportModeChange?.(mode);
+
+    setTimeout(() => {
+      const target =
+        document.getElementById(mode === "table" ? "evidence-table" : "openingfit-verdict") ||
+        document.getElementById("app-results");
+
+      if (target?.scrollIntoView) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 90);
+  };
 
   return (
     <section className="currentReportSummaryCard" aria-label="Current report summary">
       <div className="currentReportSummaryMain">
-        <p className="eyebrow">Current report</p>
+        <p className="eyebrow">Command centre</p>
         <h1>{playerName}'s opening analysis</h1>
         <p>
-          {platformLabel} import complete. OpeningFit reviewed {games || "your recent"} games
-          and turned them into repertoire decisions and training actions.
+          What openings fit you right now, and what should you do next?
         </p>
       </div>
 
       <div className="currentReportSummaryGrid">
         <div>
-          <span>Fit score</span>
-          <strong>{fitData?.overallScore || data?.openingFitScore || "—"}</strong>
-        </div>
-        <div>
-          <span>Best signal</span>
-          <strong>{bestOpening ? getOpeningName(bestOpening) : "Not enough data"}</strong>
+          <span>Best fit opening</span>
+          <strong>{bestOpening ? getOpeningContextTitle(bestOpening) : "Not enough data"}</strong>
         </div>
         <div>
           <span>Needs work</span>
-          <strong>{weakOpening ? getOpeningName(weakOpening) : "No clear leak yet"}</strong>
+          <strong>{weakOpening ? getOpeningContextTitle(weakOpening) : "No clear leak yet"}</strong>
+        </div>
+        <div>
+          <span>Most reliable side</span>
+          <strong>{reliableSection ? reliableSection.title : "More games needed"}</strong>
+        </div>
+        <div>
+          <span>Main next recommendation</span>
+          <strong>{mainRecommendation}</strong>
+        </div>
+        <div>
+          <span>Games analysed</span>
+          <strong>{games || "—"}</strong>
+        </div>
+        <div>
+          <span>Platform / username</span>
+          <strong>{platformLabel} · {playerName}</strong>
+        </div>
+        <div>
+          <span>Last analysed</span>
+          <strong>{analysedDate}</strong>
         </div>
       </div>
 
       <div className="currentReportSummaryActions">
-        {studyTarget?.name ? (
-          <button type="button" className="primaryBtn" onClick={() => onPractice?.(studyTarget.name)}>
-            Practise next line
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className={reportMode === "full" ? "primaryBtn" : "secondaryBtn"}
+          onClick={() => chooseReportMode("full")}
+        >
+          View full report
+        </button>
         <button type="button" className="secondaryBtn" onClick={() => onViewChange?.("train")}>
-          Open training
+          Start training
+        </button>
+        <button
+          type="button"
+          className={reportMode === "table" ? "primaryBtn" : "secondaryBtn"}
+          onClick={() => chooseReportMode("table")}
+        >
+          See opening table
+        </button>
+        <button type="button" className="secondaryBtn" onClick={() => onViewChange?.("profile")}>
+          View profile
         </button>
       </div>
     </section>
@@ -4184,9 +4350,11 @@ function RepertoireMap({ data }) {
                 {rows.length ? (
                   rows.map(({ opening, bucketKey }) => {
                     const status = repertoireMapStatus(opening, bucketKey);
-                    const verdict =
-                      opening.fitDisplayVerdict ||
-                      confidenceVerdictLabel(opening, data, opening.fitVerdict || opening.verdict);
+                    const verdict = openingVerdictLabel(
+                      opening,
+                      data,
+                      opening.fitVerdict || opening.verdict
+                    );
 
                     return (
                       <div className={`repertoireMapNode mapStatus-${status.key}`} key={getOpeningIdentityKey(opening)}>
@@ -4322,7 +4490,7 @@ function RepertoireRoleCard({ section, data, onPractice }) {
   const opening = getRolePrimaryOpening(section);
   const canPractice = canTreatAsRepertoireOpening(opening);
   const verdict = opening
-    ? opening.fitDisplayVerdict || confidenceVerdictLabel(opening, data, opening.fitVerdict || opening.verdict)
+    ? openingVerdictLabel(opening, data, opening.fitVerdict || opening.verdict)
     : "Not enough data";
 
   return (
@@ -4345,6 +4513,10 @@ function RepertoireRoleCard({ section, data, onPractice }) {
             <div>
               <dt>Games analysed</dt>
               <dd>{getOpeningGames(opening)}</dd>
+            </div>
+            <div>
+              <dt>Share of total</dt>
+              <dd>{openingShareText(opening, data)}</dd>
             </div>
             <div>
               <dt>Score / result trend</dt>
@@ -4446,10 +4618,13 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
             <div>
               <strong>{getOpeningContextTitle(item)}</strong>
               <span>{confidenceRowText(item)}</span>
-              <small>{item.fitReasonBullets?.[0] || item.fitConfidenceReason || getOpeningConfidenceReason(item)}</small>
+              <small>
+                {openingShareText(item, data)}.{" "}
+                {item.fitReasonBullets?.[0] || item.fitConfidenceReason || getOpeningConfidenceReason(item)}
+              </small>
             </div>
-            <em className={commandVerdictClass(item.fitDisplayVerdict || item.fitVerdict)}>
-              {item.fitDisplayVerdict || confidenceVerdictLabel(item, data, item.fitVerdict)}
+            <em className={commandVerdictClass(openingVerdictLabel(item, data, item.fitVerdict))}>
+              {openingVerdictLabel(item, data, item.fitVerdict)}
             </em>
           </button>
         ))}
@@ -6822,7 +6997,7 @@ function App() {
   const [accountUser, setAccountUser] = useState(null);
   const [platform, setPlatform] = useState("chesscom");
   const [importMonths, setImportMonths] = useState(3);
-  const [reportFilters, setReportFilters] = useState({
+  const [reportFilters] = useState({
     timeControl: "serious",
     dateRange: "90",
   });
@@ -8652,10 +8827,6 @@ function App() {
                 <FinalReportFlow
                   data={reportData}
                   fitData={fitData}
-                  filters={reportFilters}
-                  onFilterChange={setReportFilters}
-                  isPremium={isPremium}
-                  onUpgrade={() => setActiveView("profile")}
                   onPractice={startOpeningPractice}
                   onViewChange={setActiveView}
                 />

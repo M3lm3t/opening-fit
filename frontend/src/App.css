@@ -31248,6 +31248,123 @@ body,
   gap: 10px;
 }
 
+.fullReportHighlights {
+  display: grid;
+  gap: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.page.light .fullReportHighlights,
+[data-theme="light"] .fullReportHighlights {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.fullReportColumns,
+.fullReportVerdictGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.fullReportColumns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fullReportVerdictGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.fullReportColumns article,
+.fullReportVerdictGrid article {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.18);
+}
+
+.page.light .fullReportColumns article,
+.page.light .fullReportVerdictGrid article,
+[data-theme="light"] .fullReportColumns article,
+[data-theme="light"] .fullReportVerdictGrid article {
+  background: #f8fafc;
+}
+
+.fullReportColumns h3,
+.fullReportVerdictGrid h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.fullReportOpeningList {
+  display: grid;
+  gap: 8px;
+}
+
+.fullReportOpeningRow {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.42);
+  color: inherit;
+  text-align: left;
+}
+
+.page.light .fullReportOpeningRow,
+[data-theme="light"] .fullReportOpeningRow {
+  background: #ffffff;
+}
+
+.fullReportOpeningRow strong,
+.fullReportOpeningRow span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.fullReportOpeningRow span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.fullReportOpeningRow dl {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.fullReportOpeningRow dt {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.fullReportOpeningRow dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.fullReportEmptyText {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 @media (max-width: 760px) {
   .appPrimaryNav {
     display: none;
@@ -31311,5 +31428,79 @@ body,
 
   .currentReportSummaryActions > * {
     width: 100%;
+  }
+
+  .fullReportColumns,
+  .fullReportVerdictGrid,
+  .fullReportOpeningRow dl {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Final mobile/light-mode navigation and button safeguards */
+.page.light .secondaryBtn,
+[data-theme="light"] .secondaryBtn,
+.page.light .ghostButton,
+[data-theme="light"] .ghostButton,
+.page.light .tableOpeningBtn,
+[data-theme="light"] .tableOpeningBtn {
+  color: #0f172a !important;
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.18) !important;
+}
+
+.page.light .primaryBtn,
+[data-theme="light"] .primaryBtn,
+.page.light .appPrimaryTabActive,
+[data-theme="light"] .appPrimaryTabActive,
+.page.light .mobileBottomNav .mobileBottomNavActive,
+[data-theme="light"] .mobileBottomNav .mobileBottomNavActive {
+  color: #ffffff !important;
+}
+
+.page.light .appPrimaryTab:not(.appPrimaryTabActive),
+[data-theme="light"] .appPrimaryTab:not(.appPrimaryTabActive) {
+  color: #334155 !important;
+}
+
+.page.light .platformButton,
+[data-theme="light"] .platformButton {
+  color: #0f172a !important;
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.16) !important;
+}
+
+.page.light .platformButtonActive,
+[data-theme="light"] .platformButtonActive {
+  color: #ffffff !important;
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+@media (max-width: 760px) {
+  .mobileBottomNav {
+    position: fixed !important;
+    box-sizing: border-box !important;
+    width: auto !important;
+    max-width: none !important;
+    left: max(10px, env(safe-area-inset-left)) !important;
+    right: max(10px, env(safe-area-inset-right)) !important;
+    bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    transform: none !important;
+    margin: 0 !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    overflow: hidden !important;
+  }
+
+  .mobileBottomNav button {
+    min-width: 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+
+  .page.light .mobileBottomNav button,
+  [data-theme="light"] .mobileBottomNav button {
+    color: #334155 !important;
   }
 }
