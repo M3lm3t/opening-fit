@@ -7298,6 +7298,395 @@ button[aria-label="Open navigation menu"] {
   margin-bottom: 1rem;
 }
 
+.todayDashboard {
+  display: grid;
+  gap: 1rem;
+  margin: 0 0 1rem;
+}
+
+.todayDashboardHero,
+.todayStatCard,
+.todayPanel {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.78));
+  border-radius: 1.25rem;
+  box-shadow: 0 22px 70px rgba(2, 6, 23, 0.22);
+}
+
+.todayDashboardHero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.15rem;
+}
+
+.todayDashboardHero h2 {
+  margin: 0.2rem 0 0.35rem;
+  font-size: clamp(1.45rem, 4vw, 2.15rem);
+}
+
+.todayDashboardHero p,
+.todayStatCard p,
+.todayPanel p,
+.todayMuted {
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.todayDashboardHero p,
+.todayStatCard p,
+.todayPanel p {
+  margin: 0;
+}
+
+.todayStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.todayStatCard {
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+  min-height: 152px;
+  padding: 1rem;
+}
+
+.todayStatCard small,
+.todayPanelTop span {
+  color: var(--blue-light);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.todayStatCard strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.todayStatIcon {
+  width: 2.3rem;
+  height: 2.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.14);
+  color: var(--blue-light);
+}
+
+.todayActionCard {
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.16), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.78));
+}
+
+.streakCard,
+.nextActionCard,
+.weeklyGoalCard {
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.8));
+}
+
+.streakCardRisk {
+  border-color: rgba(245, 158, 11, 0.34);
+  background:
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.16), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.8));
+}
+
+.todayMiniStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+}
+
+.todayMiniStats span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.8rem;
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--text-soft);
+  padding: 0.25rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.todayWarning,
+.todaySuccess {
+  margin-top: 0.15rem !important;
+  font-weight: 900;
+}
+
+.todayWarning {
+  color: #fbbf24 !important;
+}
+
+.todaySuccess {
+  color: #86efac !important;
+}
+
+.nextActionCard strong {
+  font-size: 1.22rem;
+  line-height: 1.15;
+}
+
+.nextActionCard .secondaryBtn {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.todayDashboardSplit {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1rem;
+}
+
+.todayPanel {
+  padding: 1rem;
+}
+
+.todayPanelTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.85rem;
+  align-items: flex-start;
+  margin-bottom: 0.85rem;
+}
+
+.todayPanelTop strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.08rem;
+}
+
+.todayProgressTrack {
+  height: 0.72rem;
+  overflow: hidden;
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.todayProgressTrack div {
+  height: 100%;
+  min-width: 0.4rem;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22c55e, #60a5fa);
+}
+
+.todayMotivation {
+  margin-top: 0.75rem !important;
+  font-weight: 800;
+}
+
+.todayTimeline {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.todayTimeline li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.7rem;
+  align-items: start;
+}
+
+.todayTimeline li > span {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 999px;
+  margin-top: 0.32rem;
+  background: #22c55e;
+  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.12);
+}
+
+.todayTimeline strong,
+.todayTimeline small {
+  display: block;
+}
+
+.todayTimeline small {
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.achievementsPanel {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.78));
+  border-radius: 1.25rem;
+  padding: 1rem;
+  box-shadow: 0 22px 70px rgba(2, 6, 23, 0.22);
+}
+
+.achievementBadgeGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.achievementBadge {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.7rem;
+  min-height: 128px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 1rem;
+  padding: 0.85rem;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.achievementBadgeIcon {
+  width: 2.2rem;
+  height: 2.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  background: rgba(37, 99, 235, 0.14);
+  color: var(--blue-light);
+}
+
+.achievementBadge strong,
+.achievementBadge p,
+.achievementBadge small {
+  display: block;
+}
+
+.achievementBadge strong {
+  line-height: 1.2;
+}
+
+.achievementBadge p {
+  margin: 0.35rem 0 0;
+  color: var(--text-soft);
+  line-height: 1.45;
+}
+
+.achievementBadge small {
+  margin-top: 0.45rem;
+  color: #86efac;
+  font-weight: 800;
+}
+
+.achievementBadgeUnlocked {
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.14), transparent 40%),
+    rgba(15, 23, 42, 0.68);
+}
+
+.achievementBadgeLocked {
+  opacity: 0.62;
+  filter: grayscale(0.8);
+}
+
+.achievementBadgeLocked .achievementBadgeIcon {
+  background: rgba(71, 85, 105, 0.18);
+  color: var(--muted);
+}
+
+.weeklyReportCard {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.13), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.78));
+  border-radius: 1.25rem;
+  padding: 1rem;
+  box-shadow: 0 22px 70px rgba(2, 6, 23, 0.22);
+}
+
+.weeklyReportCard p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.weeklyReportStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 0.85rem;
+}
+
+.weeklyReportStats div {
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  border-radius: 0.9rem;
+  background: rgba(15, 23, 42, 0.58);
+  padding: 0.75rem;
+}
+
+.weeklyReportStats strong,
+.weeklyReportStats span {
+  display: block;
+}
+
+.weeklyReportStats strong {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.weeklyReportStats span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-top: 0.25rem;
+}
+
+.weeklyReportComparison,
+.weeklyReportActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+
+.weeklyReportComparison span {
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--text-soft);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.weeklyReportHighlight {
+  margin: 0.85rem 0 !important;
+  color: #86efac !important;
+  font-weight: 800;
+}
+
+.weeklyReportActions button {
+  min-height: 42px;
+}
+
+.todayDashboardEmpty .todayDashboardHero {
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.82));
+}
+
+.todayDashboardLoading .todayDashboardHero {
+  min-height: 132px;
+}
+
 .dashboardHeroTile,
 .dashboardTile,
 .dashboardActionStrip,
@@ -7476,13 +7865,23 @@ button[aria-label="Open navigation menu"] {
 }
 
 @media (max-width: 1100px) {
+  .todayStatsGrid,
   .dashboardTileGrid,
   .launchTileGrid {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .todayDashboardSplit,
   .dashboardActionStrip {
     grid-template-columns: 1fr;
+  }
+
+  .achievementBadgeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .weeklyReportStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .dashboardActionButtons {
@@ -7496,7 +7895,9 @@ button[aria-label="Open navigation menu"] {
   }
 
   .dashboardHeroTile,
+  .todayDashboardHero,
   .dashboardTileGrid,
+  .todayStatsGrid,
   .launchTileGrid {
     grid-template-columns: 1fr;
   }
@@ -7510,9 +7911,39 @@ button[aria-label="Open navigation menu"] {
 
   .dashboardTile,
   .dashboardHeroTile,
+  .todayDashboardHero,
+  .todayStatCard,
+  .todayPanel,
+  .achievementsPanel,
+  .weeklyReportCard,
   .dashboardActionStrip,
   .launchTile {
     border-radius: 1.1rem;
+  }
+
+  .achievementBadgeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .weeklyReportStats,
+  .weeklyReportActions {
+    grid-template-columns: 1fr;
+  }
+
+  .weeklyReportStats {
+    display: grid;
+  }
+
+  .weeklyReportActions {
+    display: grid;
+  }
+
+  .weeklyReportActions button {
+    width: 100%;
+  }
+
+  .todayDashboardHero .primaryBtn {
+    width: 100%;
   }
 
   .dashboardActionButtons {

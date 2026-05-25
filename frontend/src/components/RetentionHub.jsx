@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { logRetentionEvent } from "../services/retentionEvents";
 
 const HISTORY_KEY = "openingFit:retentionHistory";
 const GOALS_KEY = "openingFit:openingGoals";
@@ -389,11 +390,12 @@ export default function RetentionHub({ data }) {
   function addGoal() {
     const text = newGoal.trim();
     if (!text) return;
+    const goalId = crypto.randomUUID?.() ?? `${Date.now()}`;
 
     const nextGoals = [
       ...goals,
       {
-        id: crypto.randomUUID?.() ?? `${Date.now()}`,
+        id: goalId,
         text,
         done: false,
       },
@@ -402,15 +404,35 @@ export default function RetentionHub({ data }) {
     setGoals(nextGoals);
     saveJson(GOALS_KEY, nextGoals);
     setNewGoal("");
+    logRetentionEvent(
+      "goal_created",
+      {
+        source: "retention_hub",
+        text,
+      },
+      { dedupeKey: goalId }
+    );
   }
 
   function toggleGoal(id) {
+    const currentGoal = goals.find((goal) => goal.id === id);
     const nextGoals = goals.map((goal) =>
       goal.id === id ? { ...goal, done: !goal.done } : goal
     );
 
     setGoals(nextGoals);
     saveJson(GOALS_KEY, nextGoals);
+
+    if (currentGoal && !currentGoal.done) {
+      logRetentionEvent(
+        "goal_completed",
+        {
+          source: "retention_hub",
+          text: currentGoal.text,
+        },
+        { dedupeKey: id }
+      );
+    }
   }
 
   function removeGoal(id) {
