@@ -35,6 +35,16 @@ type WeeklyGoal = {
   created_at?: string | null;
 };
 
+type WeeklyReport = {
+  id?: string;
+  user_id: string;
+  week_start: string;
+  week_end: string;
+  summary: string;
+  stats: JsonObject;
+  created_at?: string | null;
+};
+
 type RetentionDashboard = {
   profile: UserProfile | null;
   currentStreak: UserStreak | null;
@@ -53,7 +63,7 @@ const LEVELS = [
   { name: "Beginner", minXp: 0 },
 ];
 
-const ACHIEVEMENTS = {
+export const ACHIEVEMENTS = {
   first_session: {
     title: "First Session",
     description: "Logged your first OpeningFit activity.",
@@ -102,8 +112,75 @@ function isoDateDaysAgo(days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+function addDaysIsoDate(isoDate: string, days: number) {
+  const date = new Date(`${isoDate}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function toDateTimeStart(isoDate: string) {
+  return `${isoDate}T00:00:00.000Z`;
+}
+
 function getLevelFromXp(xp: number) {
   return LEVELS.find((level) => xp >= level.minXp)?.name || "Beginner";
+}
+
+function getAchievementRank(key: string) {
+  const ranks: Record<string, number> = {
+    level_elite: 7,
+    level_advanced: 6,
+    level_intermediate: 5,
+    seven_day_streak: 4,
+    first_week_complete: 3,
+    three_day_streak: 2,
+    first_session: 1,
+  };
+
+  return ranks[key] || 0;
+}
+
+function buildWeeklySummary({
+  totalSessions,
+  completedGoals,
+  totalXp,
+  bestAchievement,
+  comparison,
+}: {
+  totalSessions: number;
+  completedGoals: number;
+  totalXp: number;
+  bestAchievement: JsonObject | null;
+  comparison: JsonObject;
+}) {
+  const sessionDelta = Number(comparison.sessionDelta || 0);
+  const direction =
+    sessionDelta > 0
+      ? `up ${sessionDelta} session${sessionDelta === 1 ? "" : "s"} from last week`
+      : sessionDelta < 0
+        ? `${Math.abs(sessionDelta)} session${Math.abs(sessionDelta) === 1 ? "" : "s"} behind last week`
+        : "matching last week's session pace";
+  const achievementText = bestAchievement?.title
+    ? ` You unlocked ${bestAchievement.title}.`
+    : "";
+
+  if (!totalSessions && !totalXp && !completedGoals) {
+    return "No sessions logged this week yet. Start one focused OpeningFit session to build momentum.";
+  }
+
+  return `You logged ${totalSessions} session${totalSessions === 1 ? "" : "s"}, earned ${totalXp} XP, and completed ${completedGoals} goal${completedGoals === 1 ? "" : "s"}, ${direction}.${achievementText}`;
+}
+
+function countWeeklySessions(activities: JsonObject[]) {
+  const completed = activities.filter(
+    (item) => String(item.activity_type || "") === "session_completed"
+  ).length;
+
+  if (completed) return completed;
+
+  return activities.filter(
+    (item) => String(item.activity_type || "") === "session_started"
+  ).length;
 }
 
 function getSuggestedNextAction(
@@ -204,21 +281,40 @@ async function unlockAchievement(
   if (!client || !userId) return null;
 
   const achievement = ACHIEVEMENTS[achievementKey];
-  const { data, error } = await client
+  const { data: existing, error: existingError } = await client
     .from("user_achievements")
-    .upsert(
-      {
-        user_id: userId,
-        achievement_key: achievementKey,
-        title: achievement.title,
-        description: achievement.description,
-      },
-      { onConflict: "user_id,achievement_key", ignoreDuplicates: true }
-    )
     .select("*")
+    .eq("user_id", userId)
+    .eq("achievement_key", achievementKey)
     .maybeSingle();
 
-  if (error) throw error;
+  if (existingError) throw existingError;
+  if (existing) return null;
+
+  const { data, error } = await client
+    .from("user_achievements")
+    .insert({
+      user_id: userId,
+      achievement_key: achievementKey,
+      title: achievement.title,
+      description: achievement.description,
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    if (error.code === "23505") return null;
+    throw error;
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("openingfit-toast", {
+        detail: `Achievement unlocked: ${achievement.title}`,
+      })
+    );
+  }
+
   return data;
 }
 
@@ -467,5 +563,149 @@ export async function checkAndUnlockAchievements(userId: string) {
   } catch (error) {
     console.error("OpeningFit retention achievement check failed.", error);
     return [];
+  }
+}
+
+export async function generateWeeklyReport(userId: string, weekStart: string) {
+  const client = getClient();
+  if (!client || !userId || !weekStart) return null;
+
+  try {
+    const weekEnd = addDaysIsoDate(weekStart, 6);
+    const nextWeekStart = addDaysIsoDate(weekStart, 7);
+    const previousWeekStart = addDaysIsoDate(weekStart, -7);
+    const previousWeekEnd = addDaysIsoDate(weekStart, -1);
+
+    const [
+      { data: activities, error: activityError },
+      { data: previousActivities, error: previousActivityError },
+      { data: completedGoals, error: goalError },
+      { data: previousCompletedGoals, error: previousGoalError },
+      { data: streak, error: streakError },
+      { data: achievements, error: achievementError },
+    ] = await Promise.all([
+      client
+        .from("user_activity_log")
+        .select("*")
+        .eq("user_id", userId)
+        .gte("created_at", toDateTimeStart(weekStart))
+        .lt("created_at", toDateTimeStart(nextWeekStart)),
+      client
+        .from("user_activity_log")
+        .select("*")
+        .eq("user_id", userId)
+        .gte("created_at", toDateTimeStart(previousWeekStart))
+        .lt("created_at", toDateTimeStart(weekStart)),
+      client
+        .from("user_goals")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("completed", true)
+        .gte("starts_on", weekStart)
+        .lte("starts_on", weekEnd),
+      client
+        .from("user_goals")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("completed", true)
+        .gte("starts_on", previousWeekStart)
+        .lte("starts_on", previousWeekEnd),
+      client
+        .from("user_streaks")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      client
+        .from("user_achievements")
+        .select("*")
+        .eq("user_id", userId)
+        .gte("unlocked_at", toDateTimeStart(weekStart))
+        .lt("unlocked_at", toDateTimeStart(nextWeekStart)),
+    ]);
+
+    if (activityError) throw activityError;
+    if (previousActivityError) throw previousActivityError;
+    if (goalError) throw goalError;
+    if (previousGoalError) throw previousGoalError;
+    if (streakError) throw streakError;
+    if (achievementError) throw achievementError;
+
+    const weekActivities = (activities || []) as JsonObject[];
+    const priorActivities = (previousActivities || []) as JsonObject[];
+    const totalSessions = countWeeklySessions(weekActivities);
+    const previousSessions = countWeeklySessions(priorActivities);
+    const totalXp = weekActivities.reduce((sum, item) => sum + Number(item.points || 0), 0);
+    const previousXp = priorActivities.reduce((sum, item) => sum + Number(item.points || 0), 0);
+    const completedGoalCount = (completedGoals || []).length;
+    const previousCompletedGoalCount = (previousCompletedGoals || []).length;
+    const activeDays = new Set(
+      weekActivities.map((item) => String(item.created_at || "").slice(0, 10)).filter(Boolean)
+    ).size;
+    const bestAchievement =
+      ((achievements || []) as JsonObject[])
+        .slice()
+        .sort(
+          (a, b) =>
+            getAchievementRank(String(b.achievement_key || "")) -
+            getAchievementRank(String(a.achievement_key || ""))
+        )[0] || null;
+    const comparison = {
+      previousSessions,
+      previousCompletedGoals: previousCompletedGoalCount,
+      previousXp,
+      sessionDelta: totalSessions - previousSessions,
+      completedGoalDelta: completedGoalCount - previousCompletedGoalCount,
+      xpDelta: totalXp - previousXp,
+    };
+    const streakProgress = {
+      currentStreak: Number((streak as UserStreak | null)?.current_streak || 0),
+      bestStreak: Number((streak as UserStreak | null)?.best_streak || 0),
+      activeDays,
+    };
+    const stats = {
+      totalSessions,
+      completedGoals: completedGoalCount,
+      totalXp,
+      streakProgress,
+      bestAchievement,
+      comparison,
+    };
+    const summary = buildWeeklySummary({
+      totalSessions,
+      completedGoals: completedGoalCount,
+      totalXp,
+      bestAchievement,
+      comparison,
+    });
+
+    const { data, error } = await client
+      .from("weekly_reports")
+      .upsert(
+        {
+          user_id: userId,
+          week_start: weekStart,
+          week_end: weekEnd,
+          summary,
+          stats,
+        },
+        { onConflict: "user_id,week_start" }
+      )
+      .select("*")
+      .single();
+
+    if (error) throw error;
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("openingfit-toast", {
+          detail: "Weekly report generated.",
+        })
+      );
+    }
+
+    return data as WeeklyReport;
+  } catch (error) {
+    console.error("OpeningFit weekly report generation failed.", error);
+    return null;
   }
 }

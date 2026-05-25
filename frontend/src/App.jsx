@@ -43,6 +43,7 @@ import OpeningSnapshot from "./components/OpeningSnapshot";
 import RetentionHub from "./components/RetentionHub";
 import InteractiveRepertoire from "./components/InteractiveRepertoire";
 import DashboardHome from "./components/DashboardHome";
+import TodayDashboard from "./components/TodayDashboard";
 import MobileBottomNav from "./components/MobileBottomNav";
 import LaunchReadySections from "./components/LaunchReadySections";
 import { useAuth } from "./context/AuthDataProvider";
@@ -78,6 +79,7 @@ import {
   isMasterLevel,
 } from "./components/playerLevelLogic";
 import AccountRestoreSync from "./components/AccountRestoreSync";
+import { buildReportRetentionKey, logRetentionEvent } from "./services/retentionEvents";
 import { DEMO_REPORT } from "./demoReportData";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
@@ -7219,6 +7221,10 @@ function App() {
   const importGames = async (usernameOverride, platformOverride) => {
     const selectedPlatformKey = platforms[platformOverride] ? platformOverride : platform;
     const cleanUsername = String(usernameOverride ?? username).trim();
+    const importSessionKey = `${selectedPlatformKey}:${cleanUsername}:${Date.now()}`;
+    const dailySessionStartedKey = `${supabaseUser?.id || cleanUsername || "guest"}:${new Date()
+      .toISOString()
+      .slice(0, 10)}`;
 
     setLoading(true);
     setLoadingStep(
@@ -7243,6 +7249,17 @@ function App() {
       localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
       setUsername(cleanUsername);
       setPlatform(selectedPlatformKey);
+
+      logRetentionEvent(
+        "session_started",
+        {
+          source: "import",
+          username: cleanUsername,
+          platform: selectedPlatformKey,
+          months: monthsToImport,
+        },
+        { dedupeKey: dailySessionStartedKey }
+      );
 
       await trackEvent("frontend_import_started", {
         username: cleanUsername,
@@ -7288,8 +7305,45 @@ function App() {
       await new Promise((resolve) => setTimeout(resolve, 250));
 
       const cleanData = normaliseData(json);
+      const reportRetentionKey = buildReportRetentionKey(cleanData, {
+        username: cleanUsername,
+        platform: selectedPlatformKey,
+        games: cleanData.gamesImported ?? cleanData.total_games,
+      });
+      const userReportRetentionKey = `${supabaseUser?.id || "guest"}:${reportRetentionKey}`;
+
       setData(cleanData);
       saveLocalAnalysis(cleanData, cleanUsername);
+
+      logRetentionEvent(
+        "data_imported",
+        {
+          username: cleanData.username || cleanUsername,
+          platform: selectedPlatformKey,
+          games: cleanData.gamesImported ?? cleanData.total_games,
+        },
+        { dedupeKey: userReportRetentionKey }
+      );
+
+      logRetentionEvent(
+        "report_generated",
+        {
+          username: cleanData.username || cleanUsername,
+          platform: selectedPlatformKey,
+          games: cleanData.gamesImported ?? cleanData.total_games,
+        },
+        { dedupeKey: userReportRetentionKey }
+      );
+
+      logRetentionEvent(
+        "session_completed",
+        {
+          source: "import",
+          username: cleanData.username || cleanUsername,
+          platform: selectedPlatformKey,
+        },
+        { dedupeKey: importSessionKey }
+      );
 
       if (supabaseUser?.id) {
         try {
@@ -8136,6 +8190,7 @@ function App() {
             setTheme((current) => (current === "dark" ? "light" : "dark"))
           }
         />
+        <OpeningFitPolishToast />
 
         {data ? (
           <>
@@ -8255,6 +8310,32 @@ function App() {
         ) : null}
 
         <main className="container appShell" id="app-dashboard">
+          {accountUser ? (
+            <TodayDashboard
+              user={accountUser}
+              onPrimaryAction={() => {
+                if (activeView === "account") {
+                  setActiveView("overview");
+                  if (window.location.pathname === "/account") {
+                    window.history.pushState({}, "", "/");
+                  }
+                }
+
+                setTimeout(() => {
+                  const target =
+                    document.getElementById("app-results") ||
+                    document.getElementById("import") ||
+                    document.querySelector(".compactImportHero") ||
+                    document.querySelector(".finalReportFlow");
+
+                  if (target?.scrollIntoView) {
+                    target.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
+                }, 80);
+              }}
+            />
+          ) : null}
+
           {!data && !loading ? (
           <header className="hero heroCard compactImportHero">
               <div className="heroTop">

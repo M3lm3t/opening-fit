@@ -3,6 +3,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 import "./AccountPanel.css";
 import { startPremiumCheckout, deleteOpeningFitAccount } from "../accountApi";
 import { useAuth } from "../context/AuthDataProvider";
+import { logRetentionEvent } from "../services/retentionEvents";
 
 const EMPTY_PROFILE = {
   chesscom_username: "",
@@ -118,6 +119,17 @@ export default function AccountPanel({ variant = "floating",
         { onConflict: "user_id" }
       );
       await refreshUserData(user);
+      logRetentionEvent(
+        "profile_updated",
+        {
+          source: "account_panel",
+          hasChesscomUsername: Boolean(profile.chesscom_username.trim()),
+          hasLichessUsername: Boolean(profile.lichess_username.trim()),
+        },
+        {
+          dedupeKey: `${user.id}:${profile.chesscom_username.trim()}:${profile.lichess_username.trim()}:${Boolean(profile.is_premium)}`,
+        }
+      );
 
       setSaving(false);
       setStatus("Account saved.");
