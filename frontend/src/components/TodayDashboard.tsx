@@ -5,6 +5,7 @@ import { logRetentionEvent } from "../services/retentionEvents";
 import AchievementsPanel from "./AchievementsPanel";
 import WeeklyReportCard from "./WeeklyReportCard";
 import NotificationPreferences from "./NotificationPreferences";
+import ShareProgressCard from "./ShareProgressCard";
 
 type TodayDashboardProps = {
   user?: {
@@ -195,6 +196,8 @@ export default function TodayDashboard({ user, onPrimaryAction }: TodayDashboard
   const [weeklyReport, setWeeklyReport] = useState<WeeklyReportState>(null);
   const [weeklyReportLoading, setWeeklyReportLoading] = useState(false);
   const [loading, setLoading] = useState(Boolean(user?.id));
+  const [retentionError, setRetentionError] = useState("");
+  const [retentionRetry, setRetentionRetry] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -207,9 +210,13 @@ export default function TodayDashboard({ user, onPrimaryAction }: TodayDashboard
       }
 
       setLoading(true);
+      setRetentionError("");
       const nextDashboard = await getTodayDashboard(user.id);
       if (mounted) {
         setDashboard(nextDashboard);
+        if (!nextDashboard) {
+          setRetentionError("Could not load retention progress. You can keep using OpeningFit.");
+        }
         setLoading(false);
       }
     }
@@ -219,7 +226,7 @@ export default function TodayDashboard({ user, onPrimaryAction }: TodayDashboard
     return () => {
       mounted = false;
     };
-  }, [user?.id]);
+  }, [retentionRetry, user?.id]);
 
   const displayName = getDisplayName(user, dashboard);
   const weeklyProgress = getWeeklyProgress(dashboard?.weeklyGoalProgress || null);
@@ -298,6 +305,23 @@ export default function TodayDashboard({ user, onPrimaryAction }: TodayDashboard
     );
   }
 
+  if (retentionError && !dashboard) {
+    return (
+      <section className="todayDashboard todayDashboardEmpty" aria-label="OpeningFit Today">
+        <div className="todayDashboardHero">
+          <div>
+            <p className="eyebrow">OpeningFit Today</p>
+            <h2>Progress is temporarily unavailable</h2>
+            <p>{retentionError}</p>
+          </div>
+          <button className="primaryBtn" type="button" onClick={() => setRetentionRetry((value) => value + 1)}>
+            Retry progress
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   if (!hasRetentionHistory) {
     return (
       <section className="todayDashboard todayDashboardEmpty" aria-label="OpeningFit Today">
@@ -323,6 +347,14 @@ export default function TodayDashboard({ user, onPrimaryAction }: TodayDashboard
           loading={weeklyReportLoading}
           onGenerate={handleGenerateWeeklyReport}
           onViewHistory={handleViewWeeklyHistory}
+        />
+
+        <ShareProgressCard
+          currentStreak={currentStreak}
+          weeklyProgress={weeklyProgress}
+          level={level}
+          latestAchievement={latestAchievement}
+          weeklyReport={weeklyReport}
         />
 
         <NotificationPreferences userId={user.id} />
@@ -436,6 +468,14 @@ export default function TodayDashboard({ user, onPrimaryAction }: TodayDashboard
         loading={weeklyReportLoading}
         onGenerate={handleGenerateWeeklyReport}
         onViewHistory={handleViewWeeklyHistory}
+      />
+
+      <ShareProgressCard
+        currentStreak={currentStreak}
+        weeklyProgress={weeklyProgress}
+        level={level}
+        latestAchievement={latestAchievement}
+        weeklyReport={weeklyReport}
       />
 
       <NotificationPreferences userId={user.id} />

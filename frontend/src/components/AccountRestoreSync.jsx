@@ -13,6 +13,8 @@ export default function AccountRestoreSync({
 }) {
   const {
     loading,
+    profileLoading,
+    restoreError,
     profile,
     openingFitUserState,
     reportHistory,
@@ -24,7 +26,8 @@ export default function AccountRestoreSync({
   const lastSavedRef = useRef("");
 
   useEffect(() => {
-    if (loading || !user?.id) return;
+    if (loading || profileLoading || !user?.id) return;
+    if (restoreError) return;
     if (restoredUserRef.current === user.id) return;
 
     const primaryWorkspace = openingFitUserState?.[0] || null;
@@ -53,6 +56,8 @@ export default function AccountRestoreSync({
     restoredUserRef.current = user.id;
   }, [
     loading,
+    profileLoading,
+    restoreError,
     openingFitUserState,
     profile,
     reportHistory,
@@ -66,6 +71,8 @@ export default function AccountRestoreSync({
   useEffect(() => {
     async function saveAccount() {
       if (!user?.id) return;
+      if (profileLoading) return;
+      if (restoreError) return;
       if (restoredUserRef.current !== user.id) return;
 
       const saveSignature = JSON.stringify({
@@ -138,7 +145,7 @@ export default function AccountRestoreSync({
     }
 
     saveAccount();
-  }, [data, platform, profile?.id, refreshUserData, saveSettings, upsertUserData, user, username]);
+  }, [data, platform, profile?.id, profileLoading, refreshUserData, restoreError, saveSettings, upsertUserData, user, username]);
 
   return null;
 }

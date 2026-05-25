@@ -40,6 +40,15 @@ function requireClient() {
   return supabase;
 }
 
+function logQueryFailure(table, operation, error, details = {}) {
+  console.error("OpeningFit Supabase query failed", {
+    table,
+    operation,
+    details,
+    error,
+  });
+}
+
 export async function ensureProfile(user) {
   if (!user?.id) return null;
 
@@ -64,7 +73,10 @@ export async function ensureProfile(user) {
     .select("*")
     .single();
 
-  if (error) throw error;
+  if (error) {
+    logQueryFailure("profiles", "upsert profile by user_id", error, { userId: user.id });
+    throw error;
+  }
   return data;
 }
 
@@ -76,7 +88,10 @@ async function selectUserRows(table, userId) {
     .eq("user_id", userId)
     .order("updated_at", { ascending: false, nullsFirst: false });
 
-  if (error) throw error;
+  if (error) {
+    logQueryFailure(table, "select rows by user_id ordered by updated_at", error, { userId });
+    throw error;
+  }
   return data || [];
 }
 
@@ -87,6 +102,9 @@ export async function fetchAllUserData(user) {
   try {
     profile = await ensureProfile(user);
   } catch (profileError) {
+    logQueryFailure("profiles", "ensure profile during full restore", profileError, {
+      userId: user.id,
+    });
     console.warn("OpeningFit could not restore profile row; using default profile.", profileError);
   }
 
@@ -96,6 +114,9 @@ export async function fetchAllUserData(user) {
       try {
         return [table, await selectUserRows(table, user.id)];
       } catch (tableError) {
+        logQueryFailure(table, "restore table during full restore", tableError, {
+          userId: user.id,
+        });
         console.warn(`OpeningFit could not restore ${table}; using empty rows.`, tableError);
         return [table, []];
       }
@@ -123,7 +144,10 @@ export async function upsertUserRow(table, userId, row, options = {}) {
     .upsert(payload, options)
     .select("*");
 
-  if (error) throw error;
+  if (error) {
+    logQueryFailure(table, "upsert row", error, { userId, row, options });
+    throw error;
+  }
   return data;
 }
 
@@ -137,7 +161,10 @@ export async function deleteUserRow(table, userId, id) {
     .eq("user_id", userId)
     .eq("id", id);
 
-  if (error) throw error;
+  if (error) {
+    logQueryFailure(table, "delete row by user_id and id", error, { userId, id });
+    throw error;
+  }
 }
 
 export async function getSettings(userId) {
@@ -150,7 +177,10 @@ export async function getSettings(userId) {
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    logQueryFailure("settings", "select settings by user_id", error, { userId });
+    throw error;
+  }
   return data || {};
 }
 

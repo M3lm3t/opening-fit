@@ -102,6 +102,15 @@ function getClient() {
   return supabase;
 }
 
+function logRetentionQueryFailure(table: string, operation: string, error: unknown, details: JsonObject = {}) {
+  console.error("OpeningFit Supabase query failed", {
+    table,
+    operation,
+    details,
+    error,
+  });
+}
+
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -210,7 +219,7 @@ async function getCurrentUserId() {
 
   const { data, error } = await client.auth.getUser();
   if (error) {
-    console.error("OpeningFit retention could not read the current user.", error);
+    logRetentionQueryFailure("auth.users", "get current authenticated user", error);
     return null;
   }
 
@@ -227,7 +236,10 @@ async function ensureRetentionProfile(userId: string) {
     .select("*")
     .single();
 
-  if (error) throw error;
+  if (error) {
+    logRetentionQueryFailure("user_profiles", "upsert retention profile by id", error, { userId });
+    throw error;
+  }
   return data as UserProfile;
 }
 
@@ -246,7 +258,13 @@ async function getActiveWeeklyGoal(userId: string) {
     .limit(1)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    logRetentionQueryFailure("user_goals", "select active weekly goal by user_id", error, {
+      userId,
+      today,
+    });
+    throw error;
+  }
   return data as WeeklyGoal | null;
 }
 
@@ -269,7 +287,15 @@ async function incrementWeeklyGoalProgress(userId: string) {
     .select("*")
     .single();
 
-  if (error) throw error;
+  if (error) {
+    logRetentionQueryFailure("user_goals", "update weekly goal progress", error, {
+      userId,
+      goalId: goal.id,
+      currentValue,
+      completed,
+    });
+    throw error;
+  }
   return data as WeeklyGoal;
 }
 
@@ -288,7 +314,13 @@ async function unlockAchievement(
     .eq("achievement_key", achievementKey)
     .maybeSingle();
 
-  if (existingError) throw existingError;
+  if (existingError) {
+    logRetentionQueryFailure("user_achievements", "select achievement before unlock", existingError, {
+      userId,
+      achievementKey,
+    });
+    throw existingError;
+  }
   if (existing) return null;
 
   const { data, error } = await client
@@ -304,6 +336,10 @@ async function unlockAchievement(
 
   if (error) {
     if (error.code === "23505") return null;
+    logRetentionQueryFailure("user_achievements", "insert unlocked achievement", error, {
+      userId,
+      achievementKey,
+    });
     throw error;
   }
 
@@ -350,9 +386,18 @@ export async function getTodayDashboard(userId: string): Promise<RetentionDashbo
         .order("unlocked_at", { ascending: false }),
     ]);
 
-    if (streakError) throw streakError;
-    if (activityError) throw activityError;
-    if (achievementError) throw achievementError;
+    if (streakError) {
+      logRetentionQueryFailure("user_streaks", "select current streak by user_id", streakError, { userId });
+      throw streakError;
+    }
+    if (activityError) {
+      logRetentionQueryFailure("user_activity_log", "select recent activity by user_id", activityError, { userId });
+      throw activityError;
+    }
+    if (achievementError) {
+      logRetentionQueryFailure("user_achievements", "select achievements by user_id", achievementError, { userId });
+      throw achievementError;
+    }
 
     const xp = Number(profile?.xp || 0);
     const level = profile?.current_level || getLevelFromXp(xp);
@@ -401,7 +446,14 @@ export async function logUserActivity(
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      logRetentionQueryFailure("user_activity_log", "insert activity log row", error, {
+        userId,
+        activityType,
+        points: safePoints,
+      });
+      throw error;
+    }
 
     await Promise.allSettled([
       addXp(userId, safePoints),
@@ -433,7 +485,10 @@ export async function updateUserStreak(userId: string) {
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (fetchError) throw fetchError;
+    if (fetchError) {
+      logRetentionQueryFailure("user_streaks", "select streak for update", fetchError, { userId });
+      throw fetchError;
+    }
 
     const streak = (existing as UserStreak | null) || null;
     if (streak?.last_active_date === today) return streak;
@@ -465,7 +520,10 @@ export async function updateUserStreak(userId: string) {
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      logRetentionQueryFailure("user_streaks", "upsert streak row", error, { userId, payload });
+      throw error;
+    }
     return data as UserStreak;
   } catch (error) {
     console.error("OpeningFit retention streak update failed.", error);
@@ -493,7 +551,15 @@ export async function addXp(userId: string, points: number) {
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      logRetentionQueryFailure("user_profiles", "update XP and current_level", error, {
+        userId,
+        points: safePoints,
+        nextXp,
+        nextLevel,
+      });
+      throw error;
+    }
     return data as UserProfile;
   } catch (error) {
     console.error("OpeningFit retention XP update failed.", error);
@@ -535,10 +601,22 @@ export async function checkAndUnlockAchievements(userId: string) {
         .limit(1),
     ]);
 
-    if (activityError) throw activityError;
-    if (streakError) throw streakError;
-    if (profileError) throw profileError;
-    if (goalError) throw goalError;
+    if (activityError) {
+      logRetentionQueryFailure("user_activity_log", "count activities for achievements", activityError, { userId });
+      throw activityError;
+    }
+    if (streakError) {
+      logRetentionQueryFailure("user_streaks", "select streak for achievements", streakError, { userId });
+      throw streakError;
+    }
+    if (profileError) {
+      logRetentionQueryFailure("user_profiles", "select profile for achievements", profileError, { userId });
+      throw profileError;
+    }
+    if (goalError) {
+      logRetentionQueryFailure("user_goals", "select completed weekly goal for achievements", goalError, { userId });
+      throw goalError;
+    }
 
     const keysToUnlock: Array<keyof typeof ACHIEVEMENTS> = [];
     const currentStreak = Number((streak as UserStreak | null)?.current_streak || 0);
@@ -623,12 +701,47 @@ export async function generateWeeklyReport(userId: string, weekStart: string) {
         .lt("unlocked_at", toDateTimeStart(nextWeekStart)),
     ]);
 
-    if (activityError) throw activityError;
-    if (previousActivityError) throw previousActivityError;
-    if (goalError) throw goalError;
-    if (previousGoalError) throw previousGoalError;
-    if (streakError) throw streakError;
-    if (achievementError) throw achievementError;
+    if (activityError) {
+      logRetentionQueryFailure("user_activity_log", "select weekly report activity", activityError, {
+        userId,
+        weekStart,
+      });
+      throw activityError;
+    }
+    if (previousActivityError) {
+      logRetentionQueryFailure("user_activity_log", "select previous weekly report activity", previousActivityError, {
+        userId,
+        previousWeekStart,
+      });
+      throw previousActivityError;
+    }
+    if (goalError) {
+      logRetentionQueryFailure("user_goals", "select weekly report completed goals", goalError, {
+        userId,
+        weekStart,
+        weekEnd,
+      });
+      throw goalError;
+    }
+    if (previousGoalError) {
+      logRetentionQueryFailure("user_goals", "select previous weekly report completed goals", previousGoalError, {
+        userId,
+        previousWeekStart,
+        previousWeekEnd,
+      });
+      throw previousGoalError;
+    }
+    if (streakError) {
+      logRetentionQueryFailure("user_streaks", "select weekly report streak", streakError, { userId });
+      throw streakError;
+    }
+    if (achievementError) {
+      logRetentionQueryFailure("user_achievements", "select weekly report achievements", achievementError, {
+        userId,
+        weekStart,
+      });
+      throw achievementError;
+    }
 
     const weekActivities = (activities || []) as JsonObject[];
     const priorActivities = (previousActivities || []) as JsonObject[];
@@ -693,7 +806,14 @@ export async function generateWeeklyReport(userId: string, weekStart: string) {
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      logRetentionQueryFailure("weekly_reports", "upsert generated weekly report", error, {
+        userId,
+        weekStart,
+        weekEnd,
+      });
+      throw error;
+    }
 
     if (typeof window !== "undefined") {
       window.dispatchEvent(

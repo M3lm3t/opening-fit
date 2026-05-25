@@ -114,7 +114,12 @@ export default function NotificationPreferences({ userId }: NotificationPreferen
           });
         }
       } catch (preferenceError) {
-        console.error("OpeningFit notification preferences failed to load.", preferenceError);
+        console.error("OpeningFit Supabase query failed", {
+          table: "notification_preferences",
+          operation: "load/upsert notification preferences",
+          details: { userId },
+          error: preferenceError,
+        });
         if (mounted) {
           setError("Could not load notification preferences.");
         }
@@ -157,7 +162,12 @@ export default function NotificationPreferences({ userId }: NotificationPreferen
       if (saveError) throw saveError;
       toast("Notification preferences saved.");
     } catch (preferenceError) {
-      console.error("OpeningFit notification preferences failed to save.", preferenceError);
+      console.error("OpeningFit Supabase query failed", {
+        table: "notification_preferences",
+        operation: "save notification preferences",
+        details: { userId, key },
+        error: preferenceError,
+      });
       setPreferences(preferences);
       setError("Could not save notification preferences.");
     } finally {

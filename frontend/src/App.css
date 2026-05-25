@@ -7292,6 +7292,59 @@ button[aria-label="Open navigation menu"] {
    Proper app dashboard, mobile nav, launch sections
    ========================================================= */
 
+.restoreNotice {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 90;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  max-width: min(1120px, calc(100% - 1.5rem));
+  margin: 0.75rem auto;
+  border: 1px solid rgba(245, 158, 11, 0.34);
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.14), transparent 34%),
+    rgba(15, 23, 42, 0.94);
+  color: var(--text);
+  padding: 0.85rem 1rem;
+  box-shadow: 0 18px 50px rgba(2, 6, 23, 0.28);
+}
+
+.restoreNotice strong,
+.restoreNotice p {
+  display: block;
+}
+
+.restoreNotice p {
+  margin: 0.18rem 0 0;
+  color: var(--text-soft);
+  line-height: 1.45;
+}
+
+.restoreNotice button {
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: 0.8rem;
+  background: rgba(37, 99, 235, 0.18);
+  color: var(--text);
+  padding: 0.58rem 0.8rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.restoreNotice button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.restoreNoticeLoading {
+  border-color: rgba(96, 165, 250, 0.24);
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.14), transparent 34%),
+    rgba(15, 23, 42, 0.94);
+}
+
 .dashboardHome {
   display: grid;
   gap: 1rem;
@@ -7774,6 +7827,87 @@ button[aria-label="Open navigation menu"] {
   font-weight: 800;
 }
 
+.shareProgressCard {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.78));
+  border-radius: 1.25rem;
+  padding: 1rem;
+  box-shadow: 0 22px 70px rgba(2, 6, 23, 0.22);
+}
+
+.shareProgressPreview {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.18), transparent 34%),
+    rgba(15, 23, 42, 0.68);
+  padding: 1rem;
+}
+
+.shareProgressPreview span {
+  color: var(--blue-light);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shareProgressPreview strong {
+  font-size: 1.35rem;
+}
+
+.shareProgressPreview div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.shareProgressPreview p {
+  margin: 0;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--text-soft);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.shareProgressOptions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0.85rem 0;
+}
+
+.shareProgressOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 0.85rem;
+  background: rgba(15, 23, 42, 0.52);
+  color: var(--text-soft);
+  padding: 0.55rem 0.65rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.shareProgressOption input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #22c55e;
+}
+
+.shareProgressCard .primaryBtn {
+  width: 100%;
+}
+
 .todayDashboardEmpty .todayDashboardHero {
   background:
     radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 34%),
@@ -7985,6 +8119,10 @@ button[aria-label="Open navigation menu"] {
     grid-template-columns: 1fr;
   }
 
+  .shareProgressOptions {
+    grid-template-columns: 1fr;
+  }
+
   .dashboardActionButtons {
     justify-content: flex-start;
   }
@@ -8018,6 +8156,7 @@ button[aria-label="Open navigation menu"] {
   .achievementsPanel,
   .notificationPreferences,
   .weeklyReportCard,
+  .shareProgressCard,
   .dashboardActionStrip,
   .launchTile {
     border-radius: 1.1rem;
