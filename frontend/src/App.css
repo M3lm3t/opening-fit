@@ -31630,3 +31630,95 @@ body,
     color: #334155 !important;
   }
 }
+
+/* Light mode button contrast hardening */
+.page.light button,
+[data-theme="light"] button {
+  color: #0f172a;
+}
+
+.page.light .primaryBtn,
+[data-theme="light"] .primaryBtn,
+.page.light button.primaryBtn,
+[data-theme="light"] button.primaryBtn,
+.page.light .currentReportSummaryActions .primaryBtn,
+[data-theme="light"] .currentReportSummaryActions .primaryBtn,
+.page.light .appActionButtons .primaryBtn,
+[data-theme="light"] .appActionButtons .primaryBtn {
+  color: #ffffff !important;
+  background: #2563eb !important;
+  border: 1px solid #2563eb !important;
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.24) !important;
+}
+
+.page.light .primaryBtn:hover,
+[data-theme="light"] .primaryBtn:hover,
+.page.light button.primaryBtn:hover,
+[data-theme="light"] button.primaryBtn:hover {
+  color: #ffffff !important;
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+}
+
+.page.light .secondaryBtn,
+[data-theme="light"] .secondaryBtn,
+.page.light .secondaryButton,
+[data-theme="light"] .secondaryButton,
+.page.light button.secondaryBtn,
+[data-theme="light"] button.secondaryBtn,
+.page.light button.secondaryButton,
+[data-theme="light"] button.secondaryButton,
+.page.light .currentReportSummaryActions .secondaryBtn,
+[data-theme="light"] .currentReportSummaryActions .secondaryBtn,
+.page.light .appActionButtons .secondaryBtn,
+[data-theme="light"] .appActionButtons .secondaryBtn {
+  color: #1e3a8a !important;
+  background: #eff6ff !important;
+  border: 1px solid rgba(37, 99, 235, 0.38) !important;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08) !important;
+}
+
+.page.light .secondaryBtn:hover,
+[data-theme="light"] .secondaryBtn:hover,
+.page.light .secondaryButton:hover,
+[data-theme="light"] .secondaryButton:hover,
+.page.light button.secondaryBtn:hover,
+[data-theme="light"] button.secondaryBtn:hover,
+.page.light button.secondaryButton:hover,
+[data-theme="light"] button.secondaryButton:hover {
+  color: #ffffff !important;
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+.page.light .ghostButton,
+[data-theme="light"] .ghostButton,
+.page.light button.ghostButton,
+[data-theme="light"] button.ghostButton,
+.page.light .tableOpeningBtn,
+[data-theme="light"] .tableOpeningBtn,
+.page.light .fullReportOpeningRow,
+[data-theme="light"] .fullReportOpeningRow,
+.page.light .commandMiniOpening,
+[data-theme="light"] .commandMiniOpening,
+.page.light .commandOpeningRow,
+[data-theme="light"] .commandOpeningRow {
+  color: #0f172a !important;
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.18) !important;
+}
+
+.page.light .currentReportSummaryActions button,
+[data-theme="light"] .currentReportSummaryActions button,
+.page.light .appActionButtons button,
+[data-theme="light"] .appActionButtons button {
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+.page.light button:disabled,
+[data-theme="light"] button:disabled {
+  color: #475569 !important;
+  background: #e2e8f0 !important;
+  border-color: rgba(71, 85, 105, 0.24) !important;
+}
