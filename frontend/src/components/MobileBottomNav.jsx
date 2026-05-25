@@ -1,12 +1,30 @@
-import { BarChart3, Dumbbell, Home, Shield, Table2 } from "lucide-react";
+import { BarChart3, Dumbbell, Search, User } from "lucide-react";
 
-export default function MobileBottomNav({ data, activeView, onViewChange }) {
+export default function MobileBottomNav({ activeView, onViewChange }) {
+  const sectionAliases = {
+    import: "analyse",
+    analyse: "analyse",
+    analyze: "analyse",
+    overview: "report",
+    report: "report",
+    repertoire: "report",
+    openings: "report",
+    weakspots: "report",
+    recommendations: "report",
+    training: "train",
+    train: "train",
+    data: "train",
+    profile: "profile",
+    account: "profile",
+    upgrade: "profile",
+    feedback: "profile",
+  };
+  const activeSection = sectionAliases[String(activeView || "").toLowerCase()] || "analyse";
   const items = [
-    { key: "overview", label: "Report", Icon: Home, target: "openingfit-verdict", path: "/" },
-    { key: "repertoire", label: "Rep", Icon: Shield, target: "repertoire-map", path: "/" },
-    { key: "evidence", label: "Table", Icon: Table2, target: "evidence-table", path: "/" },
-    { key: "training", label: "Plan", Icon: Dumbbell, target: "section-training", path: "/" },
-    { key: "data", label: "Games", Icon: BarChart3, target: "section-replay", path: "/" },
+    { key: "analyse", label: "Analyse", Icon: Search, target: "app-dashboard", path: "/" },
+    { key: "report", label: "Report", Icon: BarChart3, target: "app-results", path: "/report" },
+    { key: "train", label: "Train", Icon: Dumbbell, target: "training-plan", path: "/train" },
+    { key: "profile", label: "Profile", Icon: User, target: "profile", path: "/account" },
   ];
 
   function scrollToTarget(targetId) {
@@ -20,7 +38,7 @@ export default function MobileBottomNav({ data, activeView, onViewChange }) {
 
     if (!target) return;
 
-    const offset = window.innerWidth <= 760 ? 88 : 108;
+    const offset = window.innerWidth <= 760 ? 18 : 108;
     const top = target.getBoundingClientRect().top + window.scrollY - offset;
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   }
@@ -45,16 +63,14 @@ export default function MobileBottomNav({ data, activeView, onViewChange }) {
     });
   }
 
-  if (!data && activeView !== "feedback") return null;
-
   return (
     <nav className="mobileBottomNav" aria-label="Mobile app navigation">
       {items.map((item) => (
         <button
           key={item.key}
           type="button"
-          className={activeView === item.key ? "mobileBottomNavActive" : ""}
-          aria-current={activeView === item.key ? "page" : undefined}
+          className={activeSection === item.key ? "mobileBottomNavActive" : ""}
+          aria-current={activeSection === item.key ? "page" : undefined}
           title={item.label}
           onClick={(event) => handleClick(event, item)}
         >

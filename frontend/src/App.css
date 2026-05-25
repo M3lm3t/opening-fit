@@ -30973,3 +30973,178 @@ body,
     transition: none;
   }
 }
+
+/* Four-destination app shell */
+.appPrimaryNav {
+  position: sticky;
+  top: 0;
+  z-index: 110;
+  width: 100%;
+  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+  background: rgba(2, 6, 23, 0.78);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  backdrop-filter: blur(18px);
+}
+
+.page.light .appPrimaryNav,
+[data-theme="light"] .appPrimaryNav {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom-color: rgba(15, 23, 42, 0.1);
+}
+
+.appPrimaryNavInner {
+  width: min(100%, 1180px);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.appPrimaryBrand {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  color: var(--text);
+  font-weight: 950;
+}
+
+.appPrimaryTabs {
+  display: inline-grid;
+  grid-template-columns: repeat(4, minmax(84px, 1fr));
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.page.light .appPrimaryTabs,
+[data-theme="light"] .appPrimaryTabs {
+  background: rgba(241, 245, 249, 0.9);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.appPrimaryTab {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  padding: 8px 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.appPrimaryTab:hover {
+  color: var(--text);
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.appPrimaryTabActive,
+.appPrimaryTabActive:hover {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+}
+
+.appPrimaryTab[aria-disabled="true"]:not(.appPrimaryTabActive) {
+  opacity: 0.62;
+}
+
+.profileSection {
+  display: grid;
+  gap: 16px;
+  scroll-margin-top: 94px;
+}
+
+.profileSectionHeader {
+  display: grid;
+  gap: 6px;
+  padding: 18px 0 4px;
+}
+
+.profileSectionHeader h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  letter-spacing: 0;
+}
+
+.profileSectionHeader p:not(.eyebrow) {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.profileGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.profilePremiumBlock {
+  scroll-margin-top: 94px;
+}
+
+.appEmptySection {
+  display: grid;
+  gap: 10px;
+  max-width: 760px;
+  margin: 18px auto;
+}
+
+.appEmptySection h2,
+.appEmptySection p {
+  margin: 0;
+}
+
+.appEmptySection .primaryBtn {
+  justify-self: start;
+}
+
+@media (max-width: 760px) {
+  .appPrimaryNav {
+    display: none;
+  }
+
+  .appShell,
+  .publicLandingPage .appShell {
+    padding-bottom: 118px !important;
+  }
+
+  .mobileBottomNav {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    height: 70px !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: max(12px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .mobileBottomNav button {
+    min-height: 54px !important;
+    font-size: 0.68rem !important;
+  }
+
+  .openingAppMenu {
+    top: max(10px, env(safe-area-inset-top)) !important;
+    right: 10px !important;
+    z-index: 130 !important;
+  }
+
+  .themeToggle {
+    top: calc(58px + env(safe-area-inset-top)) !important;
+    right: 10px !important;
+  }
+
+  .profileGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .profileSectionHeader h1 {
+    font-size: 2rem;
+  }
+}
