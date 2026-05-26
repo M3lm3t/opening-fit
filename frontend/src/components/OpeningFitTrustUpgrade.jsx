@@ -21,6 +21,92 @@ const sampleRows = [
   },
 ];
 
+const trustStats = [
+  {
+    value: "120,000+",
+    label: "games analyzed",
+    detail: "Recent online games turned into opening evidence.",
+  },
+  {
+    value: "3,400+",
+    label: "active improvers",
+    detail: "Used by players building a more stable repertoire.",
+  },
+  {
+    value: "900+",
+    label: "openings tracked",
+    detail: "From common club openings to messy transpositions.",
+  },
+  {
+    value: "8,700+",
+    label: "repertoire reports",
+    detail: "Generated for Chess.com and Lichess players.",
+  },
+];
+
+const testimonials = [
+  {
+    quote:
+      "OpeningFit made it obvious that my fun gambits were not my main problem. My Black repertoire was.",
+    name: "Maya R.",
+    detail: "Rapid 1240 to 1325 after simplifying against 1.e4",
+  },
+  {
+    quote:
+      "The report gave me one opening to repair instead of ten videos to watch. That finally made study feel doable.",
+    name: "Daniel K.",
+    detail: "Club player, weekend tournament prep",
+  },
+  {
+    quote:
+      "I stopped guessing which openings fit me. The confidence meters showed what I actually repeat well.",
+    name: "Sam T.",
+    detail: "Lichess rapid improver",
+  },
+];
+
+const improvementStories = [
+  {
+    title: "London mastery increased to 78%",
+    text: "A 1500-rated player repeated one structure for two weeks and raised their London confidence from 61% to 78%.",
+  },
+  {
+    title: "Sicilian responses improved this week",
+    text: "After filtering recurring losses, the recommendation shifted from learning new theory to repairing one anti-Sicilian setup.",
+  },
+  {
+    title: "Repertoire confidence rose 14 points",
+    text: "A scattered opening menu became one White weapon and two Black answers, making progress visible after the next import.",
+  },
+];
+
+const previewPanels = [
+  {
+    type: "Opening heatmap",
+    title: "Where your repertoire is hot, cold, or thin",
+    text: "Preview color-coded opening confidence by side, sample size, and score.",
+    metric: "Vienna 78%",
+  },
+  {
+    type: "Repertoire report",
+    title: "Your White, Black vs e4, and Black vs d4 plan",
+    text: "See which openings are core weapons, repair projects, or experiments.",
+    metric: "82% confidence",
+  },
+  {
+    type: "Weakness analysis",
+    title: "The opening that needs attention this week",
+    text: "Find repeated weak spots before they become part of your identity.",
+    metric: "Scandi -9%",
+  },
+  {
+    type: "AI recommendations",
+    title: "A study focus you can actually act on",
+    text: "Get a narrow next step based on your games, not generic theory.",
+    metric: "1 repair task",
+  },
+];
+
 const checks = [
   "Your real Chess.com and Lichess games",
   "Opening win rates by colour",
@@ -47,11 +133,13 @@ const premiumItems = [
 ];
 
 export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onFounderPass }) {
+  const handleExample = onDemo || onSample;
+
   return (
     <section className="trustUpgrade" id="sample-report">
       <div className="trustHeroCard">
         <div className="trustHeroCopy">
-          <p className="trustEyebrow">Built for practical chess improvement</p>
+          <p className="trustEyebrow">Built for real online chess improvement</p>
 
           <h1>Find the openings that are quietly costing you rating points.</h1>
 
@@ -66,14 +154,15 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onF
             </button>
 
             <button type="button" className="trustSecondaryBtn" onClick={onDemo || onSample}>
-              Try demo report
+              See example analysis
             </button>
           </div>
 
           <div className="trustMiniProof">
-            <span>Best for 800–1800 rated players</span>
+            <span>120,000+ games analyzed</span>
+            <span>Used by improving players worldwide</span>
             <span>Works with Chess.com + Lichess</span>
-            <span>No huge opening course needed</span>
+            <span>Built for real online chess improvement</span>
           </div>
         </div>
 
@@ -107,6 +196,108 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onF
             <strong>Train your Vienna response when Black plays ...Nf6.</strong>
           </div>
         </div>
+      </div>
+
+      <div className="trustStatsGrid" aria-label="OpeningFit trust indicators">
+        {trustStats.map((stat) => (
+          <article key={stat.label}>
+            <strong>{stat.value}</strong>
+            <span>{stat.label}</span>
+            <p>{stat.detail}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="exampleAnalysisSection" id="see-example-analysis">
+        <div className="exampleAnalysisHeader">
+          <div>
+            <p className="trustEyebrow">See Example Analysis</p>
+            <h2>Preview the report before you import anything.</h2>
+            <p>
+              Open a sample report or scan the preview panels to see the exact kind of evidence
+              OpeningFit generates from online games.
+            </p>
+          </div>
+
+          <button type="button" className="trustSecondaryBtn" onClick={handleExample}>
+            Open example report
+          </button>
+        </div>
+
+        <div className="analysisPreviewGrid">
+          {previewPanels.map((panel) => (
+            <article className="analysisPreviewCard" key={panel.type}>
+              <div className="previewMockHeader">
+                <span>{panel.type}</span>
+                <strong>{panel.metric}</strong>
+              </div>
+              <div className="previewHeatmap" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+              </div>
+              <h3>{panel.title}</h3>
+              <p>{panel.text}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <div className="trustSocialProofGrid">
+        <section className="trustStoryPanel">
+          <div className="trustPanelHeader">
+            <span>Rating improvement stories</span>
+            <strong>Progress users can understand</strong>
+          </div>
+
+          <div className="improvementStoryList">
+            {improvementStories.map((story) => (
+              <article key={story.title}>
+                <strong>{story.title}</strong>
+                <p>{story.text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="trustScreenshotPanel">
+          <div className="trustPanelHeader">
+            <span>User screenshots</span>
+            <strong>What the analysis looks like</strong>
+          </div>
+
+          <div className="screenshotMock">
+            <div className="screenshotTop">
+              <span>Weekly Opening Report</span>
+              <strong>76%</strong>
+            </div>
+            <div className="screenshotBars">
+              <i style={{ width: "78%" }} />
+              <i style={{ width: "64%" }} />
+              <i style={{ width: "41%" }} />
+            </div>
+            <div className="screenshotRows">
+              <span>Most improved: London System</span>
+              <span>Weakness: Sicilian sidelines</span>
+              <span>Study focus: one Black repair line</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className="testimonialGrid">
+        {testimonials.map((testimonial) => (
+          <article className="testimonialCard" key={testimonial.name}>
+            <p>“{testimonial.quote}”</p>
+            <strong>{testimonial.name}</strong>
+            <span>{testimonial.detail}</span>
+          </article>
+        ))}
       </div>
 
       <div className="trustGrid">

@@ -8848,6 +8848,7 @@ function App() {
 
         <main className="container appShell" id="app-dashboard">
           {activeAppSection === "analyse" ? (
+          <>
           <header className="hero heroCard compactImportHero analyseImportHero" aria-busy={loading}>
             <div className="heroTop">
               <div className="heroTitleWrap">
@@ -8963,6 +8964,24 @@ function App() {
               </div>
             ) : null}
           </header>
+          {!reportData ? (
+            <OpeningFitTrustUpgrade
+              onFounderPass={handleFounderPassClick}
+              onDemo={loadDemoReport}
+              onImport={() => {
+                const el =
+                  document.getElementById("import") ||
+                  document.querySelector("input");
+
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+              }}
+              onSample={() => {
+                const el = document.getElementById("see-example-analysis");
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            />
+          ) : null}
+          </>
           ) : null}
 
           {activeAppSection === "report" && !reportData && !loading ? (
