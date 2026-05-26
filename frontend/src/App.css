@@ -31387,6 +31387,13 @@ body,
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
 }
 
+.commandCentreHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px;
+  gap: 18px;
+  align-items: start;
+}
+
 .currentReportSummaryMain h1,
 .currentReportSummaryMain p {
   margin: 0;
@@ -31403,6 +31410,236 @@ body,
   margin-top: 8px;
   color: var(--muted);
   line-height: 1.55;
+}
+
+.commandCentreScore,
+.nextBestMoveCard,
+.keepImproveAvoidSummary article,
+.commandCentreOpeningGrid article {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.24);
+}
+
+.page.light .commandCentreScore,
+.page.light .nextBestMoveCard,
+.page.light .keepImproveAvoidSummary article,
+.page.light .commandCentreOpeningGrid article,
+[data-theme="light"] .commandCentreScore,
+[data-theme="light"] .nextBestMoveCard,
+[data-theme="light"] .keepImproveAvoidSummary article,
+[data-theme="light"] .commandCentreOpeningGrid article {
+  background: #f8fafc;
+}
+
+.commandCentreScore {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 14px;
+  text-align: center;
+}
+
+.commandCentreScore span,
+.commandCentreScore small,
+.commandCentreScore em,
+.nextBestMoveCard span,
+.keepImproveAvoidSummary span,
+.commandCentreMiniHeader span,
+.commandCentreMeta span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.commandCentreScore strong {
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  line-height: 1;
+}
+
+.commandCentreScore em {
+  text-transform: none;
+  line-height: 1.25;
+}
+
+.nextBestMoveCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 0.32fr);
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+}
+
+.nextBestMoveCard h2 {
+  margin: 4px 0 8px;
+  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  line-height: 1.08;
+}
+
+.nextBestMoveCard p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.52;
+}
+
+.page.light .nextBestMoveCard p,
+[data-theme="light"] .nextBestMoveCard p {
+  color: #475569;
+}
+
+.nextBestMoveActions {
+  display: grid;
+  gap: 8px;
+}
+
+.nextBestMoveActions .primaryBtn,
+.nextBestMoveActions .secondaryBtn {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+.commandCentreActions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.commandCentreActions li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid rgba(248, 214, 109, 0.22);
+  border-radius: 8px;
+  background: rgba(248, 214, 109, 0.08);
+}
+
+.commandCentreActions li > span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #061019;
+  background: #f8d66d;
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.commandCentreActions strong {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.keepImproveAvoidSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.keepImproveAvoidSummary article {
+  min-width: 0;
+  padding: 12px;
+}
+
+.keepImproveAvoidSummary strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.keepImproveAvoidSummary p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.commandCentreOpeningGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.commandCentreOpeningGrid article {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 12px;
+}
+
+.commandCentreMiniHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.commandCentreMiniHeader strong {
+  min-width: 28px;
+  min-height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.14);
+  color: var(--text);
+}
+
+.commandCentreOpeningGrid ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.commandCentreOpeningGrid li {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 9px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.36);
+}
+
+.page.light .commandCentreOpeningGrid li,
+[data-theme="light"] .commandCentreOpeningGrid li {
+  background: #ffffff;
+}
+
+.commandCentreOpeningGrid li strong,
+.commandCentreOpeningGrid li span {
+  overflow-wrap: anywhere;
+}
+
+.commandCentreOpeningGrid li span,
+.commandCentreOpeningGrid article > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.commandCentreMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.commandCentreMeta span {
+  text-transform: none;
 }
 
 .currentReportSummaryGrid {
@@ -31633,6 +31870,19 @@ body,
   .analyseImportHero .compactTrustRow {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .commandCentreHero,
+  .nextBestMoveCard,
+  .commandCentreActions,
+  .keepImproveAvoidSummary,
+  .commandCentreOpeningGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .commandCentreScore {
+    justify-items: start;
+    text-align: left;
   }
 
   .currentReportSummaryGrid {

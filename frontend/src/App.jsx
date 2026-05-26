@@ -3793,13 +3793,61 @@ function CurrentReportSummary({
       : data.platform === "chesscom" || data.importPlatform === "chesscom"
         ? "Chess.com"
         : data.platform || data.importPlatform || "Chess profile";
-  const bestOpening = fitData?.bestOpening;
-  const weakOpening = fitData?.weakestOpening;
+  const scoredOpenings = uniqueOpeningsByNameAndContext(
+    Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : []
+  )
+    .filter((opening) => !isUnknownOpeningName(getOpeningName(opening)))
+    .sort(evidenceSort);
+  const verdictFor = (opening) =>
+    openingVerdictLabel(opening, data, opening.fitVerdict || opening.verdict);
+  const bestOpening = fitData?.bestOpening || scoredOpenings.find((opening) => verdictFor(opening) === "Keep");
+  const weakOpening =
+    fitData?.weakestOpening ||
+    scoredOpenings.find((opening) => ["Improve", "Avoid"].includes(verdictFor(opening)));
   const studyTarget = buildStudyThisNextTarget(fitData);
+  const focusOpening = studyTarget?.opening || weakOpening || bestOpening || null;
+  const focusName = focusOpening ? getOpeningName(focusOpening) : "your most common opening";
+  const focusRole = focusOpening ? roleNameForAction(focusOpening) : "in your repertoire";
+  const focusGames = focusOpening ? getOpeningGames(focusOpening) : 0;
+  const focusWinRate = focusOpening ? getWinRate(focusOpening) : null;
+  const score = fitData?.overallScore || data?.openingFitScore || data?.opening_fit_score || 0;
+  const profile = getSmartPlayerLevelProfile(data);
+  const keepItems = scoredOpenings.filter((opening) => verdictFor(opening) === "Keep");
+  const improveItems = scoredOpenings.filter((opening) => verdictFor(opening) === "Improve");
+  const avoidItems = scoredOpenings.filter((opening) => verdictFor(opening) === "Avoid");
+  const bestOpenings = (keepItems.length ? keepItems : scoredOpenings)
+    .filter(Boolean)
+    .sort(evidenceSort)
+    .slice(0, 3);
+  const problemOpenings = [...improveItems, ...avoidItems]
+    .filter(Boolean)
+    .sort((a, b) => {
+      const scoreDelta = getWinRate(a) - getWinRate(b);
+      if (scoreDelta) return scoreDelta;
+      return getOpeningGames(b) - getOpeningGames(a);
+    })
+    .slice(0, 3);
+  const verdictSummary = [
+    { label: "Keep", value: keepItems.length, items: keepItems },
+    { label: "Improve", value: improveItems.length, items: improveItems },
+    { label: "Avoid", value: avoidItems.length, items: avoidItems },
+  ];
   const mainRecommendation =
     studyTarget?.name && studyTarget?.context
       ? `Study ${studyTarget.name} ${studyTarget.context}`
       : verdict.actions?.[0] || "Review the highest-confidence repertoire signal first.";
+  const nextBestMove =
+    focusOpening && focusWinRate !== null
+      ? `Focus on improving ${focusName} ${focusRole}. You have ${focusGames || "enough"} game${focusGames === 1 ? "" : "s"}, the results are below your strongest baseline, and this position appears often enough to matter.`
+      : `Focus on building one repeatable opening setup first. OpeningFit needs a few more clear games before making a stronger repair recommendation.`;
+  const renderMiniOpening = (opening) => (
+    <li key={getOpeningIdentityKey(opening)}>
+      <strong>{getOpeningContextTitle(opening)}</strong>
+      <span>
+        {getOpeningGames(opening)} games · {getWinRate(opening)}% · {verdictFor(opening)}
+      </span>
+    </li>
+  );
   const chooseReportMode = (mode) => {
     onReportModeChange?.(mode);
 
@@ -3816,43 +3864,95 @@ function CurrentReportSummary({
 
   return (
     <section className="currentReportSummaryCard" aria-label="Current report summary">
-      <div className="currentReportSummaryMain">
-        <p className="eyebrow">Command centre</p>
-        <h1>{playerName}'s opening analysis</h1>
-        <p>
-          What openings fit you right now, and what should you do next?
-        </p>
+      <div className="commandCentreHero">
+        <div className="currentReportSummaryMain">
+          <p className="eyebrow">Command centre</p>
+          <h1>{playerName}'s opening analysis</h1>
+          <p>{verdict.profile}</p>
+        </div>
+
+        <div className="commandCentreScore" aria-label="Opening Fit Score">
+          <span>Opening Fit Score</span>
+          <strong>{score || "—"}</strong>
+          <small>{score ? "/100" : "score pending"}</small>
+          <em>{profile.shortLabel || profile.label || "Overall verdict"}</em>
+        </div>
       </div>
 
-      <div className="currentReportSummaryGrid">
+      <div className="nextBestMoveCard">
         <div>
-          <span>Best fit opening</span>
-          <strong>{bestOpening ? getOpeningContextTitle(bestOpening) : "Not enough data"}</strong>
+          <span>Your next best move</span>
+          <h2>{mainRecommendation}</h2>
+          <p>{nextBestMove}</p>
         </div>
-        <div>
-          <span>Needs work</span>
-          <strong>{weakOpening ? getOpeningContextTitle(weakOpening) : "No clear leak yet"}</strong>
+
+        <div className="nextBestMoveActions">
+          <button type="button" className="primaryBtn" onClick={() => chooseReportMode("table")}>
+            View evidence
+          </button>
+          <button type="button" className="secondaryBtn" onClick={() => onViewChange?.("train")}>
+            Add to study plan
+          </button>
+          <button type="button" className="secondaryBtn" onClick={() => chooseReportMode("full")}>
+            See alternatives
+          </button>
         </div>
-        <div>
-          <span>Most reliable side</span>
-          <strong>{reliableSection ? reliableSection.title : "More games needed"}</strong>
-        </div>
-        <div>
-          <span>Main next recommendation</span>
-          <strong>{mainRecommendation}</strong>
-        </div>
-        <div>
-          <span>Games analysed</span>
-          <strong>{games || "—"}</strong>
-        </div>
-        <div>
-          <span>Platform / username</span>
-          <strong>{platformLabel} · {playerName}</strong>
-        </div>
-        <div>
-          <span>Last analysed</span>
-          <strong>{analysedDate}</strong>
-        </div>
+      </div>
+
+      <ol className="commandCentreActions" aria-label="Top three actions">
+        {verdict.actions.map((action, index) => (
+          <li key={`${action}-${index}`}>
+            <span>{index + 1}</span>
+            <strong>{action}</strong>
+          </li>
+        ))}
+      </ol>
+
+      <div className="keepImproveAvoidSummary">
+        {verdictSummary.map((group) => (
+          <article key={group.label}>
+            <span>{group.label}</span>
+            <strong>{group.value}</strong>
+            <p>
+              {group.items[0]
+                ? getOpeningContextTitle(group.items[0])
+                : `No ${group.label.toLowerCase()} verdicts yet`}
+            </p>
+          </article>
+        ))}
+      </div>
+
+      <div className="commandCentreOpeningGrid">
+        <article>
+          <div className="commandCentreMiniHeader">
+            <span>Best openings</span>
+            <strong>{bestOpenings.length}</strong>
+          </div>
+          {bestOpenings.length ? (
+            <ul>{bestOpenings.map(renderMiniOpening)}</ul>
+          ) : (
+            <p>No clear best openings yet.</p>
+          )}
+        </article>
+
+        <article>
+          <div className="commandCentreMiniHeader">
+            <span>Problem openings</span>
+            <strong>{problemOpenings.length}</strong>
+          </div>
+          {problemOpenings.length ? (
+            <ul>{problemOpenings.map(renderMiniOpening)}</ul>
+          ) : (
+            <p>No recurring problem opening found yet.</p>
+          )}
+        </article>
+      </div>
+
+      <div className="commandCentreMeta">
+        <span>{platformLabel} · {playerName}</span>
+        <span>{games || "—"} games analysed</span>
+        <span>Last analysed {analysedDate}</span>
+        <span>{reliableSection ? `Most reliable: ${reliableSection.title}` : "More games improve confidence"}</span>
       </div>
 
       <div className="currentReportSummaryActions">
@@ -3861,20 +3961,17 @@ function CurrentReportSummary({
           className={reportMode === "full" ? "primaryBtn" : "secondaryBtn"}
           onClick={() => chooseReportMode("full")}
         >
-          View full report
-        </button>
-        <button type="button" className="secondaryBtn" onClick={() => onViewChange?.("train")}>
-          Start training
+          Full report
         </button>
         <button
           type="button"
           className={reportMode === "table" ? "primaryBtn" : "secondaryBtn"}
           onClick={() => chooseReportMode("table")}
         >
-          See opening table
+          Evidence table
         </button>
         <button type="button" className="secondaryBtn" onClick={() => onViewChange?.("profile")}>
-          View profile
+          Profile
         </button>
       </div>
     </section>
