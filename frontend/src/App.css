@@ -31223,19 +31223,25 @@ body,
 }
 
 .analyseImportHero {
-  max-width: 860px;
+  max-width: 900px;
   margin: 0 auto;
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .analyseImportHero .heroTitleWrap {
-  max-width: 720px;
+  max-width: 780px;
 }
 
 .analyseImportHero .heroTitleWrap h1 {
-  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-size: clamp(2.15rem, 4vw, 3.55rem);
   letter-spacing: 0;
+}
+
+.analyseImportHero .subtext {
+  max-width: 760px;
+  font-size: clamp(1rem, 1.5vw, 1.16rem);
+  line-height: 1.58;
 }
 
 .analyseImportHero .appActionPanel {
@@ -31243,20 +31249,95 @@ body,
   align-items: stretch;
 }
 
+.heroImportFlow {
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(96, 165, 250, 0.26);
+  background: rgba(15, 23, 42, 0.68);
+  box-shadow: 0 20px 44px rgba(2, 6, 23, 0.22);
+}
+
+.page.light .heroImportFlow,
+[data-theme="light"] .heroImportFlow {
+  background: #ffffff;
+  border-color: rgba(37, 99, 235, 0.16);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.1);
+}
+
+.heroImportHeader {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.heroImportHeader span,
+.heroUsernameField span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.heroImportHeader strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--text);
+  font-size: 1.15rem;
+}
+
+.heroImportHeader small {
+  color: var(--muted);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.heroUsernameField {
+  display: grid;
+  gap: 7px;
+}
+
 .analyseImportHero .input,
 .analyseImportHero .monthSelect {
-  min-height: 52px;
+  min-height: 54px;
+  border-radius: 10px;
 }
 
 .analyseImportHero .appActionButtons {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  display: block;
+}
+
+.analyseImportHero .primaryBtn {
+  width: 100%;
+  min-height: 56px;
+  border-radius: 10px;
+  font-size: 1rem;
 }
 
 .analyseImportHero .compactTrustRow {
   margin-top: 0;
   justify-content: start;
+  align-items: center;
+}
+
+.inlineSampleButton {
+  border: 0;
+  padding: 0;
+  color: var(--blue-light);
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.inlineSampleButton:hover {
+  text-decoration: underline;
+}
+
+.inlineSampleButton:disabled {
+  opacity: 0.55;
 }
 
 .analyseLoadingState {
@@ -31539,8 +31620,14 @@ body,
     border-radius: 18px;
   }
 
-  .analyseImportHero .appActionButtons {
-    grid-template-columns: 1fr;
+  .heroImportHeader {
+    align-items: start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .heroImportHeader small {
+    white-space: normal;
   }
 
   .analyseImportHero .compactTrustRow {
