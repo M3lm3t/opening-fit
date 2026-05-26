@@ -8246,6 +8246,12 @@ function App() {
 
     const bestFit = fitData.bestOpening;
     const weakFit = fitData.weakestOpening;
+    const ratingCopy = getRatingAwareRecommendationCopy({
+      level: levelProfile.level,
+      label: levelProfile.shortLabel || levelProfile.label,
+      bestName: bestFit ? getOpeningContextTitle(bestFit) : "your strongest opening",
+      weakName: weakFit ? getOpeningContextTitle(weakFit) : "your weakest opening",
+    });
 
     if (publicMode) {
       return [
