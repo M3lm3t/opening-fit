@@ -9021,6 +9021,8 @@ function App() {
               <OpeningPracticeLinesPanel
                 openingName={practiceOpening}
                 opening={practiceOpening}
+                user={supabaseUser || accountUser}
+                data={reportData || data || {}}
                 onClose={() => setPracticeOpening(null)}
               />
             </div>

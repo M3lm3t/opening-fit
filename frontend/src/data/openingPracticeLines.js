@@ -1,4 +1,6 @@
-export const openingPracticePacks = [
+import { OPENINGS, findOpeningLine, normaliseOpeningKey } from "./openings";
+
+const legacyOpeningPracticePacks = [
   {
     key: "vienna game",
     aliases: ["Vienna Game", "Vienna"],
@@ -337,26 +339,105 @@ export const openingPracticePacks = [
   },
 ];
 
-export function findOpeningPracticePack(openingName = "") {
-  const normalise = (value) =>
-    String(value)
-      .toLowerCase()
-      .replace(/[’']/g, "")
-      .replace(/defence/g, "defense")
-      .replace(/[^a-z0-9]+/g, " ")
-      .trim();
+function openingToPracticePack(opening) {
+  return {
+    key: normaliseOpeningKey(opening.name),
+    opening,
+    aliases: [
+      opening.name,
+      opening.id,
+      opening.eco,
+      ...(opening.commonVariations || []),
+    ].filter(Boolean),
+    lines: opening.trainingLines.map((line) => ({
+      name: line.name,
+      moves: line.moves,
+      idea: line.explanation,
+      moveIdeas: line.moves.map((move, index) => {
+        if (index === line.moves.length - 1) {
+          return `${move} reaches the target position. ${line.explanation}`;
+        }
 
-  const name = normalise(openingName);
+        const idea = line.keyIdeas[index % line.keyIdeas.length];
+        return idea ? `${move}: ${idea}` : `${move}: ${line.explanation}`;
+      }),
+      finishIdea: line.explanation,
+      keyIdeas: line.keyIdeas,
+    })),
+  };
+}
+
+function mergePracticePacks(databasePacks, legacyPacks) {
+  const merged = new Map();
+
+  [...databasePacks, ...legacyPacks].forEach((pack) => {
+    const key = normaliseOpeningKey(pack.key || pack.aliases?.[0] || "");
+    if (!key) return;
+
+    if (!merged.has(key)) {
+      merged.set(key, {
+        ...pack,
+        key,
+        aliases: [...new Set([pack.key, ...(pack.aliases || [])].filter(Boolean))],
+        lines: [...(pack.lines || [])],
+      });
+      return;
+    }
+
+    const existing = merged.get(key);
+    const existingLineKeys = new Set(
+      existing.lines.map((line) => normaliseOpeningKey(`${line.name}:${line.moves?.join(" ")}`))
+    );
+
+    const nextLines = [...existing.lines];
+    (pack.lines || []).forEach((line) => {
+      const lineKey = normaliseOpeningKey(`${line.name}:${line.moves?.join(" ")}`);
+      if (!existingLineKeys.has(lineKey)) {
+        existingLineKeys.add(lineKey);
+        nextLines.push(line);
+      }
+    });
+
+    merged.set(key, {
+      ...existing,
+      aliases: [...new Set([...(existing.aliases || []), pack.key, ...(pack.aliases || [])].filter(Boolean))],
+      lines: nextLines,
+      opening: existing.opening || pack.opening,
+    });
+  });
+
+  return Array.from(merged.values()).sort((a, b) => {
+    const aName = a.opening?.name || a.aliases?.[0] || a.key;
+    const bName = b.opening?.name || b.aliases?.[0] || b.key;
+    return aName.localeCompare(bName);
+  });
+}
+
+const databasePracticePacks = OPENINGS
+  .filter((opening) => opening.appearsInTraining !== false)
+  .map(openingToPracticePack);
+
+export const openingPracticePacks = mergePracticePacks(
+  databasePracticePacks,
+  legacyOpeningPracticePacks
+);
+
+export function findOpeningPracticePack(openingName = "") {
+  const name = normaliseOpeningKey(openingName);
 
   if (!name) return null;
 
   return (
     openingPracticePacks.find((pack) => {
-      const names = [pack.key, ...(pack.aliases || [])].map(normalise);
+      const names = [pack.key, ...(pack.aliases || [])].map(normaliseOpeningKey);
 
       return names.some((alias) => {
         return name.includes(alias) || alias.includes(name);
       });
-    }) || null
+    }) ||
+    (() => {
+      const opening = findOpeningLine(openingName);
+      return opening ? openingToPracticePack(opening) : null;
+    })()
   );
 }

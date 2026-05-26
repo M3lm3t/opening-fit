@@ -2,6 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import ChessPositionBoard from "./ChessPositionBoard";
 import { findOpeningPracticePack, openingPracticePacks } from "../data/openingPracticeLines";
+import { OPENINGS, normaliseOpeningKey, searchOpenings } from "../data/openings";
+import { fetchOpeningFitCloudState, saveOpeningFitCloudState } from "./openingFitCloudState";
+
+const TRAINING_PROGRESS_KEY = "openingFit:openingTrainingProgress";
+
+const OPENING_FILTERS = [
+  { key: "white", label: "White openings" },
+  { key: "black", label: "Black openings" },
+  { key: "beginner", label: "Beginner" },
+  { key: "intermediate", label: "Intermediate" },
+  { key: "advanced", label: "Advanced" },
+  { key: "e4", label: "Against e4" },
+  { key: "d4", label: "Against d4" },
+  { key: "solid", label: "Solid" },
+  { key: "attacking", label: "Attacking" },
+  { key: "system", label: "System openings" },
+];
 
 function getOpeningName(opening) {
   if (typeof opening === "string") return opening;
@@ -32,6 +49,74 @@ function buildGameToMove(moves, moveCount) {
   });
 
   return game;
+}
+
+function loadLocalTrainingProgress() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TRAINING_PROGRESS_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalTrainingProgress(progress) {
+  try {
+    localStorage.setItem(TRAINING_PROGRESS_KEY, JSON.stringify(progress));
+  } catch {
+    // Practice should keep working even when browser storage is unavailable.
+  }
+}
+
+function lineKey(openingId, lineName) {
+  return `${openingId}:${normaliseOpeningKey(lineName)}`;
+}
+
+function getOpeningId(pack, fallbackName) {
+  return pack?.opening?.id || normaliseOpeningKey(fallbackName || pack?.key || "opening");
+}
+
+function buildTrainingProgress(progress, pack, activeOpeningName, selectedLine) {
+  const openingId = getOpeningId(pack, activeOpeningName);
+  const key = lineKey(openingId, selectedLine.name);
+  const completedLines = {
+    ...(progress.completedLines || {}),
+    [key]: {
+      openingId,
+      openingName: pack?.opening?.name || activeOpeningName,
+      lineName: selectedLine.name,
+      completedAt: new Date().toISOString(),
+    },
+  };
+  const completedForOpening = Object.values(completedLines).filter(
+    (item) => item?.openingId === openingId
+  ).length;
+
+  return {
+    ...progress,
+    completedLines,
+    progressByOpening: {
+      ...(progress.progressByOpening || {}),
+      [openingId]: {
+        openingId,
+        openingName: pack?.opening?.name || activeOpeningName,
+        completed: completedForOpening,
+        total: pack?.lines?.length || 1,
+        lastPracticedAt: new Date().toISOString(),
+      },
+    },
+  };
+}
+
+function matchesFilter(opening, filter) {
+  if (filter === "white") return opening.color === "white" || opening.color === "both";
+  if (filter === "black") return opening.color === "black" || opening.color === "both";
+  if (["beginner", "intermediate", "advanced"].includes(filter)) {
+    return opening.difficulty === filter;
+  }
+  if (filter === "e4") return opening.tags.includes("e4-response") || opening.tags.includes("e4");
+  if (filter === "d4") return opening.tags.includes("d4-response") || opening.tags.includes("d4");
+  return opening.tags.includes(filter);
 }
 
 function explainMove(line, moves, index) {
@@ -84,7 +169,7 @@ function explainMove(line, moves, index) {
   return "This is the main-line move because it supports the opening plan. Check the centre, development, and king safety before moving on.";
 }
 
-export default function OpeningPracticeLinesPanel({ opening, onClose }) {
+export default function OpeningPracticeLinesPanel({ opening, onClose, user = null, data = null }) {
   const openingName = getOpeningName(opening);
   const [activeOpeningName, setActiveOpeningName] = useState(openingName);
   const pack = useMemo(() => findOpeningPracticePack(activeOpeningName), [activeOpeningName]);
@@ -95,6 +180,10 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
   const [status, setStatus] = useState("");
   const [showHint, setShowHint] = useState(false);
   const [selectedSquare, setSelectedSquare] = useState(null);
+  const [openingSearch, setOpeningSearch] = useState("");
+  const [activeFilters, setActiveFilters] = useState([]);
+  const [trainingProgress, setTrainingProgress] = useState(() => loadLocalTrainingProgress());
+  const [progressStatus, setProgressStatus] = useState(user?.id ? "Syncing practice progress..." : "Progress saved on this device");
 
   const selectedLine = pack?.lines?.[selectedLineIndex];
   const moves = selectedLine?.moves || [];
@@ -105,14 +194,82 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
   const moveExplanation = !isComplete
     ? explainMove(selectedLine, moves, moveIndex)
     : selectedLine?.finishIdea || "You reached the target position. Review the plan, not just the move order.";
+  const activeOpeningId = pack ? getOpeningId(pack, activeOpeningName) : normaliseOpeningKey(activeOpeningName);
+  const currentLineKey = selectedLine ? lineKey(activeOpeningId, selectedLine.name) : null;
+  const completedLineCount = Object.values(trainingProgress.completedLines || {}).filter(
+    (item) => item?.openingId === activeOpeningId
+  ).length;
+  const isSelectedLineSaved = Boolean(currentLineKey && trainingProgress.completedLines?.[currentLineKey]);
+  const filteredOpenings = useMemo(() => {
+    const searched = searchOpenings(openingSearch, OPENINGS).filter(
+      (item) => item.appearsInTraining !== false
+    );
+
+    if (!activeFilters.length) return searched.slice(0, 24);
+
+    return searched
+      .filter((item) => activeFilters.every((filter) => matchesFilter(item, filter)))
+      .slice(0, 24);
+  }, [activeFilters, openingSearch]);
 
   useEffect(() => {
     setActiveOpeningName(openingName);
   }, [openingName]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadProgress() {
+      const localProgress = loadLocalTrainingProgress();
+      setTrainingProgress(localProgress);
+
+      if (!user?.id) {
+        setProgressStatus("Progress saved on this device");
+        return;
+      }
+
+      try {
+        const state = await fetchOpeningFitCloudState(user, data || {});
+        if (cancelled) return;
+
+        const cloudProgress = state?.coach_progress?.openingTraining;
+        if (cloudProgress && typeof cloudProgress === "object") {
+          const merged = {
+            ...localProgress,
+            ...cloudProgress,
+            completedLines: {
+              ...(localProgress.completedLines || {}),
+              ...(cloudProgress.completedLines || {}),
+            },
+            progressByOpening: {
+              ...(localProgress.progressByOpening || {}),
+              ...(cloudProgress.progressByOpening || {}),
+            },
+          };
+          setTrainingProgress(merged);
+          saveLocalTrainingProgress(merged);
+        }
+
+        setProgressStatus("Progress synced to your OpeningFit account");
+      } catch {
+        if (!cancelled) setProgressStatus("Using local practice progress until sync reconnects");
+      }
+    }
+
+    loadProgress();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, data]);
+
+  useEffect(() => {
     setSelectedLineIndex(0);
-    resetBoard();
+    setMoveIndex(0);
+    setFen(new Chess().fen());
+    setStatus("");
+    setShowHint(false);
+    setSelectedSquare(null);
   }, [activeOpeningName]);
 
   useEffect(() => {
@@ -172,6 +329,56 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
     setSelectedSquare(null);
   }
 
+  async function saveTrainingProgress(nextProgress) {
+    setTrainingProgress(nextProgress);
+    saveLocalTrainingProgress(nextProgress);
+
+    if (!user?.id) {
+      setProgressStatus("Progress saved on this device");
+      return;
+    }
+
+    setProgressStatus("Saving practice progress...");
+
+    try {
+      const state = await fetchOpeningFitCloudState(user, data || {});
+      const coachProgress =
+        state?.coach_progress && typeof state.coach_progress === "object"
+          ? state.coach_progress
+          : {};
+
+      await saveOpeningFitCloudState(user, data || {}, {
+        coach_progress: {
+          ...coachProgress,
+          openingTraining: nextProgress,
+        },
+      });
+
+      setProgressStatus("Progress synced to your OpeningFit account");
+    } catch {
+      setProgressStatus("Saved locally. Cloud sync failed.");
+    }
+  }
+
+  function markLineComplete() {
+    if (!pack || !selectedLine || isSelectedLineSaved) return;
+    const nextProgress = buildTrainingProgress(
+      trainingProgress,
+      pack,
+      activeOpeningName,
+      selectedLine
+    );
+    saveTrainingProgress(nextProgress);
+  }
+
+  function toggleFilter(filter) {
+    setActiveFilters((current) =>
+      current.includes(filter)
+        ? current.filter((item) => item !== filter)
+        : [...current, filter]
+    );
+  }
+
   function chooseLine(index) {
     setSelectedLineIndex(index);
     setMoveIndex(0);
@@ -190,9 +397,10 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
       game.move(expectedMove);
       setFen(game.fen());
       setMoveIndex((current) => current + 1);
-      setStatus("Correct move played.");
+      setStatus(`Correct. ${explainMove(selectedLine, moves, moveIndex)}`);
       setShowHint(false);
       setSelectedSquare(null);
+      if (moveIndex + 1 >= moves.length) markLineComplete();
     } catch {
       setStatus("This practice line could not play that move. Check the saved line.");
     }
@@ -254,21 +462,19 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
 
       if (!sameMove) {
         setStatus(
-          `Not quite. ${
-            showHint
-              ? `The move is ${formatMoveNumber(moveIndex)} ${expectedMove}.`
-              : "Use Hint if you want to reveal the move."
-          }`
+          `Not quite. Hint: the move is ${formatMoveNumber(moveIndex)} ${expectedMove}. ${moveExplanation}`
         );
+        setShowHint(true);
         setSelectedSquare(null);
         return false;
       }
 
       setFen(gameAfterExpectedMove.fen());
       setMoveIndex((current) => current + 1);
-      setStatus("Correct.");
+      setStatus(`Correct. ${explainMove(selectedLine, moves, moveIndex)}`);
       setShowHint(false);
       setSelectedSquare(null);
+      if (moveIndex + 1 >= moves.length) markLineComplete();
       return true;
     } catch {
       setStatus("That move is not legal.");
@@ -305,12 +511,66 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
       <div className="practiceLinesHeader">
         <div>
           <p className="eyebrow">Practice pack</p>
-          <h2>{activeOpeningName}</h2>
+          <h2>{pack.opening?.name || activeOpeningName}</h2>
+          {pack.opening ? (
+            <p className="practiceOpeningMeta">
+              {pack.opening.eco ? `${pack.opening.eco} · ` : ""}
+              {pack.opening.color} · {pack.opening.difficulty} · {completedLineCount}/{pack.lines.length} lines complete
+            </p>
+          ) : null}
         </div>
 
         <button className="practiceCloseButton" type="button" onClick={onClose}>
           ×
         </button>
+      </div>
+
+      <div className="practiceOpeningBrowser">
+        <div className="practiceSearchRow">
+          <label>
+            <span>Search openings</span>
+            <input
+              value={openingSearch}
+              onChange={(event) => setOpeningSearch(event.target.value)}
+              placeholder="Search name, ECO, tag, or moves..."
+            />
+          </label>
+          <p>{progressStatus}</p>
+        </div>
+
+        <div className="practiceFilterRow" aria-label="Opening filters">
+          {OPENING_FILTERS.map((filter) => (
+            <button
+              type="button"
+              key={filter.key}
+              className={activeFilters.includes(filter.key) ? "active" : ""}
+              onClick={() => toggleFilter(filter.key)}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="practiceOpeningGrid">
+          {filteredOpenings.map((item) => {
+            const progress = trainingProgress.progressByOpening?.[item.id];
+
+            return (
+              <button
+                type="button"
+                key={item.id}
+                className={item.id === activeOpeningId ? "active" : ""}
+                onClick={() => setActiveOpeningName(item.name)}
+              >
+                <span>{item.eco || item.color}</span>
+                <strong>{item.name}</strong>
+                <small>
+                  {item.difficulty} · {progress ? `${progress.completed}/${progress.total} complete` : item.tags.slice(0, 2).join(", ")}
+                </small>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="practiceLineChoices">
@@ -323,6 +583,9 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
           >
             <span>Line {index + 1}</span>
             <strong>{line.name}</strong>
+            {trainingProgress.completedLines?.[lineKey(activeOpeningId, line.name)] ? (
+              <small>Completed</small>
+            ) : null}
           </button>
         ))}
       </div>
@@ -357,6 +620,13 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
             <p className="eyebrow">Current line</p>
             <h3>{selectedLine.name}</h3>
             <p>{selectedLine.idea}</p>
+            {pack.opening?.ideas?.length ? (
+              <ul className="practiceIdeaList">
+                {pack.opening.ideas.slice(0, 3).map((idea) => (
+                  <li key={idea}>{idea}</li>
+                ))}
+              </ul>
+            ) : null}
           </div>
 
           <div className="practiceMoveWhy">
@@ -385,6 +655,14 @@ export default function OpeningPracticeLinesPanel({ opening, onClose }) {
           </div>
 
           {status ? <div className="practiceStatus">{status}</div> : null}
+
+          {pack.opening?.traps?.length ? (
+            <div className="practiceTrapBox">
+              <span>Trap / mistake watch</span>
+              <strong>{pack.opening.traps[0].name}</strong>
+              <p>{pack.opening.traps[0].warning}</p>
+            </div>
+          ) : null}
 
           <div className="practiceControls boardPracticeControls">
             <button type="button" onClick={undoMove} disabled={moveIndex === 0}>
