@@ -240,7 +240,7 @@ export default function OpeningProgressTracker({ data, user = null, compact = fa
     return () => {
       cancelled = true;
     };
-  }, [key, user?.id, data]);
+  }, [key, user, data]);
 
   const previousSnapshot = history[0] || null;
   const openingChanges = compareOpenings(previousSnapshot, currentSnapshot);

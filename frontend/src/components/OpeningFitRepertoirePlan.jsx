@@ -359,7 +359,6 @@ function deriveVerdict(item) {
   const existing = verdict(item);
   if (existing) return String(existing);
 
-  const count = games(item);
   const pct = score(item);
 
   if (!hasReliableEvidence(item)) return "Not enough data";

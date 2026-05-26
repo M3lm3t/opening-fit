@@ -37,7 +37,7 @@ export default function GameReplayBoard({
   title = "Game Replay",
   initialOrientation = "white",
 }) {
-  const moves = Array.isArray(game?.moves) ? game.moves : [];
+  const moves = useMemo(() => (Array.isArray(game?.moves) ? game.moves : []), [game]);
   const [moveIndex, setMoveIndex] = useState(0);
   const [orientation, setOrientation] = useState(initialOrientation);
 

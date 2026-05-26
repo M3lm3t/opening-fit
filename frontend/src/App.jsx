@@ -9,7 +9,7 @@ import PolishedOpeningFitReportHero from "./components/OpeningFitReportHero.jsx"
 import OpeningFitTrustSections from "./components/OpeningFitTrustSections.jsx";
 import OpeningFitPolishToast from "./components/OpeningFitPolishToast.jsx";
 import "./components/OpeningFitPolish.css";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
 import OpeningReportSummary from "./components/OpeningReportSummary";
@@ -72,7 +72,6 @@ import IntelligentCoachInsights from "./components/IntelligentCoachInsights";
 import OpeningClassificationNotice from "./components/OpeningClassificationNotice";
 import {
   canGiveAvoidVerdict,
-  displayOpeningName,
   getLevelToneCopy,
   getPlayerLevelText,
   getRatingAwareRecommendationCopy,
@@ -280,15 +279,6 @@ const filterOpeningsBySamplePercent = (items, totalGames, samplePercent) => {
     return getOpeningGames(item) >= minimumGames;
   });
 };
-
-const premiumFeatures = [
-  "12-month import",
-  "Saved report history",
-  "Full opening table",
-  "Advanced filters",
-  "Progress tracking",
-  "Exportable study plan",
-];
 
 function safeNumber(value, fallback = 0) {
   const number = Number(value);
@@ -1784,37 +1774,8 @@ function getDataFirstVerdict(opening, data) {
   return `Improve — ${getOpeningConfidence(opening)}`;
 }
 
-function getEvidenceLine(opening, data) {
-  const games = getOpeningGames(opening);
-  const winRate = getWinRate(opening);
-  const losses = getOpeningLosses(opening);
-  const wins = getOpeningWins(opening);
-  const draws = getOpeningDraws(opening);
-  const context = opening?.contextLabel || contextLabel(itemContext(opening));
-  const resultParts = [];
-
-  if (wins || draws || losses) {
-    resultParts.push(`${wins}W-${draws}D-${losses}L`);
-  }
-
-  if (!games) {
-    return `Evidence: ${context}; no stable sample yet.`;
-  }
-
-  const sampleText = `${games} game${games === 1 ? "" : "s"}`;
-  const scoreText = Number.isFinite(winRate) ? `${winRate}% score` : "score unavailable";
-  const resultText = resultParts.length ? `, ${resultParts.join("")}` : "";
-
-  if (isPublicReportMode(data)) {
-    return `Evidence: ${sampleText} in this import as ${context}, ${scoreText}${resultText}.`;
-  }
-
-  return `Evidence: ${sampleText} as ${context}, ${scoreText}${resultText}.`;
-}
-
 function getNextActionLine(opening, data, sectionKey = "") {
   const name = getOpeningName(opening);
-  const games = getOpeningGames(opening);
   const context = opening?.contextLabel || contextLabel(itemContext(opening));
   const publicMode = isPublicReportMode(data);
   const level = getSmartPlayerLevelProfile(data).level;
@@ -2598,8 +2559,6 @@ function OpeningFitScoreList({ fitData, onPractice }) {
       <div className="fitOpeningList">
         {fitData.scoredOpenings.slice(0, 10).map((opening, index) => {
           const name = getOpeningName(opening);
-          const games = getOpeningGames(opening);
-          const winRate = getWinRate(opening);
           const canPractice = canTreatAsRepertoireOpening(opening);
 
           return (
@@ -5180,7 +5139,7 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
   );
 }
 
-function FloatingAppMenu({ data, onJump, onPractice, activeView, onViewChange }) {
+function FloatingAppMenu({ data, onJump, activeView, onViewChange }) {
   const [open, setOpen] = useState(false);
   const activeSection = getAppSection(activeView);
 
@@ -7262,7 +7221,7 @@ function App() {
   };
 
 
-  const [showUnknownOpenings, setShowUnknownOpenings] = useState(false);
+  const [showUnknownOpenings] = useState(false);
   const [selectedGameIndex, setSelectedGameIndex] = useState(0);
   const [practiceOpening, setPracticeOpening] = useState(null);
   const [openSections, setOpenSections] = useState(closedSections);
@@ -7599,57 +7558,11 @@ function App() {
 
   const scrollToResults = () => scrollToId("app-results");
 
-  const loadLocalAnalysis = () => {
-    const savedAnalysis = localStorage.getItem(STORAGE_KEY);
-
-    if (!savedAnalysis) return false;
-
-    try {
-      const parsed = JSON.parse(savedAnalysis);
-
-      if (!parsed?.analysis) return false;
-
-      const cleanData = normaliseData(parsed.analysis);
-
-      setData(cleanData);
-      setUsername(parsed.username || cleanData.username || "");
-      if (parsed.platform && platforms[parsed.platform]) {
-        setPlatform(parsed.platform);
-      }
-      setSelectedGameIndex(0);
-      setPracticeOpening(null);
-      setOpenSections(closedSections);
-      setLocalSavedAt(parsed.savedAt || "");
-
-      setSavedProfileMessage(
-        `Loaded local saved report${
-          parsed.username ? ` for ${parsed.username}` : ""
-        }. Saved: ${safeDate(parsed.savedAt)}`
-      );
-
-      scrollToResults();
-      setActiveView("report");
-      return true;
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-      return false;
-    }
-  };
-
   const toggleSection = (key) => {
     setOpenSections((prev) => ({
       ...prev,
       [key]: !prev[key],
     }));
-  };
-
-  const openOnly = (key) => {
-    setOpenSections({
-      ...closedSections,
-      [key]: true,
-    });
-
-    scrollToId(`section-${key}`);
   };
 
   const sectionRouteMap = {
@@ -7730,7 +7643,7 @@ function App() {
 
   const isUnknownOpening = (name) => isUnknownOpeningName(name);
 
-  const filterUnknownOpenings = (items) => {
+  const filterUnknownOpenings = useCallback((items) => {
     if (!Array.isArray(items)) return [];
     if (showUnknownOpenings) return items;
 
@@ -7740,7 +7653,7 @@ function App() {
 
       return !isUnknownOpening(name);
     });
-  };
+  }, [showUnknownOpenings]);
 
   const monthsToImport = isPremium ? importMonths : Math.min(importMonths, 3);
 
@@ -7914,147 +7827,6 @@ function App() {
     }
   };
 
-  const loadSavedProfile = async () => {
-    const cleanUsername = username.trim();
-
-    setError("");
-    setSavedProfileMessage("");
-
-    if (!cleanUsername) {
-      const loadedLocal = loadLocalAnalysis();
-
-      if (!loadedLocal) {
-        setError("Enter a username first, or import games once.");
-      }
-
-      return;
-    }
-
-    if (cleanUsername.toLowerCase() === "demoplayer") {
-      setError("");
-      setSavedProfileMessage(
-        "DemoPlayer is a demo account, not a saved profile. Use Try Demo Account instead."
-      );
-      return;
-    }
-
-    setLoading(true);
-    setLoadingStep("Looking for your saved Opening Fit profile...");
-
-    try {
-      const response = await fetch(
-        `${API_BASE}/api/profile/${encodeURIComponent(cleanUsername)}?platform=${encodeURIComponent(platform)}`
-      );
-
-      const text = await response.text();
-      let profile = null;
-
-      try {
-        profile = JSON.parse(text);
-      } catch {
-        profile = null;
-      }
-
-      if (!response.ok || !profile) {
-        const loadedLocal = loadLocalAnalysis();
-
-        if (loadedLocal) return;
-
-        throw new Error(
-          profile?.detail ||
-            "No saved profile found yet. Import this username first, then you can load it next time."
-        );
-      }
-
-      const latestResult = normaliseData(profile.latestResult);
-
-      if (!latestResult) {
-        const loadedLocal = loadLocalAnalysis();
-
-        if (loadedLocal) return;
-
-        throw new Error(
-          "Saved profile found, but it did not contain any saved analysis. Import games again to refresh it."
-        );
-      }
-
-      setData(latestResult);
-      saveLocalAnalysis(latestResult, profile.username || cleanUsername);
-      setOpenSections(closedSections);
-      setSelectedGameIndex(0);
-      setPracticeOpening(null);
-
-      setSavedProfileMessage(
-        `Loaded saved backend profile for ${
-          profile.username
-        }. Last updated: ${safeDate(profile.lastUpdated)}`
-      );
-
-      await trackEvent("frontend_saved_profile_loaded", {
-        username: cleanUsername,
-        platform,
-      });
-
-      scrollToResults();
-    } catch (err) {
-      setError(getFriendlyError(err.message));
-    } finally {
-      setLoading(false);
-      setLoadingStep("");
-    }
-  };
-
-  const loadDemoAccount = async () => {
-    setError("");
-    setSavedProfileMessage("");
-    setLoading(true);
-    setLoadingStep("Loading demo profile so you can preview Opening Fit...");
-
-    try {
-      const response = await fetch(`${API_BASE}/api/demo`);
-      const text = await response.text();
-
-      let demoData = null;
-
-      try {
-        demoData = JSON.parse(text);
-      } catch {
-        demoData = null;
-      }
-
-      if (!response.ok || !demoData) {
-        throw new Error(
-          text ||
-            "Demo profile could not be loaded. The live backend may not have the /api/demo route deployed yet."
-        );
-      }
-
-      const cleanDemoData = normaliseData(demoData);
-
-      setData(cleanDemoData);
-      setUsername("DemoPlayer");
-      setSelectedGameIndex(0);
-      setPracticeOpening(null);
-      setOpenSections(closedSections);
-      rememberLandingSeen({ keepPublicLanding: false });
-      setActiveView("report");
-      setSavedProfileMessage(
-        "Demo profile loaded. This is sample data, so use Import Games for your real saved profile."
-      );
-
-      await trackEvent("frontend_demo_loaded", {
-        username: "DemoPlayer",
-      });
-
-      scrollToResults();
-    } catch (err) {
-      setError(getFriendlyError(err.message));
-    } finally {
-      setLoading(false);
-      setLoadingStep("");
-    }
-  };
-
   const submitFeedback = async () => {
     const message = feedbackMessage.trim();
 
@@ -8173,7 +7945,7 @@ function App() {
       reportData?.total_games,
       openingSamplePercent
     );
-  }, [reportData, showUnknownOpenings, openingSamplePercent]);
+  }, [filterUnknownOpenings, reportData, openingSamplePercent]);
 
   const filteredBestOpenings = useMemo(() => {
     return filterOpeningsBySamplePercent(
@@ -8181,7 +7953,7 @@ function App() {
       reportData?.total_games,
       openingSamplePercent
     );
-  }, [reportData, showUnknownOpenings, openingSamplePercent]);
+  }, [filterUnknownOpenings, reportData, openingSamplePercent]);
 
   const filteredPreferredWhite = useMemo(() => {
     return filterOpeningsBySamplePercent(
@@ -8189,7 +7961,7 @@ function App() {
       reportData?.total_games,
       openingSamplePercent
     );
-  }, [reportData, showUnknownOpenings, openingSamplePercent]);
+  }, [filterUnknownOpenings, reportData, openingSamplePercent]);
 
   const filteredPreferredBlack = useMemo(() => {
     return filterOpeningsBySamplePercent(
@@ -8197,13 +7969,13 @@ function App() {
       reportData?.total_games,
       openingSamplePercent
     );
-  }, [reportData, showUnknownOpenings, openingSamplePercent]);
+  }, [filterUnknownOpenings, reportData, openingSamplePercent]);
 
   const filteredRecentGames = useMemo(() => {
     return filterUnknownOpenings(
       (reportData?.recent_games || []).filter((game) => gamePassesReportFilters(game, reportFilters))
     );
-  }, [reportData, reportFilters, showUnknownOpenings]);
+  }, [filterUnknownOpenings, reportData, reportFilters]);
 
   const chartData = useMemo(() => {
     return filteredTopOpenings.slice(0, isPremium ? 10 : 6);
@@ -8234,7 +8006,7 @@ function App() {
         "played_as_white"
       )
     );
-  }, [reportData, showUnknownOpenings]);
+  }, [filterUnknownOpenings, reportData]);
 
   const blackDetailedRecommendations = useMemo(() => {
     return filterUnknownOpenings(
@@ -8245,14 +8017,14 @@ function App() {
         "unknown_mixed"
       )
     );
-  }, [reportData, showUnknownOpenings]);
+  }, [filterUnknownOpenings, reportData]);
 
   const colourAwareRecommendationSections = useMemo(() => {
     return getColourAwareRecommendationSections(reportData).map((section) => ({
       ...section,
       items: filterUnknownOpenings(section.items || []),
     }));
-  }, [reportData, showUnknownOpenings]);
+  }, [filterUnknownOpenings, reportData]);
 
   const repertoireReportSections = useMemo(() => {
     return buildRepertoireReportSections({
@@ -8270,7 +8042,7 @@ function App() {
         ])
       ),
     }));
-  }, [reportData, colourAwareRecommendationSections, showUnknownOpenings]);
+  }, [filterUnknownOpenings, reportData, colourAwareRecommendationSections]);
 
   const repertoireShape = useMemo(
     () => repertoireShapeSummary(repertoireReportSections),

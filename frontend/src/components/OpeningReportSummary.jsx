@@ -165,7 +165,6 @@ function getVerdict(opening, data, index = 0) {
   const sampleTier = getSampleTier(games);
   const signal = getOpeningSignal(opening);
   const mainOpening = index <= 2 && signal.tier === "strong";
-  const level = getSmartPlayerLevelProfile(data).level;
 
   if (games <= 2 || signal.badge === "Too little data") return "Too little data — not used for verdict";
   if (games <= 7 || signal.badge === "Low confidence") return "Interesting signal — Low confidence";

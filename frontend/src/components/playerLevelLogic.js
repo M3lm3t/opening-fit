@@ -430,7 +430,6 @@ export function getPlayerLevelProfile(data) {
   )
     .trim()
     .toLowerCase();
-  const titledPlayer = ["gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm"].includes(title);
   const band = classifyPlayerLevel({ rating, level, title });
 
   if (band.level === "master") {
