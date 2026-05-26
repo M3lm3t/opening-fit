@@ -442,7 +442,7 @@ export default function PremiumDashboard({
         throw new Error("No PGN game found yet. Import games first, then try Stockfish analysis.");
       }
 
-      const response = await fetch(`${API_BASE}/api/premium/stockfish-game`, {
+      const response = await fetch(`${API_BASE}/api/openingfit/analyse-position`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -450,7 +450,7 @@ export default function PremiumDashboard({
         body: JSON.stringify({
           pgn: latestGameWithPgn.pgn,
           depth: 8,
-          max_moves: 70,
+          maxMoves: 24,
         }),
       });
 
@@ -675,27 +675,23 @@ export default function PremiumDashboard({
 
             {stockfishResult ? (
               <div className="premiumStockfishResult">
-                <strong>{stockfishResult.summary}</strong>
+                <strong>{stockfishResult.suggestion?.summary || stockfishResult.summary}</strong>
 
-                {stockfishResult.enabled === false ? (
-                  <p>{stockfishResult.summary}</p>
+                {stockfishResult.engineResult?.enabled === false ? (
+                  <p>{stockfishResult.engineResult.reason}</p>
                 ) : null}
 
-                {stockfishResult.mistakes?.length ? (
+                {stockfishResult.openingFamily?.themes?.length ? (
                   <div className="premiumList">
-                    {stockfishResult.mistakes.slice(0, 5).map((mistake) => (
-                      <div key={`${mistake.ply}-${mistake.played}`} className="premiumListItem danger">
-                        <strong>
-                          Move {mistake.moveNumber} · {mistake.side} played {mistake.played}
-                        </strong>
-                        <span>
-                          {mistake.severity} · {mistake.centipawnLoss} centipawn loss
-                        </span>
+                    {stockfishResult.openingFamily.themes.slice(0, 3).map((theme) => (
+                      <div key={theme} className="premiumListItem">
+                        <strong>{stockfishResult.openingFamily.family}</strong>
+                        <span>{theme}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="premiumEmpty">No major mistakes returned from the latest analysis.</p>
+                  <p className="premiumEmpty">No clear opening-family themes returned from the latest analysis.</p>
                 )}
               </div>
             ) : null}
