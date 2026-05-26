@@ -46,6 +46,7 @@ import InteractiveRepertoire from "./components/InteractiveRepertoire";
 import DashboardHome from "./components/DashboardHome";
 import TodayDashboard from "./components/TodayDashboard";
 import AchievementsPanel from "./components/AchievementsPanel";
+import DailyOpeningHabit from "./components/DailyOpeningHabit";
 import MobileBottomNav from "./components/MobileBottomNav";
 import LaunchReadySections from "./components/LaunchReadySections";
 import { useAuth } from "./context/AuthDataProvider";
@@ -9522,6 +9523,12 @@ function App() {
 
               {activeAppSection === "train" ? (
                 <>
+                  <DailyOpeningHabit
+                    data={reportData}
+                    user={supabaseUser || accountUser}
+                    onPractice={startOpeningPractice}
+                  />
+
                   <SevenDayOpeningFitPlan
                     data={reportData}
                     fitData={fitData}
