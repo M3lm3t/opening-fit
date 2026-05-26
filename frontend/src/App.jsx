@@ -8749,18 +8749,27 @@ function App() {
         <main className="container appShell" id="app-dashboard">
           {activeAppSection === "analyse" ? (
           <header className="hero heroCard compactImportHero analyseImportHero" aria-busy={loading}>
-              <div className="heroTop">
+            <div className="heroTop">
               <div className="heroTitleWrap">
-                <p className="eyebrow">Analyse</p>
-                <h1>Start a fresh opening analysis</h1>
+                <p className="eyebrow">OpeningFit</p>
+                <h1>Build a chess repertoire from your own games</h1>
                 <p className="subtext">
-                  Choose your platform, enter a username, and OpeningFit will turn
-                  recent games into a focused opening report.
+                  Import your Chess.com or Lichess username. OpeningFit finds
+                  which openings are helping you, which ones are costing points,
+                  and what to study next.
                 </p>
               </div>
             </div>
 
-            <div className="searchRow topBar appActionPanel">
+            <div className="searchRow topBar appActionPanel heroImportFlow" id="import">
+              <div className="heroImportHeader">
+                <div>
+                  <span>Analyse public games</span>
+                  <strong>Enter your username</strong>
+                </div>
+                <small>No password needed</small>
+              </div>
+
               <div className="platformSelector">
                 <button
                   type="button"
@@ -8785,15 +8794,18 @@ function App() {
                 </button>
               </div>
 
-              <input
-                className="input"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={loading}
-                placeholder={
-                  platforms[platform]?.usernamePlaceholder || "Chess username"
-                }
-              />
+              <label className="heroUsernameField">
+                <span>{platforms[platform]?.label || "Chess"} username</span>
+                <input
+                  className="input"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={loading}
+                  placeholder={
+                    platforms[platform]?.usernamePlaceholder || "Chess username"
+                  }
+                />
+              </label>
 
               <select
                 className="input monthSelect"
@@ -8819,23 +8831,22 @@ function App() {
                   onClick={() => importGames()}
                   disabled={loading || !username.trim()}
                 >
-                  {loading ? "Analysing..." : "Analyse"}
-                </button>
-                <button
-                  className="secondaryBtn"
-                  type="button"
-                  onClick={loadDemoReport}
-                  disabled={loading}
-                >
-                  Demo report
+                  {loading ? "Analysing..." : "Build my repertoire"}
                 </button>
               </div>
             </div>
 
             <div className="compactTrustRow">
-              <span>No password needed</span>
               <span>Uses public games</span>
-              <span>Current report updates after import</span>
+              <span>Shows strengths and leaks</span>
+              <button
+                className="inlineSampleButton"
+                type="button"
+                onClick={loadDemoReport}
+                disabled={loading}
+              >
+                View demo report
+              </button>
             </div>
 
             {apiStatus !== "online" ? (
