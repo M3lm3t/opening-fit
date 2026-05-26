@@ -619,6 +619,150 @@
   padding: 15px;
 }
 
+/* Premium dashboard polish layer */
+.premiumDashboard {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(125, 211, 252, 0.26);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(34, 197, 94, 0.11), transparent 30%),
+    radial-gradient(circle at 92% 6%, rgba(56, 189, 248, 0.16), transparent 32%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(2, 6, 23, 0.96));
+}
+
+.premiumDashboard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.04)),
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: auto, 42px 42px, 42px 42px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.72), transparent 72%);
+}
+
+.premiumHero,
+.premiumCommandStrip,
+.premiumStatsGrid,
+.premiumGrid {
+  position: relative;
+  z-index: 1;
+}
+
+.premiumHero h2 {
+  letter-spacing: 0;
+}
+
+.premiumPriceCard,
+.premiumStatTile,
+.premiumPanel,
+.premiumOpeningMiniCard {
+  backdrop-filter: blur(14px) saturate(1.08);
+}
+
+.premiumPriceCard {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 18px 44px rgba(245, 158, 11, 0.14);
+}
+
+.premiumStatTile {
+  min-height: 112px;
+  align-content: space-between;
+}
+
+.premiumStatTile strong {
+  font-size: clamp(1.1rem, 1.7vw, 1.4rem);
+}
+
+.premiumPanelHeader h3 {
+  letter-spacing: 0;
+}
+
+.premiumOpeningMiniCard,
+.premiumListItem,
+.premiumLineItem,
+.premiumWeeklyPlan article,
+.premiumChecklist span {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.premiumOpeningMiniCard:hover,
+.premiumListItem:hover,
+.premiumLineItem:hover,
+.premiumWeeklyPlan article:hover,
+.premiumChecklist span:hover {
+  transform: translateY(-2px);
+  border-color: rgba(125, 211, 252, 0.36);
+  box-shadow: 0 18px 46px rgba(2, 6, 23, 0.22), 0 0 28px rgba(56, 189, 248, 0.12);
+}
+
+.premiumCommandStrip button,
+.premiumWeeklyPlan button,
+.premiumActionBtn,
+.premiumCheckoutButton,
+.premiumUnlockBtn,
+.premiumDemoToggle {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.premiumCommandStrip button:hover,
+.premiumWeeklyPlan button:hover,
+.premiumActionBtn:hover,
+.premiumCheckoutButton:hover,
+.premiumUnlockBtn:hover,
+.premiumDemoToggle:hover {
+  transform: translateY(-2px);
+}
+
+.premiumBadge {
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.12);
+}
+
+.premiumLockedOverlay {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 18px 60px rgba(2, 6, 23, 0.28);
+}
+
+.page.light .premiumDashboard,
+.light .premiumDashboard {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(34, 197, 94, 0.08), transparent 30%),
+    radial-gradient(circle at 92% 6%, rgba(14, 165, 233, 0.12), transparent 32%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.97));
+}
+
+.page.light .premiumDashboard::before,
+.light .premiumDashboard::before {
+  background:
+    linear-gradient(90deg, rgba(15, 23, 42, 0.04), transparent 18%, transparent 82%, rgba(15, 23, 42, 0.03)),
+    linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+}
+
+.page.light .premiumOpeningMiniCard:hover,
+.page.light .premiumListItem:hover,
+.page.light .premiumLineItem:hover,
+.page.light .premiumWeeklyPlan article:hover,
+.page.light .premiumChecklist span:hover,
+.light .premiumOpeningMiniCard:hover,
+.light .premiumListItem:hover,
+.light .premiumLineItem:hover,
+.light .premiumWeeklyPlan article:hover,
+.light .premiumChecklist span:hover {
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.1), 0 0 26px rgba(14, 165, 233, 0.12);
+}
+
 .premiumPanelHeader {
   margin-bottom: 10px;
 }

@@ -32416,3 +32416,423 @@ body,
   background: #e2e8f0 !important;
   border-color: rgba(71, 85, 105, 0.24) !important;
 }
+
+/* Premium UI polish pass: depth, motion, dashboard trust */
+:root {
+  --premium-surface: rgba(15, 23, 42, 0.76);
+  --premium-surface-strong: rgba(15, 23, 42, 0.92);
+  --premium-border: rgba(148, 163, 184, 0.22);
+  --premium-border-strong: rgba(125, 211, 252, 0.38);
+  --premium-shadow: 0 24px 80px rgba(2, 6, 23, 0.34);
+  --premium-shadow-hover: 0 32px 100px rgba(2, 6, 23, 0.46);
+  --premium-glow: 0 0 0 1px rgba(125, 211, 252, 0.2), 0 0 34px rgba(56, 189, 248, 0.18);
+  --premium-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.page.light,
+[data-theme="light"] {
+  --premium-surface: rgba(255, 255, 255, 0.84);
+  --premium-surface-strong: rgba(255, 255, 255, 0.96);
+  --premium-border: rgba(15, 23, 42, 0.12);
+  --premium-border-strong: rgba(37, 99, 235, 0.28);
+  --premium-shadow: 0 22px 64px rgba(15, 23, 42, 0.1);
+  --premium-shadow-hover: 0 30px 90px rgba(15, 23, 42, 0.16);
+  --premium-glow: 0 0 0 1px rgba(37, 99, 235, 0.16), 0 0 28px rgba(14, 165, 233, 0.14);
+}
+
+@keyframes openingFitFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes openingFitShimmer {
+  from {
+    background-position: 220% 0;
+  }
+  to {
+    background-position: -220% 0;
+  }
+}
+
+@keyframes openingFitBarGrow {
+  from {
+    transform: scaleX(0.08);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes openingFitSoftPulse {
+  0%,
+  100% {
+    opacity: 0.68;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.012);
+  }
+}
+
+.appShell,
+.finalReportFlow,
+.profileSection,
+.trustUpgrade,
+.premiumDashboard,
+.weeklyOpeningReport,
+.currentReportSummary,
+.commandCentreHero,
+.reportCommandBar {
+  animation: openingFitFadeUp 420ms var(--premium-ease) both;
+}
+
+.heroCard,
+.card,
+.dashboardCard,
+.dashboardHeroTile,
+.dashboardTile,
+.currentReportSummary,
+.commandCentreHero,
+.nextBestMoveCard,
+.fullReportOpeningRow,
+.weeklyOpeningReport,
+.openingProgressTracker,
+.progressTrackerShell,
+.retentionHub,
+.trustHeroCard,
+.trustInfoCard,
+.exampleAnalysisSection,
+.testimonialCard,
+.premiumDashboard,
+.premiumPanel,
+.premiumStatTile,
+.premiumOpeningMiniCard {
+  border-color: var(--premium-border) !important;
+  box-shadow: var(--premium-shadow);
+  backdrop-filter: blur(16px) saturate(1.1);
+  transition:
+    transform 220ms var(--premium-ease),
+    box-shadow 220ms var(--premium-ease),
+    border-color 220ms var(--premium-ease),
+    background 220ms var(--premium-ease),
+    opacity 220ms var(--premium-ease);
+}
+
+.card,
+.dashboardCard,
+.dashboardHeroTile,
+.dashboardTile,
+.currentReportSummary,
+.commandCentreHero,
+.nextBestMoveCard,
+.fullReportOpeningRow,
+.premiumPanel,
+.weeklyOpeningPanel,
+.weeklyOpeningEvolution,
+.analysisPreviewCard,
+.testimonialCard {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015)),
+    var(--premium-surface) !important;
+}
+
+.heroCard,
+.analyseImportHero,
+.trustHeroCard,
+.premiumDashboard,
+.weeklyOpeningReport {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(34, 197, 94, 0.1), transparent 28%),
+    radial-gradient(circle at 88% 8%, rgba(56, 189, 248, 0.13), transparent 32%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.94)) !important;
+}
+
+.page.light .heroCard,
+[data-theme="light"] .heroCard,
+.page.light .analyseImportHero,
+[data-theme="light"] .analyseImportHero,
+.page.light .trustHeroCard,
+[data-theme="light"] .trustHeroCard,
+.page.light .premiumDashboard,
+[data-theme="light"] .premiumDashboard,
+.page.light .weeklyOpeningReport,
+[data-theme="light"] .weeklyOpeningReport {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(34, 197, 94, 0.08), transparent 28%),
+    radial-gradient(circle at 88% 8%, rgba(14, 165, 233, 0.12), transparent 32%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96)) !important;
+}
+
+.card:hover,
+.dashboardTile:hover,
+.dashboardHeroTile:hover,
+.premiumPanel:hover,
+.premiumStatTile:hover,
+.premiumOpeningMiniCard:hover,
+.analysisPreviewCard:hover,
+.testimonialCard:hover,
+.weeklyOpeningCard:hover,
+.weeklyOpeningPanel:hover,
+.fullReportOpeningRow:hover,
+.commandMiniOpening:hover,
+.listItem:hover {
+  transform: translateY(-3px);
+  border-color: var(--premium-border-strong) !important;
+  box-shadow: var(--premium-shadow-hover), var(--premium-glow);
+}
+
+.primaryBtn,
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.trustPrimaryBtn,
+.trustSecondaryBtn,
+.premiumActionBtn,
+.premiumCheckoutButton,
+.dashboardTile button,
+.dashboardActionButtons button,
+.reportCommandBar__upgrade,
+.mobileBottomNav button,
+.appPrimaryTab,
+.platformButton {
+  transition:
+    transform 180ms var(--premium-ease),
+    box-shadow 180ms var(--premium-ease),
+    border-color 180ms var(--premium-ease),
+    background 180ms var(--premium-ease),
+    color 180ms var(--premium-ease),
+    opacity 180ms var(--premium-ease) !important;
+}
+
+.primaryBtn,
+.trustPrimaryBtn,
+.premiumActionBtn,
+.premiumCheckoutButton {
+  background: linear-gradient(135deg, #2563eb 0%, #0891b2 52%, #16a34a 100%) !important;
+  box-shadow: 0 16px 38px rgba(37, 99, 235, 0.28), 0 0 28px rgba(34, 197, 94, 0.12) !important;
+}
+
+.primaryBtn:hover,
+.secondaryBtn:hover,
+.secondaryButton:hover,
+.ghostButton:hover,
+.trustPrimaryBtn:hover,
+.trustSecondaryBtn:hover,
+.premiumActionBtn:hover,
+.premiumCheckoutButton:hover,
+.dashboardTile button:hover,
+.dashboardActionButtons button:hover,
+.reportCommandBar__upgrade:hover,
+.platformButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 46px rgba(37, 99, 235, 0.28), var(--premium-glow) !important;
+}
+
+.primaryBtn:active,
+.secondaryBtn:active,
+.secondaryButton:active,
+.ghostButton:active,
+.trustPrimaryBtn:active,
+.trustSecondaryBtn:active,
+.premiumActionBtn:active,
+.premiumCheckoutButton:active {
+  transform: translateY(0) scale(0.99);
+}
+
+h1,
+h2,
+h3,
+.heroTitleWrap h1,
+.landingHero h1,
+.premiumHero h2,
+.weeklyOpeningHeader h2,
+.exampleAnalysisHeader h2,
+.currentReportSummary h2,
+.commandCentreHero h2 {
+  letter-spacing: 0 !important;
+  text-wrap: balance;
+}
+
+p,
+li,
+.subtext,
+.trustSubtext,
+.premiumPanelText,
+.weeklyOpeningHeader p,
+.currentReportSummary p {
+  text-wrap: pretty;
+}
+
+.eyebrow,
+.trustEyebrow,
+.premiumEyebrow,
+.dashboardTileLabel,
+.weeklyOpeningKicker,
+.reportCommandBar__status {
+  letter-spacing: 0.08em !important;
+}
+
+.chartBar,
+.weeklyOpeningMeterTrack i,
+.ofStudyProgressBar > div,
+.practiceProgressBar,
+.screenshotBars i {
+  transform-origin: left center;
+  animation: openingFitBarGrow 680ms var(--premium-ease) both;
+  transition:
+    width 520ms var(--premium-ease),
+    transform 520ms var(--premium-ease),
+    background 220ms ease !important;
+}
+
+.chartBar,
+.weeklyOpeningMeterTrack i,
+.ofStudyProgressBar > div,
+.practiceProgressBar {
+  background: linear-gradient(90deg, #22c55e, #06b6d4, #60a5fa) !important;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.18);
+}
+
+.chartRow,
+.premiumListItem,
+.premiumLineItem,
+.progressMainCard,
+.progressResultCard,
+.openingProgressChange,
+.weeklyEvolutionList article,
+.sampleRow,
+.analysisPreviewCard {
+  transition:
+    transform 200ms var(--premium-ease),
+    border-color 200ms var(--premium-ease),
+    background 200ms var(--premium-ease),
+    box-shadow 200ms var(--premium-ease);
+}
+
+.chartRow:hover,
+.premiumListItem:hover,
+.premiumLineItem:hover,
+.progressMainCard:hover,
+.progressResultCard:hover,
+.openingProgressChange:hover,
+.weeklyEvolutionList article:hover,
+.sampleRow:hover {
+  transform: translateX(3px);
+  border-color: var(--premium-border-strong) !important;
+  box-shadow: var(--premium-glow);
+}
+
+.loadingCard,
+.analyseLoadingState,
+.importLoadingCard,
+.openingProgressEmpty,
+.appEmptySection {
+  position: relative;
+  overflow: hidden;
+}
+
+.loadingCard::after,
+.analyseLoadingState::after,
+.importLoadingCard::after,
+.openingProgressEmpty::after,
+.appEmptySection::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.055) 38%,
+    rgba(125, 211, 252, 0.14) 50%,
+    rgba(255, 255, 255, 0.055) 62%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  animation: openingFitShimmer 1.8s linear infinite;
+}
+
+.loadingSpinner {
+  box-shadow: 0 0 28px rgba(56, 189, 248, 0.32);
+}
+
+.dashboardHeroScore,
+.weeklyOpeningScore,
+.commandCentreScore,
+.premiumPriceCard,
+.trustStatsGrid article {
+  animation: openingFitSoftPulse 5.2s ease-in-out infinite;
+}
+
+.tableWrap,
+.chartList,
+.premiumList,
+.weeklyMasteryList,
+.historyList,
+.goalList {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125, 211, 252, 0.42) transparent;
+}
+
+.tableWrap::-webkit-scrollbar,
+.chartList::-webkit-scrollbar,
+.premiumList::-webkit-scrollbar,
+.weeklyMasteryList::-webkit-scrollbar,
+.historyList::-webkit-scrollbar,
+.goalList::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.tableWrap::-webkit-scrollbar-thumb,
+.chartList::-webkit-scrollbar-thumb,
+.premiumList::-webkit-scrollbar-thumb,
+.weeklyMasteryList::-webkit-scrollbar-thumb,
+.historyList::-webkit-scrollbar-thumb,
+.goalList::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(125, 211, 252, 0.36);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .appShell {
+    padding-top: 20px !important;
+  }
+
+  .heroCard,
+  .card,
+  .trustHeroCard,
+  .exampleAnalysisSection,
+  .premiumDashboard,
+  .weeklyOpeningReport {
+    border-radius: 20px !important;
+  }
+
+  .card:hover,
+  .dashboardTile:hover,
+  .premiumPanel:hover,
+  .analysisPreviewCard:hover,
+  .testimonialCard:hover,
+  .weeklyOpeningCard:hover,
+  .weeklyOpeningPanel:hover {
+    transform: none;
+  }
+}
