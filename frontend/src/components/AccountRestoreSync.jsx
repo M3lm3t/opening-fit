@@ -145,7 +145,7 @@ export default function AccountRestoreSync({
     }
 
     saveAccount();
-  }, [data, platform, profile?.id, profileLoading, refreshUserData, restoreError, saveSettings, upsertUserData, user, username]);
+  }, [data, platform, profile?.id, profile?.last_report, profileLoading, refreshUserData, restoreError, saveSettings, upsertUserData, user, username]);
 
   return null;
 }

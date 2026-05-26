@@ -84,7 +84,6 @@ export default function OpeningFitFunctionalityHub({
   data,
   username,
   onLoadReport,
-  onJump,
 }) {
   const [reports, setReportState] = useState(() => getReports());
   const [backendStatus, setBackendStatus] = useState("checking");
@@ -155,7 +154,7 @@ export default function OpeningFitFunctionalityHub({
           setBackendStatus("online");
           setBackendMessage("Backend API is online.");
         }
-      } catch (error) {
+      } catch {
         if (!cancelled) {
           setBackendStatus("offline");
           setBackendMessage(

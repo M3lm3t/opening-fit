@@ -186,7 +186,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose, user = nul
   const [progressStatus, setProgressStatus] = useState(user?.id ? "Syncing practice progress..." : "Progress saved on this device");
 
   const selectedLine = pack?.lines?.[selectedLineIndex];
-  const moves = selectedLine?.moves || [];
+  const moves = useMemo(() => selectedLine?.moves || [], [selectedLine]);
   const expectedMove = moves[moveIndex];
   const isComplete = Boolean(pack) && moveIndex >= moves.length;
   const progressPercent = moves.length ? Math.round((moveIndex / moves.length) * 100) : 0;
@@ -261,7 +261,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose, user = nul
     return () => {
       cancelled = true;
     };
-  }, [user?.id, data]);
+  }, [user, data]);
 
   useEffect(() => {
     setSelectedLineIndex(0);
@@ -275,7 +275,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose, user = nul
   useEffect(() => {
     const game = buildGameToMove(moves, moveIndex);
     setFen(game.fen());
-  }, [selectedLineIndex, moveIndex]);
+  }, [moves, moveIndex]);
 
   if (!opening) return null;
 

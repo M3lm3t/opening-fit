@@ -49,7 +49,7 @@ export default function OpeningFitImportDoctor({ username }) {
       }
 
       setResult(payload);
-    } catch (error) {
+    } catch {
       setResult({
         status: "error",
         title: "Backend not reachable",

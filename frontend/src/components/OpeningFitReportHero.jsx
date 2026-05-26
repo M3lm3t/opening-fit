@@ -124,7 +124,6 @@ function verdictFor(item, data, index = 0) {
   const tier = getPlayerTier(data);
   const publicMode = isPublicMode(data);
   const strongProfile = tier === "elite" || tier === "strong";
-  const games = getGames(item);
   const winRate = getWinRate(item);
   const signal = getOpeningSignal(item);
   const mainOpening = index <= 2 && signal.tier === "strong";
