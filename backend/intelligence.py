@@ -735,6 +735,357 @@ def build_recommendation(data: dict, level_profile: dict, openings: list[dict]) 
     }
 
 
+TACTICAL_OPENING_TERMS = {
+    "gambit",
+    "sicilian",
+    "vienna",
+    "king's gambit",
+    "scotch",
+    "danish",
+    "smith-morra",
+    "albin",
+    "englund",
+    "benko",
+    "max lange",
+    "fried liver",
+    "attack",
+}
+
+POSITIONAL_OPENING_TERMS = {
+    "caro-kann",
+    "french",
+    "london",
+    "queen's gambit",
+    "queen's gambit declined",
+    "slav",
+    "catalan",
+    "reti",
+    "réti",
+    "english",
+    "italian",
+    "queen's indian",
+    "nimzo",
+    "colle",
+}
+
+BLACK_OPENING_TERMS = {
+    "defence",
+    "defense",
+    "sicilian",
+    "french",
+    "caro-kann",
+    "scandinavian",
+    "pirc",
+    "modern",
+    "alekhine",
+    "dutch",
+    "nimzo",
+    "queen's indian",
+    "king's indian",
+    "slav",
+    "benoni",
+    "benko",
+    "englund",
+}
+
+WHITE_OPENING_TERMS = {
+    "london",
+    "vienna",
+    "italian",
+    "ruy lopez",
+    "spanish",
+    "scotch",
+    "king's gambit",
+    "queen's gambit",
+    "english opening",
+    "reti",
+    "réti",
+    "colle",
+    "stonewall",
+    "trompowsky",
+    "wayward queen",
+    "danish",
+}
+
+
+def opening_name_matches(name: str, terms: set[str]) -> bool:
+    lower = str(name or "").lower()
+    return any(term in lower for term in terms)
+
+
+def infer_opening_side(item: dict) -> str:
+    colour = get_opening_colour(item)
+
+    if colour in {"white", "black"}:
+        return colour
+
+    name = get_opening_name(item)
+
+    if opening_name_matches(name, BLACK_OPENING_TERMS):
+        return "black"
+
+    if opening_name_matches(name, WHITE_OPENING_TERMS):
+        return "white"
+
+    return "mixed"
+
+
+def score_band_text(score: int | None) -> str:
+    if score is None:
+        return "unclear results"
+    if score >= 58:
+        return "strong results"
+    if score >= 48:
+        return "playable but improvable results"
+    if score >= 40:
+        return "fragile results"
+    return "costly results"
+
+
+def confidence_from_sample(games: int, total_games: int) -> str:
+    share = (games / total_games) if total_games else 0
+
+    if games >= 20 or (games >= 12 and share >= 0.1):
+        return "High"
+    if games >= 8 or (games >= 5 and share >= 0.06):
+        return "Medium"
+    return "Low"
+
+
+def estimate_impact_range(opening: dict, average_score: int | None, side_gap: float = 0) -> dict:
+    score = get_opening_score(opening)
+    games = get_opening_games(opening)
+
+    if score is None:
+        low, high = (2, 4)
+    else:
+        gap = max(0, (average_score or 50) - score)
+        sample_bonus = 2 if games >= 12 else 1 if games >= 6 else 0
+        side_bonus = 2 if side_gap >= 8 else 0
+        low = max(2, min(8, round(gap / 7) + sample_bonus + side_bonus))
+        high = min(12, low + 3)
+
+    return {
+        "low": low,
+        "high": high,
+        "label": f"{low}-{high}%",
+    }
+
+
+def build_ai_chess_coach(
+    data: dict,
+    level_profile: dict,
+    openings: list[dict],
+    average_score: int | None,
+    games_imported: int,
+) -> dict:
+    known = [item for item in openings if not item.get("is_unknown_opening")]
+    style_profile = data.get("style_profile") if isinstance(data.get("style_profile"), dict) else {}
+    style_profile_camel = data.get("styleProfile") if isinstance(data.get("styleProfile"), dict) else {}
+    useful = [
+        item
+        for item in known
+        if get_opening_games(item) >= 2 and get_opening_score(item) is not None
+    ]
+
+    by_score = sorted(
+        useful,
+        key=lambda item: (get_opening_score(item) or -1, get_opening_games(item)),
+        reverse=True,
+    )
+    weak = sorted(
+        useful,
+        key=lambda item: (get_opening_score(item) or 100, -get_opening_games(item)),
+    )
+
+    white_items = [item for item in useful if infer_opening_side(item) == "white"]
+    black_items = [item for item in useful if infer_opening_side(item) == "black"]
+
+    def weighted(items: list[dict]) -> float | None:
+        games = sum(get_opening_games(item) for item in items)
+        if not games:
+            return None
+        total = sum(get_opening_games(item) * (get_opening_score(item) or 0) for item in items)
+        return round(total / games, 1)
+
+    white_score = weighted(white_items)
+    black_score = weighted(black_items)
+    side_gap = abs((white_score or average_score or 50) - (black_score or average_score or 50))
+    weaker_side = "black" if white_score is not None and black_score is not None and black_score < white_score else "white"
+
+    tactical_games = sum(
+        get_opening_games(item)
+        for item in known
+        if opening_name_matches(get_opening_name(item), TACTICAL_OPENING_TERMS)
+    )
+    positional_games = sum(
+        get_opening_games(item)
+        for item in known
+        if opening_name_matches(get_opening_name(item), POSITIONAL_OPENING_TERMS)
+    )
+
+    if tactical_games > positional_games * 1.2:
+        preference = "Tactical"
+        preference_copy = "You seem most comfortable when the opening creates immediate contact and forcing choices."
+    elif positional_games > tactical_games * 1.2:
+        preference = "Positional"
+        preference_copy = "Your repertoire leans toward structure, repeatable plans, and slower pressure."
+    else:
+        preference = "Balanced"
+        preference_copy = "Your games show a mix of tactical and positional openings, so the study plan should stay practical rather than narrow."
+
+    repeat_count = len([item for item in known if get_opening_games(item) >= 5])
+    variety = len(known)
+    if repeat_count >= 4 and variety <= 10:
+        consistency_label = "Consistent repertoire"
+        consistency_copy = "You repeat enough openings to build habits and measure progress quickly."
+    elif variety >= 12 and repeat_count < 4:
+        consistency_label = "Scattered repertoire"
+        consistency_copy = "You are spreading games across many openings, which makes improvement slower. Narrow the menu for the next block."
+    else:
+        consistency_label = "Moderate consistency"
+        consistency_copy = "There are useful patterns, but a smaller repeatable repertoire would make the next report sharper."
+
+    best = by_score[0] if by_score else None
+    weakest = weak[0] if weak else None
+    weakest_black = next((item for item in weak if infer_opening_side(item) == "black"), None)
+    weakest_white = next((item for item in weak if infer_opening_side(item) == "white"), None)
+    priority_target = weakest_black or weakest or weakest_white or best
+    priority_name = get_opening_name(priority_target) if priority_target else "your most repeated opening"
+    priority_side = infer_opening_side(priority_target) if priority_target else weaker_side
+    impact = estimate_impact_range(priority_target or {}, average_score, side_gap)
+    confidence = confidence_from_sample(get_opening_games(priority_target or {}), games_imported)
+
+    recommendations = []
+
+    if priority_target:
+        action = (
+            f"Focus on defending with {priority_name} first"
+            if priority_side == "black"
+            else f"Make {priority_name} your first study target"
+        )
+        recommendations.append(
+            {
+                "priority": 1,
+                "title": action,
+                "coach_note": (
+                    f"This is your clearest improvement lever: {get_opening_games(priority_target)} games, "
+                    f"{score_band_text(get_opening_score(priority_target))}."
+                ),
+                "action": "Review the first position where you stop knowing the plan, then save one simple line you will repeat for 10 games.",
+                "confidence": confidence,
+                "estimated_impact": impact["label"],
+                "estimatedImpact": impact["label"],
+                "opening": priority_name,
+            }
+        )
+
+    if white_score is not None and black_score is not None and side_gap >= 5:
+        stronger = "White" if white_score > black_score else "Black"
+        weaker = "black" if stronger == "White" else "white"
+        recommendations.append(
+            {
+                "priority": len(recommendations) + 1,
+                "title": f"Your {stronger.lower()} repertoire is stronger than {weaker}",
+                "coach_note": f"White is scoring {white_score:g}% and Black is scoring {black_score:g}%. The next roadmap should repair the weaker side before adding new weapons.",
+                "action": f"Spend the next study block on one {weaker} line instead of learning another opening.",
+                "confidence": "Medium" if min(len(white_items), len(black_items)) else "Low",
+                "estimated_impact": "4-8%",
+                "estimatedImpact": "4-8%",
+            }
+        )
+
+    if weakest and best and get_opening_score(best) is not None and get_opening_score(weakest) is not None:
+        recommendations.append(
+            {
+                "priority": len(recommendations) + 1,
+                "title": f"Use {get_opening_name(best)} as the model for fixing {get_opening_name(weakest)}",
+                "coach_note": "Your best opening shows the kind of positions you handle well. Copy that clarity into the weaker line.",
+                "action": "Write down the pawn structure, usual piece squares, and one middlegame plan for the weaker opening.",
+                "confidence": confidence_from_sample(get_opening_games(best) + get_opening_games(weakest), games_imported),
+                "estimated_impact": "3-6%",
+                "estimatedImpact": "3-6%",
+            }
+        )
+
+    roadmap = [
+        {
+            "phase": "This week",
+            "title": f"Stabilise {priority_name}",
+            "task": "Study one main line, one common sideline, and the first middlegame plan. Keep it narrow.",
+        },
+        {
+            "phase": "Next 10 games",
+            "title": "Repeat the repaired line on purpose",
+            "task": "Do not switch openings after one loss. Track whether you reached a familiar position by move 8.",
+        },
+        {
+            "phase": "After 20 games",
+            "title": "Re-import and compare",
+            "task": f"Look for the target opening moving toward {max(48, (get_opening_score(priority_target or {}) or 45) + 5)}% or better.",
+        },
+    ]
+
+    opening_suggestions = []
+    for item in weak[:3]:
+        item_impact = estimate_impact_range(item, average_score, side_gap if infer_opening_side(item) == weaker_side else 0)
+        opening_suggestions.append(
+            {
+                "opening": get_opening_name(item),
+                "side": infer_opening_side(item),
+                "issue": score_band_text(get_opening_score(item)),
+                "suggestion": "Learn one anti-line or simplify the move order before playing it again.",
+                "confidence": confidence_from_sample(get_opening_games(item), games_imported),
+                "estimated_impact": item_impact["label"],
+                "estimatedImpact": item_impact["label"],
+            }
+        )
+
+    return {
+        "headline": f"Study {priority_name} next",
+        "summary": (
+            f"The fastest improvement path is to repair one repeated weak spot, then test it for 10-20 games. "
+            f"{preference_copy}"
+        ),
+        "recommendations": recommendations[:3],
+        "roadmap": roadmap,
+        "opening_improvement_suggestions": opening_suggestions,
+        "openingImprovementSuggestions": opening_suggestions,
+        "style_analysis": {
+            "label": data.get("styleLabel") or style_profile.get("primary") or style_profile_camel.get("primary") or f"{preference} practical player",
+            "summary": data.get("styleSummary") or style_profile.get("summary") or style_profile_camel.get("summary") or preference_copy,
+        },
+        "styleAnalysis": {
+            "label": data.get("styleLabel") or style_profile.get("primary") or style_profile_camel.get("primary") or f"{preference} practical player",
+            "summary": data.get("styleSummary") or style_profile.get("summary") or style_profile_camel.get("summary") or preference_copy,
+        },
+        "preference_detection": {
+            "label": preference,
+            "tactical_games": tactical_games,
+            "positional_games": positional_games,
+            "summary": preference_copy,
+        },
+        "preferenceDetection": {
+            "label": preference,
+            "tacticalGames": tactical_games,
+            "positionalGames": positional_games,
+            "summary": preference_copy,
+        },
+        "consistency_analysis": {
+            "label": consistency_label,
+            "summary": consistency_copy,
+            "repeat_openings": repeat_count,
+            "opening_variety": variety,
+        },
+        "consistencyAnalysis": {
+            "label": consistency_label,
+            "summary": consistency_copy,
+            "repeatOpenings": repeat_count,
+            "openingVariety": variety,
+        },
+    }
+
+
 def enrich_analysis_result(payload: Any, username: str | None = None, platform: str | None = None) -> Any:
     if not isinstance(payload, dict):
         return payload
@@ -898,6 +1249,14 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
     data["backend_recommendation"] = recommendation
     data["backend_coach_summary"] = level_profile["headline"]
     data["backend_next_action"] = recommendation["primary_action"]
+    data["ai_chess_coach"] = build_ai_chess_coach(
+        data,
+        level_profile,
+        openings,
+        average_score,
+        games_imported,
+    )
+    data["aiChessCoach"] = data["ai_chess_coach"]
 
     if username and not data.get("username"):
         data["username"] = username

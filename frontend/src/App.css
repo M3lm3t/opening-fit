@@ -21736,6 +21736,363 @@ video {
   }
 }
 
+/* AI chess coach */
+.aiCoachShell {
+  width: 100%;
+  margin: 0 0 18px;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(20, 184, 166, 0.15), transparent 34%),
+    linear-gradient(135deg, rgba(16, 24, 39, 0.96), rgba(3, 7, 18, 0.96));
+  color: #f8fafc;
+  box-shadow: 0 22px 64px rgba(2, 6, 23, 0.24);
+}
+
+[data-theme="light"] .aiCoachShell,
+.light .aiCoachShell {
+  background:
+    radial-gradient(circle at top right, rgba(20, 184, 166, 0.1), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+}
+
+.aiCoachHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 0.34fr);
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.aiCoachEyebrow,
+.coachSubhead span,
+.coachCardTopline span,
+.coachPatternGrid span,
+.coachSuggestionList span,
+.aiCoachFocus span {
+  display: inline-flex;
+  width: fit-content;
+  color: #5eead4;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+[data-theme="light"] .aiCoachEyebrow,
+[data-theme="light"] .coachSubhead span,
+[data-theme="light"] .coachCardTopline span,
+[data-theme="light"] .coachPatternGrid span,
+[data-theme="light"] .coachSuggestionList span,
+[data-theme="light"] .aiCoachFocus span,
+.light .aiCoachEyebrow,
+.light .coachSubhead span,
+.light .coachCardTopline span,
+.light .coachPatternGrid span,
+.light .coachSuggestionList span,
+.light .aiCoachFocus span {
+  color: #0f766e;
+}
+
+.aiCoachHeader h2 {
+  margin: 10px 0 0;
+  font-size: clamp(1.55rem, 3vw, 2.2rem);
+  letter-spacing: 0;
+}
+
+.aiCoachHeader p {
+  max-width: 780px;
+  margin: 10px 0 0;
+  color: rgba(226, 232, 240, 0.76);
+  line-height: 1.6;
+}
+
+[data-theme="light"] .aiCoachHeader p,
+.light .aiCoachHeader p {
+  color: rgba(15, 23, 42, 0.66);
+}
+
+.aiCoachFocus,
+.coachRecommendationCard,
+.coachRoadmapShell,
+.coachOpeningSuggestions,
+.coachPatternGrid article {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.56);
+}
+
+[data-theme="light"] .aiCoachFocus,
+[data-theme="light"] .coachRecommendationCard,
+[data-theme="light"] .coachRoadmapShell,
+[data-theme="light"] .coachOpeningSuggestions,
+[data-theme="light"] .coachPatternGrid article,
+.light .aiCoachFocus,
+.light .coachRecommendationCard,
+.light .coachRoadmapShell,
+.light .coachOpeningSuggestions,
+.light .coachPatternGrid article {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.aiCoachFocus {
+  padding: 16px;
+}
+
+.aiCoachFocus strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.12rem;
+  line-height: 1.35;
+}
+
+.aiCoachFocus small {
+  display: block;
+  margin-top: 8px;
+  color: rgba(226, 232, 240, 0.64);
+}
+
+[data-theme="light"] .aiCoachFocus small,
+.light .aiCoachFocus small {
+  color: rgba(15, 23, 42, 0.58);
+}
+
+.coachRecommendationGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.coachRecommendationCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.coachCardTopline {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.coachCardTopline strong {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: rgba(34, 197, 94, 0.14);
+  color: #bbf7d0;
+  font-size: 0.75rem;
+}
+
+[data-theme="light"] .coachCardTopline strong,
+.light .coachCardTopline strong {
+  color: #166534;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.coachRecommendationCard h3,
+.coachRoadmap h3,
+.coachSuggestionList h3,
+.coachPatternGrid strong,
+.coachSubhead strong {
+  margin: 0;
+  font-size: 1.06rem;
+  line-height: 1.3;
+}
+
+.coachRecommendationCard p,
+.coachRoadmap p,
+.coachSuggestionList p,
+.coachPatternGrid p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.72);
+  line-height: 1.5;
+}
+
+[data-theme="light"] .coachRecommendationCard p,
+[data-theme="light"] .coachRoadmap p,
+[data-theme="light"] .coachSuggestionList p,
+[data-theme="light"] .coachPatternGrid p,
+.light .coachRecommendationCard p,
+.light .coachRoadmap p,
+.light .coachSuggestionList p,
+.light .coachPatternGrid p {
+  color: rgba(15, 23, 42, 0.64);
+}
+
+.coachActionBox {
+  margin-top: auto;
+  border-left: 3px solid #fbbf24;
+  padding: 10px 12px;
+  background: rgba(251, 191, 36, 0.1);
+  color: #fde68a;
+  line-height: 1.45;
+}
+
+[data-theme="light"] .coachActionBox,
+.light .coachActionBox {
+  color: #78350f;
+  background: rgba(251, 191, 36, 0.13);
+}
+
+.coachImpactLabel {
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(20, 184, 166, 0.13);
+  color: #ccfbf1;
+  font-weight: 850;
+  line-height: 1.4;
+}
+
+[data-theme="light"] .coachImpactLabel,
+.light .coachImpactLabel {
+  color: #115e59;
+  background: rgba(20, 184, 166, 0.12);
+}
+
+.coachRoadmapShell,
+.coachOpeningSuggestions {
+  margin-top: 12px;
+  padding: 16px;
+}
+
+.coachSubhead {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.coachRoadmap {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.coachRoadmap article {
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(2, 6, 23, 0.24);
+}
+
+[data-theme="light"] .coachRoadmap article,
+.light .coachRoadmap article {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.coachRoadmap article span {
+  display: block;
+  margin-bottom: 8px;
+  color: #fbbf24;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.coachSuggestionList {
+  display: grid;
+  gap: 10px;
+}
+
+.coachSuggestionList article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(2, 6, 23, 0.24);
+}
+
+[data-theme="light"] .coachSuggestionList article,
+.light .coachSuggestionList article {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.coachSuggestionMeta {
+  min-width: 92px;
+  text-align: right;
+}
+
+.coachSuggestionMeta strong,
+.coachSuggestionMeta small {
+  display: block;
+}
+
+.coachSuggestionMeta strong {
+  color: #ccfbf1;
+  font-size: 1.18rem;
+}
+
+[data-theme="light"] .coachSuggestionMeta strong,
+.light .coachSuggestionMeta strong {
+  color: #0f766e;
+}
+
+.coachSuggestionMeta small {
+  margin-top: 4px;
+  color: rgba(226, 232, 240, 0.62);
+}
+
+[data-theme="light"] .coachSuggestionMeta small,
+.light .coachSuggestionMeta small {
+  color: rgba(15, 23, 42, 0.56);
+}
+
+.coachPatternGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.coachPatternGrid article {
+  padding: 16px;
+}
+
+.coachPatternGrid strong {
+  display: block;
+  margin: 8px 0;
+}
+
+@media (max-width: 980px) {
+  .aiCoachHeader,
+  .coachRecommendationGrid,
+  .coachRoadmap,
+  .coachPatternGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .aiCoachShell {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .coachSubhead,
+  .coachCardTopline,
+  .coachSuggestionList article {
+    display: block;
+  }
+
+  .coachCardTopline strong,
+  .coachSuggestionMeta {
+    display: inline-block;
+    margin-top: 8px;
+    text-align: left;
+  }
+}
+
 /* Opening classification notice */
 .classificationNotice {
   display: grid;
