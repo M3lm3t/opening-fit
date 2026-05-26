@@ -31,6 +31,7 @@ import LandingModal from "./components/LandingModal";
 import ReportSnapshot from "./components/ReportSnapshot";
 import OpeningCoachPlan from "./components/OpeningCoachPlan";
 import OpeningProgressTracker from "./components/OpeningProgressTracker";
+import WeeklyOpeningReport from "./components/WeeklyOpeningReport";
 import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./components/OpeningEvidence";
 import OpeningFitTrustUpgrade from "./components/OpeningFitTrustUpgrade";
@@ -3584,6 +3585,8 @@ function FinalReportFlow({
         reportMode={reportMode}
         onReportModeChange={setReportMode}
       />
+
+      <WeeklyOpeningReport data={data} />
 
       {showFullReport ? (
         <>
