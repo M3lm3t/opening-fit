@@ -55,6 +55,8 @@ function normaliseOpenings(data) {
         name,
         games,
         winRate: score,
+        colour: item?.colour || item?.color || item?.side || "mixed",
+        verdict: item?.verdict || item?.fitVerdict || item?.status || "Track",
         mastery: calculateMastery(score, games),
         confidence: calculateConfidence(score, games),
       });
@@ -89,6 +91,13 @@ function masteryLevel(value) {
   return "Needs repair";
 }
 
+function confidenceLabel(value) {
+  if (value >= 82) return "Trusted";
+  if (value >= 64) return "Playable";
+  if (value >= 46) return "Still forming";
+  return "Thin signal";
+}
+
 function storageKey(data) {
   return `openingFit:weeklyOpeningReport:${getPlatform(data)}:${getUsername(data)}`;
 }
@@ -112,6 +121,7 @@ function makeSnapshot(data) {
 
   const snapshot = {
     createdAt: new Date().toISOString(),
+    weekKey: weekKey(new Date()),
     username: getUsername(data),
     platform: getPlatform(data),
     rating,
@@ -189,6 +199,8 @@ function compareSnapshots(current, previous) {
   return {
     changes,
     newOpenings: changes.filter((item) => item.type === "new"),
+    improvedOpenings: changes.filter((item) => (item.masteryDelta ?? 0) > 0),
+    declinedOpenings: changes.filter((item) => (item.masteryDelta ?? 0) < 0 || item.winRate < 45),
     ratingDelta:
       current.rating !== null && previous.rating !== null
         ? current.rating - previous.rating
@@ -222,7 +234,114 @@ function weekRangeLabel() {
   return `${formatter.format(start)} - ${formatter.format(end)}`;
 }
 
-function buildWeeklyReport(data, current, previous) {
+function weekKey(date) {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  const day = copy.getDay() || 7;
+  copy.setDate(copy.getDate() - day + 1);
+  return copy.toISOString().slice(0, 10);
+}
+
+function weeksBetween(a, b) {
+  const start = new Date(`${a}T00:00:00`);
+  const end = new Date(`${b}T00:00:00`);
+  return Math.round((end - start) / (7 * 24 * 60 * 60 * 1000));
+}
+
+function calculateStreak(history, current) {
+  const weeks = Array.from(
+    new Set([current, ...history.map((item) => item.weekKey || weekKey(item.createdAt || new Date()))])
+  ).sort((a, b) => (a < b ? 1 : -1));
+
+  if (!weeks.length) return 1;
+
+  let streak = 1;
+  for (let i = 1; i < weeks.length; i += 1) {
+    if (weeksBetween(weeks[i], weeks[i - 1]) === 1) {
+      streak += 1;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+
+function getRatingTrend(history, current, comparison) {
+  const ratings = [current, ...history]
+    .filter((item) => Number.isFinite(item.rating))
+    .slice(0, 6)
+    .map((item) => item.rating);
+
+  if (comparison.ratingDelta === null) {
+    return {
+      label: "Rating trend",
+      text: "Rating trend will appear after another saved import.",
+      delta: null,
+      direction: "stable",
+    };
+  }
+
+  const oldest = ratings[ratings.length - 1];
+  const longerDelta = Number.isFinite(oldest) ? current.rating - oldest : comparison.ratingDelta;
+
+  if (comparison.ratingDelta > 0) {
+    return {
+      label: "Rating improving",
+      text: `Rating up ${signed(comparison.ratingDelta)} since your last report${ratings.length > 2 ? `, ${signed(longerDelta)} across saved history` : ""}.`,
+      delta: comparison.ratingDelta,
+      direction: "up",
+    };
+  }
+
+  if (comparison.ratingDelta < 0) {
+    return {
+      label: "Rating pressure",
+      text: `Rating down ${signed(comparison.ratingDelta)} since your last report. Treat this week as a repair block.`,
+      delta: comparison.ratingDelta,
+      direction: "down",
+    };
+  }
+
+  return {
+    label: "Rating stable",
+    text: "Rating stable since your last report. Look for opening-level movement rather than the headline number.",
+    delta: 0,
+    direction: "stable",
+  };
+}
+
+function buildWeaknessUpdates(openings, comparison) {
+  const declined = comparison.declinedOpenings || [];
+  const weak = [...openings]
+    .filter((item) => item.winRate < 50 || item.mastery < 55)
+    .sort((a, b) => a.mastery - b.mastery);
+
+  return [...declined, ...weak]
+    .filter((item, index, list) => list.findIndex((other) => other.name === item.name) === index)
+    .slice(0, 3)
+    .map((item) => ({
+      name: item.name,
+      text:
+        item.masteryDelta < 0
+          ? `${item.name} dropped ${Math.abs(item.masteryDelta)} mastery points. Review the first repeated uncomfortable position.`
+          : `${item.name} is still below ${Math.max(50, item.mastery + 8)}% mastery. Keep the repair task visible this week.`,
+    }));
+}
+
+function buildIdentityLine(weekly) {
+  if (weekly.mostImproved?.masteryDelta > 0) {
+    return `Your ${weekly.mostImproved.name} mastery increased to ${weekly.mostImproved.mastery}%.`;
+  }
+
+  if (weekly.trendOpening?.name) {
+    return `Your ${weekly.trendOpening.name} responses are becoming a clearer part of your repertoire.`;
+  }
+
+  return "Your opening identity baseline is saved. The next import will show what changed.";
+}
+
+function buildWeeklyReport(data, current, previous, history) {
   const comparison = compareSnapshots(current, previous);
   const openings = current.openings;
   const mostImproved =
@@ -252,17 +371,15 @@ function buildWeeklyReport(data, current, previous) {
     (biggestWeakness ? `Repair ${biggestWeakness.name}` : "Save this report as your weekly baseline");
   const repertoireConfidence = average(openings.slice(0, 8).map((item) => item.confidence));
   const studyConsistency = previous
-    ? Math.max(0, Math.min(100, 45 + Math.min(35, comparison.gamesDelta * 2) + Math.min(20, comparison.changes.length * 4)))
+    ? Math.max(0, Math.min(100, 45 + Math.min(35, Math.max(0, comparison.gamesDelta) * 2) + Math.min(20, comparison.changes.length * 4)))
     : Math.max(28, Math.min(68, openings.length * 8));
-  const streak = previous ? Math.max(2, Math.min(12, Math.round((comparison.gamesDelta || 1) / 5) + 1)) : 1;
-  const ratingTrend =
-    comparison.ratingDelta === null
-      ? "Rating trend will appear after another saved import"
-      : comparison.ratingDelta > 0
-        ? `Rating up ${signed(comparison.ratingDelta)} since your last report`
-        : comparison.ratingDelta < 0
-          ? `Rating down ${signed(comparison.ratingDelta)} since your last report`
-          : "Rating stable since your last report";
+  const streak = calculateStreak(history, current.weekKey);
+  const ratingTrend = getRatingTrend(history, current, comparison);
+  const weaknessUpdates = buildWeaknessUpdates(openings, comparison);
+  const identityLine = buildIdentityLine({
+    mostImproved,
+    trendOpening,
+  });
 
   return {
     comparison,
@@ -274,6 +391,8 @@ function buildWeeklyReport(data, current, previous) {
     studyConsistency,
     streak,
     ratingTrend,
+    weaknessUpdates,
+    identityLine,
   };
 }
 
@@ -311,7 +430,7 @@ export default function WeeklyOpeningReport({ data }) {
 
   const previousSnapshot =
     history.find((item) => item.id !== currentSnapshot.id) || null;
-  const weekly = buildWeeklyReport(data, currentSnapshot, previousSnapshot);
+  const weekly = buildWeeklyReport(data, currentSnapshot, previousSnapshot, history);
   const topMastery = [...currentSnapshot.openings]
     .sort((a, b) => b.mastery - a.mastery)
     .slice(0, 4);
@@ -326,7 +445,7 @@ export default function WeeklyOpeningReport({ data }) {
           <h2>Your chess identity is evolving over time.</h2>
           <p>
             {previousSnapshot
-              ? `${weekRangeLabel()} compared with your previous saved report.`
+              ? `${weekRangeLabel()} compared with your previous saved report. ${weekly.identityLine}`
               : "This report starts your baseline. Re-import next week to see what changed."}
           </p>
         </div>
@@ -364,7 +483,7 @@ export default function WeeklyOpeningReport({ data }) {
           <h3>{weekly.trendOpening?.name || "Trend baseline"}</h3>
           <p>
             {weekly.trendOpening
-              ? `${weekly.trendOpening.name} is showing up as a key pattern. Track whether opponents keep steering you there.`
+              ? `${weekly.trendOpening.name} gained ${weekly.trendOpening.gamesDelta > 0 ? weekly.trendOpening.gamesDelta : weekly.trendOpening.games} tracked games. Opponents may be steering you into this family more often.`
               : "New opponent trends will appear once another import is saved."}
           </p>
         </article>
@@ -382,8 +501,20 @@ export default function WeeklyOpeningReport({ data }) {
             <span>Streaks</span>
             <strong>{weekly.streak} week identity streak</strong>
           </div>
-          <p>{weekly.ratingTrend}</p>
+          <p>{weekly.ratingTrend.text}</p>
           <Meter value={weekly.studyConsistency} label="Study consistency" />
+        </article>
+
+        <article className="weeklyOpeningPanel">
+          <div className="weeklyOpeningPanelTop">
+            <span>Rating improvement trends</span>
+            <strong>{weekly.ratingTrend.label}</strong>
+          </div>
+          <div className="weeklyRatingTrend">
+            <strong>{currentSnapshot.rating || "—"}</strong>
+            <span>{weekly.ratingTrend.delta === null ? "Save another report" : signed(weekly.ratingTrend.delta)}</span>
+          </div>
+          <p>{weekly.ratingTrend.text}</p>
         </article>
 
         <article className="weeklyOpeningPanel">
@@ -410,9 +541,36 @@ export default function WeeklyOpeningReport({ data }) {
             <strong>{weekly.repertoireConfidence}% repertoire confidence</strong>
           </div>
           {confidenceOpenings.map((item) => (
-            <Meter key={item.name} value={item.confidence} label={item.name} />
+            <Meter key={item.name} value={item.confidence} label={`${item.name} · ${confidenceLabel(item.confidence)}`} />
           ))}
         </article>
+      </div>
+
+      <div className="weeklyOpeningEvolution weeklyOpeningWeaknessUpdates">
+        <div className="weeklyOpeningPanelTop">
+          <span>Weakness detection updates</span>
+          <strong>
+            {weekly.weaknessUpdates.length
+              ? `${weekly.weaknessUpdates.length} active repair signals`
+              : "No urgent repair signal"}
+          </strong>
+        </div>
+
+        {weekly.weaknessUpdates.length ? (
+          <div className="weeklyEvolutionList">
+            {weekly.weaknessUpdates.map((item) => (
+              <article key={item.name}>
+                <span>Repair signal</span>
+                <strong>{item.name}</strong>
+                <p>{item.text}</p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="weeklyOpeningMuted">
+            No repeated weakness worsened this week. Keep reinforcing the openings that already feel like you.
+          </p>
+        )}
       </div>
 
       <div className="weeklyOpeningEvolution">

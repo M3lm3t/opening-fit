@@ -108,7 +108,7 @@
 
 .weeklyOpeningLoopGrid {
   display: grid;
-  grid-template-columns: 0.9fr 1fr 1fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-top: 12px;
 }
@@ -160,6 +160,27 @@
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #22c55e, #2dd4bf);
+}
+
+.weeklyRatingTrend {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.24);
+}
+
+.weeklyRatingTrend strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.weeklyRatingTrend span {
+  color: #86efac;
+  font-size: 1.15rem;
+  font-weight: 950;
 }
 
 .weeklyMasteryList {
@@ -274,10 +295,13 @@ body.light .weeklyOpeningScore span {
 
 [data-theme="light"] .weeklyMasteryList > div,
 [data-theme="light"] .weeklyEvolutionList article,
+[data-theme="light"] .weeklyRatingTrend,
 .light .weeklyMasteryList > div,
 .light .weeklyEvolutionList article,
+.light .weeklyRatingTrend,
 body.light .weeklyMasteryList > div,
-body.light .weeklyEvolutionList article {
+body.light .weeklyEvolutionList article,
+body.light .weeklyRatingTrend {
   background: rgba(15, 23, 42, 0.04);
 }
 
