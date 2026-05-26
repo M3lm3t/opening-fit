@@ -431,6 +431,7 @@ def normalize_opening_name(name: str) -> str:
         (["queen's gambit", "queens gambit"], "Queen's Gambit"),
         (["london"], "London System"),
         (["jobava"], "Jobava London"),
+        (["king's indian attack", "kings indian attack"], "King's Indian Attack"),
         (["king's indian", "kings indian"], "King's Indian Defence"),
         (["pirc"], "Pirc Defence"),
         (["modern"], "Modern Defence"),
@@ -462,6 +463,48 @@ def pgn_tag_opening(pgn: str) -> str:
                 return parts[1].strip()
 
     return ""
+
+
+def is_kings_indian_structure(seq: List[str]) -> bool:
+    """Recognise KID by pawn/piece structure, not just exact move order."""
+    early = seq[:14]
+    early_lower = [move.lower().replace("+", "").replace("#", "") for move in early]
+
+    white_moves = early_lower[0::2]
+    black_moves = early_lower[1::2]
+
+    starts_as_queen_pawn_game = bool(early_lower and early_lower[0] in {"d4", "c4", "nf3"})
+    white_has_queen_pawn_center = "d4" in white_moves and (
+        "c4" in white_moves
+        or (
+            starts_as_queen_pawn_game
+            and any(move in white_moves for move in {"nf3", "nc3", "g3", "e4"})
+        )
+    )
+    black_has_kid_shell = (
+        "nf6" in black_moves
+        and "g6" in black_moves
+        and ("bg7" in black_moves or len(black_moves) <= 4)
+    )
+    black_has_kid_center = (
+        "d6" in black_moves
+        or "o-o" in black_moves
+        or "e5" in black_moves
+        or "c5" in black_moves
+        or len(black_moves) <= 4
+    )
+
+    if not (white_has_queen_pawn_center and black_has_kid_shell and black_has_kid_center):
+        return False
+
+    # A quick ...d5 after ...Nf6/...g6 is much more likely to be a Grünfeld.
+    if "d5" in black_moves:
+        d5_index = black_moves.index("d5")
+        g6_index = black_moves.index("g6") if "g6" in black_moves else 99
+        if d5_index <= g6_index + 2:
+            return False
+
+    return True
 
 
 def opening_from_move_sequence(moves: List[str]) -> str:
@@ -503,8 +546,11 @@ def opening_from_move_sequence(moves: List[str]) -> str:
     if s.startswith("d4 d5 c4"):
         return "Queen's Gambit"
 
-    if s.startswith("d4 Nf6 c4 g6"):
+    if is_kings_indian_structure(moves):
         return "King's Indian Defence"
+
+    if s.startswith("d4 Nf6 c4 g6") and "d5" in seq[:8]:
+        return "Grünfeld Defence"
 
     if s.startswith("d4 Nf6 Bf4"):
         return "London System"
@@ -3132,6 +3178,14 @@ class PremiumStockfishRequest(BaseModel):
     max_moves: int = 80
 
 
+class OpeningFitPositionRequest(BaseModel):
+    pgn: Optional[str] = None
+    fen: Optional[str] = None
+    moveHistory: Optional[List[str]] = None
+    depth: int = 8
+    maxMoves: int = 24
+
+
 def _find_stockfish_path() -> _Optional[str]:
     env_path = os.getenv("STOCKFISH_PATH", "").strip()
     if env_path and Path(env_path).exists():
@@ -3149,6 +3203,235 @@ def _find_stockfish_path() -> _Optional[str]:
             return path
 
     return None
+
+
+OPENING_FAMILY_THEMES = {
+    "King's Indian Defence": {
+        "family": "King's Indian type setup",
+        "themes": [
+            "challenge White's centre",
+            "prepare ...e5 or ...c5 pawn breaks",
+            "create kingside counterplay after castling",
+        ],
+    },
+    "Grünfeld Defence": {
+        "family": "Grünfeld type setup",
+        "themes": [
+            "invite White's centre forward",
+            "attack the centre with ...c5 and piece pressure",
+            "keep the dark-square bishop active on g7",
+        ],
+    },
+    "Sicilian Defence": {
+        "family": "Sicilian type structure",
+        "themes": [
+            "fight for the centre from the flank",
+            "use the c-file and queenside counterplay",
+            "watch tactical breaks around ...d5",
+        ],
+    },
+    "Caro-Kann Defence": {
+        "family": "Caro-Kann structure",
+        "themes": [
+            "build a solid centre",
+            "develop the light-square bishop before closing the structure",
+            "look for timely ...c5 or ...e5 breaks",
+        ],
+    },
+    "French Defence": {
+        "family": "French Defence structure",
+        "themes": [
+            "pressure White's centre",
+            "prepare ...c5 and sometimes ...f6",
+            "solve the light-square bishop before it becomes passive",
+        ],
+    },
+    "London System": {
+        "family": "London System setup",
+        "themes": [
+            "complete a stable piece setup",
+            "control e5",
+            "choose between queenside expansion and kingside pressure",
+        ],
+    },
+    "Queen's Gambit": {
+        "family": "Queen's Gambit structure",
+        "themes": [
+            "pressure the d5 pawn",
+            "develop smoothly before opening the centre",
+            "use c-file and minority-attack plans when the structure calls for it",
+        ],
+    },
+}
+
+
+def parse_position_for_openingfit(payload: OpeningFitPositionRequest) -> Dict[str, Any]:
+    if chess is None:
+        raise HTTPException(
+            status_code=503,
+            detail="python-chess is not installed on the backend.",
+        )
+
+    pgn_text = (payload.pgn or "").strip()
+    fen_text = (payload.fen or "").strip()
+    max_moves = max(4, min(int(payload.maxMoves or 24), 80))
+
+    if fen_text:
+        try:
+            board = chess.Board(fen_text)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid FEN: {exc}")
+
+        moves = [str(move).strip() for move in (payload.moveHistory or []) if str(move).strip()]
+        return {
+            "board": board,
+            "fen": board.fen(),
+            "moves": moves[:max_moves],
+            "source": "fen",
+        }
+
+    if not pgn_text:
+        raise HTTPException(status_code=400, detail="PGN or FEN is required.")
+
+    game = chess.pgn.read_game(io.StringIO(pgn_text))
+
+    if game is None:
+        raise HTTPException(status_code=400, detail="Could not parse PGN.")
+
+    board = game.board()
+    san_moves = []
+
+    for move in list(game.mainline_moves())[:max_moves]:
+        san_moves.append(board.san(move))
+        board.push(move)
+
+    return {
+        "board": board,
+        "fen": board.fen(),
+        "moves": san_moves,
+        "source": "pgn",
+        "taggedOpening": normalize_opening_name(pgn_tag_opening(pgn_text)),
+    }
+
+
+def detect_opening_family_for_position(moves: List[str], tagged_opening: str = "") -> Dict[str, Any]:
+    opening_name = normalize_opening_name(tagged_opening) if tagged_opening else "Unknown Opening"
+
+    if is_unknown_opening_name(opening_name):
+        opening_name = normalize_opening_name(opening_from_move_sequence(moves))
+
+    family_info = OPENING_FAMILY_THEMES.get(
+        opening_name,
+        {
+            "family": opening_name if not is_unknown_opening_name(opening_name) else "unclassified opening structure",
+            "themes": [
+                "identify the pawn breaks",
+                "finish development before forcing tactics",
+                "review the first position where the plan becomes unclear",
+            ],
+        },
+    )
+
+    exact_family = not is_unknown_opening_name(opening_name)
+    structural_kid = is_kings_indian_structure(moves)
+
+    if structural_kid and opening_name != "King's Indian Defence":
+        opening_name = "King's Indian Defence"
+        family_info = OPENING_FAMILY_THEMES[opening_name]
+        exact_family = True
+
+    return {
+        "opening": opening_name,
+        "family": family_info["family"],
+        "confidence": "high" if exact_family else "low",
+        "themes": family_info["themes"],
+    }
+
+
+def format_engine_move(board, move) -> str:
+    if not move:
+        return ""
+
+    san = board.san(move)
+    return f"...{san}" if board.turn == chess.BLACK else san
+
+
+def analyse_position_with_stockfish(board, depth: int = 8) -> Dict[str, Any]:
+    if chess is None:
+        return {
+            "enabled": False,
+            "reason": "python-chess is not installed on the backend.",
+        }
+
+    engine_path = _find_stockfish_path()
+
+    if not engine_path:
+        return {
+            "enabled": False,
+            "reason": "Stockfish is not installed or STOCKFISH_PATH is not set.",
+        }
+
+    depth = max(4, min(int(depth or 8), 14))
+
+    try:
+        with chess.engine.SimpleEngine.popen_uci(engine_path) as engine:
+            analysis = engine.analyse(board, chess.engine.Limit(depth=depth))
+    except Exception as exc:
+        return {
+            "enabled": False,
+            "reason": f"Stockfish analysis failed: {exc}",
+        }
+
+    best_move = analysis.get("pv", [None])[0]
+    score = analysis["score"].pov(board.turn)
+    cp_score = score.score(mate_score=100000)
+
+    return {
+        "enabled": True,
+        "depth": depth,
+        "bestMove": format_engine_move(board, best_move),
+        "bestMoveUci": best_move.uci() if best_move else None,
+        "evaluation": {
+            "centipawns": cp_score,
+            "mate": score.mate(),
+            "sideToMove": "white" if board.turn == chess.WHITE else "black",
+        },
+    }
+
+
+def build_openingfit_suggestion(
+    opening_family: Dict[str, Any],
+    engine_result: Dict[str, Any],
+) -> Dict[str, Any]:
+    themes = opening_family.get("themes") or []
+    main_theme = themes[0] if themes else "find the right pawn break"
+    family = opening_family.get("family") or "opening structure"
+
+    if engine_result.get("enabled") and engine_result.get("bestMove"):
+        summary = (
+            f"You are playing a {family}. The main plan is to {main_theme}. "
+            f"In this exact position, Stockfish recommends {engine_result['bestMove']}."
+        )
+        engine_note = "Engine move included as a position-specific check, not as the whole opening recommendation."
+    else:
+        summary = (
+            f"You are playing a {family}. The main plan is to {main_theme}. "
+            "Stockfish is not available here, so the recommendation is based on opening family and structure only."
+        )
+        engine_note = engine_result.get("reason")
+
+    return {
+        "summary": summary,
+        "openingFamily": opening_family,
+        "engine": engine_result,
+        "engineNote": engine_note,
+        "pipeline": [
+            "parse_position",
+            "detect_opening_family",
+            "analyse_with_stockfish_if_available",
+            "combine_signals",
+        ],
+    }
 
 
 @app.get("/api/premium/stockfish-status")
@@ -3171,6 +3454,26 @@ def premium_stockfish_status():
         "enabled": True,
         "enginePath": engine_path,
         "message": "Stockfish is available.",
+    }
+
+
+@app.post("/api/openingfit/analyse-position")
+def analyse_openingfit_position(payload: OpeningFitPositionRequest):
+    position = parse_position_for_openingfit(payload)
+    opening_family = detect_opening_family_for_position(
+        position["moves"],
+        tagged_opening=position.get("taggedOpening", ""),
+    )
+    engine_result = analyse_position_with_stockfish(position["board"], depth=payload.depth)
+    suggestion = build_openingfit_suggestion(opening_family, engine_result)
+
+    return {
+        "fen": position["fen"],
+        "source": position["source"],
+        "moves": position["moves"],
+        "openingFamily": opening_family,
+        "engineResult": engine_result,
+        "suggestion": suggestion,
     }
 
 
