@@ -1,0 +1,482 @@
+.ofRetentionShell {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto clamp(1.5rem, 4vw, 3rem);
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 14%, transparent), transparent 34rem),
+    linear-gradient(135deg, color-mix(in srgb, var(--card) 94%, var(--primary) 6%), var(--card));
+  box-shadow: var(--shadow-md);
+  color: var(--foreground);
+  overflow: hidden;
+}
+
+.ofRetentionShell * {
+  min-width: 0;
+}
+
+.ofRetentionHero,
+.ofRetentionGrid,
+.ofRetentionLowerGrid,
+.ofRetentionFooter {
+  display: grid;
+  gap: clamp(1rem, 2.4vw, 1.35rem);
+}
+
+.ofRetentionHero {
+  grid-template-columns: minmax(0, 1fr) minmax(13rem, 17rem);
+  align-items: stretch;
+  margin-bottom: clamp(1.25rem, 3vw, 2rem);
+}
+
+.ofRetentionHero h2,
+.ofRetentionSectionHeader h3,
+.ofRetentionPanel h3,
+.ofMasteryCard h4 {
+  margin: 0;
+  letter-spacing: 0;
+  color: var(--foreground);
+}
+
+.ofRetentionHero h2 {
+  max-width: 13ch;
+  font-size: clamp(2rem, 5vw, 4.25rem);
+  line-height: 0.95;
+}
+
+.ofRetentionHero p {
+  max-width: 62ch;
+  margin: 0.8rem 0 0;
+  color: var(--muted-foreground);
+  font-size: clamp(1rem, 1.8vw, 1.08rem);
+  line-height: 1.65;
+}
+
+.ofRetentionEyebrow {
+  margin: 0 0 0.45rem;
+  color: var(--primary);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ofRetentionScoreCard {
+  display: grid;
+  align-content: center;
+  gap: 0.35rem;
+  min-height: 11rem;
+  padding: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+}
+
+.ofRetentionScoreCard span,
+.ofRetentionScoreCard small {
+  color: var(--muted-foreground);
+  font-weight: 700;
+}
+
+.ofRetentionScoreCard strong {
+  font-size: clamp(3.25rem, 8vw, 5rem);
+  line-height: 0.9;
+  color: var(--foreground);
+}
+
+.ofRetentionGrid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(17rem, 0.65fr);
+  margin-bottom: clamp(1.25rem, 3vw, 2rem);
+}
+
+.ofRetentionLowerGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: clamp(1rem, 3vw, 1.5rem);
+}
+
+.ofRetentionPanel,
+.ofMasteryCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--card) 94%, var(--background) 6%);
+  box-shadow: var(--shadow-sm);
+}
+
+.ofRetentionPanel {
+  padding: clamp(1rem, 2.5vw, 1.25rem);
+}
+
+.ofRetentionPanelHeader,
+.ofRetentionSectionHeader,
+.ofMasteryTopline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ofRetentionPanel h3,
+.ofRetentionSectionHeader h3 {
+  font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+  line-height: 1.12;
+}
+
+.ofRetentionPanel p {
+  margin: 1rem 0 0;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+
+.ofRetentionPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ofRetentionPill.isDone {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--border));
+  background: color-mix(in srgb, var(--success) 16%, var(--card));
+  color: var(--success-foreground);
+}
+
+.ofRetentionTaskList,
+.ofDecisionRows {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.ofRetentionTaskList > div,
+.ofDecisionRows > div,
+.ofRetentionFooter > div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+}
+
+.ofRetentionTaskList strong,
+.ofDecisionRows strong,
+.ofRetentionFooter strong,
+.ofRetentionIdentityStats strong {
+  color: var(--foreground);
+}
+
+.ofRetentionTaskList span,
+.ofDecisionRows span,
+.ofRetentionFooter span,
+.ofRetentionIdentityStats span {
+  color: var(--muted-foreground);
+  line-height: 1.45;
+}
+
+.ofRetentionPrimaryBtn,
+.ofRetentionSecondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  line-height: 1;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.ofRetentionPrimaryBtn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 78%, var(--border));
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.ofRetentionSecondaryBtn {
+  width: 100%;
+  margin-top: auto;
+  padding: 0.72rem 0.9rem;
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.ofRetentionPrimaryBtn:hover:not(:disabled),
+.ofRetentionSecondaryBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.ofRetentionPrimaryBtn:active:not(:disabled),
+.ofRetentionSecondaryBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.ofRetentionPrimaryBtn:focus-visible,
+.ofRetentionSecondaryBtn:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ring) 40%, transparent);
+  outline-offset: 2px;
+}
+
+.ofRetentionPrimaryBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+
+.ofRetentionIdentityStats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+
+.ofRetentionSectionHeader {
+  align-items: end;
+  margin-bottom: 0.85rem;
+}
+
+.ofRetentionSectionHeader > span {
+  color: var(--muted-foreground);
+  font-weight: 800;
+}
+
+.ofMasteryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.9rem, 2vw, 1.1rem);
+}
+
+.ofMasteryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1rem;
+}
+
+.ofMasteryTopline h4 {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.ofMasteryTopline span {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.ofMasteryTopline strong {
+  color: var(--primary);
+  font-size: 1.45rem;
+}
+
+.ofProgressTrack,
+.ofMiniTrack {
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+.ofProgressTrack {
+  height: 0.65rem;
+}
+
+.ofProgressTrack span,
+.ofMiniTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.ofMasteryMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.ofMasteryMeta div {
+  padding: 0.65rem;
+  border-radius: var(--radius-sm);
+  background: var(--background);
+}
+
+.ofMasteryMeta dt {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ofMasteryMeta dd {
+  margin: 0.2rem 0 0;
+  color: var(--foreground);
+  font-weight: 800;
+}
+
+.ofMasteryCard p {
+  margin: 0;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+
+.ofReportList {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ofReportList li {
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--muted-foreground);
+  line-height: 1.45;
+}
+
+.ofReportList strong {
+  color: var(--foreground);
+}
+
+.ofScoreStrip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: clamp(1rem, 3vw, 1.5rem);
+}
+
+.ofScoreMetric {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+}
+
+.ofScoreMetric span {
+  min-height: 2.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.ofScoreMetric strong {
+  color: var(--foreground);
+  font-size: 1.55rem;
+}
+
+.ofMiniTrack {
+  height: 0.4rem;
+}
+
+.ofRetentionFooter {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: clamp(1rem, 3vw, 1.5rem);
+}
+
+@media (max-width: 1024px) {
+  .ofMasteryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ofScoreStrip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .ofRetentionShell {
+    width: min(100%, calc(100vw - 1rem));
+    padding: 0.85rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .ofRetentionHero,
+  .ofRetentionGrid,
+  .ofRetentionLowerGrid,
+  .ofRetentionFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .ofRetentionHero h2 {
+    max-width: 11ch;
+    font-size: clamp(2rem, 11vw, 3rem);
+  }
+
+  .ofRetentionScoreCard {
+    min-height: auto;
+  }
+
+  .ofRetentionPanelHeader,
+  .ofRetentionSectionHeader,
+  .ofMasteryTopline {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ofRetentionPill {
+    width: fit-content;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .ofMasteryGrid,
+  .ofScoreStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .ofMasteryMeta {
+    grid-template-columns: 1fr;
+  }
+
+  .ofRetentionIdentityStats {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 430px) {
+  .ofRetentionShell {
+    width: min(100%, calc(100vw - 0.75rem));
+    padding: 0.7rem;
+  }
+
+  .ofRetentionPanel,
+  .ofMasteryCard {
+    padding: 0.85rem;
+  }
+
+  .ofRetentionHero h2 {
+    font-size: clamp(1.8rem, 10vw, 2.45rem);
+  }
+
+  .ofRetentionHero p,
+  .ofRetentionPanel p,
+  .ofReportList li,
+  .ofMasteryCard p {
+    font-size: 0.95rem;
+  }
+}
