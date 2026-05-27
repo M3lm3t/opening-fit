@@ -33624,6 +33624,228 @@ li,
   line-height: 1.35;
 }
 
+.landingCredibilitySection {
+  display: grid;
+  gap: 20px;
+}
+
+.landingLogoStrip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.landingLogoStrip span {
+  min-height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(2, 6, 23, 0.22);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 950;
+  text-align: center;
+}
+
+.landingCredStatsGrid,
+.landingTestimonialsGrid,
+.landingCaseStudyGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.landingCredStatsGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.landingTestimonialsGrid,
+.landingCaseStudyGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.landingCredStatsGrid article,
+.landingMetricTestimonial,
+.landingCaseStudyCard,
+.landingFounderCred {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(2, 6, 23, 0.24);
+}
+
+.landingCredStatsGrid strong {
+  display: block;
+  color: var(--text);
+  font-size: clamp(1.65rem, 3vw, 2.55rem);
+  line-height: 1;
+}
+
+.landingCredStatsGrid span,
+.landingMetricTestimonial span,
+.landingCaseStudyCard dt {
+  display: block;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.landingCredStatsGrid p,
+.landingMetricTestimonial p,
+.landingFounderCred p {
+  margin: 10px 0 0;
+  color: var(--text-soft);
+  line-height: 1.52;
+}
+
+.landingMetricTestimonial {
+  display: grid;
+  align-content: space-between;
+  gap: 14px;
+}
+
+.landingMetricTestimonial p {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.landingMetricTestimonial strong {
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.landingMetricTestimonial span {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(14, 165, 233, 0.14);
+  color: #bae6fd;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.landingCaseStudyCard {
+  grid-column: span 1;
+}
+
+.landingCaseStudyCard h3 {
+  margin: 0 0 14px;
+}
+
+.landingCaseStudyCard dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.landingCaseStudyCard div {
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.landingCaseStudyCard dd {
+  margin: 4px 0 0;
+  color: var(--text-soft);
+  line-height: 1.42;
+}
+
+.landingBenchmarkTableWrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+}
+
+.landingBenchmarkTable {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  background: rgba(2, 6, 23, 0.18);
+}
+
+.landingBenchmarkTable th,
+.landingBenchmarkTable td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  text-align: left;
+}
+
+.landingBenchmarkTable th {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.landingBenchmarkTable td {
+  color: var(--text-soft);
+  line-height: 1.42;
+}
+
+.landingBenchmarkTable td:first-child,
+.landingBenchmarkTable td:last-child {
+  color: var(--text);
+  font-weight: 850;
+}
+
+.landingFounderCred {
+  display: grid;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.landingFounderCred h3 {
+  margin: 0;
+}
+
+.landingFounderCred .landingEyebrow {
+  margin-bottom: 8px;
+}
+
+.page.light .landingLogoStrip span,
+.page.light .landingCredStatsGrid article,
+.page.light .landingMetricTestimonial,
+.page.light .landingCaseStudyCard,
+.page.light .landingFounderCred,
+.page.light .landingBenchmarkTableWrap,
+[data-theme="light"] .landingLogoStrip span,
+[data-theme="light"] .landingCredStatsGrid article,
+[data-theme="light"] .landingMetricTestimonial,
+[data-theme="light"] .landingCaseStudyCard,
+[data-theme="light"] .landingFounderCred,
+[data-theme="light"] .landingBenchmarkTableWrap {
+  background: rgba(248, 250, 252, 0.86);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.page.light .landingCaseStudyCard div,
+.page.light .landingBenchmarkTable,
+[data-theme="light"] .landingCaseStudyCard div,
+[data-theme="light"] .landingBenchmarkTable {
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.page.light .landingMetricTestimonial span,
+[data-theme="light"] .landingMetricTestimonial span {
+  color: #0369a1;
+  background: rgba(14, 165, 233, 0.09);
+}
+
 .landingStepsList {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -33650,11 +33872,16 @@ li,
   .landingOutputGrid,
   .landingUseCaseGrid,
   .landingFaqGrid,
+  .landingLogoStrip,
+  .landingCredStatsGrid,
+  .landingTestimonialsGrid,
+  .landingCaseStudyGrid,
   .landingGifWalkthrough,
   .landingBeforeAfterGrid,
   .landingEmptyStateGrid,
   .landingDemoSection,
   .landingProofSection,
+  .landingFounderCred,
   .landingFinalCTA,
   .landingStepsList {
     grid-template-columns: 1fr;
@@ -33681,6 +33908,7 @@ li,
   #empty-states,
   #output-examples,
   #social-proof,
+  #proof,
   #use-cases,
   #faq,
   #final-cta {

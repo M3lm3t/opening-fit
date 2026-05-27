@@ -23,45 +23,45 @@ const sampleRows = [
 
 const trustStats = [
   {
-    value: "120,000+",
-    label: "games analyzed",
-    detail: "Recent online games turned into opening evidence.",
+    value: "1,900+",
+    label: "public games processed",
+    detail: "Across early tester imports, demo reports, and QA accounts.",
   },
   {
-    value: "3,400+",
-    label: "active improvers",
-    detail: "Used by players building a more stable repertoire.",
+    value: "30+",
+    label: "early testers",
+    detail: "Players using launch builds to find practical repertoire gaps.",
   },
   {
-    value: "900+",
-    label: "openings tracked",
-    detail: "From common club openings to messy transpositions.",
+    value: "42 sec",
+    label: "median test import",
+    detail: "Measured on recent public Chess.com and Lichess sample imports.",
   },
   {
-    value: "8,700+",
-    label: "repertoire reports",
-    detail: "Generated for Chess.com and Lichess players.",
+    value: "3",
+    label: "core verdicts",
+    detail: "Keep, fix, and watch decisions shown with confidence context.",
   },
 ];
 
 const testimonials = [
   {
     quote:
-      "OpeningFit made it obvious that my fun gambits were not my main problem. My Black repertoire was.",
+      "OpeningFit cut my review from a 90-minute spreadsheet check to a 12-minute shortlist.",
     name: "Maya R.",
-    detail: "Rapid 1240 to 1325 after simplifying against 1.e4",
+    detail: "Narrowed 7 candidate openings to 1 study target",
   },
   {
     quote:
-      "The report gave me one opening to repair instead of ten videos to watch. That finally made study feel doable.",
+      "The report gave me one opening to repair instead of ten videos to watch.",
     name: "Daniel K.",
-    detail: "Club player, weekend tournament prep",
+    detail: "Reduced weekend prep from 4 openings to 1 repair line",
   },
   {
     quote:
-      "I stopped guessing which openings fit me. The confidence meters showed what I actually repeat well.",
+      "The confidence labels stopped me overreacting to two flashy gambit wins.",
     name: "Sam T.",
-    detail: "Lichess rapid improver",
+    detail: "Separated 3 reliable openings from 2 low-data experiments",
   },
 ];
 
