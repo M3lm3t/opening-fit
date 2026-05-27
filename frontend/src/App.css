@@ -1845,7 +1845,8 @@ th {
   box-shadow: none;
   background: var(--board-dark-square);
   user-select: none;
-  touch-action: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transform: none;
   perspective: none;
   filter: none;
@@ -1865,6 +1866,9 @@ th {
   justify-content: center;
   overflow: hidden;
   appearance: none;
+  user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   box-shadow: none;
   transform: none;
   filter: none;
@@ -1905,6 +1909,9 @@ th {
   line-height: 1;
   text-align: center;
   pointer-events: none;
+  user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   font-size: clamp(25px, 4.2vw, 42px);
   transform: none;
   filter: none;
@@ -1915,6 +1922,11 @@ th {
   outline-offset: -2px;
   box-shadow: none;
   z-index: 2;
+}
+
+.practiceInvalidSquare {
+  outline: 2px solid var(--board-invalid);
+  outline-offset: -2px;
 }
 
 .practiceSelectedSquare::after,
@@ -5070,6 +5082,7 @@ th {
   --board-dark-square: #657284;
   --board-border: rgba(203, 213, 225, 0.28);
   --board-selected: rgba(56, 189, 248, 0.62);
+  --board-invalid: rgba(248, 113, 113, 0.62);
   --board-last-move: rgba(250, 204, 21, 0.22);
   --board-legal-move: rgba(15, 23, 42, 0.28);
   color-scheme: dark;
@@ -5096,6 +5109,7 @@ th {
   --board-dark-square: #8aa0b8;
   --board-border: rgba(100, 116, 139, 0.24);
   --board-selected: rgba(37, 99, 235, 0.52);
+  --board-invalid: rgba(220, 38, 38, 0.52);
   --board-last-move: rgba(234, 179, 8, 0.26);
   --board-legal-move: rgba(15, 23, 42, 0.22);
   color-scheme: light;
