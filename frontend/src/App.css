@@ -21994,6 +21994,7 @@ video {
 .coachRecommendationCard,
 .coachRoadmapShell,
 .coachOpeningSuggestions,
+.coachPsychologyShell,
 .coachPatternGrid article {
   min-width: 0;
   border: 1px solid rgba(148, 163, 184, 0.22);
@@ -22005,11 +22006,13 @@ video {
 [data-theme="light"] .coachRecommendationCard,
 [data-theme="light"] .coachRoadmapShell,
 [data-theme="light"] .coachOpeningSuggestions,
+[data-theme="light"] .coachPsychologyShell,
 [data-theme="light"] .coachPatternGrid article,
 .light .aiCoachFocus,
 .light .coachRecommendationCard,
 .light .coachRoadmapShell,
 .light .coachOpeningSuggestions,
+.light .coachPsychologyShell,
 .light .coachPatternGrid article {
   background: rgba(255, 255, 255, 0.78);
   border-color: rgba(15, 23, 42, 0.1);
@@ -22133,7 +22136,8 @@ video {
 }
 
 .coachRoadmapShell,
-.coachOpeningSuggestions {
+.coachOpeningSuggestions,
+.coachPsychologyShell {
   margin-top: 12px;
   padding: 16px;
 }
@@ -22175,6 +22179,104 @@ video {
 .coachSuggestionList {
   display: grid;
   gap: 10px;
+}
+
+.coachPsychologySummary {
+  margin: 0 0 12px;
+  color: rgba(226, 232, 240, 0.72);
+  line-height: 1.55;
+}
+
+[data-theme="light"] .coachPsychologySummary,
+.light .coachPsychologySummary {
+  color: rgba(15, 23, 42, 0.64);
+}
+
+.coachPsychologyGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.coachPsychologyCard {
+  border: 1px solid rgba(251, 191, 36, 0.18);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(127, 29, 29, 0.18);
+}
+
+.coachPsychologyCard.isHigh {
+  border-color: rgba(248, 113, 113, 0.34);
+  background: rgba(127, 29, 29, 0.28);
+}
+
+[data-theme="light"] .coachPsychologyCard,
+.light .coachPsychologyCard {
+  background: rgba(254, 242, 242, 0.86);
+  border-color: rgba(185, 28, 28, 0.14);
+}
+
+.coachPsychologyCard span {
+  display: inline-flex;
+  width: fit-content;
+  color: #fca5a5;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+[data-theme="light"] .coachPsychologyCard span,
+.light .coachPsychologyCard span {
+  color: #b91c1c;
+}
+
+.coachPsychologyCard h3 {
+  margin: 8px 0;
+  font-size: 1.08rem;
+  line-height: 1.3;
+}
+
+.coachPsychologyCard p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.74);
+  line-height: 1.5;
+}
+
+[data-theme="light"] .coachPsychologyCard p,
+.light .coachPsychologyCard p {
+  color: rgba(15, 23, 42, 0.66);
+}
+
+.coachPsychologyCard div {
+  margin-top: 12px;
+  border-left: 3px solid #f87171;
+  padding: 10px 12px;
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+  line-height: 1.45;
+}
+
+[data-theme="light"] .coachPsychologyCard div,
+.light .coachPsychologyCard div {
+  color: #7f1d1d;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.coachConfidenceReset {
+  margin-top: 12px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(251, 191, 36, 0.11);
+  color: #fde68a;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+[data-theme="light"] .coachConfidenceReset,
+.light .coachConfidenceReset {
+  color: #78350f;
+  background: rgba(251, 191, 36, 0.14);
 }
 
 .coachSuggestionList article {
@@ -22242,6 +22344,7 @@ video {
   .aiCoachHeader,
   .coachRecommendationGrid,
   .coachRoadmap,
+  .coachPsychologyGrid,
   .coachPatternGrid {
     grid-template-columns: 1fr;
   }

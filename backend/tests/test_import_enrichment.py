@@ -42,3 +42,25 @@ def test_elite_user_conservative_language():
     # For elite-like username, still produce a report and not block
     assert "backend_recommendation" in res
     assert res["gamesImported"] == 20
+
+
+def test_competitive_psychology_flags_painful_patterns():
+    payload = make_payload(
+        24,
+        top_openings=[
+            {"name": "French Defence", "games": 8, "wins": 1, "draws": 1, "losses": 6, "score": 19, "side": "white"},
+            {"name": "Sicilian Defence", "games": 6, "wins": 1, "draws": 1, "losses": 4, "score": 25, "side": "black"},
+            {"name": "London System", "games": 7, "wins": 5, "draws": 1, "losses": 1, "score": 79, "side": "white"},
+        ],
+        games_list=[
+            {"result": "loss", "moves": " ".join(["e4", "c5"] * 22)},
+            {"result": "loss", "moves": " ".join(["d4", "Nf6"] * 21)},
+        ],
+    )
+
+    res = enrich_analysis_result(payload, username="clubplayer", platform="chess.com")
+    psychology = res["competitivePsychology"]
+
+    assert psychology["insights"]
+    assert any("French Defence" in item["title"] for item in psychology["insights"])
+    assert any(item["type"] == "black_consistency" for item in psychology["insights"])

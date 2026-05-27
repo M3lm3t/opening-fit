@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from statistics import median
 import json
+import re
 import urllib.error
 import urllib.request
 from typing import Any
@@ -872,6 +873,175 @@ def estimate_impact_range(opening: dict, average_score: int | None, side_gap: fl
     }
 
 
+def count_game_plies(game: Any) -> int:
+    if not isinstance(game, dict):
+        return 0
+
+    moves = game.get("moves")
+    if isinstance(moves, str):
+        return len([move for move in moves.split() if move])
+    if isinstance(moves, list):
+        return len(moves)
+
+    pgn = str(game.get("pgn") or "")
+    if not pgn:
+        return 0
+
+    lines = [line for line in pgn.splitlines() if not line.startswith("[")]
+    move_text = " ".join(lines)
+    move_text = re.sub(r"\{[^}]*\}", " ", move_text)
+    move_text = re.sub(r"\([^)]*\)", " ", move_text)
+    move_text = re.sub(r"\d+\.(\.\.)?", " ", move_text)
+    move_text = re.sub(r"1-0|0-1|1/2-1/2|\*", " ", move_text)
+    move_text = re.sub(r"\$\d+", " ", move_text)
+    return len([move for move in move_text.split() if move])
+
+
+def game_result_is_loss(game: Any) -> bool:
+    if not isinstance(game, dict):
+        return False
+
+    result = str(
+        game.get("result")
+        or game.get("userResult")
+        or game.get("playerResult")
+        or game.get("outcome")
+        or ""
+    ).lower()
+
+    return result in {"loss", "lost", "0-1", "1-0"} or "loss" in result or "lost" in result
+
+
+def build_competitive_psychology(
+    data: dict,
+    known_openings: list[dict],
+    average_score: int | None,
+    tactical_games: int,
+    positional_games: int,
+    white_score: float | None,
+    black_score: float | None,
+    repeat_count: int,
+    variety: int,
+) -> dict:
+    useful = [
+        item
+        for item in known_openings
+        if get_opening_games(item) >= 2 and get_opening_score(item) is not None
+    ]
+    weak_by_pain = sorted(
+        useful,
+        key=lambda item: (
+            get_opening_score(item) if get_opening_score(item) is not None else 100,
+            -get_opening_games(item),
+        ),
+    )
+    nemesis = next((item for item in weak_by_pain if get_opening_games(item) >= 3), weak_by_pain[0] if weak_by_pain else None)
+    black_items = [item for item in useful if infer_opening_side(item) == "black"]
+    tactical_items = [
+        item
+        for item in useful
+        if opening_name_matches(get_opening_name(item), TACTICAL_OPENING_TERMS)
+    ]
+
+    def weighted(items: list[dict]) -> float | None:
+        games = sum(get_opening_games(item) for item in items)
+        if not games:
+            return None
+        total = sum(get_opening_games(item) * (get_opening_score(item) or 0) for item in items)
+        return round(total / games, 1)
+
+    tactical_score = weighted(tactical_items)
+    game_rows = data.get("games") if isinstance(data.get("games"), list) else []
+    long_losses = sum(1 for game in game_rows if game_result_is_loss(game) and count_game_plies(game) >= 40)
+
+    insights = []
+
+    if nemesis:
+        name = get_opening_name(nemesis)
+        games = get_opening_games(nemesis)
+        score = get_opening_score(nemesis)
+        losses = safe_number(nemesis.get("losses") or nemesis.get("l"), None)
+        pain_word = "crush" if score is not None and score <= 35 and games >= 5 else "keep hurting"
+        evidence = (
+            f"{games} games, {score}% score"
+            if score is not None
+            else f"{games} games"
+        )
+        if losses is not None:
+            evidence = f"{evidence}, {int(losses)} losses"
+        insights.append(
+            {
+                "type": "nemesis_opening",
+                "severity": "high" if score is not None and score <= 35 and games >= 5 else "medium",
+                "title": f"Players {pain_word} you with {name}",
+                "body": f"{name} is becoming an emotional pressure point: {evidence}. Treat it like a revenge matchup, not a random bad opening.",
+                "action": "Build one anti-plan and play a 10-game repair block before judging yourself again.",
+                "opening": name,
+            }
+        )
+
+    if tactical_score is not None and tactical_games >= 3:
+        comparison = average_score if average_score is not None else 50
+        if tactical_score + 6 < comparison or long_losses >= 2:
+            suffix = " after move 20" if long_losses >= 2 else " once tactics start"
+            insights.append(
+                {
+                    "type": "tactical_collapse",
+                    "severity": "high" if tactical_score <= 40 or long_losses >= 3 else "medium",
+                    "title": f"You collapse{suffix} in tactical games",
+                    "body": f"Your tactical-opening sample is scoring {tactical_score:g}%, below your normal baseline. The issue is probably decision quality under heat, not just opening knowledge.",
+                    "action": "For one week, review only the first tactical turning point in each loss and write the quieter defensive move you missed.",
+                }
+            )
+
+    if black_score is not None:
+        black_variety = len(black_items)
+        black_repeat = len([item for item in black_items if get_opening_games(item) >= 5])
+        if (white_score is not None and black_score + 6 < white_score) or (black_variety >= 5 and black_repeat <= 1):
+            insights.append(
+                {
+                    "type": "black_consistency",
+                    "severity": "high" if white_score is not None and black_score + 10 < white_score else "medium",
+                    "title": "Your black repertoire lacks consistency",
+                    "body": (
+                        f"Black is scoring {black_score:g}%"
+                        + (f" versus {white_score:g}% with White" if white_score is not None else "")
+                        + ". You are giving opponents too many different versions of you."
+                    ),
+                    "action": "Pick one defence to 1.e4 and one defence to 1.d4 for the next 20 black games.",
+                }
+            )
+
+    if variety >= 12 and repeat_count < 4:
+        insights.append(
+            {
+                "type": "identity_drift",
+                "severity": "medium",
+                "title": "Your opening identity is too scattered",
+                "body": f"You touched {variety} opening buckets, but only {repeat_count} repeat enough to build confidence. That creates the feeling of always starting from scratch.",
+                "action": "Freeze the repertoire menu for two weeks and measure confidence before adding another line.",
+            }
+        )
+
+    headline = insights[0]["title"] if insights else "Your confidence grows when the repertoire gets narrower"
+    summary = (
+        "These are the emotionally expensive patterns in your games: the openings that create dread, revenge energy, or repeated hesitation."
+        if insights
+        else "No single painful pattern dominates yet. Keep building a larger sample and watch for recurring emotional pressure points."
+    )
+
+    return {
+        "headline": headline,
+        "summary": summary,
+        "insights": insights[:4],
+        "confidenceReset": "Do not treat one loss as proof. Treat repeated pain as a training target you can deliberately hunt down.",
+        "revengeTarget": get_opening_name(nemesis) if nemesis else None,
+        "tacticalScore": tactical_score,
+        "positionalGames": positional_games,
+        "tacticalGames": tactical_games,
+    }
+
+
 def build_ai_chess_coach(
     data: dict,
     level_profile: dict,
@@ -1041,6 +1211,18 @@ def build_ai_chess_coach(
             }
         )
 
+    competitive_psychology = build_competitive_psychology(
+        data,
+        known,
+        average_score,
+        tactical_games,
+        positional_games,
+        white_score,
+        black_score,
+        repeat_count,
+        variety,
+    )
+
     return {
         "headline": f"Study {priority_name} next",
         "summary": (
@@ -1083,6 +1265,8 @@ def build_ai_chess_coach(
             "repeatOpenings": repeat_count,
             "openingVariety": variety,
         },
+        "competitive_psychology": competitive_psychology,
+        "competitivePsychology": competitive_psychology,
     }
 
 
@@ -1257,6 +1441,8 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
         games_imported,
     )
     data["aiChessCoach"] = data["ai_chess_coach"]
+    data["competitive_psychology"] = data["ai_chess_coach"].get("competitive_psychology")
+    data["competitivePsychology"] = data["ai_chess_coach"].get("competitivePsychology")
 
     if username and not data.get("username"):
         data["username"] = username

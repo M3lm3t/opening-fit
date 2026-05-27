@@ -135,6 +135,67 @@ function weightedScore(items) {
   return Math.round((total / games) * 10) / 10;
 }
 
+function buildFallbackPsychology(data, useful, openings, averageScore, whiteScore, blackScore, tacticalGames, positionalGames, repeatOpenings) {
+  const nemesis = useful.find((item) => getOpeningGames(item) >= 3) || useful[0] || null;
+  const tacticalScore = weightedScore(
+    useful.filter((item) => matchesAny(displayOpeningName(item, data), TACTICAL_TERMS))
+  );
+  const insights = [];
+
+  if (nemesis) {
+    const name = displayOpeningName(nemesis, data);
+    const games = getOpeningGames(nemesis);
+    const score = getOpeningScore(nemesis);
+    insights.push({
+      type: "nemesis_opening",
+      severity: score !== null && score <= 35 && games >= 5 ? "high" : "medium",
+      title: `Players ${score !== null && score <= 35 ? "crush" : "keep hurting"} you with ${name}`,
+      body: `${name} is becoming an emotional pressure point: ${games} games${score !== null ? `, ${score}% score` : ""}. Treat it like a revenge matchup, not a random bad opening.`,
+      action: "Build one anti-plan and play a 10-game repair block before judging yourself again.",
+    });
+  }
+
+  if (tacticalScore !== null && tacticalGames >= 3 && tacticalScore + 6 < (averageScore || 50)) {
+    insights.push({
+      type: "tactical_collapse",
+      severity: tacticalScore <= 40 ? "high" : "medium",
+      title: "You collapse once tactics start",
+      body: `Your tactical-opening sample is scoring ${tacticalScore}%, below your normal baseline. The issue is decision quality under heat, not just opening knowledge.`,
+      action: "Review the first tactical turning point in each loss and write the quieter defensive move you missed.",
+    });
+  }
+
+  if (blackScore !== null && (whiteScore === null || blackScore + 6 < whiteScore)) {
+    insights.push({
+      type: "black_consistency",
+      severity: whiteScore !== null && blackScore + 10 < whiteScore ? "high" : "medium",
+      title: "Your black repertoire lacks consistency",
+      body: `Black is scoring ${blackScore}%${whiteScore !== null ? ` versus ${whiteScore}% with White` : ""}. You are giving opponents too many different versions of you.`,
+      action: "Pick one defence to 1.e4 and one defence to 1.d4 for the next 20 black games.",
+    });
+  }
+
+  if (openings.length >= 12 && repeatOpenings < 4) {
+    insights.push({
+      type: "identity_drift",
+      severity: "medium",
+      title: "Your opening identity is too scattered",
+      body: `You touched ${openings.length} opening buckets, but only ${repeatOpenings} repeat enough to build confidence.`,
+      action: "Freeze the repertoire menu for two weeks and measure confidence before adding another line.",
+    });
+  }
+
+  return {
+    headline: insights[0]?.title || "Your confidence grows when the repertoire gets narrower",
+    summary: insights.length
+      ? "These are the emotionally expensive patterns in your games: the openings that create dread, revenge energy, or repeated hesitation."
+      : "No single painful pattern dominates yet. Keep building a larger sample and watch for recurring emotional pressure points.",
+    insights: insights.slice(0, 4),
+    confidenceReset: "Do not treat one loss as proof. Treat repeated pain as a training target you can deliberately hunt down.",
+    revengeTarget: nemesis ? displayOpeningName(nemesis, data) : null,
+  };
+}
+
 function buildFallbackCoach(data) {
   const openings = collectOpenings(data, { includeUnknown: false });
   const quality = getBackendDataQuality(data);
@@ -170,6 +231,17 @@ function buildFallbackCoach(data) {
         : "Balanced";
   const repeatOpenings = openings.filter((item) => getOpeningGames(item) >= 5).length;
   const averageScore = weightedScore(useful) ?? 50;
+  const competitivePsychology = buildFallbackPsychology(
+    data,
+    useful,
+    openings,
+    averageScore,
+    whiteScore,
+    blackScore,
+    tacticalGames,
+    positionalGames,
+    repeatOpenings
+  );
 
   return {
     headline: `Study ${targetName} next`,
@@ -276,6 +348,8 @@ function buildFallbackCoach(data) {
       repeat_openings: repeatOpenings,
       opening_variety: openings.length,
     },
+    competitive_psychology: competitivePsychology,
+    competitivePsychology,
   };
 }
 
@@ -291,6 +365,13 @@ export default function IntelligentCoachInsights({ data }) {
   const style = coach.style_analysis || coach.styleAnalysis || {};
   const preference = coach.preference_detection || coach.preferenceDetection || {};
   const consistency = coach.consistency_analysis || coach.consistencyAnalysis || {};
+  const psychology =
+    coach.competitive_psychology ||
+    coach.competitivePsychology ||
+    data?.competitive_psychology ||
+    data?.competitivePsychology ||
+    {};
+  const psychologyInsights = Array.isArray(psychology.insights) ? psychology.insights : [];
   const openingSuggestions =
     coach.opening_improvement_suggestions || coach.openingImprovementSuggestions || [];
 
@@ -342,6 +423,29 @@ export default function IntelligentCoachInsights({ data }) {
           ))}
         </div>
       </div>
+
+      {psychologyInsights.length ? (
+        <div className="coachPsychologyShell">
+          <div className="coachSubhead">
+            <span>Competitive psychology</span>
+            <strong>{psychology.headline || "Pressure points worth hunting"}</strong>
+          </div>
+          <p className="coachPsychologySummary">{psychology.summary}</p>
+          <div className="coachPsychologyGrid">
+            {psychologyInsights.map((item) => (
+              <article className={`coachPsychologyCard ${item.severity === "high" ? "isHigh" : ""}`} key={`${item.type}-${item.title}`}>
+                <span>{item.severity === "high" ? "High pressure" : "Pattern found"}</span>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+                <div>{item.action}</div>
+              </article>
+            ))}
+          </div>
+          {psychology.confidenceReset ? (
+            <div className="coachConfidenceReset">{psychology.confidenceReset}</div>
+          ) : null}
+        </div>
+      ) : null}
 
       {openingSuggestions.length ? (
         <div className="coachOpeningSuggestions">
