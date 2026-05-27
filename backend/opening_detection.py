@@ -226,11 +226,142 @@ OPENING_THEMES = {
 }
 
 
+OPENING_TYPICAL_PLANS = {
+    "Sicilian Defence": [
+        "Fight for the centre from the flank with ...c5.",
+        "Use the half-open c-file when it appears.",
+        "Look for a well-timed ...d5 break.",
+    ],
+    "French Defence": [
+        "Pressure White's pawn chain with ...c5.",
+        "Challenge the centre with ...f6 when the structure allows it.",
+        "Solve the light-square bishop before it becomes a long-term problem.",
+    ],
+    "Caro-Kann Defence": [
+        "Build a solid ...c6 and ...d5 centre.",
+        "Develop cleanly before opening the position.",
+        "Break with ...c5 or ...e5 when White overextends.",
+    ],
+    "King's Indian Defence": [
+        "Castle short before committing the centre.",
+        "Play ...d6 to support the dark-square shell.",
+        "Challenge White's centre with ...e5 or ...c5.",
+        "Prepare kingside play with ...f5 when the centre is locked.",
+        "Use ...Nh5-f4 ideas in some lines when the kingside becomes the battlefield.",
+    ],
+    "Grünfeld Defence": [
+        "Invite White's centre forward, then attack it with pieces.",
+        "Hit d4 with ...c5, ...Nc6, and Bg7 pressure.",
+        "Keep the centre dynamic instead of defending passively.",
+    ],
+    "Queen's Gambit": [
+        "Use c4 to pressure Black's d5 pawn.",
+        "Develop smoothly before resolving central tension.",
+        "Use the c-file and e4 break when the position supports it.",
+    ],
+    "Slav Defence": [
+        "Support d5 with ...c6.",
+        "Develop the light-square bishop before closing it in.",
+        "Strike back with ...c5 or ...e5 when White's setup slows down.",
+    ],
+    "Nimzo-Indian Defence": [
+        "Pin the c3 knight and fight for dark squares.",
+        "Pressure doubled c-pawns if White accepts them.",
+        "Choose ...d5 or ...c5 depending on White's centre.",
+    ],
+    "English Opening": [
+        "Control d5 without rushing the central pawn break.",
+        "Keep transpositions into Catalan, Queen's Gambit, or Sicilian-style structures available.",
+        "Expand on the queenside when Black concedes space.",
+    ],
+    "Catalan Opening": [
+        "Use the Bg2 bishop to pressure the long diagonal.",
+        "Combine c4 pressure with steady kingside safety.",
+        "Recover or target queenside pawns when Black grabs material.",
+    ],
+    "London System": [
+        "Complete the d4, Nf3, Bf4, e3 setup efficiently.",
+        "Fight for e5 before starting a direct attack.",
+        "Choose queenside expansion or kingside pressure based on Black's setup.",
+    ],
+    "Benoni Defence": [
+        "Accept less space in return for active counterplay.",
+        "Use ...c5 pressure and queenside breaks.",
+        "Fight for dark squares around e5 and d4.",
+    ],
+    "Dutch Defence": [
+        "Claim kingside space with ...f5.",
+        "Fight for e4 and watch the light squares.",
+        "Decide between Stonewall, Classical, and Leningrad-style piece placement.",
+    ],
+    "Pirc Defence": [
+        "Let White build the centre, then challenge it.",
+        "Develop compactly with ...Nf6, ...g6, and ...Bg7.",
+        "Choose ...e5 or ...c5 as the main counterpunch.",
+    ],
+    "Modern Defence": [
+        "Fianchetto first and keep the central pawn choice flexible.",
+        "Transpose into Pirc, King's Indian, or Modern structures when useful.",
+        "Challenge the centre only after White shows their setup.",
+    ],
+}
+
+
 def theme_for(opening: str) -> list[str]:
     return OPENING_THEMES.get(
         normalise_opening_name(opening),
         ["identify the pawn breaks", "finish development before forcing tactics", "review the first unclear plan"],
     )
+
+
+def typical_plans_for(opening: str) -> list[str]:
+    name = normalise_opening_name(opening)
+    if name in OPENING_TYPICAL_PLANS:
+        return OPENING_TYPICAL_PLANS[name]
+
+    return [theme[0].upper() + theme[1:] + "." for theme in theme_for(name)]
+
+
+def repertoire_bucket_for(opening: str) -> str:
+    name = normalise_opening_name(opening)
+
+    black_defences = {
+        "Sicilian Defence",
+        "French Defence",
+        "Caro-Kann Defence",
+        "Pirc Defence",
+        "Modern Defence",
+        "King's Indian Defence",
+        "Grünfeld Defence",
+        "Slav Defence",
+        "Nimzo-Indian Defence",
+        "Benoni Defence",
+        "Dutch Defence",
+        "Scandinavian Defence",
+        "Alekhine Defence",
+    }
+    white_openings = {
+        "Ruy Lopez",
+        "Italian Game",
+        "Scotch Game",
+        "Vienna Game",
+        "King's Gambit",
+        "Queen's Gambit",
+        "English Opening",
+        "Catalan Opening",
+        "London System",
+        "Réti Opening",
+        "King's Indian Attack",
+    }
+
+    if name in black_defences:
+        return "Black defensive repertoire"
+    if name in white_openings:
+        return "White opening repertoire"
+    if is_unknown_opening(name):
+        return "Unclassified / needs more moves"
+
+    return "Flexible transposition bucket"
 
 
 def side_moves(moves: list[str], white: bool) -> list[str]:
@@ -428,6 +559,8 @@ def aggregate_signals(signals: list[dict[str, Any]]) -> dict[str, Any]:
             "confidence": "low",
             "confidenceScore": 0,
             "themes": theme_for(UNKNOWN_OPENING),
+            "typicalPlans": typical_plans_for(UNKNOWN_OPENING),
+            "repertoireBucket": repertoire_bucket_for(UNKNOWN_OPENING),
             "signals": [],
         }
 
@@ -454,6 +587,8 @@ def aggregate_signals(signals: list[dict[str, Any]]) -> dict[str, Any]:
         "confidence": confidence,
         "confidenceScore": best_score,
         "themes": theme_for(best_opening),
+        "typicalPlans": typical_plans_for(best_opening),
+        "repertoireBucket": repertoire_bucket_for(best_opening),
         "signals": sorted(signals, key=lambda signal: signal.get("weight", 0) * signal.get("confidence", 0), reverse=True),
     }
 

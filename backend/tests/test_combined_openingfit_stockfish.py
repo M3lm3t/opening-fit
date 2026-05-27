@@ -32,6 +32,8 @@ def test_detects_kings_indian_structure_by_family():
     assert result["family"] == "King's Indian type setup"
     assert result["confidence"] == "high"
     assert "challenge White's centre" in result["themes"][0]
+    assert "Challenge White's centre with ...e5 or ...c5." in result["typicalPlans"]
+    assert result["repertoireBucket"] == "Black defensive repertoire"
 
 
 def test_combined_suggestion_keeps_engine_as_one_signal():
@@ -40,6 +42,11 @@ def test_combined_suggestion_keeps_engine_as_one_signal():
         "family": "King's Indian type setup",
         "confidence": "high",
         "themes": ["challenge White's centre", "create kingside counterplay"],
+        "typicalPlans": [
+            "Castle short before committing the centre.",
+            "Challenge White's centre with ...e5 or ...c5.",
+        ],
+        "repertoireBucket": "Black defensive repertoire",
     }
     engine_result = {
         "enabled": True,
@@ -49,10 +56,13 @@ def test_combined_suggestion_keeps_engine_as_one_signal():
 
     suggestion = build_openingfit_suggestion(opening_family, engine_result)
 
-    assert (
-        suggestion["summary"]
-        == "You are playing a King's Indian type setup. The main plan is to challenge White's centre. In this exact position, Stockfish recommends ...e5."
-    )
+    assert suggestion["openingIntelligence"]["layer"] == "opening_intelligence"
+    assert suggestion["openingIntelligence"]["family"] == "King's Indian type setup"
+    assert suggestion["openingIntelligence"]["typicalPlans"][1] == "Challenge White's centre with ...e5 or ...c5."
+    assert suggestion["stockfishEngine"]["layer"] == "stockfish_engine"
+    assert suggestion["stockfishEngine"]["bestMove"] == "...e5"
+    assert "Opening intelligence:" in suggestion["summary"]
+    assert "Stockfish layer:" in suggestion["summary"]
     assert suggestion["engineNote"] == (
         "Engine move included as a position-specific check, not as the whole opening recommendation."
     )
