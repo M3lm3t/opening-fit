@@ -22,6 +22,7 @@ import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
 import AccountPanel from "./components/AccountPanel";
 import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeLinesPanel from "./components/OpeningPracticeLinesPanel";
+import { findOpeningPracticePack } from "./data/openingPracticeLines";
 import PremiumPanel from "./components/PremiumPanel";
 import ResultsCommandCenter from "./components/ResultsCommandCenter";
 import OpeningHealthScore from "./components/OpeningHealthScore";
@@ -8724,6 +8725,31 @@ function App() {
     isPremium,
   ]);
 
+  const featuredTrainOpening = useMemo(() => {
+    const planOpening = personalTrainingPlan.find((item) => item.opening)?.opening;
+    const candidates = [
+      planOpening,
+      fitData.bestOpening ? getOpeningName(fitData.bestOpening) : null,
+      filteredPreferredWhite?.[0]?.name,
+      filteredPreferredBlack?.[0]?.name,
+      filteredTopOpenings?.[0] ? getOpeningName(filteredTopOpenings[0]) : null,
+      filteredRecentGames?.[0]?.opening,
+    ].filter((name) => name && !isUnknownOpeningName(name));
+
+    return (
+      candidates.find((name) => findOpeningPracticePack(name)) ||
+      candidates[0] ||
+      "Italian Game"
+    );
+  }, [
+    personalTrainingPlan,
+    fitData.bestOpening,
+    filteredPreferredWhite,
+    filteredPreferredBlack,
+    filteredTopOpenings,
+    filteredRecentGames,
+  ]);
+
   const selectedGame = filteredRecentGames?.[selectedGameIndex] || null;
 
   const selectedReplayGame = useMemo(() => {
@@ -9181,14 +9207,27 @@ function App() {
           ) : null}
 
           {activeAppSection === "train" && !reportData && !loading ? (
-            <section className="card appEmptySection" id="training-plan">
-              <p className="eyebrow">Train</p>
-              <h2>No training plan yet</h2>
-              <p>Training actions are generated from your current opening report.</p>
-              <button className="primaryBtn" type="button" onClick={() => setActiveView("analyse")}>
-                Start an import
-              </button>
-            </section>
+            <>
+              <div id="opening-practice">
+                <OpeningPracticeLinesPanel
+                  opening="Italian Game"
+                  user={supabaseUser || accountUser}
+                  data={data || {}}
+                  featured
+                  showBrowser={false}
+                  heading="Practice your recommended line"
+                />
+              </div>
+
+              <section className="card appEmptySection" id="training-plan">
+                <p className="eyebrow">Train</p>
+                <h2>No training plan yet</h2>
+                <p>Training actions are generated from your current opening report.</p>
+                <button className="primaryBtn" type="button" onClick={() => setActiveView("analyse")}>
+                  Start an import
+                </button>
+              </section>
+            </>
           ) : null}
 
           {loading && activeAppSection !== "analyse" && (
@@ -9201,7 +9240,7 @@ function App() {
             </section>
           )}
 
-          {practiceOpening && (
+          {practiceOpening && activeAppSection !== "train" && (
             <div id="opening-practice">
               <OpeningPracticeLinesPanel
                 openingName={practiceOpening}
@@ -9709,6 +9748,18 @@ function App() {
 
               {activeAppSection === "train" ? (
                 <>
+                  <div id="opening-practice">
+                    <OpeningPracticeLinesPanel
+                      opening={practiceOpening || featuredTrainOpening}
+                      user={supabaseUser || accountUser}
+                      data={reportData || data || {}}
+                      onClose={practiceOpening ? () => setPracticeOpening(null) : null}
+                      featured
+                      showBrowser={Boolean(practiceOpening)}
+                      heading={practiceOpening ? "Practice this line" : "Practice your recommended line"}
+                    />
+                  </div>
+
                   <OpeningFitRetentionCommandCenter
                     data={reportData}
                     username={username}
