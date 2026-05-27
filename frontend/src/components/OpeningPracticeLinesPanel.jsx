@@ -605,7 +605,7 @@ export default function OpeningPracticeLinesPanel({ opening, onClose, user = nul
       </div>
 
       <div className="practiceBoardLayout">
-        <div className="practiceBoardWrap">
+        <div className="practiceBoardWrap practice-board-shell">
           <ChessPositionBoard
             position={fen}
             interactive={!isComplete}

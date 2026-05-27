@@ -1815,9 +1815,22 @@ th {
 
 .replayBoardBox,
 .practiceBoardBox {
-  width: 100%;
+  width: min(100%, calc(100vw - 32px), 420px);
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
   max-width: 420px;
-  margin: 0 auto;
+  margin-inline: auto;
+  overflow: visible;
+}
+
+.opening-board-shell,
+.practice-board-shell,
+.game-replay-board-shell {
+  width: min(100%, calc(100vw - 32px), 420px);
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
+  margin-inline: auto;
+  overflow: visible;
 }
 
 .cleanReplayBoard {
@@ -1826,7 +1839,7 @@ th {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
-  overflow: hidden;
+  overflow: visible;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
@@ -1839,10 +1852,15 @@ th {
   position: relative;
   min-width: 0;
   min-height: 0;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
+  appearance: none;
 }
 
 .chessBoardSquareButton {
@@ -1873,7 +1891,7 @@ th {
   text-align: center;
   pointer-events: none;
   font-size: clamp(25px, 4.2vw, 42px);
-  transform: translateY(8%);
+  transform: none;
 }
 
 .practiceSelectedSquare {
@@ -1883,7 +1901,7 @@ th {
 
 .cleanReplayPiece-p {
   font-size: clamp(21px, 3.7vw, 35px);
-  transform: translateY(12%);
+  transform: none;
 }
 
 .cleanReplayPiece-r,
@@ -4206,11 +4224,13 @@ th {
 }
 
 .practiceBoardWrap {
-  width: 100%;
-  max-width: 380px;
+  width: min(100%, calc(100vw - 32px), 420px);
+  max-width: 420px;
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
   margin: 0 auto;
   border-radius: 18px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(148, 163, 184, 0.18);
   background: rgba(15, 23, 42, 0.68);
   padding: 0.65rem;
@@ -4265,7 +4285,7 @@ th {
   }
 
   .practiceBoardWrap {
-    max-width: 360px;
+    max-width: 390px;
   }
 
   .practiceSearchRow,
@@ -4275,6 +4295,34 @@ th {
 
   .practiceSearchRow p {
     text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .opening-board-shell,
+  .practice-board-shell,
+  .game-replay-board-shell {
+    width: min(100%, calc(100vw - 24px));
+    max-width: 390px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+    overflow: visible;
+  }
+
+  .replayBoardBox,
+  .practiceBoardBox,
+  .practiceBoardWrap {
+    width: min(100%, calc(100vw - 24px));
+    max-width: 390px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+    overflow: visible;
+  }
+
+  .replayBoardWrap,
+  .practiceBoardLayout {
+    max-height: none;
+    overflow: visible;
   }
 }
 

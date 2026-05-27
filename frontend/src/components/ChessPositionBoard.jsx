@@ -85,7 +85,7 @@ export default function ChessPositionBoard({
   };
 
   return (
-    <div className={`cleanReplayBoard chessPositionBoard ${className}`}>
+    <div className={`cleanReplayBoard chessPositionBoard opening-board-shell ${className}`}>
       {board.map((rank, rowIndex) =>
         rank.map((piece, colIndex) => {
           const squareName = getSquareName(rowIndex, colIndex, orientation);
