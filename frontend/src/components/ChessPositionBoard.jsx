@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Chess } from "chess.js";
 
 const PIECES = {
@@ -50,6 +50,7 @@ export default function ChessPositionBoard({
   orientation = "white",
   interactive = false,
   selectedSquare = null,
+  feedbackSquare = null,
   onSquareClick,
   onPieceDrop,
   showCoordinates = true,
@@ -57,6 +58,32 @@ export default function ChessPositionBoard({
 }) {
   const chess = useMemo(() => buildChess(position), [position]);
   const board = useMemo(() => getBoard(chess, orientation), [chess, orientation]);
+  const pointerHandledRef = useRef(false);
+  const draggingRef = useRef(false);
+
+  const activateSquare = (squareName) => {
+    if (!interactive || typeof onSquareClick !== "function") return;
+    onSquareClick(squareName);
+  };
+
+  const handleSquarePointerUp = (event, squareName) => {
+    if (!interactive) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (draggingRef.current) return;
+
+    pointerHandledRef.current = true;
+    event.preventDefault();
+    activateSquare(squareName);
+  };
+
+  const handleSquareClick = (squareName) => {
+    if (pointerHandledRef.current) {
+      pointerHandledRef.current = false;
+      return;
+    }
+
+    activateSquare(squareName);
+  };
 
   const handleDragStart = (event, squareName, piece) => {
     if (!interactive || !piece) {
@@ -64,6 +91,8 @@ export default function ChessPositionBoard({
       return;
     }
 
+    draggingRef.current = true;
+    pointerHandledRef.current = true;
     event.dataTransfer.setData("text/plain", squareName);
     event.dataTransfer.effectAllowed = "move";
   };
@@ -78,10 +107,15 @@ export default function ChessPositionBoard({
     if (!interactive) return;
     event.preventDefault();
 
+    draggingRef.current = false;
     const sourceSquare = event.dataTransfer.getData("text/plain");
     if (sourceSquare && typeof onPieceDrop === "function") {
       onPieceDrop(sourceSquare, targetSquare);
     }
+  };
+
+  const handleDragEnd = () => {
+    draggingRef.current = false;
   };
 
   return (
@@ -116,6 +150,7 @@ export default function ChessPositionBoard({
                 <span
                   draggable={interactive}
                   onDragStart={(event) => handleDragStart(event, squareName, piece)}
+                  onDragEnd={handleDragEnd}
                   className={`cleanReplayPiece ${
                     piece.color === "w"
                       ? "cleanReplayWhitePiece"
@@ -130,7 +165,9 @@ export default function ChessPositionBoard({
 
           const squareClass = `cleanReplaySquare ${
             isLight ? "cleanReplayLight" : "cleanReplayDark"
-          } ${selectedSquare === squareName ? "practiceSelectedSquare" : ""}`;
+          } ${selectedSquare === squareName ? "practiceSelectedSquare" : ""} ${
+            feedbackSquare === squareName ? "practiceInvalidSquare" : ""
+          }`;
 
           if (interactive) {
             return (
@@ -139,8 +176,10 @@ export default function ChessPositionBoard({
                 type="button"
                 className={`${squareClass} chessBoardSquareButton`}
                 draggable={Boolean(pieceKey)}
-                onClick={() => onSquareClick?.(squareName)}
+                onPointerUp={(event) => handleSquarePointerUp(event, squareName)}
+                onClick={() => handleSquareClick(squareName)}
                 onDragStart={(event) => handleDragStart(event, squareName, piece)}
+                onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
                 onDrop={(event) => handleDrop(event, squareName)}
                 aria-label={squareName}
