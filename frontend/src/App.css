@@ -3857,6 +3857,10 @@ th {
   scroll-margin-top: 90px;
 }
 
+.trainPracticePanel {
+  margin-top: 0;
+}
+
 .practiceLinesHeader {
   display: flex;
   align-items: flex-start;
@@ -3894,6 +3898,7 @@ th {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
+  margin-top: 1rem;
   margin-bottom: 1rem;
 }
 
@@ -3939,7 +3944,7 @@ th {
 .practiceOpeningBrowser {
   display: grid;
   gap: 0.8rem;
-  margin: 0 0 1rem;
+  margin: 1rem 0 0;
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 18px;
   padding: 1rem;
@@ -4221,6 +4226,7 @@ th {
   grid-template-columns: minmax(280px, 380px) 1fr;
   gap: 1rem;
   align-items: start;
+  margin-bottom: 1rem;
 }
 
 .practiceBoardWrap {

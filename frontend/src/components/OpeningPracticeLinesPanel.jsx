@@ -169,7 +169,15 @@ function explainMove(line, moves, index) {
   return "This is the main-line move because it supports the opening plan. Check the centre, development, and king safety before moving on.";
 }
 
-export default function OpeningPracticeLinesPanel({ opening, onClose, user = null, data = null }) {
+export default function OpeningPracticeLinesPanel({
+  opening,
+  onClose,
+  user = null,
+  data = null,
+  featured = false,
+  showBrowser = true,
+  heading = "",
+}) {
   const openingName = getOpeningName(opening);
   const [activeOpeningName, setActiveOpeningName] = useState(openingName);
   const pack = useMemo(() => findOpeningPracticePack(activeOpeningName), [activeOpeningName]);
@@ -283,16 +291,22 @@ export default function OpeningPracticeLinesPanel({ opening, onClose, user = nul
     const suggestedPacks = openingPracticePacks.slice(0, 8);
 
     return (
-      <section className="card practiceLinesPanel" id="practice-main-lines">
+      <section
+        className={`card practiceLinesPanel ${featured ? "trainPracticePanel" : ""}`}
+        id="practice-main-lines"
+      >
         <div className="practiceLinesHeader">
           <div>
-            <p className="eyebrow">Practice pack</p>
-            <h2>{openingName}</h2>
+            <p className="eyebrow">{featured ? "Train your next move" : "Practice pack"}</p>
+            <h2>{featured ? heading || "Practice this line" : openingName}</h2>
+            {featured ? <p className="practiceOpeningMeta">{openingName}</p> : null}
           </div>
 
-          <button className="practiceCloseButton" type="button" onClick={onClose}>
-            ×
-          </button>
+          {onClose ? (
+            <button className="practiceCloseButton" type="button" onClick={onClose}>
+              ×
+            </button>
+          ) : null}
         </div>
 
         <div className="practiceComingSoon">
@@ -507,101 +521,28 @@ export default function OpeningPracticeLinesPanel({ opening, onClose, user = nul
   }
 
   return (
-    <section className="card practiceLinesPanel" id="practice-main-lines">
+    <section
+      className={`card practiceLinesPanel ${featured ? "trainPracticePanel" : ""}`}
+      id="practice-main-lines"
+    >
       <div className="practiceLinesHeader">
         <div>
-          <p className="eyebrow">Practice pack</p>
-          <h2>{pack.opening?.name || activeOpeningName}</h2>
+          <p className="eyebrow">{featured ? "Train your next move" : "Practice pack"}</p>
+          <h2>{featured ? heading || "Practice this line" : pack.opening?.name || activeOpeningName}</h2>
           {pack.opening ? (
             <p className="practiceOpeningMeta">
+              {featured ? `${pack.opening.name} · ` : ""}
               {pack.opening.eco ? `${pack.opening.eco} · ` : ""}
               {pack.opening.color} · {pack.opening.difficulty} · {completedLineCount}/{pack.lines.length} lines complete
             </p>
           ) : null}
         </div>
 
-        <button className="practiceCloseButton" type="button" onClick={onClose}>
-          ×
-        </button>
-      </div>
-
-      <div className="practiceOpeningBrowser">
-        <div className="practiceSearchRow">
-          <label>
-            <span>Search openings</span>
-            <input
-              value={openingSearch}
-              onChange={(event) => setOpeningSearch(event.target.value)}
-              placeholder="Search name, ECO, tag, or moves..."
-            />
-          </label>
-          <p>{progressStatus}</p>
-        </div>
-
-        <div className="practiceFilterRow" aria-label="Opening filters">
-          {OPENING_FILTERS.map((filter) => (
-            <button
-              type="button"
-              key={filter.key}
-              className={activeFilters.includes(filter.key) ? "active" : ""}
-              onClick={() => toggleFilter(filter.key)}
-            >
-              {filter.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="practiceOpeningGrid">
-          {filteredOpenings.map((item) => {
-            const progress = trainingProgress.progressByOpening?.[item.id];
-
-            return (
-              <button
-                type="button"
-                key={item.id}
-                className={item.id === activeOpeningId ? "active" : ""}
-                onClick={() => setActiveOpeningName(item.name)}
-              >
-                <span>{item.eco || item.color}</span>
-                <strong>{item.name}</strong>
-                <small>
-                  {item.difficulty} · {progress ? `${progress.completed}/${progress.total} complete` : item.tags.slice(0, 2).join(", ")}
-                </small>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="practiceLineChoices">
-        {pack.lines.map((line, index) => (
-          <button
-            key={line.name}
-            type="button"
-            className={`practiceLineChoice ${selectedLineIndex === index ? "active" : ""}`}
-            onClick={() => chooseLine(index)}
-          >
-            <span>Line {index + 1}</span>
-            <strong>{line.name}</strong>
-            {trainingProgress.completedLines?.[lineKey(activeOpeningId, line.name)] ? (
-              <small>Completed</small>
-            ) : null}
+        {onClose ? (
+          <button className="practiceCloseButton" type="button" onClick={onClose}>
+            ×
           </button>
-        ))}
-      </div>
-
-      <div className="practiceProgressBox">
-        <div className="practiceProgressTop">
-          <span>Practice progress</span>
-          <strong>{completedMoves}/{moves.length} moves</strong>
-        </div>
-
-        <div className="practiceProgressTrack">
-          <div
-            className="practiceProgressFill"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
+        ) : null}
       </div>
 
       <div className="practiceBoardLayout">
@@ -700,6 +641,37 @@ export default function OpeningPracticeLinesPanel({ opening, onClose, user = nul
         </div>
       </div>
 
+      <div className="practiceLineChoices">
+        {pack.lines.map((line, index) => (
+          <button
+            key={line.name}
+            type="button"
+            className={`practiceLineChoice ${selectedLineIndex === index ? "active" : ""}`}
+            onClick={() => chooseLine(index)}
+          >
+            <span>Line {index + 1}</span>
+            <strong>{line.name}</strong>
+            {trainingProgress.completedLines?.[lineKey(activeOpeningId, line.name)] ? (
+              <small>Completed</small>
+            ) : null}
+          </button>
+        ))}
+      </div>
+
+      <div className="practiceProgressBox">
+        <div className="practiceProgressTop">
+          <span>Practice progress</span>
+          <strong>{completedMoves}/{moves.length} moves</strong>
+        </div>
+
+        <div className="practiceProgressTrack">
+          <div
+            className="practiceProgressFill"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
       <div className="practiceMoveList">
         {moves.map((move, index) => (
           <button
@@ -731,6 +703,56 @@ export default function OpeningPracticeLinesPanel({ opening, onClose, user = nul
           </article>
         ))}
       </div>
+
+      {showBrowser ? (
+        <div className="practiceOpeningBrowser">
+          <div className="practiceSearchRow">
+            <label>
+              <span>Search openings</span>
+              <input
+                value={openingSearch}
+                onChange={(event) => setOpeningSearch(event.target.value)}
+                placeholder="Search name, ECO, tag, or moves..."
+              />
+            </label>
+            <p>{progressStatus}</p>
+          </div>
+
+          <div className="practiceFilterRow" aria-label="Opening filters">
+            {OPENING_FILTERS.map((filter) => (
+              <button
+                type="button"
+                key={filter.key}
+                className={activeFilters.includes(filter.key) ? "active" : ""}
+                onClick={() => toggleFilter(filter.key)}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="practiceOpeningGrid">
+            {filteredOpenings.map((item) => {
+              const progress = trainingProgress.progressByOpening?.[item.id];
+
+              return (
+                <button
+                  type="button"
+                  key={item.id}
+                  className={item.id === activeOpeningId ? "active" : ""}
+                  onClick={() => setActiveOpeningName(item.name)}
+                >
+                  <span>{item.eco || item.color}</span>
+                  <strong>{item.name}</strong>
+                  <small>
+                    {item.difficulty} · {progress ? `${progress.completed}/${progress.total} complete` : item.tags.slice(0, 2).join(", ")}
+                  </small>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
