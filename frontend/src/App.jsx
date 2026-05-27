@@ -1,5 +1,6 @@
 import OpeningFitUXCleanup from "./components/OpeningFitUXCleanup.jsx";
 import OpeningFitStudyPlanner from "./components/OpeningFitStudyPlanner.jsx";
+import OpeningFitRetentionCommandCenter from "./components/OpeningFitRetentionCommandCenter.jsx";
 import OpeningFitImportDoctor from "./components/OpeningFitImportDoctor.jsx";
 import OpeningFitFunctionalityHub from "./components/OpeningFitFunctionalityHub.jsx";
 import OpeningFitFunctionalTools from "./components/OpeningFitFunctionalTools.jsx";
@@ -9624,6 +9625,12 @@ function App() {
 
               {activeAppSection === "train" ? (
                 <>
+                  <OpeningFitRetentionCommandCenter
+                    data={reportData}
+                    username={username}
+                    onPractice={startOpeningPractice}
+                  />
+
                   <DailyOpeningHabit
                     data={reportData}
                     user={supabaseUser || accountUser}
