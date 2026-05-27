@@ -34826,6 +34826,14 @@ svg {
   max-width: var(--of-shell) !important;
   margin: 0 auto;
   gap: 18px !important;
+  overflow-x: clip;
+}
+
+.profileSection *,
+.profileSection *::before,
+.profileSection *::after {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .profileSectionHeader {
@@ -34973,10 +34981,47 @@ svg {
 .profileGrid .reportHistoryVault,
 .profileGrid .loginScreenSection,
 .profileGrid .premiumUpgradeShell,
-.profileGrid .premiumPanel {
+.profileGrid .premiumPanel,
+.profileGrid .accountPanel,
+.profileGrid .accountPanelShell {
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 !important;
+}
+
+.profileSection .tableWrap,
+.profileSection .savedReportsList,
+.profileSection .historyList,
+.profileSection .goalList,
+.profileSection .premiumList,
+.profileSection .weeklyMasteryList {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.profileSection table {
+  width: 100%;
+  min-width: 0;
+}
+
+.profileSection .exportHistoryActions,
+.profileSection .savedReportsHeader,
+.profileSection .premiumPanelHeader,
+.profileSection .accountPanelHeader,
+.profileSection .todayPanelTop,
+.profileSection .weeklyReportActions,
+.profileSection .dashboardActionButtons {
+  flex-wrap: wrap;
+}
+
+.profileSection button,
+.profileSection .primaryBtn,
+.profileSection .secondaryBtn,
+.profileSection .secondaryButton,
+.profileSection .ghostButton {
+  max-width: 100%;
+  white-space: normal;
 }
 
 .profileHubSection .seriousPremiumStrip,
@@ -34992,6 +35037,27 @@ svg {
   .profileSection {
     width: var(--of-shell-wide) !important;
     max-width: var(--of-shell-wide) !important;
+  }
+}
+
+@media (max-width: 1366px) {
+  .profileSection {
+    width: calc(100vw - 28px) !important;
+    max-width: calc(100vw - 28px) !important;
+  }
+
+  .profileIdentityCard,
+  .profileAchievementGrid,
+  .profileGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .profileIdentityStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .profileAchievementGrid .todayDashboardHero {
+    grid-template-columns: 1fr !important;
   }
 }
 
