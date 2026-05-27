@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 
 export const SUPPORTED_OPENINGS = [
@@ -168,8 +168,12 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
 
   const [moveIndex, setMoveIndex] = useState(0);
   const [selectedSquare, setSelectedSquare] = useState(null);
+  const [feedbackSquare, setFeedbackSquare] = useState(null);
   const [message, setMessage] = useState("");
   const [chess, setChess] = useState(() => new Chess());
+  const pointerHandledRef = useRef(false);
+  const draggingRef = useRef(false);
+  const feedbackTimerRef = useRef(null);
 
   const orientation = opening?.side === "black" ? "black" : "white";
   const board = useMemo(() => getBoard(chess, orientation), [chess, orientation]);
@@ -180,11 +184,26 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
     ? Math.round((moveIndex / opening.moves.length) * 100)
     : 0;
 
+  useEffect(() => {
+    return () => window.clearTimeout(feedbackTimerRef.current);
+  }, []);
+
   const resetPractice = () => {
     setChess(new Chess());
     setMoveIndex(0);
     setSelectedSquare(null);
+    setFeedbackSquare(null);
     setMessage("");
+  };
+
+  const showIllegalFeedback = (squareName, text) => {
+    setFeedbackSquare(squareName);
+    setMessage(text);
+
+    window.clearTimeout(feedbackTimerRef.current);
+    feedbackTimerRef.current = window.setTimeout(() => {
+      setFeedbackSquare(null);
+    }, 260);
   };
 
   const applyPracticeMove = (from, to) => {
@@ -200,7 +219,7 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
       });
 
       if (!move) {
-        setMessage("That move is not legal in this position.");
+        showIllegalFeedback(to, "That move is not legal in this position.");
         setSelectedSquare(null);
         return;
       }
@@ -216,11 +235,11 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
           setMessage("Correct move.");
         }
       } else {
-        setMessage(`Not quite. The main line move is ${expectedMove}.`);
+        showIllegalFeedback(to, `Not quite. The main line move is ${expectedMove}.`);
         setSelectedSquare(null);
       }
     } catch {
-      setMessage("That move is not legal in this position.");
+      showIllegalFeedback(to, "That move is not legal in this position.");
       setSelectedSquare(null);
     }
   };
@@ -231,7 +250,10 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
     const piece = chess.get(squareName);
 
     if (!selectedSquare) {
-      if (!piece) return;
+      if (!piece) {
+        setMessage("");
+        return;
+      }
 
       setSelectedSquare(squareName);
       setMessage("Now choose the square to move to.");
@@ -244,7 +266,30 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
       return;
     }
 
+    if (piece && piece.color === chess.turn()) {
+      setSelectedSquare(squareName);
+      setMessage("Now choose the square to move to.");
+      return;
+    }
+
     applyPracticeMove(selectedSquare, squareName);
+  };
+
+  const handleSquarePointerUp = (event, squareName) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (draggingRef.current) return;
+    pointerHandledRef.current = true;
+    event.preventDefault();
+    handleSquareClick(squareName);
+  };
+
+  const handleSquareButtonClick = (squareName) => {
+    if (pointerHandledRef.current) {
+      pointerHandledRef.current = false;
+      return;
+    }
+
+    handleSquareClick(squareName);
   };
 
   const handleDragStart = (event, squareName) => {
@@ -257,6 +302,8 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
       return;
     }
 
+    draggingRef.current = true;
+    pointerHandledRef.current = true;
     event.dataTransfer.setData("text/plain", squareName);
     event.dataTransfer.effectAllowed = "move";
     setSelectedSquare(squareName);
@@ -269,12 +316,17 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
 
   const handleDrop = (event, targetSquare) => {
     event.preventDefault();
+    draggingRef.current = false;
 
     const sourceSquare = event.dataTransfer.getData("text/plain");
 
     if (!sourceSquare) return;
 
     applyPracticeMove(sourceSquare, targetSquare);
+  };
+
+  const handleDragEnd = () => {
+    draggingRef.current = false;
   };
 
   const playExpectedMove = () => {
@@ -395,8 +447,14 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
                       isLight ? "cleanReplayLight" : "cleanReplayDark"
                     } ${
                       selectedSquare === squareName ? "practiceSelectedSquare" : ""
+                    } ${
+                      feedbackSquare === squareName ? "practiceInvalidSquare" : ""
                     }`}
-                    onClick={() => handleSquareClick(squareName)}
+                    onPointerUp={(event) => handleSquarePointerUp(event, squareName)}
+                    onClick={() => handleSquareButtonClick(squareName)}
+                    draggable={Boolean(pieceKey)}
+                    onDragStart={(event) => handleDragStart(event, squareName)}
+                    onDragEnd={handleDragEnd}
                     onDragOver={handleDragOver}
                     onDrop={(event) => handleDrop(event, squareName)}
                     aria-label={squareName}
@@ -407,6 +465,7 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
                         onDragStart={(event) =>
                           handleDragStart(event, squareName)
                         }
+                        onDragEnd={handleDragEnd}
                         className={`cleanReplayPiece practiceDraggablePiece ${
                           piece.color === "w"
                             ? "cleanReplayWhitePiece"

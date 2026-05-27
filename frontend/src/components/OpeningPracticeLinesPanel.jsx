@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import ChessPositionBoard from "./ChessPositionBoard";
 import { findOpeningPracticePack, openingPracticePacks } from "../data/openingPracticeLines";
@@ -188,10 +188,12 @@ export default function OpeningPracticeLinesPanel({
   const [status, setStatus] = useState("");
   const [showHint, setShowHint] = useState(false);
   const [selectedSquare, setSelectedSquare] = useState(null);
+  const [feedbackSquare, setFeedbackSquare] = useState(null);
   const [openingSearch, setOpeningSearch] = useState("");
   const [activeFilters, setActiveFilters] = useState([]);
   const [trainingProgress, setTrainingProgress] = useState(() => loadLocalTrainingProgress());
   const [progressStatus, setProgressStatus] = useState(user?.id ? "Syncing practice progress..." : "Progress saved on this device");
+  const feedbackTimerRef = useRef(null);
 
   const selectedLine = pack?.lines?.[selectedLineIndex];
   const moves = useMemo(() => selectedLine?.moves || [], [selectedLine]);
@@ -199,9 +201,15 @@ export default function OpeningPracticeLinesPanel({
   const isComplete = Boolean(pack) && moveIndex >= moves.length;
   const progressPercent = moves.length ? Math.round((moveIndex / moves.length) * 100) : 0;
   const completedMoves = Math.min(moveIndex, moves.length);
-  const moveExplanation = !isComplete
-    ? explainMove(selectedLine, moves, moveIndex)
-    : selectedLine?.finishIdea || "You reached the target position. Review the plan, not just the move order.";
+  const currentGame = useMemo(() => new Chess(fen), [fen]);
+  const currentTurn = currentGame.turn();
+  const moveExplanation = useMemo(
+    () =>
+      !isComplete
+        ? explainMove(selectedLine, moves, moveIndex)
+        : selectedLine?.finishIdea || "You reached the target position. Review the plan, not just the move order.",
+    [isComplete, moveIndex, moves, selectedLine]
+  );
   const activeOpeningId = pack ? getOpeningId(pack, activeOpeningName) : normaliseOpeningKey(activeOpeningName);
   const currentLineKey = selectedLine ? lineKey(activeOpeningId, selectedLine.name) : null;
   const completedLineCount = Object.values(trainingProgress.completedLines || {}).filter(
@@ -223,6 +231,10 @@ export default function OpeningPracticeLinesPanel({
   useEffect(() => {
     setActiveOpeningName(openingName);
   }, [openingName]);
+
+  useEffect(() => {
+    return () => window.clearTimeout(feedbackTimerRef.current);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -278,6 +290,7 @@ export default function OpeningPracticeLinesPanel({
     setStatus("");
     setShowHint(false);
     setSelectedSquare(null);
+    setFeedbackSquare(null);
   }, [activeOpeningName]);
 
   useEffect(() => {
@@ -341,6 +354,17 @@ export default function OpeningPracticeLinesPanel({
     setStatus("");
     setShowHint(false);
     setSelectedSquare(null);
+    setFeedbackSquare(null);
+  }
+
+  function showIllegalFeedback(squareName, message) {
+    setFeedbackSquare(squareName);
+    setStatus(message);
+
+    window.clearTimeout(feedbackTimerRef.current);
+    feedbackTimerRef.current = window.setTimeout(() => {
+      setFeedbackSquare(null);
+    }, 260);
   }
 
   async function saveTrainingProgress(nextProgress) {
@@ -400,6 +424,7 @@ export default function OpeningPracticeLinesPanel({
     setStatus("");
     setShowHint(false);
     setSelectedSquare(null);
+    setFeedbackSquare(null);
   }
 
   function playExpectedMove() {
@@ -414,6 +439,7 @@ export default function OpeningPracticeLinesPanel({
       setStatus(`Correct. ${explainMove(selectedLine, moves, moveIndex)}`);
       setShowHint(false);
       setSelectedSquare(null);
+      setFeedbackSquare(null);
       if (moveIndex + 1 >= moves.length) markLineComplete();
     } catch {
       setStatus("This practice line could not play that move. Check the saved line.");
@@ -429,6 +455,7 @@ export default function OpeningPracticeLinesPanel({
     setStatus("");
     setShowHint(false);
     setSelectedSquare(null);
+    setFeedbackSquare(null);
   }
 
   function jumpToMove(index) {
@@ -438,20 +465,21 @@ export default function OpeningPracticeLinesPanel({
     setStatus("");
     setShowHint(false);
     setSelectedSquare(null);
+    setFeedbackSquare(null);
   }
 
   function handlePieceDrop(sourceSquare, targetSquare) {
     if (!expectedMove || isComplete) return false;
 
-    const gameBeforeMove = buildGameToMove(moves, moveIndex);
-    const gameAfterExpectedMove = buildGameToMove(moves, moveIndex);
+    const gameBeforeMove = new Chess(fen);
+    const gameAfterExpectedMove = new Chess(fen);
 
     let expectedMoveObject = null;
 
     try {
       expectedMoveObject = gameAfterExpectedMove.move(expectedMove);
     } catch {
-      setStatus("This practice line has a saved move that cannot be played.");
+      showIllegalFeedback(sourceSquare, "This practice line has a saved move that cannot be played.");
       setSelectedSquare(null);
       return false;
     }
@@ -464,7 +492,7 @@ export default function OpeningPracticeLinesPanel({
       });
 
       if (!attemptedMove) {
-        setStatus("That move is not legal.");
+        showIllegalFeedback(targetSquare, "That move is not legal.");
         setSelectedSquare(null);
         return false;
       }
@@ -475,7 +503,8 @@ export default function OpeningPracticeLinesPanel({
         cleanSan(attemptedMove.san) === cleanSan(expectedMoveObject.san);
 
       if (!sameMove) {
-        setStatus(
+        showIllegalFeedback(
+          targetSquare,
           `Not quite. Hint: the move is ${formatMoveNumber(moveIndex)} ${expectedMove}. ${moveExplanation}`
         );
         setShowHint(true);
@@ -483,15 +512,16 @@ export default function OpeningPracticeLinesPanel({
         return false;
       }
 
-      setFen(gameAfterExpectedMove.fen());
+      setFen(gameBeforeMove.fen());
       setMoveIndex((current) => current + 1);
       setStatus(`Correct. ${explainMove(selectedLine, moves, moveIndex)}`);
       setShowHint(false);
       setSelectedSquare(null);
+      setFeedbackSquare(null);
       if (moveIndex + 1 >= moves.length) markLineComplete();
       return true;
     } catch {
-      setStatus("That move is not legal.");
+      showIllegalFeedback(targetSquare, "That move is not legal.");
       setSelectedSquare(null);
       return false;
     }
@@ -500,11 +530,13 @@ export default function OpeningPracticeLinesPanel({
   function handleSquareClick(squareName) {
     if (!expectedMove || isComplete) return;
 
-    const game = buildGameToMove(moves, moveIndex);
-    const piece = game.get(squareName);
+    const piece = currentGame.get(squareName);
 
     if (!selectedSquare) {
-      if (!piece) return;
+      if (!piece) {
+        setStatus("");
+        return;
+      }
 
       setSelectedSquare(squareName);
       setStatus("Choose the square this piece should move to.");
@@ -514,6 +546,12 @@ export default function OpeningPracticeLinesPanel({
     if (selectedSquare === squareName) {
       setSelectedSquare(null);
       setStatus("");
+      return;
+    }
+
+    if (piece && piece.color === currentTurn) {
+      setSelectedSquare(squareName);
+      setStatus("Choose the square this piece should move to.");
       return;
     }
 
@@ -551,6 +589,7 @@ export default function OpeningPracticeLinesPanel({
             position={fen}
             interactive={!isComplete}
             selectedSquare={selectedSquare}
+            feedbackSquare={feedbackSquare}
             onPieceDrop={handlePieceDrop}
             onSquareClick={handleSquareClick}
           />
@@ -589,7 +628,7 @@ export default function OpeningPracticeLinesPanel({
                   {formatMoveNumber(moveIndex)} {showHint ? expectedMove : "?"}
                 </strong>
                 <small>
-                  {new Chess(fen).turn() === "w" ? "White" : "Black"} to move · Move {moveIndex + 1} of {moves.length}
+                  {currentTurn === "w" ? "White" : "Black"} to move · Move {moveIndex + 1} of {moves.length}
                 </small>
               </>
             )}
