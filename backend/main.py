@@ -2,6 +2,12 @@ import stripe
 from collections import Counter, defaultdict
 from fastapi.responses import JSONResponse, Response
 from intelligence import enrich_analysis_result
+from opening_detection import (
+    detect_opening,
+    detect_opening_from_pgn,
+    normalise_opening_name as detect_normalise_opening_name,
+    pgn_tag_value,
+)
 from typing import List, Dict, Any, Optional
 import os
 from dotenv import load_dotenv
@@ -415,54 +421,11 @@ def clean_moves_from_pgn(pgn: str) -> List[str]:
 
 
 def normalize_opening_name(name: str) -> str:
-    if not name:
-        return "Unknown Opening"
-
-    lower = name.lower()
-
-    mapping = [
-        (["vienna"], "Vienna Game"),
-        (["scandinavian"], "Scandinavian Defence"),
-        (["sicilian"], "Sicilian Defence"),
-        (["caro-kann", "caro kann"], "Caro-Kann Defence"),
-        (["french"], "French Defence"),
-        (["ruy lopez", "spanish"], "Ruy Lopez"),
-        (["italian"], "Italian Game"),
-        (["queen's gambit", "queens gambit"], "Queen's Gambit"),
-        (["london"], "London System"),
-        (["jobava"], "Jobava London"),
-        (["king's indian attack", "kings indian attack"], "King's Indian Attack"),
-        (["king's indian", "kings indian"], "King's Indian Defence"),
-        (["pirc"], "Pirc Defence"),
-        (["modern"], "Modern Defence"),
-        (["english"], "English Opening"),
-        (["reti", "réti"], "Réti Opening"),
-        (["scotch"], "Scotch Game"),
-        (["four knights"], "Four Knights Game"),
-        (["dutch"], "Dutch Defence"),
-        (["grünfeld", "grunfeld"], "Grünfeld Defence"),
-        (["nimzo"], "Nimzo-Indian Defence"),
-        (["catalan"], "Catalan Opening"),
-    ]
-
-    for keys, value in mapping:
-        if any(k in lower for k in keys):
-            return value
-
-    return name.strip()
+    return detect_normalise_opening_name(name)
 
 
 def pgn_tag_opening(pgn: str) -> str:
-    if not pgn:
-        return ""
-
-    for line in pgn.splitlines():
-        if line.startswith("[Opening "):
-            parts = line.split('"')
-            if len(parts) >= 2:
-                return parts[1].strip()
-
-    return ""
+    return pgn_tag_value(pgn, "Opening")
 
 
 def is_kings_indian_structure(seq: List[str]) -> bool:
@@ -577,11 +540,12 @@ def opening_from_move_sequence(moves: List[str]) -> str:
 
 
 def guess_opening_from_pgn(pgn: str) -> str:
-    tagged = normalize_opening_name(pgn_tag_opening(pgn))
-    if tagged != "Unknown Opening":
-        return tagged
-
     moves = clean_moves_from_pgn(pgn)
+    detected = detect_opening_from_pgn(pgn, moves)
+
+    if not is_unknown_opening_name(detected.get("opening", "")):
+        return detected["opening"]
+
     return normalize_opening_name(opening_from_move_sequence(moves))
 
 
@@ -3205,66 +3169,6 @@ def _find_stockfish_path() -> _Optional[str]:
     return None
 
 
-OPENING_FAMILY_THEMES = {
-    "King's Indian Defence": {
-        "family": "King's Indian type setup",
-        "themes": [
-            "challenge White's centre",
-            "prepare ...e5 or ...c5 pawn breaks",
-            "create kingside counterplay after castling",
-        ],
-    },
-    "Grünfeld Defence": {
-        "family": "Grünfeld type setup",
-        "themes": [
-            "invite White's centre forward",
-            "attack the centre with ...c5 and piece pressure",
-            "keep the dark-square bishop active on g7",
-        ],
-    },
-    "Sicilian Defence": {
-        "family": "Sicilian type structure",
-        "themes": [
-            "fight for the centre from the flank",
-            "use the c-file and queenside counterplay",
-            "watch tactical breaks around ...d5",
-        ],
-    },
-    "Caro-Kann Defence": {
-        "family": "Caro-Kann structure",
-        "themes": [
-            "build a solid centre",
-            "develop the light-square bishop before closing the structure",
-            "look for timely ...c5 or ...e5 breaks",
-        ],
-    },
-    "French Defence": {
-        "family": "French Defence structure",
-        "themes": [
-            "pressure White's centre",
-            "prepare ...c5 and sometimes ...f6",
-            "solve the light-square bishop before it becomes passive",
-        ],
-    },
-    "London System": {
-        "family": "London System setup",
-        "themes": [
-            "complete a stable piece setup",
-            "control e5",
-            "choose between queenside expansion and kingside pressure",
-        ],
-    },
-    "Queen's Gambit": {
-        "family": "Queen's Gambit structure",
-        "themes": [
-            "pressure the d5 pawn",
-            "develop smoothly before opening the centre",
-            "use c-file and minority-attack plans when the structure calls for it",
-        ],
-    },
-}
-
-
 def parse_position_for_openingfit(payload: OpeningFitPositionRequest) -> Dict[str, Any]:
     if chess is None:
         raise HTTPException(
@@ -3311,41 +3215,23 @@ def parse_position_for_openingfit(payload: OpeningFitPositionRequest) -> Dict[st
         "moves": san_moves,
         "source": "pgn",
         "taggedOpening": normalize_opening_name(pgn_tag_opening(pgn_text)),
+        "eco": pgn_tag_value(pgn_text, "ECO"),
+        "ecoUrl": pgn_tag_value(pgn_text, "ECOUrl"),
     }
 
 
-def detect_opening_family_for_position(moves: List[str], tagged_opening: str = "") -> Dict[str, Any]:
-    opening_name = normalize_opening_name(tagged_opening) if tagged_opening else "Unknown Opening"
-
-    if is_unknown_opening_name(opening_name):
-        opening_name = normalize_opening_name(opening_from_move_sequence(moves))
-
-    family_info = OPENING_FAMILY_THEMES.get(
-        opening_name,
-        {
-            "family": opening_name if not is_unknown_opening_name(opening_name) else "unclassified opening structure",
-            "themes": [
-                "identify the pawn breaks",
-                "finish development before forcing tactics",
-                "review the first position where the plan becomes unclear",
-            ],
-        },
+def detect_opening_family_for_position(
+    moves: List[str],
+    tagged_opening: str = "",
+    eco: str = "",
+    eco_url: str = "",
+) -> Dict[str, Any]:
+    return detect_opening(
+        moves,
+        tagged_opening=tagged_opening,
+        eco=eco,
+        eco_url=eco_url,
     )
-
-    exact_family = not is_unknown_opening_name(opening_name)
-    structural_kid = is_kings_indian_structure(moves)
-
-    if structural_kid and opening_name != "King's Indian Defence":
-        opening_name = "King's Indian Defence"
-        family_info = OPENING_FAMILY_THEMES[opening_name]
-        exact_family = True
-
-    return {
-        "opening": opening_name,
-        "family": family_info["family"],
-        "confidence": "high" if exact_family else "low",
-        "themes": family_info["themes"],
-    }
 
 
 def format_engine_move(board, move) -> str:
@@ -3463,6 +3349,8 @@ def analyse_openingfit_position(payload: OpeningFitPositionRequest):
     opening_family = detect_opening_family_for_position(
         position["moves"],
         tagged_opening=position.get("taggedOpening", ""),
+        eco=position.get("eco", ""),
+        eco_url=position.get("ecoUrl", ""),
     )
     engine_result = analyse_position_with_stockfish(position["board"], depth=payload.depth)
     suggestion = build_openingfit_suggestion(opening_family, engine_result)
