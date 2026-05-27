@@ -460,6 +460,9 @@ export async function logUserActivity(
     if (!userId) return null;
 
     const safePoints = Number.isFinite(points) ? points : 0;
+    const dedupeKey =
+      String(metadata.dedupe_key || metadata.dedupeKey || "").trim() ||
+      "";
     const { data, error } = await client
       .from("user_activity_log")
       .insert({
@@ -467,11 +470,13 @@ export async function logUserActivity(
         activity_type: activityType,
         points: safePoints,
         metadata,
+        dedupe_key: dedupeKey || null,
       })
       .select("*")
       .single();
 
     if (error) {
+      if ((error as { code?: string }).code === "23505") return null;
       logRetentionQueryFailure("user_activity_log", "insert activity log row", error, {
         userId,
         activityType,

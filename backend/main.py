@@ -3026,7 +3026,12 @@ def supabase_headers(extra=None):
 
 
 @app.get("/api/user-state/{platform}/{username}")
-def get_user_state(platform: str, username: str):
+def get_user_state(platform: str, username: str, request: Request):
+    get_auth_user(request)
+    raise HTTPException(
+        status_code=410,
+        detail="This username-based cloud state endpoint is deprecated. Use /api/account/state/{user_id}.",
+    )
     clean_username = username.strip()
     clean_platform = platform.strip().lower() or "chesscom"
 
@@ -3078,7 +3083,12 @@ def get_user_state(platform: str, username: str):
 
 
 @app.post("/api/user-state")
-def save_user_state(payload: UserStatePayload):
+def save_user_state(payload: UserStatePayload, request: Request):
+    get_auth_user(request)
+    raise HTTPException(
+        status_code=410,
+        detail="This username-based cloud state endpoint is deprecated. Use /api/account/state.",
+    )
     clean_username = payload.username.strip()
     clean_platform = payload.platform.strip().lower() or "chesscom"
 
@@ -3825,12 +3835,42 @@ def get_supabase_admin_client():
     return create_client(supabase_url, service_key)
 
 
+def get_auth_user(request: Request):
+    auth_header = request.headers.get("authorization", "")
+    if not auth_header.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Missing auth token.")
+
+    token = auth_header.split(" ", 1)[1].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing auth token.")
+
+    try:
+        auth_response = get_supabase_admin_client().auth.get_user(token)
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail=f"Invalid auth token: {exc}")
+
+    user = getattr(auth_response, "user", None)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid auth token.")
+
+    return user
+
+
+def require_matching_auth_user(request: Request, user_id: str):
+    auth_user = get_auth_user(request)
+    auth_user_id = str(getattr(auth_user, "id", "") or "")
+    if auth_user_id != str(user_id):
+        raise HTTPException(status_code=403, detail="Forbidden.")
+    return auth_user
+
+
 @app.post("/api/account/sync")
-async def sync_account_profile(payload: AccountProfilePayload):
+async def sync_account_profile(payload: AccountProfilePayload, request: Request):
+    require_matching_auth_user(request, payload.userId)
     supabase_admin = get_supabase_admin_client()
 
     profile = {
-        "id": payload.userId,
+        "user_id": payload.userId,
         "email": payload.email,
         "display_name": payload.displayName,
         "platform": payload.platform or "chesscom",
@@ -3840,13 +3880,11 @@ async def sync_account_profile(payload: AccountProfilePayload):
 
     if payload.lastReport:
         profile["last_report"] = payload.lastReport
-        profile["last_report_platform"] = payload.platform
-        profile["last_report_username"] = payload.username
 
     result = (
         supabase_admin
-        .table("user_profiles")
-        .upsert(profile, on_conflict="id")
+        .table("profiles")
+        .upsert(profile, on_conflict="user_id")
         .execute()
     )
 
@@ -3857,18 +3895,19 @@ async def sync_account_profile(payload: AccountProfilePayload):
 
 
 @app.get("/api/account/profile/{user_id}")
-async def get_account_profile(user_id: str):
+async def get_account_profile(user_id: str, request: Request):
     if not is_valid_uuid(user_id):
         return {"ok": True, "profile": None}
 
+    require_matching_auth_user(request, user_id)
     supabase_admin = get_supabase_admin_client()
 
     try:
         result = (
             supabase_admin
-            .table("user_profiles")
+            .table("profiles")
             .select("*")
-            .eq("id", user_id)
+            .eq("user_id", user_id)
             .limit(1)
             .execute()
         )
@@ -3886,7 +3925,7 @@ async def get_account_profile(user_id: str):
 
 
 @app.post("/api/account/create-checkout-session")
-async def create_checkout_session(payload: Dict[str, Any]):
+async def create_checkout_session(payload: Dict[str, Any], request: Request):
     stripe_secret_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
     stripe_price_id = os.getenv("STRIPE_PREMIUM_PRICE_ID", "").strip()
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").strip()
@@ -3899,11 +3938,14 @@ async def create_checkout_session(payload: Dict[str, Any]):
 
     stripe.api_key = stripe_secret_key
 
-    user_id = payload.get("userId")
-    email = payload.get("email")
+    requested_user_id = payload.get("userId")
 
-    if not user_id:
+    if not requested_user_id:
         raise HTTPException(status_code=400, detail="Missing userId.")
+
+    auth_user = require_matching_auth_user(request, requested_user_id)
+    user_id = str(auth_user.id)
+    email = getattr(auth_user, "email", None) or payload.get("email")
 
     session = stripe.checkout.Session.create(
         mode="payment",
@@ -3957,31 +3999,43 @@ async def stripe_webhook(request: Request):
 
         if user_id:
             supabase_admin = get_supabase_admin_client()
+            premium_since = datetime.now(timezone.utc).isoformat()
 
-            supabase_admin.table("user_profiles").upsert(
+            supabase_admin.table("premium_entitlements").upsert(
                 {
-                    "id": user_id,
-                    "email": session.get("customer_email"),
-                    "is_premium": True,
-                    "premium_source": "stripe_checkout",
-                    "premium_since": datetime.now(timezone.utc).isoformat(),
+                    "user_id": user_id,
+                    "status": "active",
+                    "source": "stripe_checkout",
+                    "premium_since": premium_since,
                     "stripe_customer_id": session.get("customer"),
                     "stripe_checkout_session_id": session.get("id"),
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": premium_since,
                 },
-                on_conflict="id",
+                on_conflict="user_id",
+            ).execute()
+
+            supabase_admin.table("profiles").upsert(
+                {
+                    "user_id": user_id,
+                    "email": session.get("customer_email"),
+                    "is_premium": True,
+                    "updated_at": premium_since,
+                },
+                on_conflict="user_id",
             ).execute()
 
     return {"received": True}
 
 
 @app.delete("/api/account/{user_id}")
-async def delete_account(user_id: str):
+async def delete_account(user_id: str, request: Request):
     if not is_valid_uuid(user_id):
         raise HTTPException(status_code=400, detail="Invalid account id.")
 
+    require_matching_auth_user(request, user_id)
     supabase_admin = get_supabase_admin_client()
 
+    supabase_admin.table("profiles").delete().eq("user_id", user_id).execute()
     supabase_admin.table("user_profiles").delete().eq("id", user_id).execute()
     supabase_admin.auth.admin.delete_user(user_id)
 
@@ -4051,10 +4105,12 @@ def _clean_username(value: str) -> str:
 
 @app.get("/api/account/state/{user_id}")
 def get_openingfit_user_state(
+    request: Request,
     user_id: str,
     platform: str = "unknown",
     username: str = "guest",
 ):
+    require_matching_auth_user(request, user_id)
     sb = _get_supabase_for_user_state()
 
     platform = _clean_platform(platform)
@@ -4106,7 +4162,8 @@ def get_openingfit_user_state(
 
 
 @app.post("/api/account/state")
-def save_openingfit_user_state(payload: OpeningFitUserStatePayload):
+def save_openingfit_user_state(payload: OpeningFitUserStatePayload, request: Request):
+    require_matching_auth_user(request, payload.user_id)
     sb = _get_supabase_for_user_state()
 
     platform = _clean_platform(payload.platform)

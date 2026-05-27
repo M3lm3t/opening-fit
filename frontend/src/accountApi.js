@@ -1,13 +1,23 @@
+import { supabase } from "./lib/supabaseClient";
+
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
+
+async function authHeaders() {
+  const { data } = supabase ? await supabase.auth.getSession() : { data: null };
+  const token = data?.session?.access_token;
+
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 export async function syncAccountProfile({ user, username, platform, lastReport }) {
   if (!user?.id) return null;
 
   const response = await fetch(`${API_BASE}/api/account/sync`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: await authHeaders(),
     body: JSON.stringify({
       userId: user.id,
       email: user.email,
@@ -29,7 +39,9 @@ export async function syncAccountProfile({ user, username, platform, lastReport 
 export async function loadAccountProfile(userId) {
   if (!userId) return null;
 
-  const response = await fetch(`${API_BASE}/api/account/profile/${userId}`);
+  const response = await fetch(`${API_BASE}/api/account/profile/${userId}`, {
+    headers: await authHeaders(),
+  });
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
@@ -46,9 +58,7 @@ export async function startPremiumCheckout(user) {
 
   const response = await fetch(`${API_BASE}/api/account/create-checkout-session`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: await authHeaders(),
     body: JSON.stringify({
       userId: user.id,
       email: user.email,
@@ -76,6 +86,7 @@ export async function deleteOpeningFitAccount(userId) {
 
   const response = await fetch(`${API_BASE}/api/account/${userId}`, {
     method: "DELETE",
+    headers: await authHeaders(),
   });
 
   if (!response.ok) {

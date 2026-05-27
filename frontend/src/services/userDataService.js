@@ -2,6 +2,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 
 export const USER_DATA_TABLES = [
   "profiles",
+  "premium_entitlements",
   "openingfit_user_state",
   "onboarding_answers",
   "measurements",
@@ -19,6 +20,7 @@ export const USER_FILE_BUCKET = "user-uploads";
 function createDefaultUserData(profile = null) {
   return {
     profile,
+    premium_entitlements: [],
     openingfit_user_state: [],
     onboarding_answers: [],
     measurements: [],
@@ -30,6 +32,19 @@ function createDefaultUserData(profile = null) {
     activity_history: [],
     report_history: [],
   };
+}
+
+export function hasActivePremiumEntitlement(entitlements = [], profile = null) {
+  const now = Date.now();
+  const activeEntitlement = (entitlements || []).find((entitlement) => {
+    if (String(entitlement?.status || "").toLowerCase() !== "active") return false;
+    if (!entitlement.expires_at) return true;
+
+    const expiresAt = Date.parse(entitlement.expires_at);
+    return Number.isFinite(expiresAt) && expiresAt > now;
+  });
+
+  return Boolean(activeEntitlement || profile?.is_premium);
 }
 
 function requireClient() {
@@ -123,9 +138,14 @@ export async function fetchAllUserData(user) {
     })
   );
 
-  return {
+  const restored = {
     ...createDefaultUserData(profile),
     ...Object.fromEntries(results),
+  };
+
+  return {
+    ...restored,
+    hasPremiumAccess: hasActivePremiumEntitlement(restored.premium_entitlements, profile),
   };
 }
 
@@ -217,26 +237,107 @@ export async function saveReport(userId, report, summary = {}) {
     report.player_name ||
     "Unknown player";
   const platform = summary.platform || report.platform || report.importPlatform || "unknown";
+  const games =
+    summary.games ||
+    report.gamesImported ||
+    report.games_imported ||
+    report.totalGames ||
+    report.total_games ||
+    "recent";
+  const importedAt =
+    summary.importedAt ||
+    summary.savedAt ||
+    report.importedAt ||
+    report.imported_at ||
+    report.lastUpdated ||
+    report.last_updated ||
+    "";
+  const months =
+    summary.months ||
+    report.monthsChecked ||
+    report.months_checked ||
+    report.importMonths ||
+    report.import_months ||
+    "recent";
+  const reportKey = [
+    String(platform).toLowerCase(),
+    String(username).toLowerCase(),
+    String(months),
+    String(games),
+    String(importedAt).slice(0, 19),
+  ].join(":");
 
-  const [row] = await upsertUserRow("report_history", userId, {
+  const client = requireClient();
+  const payload = {
+    user_id: userId,
     username,
     platform,
     summary,
     report,
-  });
+    report_key: reportKey,
+    updated_at: new Date().toISOString(),
+  };
 
-  return row;
+  const { data, error } = await client
+    .from("report_history")
+    .insert(payload)
+    .select("*")
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      const { data: existing, error: existingError } = await client
+        .from("report_history")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("report_key", reportKey)
+        .maybeSingle();
+
+      if (existingError) {
+        logQueryFailure("report_history", "select existing report after dedupe collision", existingError, {
+          userId,
+          reportKey,
+        });
+        throw existingError;
+      }
+
+      return existing;
+    }
+
+    logQueryFailure("report_history", "insert report with dedupe key", error, { userId, reportKey });
+    throw error;
+  }
+
+  return data;
 }
 
 export async function recordActivity(userId, type, payload = {}) {
   if (!userId || !type) return null;
 
-  const [row] = await upsertUserRow("activity_history", userId, {
-    type,
-    payload,
-  });
+  const client = requireClient();
+  const dedupeKey = payload.dedupe_key || payload.dedupeKey || null;
+  const { data, error } = await client
+    .from("activity_history")
+    .insert({
+      user_id: userId,
+      type,
+      action_type: type,
+      points: Number(payload.points || payload.xp || 0) || 0,
+      related_report_id: payload.related_report_id || null,
+      dedupe_key: dedupeKey,
+      payload,
+      updated_at: new Date().toISOString(),
+    })
+    .select("*")
+    .single();
 
-  return row;
+  if (error) {
+    if (error.code === "23505") return null;
+    logQueryFailure("activity_history", "insert activity with dedupe key", error, { userId, type, dedupeKey });
+    throw error;
+  }
+
+  return data;
 }
 
 export async function uploadUserFile(userId, file, pathPrefix = "uploads") {

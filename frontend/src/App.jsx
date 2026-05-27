@@ -12,7 +12,7 @@ import PolishedOpeningFitReportHero from "./components/OpeningFitReportHero.jsx"
 import OpeningFitTrustSections from "./components/OpeningFitTrustSections.jsx";
 import OpeningFitPolishToast from "./components/OpeningFitPolishToast.jsx";
 import "./components/OpeningFitPolish.css";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
 import OpeningReportSummary from "./components/OpeningReportSummary";
@@ -224,7 +224,6 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
 const STORAGE_KEY = "openingFit:lastAnalysis";
 const USERNAME_KEY = "openingFit:lastUsername";
-const PREMIUM_KEY = "openingFit:isPremiumDemo";
 const PLATFORM_KEY = "openingFit:lastPlatform";
 const IMPORT_MONTHS_KEY = "openingFit:lastImportMonths";
 const OPENING_SAMPLE_PERCENT_KEY = "openingFit:openingSamplePercent";
@@ -3536,6 +3535,7 @@ function FinalReportFlow({
   fitData,
   onPractice,
   onViewChange,
+  isPremium = false,
 }) {
   const studyTarget = buildStudyThisNextTarget(fitData);
   const [reportMode, setReportMode] = useState("summary");
@@ -3564,14 +3564,14 @@ function FinalReportFlow({
 
           <RepertoireCommandPanel data={data} onPractice={onPractice} />
           <RepertoireMap data={data} />
-          <EvidenceTableSection data={data} fitData={fitData} isPremium onPractice={onPractice} />
+          <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
           <InterestingThinDataSection data={data} fitData={fitData} />
           <StudyThisNextCard target={studyTarget} onPractice={onPractice} onViewChange={onViewChange} />
         </>
       ) : null}
 
       {showOpeningTable ? (
-        <EvidenceTableSection data={data} fitData={fitData} isPremium onPractice={onPractice} />
+        <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
       ) : null}
 
     </div>
@@ -6387,16 +6387,38 @@ function LandingSection({ onOpeningClick }) {
 const REPORT_HISTORY_KEY = "openingFit:reportHistory";
 
 function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgrade }) {
+  const {
+    user: cloudUser,
+    reportHistory: cloudReportHistory,
+    saveReport: saveCloudReportFromAuth,
+    deleteUserData,
+    refreshUserData,
+  } = useAuth();
   const [savedReports, setSavedReports] = useState([]);
+  const [historyStatus, setHistoryStatus] = useState("");
 
   useEffect(() => {
+    if (cloudUser?.id) {
+      const cloudReports = (cloudReportHistory || []).map((item) => ({
+        id: item.id,
+        savedAt: item.created_at || item.updated_at || new Date().toISOString(),
+        playerName: item.username || item.summary?.username || "Opening Fit report",
+        gamesImported: item.summary?.games || item.report?.gamesImported || item.report?.total_games || "Recent",
+        styleLabel: item.summary?.styleLabel || item.report?.styleLabel || "Opening report",
+        data: item.report,
+        cloud: true,
+      }));
+      setSavedReports(cloudReports);
+      return;
+    }
+
     try {
       const stored = JSON.parse(localStorage.getItem(REPORT_HISTORY_KEY) || "[]");
       setSavedReports(Array.isArray(stored) ? stored : []);
     } catch {
       setSavedReports([]);
     }
-  }, []);
+  }, [cloudReportHistory, cloudUser?.id]);
 
   if (!data) return null;
 
@@ -6432,7 +6454,7 @@ function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgra
     day: "numeric",
   });
 
-  const saveReport = () => {
+  const handleSaveReport = async () => {
     if (!isPremium) {
       onUpgrade?.();
       return;
@@ -6447,16 +6469,52 @@ function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgra
       data,
     };
 
+    if (cloudUser?.id && saveCloudReportFromAuth) {
+      setHistoryStatus("Saving report to your account...");
+      try {
+        await saveCloudReportFromAuth(data, {
+          username: playerName,
+          platform: data.platform || data.importPlatform || data.import_platform || "unknown",
+          games: gamesImported,
+          styleLabel,
+          savedAt: reportRecord.savedAt,
+        });
+        await refreshUserData?.();
+        setHistoryStatus("Report saved to your OpeningFit account.");
+        return;
+      } catch (cloudError) {
+        console.warn("Could not save report to Supabase", cloudError);
+        setHistoryStatus("Cloud save failed. Saved a browser copy instead.");
+      }
+    }
+
     const updated = [
       reportRecord,
       ...savedReports.filter((report) => report.playerName !== playerName),
     ].slice(0, 8);
-
     localStorage.setItem(REPORT_HISTORY_KEY, JSON.stringify(updated));
     setSavedReports(updated);
   };
 
-  const clearReports = () => {
+  const clearReports = async () => {
+    if (cloudUser?.id && savedReports.some((report) => report.cloud)) {
+      setHistoryStatus("Clearing cloud history...");
+      try {
+        await Promise.all(
+          savedReports
+            .filter((report) => report.cloud && report.id)
+            .map((report) => deleteUserData?.("report_history", report.id))
+        );
+        await refreshUserData?.();
+        setHistoryStatus("Cloud report history cleared.");
+        return;
+      } catch (cloudError) {
+        console.warn("Could not clear Supabase report history", cloudError);
+        setHistoryStatus("Cloud clear failed. Please try again.");
+        return;
+      }
+    }
+
     localStorage.removeItem(REPORT_HISTORY_KEY);
     setSavedReports([]);
   };
@@ -6504,16 +6562,19 @@ function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgra
             {isPremium ? "Export study plan" : "Unlock export"}
           </button>
 
-          <button type="button" onClick={saveReport} className="exportSecondaryBtn">
+          <button type="button" onClick={handleSaveReport} className="exportSecondaryBtn">
             {isPremium ? "Save report" : "Unlock saved history"}
           </button>
         </div>
 
         <small>
           {isPremium
-            ? "Saved reports are stored in this browser only. Cloud sync can be added later with Supabase accounts."
+            ? cloudUser?.id
+              ? "Saved reports are stored in your OpeningFit account and restored after login."
+              : "Saved reports are stored in this browser until you sign in."
             : "PDF export, cloud history, and deeper line diagnosis are planned as later premium upgrades."}
         </small>
+        {historyStatus ? <small>{historyStatus}</small> : null}
       </div>
 
       <div className="currentReportSummary">
@@ -7420,6 +7481,9 @@ export default
 function App() {
   const {
     user: supabaseUser,
+    loading: authLoading,
+    hydrated: authHydrated,
+    hasPremiumAccess,
     saveReport: saveCloudReport,
     recordActivity: recordCloudActivity,
   } = useAuth();
@@ -7469,18 +7533,15 @@ function App() {
   }, []);
 
 
-  const [isPremium, setIsPremium] = useState(() => {
-    return localStorage.getItem(PREMIUM_KEY) === "true";
-  });
+  const isPremium = Boolean(hasPremiumAccess);
+  const [isPremiumPreview, setIsPremiumPreview] = useState(false);
 
   const unlockPremiumDemo = () => {
-    localStorage.setItem(PREMIUM_KEY, "true");
-    setIsPremium(true);
+    setIsPremiumPreview(true);
   };
 
   const resetPremiumDemo = () => {
-    localStorage.removeItem(PREMIUM_KEY);
-    setIsPremium(false);
+    setIsPremiumPreview(false);
   };
 
   const [theme, setTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
@@ -7568,6 +7629,7 @@ function App() {
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [, setLocalSavedAt] = useState("");
   const [activeView, setActiveView] = useState(getInitialAppView);
+  const previousAuthUserIdRef = useRef(undefined);
   const shouldShowLandingIntro = () => {
     const landingSeen = localStorage.getItem("openingfit_landing_seen") === "true";
     const hasSavedReport = Boolean(localStorage.getItem(STORAGE_KEY));
@@ -7582,6 +7644,23 @@ function App() {
   // Close modal: public/example landing stays visible.
   // Refresh after close: localStorage prevents it coming back.
   const [showPublicLanding, setShowPublicLanding] = useState(shouldShowLandingIntro);
+
+  useEffect(() => {
+    if (!authHydrated) return;
+
+    const currentUserId = supabaseUser?.id || null;
+    const previousUserId = previousAuthUserIdRef.current;
+
+    if (previousUserId && previousUserId !== currentUserId) {
+      setData(null);
+      setSelectedGameIndex(0);
+      setPracticeOpening(null);
+      setSavedProfileMessage("");
+      setError("");
+    }
+
+    previousAuthUserIdRef.current = currentUserId;
+  }, [authHydrated, supabaseUser?.id]);
 
   const rememberLandingSeen = ({ keepPublicLanding = true } = {}) => {
     localStorage.setItem("openingfit_landing_seen", "true");
@@ -7599,15 +7678,15 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
+    if (authLoading || !authHydrated) return;
+
     const savedUsername = localStorage.getItem(USERNAME_KEY);
-    const savedPremium = localStorage.getItem(PREMIUM_KEY);
     const savedPlatform = localStorage.getItem(PLATFORM_KEY);
     const savedMonths = localStorage.getItem(IMPORT_MONTHS_KEY);
     const savedSamplePercent = localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY);
     const savedAnalysis = localStorage.getItem(STORAGE_KEY);
 
     if (savedUsername) setUsername(savedUsername);
-    if (savedPremium === "true") setIsPremium(true);
 
     if (savedMonths) {
       const parsedMonths = Number(savedMonths);
@@ -7640,7 +7719,7 @@ function App() {
         localStorage.removeItem(STORAGE_KEY);
       }
     }
-  }, []);
+  }, [authHydrated, authLoading]);
 
   useEffect(() => {
     let mounted = true;
@@ -7667,10 +7746,6 @@ function App() {
       mounted = false;
     };
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem(PREMIUM_KEY, String(isPremium));
-  }, [isPremium]);
 
   useEffect(() => {
     localStorage.setItem(
@@ -8041,7 +8116,8 @@ function App() {
         platform: selectedPlatformKey,
         months: monthsToImport,
         openingSamplePercent,
-        premiumDemo: isPremium,
+        premiumPreview: isPremiumPreview,
+        hasPremiumAccess: isPremium,
       });
 
       setLoadingStep(
@@ -8128,6 +8204,7 @@ function App() {
             username: cleanData.username || cleanUsername,
             platform: selectedPlatformKey,
             games: cleanData.gamesImported ?? cleanData.total_games,
+            dedupe_key: `report_imported:${userReportRetentionKey}`,
           });
         } catch (cloudError) {
           console.warn("Could not save imported report to Supabase", cloudError);
@@ -8880,7 +8957,6 @@ function App() {
           setPlatform={setPlatform}
           data={data}
           setData={setData}
-          setIsPremium={setIsPremium}
         />
 
         <FloatingAppMenu
@@ -9171,6 +9247,7 @@ function App() {
                   fitData={fitData}
                   onPractice={startOpeningPractice}
                   onViewChange={setActiveView}
+                  isPremium={isPremium}
                 />
               ) : null}
 
@@ -9484,6 +9561,7 @@ function App() {
                     <PremiumPanel
                       data={data}
                       isPremium={isPremium}
+                      isPremiumPreview={isPremiumPreview}
                       onUnlockDemo={unlockPremiumDemo}
                       onResetDemo={resetPremiumDemo}
                       onFounderPass={handleFounderPassClick}
@@ -9988,6 +10066,7 @@ function App() {
                     <PremiumPanel
                       data={data}
                       isPremium={isPremium}
+                      isPremiumPreview={isPremiumPreview}
                       onUnlockDemo={unlockPremiumDemo}
                       onResetDemo={resetPremiumDemo}
                       onFounderPass={handleFounderPassClick}
@@ -10117,6 +10196,7 @@ function App() {
                         <PremiumPanel
                           data={reportData}
                           isPremium={isPremium}
+                          isPremiumPreview={isPremiumPreview}
                           onUnlockDemo={unlockPremiumDemo}
                           onResetDemo={resetPremiumDemo}
                           onFounderPass={handleFounderPassClick}
