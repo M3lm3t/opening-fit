@@ -1,186 +1,3 @@
-
-:root {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-
-  --bg: #020617;
-  --card: rgba(15, 23, 42, 0.9);
-  --card-strong: rgba(15, 23, 42, 0.98);
-  --muted: #94a3b8;
-  --text: #f8fafc;
-  --text-soft: #cbd5e1;
-  --border: rgba(148, 163, 184, 0.16);
-  --blue: #2563eb;
-  --blue-light: #60a5fa;
-  --green: #22c55e;
-  --amber: #f59e0b;
-  --red: #ef4444;
-  --radius: 22px;
-  --shadow: 0 22px 70px rgba(0, 0, 0, 0.35);
-
-  color: var(--text);
-  background: var(--bg);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  overflow-x: hidden;
-  background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.22), transparent 34%),
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 30%),
-    #020617;
-  color: var(--text);
-}
-
-button,
-input,
-textarea,
-a {
-  font: inherit;
-}
-
-button,
-a {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-img,
-svg,
-canvas,
-table {
-  max-width: 100%;
-}
-
-.page {
-  min-height: 100vh;
-  width: 100%;
-  overflow-x: hidden;
-}
-
-.container,
-.landingWrap {
-  width: min(100% - 32px, 1180px);
-  margin: 0 auto;
-}
-
-.appShell {
-  padding: 42px 0 80px;
-}
-
-/* ================================
-   SHARED CARDS / BUTTONS
-================================ */
-
-.card,
-.heroCard,
-.statCard,
-.quickNavCard,
-.collapsibleCard,
-.premiumMiniCard,
-.landingPreviewCard,
-.landingFeatureCard,
-.landingPriceCard,
-.landingInfoCard,
-.landingStepCard,
-.aboutCard,
-.ratingGuideCard {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
-}
-
-.card,
-.heroCard {
-  padding: 24px;
-}
-
-.primaryBtn,
-.secondaryBtn,
-.secondaryButton,
-.ghostButton,
-.landingPrimaryBtn,
-.landingSecondaryBtn {
-  min-height: 48px;
-  border-radius: 16px;
-  padding: 12px 18px;
-  font-weight: 900;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  transition:
-    transform 0.15s ease,
-    border-color 0.15s ease,
-    background 0.15s ease,
-    opacity 0.15s ease;
-}
-
-.primaryBtn,
-.landingPrimaryBtn {
-  border: 0;
-  color: #ffffff;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.28);
-}
-
-.secondaryBtn,
-.landingSecondaryBtn {
-  color: #ffffff;
-  background: rgba(30, 41, 59, 0.95);
-  border: 1px solid var(--border);
-}
-
-.secondaryButton {
-  color: #f8fafc;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 999px;
-}
-
-.ghostButton {
-  color: #cbd5e1;
-  background: transparent;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 999px;
-}
-
-.primaryBtn:hover,
-.secondaryBtn:hover,
-.secondaryButton:hover,
-.ghostButton:hover,
-.landingPrimaryBtn:hover,
-.landingSecondaryBtn:hover {
-  transform: translateY(-1px);
-  border-color: rgba(96, 165, 250, 0.55);
-}
-
-.secondaryButton:disabled,
-.ghostButton:disabled,
-.primaryBtn:disabled,
-.secondaryBtn:disabled {
-  transform: none;
-}
-
 /* ================================
    LANDING
 ================================ */
@@ -33911,5 +33728,866 @@ li,
   .landingFinalCTA .landingSecondaryBtn,
   .landingDemoSection .landingSecondaryBtn {
     display: inline-flex !important;
+  }
+}
+
+/* =========================================================
+   Responsive UI cleanup pass: semantic tokens + shared surfaces
+   ========================================================= */
+:root {
+  --bg: var(--background);
+  --page-bg: var(--background);
+  --text: var(--foreground);
+  --muted: var(--muted-foreground);
+  --card-bg: var(--card);
+  --card-bg-soft: var(--secondary);
+  --border-soft: var(--border-strong);
+  --input-bg: var(--input);
+  --button-bg: var(--primary);
+  --button-bg-hover: var(--primary-hover);
+  --danger-bg: color-mix(in srgb, var(--destructive) 16%, transparent);
+  --danger-border: color-mix(in srgb, var(--destructive) 36%, transparent);
+  --danger-text: var(--destructive-foreground);
+  --of-shell: min(1180px, calc(100vw - 32px));
+  --of-shell-wide: min(1320px, calc(100vw - 40px));
+  --of-card-radius: var(--card-radius);
+  --of-card-pad: var(--card-padding);
+  --of-control-radius: var(--control-radius);
+}
+
+.page.light,
+[data-theme="light"] {
+  --danger-bg: color-mix(in srgb, var(--destructive) 10%, white);
+  --danger-border: color-mix(in srgb, var(--destructive) 28%, white);
+  --danger-text: #991b1b;
+}
+
+html,
+body,
+#root,
+.page {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden !important;
+}
+
+body {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(14, 165, 233, 0.18), transparent 28rem),
+    radial-gradient(circle at 88% 2%, rgba(246, 196, 83, 0.1), transparent 22rem),
+    linear-gradient(180deg, #050a14 0%, #08111f 44%, var(--background) 100%) !important;
+  color: var(--foreground);
+}
+
+body.light,
+:root[data-theme="light"] body,
+[data-theme="light"] body {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(14, 165, 233, 0.13), transparent 26rem),
+    radial-gradient(circle at 90% 4%, rgba(246, 196, 83, 0.16), transparent 22rem),
+    linear-gradient(180deg, #f8fafc 0%, #eef4fb 46%, #ffffff 100%) !important;
+  color: var(--foreground);
+}
+
+.page {
+  min-height: 100vh;
+  color: var(--foreground);
+}
+
+.page *,
+.landingModal *,
+.floatingMenuPanel *,
+.openingAppMenuPanel * {
+  min-width: 0;
+}
+
+.container,
+.landingWrap,
+.appShell,
+.fullReportShell,
+.openingFitPlanShell,
+.openingReportShell,
+.reportSnapshotShell,
+.coachPlanShell,
+.progressTrackerShell,
+.evidenceDiagnosisShell,
+.premiumDashboardShell,
+.trustUpgradeShell,
+.founderPassShell,
+.premiumUpgradeShell,
+.loginScreenSection {
+  width: var(--of-shell) !important;
+  max-width: var(--of-shell) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.appShell,
+.landingWrap {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.card,
+.panel,
+.heroCard,
+.feedbackCard,
+.appTabsCard,
+.quickNavCard,
+.premiumCard,
+.smallCard,
+.statCard,
+.collapsibleCard,
+.landingHero,
+.landingContentSection,
+.landingStorySection,
+.landingFinalCTA,
+.landingPreviewCard,
+.landingInfoCard,
+.landingFeatureCard,
+.landingStepCard,
+.landingPriceCard,
+.aboutCard,
+.ratingGuideCard,
+.listItem,
+.gamePickerButton,
+.trainingPlanItem,
+.lockedFeature,
+.openingExplainCard,
+.fitMiniCard,
+.openingFitPlanShell,
+.fullReportShell,
+.openingReportShell,
+.openingReportCard,
+.reportSnapshotCard,
+.coachPlanCard,
+.progressCard,
+.evidenceDiagnosisCard,
+.premiumDashboardCard,
+.openingHealthCard,
+.accountPanel,
+.landingModal,
+.landingModalCard,
+.landingModalPanel,
+.floatingMenuPanel,
+.openingAppMenuPanel {
+  max-width: 100%;
+  border-color: var(--border) !important;
+  border-radius: var(--of-card-radius) !important;
+  color: var(--card-foreground);
+  overflow-wrap: anywhere;
+}
+
+.card,
+.panel,
+.heroCard,
+.feedbackCard,
+.quickNavCard,
+.premiumCard,
+.smallCard,
+.statCard,
+.collapsibleCard,
+.landingPreviewCard,
+.landingInfoCard,
+.landingFeatureCard,
+.landingStepCard,
+.landingPriceCard,
+.aboutCard,
+.ratingGuideCard,
+.openingFitPlanShell,
+.fullReportShell,
+.openingReportShell,
+.openingReportCard,
+.reportSnapshotCard,
+.coachPlanCard,
+.progressCard,
+.evidenceDiagnosisCard,
+.premiumDashboardCard,
+.openingHealthCard,
+.accountPanel {
+  background: var(--card) !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.listItem,
+.gamePickerButton,
+.trainingPlanItem,
+.lockedFeature,
+.openingExplainCard,
+.fitMiniCard,
+.landingStoryCard,
+.landingOutputCard,
+.landingProofList div,
+.landingBeforeAfterCard,
+.landingBeforeAfterCard div,
+.landingGeneratedList div,
+.landingGifFrame {
+  background: var(--card-bg-soft) !important;
+  border-color: var(--border) !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+.landingTitle,
+.heroTitle,
+.reportTitle,
+.sectionTitle {
+  max-width: 100%;
+  color: var(--foreground);
+  letter-spacing: 0 !important;
+  overflow-wrap: anywhere;
+}
+
+h1,
+.landingTitle,
+.heroTitle,
+.landingHeroCopy h1 {
+  font-size: clamp(2rem, 5vw, 4.4rem) !important;
+  line-height: 1.02 !important;
+}
+
+h2,
+.landingSectionHeading h2,
+.landingQuestionBlock h2,
+.landingFinalCTA h2,
+.landingDemoCopy h2 {
+  font-size: clamp(1.35rem, 2.8vw, 2.45rem) !important;
+  line-height: 1.12 !important;
+}
+
+h3 {
+  font-size: clamp(1rem, 1.5vw, 1.3rem);
+  line-height: 1.24;
+}
+
+p,
+li,
+td,
+.subtext,
+.smallText,
+.helper,
+.muted {
+  color: var(--text-soft);
+}
+
+.eyebrow,
+.landingEyebrow,
+.landingPill,
+.landingMiniLabel,
+.premiumLabel,
+.chip,
+.sectionBadge,
+.premiumBadge,
+.landingFitBadge,
+.landingPriceBadge {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border)) !important;
+  background: var(--accent) !important;
+  color: var(--accent-foreground) !important;
+}
+
+button,
+.primaryBtn,
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.landingPrimaryBtn,
+.landingSecondaryBtn,
+.platformButton,
+.quickNavBtn,
+.appTabButton,
+.mobileSectionRevealBtn,
+.trainingPracticeBtn,
+.fitPracticeBtn,
+.explainPracticeBtn,
+.tableOpeningBtn,
+.inlineOpeningBtn,
+.landingOpeningBtn,
+.ratingOpeningBtn,
+.supportedOpeningGrid button,
+.floatingMenuButtons button,
+.openingAppMenuPanel button,
+.modalCloseButton,
+.landingCloseBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--tap-target) !important;
+  max-width: 100%;
+  padding: 0.68rem 1rem;
+  border-radius: var(--of-control-radius) !important;
+  border: 1px solid transparent;
+  font-weight: 850;
+  line-height: 1.15;
+  text-align: center;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+button:hover:not(:disabled),
+[role="button"]:hover,
+.primaryBtn:hover,
+.secondaryBtn:hover,
+.secondaryButton:hover,
+.ghostButton:hover,
+.landingPrimaryBtn:hover,
+.landingSecondaryBtn:hover,
+.appTabButton:hover {
+  transform: translateY(-1px);
+}
+
+button:active:not(:disabled),
+[role="button"]:active,
+.primaryBtn:active,
+.secondaryBtn:active,
+.secondaryButton:active,
+.ghostButton:active,
+.landingPrimaryBtn:active,
+.landingSecondaryBtn:active,
+.appTabButton:active {
+  transform: translateY(0);
+}
+
+.primaryBtn,
+.landingPrimaryBtn,
+.importButton,
+.ctaButton,
+button[type="submit"],
+.platformButtonActive,
+.appTabButtonActive,
+.mobileBottomNavActive,
+.floatingMenuActiveItem {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--primary) 24%, transparent);
+}
+
+.primaryBtn:hover,
+.landingPrimaryBtn:hover,
+.importButton:hover,
+.ctaButton:hover,
+button[type="submit"]:hover,
+.platformButtonActive:hover,
+.appTabButtonActive:hover,
+.mobileBottomNavActive:hover,
+.floatingMenuActiveItem:hover {
+  background: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.landingSecondaryBtn,
+.platformButton,
+.quickNavBtn,
+.appTabButton,
+.mobileSectionRevealBtn,
+.floatingMenuButtons button,
+.openingAppMenuPanel button,
+.tableOpeningBtn,
+.ratingOpeningBtn,
+.supportedOpeningGrid button {
+  background: var(--secondary) !important;
+  border-color: var(--border) !important;
+  color: var(--secondary-foreground) !important;
+  box-shadow: none;
+}
+
+.secondaryBtn:hover,
+.secondaryButton:hover,
+.ghostButton:hover,
+.landingSecondaryBtn:hover,
+.platformButton:hover,
+.quickNavBtn:hover,
+.appTabButton:hover,
+.mobileSectionRevealBtn:hover,
+.floatingMenuButtons button:hover,
+.openingAppMenuPanel button:hover,
+.tableOpeningBtn:hover,
+.ratingOpeningBtn:hover,
+.supportedOpeningGrid button:hover {
+  background: var(--accent) !important;
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border)) !important;
+  color: var(--accent-foreground) !important;
+}
+
+button:disabled,
+button[disabled],
+[aria-disabled="true"] {
+  background: var(--muted) !important;
+  border-color: var(--border) !important;
+  color: var(--muted-foreground) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+input,
+select,
+textarea,
+.input,
+.feedbackCard textarea,
+.feedbackCard input,
+.landingMiniInputRow input,
+.practiceSearchRow input,
+.repertoireAddRow input,
+.repertoirePlanTable select {
+  width: 100%;
+  min-height: var(--control-height) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--of-control-radius) !important;
+  background: var(--input) !important;
+  color: var(--input-foreground) !important;
+  box-shadow: none;
+}
+
+input::placeholder,
+textarea::placeholder,
+.input::placeholder {
+  color: var(--muted-foreground) !important;
+  opacity: 1;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.input:focus {
+  border-color: var(--ring) !important;
+  box-shadow: var(--shadow-focus) !important;
+  outline: none;
+}
+
+.errorBox,
+.error,
+.checkoutStatusNoticeError {
+  background: var(--danger-bg) !important;
+  border-color: var(--danger-border) !important;
+  color: var(--danger-text) !important;
+}
+
+.statusMessage,
+.notice,
+.emptyState,
+.landingEmptyStateGrid > *,
+.loadingCard {
+  background: var(--accent) !important;
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--border)) !important;
+  color: var(--accent-foreground) !important;
+}
+
+.successMessage,
+.success,
+.successBox {
+  background: color-mix(in srgb, var(--success) 14%, transparent) !important;
+  border-color: color-mix(in srgb, var(--success) 28%, var(--border)) !important;
+  color: var(--success-foreground) !important;
+}
+
+.landingHeroGrid,
+.heroGrid,
+.reportTwoColumn,
+.analysisGrid,
+.boardSection,
+.twoCol,
+.compactReportGrid,
+.openingReportGrid,
+.adviceGrid,
+.repertoirePreviewGrid,
+.openingExplainGrid,
+.openingFitPlanGrid,
+.openingHealthGrid,
+.studyPlanGrid,
+.landingFeatureGrid,
+.landingPricingGrid,
+.aboutGrid,
+.ratingGuideGrid,
+.landingProblemGrid,
+.landingOutputGrid,
+.landingUseCaseGrid,
+.landingFaqGrid,
+.landingGifWalkthrough,
+.landingBeforeAfterGrid,
+.landingEmptyStateGrid,
+.landingDemoSection,
+.landingProofSection,
+.statsGrid,
+.placeholderGrid,
+.grid3 {
+  max-width: 100%;
+}
+
+.compactReportGrid,
+.openingReportGrid,
+.adviceGrid,
+.repertoirePreviewGrid,
+.openingExplainGrid,
+.openingFitPlanGrid,
+.openingHealthGrid,
+.landingFeatureGrid,
+.landingPricingGrid,
+.aboutGrid,
+.landingProblemGrid,
+.landingUseCaseGrid,
+.landingEmptyStateGrid,
+.statsGrid,
+.placeholderGrid,
+.grid3 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)) !important;
+}
+
+.landingHeroGrid,
+.heroGrid,
+.reportTwoColumn,
+.analysisGrid,
+.boardSection,
+.twoCol,
+.landingOutputGrid,
+.landingFaqGrid,
+.landingBeforeAfterGrid,
+.landingDemoSection,
+.landingProofSection {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)) !important;
+}
+
+.tableWrap,
+.repertoirePlanTableWrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tableWrap table,
+.repertoirePlanTable {
+  width: 100%;
+  min-width: 640px;
+}
+
+td,
+th {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.landingModal,
+.landingModalPolished,
+.landingModalCard,
+.landingModalPanel {
+  width: min(960px, calc(100vw - 24px)) !important;
+  max-height: min(92vh, 820px);
+  overflow-y: auto;
+}
+
+.floatingMenuPanel,
+.openingAppMenuPanel {
+  width: min(360px, calc(100vw - 24px)) !important;
+  max-width: calc(100vw - 24px) !important;
+  max-height: min(76vh, 620px) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+
+.floatingMenuHeader button,
+.openingAppMenuHeader button,
+.landingCloseBtn,
+.modalCloseButton {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+}
+
+.mobileBottomNav {
+  border: 1px solid var(--border) !important;
+  background: var(--popover) !important;
+  color: var(--popover-foreground) !important;
+  box-shadow: var(--shadow-md);
+}
+
+.mobileBottomNav button {
+  color: var(--muted-foreground) !important;
+}
+
+.mobileBottomNav .mobileBottomNavActive {
+  color: var(--primary-foreground) !important;
+}
+
+svg {
+  color: currentColor;
+}
+
+@media (min-width: 1280px) {
+  .container,
+  .landingWrap,
+  .appShell,
+  .fullReportShell,
+  .openingFitPlanShell,
+  .openingReportShell,
+  .appTabsCard,
+  .compactReportNav {
+    width: var(--of-shell-wide) !important;
+    max-width: var(--of-shell-wide) !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --of-shell: min(100vw - 24px, 960px);
+  }
+
+  .landingNav,
+  .heroTop,
+  .landingPreviewTop,
+  .landingPriceTop,
+  .reportCommandBarActions,
+  .exportHistoryActions,
+  .dashboardActionButtons {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --of-shell: calc(100vw - 20px);
+    --of-card-radius: 16px;
+    --of-card-pad: 14px;
+  }
+
+  body {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .container,
+  .landingWrap,
+  .appShell,
+  .fullReportShell,
+  .openingFitPlanShell,
+  .openingReportShell,
+  .appTabsCard,
+  .compactReportNav {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+
+  .landingHero,
+  .heroCard,
+  .card,
+  .landingContentSection,
+  .landingStorySection,
+  .landingFinalCTA,
+  .ratingGuideSection {
+    padding: var(--of-card-pad) !important;
+    border-radius: 18px !important;
+  }
+
+  .landingHeroGrid,
+  .heroGrid,
+  .reportTwoColumn,
+  .analysisGrid,
+  .boardSection,
+  .twoCol,
+  .compactReportGrid,
+  .openingReportGrid,
+  .adviceGrid,
+  .repertoirePreviewGrid,
+  .openingExplainGrid,
+  .openingFitPlanGrid,
+  .openingHealthGrid,
+  .studyPlanGrid,
+  .landingFeatureGrid,
+  .landingPricingGrid,
+  .aboutGrid,
+  .ratingGuideGrid,
+  .landingProblemGrid,
+  .landingOutputGrid,
+  .landingUseCaseGrid,
+  .landingFaqGrid,
+  .landingGifWalkthrough,
+  .landingBeforeAfterGrid,
+  .landingEmptyStateGrid,
+  .landingDemoSection,
+  .landingProofSection,
+  .landingFinalCTA,
+  .landingStepsList,
+  .statsGrid,
+  .placeholderGrid,
+  .grid3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landingNav,
+  .heroTop,
+  .landingPreviewTop,
+  .landingPriceTop,
+  .listItem,
+  .gamePickerTop,
+  .savedHistoryRow,
+  .chartRow,
+  .landingFinalActions,
+  .landingHeroActions,
+  .heroActions,
+  .appActionButtons,
+  .dashboardActionButtons,
+  .reportCommandBarActions,
+  .exportHistoryActions,
+  .recommendationActions {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    align-items: stretch !important;
+  }
+
+  .landingHeroActions > *,
+  .heroActions > *,
+  .appActionButtons > *,
+  .dashboardActionButtons > *,
+  .reportCommandBarActions > *,
+  .exportHistoryActions > *,
+  .recommendationActions > * {
+    width: 100% !important;
+  }
+
+  .platformSelector {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .appTabs {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible !important;
+  }
+
+  .appTabButton {
+    width: 100%;
+    padding: 0.65rem 0.5rem !important;
+    font-size: 0.86rem !important;
+  }
+
+  .sectionToggle {
+    text-align: left;
+    justify-content: space-between;
+  }
+
+  .rightStat {
+    width: 100%;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .tableWrap table,
+  .repertoirePlanTable {
+    min-width: 580px;
+  }
+
+  .mobileBottomNav {
+    position: fixed !important;
+    left: max(10px, env(safe-area-inset-left)) !important;
+    right: max(10px, env(safe-area-inset-right)) !important;
+    bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    z-index: 220 !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    padding: 6px !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+  }
+
+  .mobileBottomNav button {
+    width: 100% !important;
+    min-height: 56px !important;
+    padding: 6px 4px !important;
+    font-size: 0.68rem !important;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 430px) {
+  :root {
+    --of-shell: calc(100vw - 16px);
+    --of-card-pad: 12px;
+  }
+
+  .container,
+  .landingWrap,
+  .appShell,
+  .fullReportShell,
+  .openingFitPlanShell,
+  .openingReportShell,
+  .appTabsCard,
+  .compactReportNav {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  h1,
+  .landingTitle,
+  .heroTitle,
+  .landingHeroCopy h1 {
+    font-size: clamp(1.75rem, 10vw, 2.45rem) !important;
+  }
+
+  .platformSelector,
+  .appTabs {
+    grid-template-columns: 1fr !important;
+  }
+
+  .tableWrap table,
+  .repertoirePlanTable {
+    min-width: 520px;
+  }
+
+  .mobileBottomNav {
+    left: max(6px, env(safe-area-inset-left)) !important;
+    right: max(6px, env(safe-area-inset-right)) !important;
+    bottom: max(6px, env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@media (max-width: 360px) {
+  :root {
+    --of-shell: calc(100vw - 12px);
+  }
+
+  .container,
+  .landingWrap,
+  .appShell,
+  .fullReportShell,
+  .openingFitPlanShell,
+  .openingReportShell,
+  .appTabsCard,
+  .compactReportNav {
+    width: calc(100vw - 12px) !important;
+    max-width: calc(100vw - 12px) !important;
+  }
+
+  button,
+  .primaryBtn,
+  .secondaryBtn,
+  .secondaryButton,
+  .ghostButton,
+  .landingPrimaryBtn,
+  .landingSecondaryBtn {
+    padding-left: 0.72rem;
+    padding-right: 0.72rem;
+  }
+
+  .mobileBottomNav button {
+    font-size: 0.6rem !important;
   }
 }
