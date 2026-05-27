@@ -375,8 +375,8 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
       </div>
 
       <div className="practiceLayout">
-        <div className="practiceBoardBox">
-          <div className="cleanReplayBoard">
+        <div className="practiceBoardBox practice-board-shell">
+          <div className="cleanReplayBoard opening-board-shell">
             {board.map((rank, rowIndex) =>
               rank.map((piece, colIndex) => {
                 const squareName = getSquareName(rowIndex, colIndex, orientation);

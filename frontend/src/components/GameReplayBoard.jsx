@@ -94,7 +94,7 @@ export default function GameReplayBoard({
 
       <div className="replayLayout">
         <div className="replayBoardWrap">
-          <div className="replayBoardBox">
+          <div className="replayBoardBox game-replay-board-shell">
             <ChessPositionBoard position={chess.fen()} orientation={orientation} />
           </div>
 
