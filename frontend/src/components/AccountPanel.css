@@ -131,10 +131,194 @@
 .page.light .accountStatus,
 .page.light .accountNotice,
 .page.light .premiumStatusCard small,
+.page.light .preLoginCuriosityHeader p,
 .light .accountAuthStack p,
 .light .accountStatus,
 .light .accountNotice,
-.light .premiumStatusCard small {
+.light .premiumStatusCard small,
+.light .preLoginCuriosityHeader p {
+  color: #475569;
+}
+
+.preLoginCuriosity {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 18px;
+  padding: 12px;
+  background:
+    radial-gradient(circle at top right, rgba(251, 191, 36, 0.1), transparent 34%),
+    rgba(2, 6, 23, 0.26);
+}
+
+.page.light .preLoginCuriosity,
+.light .preLoginCuriosity {
+  background:
+    radial-gradient(circle at top right, rgba(251, 191, 36, 0.13), transparent 34%),
+    rgba(248, 250, 252, 0.92);
+  border-color: rgba(14, 165, 233, 0.16);
+}
+
+.preLoginCuriosityHeader {
+  display: grid;
+  gap: 5px;
+}
+
+.preLoginCuriosityHeader span,
+.preLoginTeaserTop span,
+.preLoginLockedInsight span {
+  color: #fbbf24;
+  font-size: 0.7rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page.light .preLoginCuriosityHeader span,
+.page.light .preLoginTeaserTop span,
+.page.light .preLoginLockedInsight span,
+.light .preLoginCuriosityHeader span,
+.light .preLoginTeaserTop span,
+.light .preLoginLockedInsight span {
+  color: #b45309;
+}
+
+.preLoginCuriosityHeader strong {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.preLoginCuriosityHeader p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.preLoginTeaserGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.preLoginTeaserCard {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(15, 23, 42, 0.44);
+}
+
+.page.light .preLoginTeaserCard,
+.light .preLoginTeaserCard {
+  background: rgba(255, 255, 255, 0.74);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.preLoginTeaserTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.preLoginTeaserTop small {
+  border-radius: 999px;
+  padding: 4px 7px;
+  background: rgba(239, 68, 68, 0.14);
+  color: #fecaca;
+  font-weight: 900;
+  font-size: 0.68rem;
+}
+
+.page.light .preLoginTeaserTop small,
+.light .preLoginTeaserTop small {
+  background: rgba(239, 68, 68, 0.1);
+  color: #991b1b;
+}
+
+.preLoginTeaserCard h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.blurredInsightReport {
+  position: relative;
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: rgba(2, 6, 23, 0.34);
+  user-select: none;
+}
+
+.blurredInsightReport::after {
+  content: "Reveal after sign-in";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: rgba(2, 6, 23, 0.38);
+  color: #f8fafc;
+  filter: blur(0);
+  font-size: 0.74rem;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.page.light .blurredInsightReport,
+.light .blurredInsightReport {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.page.light .blurredInsightReport::after,
+.light .blurredInsightReport::after {
+  background: rgba(255, 255, 255, 0.54);
+  color: #0f172a;
+}
+
+.blurredInsightReport strong {
+  display: block;
+  font-size: 0.86rem;
+  filter: blur(2.2px);
+}
+
+.blurredInsightReport p {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  filter: blur(2.2px);
+}
+
+.preLoginLockedInsight {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(20, 184, 166, 0.1);
+}
+
+.preLoginLockedInsight strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.preLoginLockedInsight small {
+  flex: 0 0 auto;
+  color: rgba(226, 232, 240, 0.68);
+  font-weight: 800;
+  text-align: right;
+}
+
+.page.light .preLoginLockedInsight small,
+.light .preLoginLockedInsight small {
   color: #475569;
 }
 

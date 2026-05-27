@@ -11,6 +11,63 @@ const EMPTY_PROFILE = {
   is_premium: false,
 };
 
+const PRE_LOGIN_TEASERS = [
+  {
+    label: "Weakness scan",
+    title: "We found 3 weaknesses in your opening prep",
+    locked: "French pressure point",
+    detail: "One defence keeps dragging you into positions where your plan disappears.",
+  },
+  {
+    label: "Hidden strength",
+    title: "Your actual strongest opening may surprise you",
+    locked: "Best scoring line hidden",
+    detail: "Most players guess their best opening wrong because memory favors dramatic wins.",
+  },
+  {
+    label: "Confidence leak",
+    title: "Most players misuse their best openings",
+    locked: "Move 8 confidence drop",
+    detail: "The report shows where the opening stops feeling familiar and starts costing decisions.",
+  },
+];
+
+function PreLoginCuriosityHooks() {
+  return (
+    <div className="preLoginCuriosity" aria-label="Locked OpeningFit report previews">
+      <div className="preLoginCuriosityHeader">
+        <span>Locked report preview</span>
+        <strong>Your openings are probably telling on you.</strong>
+        <p>Connect an account to keep reports and reveal the personal patterns behind your results.</p>
+      </div>
+
+      <div className="preLoginTeaserGrid">
+        {PRE_LOGIN_TEASERS.map((item) => (
+          <article className="preLoginTeaserCard" key={item.title}>
+            <div className="preLoginTeaserTop">
+              <span>{item.label}</span>
+              <small>Locked</small>
+            </div>
+            <h4>{item.title}</h4>
+            <div className="blurredInsightReport" aria-hidden="true">
+              <strong>{item.locked}</strong>
+              <p>{item.detail}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="preLoginLockedInsight">
+        <div>
+          <span>Curiosity hook</span>
+          <strong>See which opening your opponents should keep choosing against you.</strong>
+        </div>
+        <small>Personal report locked until sign-in.</small>
+      </div>
+    </div>
+  );
+}
+
 export default function AccountPanel({ variant = "floating",
   onUserChange,}) {
   const isScreen = variant === "screen";
@@ -277,6 +334,8 @@ export default function AccountPanel({ variant = "floating",
                 Sign in to save your Chess.com/Lichess usernames, keep your reports,
                 and unlock premium features later.
               </p>
+
+              <PreLoginCuriosityHooks />
 
               <button className="googleSignInBtn" type="button" onClick={signInWithGoogle}>
                 Continue with Google
