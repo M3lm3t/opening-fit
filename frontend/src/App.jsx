@@ -5835,19 +5835,34 @@ function LandingSection({ onOpeningClick }) {
   const steps = [
     {
       title: "Enter username",
-      text: "Add your Chess.com or Lichess username.",
+      text: "Add a Chess.com or Lichess username.",
     },
     {
       title: "Import games",
-      text: "Opening Fit reviews your recent games.",
+      text: "Opening Fit pulls recent games and reads the openings you actually play.",
     },
     {
       title: "View your report",
-      text: "See your style profile, win rates, and opening trends.",
+      text: "See which openings to keep, fix, or stop trusting.",
     },
     {
       title: "Train your repertoire",
-      text: "Keep what works, improve weak areas, and practise main lines.",
+      text: "Use the next study action before your next rated session.",
+    },
+  ];
+
+  const heroSteps = [
+    {
+      title: "Add username",
+      text: "Use Chess.com or Lichess public games.",
+    },
+    {
+      title: "Scan openings",
+      text: "Review recent results in under a minute.",
+    },
+    {
+      title: "Get the plan",
+      text: "See keep, fix, and study decisions.",
     },
   ];
 
@@ -5891,48 +5906,53 @@ function LandingSection({ onOpeningClick }) {
         <div className="landingHeroGrid">
           <div className="landingHeroCopy">
             <div className="landingPill">
-              <span>New</span>
+              <span>Opening report tool</span>
               <span className="landingDot">•</span>
-              <span>Colour-aware opening verdicts from your games</span>
+              <span>Built for Chess.com and Lichess players</span>
             </div>
 
-            <h1>Know what to keep, fix, and study in your openings.</h1>
+            <h1>Opening reports for chess players who want a clear repertoire plan.</h1>
 
             <p className="landingSubtext">
-              Opening Fit imports your games and turns them into a practical
-              repertoire plan: keep the openings that work, improve the lines
-              that wobble, and watch low-confidence experiments.
+              Enter a Chess.com or Lichess username, import recent games in
+              under a minute, and see which openings to keep, fix, or study
+              before your next rated session.
             </p>
 
             <div className="landingHeroActions">
               <a className="landingPrimaryBtn" href="#app-dashboard">
-                Import games
+                Try With Real Data
               </a>
               <a className="landingSecondaryBtn" href="#sample-report">
-                See sample result
+                View Sample Output
               </a>
             </div>
 
-            <div className="landingStats">
-              <div className="landingStatCard">
-                <strong>Fast</strong>
-                <span>game import</span>
-              </div>
+            <p className="landingTrustLine">
+              No PGN files required · Works with public Chess.com and Lichess games · Confidence labels included
+            </p>
 
-              <div className="landingStatCard">
-                <strong>Simple</strong>
-                <span>opening advice</span>
-              </div>
-
-              <div className="landingStatCard">
-                <strong>Practice</strong>
-                <span>main lines</span>
-              </div>
+            <div className="landingHeroMiniHow" aria-label="How Opening Fit works">
+              {heroSteps.map((step, index) => (
+                <div className="landingHeroMiniStep" key={step.title}>
+                  <span>{index + 1}</span>
+                  <strong>{step.title}</strong>
+                  <small>{step.text}</small>
+                </div>
+              ))}
             </div>
           </div>
 
           <div className="landingPreviewCard" id="sample-report">
-            <LandingSampleResultPreview onOpeningClick={onOpeningClick} />
+            <div className="landingScreenshotFrame" aria-label="Product screenshot">
+              <div className="landingScreenshotChrome">
+                <span />
+                <span />
+                <span />
+                <strong>Sample output</strong>
+              </div>
+              <LandingSampleResultPreview onOpeningClick={onOpeningClick} />
+            </div>
           </div>
         </div>
       </header>
