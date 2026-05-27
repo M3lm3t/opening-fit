@@ -1839,19 +1839,23 @@ th {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
-  overflow: visible;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-  background: #0f172a;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--board-border);
+  box-shadow: none;
+  background: var(--board-dark-square);
   user-select: none;
   touch-action: none;
+  transform: none;
+  perspective: none;
+  filter: none;
 }
 
 .cleanReplaySquare {
   position: relative;
   min-width: 0;
   min-height: 0;
+  border-radius: 0;
   border: 0;
   padding: 0;
   color: inherit;
@@ -1859,8 +1863,11 @@ th {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible;
+  overflow: hidden;
   appearance: none;
+  box-shadow: none;
+  transform: none;
+  filter: none;
 }
 
 .chessBoardSquareButton {
@@ -1876,27 +1883,62 @@ th {
   z-index: 3;
 }
 
-.cleanReplayLight {
-  background: #dbe4ef;
+.cleanReplaySquare.cleanReplayLight,
+.cleanReplaySquare.cleanReplayLight:hover,
+.cleanReplaySquare.cleanReplayLight:focus,
+.cleanReplaySquare.cleanReplayLight:active {
+  background: var(--board-light-square);
 }
 
-.cleanReplayDark {
-  background: #52627a;
+.cleanReplaySquare.cleanReplayDark,
+.cleanReplaySquare.cleanReplayDark:hover,
+.cleanReplaySquare.cleanReplayDark:focus,
+.cleanReplaySquare.cleanReplayDark:active {
+  background: var(--board-dark-square);
 }
 
 .cleanReplayPiece {
   display: block;
+  position: relative;
+  z-index: 1;
   font-family: "DejaVu Sans", "Segoe UI Symbol", "Noto Sans Symbols 2", "Arial Unicode MS", serif;
   line-height: 1;
   text-align: center;
   pointer-events: none;
   font-size: clamp(25px, 4.2vw, 42px);
   transform: none;
+  filter: none;
 }
 
 .practiceSelectedSquare {
-  box-shadow: inset 0 0 0 4px rgba(34, 197, 94, 0.85);
+  outline: 2px solid var(--board-selected);
+  outline-offset: -2px;
+  box-shadow: none;
   z-index: 2;
+}
+
+.practiceSelectedSquare::after,
+.cleanReplaySquare.legalMove::after,
+.cleanReplaySquare.practiceLegalMove::after,
+.cleanReplaySquare.lastMove::after,
+.cleanReplaySquare.practiceLastMove::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.cleanReplaySquare.legalMove::after,
+.cleanReplaySquare.practiceLegalMove::after {
+  inset: 36%;
+  border-radius: 999px;
+  background: var(--board-legal-move);
+}
+
+.cleanReplaySquare.lastMove::after,
+.cleanReplaySquare.practiceLastMove::after {
+  background: var(--board-last-move);
 }
 
 .cleanReplayPiece-p {
@@ -1917,16 +1959,12 @@ th {
 
 .cleanReplayWhitePiece {
   color: #f8fafc;
-  text-shadow:
-    0 1px 0 rgba(15, 23, 42, 0.95),
-    0 2px 3px rgba(15, 23, 42, 0.8);
+  text-shadow: 0 1px 1px rgba(15, 23, 42, 0.72);
 }
 
 .cleanReplayBlackPiece {
   color: #020617;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.22),
-    0 2px 3px rgba(15, 23, 42, 0.3);
+  text-shadow: 0 1px 1px rgba(248, 250, 252, 0.38);
 }
 
 .cleanReplayRank,
@@ -2147,8 +2185,9 @@ th {
 }
 
 .practiceSelectedSquare {
-  outline: 3px solid #38bdf8;
-  outline-offset: -3px;
+  outline: 2px solid var(--board-selected);
+  outline-offset: -2px;
+  box-shadow: none;
 }
 
 .practiceMessage {
@@ -5027,6 +5066,12 @@ th {
   --danger-bg: #7f1d1d;
   --danger-border: #b91c1c;
   --danger-text: #fecaca;
+  --board-light-square: #b8c4d1;
+  --board-dark-square: #657284;
+  --board-border: rgba(203, 213, 225, 0.28);
+  --board-selected: rgba(56, 189, 248, 0.62);
+  --board-last-move: rgba(250, 204, 21, 0.22);
+  --board-legal-move: rgba(15, 23, 42, 0.28);
   color-scheme: dark;
 }
 
@@ -5047,6 +5092,12 @@ th {
   --danger-bg: #fee2e2;
   --danger-border: #fecaca;
   --danger-text: #991b1b;
+  --board-light-square: #e8edf2;
+  --board-dark-square: #8aa0b8;
+  --board-border: rgba(100, 116, 139, 0.24);
+  --board-selected: rgba(37, 99, 235, 0.52);
+  --board-last-move: rgba(234, 179, 8, 0.26);
+  --board-legal-move: rgba(15, 23, 42, 0.22);
   color-scheme: light;
 }
 
