@@ -1,0 +1,314 @@
+.ofProgressDashboard {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto clamp(1.5rem, 4vw, 2.75rem);
+  padding: clamp(1rem, 3vw, 1.4rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 45%, transparent), transparent 34rem),
+    var(--card);
+  box-shadow: var(--shadow-md);
+  color: var(--foreground);
+  overflow: hidden;
+}
+
+.ofProgressDashboard * {
+  min-width: 0;
+}
+
+.ofProgressHeader,
+.ofProgressOverviewGrid,
+.ofProgressMainGrid {
+  display: grid;
+  gap: clamp(0.9rem, 2.4vw, 1.2rem);
+}
+
+.ofProgressHeader {
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem);
+  align-items: stretch;
+  margin-bottom: clamp(1rem, 3vw, 1.4rem);
+}
+
+.ofProgressHeader h2,
+.ofProgressPanel h3,
+.ofProgressCoachPanel h3 {
+  margin: 0;
+  color: var(--foreground);
+  letter-spacing: 0;
+}
+
+.ofProgressHeader h2 {
+  max-width: 16ch;
+  font-size: clamp(1.8rem, 4vw, 3.25rem);
+  line-height: 1;
+}
+
+.ofProgressHeader p,
+.ofProgressCoachPanel p {
+  max-width: 64ch;
+  margin: 0.75rem 0 0;
+  color: var(--muted-foreground);
+  line-height: 1.62;
+}
+
+.ofProgressEyebrow {
+  margin: 0 0 0.42rem;
+  color: var(--primary);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ofReadinessDial,
+.ofProgressPanel,
+.ofProgressCoachPanel,
+.ofProgressOverviewGrid > article {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--card) 94%, var(--background) 6%);
+  box-shadow: var(--shadow-sm);
+}
+
+.ofReadinessDial {
+  display: grid;
+  align-content: center;
+  gap: 0.25rem;
+  padding: 1.1rem;
+}
+
+.ofReadinessDial span,
+.ofReadinessDial small,
+.ofProgressOverviewGrid span,
+.ofProgressPanelHeader > span {
+  color: var(--muted-foreground);
+  font-weight: 800;
+}
+
+.ofReadinessDial strong {
+  color: var(--foreground);
+  font-size: clamp(3rem, 7vw, 4.6rem);
+  line-height: 0.9;
+}
+
+.ofProgressOverviewGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
+}
+
+.ofProgressOverviewGrid > article {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem;
+}
+
+.ofProgressOverviewGrid strong {
+  color: var(--foreground);
+  font-size: 1.08rem;
+  line-height: 1.25;
+}
+
+.ofProgressOverviewGrid p {
+  margin: 0;
+  color: var(--muted-foreground);
+  line-height: 1.45;
+}
+
+.ofProgressMainGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: clamp(0.9rem, 2.5vw, 1.15rem);
+}
+
+.ofProgressPanel,
+.ofProgressCoachPanel {
+  padding: clamp(1rem, 2.5vw, 1.2rem);
+}
+
+.ofProgressPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ofProgressPanel h3,
+.ofProgressCoachPanel h3 {
+  font-size: clamp(1.1rem, 2.2vw, 1.4rem);
+}
+
+.ofTrendGraph {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.55rem;
+  min-height: 13rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--background);
+}
+
+.ofTrendBar {
+  display: grid;
+  align-items: end;
+  gap: 0.45rem;
+  height: 100%;
+}
+
+.ofTrendBar span {
+  display: block;
+  width: 100%;
+  min-height: 1.5rem;
+  border-radius: 999px 999px 0.4rem 0.4rem;
+  background: linear-gradient(180deg, var(--primary), var(--accent));
+}
+
+.ofTrendBar small {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.ofAchievementList,
+.ofShareCardGrid,
+.ofComparisonTable {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.ofAchievementList > div,
+.ofShareCardGrid > div,
+.ofComparisonTable > div {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+}
+
+.ofAchievementList strong,
+.ofShareCardGrid strong,
+.ofComparisonTable strong {
+  color: var(--foreground);
+  line-height: 1.25;
+}
+
+.ofAchievementList span,
+.ofShareCardGrid span,
+.ofComparisonTable span {
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.ofComparisonTable > div {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+  align-items: center;
+}
+
+.ofProgressCoachPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 24rem);
+  gap: 1rem;
+  align-items: center;
+  margin-top: clamp(0.9rem, 2.5vw, 1.15rem);
+}
+
+.ofCoachModeGroup {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
+.ofCoachModeGroup button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--foreground);
+  font-weight: 800;
+}
+
+.ofCoachModeGroup button:hover,
+.ofCoachModeGroup button.isActive {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  background: color-mix(in srgb, var(--primary) 12%, var(--background));
+  color: var(--foreground);
+}
+
+.ofCoachModeGroup button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ring) 42%, transparent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1024px) {
+  .ofProgressOverviewGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .ofProgressDashboard {
+    width: min(100%, calc(100vw - 1rem));
+    padding: 0.85rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .ofProgressHeader,
+  .ofProgressMainGrid,
+  .ofProgressCoachPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .ofProgressHeader h2 {
+    max-width: 12ch;
+    font-size: clamp(1.85rem, 10vw, 2.6rem);
+  }
+
+  .ofReadinessDial {
+    min-height: auto;
+  }
+
+  .ofProgressPanelHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ofProgressOverviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ofTrendGraph {
+    min-height: 10rem;
+    gap: 0.35rem;
+  }
+
+  .ofComparisonTable > div {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .ofProgressDashboard {
+    width: min(100%, calc(100vw - 0.75rem));
+    padding: 0.7rem;
+  }
+
+  .ofProgressPanel,
+  .ofProgressCoachPanel,
+  .ofProgressOverviewGrid > article {
+    padding: 0.85rem;
+  }
+
+  .ofProgressHeader p,
+  .ofProgressCoachPanel p,
+  .ofProgressOverviewGrid p {
+    font-size: 0.95rem;
+  }
+}
