@@ -88,7 +88,12 @@ export function logRetentionEvent(activityType, metadata = {}, options = {}) {
 
   if (dedupeKey) pendingEvents.add(dedupeKey);
 
-  Promise.resolve(logUserActivity(activityType, points, metadata))
+  Promise.resolve(
+    logUserActivity(activityType, points, {
+      ...metadata,
+      ...(dedupeKey ? { dedupe_key: dedupeKey } : {}),
+    })
+  )
     .then((result) => {
       if (result && dedupeKey) markLogged(dedupeKey);
     })

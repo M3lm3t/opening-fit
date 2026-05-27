@@ -99,18 +99,26 @@ function FeatureRow({ label, free, premium }) {
   );
 }
 
-function LockedPreview({ title, text, isPremium }) {
+function LockedPreview({ title, text, isPremium, isPreview = false }) {
+  const visible = isPremium || isPreview;
   return (
-    <div className={isPremium ? "premiumPreviewCard unlocked" : "premiumPreviewCard locked"}>
-      <div className="premiumPreviewIcon">{isPremium ? "✓" : "🔒"}</div>
+    <div className={visible ? "premiumPreviewCard unlocked" : "premiumPreviewCard locked"}>
+      <div className="premiumPreviewIcon">{visible ? "✓" : "🔒"}</div>
       <h3>{title}</h3>
       <p>{text}</p>
-      {!isPremium ? <span>Founder Pass unlock</span> : <span>Unlocked</span>}
+      {!visible ? <span>Founder Pass unlock</span> : <span>{isPremium ? "Unlocked" : "Preview"}</span>}
     </div>
   );
 }
 
-export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDemo, onFounderPass }) {
+export default function PremiumPanel({
+  data,
+  isPremium,
+  isPremiumPreview = false,
+  onUnlockDemo,
+  onResetDemo,
+  onFounderPass,
+}) {
   const premiumInsights = useMemo(() => {
     const openings = collectOpenings(data)
       .map((item) => ({
@@ -187,6 +195,8 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
           <small>
             {isPremium
               ? "Depth tools are unlocked for this report."
+              : isPremiumPreview
+              ? "Preview mode shows what Founder Pass adds. Real paid features stay locked until Stripe confirms access."
               : "Free gives the useful verdict. Founder Pass adds history, filtering, exports, and repertoire workflow."}
           </small>
         </div>
@@ -212,24 +222,28 @@ export default function PremiumPanel({ data, isPremium, onUnlockDemo, onResetDem
       <div className="premiumPreviewGrid">
         <LockedPreview
           isPremium={isPremium}
+          isPreview={isPremiumPreview}
           title="Deeper history"
           text="Import up to 12 months so one recent streak does not distort the whole repertoire decision."
         />
 
         <LockedPreview
           isPremium={isPremium}
+          isPreview={isPremiumPreview}
           title="Full filters and table"
           text="Use the full opening table and advanced filters to compare side, sample size, score, and confidence."
         />
 
         <LockedPreview
           isPremium={isPremium}
+          isPreview={isPremiumPreview}
           title="Saved progress"
           text="Save reports, compare imports, and track whether your opening decisions are actually improving."
         />
 
         <LockedPreview
           isPremium={isPremium}
+          isPreview={isPremiumPreview}
           title="Full repertoire tools"
           text={`Turn signals like ${bestOpening} and ${weakOpening} into an exportable study plan and clearer repertoire map.`}
         />

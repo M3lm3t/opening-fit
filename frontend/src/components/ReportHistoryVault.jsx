@@ -205,7 +205,7 @@ function compareSnapshots(previous, current) {
 }
 
 export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
-  const { user, reportHistory, saveReport, deleteUserData, refreshUserData } = useAuth();
+  const { user, hasPremiumAccess, reportHistory, saveReport, deleteUserData, refreshUserData } = useAuth();
   const [history, setHistory] = useState(() => readHistory().map(normalizeHistoryItem));
   const [status, setStatus] = useState("");
 
@@ -271,6 +271,11 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
     };
 
     if (user?.id) {
+      if (!hasPremiumAccess) {
+        setStatus("Founder Pass is required to save cloud report history. Anonymous browser history still works locally.");
+        return;
+      }
+
       try {
         await saveReport(data, currentSnapshot);
         await refreshUserData(user);

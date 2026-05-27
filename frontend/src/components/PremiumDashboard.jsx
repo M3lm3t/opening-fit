@@ -7,7 +7,6 @@ import {
 } from "./playerLevelLogic";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
-const PREMIUM_DEMO_KEY = "openingFit:premiumDemo";
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -305,13 +304,7 @@ export default function PremiumDashboard({
   onUnlockDemo,
   onPractice,
 }) {
-  const [isPremiumDemo, setIsPremiumDemo] = useState(() => {
-    try {
-      return localStorage.getItem(PREMIUM_DEMO_KEY) === "true";
-    } catch {
-      return false;
-    }
-  });
+  const [isPremiumPreview, setIsPremiumPreview] = useState(false);
   const [stockfishLoading, setStockfishLoading] = useState(false);
   const [stockfishResult, setStockfishResult] = useState(null);
   const [stockfishError, setStockfishError] = useState("");
@@ -320,7 +313,7 @@ export default function PremiumDashboard({
   const weakLines = useMemo(() => buildWeakLines(data), [data]);
   const games = useMemo(() => getGames(data), [data]);
   const weeklyPlan = useMemo(() => buildWeeklyPlan(repertoire, weakLines), [repertoire, weakLines]);
-  const premiumActive = Boolean(isPremium || isPremiumDemo);
+  const premiumActive = Boolean(isPremium);
 
   const totalGames =
     safeNumber(data?.gamesImported) ||
@@ -344,15 +337,7 @@ export default function PremiumDashboard({
 
   const togglePremiumDemo = () => {
     if (isPremium) return;
-
-    const next = !isPremiumDemo;
-    setIsPremiumDemo(next);
-
-    try {
-      localStorage.setItem(PREMIUM_DEMO_KEY, String(next));
-    } catch {
-      // Ignore storage errors.
-    }
+    setIsPremiumPreview((value) => !value);
   };
 
   const unlockAction = () => {
@@ -476,7 +461,7 @@ export default function PremiumDashboard({
       <div className="premiumHero">
         <div>
           <span className="premiumEyebrow">
-            {isPremium ? "Founder Pass active" : isPremiumDemo ? "Audit preview" : "Founder Pass"}
+            {isPremium ? "Founder Pass active" : isPremiumPreview ? "Audit preview" : "Founder Pass"}
           </span>
           <h2>Founder Pass adds depth and convenience</h2>
           <p>
@@ -502,7 +487,7 @@ export default function PremiumDashboard({
                 Unlock Founder Pass
               </button>
               <button className="premiumDemoToggle" type="button" onClick={togglePremiumDemo}>
-                {isPremiumDemo ? "Preview on" : "Preview premium"}
+                {isPremiumPreview ? "Preview on" : "Preview premium"}
               </button>
             </>
           ) : null}

@@ -8,7 +8,6 @@ import { logRetentionEvent } from "../services/retentionEvents";
 const EMPTY_PROFILE = {
   chesscom_username: "",
   lichess_username: "",
-  is_premium: false,
 };
 
 const PRE_LOGIN_TEASERS = [
@@ -76,6 +75,7 @@ export default function AccountPanel({ variant = "floating",
     profile: cloudProfile,
     loading: accountLoading,
     error: accountError,
+    hasPremiumAccess,
     refreshUserData,
     upsertUserData,
   } = useAuth();
@@ -109,7 +109,6 @@ export default function AccountPanel({ variant = "floating",
     setProfile({
       chesscom_username: cloudProfile?.chesscom_username || "",
       lichess_username: cloudProfile?.lichess_username || "",
-      is_premium: Boolean(cloudProfile?.is_premium),
     });
   }, [cloudProfile, user]);
 
@@ -171,7 +170,6 @@ export default function AccountPanel({ variant = "floating",
             "",
           chesscom_username: profile.chesscom_username.trim(),
           lichess_username: profile.lichess_username.trim(),
-          is_premium: Boolean(profile.is_premium),
         },
         { onConflict: "user_id" }
       );
@@ -184,7 +182,7 @@ export default function AccountPanel({ variant = "floating",
           hasLichessUsername: Boolean(profile.lichess_username.trim()),
         },
         {
-          dedupeKey: `${user.id}:${profile.chesscom_username.trim()}:${profile.lichess_username.trim()}:${Boolean(profile.is_premium)}`,
+          dedupeKey: `${user.id}:${profile.chesscom_username.trim()}:${profile.lichess_username.trim()}`,
         }
       );
 
@@ -370,9 +368,9 @@ export default function AccountPanel({ variant = "floating",
             <div className="accountProfileStack">
               <div className="premiumStatusCard">
                 <span>Premium status</span>
-                <strong>{profile.is_premium ? "Premium active" : "Free account"}</strong>
+                <strong>{hasPremiumAccess ? "Premium active" : "Free account"}</strong>
                 <small>
-                  Premium is synced to Stripe. Unlock Founder Pass to save premium access to this account.
+                  Premium is synced from Stripe. Unlock Founder Pass to save premium access to this account.
                 </small>
               </div>
 
@@ -407,15 +405,15 @@ export default function AccountPanel({ variant = "floating",
 
               <div className="accountPremiumBox">
                 <div>
-                  <strong>{profile?.is_premium ? "Premium active" : "Opening Fit Founder Pass"}</strong>
+                  <strong>{hasPremiumAccess ? "Premium active" : "Opening Fit Founder Pass"}</strong>
                   <p>
-                    {profile?.is_premium
+                    {hasPremiumAccess
                       ? "Your account has premium access saved in the cloud."
                       : "Support early development and unlock deeper reports on this account."}
                   </p>
                 </div>
 
-                {!profile?.is_premium ? (
+                {!hasPremiumAccess ? (
                   <button
                     className="accountPrimaryAction"
                     type="button"

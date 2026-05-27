@@ -9,7 +9,6 @@ export default function AccountRestoreSync({
   setPlatform,
   data,
   setData,
-  setIsPremium,
 }) {
   const {
     loading,
@@ -49,10 +48,6 @@ export default function AccountRestoreSync({
       setData(latestReport);
     }
 
-    if (typeof setIsPremium === "function") {
-      setIsPremium(Boolean(profile?.is_premium));
-    }
-
     restoredUserRef.current = user.id;
   }, [
     loading,
@@ -65,7 +60,6 @@ export default function AccountRestoreSync({
     setUsername,
     setPlatform,
     setData,
-    setIsPremium,
   ]);
 
   useEffect(() => {

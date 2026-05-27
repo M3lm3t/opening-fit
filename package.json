@@ -1,4 +1,7 @@
 {
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.0",
     "@vercel/analytics": "^2.0.1",

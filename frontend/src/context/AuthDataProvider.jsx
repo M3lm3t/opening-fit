@@ -11,6 +11,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 import {
   deleteUserRow,
   fetchAllUserData,
+  hasActivePremiumEntitlement,
   recordActivity,
   saveReport,
   saveSettings,
@@ -22,6 +23,18 @@ const AuthDataContext = createContext(null);
 
 const LEGACY_KEY_PREFIXES = ["openingFit:", "openingfit."];
 const LEGACY_EXACT_KEYS = ["openingfit_landing_seen"];
+const LEGACY_KEYS_TO_PRESERVE_BETWEEN_USERS = new Set([
+  "openingFit:theme",
+  "openingfit_landing_seen",
+  "openingFit:landingSeen",
+]);
+const DANGEROUS_LEGACY_KEY_PATTERNS = [
+  /premium/i,
+  /founder/i,
+  /supporter/i,
+  /paid/i,
+  /unlock/i,
+];
 const RESTORE_TIMEOUT_MS = 8000;
 
 function createRestoreTimeout() {
@@ -62,13 +75,18 @@ function isPersistedLegacyKey(key) {
   );
 }
 
+function isSafeLegacySyncKey(key) {
+  const value = String(key || "");
+  return isPersistedLegacyKey(value) && !DANGEROUS_LEGACY_KEY_PATTERNS.some((pattern) => pattern.test(value));
+}
+
 function readLegacyStorageSnapshot() {
   const snapshot = {};
 
   try {
     for (let index = 0; index < window.localStorage.length; index += 1) {
       const key = window.localStorage.key(index);
-      if (key && isPersistedLegacyKey(key)) {
+      if (key && isSafeLegacySyncKey(key)) {
         snapshot[key] = window.localStorage.getItem(key);
       }
     }
@@ -81,11 +99,33 @@ function readLegacyStorageSnapshot() {
 
 function hydrateLegacyStorage(snapshot = {}) {
   try {
+    clearLegacyStorage();
     Object.entries(snapshot).forEach(([key, value]) => {
-      if (isPersistedLegacyKey(key) && value !== null && value !== undefined) {
+      if (isSafeLegacySyncKey(key) && value !== null && value !== undefined) {
         window.localStorage.setItem(key, value);
       }
     });
+  } catch {
+    // Browser storage can be unavailable in private contexts.
+  }
+}
+
+function clearLegacyStorage() {
+  try {
+    const keysToRemove = [];
+
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (
+        key &&
+        isSafeLegacySyncKey(key) &&
+        !LEGACY_KEYS_TO_PRESERVE_BETWEEN_USERS.has(key)
+      ) {
+        keysToRemove.push(key);
+      }
+    }
+
+    keysToRemove.forEach((key) => window.localStorage.removeItem(key));
   } catch {
     // Browser storage can be unavailable in private contexts.
   }
@@ -357,6 +397,7 @@ export function AuthDataProvider({ children }) {
           }
         } else {
           restoreSeqRef.current += 1;
+          clearLegacyStorage();
           setUserData(null);
           setHydrated(true);
           setAuthLoading(false);
@@ -425,6 +466,11 @@ export function AuthDataProvider({ children }) {
       session,
       user,
       profile: userData?.profile || null,
+      premiumEntitlements: userData?.premium_entitlements || [],
+      hasPremiumAccess: Boolean(
+        userData?.hasPremiumAccess ||
+          hasActivePremiumEntitlement(userData?.premium_entitlements || [], userData?.profile || null)
+      ),
       onboardingAnswers: userData?.onboarding_answers || [],
       measurements: userData?.measurements || [],
       outfits: userData?.outfits || [],
