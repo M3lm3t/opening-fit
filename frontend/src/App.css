@@ -1608,19 +1608,53 @@ th {
 }
 
 .emptyState {
-  padding: 16px;
-  border-radius: 16px;
-  background: rgba(30, 41, 59, 0.65);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: clamp(1rem, 3vw, 1.2rem);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 12%, transparent), transparent 18rem),
+    color-mix(in srgb, var(--card) 92%, var(--background) 8%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.emptyStateIcon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.35rem;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--primary) 12%, var(--background));
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
+  color: var(--primary);
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.emptyStateLabel {
+  display: inline-flex;
+  margin-bottom: 0.35rem;
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .emptyState h3 {
   margin: 0 0 6px;
+  color: var(--foreground);
+  font-size: clamp(1rem, 2vw, 1.14rem);
+  line-height: 1.18;
 }
 
 .emptyState p {
   margin: 0;
-  color: var(--text-soft);
+  color: var(--muted-foreground);
   line-height: 1.5;
 }
 
