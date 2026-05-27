@@ -3246,6 +3246,8 @@ def analyse_position_with_stockfish(board, depth: int = 8) -> Dict[str, Any]:
     if chess is None:
         return {
             "enabled": False,
+            "layer": "stockfish_engine",
+            "role": "best moves, evaluations, blunder checks, and tactical training moments",
             "reason": "python-chess is not installed on the backend.",
         }
 
@@ -3254,6 +3256,8 @@ def analyse_position_with_stockfish(board, depth: int = 8) -> Dict[str, Any]:
     if not engine_path:
         return {
             "enabled": False,
+            "layer": "stockfish_engine",
+            "role": "best moves, evaluations, blunder checks, and tactical training moments",
             "reason": "Stockfish is not installed or STOCKFISH_PATH is not set.",
         }
 
@@ -3265,6 +3269,8 @@ def analyse_position_with_stockfish(board, depth: int = 8) -> Dict[str, Any]:
     except Exception as exc:
         return {
             "enabled": False,
+            "layer": "stockfish_engine",
+            "role": "best moves, evaluations, blunder checks, and tactical training moments",
             "reason": f"Stockfish analysis failed: {exc}",
         }
 
@@ -3274,6 +3280,8 @@ def analyse_position_with_stockfish(board, depth: int = 8) -> Dict[str, Any]:
 
     return {
         "enabled": True,
+        "layer": "stockfish_engine",
+        "role": "best moves, evaluations, blunder checks, and tactical training moments",
         "depth": depth,
         "bestMove": format_engine_move(board, best_move),
         "bestMoveUci": best_move.uci() if best_move else None,
@@ -3292,22 +3300,61 @@ def build_openingfit_suggestion(
     themes = opening_family.get("themes") or []
     main_theme = themes[0] if themes else "find the right pawn break"
     family = opening_family.get("family") or "opening structure"
+    opening = opening_family.get("opening") or "Unknown Opening"
+    typical_plans = opening_family.get("typicalPlans") or []
+    signals = opening_family.get("signals") or []
+    signal_types = sorted({signal.get("type") for signal in signals if signal.get("type")})
+
+    opening_intelligence = {
+        "layer": "opening_intelligence",
+        "role": "opening names, families, ECO codes, transpositions, structures, repertoire buckets, and human plans",
+        "summary": f"This position resembles the {family}.",
+        "opening": opening,
+        "family": family,
+        "confidence": opening_family.get("confidence", "low"),
+        "confidenceScore": opening_family.get("confidenceScore", 0),
+        "eco": next((signal.get("eco") for signal in signals if signal.get("eco")), None),
+        "themes": themes,
+        "typicalPlans": typical_plans,
+        "repertoireBucket": opening_family.get("repertoireBucket", "Flexible transposition bucket"),
+        "evidence": [signal.get("evidence") for signal in signals[:4] if signal.get("evidence")],
+        "signalTypes": signal_types,
+        "answers": {
+            "openingFamily": family,
+            "typicalPlan": main_theme,
+            "repertoireBucket": opening_family.get("repertoireBucket", "Flexible transposition bucket"),
+        },
+    }
 
     if engine_result.get("enabled") and engine_result.get("bestMove"):
-        summary = (
-            f"You are playing a {family}. The main plan is to {main_theme}. "
-            f"In this exact position, Stockfish recommends {engine_result['bestMove']}."
-        )
+        engine_summary = f"In this exact position, Stockfish recommends {engine_result['bestMove']}."
         engine_note = "Engine move included as a position-specific check, not as the whole opening recommendation."
     else:
-        summary = (
-            f"You are playing a {family}. The main plan is to {main_theme}. "
-            "Stockfish is not available here, so the recommendation is based on opening family and structure only."
-        )
+        engine_summary = "Stockfish is not available here, so the move check is skipped."
         engine_note = engine_result.get("reason")
+
+    stockfish_engine = {
+        **engine_result,
+        "layer": "stockfish_engine",
+        "role": "best moves, evaluations, blunder checks, and tactical training moments",
+        "summary": engine_summary,
+        "answers": {
+            "bestMove": engine_result.get("bestMove"),
+            "evaluation": engine_result.get("evaluation"),
+            "available": bool(engine_result.get("enabled")),
+        },
+    }
+
+    summary = (
+        f"Opening intelligence: this position resembles the {family}. "
+        f"Typical plan: {main_theme}. "
+        f"Stockfish layer: {engine_summary}"
+    )
 
     return {
         "summary": summary,
+        "openingIntelligence": opening_intelligence,
+        "stockfishEngine": stockfish_engine,
         "openingFamily": opening_family,
         "engine": engine_result,
         "engineNote": engine_note,
@@ -3359,6 +3406,8 @@ def analyse_openingfit_position(payload: OpeningFitPositionRequest):
         "fen": position["fen"],
         "source": position["source"],
         "moves": position["moves"],
+        "openingIntelligence": suggestion["openingIntelligence"],
+        "stockfishEngine": suggestion["stockfishEngine"],
         "openingFamily": opening_family,
         "engineResult": engine_result,
         "suggestion": suggestion,

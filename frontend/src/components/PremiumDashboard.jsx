@@ -338,6 +338,9 @@ export default function PremiumDashboard({
   const weakestOpening = repertoire.avoid?.[0] || repertoire.improve?.[0];
 
   const latestGameWithPgn = games.find((game) => game?.pgn);
+  const openingIntelligence =
+    stockfishResult?.openingIntelligence || stockfishResult?.suggestion?.openingIntelligence;
+  const stockfishEngine = stockfishResult?.stockfishEngine || stockfishResult?.suggestion?.stockfishEngine;
 
   const togglePremiumDemo = () => {
     if (isPremium) return;
@@ -677,11 +680,33 @@ export default function PremiumDashboard({
               <div className="premiumStockfishResult">
                 <strong>{stockfishResult.suggestion?.summary || stockfishResult.summary}</strong>
 
-                {stockfishResult.engineResult?.enabled === false ? (
+                {openingIntelligence ? (
+                  <div className="premiumList">
+                    <div className="premiumListItem">
+                      <strong>Opening intelligence</strong>
+                      <span>{openingIntelligence.summary}</span>
+                    </div>
+                    {(openingIntelligence.typicalPlans || []).slice(0, 3).map((plan) => (
+                      <div key={plan} className="premiumListItem">
+                        <strong>{openingIntelligence.repertoireBucket}</strong>
+                        <span>{plan}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                {stockfishEngine ? (
+                  <div className="premiumList">
+                    <div className="premiumListItem">
+                      <strong>Stockfish engine</strong>
+                      <span>{stockfishEngine.summary}</span>
+                    </div>
+                  </div>
+                ) : stockfishResult.engineResult?.enabled === false ? (
                   <p>{stockfishResult.engineResult.reason}</p>
                 ) : null}
 
-                {stockfishResult.openingFamily?.themes?.length ? (
+                {!openingIntelligence && stockfishResult.openingFamily?.themes?.length ? (
                   <div className="premiumList">
                     {stockfishResult.openingFamily.themes.slice(0, 3).map((theme) => (
                       <div key={theme} className="premiumListItem">
