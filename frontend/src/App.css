@@ -33867,6 +33867,10 @@ li,
   justify-content: flex-end;
 }
 
+.landingMobileStickyCta {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .landingProblemGrid,
   .landingOutputGrid,
@@ -33917,14 +33921,112 @@ li,
 
   .landingStorySection,
   .landingFinalCTA {
-    padding: 0.95rem;
-    border-radius: 20px;
+    margin-bottom: 14px;
+    padding: 0.85rem;
+    border-radius: 16px;
   }
 
   .landingQuestionBlock h2,
   .landingFinalCTA h2,
   .landingDemoCopy h2 {
-    font-size: clamp(1.5rem, 7vw, 2rem);
+    margin: 6px 0 8px;
+    font-size: clamp(1.25rem, 6vw, 1.65rem);
+    line-height: 1.12;
+  }
+
+  .landingQuestionBlock p:not(.landingEyebrow),
+  .landingFinalCTA p:not(.landingEyebrow),
+  .landingDemoCopy p:not(.landingEyebrow),
+  .landingStoryCard p,
+  .landingOutputCard p,
+  .landingGifFrame p,
+  .landingBeforeAfterCard p,
+  .landingGeneratedList strong,
+  .landingCredStatsGrid p,
+  .landingMetricTestimonial p,
+  .landingFounderCred p {
+    font-size: 0.88rem;
+    line-height: 1.4;
+  }
+
+  .landingHero {
+    padding: 0.85rem !important;
+  }
+
+  .landingHeroGrid {
+    gap: 0.65rem !important;
+  }
+
+  .landingHeroCopy {
+    display: contents;
+  }
+
+  .landingPill {
+    order: 1;
+    margin-bottom: 6px;
+  }
+
+  .landingHeroCopy h1 {
+    order: 2;
+    max-width: 18ch !important;
+    margin-bottom: 0.45rem;
+    font-size: clamp(1.8rem, 9.2vw, 2.35rem) !important;
+  }
+
+  .landingSubtext {
+    order: 3;
+    max-width: 34ch;
+    margin-bottom: 0;
+  }
+
+  .landingPreviewCard {
+    order: 4;
+  }
+
+  .landingHeroActions {
+    order: 5;
+    margin-top: 0.5rem;
+  }
+
+  .landingTrustLine {
+    order: 6;
+    margin-top: 0.25rem;
+  }
+
+  .landingHeroMiniHow {
+    order: 7;
+  }
+
+  .landingMobileStickyCta {
+    position: fixed;
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    z-index: 260;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 8px;
+    background: var(--popover);
+    box-shadow: var(--shadow-md);
+  }
+
+  .landingMobileStickyCta .landingPrimaryBtn,
+  .landingMobileStickyCta .landingSecondaryBtn {
+    min-height: 44px !important;
+    padding: 0.6rem 0.8rem;
+    white-space: nowrap;
+  }
+
+  .landingMobileStickyCta .landingSecondaryBtn {
+    min-width: 82px;
+  }
+
+  .publicLandingPage,
+  .landingWrap {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom)) !important;
   }
 
   .landingStepCard {
@@ -33944,8 +34046,61 @@ li,
     opacity: 1;
   }
 
+  .landingProblemGrid,
+  .landingOutputGrid,
+  .landingUseCaseGrid,
+  .landingFaqGrid,
+  .landingCredStatsGrid,
+  .landingTestimonialsGrid,
+  .landingCaseStudyGrid,
+  .landingGeneratedList,
+  .landingProofList,
+  .landingGifWalkthrough,
+  .landingEmptyStateGrid {
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .landingStoryCard,
+  .landingOutputCard,
+  .landingProofList div,
+  .landingCredStatsGrid article,
+  .landingMetricTestimonial,
+  .landingCaseStudyCard,
+  .landingFounderCred,
+  .landingGeneratedList div,
+  .landingGifFrame {
+    padding: 0.75rem;
+    border-radius: 14px;
+  }
+
+  .landingStoryCard h3,
+  .landingOutputCard h3,
+  .landingCaseStudyCard h3 {
+    margin-bottom: 5px;
+    font-size: 0.98rem;
+  }
+
+  .landingLogoStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .landingLogoStrip span {
+    min-height: 44px;
+    font-size: 0.78rem;
+  }
+
+  .landingBenchmarkTableWrap,
+  .landingEmptyStateSection,
+  .landingGeneratedSection {
+    display: none !important;
+  }
+
   .landingBeforeAfterCard {
     grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .landingFinalActions,
