@@ -5649,6 +5649,62 @@ function LandingSection({ onOpeningClick }) {
     },
   ];
 
+  const workflowFrames = [
+    {
+      title: "Input",
+      text: "Choose Chess.com or Lichess, then enter a public username.",
+      meta: "No PGN upload",
+    },
+    {
+      title: "Import",
+      text: "Opening Fit pulls recent public games and extracts the opening names, colours, and results.",
+      meta: "Usually under 60 seconds",
+    },
+    {
+      title: "Classify",
+      text: "Games are grouped by White repertoire, Black vs 1.e4, Black vs 1.d4, and recurring weak lines.",
+      meta: "Confidence checked",
+    },
+    {
+      title: "Generate",
+      text: "You get keep, fix, watch, and next-study recommendations.",
+      meta: "Actionable output",
+    },
+  ];
+
+  const beforeAfterExamples = [
+    {
+      before: "I lost three French Defence games. Maybe I should stop playing 1.e4.",
+      after: "Your French losses mostly come after 3.Nc3 Bb4. Review that line before changing your whole repertoire.",
+    },
+    {
+      before: "My openings feel inconsistent as Black.",
+      after: "You score well with the Caro-Kann vs 1.e4, but your Black vs 1.d4 games are split across too many systems.",
+    },
+  ];
+
+  const generatedOutputs = [
+    "Keep: Caro-Kann Defence as Black. Strong score, stable structures, enough games to trust the result.",
+    "Fix: Italian Game exchange lines. Positions are playable, but results drop after move 12.",
+    "Watch: King's Gambit experiments. Sample is too small and score is volatile.",
+    "Study next: one Black vs 1.d4 system, because your current replies are scattered.",
+  ];
+
+  const emptyStates = [
+    {
+      title: "No games found",
+      text: "The app tells you if the username is private, misspelled, or has no recent public games.",
+    },
+    {
+      title: "Too little data",
+      text: "Openings with tiny samples are marked as low confidence instead of being treated as facts.",
+    },
+    {
+      title: "Unknown opening",
+      text: "If a line cannot be named cleanly, it is still grouped by structure where possible.",
+    },
+  ];
+
   const faqs = [
     {
       question: "What does this actually do?",
@@ -5797,7 +5853,37 @@ function LandingSection({ onOpeningClick }) {
         </div>
 
         <div className="landingDemoPreview">
-          <LandingSampleResultPreview onOpeningClick={onOpeningClick} />
+          <div className="landingAnnotatedShot">
+            <span className="annotation annotationInput">Input: public username</span>
+            <span className="annotation annotationOutput">Output: keep / fix / watch</span>
+            <span className="annotation annotationTime">Time: under a minute</span>
+            <LandingSampleResultPreview onOpeningClick={onOpeningClick} />
+          </div>
+        </div>
+      </section>
+
+      <section className="landingStorySection landingWorkflowSection" id="workflow-walkthrough">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Question: what happens after I submit?</p>
+          <h2>A short walkthrough from username to generated report.</h2>
+          <p>
+            The app handles the import and grouping automatically. You review the
+            result, not a raw spreadsheet of games.
+          </p>
+        </div>
+
+        <div className="landingGifWalkthrough" aria-label="Animated workflow walkthrough">
+          {workflowFrames.map((frame, index) => (
+            <article
+              className="landingGifFrame"
+              key={frame.title}
+              style={{ "--frame-index": index }}
+            >
+              <span>{frame.meta}</span>
+              <strong>{frame.title}</strong>
+              <p>{frame.text}</p>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -5820,6 +5906,28 @@ function LandingSection({ onOpeningClick }) {
         </div>
       </section>
 
+      <section className="landingStorySection landingBeforeAfterSection" id="before-after">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Question: what makes this different?</p>
+          <h2>It turns vague opening anxiety into a specific next action.</h2>
+        </div>
+
+        <div className="landingBeforeAfterGrid">
+          {beforeAfterExamples.map((example) => (
+            <article className="landingBeforeAfterCard" key={example.before}>
+              <div>
+                <span>Before</span>
+                <p>{example.before}</p>
+              </div>
+              <div>
+                <span>After Opening Fit</span>
+                <p>{example.after}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="landingStorySection landingOutputSection" id="output-examples">
         <div className="landingQuestionBlock">
           <p className="landingEyebrow">Question: what kind of answers do I get?</p>
@@ -5832,6 +5940,37 @@ function LandingSection({ onOpeningClick }) {
               <span>{example.label}</span>
               <h3>{example.title}</h3>
               <p>{example.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landingStorySection landingGeneratedSection" id="generated-output">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Question: what does the system generate?</p>
+          <h2>Sample generated outputs look like decisions, not dashboards.</h2>
+        </div>
+
+        <div className="landingGeneratedList">
+          {generatedOutputs.map((output) => (
+            <div key={output}>
+              <strong>{output}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="landingStorySection landingEmptyStateSection" id="empty-states">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Question: what if my data is messy?</p>
+          <h2>The report shows empty states instead of pretending.</h2>
+        </div>
+
+        <div className="landingEmptyStateGrid">
+          {emptyStates.map((state) => (
+            <article className="landingStoryCard" key={state.title}>
+              <h3>{state.title}</h3>
+              <p>{state.text}</p>
             </article>
           ))}
         </div>

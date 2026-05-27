@@ -33584,6 +33584,193 @@ li,
   background: rgba(2, 6, 23, 0.2);
 }
 
+.landingAnnotatedShot {
+  position: relative;
+  min-width: 0;
+}
+
+.annotation {
+  position: absolute;
+  z-index: 3;
+  max-width: 170px;
+  border: 1px solid rgba(56, 189, 248, 0.34);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(2, 6, 23, 0.86);
+  color: #e0f2fe;
+  font-size: 0.72rem;
+  font-weight: 950;
+  line-height: 1.15;
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.22);
+}
+
+.annotationInput {
+  top: -10px;
+  left: 14px;
+}
+
+.annotationOutput {
+  top: 96px;
+  right: -6px;
+}
+
+.annotationTime {
+  bottom: 10px;
+  left: 18px;
+  border-color: rgba(246, 196, 83, 0.42);
+}
+
+.page.light .annotation,
+[data-theme="light"] .annotation {
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+}
+
+.landingGifWalkthrough {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.landingGifFrame {
+  min-width: 0;
+  min-height: 190px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(2, 6, 23, 0.26);
+  opacity: 0.58;
+  transform: translateY(0);
+  animation: landingWorkflowPulse 8s ease-in-out infinite;
+  animation-delay: calc(var(--frame-index) * 1s);
+}
+
+.landingGifFrame span {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: rgba(14, 165, 233, 0.14);
+  color: #bae6fd;
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.landingGifFrame strong {
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.landingGifFrame p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.48;
+}
+
+@keyframes landingWorkflowPulse {
+  0%,
+  18%,
+  100% {
+    opacity: 0.58;
+    transform: translateY(0);
+    border-color: rgba(148, 163, 184, 0.16);
+  }
+  8% {
+    opacity: 1;
+    transform: translateY(-4px);
+    border-color: rgba(56, 189, 248, 0.46);
+  }
+}
+
+.landingBeforeAfterGrid,
+.landingEmptyStateGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.landingEmptyStateGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.landingBeforeAfterCard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.24);
+}
+
+.landingBeforeAfterCard div {
+  min-width: 0;
+  border-radius: 12px;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.landingBeforeAfterCard div:last-child {
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  background: rgba(22, 101, 52, 0.16);
+}
+
+.landingBeforeAfterCard span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.landingBeforeAfterCard p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.landingGeneratedList {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.landingGeneratedList div {
+  min-width: 0;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: rgba(2, 6, 23, 0.24);
+}
+
+.landingGeneratedList strong {
+  color: var(--text);
+  line-height: 1.42;
+}
+
+.page.light .landingGifFrame,
+.page.light .landingBeforeAfterCard,
+.page.light .landingBeforeAfterCard div,
+.page.light .landingGeneratedList div,
+[data-theme="light"] .landingGifFrame,
+[data-theme="light"] .landingBeforeAfterCard,
+[data-theme="light"] .landingBeforeAfterCard div,
+[data-theme="light"] .landingGeneratedList div {
+  background: rgba(248, 250, 252, 0.88);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.page.light .landingBeforeAfterCard div:last-child,
+[data-theme="light"] .landingBeforeAfterCard div:last-child {
+  background: rgba(220, 252, 231, 0.56);
+  border-color: rgba(22, 163, 74, 0.18);
+}
+
 .landingOutputCard span {
   display: inline-flex;
   width: fit-content;
@@ -33646,6 +33833,9 @@ li,
   .landingOutputGrid,
   .landingUseCaseGrid,
   .landingFaqGrid,
+  .landingGifWalkthrough,
+  .landingBeforeAfterGrid,
+  .landingEmptyStateGrid,
   .landingDemoSection,
   .landingProofSection,
   .landingFinalCTA,
@@ -33668,6 +33858,10 @@ li,
   #premium,
   #problem,
   #product-demo,
+  #workflow-walkthrough,
+  #before-after,
+  #generated-output,
+  #empty-states,
   #output-examples,
   #social-proof,
   #use-cases,
@@ -33690,6 +33884,23 @@ li,
 
   .landingStepCard {
     min-height: auto;
+  }
+
+  .annotation {
+    position: static;
+    display: inline-flex;
+    max-width: 100%;
+    margin: 0 6px 8px 0;
+  }
+
+  .landingGifFrame {
+    min-height: auto;
+    animation: none;
+    opacity: 1;
+  }
+
+  .landingBeforeAfterCard {
+    grid-template-columns: 1fr;
   }
 
   .landingFinalActions,
