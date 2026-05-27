@@ -5614,17 +5614,17 @@ function LandingSection({ onOpeningClick }) {
     {
       label: "Keep",
       title: "Caro-Kann Defence as Black",
-      text: "Reliable score, familiar pawn structures, and a clear reason to keep it in your repertoire.",
+      text: "Reliable score and familiar structures. Keep it.",
     },
     {
       label: "Fix",
       title: "Italian Game after early exchanges",
-      text: "Good positions at move 10, but results dip later, so the report points to the line that needs review.",
+      text: "Good positions early, but results dip later. Review the line.",
     },
     {
       label: "Watch",
       title: "Low-confidence gambit experiments",
-      text: "Fun games, weak evidence. Opening Fit tells you not to overreact to tiny samples.",
+      text: "Fun games, weak evidence. Do not overreact yet.",
     },
   ];
 
@@ -5721,37 +5721,37 @@ function LandingSection({ onOpeningClick }) {
   const useCases = [
     {
       title: "Before a study session",
-      text: "Pick one opening to review instead of browsing random theory videos.",
+      text: "Pick one opening instead of browsing theory.",
     },
     {
       title: "After a painful losing streak",
-      text: "Check whether the problem is your opening choice, a specific line, or the middlegame that follows.",
+      text: "Find whether the leak is the opening or the line.",
     },
     {
       title: "When building a simple repertoire",
-      text: "Choose practical openings for White and Black based on your own results.",
+      text: "Choose practical openings from your own results.",
     },
   ];
 
   const workflowFrames = [
     {
       title: "Input",
-      text: "Choose Chess.com or Lichess, then enter a public username.",
+      text: "Enter a public username.",
       meta: "No PGN upload",
     },
     {
       title: "Import",
-      text: "Opening Fit pulls recent public games and extracts the opening names, colours, and results.",
+      text: "Recent games are scanned.",
       meta: "Usually under 60 seconds",
     },
     {
       title: "Classify",
-      text: "Games are grouped by White repertoire, Black vs 1.e4, Black vs 1.d4, and recurring weak lines.",
+      text: "Openings are grouped by side.",
       meta: "Confidence checked",
     },
     {
       title: "Generate",
-      text: "You get keep, fix, watch, and next-study recommendations.",
+      text: "Get keep, fix, and study-next actions.",
       meta: "Actionable output",
     },
   ];
@@ -5768,10 +5768,10 @@ function LandingSection({ onOpeningClick }) {
   ];
 
   const generatedOutputs = [
-    "Keep: Caro-Kann Defence as Black. Strong score, stable structures, enough games to trust the result.",
-    "Fix: Italian Game exchange lines. Positions are playable, but results drop after move 12.",
-    "Watch: King's Gambit experiments. Sample is too small and score is volatile.",
-    "Study next: one Black vs 1.d4 system, because your current replies are scattered.",
+    "Keep: Caro-Kann. Stable score, enough games.",
+    "Fix: Italian exchange lines. Results drop after move 12.",
+    "Watch: King's Gambit. Sample is too small.",
+    "Study next: one Black vs 1.d4 system.",
   ];
 
   const emptyStates = [
@@ -5860,9 +5860,8 @@ function LandingSection({ onOpeningClick }) {
             <h1>Opening reports for chess players who want a clear repertoire plan.</h1>
 
             <p className="landingSubtext">
-              Enter a Chess.com or Lichess username, import recent games in
-              under a minute, and see which openings to keep, fix, or study
-              before your next rated session.
+              Enter a Chess.com or Lichess username. See what to keep, fix,
+              or study in under a minute.
             </p>
 
             <div className="landingHeroActions">
@@ -5875,7 +5874,7 @@ function LandingSection({ onOpeningClick }) {
             </div>
 
             <p className="landingTrustLine">
-              No PGN files required · Works with public Chess.com and Lichess games · Confidence labels included
+              No PGN upload · Public games only · Confidence labels included
             </p>
 
             <div className="landingHeroMiniHow" aria-label="How Opening Fit works">
@@ -5903,13 +5902,21 @@ function LandingSection({ onOpeningClick }) {
         </div>
       </header>
 
+      <div className="landingMobileStickyCta" aria-label="Start Opening Fit">
+        <a className="landingPrimaryBtn" href="#app-dashboard">
+          Try With Real Data
+        </a>
+        <a className="landingSecondaryBtn" href="#sample-report">
+          Sample
+        </a>
+      </div>
+
       <section className="landingStorySection landingProblemSection" id="problem">
         <div className="landingQuestionBlock">
           <p className="landingEyebrow">Question: why do my openings still feel random?</p>
           <h2>Your games already show which openings deserve your attention.</h2>
           <p>
-            The hard part is not finding more theory. It is deciding what to keep,
-            what to repair, and what to stop trusting before the next rating session.
+            Decide what to keep, repair, or stop trusting before your next session.
           </p>
         </div>
 
@@ -5928,8 +5935,7 @@ function LandingSection({ onOpeningClick }) {
           <p className="landingEyebrow">Question: what will I see?</p>
           <h2>A report that turns messy games into opening decisions.</h2>
           <p>
-            Opening Fit shows your strongest openings, weak lines, role-specific
-            repertoire gaps, confidence levels, and one next study target.
+            See strengths, weak lines, confidence, and one next study target.
           </p>
           <a className="landingSecondaryBtn" href="#sample-report">
             View Sample Output
@@ -5951,8 +5957,7 @@ function LandingSection({ onOpeningClick }) {
           <p className="landingEyebrow">Question: what happens after I submit?</p>
           <h2>A short walkthrough from username to generated report.</h2>
           <p>
-            The app handles the import and grouping automatically. You review the
-            result, not a raw spreadsheet of games.
+            The app imports and groups games. You review the result.
           </p>
         </div>
 
@@ -6065,8 +6070,7 @@ function LandingSection({ onOpeningClick }) {
           <p className="landingEyebrow">Question: can I trust the result?</p>
           <h2>The report explains where each verdict comes from.</h2>
           <p>
-            No chess password is needed. The analysis uses public game data and
-            marks low-confidence samples so one lucky win does not become fake certainty.
+            Public games only. Low-confidence samples are marked clearly.
           </p>
         </div>
 
@@ -6084,9 +6088,7 @@ function LandingSection({ onOpeningClick }) {
           <p className="landingEyebrow">Early proof</p>
           <h2>Built in public, tested on real opening mess.</h2>
           <p>
-            Opening Fit is new, so the proof is intentionally modest: early
-            users, real public imports, and concrete time-saving outcomes rather
-            than inflated enterprise claims.
+            Modest early proof: real imports, early users, and time saved.
           </p>
         </div>
 
@@ -6165,9 +6167,8 @@ function LandingSection({ onOpeningClick }) {
             <h3>Made for players who want practical repertoire decisions.</h3>
           </div>
           <p>
-            Opening Fit is deliberately narrow: it does not pretend to replace a
-            coach or engine. It helps you turn recent games into a believable
-            opening shortlist, with sample-size warnings where the data is thin.
+            Opening Fit does not replace a coach or engine. It turns recent
+            games into a believable opening shortlist.
           </p>
         </div>
       </section>
@@ -6260,8 +6261,7 @@ function LandingSection({ onOpeningClick }) {
           <p className="landingEyebrow">Question: what should I do now?</p>
           <h2>Generate your first opening report from real games.</h2>
           <p>
-            Use your public username, get the snapshot, then decide what to study
-            before the next time you queue.
+            Use your public username, get the snapshot, then pick what to study.
           </p>
         </div>
 
