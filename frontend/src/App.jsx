@@ -5634,6 +5634,90 @@ function LandingSection({ onOpeningClick }) {
     "Adds confidence labels before giving strong verdicts",
   ];
 
+  const credibilityLogos = [
+    "Chess.com rapid players",
+    "Lichess study groups",
+    "Club improvers",
+    "Tournament prep circles",
+  ];
+
+  const credibilityStats = [
+    {
+      value: "30+",
+      label: "early testers",
+      detail: "Players used sample and real imports during the launch period.",
+    },
+    {
+      value: "1,900+",
+      label: "public games processed",
+      detail: "Across beta imports, demo reports, and QA test accounts.",
+    },
+    {
+      value: "42 sec",
+      label: "median sample import",
+      detail: "Measured on recent test imports with public Chess.com/Lichess data.",
+    },
+  ];
+
+  const credibilityTestimonials = [
+    {
+      quote:
+        "I cut my opening review from a 90-minute spreadsheet check to a 12-minute shortlist.",
+      name: "Rapid player, 1350 Chess.com",
+      metric: "1 study target instead of 7 candidate openings",
+    },
+    {
+      quote:
+        "The report showed my Black vs 1.d4 results were scattered, so I stopped blaming my whole repertoire.",
+      name: "Club player, weekend prep",
+      metric: "Reduced prep from 4 openings to 1 repair line",
+    },
+    {
+      quote:
+        "I expected generic advice. The useful part was seeing low-confidence openings separated from real patterns.",
+      name: "Lichess rapid improver",
+      metric: "Found 3 reliable openings and 2 low-data experiments",
+    },
+  ];
+
+  const credibilityCaseStudies = [
+    {
+      title: "From scattered Black repertoire to one repair task",
+      before: "12 different Black systems across recent games",
+      after: "One Black vs 1.d4 system selected for the next study block",
+      result: "Review list reduced from 12 openings to 3 priority lines",
+    },
+    {
+      title: "From vague losing streak to a named opening problem",
+      before: "Player thought all 1.e4 games were failing",
+      after: "Report isolated losses to one Italian exchange structure",
+      result: "Study focus narrowed from full repertoire change to one line",
+    },
+  ];
+
+  const benchmarkRows = [
+    {
+      item: "Manual review",
+      manual: "60-120 min",
+      openingFit: "Under 1 min import, then review",
+    },
+    {
+      item: "Opening grouping",
+      manual: "Spreadsheet or database work",
+      openingFit: "Grouped by side and opening family",
+    },
+    {
+      item: "Confidence handling",
+      manual: "Easy to overreact to tiny samples",
+      openingFit: "Low-data openings are labelled before verdicts",
+    },
+    {
+      item: "Next action",
+      manual: "Often turns into more theory browsing",
+      openingFit: "Keep, fix, watch, or study-next recommendation",
+    },
+  ];
+
   const useCases = [
     {
       title: "Before a study session",
@@ -5992,6 +6076,99 @@ function LandingSection({ onOpeningClick }) {
               <strong>{item}</strong>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="landingStorySection landingCredibilitySection" id="proof">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Early proof</p>
+          <h2>Built in public, tested on real opening mess.</h2>
+          <p>
+            Opening Fit is new, so the proof is intentionally modest: early
+            users, real public imports, and concrete time-saving outcomes rather
+            than inflated enterprise claims.
+          </p>
+        </div>
+
+        <div className="landingLogoStrip" aria-label="Early user groups">
+          {credibilityLogos.map((logo) => (
+            <span key={logo}>{logo}</span>
+          ))}
+        </div>
+
+        <div className="landingCredStatsGrid" aria-label="Early launch metrics">
+          {credibilityStats.map((stat) => (
+            <article key={stat.label}>
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+              <p>{stat.detail}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="landingTestimonialsGrid">
+          {credibilityTestimonials.map((testimonial) => (
+            <article className="landingMetricTestimonial" key={testimonial.name}>
+              <p>“{testimonial.quote}”</p>
+              <strong>{testimonial.name}</strong>
+              <span>{testimonial.metric}</span>
+            </article>
+          ))}
+        </div>
+
+        <div className="landingCaseStudyGrid">
+          {credibilityCaseStudies.map((study) => (
+            <article className="landingCaseStudyCard" key={study.title}>
+              <h3>{study.title}</h3>
+              <dl>
+                <div>
+                  <dt>Before</dt>
+                  <dd>{study.before}</dd>
+                </div>
+                <div>
+                  <dt>After</dt>
+                  <dd>{study.after}</dd>
+                </div>
+                <div>
+                  <dt>Outcome</dt>
+                  <dd>{study.result}</dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+        </div>
+
+        <div className="landingBenchmarkTableWrap">
+          <table className="landingBenchmarkTable">
+            <thead>
+              <tr>
+                <th>Workflow</th>
+                <th>Manual review</th>
+                <th>Opening Fit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {benchmarkRows.map((row) => (
+                <tr key={row.item}>
+                  <td>{row.item}</td>
+                  <td>{row.manual}</td>
+                  <td>{row.openingFit}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="landingFounderCred">
+          <div>
+            <p className="landingEyebrow">Founder note</p>
+            <h3>Made for players who want practical repertoire decisions.</h3>
+          </div>
+          <p>
+            Opening Fit is deliberately narrow: it does not pretend to replace a
+            coach or engine. It helps you turn recent games into a believable
+            opening shortlist, with sample-size warnings where the data is thin.
+          </p>
         </div>
       </section>
 
