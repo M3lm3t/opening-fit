@@ -5718,6 +5718,47 @@ function LandingSection({ onOpeningClick }) {
     },
   ];
 
+  const differentiationPillars = [
+    {
+      label: "Repertoire fingerprint",
+      title: "Your openings are treated like a pattern, not a database search.",
+      text: "Opening Fit splits White, Black vs 1.e4, and Black vs 1.d4 so your plan has shape.",
+    },
+    {
+      label: "Confidence gate",
+      title: "Small samples do not get loud verdicts.",
+      text: "Thin evidence is marked as watch, not dressed up as a recommendation.",
+    },
+    {
+      label: "One-line repair",
+      title: "The output is a next action, not a theory rabbit hole.",
+      text: "You leave with one opening to keep, one to fix, and one study target.",
+    },
+  ];
+
+  const differentiationComparisons = [
+    {
+      alternative: "Opening databases",
+      gap: "Show theory popularity.",
+      openingFit: "Shows what works in your games.",
+    },
+    {
+      alternative: "Engines",
+      gap: "Find move mistakes.",
+      openingFit: "Finds repertoire decisions.",
+    },
+    {
+      alternative: "Spreadsheets",
+      gap: "Require manual sorting.",
+      openingFit: "Groups sides and verdicts automatically.",
+    },
+    {
+      alternative: "Generic courses",
+      gap: "Teach someone else’s repertoire.",
+      openingFit: "Builds from your recent results.",
+    },
+  ];
+
   const useCases = [
     {
       title: "Before a study session",
@@ -5839,6 +5880,7 @@ function LandingSection({ onOpeningClick }) {
 
           <nav className="landingNavLinks">
             <a href="#problem">Problem</a>
+            <a href="#why-opening-fit">Why different</a>
             <a href="#product-demo">Demo</a>
             <a href="#how-it-works">How it works</a>
             <a href="#output-examples">Examples</a>
@@ -5857,7 +5899,7 @@ function LandingSection({ onOpeningClick }) {
               <span>Built for Chess.com and Lichess players</span>
             </div>
 
-            <h1>Opening reports for chess players who want a clear repertoire plan.</h1>
+            <h1>Find your repertoire fingerprint from real games.</h1>
 
             <p className="landingSubtext">
               Enter a Chess.com or Lichess username. See what to keep, fix,
@@ -5925,6 +5967,59 @@ function LandingSection({ onOpeningClick }) {
             <article className="landingStoryCard" key={point.title}>
               <h3>{point.title}</h3>
               <p>{point.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landingStorySection landingDifferenceSection" id="why-opening-fit">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Why Opening Fit</p>
+          <h2>Not more chess data. A decision layer for your repertoire.</h2>
+          <p>
+            Most tools show moves, evals, or master games. Opening Fit answers:
+            what should you keep, fix, watch, or study next?
+          </p>
+        </div>
+
+        <div className="landingFingerprintDemo" aria-label="Opening Fit repertoire fingerprint demo">
+          <div className="fingerprintBoard" aria-hidden="true">
+            <span className="fingerprintSquare fingerprintKeep">Keep</span>
+            <span />
+            <span className="fingerprintSquare fingerprintFix">Fix</span>
+            <span />
+            <span />
+            <span className="fingerprintSquare fingerprintWatch">Watch</span>
+            <span />
+            <span className="fingerprintSquare fingerprintStudy">Study</span>
+            <span />
+          </div>
+          <div className="fingerprintCopy">
+            <span>Repertoire fingerprint</span>
+            <strong>White: stable. Black vs e4: strong. Black vs d4: scattered.</strong>
+            <p>
+              The memorable bit: your report becomes a small map of opening
+              decisions, not a wall of theory.
+            </p>
+          </div>
+        </div>
+
+        <div className="landingDifferentiatorGrid">
+          {differentiationPillars.map((pillar) => (
+            <article className="landingDifferentiatorCard" key={pillar.label}>
+              <span>{pillar.label}</span>
+              <h3>{pillar.title}</h3>
+              <p>{pillar.text}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="landingAlternativeGrid">
+          {differentiationComparisons.map((item) => (
+            <article className="landingAlternativeCard" key={item.alternative}>
+              <h3>{item.alternative}</h3>
+              <p>{item.gap}</p>
+              <strong>{item.openingFit}</strong>
             </article>
           ))}
         </div>
