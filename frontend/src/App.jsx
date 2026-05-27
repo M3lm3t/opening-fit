@@ -1,6 +1,7 @@
 import OpeningFitUXCleanup from "./components/OpeningFitUXCleanup.jsx";
 import OpeningFitStudyPlanner from "./components/OpeningFitStudyPlanner.jsx";
 import OpeningFitRetentionCommandCenter from "./components/OpeningFitRetentionCommandCenter.jsx";
+import OpeningFitProgressionDashboard from "./components/OpeningFitProgressionDashboard.jsx";
 import OpeningFitImportDoctor from "./components/OpeningFitImportDoctor.jsx";
 import OpeningFitFunctionalityHub from "./components/OpeningFitFunctionalityHub.jsx";
 import OpeningFitFunctionalTools from "./components/OpeningFitFunctionalTools.jsx";
@@ -10021,6 +10022,11 @@ function App() {
                     username={username}
                     platform={platform}
                     isPremium={isPremium}
+                  />
+
+                  <OpeningFitProgressionDashboard
+                    data={reportData}
+                    username={username}
                   />
 
                   <section className="profileHubSection" id="profile-achievements">
