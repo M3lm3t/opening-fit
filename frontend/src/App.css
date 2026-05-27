@@ -34822,9 +34822,9 @@ svg {
 
 /* Profile / Players Hub desktop cleanup */
 .profileSection {
-  width: var(--of-shell) !important;
-  max-width: var(--of-shell) !important;
-  margin: 0 auto;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0;
   gap: 18px !important;
   overflow-x: clip;
 }
@@ -34866,7 +34866,7 @@ svg {
 }
 
 .profileIdentityCard {
-  grid-template-columns: minmax(0, 0.82fr) minmax(420px, 1.18fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
   align-items: start;
   gap: 18px;
 }
@@ -34920,7 +34920,7 @@ svg {
 
 .profileAchievementGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
   gap: 14px;
   align-items: start;
 }
@@ -34968,7 +34968,7 @@ svg {
 }
 
 .profileGrid {
-  grid-template-columns: repeat(2, minmax(360px, 1fr)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)) !important;
   gap: 16px !important;
 }
 
@@ -35035,15 +35035,15 @@ svg {
 
 @media (min-width: 1280px) {
   .profileSection {
-    width: var(--of-shell-wide) !important;
-    max-width: var(--of-shell-wide) !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }
 
 @media (max-width: 1366px) {
   .profileSection {
-    width: calc(100vw - 28px) !important;
-    max-width: calc(100vw - 28px) !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   .profileIdentityCard,
@@ -35075,8 +35075,8 @@ svg {
 
 @media (max-width: 768px) {
   .profileSection {
-    width: calc(100vw - 20px) !important;
-    max-width: calc(100vw - 20px) !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   .profileSectionHeader,
@@ -35100,7 +35100,7 @@ svg {
 
 @media (max-width: 430px) {
   .profileSection {
-    width: calc(100vw - 16px) !important;
-    max-width: calc(100vw - 16px) !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }
