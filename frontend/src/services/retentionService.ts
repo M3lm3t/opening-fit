@@ -92,6 +92,26 @@ export const ACHIEVEMENTS = {
     title: "Elite",
     description: "Reached Elite level.",
   },
+  first_opening_mastered: {
+    title: "First Opening Mastered",
+    description: "Built enough consistency to treat one opening as mastered.",
+  },
+  tactical_specialist: {
+    title: "Tactical Specialist",
+    description: "Built a sharp, forcing OpeningFit activity profile.",
+  },
+  theory_grinder: {
+    title: "Theory Grinder",
+    description: "Kept returning for repeated review work.",
+  },
+  repertoire_builder: {
+    title: "Repertoire Builder",
+    description: "Logged enough sessions to start forming a real repertoire habit.",
+  },
+  accuracy_milestone: {
+    title: "Accuracy Milestone",
+    description: "Reached a meaningful improvement milestone.",
+  },
 };
 
 function getClient() {
@@ -140,6 +160,11 @@ function getAchievementRank(key: string) {
     level_elite: 7,
     level_advanced: 6,
     level_intermediate: 5,
+    accuracy_milestone: 5,
+    first_opening_mastered: 5,
+    repertoire_builder: 4,
+    theory_grinder: 4,
+    tactical_specialist: 4,
     seven_day_streak: 4,
     first_week_complete: 3,
     three_day_streak: 2,
@@ -629,6 +654,11 @@ export async function checkAndUnlockAchievements(userId: string) {
     if (xp >= 500) keysToUnlock.push("level_intermediate");
     if (xp >= 1500) keysToUnlock.push("level_advanced");
     if (xp >= 3000) keysToUnlock.push("level_elite");
+    if (xp >= 250) keysToUnlock.push("first_opening_mastered");
+    if (xp >= 750) keysToUnlock.push("accuracy_milestone");
+    if (Number(activityCount || 0) >= 5) keysToUnlock.push("repertoire_builder");
+    if (Number(activityCount || 0) >= 8) keysToUnlock.push("theory_grinder");
+    if (Number(activityCount || 0) >= 10 && xp >= 1000) keysToUnlock.push("tactical_specialist");
 
     const results = await Promise.allSettled(
       keysToUnlock.map((key) => unlockAchievement(userId, key))

@@ -2,6 +2,7 @@ import OpeningFitUXCleanup from "./components/OpeningFitUXCleanup.jsx";
 import OpeningFitStudyPlanner from "./components/OpeningFitStudyPlanner.jsx";
 import OpeningFitRetentionCommandCenter from "./components/OpeningFitRetentionCommandCenter.jsx";
 import OpeningFitProgressionDashboard from "./components/OpeningFitProgressionDashboard.jsx";
+import OpeningFitRetentionSystems from "./components/OpeningFitRetentionSystems.jsx";
 import OpeningFitImportDoctor from "./components/OpeningFitImportDoctor.jsx";
 import OpeningFitFunctionalityHub from "./components/OpeningFitFunctionalityHub.jsx";
 import OpeningFitFunctionalTools from "./components/OpeningFitFunctionalTools.jsx";
@@ -10029,6 +10030,11 @@ function App() {
                   />
 
                   <OpeningFitProgressionDashboard
+                    data={reportData}
+                    username={username}
+                  />
+
+                  <OpeningFitRetentionSystems
                     data={reportData}
                     username={username}
                   />

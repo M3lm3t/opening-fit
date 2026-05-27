@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { recordRetentionMetric } from "../services/retentionMetrics";
 import "./OpeningFitRetentionCommandCenter.css";
 
 const STORAGE_PREFIX = "openingFit:retentionCommandCenter";
@@ -264,6 +265,16 @@ export default function OpeningFitRetentionCommandCenter({ data, username, onPra
     } catch {
       // Retention state should remain optional if browser storage is blocked.
     }
+    recordRetentionMetric(
+      "daily_review_completed",
+      {
+        playerName,
+        weakestOpening: weakestOpening?.name,
+        strongestOpening: strongestOpening?.name,
+        openingFitScore,
+      },
+      { dedupeKey: `${playerName}:${today}` },
+    );
   }
 
   return (

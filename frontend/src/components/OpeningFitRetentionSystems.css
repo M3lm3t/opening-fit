@@ -1,0 +1,288 @@
+.ofRetentionSystems {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto clamp(1.5rem, 4vw, 2.75rem);
+  padding: clamp(1rem, 3vw, 1.4rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--success) 12%, transparent), transparent 28rem),
+    color-mix(in srgb, var(--card) 96%, var(--background) 4%);
+  box-shadow: var(--shadow-md);
+  color: var(--foreground);
+  overflow: hidden;
+}
+
+.ofRetentionSystems * {
+  min-width: 0;
+}
+
+.ofSystemsHeader,
+.ofKpiGrid,
+.ofLoopGrid,
+.ofSystemsMainGrid {
+  display: grid;
+  gap: clamp(0.9rem, 2.4vw, 1.2rem);
+}
+
+.ofSystemsHeader {
+  grid-template-columns: minmax(0, 1fr) minmax(13rem, 17rem);
+  align-items: stretch;
+  margin-bottom: clamp(1rem, 3vw, 1.3rem);
+}
+
+.ofSystemsHeader h2,
+.ofLoopGrid h3,
+.ofSystemsPanel h3 {
+  margin: 0;
+  color: var(--foreground);
+  letter-spacing: 0;
+}
+
+.ofSystemsHeader h2 {
+  max-width: 15ch;
+  font-size: clamp(1.8rem, 4vw, 3.25rem);
+  line-height: 1;
+}
+
+.ofSystemsHeader p {
+  max-width: 64ch;
+  margin: 0.75rem 0 0;
+  color: var(--muted-foreground);
+  line-height: 1.62;
+}
+
+.ofSystemsEyebrow {
+  margin: 0 0 0.42rem;
+  color: var(--primary);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ofSystemsNorthStar,
+.ofKpiGrid > article,
+.ofLoopGrid > article,
+.ofSystemsPanel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--card) 94%, var(--background) 6%);
+  box-shadow: var(--shadow-sm);
+}
+
+.ofSystemsNorthStar {
+  display: grid;
+  align-content: center;
+  gap: 0.3rem;
+  padding: 1.1rem;
+}
+
+.ofSystemsNorthStar span,
+.ofSystemsNorthStar small,
+.ofKpiGrid span,
+.ofSystemsPanelHeader > span {
+  color: var(--muted-foreground);
+  font-weight: 800;
+}
+
+.ofSystemsNorthStar strong {
+  color: var(--foreground);
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  line-height: 1;
+}
+
+.ofKpiGrid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-bottom: clamp(1rem, 3vw, 1.2rem);
+}
+
+.ofKpiGrid > article {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.9rem;
+}
+
+.ofKpiGrid strong {
+  color: var(--foreground);
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  line-height: 1;
+}
+
+.ofKpiGrid p {
+  margin: 0;
+  color: var(--muted-foreground);
+  line-height: 1.35;
+}
+
+.ofLoopGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: clamp(1rem, 3vw, 1.2rem);
+}
+
+.ofLoopGrid > article {
+  padding: 1rem;
+}
+
+.ofLoopGrid h3,
+.ofSystemsPanel h3 {
+  font-size: clamp(1.1rem, 2.4vw, 1.4rem);
+}
+
+.ofLoopGrid ul {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.8rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--muted-foreground);
+  line-height: 1.45;
+}
+
+.ofSystemsMainGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: clamp(0.9rem, 2.5vw, 1.15rem);
+}
+
+.ofSystemsPanel {
+  padding: clamp(1rem, 2.5vw, 1.2rem);
+}
+
+.ofSystemsPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ofSystemsPanelHeader button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--foreground);
+  font-weight: 800;
+}
+
+.ofSystemsPanelHeader button:hover {
+  border-color: color-mix(in srgb, var(--primary) 48%, var(--border));
+  background: color-mix(in srgb, var(--primary) 10%, var(--background));
+}
+
+.ofSystemsPanelHeader button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ring) 42%, transparent);
+  outline-offset: 2px;
+}
+
+.ofSpacedQueue,
+.ofNotificationStack,
+.ofAchievementSystemGrid,
+.ofSocialLoopList {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.ofSpacedQueue > div,
+.ofNotificationStack > p,
+.ofAchievementSystemGrid > div,
+.ofSocialLoopList > div {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+}
+
+.ofSpacedQueue span,
+.ofAchievementSystemGrid span,
+.ofSocialLoopList span {
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.ofSpacedQueue strong,
+.ofAchievementSystemGrid strong,
+.ofSocialLoopList strong {
+  color: var(--foreground);
+  line-height: 1.25;
+}
+
+.ofSpacedQueue p,
+.ofNotificationStack p {
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.ofNotificationStack > p {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.ofNotificationStack > p::before {
+  content: "";
+  position: absolute;
+  top: 1rem;
+  left: 0.8rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--success);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--success) 14%, transparent);
+}
+
+.ofAchievementSystemGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .ofKpiGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .ofRetentionSystems {
+    width: min(100%, calc(100vw - 1rem));
+    padding: 0.85rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .ofSystemsHeader,
+  .ofLoopGrid,
+  .ofSystemsMainGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ofSystemsHeader h2 {
+    max-width: 12ch;
+    font-size: clamp(1.85rem, 10vw, 2.6rem);
+  }
+
+  .ofSystemsPanelHeader {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 560px) {
+  .ofKpiGrid,
+  .ofAchievementSystemGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ofRetentionSystems {
+    width: min(100%, calc(100vw - 0.75rem));
+    padding: 0.7rem;
+  }
+
+  .ofSystemsPanel,
+  .ofLoopGrid > article,
+  .ofKpiGrid > article {
+    padding: 0.85rem;
+  }
+}
