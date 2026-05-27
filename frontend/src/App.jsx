@@ -2390,8 +2390,12 @@ function Section({ title, isOpen, onToggle, children, badge = null }) {
 function EmptyState({ title, text }) {
   return (
     <div className="emptyState">
-      <h3>{title}</h3>
-      <p>{text}</p>
+      <div className="emptyStateIcon" aria-hidden="true">+</div>
+      <div>
+        <span className="emptyStateLabel">Next best action</span>
+        <h3>{title}</h3>
+        <p>{text}</p>
+      </div>
     </div>
   );
 }

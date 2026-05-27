@@ -117,6 +117,23 @@
   text-align: left;
 }
 
+.importLoadingProgress {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.76);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.importLoadingProgress span {
+  display: block;
+  width: 72%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #60a5fa, #22c55e, #facc15);
+  animation: openingFitProgressFill 2.4s ease-in-out infinite alternate;
+}
+
 .importLoadingSteps span {
   padding: 11px 13px;
   border-radius: 15px;
@@ -141,6 +158,22 @@
   box-shadow: 0 0 16px rgba(56, 189, 248, 0.28);
 }
 
+.importLoadingTips {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.62);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  text-align: left;
+}
+
+.importLoadingTips p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.74);
+  font-size: 0.92rem;
+}
+
 @keyframes openingFitBoardPulse {
   from {
     transform: translateY(0) rotate(-1deg);
@@ -159,6 +192,15 @@
   55%,
   100% {
     transform: translateX(120%);
+  }
+}
+
+@keyframes openingFitProgressFill {
+  from {
+    width: 36%;
+  }
+  to {
+    width: 88%;
   }
 }
 

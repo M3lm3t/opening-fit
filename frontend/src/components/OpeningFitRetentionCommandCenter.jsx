@@ -278,6 +278,7 @@ export default function OpeningFitRetentionCommandCenter({ data, username, onPra
           </p>
         </div>
         <div className="ofRetentionScoreCard" aria-label={`OpeningFit score ${openingFitScore}`}>
+          <div className="ofLevelBurst" aria-hidden="true">Level up</div>
           <span>OpeningFit Score</span>
           <strong>{openingFitScore}</strong>
           <small>{identity.title}</small>
@@ -319,6 +320,11 @@ export default function OpeningFitRetentionCommandCenter({ data, username, onPra
           >
             {completedToday ? "Daily review complete" : "Mark today's review done"}
           </button>
+
+          <div className={completedToday ? "ofCompletionMoment isVisible" : "ofCompletionMoment"}>
+            <strong>+40 XP earned</strong>
+            <span>Streak protected. One weak line moved back into memory.</span>
+          </div>
         </article>
 
         <article className="ofRetentionPanel ofRetentionIdentity">
@@ -361,6 +367,10 @@ export default function OpeningFitRetentionCommandCenter({ data, username, onPra
             </div>
             <div className="ofProgressTrack" aria-label={`${opening.name} ${opening.mastery}% mastered`}>
               <span style={{ width: `${opening.mastery}%` }} />
+            </div>
+            <div className="ofMasteryGain">
+              <span>+{Math.max(3, Math.round(opening.trainingProgress / 12))}% this cycle</span>
+              <span>{opening.trainingProgress}% trained</span>
             </div>
             <dl className="ofMasteryMeta">
               <div>
