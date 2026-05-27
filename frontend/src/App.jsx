@@ -48,7 +48,6 @@ import TodayDashboard from "./components/TodayDashboard";
 import AchievementsPanel from "./components/AchievementsPanel";
 import DailyOpeningHabit from "./components/DailyOpeningHabit";
 import MobileBottomNav from "./components/MobileBottomNav";
-import LaunchReadySections from "./components/LaunchReadySections";
 import { useAuth } from "./context/AuthDataProvider";
 
 
@@ -5369,132 +5368,6 @@ function AppViewTabs({ activeView, onChange }) {
 }
 
 
-function AboutSection() {
-  return (
-    <section className="landingContentSection aboutSection" id="about">
-      <div className="landingSectionHeading">
-        <p className="landingEyebrow">Who it is for</p>
-        <h2>Built for beginner and club players.</h2>
-        <p>
-          Opening Fit is designed for players who want practical opening advice
-          without memorising huge theory files. It looks at what you already
-          play, finds patterns in your results, and helps you build a simple
-          repertoire that fits your style.
-        </p>
-      </div>
-
-      <div className="aboutGrid">
-        <article className="aboutCard">
-          <h3>Not an engine report</h3>
-          <p>
-            The goal is not to overwhelm you with computer lines. The goal is to
-            help you understand which openings feel natural and which ones need
-            attention.
-          </p>
-        </article>
-
-        <article className="aboutCard">
-          <h3>Made for practical training</h3>
-          <p>
-            Use the report to decide what to keep, what to repair, and what to
-            practise next on the board.
-          </p>
-        </article>
-
-        <article className="aboutCard">
-          <h3>Simple repertoire building</h3>
-          <p>
-            Start with a few openings you trust, learn the first moves, then add
-            plans over time instead of chasing every sideline.
-          </p>
-        </article>
-      </div>
-    </section>
-  );
-}
-
-function SeoLandingSection() {
-  return (
-    <section className="landingContentSection seoLandingSection" id="chess-opening-analysis">
-      <div className="landingSectionHeading">
-        <p className="landingEyebrow">Chess opening analysis</p>
-        <h2>Find the chess openings that actually fit your games.</h2>
-        <p>
-          Opening Fit helps chess players analyse their real online games and turn
-          opening results into a practical study plan. Instead of guessing which
-          chess opening to learn next, you can import your Chess.com or Lichess
-          games and see which openings are working, which need attention, and
-          which ones may not suit your current playing style.
-        </p>
-      </div>
-
-      <div className="seoFeatureGrid">
-        <article className="seoFeatureCard">
-          <h3>Chess.com and Lichess opening insights</h3>
-          <p>
-            Import recent games and review your most common openings, win rates,
-            preferred choices as White and Black, and recurring weak spots.
-          </p>
-        </article>
-
-        <article className="seoFeatureCard">
-          <h3>Personal chess repertoire builder</h3>
-          <p>
-            Build a simple repertoire around openings that give you familiar
-            middlegame plans instead of memorising random theory.
-          </p>
-        </article>
-
-        <article className="seoFeatureCard">
-          <h3>Opening training for club players</h3>
-          <p>
-            Get a focused next study session: review your weakest opening,
-            practise your best fit, then play a cleaner block of games.
-          </p>
-        </article>
-      </div>
-    </section>
-  );
-}
-
-function OpeningFitPositioningSection({ compact = false }) {
-  const additions = [
-    "Keep / Improve / Avoid verdicts",
-    "Repertoire map",
-    "Study priority",
-    "Confidence labels",
-    "Progress tracking",
-    "Personal opening direction",
-  ];
-
-  return (
-    <section
-      className={`openingFitPositioning ${compact ? "openingFitPositioningCompact" : ""}`}
-      id={compact ? "report-positioning" : "why-openingfit"}
-    >
-      <div className="openingFitPositioningCopy">
-        <p className="landingEyebrow">Why OpeningFit</p>
-        <h2>Stats are useful. Decisions are better.</h2>
-        <p>
-          Chess.com and Lichess show your opening stats. OpeningFit turns those
-          stats into a practical repertoire decision.
-        </p>
-      </div>
-
-      <div className="openingFitPositioningPanel">
-        <span>What OpeningFit adds</span>
-        <div className="openingFitPositioningGrid">
-          {additions.map((item) => (
-            <div key={item}>
-              <strong>{item}</strong>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function Footer() {
   return (
     <footer className="siteFooter">
@@ -5510,16 +5383,17 @@ function Footer() {
         </div>
 
         <p className="footerDisclaimer">
-          Opening popularity and rating-range suggestions are general guides.
-          They can vary by platform, time control, region, and current chess
-          trends. Opening Fit is for training guidance, not guaranteed results.
+          Opening verdicts are training guides based on available public game
+          data. They can vary by platform, time control, sample size, and recent
+          form. Opening Fit is for practical study direction, not guaranteed results.
         </p>
       </div>
 
       <div className="footerLinks">
         <a href="#app-dashboard">Launch app</a>
-        <a href="#rating-openings">Rating ranges</a>
+        <a href="#use-cases">Use cases</a>
         <a href="#premium">Premium</a>
+        <a href="#faq">FAQ</a>
         {SEO_LINKS.slice(0, 5).map(([label, href]) => (
           <a key={href} href={href}>
             {label}
@@ -5613,128 +5487,6 @@ function CompactSeoFooter() {
   );
 }
 
-function RatingOpeningGuide({ onOpeningClick }) {
-  const [mobileGuideOpen, setMobileGuideOpen] = useState(false);
-
-  const ratingRanges = [
-    {
-      range: "Under 800",
-      label: "Beginner",
-      description:
-        "Players often use simple development openings, early queen moves, and direct attacks.",
-      white: ["Italian Game", "Four Knights Game", "Queen's Pawn Opening"],
-      black: ["Scandinavian Defence", "French Defence", "King's Pawn Game"],
-    },
-    {
-      range: "800–1200",
-      label: "Improving player",
-      description:
-        "Openings become more recognisable, but simple plans still perform best.",
-      white: ["London System", "Italian Game", "Vienna Game"],
-      black: ["Caro-Kann Defence", "Scandinavian Defence", "Sicilian Defence"],
-    },
-    {
-      range: "1200–1600",
-      label: "Club player",
-      description:
-        "Players start choosing openings based on style and familiar middlegame plans.",
-      white: ["Vienna Game", "Queen's Gambit", "Ruy Lopez"],
-      black: ["Caro-Kann Defence", "Sicilian Defence", "King's Indian Defence"],
-    },
-    {
-      range: "1600–2000",
-      label: "Strong club player",
-      description:
-        "Opening choices become more structured, with more preparation and fewer random sidelines.",
-      white: ["Ruy Lopez", "Queen's Gambit", "English Opening"],
-      black: ["Sicilian Defence", "Nimzo-Indian Defence", "Caro-Kann Defence"],
-    },
-    {
-      range: "2000+",
-      label: "Advanced",
-      description:
-        "Players usually have prepared repertoires and choose openings to create specific structures.",
-      white: ["Ruy Lopez", "Catalan Opening", "Queen's Gambit"],
-      black: ["Sicilian Najdorf", "Nimzo-Indian Defence", "Grünfeld Defence"],
-    },
-  ];
-
-  return (
-    <section
-      className={`ratingGuideSection ${
-        mobileGuideOpen ? "ratingGuideOpen" : "ratingGuideClosed"
-      }`}
-      id="rating-openings"
-    >
-      <div className="landingSectionHeading ratingGuideHeading">
-        <p className="landingEyebrow">Opening trends</p>
-        <h2>Popular openings by rating range.</h2>
-        <p>
-          A quick guide to the openings players commonly choose at different
-          levels. Click any opening to practise a supported main line.
-        </p>
-
-        <button
-          className="mobileSectionRevealBtn"
-          type="button"
-          onClick={() => setMobileGuideOpen((prev) => !prev)}
-        >
-          {mobileGuideOpen ? "Hide rating guide" : "Show rating guide"}
-        </button>
-      </div>
-
-      <div className="ratingGuideBody">
-        <div className="ratingGuideGrid">
-          {ratingRanges.map((item) => (
-            <article className="ratingGuideCard" key={item.range}>
-              <div className="ratingGuideTop">
-                <h3>{item.range}</h3>
-                <p>{item.label}</p>
-              </div>
-
-              <p className="ratingGuideDescription">{item.description}</p>
-
-              <div className="ratingOpeningColumns">
-                <div>
-                  <h4>Common as White</h4>
-                  <div className="ratingOpeningList">
-                    {item.white.map((opening) => (
-                      <button
-                        key={opening}
-                        type="button"
-                        className="ratingOpeningBtn"
-                        onClick={() => onOpeningClick(opening)}
-                      >
-                        {opening}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4>Common as Black</h4>
-                  <div className="ratingOpeningList">
-                    {item.black.map((opening) => (
-                      <button
-                        key={opening}
-                        type="button"
-                        className="ratingOpeningBtn"
-                        onClick={() => onOpeningClick(opening)}
-                      >
-                        {opening}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function LandingSampleResultPreview({ onOpeningClick }) {
   const rows = [
     {
@@ -5809,26 +5561,18 @@ function LandingSampleResultPreview({ onOpeningClick }) {
 }
 
 function LandingSection({ onOpeningClick }) {
-  const features = [
+  const problemPoints = [
     {
-      icon: "♟",
-      title: "Import your games",
-      text: "Pull recent Chess.com or Lichess games and analyse the openings you actually reach.",
+      title: "You keep studying lines you barely reach.",
+      text: "Opening books can be useful, but they do not know what positions actually appear in your games.",
     },
     {
-      icon: "◎",
-      title: "Colour-aware verdicts",
-      text: "Separate openings you play as White, as Black, and openings you only face.",
+      title: "A win rate alone does not tell you what to do next.",
+      text: "You need to know whether an opening is a strength, a repair job, or just too small a sample.",
     },
     {
-      icon: "◷",
-      title: "Confidence labels",
-      text: "Sample-size guardrails stop one-off games becoming fake certainty.",
-    },
-    {
-      icon: "→",
-      title: "Train smarter",
-      text: "Get one next study action based on your own repeated opening patterns.",
+      title: "Losses feel personal when the same opening keeps hurting you.",
+      text: "Opening Fit turns that frustration into a short, specific repertoire decision.",
     },
   ];
 
@@ -5866,6 +5610,68 @@ function LandingSection({ onOpeningClick }) {
     },
   ];
 
+  const outputExamples = [
+    {
+      label: "Keep",
+      title: "Caro-Kann Defence as Black",
+      text: "Reliable score, familiar pawn structures, and a clear reason to keep it in your repertoire.",
+    },
+    {
+      label: "Fix",
+      title: "Italian Game after early exchanges",
+      text: "Good positions at move 10, but results dip later, so the report points to the line that needs review.",
+    },
+    {
+      label: "Watch",
+      title: "Low-confidence gambit experiments",
+      text: "Fun games, weak evidence. Opening Fit tells you not to overreact to tiny samples.",
+    },
+  ];
+
+  const proofItems = [
+    "Uses public Chess.com and Lichess games",
+    "Separates White, Black vs 1.e4, and Black vs 1.d4",
+    "Adds confidence labels before giving strong verdicts",
+  ];
+
+  const useCases = [
+    {
+      title: "Before a study session",
+      text: "Pick one opening to review instead of browsing random theory videos.",
+    },
+    {
+      title: "After a painful losing streak",
+      text: "Check whether the problem is your opening choice, a specific line, or the middlegame that follows.",
+    },
+    {
+      title: "When building a simple repertoire",
+      text: "Choose practical openings for White and Black based on your own results.",
+    },
+  ];
+
+  const faqs = [
+    {
+      question: "What does this actually do?",
+      answer:
+        "It imports recent public games, groups your openings, and gives keep, fix, watch, and study-next recommendations.",
+    },
+    {
+      question: "Do I need to upload PGNs?",
+      answer:
+        "No. Enter a Chess.com or Lichess username and Opening Fit uses public game data where available.",
+    },
+    {
+      question: "Is this an engine report?",
+      answer:
+        "No. The homepage report is focused on opening choices, repertoire patterns, and practical study direction.",
+    },
+    {
+      question: "Who is it best for?",
+      answer:
+        "Online chess players and club players who want a clearer opening plan without memorising huge files.",
+    },
+  ];
+
   return (
     <div className="landingWrap">
       <header className="landingHero">
@@ -5892,13 +5698,13 @@ function LandingSection({ onOpeningClick }) {
           </div>
 
           <nav className="landingNavLinks">
-            <a href="#features">Features</a>
-            <a href="#about">About</a>
+            <a href="#problem">Problem</a>
+            <a href="#product-demo">Demo</a>
             <a href="#how-it-works">How it works</a>
-            <a href="#rating-openings">Rating ranges</a>
+            <a href="#output-examples">Examples</a>
+            <a href="#use-cases">Use cases</a>
             <a href="#premium">Premium</a>
-            <a href="#roadmap">Roadmap</a>
-            <a href="#privacy">Privacy</a>
+            <a href="#faq">FAQ</a>
             <a href="#app-dashboard">Launch app</a>
           </nav>
         </div>
@@ -5957,44 +5763,52 @@ function LandingSection({ onOpeningClick }) {
         </div>
       </header>
 
-      <section className="landingContentSection" id="features">
-        <div className="landingSectionHeading">
-          <p className="landingEyebrow">Why it works</p>
-          <h2>Clear opening advice without theory overload.</h2>
+      <section className="landingStorySection landingProblemSection" id="problem">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Question: why do my openings still feel random?</p>
+          <h2>Your games already show which openings deserve your attention.</h2>
           <p>
-            Most improving players do not need hundreds of opening lines. They
-            need simple choices based on what is already happening in their
-            games.
+            The hard part is not finding more theory. It is deciding what to keep,
+            what to repair, and what to stop trusting before the next rating session.
           </p>
         </div>
 
-        <div className="landingFeatureGrid">
-          {features.map((feature) => (
-            <article className="landingFeatureCard" key={feature.title}>
-              <div className="landingFeatureIcon">{feature.icon}</div>
-              <div>
-                <h3>{feature.title}</h3>
-                <p>{feature.text}</p>
-              </div>
+        <div className="landingProblemGrid">
+          {problemPoints.map((point) => (
+            <article className="landingStoryCard" key={point.title}>
+              <h3>{point.title}</h3>
+              <p>{point.text}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <OpeningFitPositioningSection />
+      <section className="landingStorySection landingDemoSection" id="product-demo">
+        <div className="landingDemoCopy">
+          <p className="landingEyebrow">Question: what will I see?</p>
+          <h2>A report that turns messy games into opening decisions.</h2>
+          <p>
+            Opening Fit shows your strongest openings, weak lines, role-specific
+            repertoire gaps, confidence levels, and one next study target.
+          </p>
+          <a className="landingSecondaryBtn" href="#sample-report">
+            View Sample Output
+          </a>
+        </div>
 
-      <AboutSection />
-
-      <SeoLandingSection />
+        <div className="landingDemoPreview">
+          <LandingSampleResultPreview onOpeningClick={onOpeningClick} />
+        </div>
+      </section>
 
       <section className="landingContentSection" id="how-it-works">
         <div className="landingSectionHeading">
-          <p className="landingEyebrow">How it works</p>
-          <h2>From games to repertoire in four steps.</h2>
+          <p className="landingEyebrow">Question: how long does it take?</p>
+          <h2>From username to repertoire plan in three steps.</h2>
         </div>
 
         <div className="landingStepsList">
-          {steps.map((step, index) => (
+          {steps.slice(0, 3).map((step, index) => (
             <div className="landingStepCard" key={step.title}>
               <div className="landingStepNumber">{index + 1}</div>
               <div>
@@ -6006,12 +5820,62 @@ function LandingSection({ onOpeningClick }) {
         </div>
       </section>
 
-      <RatingOpeningGuide onOpeningClick={onOpeningClick} />
+      <section className="landingStorySection landingOutputSection" id="output-examples">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Question: what kind of answers do I get?</p>
+          <h2>Real output examples are short, direct, and tied to action.</h2>
+        </div>
+
+        <div className="landingOutputGrid">
+          {outputExamples.map((example) => (
+            <article className="landingOutputCard" key={example.title}>
+              <span>{example.label}</span>
+              <h3>{example.title}</h3>
+              <p>{example.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landingStorySection landingProofSection" id="social-proof">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Question: can I trust the result?</p>
+          <h2>The report explains where each verdict comes from.</h2>
+          <p>
+            No chess password is needed. The analysis uses public game data and
+            marks low-confidence samples so one lucky win does not become fake certainty.
+          </p>
+        </div>
+
+        <div className="landingProofList">
+          {proofItems.map((item) => (
+            <div key={item}>
+              <strong>{item}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="landingStorySection landingUseCaseSection" id="use-cases">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Question: when would I use this?</p>
+          <h2>Use it whenever your opening choices feel noisy.</h2>
+        </div>
+
+        <div className="landingUseCaseGrid">
+          {useCases.map((useCase) => (
+            <article className="landingStoryCard" key={useCase.title}>
+              <h3>{useCase.title}</h3>
+              <p>{useCase.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section className="landingContentSection" id="premium">
         <div className="landingSectionHeading">
-          <p className="landingEyebrow">Pricing</p>
-          <h2>Start with a snapshot. Unlock the full repertoire audit.</h2>
+          <p className="landingEyebrow">Question: what does it cost?</p>
+          <h2>Start with a free snapshot. Upgrade when you want the full audit.</h2>
         </div>
 
         <div className="landingPricingGrid">
@@ -6059,7 +5923,41 @@ function LandingSection({ onOpeningClick }) {
         </div>
       </section>
 
-      <LaunchReadySections />
+      <section className="landingStorySection landingFaqSection" id="faq">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Question: what should I know before trying it?</p>
+          <h2>Quick answers before you import games.</h2>
+        </div>
+
+        <div className="landingFaqGrid">
+          {faqs.map((faq) => (
+            <article className="landingStoryCard" key={faq.question}>
+              <h3>{faq.question}</h3>
+              <p>{faq.answer}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landingFinalCTA" id="final-cta">
+        <div>
+          <p className="landingEyebrow">Question: what should I do now?</p>
+          <h2>Generate your first opening report from real games.</h2>
+          <p>
+            Use your public username, get the snapshot, then decide what to study
+            before the next time you queue.
+          </p>
+        </div>
+
+        <div className="landingFinalActions">
+          <a className="landingPrimaryBtn" href="#app-dashboard">
+            Generate My First Result
+          </a>
+          <a className="landingSecondaryBtn" href="#sample-report">
+            View Sample Output
+          </a>
+        </div>
+      </section>
     </div>
   );
 }
