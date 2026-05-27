@@ -9927,7 +9927,7 @@ function App() {
                       <h2>Milestones</h2>
                     </div>
                     {accountUser ? (
-                      <>
+                      <div className="profileAchievementGrid">
                         <TodayDashboard
                           user={accountUser}
                           onPrimaryAction={() => {
@@ -9946,7 +9946,7 @@ function App() {
                           }}
                         />
                         <AchievementsPanel userId={accountUser.id} compact />
-                      </>
+                      </div>
                     ) : (
                       <section className="card profileMutedPanel">
                         <h3>Milestones unlock when you sign in</h3>
