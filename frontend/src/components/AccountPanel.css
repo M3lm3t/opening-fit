@@ -198,6 +198,7 @@
 .preLoginTeaserGrid {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .preLoginTeaserCard {
@@ -470,6 +471,94 @@
 
   .accountActions {
     grid-template-columns: 1fr;
+  }
+
+  .preLoginCuriosity {
+    gap: 8px;
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .preLoginCuriosityHeader {
+    gap: 4px;
+  }
+
+  .preLoginCuriosityHeader strong {
+    font-size: 0.98rem;
+    line-height: 1.2;
+  }
+
+  .preLoginCuriosityHeader p {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .preLoginTeaserGrid {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .preLoginTeaserCard {
+    gap: 6px;
+    padding: 9px;
+    border-radius: 12px;
+  }
+
+  .preLoginTeaserTop {
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .preLoginTeaserTop span {
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  .preLoginTeaserTop small {
+    flex: 0 0 auto;
+  }
+
+  .preLoginTeaserCard h4 {
+    font-size: 0.9rem;
+    line-height: 1.22;
+  }
+
+  .blurredInsightReport {
+    padding: 8px;
+    border-radius: 10px;
+  }
+
+  .blurredInsightReport::after {
+    font-size: 0.66rem;
+    letter-spacing: 0.02em;
+    text-align: center;
+  }
+
+  .blurredInsightReport strong {
+    font-size: 0.8rem;
+  }
+
+  .blurredInsightReport p {
+    font-size: 0.72rem;
+  }
+
+  .preLoginLockedInsight {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    align-items: start;
+    padding: 9px;
+    border-radius: 12px;
+  }
+
+  .preLoginLockedInsight strong {
+    font-size: 0.84rem;
+    line-height: 1.24;
+  }
+
+  .preLoginLockedInsight small {
+    text-align: left;
+    font-size: 0.74rem;
   }
 }
 
@@ -1108,15 +1197,55 @@
   .accountPanel--screen {
     position: relative;
     inset: auto;
+    width: 100%;
+    max-width: 100%;
     grid-template-columns: 1fr;
-    padding: 18px;
-    border-radius: 22px;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 18px;
     max-height: none;
     overflow: visible;
   }
 
+  .accountPanel--screen .accountPanelHeader {
+    gap: 8px;
+  }
+
   .accountPanel--screen .accountPanelHeader h3 {
     max-width: 100%;
-    font-size: clamp(1.8rem, 9vw, 2.6rem);
+    font-size: clamp(1.55rem, 7.4vw, 2.15rem);
+    line-height: 1.04;
+  }
+
+  .accountPanel--screen .accountPanelHeader p {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  .accountPanel--screen .accountAuthStack,
+  .accountPanel--screen .accountProfileStack {
+    padding: 12px;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 430px) {
+  .accountPanel--screen {
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .accountPanel--screen .accountAuthStack,
+  .accountPanel--screen .accountProfileStack {
+    padding: 10px;
+  }
+
+  .preLoginCuriosityHeader p,
+  .preLoginTeaserCard:nth-child(n + 3) {
+    display: none;
+  }
+
+  .preLoginTeaserCard h4 {
+    font-size: 0.86rem;
   }
 }
