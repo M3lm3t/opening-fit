@@ -35645,3 +35645,378 @@ svg {
     max-width: 100% !important;
   }
 }
+
+/* =========================================================
+   PROFILE DASHBOARD REDESIGN
+   ========================================================= */
+
+.profileSection {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.profileDashboard {
+  display: grid;
+  gap: var(--of-section-gap-final, 16px);
+  width: 100%;
+}
+
+.profileHeroDashboard,
+.profileDashboardCard,
+.profileFounderCard,
+.profileNoReportState {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-section-final, 20px);
+  background: var(--of-surface-final, rgba(15, 23, 42, 0.88));
+  box-shadow: var(--of-shadow-final, 0 14px 34px rgba(2, 6, 23, 0.18));
+}
+
+.profileHeroDashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: clamp(14px, 2.6vw, 24px);
+  align-items: stretch;
+  padding: var(--of-section-pad-final, 20px);
+  background: var(--of-surface-hero-final, linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.94)));
+  box-shadow: var(--of-shadow-panel-final, 0 18px 46px rgba(2, 6, 23, 0.22));
+}
+
+.profileHeroCopy {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+}
+
+.profileHeroCopy h1,
+.profileNoReportState h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.4rem) !important;
+  line-height: 1.04 !important;
+}
+
+.profileHeroCopy p:not(.eyebrow),
+.profileNoReportState p:not(.eyebrow),
+.profileCardHeader p,
+.profileFounderCard p {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--of-copy-final, #cbd5e1) !important;
+  line-height: 1.55;
+}
+
+.profileHeroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.profileHeroMetaGrid,
+.profileDashboardGrid,
+.chessProfileGrid,
+.latestReportMeta,
+.profileAchievementList,
+.profileAccountPremiumGrid {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.profileHeroMetaGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profileHeroMetaGrid article,
+.chessProfileGrid article,
+.latestReportMeta > div,
+.profileAchievementList article,
+.chessProfileStyle {
+  min-width: 0;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-card-final, 16px);
+  padding: 14px;
+  background: var(--of-surface-soft-final, rgba(15, 23, 42, 0.58));
+}
+
+.profileHeroMetaGrid span,
+.chessProfileGrid span,
+.latestReportMeta span,
+.profileAchievementList span,
+.chessProfileStyle span,
+.profileSavedReportRow span {
+  display: block;
+  color: var(--of-muted-final, #94a3b8);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.profileHeroMetaGrid strong,
+.chessProfileGrid strong,
+.latestReportMeta strong,
+.profileAchievementList strong,
+.chessProfileStyle strong,
+.profileSavedReportRow strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--foreground);
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.profileHeroMetaGrid small,
+.latestReportMeta small {
+  display: block;
+  margin-top: 4px;
+  color: var(--of-copy-final, #cbd5e1);
+  line-height: 1.35;
+}
+
+.profileDashboardGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profileDashboardCard,
+.profileFounderCard,
+.profileNoReportState {
+  padding: var(--of-card-pad-final, 18px);
+}
+
+.profileCardHeader {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.profileCardHeader h2,
+.profileFounderCard h2 {
+  margin: 0;
+  font-size: clamp(1.25rem, 3vw, 1.9rem) !important;
+}
+
+.profileCardHeaderSplit {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.chessProfileCard,
+.latestProfileReportCard,
+.savedReportsProfileCard,
+.profileAchievementsCard,
+.profileAccountCard {
+  display: grid;
+  align-content: start;
+}
+
+.chessProfileStyle {
+  margin-bottom: 12px;
+}
+
+.chessProfileGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.latestReportMeta {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.latestReportInsights {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.latestReportInsights li {
+  position: relative;
+  padding-left: 18px;
+  color: var(--of-copy-final, #cbd5e1);
+  line-height: 1.45;
+}
+
+.latestReportInsights li::before {
+  content: "";
+  position: absolute;
+  top: 0.62em;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.profileSavedReportList {
+  display: grid;
+  gap: 10px;
+}
+
+.profileSavedReportRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(120px, 0.6fr) minmax(120px, 0.6fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-card-final, 16px);
+  background: var(--of-surface-soft-final, rgba(15, 23, 42, 0.58));
+}
+
+.profileSavedReportRow button {
+  min-width: 86px;
+}
+
+.profileEmptyReports,
+.profileNoReportState {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding: clamp(18px, 3vw, 28px);
+  border-style: dashed;
+}
+
+.profileEmptyReports strong {
+  color: var(--foreground);
+  font-size: 1.1rem;
+}
+
+.profileEmptyReports p {
+  max-width: 56ch;
+  margin: 0;
+  color: var(--of-copy-final, #cbd5e1);
+}
+
+.profileAchievementList {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.profileAchievementList article {
+  border-style: dashed;
+}
+
+.profileAchievementList article.profileAchievementDone {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--success) 38%, var(--of-border-final)) !important;
+}
+
+.profileAchievementList article.profileAchievementDone span {
+  color: var(--success);
+}
+
+.profileAchievementList p {
+  margin: 7px 0 0;
+  color: var(--of-copy-final, #cbd5e1);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.profileAccountPremiumGrid {
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+}
+
+.profileAccountCard .accountPanelShell--screen,
+.profileAccountCard .accountPanel--screen {
+  width: 100%;
+}
+
+.profileAccountCard .accountPanel--screen {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.profileFounderCard {
+  display: grid;
+  align-content: space-between;
+  gap: 18px;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--primary) 16%, transparent), transparent 16rem),
+    var(--of-surface-final, rgba(15, 23, 42, 0.88));
+}
+
+.profileFounderCardActive {
+  border-color: color-mix(in srgb, var(--success) 36%, var(--of-border-final)) !important;
+}
+
+.profileFounderStatus {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 40px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--success) 36%, var(--of-border-final));
+  border-radius: var(--of-radius-control-final, 13px);
+  padding: 0 14px;
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  font-weight: 900;
+}
+
+.page.light .profileHeroDashboard,
+.page.light .profileDashboardCard,
+.page.light .profileFounderCard,
+.page.light .profileNoReportState,
+[data-theme="light"] .profileHeroDashboard,
+[data-theme="light"] .profileDashboardCard,
+[data-theme="light"] .profileFounderCard,
+[data-theme="light"] .profileNoReportState {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0f172a;
+}
+
+.page.light .profileHeroMetaGrid article,
+.page.light .chessProfileGrid article,
+.page.light .latestReportMeta > div,
+.page.light .profileAchievementList article,
+.page.light .chessProfileStyle,
+.page.light .profileSavedReportRow,
+[data-theme="light"] .profileHeroMetaGrid article,
+[data-theme="light"] .chessProfileGrid article,
+[data-theme="light"] .latestReportMeta > div,
+[data-theme="light"] .profileAchievementList article,
+[data-theme="light"] .chessProfileStyle,
+[data-theme="light"] .profileSavedReportRow {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+@media (max-width: 900px) {
+  .profileHeroDashboard,
+  .profileDashboardGrid,
+  .profileAccountPremiumGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .profileAchievementList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profileSavedReportRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .profileHeroMetaGrid,
+  .chessProfileGrid,
+  .latestReportMeta,
+  .profileAchievementList,
+  .profileSavedReportRow {
+    grid-template-columns: 1fr;
+  }
+
+  .profileHeroActions,
+  .profileHeroActions button,
+  .profileSavedReportRow button,
+  .profileFounderCard button,
+  .profileNoReportState button,
+  .profileEmptyReports button {
+    width: 100%;
+  }
+}

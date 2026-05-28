@@ -1249,3 +1249,108 @@
     font-size: 0.86rem;
   }
 }
+
+/* Professional profile-page account card. */
+.accountPanelShell,
+.accountPanel,
+.accountPanel--screen,
+.accountAuthStack,
+.accountProfileStack,
+.preLoginCuriosity,
+.preLoginTeaserGrid,
+.preLoginTeaserCard {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.accountPanel,
+.accountPanel--screen {
+  border-color: var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-section-final, 20px);
+}
+
+.accountPanel p,
+.accountPanel span,
+.accountPanel strong,
+.accountPanel small,
+.accountPanel button,
+.accountPanel--screen p,
+.accountPanel--screen span,
+.accountPanel--screen strong,
+.accountPanel--screen small,
+.accountPanel--screen button {
+  overflow-wrap: anywhere;
+}
+
+.accountPanel button,
+.accountPanel--screen button {
+  min-height: 44px;
+  max-width: 100%;
+}
+
+.profileAccountCard .accountPanel--screen {
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.profileAccountCard .accountPanelHeader h3 {
+  max-width: 100%;
+  font-size: clamp(1.2rem, 2.2vw, 1.55rem);
+}
+
+.profileAccountCard .accountAuthStack,
+.profileAccountCard .accountProfileStack {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.profileAccountCard .premiumStatusCard,
+.profileAccountCard .accountDangerZone,
+.profileAccountCard .accountLabel {
+  border-color: var(--of-border-final, rgba(148, 163, 184, 0.2));
+}
+
+.profileAccountCard .accountDangerZone {
+  margin-top: 8px;
+}
+
+.profileAccountCard .accountActions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profileAccountCard .signOutBtn {
+  border: 1px solid var(--of-border-strong-final, rgba(148, 163, 184, 0.32));
+  background: var(--of-surface-soft-final, rgba(15, 23, 42, 0.58));
+  color: var(--foreground);
+}
+
+.page.light .profileAccountCard .signOutBtn,
+.light .profileAccountCard .signOutBtn {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.16);
+}
+
+@media (max-width: 720px) {
+  .accountPanelShell {
+    max-width: 100%;
+  }
+
+  .accountPanel {
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: calc(100% - 20px);
+  }
+}
+
+@media (max-width: 560px) {
+  .profileAccountCard .accountActions {
+    grid-template-columns: 1fr;
+  }
+}

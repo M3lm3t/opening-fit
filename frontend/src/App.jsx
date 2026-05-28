@@ -4043,6 +4043,573 @@ function ProfileIdentityCard({
   );
 }
 
+function formatProfileDate(value) {
+  if (!value) return "Not analysed yet";
+
+  try {
+    return new Date(value).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "Not analysed yet";
+  }
+}
+
+function getProfilePlayerName(data, fallback = "") {
+  return (
+    data?.username ||
+    data?.playerName ||
+    data?.player_name ||
+    data?.requestedUsername ||
+    data?.requested_username ||
+    fallback ||
+    "OpeningFit player"
+  );
+}
+
+function getProfilePlatformLabel(data, fallback = "") {
+  const raw = String(data?.platform || data?.importPlatform || data?.import_platform || fallback || "").toLowerCase();
+  if (raw.includes("lichess")) return "Lichess";
+  if (raw.includes("chesscom") || raw.includes("chess.com")) return "Chess.com";
+  return "Connected chess account";
+}
+
+function getProfileImportDate(data) {
+  return (
+    data?.importedAt ||
+    data?.imported_at ||
+    data?.lastUpdated ||
+    data?.last_updated ||
+    data?.savedProfile?.lastUpdated ||
+    ""
+  );
+}
+
+function getProfileGameCount(data) {
+  return (
+    data?.gamesAnalysed ||
+    data?.gamesAnalyzed ||
+    data?.games_analyzed ||
+    data?.gamesImported ||
+    data?.games_imported ||
+    data?.totalGames ||
+    data?.total_games ||
+    0
+  );
+}
+
+function getProfileMonthsChecked(data) {
+  return data?.monthsChecked || data?.months_checked || data?.importMonths || data?.import_months || "Recent";
+}
+
+function getProfileStyleSummary(data, fitData) {
+  return (
+    fitData?.playerStyle?.summary ||
+    data?.styleSummary ||
+    data?.style_summary ||
+    data?.styleProfile?.summary ||
+    data?.style_profile?.summary ||
+    "Import more games to build a clearer picture of your opening style."
+  );
+}
+
+function getProfileStyleLabel(data, fitData) {
+  return (
+    fitData?.playerStyle?.title ||
+    data?.styleLabel ||
+    data?.style_label ||
+    data?.styleProfile?.label ||
+    data?.style_profile?.label ||
+    data?.style_profile?.labels?.[0] ||
+    "Opening profile"
+  );
+}
+
+function getFirstOpeningName(items) {
+  const list = Array.isArray(items) ? items : [];
+  const found = list.find((item) => getOpeningName(item) && !String(getOpeningName(item)).toLowerCase().includes("unknown"));
+  return found ? getOpeningContextTitle(found) : "";
+}
+
+function getProfileOpeningFacts(data, fitData) {
+  const preferredWhite = getFirstOpeningName(data?.preferred_white || data?.preferredWhite);
+  const preferredBlack = getFirstOpeningName(data?.preferred_black || data?.preferredBlack);
+  const strongest = fitData?.bestOpening ? getOpeningContextTitle(fitData.bestOpening) : getFirstOpeningName(data?.best_openings || data?.bestOpenings);
+  const needsWork = fitData?.weakestOpening ? getOpeningContextTitle(fitData.weakestOpening) : "";
+
+  return {
+    preferredWhite: preferredWhite || "Not enough White games yet",
+    preferredBlack: preferredBlack || "Not enough Black games yet",
+    strongest: strongest || "No clear strongest opening yet",
+    needsWork: needsWork || "No clear repair area yet",
+  };
+}
+
+function getProfilePlanLabel({ isPremium, isPremiumPreview, accountUser }) {
+  if (isPremium) return "Founder Pass active";
+  if (isPremiumPreview) return "Premium preview";
+  if (accountUser) return "Free plan";
+  return "Local profile";
+}
+
+function buildProfileInsights(data, fitData) {
+  const insights = [];
+  const openingFacts = getProfileOpeningFacts(data, fitData);
+  const studyTarget = buildStudyThisNextTarget(fitData);
+  const score = fitData?.overallScore ?? data?.openingFitScore ?? data?.opening_fit_score ?? null;
+
+  if (openingFacts.strongest && !openingFacts.strongest.includes("No clear")) {
+    insights.push(`${openingFacts.strongest} is your clearest strength in this report.`);
+  }
+
+  if (studyTarget?.name || studyTarget?.opening) {
+    insights.push(`Next study target: ${studyTarget.name || studyTarget.opening}.`);
+  } else if (openingFacts.needsWork && !openingFacts.needsWork.includes("No clear")) {
+    insights.push(`${openingFacts.needsWork} is the main area to review before adding new lines.`);
+  }
+
+  if (score !== null && score !== undefined) {
+    insights.push(`Opening Fit score: ${Math.round(Number(score)) || score}/100.`);
+  }
+
+  if (!insights.length) {
+    insights.push("Import a larger sample to unlock stronger opening trends.");
+  }
+
+  return insights.slice(0, 3);
+}
+
+function normalizeProfileHistoryItem(item) {
+  const summary = item?.summary || item?.snapshot || {};
+  const report = item?.report || item?.data || null;
+  const createdAt =
+    item?.created_at ||
+    item?.createdAt ||
+    item?.savedAt ||
+    item?.updated_at ||
+    summary.reportDate ||
+    summary.savedAt ||
+    "";
+
+  return {
+    id: item?.id || `${summary.username || item?.username || item?.playerName || "report"}-${createdAt || Math.random()}`,
+    createdAt,
+    platform: summary.platform || item?.platform || report?.platform || report?.importPlatform || "chess",
+    username:
+      summary.username ||
+      item?.username ||
+      item?.playerName ||
+      report?.username ||
+      report?.playerName ||
+      "OpeningFit player",
+    games:
+      summary.games ||
+      item?.games ||
+      item?.gamesImported ||
+      report?.gamesImported ||
+      report?.gamesAnalysed ||
+      report?.totalGames ||
+      "Recent",
+    months: summary.importMonths || report?.monthsChecked || report?.importMonths || "Recent",
+    data: report,
+  };
+}
+
+function readLocalProfileHistory() {
+  if (typeof window === "undefined") return [];
+
+  const keys = ["openingFit:reportHistory:v1", REPORT_HISTORY_KEY];
+  return keys.flatMap((key) => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
+function ProfileSummaryCard({
+  data,
+  fitData,
+  accountUser,
+  username,
+  platform,
+  isPremium,
+  isPremiumPreview,
+  onAnalyse,
+  onOpenReport,
+}) {
+  const playerName = getProfilePlayerName(data, username);
+  const platformLabel = getProfilePlatformLabel(data, platform);
+  const planLabel = getProfilePlanLabel({ isPremium, isPremiumPreview, accountUser });
+  const analysedAt = getProfileImportDate(data);
+  const games = getProfileGameCount(data);
+  const score = fitData?.overallScore ?? data?.openingFitScore ?? data?.opening_fit_score ?? null;
+
+  return (
+    <section className="profileHeroDashboard">
+      <div className="profileHeroCopy">
+        <p className="eyebrow">Profile</p>
+        <h1>Your OpeningFit Profile</h1>
+        <p>
+          A practical snapshot of what OpeningFit knows about your chess, what you have saved, and what to do next.
+        </p>
+        <div className="profileHeroActions">
+          <button type="button" className="primaryBtn" onClick={onAnalyse}>
+            Analyse new games
+          </button>
+          {data ? (
+            <button type="button" className="secondaryButton" onClick={onOpenReport}>
+              View latest report
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="profileHeroMetaGrid">
+        <article>
+          <span>Connected chess account</span>
+          <strong>{platformLabel}</strong>
+          <small>{playerName}</small>
+        </article>
+        <article>
+          <span>Last analysed</span>
+          <strong>{formatProfileDate(analysedAt)}</strong>
+          <small>{games || "No"} games analysed</small>
+        </article>
+        <article>
+          <span>Plan</span>
+          <strong>{planLabel}</strong>
+          <small>{accountUser?.email ? "Signed in" : "Browser profile"}</small>
+        </article>
+        <article>
+          <span>Opening Fit</span>
+          <strong>{score !== null && score !== undefined ? `${Math.round(Number(score)) || score}/100` : "Pending"}</strong>
+          <small>{getProfileStyleLabel(data, fitData)}</small>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function ChessProfileCard({ data, fitData }) {
+  const style = getProfileStyleLabel(data, fitData);
+  const summary = getProfileStyleSummary(data, fitData);
+  const facts = getProfileOpeningFacts(data, fitData);
+
+  return (
+    <section className="profileDashboardCard chessProfileCard">
+      <div className="profileCardHeader">
+        <p className="eyebrow">Chess profile</p>
+        <h2>What your openings show</h2>
+        <p>{summary}</p>
+      </div>
+
+      <div className="chessProfileStyle">
+        <span>Playing style</span>
+        <strong>{style}</strong>
+      </div>
+
+      <div className="chessProfileGrid">
+        <article>
+          <span>Preferred White opening</span>
+          <strong>{facts.preferredWhite}</strong>
+        </article>
+        <article>
+          <span>Preferred Black opening</span>
+          <strong>{facts.preferredBlack}</strong>
+        </article>
+        <article>
+          <span>Strongest opening</span>
+          <strong>{facts.strongest}</strong>
+        </article>
+        <article>
+          <span>Needs work</span>
+          <strong>{facts.needsWork}</strong>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function LatestReportCard({ data, fitData, username, platform, onOpenReport }) {
+  const playerName = getProfilePlayerName(data, username);
+  const platformLabel = getProfilePlatformLabel(data, platform);
+  const insights = buildProfileInsights(data, fitData);
+
+  return (
+    <section className="profileDashboardCard latestProfileReportCard">
+      <div className="profileCardHeader">
+        <p className="eyebrow">Latest report</p>
+        <h2>Most recent import</h2>
+      </div>
+
+      <div className="latestReportMeta">
+        <div>
+          <span>Date</span>
+          <strong>{formatProfileDate(getProfileImportDate(data))}</strong>
+        </div>
+        <div>
+          <span>Account</span>
+          <strong>{platformLabel}</strong>
+          <small>{playerName}</small>
+        </div>
+        <div>
+          <span>Games</span>
+          <strong>{getProfileGameCount(data) || "Recent"}</strong>
+          <small>{getProfileMonthsChecked(data)} months checked</small>
+        </div>
+      </div>
+
+      <ul className="latestReportInsights">
+        {insights.map((insight) => (
+          <li key={insight}>{insight}</li>
+        ))}
+      </ul>
+
+      <button type="button" className="secondaryButton" onClick={onOpenReport}>
+        Open latest report
+      </button>
+    </section>
+  );
+}
+
+function SavedReportsProfileCard({ onLoadReport, onCreateReport }) {
+  const { user, reportHistory } = useAuth();
+  const [localReports, setLocalReports] = useState([]);
+
+  useEffect(() => {
+    if (user?.id) {
+      setLocalReports([]);
+      return;
+    }
+    setLocalReports(readLocalProfileHistory().map(normalizeProfileHistoryItem));
+  }, [user?.id]);
+
+  const reports = useMemo(() => {
+    const source = user?.id ? reportHistory || [] : localReports;
+    const seen = new Set();
+    return source
+      .map(normalizeProfileHistoryItem)
+      .filter((item) => {
+        const key = `${item.username}-${item.platform}-${item.createdAt}-${item.games}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 6);
+  }, [localReports, reportHistory, user?.id]);
+
+  const viewReport = (item) => {
+    if (item.data && typeof onLoadReport === "function") {
+      onLoadReport(item.data);
+    }
+  };
+
+  return (
+    <section className="profileDashboardCard savedReportsProfileCard" id="profile-saved-reports">
+      <div className="profileCardHeader profileCardHeaderSplit">
+        <div>
+          <p className="eyebrow">Saved reports</p>
+          <h2>Report history</h2>
+          <p>Previous imports you can return to when you want to compare your opening progress.</p>
+        </div>
+      </div>
+
+      {reports.length ? (
+        <div className="profileSavedReportList">
+          {reports.map((item) => (
+            <article className="profileSavedReportRow" key={item.id}>
+              <div>
+                <strong>{formatProfileDate(item.createdAt)}</strong>
+                <span>{getProfilePlatformLabel({ platform: item.platform })} · {item.username}</span>
+              </div>
+              <div>
+                <span>Games analysed</span>
+                <strong>{item.games}</strong>
+              </div>
+              <div>
+                <span>Import window</span>
+                <strong>{item.months}</strong>
+              </div>
+              <button type="button" className="secondaryButton" onClick={() => viewReport(item)} disabled={!item.data}>
+                View
+              </button>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="profileEmptyReports">
+          <strong>No saved reports yet.</strong>
+          <p>Import your Chess.com or Lichess games to create your first OpeningFit profile.</p>
+          <button type="button" className="primaryBtn" onClick={onCreateReport}>
+            Create my first report
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ProfileAchievementsCard({ data, fitData, accountUser, isPremium }) {
+  const games = Number(getProfileGameCount(data)) || 0;
+  const facts = getProfileOpeningFacts(data, fitData);
+  const hasWhite = !facts.preferredWhite.includes("Not enough");
+  const hasBlack = !facts.preferredBlack.includes("Not enough");
+  const hasTrend = Boolean(fitData?.bestOpening || fitData?.weakestOpening || data?.openingFitScore);
+
+  const achievements = [
+    {
+      title: "First report created",
+      text: "Your profile has an opening baseline.",
+      done: Boolean(data),
+    },
+    {
+      title: "100 games analysed",
+      text: games >= 100 ? `${games} games analysed.` : `${Math.max(0, 100 - games)} more games to reach a larger sample.`,
+      done: games >= 100,
+    },
+    {
+      title: "Opening trend found",
+      text: hasTrend ? "OpeningFit found a clear repertoire signal." : "Import more games to strengthen the trend.",
+      done: hasTrend,
+    },
+    {
+      title: "White repertoire reviewed",
+      text: hasWhite ? facts.preferredWhite : "Needs more White games.",
+      done: hasWhite,
+    },
+    {
+      title: "Black repertoire reviewed",
+      text: hasBlack ? facts.preferredBlack : "Needs more Black games.",
+      done: hasBlack,
+    },
+    {
+      title: "Founder Pass member",
+      text: isPremium ? "Founder Pass is active on this profile." : "Unlock deeper history and advanced analysis.",
+      done: isPremium,
+    },
+  ];
+
+  return (
+    <section className="profileDashboardCard profileAchievementsCard" id="profile-achievements">
+      <div className="profileCardHeader">
+        <p className="eyebrow">Progress</p>
+        <h2>Profile milestones</h2>
+        <p>Product progress that helps you understand whether your OpeningFit profile is becoming more useful.</p>
+      </div>
+      <div className="profileAchievementList">
+        {achievements.map((item) => (
+          <article className={item.done ? "profileAchievementDone" : ""} key={item.title}>
+            <span>{item.done ? "Complete" : "Next"}</span>
+            <strong>{item.title}</strong>
+            <p>{item.text}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FounderPassProfileCard({ isPremium, onFounderPass }) {
+  return (
+    <section className={isPremium ? "profileFounderCard profileFounderCardActive" : "profileFounderCard"}>
+      <div>
+        <p className="eyebrow">Founder Pass</p>
+        <h2>{isPremium ? "Founder Pass active" : "Unlock deeper opening history"}</h2>
+        <p>
+          {isPremium
+            ? "Your profile has Founder Pass access. Future premium analysis will stay attached to this account."
+            : "Unlock longer game history, saved reports, deeper opening tables, and future advanced analysis."}
+        </p>
+      </div>
+      {!isPremium ? (
+        <button type="button" className="primaryBtn" onClick={onFounderPass}>
+          Get Founder Pass
+        </button>
+      ) : (
+        <span className="profileFounderStatus">Active</span>
+      )}
+    </section>
+  );
+}
+
+function OpeningFitProfileDashboard({
+  data,
+  fitData,
+  accountUser,
+  username,
+  platform,
+  isPremium,
+  isPremiumPreview,
+  onAnalyse,
+  onOpenReport,
+  onLoadReport,
+  onFounderPass,
+  onUserChange,
+}) {
+  if (!data) {
+    return (
+      <section className="profileNoReportState">
+        <p className="eyebrow">Profile</p>
+        <h1>Your OpeningFit Profile</h1>
+        <p>
+          No saved reports yet. Import your Chess.com or Lichess games to create your first OpeningFit profile.
+        </p>
+        <button className="primaryBtn" type="button" onClick={onAnalyse}>
+          Create my first report
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <div className="profileDashboard">
+      <ProfileSummaryCard
+        data={data}
+        fitData={fitData}
+        accountUser={accountUser}
+        username={username}
+        platform={platform}
+        isPremium={isPremium}
+        isPremiumPreview={isPremiumPreview}
+        onAnalyse={onAnalyse}
+        onOpenReport={onOpenReport}
+      />
+
+      <div className="profileDashboardGrid">
+        <ChessProfileCard data={data} fitData={fitData} />
+        <LatestReportCard
+          data={data}
+          fitData={fitData}
+          username={username}
+          platform={platform}
+          onOpenReport={onOpenReport}
+        />
+      </div>
+
+      <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
+      <ProfileAchievementsCard data={data} fitData={fitData} accountUser={accountUser} isPremium={isPremium} />
+
+      <div className="profileDashboardGrid profileAccountPremiumGrid">
+        <section className="profileDashboardCard profileAccountCard" id="profile-account">
+          <div className="profileCardHeader">
+            <p className="eyebrow">Account security</p>
+            <h2>Account settings</h2>
+            <p>Manage login, connected usernames, and saved account data.</p>
+          </div>
+          <AccountPanel variant="screen" onUserChange={onUserChange} />
+        </section>
+
+        <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
+      </div>
+    </div>
+  );
+}
+
 function CompactReportSummary({ data, fitData, onViewChange, onPractice }) {
   if (!data) return null;
 
@@ -10140,133 +10707,51 @@ function App() {
 
           {activeAppSection === "profile" && activeView !== "feedback" ? (
             <section className="profileSection" id="profile">
-              {reportData ? (
-                <>
-                  <div className="profileSectionHeader">
-                    <p className="eyebrow">Profile</p>
-                    <h1>Player progress hub</h1>
-                    <p>
-                      Who you are as a player, what you have achieved, and how your repertoire is changing over time.
-                    </p>
-                  </div>
-
-                  <ProfileIdentityCard
-                    data={reportData}
-                    fitData={fitData}
-                    accountUser={accountUser}
-                    username={username}
-                    platform={platform}
-                    isPremium={isPremium}
-                  />
-
-                  <OpeningFitProgressionDashboard
-                    data={reportData}
-                    username={username}
-                  />
-
-                  <OpeningFitRetentionSystems
-                    data={reportData}
-                    username={username}
-                  />
-
-                  <section className="profileHubSection" id="profile-achievements">
-                    <div className="profileHubSectionHeader">
-                      <p className="eyebrow">Achievements / milestones</p>
-                      <h2>Milestones</h2>
-                    </div>
-                    {accountUser ? (
-                      <div className="profileAchievementGrid">
-                        <TodayDashboard
-                          user={accountUser}
-                          onPrimaryAction={() => {
-                            setActiveView("report");
-                            if (window.location.pathname !== "/report") {
-                              window.history.pushState({}, "", "/report");
-                            }
-                            setTimeout(() => {
-                              const target =
-                                document.getElementById("app-results") ||
-                                document.querySelector(".finalReportFlow");
-                              if (target?.scrollIntoView) {
-                                target.scrollIntoView({ behavior: "smooth", block: "start" });
-                              }
-                            }, 80);
-                          }}
-                        />
-                        <AchievementsPanel userId={accountUser.id} compact />
-                      </div>
-                    ) : (
-                      <section className="card profileMutedPanel">
-                        <h3>Milestones unlock when you sign in</h3>
-                        <p>Your current report is saved locally. Sign in to track streaks, XP, and achievements across devices.</p>
-                      </section>
-                    )}
-                  </section>
-
-                  <section className="profileHubSection" id="profile-saved-reports">
-                    <div className="profileHubSectionHeader">
-                      <p className="eyebrow">Saved reports / previous imports</p>
-                      <h2>Report history</h2>
-                    </div>
-                    <div className="profileGrid">
-                      <ReportHistoryVault data={reportData} fitData={fitData} onLoadReport={setData} />
-                      <ReportExportAndHistory
-                        data={reportData}
-                        isPremium={isPremium}
-                        onUpgrade={() => setActiveView("profile")}
-                        onLoadReport={setData}
-                      />
-                    </div>
-                  </section>
-
-                  <section className="profileHubSection" id="profile-progress">
-                    <div className="profileHubSectionHeader">
-                      <p className="eyebrow">Progress over time</p>
-                      <h2>Repertoire progress</h2>
-                    </div>
-                    {accountUser ? (
-                      <OpeningProgressTracker data={reportData} user={accountUser} compact />
-                    ) : (
-                      <section className="card profileMutedPanel">
-                        <h3>Long-term progress is local-only for now</h3>
-                        <p>Import again after more games to compare the current report. Sign in to keep progress history attached to your account.</p>
-                      </section>
-                    )}
-                  </section>
-
-                  <section className="profileHubSection" id="profile-account">
-                    <div className="profileHubSectionHeader">
-                      <p className="eyebrow">Account / premium</p>
-                      <h2>Account status, privacy, and premium</h2>
-                    </div>
-                    <div className="profileGrid">
-                      <section className="loginScreenSection" id="account">
-                        <AccountPanel variant="screen" onUserChange={setAccountUser} />
-                      </section>
-                      <div id="premium" className="profilePremiumBlock">
-                        <PremiumPanel
-                          data={reportData}
-                          isPremium={isPremium}
-                          isPremiumPreview={isPremiumPreview}
-                          onUnlockDemo={unlockPremiumDemo}
-                          onResetDemo={resetPremiumDemo}
-                          onFounderPass={handleFounderPassClick}
-                        />
-                      </div>
-                    </div>
-                    <SeriousPremiumStrip />
-                  </section>
-                </>
-              ) : (
-                <section className="card appEmptySection profileEmptyState">
-                  <p className="eyebrow">Profile</p>
-                  <h2>Import your first games to build your OpeningFit profile.</h2>
-                  <p>Your player identity, milestones, saved reports, and repertoire progress will appear here after your first analysis.</p>
-                  <button className="primaryBtn" type="button" onClick={() => setActiveView("analyse")}>
-                    Go to Analyse
-                  </button>
-                </section>
-              )}
+              <OpeningFitProfileDashboard
+                data={reportData}
+                fitData={fitData}
+                accountUser={accountUser}
+                username={username}
+                platform={platform}
+                isPremium={isPremium}
+                isPremiumPreview={isPremiumPreview}
+                onAnalyse={() => {
+                  setActiveView("analyse");
+                  if (window.location.pathname !== "/") {
+                    window.history.pushState({}, "", "/");
+                  }
+                  setTimeout(() => {
+                    const target = document.getElementById("app-dashboard") || document.querySelector(".analyseImportHero");
+                    if (target?.scrollIntoView) {
+                      target.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                  }, 80);
+                }}
+                onOpenReport={() => {
+                  setActiveView("report");
+                  if (window.location.pathname !== "/report") {
+                    window.history.pushState({}, "", "/report");
+                  }
+                  setTimeout(() => {
+                    const target =
+                      document.getElementById("app-results") ||
+                      document.querySelector(".finalReportFlow") ||
+                      document.getElementById("opening-fit-report");
+                    if (target?.scrollIntoView) {
+                      target.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                  }, 80);
+                }}
+                onLoadReport={(report) => {
+                  setData(report);
+                  setActiveView("report");
+                  if (window.location.pathname !== "/report") {
+                    window.history.pushState({}, "", "/report");
+                  }
+                }}
+                onFounderPass={handleFounderPassClick}
+                onUserChange={setAccountUser}
+              />
             </section>
           ) : null}
 

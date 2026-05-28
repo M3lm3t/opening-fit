@@ -302,8 +302,15 @@ export default function AccountPanel({ variant = "floating",
         <div className={`accountPanel accountPanel--${variant}`}>
           <div className="accountPanelHeader">
             <div>
-              <span className="accountEyebrow">OpeningFit account</span>
-              <h3>{user ? displayName : "Save your reports"}</h3>
+              <span className="accountEyebrow">Account security</span>
+              <h3>{user ? "Login and connected accounts" : "Create a secure account"}</h3>
+              {isScreen ? (
+                <p>
+                  {user
+                    ? "Manage how you sign in and which chess usernames are attached to this profile."
+                    : "Sign in to keep saved reports and chess account details attached to your OpeningFit account."}
+                </p>
+              ) : null}
             </div>
 
             {!isScreen ? (
@@ -329,8 +336,7 @@ export default function AccountPanel({ variant = "floating",
           {isSupabaseConfigured && !user ? (
             <div className="accountAuthStack">
               <p>
-                Sign in to save your Chess.com/Lichess usernames, keep your reports,
-                and unlock premium features later.
+                Sign in to save reports, connect your Chess.com or Lichess username, and keep your profile available across devices.
               </p>
 
               <PreLoginCuriosityHooks />
@@ -367,10 +373,20 @@ export default function AccountPanel({ variant = "floating",
           {isSupabaseConfigured && user ? (
             <div className="accountProfileStack">
               <div className="premiumStatusCard">
-                <span>Premium status</span>
-                <strong>{hasPremiumAccess ? "Premium active" : "Free account"}</strong>
+                <span>Current access</span>
+                <strong>{hasPremiumAccess ? "Founder Pass active" : "Free plan"}</strong>
                 <small>
-                  Premium is synced from Stripe. Unlock Founder Pass to save premium access to this account.
+                  {hasPremiumAccess
+                    ? "Founder Pass access is attached to this account."
+                    : "You can upgrade from the Founder Pass card on this page."}
+                </small>
+              </div>
+
+              <div className="premiumStatusCard accountLoginStatusCard">
+                <span>Email / login status</span>
+                <strong>{user.email || displayName}</strong>
+                <small>
+                  Provider: {user.app_metadata?.provider || user.identities?.[0]?.provider || "email"}
                 </small>
               </div>
 
@@ -403,12 +419,13 @@ export default function AccountPanel({ variant = "floating",
               </label>
 
 
-              <div className="accountPremiumBox">
+              {!isScreen ? (
+                <div className="accountPremiumBox">
                 <div>
-                  <strong>{hasPremiumAccess ? "Premium active" : "Opening Fit Founder Pass"}</strong>
+                  <strong>{hasPremiumAccess ? "Founder Pass active" : "OpeningFit Founder Pass"}</strong>
                   <p>
                     {hasPremiumAccess
-                      ? "Your account has premium access saved in the cloud."
+                      ? "Your account has Founder Pass access."
                       : "Support early development and unlock deeper reports on this account."}
                   </p>
                 </div>
@@ -422,13 +439,14 @@ export default function AccountPanel({ variant = "floating",
                     Unlock Founder Pass
                   </button>
                 ) : (
-                  <span className="accountPremiumBadge">Premium</span>
+                  <span className="accountPremiumBadge">Active</span>
                 )}
-              </div>
+                </div>
+              ) : null}
 
               <div className="accountDangerZone">
-                <strong>Danger zone</strong>
-                <p>Delete your Opening Fit account and saved cloud data.</p>
+                <strong>Delete account</strong>
+                <p>You can delete your account and saved data at any time. This action cannot be undone.</p>
                 <button
                   className="accountDangerButton"
                   type="button"
@@ -444,7 +462,7 @@ export default function AccountPanel({ variant = "floating",
                 </button>
 
                 <button type="button" className="signOutBtn" onClick={signOut}>
-                  Sign out
+                  Log out
                 </button>
               </div>
             </div>
