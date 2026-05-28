@@ -31658,10 +31658,158 @@ body,
   opacity: 0.62;
 }
 
+.reportSectionNav {
+  position: sticky;
+  top: 72px;
+  z-index: 100;
+  width: 100%;
+  padding: 8px 16px;
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.9), rgba(2, 6, 23, 0.68));
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  backdrop-filter: blur(18px);
+}
+
+.page.light .reportSectionNav,
+[data-theme="light"] .reportSectionNav {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.82));
+  border-bottom-color: rgba(15, 23, 42, 0.1);
+}
+
+.reportSectionNavInner {
+  width: min(100%, 1180px);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reportSectionNavLabel {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.reportSectionTabs {
+  display: flex;
+  min-width: 0;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 4px;
+  scrollbar-width: none;
+}
+
+.reportSectionTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.reportSectionTab {
+  flex: 0 0 auto;
+  min-height: 36px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  padding: 7px 12px;
+  background: rgba(15, 23, 42, 0.64);
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.page.light .reportSectionTab,
+[data-theme="light"] .reportSectionTab {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+.reportSectionTab:hover {
+  color: var(--text);
+  border-color: rgba(96, 165, 250, 0.42);
+}
+
+.reportSectionTabActive,
+.reportSectionTabActive:hover {
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f766e, #2563eb);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 10px 26px rgba(14, 116, 144, 0.26);
+}
+
+.reportAppSection {
+  scroll-margin-top: 152px;
+}
+
+.reportMajorSection {
+  display: grid;
+  gap: 16px;
+  scroll-margin-top: 152px;
+}
+
+.reportMajorSectionHeader {
+  width: min(100%, 1180px);
+  margin: 18px auto 2px;
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-left: 5px solid #14b8a6;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(20, 184, 166, 0.12), rgba(37, 99, 235, 0.08)),
+    rgba(15, 23, 42, 0.54);
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.14);
+}
+
+.page.light .reportMajorSectionHeader,
+[data-theme="light"] .reportMajorSectionHeader {
+  background:
+    linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(37, 99, 235, 0.06)),
+    #ffffff;
+  border-color: rgba(15, 23, 42, 0.1);
+  border-left-color: #0f766e;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.reportMajorSectionHeader h2 {
+  margin: 2px 0 0;
+  color: var(--text);
+  font-size: clamp(1.8rem, 3vw, 2.75rem);
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+
+.reportMajorSectionHeader p:not(.eyebrow) {
+  max-width: 760px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.reportAppSection--analytics,
+.reportAppSection--report {
+  padding-top: 2px;
+}
+
+.reportAppSection--train,
+.reportAppSection--profile {
+  padding-top: 2px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    linear-gradient(180deg, rgba(20, 184, 166, 0.05), transparent 190px);
+}
+
+.page.light .reportAppSection--train,
+.page.light .reportAppSection--profile,
+[data-theme="light"] .reportAppSection--train,
+[data-theme="light"] .reportAppSection--profile {
+  background:
+    linear-gradient(180deg, rgba(20, 184, 166, 0.06), transparent 190px);
+}
+
 .profileSection {
   display: grid;
   gap: 16px;
-  scroll-margin-top: 94px;
+  scroll-margin-top: 152px;
 }
 
 .profileSectionHeader {
@@ -32406,6 +32554,44 @@ body,
 @media (max-width: 760px) {
   .appPrimaryNav {
     display: none;
+  }
+
+  .reportSectionNav {
+    top: 0;
+    padding: calc(7px + env(safe-area-inset-top)) 10px 7px;
+    z-index: 120;
+  }
+
+  .reportSectionNavInner {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .reportSectionTabs {
+    padding: 3px 0;
+  }
+
+  .reportSectionTab {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+  }
+
+  .reportAppSection,
+  .reportMajorSection,
+  .profileSection {
+    scroll-margin-top: 96px;
+  }
+
+  .reportMajorSectionHeader {
+    width: min(100% - 20px, 1180px);
+    margin-top: 12px;
+    padding: 15px 14px 14px;
+  }
+
+  .reportMajorSectionHeader h2 {
+    font-size: 1.9rem;
   }
 
   .appShell,

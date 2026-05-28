@@ -3667,7 +3667,7 @@ function FullReportHighlights({ data, fitData, onPractice }) {
   };
 
   return (
-    <section className="fullReportHighlights finalReportBlock" id="full-report-highlights">
+    <section className="fullReportHighlights finalReportBlock" id="full-report-highlights" data-report-section="report">
       <div className="commandPanelHeader">
         <p className="eyebrow">Full report</p>
         <h2>Best openings, weak openings, and verdicts</h2>
@@ -5311,6 +5311,128 @@ function AppPrimaryNav({ activeView, hasReport, onViewChange }) {
               >
                 {item.label}
               </a>
+            );
+          })}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+function ReportSectionHeader({ eyebrow, title, text }) {
+  return (
+    <div className="reportMajorSectionHeader">
+      <p className="eyebrow">{eyebrow}</p>
+      <h2>{title}</h2>
+      {text ? <p>{text}</p> : null}
+    </div>
+  );
+}
+
+const REPORT_SECTION_NAV_ITEMS = [
+  { key: "analytics", label: "Analytics", view: "report", path: "/report", target: "analytics-section" },
+  { key: "report", label: "Openings", view: "report", path: "/report", target: "full-report-highlights" },
+  { key: "train", label: "Train", view: "train", path: "/train", target: "train-section" },
+  { key: "profile", label: "Profile", view: "profile", path: "/account", target: "profile" },
+];
+
+function ReportSectionNav({ activeView, hasReport, onViewChange }) {
+  const activeAppSection = getAppSection(activeView);
+  const isReportView = hasReport && activeAppSection !== "analyse";
+  const [observedSection, setObservedSection] = useState(activeAppSection === "report" ? "analytics" : activeAppSection);
+
+  useEffect(() => {
+    if (!isReportView || typeof IntersectionObserver === "undefined") return undefined;
+
+    const sectionNodes = REPORT_SECTION_NAV_ITEMS
+      .map((item) => document.querySelector(`[data-report-section="${item.key}"]`))
+      .filter(Boolean);
+
+    if (!sectionNodes.length) {
+      setObservedSection(activeAppSection === "report" ? "analytics" : activeAppSection);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        const nextSection = visible?.target?.getAttribute("data-report-section");
+        if (nextSection) setObservedSection(nextSection);
+      },
+      {
+        root: null,
+        rootMargin: "-112px 0px -55% 0px",
+        threshold: [0.16, 0.32, 0.5, 0.68],
+      }
+    );
+
+    sectionNodes.forEach((node) => observer.observe(node));
+
+    return () => observer.disconnect();
+  }, [isReportView, activeAppSection]);
+
+  useEffect(() => {
+    if (!isReportView) return;
+    setObservedSection(activeAppSection === "report" ? "analytics" : activeAppSection);
+  }, [activeAppSection, isReportView]);
+
+  if (!isReportView) return null;
+
+  const scrollToTarget = (targetId) => {
+    const target =
+      document.getElementById(targetId) ||
+      document.querySelector(`[data-report-section="${targetId}"]`) ||
+      document.getElementById("app-results") ||
+      document.getElementById("app-dashboard");
+
+    if (!target) return;
+
+    const offset = window.innerWidth <= 760 ? 82 : 142;
+    const top = target.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+  };
+
+  const handleClick = (event, item) => {
+    event.preventDefault();
+    setObservedSection(item.key);
+
+    if (typeof onViewChange === "function") {
+      onViewChange(item.view);
+    }
+
+    if (item.path && window.location.pathname !== item.path) {
+      window.history.pushState({}, "", item.path);
+    }
+
+    [40, 140, 320, 620].forEach((delay) => {
+      setTimeout(() => scrollToTarget(item.target), delay);
+    });
+  };
+
+  return (
+    <nav className="reportSectionNav" aria-label="Report section navigation">
+      <div className="reportSectionNavInner">
+        <span className="reportSectionNavLabel">Section</span>
+        <div className="reportSectionTabs" role="list">
+          {REPORT_SECTION_NAV_ITEMS.map((item) => {
+            const isActive =
+              observedSection === item.key ||
+              (item.key === "analytics" && activeAppSection === "report" && observedSection === "report");
+
+            return (
+              <button
+                key={item.key}
+                type="button"
+                role="listitem"
+                className={isActive ? "reportSectionTab reportSectionTabActive" : "reportSectionTab"}
+                aria-current={isActive ? "location" : undefined}
+                onClick={(event) => handleClick(event, item)}
+              >
+                {item.label}
+              </button>
             );
           })}
         </div>
@@ -8939,6 +9061,12 @@ function App() {
           onViewChange={setActiveView}
         />
 
+        <ReportSectionNav
+          activeView={activeView}
+          hasReport={hasReport}
+          onViewChange={setActiveView}
+        />
+
         {data ? (
           <>
             {false ? <OpeningFitUXCleanup
@@ -9279,15 +9407,26 @@ function App() {
           )}
 
           {reportData && ["report", "train"].includes(activeAppSection) && (
-            <div id="app-results">
+            <div
+              id="app-results"
+              className={`reportAppSection reportAppSection--${activeAppSection}`}
+              data-report-section={activeAppSection === "train" ? "train" : "analytics"}
+            >
               {activeAppSection === "report" ? (
-                <FinalReportFlow
-                  data={reportData}
-                  fitData={fitData}
-                  onPractice={startOpeningPractice}
-                  onViewChange={setActiveView}
-                  isPremium={isPremium}
-                />
+                <section id="analytics-section" className="reportMajorSection">
+                  <ReportSectionHeader
+                    eyebrow="Analytics"
+                    title="Analytics"
+                    text="Your current opening diagnosis, evidence, and report summary."
+                  />
+                  <FinalReportFlow
+                    data={reportData}
+                    fitData={fitData}
+                    onPractice={startOpeningPractice}
+                    onViewChange={setActiveView}
+                    isPremium={isPremium}
+                  />
+                </section>
               ) : null}
 
               {false && activeView === "recommendations" ? (
@@ -9747,7 +9886,12 @@ function App() {
 
 
               {activeAppSection === "train" ? (
-                <>
+                <section id="train-section" className="reportMajorSection">
+                  <ReportSectionHeader
+                    eyebrow="Train"
+                    title="Train"
+                    text="Practice lines, habits, and study actions generated from this report."
+                  />
                   <div id="opening-practice">
                     <OpeningPracticeLinesPanel
                       opening={practiceOpening || featuredTrainOpening}
@@ -9836,7 +9980,7 @@ function App() {
                 </Section>
               </div>
               </div>
-                </>
+                </section>
               ) : null}
 
               {activeAppSection === "train" ? (
@@ -10139,9 +10283,15 @@ function App() {
           )}
 
           {activeAppSection === "profile" && activeView !== "feedback" ? (
-            <section className="profileSection" id="profile">
+            <section className="profileSection reportAppSection reportAppSection--profile" id="profile" data-report-section="profile">
               {reportData ? (
                 <>
+                  <ReportSectionHeader
+                    eyebrow="Profile"
+                    title="Profile"
+                    text="Your progress, saved reports, milestones, and repertoire history."
+                  />
+
                   <div className="profileSectionHeader">
                     <p className="eyebrow">Profile</p>
                     <h1>Player progress hub</h1>
