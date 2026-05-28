@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
+import ChessPositionBoard from "./ChessPositionBoard";
 
 export const SUPPORTED_OPENINGS = [
   "Vienna Game",
@@ -103,21 +104,6 @@ const OPENING_LINES = {
   },
 };
 
-const PIECES = {
-  p: "♟",
-  r: "♜",
-  n: "♞",
-  b: "♝",
-  q: "♛",
-  k: "♚",
-  P: "♙",
-  R: "♖",
-  N: "♘",
-  B: "♗",
-  Q: "♕",
-  K: "♔",
-};
-
 function normaliseOpeningName(name) {
   const clean = (name || "").toLowerCase();
 
@@ -141,27 +127,6 @@ function normaliseOpeningName(name) {
   return null;
 }
 
-function getBoard(chess, orientation) {
-  const board = chess.board();
-
-  if (orientation === "black") {
-    return board.map((rank) => [...rank].reverse()).reverse();
-  }
-
-  return board;
-}
-
-function getSquareName(rowIndex, colIndex, orientation) {
-  const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
-  const ranks = ["8", "7", "6", "5", "4", "3", "2", "1"];
-
-  if (orientation === "black") {
-    return `${files[7 - colIndex]}${ranks[7 - rowIndex]}`;
-  }
-
-  return `${files[colIndex]}${ranks[rowIndex]}`;
-}
-
 export default function OpeningPracticeBoard({ openingName, onClose }) {
   const matchedName = normaliseOpeningName(openingName);
   const opening = matchedName ? OPENING_LINES[matchedName] : null;
@@ -171,15 +136,22 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
   const [feedbackSquare, setFeedbackSquare] = useState(null);
   const [message, setMessage] = useState("");
   const [chess, setChess] = useState(() => new Chess());
-  const pointerHandledRef = useRef(false);
-  const draggingRef = useRef(false);
   const feedbackTimerRef = useRef(null);
 
   const orientation = opening?.side === "black" ? "black" : "white";
-  const board = useMemo(() => getBoard(chess, orientation), [chess, orientation]);
-
   const expectedMove = opening?.moves?.[moveIndex] || null;
   const isComplete = opening && moveIndex >= opening.moves.length;
+  const legalSquares = useMemo(() => {
+    if (!selectedSquare || !opening || isComplete) return [];
+
+    return chess.moves({ square: selectedSquare, verbose: true }).map((move) => move.to);
+  }, [chess, isComplete, opening, selectedSquare]);
+  const lastMoveSquares = useMemo(() => {
+    const history = chess.history({ verbose: true });
+    const lastMove = history[history.length - 1];
+
+    return lastMove ? [lastMove.from, lastMove.to] : [];
+  }, [chess]);
   const progressPercent = opening
     ? Math.round((moveIndex / opening.moves.length) * 100)
     : 0;
@@ -273,60 +245,6 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
     }
 
     applyPracticeMove(selectedSquare, squareName);
-  };
-
-  const handleSquarePointerUp = (event, squareName) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    if (draggingRef.current) return;
-    pointerHandledRef.current = true;
-    event.preventDefault();
-    handleSquareClick(squareName);
-  };
-
-  const handleSquareButtonClick = (squareName) => {
-    if (pointerHandledRef.current) {
-      pointerHandledRef.current = false;
-      return;
-    }
-
-    handleSquareClick(squareName);
-  };
-
-  const handleDragStart = (event, squareName) => {
-    if (!opening || isComplete) return;
-
-    const piece = chess.get(squareName);
-
-    if (!piece) {
-      event.preventDefault();
-      return;
-    }
-
-    draggingRef.current = true;
-    pointerHandledRef.current = true;
-    event.dataTransfer.setData("text/plain", squareName);
-    event.dataTransfer.effectAllowed = "move";
-    setSelectedSquare(squareName);
-  };
-
-  const handleDragOver = (event) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-  };
-
-  const handleDrop = (event, targetSquare) => {
-    event.preventDefault();
-    draggingRef.current = false;
-
-    const sourceSquare = event.dataTransfer.getData("text/plain");
-
-    if (!sourceSquare) return;
-
-    applyPracticeMove(sourceSquare, targetSquare);
-  };
-
-  const handleDragEnd = () => {
-    draggingRef.current = false;
   };
 
   const playExpectedMove = () => {
@@ -427,58 +345,21 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
       </div>
 
       <div className="practiceLayout">
-        <div className="practiceBoardBox practice-board-shell">
-          <div className="cleanReplayBoard opening-board-shell">
-            {board.map((rank, rowIndex) =>
-              rank.map((piece, colIndex) => {
-                const squareName = getSquareName(rowIndex, colIndex, orientation);
-                const isLight = (rowIndex + colIndex) % 2 === 0;
-                const pieceKey = piece
-                  ? piece.color === "w"
-                    ? piece.type.toUpperCase()
-                    : piece.type
-                  : null;
-
-                return (
-                  <button
-                    key={squareName}
-                    type="button"
-                    className={`cleanReplaySquare ${
-                      isLight ? "cleanReplayLight" : "cleanReplayDark"
-                    } ${
-                      selectedSquare === squareName ? "practiceSelectedSquare" : ""
-                    } ${
-                      feedbackSquare === squareName ? "practiceInvalidSquare" : ""
-                    }`}
-                    onPointerUp={(event) => handleSquarePointerUp(event, squareName)}
-                    onClick={() => handleSquareButtonClick(squareName)}
-                    draggable={Boolean(pieceKey)}
-                    onDragStart={(event) => handleDragStart(event, squareName)}
-                    onDragEnd={handleDragEnd}
-                    onDragOver={handleDragOver}
-                    onDrop={(event) => handleDrop(event, squareName)}
-                    aria-label={squareName}
-                  >
-                    {pieceKey ? (
-                      <span
-                        draggable
-                        onDragStart={(event) =>
-                          handleDragStart(event, squareName)
-                        }
-                        onDragEnd={handleDragEnd}
-                        className={`cleanReplayPiece practiceDraggablePiece ${
-                          piece.color === "w"
-                            ? "cleanReplayWhitePiece"
-                            : "cleanReplayBlackPiece"
-                        } cleanReplayPiece-${piece.type}`}
-                      >
-                        {PIECES[pieceKey]}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })
-            )}
+        <div className="practiceBoardBox practice-board-shell of-board-shell">
+          <div className="of-board-label">Practice board</div>
+          <div className="of-board-frame">
+            <ChessPositionBoard
+              position={chess.fen()}
+              orientation={orientation}
+              interactive={!isComplete}
+              selectedSquare={selectedSquare}
+              feedbackSquare={feedbackSquare}
+              legalSquares={legalSquares}
+              lastMoveSquares={lastMoveSquares}
+              onSquareClick={handleSquareClick}
+              onPieceDrop={applyPracticeMove}
+              aria-label={`${opening.name} practice board`}
+            />
           </div>
         </div>
 

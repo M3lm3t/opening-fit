@@ -203,6 +203,17 @@ export default function OpeningPracticeLinesPanel({
   const completedMoves = Math.min(moveIndex, moves.length);
   const currentGame = useMemo(() => new Chess(fen), [fen]);
   const currentTurn = currentGame.turn();
+  const legalSquares = useMemo(() => {
+    if (!selectedSquare || isComplete) return [];
+
+    return currentGame.moves({ square: selectedSquare, verbose: true }).map((move) => move.to);
+  }, [currentGame, isComplete, selectedSquare]);
+  const lastMoveSquares = useMemo(() => {
+    const history = currentGame.history({ verbose: true });
+    const lastMove = history[history.length - 1];
+
+    return lastMove ? [lastMove.from, lastMove.to] : [];
+  }, [currentGame]);
   const moveExplanation = useMemo(
     () =>
       !isComplete
@@ -584,15 +595,21 @@ export default function OpeningPracticeLinesPanel({
       </div>
 
       <div className="practiceBoardLayout">
-        <div className="practiceBoardWrap practice-board-shell">
-          <ChessPositionBoard
-            position={fen}
-            interactive={!isComplete}
-            selectedSquare={selectedSquare}
-            feedbackSquare={feedbackSquare}
-            onPieceDrop={handlePieceDrop}
-            onSquareClick={handleSquareClick}
-          />
+        <div className="practiceBoardWrap practice-board-shell of-board-shell">
+          <div className="of-board-label">Move trainer</div>
+          <div className="of-board-frame">
+            <ChessPositionBoard
+              position={fen}
+              interactive={!isComplete}
+              selectedSquare={selectedSquare}
+              feedbackSquare={feedbackSquare}
+              legalSquares={legalSquares}
+              lastMoveSquares={lastMoveSquares}
+              onPieceDrop={handlePieceDrop}
+              onSquareClick={handleSquareClick}
+              aria-label={`${selectedLine.name} move trainer board`}
+            />
+          </div>
         </div>
 
         <div className="practiceTrainerBox boardTrainerBox">

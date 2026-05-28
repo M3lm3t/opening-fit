@@ -272,7 +272,7 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
 
     if (user?.id) {
       if (!hasPremiumAccess) {
-        setStatus("Founder Pass is required to save cloud report history. Anonymous browser history still works locally.");
+        setStatus("Founder Pass is required to save reports to your account. You can still keep browser history on this device.");
         return;
       }
 
@@ -293,7 +293,7 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
 
     writeHistory(next);
     setHistory(next);
-    setStatus("Report saved locally. Log in to keep history across devices.");
+      setStatus("Report saved on this device. Sign in to keep history across devices.");
   };
 
   const loadReport = (item) => {
@@ -337,38 +337,38 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
     <section className="reportHistoryVault" id="report-history">
       <div className="reportHistoryHeader">
         <div>
-          <p className="eyebrow">Report history</p>
-          <h2>Track your opening profile over time</h2>
+          <p className="eyebrow">Saved reports</p>
+          <h2>Import history</h2>
           <p>
-            Save reports every few weeks to compare opening scores, verdicts, confidence levels,
-            study targets, and repertoire health.
+            Save analyses as you import new games so you can compare your opening fit,
+            study targets, and repertoire health over time.
           </p>
         </div>
 
         <button type="button" className="saveReportButton" onClick={saveCurrentReport}>
-          Save current report
+          Save latest report
         </button>
       </div>
 
       {!user?.id ? (
         <div className="historyLoginNote">
-          Log in to keep report history across devices. Local history is available in this browser.
+          Sign in to keep saved reports across devices. Browser history stays on this device.
         </div>
       ) : null}
 
       <div className="historySnapshotGrid">
         <article className="currentReportCard">
           <span>Previous report</span>
-          <strong>{previousReport ? safeDate(previousReport.createdAt) : "No previous report yet"}</strong>
+          <strong>{previousReport ? safeDate(previousReport.createdAt) : "No saved reports yet"}</strong>
           <small>
             {previousReport
               ? `${previousReport.games || "Recent"} games · Health ${previousReport.snapshot.healthScore ?? "—"}/100`
-              : "Save this report, then re-import in a few weeks to compare."}
+              : "Save this analysis, then import again later to compare progress."}
           </small>
         </article>
 
         <article className="currentReportCard">
-          <span>Current report</span>
+          <span>Latest report</span>
           <strong>{currentSnapshot.username}</strong>
           <small>
             {currentSnapshot.games || "Recent"} games · Health {currentSnapshot.healthScore ?? "—"}/100 · Study: {currentSnapshot.studyTarget}
@@ -416,13 +416,13 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
                     {item.games || "Recent"} games · {item.topOpening} · Study: {item.snapshot.studyTarget || "—"}
                   </span>
                   <small>
-                    {safeDate(item.createdAt)} · {item.platform} · {item.snapshot.importMonths || "Recent"} import
+                    Last analysed {safeDate(item.createdAt)} · {item.platform} · {item.snapshot.importMonths || "Recent"} import
                   </small>
                 </div>
 
                 <div className="historyActions">
                   <button type="button" onClick={() => loadReport(item)}>
-                    Reopen
+                    Open saved report
                   </button>
                   <button type="button" className="dangerHistoryButton" onClick={() => deleteReport(item.id)}>
                     Delete
@@ -438,11 +438,20 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
         </>
       ) : (
         <div className="emptyHistoryState">
-          <strong>No saved reports yet</strong>
+          <strong>No saved reports yet.</strong>
           <span>
-            Save this report after importing games. After your next import, OpeningFit will show
-            what improved, what stayed weak, and what to study next.
+            Analyse a Chess.com or Lichess username and save the report to see it here.
           </span>
+          <button
+            type="button"
+            className="saveReportButton"
+            onClick={() => {
+              window.history.pushState({}, "", "/");
+              document.getElementById("app-dashboard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          >
+            Analyse a new username
+          </button>
         </div>
       )}
     </section>

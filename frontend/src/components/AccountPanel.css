@@ -326,6 +326,7 @@
 .googleSignInBtn,
 .emailSignInBtn,
 .saveAccountBtn,
+.accountSecondaryAction,
 .signOutBtn {
   border: 0;
   border-radius: 16px;
@@ -358,9 +359,22 @@
   color: #fecaca;
 }
 
+.accountSecondaryAction {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(148, 163, 184, 0.12);
+  color: #e2e8f0;
+}
+
 .page.light .signOutBtn,
 .light .signOutBtn {
   color: #991b1b;
+}
+
+.page.light .accountSecondaryAction,
+.light .accountSecondaryAction {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.12);
 }
 
 .accountDivider {
@@ -440,7 +454,7 @@
 
 .accountActions {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1131,28 +1145,34 @@
   right: auto;
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(300px, 1.05fr);
-  gap: clamp(18px, 4vw, 34px);
+  grid-template-columns: minmax(260px, 0.72fr) minmax(320px, 1fr);
+  gap: clamp(16px, 3vw, 28px);
   align-items: start;
-  padding: clamp(22px, 4vw, 34px);
-  border-radius: 26px;
-  background:
-    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.94));
+  padding: clamp(18px, 3vw, 28px);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.74);
   border: 1px solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 24px 70px rgba(2, 6, 23, 0.26);
+  box-shadow: none;
 }
 
 .accountPanel--screen .accountPanelHeader {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .accountPanel--screen .accountPanelHeader h3 {
-  max-width: 11ch;
+  max-width: 18ch;
   margin: 0;
-  font-size: clamp(2rem, 6vw, 4rem);
-  line-height: 0.98;
+  font-size: clamp(1.7rem, 3vw, 2.45rem);
+  line-height: 1.05;
   letter-spacing: 0;
+}
+
+.accountPanel--screen .accountPanelHeader p {
+  max-width: 48ch;
+  margin: 0;
+  color: rgba(226, 232, 240, 0.76);
+  line-height: 1.55;
 }
 
 .accountPanel--screen .accountEyebrow {
@@ -1161,8 +1181,8 @@
 
 .accountPanel--screen .accountAuthStack,
 .accountPanel--screen .accountProfileStack {
-  padding: clamp(16px, 2.4vw, 22px);
-  border-radius: 22px;
+  padding: clamp(14px, 2vw, 20px);
+  border-radius: 16px;
   border: 1px solid rgba(148, 163, 184, 0.14);
   background: rgba(2, 6, 23, 0.34);
 }
@@ -1170,6 +1190,7 @@
 .accountPanel--screen .googleSignInBtn,
 .accountPanel--screen .emailSignInBtn,
 .accountPanel--screen .saveAccountBtn,
+.accountPanel--screen .accountSecondaryAction,
 .accountPanel--screen .signOutBtn,
 .accountPanel--screen .accountPrimaryAction,
 .accountPanel--screen .accountDangerButton {
@@ -1179,10 +1200,14 @@
 
 .page.light .accountPanel--screen,
 .light .accountPanel--screen {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+  background: #ffffff;
   border-color: rgba(15, 23, 42, 0.1);
-  box-shadow: 0 20px 56px rgba(15, 23, 42, 0.1);
+  box-shadow: none;
+}
+
+.page.light .accountPanel--screen .accountPanelHeader p,
+.light .accountPanel--screen .accountPanelHeader p {
+  color: #475569;
 }
 
 .page.light .accountPanel--screen .accountAuthStack,
@@ -1227,6 +1252,10 @@
     padding: 12px;
     border-radius: 16px;
   }
+
+  .accountActions {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 430px) {
@@ -1247,5 +1276,71 @@
 
   .preLoginTeaserCard h4 {
     font-size: 0.86rem;
+  }
+}
+
+/* Final mobile-system alignment. This sheet can load after App.css. */
+.accountPanelShell,
+.accountPanel,
+.accountPanel--screen,
+.accountAuthStack,
+.accountProfileStack,
+.preLoginCuriosity,
+.preLoginTeaserGrid,
+.preLoginTeaserCard {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.accountPanel,
+.accountPanel--screen {
+  border-color: var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-section-final, 20px);
+}
+
+.accountPanel--screen .accountAuthStack,
+.accountPanel--screen .accountProfileStack,
+.preLoginCuriosity,
+.preLoginTeaserCard {
+  border-radius: var(--of-radius-card-final, 16px);
+  border-color: var(--of-border-final, rgba(148, 163, 184, 0.2));
+}
+
+.accountPanel p,
+.accountPanel span,
+.accountPanel strong,
+.accountPanel small,
+.accountPanel button,
+.accountPanel--screen p,
+.accountPanel--screen span,
+.accountPanel--screen strong,
+.accountPanel--screen small,
+.accountPanel--screen button {
+  overflow-wrap: anywhere;
+}
+
+.accountPanel button,
+.accountPanel--screen button {
+  min-height: 44px;
+  max-width: 100%;
+}
+
+@media (max-width: 720px) {
+  .accountPanelShell {
+    max-width: 100%;
+  }
+
+  .accountPanel {
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: calc(100% - 20px);
+  }
+}
+
+@media (max-width: 430px) {
+  .accountPanel,
+  .accountPanel--screen {
+    border-radius: 16px;
   }
 }

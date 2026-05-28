@@ -3991,33 +3991,42 @@ function ProfileIdentityCard({
     "";
   const bestOpening = fitData?.bestOpening;
   const weakOpening = fitData?.weakestOpening;
+  const savedReportCount = (() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(REPORT_HISTORY_KEY) || "[]");
+      return Array.isArray(stored) ? stored.length : 0;
+    } catch {
+      return 0;
+    }
+  })();
 
   return (
-    <section className="profileIdentityCard" aria-label="Player identity">
+    <section className="profileIdentityCard" aria-label="OpeningFit profile summary">
       <div className="profileIdentityMain">
-        <p className="eyebrow">Player identity</p>
-        <h2>{playerName}</h2>
+        <p className="eyebrow">Profile summary</p>
+        <h2>Your OpeningFit profile</h2>
         <p>
-          {style}. Your profile tracks how your repertoire changes as new reports are imported.
+          {style}. This profile brings together your latest analysis, saved reports,
+          connected chess account, and long-term repertoire progress.
         </p>
       </div>
 
       <div className="profileIdentityStats">
         <div>
-          <span>Linked username</span>
+          <span>Connected chess account</span>
           <strong>{platformLabel} · {playerName}</strong>
         </div>
         <div>
           <span>Account status</span>
-          <strong>{accountUser ? "Signed in" : "Local profile"}</strong>
+          <strong>{accountUser?.email || (accountUser ? "Signed in" : "Not signed in")}</strong>
         </div>
         <div>
-          <span>Premium status</span>
-          <strong>{isPremium ? "Founder Pass active" : "Free"}</strong>
+          <span>Founder Pass</span>
+          <strong>{isPremium ? "Founder Pass active" : "Free account"}</strong>
         </div>
         <div>
-          <span>Rating</span>
-          <strong>{rating || "Not available"}</strong>
+          <span>Saved reports</span>
+          <strong>{savedReportCount}</strong>
         </div>
         <div>
           <span>Games analysed</span>
@@ -4031,12 +4040,16 @@ function ProfileIdentityCard({
 
       <div className="profileRepertoireSnapshot">
         <div>
-          <span>Best current fit</span>
+          <span>Best current opening fit</span>
           <strong>{bestOpening ? getOpeningContextTitle(bestOpening) : "Not enough data yet"}</strong>
         </div>
         <div>
-          <span>Current repair area</span>
+          <span>Next improvement area</span>
           <strong>{weakOpening ? getOpeningContextTitle(weakOpening) : "No clear leak yet"}</strong>
+        </div>
+        <div>
+          <span>Current rating</span>
+          <strong>{rating || "Not available"}</strong>
         </div>
       </div>
     </section>
@@ -6607,7 +6620,7 @@ function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgra
         return;
       } catch (cloudError) {
         console.warn("Could not save report to Supabase", cloudError);
-        setHistoryStatus("Cloud save failed. Saved a browser copy instead.");
+        setHistoryStatus("Could not save to your account. Saved a browser copy instead.");
       }
     }
 
@@ -6621,7 +6634,7 @@ function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgra
 
   const clearReports = async () => {
     if (cloudUser?.id && savedReports.some((report) => report.cloud)) {
-      setHistoryStatus("Clearing cloud history...");
+      setHistoryStatus("Clearing saved reports...");
       try {
         await Promise.all(
           savedReports
@@ -6629,11 +6642,11 @@ function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgra
             .map((report) => deleteUserData?.("report_history", report.id))
         );
         await refreshUserData?.();
-        setHistoryStatus("Cloud report history cleared.");
+        setHistoryStatus("Saved reports cleared.");
         return;
       } catch (cloudError) {
         console.warn("Could not clear Supabase report history", cloudError);
-        setHistoryStatus("Cloud clear failed. Please try again.");
+        setHistoryStatus("Could not clear saved reports. Please try again.");
         return;
       }
     }
@@ -6672,12 +6685,12 @@ function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgra
   return (
     <section className="exportHistoryShell" id="report-history">
       <div className="exportHistoryIntro">
-        <span>{isPremium ? "Export & history" : "Founder Pass depth tools"}</span>
-        <h2>{isPremium ? "Save this report or export it as a study plan." : "Save progress and export plans with Founder Pass."}</h2>
+        <span>{isPremium ? "Saved reports" : "Founder Pass"}</span>
+        <h2>{isPremium ? "Save or export your latest report." : "Save progress and export plans with Founder Pass."}</h2>
         <p>
           {isPremium
-            ? "Keep a local copy of your Opening Fit reports so you can compare your opening progress over time."
-            : "The free report gives the verdict and first actions. Founder Pass adds saved history and exportable study plans for longer-term improvement."}
+            ? "Keep reports so you can compare your opening progress over time."
+            : "The free report gives the verdict and first actions. Founder Pass adds saved reports and exportable study plans for longer-term improvement."}
         </p>
 
         <div className="exportHistoryActions">
@@ -6686,40 +6699,39 @@ function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgra
           </button>
 
           <button type="button" onClick={handleSaveReport} className="exportSecondaryBtn">
-            {isPremium ? "Save report" : "Unlock saved history"}
+            {isPremium ? "Save latest report" : "Unlock saved reports"}
           </button>
         </div>
 
         <small>
           {isPremium
             ? cloudUser?.id
-              ? "Saved reports are stored in your OpeningFit account and restored after login."
+              ? "Saved reports are attached to your OpeningFit account."
               : "Saved reports are stored in this browser until you sign in."
-            : "PDF export, cloud history, and deeper line diagnosis are planned as later premium upgrades."}
+            : "PDF export, saved reports, and deeper line diagnosis are included with Founder Pass."}
         </small>
         {historyStatus ? <small>{historyStatus}</small> : null}
       </div>
 
       <div className="currentReportSummary">
-        <span>Current report</span>
+        <span>Latest report</span>
         <strong>{playerName}</strong>
         <p>
           {gamesImported} games reviewed · {styleLabel} · {reportDate}
         </p>
       </div>
 
-      {/* Diagnostic card for large imports with low qualification */}
       {data?.import_debug ? (
         (() => {
-          const dbg = data.import_debug;
-          const imported = dbg.gamesFetched || dbg.gamesFetched === 0 ? dbg.gamesFetched : gamesImported;
-          const openingsDetected = dbg.openingsDetected || (data.top_openings || []).length || 0;
-          const qualifiedCount = (dbg.qualifiedOpenings || []).length || 0;
+          const importDetails = data.import_debug;
+          const imported = importDetails.gamesFetched || importDetails.gamesFetched === 0 ? importDetails.gamesFetched : gamesImported;
+          const openingsDetected = importDetails.openingsDetected || (data.top_openings || []).length || 0;
+          const qualifiedCount = (importDetails.qualifiedOpenings || []).length || 0;
 
           if (imported >= 200 && qualifiedCount < 5) {
             return (
-              <div className="importDiagnosticCard">
-                <strong>Diagnostic</strong>
+              <div className="importNoteCard">
+                <strong>Import note</strong>
                 <p>
                   Imported {imported} games. Detected openings in {openingsDetected}. Your games are spread across {openingsDetected} opening names, so we’re showing lower-confidence patterns.
                 </p>
@@ -6734,14 +6746,14 @@ function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgra
       <div className="savedReportsPanel">
         <div className="savedReportsHeader">
           <div>
-            <span>Saved history</span>
-            <h3>{savedReports.length ? "Previous reports" : "No saved reports yet"}</h3>
+            <span>Import history</span>
+            <h3>{savedReports.length ? "Saved reports" : "No saved reports yet"}</h3>
           </div>
 
           {savedReports.length ? (
-            <button type="button" onClick={clearReports}>
-              Clear
-            </button>
+              <button type="button" onClick={clearReports}>
+                Clear
+              </button>
           ) : null}
         </div>
 
@@ -6771,8 +6783,7 @@ function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgra
           </div>
         ) : (
           <p className="emptySavedReports">
-            Save your current report, then come back after more games to compare
-            how your openings are changing.
+            Analyse a Chess.com or Lichess username and save the report to see it here.
           </p>
         )}
       </div>
@@ -10288,16 +10299,44 @@ function App() {
                 <>
                   <ReportSectionHeader
                     eyebrow="Profile"
-                    title="Profile"
-                    text="Your progress, saved reports, milestones, and repertoire history."
+                    title="Your OpeningFit profile"
+                    text="Account details, connected chess accounts, saved reports, and recent activity in one place."
                   />
 
                   <div className="profileSectionHeader">
-                    <p className="eyebrow">Profile</p>
-                    <h1>Player progress hub</h1>
+                    <p className="eyebrow">Account dashboard</p>
+                    <h1>Your OpeningFit profile</h1>
                     <p>
-                      Who you are as a player, what you have achieved, and how your repertoire is changing over time.
+                      Review your latest analysis, manage account details, and return to saved reports without digging through the full report.
                     </p>
+                    <div className="profileHeroActions">
+                      <button
+                        className="primaryBtn"
+                        type="button"
+                        onClick={() => {
+                          setActiveView("analyse");
+                          window.history.pushState({}, "", "/");
+                          setTimeout(() => {
+                            document.getElementById("app-dashboard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }, 80);
+                        }}
+                      >
+                        Analyse a new username
+                      </button>
+                      <button
+                        className="secondaryBtn"
+                        type="button"
+                        onClick={() => {
+                          setActiveView("report");
+                          window.history.pushState({}, "", "/report");
+                          setTimeout(() => {
+                            document.getElementById("app-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }, 80);
+                        }}
+                      >
+                        View latest report
+                      </button>
+                    </div>
                   </div>
 
                   <ProfileIdentityCard
@@ -10321,8 +10360,8 @@ function App() {
 
                   <section className="profileHubSection" id="profile-achievements">
                     <div className="profileHubSectionHeader">
-                      <p className="eyebrow">Achievements / milestones</p>
-                      <h2>Milestones</h2>
+                      <p className="eyebrow">Recent activity</p>
+                      <h2>Recent activity</h2>
                     </div>
                     {accountUser ? (
                       <div className="profileAchievementGrid">
@@ -10347,16 +10386,16 @@ function App() {
                       </div>
                     ) : (
                       <section className="card profileMutedPanel">
-                        <h3>Milestones unlock when you sign in</h3>
-                        <p>Your current report is saved locally. Sign in to track streaks, XP, and achievements across devices.</p>
+                        <h3>Run an analysis to start building your profile.</h3>
+                        <p>Sign in to keep milestones, streaks, and achievements across devices.</p>
                       </section>
                     )}
                   </section>
 
                   <section className="profileHubSection" id="profile-saved-reports">
                     <div className="profileHubSectionHeader">
-                      <p className="eyebrow">Saved reports / previous imports</p>
-                      <h2>Report history</h2>
+                      <p className="eyebrow">Saved reports</p>
+                      <h2>Saved reports and import history</h2>
                     </div>
                     <div className="profileGrid">
                       <ReportHistoryVault data={reportData} fitData={fitData} onLoadReport={setData} />
@@ -10371,23 +10410,23 @@ function App() {
 
                   <section className="profileHubSection" id="profile-progress">
                     <div className="profileHubSectionHeader">
-                      <p className="eyebrow">Progress over time</p>
-                      <h2>Repertoire progress</h2>
+                      <p className="eyebrow">Repertoire progress</p>
+                      <h2>Progress over time</h2>
                     </div>
                     {accountUser ? (
                       <OpeningProgressTracker data={reportData} user={accountUser} compact />
                     ) : (
                       <section className="card profileMutedPanel">
-                        <h3>Long-term progress is local-only for now</h3>
-                        <p>Import again after more games to compare the current report. Sign in to keep progress history attached to your account.</p>
+                        <h3>No long-term progress yet.</h3>
+                        <p>Analyse again after more games to compare your latest report. Sign in to keep progress attached to your account.</p>
                       </section>
                     )}
                   </section>
 
                   <section className="profileHubSection" id="profile-account">
                     <div className="profileHubSectionHeader">
-                      <p className="eyebrow">Account / premium</p>
-                      <h2>Account status, privacy, and premium</h2>
+                      <p className="eyebrow">Account details</p>
+                      <h2>Connected chess account and Founder Pass</h2>
                     </div>
                     <div className="profileGrid">
                       <section className="loginScreenSection" id="account">
@@ -10410,10 +10449,10 @@ function App() {
               ) : (
                 <section className="card appEmptySection profileEmptyState">
                   <p className="eyebrow">Profile</p>
-                  <h2>Import your first games to build your OpeningFit profile.</h2>
-                  <p>Your player identity, milestones, saved reports, and repertoire progress will appear here after your first analysis.</p>
+                  <h2>Run an analysis to start building your profile.</h2>
+                  <p>Your connected chess account, saved reports, import history, and progress will appear here after your first analysis.</p>
                   <button className="primaryBtn" type="button" onClick={() => setActiveView("analyse")}>
-                    Go to Analyse
+                    Analyse a new username
                   </button>
                 </section>
               )}

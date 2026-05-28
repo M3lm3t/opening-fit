@@ -12,22 +12,22 @@ const EMPTY_PROFILE = {
 
 const PRE_LOGIN_TEASERS = [
   {
-    label: "Weakness scan",
-    title: "We found 3 weaknesses in your opening prep",
-    locked: "French pressure point",
-    detail: "One defence keeps dragging you into positions where your plan disappears.",
+    label: "Opening fit",
+    title: "Keep your latest opening diagnosis attached to your account",
+    locked: "Saved report preview",
+    detail: "Sign in to return to your analysis and compare it with future imports.",
   },
   {
-    label: "Hidden strength",
-    title: "Your actual strongest opening may surprise you",
-    locked: "Best scoring line hidden",
-    detail: "Most players guess their best opening wrong because memory favors dramatic wins.",
+    label: "Progress",
+    title: "Track how your repertoire changes over time",
+    locked: "Import history preview",
+    detail: "Saved reports make it easier to see what improved after your study block.",
   },
   {
-    label: "Confidence leak",
-    title: "Most players misuse their best openings",
-    locked: "Move 8 confidence drop",
-    detail: "The report shows where the opening stops feeling familiar and starts costing decisions.",
+    label: "Account",
+    title: "Connect Chess.com and Lichess usernames once",
+    locked: "Connected account preview",
+    detail: "Your usernames stay ready for the next analysis.",
   },
 ];
 
@@ -35,9 +35,9 @@ function PreLoginCuriosityHooks() {
   return (
     <div className="preLoginCuriosity" aria-label="Locked OpeningFit report previews">
       <div className="preLoginCuriosityHeader">
-        <span>Locked report preview</span>
-        <strong>Your openings are probably telling on you.</strong>
-        <p>Connect an account to keep reports and reveal the personal patterns behind your results.</p>
+        <span>Profile preview</span>
+        <strong>Build a profile from your real games.</strong>
+        <p>Connect an account to keep reports, import history, and profile details together.</p>
       </div>
 
       <div className="preLoginTeaserGrid">
@@ -58,10 +58,10 @@ function PreLoginCuriosityHooks() {
 
       <div className="preLoginLockedInsight">
         <div>
-          <span>Curiosity hook</span>
-          <strong>See which opening your opponents should keep choosing against you.</strong>
+          <span>Recent activity</span>
+          <strong>Your saved reports and latest analysis will appear here after sign-in.</strong>
         </div>
-        <small>Personal report locked until sign-in.</small>
+        <small>Account required.</small>
       </div>
     </div>
   );
@@ -96,8 +96,8 @@ export default function AccountPanel({ variant = "floating",
   }, [user, onUserChange]);
 
   const displayName = useMemo(() => {
-    if (!user) return "Account";
-    return user.user_metadata?.full_name || user.email || "My account";
+    if (!user) return "Your OpeningFit profile";
+    return user.user_metadata?.full_name || user.email || "Account details";
   }, [user]);
 
   useEffect(() => {
@@ -155,7 +155,7 @@ export default function AccountPanel({ variant = "floating",
     if (!supabase || !user) return;
 
     setSaving(true);
-    setStatus("Saving account...");
+      setStatus("Saving account details...");
 
     try {
       await upsertUserData(
@@ -187,10 +187,10 @@ export default function AccountPanel({ variant = "floating",
       );
 
       setSaving(false);
-      setStatus("Account saved.");
+      setStatus("Account details saved.");
     } catch (error) {
       setSaving(false);
-      setStatus(error.message || "Could not save account.");
+      setStatus(error.message || "Could not save account details.");
     }
 
   };
@@ -203,11 +203,22 @@ export default function AccountPanel({ variant = "floating",
     setIsOpen(false);
   };
 
+  const refreshProfile = async () => {
+    if (!user) return;
+    setStatus("Refreshing profile...");
+    try {
+      await refreshUserData(user);
+      setStatus("Profile refreshed.");
+    } catch (error) {
+      setStatus(error?.message || "Could not refresh profile.");
+    }
+  };
+
 
   async function handlePremiumCheckout() {
     if (!user) {
       setIsOpen(true);
-      setStatus("Please sign in first, then you can unlock premium.");
+      setStatus("Sign in first, then you can unlock Founder Pass.");
       return;
     }
 
@@ -227,7 +238,7 @@ export default function AccountPanel({ variant = "floating",
     }
 
     const confirmed = window.confirm(
-      "Delete your Opening Fit account and saved cloud data? This cannot be undone."
+      "Delete your OpeningFit account and saved reports? This cannot be undone."
     );
 
     if (!confirmed) return;
@@ -302,8 +313,13 @@ export default function AccountPanel({ variant = "floating",
         <div className={`accountPanel accountPanel--${variant}`}>
           <div className="accountPanelHeader">
             <div>
-              <span className="accountEyebrow">OpeningFit account</span>
-              <h3>{user ? displayName : "Save your reports"}</h3>
+              <span className="accountEyebrow">Account details</span>
+              <h3>{user ? displayName : "Save your OpeningFit profile"}</h3>
+              <p>
+                {user
+                  ? "Manage your connected chess usernames, Founder Pass status, and account actions."
+                  : "Sign in to keep saved reports, import history, and account details across devices."}
+              </p>
             </div>
 
             {!isScreen ? (
@@ -315,13 +331,12 @@ export default function AccountPanel({ variant = "floating",
 
           {!isSupabaseConfigured ? (
             <div className="accountNotice">
-              Supabase is not configured yet. Add your VITE_SUPABASE_URL and
-              VITE_SUPABASE_ANON_KEY (or VITE_SUPABASE_PUBLISHABLE_KEY) values to <code>frontend/.env.local</code>.
+              Account sign-in is not available in this environment yet.
             </div>
           ) : null}
 
           {accountLoading ? (
-            <div className="accountNotice">Restoring your saved account data...</div>
+            <div className="accountNotice">Refreshing your profile...</div>
           ) : null}
 
           {accountError ? <div className="accountStatus">{accountError}</div> : null}
@@ -329,8 +344,8 @@ export default function AccountPanel({ variant = "floating",
           {isSupabaseConfigured && !user ? (
             <div className="accountAuthStack">
               <p>
-                Sign in to save your Chess.com/Lichess usernames, keep your reports,
-                and unlock premium features later.
+                Sign in to save your Chess.com and Lichess usernames, keep saved reports,
+                and restore Founder Pass access on this device.
               </p>
 
               <PreLoginCuriosityHooks />
@@ -340,8 +355,7 @@ export default function AccountPanel({ variant = "floating",
               </button>
 
               <p className="accountBetaNote">
-                Beta note: Google may show our Supabase auth provider during sign-in.
-                This is the secure login service OpeningFit uses while in beta.
+                Google sign-in opens a secure authentication window for OpeningFit.
               </p>
 
               <div className="accountDivider">
@@ -367,10 +381,12 @@ export default function AccountPanel({ variant = "floating",
           {isSupabaseConfigured && user ? (
             <div className="accountProfileStack">
               <div className="premiumStatusCard">
-                <span>Premium status</span>
-                <strong>{hasPremiumAccess ? "Premium active" : "Free account"}</strong>
+                <span>Founder Pass</span>
+                <strong>{hasPremiumAccess ? "Founder Pass active" : "Free account"}</strong>
                 <small>
-                  Premium is synced from Stripe. Unlock Founder Pass to save premium access to this account.
+                  {hasPremiumAccess
+                    ? "Your supporter access is attached to this account."
+                    : "Upgrade when you want saved premium features and deeper report tools."}
                 </small>
               </div>
 
@@ -405,11 +421,11 @@ export default function AccountPanel({ variant = "floating",
 
               <div className="accountPremiumBox">
                 <div>
-                  <strong>{hasPremiumAccess ? "Premium active" : "Opening Fit Founder Pass"}</strong>
+                  <strong>{hasPremiumAccess ? "Founder Pass active" : "Founder Pass"}</strong>
                   <p>
                     {hasPremiumAccess
-                      ? "Your account has premium access saved in the cloud."
-                      : "Support early development and unlock deeper reports on this account."}
+                      ? "Your account has access to supporter features."
+                      : "Support OpeningFit and unlock deeper reports on this account."}
                   </p>
                 </div>
 
@@ -422,25 +438,33 @@ export default function AccountPanel({ variant = "floating",
                     Unlock Founder Pass
                   </button>
                 ) : (
-                  <span className="accountPremiumBadge">Premium</span>
+                  <span className="accountPremiumBadge">Active</span>
                 )}
               </div>
 
               <div className="accountDangerZone">
-                <strong>Danger zone</strong>
-                <p>Delete your Opening Fit account and saved cloud data.</p>
+                <strong>Account actions</strong>
+                <p>Manage sign-out and deletion for this OpeningFit account.</p>
                 <button
                   className="accountDangerButton"
                   type="button"
                   onClick={handleDeleteAccount}
                 >
-                  Delete my account
+                  Delete account
                 </button>
               </div>
 
               <div className="accountActions">
                 <button type="button" className="saveAccountBtn" onClick={saveProfile} disabled={saving}>
-                  {saving ? "Saving..." : "Save account"}
+                  {saving ? "Saving..." : "Save account details"}
+                </button>
+
+                <button
+                  type="button"
+                  className="accountSecondaryAction"
+                  onClick={refreshProfile}
+                >
+                  Refresh profile
                 </button>
 
                 <button type="button" className="signOutBtn" onClick={signOut}>

@@ -51,13 +51,18 @@ export default function ChessPositionBoard({
   interactive = false,
   selectedSquare = null,
   feedbackSquare = null,
+  legalSquares = [],
+  lastMoveSquares = [],
   onSquareClick,
   onPieceDrop,
   showCoordinates = true,
   className = "",
+  "aria-label": ariaLabel = "Chess position board",
 }) {
   const chess = useMemo(() => buildChess(position), [position]);
   const board = useMemo(() => getBoard(chess, orientation), [chess, orientation]);
+  const legalSquareSet = useMemo(() => new Set(legalSquares), [legalSquares]);
+  const lastMoveSquareSet = useMemo(() => new Set(lastMoveSquares), [lastMoveSquares]);
   const pointerHandledRef = useRef(false);
   const draggingRef = useRef(false);
 
@@ -119,11 +124,19 @@ export default function ChessPositionBoard({
   };
 
   return (
-    <div className={`cleanReplayBoard chessPositionBoard opening-board-shell ${className}`}>
+    <div
+      className={`of-board cleanReplayBoard chessPositionBoard opening-board-shell ${className}`}
+      role="grid"
+      aria-label={ariaLabel}
+    >
       {board.map((rank, rowIndex) =>
         rank.map((piece, colIndex) => {
           const squareName = getSquareName(rowIndex, colIndex, orientation);
           const isLight = (rowIndex + colIndex) % 2 === 0;
+          const isSelected = selectedSquare === squareName;
+          const isInvalid = feedbackSquare === squareName;
+          const isLegal = legalSquareSet.has(squareName);
+          const isLastMove = lastMoveSquareSet.has(squareName);
           const pieceKey = piece
             ? piece.color === "w"
               ? piece.type.toUpperCase()
@@ -139,11 +152,15 @@ export default function ChessPositionBoard({
           const content = (
             <>
               {showRank ? (
-                <span className="cleanReplayRank">{squareName[1]}</span>
+                <span className="of-board-coord of-board-coord--rank cleanReplayRank">
+                  {squareName[1]}
+                </span>
               ) : null}
 
               {showFile ? (
-                <span className="cleanReplayFile">{squareName[0]}</span>
+                <span className="of-board-coord of-board-coord--file cleanReplayFile">
+                  {squareName[0]}
+                </span>
               ) : null}
 
               {pieceKey ? (
@@ -151,7 +168,7 @@ export default function ChessPositionBoard({
                   draggable={interactive}
                   onDragStart={(event) => handleDragStart(event, squareName, piece)}
                   onDragEnd={handleDragEnd}
-                  className={`cleanReplayPiece ${
+                  className={`of-board-piece cleanReplayPiece ${
                     piece.color === "w"
                       ? "cleanReplayWhitePiece"
                       : "cleanReplayBlackPiece"
@@ -163,10 +180,14 @@ export default function ChessPositionBoard({
             </>
           );
 
-          const squareClass = `cleanReplaySquare ${
-            isLight ? "cleanReplayLight" : "cleanReplayDark"
-          } ${selectedSquare === squareName ? "practiceSelectedSquare" : ""} ${
-            feedbackSquare === squareName ? "practiceInvalidSquare" : ""
+          const squareClass = `of-board-square cleanReplaySquare ${
+            isLight
+              ? "of-board-square--light cleanReplayLight"
+              : "of-board-square--dark cleanReplayDark"
+          } ${isSelected ? "of-board-square--selected practiceSelectedSquare" : ""} ${
+            isInvalid ? "of-board-square--invalid practiceInvalidSquare" : ""
+          } ${isLegal ? "of-board-square--legal legalMove" : ""} ${
+            isLastMove ? "of-board-square--last-move lastMove" : ""
           }`;
 
           if (interactive) {
@@ -175,6 +196,7 @@ export default function ChessPositionBoard({
                 key={squareName}
                 type="button"
                 className={`${squareClass} chessBoardSquareButton`}
+                role="gridcell"
                 draggable={Boolean(pieceKey)}
                 onPointerUp={(event) => handleSquarePointerUp(event, squareName)}
                 onClick={() => handleSquareClick(squareName)}
@@ -182,7 +204,8 @@ export default function ChessPositionBoard({
                 onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
                 onDrop={(event) => handleDrop(event, squareName)}
-                aria-label={squareName}
+                aria-label={`${squareName}${piece ? `, ${piece.color === "w" ? "white" : "black"} ${piece.type}` : ""}`}
+                aria-pressed={isSelected}
               >
                 {content}
               </button>
@@ -190,7 +213,7 @@ export default function ChessPositionBoard({
           }
 
           return (
-            <div key={squareName} className={squareClass}>
+            <div key={squareName} className={squareClass} role="gridcell" aria-label={squareName}>
               {content}
             </div>
           );

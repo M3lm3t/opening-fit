@@ -1815,10 +1815,8 @@ th {
 
 .replayBoardBox,
 .practiceBoardBox {
-  width: min(100%, calc(100vw - 32px), 420px);
-  aspect-ratio: 1 / 1;
+  width: clamp(280px, min(100%, 70vw), 430px);
   box-sizing: border-box;
-  max-width: 420px;
   margin-inline: auto;
   overflow: visible;
 }
@@ -1826,32 +1824,69 @@ th {
 .opening-board-shell,
 .practice-board-shell,
 .game-replay-board-shell {
-  width: min(100%, calc(100vw - 32px), 420px);
-  aspect-ratio: 1 / 1;
+  width: clamp(280px, min(100%, 70vw), 430px);
   box-sizing: border-box;
   margin-inline: auto;
   overflow: visible;
 }
 
+.of-board-shell {
+  display: grid;
+  gap: 0.55rem;
+  justify-items: stretch;
+}
+
+.of-board-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 1.25rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.of-board-frame {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  padding: clamp(5px, 1.1vw, 8px);
+  border: 1px solid var(--board-border);
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.72), rgba(2, 6, 23, 0.44)),
+    var(--board-rail);
+  box-shadow:
+    0 18px 38px rgba(2, 6, 23, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.of-board,
 .cleanReplayBoard {
   width: 100%;
+  height: 100%;
   aspect-ratio: 1 / 1;
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
   overflow: hidden;
-  border-radius: 8px;
-  border: 1px solid var(--board-border);
-  box-shadow: none;
+  border-radius: 11px;
+  border: 1px solid rgba(15, 23, 42, 0.22);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   background: var(--board-dark-square);
+  container-type: size;
   user-select: none;
-  touch-action: manipulation;
+  touch-action: none;
   -webkit-tap-highlight-color: transparent;
   transform: none;
   perspective: none;
   filter: none;
 }
 
+.of-board-square,
 .cleanReplaySquare {
   position: relative;
   min-width: 0;
@@ -1867,7 +1902,7 @@ th {
   overflow: hidden;
   appearance: none;
   user-select: none;
-  touch-action: manipulation;
+  touch-action: none;
   -webkit-tap-highlight-color: transparent;
   box-shadow: none;
   transform: none;
@@ -1881,12 +1916,17 @@ th {
   cursor: pointer;
 }
 
-.chessBoardSquareButton:focus-visible {
-  outline: 3px solid rgba(37, 99, 235, 0.85);
-  outline-offset: -3px;
-  z-index: 3;
+.chessBoardSquareButton:hover {
+  filter: brightness(1.035);
 }
 
+.chessBoardSquareButton:focus-visible {
+  outline: 3px solid var(--board-focus);
+  outline-offset: -4px;
+  z-index: 5;
+}
+
+.of-board-square--light,
 .cleanReplaySquare.cleanReplayLight,
 .cleanReplaySquare.cleanReplayLight:hover,
 .cleanReplaySquare.cleanReplayLight:focus,
@@ -1894,6 +1934,7 @@ th {
   background: var(--board-light-square);
 }
 
+.of-board-square--dark,
 .cleanReplaySquare.cleanReplayDark,
 .cleanReplaySquare.cleanReplayDark:hover,
 .cleanReplaySquare.cleanReplayDark:focus,
@@ -1901,35 +1942,61 @@ th {
   background: var(--board-dark-square);
 }
 
+.of-board-piece,
 .cleanReplayPiece {
   display: block;
   position: relative;
-  z-index: 1;
+  z-index: 3;
   font-family: "DejaVu Sans", "Segoe UI Symbol", "Noto Sans Symbols 2", "Arial Unicode MS", serif;
   line-height: 1;
   text-align: center;
   pointer-events: none;
   user-select: none;
-  touch-action: manipulation;
+  touch-action: none;
   -webkit-tap-highlight-color: transparent;
-  font-size: clamp(25px, 4.2vw, 42px);
-  transform: none;
-  filter: none;
+  font-size: clamp(28px, 8.2cqw, 48px);
+  transform: translateY(-1px);
+  filter: drop-shadow(0 1px 1px rgba(2, 6, 23, 0.34));
 }
 
+.of-board-square--selected,
 .practiceSelectedSquare {
-  outline: 2px solid var(--board-selected);
-  outline-offset: -2px;
-  box-shadow: none;
+  outline: 3px solid var(--board-selected);
+  outline-offset: -4px;
+  box-shadow: inset 0 0 0 999px var(--board-selected-fill);
   z-index: 2;
 }
 
+.of-board-square--invalid,
 .practiceInvalidSquare {
-  outline: 2px solid var(--board-invalid);
-  outline-offset: -2px;
+  outline: 3px solid var(--board-invalid);
+  outline-offset: -4px;
+  box-shadow: inset 0 0 0 999px var(--board-invalid-fill);
+}
+
+.of-board-square--selected::before,
+.of-board-square--invalid::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 5px;
+  border: 2px solid currentColor;
+  opacity: 0.52;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.of-board-square--selected::before {
+  color: var(--board-selected);
+}
+
+.of-board-square--invalid::before {
+  color: var(--board-invalid);
 }
 
 .practiceSelectedSquare::after,
+.of-board-square--legal::after,
+.of-board-square--last-move::after,
 .cleanReplaySquare.legalMove::after,
 .cleanReplaySquare.practiceLegalMove::after,
 .cleanReplaySquare.lastMove::after,
@@ -1941,62 +2008,74 @@ th {
   pointer-events: none;
 }
 
+.of-board-square--legal::after,
 .cleanReplaySquare.legalMove::after,
 .cleanReplaySquare.practiceLegalMove::after {
-  inset: 36%;
+  inset: 35%;
   border-radius: 999px;
   background: var(--board-legal-move);
+  box-shadow: 0 0 0 2px var(--board-legal-ring);
+  z-index: 2;
 }
 
+.of-board-square--last-move::after,
 .cleanReplaySquare.lastMove::after,
 .cleanReplaySquare.practiceLastMove::after {
   background: var(--board-last-move);
+  z-index: 1;
 }
 
 .cleanReplayPiece-p {
-  font-size: clamp(21px, 3.7vw, 35px);
-  transform: none;
+  font-size: clamp(25px, 7.4cqw, 43px);
 }
 
 .cleanReplayPiece-r,
 .cleanReplayPiece-n,
 .cleanReplayPiece-b {
-  font-size: clamp(23px, 3.9vw, 38px);
+  font-size: clamp(27px, 7.8cqw, 46px);
 }
 
 .cleanReplayPiece-q,
 .cleanReplayPiece-k {
-  font-size: clamp(24px, 4.1vw, 40px);
+  font-size: clamp(28px, 8.1cqw, 48px);
 }
 
 .cleanReplayWhitePiece {
   color: #f8fafc;
-  text-shadow: 0 1px 1px rgba(15, 23, 42, 0.72);
+  text-shadow:
+    0 1px 0 rgba(15, 23, 42, 0.95),
+    0 0 1px rgba(15, 23, 42, 0.8);
 }
 
 .cleanReplayBlackPiece {
-  color: #020617;
-  text-shadow: 0 1px 1px rgba(248, 250, 252, 0.38);
+  color: #111827;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.4),
+    0 0 1px rgba(255, 255, 255, 0.32);
 }
 
+.of-board-coord,
 .cleanReplayRank,
 .cleanReplayFile {
   position: absolute;
   z-index: 2;
-  font-size: 9px;
-  font-weight: 800;
-  opacity: 0.45;
+  font-size: clamp(8px, 1.7cqw, 11px);
+  font-weight: 950;
+  opacity: 0.7;
   pointer-events: none;
+  line-height: 1;
 }
 
+.of-board-coord--rank,
 .cleanReplayRank {
-  top: 3px;
-  left: 4px;
+  top: 5px;
+  left: 6px;
 }
 
+.of-board-coord--file,
 .cleanReplayFile {
-  right: 4px;
-  bottom: 3px;
+  right: 6px;
+  bottom: 5px;
 }
 
 .cleanReplayLight .cleanReplayRank,
@@ -2014,27 +2093,44 @@ th {
   gap: 8px;
   justify-content: center;
   flex-wrap: wrap;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .controlBtn,
 .replayFlipBtn {
   min-height: 42px;
-  border: 0;
-  border-radius: 14px;
-  background: #2563eb;
-  color: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.74);
+  color: var(--text);
   font-weight: 900;
+  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.14);
 }
 
 .controlBtn {
-  min-width: 52px;
-  min-height: 48px;
-  font-size: 1rem;
+  width: 48px;
+  min-width: 48px;
+  min-height: 44px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.98rem;
 }
 
 .replayFlipBtn {
   padding: 9px 14px;
+}
+
+.controlBtn:hover:not(:disabled),
+.replayFlipBtn:hover:not(:disabled) {
+  border-color: rgba(96, 165, 250, 0.62);
+  background: rgba(37, 99, 235, 0.22);
+}
+
+.controlBtn:disabled,
+.replayFlipBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  box-shadow: none;
 }
 
 .replayStatus {
@@ -2194,12 +2290,6 @@ th {
   background: rgba(37, 99, 235, 0.28);
   border-color: rgba(96, 165, 250, 0.55);
   color: #dbeafe;
-}
-
-.practiceSelectedSquare {
-  outline: 2px solid var(--board-selected);
-  outline-offset: -2px;
-  box-shadow: none;
 }
 
 .practiceMessage {
@@ -4281,16 +4371,10 @@ th {
 }
 
 .practiceBoardWrap {
-  width: min(100%, calc(100vw - 32px), 420px);
-  max-width: 420px;
-  aspect-ratio: 1 / 1;
+  width: clamp(280px, min(100%, 70vw), 430px);
   box-sizing: border-box;
   margin: 0 auto;
-  border-radius: 18px;
   overflow: visible;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.68);
-  padding: 0.65rem;
 }
 
 .boardTrainerBox {
@@ -4342,7 +4426,7 @@ th {
   }
 
   .practiceBoardWrap {
-    max-width: 390px;
+    width: min(100%, 390px);
   }
 
   .practiceSearchRow,
@@ -4361,7 +4445,6 @@ th {
   .game-replay-board-shell {
     width: min(100%, calc(100vw - 24px));
     max-width: 390px;
-    aspect-ratio: 1 / 1;
     margin: 0 auto;
     overflow: visible;
   }
@@ -4371,7 +4454,6 @@ th {
   .practiceBoardWrap {
     width: min(100%, calc(100vw - 24px));
     max-width: 390px;
-    aspect-ratio: 1 / 1;
     margin: 0 auto;
     overflow: visible;
   }
@@ -5080,11 +5162,16 @@ th {
   --danger-text: #fecaca;
   --board-light-square: #b8c4d1;
   --board-dark-square: #657284;
+  --board-rail: #111827;
   --board-border: rgba(203, 213, 225, 0.28);
   --board-selected: rgba(56, 189, 248, 0.62);
+  --board-selected-fill: rgba(56, 189, 248, 0.2);
   --board-invalid: rgba(248, 113, 113, 0.62);
+  --board-invalid-fill: rgba(248, 113, 113, 0.18);
   --board-last-move: rgba(250, 204, 21, 0.22);
   --board-legal-move: rgba(15, 23, 42, 0.28);
+  --board-legal-ring: rgba(255, 255, 255, 0.2);
+  --board-focus: rgba(56, 189, 248, 0.9);
   color-scheme: dark;
 }
 
@@ -5107,11 +5194,16 @@ th {
   --danger-text: #991b1b;
   --board-light-square: #e8edf2;
   --board-dark-square: #8aa0b8;
+  --board-rail: #f1f5f9;
   --board-border: rgba(100, 116, 139, 0.24);
   --board-selected: rgba(37, 99, 235, 0.52);
+  --board-selected-fill: rgba(37, 99, 235, 0.15);
   --board-invalid: rgba(220, 38, 38, 0.52);
+  --board-invalid-fill: rgba(220, 38, 38, 0.14);
   --board-last-move: rgba(234, 179, 8, 0.26);
   --board-legal-move: rgba(15, 23, 42, 0.22);
+  --board-legal-ring: rgba(255, 255, 255, 0.38);
+  --board-focus: rgba(37, 99, 235, 0.82);
   color-scheme: light;
 }
 
@@ -16928,6 +17020,14 @@ textarea {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.26);
 }
 
+.page.light .reportHistoryVault,
+[data-theme="light"] .reportHistoryVault {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+}
+
 .reportHistoryHeader {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -16947,6 +17047,11 @@ textarea {
   margin: 0.65rem 0 0;
   color: rgba(248, 250, 252, 0.72);
   line-height: 1.6;
+}
+
+.page.light .reportHistoryHeader p,
+[data-theme="light"] .reportHistoryHeader p {
+  color: #475569;
 }
 
 .saveReportButton {
@@ -16971,12 +17076,23 @@ textarea {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.page.light .currentReportCard,
+[data-theme="light"] .currentReportCard {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
 .currentReportCard span {
   color: rgba(248, 250, 252, 0.68);
   font-size: 0.78rem;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.page.light .currentReportCard span,
+[data-theme="light"] .currentReportCard span {
+  color: #475569;
 }
 
 .currentReportCard strong {
@@ -16988,6 +17104,11 @@ textarea {
   line-height: 1.45;
 }
 
+.page.light .currentReportCard small,
+[data-theme="light"] .currentReportCard small {
+  color: #64748b;
+}
+
 .historyLoginNote {
   margin-top: 1rem;
   padding: 0.85rem 1rem;
@@ -16996,6 +17117,13 @@ textarea {
   color: #fde68a;
   background: rgba(251, 191, 36, 0.08);
   font-weight: 800;
+}
+
+.page.light .historyLoginNote,
+[data-theme="light"] .historyLoginNote {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: rgba(217, 119, 6, 0.22);
 }
 
 .historySnapshotGrid {
@@ -17026,6 +17154,11 @@ textarea {
   text-transform: uppercase;
 }
 
+.page.light .historyComparisonHeader,
+[data-theme="light"] .historyComparisonHeader {
+  color: #64748b;
+}
+
 .historyComparisonRow {
   padding: 0.85rem;
   border: 1px solid rgba(255, 255, 255, 0.13);
@@ -17033,11 +17166,22 @@ textarea {
   background: rgba(255, 255, 255, 0.065);
 }
 
+.page.light .historyComparisonRow,
+[data-theme="light"] .historyComparisonRow {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
 .historyComparisonRow strong,
 .historyComparisonRow span,
 .historyComparisonRow small {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.page.light .historyComparisonRow small,
+[data-theme="light"] .historyComparisonRow small {
+  color: #64748b;
 }
 
 .historyComparisonRow small {
@@ -17098,6 +17242,12 @@ textarea {
   background: rgba(255, 255, 255, 0.065);
 }
 
+.page.light .historyItem,
+[data-theme="light"] .historyItem {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
 .historyItem strong,
 .historyItem span,
 .historyItem small {
@@ -17110,9 +17260,19 @@ textarea {
   line-height: 1.45;
 }
 
+.page.light .historyItem span,
+[data-theme="light"] .historyItem span {
+  color: #475569;
+}
+
 .historyItem small {
   margin-top: 0.25rem;
   color: rgba(248, 250, 252, 0.52);
+}
+
+.page.light .historyItem small,
+[data-theme="light"] .historyItem small {
+  color: #64748b;
 }
 
 .historyActions {
@@ -17129,6 +17289,15 @@ textarea {
   background: rgba(255, 255, 255, 0.08);
   font-weight: 850;
   cursor: pointer;
+}
+
+.page.light .historyActions button,
+.page.light .clearHistoryButton,
+[data-theme="light"] .historyActions button,
+[data-theme="light"] .clearHistoryButton {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.14);
 }
 
 .historyActions button:hover,
@@ -17154,8 +17323,20 @@ textarea {
   color: rgba(248, 250, 252, 0.74);
 }
 
+.page.light .emptyHistoryState,
+[data-theme="light"] .emptyHistoryState {
+  color: #475569;
+  border-color: rgba(15, 23, 42, 0.16);
+  background: #f8fafc;
+}
+
 .emptyHistoryState strong {
   color: #f8fafc;
+}
+
+.page.light .emptyHistoryState strong,
+[data-theme="light"] .emptyHistoryState strong {
+  color: #0f172a;
 }
 
 @media (max-width: 760px) {
@@ -35583,6 +35764,17 @@ svg {
   color: var(--text-soft) !important;
 }
 
+.profileHeroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.profileHeroActions button {
+  min-height: 44px;
+}
+
 .profileIdentityCard,
 .profileHubSection {
   border-color: var(--border) !important;
@@ -35611,7 +35803,7 @@ svg {
 
 .profileRepertoireSnapshot {
   grid-column: 1 / -1;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   gap: 10px !important;
 }
 
@@ -35751,6 +35943,39 @@ svg {
   white-space: normal;
 }
 
+.profileSection .reportHistoryVault,
+.profileSection .exportHistoryShell,
+.profileSection .accountPanel--screen {
+  border-radius: 16px !important;
+}
+
+.profileSection .historyActions button,
+.profileSection .clearHistoryButton,
+.profileSection .saveReportButton,
+.profileSection .exportPrimaryBtn,
+.profileSection .exportSecondaryBtn {
+  min-height: 42px;
+}
+
+.page.light .profileSection .historyActions button,
+.page.light .profileSection .clearHistoryButton,
+.page.light .profileSection .exportSecondaryBtn,
+[data-theme="light"] .profileSection .historyActions button,
+[data-theme="light"] .profileSection .clearHistoryButton,
+[data-theme="light"] .profileSection .exportSecondaryBtn {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+}
+
+.page.light .profileSection .saveReportButton,
+.page.light .profileSection .exportPrimaryBtn,
+[data-theme="light"] .profileSection .saveReportButton,
+[data-theme="light"] .profileSection .exportPrimaryBtn {
+  background: linear-gradient(135deg, #2563eb, #0f766e) !important;
+  color: #ffffff !important;
+}
+
 .profileHubSection .seriousPremiumStrip,
 .profileHubSection .premiumTrustStrip {
   margin-top: 0;
@@ -35823,11 +36048,1583 @@ svg {
   .profileAchievementGrid .todayStatsGrid {
     grid-template-columns: 1fr !important;
   }
+
+  .profileHeroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .profileHeroActions button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 430px) {
   .profileSection {
     width: 100% !important;
     max-width: 100% !important;
+  }
+}
+
+/* ================================
+   MOBILE-FIRST SYSTEM CLEANUP
+================================ */
+
+:root {
+  --of-page-max: 1180px;
+  --of-page-gutter: clamp(14px, 4vw, 32px);
+  --of-section-gap: clamp(14px, 2.6vw, 24px);
+  --of-card-padding: clamp(14px, 2.2vw, 24px);
+  --of-panel-padding: clamp(16px, 2.8vw, 28px);
+  --of-card-radius: 18px;
+  --of-section-radius: 22px;
+  --of-control-radius: 14px;
+  --of-card-bg: rgba(15, 23, 42, 0.86);
+  --of-card-bg-soft: rgba(15, 23, 42, 0.58);
+  --of-panel-bg: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.94));
+  --of-border: rgba(148, 163, 184, 0.18);
+  --of-border-strong: rgba(148, 163, 184, 0.28);
+  --of-shadow: 0 18px 46px rgba(2, 6, 23, 0.2);
+  --of-shadow-soft: 0 10px 26px rgba(2, 6, 23, 0.16);
+  --of-text-muted: #94a3b8;
+  --of-text-soft: #cbd5e1;
+}
+
+:root[data-theme="light"],
+.page.light,
+body.light,
+[data-theme="light"] {
+  --of-card-bg: rgba(255, 255, 255, 0.96);
+  --of-card-bg-soft: #f8fafc;
+  --of-panel-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+  --of-border: rgba(15, 23, 42, 0.12);
+  --of-border-strong: rgba(15, 23, 42, 0.2);
+  --of-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
+  --of-shadow-soft: 0 8px 22px rgba(15, 23, 42, 0.08);
+  --of-text-muted: #64748b;
+  --of-text-soft: #334155;
+}
+
+html,
+body,
+#root,
+.page {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+* {
+  min-width: 0;
+}
+
+p,
+li,
+dd,
+dt,
+span,
+strong,
+small,
+label,
+button,
+a,
+td,
+th,
+h1,
+h2,
+h3,
+h4 {
+  overflow-wrap: anywhere;
+}
+
+.container,
+.appShell,
+.landingWrap {
+  width: min(var(--of-page-max), calc(100% - (var(--of-page-gutter) * 2))) !important;
+  max-width: var(--of-page-max) !important;
+  margin-inline: auto !important;
+  padding-inline: 0 !important;
+}
+
+.appShell {
+  display: grid;
+  gap: var(--of-section-gap);
+  padding-block: clamp(12px, 2vw, 22px) clamp(42px, 5vw, 64px) !important;
+}
+
+.landingWrap {
+  display: grid;
+  gap: var(--of-section-gap);
+  padding-block: clamp(10px, 2vw, 24px) !important;
+}
+
+.hero,
+.heroCard,
+.card,
+.landingHero,
+.landingContentSection,
+.aboutSection,
+.ratingGuideSection,
+.quickNavCard,
+.collapsibleCard,
+.premiumCard,
+.openingFitHeroCard,
+.openingFitScoreCard,
+.practiceCard,
+.replayCard,
+.feedbackCard,
+.loadingCard {
+  margin: 0 !important;
+}
+
+.card,
+.heroCard,
+.landingHero,
+.landingContentSection,
+.aboutSection,
+.ratingGuideSection {
+  max-width: 100%;
+  border: 1px solid var(--of-border) !important;
+  border-radius: var(--of-section-radius) !important;
+  background: var(--of-card-bg) !important;
+  box-shadow: var(--of-shadow-soft) !important;
+}
+
+.card,
+.landingContentSection,
+.aboutSection,
+.ratingGuideSection {
+  padding: var(--of-card-padding) !important;
+}
+
+.heroCard,
+.landingHero {
+  padding: var(--of-panel-padding) !important;
+  background: var(--of-panel-bg) !important;
+  box-shadow: var(--of-shadow) !important;
+}
+
+.card > *,
+.heroCard > *,
+.landingHero > *,
+section > *,
+article > *,
+.twoCol > *,
+.analysisGrid > *,
+.grid3 > *,
+.statsGrid > *,
+.quickNavGrid > *,
+.appActionPanel,
+.appActionButtons,
+.platformSelector,
+.searchRow,
+.topBar {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ofReportHero,
+.ofGuidedFlow,
+.ofStudyPlanner,
+.ofReportActions,
+.ofFunctionalTools,
+.ofFunctionalityHub,
+.ofImportDoctor,
+.ofTrustBar,
+.ofTrustWrap,
+.ofFinalCTA,
+.ofUXReportHeader,
+.openingFitPositioning,
+.ofDeveloperToolsClosed,
+.ofDeveloperToolsOpen,
+.checkoutStatusNotice,
+.evidenceDiagnosis,
+.founderPassUpgrade,
+.openingCoachPlan,
+.openingProgressTracker,
+.premiumDashboard,
+.reportSnapshot,
+.weeklyOpeningReport,
+.retentionCommandCenter,
+.progressionDashboard,
+.retentionSystems {
+  width: min(var(--of-page-max), calc(100% - (var(--of-page-gutter) * 2))) !important;
+  max-width: var(--of-page-max) !important;
+  margin: var(--of-section-gap) auto 0 !important;
+  border-radius: var(--of-section-radius) !important;
+  border-color: var(--of-border) !important;
+  box-shadow: var(--of-shadow-soft) !important;
+}
+
+.ofReportHero,
+.ofGuidedFlow,
+.ofStudyPlanner,
+.ofReportActions,
+.ofFunctionalTools,
+.ofFunctionalityHub,
+.ofImportDoctor,
+.ofTrustBar,
+.ofTrustWrap,
+.ofFinalCTA,
+.ofUXReportHeader {
+  padding: var(--of-panel-padding) !important;
+  background: var(--of-panel-bg) !important;
+}
+
+.landingHeroGrid,
+.heroTop,
+.fitHeroTop,
+.sectionHeaderSimple,
+.premiumLockedInline,
+.replayHeader,
+.practiceTop,
+.appTabsHeader,
+.siteFooter,
+.ofReportHeroTop,
+.ofGuidedFlowHeader,
+.ofStudyPlannerHeader,
+.ofFunctionalToolsHeader,
+.ofFunctionalityHeader,
+.ofImportDoctorHeader,
+.ofTrustBarMain,
+.ofFinalCTA,
+.ofUXReportHeader,
+.openingFitPositioning {
+  gap: clamp(12px, 2.3vw, 22px) !important;
+}
+
+.statsGrid,
+.placeholderGrid,
+.grid3,
+.twoCol,
+.analysisGrid,
+.landingFeatureGrid,
+.landingPricingGrid,
+.aboutGrid,
+.ratingGuideGrid,
+.landingStepsList,
+.fitHeroGrid,
+.lockedFeatureGrid,
+.openingExplainGrid,
+.ofInsightGrid,
+.ofTrustGrid,
+.ofActionCardGrid,
+.ofGuidedSteps,
+.ofFunctionalGrid,
+.ofFunctionalityGrid,
+.ofImportChecks,
+.ofStudyTaskList,
+.profileGrid,
+.profileAchievementGrid {
+  gap: clamp(10px, 2vw, 16px) !important;
+}
+
+h1,
+.heroTitleWrap h1,
+.landingHeroCopy h1 {
+  font-size: clamp(1.9rem, 7.5vw, 4rem) !important;
+  line-height: 1.02 !important;
+  letter-spacing: 0 !important;
+}
+
+h2,
+.quickNavCard h2,
+.sectionToggle h2,
+.ofReportHero h2,
+.ofTrustHeader h2,
+.ofGuidedFlowHeader h2,
+.ofStudyPlannerHeader h2,
+.ofReportActionsHeader h2,
+.ofFunctionalToolsHeader h2,
+.ofFunctionalityHeader h2,
+.ofImportDoctorHeader h2,
+.ofFinalCTACopy h2,
+.ofUXReportCopy h2 {
+  font-size: clamp(1.25rem, 4.8vw, 2.35rem) !important;
+  line-height: 1.12 !important;
+  letter-spacing: 0 !important;
+}
+
+h3,
+.landingPreviewCard h3,
+.landingFeatureCard h3,
+.trainingStepContent h3,
+.practiceComingSoon h3,
+.replayTitle {
+  font-size: clamp(1rem, 3.5vw, 1.35rem) !important;
+  line-height: 1.22 !important;
+  letter-spacing: 0 !important;
+}
+
+p,
+.subtext,
+.landingSubtext,
+.profileSummary,
+.smallCard p,
+.landingPreviewCard p,
+.landingInfoCard p,
+.landingFeatureCard p,
+.landingPriceCard p {
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.smallText,
+.statLabel,
+.fitLabel,
+.moveNumber,
+.replayMovesHeader,
+.openingEvidenceHelp,
+.openingSampleHelp,
+.footerDisclaimer,
+th {
+  color: var(--of-text-muted) !important;
+}
+
+.primaryBtn,
+.secondaryButton,
+.ghostButton,
+.platformButton,
+.quickNavBtn,
+.controlBtn,
+.replayFlipBtn,
+.tableOpeningBtn,
+.openingPracticeLink,
+.fitOpeningRow,
+.gamePickerButton,
+.monthSelect,
+.mobileSectionRevealBtn,
+.appTabButton,
+.ofActionStrip button,
+.ofFinalCTAButtons button,
+.ofFunctionalGrid button,
+.ofFunctionalityGrid button,
+.ofFunctionalityButtons button,
+.ofFeedbackFields button,
+.ofStudyActions button,
+.ofGuidedSteps button,
+.ofImportDoctorHeader button {
+  max-width: 100%;
+  min-height: 44px;
+  border-radius: var(--of-control-radius) !important;
+  font-weight: 850;
+  line-height: 1.15;
+  white-space: normal;
+}
+
+.primaryBtn,
+.ofActionStrip button:not(.secondary):not(.ghost),
+.ofFinalCTAButtons button:not(.secondary),
+.ofFunctionalGrid button:not(.secondary),
+.ofFunctionalityGrid button:not(.secondary),
+.ofFeedbackFields button,
+.ofStudyActions button:not(.secondary),
+.ofImportDoctorHeader button {
+  border: 1px solid rgba(37, 99, 235, 0.18) !important;
+  background: linear-gradient(135deg, #2563eb, #0f766e) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24) !important;
+}
+
+.secondaryButton,
+.ghostButton,
+.platformButton,
+.quickNavBtn,
+.controlBtn,
+.replayFlipBtn,
+.appTabButton,
+.ofActionStrip button.secondary,
+.ofActionStrip button.ghost,
+.ofFinalCTAButtons button.secondary,
+.ofFunctionalGrid button.secondary,
+.ofFunctionalityButtons button.secondary,
+.ofStudyActions button.secondary,
+.ofGuidedSteps button {
+  border: 1px solid var(--of-border-strong) !important;
+  background: var(--of-card-bg-soft) !important;
+  color: var(--foreground) !important;
+  box-shadow: none !important;
+}
+
+.primaryBtn:hover:not(:disabled),
+.secondaryButton:hover:not(:disabled),
+.ghostButton:hover:not(:disabled),
+.platformButton:hover:not(:disabled),
+.quickNavBtn:hover:not(:disabled),
+.controlBtn:hover:not(:disabled),
+.replayFlipBtn:hover:not(:disabled),
+.appTabButton:hover:not(:disabled),
+.ofActionStrip button:hover:not(:disabled),
+.ofFinalCTAButtons button:hover:not(:disabled),
+.ofFunctionalGrid button:hover:not(:disabled),
+.ofFunctionalityGrid button:hover:not(:disabled),
+.ofFunctionalityButtons button:hover:not(:disabled),
+.ofStudyActions button:hover:not(:disabled),
+.ofGuidedSteps button:hover:not(:disabled) {
+  border-color: var(--ring) !important;
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+button:disabled,
+.primaryBtn:disabled,
+.secondaryButton:disabled,
+.ghostButton:disabled {
+  color: color-mix(in srgb, var(--foreground) 72%, transparent) !important;
+  opacity: 0.64 !important;
+  filter: saturate(0.72);
+  transform: none !important;
+}
+
+.input,
+input,
+select,
+textarea,
+.feedbackCard textarea,
+.feedbackCard input,
+.ofFeedbackFields input,
+.ofFeedbackFields textarea {
+  max-width: 100%;
+  border-color: var(--of-border-strong) !important;
+  background: var(--input) !important;
+  color: var(--input-foreground) !important;
+}
+
+.tableWrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--of-card-radius);
+}
+
+table {
+  width: 100%;
+  max-width: 100%;
+}
+
+th,
+td {
+  vertical-align: top;
+}
+
+.replayLayout,
+.practiceLayout {
+  grid-template-columns: minmax(0, min(430px, 100%)) minmax(0, 1fr) !important;
+}
+
+.replayBoardWrap,
+.practiceBoardWrap,
+.replayMovesWrap,
+.movesPanel,
+.boardSection,
+.boardMeta,
+.gamePickerList {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.replayBoardBox,
+.practiceBoardBox,
+.opening-board-shell,
+.practice-board-shell,
+.game-replay-board-shell {
+  width: min(100%, 430px) !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.of-board-frame {
+  border-radius: var(--of-card-radius) !important;
+}
+
+.of-board,
+.cleanReplayBoard,
+.react-chessboard,
+[data-boardid],
+[class*="chessboard"] {
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.fitOpeningRow,
+.listItem,
+.gamePickerButton,
+.trainingPlanItem,
+.practiceProgress,
+.lockedFeature,
+.openingExplainCard,
+.fitMiniCard,
+.landingInfoCard,
+.landingFeatureCard,
+.landingStepCard,
+.landingPriceCard,
+.aboutCard,
+.ratingGuideCard,
+.ofActionCard,
+.ofGuidedSteps article,
+.ofFunctionalGrid article,
+.ofFunctionalityGrid article,
+.ofImportChecks article,
+.ofStudyTaskList article,
+.ofFinalCTAStack article,
+.ofUXQuickStats article {
+  border-radius: var(--of-card-radius) !important;
+  border-color: var(--of-border) !important;
+  background: var(--of-card-bg-soft) !important;
+}
+
+.landingStats,
+.quickNavGrid,
+.appActionButtons,
+.practiceActions,
+.replayControls,
+.ofActionStrip,
+.ofStudyActions,
+.ofFinalCTAButtons,
+.footerLinks,
+.platformSelector,
+.filtersRow,
+.chips,
+.openingEvidenceChips,
+.ofAudienceTags,
+.ofBetaRoadmapTags {
+  max-width: 100%;
+}
+
+.chip,
+.sectionBadge,
+.verdict,
+.landingFitBadge,
+.landingPriceBadge,
+.ratingOpeningBtn,
+.supportedOpeningGrid span,
+.supportedOpeningGrid button,
+.openingEvidenceChips span,
+.practiceMovePill {
+  max-width: 100%;
+  white-space: normal;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --of-page-gutter: 14px;
+    --of-section-gap: 12px;
+    --of-card-padding: 14px;
+    --of-panel-padding: 16px;
+    --of-section-radius: 18px;
+    --of-card-radius: 14px;
+  }
+
+  .landingHeroGrid,
+  .heroTop,
+  .fitHeroTop,
+  .sectionHeaderSimple,
+  .premiumLockedInline,
+  .replayLayout,
+  .practiceLayout,
+  .ofReportHeroTop,
+  .ofGuidedFlowHeader,
+  .ofStudyPlannerHeader,
+  .ofFunctionalToolsHeader,
+  .ofFunctionalityHeader,
+  .ofImportDoctorHeader,
+  .ofTrustBarMain,
+  .ofFinalCTA,
+  .ofUXReportHeader,
+  .openingFitPositioning {
+    grid-template-columns: 1fr !important;
+  }
+
+  .heroTop,
+  .practiceTop,
+  .replayHeader,
+  .sectionHeaderSimple,
+  .landingPreviewTop,
+  .landingPriceTop {
+    display: grid !important;
+    align-items: start !important;
+  }
+
+  .searchRow,
+  .topBar,
+  .appActionPanel,
+  .openingSampleControl {
+    width: 100%;
+  }
+
+  .statsGrid,
+  .quickNavGrid,
+  .landingStats,
+  .fitHeroGrid,
+  .ofUXQuickStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .ofActionCardGrid,
+  .ofInsightGrid,
+  .ofTrustGrid,
+  .ofFunctionalGrid,
+  .ofFunctionalityGrid,
+  .ofImportChecks {
+    grid-template-columns: 1fr !important;
+  }
+
+  .replayBoardBox,
+  .practiceBoardBox,
+  .opening-board-shell,
+  .practice-board-shell,
+  .game-replay-board-shell {
+    width: min(100%, 420px) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --of-page-gutter: 10px;
+    --of-section-gap: 10px;
+    --of-card-padding: 12px;
+    --of-panel-padding: 14px;
+  }
+
+  .appShell {
+    padding-bottom: 72px !important;
+  }
+
+  .landingWrap,
+  .container,
+  .appShell {
+    width: calc(100% - (var(--of-page-gutter) * 2)) !important;
+  }
+
+  .ofReportHero,
+  .ofGuidedFlow,
+  .ofStudyPlanner,
+  .ofReportActions,
+  .ofFunctionalTools,
+  .ofFunctionalityHub,
+  .ofImportDoctor,
+  .ofTrustBar,
+  .ofTrustWrap,
+  .ofFinalCTA,
+  .ofUXReportHeader,
+  .openingFitPositioning,
+  .ofDeveloperToolsClosed,
+  .ofDeveloperToolsOpen {
+    width: calc(100% - (var(--of-page-gutter) * 2)) !important;
+  }
+
+  .statsGrid,
+  .quickNavGrid,
+  .landingStats,
+  .fitHeroGrid,
+  .ofUXQuickStats,
+  .profileIdentityStats,
+  .profileRepertoireSnapshot {
+    grid-template-columns: 1fr !important;
+  }
+
+  .searchRow,
+  .topBar,
+  .landingHeroActions,
+  .appActionButtons,
+  .practiceActions,
+  .ofActionStrip,
+  .ofStudyActions,
+  .ofFinalCTAButtons,
+  .platformSelector {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .primaryBtn,
+  .secondaryButton,
+  .ghostButton,
+  .platformButton,
+  .quickNavBtn,
+  .practiceActions button,
+  .ofActionStrip button,
+  .ofStudyActions button,
+  .ofFinalCTAButtons button,
+  .ofFunctionalGrid button,
+  .ofFunctionalityGrid button,
+  .ofFunctionalityButtons button,
+  .ofFeedbackFields button,
+  .ofImportDoctorHeader button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .listItem,
+  .fitOpeningMain,
+  .gamePickerTop,
+  .premiumLockedInline,
+  .savedHistoryRow,
+  .trainingPlanItem,
+  .ofStudyTaskList article,
+  .ofImportDoctorResult {
+    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .rightStat,
+  .fitOpeningScore,
+  .chartValue {
+    width: 100%;
+    min-width: 0;
+    text-align: left !important;
+    justify-items: start;
+  }
+
+  .tableWrap table {
+    min-width: 520px;
+  }
+
+  .replayBoardBox,
+  .practiceBoardBox,
+  .opening-board-shell,
+  .practice-board-shell,
+  .game-replay-board-shell {
+    width: min(100%, calc(100vw - 48px)) !important;
+  }
+
+  .replayMovesHeader,
+  .replayMoveRow {
+    grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+
+  .moveBtn {
+    padding-inline: 8px;
+  }
+
+  .appTabs {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .replayBoardBox,
+  .practiceBoardBox,
+  .opening-board-shell,
+  .practice-board-shell,
+  .game-replay-board-shell {
+    width: min(100%, calc(100vw - 40px)) !important;
+  }
+
+  .tableWrap table {
+    min-width: 500px;
+  }
+
+  .statValue,
+  .fitScoreCircle strong,
+  .ofScoreCard strong,
+  .ofStudyProgressCard strong,
+  .ofFunctionalStatus strong {
+    font-size: clamp(1.4rem, 10vw, 2.6rem) !important;
+  }
+}
+
+/* =========================================================
+   FINAL MOBILE-FIRST UI SYSTEM
+   Single source of truth for spacing, cards, overflow, and controls.
+   ========================================================= */
+
+:root {
+  --of-page-max: 1180px;
+  --of-gutter: clamp(12px, 4vw, 32px);
+  --of-section-gap-final: clamp(12px, 2.4vw, 24px);
+  --of-section-pad-final: clamp(14px, 2.4vw, 26px);
+  --of-card-pad-final: clamp(12px, 2vw, 20px);
+  --of-radius-card-final: 16px;
+  --of-radius-section-final: 20px;
+  --of-radius-control-final: 13px;
+  --of-surface-final: rgba(15, 23, 42, 0.88);
+  --of-surface-soft-final: rgba(15, 23, 42, 0.58);
+  --of-surface-hero-final: linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.94));
+  --of-border-final: rgba(148, 163, 184, 0.2);
+  --of-border-strong-final: rgba(148, 163, 184, 0.32);
+  --of-shadow-final: 0 14px 34px rgba(2, 6, 23, 0.18);
+  --of-shadow-panel-final: 0 18px 46px rgba(2, 6, 23, 0.22);
+  --of-muted-final: #94a3b8;
+  --of-copy-final: #cbd5e1;
+}
+
+:root[data-theme="light"],
+body.light,
+.page.light,
+[data-theme="light"] {
+  --of-surface-final: rgba(255, 255, 255, 0.97);
+  --of-surface-soft-final: #f8fafc;
+  --of-surface-hero-final: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+  --of-border-final: rgba(15, 23, 42, 0.12);
+  --of-border-strong-final: rgba(15, 23, 42, 0.22);
+  --of-shadow-final: 0 12px 30px rgba(15, 23, 42, 0.08);
+  --of-shadow-panel-final: 0 18px 44px rgba(15, 23, 42, 0.1);
+  --of-muted-final: #64748b;
+  --of-copy-final: #334155;
+}
+
+html,
+body,
+#root,
+.page {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden !important;
+}
+
+body {
+  min-width: 0;
+}
+
+*,
+*::before,
+*::after {
+  min-width: 0;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe,
+form,
+fieldset,
+table {
+  max-width: 100%;
+}
+
+p,
+li,
+dd,
+dt,
+span,
+strong,
+small,
+label,
+button,
+a,
+input,
+textarea,
+select,
+td,
+th,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: anywhere;
+}
+
+.container,
+.appShell,
+.landingWrap,
+.coachSummaryShell {
+  width: min(var(--of-page-max), calc(100% - (var(--of-gutter) * 2))) !important;
+  max-width: var(--of-page-max) !important;
+  margin-inline: auto !important;
+  padding-inline: 0 !important;
+}
+
+.appShell,
+.landingWrap {
+  display: grid !important;
+  gap: var(--of-section-gap-final) !important;
+}
+
+.appShell {
+  padding-block: 12px clamp(56px, 7vw, 78px) !important;
+}
+
+.landingWrap {
+  padding-block: 12px clamp(24px, 4vw, 44px) !important;
+}
+
+.hero,
+.heroCard,
+.card,
+.landingHero,
+.landingContentSection,
+.aboutSection,
+.ratingGuideSection,
+.quickNavCard,
+.collapsibleCard,
+.premiumCard,
+.openingFitHeroCard,
+.openingFitScoreCard,
+.practiceCard,
+.replayCard,
+.feedbackCard,
+.loadingCard,
+.siteFooter {
+  margin: 0 !important;
+}
+
+.card,
+.heroCard,
+.landingHero,
+.landingContentSection,
+.aboutSection,
+.ratingGuideSection,
+.ofReportHero,
+.ofGuidedFlow,
+.ofStudyPlanner,
+.ofReportActions,
+.ofFunctionalTools,
+.ofFunctionalityHub,
+.ofImportDoctor,
+.ofTrustBar,
+.ofTrustWrap,
+.ofFinalCTA,
+.ofUXReportHeader,
+.openingFitPositioning,
+.checkoutStatusNotice,
+.evidenceDiagnosisShell,
+.founderPassUpgradePanel,
+.openingCoachPlan,
+.openingProgressTracker,
+.premiumDashboard,
+.reportSnapshot,
+.weeklyOpeningReport,
+.retentionCommandCenter,
+.progressionDashboard,
+.retentionSystems {
+  max-width: 100% !important;
+  border: 1px solid var(--of-border-final) !important;
+  border-radius: var(--of-radius-section-final) !important;
+  background: var(--of-surface-final) !important;
+  box-shadow: var(--of-shadow-final) !important;
+}
+
+.heroCard,
+.landingHero,
+.ofReportHero,
+.ofGuidedFlow,
+.ofStudyPlanner,
+.ofReportActions,
+.ofFunctionalTools,
+.ofFunctionalityHub,
+.ofImportDoctor,
+.ofTrustBar,
+.ofTrustWrap,
+.ofFinalCTA,
+.ofUXReportHeader,
+.openingFitPositioning {
+  padding: var(--of-section-pad-final) !important;
+  background: var(--of-surface-hero-final) !important;
+  box-shadow: var(--of-shadow-panel-final) !important;
+}
+
+.card,
+.landingContentSection,
+.aboutSection,
+.ratingGuideSection,
+.siteFooter {
+  padding: var(--of-card-pad-final) !important;
+}
+
+.ofReportHero,
+.ofGuidedFlow,
+.ofStudyPlanner,
+.ofReportActions,
+.ofFunctionalTools,
+.ofFunctionalityHub,
+.ofImportDoctor,
+.ofTrustBar,
+.ofTrustWrap,
+.ofFinalCTA,
+.ofUXReportHeader,
+.openingFitPositioning {
+  width: min(var(--of-page-max), calc(100% - (var(--of-gutter) * 2))) !important;
+  margin: var(--of-section-gap-final) auto 0 !important;
+}
+
+.appShell > *,
+.landingWrap > *,
+.card > *,
+.heroCard > *,
+section > *,
+article > *,
+.twoCol > *,
+.analysisGrid > *,
+.statsGrid > *,
+.quickNavGrid > *,
+.searchRow,
+.topBar,
+.appActionPanel,
+.appActionButtons,
+.platformSelector,
+.filtersRow,
+.boardSection,
+.replayBoardWrap,
+.practiceBoardWrap,
+.replayMovesWrap,
+.movesPanel {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.landingHeroGrid,
+.heroTop,
+.fitHeroTop,
+.sectionHeaderSimple,
+.premiumLockedInline,
+.replayHeader,
+.practiceTop,
+.appTabsHeader,
+.siteFooter,
+.ofReportHeroTop,
+.ofGuidedFlowHeader,
+.ofStudyPlannerHeader,
+.ofFunctionalToolsHeader,
+.ofFunctionalityHeader,
+.ofImportDoctorHeader,
+.ofTrustBarMain,
+.ofFinalCTA,
+.ofUXReportHeader,
+.openingFitPositioning {
+  gap: clamp(10px, 2.2vw, 20px) !important;
+}
+
+.statsGrid,
+.placeholderGrid,
+.grid3,
+.twoCol,
+.analysisGrid,
+.landingFeatureGrid,
+.landingPricingGrid,
+.aboutGrid,
+.ratingGuideGrid,
+.landingStepsList,
+.fitHeroGrid,
+.lockedFeatureGrid,
+.openingExplainGrid,
+.ofInsightGrid,
+.ofTrustGrid,
+.ofActionCardGrid,
+.ofGuidedSteps,
+.ofFunctionalGrid,
+.ofFunctionalityGrid,
+.ofImportChecks,
+.ofStudyTaskList,
+.profileGrid,
+.profileAchievementGrid,
+.profileIdentityStats,
+.profileRepertoireSnapshot {
+  gap: clamp(10px, 1.8vw, 16px) !important;
+}
+
+h1,
+.heroTitleWrap h1,
+.landingHeroCopy h1,
+.polishedLandingHero h1,
+.shipLandingHero h1 {
+  font-size: clamp(1.85rem, 7vw, 3.8rem) !important;
+  line-height: 1.04 !important;
+  letter-spacing: 0 !important;
+}
+
+h2,
+.quickNavCard h2,
+.sectionToggle h2,
+.ofReportHero h2,
+.ofTrustHeader h2,
+.ofGuidedFlowHeader h2,
+.ofStudyPlannerHeader h2,
+.ofReportActionsHeader h2,
+.ofFunctionalToolsHeader h2,
+.ofFunctionalityHeader h2,
+.ofImportDoctorHeader h2,
+.ofFinalCTACopy h2,
+.ofUXReportCopy h2 {
+  font-size: clamp(1.22rem, 4.6vw, 2.25rem) !important;
+  line-height: 1.14 !important;
+  letter-spacing: 0 !important;
+}
+
+h3,
+.landingPreviewCard h3,
+.landingFeatureCard h3,
+.trainingStepContent h3,
+.practiceComingSoon h3,
+.replayTitle {
+  font-size: clamp(1rem, 3.4vw, 1.32rem) !important;
+  line-height: 1.24 !important;
+  letter-spacing: 0 !important;
+}
+
+p,
+.subtext,
+.landingSubtext,
+.profileSummary,
+.smallCard p,
+.landingPreviewCard p,
+.landingInfoCard p,
+.landingFeatureCard p,
+.landingPriceCard p,
+.ofReportHeroTop p,
+.ofTrustHeader p,
+.ofReportActionsHeader p,
+.ofFunctionalToolsHeader p,
+.ofFunctionalityHeader p,
+.ofImportDoctorHeader p {
+  color: var(--of-copy-final) !important;
+  line-height: 1.55 !important;
+}
+
+.smallText,
+.statLabel,
+.fitLabel,
+.moveNumber,
+.replayMovesHeader,
+.openingEvidenceHelp,
+.openingSampleHelp,
+.footerDisclaimer,
+th {
+  color: var(--of-muted-final) !important;
+}
+
+.primaryBtn,
+.secondaryButton,
+.ghostButton,
+.platformButton,
+.quickNavBtn,
+.controlBtn,
+.replayFlipBtn,
+.tableOpeningBtn,
+.openingPracticeLink,
+.fitOpeningRow,
+.gamePickerButton,
+.monthSelect,
+.mobileSectionRevealBtn,
+.appTabButton,
+.ofActionStrip button,
+.ofFinalCTAButtons button,
+.ofFunctionalGrid button,
+.ofFunctionalityGrid button,
+.ofFunctionalityButtons button,
+.ofFeedbackFields button,
+.ofStudyActions button,
+.ofGuidedSteps button,
+.ofImportDoctorHeader button,
+.premiumCommandStrip button,
+.premiumWeeklyPlan button,
+.openingProgressActions button,
+.ofCoachModeGroup button,
+.ofSystemsPanelHeader button {
+  max-width: 100%;
+  min-height: 44px;
+  border-radius: var(--of-radius-control-final) !important;
+  font-weight: 850;
+  line-height: 1.15;
+  white-space: normal;
+}
+
+.primaryBtn,
+.ofActionStrip button:not(.secondary):not(.ghost),
+.ofFinalCTAButtons button:not(.secondary),
+.ofFunctionalGrid button:not(.secondary),
+.ofFunctionalityGrid button:not(.secondary),
+.ofFeedbackFields button,
+.ofStudyActions button:not(.secondary),
+.ofImportDoctorHeader button,
+.premiumWeeklyPlan button {
+  border: 1px solid rgba(37, 99, 235, 0.22) !important;
+  background: linear-gradient(135deg, #2563eb, #0f766e) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24) !important;
+}
+
+.secondaryButton,
+.ghostButton,
+.platformButton,
+.quickNavBtn,
+.controlBtn,
+.replayFlipBtn,
+.appTabButton,
+.ofActionStrip button.secondary,
+.ofActionStrip button.ghost,
+.ofFinalCTAButtons button.secondary,
+.ofFunctionalGrid button.secondary,
+.ofFunctionalityButtons button.secondary,
+.ofStudyActions button.secondary,
+.ofGuidedSteps button,
+.premiumCommandStrip button,
+.openingProgressActions button,
+.ofCoachModeGroup button,
+.ofSystemsPanelHeader button {
+  border: 1px solid var(--of-border-strong-final) !important;
+  background: var(--of-surface-soft-final) !important;
+  color: var(--foreground) !important;
+  -webkit-text-fill-color: var(--foreground) !important;
+  box-shadow: none !important;
+}
+
+.primaryBtn:hover:not(:disabled),
+.secondaryButton:hover:not(:disabled),
+.ghostButton:hover:not(:disabled),
+.platformButton:hover:not(:disabled),
+.quickNavBtn:hover:not(:disabled),
+.controlBtn:hover:not(:disabled),
+.replayFlipBtn:hover:not(:disabled),
+.appTabButton:hover:not(:disabled),
+.ofActionStrip button:hover:not(:disabled),
+.ofFinalCTAButtons button:hover:not(:disabled),
+.ofFunctionalGrid button:hover:not(:disabled),
+.ofFunctionalityGrid button:hover:not(:disabled),
+.ofFunctionalityButtons button:hover:not(:disabled),
+.ofStudyActions button:hover:not(:disabled),
+.ofGuidedSteps button:hover:not(:disabled),
+.premiumCommandStrip button:hover:not(:disabled),
+.openingProgressActions button:hover:not(:disabled),
+.ofCoachModeGroup button:hover:not(:disabled),
+.ofSystemsPanelHeader button:hover:not(:disabled) {
+  border-color: var(--ring) !important;
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+button:disabled,
+[aria-disabled="true"],
+.primaryBtn:disabled,
+.secondaryButton:disabled,
+.ghostButton:disabled {
+  color: color-mix(in srgb, var(--foreground) 74%, transparent) !important;
+  -webkit-text-fill-color: color-mix(in srgb, var(--foreground) 74%, transparent) !important;
+  opacity: 0.68 !important;
+  filter: saturate(0.72);
+  transform: none !important;
+}
+
+.input,
+input,
+select,
+textarea,
+.feedbackCard textarea,
+.feedbackCard input,
+.ofFeedbackFields input,
+.ofFeedbackFields textarea {
+  max-width: 100%;
+  border-color: var(--of-border-strong-final) !important;
+  background: var(--input) !important;
+  color: var(--input-foreground) !important;
+}
+
+.tableWrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--of-radius-card-final);
+}
+
+table {
+  width: 100%;
+  max-width: 100%;
+}
+
+th,
+td {
+  vertical-align: top;
+}
+
+.replayLayout,
+.practiceLayout {
+  grid-template-columns: minmax(0, min(430px, 100%)) minmax(0, 1fr) !important;
+}
+
+.replayBoardBox,
+.practiceBoardBox,
+.opening-board-shell,
+.practice-board-shell,
+.game-replay-board-shell {
+  width: min(100%, 430px) !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.of-board-frame {
+  border-radius: var(--of-radius-card-final) !important;
+}
+
+.of-board,
+.cleanReplayBoard,
+.react-chessboard,
+[data-boardid],
+[class*="chessboard"] {
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.fitOpeningRow,
+.listItem,
+.gamePickerButton,
+.trainingPlanItem,
+.practiceProgress,
+.lockedFeature,
+.openingExplainCard,
+.fitMiniCard,
+.landingInfoCard,
+.landingFeatureCard,
+.landingStepCard,
+.landingPriceCard,
+.aboutCard,
+.ratingGuideCard,
+.ofActionCard,
+.ofGuidedSteps article,
+.ofFunctionalGrid article,
+.ofFunctionalityGrid article,
+.ofImportChecks article,
+.ofStudyTaskList article,
+.ofFinalCTAStack article,
+.ofUXQuickStats article,
+.reportSnapshotCard,
+.premiumStatusCard,
+.preLoginCuriosity,
+.preLoginTeaserCard {
+  border-radius: var(--of-radius-card-final) !important;
+  border-color: var(--of-border-final) !important;
+  background: var(--of-surface-soft-final) !important;
+}
+
+.chip,
+.sectionBadge,
+.verdict,
+.landingFitBadge,
+.landingPriceBadge,
+.ratingOpeningBtn,
+.supportedOpeningGrid span,
+.supportedOpeningGrid button,
+.openingEvidenceChips span,
+.practiceMovePill,
+.ofAudienceTags span,
+.ofBetaRoadmapTags span {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.mobileBottomNav {
+  max-width: calc(100% - 16px) !important;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --of-gutter: 14px;
+    --of-section-gap-final: 12px;
+    --of-section-pad-final: 16px;
+    --of-card-pad-final: 14px;
+    --of-radius-section-final: 18px;
+    --of-radius-card-final: 14px;
+  }
+
+  .landingHeroGrid,
+  .heroTop,
+  .fitHeroTop,
+  .sectionHeaderSimple,
+  .premiumLockedInline,
+  .replayLayout,
+  .practiceLayout,
+  .ofReportHeroTop,
+  .ofGuidedFlowHeader,
+  .ofStudyPlannerHeader,
+  .ofFunctionalToolsHeader,
+  .ofFunctionalityHeader,
+  .ofImportDoctorHeader,
+  .ofTrustBarMain,
+  .ofFinalCTA,
+  .ofUXReportHeader,
+  .openingFitPositioning,
+  .accountPanel--screen {
+    grid-template-columns: 1fr !important;
+  }
+
+  .heroTop,
+  .practiceTop,
+  .replayHeader,
+  .sectionHeaderSimple,
+  .landingPreviewTop,
+  .landingPriceTop {
+    display: grid !important;
+    align-items: start !important;
+  }
+
+  .statsGrid,
+  .quickNavGrid,
+  .landingStats,
+  .fitHeroGrid,
+  .ofUXQuickStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .ofActionCardGrid,
+  .ofInsightGrid,
+  .ofTrustGrid,
+  .ofFunctionalGrid,
+  .ofFunctionalityGrid,
+  .ofImportChecks {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .openingAppMenu {
+    top: calc(154px + env(safe-area-inset-top)) !important;
+    right: 14px !important;
+  }
+
+  .openingAppMenuPanel {
+    top: 54px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --of-gutter: 10px;
+    --of-section-gap-final: 10px;
+    --of-section-pad-final: 14px;
+    --of-card-pad-final: 12px;
+  }
+
+  .appShell {
+    padding-bottom: 76px !important;
+  }
+
+  .container,
+  .appShell,
+  .landingWrap,
+  .coachSummaryShell,
+  .ofReportHero,
+  .ofGuidedFlow,
+  .ofStudyPlanner,
+  .ofReportActions,
+  .ofFunctionalTools,
+  .ofFunctionalityHub,
+  .ofImportDoctor,
+  .ofTrustBar,
+  .ofTrustWrap,
+  .ofFinalCTA,
+  .ofUXReportHeader,
+  .openingFitPositioning,
+  .ofDeveloperToolsClosed,
+  .ofDeveloperToolsOpen {
+    width: calc(100% - (var(--of-gutter) * 2)) !important;
+  }
+
+  .statsGrid,
+  .quickNavGrid,
+  .landingStats,
+  .fitHeroGrid,
+  .ofUXQuickStats,
+  .profileIdentityStats,
+  .profileRepertoireSnapshot {
+    grid-template-columns: 1fr !important;
+  }
+
+  .searchRow,
+  .topBar,
+  .landingHeroActions,
+  .appActionButtons,
+  .practiceActions,
+  .ofActionStrip,
+  .ofStudyActions,
+  .ofFinalCTAButtons,
+  .platformSelector,
+  .polishedInputRow,
+  .shipInputRow {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .primaryBtn,
+  .secondaryButton,
+  .ghostButton,
+  .platformButton,
+  .quickNavBtn,
+  .practiceActions button,
+  .ofActionStrip button,
+  .ofStudyActions button,
+  .ofFinalCTAButtons button,
+  .ofFunctionalGrid button,
+  .ofFunctionalityGrid button,
+  .ofFunctionalityButtons button,
+  .ofFeedbackFields button,
+  .ofImportDoctorHeader button,
+  .polishedInputRow > button,
+  .shipInputRow > button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .listItem,
+  .fitOpeningMain,
+  .gamePickerTop,
+  .premiumLockedInline,
+  .savedHistoryRow,
+  .trainingPlanItem,
+  .ofStudyTaskList article,
+  .ofImportDoctorResult {
+    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .rightStat,
+  .fitOpeningScore,
+  .chartValue {
+    width: 100%;
+    min-width: 0;
+    text-align: left !important;
+    justify-items: start;
+  }
+
+  .tableWrap table {
+    min-width: 500px;
+  }
+
+  .replayBoardBox,
+  .practiceBoardBox,
+  .opening-board-shell,
+  .practice-board-shell,
+  .game-replay-board-shell {
+    width: min(100%, calc(100vw - 40px)) !important;
+  }
+
+  .replayMovesHeader,
+  .replayMoveRow {
+    grid-template-columns: 32px minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+
+  .appTabs {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 390px) {
+  :root {
+    --of-gutter: 8px;
+  }
+
+  .tableWrap table {
+    min-width: 460px;
+  }
+
+  .replayBoardBox,
+  .practiceBoardBox,
+  .opening-board-shell,
+  .practice-board-shell,
+  .game-replay-board-shell {
+    width: min(100%, calc(100vw - 32px)) !important;
+  }
+
+  .statValue,
+  .fitScoreCircle strong,
+  .ofScoreCard strong,
+  .ofStudyProgressCard strong,
+  .ofFunctionalStatus strong {
+    font-size: clamp(1.35rem, 9vw, 2.35rem) !important;
   }
 }

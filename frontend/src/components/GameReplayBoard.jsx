@@ -4,16 +4,17 @@ import ChessPositionBoard from "./ChessPositionBoard";
 
 function buildPositionFromMoves(moves, moveIndex) {
   const chess = new Chess();
+  let lastMove = null;
 
   try {
     for (let i = 0; i < moveIndex; i += 1) {
-      chess.move(moves[i]);
+      lastMove = chess.move(moves[i]);
     }
   } catch {
-    return new Chess();
+    return { chess: new Chess(), lastMove: null };
   }
 
-  return chess;
+  return { chess, lastMove };
 }
 
 function chunkMoves(moves) {
@@ -41,9 +42,13 @@ export default function GameReplayBoard({
   const [moveIndex, setMoveIndex] = useState(0);
   const [orientation, setOrientation] = useState(initialOrientation);
 
-  const chess = useMemo(() => {
+  const replayPosition = useMemo(() => {
     return buildPositionFromMoves(moves, moveIndex);
   }, [moves, moveIndex]);
+  const chess = replayPosition.chess;
+  const lastMoveSquares = replayPosition.lastMove
+    ? [replayPosition.lastMove.from, replayPosition.lastMove.to]
+    : [];
 
   const moveRows = useMemo(() => {
     return chunkMoves(moves);
@@ -94,16 +99,25 @@ export default function GameReplayBoard({
 
       <div className="replayLayout">
         <div className="replayBoardWrap">
-          <div className="replayBoardBox game-replay-board-shell">
-            <ChessPositionBoard position={chess.fen()} orientation={orientation} />
+          <div className="replayBoardBox game-replay-board-shell of-board-shell">
+            <div className="of-board-label">Game replay</div>
+            <div className="of-board-frame">
+              <ChessPositionBoard
+                position={chess.fen()}
+                orientation={orientation}
+                lastMoveSquares={lastMoveSquares}
+                aria-label={`${title} chess board`}
+              />
+            </div>
           </div>
 
-          <div className="replayControls">
+          <div className="replayControls" aria-label="Replay controls">
             <button
               className="controlBtn"
               type="button"
               onClick={goStart}
               disabled={!canGoBack}
+              aria-label="Go to start"
             >
               ⏮
             </button>
@@ -113,6 +127,7 @@ export default function GameReplayBoard({
               type="button"
               onClick={goBack}
               disabled={!canGoBack}
+              aria-label="Previous move"
             >
               ◀
             </button>
@@ -122,6 +137,7 @@ export default function GameReplayBoard({
               type="button"
               onClick={goForward}
               disabled={!canGoForward}
+              aria-label="Next move"
             >
               ▶
             </button>
@@ -131,6 +147,7 @@ export default function GameReplayBoard({
               type="button"
               onClick={goEnd}
               disabled={!canGoForward}
+              aria-label="Go to end"
             >
               ⏭
             </button>
