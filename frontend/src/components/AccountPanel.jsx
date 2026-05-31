@@ -9,6 +9,17 @@ const EMPTY_PROFILE = {
   chesscom_username: "",
   lichess_username: "",
 };
+const AUTH_RETURN_PATH_KEY = "openingFit:authReturnPath";
+
+function getAuthRedirectTo() {
+  const origin = window.location.origin;
+  const savedPath = window.localStorage.getItem(AUTH_RETURN_PATH_KEY);
+  const currentPath = `${window.location.pathname || "/"}${window.location.search || ""}${window.location.hash || ""}`;
+  const returnPath = savedPath || (currentPath === "/login" ? "/" : currentPath);
+  const safePath = returnPath.startsWith("/") && !returnPath.startsWith("//") ? returnPath : "/";
+
+  return `${origin}${safePath}`;
+}
 
 const PRE_LOGIN_TEASERS = [
   {
@@ -125,7 +136,7 @@ export default function AccountPanel({ variant = "floating",
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: getAuthRedirectTo(),
         },
       });
 
@@ -163,7 +174,7 @@ export default function AccountPanel({ variant = "floating",
       const { data, error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: getAuthRedirectTo(),
           shouldCreateUser: true,
         },
       });

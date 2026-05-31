@@ -229,6 +229,7 @@ const PLATFORM_KEY = "openingFit:lastPlatform";
 const IMPORT_MONTHS_KEY = "openingFit:lastImportMonths";
 const OPENING_SAMPLE_PERCENT_KEY = "openingFit:openingSamplePercent";
 const ANALYSIS_TIME_FORMAT_KEY = "openingFit:lastAnalysisTimeFormat";
+const AUTH_RETURN_PATH_KEY = "openingFit:authReturnPath";
 
 const platforms = {
   chesscom: {
@@ -4414,7 +4415,7 @@ function ComeBackAfterPlayingPrompt({ data, fitData, onAnalyse }) {
 }
 
 function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
-  const { user, recordActivity } = useAuth();
+  const { user, recordActivity, saveRecommendationHistory } = useAuth();
   const [status, setStatus] = useState("");
   const openings = buildNextStepOpenings(data, fitData);
   const primaryOpening = openings[0]?.name || buildStudyThisNextTarget(fitData)?.name || "your recommended opening";
@@ -4435,6 +4436,7 @@ function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
       localStorage.setItem("openingFit:savedRecommendations", JSON.stringify(next));
 
       if (user?.id && recordActivity) {
+        await saveRecommendationHistory?.(buildRecommendationHistorySnapshot(data, fitData));
         await recordActivity("recommendation_saved", {
           saved_at: savedAt,
           openings: openings.map((item) => item.name),
@@ -9759,6 +9761,10 @@ function App() {
 
   const openLoginPage = (event) => {
     event?.preventDefault?.();
+    const currentPath = `${window.location.pathname || "/"}${window.location.search || ""}${window.location.hash || ""}`;
+    if (!accountUser && currentPath !== "/login") {
+      localStorage.setItem(AUTH_RETURN_PATH_KEY, currentPath);
+    }
     setActiveView("profile");
 
     const targetPath = accountUser ? "/account" : "/login";
@@ -9790,6 +9796,7 @@ function App() {
   const [feedbackStatus, setFeedbackStatus] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [, setLocalSavedAt] = useState("");
+  const [cloudSaveWarning, setCloudSaveWarning] = useState("");
   const [activeView, setActiveView] = useState(getInitialAppView);
   const previousAuthUserIdRef = useRef(undefined);
   const shouldShowLandingIntro = () => {
@@ -9829,12 +9836,26 @@ function App() {
     const currentUserId = supabaseUser?.id || null;
     const previousUserId = previousAuthUserIdRef.current;
 
+    if (!previousUserId && currentUserId) {
+      const returnPath = localStorage.getItem(AUTH_RETURN_PATH_KEY);
+      if (returnPath) {
+        localStorage.removeItem(AUTH_RETURN_PATH_KEY);
+        const cleanReturnPath = returnPath.startsWith("/") && !returnPath.startsWith("//") ? returnPath : "/";
+
+        if (window.location.pathname === "/login" || window.location.pathname === "/account") {
+          window.history.replaceState({}, "", cleanReturnPath);
+          setActiveView(getInitialAppView());
+        }
+      }
+    }
+
     if (previousUserId && previousUserId !== currentUserId) {
       setData(null);
       setSelectedGameIndex(0);
       setPracticeOpening(null);
       setSavedProfileMessage("");
       setError("");
+      setCloudSaveWarning("");
     }
 
     previousAuthUserIdRef.current = currentUserId;
@@ -10381,6 +10402,7 @@ function App() {
       `Finding your recent ${platforms[selectedPlatformKey]?.label || "chess"} games...`
     );
     setError("");
+    setCloudSaveWarning("");
     setSavedProfileMessage("");
     setData(null);
     setSelectedGameIndex(0);
@@ -10522,12 +10544,8 @@ function App() {
           reportSummary.openingFitProgress = progressSnapshot;
 
           await saveCloudReport(cleanData, reportSummary);
-          try {
-            await saveRecommendationHistory?.(recommendationSnapshot);
-          } catch (historyError) {
-            console.warn("Could not save recommendation history snapshot to Supabase", historyError);
-          }
           await saveOpeningFitProgressState(cleanData, reportSummary, progressSnapshot);
+          await saveRecommendationHistory?.(recommendationSnapshot);
           await recordCloudActivity("report_imported", {
             username: cleanData.username || cleanUsername,
             platform: selectedPlatformKey,
@@ -10541,6 +10559,9 @@ function App() {
           await refreshUserData?.(supabaseUser);
         } catch (cloudError) {
           console.warn("Could not save imported report to Supabase", cloudError);
+          setCloudSaveWarning(
+            "We analysed your games, but could not save your results. Please log in or try again."
+          );
         }
       }
 
@@ -11691,6 +11712,22 @@ function App() {
                 disabled={loading || !username.trim()}
               >
                 Try again
+              </button>
+            </div>
+          ) : null}
+
+          {cloudSaveWarning ? (
+            <div className="errorBox analyseErrorBox cloudSaveWarningBox" role="status">
+              <div>
+                <strong>Cloud save needs attention</strong>
+                <p>{cloudSaveWarning}</p>
+              </div>
+              <button
+                className="primaryBtn"
+                type="button"
+                onClick={openLoginPage}
+              >
+                {accountUser ? "Open account" : "Log in to save"}
               </button>
             </div>
           ) : null}
