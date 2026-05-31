@@ -299,6 +299,18 @@ export async function saveReport(userId, report, summary = {}) {
       report.detectedTimeFormat ||
       report.detected_time_format ||
       null,
+    style_profile:
+      summary.styleProfile ||
+      summary.style_profile ||
+      report.styleProfile ||
+      report.style_profile ||
+      null,
+    style_based_recommendations:
+      summary.styleBasedRecommendations ||
+      summary.style_based_recommendations ||
+      report.styleBasedRecommendations ||
+      report.style_based_recommendations ||
+      null,
   };
 
   let { data, error } = await client.from("report_history").insert(payload).select("*").single();
@@ -307,7 +319,7 @@ export async function saveReport(userId, report, summary = {}) {
     error &&
     (
       error.code === "PGRST204" ||
-      /analysis_time_format|effective_time_format|detected_time_format/i.test(error.message || "")
+      /analysis_time_format|effective_time_format|detected_time_format|style_profile|style_based_recommendations/i.test(error.message || "")
     )
   ) {
     logQueryFailure("report_history", "insert report with time-format columns unavailable; retrying JSON-only save", error, {

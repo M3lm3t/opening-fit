@@ -3042,6 +3042,142 @@ function detectReportTimeFormat(data) {
   };
 }
 
+const FRONTEND_STARTER_OPENINGS = {
+  beginner: {
+    white: ["Italian Game", "London System", "Queen's Gambit"],
+    blackVsE4: ["e5 systems", "Caro-Kann Defence"],
+    blackVsD4: ["Queen's Gambit Declined setup"],
+  },
+  aggressive: {
+    white: ["Italian Game", "Scotch Game", "Vienna Game", "King's Gambit"],
+    blackVsE4: ["Scandinavian Defence", "Caro-Kann Defence", "e5 systems"],
+    blackVsD4: ["Queen's Gambit Declined", "Dutch Defence"],
+  },
+  solid: {
+    white: ["London System", "Italian Game", "Queen's Gambit"],
+    blackVsE4: ["Caro-Kann Defence", "French Defence", "e5 systems"],
+    blackVsD4: ["Queen's Gambit Declined", "Slav Defence"],
+  },
+  positional: {
+    white: ["Queen's Gambit", "Colle System", "Catalan-style setups"],
+    blackVsE4: ["Caro-Kann Defence", "French Defence"],
+    blackVsD4: ["Queen's Gambit Declined", "Slav Defence", "King's Indian as future option"],
+  },
+};
+
+const FRONTEND_OPENING_DETAILS = {
+  "Italian Game": ["1. e4 e5", "2. Nf3 Nc6", "3. Bc4"],
+  "Scotch Game": ["1. e4 e5", "2. Nf3 Nc6", "3. d4"],
+  "Vienna Game": ["1. e4 e5", "2. Nc3 Nf6", "3. Bc4"],
+  "King's Gambit": ["1. e4 e5", "2. f4"],
+  "London System": ["1. d4 d5", "2. Bf4 Nf6", "3. e3"],
+  "Queen's Gambit": ["1. d4 d5", "2. c4"],
+  "Colle System": ["1. d4 d5", "2. Nf3 Nf6", "3. e3"],
+  "Catalan-style setups": ["1. d4 d5", "2. c4 e6", "3. g3"],
+  "e5 systems": ["1. e4 e5", "2. Nf3 Nc6"],
+  "Scandinavian Defence": ["1. e4 d5", "2. exd5 Qxd5", "3. Nc3 Qa5"],
+  "Caro-Kann Defence": ["1. e4 c6", "2. d4 d5"],
+  "French Defence": ["1. e4 e6", "2. d4 d5"],
+  "Queen's Gambit Declined": ["1. d4 d5", "2. c4 e6"],
+  "Queen's Gambit Declined setup": ["1. d4 d5", "2. c4 e6", "3. Nc3 Nf6"],
+  "Slav Defence": ["1. d4 d5", "2. c4 c6"],
+  "Dutch Defence": ["1. d4 f5"],
+  "King's Indian as future option": ["1. d4 Nf6", "2. c4 g6", "3. Nc3 Bg7"],
+};
+
+function lowDataReliability(data) {
+  const games = safeNumber(data?.gamesAnalysed ?? data?.gamesAnalyzed ?? data?.gamesImported ?? data?.total_games);
+  const openings = [
+    ...(Array.isArray(data?.best_openings) ? data.best_openings : []),
+    ...(Array.isArray(data?.top_openings) ? data.top_openings : []),
+  ].filter((item) => !isUnknownOpeningName(getOpeningName(item)));
+  const repeated = openings.filter((item) => getOpeningGames(item) >= 3);
+  const knownGames = openings.reduce((total, item) => total + getOpeningGames(item), 0);
+  const reasons = [];
+
+  if (games < 10) reasons.push("fewer than 10 analysed games");
+  if (!repeated.length) reasons.push("no repeated opening pattern yet");
+  if (knownGames < Math.max(3, Math.round(games * 0.45))) reasons.push("recognised opening coverage is low");
+
+  return {
+    lowData: games < 10 || !repeated.length || knownGames < Math.max(3, Math.round(games * 0.45)),
+    gamesAnalyzed: games,
+    recognizedOpeningGames: knownGames,
+    repeatedOpeningCount: repeated.length,
+    reasons: reasons.length ? reasons : ["opening history is strong enough for detected-opening recommendations"],
+  };
+}
+
+function starterProfileKind(styleProfile = {}, games = 0) {
+  const labels = (styleProfile.labels || []).map((item) => String(item).toLowerCase());
+  const scores = styleProfile.scores || {};
+  if (games < 10 || labels.includes("developing")) return "beginner";
+  if (labels.includes("aggressive") || labels.includes("tactical") || safeNumber(scores.tactical) >= 4) return "aggressive";
+  if (labels.includes("solid") && safeNumber(scores.tactical) < 3) return "positional";
+  return "solid";
+}
+
+function frontendStarterItem(name, role, styleProfile, reliability) {
+  const labels = styleProfile.labels?.length ? styleProfile.labels.join(", ") : "developing";
+  const future = /king's gambit|dutch|catalan|king's indian/i.test(name);
+  const confidence = reliability.gamesAnalyzed >= 5 && !future ? "Medium Confidence" : "Low Confidence";
+
+  return {
+    name,
+    role,
+    label: "Style-Based Recommendation",
+    recommendationType: "style_based",
+    confidence,
+    confidenceLevel: confidence,
+    whyItFits: `${name} fits your current ${labels.toLowerCase()} profile because it gives you a clearer opening plan while OpeningFit collects more repertoire evidence.`,
+    corePlan: "Develop pieces, keep your king safe, and use the pawn structure to guide your middlegame plan.",
+    commonMistakeAvoided: "This helps avoid random early moves and repeated queen moves before development.",
+    starterMoveSequence: FRONTEND_OPENING_DETAILS[name] || [],
+    futureUpgrade: future,
+  };
+}
+
+function buildFrontendStyleBasedRecommendations(data) {
+  const styleProfile = data?.styleProfile || data?.style_profile || {};
+  const reliability = lowDataReliability(data || {});
+  const kind = starterProfileKind(styleProfile, reliability.gamesAnalyzed);
+  const names = FRONTEND_STARTER_OPENINGS[kind] || FRONTEND_STARTER_OPENINGS.beginner;
+  const sectionTitles = {
+    white: "White",
+    blackVsE4: "Black vs 1.e4",
+    blackVsD4: "Black vs 1.d4",
+  };
+
+  return {
+    enabled: reliability.lowData,
+    optional: !reliability.lowData,
+    title: "Starter Opening Recommendations",
+    message: "We couldn't find enough repeated opening data yet, so OpeningFit is recommending openings based on your playing style.",
+    analysisVersion: "style-starters-v1-frontend",
+    generatedAt: new Date().toISOString(),
+    gamesAnalyzed: reliability.gamesAnalyzed,
+    styleProfile,
+    dataReliability: reliability,
+    sections: Object.entries(names).map(([key, items]) => ({
+      key,
+      title: sectionTitles[key] || key,
+      items: items.map((name) => frontendStarterItem(name, key, styleProfile, reliability)),
+    })),
+    futureUpgradeOpenings: [
+      "Sicilian Najdorf",
+      "Dragon Sicilian",
+      "Grünfeld Defence",
+      "Benoni Defence",
+      "Advanced Catalan systems",
+      "Highly theoretical King's Indian lines",
+    ].map((name) => ({
+      name,
+      label: "Future Upgrade Opening",
+      reason: "Theory-heavy opening. Add this later after your starter repertoire is stable.",
+    })),
+  };
+}
+
 function gamePassesReportFilters(game, filters) {
   const timeClass = getGameTimeControl(game);
   const timeFilter = filters?.timeControl || "serious";
@@ -3261,6 +3397,11 @@ function buildReportHistorySummary(data, fitData = null) {
       data?.effectiveTimeFormatLabel ||
       data?.effective_time_format_label ||
       getAnalysisTimeFormatLabel(data?.effectiveTimeFormat || data?.effective_time_format),
+    styleProfile: data?.styleProfile || data?.style_profile || null,
+    styleBasedRecommendations:
+      data?.styleBasedRecommendations ||
+      data?.style_based_recommendations ||
+      null,
     games: data?.gamesAnalysed || data?.gamesAnalyzed || data?.gamesImported || data?.total_games || 0,
     topOpening: topOpenings[0]?.name || "No clear top opening yet",
     topOpenings,
@@ -4723,6 +4864,7 @@ function OpeningFitProfileDashboard({
 
       <div className="profileDashboardGrid profileAccountPremiumGrid">
         <section className="profileDashboardCard profileAccountCard" id="profile-account">
+          <span className="profileLoginAnchor" id="login" aria-hidden="true" />
           <div className="profileCardHeader">
             <p className="eyebrow">Account security</p>
             <h2>Account settings</h2>
@@ -4734,6 +4876,150 @@ function OpeningFitProfileDashboard({
         <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
       </div>
     </div>
+  );
+}
+
+function StyleBasedStarterRecommendations({ data, fitData, onPractice }) {
+  const styleRec =
+    data?.styleBasedRecommendations ||
+    data?.style_based_recommendations ||
+    buildFrontendStyleBasedRecommendations(data);
+  const reliability = styleRec?.dataReliability || styleRec?.data_reliability || {};
+  const lowData = Boolean(styleRec?.enabled || reliability.lowData || reliability.low_data);
+  const hasDetectedOpenings = (fitData?.scoredOpenings || []).some(
+    (opening) => getOpeningSignal(opening).canBePrimary && getOpeningGames(opening) >= 3
+  );
+  const [enabled, setEnabled] = useState(lowData);
+  const [activeTab, setActiveTab] = useState(lowData ? "style" : "detected");
+
+  useEffect(() => {
+    setEnabled(lowData);
+    setActiveTab(lowData ? "style" : "detected");
+  }, [lowData, data?.importedAt, data?.lastUpdated]);
+
+  if (!styleRec?.sections?.length) return null;
+  if (!lowData && !enabled) return null;
+
+  const visible = enabled && (activeTab === "style" || !hasDetectedOpenings);
+  const reasons = reliability.reasons || [];
+
+  return (
+    <section className="styleStarterPanel" id="style-based-suggestions">
+      <div className="styleStarterHeader">
+        <div>
+          <p className="eyebrow">Optional recommendation layer</p>
+          <h2>{lowData ? "Starter Opening Recommendations" : "Style-Based Suggestions"}</h2>
+          <p>
+            {lowData
+              ? "We couldn't find enough repeated opening data yet, so OpeningFit is recommending openings based on your playing style."
+              : "Your detected openings remain primary. These style-based suggestions are optional."}
+          </p>
+        </div>
+
+        <label className="styleStarterToggle">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(event) => setEnabled(event.target.checked)}
+          />
+          <span>Use style-based recommendations when opening data is limited</span>
+        </label>
+      </div>
+
+      {hasDetectedOpenings ? (
+        <div className="styleStarterTabs" role="tablist" aria-label="Recommendation source">
+          <button
+            type="button"
+            className={activeTab === "detected" ? "styleStarterTabActive" : ""}
+            onClick={() => setActiveTab("detected")}
+          >
+            Detected Openings
+          </button>
+          <button
+            type="button"
+            className={activeTab === "style" ? "styleStarterTabActive" : ""}
+            onClick={() => setActiveTab("style")}
+            disabled={!enabled}
+          >
+            Style-Based Suggestions
+          </button>
+        </div>
+      ) : null}
+
+      {activeTab === "detected" && hasDetectedOpenings ? (
+        <div className="styleStarterDetectedNote">
+          <strong>Your Detected Openings stay primary.</strong>
+          <span>Use the main repertoire report for evidence-backed opening detection.</span>
+        </div>
+      ) : null}
+
+      {visible ? (
+        <>
+          <div className="styleStarterReliability">
+            <strong>{styleRec?.styleProfile?.primaryStyle || styleRec?.style_profile?.primaryStyle || "Developing style"}</strong>
+            <span>
+              {reliability.gamesAnalyzed ?? reliability.games_analyzed ?? "Few"} games analysed
+              {reasons.length ? ` · ${reasons.slice(0, 2).join(" · ")}` : ""}
+            </span>
+          </div>
+
+          <div className="styleStarterSections">
+            {styleRec.sections.map((section) => (
+              <article className="styleStarterSection" key={section.key}>
+                <h3>{section.title}</h3>
+                <div className="styleStarterCards">
+                  {(section.items || []).map((item) => (
+                    <div className="styleStarterCard" key={`${section.key}-${item.name}`}>
+                      <div className="styleStarterCardTop">
+                        <span>{item.label || "Style-Based Recommendation"}</span>
+                        <strong>{item.confidenceLevel || item.confidence || "Low Confidence"}</strong>
+                      </div>
+                      <h4>{item.name}</h4>
+                      <p>{item.whyItFits || item.why_it_fits}</p>
+                      <dl>
+                        <div>
+                          <dt>Core plan</dt>
+                          <dd>{item.corePlan || item.core_plan}</dd>
+                        </div>
+                        <div>
+                          <dt>Common mistake avoided</dt>
+                          <dd>{item.commonMistakeAvoided || item.common_mistake_avoided}</dd>
+                        </div>
+                      </dl>
+                      {Array.isArray(item.starterMoveSequence || item.starter_move_sequence) ? (
+                        <div className="styleStarterMoves">
+                          {(item.starterMoveSequence || item.starter_move_sequence).map((move) => (
+                            <span key={move}>{move}</span>
+                          ))}
+                        </div>
+                      ) : null}
+                      {item.futureUpgrade || item.future_upgrade ? (
+                        <em>Future Upgrade Opening</em>
+                      ) : null}
+                      <button type="button" onClick={() => onPractice?.(item.name)}>
+                        Practise this line
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {styleRec.futureUpgradeOpenings?.length || styleRec.future_upgrade_openings?.length ? (
+            <div className="styleStarterFuture">
+              <strong>Future Upgrade Openings</strong>
+              <span>
+                {(styleRec.futureUpgradeOpenings || styleRec.future_upgrade_openings)
+                  .slice(0, 5)
+                  .map((item) => item.name)
+                  .join(", ")}
+              </span>
+            </div>
+          ) : null}
+        </>
+      ) : null}
+    </section>
   );
 }
 
@@ -4878,6 +5164,12 @@ function CompactReportSummary({ data, fitData, onViewChange, onPractice }) {
           </ol>
         </div>
       </section>
+
+      <StyleBasedStarterRecommendations
+        data={data}
+        fitData={fitData}
+        onPractice={onPractice}
+      />
 
       {interestingThinOpenings.length ? (
         <section className="interestingThinDataCard" aria-labelledby="interesting-thin-title">
@@ -8318,11 +8610,14 @@ function App() {
     }, 120);
   };
 
-  const openLoginPage = () => {
+  const openLoginPage = (event) => {
+    event?.preventDefault?.();
     setActiveView("profile");
 
-    if (window.location.pathname !== "/login") {
-      window.history.pushState({}, "", "/login");
+    const targetPath = accountUser ? "/account" : "/login";
+
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({}, "", targetPath);
     }
 
     setTimeout(() => {
@@ -8699,6 +8994,14 @@ function App() {
       opening_games: incoming.opening_games ?? incoming.openingGames ?? [],
       openingGames: incoming.openingGames ?? incoming.opening_games ?? [],
       style_profile: incoming.style_profile ?? incoming.styleProfile ?? {},
+      styleBasedRecommendations:
+        incoming.styleBasedRecommendations ??
+        incoming.style_based_recommendations ??
+        buildFrontendStyleBasedRecommendations(incoming, detectedTimeFormat, selectedTimeFormat),
+      style_based_recommendations:
+        incoming.style_based_recommendations ??
+        incoming.styleBasedRecommendations ??
+        buildFrontendStyleBasedRecommendations(incoming, detectedTimeFormat, selectedTimeFormat),
       opening_recommendations:
         incoming.opening_recommendations ??
         incoming.openingRecommendations ??
@@ -9875,13 +10178,13 @@ function App() {
                   and what to study next.
                 </p>
               </div>
-              <button
+              <a
                 className="analyseLoginButton"
-                type="button"
+                href={accountUser ? "/account" : "/login"}
                 onClick={openLoginPage}
               >
                 {accountUser ? "Account" : "Login"}
-              </button>
+              </a>
             </div>
 
             <div className="searchRow topBar appActionPanel heroImportFlow" id="import">

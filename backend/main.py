@@ -1684,6 +1684,328 @@ def recommend_openings_from_style(style_profile: Dict[str, Any]) -> Dict[str, An
     }
 
 
+STARTER_OPENING_LIBRARY: Dict[str, Dict[str, Any]] = {
+    "Italian Game": {
+        "role": "white",
+        "starterMoves": ["1. e4 e5", "2. Nf3 Nc6", "3. Bc4"],
+        "corePlan": "Develop knights and bishops quickly, castle early, then build pressure in the centre or on f7.",
+        "commonMistakeAvoided": "It discourages early queen adventures by giving every minor piece a natural square.",
+    },
+    "Scotch Game": {
+        "role": "white",
+        "starterMoves": ["1. e4 e5", "2. Nf3 Nc6", "3. d4"],
+        "corePlan": "Open the centre early, trade central pawns, and use active pieces before Black finishes development.",
+        "commonMistakeAvoided": "It helps avoid slow pawn moves that leave your pieces undeveloped.",
+    },
+    "Vienna Game": {
+        "role": "white",
+        "starterMoves": ["1. e4 e5", "2. Nc3 Nf6", "3. Bc4"],
+        "corePlan": "Develop naturally, keep attacking chances, and choose f4 ideas only after your pieces are ready.",
+        "commonMistakeAvoided": "It gives attacking players a structure so the attack does not start before development.",
+    },
+    "King's Gambit": {
+        "role": "white",
+        "starterMoves": ["1. e4 e5", "2. f4"],
+        "corePlan": "Use the f-pawn to fight for initiative, then develop quickly and attack before Black consolidates.",
+        "commonMistakeAvoided": "It teaches that gambits need development and king safety, not just sacrifices.",
+        "advanced": True,
+    },
+    "London System": {
+        "role": "white",
+        "starterMoves": ["1. d4 d5", "2. Bf4 Nf6", "3. e3"],
+        "corePlan": "Build a repeatable setup with Bf4, e3, Nf3, Bd3 and castle before choosing a central break.",
+        "commonMistakeAvoided": "It reduces random early pawn moves by giving a simple development order.",
+    },
+    "Queen's Gambit": {
+        "role": "white",
+        "starterMoves": ["1. d4 d5", "2. c4"],
+        "corePlan": "Use the c-pawn to challenge Black's centre, develop calmly, and play for long-term pressure.",
+        "commonMistakeAvoided": "It helps avoid passive development by making the centre the main question.",
+    },
+    "Colle System": {
+        "role": "white",
+        "starterMoves": ["1. d4 d5", "2. Nf3 Nf6", "3. e3"],
+        "corePlan": "Build a solid centre, develop behind it, then prepare e4 when your pieces are ready.",
+        "commonMistakeAvoided": "It keeps the queen home and makes development more automatic.",
+    },
+    "Catalan-style setups": {
+        "role": "white",
+        "starterMoves": ["1. d4 d5", "2. c4 e6", "3. g3"],
+        "corePlan": "Fianchetto the bishop, pressure the long diagonal, and play for positional control.",
+        "commonMistakeAvoided": "It teaches long-term pressure instead of one-move attacks.",
+        "futureUpgrade": True,
+    },
+    "e5 systems": {
+        "role": "blackVsE4",
+        "starterMoves": ["1. e4 e5", "2. Nf3 Nc6"],
+        "corePlan": "Meet White in the centre, develop naturally, and castle before choosing a counterattack.",
+        "commonMistakeAvoided": "It prevents passive beginner defence by giving Black central space and active pieces.",
+    },
+    "Scandinavian Defence": {
+        "role": "blackVsE4",
+        "starterMoves": ["1. e4 d5", "2. exd5 Qxd5", "3. Nc3 Qa5"],
+        "corePlan": "Challenge the centre immediately, move the queen once to safety, then develop quickly.",
+        "commonMistakeAvoided": "It highlights why repeated queen moves cost time.",
+    },
+    "Caro-Kann Defence": {
+        "role": "blackVsE4",
+        "starterMoves": ["1. e4 c6", "2. d4 d5"],
+        "corePlan": "Build a solid centre, develop safely, and counterattack after your structure is stable.",
+        "commonMistakeAvoided": "It avoids early weaknesses and teaches patient development.",
+    },
+    "French Defence": {
+        "role": "blackVsE4",
+        "starterMoves": ["1. e4 e6", "2. d4 d5"],
+        "corePlan": "Challenge White's centre and prepare ...c5 while developing around a strong pawn chain.",
+        "commonMistakeAvoided": "It teaches not to ignore the light-squared bishop and queenside development.",
+    },
+    "Queen's Gambit Declined": {
+        "role": "blackVsD4",
+        "starterMoves": ["1. d4 d5", "2. c4 e6"],
+        "corePlan": "Hold the centre, develop solidly, and prepare ...Nf6, ...Be7 and castling.",
+        "commonMistakeAvoided": "It avoids grabbing pawns before development is complete.",
+    },
+    "Queen's Gambit Declined setup": {
+        "role": "blackVsD4",
+        "starterMoves": ["1. d4 d5", "2. c4 e6", "3. Nc3 Nf6"],
+        "corePlan": "Use a simple Queen's Gambit Declined structure against most d4 systems.",
+        "commonMistakeAvoided": "It gives beginners one reliable setup instead of a new defence every game.",
+    },
+    "Slav Defence": {
+        "role": "blackVsD4",
+        "starterMoves": ["1. d4 d5", "2. c4 c6"],
+        "corePlan": "Support the d5 pawn with ...c6, develop actively, and keep a sturdy centre.",
+        "commonMistakeAvoided": "It avoids weakening the centre before your pieces are ready.",
+    },
+    "Dutch Defence": {
+        "role": "blackVsD4",
+        "starterMoves": ["1. d4 f5"],
+        "corePlan": "Fight for kingside space and attacking chances while developing carefully.",
+        "commonMistakeAvoided": "It reminds aggressive players not to weaken their king without development.",
+        "advanced": True,
+    },
+    "King's Indian as future option": {
+        "role": "blackVsD4",
+        "starterMoves": ["1. d4 Nf6", "2. c4 g6", "3. Nc3 Bg7"],
+        "corePlan": "Develop flexibly, castle, then look for central or kingside counterplay.",
+        "commonMistakeAvoided": "It warns against sitting passively in cramped positions.",
+        "futureUpgrade": True,
+    },
+}
+
+
+THEORY_HEAVY_FUTURE_UPGRADES = [
+    "Sicilian Najdorf",
+    "Dragon Sicilian",
+    "Grünfeld Defence",
+    "Benoni Defence",
+    "Advanced Catalan systems",
+    "Highly theoretical King's Indian lines",
+]
+
+
+def opening_data_reliability(
+    best_openings: List[Dict[str, Any]],
+    top_openings: List[Dict[str, Any]],
+    games_analyzed: int,
+) -> Dict[str, Any]:
+    known = [
+        item
+        for item in (best_openings or top_openings or [])
+        if not is_unknown_opening_name(item.get("name", ""))
+    ]
+    repeated = [item for item in known if int(item.get("games", 0) or 0) >= 3]
+    strong = [item for item in known if int(item.get("games", 0) or 0) >= 5]
+    total_known_games = sum(int(item.get("games", 0) or 0) for item in known)
+    reasons = []
+
+    if games_analyzed < 10:
+        reasons.append("fewer than 10 analysed games")
+    if games_analyzed < 5:
+        reasons.append("fewer than 5 analysed games")
+    if not repeated:
+        reasons.append("no repeated opening pattern yet")
+    if total_known_games < max(3, round(games_analyzed * 0.45)):
+        reasons.append("recognised opening coverage is low")
+    if not strong:
+        reasons.append("no opening has enough games for high confidence")
+
+    low_data = games_analyzed < 10 or not repeated or total_known_games < max(3, round(games_analyzed * 0.45))
+
+    return {
+        "lowData": low_data,
+        "low_data": low_data,
+        "gamesAnalyzed": games_analyzed,
+        "games_analyzed": games_analyzed,
+        "recognizedOpeningGames": total_known_games,
+        "recognized_opening_games": total_known_games,
+        "repeatedOpeningCount": len(repeated),
+        "repeated_opening_count": len(repeated),
+        "strongOpeningCount": len(strong),
+        "strong_opening_count": len(strong),
+        "reasons": reasons or ["opening history is strong enough for detected-opening recommendations"],
+    }
+
+
+def enrich_style_profile_for_starters(style_profile: Dict[str, Any]) -> Dict[str, Any]:
+    scores = style_profile.get("scores", {}) or {}
+    aggressive = int(scores.get("aggressive", 0) or 0)
+    solid = int(scores.get("solid", 0) or 0)
+    tactical = int(scores.get("tactical", 0) or 0)
+    flexible = int(scores.get("flexible", 0) or 0)
+    labels = set(style_profile.get("labels", []))
+
+    return {
+        **style_profile,
+        "styleSignals": {
+            "aggression": "aggressive" if aggressive > solid + 1 else "solid" if solid > aggressive + 1 else "balanced",
+            "tacticalAbility": "tactical" if tactical >= 3 or "Tactical" in labels else "positional",
+            "developmentHabits": "developing" if aggressive + solid + flexible < 3 else "patterned",
+            "kingSafety": "unknown",
+            "positionPreference": "open" if aggressive >= solid else "closed or structured",
+            "pieceActivity": "attacking" if aggressive >= solid else "controlled",
+            "exchanges": "unknown",
+            "winPatterns": "tactical attacks" if tactical >= 3 else "practical structure",
+        },
+        "style_signals": {
+            "aggression": "aggressive" if aggressive > solid + 1 else "solid" if solid > aggressive + 1 else "balanced",
+            "tactical_ability": "tactical" if tactical >= 3 or "Tactical" in labels else "positional",
+            "development_habits": "developing" if aggressive + solid + flexible < 3 else "patterned",
+            "king_safety": "unknown",
+            "position_preference": "open" if aggressive >= solid else "closed or structured",
+            "piece_activity": "attacking" if aggressive >= solid else "controlled",
+            "exchanges": "unknown",
+            "win_patterns": "tactical attacks" if tactical >= 3 else "practical structure",
+        },
+    }
+
+
+def starter_opening_names_for_style(style_profile: Dict[str, Any], games_analyzed: int) -> Dict[str, List[str]]:
+    labels = set(style_profile.get("labels", []))
+    scores = style_profile.get("scores", {}) or {}
+    aggressive = int(scores.get("aggressive", 0) or 0)
+    solid = int(scores.get("solid", 0) or 0)
+    tactical = int(scores.get("tactical", 0) or 0)
+    beginner = games_analyzed < 10 or not labels or "Developing" in labels
+    positional = "Solid" in labels and tactical < 3 and aggressive <= solid
+
+    if beginner:
+        return {
+            "white": ["Italian Game", "London System", "Queen's Gambit"],
+            "blackVsE4": ["e5 systems", "Caro-Kann Defence"],
+            "blackVsD4": ["Queen's Gambit Declined setup"],
+        }
+
+    if "Aggressive" in labels or tactical >= 4:
+        return {
+            "white": ["Italian Game", "Scotch Game", "Vienna Game", "King's Gambit"],
+            "blackVsE4": ["Scandinavian Defence", "Caro-Kann Defence", "e5 systems"],
+            "blackVsD4": ["Queen's Gambit Declined", "Dutch Defence"],
+        }
+
+    if positional:
+        return {
+            "white": ["Queen's Gambit", "Colle System", "Catalan-style setups"],
+            "blackVsE4": ["Caro-Kann Defence", "French Defence"],
+            "blackVsD4": ["Queen's Gambit Declined", "Slav Defence", "King's Indian as future option"],
+        }
+
+    return {
+        "white": ["London System", "Italian Game", "Queen's Gambit"],
+        "blackVsE4": ["Caro-Kann Defence", "French Defence", "e5 systems"],
+        "blackVsD4": ["Queen's Gambit Declined", "Slav Defence"],
+    }
+
+
+def build_style_recommendation_item(name: str, style_profile: Dict[str, Any], reliability: Dict[str, Any], games_analyzed: int) -> Dict[str, Any]:
+    library = STARTER_OPENING_LIBRARY.get(name, {})
+    labels = style_profile.get("labels", ["Developing"])
+    label_text = ", ".join(labels)
+    low_data = bool(reliability.get("lowData"))
+    confidence = "Medium Confidence" if games_analyzed >= 5 else "Low Confidence"
+    if not low_data and reliability.get("repeatedOpeningCount", 0) >= 2:
+        confidence = "Low Confidence"
+    if games_analyzed >= 10 and low_data:
+        confidence = "Medium Confidence"
+
+    future = bool(library.get("futureUpgrade") or library.get("advanced"))
+    if future:
+        confidence = "Low Confidence"
+
+    return {
+        "name": name,
+        "role": library.get("role", "general"),
+        "label": "Style-Based Recommendation",
+        "recommendationType": "style_based",
+        "recommendation_type": "style_based",
+        "confidence": confidence,
+        "confidenceLevel": confidence,
+        "confidence_level": confidence,
+        "whyItFits": f"{name} fits your current {label_text.lower()} profile because it gives you a clearer opening plan without depending on a large existing repertoire sample.",
+        "why_it_fits": f"{name} fits your current {label_text.lower()} profile because it gives you a clearer opening plan without depending on a large existing repertoire sample.",
+        "corePlan": library.get("corePlan", opening_explanation(name).get("plan")),
+        "core_plan": library.get("corePlan", opening_explanation(name).get("plan")),
+        "commonMistakeAvoided": library.get("commonMistakeAvoided", opening_explanation(name).get("mistakeToAvoid")),
+        "common_mistake_avoided": library.get("commonMistakeAvoided", opening_explanation(name).get("mistakeToAvoid")),
+        "starterMoveSequence": library.get("starterMoves", []),
+        "starter_move_sequence": library.get("starterMoves", []),
+        "futureUpgrade": future,
+        "future_upgrade": future,
+    }
+
+
+def build_style_based_recommendations(
+    style_profile: Dict[str, Any],
+    best_openings: List[Dict[str, Any]],
+    top_openings: List[Dict[str, Any]],
+    games_analyzed: int,
+) -> Dict[str, Any]:
+    reliability = opening_data_reliability(best_openings, top_openings, games_analyzed)
+    enriched_style = enrich_style_profile_for_starters(style_profile)
+    names_by_role = starter_opening_names_for_style(enriched_style, games_analyzed)
+    sections = []
+
+    for key, title in [
+        ("white", "White"),
+        ("blackVsE4", "Black vs 1.e4"),
+        ("blackVsD4", "Black vs 1.d4"),
+    ]:
+        items = [
+            build_style_recommendation_item(name, enriched_style, reliability, games_analyzed)
+            for name in names_by_role.get(key, [])
+        ]
+        sections.append({"key": key, "title": title, "items": items})
+
+    future_upgrades = [
+        {
+            "name": name,
+            "label": "Future Upgrade Opening",
+            "reason": "Theory-heavy opening. Add this later after your starter repertoire is stable.",
+        }
+        for name in THEORY_HEAVY_FUTURE_UPGRADES
+    ]
+
+    return {
+        "enabled": bool(reliability["lowData"]),
+        "optional": not bool(reliability["lowData"]),
+        "title": "Starter Opening Recommendations",
+        "message": "We couldn't find enough repeated opening data yet, so OpeningFit is recommending openings based on your playing style.",
+        "analysisVersion": "style-starters-v1",
+        "analysis_version": "style-starters-v1",
+        "generatedAt": now_iso(),
+        "generated_at": now_iso(),
+        "gamesAnalyzed": games_analyzed,
+        "games_analyzed": games_analyzed,
+        "styleProfile": enriched_style,
+        "style_profile": enriched_style,
+        "dataReliability": reliability,
+        "data_reliability": reliability,
+        "sections": sections,
+        "futureUpgradeOpenings": future_upgrades,
+        "future_upgrade_openings": future_upgrades,
+    }
+
+
 def build_training_plan(
     style_profile: Dict[str, Any],
     preferred_white: List[Dict[str, Any]],
@@ -2090,6 +2412,12 @@ def import_chesscom_logic(username: str, months: int = 3):
         style_profile,
         report_mode,
     )
+    style_based_recommendations = build_style_based_recommendations(
+        style_profile,
+        best_openings,
+        top_openings,
+        len(analysed_games),
+    )
 
     premium_data = build_premium_data(best_openings, style_profile)
 
@@ -2130,6 +2458,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "openingGames": opening_game_samples,
         "style_profile": style_profile,
         "styleProfile": style_profile,
+        "style_based_recommendations": style_based_recommendations,
+        "styleBasedRecommendations": style_based_recommendations,
         "best_openings": best_openings[:8],
         "bestOpenings": best_openings[:8],
         "opening_recommendations": opening_recommendations,
@@ -2463,6 +2793,12 @@ def build_lichess_analysis(
         style_profile,
         report_mode,
     )
+    style_based_recommendations = build_style_based_recommendations(
+        style_profile,
+        best_openings,
+        top_openings,
+        len(games),
+    )
 
     premium_data = build_premium_data(best_openings, style_profile)
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
@@ -2516,6 +2852,8 @@ def build_lichess_analysis(
         "openingGames": opening_game_samples,
         "style_profile": style_profile,
         "styleProfile": style_profile,
+        "style_based_recommendations": style_based_recommendations,
+        "styleBasedRecommendations": style_based_recommendations,
         "best_openings": best_openings[:8],
         "bestOpenings": best_openings[:8],
         "opening_recommendations": opening_recommendations,

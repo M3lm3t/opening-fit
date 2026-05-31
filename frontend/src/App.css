@@ -31842,6 +31842,8 @@ body,
 }
 
 .analyseLoginButton {
+  display: inline-grid;
+  place-items: center;
   min-height: 42px;
   padding: 0 16px;
   border-radius: 10px;
@@ -31849,6 +31851,7 @@ body,
   background: rgba(15, 23, 42, 0.58);
   color: var(--text);
   font-weight: 900;
+  text-decoration: none;
   white-space: nowrap;
 }
 
@@ -31939,6 +31942,7 @@ body,
 
 .analysisTimeFormatSelector {
   display: grid;
+  justify-items: center;
   gap: 10px;
   margin: 0;
   padding: 0;
@@ -31958,10 +31962,13 @@ body,
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  width: 100%;
 }
 
 .analysisTimeFormatButton {
   display: grid;
+  place-items: center;
+  align-content: center;
   gap: 3px;
   min-height: 64px;
   padding: 10px;
@@ -31969,7 +31976,7 @@ body,
   border: 1px solid rgba(148, 163, 184, 0.18);
   background: rgba(15, 23, 42, 0.5);
   color: var(--text);
-  text-align: left;
+  text-align: center;
 }
 
 .analysisTimeFormatButton strong {
@@ -31982,6 +31989,7 @@ body,
   color: var(--muted);
   font-size: 0.76rem;
   line-height: 1.35;
+  text-align: center;
 }
 
 .analysisTimeFormatButtonActive {
@@ -32100,9 +32108,237 @@ body,
   min-width: 130px;
 }
 
+.styleStarterPanel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  background: rgba(15, 23, 42, 0.68);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+}
+
+.styleStarterHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: start;
+}
+
+.styleStarterHeader h2,
+.styleStarterHeader p,
+.styleStarterSection h3,
+.styleStarterCard h4,
+.styleStarterCard p,
+.styleStarterCard dl,
+.styleStarterFuture strong,
+.styleStarterReliability strong {
+  margin: 0;
+}
+
+.styleStarterHeader p,
+.styleStarterReliability span,
+.styleStarterFuture span,
+.styleStarterCard dd {
+  color: var(--text-soft);
+}
+
+.styleStarterToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 320px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(2, 6, 23, 0.32);
+  color: var(--text);
+  font-weight: 800;
+}
+
+.styleStarterToggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: #60a5fa;
+}
+
+.styleStarterTabs {
+  display: inline-flex;
+  width: fit-content;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.38);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.styleStarterTabs button {
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.styleStarterTabs .styleStarterTabActive {
+  background: rgba(96, 165, 250, 0.18);
+  color: var(--text);
+}
+
+.styleStarterDetectedNote,
+.styleStarterReliability,
+.styleStarterFuture {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.28);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.styleStarterSections {
+  display: grid;
+  gap: 14px;
+}
+
+.styleStarterSection {
+  display: grid;
+  gap: 10px;
+}
+
+.styleStarterCards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.styleStarterCard {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(2, 6, 23, 0.36);
+}
+
+.styleStarterCardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.styleStarterCardTop strong {
+  color: #bfdbfe;
+  text-align: right;
+}
+
+.styleStarterCard h4 {
+  font-size: 1.05rem;
+}
+
+.styleStarterCard p,
+.styleStarterCard dd {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.styleStarterCard dl {
+  display: grid;
+  gap: 8px;
+}
+
+.styleStarterCard dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.styleStarterMoves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.styleStarterMoves span,
+.styleStarterCard em {
+  width: fit-content;
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: rgba(96, 165, 250, 0.13);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.styleStarterCard em {
+  background: rgba(250, 204, 21, 0.14);
+  color: #fde68a;
+}
+
+.styleStarterCard button {
+  justify-self: start;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--text);
+  font-weight: 900;
+}
+
+.page.light .styleStarterPanel,
+[data-theme="light"] .styleStarterPanel {
+  background: #ffffff;
+  border-color: rgba(37, 99, 235, 0.16);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+}
+
+.page.light .styleStarterToggle,
+.page.light .styleStarterTabs,
+.page.light .styleStarterDetectedNote,
+.page.light .styleStarterReliability,
+.page.light .styleStarterFuture,
+.page.light .styleStarterCard,
+[data-theme="light"] .styleStarterToggle,
+[data-theme="light"] .styleStarterTabs,
+[data-theme="light"] .styleStarterDetectedNote,
+[data-theme="light"] .styleStarterReliability,
+[data-theme="light"] .styleStarterFuture,
+[data-theme="light"] .styleStarterCard {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.page.light .styleStarterCardTop strong,
+[data-theme="light"] .styleStarterCardTop strong {
+  color: #1d4ed8;
+}
+
+.page.light .styleStarterCard em,
+[data-theme="light"] .styleStarterCard em {
+  color: #92400e;
+}
+
+.profileLoginAnchor {
+  position: relative;
+  top: -18px;
+  display: block;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
 @media (max-width: 720px) {
   .analyseImportHero .heroTop,
-  .analyseErrorBox {
+  .analyseErrorBox,
+  .styleStarterHeader {
     align-items: stretch;
     flex-direction: column;
   }
@@ -32114,6 +32350,18 @@ body,
 
   .analysisTimeFormatGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .styleStarterCards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .styleStarterTabs {
+    width: 100%;
+  }
+
+  .styleStarterTabs button {
+    flex: 1;
   }
 }
 
