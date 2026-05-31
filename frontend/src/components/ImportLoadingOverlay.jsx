@@ -13,9 +13,9 @@ export default function ImportLoadingOverlay({
     "Importing games",
     "Detecting openings",
     "Building style profile",
-    "Comparing opening fit",
-    "Saving results",
-    "Preparing recommendations",
+    "Comparing openings",
+    "Generating recommendations",
+    "Preparing results",
   ];
   const stepText = String(loadingStep || "").toLowerCase();
   const activeStageIndex = Math.min(
@@ -28,7 +28,7 @@ export default function ImportLoadingOverlay({
           ? 2
           : stepText.includes("fit") || stepText.includes("compar")
             ? 3
-            : stepText.includes("sav")
+            : stepText.includes("generat")
               ? 4
               : stepText.includes("recommend") || stepText.includes("prepar")
                 ? 5
@@ -37,8 +37,8 @@ export default function ImportLoadingOverlay({
   );
   const loadingTips = [
     isAnalysis
-      ? "OpeningFit is checking public game data and grouping opening patterns."
-      : "Tip: openings with repeatable plans are easier to remember than long move trees.",
+      ? "OpeningFit is building your personal opening profile."
+      : "OpeningFit is building your personal opening profile.",
     "OpeningFit gets smarter as you analyse more games.",
     "Your recommendations improve when you come back after playing more games.",
   ];
@@ -62,13 +62,13 @@ export default function ImportLoadingOverlay({
           </span>
           <h2>
             {isAnalysis
-              ? "Analysing your game... this can take a little time."
+              ? "Building your opening profile..."
               : "Building your OpeningFit report..."}
           </h2>
           {isAnalysis ? (
             <p>
-              OpeningFit is running on a free server, so the first analysis may
-              take 30-60 seconds to start. Please don't close or refresh the page.
+              First analyses may take a little longer while the server wakes up.
+              Please don't close or refresh the page.
             </p>
           ) : (
             <p>

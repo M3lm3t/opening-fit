@@ -771,7 +771,7 @@ const REPERTOIRE_BUCKETS = [
   { key: "bestFit", title: "Best fit" },
   { key: "needsReview", title: "Needs review" },
   { key: "risky", title: "Risky / unstable" },
-  { key: "notEnoughData", title: "Not enough data" },
+  { key: "notEnoughData", title: "We need a few more games" },
 ];
 
 function repertoireBucketForOpening(opening) {
@@ -1957,18 +1957,18 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
   if (games < 5 || signal.badge === "Too little data") {
     return {
-      label: "Not enough data",
+      label: "We need a few more games",
       category: "neutral",
       tone: "neutral",
       severity: "neutral",
-      message: "0-4 games. Not enough data for a full verdict.",
+      message: "We need a few more games before we can give a confident verdict.",
     };
   }
 
   if (games < 10 || signal.badge === "Low") {
     const lowWinRate = winRate < 45;
     return {
-      label: "Not enough data",
+      label: "We need a few more games",
       category: "neutral",
       tone: "neutral",
       severity: "neutral",
@@ -1994,14 +1994,14 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
 
   if (signal.tier === "none" || signal.tier === "low") {
     return {
-      label: publicMode ? "Not enough context to judge" : "Experimental / not enough data",
+      label: publicMode ? "We need a few more games" : "Early signal",
       category: "neutral",
       tone: "neutral",
       severity: "neutral",
       message:
         publicMode
           ? "This is too small a recent online sample for a hard verdict. It may be an experiment, a content game, or a one-off opponent-specific choice."
-          : "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation.",
+          : "We need a few more games before making this a main recommendation.",
     };
   }
 
@@ -4109,8 +4109,28 @@ function normaliseNextStepOpening(item, data, fitData, index = 0) {
     firstMoves,
     mainPlan,
     commonMistake,
+    learnBullets:
+      item?.learnBullets ||
+      item?.learn_bullets ||
+      details.learnBullets ||
+      ["Piece coordination", "Safe development", "Clear plans after the opening"],
     studyTask: `Your next task: play 5 games using the ${name}, then return to OpeningFit to update your profile.`,
   };
+}
+
+function confidenceStars(confidence = "") {
+  const text = String(confidence).toLowerCase();
+  if (text.includes("high")) return "★★★★★";
+  if (text.includes("medium") || text.includes("moderate")) return "★★★☆☆";
+  return "★★☆☆☆";
+}
+
+function coachConfidenceLabel(confidence = "") {
+  const text = String(confidence).toLowerCase();
+  if (text.includes("high")) return "High confidence";
+  if (text.includes("medium") || text.includes("moderate")) return "Medium confidence";
+  if (text.includes("low")) return "Low confidence";
+  return confidence || "Building confidence";
 }
 
 function buildNextStepOpenings(data, fitData) {
@@ -4351,17 +4371,20 @@ function AnalysisTrustSignalsPanel({ data, fitData }) {
         <article>
           <span>Openings detected</span>
           <strong>{trust.openingsDetected}</strong>
-          <p>Recognised opening patterns found in the sample.</p>
+          <p>Your most played opening patterns found in the sample.</p>
         </article>
         <article>
-          <span>Confidence level</span>
+          <span>How sure are we?</span>
           <strong>{trust.confidenceScore !== null ? `${trust.confidenceScore}%` : trust.confidenceLevel}</strong>
+          <div className="analysisTrustMeter" aria-hidden="true">
+            <span style={{ width: `${trust.confidenceScore ?? 42}%` }} />
+          </div>
           <p>{trust.confidenceLevel}</p>
         </article>
         <article>
-          <span>Recommendation basis</span>
+          <span>Why this advice?</span>
           <strong>{trust.basis}</strong>
-          <p>Low-data suggestions are labelled separately from detected openings.</p>
+          <p>Starter suggestions are clearly separated from your played openings.</p>
         </article>
       </div>
     </section>
@@ -4419,6 +4442,7 @@ function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
   const [status, setStatus] = useState("");
   const openings = buildNextStepOpenings(data, fitData);
   const primaryOpening = openings[0]?.name || buildStudyThisNextTarget(fitData)?.name || "your recommended opening";
+  const featuredOpening = openings[0] || normaliseNextStepOpening({ name: "Italian Game" }, data, fitData);
 
   if (!data) return null;
 
@@ -4454,11 +4478,65 @@ function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
     <section className="analysisNextStepsPanel" id="analysis-next-steps">
       <div className="analysisNextStepsHeader">
         <div>
-          <p className="eyebrow">Next Steps</p>
-          <h2>Turn this analysis into your next training loop</h2>
-          <p>Analyse, learn, play, return, and reanalyse so your profile keeps getting sharper.</p>
+          <p className="eyebrow">What should I play?</p>
+          <h2>Your next opening to try</h2>
+          <p>Start with one opening, play a few games, then come back so OpeningFit can sharpen the plan.</p>
         </div>
       </div>
+
+      {featuredOpening ? (
+        <article className="premiumRecommendationCard">
+          <div className="premiumRecommendationTop">
+            <span>Good fit match</span>
+            <strong>{featuredOpening.name}</strong>
+            <div className="premiumConfidenceVisual" aria-label={coachConfidenceLabel(featuredOpening.confidence)}>
+              <span>{coachConfidenceLabel(featuredOpening.confidence)}</span>
+              <em>{confidenceStars(featuredOpening.confidence)}</em>
+            </div>
+          </div>
+
+          <div className="premiumRecommendationBody">
+            <div>
+              <span>Why this fits</span>
+              <p>{featuredOpening.whyItFits}</p>
+            </div>
+            <div>
+              <span>What you'll learn</span>
+              <ul>
+                {(featuredOpening.learnBullets || []).slice(0, 3).map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <span>Your next task</span>
+              <p>{featuredOpening.studyTask}</p>
+            </div>
+          </div>
+
+          <div className="premiumRecommendationActions">
+            <button type="button" className="primaryBtn" onClick={() => onPractice?.(featuredOpening.name)}>
+              Train Opening
+            </button>
+            <button type="button" className="secondaryButton" onClick={() => onViewChange?.("train")}>
+              Learn More
+            </button>
+            <button
+              type="button"
+              className="secondaryButton"
+              onClick={() => {
+                onViewChange?.("analyse");
+                setTimeout(() => {
+                  const target = document.getElementById("import") || document.querySelector(".analyseImportHero");
+                  if (target?.scrollIntoView) target.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 80);
+              }}
+            >
+              Analyse More Games
+            </button>
+          </div>
+        </article>
+      ) : null}
 
       <div className="analysisNextStepActions">
         <button type="button" className="primaryBtn" onClick={saveRecommendation}>
@@ -4488,7 +4566,7 @@ function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
         {(openings.length ? openings : [normaliseNextStepOpening({ name: "Italian Game" }, data, fitData)]).map((opening) => (
           <article className="analysisNextOpeningCard" key={opening.name}>
             <div className="analysisNextOpeningTop">
-              <span>{opening.confidence}</span>
+              <span>{coachConfidenceLabel(opening.confidence)} {confidenceStars(opening.confidence)}</span>
               <strong>{opening.name}</strong>
             </div>
             <dl>
@@ -4846,8 +4924,8 @@ function CurrentReportSummary({
     <section className="currentReportSummaryCard" aria-label="Current report summary">
       <div className="commandCentreHero">
         <div className="currentReportSummaryMain">
-          <p className="eyebrow">Command centre</p>
-          <h1>{playerName}'s opening analysis</h1>
+          <p className="eyebrow">What did OpeningFit learn?</p>
+          <h1>Your Opening Profile Has Been Updated</h1>
           <p>{verdict.profile}</p>
         </div>
 
@@ -4861,20 +4939,20 @@ function CurrentReportSummary({
 
       <div className="nextBestMoveCard">
         <div>
-          <span>Your next best move</span>
+          <span>What should I do next?</span>
           <h2>{mainRecommendation}</h2>
           <p>{nextBestMove}</p>
         </div>
 
         <div className="nextBestMoveActions">
           <button type="button" className="primaryBtn" onClick={() => chooseReportMode("table")}>
-            View evidence
+            See What We Learned
           </button>
           <button type="button" className="secondaryBtn" onClick={() => onViewChange?.("train")}>
             Add to study plan
           </button>
           <button type="button" className="secondaryBtn" onClick={() => chooseReportMode("full")}>
-            See alternatives
+            Compare options
           </button>
         </div>
       </div>
@@ -4905,7 +4983,7 @@ function CurrentReportSummary({
       <div className="commandCentreOpeningGrid">
         <article>
           <div className="commandCentreMiniHeader">
-            <span>Best openings</span>
+            <span>Your Current Repertoire</span>
             <strong>{bestOpenings.length}</strong>
           </div>
           {bestOpenings.length ? (
@@ -4917,7 +4995,7 @@ function CurrentReportSummary({
 
         <article>
           <div className="commandCentreMiniHeader">
-            <span>Problem openings</span>
+            <span>Openings to improve</span>
             <strong>{problemOpenings.length}</strong>
           </div>
           {problemOpenings.length ? (
@@ -5925,16 +6003,16 @@ function OpeningFitProfileDashboard({
   if (!data) {
     return (
       <div className="profileDashboard">
-        <section className="profileNoReportState">
-          <p className="eyebrow">Profile</p>
-          <h1>Your OpeningFit Profile</h1>
-          <p>
-            No active report is loaded in this browser. Import your Chess.com or Lichess games to refresh your OpeningFit profile.
-          </p>
-          <button className="primaryBtn" type="button" onClick={onAnalyse}>
-            Create my first report
-          </button>
-        </section>
+      <section className="profileNoReportState">
+        <p className="eyebrow">Profile</p>
+        <h1>Let's build your opening profile.</h1>
+        <p>
+          We'll study your games and suggest openings that match your style.
+        </p>
+        <button className="primaryBtn" type="button" onClick={onAnalyse}>
+          Analyse Username
+        </button>
+      </section>
 
         {hasStoredProgress ? (
           <OpeningFitProgressCard
@@ -10482,7 +10560,7 @@ function App() {
       await new Promise((resolve) => setTimeout(resolve, 250));
 
       const cleanData = normaliseData(json);
-      setLoadingStep("Comparing opening fit...");
+      setLoadingStep("Comparing openings...");
       await new Promise((resolve) => setTimeout(resolve, 180));
       const reportRetentionKey = buildReportRetentionKey(cleanData, {
         username: cleanUsername,
@@ -10532,7 +10610,7 @@ function App() {
 
       if (supabaseUser?.id) {
         try {
-          setLoadingStep("Saving results...");
+          setLoadingStep("Generating recommendations...");
           const importFitData = buildOpeningFitData(cleanData);
           const reportSummary = buildReportHistorySummary(cleanData, importFitData);
           const progressSnapshot = buildOpeningFitProgressSnapshot(
@@ -10565,7 +10643,7 @@ function App() {
         }
       }
 
-      setLoadingStep("Preparing recommendations...");
+      setLoadingStep("Preparing results...");
 
       rememberLandingSeen({ keepPublicLanding: false });
       setActiveView("report");

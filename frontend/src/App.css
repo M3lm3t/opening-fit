@@ -36564,6 +36564,21 @@ svg {
   line-height: 1.28;
 }
 
+.analysisTrustMeter {
+  overflow: hidden;
+  height: 8px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--of-muted-final, #94a3b8) 22%, transparent);
+}
+
+.analysisTrustMeter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+}
+
 .comeBackPrompt {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr) auto;
@@ -36636,6 +36651,85 @@ svg {
 }
 
 .analysisNextStepActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.premiumRecommendationCard {
+  display: grid;
+  gap: 16px;
+  padding: clamp(18px, 3vw, 26px);
+  border: 1px solid color-mix(in srgb, var(--success) 34%, var(--of-border-final));
+  border-radius: var(--of-radius-section-final, 20px);
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--success) 16%, transparent), transparent 16rem),
+    var(--of-surface-soft-final, rgba(15, 23, 42, 0.58));
+}
+
+.premiumRecommendationTop {
+  display: grid;
+  gap: 8px;
+}
+
+.premiumRecommendationTop > span,
+.premiumRecommendationBody span {
+  color: var(--of-muted-final, #94a3b8);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.premiumRecommendationTop > strong {
+  color: var(--foreground);
+  font-size: clamp(2.2rem, 6vw, 4.6rem);
+  line-height: 0.95;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.premiumConfidenceVisual {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  color: var(--foreground);
+  font-weight: 900;
+}
+
+.premiumConfidenceVisual em {
+  color: #facc15;
+  font-style: normal;
+  letter-spacing: 0.08em;
+}
+
+.premiumRecommendationBody {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 1fr;
+  gap: 12px;
+}
+
+.premiumRecommendationBody > div {
+  min-width: 0;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-card-final, 16px);
+  padding: 14px;
+  background: color-mix(in srgb, var(--of-surface-soft-final, rgba(15, 23, 42, 0.58)) 78%, transparent);
+}
+
+.premiumRecommendationBody p,
+.premiumRecommendationBody ul {
+  margin: 8px 0 0;
+  color: var(--of-copy-final, #cbd5e1);
+  line-height: 1.5;
+}
+
+.premiumRecommendationBody ul {
+  padding-left: 18px;
+}
+
+.premiumRecommendationActions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -36840,6 +36934,8 @@ svg {
 .page.light .analysisTrustSignalGrid article,
 .page.light .comeBackPrompt,
 .page.light .comeBackPromptStats article,
+.page.light .premiumRecommendationCard,
+.page.light .premiumRecommendationBody > div,
 .page.light .analysisNextOpeningCard,
 .page.light .recommendationHistoryCompare article,
 .page.light .recommendationHistoryLists > div,
@@ -36855,6 +36951,8 @@ svg {
 [data-theme="light"] .analysisTrustSignalGrid article,
 [data-theme="light"] .comeBackPrompt,
 [data-theme="light"] .comeBackPromptStats article,
+[data-theme="light"] .premiumRecommendationCard,
+[data-theme="light"] .premiumRecommendationBody > div,
 [data-theme="light"] .analysisNextOpeningCard,
 [data-theme="light"] .recommendationHistoryCompare article,
 [data-theme="light"] .recommendationHistoryLists > div {
@@ -36873,6 +36971,7 @@ svg {
   .analysisTrustSignalGrid,
   .comeBackPrompt,
   .comeBackPromptStats,
+  .premiumRecommendationBody,
   .analysisNextOpeningGrid,
   .recommendationHistoryCompare,
   .recommendationHistoryLists {
@@ -36905,6 +37004,8 @@ svg {
   .returnDashboardActions button,
   .analysisNextStepActions,
   .analysisNextStepActions button,
+  .premiumRecommendationActions,
+  .premiumRecommendationActions button,
   .comeBackPrompt button,
   .recommendationHistoryActions,
   .recommendationHistoryActions button,
