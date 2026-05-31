@@ -210,7 +210,7 @@ function buildWeakLines(data) {
 }
 
 
-function LockedOverlay({ title = "Founder Pass unlock", children, onUnlock, actionLabel = "Unlock Founder Pass" }) {
+function LockedOverlay({ title = "Founder Pass unlock", children, onUnlock, actionLabel = "Pricing" }) {
   return (
     <div className="premiumLockedOverlay">
       <div className="premiumLockIcon">🔒</div>
@@ -417,7 +417,7 @@ export default function PremiumDashboard({
 
   const runStockfish = async () => {
     if (!premiumActive) {
-      setStockfishError("Engine review is part of the full repertoire audit. Unlock Founder Pass or preview it first.");
+      setStockfishError("Engine review is part of the full repertoire audit. Pricing or preview it first.");
       return;
     }
 
@@ -484,7 +484,7 @@ export default function PremiumDashboard({
           {!isPremium ? (
             <>
               <button className="premiumCheckoutButton" type="button" onClick={unlockAction}>
-                Unlock Founder Pass
+                Pricing
               </button>
               <button className="premiumDemoToggle" type="button" onClick={togglePremiumDemo}>
                 {isPremiumPreview ? "Preview on" : "Preview premium"}

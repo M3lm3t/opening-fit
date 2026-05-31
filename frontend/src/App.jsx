@@ -4437,6 +4437,236 @@ function ComeBackAfterPlayingPrompt({ data, fitData, onAnalyse }) {
   );
 }
 
+function PostAnalysisActionFlow({ data, fitData, onPractice, onViewChange }) {
+  if (!data) return null;
+
+  const scoredOpenings = uniqueOpeningsByNameAndContext(
+    Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : []
+  )
+    .filter((opening) => !isUnknownOpeningName(getOpeningName(opening)))
+    .sort(evidenceSort);
+  const verdictFor = (opening) =>
+    openingVerdictLabel(opening, data, opening?.fitVerdict || opening?.verdict);
+  const keepOpenings = scoredOpenings.filter((opening) => verdictFor(opening) === "Keep");
+  const repairOpenings = scoredOpenings.filter((opening) =>
+    ["Improve", "Avoid"].includes(verdictFor(opening))
+  );
+  const strength = fitData?.bestOpening || keepOpenings[0] || scoredOpenings[0] || null;
+  const weakness =
+    fitData?.weakestOpening ||
+    [...repairOpenings].sort((a, b) => {
+      const scoreDelta = getWinRate(a) - getWinRate(b);
+      if (scoreDelta) return scoreDelta;
+      return getOpeningGames(b) - getOpeningGames(a);
+    })[0] ||
+    scoredOpenings[1] ||
+    null;
+  const nextStepOpenings = buildNextStepOpenings(data, fitData);
+  const studyTarget = buildStudyThisNextTarget(fitData);
+  const actionOpening =
+    nextStepOpenings[0] ||
+    (studyTarget ? normaliseNextStepOpening(studyTarget.opening, data, fitData, 0) : null);
+  const trust = getAnalysisTrustSignals(data, fitData);
+  const score =
+    getProgressScoreValue(
+      fitData?.overallScore ??
+        data?.openingFitScore ??
+        data?.opening_fit_score ??
+        data?.opening_health_score
+    ) ?? trust.confidenceScore;
+  const strengthName = strength ? getOpeningName(strength) : "No clear strength yet";
+  const weaknessName = weakness ? getOpeningName(weakness) : "We need a few more games";
+  const actionName = actionOpening?.name || studyTarget?.name || weaknessName;
+  const strengthConfidence = strength ? getOpeningConfidence(strength) : trust.confidenceLevel;
+  const weaknessConfidence = weakness ? getOpeningConfidence(weakness) : "Low confidence";
+  const actionConfidence = actionOpening?.confidence || studyTarget?.confidence || trust.confidenceLevel;
+  const riskyOpening = repairOpenings.find((opening) => verdictFor(opening) === "Avoid") || weakness;
+
+  const scrollToImport = () => {
+    onViewChange?.("analyse");
+    setTimeout(() => {
+      const target = document.getElementById("import") || document.querySelector(".analyseImportHero");
+      if (target?.scrollIntoView) target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+  };
+
+  const scrollToNextSteps = () => {
+    setTimeout(() => {
+      const target = document.getElementById("analysis-next-steps") || document.getElementById("app-results");
+      if (target?.scrollIntoView) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  };
+
+  const cards = [
+    {
+      key: "score",
+      section: "SECTION 1",
+      title: "Your Repertoire Score",
+      value: score !== null ? `${score} / 100` : "Building",
+      meta: `${trust.games || 0} games analysed`,
+      tone: "score",
+      problem: "How strong and clear is my opening profile?",
+      explanation:
+        score !== null
+          ? `OpeningFit rates your current repertoire clarity at ${score}/100 based on the games in this report.`
+          : "OpeningFit needs a few more games before it can give this a reliable score.",
+      action: "Play 5 more games, then reanalyse to make the score more accurate.",
+      cta: "Analyse My Games",
+      onClick: scrollToImport,
+    },
+    {
+      key: "strength",
+      section: "SECTION 2",
+      title: "Biggest Strength",
+      label: "Strongest Opening",
+      value: strengthName,
+      meta: strength ? `${getWinRate(strength)}% fit score` : "Still learning",
+      confidence: strengthConfidence,
+      tone: "strength",
+      problem: "What should I keep playing?",
+      explanation: strength
+        ? `${getOpeningContextTitle(strength)} is your clearest positive signal right now.`
+        : "No repeated strong opening has appeared yet, so start with one simple setup and collect more games.",
+      action: strength
+        ? `Keep ${strengthName} in your repertoire and review the first plan after move 6.`
+        : "Pick one starter opening, play it for a week, and return with fresh games.",
+      cta: "Train Opening",
+      onClick: () => (strength ? onPractice?.(strengthName) : onViewChange?.("train")),
+    },
+    {
+      key: "weakness",
+      section: "SECTION 3",
+      title: "Biggest Weakness",
+      label: "Needs Repair",
+      value: weaknessName,
+      meta: weakness ? `${getWinRate(weakness)}% fit score` : "More games needed",
+      confidence: weaknessConfidence,
+      tone: "weakness",
+      problem: "What is costing me points?",
+      explanation: weakness
+        ? `${getOpeningContextTitle(weakness)} is the opening pattern most worth repairing before you add new ideas.`
+        : "OpeningFit has not found a repeated problem yet. That is normal for a small game sample.",
+      action: weakness
+        ? `Repair ${weaknessName} by learning the first 6 moves and one simple middlegame plan.`
+        : "Avoid spreading your study across too many openings until one pattern repeats.",
+      cta: "Repair Opening",
+      onClick: () => (weakness ? onPractice?.(weaknessName) : onViewChange?.("train")),
+    },
+    {
+      key: "action",
+      section: "SECTION 4",
+      title: "Recommended Opening Action",
+      label: weakness ? "Suggested Focus" : "Starter Recommendation",
+      value: actionName,
+      meta: coachConfidenceLabel(actionConfidence),
+      confidence: actionConfidence,
+      tone: "action",
+      problem: "What should I do next?",
+      explanation:
+        actionOpening?.whyItFits ||
+        studyTarget?.why ||
+        "This is the most useful next step from your current report.",
+      action:
+        actionOpening?.studyTask ||
+        studyTarget?.goal ||
+        `Play 5 games with ${actionName}, then come back to update your OpeningFit profile.`,
+      cta: weakness ? "Find Alternative" : "Start Training",
+      onClick: weakness ? scrollToNextSteps : () => onPractice?.(actionName),
+    },
+  ];
+
+  const studyPlan = [
+    weakness ? `Repair ${weaknessName}` : "Choose one repeatable starter opening",
+    strength ? `Review ${strengthName} responses` : "Play 5 games with the same setup",
+    riskyOpening ? `Avoid ${getOpeningName(riskyOpening)} experiments for now` : "Come back after 5 more games",
+  ];
+
+  return (
+    <section className="postAnalysisFlow" aria-label="Post-analysis action plan">
+      <div className="postAnalysisFlowHeader">
+        <p className="eyebrow">Your report path</p>
+        <h2>Here is what to do next</h2>
+        <p>
+          OpeningFit turns this report into a simple training loop: repair one weakness, keep one strength, then
+          reanalyse after more games.
+        </p>
+      </div>
+
+      <div className="postAnalysisHierarchy">
+        {cards.map((card) => (
+          <article className={`postAnalysisCard postAnalysisCard--${card.tone}`} key={card.key}>
+            <div className="postAnalysisCardTop">
+              <span>{card.section}</span>
+              <strong>{card.title}</strong>
+            </div>
+            {card.label ? <p className="postAnalysisLabel">{card.label}</p> : null}
+            <h3>{card.value}</h3>
+            <p className="postAnalysisMeta">
+              {card.meta}
+              {card.confidence ? (
+                <span aria-label={coachConfidenceLabel(card.confidence)}>
+                  {confidenceStars(card.confidence)}
+                </span>
+              ) : null}
+            </p>
+            <dl>
+              <div>
+                <dt>Problem</dt>
+                <dd>{card.problem}</dd>
+              </div>
+              <div>
+                <dt>Explanation</dt>
+                <dd>{card.explanation}</dd>
+              </div>
+              <div>
+                <dt>Recommended action</dt>
+                <dd>{card.action}</dd>
+              </div>
+            </dl>
+            <button
+              type="button"
+              className={card.key === "score" ? "secondaryButton" : "primaryBtn"}
+              onClick={card.onClick}
+            >
+              {card.cta}
+            </button>
+          </article>
+        ))}
+
+        <article className="postAnalysisCard postAnalysisCard--study">
+          <div className="postAnalysisCardTop">
+            <span>SECTION 5</span>
+            <strong>Study Plan</strong>
+          </div>
+          <p className="postAnalysisLabel">This Week's Study Plan</p>
+          <ol className="postAnalysisStudyList">
+            {studyPlan.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ol>
+          <dl>
+            <div>
+              <dt>Problem</dt>
+              <dd>It is easy to finish a report and study too many things at once.</dd>
+            </div>
+            <div>
+              <dt>Explanation</dt>
+              <dd>A focused week gives OpeningFit clearer evidence when you come back.</dd>
+            </div>
+            <div>
+              <dt>Recommended action</dt>
+              <dd>Train once, play 5 games, then reanalyse to see what changed.</dd>
+            </div>
+          </dl>
+          <button type="button" className="primaryBtn" onClick={() => onViewChange?.("train")}>
+            Start Training
+          </button>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
   const { user, recordActivity, saveRecommendationHistory } = useAuth();
   const [status, setStatus] = useState("");
@@ -4618,6 +4848,13 @@ function FinalReportFlow({
         onViewChange={onViewChange}
         reportMode={reportMode}
         onReportModeChange={setReportMode}
+      />
+
+      <PostAnalysisActionFlow
+        data={data}
+        fitData={fitData}
+        onPractice={onPractice}
+        onViewChange={onViewChange}
       />
 
       <WeeklyOpeningReport data={data} />
@@ -6500,12 +6737,12 @@ function CompactReportSummary({ data, fitData, onViewChange, onPractice }) {
           </p>
         </div>
         <button type="button" onClick={() => onViewChange?.("upgrade")}>
-          Unlock Founder Pass
+          Pricing
         </button>
       </article>
 
       <button className="commandUpgradeCta" type="button" onClick={() => onViewChange?.("upgrade")}>
-        Unlock your full repertoire audit
+        Pricing
       </button>
     </section>
   );
@@ -7460,20 +7697,25 @@ function FloatingAppMenu({ data, onJump, activeView, onViewChange }) {
   );
 }
 
-function AppPrimaryNav({ activeView, hasReport, onViewChange }) {
+function AppPrimaryNav({ activeView, accountUser, onViewChange, onExampleReport, onLogin, onPricing }) {
   const activeSection = getAppSection(activeView);
   const items = [
-    { key: "analyse", label: "Analyse", path: "/", target: "app-dashboard" },
-    { key: "report", label: "Report", path: "/report", target: "app-results" },
-    { key: "train", label: "Train", path: "/train", target: "training-plan" },
-    { key: "profile", label: "Profile", path: "/account", target: "profile" },
+    { key: "analyse", label: "Analyse", path: "/", target: "import", view: "analyse" },
+    { key: "example", label: "Example Report", path: "/report", target: "app-results", action: onExampleReport },
+    { key: "pricing", label: "Pricing", path: "/premium", target: "premium", action: onPricing },
+    { key: "login", label: accountUser ? "Account" : "Login", path: accountUser ? "/account" : "/login", target: "login", action: onLogin },
   ];
 
   const navigate = (event, item) => {
     event.preventDefault();
 
+    if (typeof item.action === "function") {
+      item.action(event);
+      return;
+    }
+
     if (typeof onViewChange === "function") {
-      onViewChange(item.key);
+      onViewChange(item.view || item.key);
     }
 
     if (item.path && window.location.pathname !== item.path) {
@@ -7503,8 +7745,7 @@ function AppPrimaryNav({ activeView, hasReport, onViewChange }) {
 
         <div className="appPrimaryTabs" role="list">
           {items.map((item) => {
-            const isActive = activeSection === item.key;
-            const isUnavailable = !hasReport && ["report", "train"].includes(item.key);
+            const isActive = activeSection === (item.view || item.key);
 
             return (
               <a
@@ -7513,7 +7754,6 @@ function AppPrimaryNav({ activeView, hasReport, onViewChange }) {
                 role="listitem"
                 className={isActive ? "appPrimaryTab appPrimaryTabActive" : "appPrimaryTab"}
                 aria-current={isActive ? "page" : undefined}
-                aria-disabled={isUnavailable ? "true" : undefined}
                 onClick={(event) => navigate(event, item)}
               >
                 {item.label}
@@ -7521,6 +7761,10 @@ function AppPrimaryNav({ activeView, hasReport, onViewChange }) {
             );
           })}
         </div>
+
+        <a className="appPrimaryGetStarted" href="/" onClick={(event) => navigate(event, items[0])}>
+          Get Started
+        </a>
       </div>
     </nav>
   );
@@ -9793,6 +10037,10 @@ function App() {
       setActiveView("report");
     }
 
+    if (window.location.pathname !== "/report") {
+      window.history.pushState({}, "", "/report");
+    }
+
     if (typeof setShowLanding === "function") {
       setShowLanding(false);
     }
@@ -9835,6 +10083,26 @@ function App() {
         accountTarget.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, 120);
+  };
+
+  const openPricingPage = (event) => {
+    event?.preventDefault?.();
+    setActiveView("profile");
+
+    if (window.location.pathname !== "/premium") {
+      window.history.pushState({}, "", "/premium");
+    }
+
+    setTimeout(() => {
+      const target =
+        document.getElementById("premium") ||
+        document.querySelector(".profileFounderCard") ||
+        document.getElementById("profile");
+
+      if (target?.scrollIntoView) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
   };
 
   const openLoginPage = (event) => {
@@ -11418,8 +11686,11 @@ function App() {
         <OpeningFitPolishToast />
         <AppPrimaryNav
           activeView={activeView}
-          hasReport={hasReport}
+          accountUser={accountUser}
           onViewChange={setActiveView}
+          onExampleReport={loadDemoReport}
+          onLogin={openLoginPage}
+          onPricing={openPricingPage}
         />
 
         {data ? (
@@ -11674,7 +11945,7 @@ function App() {
                   onClick={() => importGames()}
                   disabled={loading || !username.trim()}
                 >
-                  {loading ? "Analysing..." : "Analyse games"}
+                  {loading ? "Analysing..." : "Analyse My Games"}
                 </button>
               </div>
             </div>
@@ -11688,7 +11959,7 @@ function App() {
                 onClick={loadDemoReport}
                 disabled={loading}
               >
-                View demo report
+                View Example Report
               </button>
             </div>
 

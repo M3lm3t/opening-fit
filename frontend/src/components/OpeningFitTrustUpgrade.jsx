@@ -150,11 +150,11 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onF
 
           <div className="trustActions">
             <button type="button" className="trustPrimaryBtn" onClick={onImport}>
-              Analyse my games
+              Analyse My Games
             </button>
 
             <button type="button" className="trustSecondaryBtn" onClick={onDemo || onSample}>
-              See example analysis
+              View Example Report
             </button>
           </div>
 
@@ -220,7 +220,7 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onF
           </div>
 
           <button type="button" className="trustSecondaryBtn" onClick={handleExample}>
-            Open example report
+            View Example Report
           </button>
         </div>
 
@@ -340,7 +340,7 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onF
           </p>
 
           <button type="button" className="founderButton" onClick={onFounderPass}>
-            Unlock Founder Pass
+            Pricing
           </button>
         </article>
       </div>

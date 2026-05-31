@@ -492,7 +492,7 @@ export default function AccountPanel({ variant = "floating",
                     type="button"
                     onClick={handlePremiumCheckout}
                   >
-                    Unlock Founder Pass
+                    Pricing
                   </button>
                 ) : (
                   <span className="accountPremiumBadge">Active</span>

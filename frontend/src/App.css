@@ -31658,6 +31658,20 @@ body,
   opacity: 0.62;
 }
 
+.appPrimaryGetStarted {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 0 16px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #ffffff;
+  font-weight: 950;
+  box-shadow: 0 14px 30px rgba(34, 197, 94, 0.22);
+  white-space: nowrap;
+}
+
 .profileSection {
   display: grid;
   gap: 16px;
@@ -36495,6 +36509,156 @@ svg {
   gap: 10px;
 }
 
+.postAnalysisFlow {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-section-final, 20px);
+  padding: var(--of-section-pad-final, 20px);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 13%, transparent), transparent 18rem),
+    var(--of-surface-final, rgba(15, 23, 42, 0.88));
+  box-shadow: var(--of-shadow-final, 0 14px 34px rgba(2, 6, 23, 0.18));
+}
+
+.postAnalysisFlowHeader {
+  display: grid;
+  gap: 8px;
+  max-width: 780px;
+}
+
+.postAnalysisFlowHeader h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: clamp(1.55rem, 3vw, 2.35rem);
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.postAnalysisFlowHeader p {
+  margin: 0;
+  color: var(--of-copy-final, #cbd5e1);
+  line-height: 1.55;
+}
+
+.postAnalysisHierarchy {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.postAnalysisCard {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 12px;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-card-final, 16px);
+  padding: 15px;
+  background: var(--of-surface-soft-final, rgba(15, 23, 42, 0.58));
+}
+
+.postAnalysisCard--score {
+  border-color: color-mix(in srgb, var(--primary) 32%, var(--of-border-final));
+}
+
+.postAnalysisCard--strength {
+  border-color: color-mix(in srgb, var(--success) 34%, var(--of-border-final));
+}
+
+.postAnalysisCard--weakness {
+  border-color: color-mix(in srgb, var(--warning, #f59e0b) 36%, var(--of-border-final));
+}
+
+.postAnalysisCard--action {
+  border-color: color-mix(in srgb, var(--accent, #38bdf8) 34%, var(--of-border-final));
+}
+
+.postAnalysisCard--study {
+  border-color: color-mix(in srgb, var(--primary) 26%, var(--of-border-final));
+}
+
+.postAnalysisCardTop {
+  display: grid;
+  gap: 4px;
+}
+
+.postAnalysisCardTop span,
+.postAnalysisLabel,
+.postAnalysisCard dt {
+  color: var(--of-muted-final, #94a3b8);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.postAnalysisCardTop strong {
+  color: var(--foreground);
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.postAnalysisLabel {
+  margin: 0;
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground));
+}
+
+.postAnalysisCard h3 {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--foreground);
+  font-size: clamp(1.35rem, 3vw, 2.15rem);
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.postAnalysisMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  color: var(--of-copy-final, #cbd5e1);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.postAnalysisMeta span {
+  color: #facc15;
+  letter-spacing: 0.06em;
+}
+
+.postAnalysisCard dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.postAnalysisCard dd {
+  margin: 3px 0 0;
+  color: var(--of-copy-final, #cbd5e1);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.postAnalysisCard button {
+  width: 100%;
+  margin-top: auto;
+}
+
+.postAnalysisStudyList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--foreground);
+  font-weight: 850;
+  line-height: 1.4;
+}
+
 .analysisNextStepsPanel {
   display: grid;
   gap: 14px;
@@ -36908,6 +37072,7 @@ svg {
 .page.light .profileFounderCard,
 .page.light .profileNoReportState,
 .page.light .returnUserDashboard,
+.page.light .postAnalysisFlow,
 .page.light .analysisNextStepsPanel,
 .page.light .analysisTrustSignalsPanel,
 [data-theme="light"] .profileHeroDashboard,
@@ -36915,6 +37080,7 @@ svg {
 [data-theme="light"] .profileFounderCard,
 [data-theme="light"] .profileNoReportState,
 [data-theme="light"] .returnUserDashboard,
+[data-theme="light"] .postAnalysisFlow,
 [data-theme="light"] .analysisNextStepsPanel,
 [data-theme="light"] .analysisTrustSignalsPanel {
   background: #ffffff !important;
@@ -36931,6 +37097,7 @@ svg {
 .page.light .openingFitProgressGrid article,
 .page.light .openingFitProgressInsightGrid article,
 .page.light .returnDashboardGrid article,
+.page.light .postAnalysisCard,
 .page.light .analysisTrustSignalGrid article,
 .page.light .comeBackPrompt,
 .page.light .comeBackPromptStats article,
@@ -36948,6 +37115,7 @@ svg {
 [data-theme="light"] .openingFitProgressGrid article,
 [data-theme="light"] .openingFitProgressInsightGrid article,
 [data-theme="light"] .returnDashboardGrid article,
+[data-theme="light"] .postAnalysisCard,
 [data-theme="light"] .analysisTrustSignalGrid article,
 [data-theme="light"] .comeBackPrompt,
 [data-theme="light"] .comeBackPromptStats article,
@@ -36968,6 +37136,7 @@ svg {
   .openingFitProgressInsightGrid,
   .returnDashboardHero,
   .returnDashboardGrid,
+  .postAnalysisHierarchy,
   .analysisTrustSignalGrid,
   .comeBackPrompt,
   .comeBackPromptStats,

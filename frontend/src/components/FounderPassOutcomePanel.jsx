@@ -90,7 +90,7 @@ export default function FounderPassOutcomePanel({
         </ul>
 
         <button type="button" className="founderOutcome__cta" onClick={handleUpgrade}>
-          Unlock Founder Pass
+          Pricing
         </button>
 
         <button
