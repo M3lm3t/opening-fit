@@ -31837,6 +31837,33 @@ body,
   max-width: 780px;
 }
 
+.analyseImportHero .heroTop {
+  align-items: start;
+}
+
+.analyseLoginButton {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  background: rgba(15, 23, 42, 0.58);
+  color: var(--text);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.analyseLoginButton:hover {
+  border-color: rgba(125, 211, 252, 0.5);
+  transform: translateY(-1px);
+}
+
+.page.light .analyseLoginButton,
+[data-theme="light"] .analyseLoginButton {
+  background: #ffffff;
+  border-color: rgba(37, 99, 235, 0.18);
+  color: #1e293b;
+}
+
 .analyseImportHero .heroTitleWrap h1 {
   font-size: clamp(2.15rem, 4vw, 3.55rem);
   letter-spacing: 0;
@@ -31972,6 +31999,47 @@ body,
 [data-theme="light"] .analyseLoadingState {
   background: rgba(37, 99, 235, 0.08);
   border-color: rgba(37, 99, 235, 0.18);
+}
+
+.analyseErrorBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 900px;
+  margin: 18px auto 0;
+}
+
+.analyseErrorBox strong,
+.analyseErrorBox p {
+  margin: 0;
+}
+
+.analyseErrorBox strong {
+  display: block;
+  color: var(--text);
+}
+
+.analyseErrorBox p {
+  margin-top: 4px;
+}
+
+.analyseErrorBox .primaryBtn {
+  width: auto;
+  min-width: 130px;
+}
+
+@media (max-width: 720px) {
+  .analyseImportHero .heroTop,
+  .analyseErrorBox {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .analyseLoginButton,
+  .analyseErrorBox .primaryBtn {
+    width: 100%;
+  }
 }
 
 .currentReportSummaryCard {

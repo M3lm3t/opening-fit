@@ -4454,7 +4454,7 @@ function SavedReportsProfileCard({ onLoadReport, onCreateReport }) {
   );
 }
 
-function ProfileAchievementsCard({ data, fitData, accountUser, isPremium }) {
+function ProfileAchievementsCard({ data, fitData, isPremium }) {
   const games = Number(getProfileGameCount(data)) || 0;
   const facts = getProfileOpeningFacts(data, fitData);
   const hasWhite = !facts.preferredWhite.includes("Not enough");
@@ -4592,7 +4592,7 @@ function OpeningFitProfileDashboard({
       </div>
 
       <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
-      <ProfileAchievementsCard data={data} fitData={fitData} accountUser={accountUser} isPremium={isPremium} />
+      <ProfileAchievementsCard data={data} fitData={fitData} isPremium={isPremium} />
 
       <div className="profileDashboardGrid profileAccountPremiumGrid">
         <section className="profileDashboardCard profileAccountCard" id="profile-account">
@@ -8127,6 +8127,7 @@ function App() {
   const [apiStatus, setApiStatus] = useState("checking");
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
+  const [loadingElapsedSeconds, setLoadingElapsedSeconds] = useState(0);
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
 
@@ -8185,6 +8186,25 @@ function App() {
     }, 120);
   };
 
+  const openLoginPage = () => {
+    setActiveView("profile");
+
+    if (window.location.pathname !== "/login") {
+      window.history.pushState({}, "", "/login");
+    }
+
+    setTimeout(() => {
+      const accountTarget =
+        document.getElementById("login") ||
+        document.getElementById("profile-account") ||
+        document.querySelector(".accountPanel");
+
+      if (accountTarget?.scrollIntoView) {
+        accountTarget.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 120);
+  };
+
 
   const [showUnknownOpenings] = useState(false);
   const [selectedGameIndex, setSelectedGameIndex] = useState(0);
@@ -8212,6 +8232,22 @@ function App() {
   // Close modal: public/example landing stays visible.
   // Refresh after close: localStorage prevents it coming back.
   const [showPublicLanding, setShowPublicLanding] = useState(shouldShowLandingIntro);
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingElapsedSeconds(0);
+      return undefined;
+    }
+
+    const startedAt = Date.now();
+    setLoadingElapsedSeconds(0);
+
+    const interval = window.setInterval(() => {
+      setLoadingElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [loading]);
 
   useEffect(() => {
     if (!authHydrated) return;
@@ -9365,6 +9401,7 @@ function App() {
       )
   );
   const activeAppSection = getAppSection(activeView);
+  const currentAnalysisPlatformLabel = platforms[platform]?.label || "your chess platform";
 
 
   useEffect(() => {
@@ -9560,8 +9597,14 @@ function App() {
           onViewChange={setActiveView}
         />
 
-        {loading && activeAppSection !== "analyse" ? (
-          <ImportLoadingOverlay platform={platform} />
+        {loading ? (
+          <ImportLoadingOverlay
+            platform={currentAnalysisPlatformLabel}
+            username={username}
+            mode="analysis"
+            loadingStep={loadingStep}
+            showWakeupMessage={loadingElapsedSeconds >= 15}
+          />
         ) : null}
 
         {false && data ? <OpeningFitTrustBar data={data} /> : null}
@@ -9638,6 +9681,13 @@ function App() {
                   and what to study next.
                 </p>
               </div>
+              <button
+                className="analyseLoginButton"
+                type="button"
+                onClick={openLoginPage}
+              >
+                {accountUser ? "Account" : "Login"}
+              </button>
             </div>
 
             <div className="searchRow topBar appActionPanel heroImportFlow" id="import">
@@ -9710,7 +9760,7 @@ function App() {
                   onClick={() => importGames()}
                   disabled={loading || !username.trim()}
                 >
-                  {loading ? "Analysing..." : "Build my repertoire"}
+                  {loading ? "Analysing..." : "Analyse games"}
                 </button>
               </div>
             </div>
@@ -9735,12 +9785,6 @@ function App() {
               </p>
             ) : null}
 
-            {loading ? (
-              <div className="analyseLoadingState" role="status" aria-live="polite">
-                <span className="loadingSpinner" />
-                <p>{loadingStep || "Starting your analysis..."}</p>
-              </div>
-            ) : null}
           </header>
           {!reportData ? (
             <OpeningFitTrustUpgrade
@@ -9819,7 +9863,22 @@ function App() {
             </div>
           )}
 
-          {error && <div className="errorBox">{error}</div>}
+          {error ? (
+            <div className="errorBox analyseErrorBox" role="alert">
+              <div>
+                <strong>Analysis could not finish</strong>
+                <p>{error}</p>
+              </div>
+              <button
+                className="primaryBtn"
+                type="button"
+                onClick={() => importGames()}
+                disabled={loading || !username.trim()}
+              >
+                Try again
+              </button>
+            </div>
+          ) : null}
 
           {false && !data && !loading && !error && (
             <section className="placeholderGrid grid3">
