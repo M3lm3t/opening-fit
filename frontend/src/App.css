@@ -36393,6 +36393,108 @@ svg {
   gap: 10px;
 }
 
+.returnUserDashboard {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-section-final, 20px);
+  padding: var(--of-section-pad-final, 20px);
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--primary) 16%, transparent), transparent 18rem),
+    var(--of-surface-final, rgba(15, 23, 42, 0.88));
+  box-shadow: var(--of-shadow-panel-final, 0 18px 46px rgba(2, 6, 23, 0.22));
+}
+
+.returnDashboardHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.28fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.returnDashboardHero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4.5vw, 3.4rem);
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+
+.returnDashboardHero p {
+  max-width: 68ch;
+  margin: 10px 0 0;
+  color: var(--of-copy-final, #cbd5e1);
+  line-height: 1.55;
+}
+
+.returnDashboardScore {
+  display: grid;
+  place-items: center;
+  min-height: 132px;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--of-border-final));
+  border-radius: var(--of-radius-card-final, 16px);
+  padding: 14px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  text-align: center;
+}
+
+.returnDashboardScore span,
+.returnDashboardGrid span {
+  color: var(--of-muted-final, #94a3b8);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.returnDashboardScore strong {
+  display: block;
+  color: var(--foreground);
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.returnDashboardScore small {
+  color: var(--of-copy-final, #cbd5e1);
+  font-weight: 800;
+}
+
+.returnDashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.returnDashboardGrid article {
+  min-width: 0;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-card-final, 16px);
+  padding: 14px;
+  background: var(--of-surface-soft-final, rgba(15, 23, 42, 0.58));
+}
+
+.returnDashboardGrid strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--foreground);
+  font-size: 1rem;
+  line-height: 1.28;
+}
+
+.returnDashboardGrid p {
+  margin: 7px 0 0;
+  color: var(--of-copy-final, #cbd5e1);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.returnDashboardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .profileAccountPremiumGrid {
   grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
 }
@@ -36438,10 +36540,12 @@ svg {
 .page.light .profileDashboardCard,
 .page.light .profileFounderCard,
 .page.light .profileNoReportState,
+.page.light .returnUserDashboard,
 [data-theme="light"] .profileHeroDashboard,
 [data-theme="light"] .profileDashboardCard,
 [data-theme="light"] .profileFounderCard,
-[data-theme="light"] .profileNoReportState {
+[data-theme="light"] .profileNoReportState,
+[data-theme="light"] .returnUserDashboard {
   background: #ffffff !important;
   border-color: rgba(15, 23, 42, 0.12) !important;
   color: #0f172a;
@@ -36455,6 +36559,7 @@ svg {
 .page.light .profileSavedReportRow,
 .page.light .openingFitProgressGrid article,
 .page.light .openingFitProgressInsightGrid article,
+.page.light .returnDashboardGrid article,
 [data-theme="light"] .profileHeroMetaGrid article,
 [data-theme="light"] .chessProfileGrid article,
 [data-theme="light"] .latestReportMeta > div,
@@ -36462,7 +36567,8 @@ svg {
 [data-theme="light"] .chessProfileStyle,
 [data-theme="light"] .profileSavedReportRow,
 [data-theme="light"] .openingFitProgressGrid article,
-[data-theme="light"] .openingFitProgressInsightGrid article {
+[data-theme="light"] .openingFitProgressInsightGrid article,
+[data-theme="light"] .returnDashboardGrid article {
   background: #f8fafc !important;
   border-color: rgba(15, 23, 42, 0.1) !important;
 }
@@ -36472,7 +36578,9 @@ svg {
   .profileDashboardGrid,
   .profileAccountPremiumGrid,
   .openingFitProgressGrid,
-  .openingFitProgressInsightGrid {
+  .openingFitProgressInsightGrid,
+  .returnDashboardHero,
+  .returnDashboardGrid {
     grid-template-columns: 1fr;
   }
 
@@ -36498,6 +36606,8 @@ svg {
   .profileHeroActions button,
   .openingFitProgressActions,
   .openingFitProgressActions button,
+  .returnDashboardActions,
+  .returnDashboardActions button,
   .profileSavedReportRow button,
   .profileFounderCard button,
   .profileNoReportState button,

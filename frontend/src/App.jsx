@@ -5087,6 +5087,140 @@ function OpeningFitProgressCard({
   );
 }
 
+function getLatestCloudReport(reportHistory = []) {
+  return [...(reportHistory || [])]
+    .filter(Boolean)
+    .sort(
+      (a, b) =>
+        Date.parse(b?.summary?.reportDate || b?.created_at || b?.updated_at || "") -
+        Date.parse(a?.summary?.reportDate || a?.created_at || a?.updated_at || "")
+    )[0] || null;
+}
+
+function getReturnDashboardProgress({ data, fitData, reportHistory = [], openingFitUserState = [] }) {
+  if (data) return buildOpeningFitProgressSnapshot(data, fitData, reportHistory);
+
+  const storedProgress =
+    openingFitUserState
+      .map((row) => row?.coach_progress?.openingFitProgress || row?.coach_progress?.opening_fit_progress || null)
+      .filter(Boolean)
+      .sort(
+        (a, b) =>
+          Date.parse(b.lastAnalysisDate || b.last_analysis_date || "") -
+          Date.parse(a.lastAnalysisDate || a.last_analysis_date || "")
+      )[0] || null;
+
+  if (storedProgress) return storedProgress;
+
+  return getProgressFromReportRow(getLatestCloudReport(reportHistory));
+}
+
+function getReturnDashboardRecommendations(progress, latestReport) {
+  const summary = latestReport?.summary || {};
+  const topOpenings = Array.isArray(summary.topOpenings) ? summary.topOpenings : [];
+  const names = [
+    progress?.mainOpeningRecommendation,
+    ...topOpenings.map((item) => item?.name),
+    summary.studyTarget,
+    latestReport?.report?.opening_recommendations?.white?.[0],
+  ]
+    .filter(Boolean)
+    .map((item) => (typeof item === "string" ? item : getOpeningName(item)))
+    .filter((item) => item && item !== "No clear recommendation yet");
+
+  return [...new Set(names)].slice(0, 3);
+}
+
+function ReturnUserDashboard({
+  user,
+  data,
+  fitData,
+  reportHistory = [],
+  openingFitUserState = [],
+  onAnalyse,
+  onViewRepertoire,
+  onImproveRecommendation,
+}) {
+  if (!user?.id) return null;
+
+  const latestReport = getLatestCloudReport(reportHistory);
+  const progress = getReturnDashboardProgress({ data, fitData, reportHistory, openingFitUserState });
+  const hasPreviousData = Boolean(progress || latestReport || data);
+  const recommendations = getReturnDashboardRecommendations(progress, latestReport);
+  const displayName =
+    user.user_metadata?.full_name ||
+    user.user_metadata?.display_name ||
+    user.email?.split("@")[0] ||
+    "there";
+  const score = progress?.repertoireConfidenceScore;
+  const confidence = progress?.recommendationConfidence || "Building confidence";
+  const games =
+    progress?.gamesAnalysed ||
+    latestReport?.summary?.games ||
+    latestReport?.report?.gamesImported ||
+    latestReport?.report?.total_games ||
+    0;
+  const studyNext =
+    progress?.suggestedNextAction ||
+    (recommendations[0] ? `Study ${recommendations[0]} next.` : "Analyse your first games to build your OpeningFit profile.");
+
+  return (
+    <section className="returnUserDashboard" id="return-user-dashboard">
+      <div className="returnDashboardHero">
+        <div>
+          <p className="eyebrow">Welcome back</p>
+          <h1>{hasPreviousData ? `Welcome back, ${displayName}.` : "Welcome to your OpeningFit dashboard."}</h1>
+          <p>
+            {hasPreviousData
+              ? "Since your last analysis, your opening profile is ready to update."
+              : "Analyse your first games to build your OpeningFit profile."}
+          </p>
+        </div>
+        <div className="returnDashboardScore" aria-label={`Recommendation confidence ${confidence}`}>
+          <span>Recommendation confidence</span>
+          <strong>{score !== null && score !== undefined ? `${score}%` : confidence}</strong>
+          <small>{confidence}</small>
+        </div>
+      </div>
+
+      <div className="returnDashboardGrid">
+        <article>
+          <span>Latest analysis</span>
+          <strong>{progress ? getProgressDateLabel(progress.lastAnalysisDate) : "No analysis yet"}</strong>
+          <p>{progress?.whatChangedSinceLastTime || "Your first report will appear here after analysis."}</p>
+        </article>
+        <article>
+          <span>Games analysed total</span>
+          <strong>{games || 0}</strong>
+          <p>{games ? "Games currently feeding your profile." : "Start with a public Chess.com or Lichess import."}</p>
+        </article>
+        <article>
+          <span>Study next</span>
+          <strong>{recommendations[0] || "First report"}</strong>
+          <p>{studyNext}</p>
+        </article>
+        <article>
+          <span>Previous recommendations</span>
+          <strong>{recommendations.length ? recommendations.join(", ") : "None yet"}</strong>
+          <p>{recommendations.length ? "These are ready to revisit before your next import." : "Recommendations unlock after your first analysis."}</p>
+        </article>
+      </div>
+
+      <div className="returnDashboardActions">
+        <button type="button" className="primaryBtn" onClick={onAnalyse}>
+          Analyse new games
+        </button>
+        <button type="button" className="secondaryButton" onClick={onViewRepertoire} disabled={!hasPreviousData}>
+          View my repertoire
+        </button>
+        <button type="button" className="secondaryButton" onClick={onImproveRecommendation}>
+          Improve my recommendation
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function FounderPassProfileCard({ isPremium, onFounderPass }) {
   return (
     <section className={isPremium ? "profileFounderCard profileFounderCardActive" : "profileFounderCard"}>
@@ -10316,6 +10450,53 @@ function App() {
   );
   const activeAppSection = getAppSection(activeView);
   const currentAnalysisPlatformLabel = platforms[platform]?.label || "your chess platform";
+  const latestCloudReport = getLatestCloudReport(cloudReportHistory);
+
+  const loadLatestCloudReport = () => {
+    if (latestCloudReport?.report) {
+      setData(latestCloudReport.report);
+      return latestCloudReport.report;
+    }
+
+    return null;
+  };
+
+  const goToAnalyseImport = () => {
+    setActiveView("analyse");
+    if (window.location.pathname !== "/") {
+      window.history.pushState({}, "", "/");
+    }
+
+    setTimeout(() => {
+      const target =
+        document.getElementById("import") ||
+        document.querySelector(".returnUserDashboard") ||
+        document.querySelector(".analyseImportHero");
+
+      if (target?.scrollIntoView) {
+        target.scrollIntoView({ behavior: "smooth", block: target.id === "import" ? "center" : "start" });
+      }
+    }, 80);
+  };
+
+  const goToReturnUserRepertoire = () => {
+    loadLatestCloudReport();
+    setActiveView("repertoire");
+    if (window.location.pathname !== "/report") {
+      window.history.pushState({}, "", "/report");
+    }
+
+    setTimeout(() => {
+      const target =
+        document.getElementById("recommended-repertoire") ||
+        document.getElementById("repertoire-map") ||
+        document.getElementById("app-results");
+
+      if (target?.scrollIntoView) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
+  };
 
 
   useEffect(() => {
@@ -10584,6 +10765,16 @@ function App() {
         <main className="container appShell" id="app-dashboard">
           {activeAppSection === "analyse" ? (
           <>
+          <ReturnUserDashboard
+            user={supabaseUser || accountUser}
+            data={reportData}
+            fitData={fitData}
+            reportHistory={cloudReportHistory}
+            openingFitUserState={openingFitUserState}
+            onAnalyse={goToAnalyseImport}
+            onViewRepertoire={goToReturnUserRepertoire}
+            onImproveRecommendation={goToAnalyseImport}
+          />
           <header className="hero heroCard compactImportHero analyseImportHero" aria-busy={loading}>
             <div className="heroTop">
               <div className="heroTitleWrap">
