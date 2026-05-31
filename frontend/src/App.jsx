@@ -6101,6 +6101,87 @@ function getReturnDashboardRecommendations(progress, latestReport) {
   return [...new Set(names)].slice(0, 3);
 }
 
+function getDaysSinceDashboardDate(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return null;
+
+  const diff = Date.now() - date.getTime();
+  if (diff < 0) return 0;
+  return Math.floor(diff / 86400000);
+}
+
+function getDashboardOpeningSignals(data, fitData, latestReport) {
+  const scoredOpenings = uniqueOpeningsByNameAndContext(
+    Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : []
+  )
+    .filter((opening) => !isUnknownOpeningName(getOpeningName(opening)))
+    .sort(evidenceSort);
+  const summaryTopOpenings = Array.isArray(latestReport?.summary?.topOpenings)
+    ? latestReport.summary.topOpenings
+    : [];
+  const verdictFor = (opening) =>
+    openingVerdictLabel(opening, data, opening?.fitVerdict || opening?.verdict);
+  const repairOpenings = scoredOpenings.filter((opening) =>
+    ["Improve", "Avoid"].includes(verdictFor(opening))
+  );
+  const strength =
+    fitData?.bestOpening ||
+    scoredOpenings.find((opening) => verdictFor(opening) === "Keep") ||
+    scoredOpenings[0] ||
+    summaryTopOpenings[0] ||
+    null;
+  const weakness =
+    fitData?.weakestOpening ||
+    buildStudyThisNextTarget(fitData)?.opening ||
+    [...repairOpenings].sort((a, b) => {
+      const scoreDelta = getWinRate(a) - getWinRate(b);
+      if (scoreDelta) return scoreDelta;
+      return getOpeningGames(b) - getOpeningGames(a);
+    })[0] ||
+    summaryTopOpenings.find((opening) => /improve|avoid|repair/i.test(opening?.verdict || "")) ||
+    null;
+
+  return { strength, weakness };
+}
+
+function getDashboardDeltaSummary(progress, reportHistory = []) {
+  if (!progress) {
+    return {
+      scoreDelta: null,
+      stabilityDelta: null,
+    };
+  }
+
+  const previous = findPreviousProgressSnapshot(progress, reportHistory);
+  const currentScore =
+    progress?.repertoireConfidenceScore === null || progress?.repertoireConfidenceScore === undefined
+      ? null
+      : getProgressScoreValue(progress.repertoireConfidenceScore);
+  const previousScore =
+    previous?.repertoireConfidenceScore === null || previous?.repertoireConfidenceScore === undefined
+      ? null
+      : getProgressScoreValue(previous.repertoireConfidenceScore);
+  const scoreDelta =
+    currentScore !== null && previousScore !== null
+      ? currentScore - previousScore
+      : null;
+  const gamesDelta =
+    previous && Number.isFinite(Number(progress?.gamesAnalysed)) && Number.isFinite(Number(previous?.gamesAnalysed))
+      ? Number(progress.gamesAnalysed) - Number(previous.gamesAnalysed)
+      : null;
+  const stabilityDelta =
+    scoreDelta !== null
+      ? Math.round(scoreDelta / 2)
+      : gamesDelta !== null
+        ? Math.max(0, Math.min(12, gamesDelta * 2))
+        : null;
+
+  return {
+    scoreDelta,
+    stabilityDelta,
+  };
+}
+
 function ReturnUserDashboard({
   user,
   data,
@@ -6110,6 +6191,10 @@ function ReturnUserDashboard({
   onAnalyse,
   onViewRepertoire,
   onImproveRecommendation,
+  onStudyPlan,
+  onProgress,
+  onHistory,
+  onSettings,
 }) {
   if (!user?.id) return null;
 
@@ -6117,6 +6202,8 @@ function ReturnUserDashboard({
   const progress = getReturnDashboardProgress({ data, fitData, reportHistory, openingFitUserState });
   const hasPreviousData = Boolean(progress || latestReport || data);
   const recommendations = getReturnDashboardRecommendations(progress, latestReport);
+  const { strength, weakness } = getDashboardOpeningSignals(data, fitData, latestReport);
+  const deltas = getDashboardDeltaSummary(progress, reportHistory);
   const displayName =
     user.user_metadata?.full_name ||
     user.user_metadata?.display_name ||
@@ -6130,61 +6217,120 @@ function ReturnUserDashboard({
     latestReport?.report?.gamesImported ||
     latestReport?.report?.total_games ||
     0;
+  const lastImportDate =
+    progress?.lastAnalysisDate ||
+    latestReport?.summary?.reportDate ||
+    latestReport?.created_at ||
+    latestReport?.updated_at ||
+    "";
+  const daysSinceImport = getDaysSinceDashboardDate(lastImportDate);
+  const lastImportCopy =
+    daysSinceImport === null
+      ? "No import yet"
+      : daysSinceImport === 0
+        ? "Today"
+        : `${daysSinceImport} day${daysSinceImport === 1 ? "" : "s"} ago`;
+  const strengthName = strength ? getOpeningName(strength) : recommendations[0] || "First weapon pending";
+  const strengthConfidence =
+    strength?.confidence ||
+    strength?.fitConfidence ||
+    strength?.confidenceLabel ||
+    progress?.recommendationConfidence ||
+    confidence;
+  const weaknessName = weakness ? getOpeningName(weakness) : recommendations[1] || "No repair target yet";
   const studyNext =
     progress?.suggestedNextAction ||
     (recommendations[0] ? `Study ${recommendations[0]} next.` : "Analyse your first games to build your OpeningFit profile.");
+  const scoreDeltaLabel =
+    deltas.scoreDelta === null
+      ? "New baseline"
+      : `${deltas.scoreDelta >= 0 ? "+" : ""}${deltas.scoreDelta} since last report`;
+  const stabilityDeltaLabel =
+    deltas.stabilityDelta === null
+      ? "Tracking soon"
+      : `${deltas.stabilityDelta >= 0 ? "+" : ""}${deltas.stabilityDelta} opening stability`;
+  const dashboardNavItems = [
+    { label: "My White Repertoire", action: onViewRepertoire },
+    { label: "My Black Repertoire", action: onViewRepertoire },
+    { label: "Weaknesses", action: onImproveRecommendation },
+    { label: "Study Plan", action: onStudyPlan },
+    { label: "Progress", action: onProgress },
+    { label: "History", action: onHistory },
+    { label: "Settings", action: onSettings },
+  ];
 
   return (
     <section className="returnUserDashboard" id="return-user-dashboard">
       <div className="returnDashboardHero">
         <div>
-          <p className="eyebrow">Welcome back</p>
-          <h1>{hasPreviousData ? `Welcome back, ${displayName}.` : "Welcome to your OpeningFit dashboard."}</h1>
+          <p className="eyebrow">OpeningFit home base</p>
+          <h1>{hasPreviousData ? `Welcome back, ${displayName}` : "Let's build your OpeningFit dashboard"}</h1>
           <p>
             {hasPreviousData
-              ? "Since your last analysis, your opening profile is ready to update."
-              : "Analyse your first games to build your OpeningFit profile."}
+              ? "Your repertoire is saved here. Check your focus, study one thing, then come back after more games."
+              : "Analyse your first games to build your repertoire score, study plan, and progress history."}
           </p>
         </div>
-        <div className="returnDashboardScore" aria-label={`Recommendation confidence ${confidence}`}>
-          <span>Recommendation confidence</span>
-          <strong>{score !== null && score !== undefined ? `${score}%` : confidence}</strong>
-          <small>{confidence}</small>
+        <div className="returnDashboardScore" aria-label={`Current repertoire score ${score ?? confidence}`}>
+          <span>Current Repertoire Score</span>
+          <strong>{score !== null && score !== undefined ? score : "—"}</strong>
+          <small>{scoreDeltaLabel}</small>
         </div>
       </div>
 
+      <nav className="returnDashboardNav" aria-label="Player repertoire navigation">
+        {dashboardNavItems.map((item) => (
+          <button key={item.label} type="button" onClick={item.action}>
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
       <div className="returnDashboardGrid">
-        <article>
-          <span>Latest analysis</span>
-          <strong>{progress ? getProgressDateLabel(progress.lastAnalysisDate) : "No analysis yet"}</strong>
-          <p>{progress?.whatChangedSinceLastTime || "Your first report will appear here after analysis."}</p>
+        <article className="returnDashboardTileFocus">
+          <span>Today's Focus</span>
+          <strong>Repair: {weaknessName}</strong>
+          <p>{weakness ? "This is the clearest opening repair target in your current profile." : studyNext}</p>
+          <button type="button" className="secondaryButton" onClick={onStudyPlan}>
+            Continue Study
+          </button>
         </article>
-        <article>
-          <span>Games analysed total</span>
-          <strong>{games || 0}</strong>
-          <p>{games ? "Games currently feeding your profile." : "Start with a public Chess.com or Lichess import."}</p>
+        <article className="returnDashboardTileWeapon">
+          <span>Strongest Weapon</span>
+          <strong>{strengthName}</strong>
+          <p>{coachConfidenceLabel(strengthConfidence)} {confidenceStars(strengthConfidence)}</p>
+          <button type="button" className="secondaryButton" onClick={() => onStudyPlan?.(strengthName)}>
+            Train
+          </button>
         </article>
-        <article>
-          <span>Study next</span>
-          <strong>{recommendations[0] || "First report"}</strong>
-          <p>{studyNext}</p>
+        <article className="returnDashboardTileProgress">
+          <span>Recent Progress</span>
+          <strong>
+            {deltas.scoreDelta === null
+              ? progress?.whatChangedSinceLastTime || "First baseline ready"
+              : `${deltas.scoreDelta >= 0 ? "+" : ""}${deltas.scoreDelta} repertoire confidence`}
+          </strong>
+          <p>{stabilityDeltaLabel}</p>
         </article>
-        <article>
-          <span>Previous recommendations</span>
-          <strong>{recommendations.length ? recommendations.join(", ") : "None yet"}</strong>
-          <p>{recommendations.length ? "These are ready to revisit before your next import." : "Recommendations unlock after your first analysis."}</p>
+        <article className="returnDashboardTileAction">
+          <span>Recommended Action</span>
+          <strong>{hasPreviousData ? "Run a fresh analysis" : "Analyse your first games"}</strong>
+          <p>Last import: {lastImportCopy}. {games ? `${games} games feed this profile.` : "Your first import starts the loop."}</p>
+          <button type="button" className="primaryBtn" onClick={onAnalyse}>
+            Analyse New Games
+          </button>
         </article>
       </div>
 
       <div className="returnDashboardActions">
         <button type="button" className="primaryBtn" onClick={onAnalyse}>
-          Analyse new games
+          Analyse New Games
         </button>
         <button type="button" className="secondaryButton" onClick={onViewRepertoire} disabled={!hasPreviousData}>
-          View my repertoire
+          View My Repertoire
         </button>
-        <button type="button" className="secondaryButton" onClick={onImproveRecommendation}>
-          Improve my recommendation
+        <button type="button" className="secondaryButton" onClick={onStudyPlan}>
+          Open Study Plan
         </button>
       </div>
     </section>
@@ -7699,12 +7845,26 @@ function FloatingAppMenu({ data, onJump, activeView, onViewChange }) {
 
 function AppPrimaryNav({ activeView, accountUser, onViewChange, onExampleReport, onLogin, onPricing }) {
   const activeSection = getAppSection(activeView);
-  const items = [
-    { key: "analyse", label: "Analyse", path: "/", target: "import", view: "analyse" },
-    { key: "example", label: "Example Report", path: "/report", target: "app-results", action: onExampleReport },
-    { key: "pricing", label: "Pricing", path: "/premium", target: "premium", action: onPricing },
-    { key: "login", label: accountUser ? "Account" : "Login", path: accountUser ? "/account" : "/login", target: "login", action: onLogin },
-  ];
+  const items = accountUser
+    ? [
+        { key: "white", label: "My White Repertoire", path: "/report", target: "recommended-repertoire", view: "repertoire" },
+        { key: "black", label: "My Black Repertoire", path: "/report", target: "repertoire-map", view: "repertoire" },
+        { key: "weaknesses", label: "Weaknesses", path: "/report", target: "analysis-next-steps", view: "repertoire" },
+        { key: "study", label: "Study Plan", path: "/train", target: "study-planner", view: "train" },
+        { key: "progress", label: "Progress", path: "/account", target: "openingfit-progress", view: "profile" },
+        { key: "history", label: "History", path: "/account", target: "recommendation-history", view: "profile" },
+        { key: "settings", label: "Settings", path: "/account", target: "profile-account", view: "profile" },
+      ]
+    : [
+        { key: "analyse", label: "Analyse", path: "/", target: "import", view: "analyse" },
+        { key: "example", label: "Example Report", path: "/report", target: "app-results", action: onExampleReport },
+        { key: "pricing", label: "Pricing", path: "/premium", target: "premium", action: onPricing },
+        { key: "login", label: "Login", path: "/login", target: "login", action: onLogin },
+      ];
+  const primaryAction = accountUser
+    ? { key: "analyse", label: "Analyse New Games", path: "/", target: "import", view: "analyse" }
+    : { key: "get-started", label: "Get Started", path: "/", target: "import", view: "analyse" };
+  const activeItemKey = items.find((item) => getAppSection(item.view || item.key) === activeSection)?.key;
 
   const navigate = (event, item) => {
     event.preventDefault();
@@ -7739,13 +7899,13 @@ function AppPrimaryNav({ activeView, accountUser, onViewChange, onExampleReport,
   return (
     <nav className="appPrimaryNav" aria-label="OpeningFit sections">
       <div className="appPrimaryNavInner">
-        <a className="appPrimaryBrand" href="#app-dashboard" onClick={(event) => navigate(event, items[0])}>
+        <a className="appPrimaryBrand" href="#app-dashboard" onClick={(event) => navigate(event, primaryAction)}>
           <span>OpeningFit</span>
         </a>
 
         <div className="appPrimaryTabs" role="list">
           {items.map((item) => {
-            const isActive = activeSection === (item.view || item.key);
+            const isActive = item.key === activeItemKey;
 
             return (
               <a
@@ -7762,8 +7922,8 @@ function AppPrimaryNav({ activeView, accountUser, onViewChange, onExampleReport,
           })}
         </div>
 
-        <a className="appPrimaryGetStarted" href="/" onClick={(event) => navigate(event, items[0])}>
-          Get Started
+        <a className="appPrimaryGetStarted" href="/" onClick={(event) => navigate(event, primaryAction)}>
+          {primaryAction.label}
         </a>
       </div>
     </nav>
@@ -11550,6 +11710,65 @@ function App() {
     }, 100);
   };
 
+  const goToReturnUserWeaknesses = () => {
+    loadLatestCloudReport();
+    setActiveView("repertoire");
+    if (window.location.pathname !== "/report") {
+      window.history.pushState({}, "", "/report");
+    }
+
+    setTimeout(() => {
+      const target =
+        document.getElementById("analysis-next-steps") ||
+        document.getElementById("openingfit-verdict") ||
+        document.getElementById("app-results");
+
+      if (target?.scrollIntoView) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
+  };
+
+  const goToReturnUserStudyPlan = () => {
+    loadLatestCloudReport();
+    setActiveView("train");
+    if (window.location.pathname !== "/train") {
+      window.history.pushState({}, "", "/train");
+    }
+
+    setTimeout(() => {
+      const target =
+        document.getElementById("study-planner") ||
+        document.getElementById("analysis-next-steps") ||
+        document.querySelector(".trainingSuite") ||
+        document.getElementById("app-results");
+
+      if (target?.scrollIntoView) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
+  };
+
+  const goToReturnUserProfileSection = (targetId = "profile") => {
+    loadLatestCloudReport();
+    setActiveView("profile");
+    if (window.location.pathname !== "/account") {
+      window.history.pushState({}, "", "/account");
+    }
+
+    setTimeout(() => {
+      const target =
+        document.getElementById(targetId) ||
+        document.getElementById("recommendation-history") ||
+        document.querySelector(".profileDashboard") ||
+        document.getElementById("app-dashboard");
+
+      if (target?.scrollIntoView) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
+  };
+
 
   useEffect(() => {
     if (hasReport) {
@@ -11829,7 +12048,11 @@ function App() {
             openingFitUserState={openingFitUserState}
             onAnalyse={goToAnalyseImport}
             onViewRepertoire={goToReturnUserRepertoire}
-            onImproveRecommendation={goToAnalyseImport}
+            onImproveRecommendation={goToReturnUserWeaknesses}
+            onStudyPlan={goToReturnUserStudyPlan}
+            onProgress={() => goToReturnUserProfileSection("openingfit-progress")}
+            onHistory={() => goToReturnUserProfileSection("recommendation-history")}
+            onSettings={() => goToReturnUserProfileSection("profile-account")}
           />
           <header className="hero heroCard compactImportHero analyseImportHero" aria-busy={loading}>
             <div className="heroTop">

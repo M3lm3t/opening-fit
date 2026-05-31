@@ -31614,13 +31614,20 @@ body,
 }
 
 .appPrimaryTabs {
-  display: inline-grid;
-  grid-template-columns: repeat(4, minmax(84px, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
   gap: 6px;
+  max-width: min(100%, 760px);
+  overflow-x: auto;
   padding: 5px;
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 14px;
   background: rgba(15, 23, 42, 0.7);
+  scrollbar-width: none;
+}
+
+.appPrimaryTabs::-webkit-scrollbar {
+  display: none;
 }
 
 .page.light .appPrimaryTabs,
@@ -31631,6 +31638,7 @@ body,
 
 .appPrimaryTab {
   min-height: 38px;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -36473,6 +36481,35 @@ svg {
   font-weight: 800;
 }
 
+.returnDashboardNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-card-final, 16px);
+  background: color-mix(in srgb, var(--of-surface-soft-final, rgba(15, 23, 42, 0.58)) 82%, transparent);
+}
+
+.returnDashboardNav button {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: var(--of-radius-control-final, 12px);
+  padding: 0 12px;
+  color: var(--of-copy-final, #cbd5e1);
+  background: transparent;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.returnDashboardNav button:hover,
+.returnDashboardNav button:focus-visible {
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--of-border-final));
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
 .returnDashboardGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -36488,12 +36525,28 @@ svg {
   background: var(--of-surface-soft-final, rgba(15, 23, 42, 0.58));
 }
 
+.returnDashboardTileFocus {
+  border-color: color-mix(in srgb, var(--warning, #f59e0b) 34%, var(--of-border-final)) !important;
+}
+
+.returnDashboardTileWeapon {
+  border-color: color-mix(in srgb, var(--success) 34%, var(--of-border-final)) !important;
+}
+
+.returnDashboardTileProgress {
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--of-border-final)) !important;
+}
+
+.returnDashboardTileAction {
+  border-color: color-mix(in srgb, var(--accent, #38bdf8) 34%, var(--of-border-final)) !important;
+}
+
 .returnDashboardGrid strong {
   display: block;
   margin-top: 6px;
   color: var(--foreground);
-  font-size: 1rem;
-  line-height: 1.28;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  line-height: 1.18;
 }
 
 .returnDashboardGrid p {
@@ -36501,6 +36554,11 @@ svg {
   color: var(--of-copy-final, #cbd5e1);
   font-size: 0.92rem;
   line-height: 1.45;
+}
+
+.returnDashboardGrid article button {
+  width: 100%;
+  margin-top: 12px;
 }
 
 .returnDashboardActions {
@@ -37097,6 +37155,7 @@ svg {
 .page.light .openingFitProgressGrid article,
 .page.light .openingFitProgressInsightGrid article,
 .page.light .returnDashboardGrid article,
+.page.light .returnDashboardNav,
 .page.light .postAnalysisCard,
 .page.light .analysisTrustSignalGrid article,
 .page.light .comeBackPrompt,
@@ -37115,6 +37174,7 @@ svg {
 [data-theme="light"] .openingFitProgressGrid article,
 [data-theme="light"] .openingFitProgressInsightGrid article,
 [data-theme="light"] .returnDashboardGrid article,
+[data-theme="light"] .returnDashboardNav,
 [data-theme="light"] .postAnalysisCard,
 [data-theme="light"] .analysisTrustSignalGrid article,
 [data-theme="light"] .comeBackPrompt,
@@ -37126,6 +37186,11 @@ svg {
 [data-theme="light"] .recommendationHistoryLists > div {
   background: #f8fafc !important;
   border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+.page.light .returnDashboardNav button,
+[data-theme="light"] .returnDashboardNav button {
+  color: #334155;
 }
 
 @media (max-width: 900px) {
@@ -37171,6 +37236,7 @@ svg {
   .openingFitProgressActions button,
   .returnDashboardActions,
   .returnDashboardActions button,
+  .returnDashboardNav button,
   .analysisNextStepActions,
   .analysisNextStepActions button,
   .premiumRecommendationActions,
