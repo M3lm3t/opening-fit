@@ -4667,6 +4667,123 @@ function PostAnalysisActionFlow({ data, fitData, onPractice, onViewChange }) {
   );
 }
 
+function MobileReportQuickGuide({ data, fitData, onPractice, onViewChange }) {
+  if (!data) return null;
+
+  const scoredOpenings = uniqueOpeningsByNameAndContext(
+    Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : []
+  )
+    .filter((opening) => !isUnknownOpeningName(getOpeningName(opening)))
+    .sort(evidenceSort);
+  const verdictFor = (opening) =>
+    openingVerdictLabel(opening, data, opening?.fitVerdict || opening?.verdict);
+  const keepOpening =
+    fitData?.bestOpening ||
+    scoredOpenings.find((opening) => verdictFor(opening) === "Keep") ||
+    scoredOpenings[0] ||
+    null;
+  const improveOpening =
+    fitData?.weakestOpening ||
+    scoredOpenings.find((opening) => verdictFor(opening) === "Improve") ||
+    scoredOpenings.find((opening) => verdictFor(opening) === "Avoid") ||
+    scoredOpenings[1] ||
+    null;
+  const nextStepOpenings = buildNextStepOpenings(data, fitData);
+  const replaceOpening =
+    scoredOpenings.find((opening) => verdictFor(opening) === "Avoid") ||
+    (nextStepOpenings[0]
+      ? {
+          ...nextStepOpenings[0],
+          fitDisplayVerdict: "Replace",
+        }
+      : null);
+  const quickNav = [
+    { label: "Overview", target: "mobile-report-overview" },
+    { label: "Strengths", target: "mobile-report-strengths" },
+    { label: "Weaknesses", target: "mobile-report-weaknesses" },
+    { label: "Study Plan", target: "analysis-next-steps" },
+  ];
+  const scrollToTarget = (targetId) => {
+    const target = document.getElementById(targetId) || document.getElementById("app-results");
+    if (target?.scrollIntoView) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const cards = [
+    {
+      key: "keep",
+      label: "Keep",
+      opening: keepOpening,
+      fallback: "No clear strength yet",
+      score: keepOpening ? getWinRate(keepOpening) : null,
+      reason: keepOpening ? "Strong results" : "Analyse more games",
+      cta: "Train",
+      target: "mobile-report-strengths",
+      onClick: () => (keepOpening ? onPractice?.(getOpeningName(keepOpening)) : onViewChange?.("train")),
+    },
+    {
+      key: "improve",
+      label: "Improve",
+      opening: improveOpening,
+      fallback: "Repair target pending",
+      score: improveOpening ? getWinRate(improveOpening) : null,
+      reason: improveOpening ? "Repeated early losses" : "We need a few more games",
+      cta: "Repair",
+      target: "mobile-report-weaknesses",
+      onClick: () => (improveOpening ? onPractice?.(getOpeningName(improveOpening)) : onViewChange?.("train")),
+    },
+    {
+      key: "replace",
+      label: "Replace",
+      opening: replaceOpening,
+      fallback: "No replacement needed yet",
+      score: replaceOpening ? getWinRate(replaceOpening) : null,
+      reason: replaceOpening ? "Costing rating points" : "Current data is not clear enough",
+      cta: "Find Alternative",
+      target: "analysis-next-steps",
+      onClick: () => scrollToTarget("analysis-next-steps"),
+    },
+  ];
+
+  return (
+    <section className="mobileReportGuide" id="mobile-report-overview" aria-label="Mobile report overview">
+      <nav className="mobileReportQuickNav" aria-label="Report quick navigation">
+        {quickNav.map((item) => (
+          <button key={item.target} type="button" onClick={() => scrollToTarget(item.target)}>
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="mobileReportActionGrid" aria-label="Report action cards">
+        {cards.map((card) => {
+          const name = card.opening ? getOpeningName(card.opening) : card.fallback;
+
+          return (
+            <article
+              className={`mobileReportActionCard mobileReportActionCard--${card.key}`}
+              id={card.target}
+              key={card.key}
+            >
+              <span>{card.label}</span>
+              <strong>{name}</strong>
+              <em>{card.score !== null ? `${card.score}%` : "Soon"}</em>
+              <p>{card.reason}</p>
+              <button type="button" className="primaryBtn" onClick={card.onClick}>
+                {card.cta}
+              </button>
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="mobileReportStickyCta" aria-label="Report next action">
+        <button type="button" className="primaryBtn" onClick={() => scrollToTarget("analysis-next-steps")}>
+          Open Study Plan
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
   const { user, recordActivity, saveRecommendationHistory } = useAuth();
   const [status, setStatus] = useState("");
@@ -4842,6 +4959,13 @@ function FinalReportFlow({
 
   return (
     <div className="finalReportFlow">
+      <MobileReportQuickGuide
+        data={data}
+        fitData={fitData}
+        onPractice={onPractice}
+        onViewChange={onViewChange}
+      />
+
       <CurrentReportSummary
         data={data}
         fitData={fitData}

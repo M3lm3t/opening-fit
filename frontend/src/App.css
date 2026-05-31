@@ -29951,6 +29951,124 @@ textarea {
   scroll-margin-top: 104px;
 }
 
+.mobileReportGuide {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 980px);
+  margin: 0 auto;
+  scroll-margin-top: 104px;
+}
+
+.mobileReportQuickNav {
+  position: sticky;
+  top: 78px;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  box-shadow: 0 14px 30px rgba(2, 6, 23, 0.16);
+  backdrop-filter: blur(16px);
+}
+
+.mobileReportQuickNav button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 10px;
+  color: var(--text);
+  background: rgba(148, 163, 184, 0.12);
+  font-size: 0.86rem;
+  font-weight: 950;
+}
+
+.mobileReportQuickNav button:hover,
+.mobileReportQuickNav button:focus-visible {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.mobileReportActionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mobileReportActionCard {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.page.light .mobileReportQuickNav,
+.page.light .mobileReportActionCard,
+[data-theme="light"] .mobileReportQuickNav,
+[data-theme="light"] .mobileReportActionCard {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+.mobileReportActionCard--keep {
+  border-color: color-mix(in srgb, var(--success) 36%, rgba(148, 163, 184, 0.18));
+}
+
+.mobileReportActionCard--improve {
+  border-color: color-mix(in srgb, var(--warning, #f59e0b) 36%, rgba(148, 163, 184, 0.18));
+}
+
+.mobileReportActionCard--replace {
+  border-color: color-mix(in srgb, var(--danger, #ef4444) 34%, rgba(148, 163, 184, 0.18));
+}
+
+.mobileReportActionCard span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mobileReportActionCard strong {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  line-height: 1.08;
+}
+
+.mobileReportActionCard em {
+  color: var(--text);
+  font-size: clamp(1.8rem, 5vw, 2.55rem);
+  font-style: normal;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.mobileReportActionCard p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.mobileReportActionCard button {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 4px;
+}
+
+.mobileReportStickyCta {
+  display: none;
+}
+
 .finalReportBlock,
 .finalReportFlow .commandPanel,
 .finalReportFlow .repertoireMapSection,
@@ -32901,6 +33019,99 @@ body,
   .keepImproveAvoidSummary,
   .commandCentreOpeningGrid {
     grid-template-columns: 1fr;
+  }
+
+  .mobileReportGuide {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .mobileReportQuickNav {
+    top: max(8px, env(safe-area-inset-top));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0 -2px;
+    border-radius: 14px;
+  }
+
+  .mobileReportQuickNav button {
+    min-height: 48px;
+    padding: 0 4px;
+    font-size: 0.75rem;
+  }
+
+  .mobileReportActionGrid,
+  .postAnalysisHierarchy {
+    grid-template-columns: 1fr;
+  }
+
+  .mobileReportActionCard,
+  .postAnalysisCard {
+    min-height: auto;
+    padding: 16px;
+  }
+
+  .mobileReportActionCard {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .mobileReportActionCard span,
+  .mobileReportActionCard strong,
+  .mobileReportActionCard p,
+  .mobileReportActionCard button {
+    grid-column: 1;
+  }
+
+  .mobileReportActionCard em {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-self: center;
+    min-width: 70px;
+    text-align: right;
+  }
+
+  .mobileReportActionCard button {
+    min-height: 52px;
+  }
+
+  .postAnalysisFlowHeader p,
+  .postAnalysisCard dl,
+  .commandCentreActions,
+  .commandCentreOpeningGrid,
+  .commandCentreMeta {
+    display: none;
+  }
+
+  .postAnalysisFlow {
+    padding: 14px;
+  }
+
+  .postAnalysisFlowHeader h2 {
+    font-size: 1.35rem;
+  }
+
+  .postAnalysisCard h3 {
+    font-size: 1.45rem;
+  }
+
+  .mobileReportStickyCta {
+    position: fixed;
+    right: 14px;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    left: 14px;
+    z-index: 120;
+    display: block;
+    padding: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--background) 88%, transparent);
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.24);
+    backdrop-filter: blur(16px);
+  }
+
+  .mobileReportStickyCta button {
+    width: 100%;
+    min-height: 50px;
   }
 
   .commandCentreScore {
