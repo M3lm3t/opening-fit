@@ -113,22 +113,44 @@ export default function AccountPanel({ variant = "floating",
   }, [cloudProfile, user]);
 
   const signInWithGoogle = async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      console.error("OpeningFit signup failed: Supabase client is not configured.");
+      setStatus("Supabase is not configured. Add your environment variables first.");
+      return;
+    }
 
     setStatus("Opening secure Google sign-in...");
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
 
-    if (error) setStatus(error.message);
+      if (error) {
+        console.error("OpeningFit Google signup/sign-in failed", error);
+        setStatus(error.message || "Could not start Google sign-in.");
+        return;
+      }
+
+      console.info("OpeningFit Google signup/sign-in started", {
+        provider: "google",
+        hasUrl: Boolean(data?.url),
+      });
+    } catch (error) {
+      console.error("OpeningFit Google signup/sign-in crashed", error);
+      setStatus(error?.message || "Could not start Google sign-in.");
+    }
   };
 
   const sendMagicLink = async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      console.error("OpeningFit email signup failed: Supabase client is not configured.");
+      setStatus("Supabase is not configured. Add your environment variables first.");
+      return;
+    }
 
     if (!email.trim()) {
       setStatus("Enter your email first.");
@@ -137,17 +159,35 @@ export default function AccountPanel({ variant = "floating",
 
     setStatus("Sending login link...");
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: window.location.origin,
+          shouldCreateUser: true,
+        },
+      });
 
-    if (error) {
-      setStatus(error.message);
-    } else {
+      if (error) {
+        console.error("OpeningFit email magic-link signup failed", {
+          email: email.trim(),
+          error,
+        });
+        setStatus(error.message || "Could not send login link.");
+      } else {
+        console.info("OpeningFit email magic-link signup requested", {
+          email: email.trim(),
+          hasUser: Boolean(data?.user),
+          hasSession: Boolean(data?.session),
+        });
       setStatus("Check your email for your login link.");
+      }
+    } catch (error) {
+      console.error("OpeningFit email magic-link signup crashed", {
+        email: email.trim(),
+        error,
+      });
+      setStatus(error?.message || "Could not send login link.");
     }
   };
 
@@ -189,6 +229,11 @@ export default function AccountPanel({ variant = "floating",
       setSaving(false);
       setStatus("Account saved.");
     } catch (error) {
+      console.error("OpeningFit profile save failed", {
+        userId: user.id,
+        email: user.email,
+        error,
+      });
       setSaving(false);
       setStatus(error.message || "Could not save account.");
     }

@@ -228,6 +228,7 @@ const USERNAME_KEY = "openingFit:lastUsername";
 const PLATFORM_KEY = "openingFit:lastPlatform";
 const IMPORT_MONTHS_KEY = "openingFit:lastImportMonths";
 const OPENING_SAMPLE_PERCENT_KEY = "openingFit:openingSamplePercent";
+const ANALYSIS_TIME_FORMAT_KEY = "openingFit:lastAnalysisTimeFormat";
 
 const platforms = {
   chesscom: {
@@ -2901,12 +2902,41 @@ const formatImportRange = (data) => {
 };
 
 const TIME_CONTROL_FILTERS = [
+  { key: "bullet", label: "Bullet" },
+  { key: "blitz", label: "Blitz" },
+  { key: "rapid", label: "Rapid" },
+  { key: "classical", label: "Classical" },
+  { key: "daily", label: "Daily / Correspondence" },
+  { key: "custom", label: "Custom / Unknown" },
   { key: "serious", label: "Rapid + Blitz" },
   { key: "all", label: "All games" },
-  { key: "rapid", label: "Rapid" },
-  { key: "blitz", label: "Blitz" },
-  { key: "bullet", label: "Bullet" },
 ];
+
+const ANALYSIS_TIME_FORMAT_OPTIONS = [
+  { key: "bullet", label: "Bullet", description: "Fastest games" },
+  { key: "blitz", label: "Blitz", description: "Short games" },
+  { key: "rapid", label: "Rapid", description: "Longer online games" },
+  { key: "classical", label: "Classical", description: "Long time controls" },
+  { key: "daily", label: "Daily / Correspondence", description: "Turn-based games" },
+  { key: "custom", label: "Custom / Unknown", description: "Use detected or mixed games" },
+];
+
+function normalizeAnalysisTimeFormat(value) {
+  const key = String(value || "").toLowerCase();
+  return ANALYSIS_TIME_FORMAT_OPTIONS.some((item) => item.key === key) ? key : "custom";
+}
+
+function getAnalysisTimeFormatLabel(value) {
+  return (
+    ANALYSIS_TIME_FORMAT_OPTIONS.find((item) => item.key === normalizeAnalysisTimeFormat(value))?.label ||
+    "Custom / Unknown"
+  );
+}
+
+function getReportTimeControlFilter(value) {
+  const key = normalizeAnalysisTimeFormat(value);
+  return key === "custom" ? "all" : key;
+}
 
 const DATE_RANGE_FILTERS = [
   { key: "30", label: "Last 30 days", days: 30 },
@@ -2916,7 +2946,7 @@ const DATE_RANGE_FILTERS = [
 ];
 
 function getGameTimeControl(game) {
-  return String(
+  const explicit = String(
     game?.time_class ||
       game?.timeClass ||
       game?.speed ||
@@ -2924,6 +2954,92 @@ function getGameTimeControl(game) {
       game?.perfType ||
       ""
   ).toLowerCase();
+
+  if (explicit.includes("correspondence") || explicit.includes("daily")) return "daily";
+  if (explicit.includes("standard")) return "classical";
+  if (["bullet", "blitz", "rapid", "classical", "daily"].includes(explicit)) return explicit;
+
+  return detectTimeControlFromPgn(game?.pgn || game?.PGN || game?.rawPgn || "")?.key || explicit;
+}
+
+function getPgnHeaderValue(pgnText, headerName) {
+  const pattern = new RegExp(`\\[${headerName}\\s+"([^"]+)"\\]`, "i");
+  return String(pgnText || "").match(pattern)?.[1] || "";
+}
+
+function classifyTimeControlValue(value) {
+  const clean = String(value || "").trim().toLowerCase();
+
+  if (!clean || clean === "?" || clean === "-") return null;
+  if (clean.includes("daily") || clean.includes("correspondence")) return "daily";
+  if (clean.includes("classical") || clean.includes("standard")) return "classical";
+  if (clean.includes("rapid")) return "rapid";
+  if (clean.includes("blitz")) return "blitz";
+  if (clean.includes("bullet")) return "bullet";
+  if (clean.includes("/")) return "daily";
+
+  const firstPart = clean.split(":")[0] || clean;
+  const [baseRaw, incrementRaw] = firstPart.split("+");
+  const baseSeconds = Number(baseRaw);
+  const incrementSeconds = Number(incrementRaw || 0);
+
+  if (!Number.isFinite(baseSeconds)) return null;
+  if (baseSeconds >= 86400) return "daily";
+
+  const estimatedSeconds = baseSeconds + incrementSeconds * 40;
+  if (estimatedSeconds < 180) return "bullet";
+  if (estimatedSeconds < 600) return "blitz";
+  if (estimatedSeconds < 1800) return "rapid";
+  return "classical";
+}
+
+function detectTimeControlFromPgn(pgnText) {
+  const raw = getPgnHeaderValue(pgnText, "TimeControl");
+  const key = classifyTimeControlValue(raw);
+  return key ? { key, label: getAnalysisTimeFormatLabel(key), raw } : null;
+}
+
+function detectReportTimeFormat(data) {
+  const games = [
+    ...(Array.isArray(data?.recent_games) ? data.recent_games : []),
+    ...(Array.isArray(data?.recentGames) ? data.recentGames : []),
+    ...(Array.isArray(data?.opening_games) ? data.opening_games : []),
+    ...(Array.isArray(data?.openingGames) ? data.openingGames : []),
+  ];
+  const counts = new Map();
+  const rawSamples = [];
+
+  games.forEach((game) => {
+    const key = getGameTimeControl(game);
+    const normalized = normalizeAnalysisTimeFormat(key);
+    if (normalized !== "custom") {
+      counts.set(normalized, (counts.get(normalized) || 0) + 1);
+    }
+
+    const pgnDetection = detectTimeControlFromPgn(game?.pgn || game?.PGN || game?.rawPgn || "");
+    if (pgnDetection?.raw && rawSamples.length < 3) rawSamples.push(pgnDetection.raw);
+  });
+
+  const [key, count] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] || [];
+  if (!key) {
+    return {
+      key: "custom",
+      label: "Custom / Unknown",
+      source: games.length ? "metadata unavailable" : "no games",
+      confidence: "unknown",
+      rawSamples,
+    };
+  }
+
+  return {
+    key,
+    label: getAnalysisTimeFormatLabel(key),
+    source: "game metadata",
+    confidence: count === games.length ? "all games" : "dominant",
+    gamesMatched: count,
+    gamesChecked: games.length,
+    rawSamples,
+  };
 }
 
 function gamePassesReportFilters(game, filters) {
@@ -3134,6 +3250,17 @@ function buildReportHistorySummary(data, fitData = null) {
     username: data?.username || data?.playerName || data?.player_name || "Unknown player",
     platform: data?.platform || data?.importPlatform || "unknown",
     importMonths: data?.monthsChecked || data?.months_checked || data?.importMonths || "Recent",
+    analysisTimeFormat: data?.analysisTimeFormat || data?.analysis_time_format || "custom",
+    analysisTimeFormatLabel:
+      data?.analysisTimeFormatLabel ||
+      data?.analysis_time_format_label ||
+      getAnalysisTimeFormatLabel(data?.analysisTimeFormat || data?.analysis_time_format),
+    detectedTimeFormat: data?.detectedTimeFormat || data?.detected_time_format || null,
+    effectiveTimeFormat: data?.effectiveTimeFormat || data?.effective_time_format || "custom",
+    effectiveTimeFormatLabel:
+      data?.effectiveTimeFormatLabel ||
+      data?.effective_time_format_label ||
+      getAnalysisTimeFormatLabel(data?.effectiveTimeFormat || data?.effective_time_format),
     games: data?.gamesAnalysed || data?.gamesAnalyzed || data?.gamesImported || data?.total_games || 0,
     topOpening: topOpenings[0]?.name || "No clear top opening yet",
     topOpenings,
@@ -8117,10 +8244,15 @@ function App() {
   const [accountUser, setAccountUser] = useState(null);
   const [platform, setPlatform] = useState("chesscom");
   const [importMonths, setImportMonths] = useState(3);
-  const [reportFilters] = useState({
-    timeControl: "serious",
+  const [analysisTimeFormat, setAnalysisTimeFormat] = useState(() =>
+    normalizeAnalysisTimeFormat(localStorage.getItem(ANALYSIS_TIME_FORMAT_KEY) || "custom")
+  );
+  const [reportFilters, setReportFilters] = useState(() => ({
+    timeControl: getReportTimeControlFilter(
+      localStorage.getItem(ANALYSIS_TIME_FORMAT_KEY) || "custom"
+    ),
     dateRange: "90",
-  });
+  }));
   const [openingSamplePercent, setOpeningSamplePercent] = useState(() =>
     clampOpeningSamplePercent(localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY) ?? 2)
   );
@@ -8288,6 +8420,7 @@ function App() {
     const savedPlatform = localStorage.getItem(PLATFORM_KEY);
     const savedMonths = localStorage.getItem(IMPORT_MONTHS_KEY);
     const savedSamplePercent = localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY);
+    const savedAnalysisTimeFormat = localStorage.getItem(ANALYSIS_TIME_FORMAT_KEY);
     const savedAnalysis = localStorage.getItem(STORAGE_KEY);
 
     if (savedUsername) setUsername(savedUsername);
@@ -8301,6 +8434,10 @@ function App() {
 
     if (savedSamplePercent !== null) {
       setOpeningSamplePercent(clampOpeningSamplePercent(savedSamplePercent));
+    }
+
+    if (savedAnalysisTimeFormat) {
+      setAnalysisTimeFormat(normalizeAnalysisTimeFormat(savedAnalysisTimeFormat));
     }
 
     if (savedPlatform && platforms[savedPlatform]) {
@@ -8357,6 +8494,15 @@ function App() {
       String(openingSamplePercent)
     );
   }, [openingSamplePercent]);
+
+  useEffect(() => {
+    const normalized = normalizeAnalysisTimeFormat(analysisTimeFormat);
+    localStorage.setItem(ANALYSIS_TIME_FORMAT_KEY, normalized);
+    setReportFilters((current) => ({
+      ...current,
+      timeControl: getReportTimeControlFilter(normalized),
+    }));
+  }, [analysisTimeFormat]);
 
   useEffect(() => {
     const handleEscape = (event) => {
@@ -8474,8 +8620,38 @@ function App() {
   const normaliseData = (incoming) => {
     if (!incoming) return incoming;
 
+    const selectedTimeFormat = normalizeAnalysisTimeFormat(
+      incoming.analysisTimeFormat ||
+        incoming.analysis_time_format ||
+        incoming.selectedTimeFormat ||
+        incoming.selected_time_format ||
+        analysisTimeFormat
+    );
+    const detectedTimeFormat =
+      incoming.detectedTimeFormat ||
+      incoming.detected_time_format ||
+      detectReportTimeFormat(incoming);
+
     return {
       ...incoming,
+      analysisTimeFormat: selectedTimeFormat,
+      analysis_time_format: selectedTimeFormat,
+      analysisTimeFormatLabel: getAnalysisTimeFormatLabel(selectedTimeFormat),
+      analysis_time_format_label: getAnalysisTimeFormatLabel(selectedTimeFormat),
+      detectedTimeFormat,
+      detected_time_format: detectedTimeFormat,
+      effectiveTimeFormat:
+        selectedTimeFormat === "custom" ? detectedTimeFormat?.key || "custom" : selectedTimeFormat,
+      effective_time_format:
+        selectedTimeFormat === "custom" ? detectedTimeFormat?.key || "custom" : selectedTimeFormat,
+      effectiveTimeFormatLabel:
+        selectedTimeFormat === "custom"
+          ? detectedTimeFormat?.label || "Custom / Unknown"
+          : getAnalysisTimeFormatLabel(selectedTimeFormat),
+      effective_time_format_label:
+        selectedTimeFormat === "custom"
+          ? detectedTimeFormat?.label || "Custom / Unknown"
+          : getAnalysisTimeFormatLabel(selectedTimeFormat),
       total_games:
         incoming.total_games ?? incoming.totalGames ?? incoming.gamesImported ?? 0,
       months_checked: incoming.months_checked ?? incoming.monthsChecked ?? 0,
@@ -8561,6 +8737,10 @@ function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     localStorage.setItem(USERNAME_KEY, cleanUsername);
     localStorage.setItem(PLATFORM_KEY, platform);
+    localStorage.setItem(
+      ANALYSIS_TIME_FORMAT_KEY,
+      normalizeAnalysisTimeFormat(analysis.analysisTimeFormat || analysisTimeFormat)
+    );
     setLocalSavedAt(savedAt);
   };
 
@@ -8701,6 +8881,7 @@ function App() {
       localStorage.setItem(USERNAME_KEY, cleanUsername);
       localStorage.setItem(PLATFORM_KEY, selectedPlatformKey);
       localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
+      localStorage.setItem(ANALYSIS_TIME_FORMAT_KEY, normalizeAnalysisTimeFormat(analysisTimeFormat));
       setUsername(cleanUsername);
       setPlatform(selectedPlatformKey);
 
@@ -8711,6 +8892,7 @@ function App() {
           username: cleanUsername,
           platform: selectedPlatformKey,
           months: monthsToImport,
+          analysisTimeFormat: normalizeAnalysisTimeFormat(analysisTimeFormat),
         },
         { dedupeKey: dailySessionStartedKey }
       );
@@ -8720,6 +8902,8 @@ function App() {
         platform: selectedPlatformKey,
         months: monthsToImport,
         openingSamplePercent,
+        analysisTimeFormat: normalizeAnalysisTimeFormat(analysisTimeFormat),
+        analysisTimeFormatLabel: getAnalysisTimeFormatLabel(analysisTimeFormat),
         premiumPreview: isPremiumPreview,
         hasPremiumAccess: isPremium,
       });
@@ -8776,6 +8960,8 @@ function App() {
           username: cleanData.username || cleanUsername,
           platform: selectedPlatformKey,
           games: cleanData.gamesImported ?? cleanData.total_games,
+          analysisTimeFormat: cleanData.analysisTimeFormat,
+          detectedTimeFormat: cleanData.detectedTimeFormat,
         },
         { dedupeKey: userReportRetentionKey }
       );
@@ -8786,6 +8972,8 @@ function App() {
           username: cleanData.username || cleanUsername,
           platform: selectedPlatformKey,
           games: cleanData.gamesImported ?? cleanData.total_games,
+          analysisTimeFormat: cleanData.analysisTimeFormat,
+          detectedTimeFormat: cleanData.detectedTimeFormat,
         },
         { dedupeKey: userReportRetentionKey }
       );
@@ -8796,6 +8984,8 @@ function App() {
           source: "import",
           username: cleanData.username || cleanUsername,
           platform: selectedPlatformKey,
+          analysisTimeFormat: cleanData.analysisTimeFormat,
+          detectedTimeFormat: cleanData.detectedTimeFormat,
         },
         { dedupeKey: importSessionKey }
       );
@@ -8808,6 +8998,8 @@ function App() {
             username: cleanData.username || cleanUsername,
             platform: selectedPlatformKey,
             games: cleanData.gamesImported ?? cleanData.total_games,
+            analysis_time_format: cleanData.analysisTimeFormat,
+            detected_time_format: cleanData.detectedTimeFormat,
             dedupe_key: `report_imported:${userReportRetentionKey}`,
           });
         } catch (cloudError) {
@@ -8833,6 +9025,8 @@ function App() {
         gamesImported: cleanData.gamesImported ?? cleanData.total_games,
         months: monthsToImport,
         openingSamplePercent,
+        analysisTimeFormat: cleanData.analysisTimeFormat,
+        detectedTimeFormat: cleanData.detectedTimeFormat,
       });
 
       scrollToResults();
@@ -9752,6 +9946,30 @@ function App() {
                   12 months {isPremium ? "" : "— Premium"}
                 </option>
               </select>
+
+              <fieldset className="analysisTimeFormatSelector">
+                <legend>Time format to analyse</legend>
+                <div className="analysisTimeFormatGrid">
+                  {ANALYSIS_TIME_FORMAT_OPTIONS.map((option) => (
+                    <button
+                      key={option.key}
+                      className={`analysisTimeFormatButton ${
+                        analysisTimeFormat === option.key ? "analysisTimeFormatButtonActive" : ""
+                      }`}
+                      type="button"
+                      onClick={() => setAnalysisTimeFormat(option.key)}
+                      disabled={loading}
+                      aria-pressed={analysisTimeFormat === option.key}
+                    >
+                      <strong>{option.label}</strong>
+                      <span>{option.description}</span>
+                    </button>
+                  ))}
+                </div>
+                <small>
+                  PGN time-control metadata is auto-detected when available. You can override it here before analysing.
+                </small>
+              </fieldset>
 
               <div className="appActionButtons">
                 <button

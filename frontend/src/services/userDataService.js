@@ -259,16 +259,23 @@ export async function saveReport(userId, report, summary = {}) {
     report.importMonths ||
     report.import_months ||
     "recent";
+  const analysisTimeFormat =
+    summary.analysisTimeFormat ||
+    summary.analysis_time_format ||
+    report.analysisTimeFormat ||
+    report.analysis_time_format ||
+    "custom";
   const reportKey = [
     String(platform).toLowerCase(),
     String(username).toLowerCase(),
     String(months),
+    String(analysisTimeFormat).toLowerCase(),
     String(games),
     String(importedAt).slice(0, 19),
   ].join(":");
 
   const client = requireClient();
-  const payload = {
+  const basePayload = {
     user_id: userId,
     username,
     platform,
@@ -277,12 +284,41 @@ export async function saveReport(userId, report, summary = {}) {
     report_key: reportKey,
     updated_at: new Date().toISOString(),
   };
+  const payload = {
+    ...basePayload,
+    analysis_time_format: analysisTimeFormat,
+    effective_time_format:
+      summary.effectiveTimeFormat ||
+      summary.effective_time_format ||
+      report.effectiveTimeFormat ||
+      report.effective_time_format ||
+      analysisTimeFormat,
+    detected_time_format:
+      summary.detectedTimeFormat ||
+      summary.detected_time_format ||
+      report.detectedTimeFormat ||
+      report.detected_time_format ||
+      null,
+  };
 
-  const { data, error } = await client
-    .from("report_history")
-    .insert(payload)
-    .select("*")
-    .single();
+  let { data, error } = await client.from("report_history").insert(payload).select("*").single();
+
+  if (
+    error &&
+    (
+      error.code === "PGRST204" ||
+      /analysis_time_format|effective_time_format|detected_time_format/i.test(error.message || "")
+    )
+  ) {
+    logQueryFailure("report_history", "insert report with time-format columns unavailable; retrying JSON-only save", error, {
+      userId,
+      reportKey,
+    });
+
+    const retry = await client.from("report_history").insert(basePayload).select("*").single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     if (error.code === "23505") {

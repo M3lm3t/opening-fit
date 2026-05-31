@@ -2,6 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 
 const HISTORY_KEY = "openingFit:reportHistory:v1";
+const TIME_FORMAT_LABELS = {
+  bullet: "Bullet",
+  blitz: "Blitz",
+  rapid: "Rapid",
+  classical: "Classical",
+  daily: "Daily / Correspondence",
+  custom: "Custom / Unknown",
+};
+
+function timeFormatLabel(value) {
+  return TIME_FORMAT_LABELS[String(value || "").toLowerCase()] || value || "Custom / Unknown";
+}
 
 function safeDate(value) {
   try {
@@ -42,6 +54,21 @@ function getGameCount(data) {
 
 function getImportMonths(data) {
   return data?.monthsChecked || data?.months_checked || data?.importMonths || data?.import_months || "Recent";
+}
+
+function getAnalysisTimeFormat(data) {
+  return {
+    key: data?.analysisTimeFormat || data?.analysis_time_format || "custom",
+    label:
+      data?.analysisTimeFormatLabel ||
+      data?.analysis_time_format_label ||
+      timeFormatLabel(data?.analysisTimeFormat || data?.analysis_time_format),
+    effectiveLabel:
+      data?.effectiveTimeFormatLabel ||
+      data?.effective_time_format_label ||
+      timeFormatLabel(data?.effectiveTimeFormat || data?.effective_time_format),
+    detected: data?.detectedTimeFormat || data?.detected_time_format || null,
+  };
 }
 
 function openingName(item) {
@@ -123,12 +150,17 @@ function createReportSnapshot(data, fitData = null) {
     data?.healthScore ??
     data?.opening_health_score ??
     null;
+  const timeFormat = getAnalysisTimeFormat(data);
 
   return {
     reportDate: new Date().toISOString(),
     username: getUsername(data),
     platform: getPlatform(data),
     importMonths: getImportMonths(data),
+    analysisTimeFormat: timeFormat.key,
+    analysisTimeFormatLabel: timeFormat.label,
+    effectiveTimeFormatLabel: timeFormat.effectiveLabel,
+    detectedTimeFormat: timeFormat.detected,
     games: getGameCount(data),
     topOpening: topOpenings[0]?.name || "No clear top opening yet",
     topOpenings,
@@ -161,6 +193,15 @@ function normalizeHistoryItem(item) {
     createdAt: item.created_at || item.createdAt || summary.reportDate,
     username: summary.username || item.username || "Unknown player",
     platform: summary.platform || item.platform || "chess",
+    analysisTimeFormat: summary.analysisTimeFormat || item.analysisTimeFormat || "custom",
+    analysisTimeFormatLabel:
+      summary.analysisTimeFormatLabel ||
+      item.analysisTimeFormatLabel ||
+      timeFormatLabel(summary.analysisTimeFormat || item.analysisTimeFormat),
+    effectiveTimeFormatLabel:
+      summary.effectiveTimeFormatLabel ||
+      item.effectiveTimeFormatLabel ||
+      timeFormatLabel(summary.effectiveTimeFormat || item.effectiveTimeFormat),
     games: summary.games || item.games || 0,
     topOpening: summary.topOpening || item.topOpening || "No clear top opening yet",
     snapshot: {
@@ -362,7 +403,7 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
           <strong>{previousReport ? safeDate(previousReport.createdAt) : "No previous report yet"}</strong>
           <small>
             {previousReport
-              ? `${previousReport.games || "Recent"} games · Health ${previousReport.snapshot.healthScore ?? "—"}/100`
+              ? `${previousReport.games || "Recent"} games · ${previousReport.analysisTimeFormatLabel} · Health ${previousReport.snapshot.healthScore ?? "—"}/100`
               : "Save this report, then re-import in a few weeks to compare."}
           </small>
         </article>
@@ -371,7 +412,7 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
           <span>Current report</span>
           <strong>{currentSnapshot.username}</strong>
           <small>
-            {currentSnapshot.games || "Recent"} games · Health {currentSnapshot.healthScore ?? "—"}/100 · Study: {currentSnapshot.studyTarget}
+            {currentSnapshot.games || "Recent"} games · {currentSnapshot.analysisTimeFormatLabel} · Health {currentSnapshot.healthScore ?? "—"}/100 · Study: {currentSnapshot.studyTarget}
           </small>
         </article>
       </div>
@@ -413,7 +454,7 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
                 <div>
                   <strong>{item.username}</strong>
                   <span>
-                    {item.games || "Recent"} games · {item.topOpening} · Study: {item.snapshot.studyTarget || "—"}
+                    {item.games || "Recent"} games · {item.analysisTimeFormatLabel} · {item.topOpening} · Study: {item.snapshot.studyTarget || "—"}
                   </span>
                   <small>
                     {safeDate(item.createdAt)} · {item.platform} · {item.snapshot.importMonths || "Recent"} import
