@@ -36313,6 +36313,86 @@ svg {
   line-height: 1.45;
 }
 
+.openingFitProgressCard {
+  display: grid;
+  gap: 14px;
+}
+
+.openingFitProgressScore {
+  display: grid;
+  place-items: center;
+  min-width: 150px;
+  min-height: 118px;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--of-border-final));
+  border-radius: var(--of-radius-card-final, 16px);
+  padding: 14px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  text-align: center;
+}
+
+.openingFitProgressScore span,
+.openingFitProgressGrid span,
+.openingFitProgressInsightGrid span {
+  color: var(--of-muted-final, #94a3b8);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.openingFitProgressScore strong {
+  display: block;
+  color: var(--foreground);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1;
+}
+
+.openingFitProgressGrid,
+.openingFitProgressInsightGrid {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.openingFitProgressGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.openingFitProgressInsightGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.openingFitProgressGrid article,
+.openingFitProgressInsightGrid article {
+  min-width: 0;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-card-final, 16px);
+  padding: 14px;
+  background: var(--of-surface-soft-final, rgba(15, 23, 42, 0.58));
+}
+
+.openingFitProgressGrid strong,
+.openingFitProgressInsightGrid strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--foreground);
+  font-size: 1rem;
+  line-height: 1.28;
+}
+
+.openingFitProgressGrid p {
+  margin: 7px 0 0;
+  color: var(--of-copy-final, #cbd5e1);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.openingFitProgressActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .profileAccountPremiumGrid {
   grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
 }
@@ -36373,12 +36453,16 @@ svg {
 .page.light .profileAchievementList article,
 .page.light .chessProfileStyle,
 .page.light .profileSavedReportRow,
+.page.light .openingFitProgressGrid article,
+.page.light .openingFitProgressInsightGrid article,
 [data-theme="light"] .profileHeroMetaGrid article,
 [data-theme="light"] .chessProfileGrid article,
 [data-theme="light"] .latestReportMeta > div,
 [data-theme="light"] .profileAchievementList article,
 [data-theme="light"] .chessProfileStyle,
-[data-theme="light"] .profileSavedReportRow {
+[data-theme="light"] .profileSavedReportRow,
+[data-theme="light"] .openingFitProgressGrid article,
+[data-theme="light"] .openingFitProgressInsightGrid article {
   background: #f8fafc !important;
   border-color: rgba(15, 23, 42, 0.1) !important;
 }
@@ -36386,7 +36470,9 @@ svg {
 @media (max-width: 900px) {
   .profileHeroDashboard,
   .profileDashboardGrid,
-  .profileAccountPremiumGrid {
+  .profileAccountPremiumGrid,
+  .openingFitProgressGrid,
+  .openingFitProgressInsightGrid {
     grid-template-columns: 1fr;
   }
 
@@ -36410,6 +36496,8 @@ svg {
 
   .profileHeroActions,
   .profileHeroActions button,
+  .openingFitProgressActions,
+  .openingFitProgressActions button,
   .profileSavedReportRow button,
   .profileFounderCard button,
   .profileNoReportState button,

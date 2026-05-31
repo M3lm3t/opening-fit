@@ -3380,6 +3380,7 @@ function buildReportHistorySummary(data, fitData = null) {
       .sort((a, b) => a.score - b.score)[0]?.name ||
     topOpenings[0]?.name ||
     "No clear target yet";
+  const progressSnapshot = buildOpeningFitProgressSnapshot(data, fitData);
 
   return {
     reportDate: new Date().toISOString(),
@@ -3414,6 +3415,211 @@ function buildReportHistorySummary(data, fitData = null) {
       data?.opening_fit_score ??
       data?.opening_health_score ??
       null,
+    openingFitProgress: progressSnapshot,
+  };
+}
+
+function getProgressScoreValue(value) {
+  const number = Number(String(value ?? "").replace("%", ""));
+  if (!Number.isFinite(number)) return null;
+  return Math.max(0, Math.min(100, Math.round(number <= 1 ? number * 100 : number)));
+}
+
+function getProgressDateLabel(value) {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) return "Recent analysis";
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getProgressStyleSummary(data = {}) {
+  const styleProfile = data?.styleProfile || data?.style_profile || {};
+  const labels = [
+    styleProfile.primaryStyle,
+    styleProfile.primary_style,
+    styleProfile.label,
+    styleProfile.style,
+    ...(Array.isArray(styleProfile.labels) ? styleProfile.labels : []),
+  ]
+    .filter(Boolean)
+    .map((item) => String(item).replace(/[_-]+/g, " ").trim())
+    .filter(Boolean);
+
+  const unique = [...new Set(labels)];
+  if (styleProfile.summary) return styleProfile.summary;
+  if (unique.length) return unique.slice(0, 3).join(" / ");
+  if (data?.styleLabel || data?.style_label) return data.styleLabel || data.style_label;
+  return "Developing style profile";
+}
+
+function getProgressRecommendationCandidate(data = {}, fitData = null) {
+  const scored = Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : [];
+  const clearFit = scored.find((item) => getOpeningSignal(item).canBePrimary);
+  const best = getOpeningSignal(fitData?.bestOpening || {}).canBePrimary ? fitData.bestOpening : null;
+  const topOpening =
+    clearFit ||
+    best ||
+    (Array.isArray(data?.best_openings) ? data.best_openings[0] : null) ||
+    (Array.isArray(data?.top_openings) ? data.top_openings[0] : null) ||
+    (Array.isArray(data?.topOpenings) ? data.topOpenings[0] : null);
+
+  if (topOpening) return topOpening;
+
+  const styleRec = data?.styleBasedRecommendations || data?.style_based_recommendations || null;
+  const styleItem = styleRec?.sections?.flatMap((section) => section.items || [])?.[0];
+  if (styleItem) return styleItem;
+
+  const openingRec = data?.opening_recommendations || data?.openingRecommendations || null;
+  const recommendationItem =
+    openingRec?.whiteDetailed?.[0] ||
+    openingRec?.white_repertoire?.[0] ||
+    openingRec?.white?.[0] ||
+    openingRec?.blackVsE4Detailed?.[0] ||
+    openingRec?.black_vs_e4?.[0] ||
+    openingRec?.blackVsE4?.[0];
+
+  return recommendationItem || null;
+}
+
+function getProgressRecommendationConfidence(item, data = {}) {
+  const raw =
+    item?.fitConfidence ||
+    item?.confidenceLabel ||
+    item?.confidence_level ||
+    item?.confidenceLevel ||
+    item?.confidence ||
+    data?.recommendationConfidence ||
+    data?.recommendation_confidence ||
+    "";
+  if (!raw) return "Low Confidence";
+
+  const text = String(raw).trim();
+  if (/high/i.test(text)) return "High Confidence";
+  if (/medium|moderate/i.test(text)) return "Medium Confidence";
+  if (/low/i.test(text)) return "Low Confidence";
+  return text;
+}
+
+function getProgressFromReportRow(row) {
+  if (!row) return null;
+  const summary = row.summary || row.snapshot || {};
+  const progress = summary.openingFitProgress || summary.opening_fit_progress || row.coach_progress?.openingFitProgress;
+  if (progress) return progress;
+
+  return {
+    username: summary.username || row.username || "Unknown player",
+    platform: summary.platform || row.platform || "unknown",
+    gamesAnalysed: Number(summary.games || row.report?.gamesImported || row.report?.total_games || 0) || 0,
+    lastAnalysisDate: summary.reportDate || row.created_at || row.updated_at || "",
+    mainOpeningRecommendation: summary.topOpening || summary.studyTarget || "No clear recommendation yet",
+    recommendationConfidence:
+      summary.confidenceLevels?.[summary.topOpening] || summary.recommendationConfidence || "Low Confidence",
+    repertoireConfidenceScore: getProgressScoreValue(summary.healthScore),
+    styleProfileSummary: getProgressStyleSummary(summary),
+    suggestedNextAction: summary.studyTarget ? `Review ${summary.studyTarget} next.` : "Analyse more games to strengthen your profile.",
+  };
+}
+
+function findPreviousProgressSnapshot(current, reportHistory = []) {
+  if (!current || !Array.isArray(reportHistory)) return null;
+  const currentTime = Date.parse(current.lastAnalysisDate || "");
+
+  return reportHistory
+    .map((row) => ({
+      row,
+      progress: getProgressFromReportRow(row),
+      time: Date.parse(row?.summary?.reportDate || row?.created_at || row?.updated_at || ""),
+    }))
+    .filter(({ progress }) => {
+      if (!progress) return false;
+      const samePlayer =
+        String(progress.username || "").toLowerCase() === String(current.username || "").toLowerCase() &&
+        String(progress.platform || "").toLowerCase() === String(current.platform || "").toLowerCase();
+      if (!samePlayer) return false;
+
+      const sameSnapshot =
+        progress.gamesAnalysed === current.gamesAnalysed &&
+        progress.mainOpeningRecommendation === current.mainOpeningRecommendation &&
+        progress.repertoireConfidenceScore === current.repertoireConfidenceScore;
+
+      const rowTime = Date.parse(progress.lastAnalysisDate || "");
+      const sameRecentTime =
+        Number.isFinite(rowTime) &&
+        Number.isFinite(currentTime) &&
+        Math.abs(rowTime - currentTime) < 120000;
+
+      return !(sameSnapshot && sameRecentTime);
+    })
+    .sort((a, b) => (Number.isFinite(b.time) ? b.time : 0) - (Number.isFinite(a.time) ? a.time : 0))[0]?.progress || null;
+}
+
+function describeProgressChange(current, previous) {
+  if (!previous) return "First saved baseline created. Come back after another analysis to see what changed.";
+
+  const gamesDelta = (current.gamesAnalysed || 0) - (previous.gamesAnalysed || 0);
+  const scoreDelta =
+    current.repertoireConfidenceScore !== null && previous.repertoireConfidenceScore !== null
+      ? current.repertoireConfidenceScore - previous.repertoireConfidenceScore
+      : null;
+
+  if (current.mainOpeningRecommendation !== previous.mainOpeningRecommendation) {
+    return `Main recommendation changed from ${previous.mainOpeningRecommendation} to ${current.mainOpeningRecommendation}.`;
+  }
+
+  if (Number.isFinite(scoreDelta) && scoreDelta !== 0) {
+    return `Repertoire confidence ${scoreDelta > 0 ? "improved" : "moved"} by ${Math.abs(scoreDelta)} point${Math.abs(scoreDelta) === 1 ? "" : "s"} since last time.`;
+  }
+
+  if (gamesDelta > 0) {
+    return `${gamesDelta} more game${gamesDelta === 1 ? "" : "s"} added to the recommendation sample.`;
+  }
+
+  return "No major change yet. Analyse a fresh batch after a few more games.";
+}
+
+function buildOpeningFitProgressSnapshot(data = {}, fitData = null, reportHistory = []) {
+  const gamesAnalysed = Number(getProfileGameCount(data)) || 0;
+  const score = getProgressScoreValue(
+    fitData?.overallScore ??
+      data?.openingFitScore ??
+      data?.opening_fit_score ??
+      data?.opening_health_score
+  );
+  const recommendation = getProgressRecommendationCandidate(data, fitData);
+  const mainOpeningRecommendation = recommendation ? getOpeningName(recommendation) : "No clear recommendation yet";
+  const gamesNeeded = Math.max(0, 10 - gamesAnalysed);
+
+  const current = {
+    username: data?.username || data?.playerName || data?.player_name || "Unknown player",
+    platform: data?.platform || data?.importPlatform || data?.import_platform || "unknown",
+    gamesAnalysed,
+    lastAnalysisDate:
+      data?.importedAt ||
+      data?.imported_at ||
+      data?.lastUpdated ||
+      data?.last_updated ||
+      new Date().toISOString(),
+    mainOpeningRecommendation,
+    recommendationConfidence: getProgressRecommendationConfidence(recommendation, data),
+    repertoireConfidenceScore: score,
+    styleProfileSummary: getProgressStyleSummary(data),
+    gamesNeededForStrongerRecommendation: gamesNeeded,
+    suggestedNextAction: gamesNeeded
+      ? `OpeningFit needs ${gamesNeeded} more game${gamesNeeded === 1 ? "" : "s"} to give a stronger recommendation.`
+      : mainOpeningRecommendation !== "No clear recommendation yet"
+        ? `Review ${mainOpeningRecommendation} and analyse again after your next 5 games.`
+        : "Analyse another batch after your next few games to unlock a clearer recommendation.",
+  };
+  const previous = findPreviousProgressSnapshot(current, reportHistory);
+
+  return {
+    ...current,
+    whatChangedSinceLastTime: describeProgressChange(current, previous),
+    previousAnalysisDate: previous?.lastAnalysisDate || null,
   };
 }
 
@@ -4782,6 +4988,105 @@ function ProfileAchievementsCard({ data, fitData, isPremium }) {
   );
 }
 
+function OpeningFitProgressCard({
+  data,
+  fitData,
+  accountUser,
+  reportHistory = [],
+  openingFitUserState = [],
+  onAnalyse,
+  onOpenReport,
+}) {
+  const latestStoredProgress =
+    openingFitUserState
+      .map((row) => row?.coach_progress?.openingFitProgress || row?.coach_progress?.opening_fit_progress || null)
+      .filter(Boolean)
+      .sort(
+        (a, b) =>
+          Date.parse(b.lastAnalysisDate || b.last_analysis_date || "") -
+          Date.parse(a.lastAnalysisDate || a.last_analysis_date || "")
+      )[0] || null;
+  const progress =
+    data
+      ? buildOpeningFitProgressSnapshot(data, fitData, reportHistory)
+      : latestStoredProgress;
+
+  if (!accountUser?.id || !progress) return null;
+
+  const score = progress.repertoireConfidenceScore;
+  const gamesNeeded = Number(progress.gamesNeededForStrongerRecommendation || 0);
+  const styleSummary = progress.styleProfileSummary || "Developing style profile";
+
+  return (
+    <section className="profileDashboardCard openingFitProgressCard" id="openingfit-progress">
+      <div className="profileCardHeader profileCardHeaderSplit">
+        <div>
+          <p className="eyebrow">Your OpeningFit Progress</p>
+          <h2>Your repertoire profile is saved and evolving</h2>
+          <p>
+            {score !== null
+              ? `Your repertoire confidence is ${score}%. ${
+                  gamesNeeded
+                    ? `Analyse more games to improve your recommendations.`
+                    : "Keep refreshing it as your repertoire changes."
+                }`
+              : "Analyse more games to improve your recommendations."}
+          </p>
+        </div>
+        <div className="openingFitProgressScore" aria-label={`Repertoire confidence ${score ?? "not ready"}`}>
+          <span>Confidence</span>
+          <strong>{score !== null ? `${score}%` : "—"}</strong>
+        </div>
+      </div>
+
+      <div className="openingFitProgressGrid">
+        <article>
+          <span>Games analysed</span>
+          <strong>{progress.gamesAnalysed || 0}</strong>
+          <p>{gamesNeeded ? `OpeningFit needs ${gamesNeeded} more games to give a stronger recommendation.` : "Enough games for a stronger profile read."}</p>
+        </article>
+        <article>
+          <span>Last analysis</span>
+          <strong>{getProgressDateLabel(progress.lastAnalysisDate)}</strong>
+          <p>{progress.platform || "OpeningFit"} profile for {progress.username || "your account"}.</p>
+        </article>
+        <article>
+          <span>Main recommendation</span>
+          <strong>{progress.mainOpeningRecommendation}</strong>
+          <p>{progress.recommendationConfidence || "Low Confidence"}</p>
+        </article>
+        <article>
+          <span>Style profile</span>
+          <strong>{styleSummary}</strong>
+          <p>Your style is currently showing as {styleSummary.toLowerCase()}.</p>
+        </article>
+      </div>
+
+      <div className="openingFitProgressInsightGrid">
+        <article>
+          <span>What changed since last time</span>
+          <strong>{progress.whatChangedSinceLastTime}</strong>
+        </article>
+        <article>
+          <span>Suggested next action</span>
+          <strong>{progress.suggestedNextAction}</strong>
+        </article>
+      </div>
+
+      <div className="openingFitProgressActions">
+        <button type="button" className="primaryBtn" onClick={onAnalyse}>
+          Analyse more games
+        </button>
+        {data ? (
+          <button type="button" className="secondaryButton" onClick={onOpenReport}>
+            View latest report
+          </button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 function FounderPassProfileCard({ isPremium, onFounderPass }) {
   return (
     <section className={isPremium ? "profileFounderCard profileFounderCardActive" : "profileFounderCard"}>
@@ -4818,19 +5123,41 @@ function OpeningFitProfileDashboard({
   onLoadReport,
   onFounderPass,
   onUserChange,
+  reportHistory,
+  openingFitUserState,
 }) {
+  const hasStoredProgress =
+    accountUser?.id &&
+    (openingFitUserState || []).some(
+      (row) => row?.coach_progress?.openingFitProgress || row?.coach_progress?.opening_fit_progress
+    );
+
   if (!data) {
     return (
-      <section className="profileNoReportState">
-        <p className="eyebrow">Profile</p>
-        <h1>Your OpeningFit Profile</h1>
-        <p>
-          No saved reports yet. Import your Chess.com or Lichess games to create your first OpeningFit profile.
-        </p>
-        <button className="primaryBtn" type="button" onClick={onAnalyse}>
-          Create my first report
-        </button>
-      </section>
+      <div className="profileDashboard">
+        <section className="profileNoReportState">
+          <p className="eyebrow">Profile</p>
+          <h1>Your OpeningFit Profile</h1>
+          <p>
+            No active report is loaded in this browser. Import your Chess.com or Lichess games to refresh your OpeningFit profile.
+          </p>
+          <button className="primaryBtn" type="button" onClick={onAnalyse}>
+            Create my first report
+          </button>
+        </section>
+
+        {hasStoredProgress ? (
+          <OpeningFitProgressCard
+            data={null}
+            fitData={fitData}
+            accountUser={accountUser}
+            reportHistory={reportHistory}
+            openingFitUserState={openingFitUserState}
+            onAnalyse={onAnalyse}
+            onOpenReport={onOpenReport}
+          />
+        ) : null}
+      </div>
     );
   }
 
@@ -4860,6 +5187,15 @@ function OpeningFitProfileDashboard({
       </div>
 
       <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
+      <OpeningFitProgressCard
+        data={data}
+        fitData={fitData}
+        accountUser={accountUser}
+        reportHistory={reportHistory}
+        openingFitUserState={openingFitUserState}
+        onAnalyse={onAnalyse}
+        onOpenReport={onOpenReport}
+      />
       <ProfileAchievementsCard data={data} fitData={fitData} isPremium={isPremium} />
 
       <div className="profileDashboardGrid profileAccountPremiumGrid">
@@ -8473,6 +8809,10 @@ function App() {
     hasPremiumAccess,
     saveReport: saveCloudReport,
     recordActivity: recordCloudActivity,
+    reportHistory: cloudReportHistory,
+    openingFitUserState,
+    upsertUserData: upsertCloudUserData,
+    refreshUserData,
   } = useAuth();
 
   useEffect(() => {
@@ -9047,6 +9387,72 @@ function App() {
     setLocalSavedAt(savedAt);
   };
 
+  const saveOpeningFitProgressState = async (report, summary, progressSnapshot) => {
+    if (!supabaseUser?.id || !upsertCloudUserData || !progressSnapshot) return null;
+
+    const nextUsername =
+      report?.username ||
+      report?.playerName ||
+      report?.player_name ||
+      username ||
+      "Unknown player";
+    const nextPlatform =
+      report?.platform ||
+      report?.importPlatform ||
+      report?.import_platform ||
+      platform ||
+      "unknown";
+    const existingState = (openingFitUserState || []).find(
+      (row) =>
+        String(row?.username || "").toLowerCase() === String(nextUsername).toLowerCase() &&
+        String(row?.platform || "").toLowerCase() === String(nextPlatform).toLowerCase()
+    );
+    const existingProgressHistory = Array.isArray(existingState?.progress_history)
+      ? existingState.progress_history
+      : [];
+    const existingImportHistory = Array.isArray(existingState?.import_history)
+      ? existingState.import_history
+      : [];
+    const dedupeDate = progressSnapshot.lastAnalysisDate || summary?.reportDate || new Date().toISOString();
+    const nextProgressHistory = [
+      progressSnapshot,
+      ...existingProgressHistory.filter(
+        (item) =>
+          !(
+            item?.lastAnalysisDate === dedupeDate &&
+            item?.mainOpeningRecommendation === progressSnapshot.mainOpeningRecommendation
+          )
+      ),
+    ].slice(0, 12);
+    const nextImportHistory = [
+      {
+        reportDate: summary?.reportDate || dedupeDate,
+        games: progressSnapshot.gamesAnalysed || 0,
+        score: progressSnapshot.repertoireConfidenceScore,
+        mainOpeningRecommendation: progressSnapshot.mainOpeningRecommendation,
+      },
+      ...existingImportHistory.filter((item) => item?.reportDate !== summary?.reportDate),
+    ].slice(0, 20);
+
+    return upsertCloudUserData(
+      "openingfit_user_state",
+      {
+        ...(existingState?.id ? { id: existingState.id } : {}),
+        platform: nextPlatform,
+        username: nextUsername,
+        last_report: report,
+        coach_progress: {
+          ...(existingState?.coach_progress || {}),
+          openingFitProgress: progressSnapshot,
+          latestSummary: summary,
+        },
+        progress_history: nextProgressHistory,
+        import_history: nextImportHistory,
+      },
+      { onConflict: "user_id,platform,username" }
+    );
+  };
+
   const scrollToId = (id) => {
     setTimeout(() => {
       const el = document.getElementById(id);
@@ -9296,15 +9702,26 @@ function App() {
       if (supabaseUser?.id) {
         try {
           const importFitData = buildOpeningFitData(cleanData);
-          await saveCloudReport(cleanData, buildReportHistorySummary(cleanData, importFitData));
+          const reportSummary = buildReportHistorySummary(cleanData, importFitData);
+          const progressSnapshot = buildOpeningFitProgressSnapshot(
+            cleanData,
+            importFitData,
+            cloudReportHistory || []
+          );
+          reportSummary.openingFitProgress = progressSnapshot;
+
+          await saveCloudReport(cleanData, reportSummary);
+          await saveOpeningFitProgressState(cleanData, reportSummary, progressSnapshot);
           await recordCloudActivity("report_imported", {
             username: cleanData.username || cleanUsername,
             platform: selectedPlatformKey,
             games: cleanData.gamesImported ?? cleanData.total_games,
             analysis_time_format: cleanData.analysisTimeFormat,
             detected_time_format: cleanData.detectedTimeFormat,
+            openingfit_progress: progressSnapshot,
             dedupe_key: `report_imported:${userReportRetentionKey}`,
           });
+          await refreshUserData?.(supabaseUser);
         } catch (cloudError) {
           console.warn("Could not save imported report to Supabase", cloudError);
         }
@@ -11331,6 +11748,8 @@ function App() {
                 }}
                 onFounderPass={handleFounderPassClick}
                 onUserChange={setAccountUser}
+                reportHistory={cloudReportHistory}
+                openingFitUserState={openingFitUserState}
               />
             </section>
           ) : null}
