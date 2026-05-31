@@ -4367,6 +4367,52 @@ function AnalysisTrustSignalsPanel({ data, fitData }) {
   );
 }
 
+function ComeBackAfterPlayingPrompt({ data, fitData, onAnalyse }) {
+  if (!data) return null;
+
+  const trust = getAnalysisTrustSignals(data, fitData);
+  const games = Number(trust.games || 0);
+  const nextTarget = games < 10 ? 10 : Math.ceil((games + 1) / 10) * 10;
+  const lowData = games < 10 || /style-based/i.test(trust.basis);
+  const confidenceText =
+    String(trust.confidenceLevel || "Medium confidence")
+      .replace(/\s+confidence/i, "")
+      .replace(/^./, (char) => char.toUpperCase()) || "Medium";
+
+  return (
+    <section className="comeBackPrompt" aria-label="When to come back">
+      <div>
+        <p className="eyebrow">Next update</p>
+        <h2>Play 5 more games, then come back to improve your recommendation.</h2>
+        <p>
+          {lowData
+            ? `You only have ${games} game${games === 1 ? "" : "s"} analysed. OpeningFit can give starter suggestions now, but your recommendations will improve after 5-10 games.`
+            : "Your opening data is clear. Reanalyse weekly to track changes in your repertoire."}
+        </p>
+      </div>
+
+      <div className="comeBackPromptStats">
+        <article>
+          <span>Next update target</span>
+          <strong>{nextTarget} games analysed</strong>
+        </article>
+        <article>
+          <span>Current confidence</span>
+          <strong>{confidenceText}</strong>
+        </article>
+        <article>
+          <span>Plan</span>
+          <strong>Analyse again after more games for a stronger repertoire plan.</strong>
+        </article>
+      </div>
+
+      <button type="button" className="secondaryButton" onClick={onAnalyse}>
+        Analyse again later
+      </button>
+    </section>
+  );
+}
+
 function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
   const { user, recordActivity } = useAuth();
   const [status, setStatus] = useState("");
@@ -4497,6 +4543,18 @@ function FinalReportFlow({
       <WeeklyOpeningReport data={data} />
 
       <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
+
+      <ComeBackAfterPlayingPrompt
+        data={data}
+        fitData={fitData}
+        onAnalyse={() => {
+          onViewChange?.("analyse");
+          setTimeout(() => {
+            const target = document.getElementById("import") || document.querySelector(".analyseImportHero");
+            if (target?.scrollIntoView) target.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 80);
+        }}
+      />
 
       <AnalysisNextStepsPanel
         data={data}
