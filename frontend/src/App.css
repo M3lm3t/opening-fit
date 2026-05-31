@@ -36495,6 +36495,167 @@ svg {
   gap: 10px;
 }
 
+.analysisNextStepsPanel {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-section-final, 20px);
+  padding: var(--of-section-pad-final, 20px);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--success) 14%, transparent), transparent 18rem),
+    var(--of-surface-final, rgba(15, 23, 42, 0.88));
+  box-shadow: var(--of-shadow-final, 0 14px 34px rgba(2, 6, 23, 0.18));
+}
+
+.analysisNextStepsHeader h2 {
+  margin: 0;
+  font-size: clamp(1.45rem, 3vw, 2.25rem);
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.analysisNextStepsHeader p,
+.analysisNextStepsStatus {
+  max-width: 72ch;
+  margin: 8px 0 0;
+  color: var(--of-copy-final, #cbd5e1);
+  line-height: 1.55;
+}
+
+.analysisNextStepActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.analysisNextOpeningGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.analysisNextOpeningCard {
+  min-width: 0;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-card-final, 16px);
+  padding: 14px;
+  background: var(--of-surface-soft-final, rgba(15, 23, 42, 0.58));
+}
+
+.analysisNextOpeningTop {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.analysisNextOpeningTop span,
+.analysisNextOpeningCard dt {
+  color: var(--of-muted-final, #94a3b8);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.analysisNextOpeningTop strong {
+  color: var(--foreground);
+  font-size: 1.18rem;
+  line-height: 1.2;
+}
+
+.analysisNextOpeningCard dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.analysisNextOpeningCard dd {
+  margin: 4px 0 0;
+  color: var(--of-copy-final, #cbd5e1);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.recommendationHistoryCard {
+  display: grid;
+  gap: 14px;
+}
+
+.recommendationHistoryDelta {
+  display: grid;
+  place-items: center;
+  min-width: 150px;
+  min-height: 112px;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--of-border-final));
+  border-radius: var(--of-radius-card-final, 16px);
+  padding: 14px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  text-align: center;
+}
+
+.recommendationHistoryDelta span,
+.recommendationHistoryCompare span,
+.recommendationHistoryLists span {
+  color: var(--of-muted-final, #94a3b8);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.recommendationHistoryDelta strong {
+  color: var(--foreground);
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.recommendationHistoryCompare,
+.recommendationHistoryLists {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.recommendationHistoryCompare {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.recommendationHistoryLists {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.recommendationHistoryCompare article,
+.recommendationHistoryLists > div {
+  min-width: 0;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  border-radius: var(--of-radius-card-final, 16px);
+  padding: 14px;
+  background: var(--of-surface-soft-final, rgba(15, 23, 42, 0.58));
+}
+
+.recommendationHistoryCompare strong,
+.recommendationHistoryLists strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--foreground);
+  font-size: 1rem;
+  line-height: 1.28;
+}
+
+.recommendationHistoryCompare p {
+  margin: 7px 0 0;
+  color: var(--of-copy-final, #cbd5e1);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.recommendationHistoryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .profileAccountPremiumGrid {
   grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
 }
@@ -36541,11 +36702,13 @@ svg {
 .page.light .profileFounderCard,
 .page.light .profileNoReportState,
 .page.light .returnUserDashboard,
+.page.light .analysisNextStepsPanel,
 [data-theme="light"] .profileHeroDashboard,
 [data-theme="light"] .profileDashboardCard,
 [data-theme="light"] .profileFounderCard,
 [data-theme="light"] .profileNoReportState,
-[data-theme="light"] .returnUserDashboard {
+[data-theme="light"] .returnUserDashboard,
+[data-theme="light"] .analysisNextStepsPanel {
   background: #ffffff !important;
   border-color: rgba(15, 23, 42, 0.12) !important;
   color: #0f172a;
@@ -36560,6 +36723,9 @@ svg {
 .page.light .openingFitProgressGrid article,
 .page.light .openingFitProgressInsightGrid article,
 .page.light .returnDashboardGrid article,
+.page.light .analysisNextOpeningCard,
+.page.light .recommendationHistoryCompare article,
+.page.light .recommendationHistoryLists > div,
 [data-theme="light"] .profileHeroMetaGrid article,
 [data-theme="light"] .chessProfileGrid article,
 [data-theme="light"] .latestReportMeta > div,
@@ -36568,7 +36734,10 @@ svg {
 [data-theme="light"] .profileSavedReportRow,
 [data-theme="light"] .openingFitProgressGrid article,
 [data-theme="light"] .openingFitProgressInsightGrid article,
-[data-theme="light"] .returnDashboardGrid article {
+[data-theme="light"] .returnDashboardGrid article,
+[data-theme="light"] .analysisNextOpeningCard,
+[data-theme="light"] .recommendationHistoryCompare article,
+[data-theme="light"] .recommendationHistoryLists > div {
   background: #f8fafc !important;
   border-color: rgba(15, 23, 42, 0.1) !important;
 }
@@ -36580,7 +36749,10 @@ svg {
   .openingFitProgressGrid,
   .openingFitProgressInsightGrid,
   .returnDashboardHero,
-  .returnDashboardGrid {
+  .returnDashboardGrid,
+  .analysisNextOpeningGrid,
+  .recommendationHistoryCompare,
+  .recommendationHistoryLists {
     grid-template-columns: 1fr;
   }
 
@@ -36608,6 +36780,10 @@ svg {
   .openingFitProgressActions button,
   .returnDashboardActions,
   .returnDashboardActions button,
+  .analysisNextStepActions,
+  .analysisNextStepActions button,
+  .recommendationHistoryActions,
+  .recommendationHistoryActions button,
   .profileSavedReportRow button,
   .profileFounderCard button,
   .profileNoReportState button,

@@ -13,6 +13,7 @@ export const USER_DATA_TABLES = [
   "settings",
   "activity_history",
   "report_history",
+  "recommendation_history",
 ];
 
 export const USER_FILE_BUCKET = "user-uploads";
@@ -31,6 +32,7 @@ function createDefaultUserData(profile = null) {
     settings: [],
     activity_history: [],
     report_history: [],
+    recommendation_history: [],
   };
 }
 
@@ -353,6 +355,44 @@ export async function saveReport(userId, report, summary = {}) {
     }
 
     logQueryFailure("report_history", "insert report with dedupe key", error, { userId, reportKey });
+    throw error;
+  }
+
+  return data;
+}
+
+export async function saveRecommendationHistory(userId, snapshot = {}) {
+  if (!userId || !snapshot) return null;
+
+  const client = requireClient();
+  const payload = {
+    user_id: userId,
+    analysis_date: snapshot.analysisDate || snapshot.analysis_date || new Date().toISOString(),
+    games_analysed:
+      Number(snapshot.gamesAnalysed ?? snapshot.games_analyzed ?? snapshot.games_analysed ?? 0) || 0,
+    detected_openings: snapshot.detectedOpenings || snapshot.detected_openings || [],
+    recommended_openings: snapshot.recommendedOpenings || snapshot.recommended_openings || [],
+    confidence_score:
+      snapshot.confidenceScore ?? snapshot.confidence_score ?? snapshot.repertoireConfidenceScore ?? null,
+    style_profile: snapshot.styleProfile || snapshot.style_profile || null,
+    time_control_filter:
+      snapshot.timeControlFilter || snapshot.time_control_filter || snapshot.analysisTimeFormat || "custom",
+    analysis_version: snapshot.analysisVersion || snapshot.analysis_version || "retention-history-v1",
+    snapshot,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await client
+    .from("recommendation_history")
+    .insert(payload)
+    .select("*")
+    .single();
+
+  if (error) {
+    logQueryFailure("recommendation_history", "insert recommendation snapshot", error, {
+      userId,
+      snapshot,
+    });
     throw error;
   }
 

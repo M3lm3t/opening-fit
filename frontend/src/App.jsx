@@ -3085,6 +3085,61 @@ const FRONTEND_OPENING_DETAILS = {
   "King's Indian as future option": ["1. d4 Nf6", "2. c4 g6", "3. Nc3 Bg7"],
 };
 
+const FRONTEND_OPENING_STUDY_DETAILS = {
+  "Italian Game": {
+    mainPlan: "Develop quickly, castle, then build pressure on the centre and f7 with natural piece play.",
+    commonMistake: "Do not launch an attack before your king is safe and your minor pieces are developed.",
+  },
+  "Scotch Game": {
+    mainPlan: "Open the centre early, use active pieces, and make Black solve concrete development problems.",
+    commonMistake: "Avoid trading into a quiet position without a plan for your active pieces.",
+  },
+  "Vienna Game": {
+    mainPlan: "Develop flexibly, keep attacking chances, and only use f4 ideas when your pieces support them.",
+    commonMistake: "Do not push pawns for an attack while your kingside pieces are still asleep.",
+  },
+  "King's Gambit": {
+    mainPlan: "Use the f-pawn to fight for initiative, then develop fast before Black consolidates.",
+    commonMistake: "Do not sacrifice material and then spend tempi moving the same piece repeatedly.",
+  },
+  "London System": {
+    mainPlan: "Build a repeatable setup with Bf4, e3, Nf3, Bd3 and castle before choosing a central break.",
+    commonMistake: "Do not play the same setup automatically if Black gives you a clear central opportunity.",
+  },
+  "Queen's Gambit": {
+    mainPlan: "Challenge Black's centre with c4, develop calmly, and play for long-term central pressure.",
+    commonMistake: "Do not chase the gambit pawn before your pieces are ready.",
+  },
+  "Caro-Kann Defence": {
+    mainPlan: "Build a solid centre, develop safely, and counterattack once your structure is stable.",
+    commonMistake: "Do not become too passive; look for the right ...c5 or ...e5 break.",
+  },
+  "French Defence": {
+    mainPlan: "Challenge White's centre with a strong pawn chain, then prepare ...c5 and piece activity.",
+    commonMistake: "Do not ignore the light-squared bishop and queenside development.",
+  },
+  "Scandinavian Defence": {
+    mainPlan: "Challenge the centre immediately, move the queen once to safety, then develop quickly.",
+    commonMistake: "Do not waste time with repeated queen moves after the opening.",
+  },
+  "Queen's Gambit Declined": {
+    mainPlan: "Hold the centre, develop solidly, castle, and prepare central counterplay.",
+    commonMistake: "Do not grab pawns before your development is complete.",
+  },
+  "Queen's Gambit Declined setup": {
+    mainPlan: "Use a simple d5/e6/Nf6/Be7/castle setup against most d4 systems.",
+    commonMistake: "Do not switch defences every game before learning one reliable structure.",
+  },
+  "Slav Defence": {
+    mainPlan: "Support the d5 pawn with ...c6, develop actively, and keep a sturdy centre.",
+    commonMistake: "Do not weaken the centre before your pieces are ready.",
+  },
+  "Dutch Defence": {
+    mainPlan: "Fight for kingside space while developing carefully and protecting your own king.",
+    commonMistake: "Do not overextend the kingside before castling and completing development.",
+  },
+};
+
 function lowDataReliability(data) {
   const games = safeNumber(data?.gamesAnalysed ?? data?.gamesAnalyzed ?? data?.gamesImported ?? data?.total_games);
   const openings = [
@@ -4005,6 +4060,339 @@ function InterestingThinDataSection({ data, fitData }) {
   );
 }
 
+function normaliseNextStepOpening(item, data, fitData, index = 0) {
+  const name = getOpeningName(item);
+  if (!name || isUnknownOpeningName(name)) return null;
+
+  const details = FRONTEND_OPENING_STUDY_DETAILS[name] || {};
+  const firstMoves =
+    item?.starterMoveSequence ||
+    item?.starter_move_sequence ||
+    item?.firstMoves ||
+    item?.first_moves ||
+    FRONTEND_OPENING_DETAILS[name] ||
+    [];
+  const whyItFits =
+    item?.whyItFits ||
+    item?.why_it_fits ||
+    item?.fitExplanation ||
+    item?.recommendationCopy ||
+    getOpeningExplanation(item, data, index);
+  const mainPlan =
+    item?.corePlan ||
+    item?.core_plan ||
+    item?.plan ||
+    item?.mainPlan ||
+    details.mainPlan ||
+    "Develop pieces, castle, and aim for a clear middlegame plan instead of memorising long theory.";
+  const commonMistake =
+    item?.commonMistakeAvoided ||
+    item?.common_mistake_avoided ||
+    item?.mistakeToAvoid ||
+    item?.mistake_to_avoid ||
+    details.commonMistake ||
+    "Avoid random early pawn moves and repeated queen moves before development is complete.";
+  const confidence =
+    item?.confidenceLevel ||
+    item?.confidence_level ||
+    item?.fitConfidence ||
+    item?.confidenceLabel ||
+    item?.confidence ||
+    getOpeningConfidence(item) ||
+    "Low Confidence";
+
+  return {
+    name,
+    confidence,
+    whyItFits,
+    firstMoves,
+    mainPlan,
+    commonMistake,
+    studyTask: `Your next task: play 5 games using the ${name}, then return to OpeningFit to update your profile.`,
+  };
+}
+
+function buildNextStepOpenings(data, fitData) {
+  const styleRec = data?.styleBasedRecommendations || data?.style_based_recommendations || {};
+  const styleItems = Array.isArray(styleRec.sections)
+    ? styleRec.sections.flatMap((section) => section.items || [])
+    : [];
+  const recommendationBuckets = data?.opening_recommendations || data?.openingRecommendations || {};
+  const bucketItems = [
+    recommendationBuckets.whiteDetailed,
+    recommendationBuckets.white_repertoire,
+    recommendationBuckets.white,
+    recommendationBuckets.blackVsE4Detailed,
+    recommendationBuckets.black_vs_e4,
+    recommendationBuckets.blackVsE4,
+    recommendationBuckets.blackVsD4Detailed,
+    recommendationBuckets.black_vs_d4,
+    recommendationBuckets.blackVsD4,
+    recommendationBuckets.blackVsD4OtherDetailed,
+    recommendationBuckets.black_vs_d4_other,
+    recommendationBuckets.blackVsD4Other,
+  ].flatMap((source) => (Array.isArray(source) ? source : []));
+  const studyTarget = buildStudyThisNextTarget(fitData)?.opening;
+  const scored = Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : [];
+  const candidates = [
+    studyTarget,
+    ...styleItems,
+    ...bucketItems,
+    ...scored.filter((opening) => getOpeningSignal(opening).canBePrimary),
+    fitData?.bestOpening,
+  ].filter(Boolean);
+  const seen = new Set();
+
+  return candidates
+    .map((item, index) => normaliseNextStepOpening(item, data, fitData, index))
+    .filter(Boolean)
+    .filter((item) => {
+      const key = item.name.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 3);
+}
+
+function buildDetectedOpeningSnapshot(data, fitData) {
+  const sources = [
+    ...(Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : []),
+    ...(Array.isArray(data?.best_openings) ? data.best_openings : []),
+    ...(Array.isArray(data?.top_openings) ? data.top_openings : []),
+    ...(Array.isArray(data?.topOpenings) ? data.topOpenings : []),
+  ];
+  const seen = new Set();
+
+  return sources
+    .map((opening) => ({
+      name: getOpeningName(opening),
+      games: getOpeningGames(opening),
+      score: getWinRate(opening),
+      confidence:
+        opening?.fitConfidence ||
+        opening?.confidenceLabel ||
+        opening?.confidence ||
+        getOpeningConfidence(opening) ||
+        "Unlabelled",
+      verdict: opening?.fitDisplayVerdict || opening?.fitVerdict || opening?.verdict || "Tracked",
+      context: itemContext(opening),
+    }))
+    .filter((opening) => opening.name && !isUnknownOpeningName(opening.name))
+    .filter((opening) => {
+      const key = `${opening.name.toLowerCase()}::${opening.context}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 12);
+}
+
+function buildRecommendationHistorySnapshot(data, fitData) {
+  const progress = buildOpeningFitProgressSnapshot(data, fitData);
+  const recommendedOpenings = buildNextStepOpenings(data, fitData).map((opening) => ({
+    name: opening.name,
+    confidence: opening.confidence,
+    whyItFits: opening.whyItFits,
+    firstMoves: opening.firstMoves,
+    mainPlan: opening.mainPlan,
+    commonMistake: opening.commonMistake,
+    studyTask: opening.studyTask,
+  }));
+  const detectedOpenings = buildDetectedOpeningSnapshot(data, fitData);
+
+  return {
+    userId: null,
+    analysisDate: progress.lastAnalysisDate || new Date().toISOString(),
+    gamesAnalysed: progress.gamesAnalysed || 0,
+    detectedOpenings,
+    recommendedOpenings,
+    confidenceScore: progress.repertoireConfidenceScore,
+    styleProfile: data?.styleProfile || data?.style_profile || null,
+    styleProfileSummary: progress.styleProfileSummary,
+    timeControlFilter:
+      data?.analysisTimeFormat ||
+      data?.analysis_time_format ||
+      data?.effectiveTimeFormat ||
+      data?.effective_time_format ||
+      "custom",
+    analysisVersion:
+      data?.analysisVersion ||
+      data?.analysis_version ||
+      data?.version ||
+      "retention-history-v1",
+    currentRecommendation: recommendedOpenings[0]?.name || progress.mainOpeningRecommendation,
+    recommendationConfidence: progress.recommendationConfidence,
+    progress,
+  };
+}
+
+function normalizeRecommendationHistoryRow(row) {
+  if (!row) return null;
+  const snapshot = row.snapshot || {};
+
+  return {
+    id: row.id || snapshot.id,
+    analysisDate: row.analysis_date || snapshot.analysisDate || snapshot.analysis_date || row.created_at || "",
+    gamesAnalysed:
+      Number(row.games_analysed ?? snapshot.gamesAnalysed ?? snapshot.games_analysed ?? 0) || 0,
+    detectedOpenings: row.detected_openings || snapshot.detectedOpenings || snapshot.detected_openings || [],
+    recommendedOpenings: row.recommended_openings || snapshot.recommendedOpenings || snapshot.recommended_openings || [],
+    confidenceScore: getProgressScoreValue(row.confidence_score ?? snapshot.confidenceScore ?? snapshot.confidence_score),
+    styleProfile: row.style_profile || snapshot.styleProfile || snapshot.style_profile || null,
+    styleProfileSummary:
+      snapshot.styleProfileSummary ||
+      snapshot.progress?.styleProfileSummary ||
+      getProgressStyleSummary(row.style_profile || snapshot),
+    timeControlFilter: row.time_control_filter || snapshot.timeControlFilter || snapshot.time_control_filter || "custom",
+    analysisVersion: row.analysis_version || snapshot.analysisVersion || snapshot.analysis_version || "retention-history-v1",
+    currentRecommendation:
+      snapshot.currentRecommendation ||
+      snapshot.current_recommendation ||
+      (row.recommended_openings || snapshot.recommendedOpenings || [])[0]?.name ||
+      "No clear recommendation yet",
+    recommendationConfidence:
+      snapshot.recommendationConfidence ||
+      snapshot.recommendation_confidence ||
+      (row.recommended_openings || snapshot.recommendedOpenings || [])[0]?.confidence ||
+      "Low Confidence",
+  };
+}
+
+function getRecommendationHistoryChange(current, previous) {
+  if (!current) return "No recommendation history yet.";
+  if (!previous) return "First recommendation snapshot saved. Analyse again after more games to see what changed.";
+
+  if (current.currentRecommendation !== previous.currentRecommendation) {
+    return `Current recommendation changed from ${previous.currentRecommendation} to ${current.currentRecommendation}.`;
+  }
+
+  const confidenceDelta =
+    current.confidenceScore !== null && previous.confidenceScore !== null
+      ? current.confidenceScore - previous.confidenceScore
+      : null;
+
+  if (Number.isFinite(confidenceDelta) && confidenceDelta !== 0) {
+    return `${current.currentRecommendation} fit score ${confidenceDelta > 0 ? "increased" : "changed"} from ${previous.confidenceScore}% to ${current.confidenceScore}%.`;
+  }
+
+  if (current.styleProfileSummary !== previous.styleProfileSummary) {
+    return `OpeningFit now has more evidence that your style is ${current.styleProfileSummary.toLowerCase()}.`;
+  }
+
+  const gamesDelta = current.gamesAnalysed - previous.gamesAnalysed;
+  if (gamesDelta > 0) {
+    return `${gamesDelta} more game${gamesDelta === 1 ? "" : "s"} added to the evidence behind this recommendation.`;
+  }
+
+  return "No major recommendation change yet. Play more games, then reanalyse to update the profile.";
+}
+
+function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
+  const { user, recordActivity } = useAuth();
+  const [status, setStatus] = useState("");
+  const openings = buildNextStepOpenings(data, fitData);
+  const primaryOpening = openings[0]?.name || buildStudyThisNextTarget(fitData)?.name || "your recommended opening";
+
+  if (!data) return null;
+
+  const saveRecommendation = async () => {
+    const savedAt = new Date().toISOString();
+    const payload = {
+      savedAt,
+      username: data?.username || data?.playerName || data?.player_name || "Unknown player",
+      openings,
+    };
+
+    try {
+      const current = JSON.parse(localStorage.getItem("openingFit:savedRecommendations") || "[]");
+      const next = [payload, ...(Array.isArray(current) ? current : [])].slice(0, 20);
+      localStorage.setItem("openingFit:savedRecommendations", JSON.stringify(next));
+
+      if (user?.id && recordActivity) {
+        await recordActivity("recommendation_saved", {
+          saved_at: savedAt,
+          openings: openings.map((item) => item.name),
+        });
+      }
+
+      setStatus("Recommendation saved. Come back after a few games and analyse again.");
+    } catch (error) {
+      console.warn("Could not save recommendation", error);
+      setStatus("Could not save this recommendation right now.");
+    }
+  };
+
+  return (
+    <section className="analysisNextStepsPanel" id="analysis-next-steps">
+      <div className="analysisNextStepsHeader">
+        <div>
+          <p className="eyebrow">Next Steps</p>
+          <h2>Turn this analysis into your next training loop</h2>
+          <p>Analyse, learn, play, return, and reanalyse so your profile keeps getting sharper.</p>
+        </div>
+      </div>
+
+      <div className="analysisNextStepActions">
+        <button type="button" className="primaryBtn" onClick={saveRecommendation}>
+          Save this recommendation
+        </button>
+        <button type="button" className="secondaryButton" onClick={() => onPractice?.(primaryOpening)}>
+          Learn this opening
+        </button>
+        <button
+          type="button"
+          className="secondaryButton"
+          onClick={() => {
+            onViewChange?.("analyse");
+            setTimeout(() => {
+              const target = document.getElementById("import") || document.querySelector(".analyseImportHero");
+              if (target?.scrollIntoView) target.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 80);
+          }}
+        >
+          Analyse more games to improve confidence
+        </button>
+      </div>
+
+      {status ? <p className="analysisNextStepsStatus">{status}</p> : null}
+
+      <div className="analysisNextOpeningGrid">
+        {(openings.length ? openings : [normaliseNextStepOpening({ name: "Italian Game" }, data, fitData)]).map((opening) => (
+          <article className="analysisNextOpeningCard" key={opening.name}>
+            <div className="analysisNextOpeningTop">
+              <span>{opening.confidence}</span>
+              <strong>{opening.name}</strong>
+            </div>
+            <dl>
+              <div>
+                <dt>Why it fits</dt>
+                <dd>{opening.whyItFits}</dd>
+              </div>
+              <div>
+                <dt>First moves</dt>
+                <dd>{opening.firstMoves?.length ? opening.firstMoves.join(" · ") : "Learn the first 6 moves and stop there for now."}</dd>
+              </div>
+              <div>
+                <dt>Main plan</dt>
+                <dd>{opening.mainPlan}</dd>
+              </div>
+              <div>
+                <dt>Common mistake to avoid</dt>
+                <dd>{opening.commonMistake}</dd>
+              </div>
+              <div>
+                <dt>Beginner-friendly study task</dt>
+                <dd>{opening.studyTask}</dd>
+              </div>
+            </dl>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function FinalReportFlow({
   data,
   fitData,
@@ -4028,6 +4416,13 @@ function FinalReportFlow({
       />
 
       <WeeklyOpeningReport data={data} />
+
+      <AnalysisNextStepsPanel
+        data={data}
+        fitData={fitData}
+        onPractice={onPractice}
+        onViewChange={onViewChange}
+      />
 
       {showFullReport ? (
         <>
@@ -5087,6 +5482,125 @@ function OpeningFitProgressCard({
   );
 }
 
+function RecommendationHistorySection({
+  data,
+  fitData,
+  accountUser,
+  recommendationHistory = [],
+  onAnalyse,
+  onViewRepertoire,
+}) {
+  if (!accountUser?.id) return null;
+
+  const activeSnapshot = data ? buildRecommendationHistorySnapshot(data, fitData) : null;
+  const savedRows = (recommendationHistory || [])
+    .map(normalizeRecommendationHistoryRow)
+    .filter(Boolean)
+    .sort((a, b) => Date.parse(b.analysisDate || "") - Date.parse(a.analysisDate || ""));
+  const current = activeSnapshot
+    ? normalizeRecommendationHistoryRow({ snapshot: activeSnapshot })
+    : savedRows[0] || null;
+  const previous = savedRows.find((row) => {
+    if (!current) return false;
+    const sameDate = row.analysisDate && current.analysisDate && row.analysisDate === current.analysisDate;
+    const sameRecommendation = row.currentRecommendation === current.currentRecommendation;
+    const sameScore = row.confidenceScore === current.confidenceScore;
+    return !(sameDate && sameRecommendation && sameScore);
+  }) || null;
+
+  if (!current) {
+    return (
+      <section className="profileDashboardCard recommendationHistoryCard" id="recommendation-history">
+        <div className="profileCardHeader">
+          <p className="eyebrow">Recommendation History</p>
+          <h2>Track how your OpeningFit profile changes</h2>
+          <p>Analyse your first games to start a recommendation history timeline.</p>
+        </div>
+        <button type="button" className="primaryBtn" onClick={onAnalyse}>
+          Analyse your first games
+        </button>
+      </section>
+    );
+  }
+
+  const confidenceChange =
+    current.confidenceScore !== null && previous?.confidenceScore !== null
+      ? current.confidenceScore - previous.confidenceScore
+      : null;
+  const changeText = getRecommendationHistoryChange(current, previous);
+  const detectedNames = (current.detectedOpenings || []).slice(0, 4).map((item) => item.name || item).filter(Boolean);
+  const recommendedNames = (current.recommendedOpenings || []).slice(0, 4).map((item) => item.name || item).filter(Boolean);
+
+  return (
+    <section className="profileDashboardCard recommendationHistoryCard" id="recommendation-history">
+      <div className="profileCardHeader profileCardHeaderSplit">
+        <div>
+          <p className="eyebrow">Recommendation History</p>
+          <h2>See how your opening profile is changing</h2>
+          <p>{changeText}</p>
+        </div>
+        <div className="recommendationHistoryDelta">
+          <span>Confidence change</span>
+          <strong>
+            {Number.isFinite(confidenceChange)
+              ? `${confidenceChange > 0 ? "+" : ""}${confidenceChange}%`
+              : "New"}
+          </strong>
+        </div>
+      </div>
+
+      <div className="recommendationHistoryCompare">
+        <article>
+          <span>Current recommendation</span>
+          <strong>{current.currentRecommendation}</strong>
+          <p>
+            {current.confidenceScore !== null ? `${current.confidenceScore}% confidence` : current.recommendationConfidence}
+          </p>
+        </article>
+        <article>
+          <span>Previous recommendation</span>
+          <strong>{previous?.currentRecommendation || "No previous snapshot yet"}</strong>
+          <p>
+            {previous?.confidenceScore !== null && previous?.confidenceScore !== undefined
+              ? `${previous.confidenceScore}% confidence`
+              : "Analyse again after more games."}
+          </p>
+        </article>
+        <article>
+          <span>What changed</span>
+          <strong>{changeText}</strong>
+          <p>{current.styleProfileSummary || "Style profile still developing."}</p>
+        </article>
+        <article>
+          <span>Time control</span>
+          <strong>{getAnalysisTimeFormatLabel(current.timeControlFilter)}</strong>
+          <p>{current.gamesAnalysed} game{current.gamesAnalysed === 1 ? "" : "s"} analysed · {current.analysisVersion}</p>
+        </article>
+      </div>
+
+      <div className="recommendationHistoryLists">
+        <div>
+          <span>Detected openings</span>
+          <strong>{detectedNames.length ? detectedNames.join(", ") : "Not enough detected openings yet"}</strong>
+        </div>
+        <div>
+          <span>Recommended openings</span>
+          <strong>{recommendedNames.length ? recommendedNames.join(", ") : current.currentRecommendation}</strong>
+        </div>
+      </div>
+
+      <div className="recommendationHistoryActions">
+        <button type="button" className="primaryBtn" onClick={onAnalyse}>
+          Analyse more games
+        </button>
+        <button type="button" className="secondaryButton" onClick={onViewRepertoire}>
+          View recommendation details
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function getLatestCloudReport(reportHistory = []) {
   return [...(reportHistory || [])]
     .filter(Boolean)
@@ -5259,6 +5773,7 @@ function OpeningFitProfileDashboard({
   onUserChange,
   reportHistory,
   openingFitUserState,
+  recommendationHistory,
 }) {
   const hasStoredProgress =
     accountUser?.id &&
@@ -5291,6 +5806,15 @@ function OpeningFitProfileDashboard({
             onOpenReport={onOpenReport}
           />
         ) : null}
+
+        <RecommendationHistorySection
+          data={null}
+          fitData={fitData}
+          accountUser={accountUser}
+          recommendationHistory={recommendationHistory}
+          onAnalyse={onAnalyse}
+          onViewRepertoire={onOpenReport}
+        />
       </div>
     );
   }
@@ -5329,6 +5853,14 @@ function OpeningFitProfileDashboard({
         openingFitUserState={openingFitUserState}
         onAnalyse={onAnalyse}
         onOpenReport={onOpenReport}
+      />
+      <RecommendationHistorySection
+        data={data}
+        fitData={fitData}
+        accountUser={accountUser}
+        recommendationHistory={recommendationHistory}
+        onAnalyse={onAnalyse}
+        onViewRepertoire={onOpenReport}
       />
       <ProfileAchievementsCard data={data} fitData={fitData} isPremium={isPremium} />
 
@@ -8944,6 +9476,8 @@ function App() {
     saveReport: saveCloudReport,
     recordActivity: recordCloudActivity,
     reportHistory: cloudReportHistory,
+    recommendationHistory,
+    saveRecommendationHistory,
     openingFitUserState,
     upsertUserData: upsertCloudUserData,
     refreshUserData,
@@ -9842,9 +10376,15 @@ function App() {
             importFitData,
             cloudReportHistory || []
           );
+          const recommendationSnapshot = buildRecommendationHistorySnapshot(cleanData, importFitData);
           reportSummary.openingFitProgress = progressSnapshot;
 
           await saveCloudReport(cleanData, reportSummary);
+          try {
+            await saveRecommendationHistory?.(recommendationSnapshot);
+          } catch (historyError) {
+            console.warn("Could not save recommendation history snapshot to Supabase", historyError);
+          }
           await saveOpeningFitProgressState(cleanData, reportSummary, progressSnapshot);
           await recordCloudActivity("report_imported", {
             username: cleanData.username || cleanUsername,
@@ -9853,6 +10393,7 @@ function App() {
             analysis_time_format: cleanData.analysisTimeFormat,
             detected_time_format: cleanData.detectedTimeFormat,
             openingfit_progress: progressSnapshot,
+            recommendation_snapshot: recommendationSnapshot,
             dedupe_key: `report_imported:${userReportRetentionKey}`,
           });
           await refreshUserData?.(supabaseUser);
@@ -11941,6 +12482,7 @@ function App() {
                 onUserChange={setAccountUser}
                 reportHistory={cloudReportHistory}
                 openingFitUserState={openingFitUserState}
+                recommendationHistory={recommendationHistory}
               />
             </section>
           ) : null}
