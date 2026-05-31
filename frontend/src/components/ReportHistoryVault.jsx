@@ -8,11 +8,11 @@ const TIME_FORMAT_LABELS = {
   rapid: "Rapid",
   classical: "Classical",
   daily: "Daily / Correspondence",
-  custom: "Custom / Unknown",
+  custom: "All Time Controls",
 };
 
 function timeFormatLabel(value) {
-  return TIME_FORMAT_LABELS[String(value || "").toLowerCase()] || value || "Custom / Unknown";
+  return TIME_FORMAT_LABELS[String(value || "").toLowerCase()] || value || "All Time Controls";
 }
 
 function safeDate(value) {

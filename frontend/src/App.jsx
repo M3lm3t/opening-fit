@@ -2907,9 +2907,9 @@ const TIME_CONTROL_FILTERS = [
   { key: "rapid", label: "Rapid" },
   { key: "classical", label: "Classical" },
   { key: "daily", label: "Daily / Correspondence" },
-  { key: "custom", label: "Custom / Unknown" },
+  { key: "custom", label: "All Time Controls" },
   { key: "serious", label: "Rapid + Blitz" },
-  { key: "all", label: "All games" },
+  { key: "all", label: "All Time Controls" },
 ];
 
 const ANALYSIS_TIME_FORMAT_OPTIONS = [
@@ -2918,7 +2918,7 @@ const ANALYSIS_TIME_FORMAT_OPTIONS = [
   { key: "rapid", label: "Rapid", description: "Longer online games" },
   { key: "classical", label: "Classical", description: "Long time controls" },
   { key: "daily", label: "Daily / Correspondence", description: "Turn-based games" },
-  { key: "custom", label: "Custom / Unknown", description: "Use detected or mixed games" },
+  { key: "custom", label: "All Time Controls", description: "Include every available format" },
 ];
 
 function normalizeAnalysisTimeFormat(value) {
@@ -2929,7 +2929,7 @@ function normalizeAnalysisTimeFormat(value) {
 function getAnalysisTimeFormatLabel(value) {
   return (
     ANALYSIS_TIME_FORMAT_OPTIONS.find((item) => item.key === normalizeAnalysisTimeFormat(value))?.label ||
-    "Custom / Unknown"
+    "All Time Controls"
   );
 }
 
@@ -3024,7 +3024,7 @@ function detectReportTimeFormat(data) {
   if (!key) {
     return {
       key: "custom",
-      label: "Custom / Unknown",
+      label: "All Time Controls",
       source: games.length ? "metadata unavailable" : "no games",
       confidence: "unknown",
       rawSamples,
@@ -8941,11 +8941,11 @@ function App() {
         selectedTimeFormat === "custom" ? detectedTimeFormat?.key || "custom" : selectedTimeFormat,
       effectiveTimeFormatLabel:
         selectedTimeFormat === "custom"
-          ? detectedTimeFormat?.label || "Custom / Unknown"
+          ? detectedTimeFormat?.label || "All Time Controls"
           : getAnalysisTimeFormatLabel(selectedTimeFormat),
       effective_time_format_label:
         selectedTimeFormat === "custom"
-          ? detectedTimeFormat?.label || "Custom / Unknown"
+          ? detectedTimeFormat?.label || "All Time Controls"
           : getAnalysisTimeFormatLabel(selectedTimeFormat),
       total_games:
         incoming.total_games ?? incoming.totalGames ?? incoming.gamesImported ?? 0,
