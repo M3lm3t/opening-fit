@@ -5,15 +5,42 @@ export default function ImportLoadingOverlay({
   username = "",
   mode = "import",
   loadingStep = "",
+  elapsedSeconds = 0,
   showWakeupMessage = false,
 }) {
   const isAnalysis = mode === "analysis";
+  const progressStages = [
+    "Importing games",
+    "Detecting openings",
+    "Building style profile",
+    "Comparing opening fit",
+    "Saving results",
+    "Preparing recommendations",
+  ];
+  const stepText = String(loadingStep || "").toLowerCase();
+  const activeStageIndex = Math.min(
+    progressStages.length - 1,
+    Math.max(
+      0,
+      stepText.includes("detect")
+        ? 1
+        : stepText.includes("style")
+          ? 2
+          : stepText.includes("fit") || stepText.includes("compar")
+            ? 3
+            : stepText.includes("sav")
+              ? 4
+              : stepText.includes("recommend") || stepText.includes("prepar")
+                ? 5
+                : Math.floor((Number(elapsedSeconds) || 0) / 8)
+    )
+  );
   const loadingTips = [
     isAnalysis
       ? "OpeningFit is checking public game data and grouping opening patterns."
       : "Tip: openings with repeatable plans are easier to remember than long move trees.",
-    "Looking for confidence, sample size, and style match before recommending lines.",
-    "Your report will highlight one next action first, then the deeper data.",
+    "OpeningFit gets smarter as you analyse more games.",
+    "Your recommendations improve when you come back after playing more games.",
   ];
   const platformLabel =
     typeof platform === "string" && platform.length ? platform : "your chess platform";
@@ -52,7 +79,7 @@ export default function ImportLoadingOverlay({
         </div>
 
         <div className="importLoadingProgress" aria-label="Analysis progress estimate">
-          <span />
+          <span style={{ width: `${Math.max(18, ((activeStageIndex + 1) / progressStages.length) * 100)}%` }} />
         </div>
 
         {loadingStep ? <p className="importLoadingCurrentStep">{loadingStep}</p> : null}
@@ -62,9 +89,20 @@ export default function ImportLoadingOverlay({
         ) : null}
 
         <div className="importLoadingSteps">
-          <span>{isAnalysis ? "Starting backend analysis" : "Checking public games"}</span>
-          <span>Detecting opening patterns</span>
-          <span>Building mastery and coach prompts</span>
+          {progressStages.map((stage, index) => (
+            <span
+              className={
+                index < activeStageIndex
+                  ? "importLoadingStepDone"
+                  : index === activeStageIndex
+                    ? "importLoadingStepActive"
+                    : ""
+              }
+              key={stage}
+            >
+              {stage}
+            </span>
+          ))}
         </div>
 
         <div className="importLoadingTips">

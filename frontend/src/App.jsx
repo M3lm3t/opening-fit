@@ -4288,6 +4288,85 @@ function getRecommendationHistoryChange(current, previous) {
   return "No major recommendation change yet. Play more games, then reanalyse to update the profile.";
 }
 
+function getAnalysisTrustSignals(data, fitData) {
+  const games =
+    data?.gamesAnalysed ||
+    data?.gamesAnalyzed ||
+    data?.games_analyzed ||
+    data?.gamesImported ||
+    data?.total_games ||
+    0;
+  const detectedOpenings = buildDetectedOpeningSnapshot(data, fitData);
+  const recommendedOpenings = buildNextStepOpenings(data, fitData);
+  const confidenceScore = getProgressScoreValue(
+    fitData?.overallScore ??
+      data?.openingFitScore ??
+      data?.opening_fit_score ??
+      data?.opening_health_score
+  );
+  const styleRec = data?.styleBasedRecommendations || data?.style_based_recommendations || {};
+  const lowData =
+    Boolean(styleRec?.enabled || styleRec?.dataReliability?.lowData || styleRec?.data_reliability?.low_data) ||
+    !detectedOpenings.some((opening) => Number(opening.games || 0) >= 3);
+  const confidenceLevel =
+    confidenceScore === null
+      ? recommendedOpenings[0]?.confidence || "Building confidence"
+      : confidenceScore >= 70
+        ? "High confidence"
+        : confidenceScore >= 45
+          ? "Medium confidence"
+          : "Low confidence";
+
+  return {
+    games,
+    openingsDetected: detectedOpenings.length,
+    confidenceLevel,
+    confidenceScore,
+    basis: lowData
+      ? "Style-based suggestions while opening data is limited"
+      : "Real opening data from your analysed games",
+  };
+}
+
+function AnalysisTrustSignalsPanel({ data, fitData }) {
+  if (!data) return null;
+
+  const trust = getAnalysisTrustSignals(data, fitData);
+
+  return (
+    <section className="analysisTrustSignalsPanel" aria-label="Analysis trust signals">
+      <div>
+        <p className="eyebrow">Why trust this report</p>
+        <h2>OpeningFit shows the evidence behind the recommendation</h2>
+        <p>Your recommendations improve when you come back after playing more games.</p>
+      </div>
+
+      <div className="analysisTrustSignalGrid">
+        <article>
+          <span>Games analysed</span>
+          <strong>{trust.games || 0}</strong>
+          <p>Recent public games feeding this report.</p>
+        </article>
+        <article>
+          <span>Openings detected</span>
+          <strong>{trust.openingsDetected}</strong>
+          <p>Recognised opening patterns found in the sample.</p>
+        </article>
+        <article>
+          <span>Confidence level</span>
+          <strong>{trust.confidenceScore !== null ? `${trust.confidenceScore}%` : trust.confidenceLevel}</strong>
+          <p>{trust.confidenceLevel}</p>
+        </article>
+        <article>
+          <span>Recommendation basis</span>
+          <strong>{trust.basis}</strong>
+          <p>Low-data suggestions are labelled separately from detected openings.</p>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
   const { user, recordActivity } = useAuth();
   const [status, setStatus] = useState("");
@@ -4416,6 +4495,8 @@ function FinalReportFlow({
       />
 
       <WeeklyOpeningReport data={data} />
+
+      <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
 
       <AnalysisNextStepsPanel
         data={data}
@@ -10314,13 +10395,15 @@ function App() {
         );
       }
 
-      setLoadingStep("Detecting your opening patterns...");
+      setLoadingStep("Detecting openings...");
       await new Promise((resolve) => setTimeout(resolve, 250));
 
-      setLoadingStep("Building your style profile and recommendations...");
+      setLoadingStep("Building style profile...");
       await new Promise((resolve) => setTimeout(resolve, 250));
 
       const cleanData = normaliseData(json);
+      setLoadingStep("Comparing opening fit...");
+      await new Promise((resolve) => setTimeout(resolve, 180));
       const reportRetentionKey = buildReportRetentionKey(cleanData, {
         username: cleanUsername,
         platform: selectedPlatformKey,
@@ -10369,6 +10452,7 @@ function App() {
 
       if (supabaseUser?.id) {
         try {
+          setLoadingStep("Saving results...");
           const importFitData = buildOpeningFitData(cleanData);
           const reportSummary = buildReportHistorySummary(cleanData, importFitData);
           const progressSnapshot = buildOpeningFitProgressSnapshot(
@@ -10401,6 +10485,8 @@ function App() {
           console.warn("Could not save imported report to Supabase", cloudError);
         }
       }
+
+      setLoadingStep("Preparing recommendations...");
 
       rememberLandingSeen({ keepPublicLanding: false });
       setActiveView("report");
@@ -11239,6 +11325,7 @@ function App() {
             username={username}
             mode="analysis"
             loadingStep={loadingStep}
+            elapsedSeconds={loadingElapsedSeconds}
             showWakeupMessage={loadingElapsedSeconds >= 15}
           />
         ) : null}
