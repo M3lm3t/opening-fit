@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
+import { BoardThemeToggle, useBoardTheme } from "./boardThemes";
 
 export const SUPPORTED_OPENINGS = [
   "Vienna Game",
@@ -171,6 +172,7 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
   const [feedbackSquare, setFeedbackSquare] = useState(null);
   const [message, setMessage] = useState("");
   const [chess, setChess] = useState(() => new Chess());
+  const { boardTheme, setBoardTheme, boardThemeVars } = useBoardTheme();
   const pointerHandledRef = useRef(false);
   const draggingRef = useRef(false);
   const feedbackTimerRef = useRef(null);
@@ -426,9 +428,11 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
         />
       </div>
 
+      <BoardThemeToggle boardTheme={boardTheme} onChange={setBoardTheme} />
+
       <div className="practiceLayout">
         <div className="practiceBoardBox practice-board-shell">
-          <div className="cleanReplayBoard opening-board-shell">
+          <div className="cleanReplayBoard opening-board-shell" style={boardThemeVars}>
             {board.map((rank, rowIndex) =>
               rank.map((piece, colIndex) => {
                 const squareName = getSquareName(rowIndex, colIndex, orientation);

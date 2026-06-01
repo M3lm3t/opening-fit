@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import ChessPositionBoard from "./ChessPositionBoard";
+import { BoardThemeToggle, useBoardTheme } from "./boardThemes";
 import { findOpeningPracticePack, openingPracticePacks } from "../data/openingPracticeLines";
 import { OPENINGS, normaliseOpeningKey, searchOpenings } from "../data/openings";
 import { fetchOpeningFitCloudState, saveOpeningFitCloudState } from "./openingFitCloudState";
@@ -179,6 +180,7 @@ export default function OpeningPracticeLinesPanel({
   heading = "",
 }) {
   const openingName = getOpeningName(opening);
+  const { boardTheme, setBoardTheme } = useBoardTheme();
   const [activeOpeningName, setActiveOpeningName] = useState(openingName);
   const pack = useMemo(() => findOpeningPracticePack(activeOpeningName), [activeOpeningName]);
 
@@ -584,15 +586,18 @@ export default function OpeningPracticeLinesPanel({
       </div>
 
       <div className="practiceBoardLayout">
-        <div className="practiceBoardWrap practice-board-shell">
-          <ChessPositionBoard
-            position={fen}
-            interactive={!isComplete}
-            selectedSquare={selectedSquare}
-            feedbackSquare={feedbackSquare}
-            onPieceDrop={handlePieceDrop}
-            onSquareClick={handleSquareClick}
-          />
+        <div className="practiceBoardColumn">
+          <BoardThemeToggle boardTheme={boardTheme} onChange={setBoardTheme} />
+          <div className="practiceBoardWrap practice-board-shell">
+            <ChessPositionBoard
+              position={fen}
+              interactive={!isComplete}
+              selectedSquare={selectedSquare}
+              feedbackSquare={feedbackSquare}
+              onPieceDrop={handlePieceDrop}
+              onSquareClick={handleSquareClick}
+            />
+          </div>
         </div>
 
         <div className="practiceTrainerBox boardTrainerBox">

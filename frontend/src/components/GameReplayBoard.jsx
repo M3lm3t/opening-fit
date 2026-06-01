@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import ChessPositionBoard from "./ChessPositionBoard";
+import { BoardThemeToggle, useBoardTheme } from "./boardThemes";
 
 function buildPositionFromMoves(moves, moveIndex) {
   const chess = new Chess();
@@ -40,6 +41,7 @@ export default function GameReplayBoard({
   const moves = useMemo(() => (Array.isArray(game?.moves) ? game.moves : []), [game]);
   const [moveIndex, setMoveIndex] = useState(0);
   const [orientation, setOrientation] = useState(initialOrientation);
+  const { boardTheme, setBoardTheme } = useBoardTheme();
 
   const chess = useMemo(() => {
     return buildPositionFromMoves(moves, moveIndex);
@@ -85,6 +87,8 @@ export default function GameReplayBoard({
           Flip board
         </button>
       </div>
+
+      <BoardThemeToggle boardTheme={boardTheme} onChange={setBoardTheme} />
 
       {moves.length === 0 ? (
         <div className="replayWarning">

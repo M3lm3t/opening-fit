@@ -1815,10 +1815,10 @@ th {
 
 .replayBoardBox,
 .practiceBoardBox {
-  width: min(100%, calc(100vw - 32px), 420px);
+  width: min(100%, calc(100vw - 24px), 520px);
   aspect-ratio: 1 / 1;
   box-sizing: border-box;
-  max-width: 420px;
+  max-width: 520px;
   margin-inline: auto;
   overflow: visible;
 }
@@ -1826,7 +1826,7 @@ th {
 .opening-board-shell,
 .practice-board-shell,
 .game-replay-board-shell {
-  width: min(100%, calc(100vw - 32px), 420px);
+  width: min(100%, calc(100vw - 24px), 520px);
   aspect-ratio: 1 / 1;
   box-sizing: border-box;
   margin-inline: auto;
@@ -1842,7 +1842,7 @@ th {
   overflow: hidden;
   border-radius: 8px;
   border: 1px solid var(--board-border);
-  box-shadow: none;
+  box-shadow: 0 14px 32px rgba(2, 6, 23, 0.22);
   background: var(--board-dark-square);
   user-select: none;
   touch-action: manipulation;
@@ -1912,21 +1912,22 @@ th {
   user-select: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  font-size: clamp(25px, 4.2vw, 42px);
+  font-size: clamp(28px, 6.2vw, 54px);
   transform: none;
-  filter: none;
+  filter: drop-shadow(0 2px 2px rgba(2, 6, 23, 0.35));
 }
 
 .practiceSelectedSquare {
   outline: 2px solid var(--board-selected);
   outline-offset: -2px;
-  box-shadow: none;
+  box-shadow: inset 0 0 0 2px rgba(15, 23, 42, 0.18);
   z-index: 2;
 }
 
 .practiceInvalidSquare {
   outline: 2px solid var(--board-invalid);
   outline-offset: -2px;
+  box-shadow: inset 0 0 0 2px rgba(127, 29, 29, 0.16);
 }
 
 .practiceSelectedSquare::after,
@@ -1943,40 +1944,48 @@ th {
 
 .cleanReplaySquare.legalMove::after,
 .cleanReplaySquare.practiceLegalMove::after {
-  inset: 36%;
+  inset: 35%;
   border-radius: 999px;
   background: var(--board-legal-move);
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.16);
 }
 
 .cleanReplaySquare.lastMove::after,
 .cleanReplaySquare.practiceLastMove::after {
   background: var(--board-last-move);
+  box-shadow: inset 0 0 0 2px rgba(120, 53, 15, 0.18);
 }
 
 .cleanReplayPiece-p {
-  font-size: clamp(21px, 3.7vw, 35px);
+  font-size: clamp(24px, 5.5vw, 46px);
   transform: none;
 }
 
 .cleanReplayPiece-r,
 .cleanReplayPiece-n,
 .cleanReplayPiece-b {
-  font-size: clamp(23px, 3.9vw, 38px);
+  font-size: clamp(26px, 5.8vw, 50px);
 }
 
 .cleanReplayPiece-q,
 .cleanReplayPiece-k {
-  font-size: clamp(24px, 4.1vw, 40px);
+  font-size: clamp(27px, 6vw, 52px);
 }
 
 .cleanReplayWhitePiece {
-  color: #f8fafc;
-  text-shadow: 0 1px 1px rgba(15, 23, 42, 0.72);
+  color: #fffaf0;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.75),
+    0 2px 3px rgba(15, 23, 42, 0.82),
+    0 0 1px rgba(15, 23, 42, 0.95);
 }
 
 .cleanReplayBlackPiece {
-  color: #020617;
-  text-shadow: 0 1px 1px rgba(248, 250, 252, 0.38);
+  color: #111827;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.34),
+    0 2px 2px rgba(255, 255, 255, 0.22),
+    0 0 1px rgba(0, 0, 0, 0.9);
 }
 
 .cleanReplayRank,
@@ -2015,6 +2024,41 @@ th {
   justify-content: center;
   flex-wrap: wrap;
   margin-top: 10px;
+}
+
+.boardThemeToggle {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  width: min(100%, 520px);
+  margin: 0 auto 10px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--card-bg-soft) 82%, transparent);
+}
+
+.boardThemeToggle button {
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0 10px;
+  color: var(--text-soft);
+  background: transparent;
+  font-weight: 900;
+}
+
+.boardThemeToggle button:hover,
+.boardThemeToggle button:focus-visible,
+.boardThemeToggle .boardThemeToggleActive {
+  border-color: rgba(37, 99, 235, 0.32);
+  color: #ffffff;
+  background: #2563eb;
+}
+
+:root[data-theme="light"] .boardThemeToggle {
+  background: #f8fafc;
 }
 
 .controlBtn,
@@ -2199,7 +2243,7 @@ th {
 .practiceSelectedSquare {
   outline: 2px solid var(--board-selected);
   outline-offset: -2px;
-  box-shadow: none;
+  box-shadow: inset 0 0 0 2px rgba(15, 23, 42, 0.18);
 }
 
 .practiceMessage {
@@ -4274,15 +4318,22 @@ th {
 
 .practiceBoardLayout {
   display: grid;
-  grid-template-columns: minmax(280px, 380px) 1fr;
+  grid-template-columns: minmax(320px, 540px) 1fr;
   gap: 1rem;
   align-items: start;
   margin-bottom: 1rem;
 }
 
+.practiceBoardColumn {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  min-width: 0;
+}
+
 .practiceBoardWrap {
-  width: min(100%, calc(100vw - 32px), 420px);
-  max-width: 420px;
+  width: min(100%, calc(100vw - 24px), 520px);
+  max-width: 520px;
   aspect-ratio: 1 / 1;
   box-sizing: border-box;
   margin: 0 auto;
@@ -4342,7 +4393,7 @@ th {
   }
 
   .practiceBoardWrap {
-    max-width: 390px;
+    max-width: 520px;
   }
 
   .practiceSearchRow,
@@ -4369,8 +4420,8 @@ th {
   .replayBoardBox,
   .practiceBoardBox,
   .practiceBoardWrap {
-    width: min(100%, calc(100vw - 24px));
-    max-width: 390px;
+    width: min(100%, calc(100vw - 16px));
+    max-width: none;
     aspect-ratio: 1 / 1;
     margin: 0 auto;
     overflow: visible;
@@ -5078,13 +5129,13 @@ th {
   --danger-bg: #7f1d1d;
   --danger-border: #b91c1c;
   --danger-text: #fecaca;
-  --board-light-square: #b8c4d1;
-  --board-dark-square: #657284;
-  --board-border: rgba(203, 213, 225, 0.28);
-  --board-selected: rgba(56, 189, 248, 0.62);
-  --board-invalid: rgba(248, 113, 113, 0.62);
-  --board-last-move: rgba(250, 204, 21, 0.22);
-  --board-legal-move: rgba(15, 23, 42, 0.28);
+  --board-light-square: #f0d9b5;
+  --board-dark-square: #b58863;
+  --board-border: rgba(15, 23, 42, 0.32);
+  --board-selected: rgba(59, 130, 246, 0.45);
+  --board-invalid: rgba(239, 68, 68, 0.48);
+  --board-last-move: rgba(255, 221, 87, 0.45);
+  --board-legal-move: rgba(34, 197, 94, 0.35);
   color-scheme: dark;
 }
 
@@ -5105,13 +5156,13 @@ th {
   --danger-bg: #fee2e2;
   --danger-border: #fecaca;
   --danger-text: #991b1b;
-  --board-light-square: #e8edf2;
-  --board-dark-square: #8aa0b8;
-  --board-border: rgba(100, 116, 139, 0.24);
-  --board-selected: rgba(37, 99, 235, 0.52);
-  --board-invalid: rgba(220, 38, 38, 0.52);
-  --board-last-move: rgba(234, 179, 8, 0.26);
-  --board-legal-move: rgba(15, 23, 42, 0.22);
+  --board-light-square: #f0d9b5;
+  --board-dark-square: #b58863;
+  --board-border: rgba(15, 23, 42, 0.26);
+  --board-selected: rgba(59, 130, 246, 0.45);
+  --board-invalid: rgba(239, 68, 68, 0.48);
+  --board-last-move: rgba(255, 221, 87, 0.45);
+  --board-legal-move: rgba(34, 197, 94, 0.35);
   color-scheme: light;
 }
 
@@ -37507,6 +37558,37 @@ svg {
 }
 
 @media (max-width: 560px) {
+  .replayBoardBox,
+  .practiceBoardBox,
+  .opening-board-shell,
+  .practice-board-shell,
+  .game-replay-board-shell,
+  .boardThemeToggle {
+    width: min(100%, calc(100vw - 16px));
+    max-width: none;
+  }
+
+  .cleanReplayBoard {
+    border-radius: 10px;
+  }
+
+  .cleanReplayRank,
+  .cleanReplayFile {
+    font-size: 10px;
+    opacity: 0.68;
+  }
+
+  .boardThemeToggle {
+    gap: 5px;
+  }
+
+  .boardThemeToggle button {
+    flex: 1 1 30%;
+    min-height: 42px;
+    padding: 0 6px;
+    font-size: 0.78rem;
+  }
+
   .profileHeroMetaGrid,
   .chessProfileGrid,
   .latestReportMeta,

@@ -1,5 +1,6 @@
 import { useMemo, useRef } from "react";
 import { Chess } from "chess.js";
+import { useBoardTheme } from "./boardThemes";
 
 const PIECES = {
   p: "♟",
@@ -56,6 +57,7 @@ export default function ChessPositionBoard({
   showCoordinates = true,
   className = "",
 }) {
+  const { boardThemeVars } = useBoardTheme();
   const chess = useMemo(() => buildChess(position), [position]);
   const board = useMemo(() => getBoard(chess, orientation), [chess, orientation]);
   const pointerHandledRef = useRef(false);
@@ -119,7 +121,10 @@ export default function ChessPositionBoard({
   };
 
   return (
-    <div className={`cleanReplayBoard chessPositionBoard opening-board-shell ${className}`}>
+    <div
+      className={`cleanReplayBoard chessPositionBoard opening-board-shell ${className}`}
+      style={boardThemeVars}
+    >
       {board.map((rank, rowIndex) =>
         rank.map((piece, colIndex) => {
           const squareName = getSquareName(rowIndex, colIndex, orientation);
