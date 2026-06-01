@@ -245,6 +245,108 @@ const platforms = {
   },
 };
 
+function isDemoAnalysis(report) {
+  const source = String(report?.platform || report?.importPlatform || report?.import_platform || "").toLowerCase();
+  const username = String(report?.username || report?.playerName || report?.player_name || "").toLowerCase();
+  return source === "demo" || username === "demoplayer" || report === DEMO_REPORT;
+}
+
+function getImportedGameCount(report) {
+  return safeNumber(
+    report?.gamesImported ??
+      report?.games_imported ??
+      report?.gamesAnalysed ??
+      report?.gamesAnalyzed ??
+      report?.games_analyzed ??
+      report?.gamesFound ??
+      report?.games_found ??
+      report?.totalGames ??
+      report?.total_games
+  );
+}
+
+function countOpeningItems(value) {
+  if (!value) return 0;
+  if (Array.isArray(value)) {
+    return value.reduce((total, item) => {
+      if (!item) return total;
+      if (typeof item === "string") return total + (isUnknownOpeningName(item) ? 0 : 1);
+      if (Array.isArray(item?.items)) return total + countOpeningItems(item.items);
+      return total + (isUnknownOpeningName(getOpeningName(item)) ? 0 : 1);
+    }, 0);
+  }
+  if (typeof value === "object") {
+    return Object.values(value).reduce((total, item) => total + countOpeningItems(item), 0);
+  }
+  return 0;
+}
+
+function getClassifiedOpeningCount(report) {
+  const detectedOpenings = countOpeningItems([
+    ...(Array.isArray(report?.best_openings) ? report.best_openings : []),
+    ...(Array.isArray(report?.bestOpenings) ? report.bestOpenings : []),
+    ...(Array.isArray(report?.top_openings) ? report.top_openings : []),
+    ...(Array.isArray(report?.topOpenings) ? report.topOpenings : []),
+    ...(Array.isArray(report?.opening_stats) ? report.opening_stats : []),
+    ...(Array.isArray(report?.openingStats) ? report.openingStats : []),
+  ]);
+  const recommendationOpenings = countOpeningItems(
+    report?.opening_recommendations || report?.openingRecommendations || {}
+  );
+  const playedOpenings = countOpeningItems([
+    ...(Array.isArray(report?.preferred_white) ? report.preferred_white : []),
+    ...(Array.isArray(report?.preferred_black) ? report.preferred_black : []),
+    ...(Array.isArray(report?.preferredWhite) ? report.preferredWhite : []),
+    ...(Array.isArray(report?.preferredBlack) ? report.preferredBlack : []),
+  ]);
+
+  return detectedOpenings + recommendationOpenings + playedOpenings;
+}
+
+function formatGameCount(count) {
+  return `${count} game${count === 1 ? "" : "s"}`;
+}
+
+function buildImportOutcome(report, platformLabel) {
+  const gamesImported = getImportedGameCount(report);
+  const openingSignals = getClassifiedOpeningCount(report);
+  const platformName = platformLabel || "the selected platform";
+
+  if (!gamesImported) {
+    return {
+      tone: "warning",
+      title: "No recent public games found",
+      message: `We reached ${platformName}, but did not find recent public games to analyse. Check the username, privacy settings, and selected platform, then try again.`,
+      meta: `${platformName} import`,
+    };
+  }
+
+  if (!openingSignals) {
+    return {
+      tone: "warning",
+      title: "Games imported, but openings were too thin to classify",
+      message: `We imported ${formatGameCount(gamesImported)} from ${platformName}, but there were not enough repeated or classified opening positions to build strong verdicts yet.`,
+      meta: `${formatGameCount(gamesImported)} imported`,
+    };
+  }
+
+  if (openingSignals < 3 || gamesImported < 5) {
+    return {
+      tone: "warning",
+      title: "Import complete with a light opening sample",
+      message: `We imported ${formatGameCount(gamesImported)} from ${platformName}. Your report is ready, but the opening sample is still small, so recommendations are starter signals.`,
+      meta: `${formatGameCount(gamesImported)} imported`,
+    };
+  }
+
+  return {
+    tone: "success",
+    title: `Imported ${formatGameCount(gamesImported)} from ${platformName}`,
+    message: "Your OpeningFit report is ready with opening verdicts, recommendations, and training focus.",
+    meta: `${openingSignals} opening signal${openingSignals === 1 ? "" : "s"} found`,
+  };
+}
+
 const closedSections = {
   fit: false,
   style: false,
@@ -10231,14 +10333,32 @@ function App() {
   const [loadingStep, setLoadingStep] = useState("");
   const [loadingElapsedSeconds, setLoadingElapsedSeconds] = useState(0);
   const [error, setError] = useState("");
+  const [importStatus, setImportStatus] = useState(null);
   const [data, setData] = useState(null);
+  const importAbortRef = useRef(null);
 
   useEffect(() => {
     setAccountUser(supabaseUser || null);
   }, [supabaseUser]);
 
   const loadDemoReport = () => {
-    setData(DEMO_REPORT);
+    if (!data || isDemoAnalysis(data)) {
+      setData(DEMO_REPORT);
+      setImportStatus({
+        tone: "info",
+        title: "Sample report loaded",
+        message: "This is demo data. Import a real Chess.com or Lichess username when you are ready.",
+        meta: "Demo only",
+      });
+    } else {
+      setImportStatus({
+        tone: "info",
+        title: "Keeping your imported report",
+        message: "Your real analysis is already loaded, so the sample report was not allowed to replace it.",
+        meta: "Real report protected",
+      });
+    }
+    setError("");
 
     if (typeof setActiveView === "function") {
       setActiveView("report");
@@ -10543,12 +10663,17 @@ function App() {
     }
   }
 
-  function getFriendlyError(errorText) {
+  function getFriendlyError(errorText, selectedPlatformKey = platform) {
     if (!errorText) {
       return "Something went wrong. Please try again.";
     }
 
     const lower = String(errorText).toLowerCase();
+    const platformLabel = platforms[selectedPlatformKey]?.label || "the selected platform";
+
+    if (lower.includes("abort") || lower.includes("cancel")) {
+      return "Import cancelled. You can adjust the username or platform and try again.";
+    }
 
     if (lower.includes("no saved profile")) {
       return "No saved backend profile found yet. I will still check your local browser save if one exists.";
@@ -10559,34 +10684,50 @@ function App() {
     }
 
     if (lower.includes("not found") || lower.includes("could not find")) {
-      return "Could not find that username. Check the spelling and try again.";
+      return `Could not find that username on ${platformLabel}. Check the spelling, selected platform, and capitalization, then try again.`;
     }
 
-    if (lower.includes("no games")) {
-      return "This profile exists, but no recent public games were found.";
+    if (
+      lower.includes("private") ||
+      lower.includes("forbidden") ||
+      lower.includes("unavailable") ||
+      lower.includes("profile is closed") ||
+      lower.includes("profile unavailable")
+    ) {
+      return `We found the ${platformLabel} account, but its games or profile are not publicly available right now. OpeningFit only uses public games.`;
+    }
+
+    if (lower.includes("no games") || lower.includes("not enough games")) {
+      return `We reached ${platformLabel}, but did not find enough recent public games to build a report. Try a longer import window or play a few more public games first.`;
     }
 
     if (lower.includes("rate limiting") || lower.includes("429")) {
-      return "The chess platform is temporarily limiting requests. Try again in a minute.";
+      return `${platformLabel} is temporarily limiting requests. Wait a minute, then try again.`;
     }
 
     if (
       lower.includes("failed to fetch") ||
+      lower.includes("networkerror") ||
       lower.includes("connection refused") ||
-      lower.includes("could not connect")
+      lower.includes("could not connect") ||
+      lower.includes("load failed")
     ) {
-      return "Could not connect to the backend. Make sure FastAPI is running, or check your live backend URL.";
+      return "OpeningFit could not reach the import service. The backend may be waking up or temporarily unavailable. Please try again in a moment.";
     }
 
-    if (lower.includes("404") && platform === "lichess") {
-      return "Lichess is selected, but the backend Lichess route may not be added yet. Chess.com should still work.";
+    if (lower.includes("500") || lower.includes("502") || lower.includes("503") || lower.includes("504")) {
+      return "The import service hit a temporary problem while analysing those games. Please retry in a moment.";
+    }
+
+    if (lower.includes("404") && selectedPlatformKey === "lichess") {
+      return "OpeningFit could not find that Lichess account or the Lichess import route was unavailable. Check the username and try again.";
     }
 
     try {
       const parsed = JSON.parse(errorText);
-      return parsed.detail || parsed.message || errorText;
+      return getFriendlyError(parsed.detail || parsed.message || "", selectedPlatformKey);
     } catch {
-      return errorText;
+      return "OpeningFit could not finish the import. Check the username and platform, then try again.";
     }
   }
 
@@ -10737,12 +10878,12 @@ function App() {
     };
   };
 
-  const saveLocalAnalysis = (analysis, cleanUsername) => {
+  const saveLocalAnalysis = (analysis, cleanUsername, selectedPlatformKey = platform) => {
     const savedAt = new Date().toISOString();
 
     const payload = {
       username: cleanUsername,
-      platform,
+      platform: selectedPlatformKey,
       savedAt,
       analysis: {
         ...analysis,
@@ -10752,7 +10893,7 @@ function App() {
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     localStorage.setItem(USERNAME_KEY, cleanUsername);
-    localStorage.setItem(PLATFORM_KEY, platform);
+    localStorage.setItem(PLATFORM_KEY, selectedPlatformKey);
     localStorage.setItem(
       ANALYSIS_TIME_FORMAT_KEY,
       normalizeAnalysisTimeFormat(analysis.analysisTimeFormat || analysisTimeFormat)
@@ -10918,34 +11059,74 @@ function App() {
 
   const monthsToImport = isPremium ? importMonths : Math.min(importMonths, 3);
 
+  const selectImportPlatform = (nextPlatform) => {
+    if (!platforms[nextPlatform] || loading) return;
+    setPlatform(nextPlatform);
+    setError("");
+    setImportStatus(null);
+    setLoadingStep("");
+  };
+
+  const cancelImport = () => {
+    if (importAbortRef.current) {
+      importAbortRef.current.abort();
+    }
+
+    setLoading(false);
+    setLoadingStep("");
+    setError("");
+    setImportStatus({
+      tone: "info",
+      title: "Import cancelled",
+      message: "No changes were made to your current report. You can edit the username or switch platform and try again.",
+      meta: "Stopped by you",
+    });
+  };
+
   const importGames = async (usernameOverride, platformOverride) => {
+    if (loading) return;
+
     const selectedPlatformKey = platforms[platformOverride] ? platformOverride : platform;
     const cleanUsername = String(usernameOverride ?? username).trim();
+    const selectedPlatform = platforms[selectedPlatformKey] || platforms.chesscom;
+
+    if (!cleanUsername) {
+      setError("");
+      setImportStatus({
+        tone: "warning",
+        title: "Username needed",
+        message: `Enter a ${selectedPlatform.label} username first. OpeningFit only needs the public username, never a password.`,
+        meta: selectedPlatform.label,
+      });
+      return;
+    }
+
     const importSessionKey = `${selectedPlatformKey}:${cleanUsername}:${Date.now()}`;
     const dailySessionStartedKey = `${supabaseUser?.id || cleanUsername || "guest"}:${new Date()
       .toISOString()
       .slice(0, 10)}`;
+    const abortController = new AbortController();
+    importAbortRef.current = abortController;
 
     setLoading(true);
     setLoadingStep(
       `Finding your recent ${platforms[selectedPlatformKey]?.label || "chess"} games...`
     );
     setError("");
+    setImportStatus({
+      tone: "info",
+      title: `Importing ${selectedPlatform.label} games`,
+      message: `Checking public games for ${cleanUsername}. This can take longer if the backend is waking up.`,
+      meta: "Import started",
+    });
     setCloudSaveWarning("");
     setCloudSaveStatus("");
     setSavedProfileMessage("");
-    setData(null);
     setSelectedGameIndex(0);
     setPracticeOpening(null);
     setOpenSections(closedSections);
 
     try {
-      if (!cleanUsername) {
-        throw new Error("Please enter a username.");
-      }
-
-      const selectedPlatform = platforms[selectedPlatformKey] || platforms.chesscom;
-
       localStorage.setItem(USERNAME_KEY, cleanUsername);
       localStorage.setItem(PLATFORM_KEY, selectedPlatformKey);
       localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
@@ -10985,7 +11166,8 @@ function App() {
       const res = await fetch(
         `${API_BASE}/api/import/${selectedPlatform.apiPath}/${encodeURIComponent(
           cleanUsername
-        )}?months=${monthsToImport}`
+        )}?months=${monthsToImport}`,
+        { signal: abortController.signal }
       );
 
       const text = await res.text();
@@ -11011,7 +11193,28 @@ function App() {
       setLoadingStep("Building style profile...");
       await new Promise((resolve) => setTimeout(resolve, 250));
 
-      const cleanData = normaliseData(json);
+      const normalizedImportData = normaliseData(json);
+      const cleanData = {
+        ...normalizedImportData,
+        username: normalizedImportData.username || normalizedImportData.playerName || cleanUsername,
+        importPlatform: normalizedImportData.importPlatform || selectedPlatformKey,
+        import_platform: normalizedImportData.import_platform || selectedPlatformKey,
+        platform: normalizedImportData.platform || selectedPlatformKey,
+      };
+      const importOutcome = buildImportOutcome(cleanData, selectedPlatform.label);
+
+      if (!getImportedGameCount(cleanData)) {
+        setError("");
+        setImportStatus(importOutcome);
+        setLoadingStep("No public games found.");
+        await trackEvent("frontend_import_no_games", {
+          username: cleanUsername,
+          platform: selectedPlatformKey,
+          months: monthsToImport,
+        });
+        return;
+      }
+
       setLoadingStep("Comparing openings...");
       await new Promise((resolve) => setTimeout(resolve, 180));
       const reportRetentionKey = buildReportRetentionKey(cleanData, {
@@ -11022,7 +11225,8 @@ function App() {
       const userReportRetentionKey = `${supabaseUser?.id || "guest"}:${reportRetentionKey}`;
 
       setData(cleanData);
-      saveLocalAnalysis(cleanData, cleanUsername);
+      setImportStatus(importOutcome);
+      saveLocalAnalysis(cleanData, cleanUsername, selectedPlatformKey);
 
       logRetentionEvent(
         "data_imported",
@@ -11109,9 +11313,7 @@ function App() {
       }
 
       setSavedProfileMessage(
-        `Import complete for ${
-          cleanData.username || cleanUsername
-        }. Saved ${supabaseUser?.id ? "to your account" : "locally"} so you can load it next time.`
+        `${importOutcome.title}. Saved ${supabaseUser?.id ? "to your account" : "locally"} so you can load it next time.`
       );
 
       await trackEvent("frontend_import_completed", {
@@ -11126,8 +11328,28 @@ function App() {
 
       scrollToResults();
     } catch (err) {
-      setError(getFriendlyError(err.message));
+      if (err?.name === "AbortError") {
+        setError("");
+        setImportStatus({
+          tone: "info",
+          title: "Import cancelled",
+          message: "No changes were made to your current report. You can adjust the username or platform and try again.",
+          meta: "Stopped by you",
+        });
+        return;
+      }
+
+      setError(getFriendlyError(err.message, selectedPlatformKey));
+      setImportStatus({
+        tone: "warning",
+        title: "Import did not finish",
+        message: `OpeningFit could not create a ${selectedPlatform.label} report for ${cleanUsername}. The message below explains what happened.`,
+        meta: selectedPlatform.label,
+      });
     } finally {
+      if (importAbortRef.current === abortController) {
+        importAbortRef.current = null;
+      }
       setLoading(false);
       setLoadingStep("");
     }
@@ -11916,6 +12138,7 @@ function App() {
             loadingStep={loadingStep}
             elapsedSeconds={loadingElapsedSeconds}
             showWakeupMessage={loadingElapsedSeconds >= 15}
+            onCancel={cancelImport}
           />
         ) : null}
 
@@ -12035,7 +12258,7 @@ function App() {
                   className={`platformButton ${
                     platform === "chesscom" ? "platformButtonActive" : ""
                   }`}
-                  onClick={() => setPlatform("chesscom")}
+                  onClick={() => selectImportPlatform("chesscom")}
                   disabled={loading}
                 >
                   Chess.com
@@ -12046,7 +12269,7 @@ function App() {
                   className={`platformButton ${
                     platform === "lichess" ? "platformButtonActive" : ""
                   }`}
-                  onClick={() => setPlatform("lichess")}
+                  onClick={() => selectImportPlatform("lichess")}
                   disabled={loading}
                 >
                   Lichess
@@ -12058,7 +12281,11 @@ function App() {
                 <input
                   className="input"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    if (error) setError("");
+                    if (importStatus) setImportStatus(null);
+                  }}
                   disabled={loading}
                   placeholder={
                     platforms[platform]?.usernamePlaceholder || "Chess username"
@@ -12071,9 +12298,9 @@ function App() {
                   className="primaryBtn"
                   type="button"
                   onClick={() => importGames()}
-                  disabled={loading || !username.trim()}
+                  disabled={loading}
                 >
-                  {loading ? "Analysing..." : "Analyse username"}
+                  {loading ? `Analysing ${platforms[platform]?.label || "games"}...` : "Analyse username"}
                 </button>
               </div>
 
@@ -12208,6 +12435,19 @@ function App() {
             </div>
           )}
 
+          {importStatus ? (
+            <div
+              className={`importStatusBox importStatusBox--${importStatus.tone || "info"}`}
+              role={importStatus.tone === "warning" ? "alert" : "status"}
+            >
+              <div>
+                <strong>{importStatus.title}</strong>
+                <p>{importStatus.message}</p>
+              </div>
+              {importStatus.meta ? <span>{importStatus.meta}</span> : null}
+            </div>
+          ) : null}
+
           {error ? (
             <div className="errorBox analyseErrorBox" role="alert">
               <div>
@@ -12218,7 +12458,7 @@ function App() {
                 className="primaryBtn"
                 type="button"
                 onClick={() => importGames()}
-                disabled={loading || !username.trim()}
+                disabled={loading}
               >
                 Try again
               </button>

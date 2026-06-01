@@ -32466,6 +32466,83 @@ body,
   min-width: 130px;
 }
 
+.importStatusBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 900px;
+  margin: 18px auto 0;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--text);
+  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.12);
+}
+
+.importStatusBox strong,
+.importStatusBox p {
+  margin: 0;
+}
+
+.importStatusBox strong {
+  display: block;
+}
+
+.importStatusBox p {
+  margin-top: 4px;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.importStatusBox > span {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  background: rgba(15, 23, 42, 0.42);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.importStatusBox--success {
+  border-color: rgba(34, 197, 94, 0.26);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.importStatusBox--warning {
+  border-color: rgba(250, 204, 21, 0.34);
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.page.light .importStatusBox,
+[data-theme="light"] .importStatusBox {
+  background: #f8fafc;
+  border-color: rgba(37, 99, 235, 0.16);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+}
+
+.page.light .importStatusBox--success,
+[data-theme="light"] .importStatusBox--success {
+  border-color: rgba(22, 163, 74, 0.26);
+  background: #f0fdf4;
+}
+
+.page.light .importStatusBox--warning,
+[data-theme="light"] .importStatusBox--warning {
+  border-color: rgba(217, 119, 6, 0.28);
+  background: #fffbeb;
+}
+
+.page.light .importStatusBox > span,
+[data-theme="light"] .importStatusBox > span {
+  background: #ffffff;
+  border-color: rgba(37, 99, 235, 0.16);
+}
+
 .styleStarterPanel {
   display: grid;
   gap: 16px;
@@ -32696,6 +32773,7 @@ body,
 @media (max-width: 720px) {
   .analyseImportHero .heroTop,
   .analyseErrorBox,
+  .importStatusBox,
   .styleStarterHeader {
     align-items: stretch;
     flex-direction: column;
@@ -32704,6 +32782,10 @@ body,
   .analyseLoginButton,
   .analyseErrorBox .primaryBtn {
     width: 100%;
+  }
+
+  .importStatusBox > span {
+    width: fit-content;
   }
 
   .analysisTimeFormatGrid {

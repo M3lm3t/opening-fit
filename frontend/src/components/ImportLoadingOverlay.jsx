@@ -7,6 +7,7 @@ export default function ImportLoadingOverlay({
   loadingStep = "",
   elapsedSeconds = 0,
   showWakeupMessage = false,
+  onCancel,
 }) {
   const isAnalysis = mode === "analysis";
   const progressStages = [
@@ -85,7 +86,7 @@ export default function ImportLoadingOverlay({
         {loadingStep ? <p className="importLoadingCurrentStep">{loadingStep}</p> : null}
 
         {showWakeupMessage ? (
-          <p className="importLoadingWakeup">Still working — the server may be waking up.</p>
+          <p className="importLoadingWakeup">Still working - the server may be waking up. This can take a moment on the first import.</p>
         ) : null}
 
         <div className="importLoadingSteps">
@@ -110,6 +111,12 @@ export default function ImportLoadingOverlay({
             <p key={tip}>{tip}</p>
           ))}
         </div>
+
+        {typeof onCancel === "function" ? (
+          <button className="importLoadingCancel" type="button" onClick={onCancel}>
+            Cancel import
+          </button>
+        ) : null}
       </div>
     </div>
   );
