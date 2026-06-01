@@ -8321,16 +8321,16 @@ function LandingSection({ onOpeningClick }) {
 
   const steps = [
     {
-      title: "Enter username",
-      text: "Add a Chess.com or Lichess username.",
+      title: "Import Games",
+      text: "Enter a Chess.com or Lichess username.",
     },
     {
-      title: "Import games",
-      text: "Opening Fit pulls recent games and reads the openings you actually play.",
+      title: "Analyse Openings",
+      text: "OpeningFit finds what to keep, improve, or replace.",
     },
     {
-      title: "View your report",
-      text: "See which openings to keep, fix, or stop trusting.",
+      title: "Get Study Plan",
+      text: "Leave with one practical opening task.",
     },
     {
       title: "Train your repertoire",
@@ -8356,18 +8356,18 @@ function LandingSection({ onOpeningClick }) {
   const outputExamples = [
     {
       label: "Keep",
-      title: "Caro-Kann Defence as Black",
-      text: "Reliable score and familiar structures. Keep it.",
+      title: "Vienna Game",
+      text: "Strong results. Keep training it.",
     },
     {
-      label: "Fix",
-      title: "Italian Game after early exchanges",
-      text: "Good positions early, but results dip later. Review the line.",
+      label: "Improve",
+      title: "Scandinavian Defence",
+      text: "Repeated early losses. Repair the first plan.",
     },
     {
-      label: "Watch",
-      title: "Low-confidence gambit experiments",
-      text: "Fun games, weak evidence. Do not overreact yet.",
+      label: "Replace",
+      title: "Englund Gambit",
+      text: "Costing rating points. Find a safer alternative.",
     },
   ];
 
@@ -8642,19 +8642,19 @@ function LandingSection({ onOpeningClick }) {
               <span>Built for Chess.com and Lichess players</span>
             </div>
 
-            <h1>Find your repertoire fingerprint from real games.</h1>
+            <h1>Find the openings that actually fit your games.</h1>
 
             <p className="landingSubtext">
-              Enter a Chess.com or Lichess username. See what to keep, fix,
-              or study in under a minute.
+              OpeningFit analyses your recent games and gives you a simple plan:
+              what to keep, what to improve, and what to replace.
             </p>
 
             <div className="landingHeroActions">
               <a className="landingPrimaryBtn" href="#app-dashboard">
-                Try With Real Data
+                Analyse My Games
               </a>
               <a className="landingSecondaryBtn" href="#sample-report">
-                View Sample Output
+                View Example Report
               </a>
             </div>
 
@@ -8689,10 +8689,10 @@ function LandingSection({ onOpeningClick }) {
 
       <div className="landingMobileStickyCta" aria-label="Start Opening Fit">
         <a className="landingPrimaryBtn" href="#app-dashboard">
-          Try With Real Data
+          Analyse My Games
         </a>
         <a className="landingSecondaryBtn" href="#sample-report">
-          Sample
+          Example
         </a>
       </div>
 
@@ -8816,8 +8816,8 @@ function LandingSection({ onOpeningClick }) {
 
       <section className="landingContentSection" id="how-it-works">
         <div className="landingSectionHeading">
-          <p className="landingEyebrow">Question: how long does it take?</p>
-          <h2>From username to repertoire plan in three steps.</h2>
+          <p className="landingEyebrow">How it works</p>
+          <h2>From username to study plan in three steps.</h2>
         </div>
 
         <div className="landingStepsList">
@@ -8857,8 +8857,8 @@ function LandingSection({ onOpeningClick }) {
 
       <section className="landingStorySection landingOutputSection" id="output-examples">
         <div className="landingQuestionBlock">
-          <p className="landingEyebrow">Question: what kind of answers do I get?</p>
-          <h2>Real output examples are short, direct, and tied to action.</h2>
+          <p className="landingEyebrow">Example result</p>
+          <h2>Keep, improve, or replace.</h2>
         </div>
 
         <div className="landingOutputGrid">
@@ -8923,10 +8923,10 @@ function LandingSection({ onOpeningClick }) {
 
       <section className="landingStorySection landingCredibilitySection" id="proof">
         <div className="landingQuestionBlock">
-          <p className="landingEyebrow">Early proof</p>
-          <h2>Built in public, tested on real opening mess.</h2>
+          <p className="landingEyebrow">Social proof</p>
+          <h2>Players use OpeningFit to make opening study simpler.</h2>
           <p>
-            Modest early proof: real imports, early users, and time saved.
+            Early users are turning messy game history into one clear study target.
           </p>
         </div>
 
@@ -9097,18 +9097,18 @@ function LandingSection({ onOpeningClick }) {
       <section className="landingFinalCTA" id="final-cta">
         <div>
           <p className="landingEyebrow">Question: what should I do now?</p>
-          <h2>Generate your first opening report from real games.</h2>
+          <h2>Get your opening plan from real games.</h2>
           <p>
-            Use your public username, get the snapshot, then pick what to study.
+            Use your public username, get the snapshot, then pick what to study next.
           </p>
         </div>
 
         <div className="landingFinalActions">
           <a className="landingPrimaryBtn" href="#app-dashboard">
-            Generate My First Result
+            Analyse My Games
           </a>
           <a className="landingSecondaryBtn" href="#sample-report">
-            View Sample Output
+            View Example Report
           </a>
         </div>
       </section>

@@ -7431,6 +7431,80 @@ button[aria-label="Open navigation menu"] {
   }
 }
 
+/* Homepage simplification pass: keep the first visit focused on one clear path. */
+.landingWrap .landingNavLinks,
+.landingWrap .floatingRepertoireCard,
+.landingWrap .landingHeroMiniHow,
+.landingWrap .landingTrustLine,
+.landingWrap .landingProblemSection,
+.landingWrap .landingDifferenceSection,
+.landingWrap .landingDemoSection,
+.landingWrap .landingWorkflowSection,
+.landingWrap .landingBeforeAfterSection,
+.landingWrap .landingGeneratedSection,
+.landingWrap .landingEmptyStateSection,
+.landingWrap .landingProofSection,
+.landingWrap .landingUseCaseSection,
+.landingWrap #premium,
+.landingWrap .landingFaqSection,
+.landingWrap .landingLogoStrip,
+.landingWrap .landingCredStatsGrid,
+.landingWrap .landingCaseStudyGrid,
+.landingWrap .landingBenchmarkTableWrap,
+.landingWrap .landingFounderCred {
+  display: none !important;
+}
+
+.landingWrap {
+  gap: clamp(22px, 4vw, 44px);
+}
+
+.landingHero {
+  min-height: auto;
+}
+
+.landingHeroGrid {
+  align-items: center;
+}
+
+.landingContentSection,
+.landingStorySection,
+.landingFinalCTA {
+  max-width: 1080px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.landingOutputGrid,
+.landingTestimonialsGrid,
+.landingStepsList {
+  max-width: 980px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.landingOutputCard {
+  min-height: 180px;
+}
+
+.landingOutputCard span {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 32px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: rgba(248, 214, 109, 0.14);
+  color: #f8d66d;
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.landingFinalCTA {
+  margin-bottom: clamp(24px, 5vw, 60px);
+}
+
 
 /* =========================================================
    Proper app dashboard, mobile nav, launch sections
