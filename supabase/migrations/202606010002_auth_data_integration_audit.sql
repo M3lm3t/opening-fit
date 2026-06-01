@@ -35,6 +35,22 @@ begin
          and table_name = 'profiles'
          and column_name = 'id'
          and udt_name = 'uuid'
+     )
+     and not exists (
+       select 1
+       from pg_constraint constraint_record
+       join pg_attribute local_attribute
+         on local_attribute.attrelid = constraint_record.conrelid
+        and local_attribute.attnum = any(constraint_record.conkey)
+       join pg_class foreign_table
+         on foreign_table.oid = constraint_record.confrelid
+       join pg_namespace foreign_schema
+         on foreign_schema.oid = foreign_table.relnamespace
+       where constraint_record.conrelid = 'public.profiles'::regclass
+         and constraint_record.contype = 'f'
+         and local_attribute.attname = 'id'
+         and foreign_schema.nspname = 'auth'
+         and foreign_table.relname = 'users'
      ) then
     alter table public.profiles alter column id set default gen_random_uuid();
   end if;
@@ -52,7 +68,7 @@ where user_id is null
 
 insert into public.profiles (id, user_id, email, display_name, created_at, updated_at)
 select
-  gen_random_uuid(),
+  users.id,
   users.id,
   users.email,
   coalesce(
@@ -100,7 +116,7 @@ begin
     updated_at
   )
   values (
-    gen_random_uuid(),
+    new.id,
     new.id,
     new.email,
     coalesce(
@@ -131,7 +147,7 @@ as $$
 begin
   insert into public.profiles (id, user_id, email, display_name)
   values (
-    gen_random_uuid(),
+    new.id,
     new.id,
     coalesce(new.email, ''),
     coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'display_name', new.email, '')

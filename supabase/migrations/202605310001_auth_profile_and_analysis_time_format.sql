@@ -13,6 +13,7 @@ set search_path = public
 as $$
 begin
   insert into public.profiles (
+    id,
     user_id,
     email,
     display_name,
@@ -20,6 +21,7 @@ begin
     updated_at
   )
   values (
+    new.id,
     new.id,
     new.email,
     coalesce(
@@ -46,8 +48,9 @@ create trigger create_profile_after_auth_user_insert
 after insert on auth.users
 for each row execute function public.create_profile_for_new_auth_user();
 
-insert into public.profiles (user_id, email, display_name, created_at, updated_at)
+insert into public.profiles (id, user_id, email, display_name, created_at, updated_at)
 select
+  users.id,
   users.id,
   users.email,
   coalesce(

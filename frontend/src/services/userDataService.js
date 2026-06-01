@@ -120,6 +120,7 @@ export async function ensureProfile(user) {
     .from("profiles")
     .upsert(
       {
+        id: user.id,
         user_id: user.id,
         email: user.email || "",
         display_name: displayName,
@@ -259,6 +260,7 @@ export async function upsertUserProfile(user, patch = {}) {
     "profiles",
     user.id,
     {
+      id: patch.id || user.id,
       email: user.email || patch.email || "",
       display_name:
         patch.display_name ||
