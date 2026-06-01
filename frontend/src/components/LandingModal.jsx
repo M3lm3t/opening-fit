@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 export default function LandingModal({
   username,
   setUsername,
@@ -21,6 +23,15 @@ export default function LandingModal({
     if (loading) return;
     onDemoReport?.();
   };
+
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
 
   const sampleRows = [
     ["Keep", "Caro-Kann as Black", "Reliable results, stable middlegames."],

@@ -19,7 +19,7 @@ export default function ShipReadyPanel({ data, onViewChange }) {
 
   const goReports = () => {
     if (typeof onViewChange === "function") {
-      onViewChange("upgrade");
+      onViewChange("profile");
     }
 
     setTimeout(() => scrollToTarget("report-history"), 80);

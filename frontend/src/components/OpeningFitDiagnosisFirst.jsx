@@ -161,7 +161,7 @@ export default function OpeningFitDiagnosisFirst({
 
   const openTraining = () => {
     if (typeof onViewChange === "function") {
-      onViewChange("training");
+      onViewChange("train");
       setTimeout(() => {
         const el = document.getElementById("app-results") || document.getElementById("training");
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });

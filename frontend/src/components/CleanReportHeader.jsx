@@ -176,14 +176,14 @@ export default function CleanReportHeader({ data, fitData, onViewChange }) {
         <div className="cleanReportActions">
           <button
             type="button"
-            onClick={() => onViewChange?.("repertoire")}
+            onClick={() => onViewChange?.("report")}
           >
             View recommendations
           </button>
 
           <button
             type="button"
-            onClick={() => onViewChange?.("training")}
+            onClick={() => onViewChange?.("train")}
           >
             Start training plan
           </button>

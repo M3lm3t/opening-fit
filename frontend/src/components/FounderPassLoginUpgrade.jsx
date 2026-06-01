@@ -58,6 +58,17 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [open]);
+
   const continueToAccountPayment = async () => {
     if (accountUser?.id) {
       try {
@@ -107,8 +118,17 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
   if (!open) return null;
 
   return (
-    <div className="founderPassUpgradeBackdrop" role="presentation">
-      <section className="founderPassUpgradePanel" role="dialog" aria-modal="true">
+    <div
+      className="founderPassUpgradeBackdrop"
+      role="presentation"
+      onClick={() => setOpen(false)}
+    >
+      <section
+        className="founderPassUpgradePanel"
+        role="dialog"
+        aria-modal="true"
+        onClick={(event) => event.stopPropagation()}
+      >
         <button
           className="founderPassUpgradeClose"
           type="button"

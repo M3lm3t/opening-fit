@@ -3879,7 +3879,7 @@ function StudyThisNextCard({ target, onPractice, onViewChange }) {
         <button type="button" onClick={() => onPractice?.(target.name)}>
           Practise target
         </button>
-        <button type="button" onClick={() => onViewChange?.("training")}>
+        <button type="button" onClick={() => onViewChange?.("train")}>
           Open study plan
         </button>
       </div>
@@ -6965,7 +6965,7 @@ function CompactReportSummary({ data, fitData, onViewChange, onPractice }) {
           <span>Next best action</span>
           <strong>{nextBestAction}</strong>
         </div>
-        <button type="button" onClick={() => onViewChange?.("training")}>
+        <button type="button" onClick={() => onViewChange?.("train")}>
           Open plan
         </button>
       </div>
@@ -7006,12 +7006,12 @@ function CompactReportSummary({ data, fitData, onViewChange, onPractice }) {
             and a practical training plan.
           </p>
         </div>
-        <button type="button" onClick={() => onViewChange?.("upgrade")}>
+        <button type="button" onClick={() => onViewChange?.("profile")}>
           Pricing
         </button>
       </article>
 
-      <button className="commandUpgradeCta" type="button" onClick={() => onViewChange?.("upgrade")}>
+      <button className="commandUpgradeCta" type="button" onClick={() => onViewChange?.("profile")}>
         Pricing
       </button>
     </section>
@@ -7475,7 +7475,7 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
             <p>{focus.fitExplanation}</p>
             <FitReasonList opening={focus} compact />
           </div>
-          <button type="button" onClick={() => onViewChange?.("training")}>
+          <button type="button" onClick={() => onViewChange?.("train")}>
             Build drill
           </button>
         </article>
@@ -12044,6 +12044,7 @@ function App() {
           onLogin={openLoginPage}
           onPricing={openPricingPage}
         />
+        <AppActionRouter onViewChange={setActiveView} />
 
         {data ? (
           <>
@@ -12057,7 +12058,6 @@ function App() {
 
             <OpeningFitImportDoctor username={username} />
 
-            {false ? <AppActionRouter onViewChange={setActiveView} /> : null}
           </>
         ) : null}
 

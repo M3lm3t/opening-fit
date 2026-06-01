@@ -137,12 +137,12 @@ export function AppOpeningHealthScore({ data, onViewChange }) {
   if (!data || !score) return null;
 
   const goTraining = () => {
-    if (typeof onViewChange === "function") onViewChange("training");
+    if (typeof onViewChange === "function") onViewChange("train");
     setTimeout(() => scrollToTarget("next-actions"), 80);
   };
 
   const goProgress = () => {
-    if (typeof onViewChange === "function") onViewChange("upgrade");
+    if (typeof onViewChange === "function") onViewChange("profile");
     setTimeout(() => scrollToTarget("report-history"), 80);
   };
 
@@ -204,55 +204,85 @@ export default function AppActionRouter({ onViewChange }) {
 
   useEffect(() => {
     const routeMap = {
-      "overview": { view: "overview", target: "app-results" },
-      "view overview": { view: "overview", target: "app-results" },
-      "dashboard": { view: "overview", target: "app-results" },
+      "analyse": { view: "analyse", target: "import", path: "/" },
+      "analyze": { view: "analyse", target: "import", path: "/" },
+      "analyse new games": { view: "analyse", target: "import", path: "/" },
+      "analyse username": { view: "analyse", target: "import", path: "/" },
+      "start an import": { view: "analyse", target: "import", path: "/" },
+      "import": { view: "analyse", target: "import", path: "/" },
+      "import games": { view: "analyse", target: "import", path: "/" },
+      "go to analyse": { view: "analyse", target: "import", path: "/" },
+      "get started": { view: "analyse", target: "import", path: "/" },
 
-      "repertoire": { view: "repertoire", target: "repertoire-map" },
-      "view repertoire": { view: "repertoire", target: "repertoire-map" },
-      "view repertoire plan": { view: "repertoire", target: "repertoire-map" },
-      "opening suggestions": { view: "openings", target: "section-verdicts" },
-      "recommendations": { view: "repertoire", target: "repertoire-map" },
+      "report": { view: "report", target: "app-results", path: "/report" },
+      "go to report": { view: "report", target: "app-results", path: "/report" },
+      "view report": { view: "report", target: "app-results", path: "/report" },
+      "view example report": { view: "report", target: "app-results", path: "/report" },
+      "view sample report": { view: "report", target: "app-results", path: "/report" },
+      "try demo": { view: "report", target: "app-results", path: "/report" },
+      "example report": { view: "report", target: "app-results", path: "/report" },
+      "sample report": { view: "report", target: "app-results", path: "/report" },
+      "full report": { view: "report", target: "openingfit-verdict", path: "/report" },
+      "see verdicts": { view: "report", target: "full-report-highlights", path: "/report" },
+      "see what we learned": { view: "report", target: "evidence-table", path: "/report" },
+      "evidence table": { view: "report", target: "evidence-table", path: "/report" },
 
-      "training": { view: "training", target: "seven-day-plan" },
-      "start training": { view: "training", target: "seven-day-plan" },
-      "start training focus": { view: "training", target: "seven-day-plan" },
-      "open training": { view: "training", target: "seven-day-plan" },
-      "improve weakest opening": { view: "training", target: "seven-day-plan" },
+      "repertoire": { view: "report", target: "recommended-repertoire", path: "/report" },
+      "view repertoire": { view: "report", target: "recommended-repertoire", path: "/report" },
+      "view my repertoire": { view: "report", target: "recommended-repertoire", path: "/report" },
+      "view recommendations": { view: "report", target: "recommended-repertoire", path: "/report" },
+      "recommendations": { view: "report", target: "recommended-repertoire", path: "/report" },
+      "opening suggestions": { view: "report", target: "recommended-repertoire", path: "/report" },
 
-      "games": { view: "data", target: "game-replay" },
-      "game replay": { view: "data", target: "game-replay" },
-      "view games": { view: "data", target: "game-replay" },
+      "train": { view: "train", target: "training-plan", path: "/train" },
+      "training": { view: "train", target: "training-plan", path: "/train" },
+      "start training": { view: "train", target: "training-plan", path: "/train" },
+      "start training plan": { view: "train", target: "training-plan", path: "/train" },
+      "start training focus": { view: "train", target: "training-plan", path: "/train" },
+      "open training": { view: "train", target: "training-plan", path: "/train" },
+      "open study plan": { view: "train", target: "study-planner", path: "/train" },
+      "study plan": { view: "train", target: "study-planner", path: "/train" },
+      "add to study plan": { view: "train", target: "training-plan", path: "/train" },
+      "practice": { view: "train", target: "opening-practice", path: "/train" },
+      "replay": { view: "train", target: "game-replay", path: "/train" },
+      "games": { view: "train", target: "game-replay", path: "/train" },
+      "game replay": { view: "train", target: "game-replay", path: "/train" },
+      "view games": { view: "train", target: "game-replay", path: "/train" },
+      "data": { view: "train", target: "game-replay", path: "/train" },
 
-      "progress": { view: "upgrade", target: "report-history" },
-      "view progress": { view: "upgrade", target: "report-history" },
-      "check progress": { view: "upgrade", target: "report-history" },
-      "view saved progress": { view: "upgrade", target: "report-history" },
-      "saved reports": { view: "upgrade", target: "report-history" },
+      "profile": { view: "profile", target: "profile", path: "/account" },
+      "account": { view: "profile", target: "profile-account", path: "/account" },
+      "login": { view: "profile", target: "login", path: "/login" },
+      "log in": { view: "profile", target: "login", path: "/login" },
+      "sign in": { view: "profile", target: "login", path: "/login" },
+      "history": { view: "profile", target: "recommendation-history", path: "/account" },
+      "progress": { view: "profile", target: "openingfit-progress", path: "/account" },
+      "view progress": { view: "profile", target: "openingfit-progress", path: "/account" },
+      "check progress": { view: "profile", target: "openingfit-progress", path: "/account" },
+      "view saved progress": { view: "profile", target: "openingfit-progress", path: "/account" },
+      "saved reports": { view: "profile", target: "report-history", path: "/account" },
 
-      "feedback": { view: "feedback", target: "feedback" },
-      "leave feedback": { view: "feedback", target: "feedback" },
-      "send feedback": { view: "feedback", target: "feedback" },
+      "feedback": { view: "feedback", target: "feedback", path: "/" },
+      "leave feedback": { view: "feedback", target: "feedback", path: "/" },
 
-      "premium": { view: "upgrade", target: "premium" },
-      "upgrade": { view: "upgrade", target: "premium" },
-      "upgrade to premium": { view: "upgrade", target: "premium" },
-      "learn more": { view: "upgrade", target: "premium" },
+      "premium": { view: "profile", target: "premium", path: "/premium" },
+      "pricing": { view: "profile", target: "premium", path: "/premium" },
+      "upgrade": { view: "profile", target: "premium", path: "/premium", founderIntent: true },
+      "upgrade to premium": { view: "profile", target: "premium", path: "/premium", founderIntent: true },
+      "get founder pass": { view: "profile", target: "premium", path: "/premium", founderIntent: true },
+      "unlock full report": { view: "profile", target: "premium", path: "/premium", founderIntent: true },
     };
 
     const comingSoonMap = {
       "export pdf": "PDF export is a good premium feature, but it is not wired up yet.",
       "download pdf": "PDF download is not live yet. This should become a premium report export.",
-      "share report": "Sharing is not live yet. A shareable report link would be a strong next upgrade.",
       "analyse latest games": "Auto re-analysis is not live yet. For now, import again to refresh your report.",
       "analyze latest games": "Auto re-analysis is not live yet. For now, import again to refresh your report.",
       "connect account": "Full account connection is not live yet. Saved local reports are the bridge for now.",
       "sync account": "Cloud sync is not live yet. This should come with proper login history.",
       "start drill": "Interactive drills are not live yet. This is a strong premium/training upgrade.",
-      "start practice": "Interactive practice is not fully wired yet. This should become the next training feature.",
       "create account": "Account creation is not fully live yet. Saved report history is active for now.",
-      "sign in": "Opening account menu...",
-      "login": "Opening account menu...",
+      "sign out": "Use the account panel to sign out so the app can clear report state safely.",
     };
 
     const handleClick = (event) => {
@@ -267,7 +297,10 @@ export default function AppActionRouter({ onViewChange }) {
       if (!label) return;
 
       const exactRoute = routeMap[label];
-      const fuzzyRoute = Object.entries(routeMap).find(([key]) => label.includes(key))?.[1];
+      const fuzzyRoute = Object.entries(routeMap).find(([key]) => {
+        if (key.length < 10) return false;
+        return label.includes(key);
+      })?.[1];
       const route = exactRoute || fuzzyRoute;
 
       const exactSoon = comingSoonMap[label];
@@ -277,6 +310,18 @@ export default function AppActionRouter({ onViewChange }) {
       if (route) {
         if (typeof onViewChange === "function") {
           onViewChange(route.view);
+        }
+
+        if (route.path && window.location.pathname !== route.path) {
+          window.history.pushState({}, "", route.path);
+        }
+
+        if (route.founderIntent) {
+          window.dispatchEvent(
+            new CustomEvent("openingfit:founder-pass-intent", {
+              detail: { source: "action-router", plan: "founder_pass" },
+            })
+          );
         }
 
         setTimeout(() => {

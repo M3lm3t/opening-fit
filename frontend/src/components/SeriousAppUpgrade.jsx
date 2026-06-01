@@ -224,7 +224,7 @@ export function CoachSummaryCard({ data, onViewChange }) {
         <button
           type="button"
           className="primaryCoachButton"
-          onClick={() => typeof onViewChange === "function" && onViewChange("repertoire")}
+          onClick={() => typeof onViewChange === "function" && onViewChange("report")}
         >
           View repertoire plan
         </button>
@@ -232,7 +232,7 @@ export function CoachSummaryCard({ data, onViewChange }) {
         <button
           type="button"
           className="secondaryCoachButton"
-          onClick={() => typeof onViewChange === "function" && onViewChange("training")}
+          onClick={() => typeof onViewChange === "function" && onViewChange("train")}
         >
           Start training focus
         </button>

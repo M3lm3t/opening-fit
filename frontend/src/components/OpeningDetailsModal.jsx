@@ -1,6 +1,18 @@
+import { useEffect } from "react";
 import { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 
 export default function OpeningDetailsModal({ opening, onClose, onReview, onPracticeLines }) {
+  useEffect(() => {
+    if (!opening) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [opening, onClose]);
+
   if (!opening) return null;
 
   const name =

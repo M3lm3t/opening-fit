@@ -5290,6 +5290,32 @@ button:hover,
   background: var(--button-bg-hover);
 }
 
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(96, 165, 250, 0.95);
+  outline-offset: 3px;
+}
+
+button:disabled,
+button[aria-disabled="true"],
+.primaryBtn:disabled,
+.secondaryBtn:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  filter: grayscale(0.2);
+}
+
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+
 .secondaryBtn,
 .secondaryButton,
 .ghostButton,

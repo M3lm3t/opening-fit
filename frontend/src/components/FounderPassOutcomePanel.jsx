@@ -29,7 +29,7 @@ export default function FounderPassOutcomePanel({
 
   const handleTraining = () => {
     if (typeof onViewChange === "function") {
-      onViewChange("training");
+      onViewChange("train");
       setTimeout(() => {
         const el =
           document.getElementById("app-results") ||

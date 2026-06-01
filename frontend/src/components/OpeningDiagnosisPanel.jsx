@@ -270,7 +270,7 @@ export default function OpeningDiagnosisPanel({ data, onViewChange }) {
 
   const goTraining = () => {
     if (typeof onViewChange === "function") {
-      onViewChange("training");
+      onViewChange("train");
     }
 
     setTimeout(() => scrollToTarget("next-actions"), 80);
@@ -278,7 +278,7 @@ export default function OpeningDiagnosisPanel({ data, onViewChange }) {
 
   const goProgress = () => {
     if (typeof onViewChange === "function") {
-      onViewChange("upgrade");
+      onViewChange("profile");
     }
 
     setTimeout(() => scrollToTarget("report-history"), 80);

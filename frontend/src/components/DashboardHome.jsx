@@ -231,7 +231,7 @@ export default function DashboardHome({
             </button>
           ) : null}
 
-          <button type="button" onClick={() => onViewChange("training")}>
+          <button type="button" onClick={() => onViewChange("train")}>
             Training plan
           </button>
 
