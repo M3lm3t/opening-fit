@@ -808,3 +808,117 @@
     border-radius: 22px;
   }
 }
+
+/* Landing proof polish: this section supports the import hero instead of competing with it. */
+.landingProofSection {
+  margin-top: 18px;
+}
+
+.landingProofSection .trustHeroCard {
+  grid-template-columns: minmax(0, 0.92fr) minmax(300px, 0.78fr);
+  padding: clamp(20px, 3vw, 30px);
+  border-radius: 20px;
+}
+
+.landingProofSection .trustHeroCopy h1 {
+  max-width: 620px;
+  font-size: clamp(1.85rem, 3.4vw, 3.05rem);
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+
+.landingProofSection .trustSubtext {
+  max-width: 620px;
+  margin-top: 14px;
+  font-size: 1rem;
+  line-height: 1.58;
+}
+
+.landingProofSection .trustActions {
+  margin-top: 20px;
+}
+
+.landingProofSection .trustSecondaryBtn {
+  border-radius: 12px;
+}
+
+.landingProofSection .trustBackToImportBtn {
+  background: transparent;
+}
+
+.landingProofSection .trustMiniProof {
+  margin-top: 18px;
+}
+
+.landingProofSection .sampleReportCard {
+  border-radius: 18px;
+}
+
+.landingProofSection .trustStatsGrid,
+.landingProofSection .trustSocialProofGrid,
+.landingProofSection .testimonialGrid,
+.landingProofSection .tierComparison {
+  display: none;
+}
+
+.landingProofSection .exampleAnalysisSection,
+.landingProofSection .trustGrid {
+  margin-top: 14px;
+}
+
+.landingProofSection .exampleAnalysisSection {
+  padding: clamp(18px, 2.4vw, 24px);
+  border-radius: 20px;
+}
+
+.landingProofSection .exampleAnalysisHeader h2,
+.landingProofSection .trustInfoCard h2,
+.landingProofSection .founderPassCard h2 {
+  letter-spacing: 0;
+}
+
+.landingProofSection .founderPassCard {
+  background:
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.12), transparent 32%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.92));
+}
+
+.landingProofSection .founderButton {
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.18);
+  color: #bfdbfe;
+  border: 1px solid rgba(96, 165, 250, 0.26);
+}
+
+[data-theme="light"] .landingProofSection .founderButton,
+.light .landingProofSection .founderButton {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: rgba(37, 99, 235, 0.22);
+}
+
+@media (max-width: 920px) {
+  .landingProofSection .trustHeroCard {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .landingProofSection {
+    margin-top: 12px;
+  }
+
+  .landingProofSection .trustHeroCard,
+  .landingProofSection .exampleAnalysisSection {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .landingProofSection .trustHeroCopy h1 {
+    font-size: 1.82rem;
+  }
+
+  .landingProofSection .analysisPreviewGrid {
+    gap: 10px;
+  }
+}

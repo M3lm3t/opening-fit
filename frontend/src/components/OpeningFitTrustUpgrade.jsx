@@ -136,33 +136,33 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onF
   const handleExample = onDemo || onSample;
 
   return (
-    <section className="trustUpgrade" id="sample-report">
+    <section className="trustUpgrade landingProofSection" id="sample-report">
       <div className="trustHeroCard">
         <div className="trustHeroCopy">
-          <p className="trustEyebrow">Built for real online chess improvement</p>
+          <p className="trustEyebrow">What the report gives you</p>
 
-          <h1>Find the openings that are quietly costing you rating points.</h1>
+          <h1>Your openings, sorted into practical decisions.</h1>
 
           <p className="trustSubtext">
-            Import your Chess.com or Lichess games and OpeningFit shows which openings to keep,
-            improve, or avoid — based on your real results, not generic theory.
+            OpeningFit separates your own White and Black patterns, checks the sample size,
+            and turns recent games into clear keep, improve, and next-study guidance.
           </p>
 
           <div className="trustActions">
-            <button type="button" className="trustPrimaryBtn" onClick={onImport}>
-              Analyse My Games
+            <button type="button" className="trustSecondaryBtn" onClick={onDemo || onSample}>
+              View sample report
             </button>
 
-            <button type="button" className="trustSecondaryBtn" onClick={onDemo || onSample}>
-              View Example Report
+            <button type="button" className="trustSecondaryBtn trustBackToImportBtn" onClick={onImport}>
+              Back to username input
             </button>
           </div>
 
           <div className="trustMiniProof">
-            <span>120,000+ games analyzed</span>
-            <span>Used by improving players worldwide</span>
-            <span>Works with Chess.com + Lichess</span>
-            <span>Built for real online chess improvement</span>
+            <span>Public games only</span>
+            <span>Chess.com + Lichess</span>
+            <span>Colour-aware recommendations</span>
+            <span>Sample-size confidence</span>
           </div>
         </div>
 
@@ -211,16 +211,16 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onF
       <div className="exampleAnalysisSection" id="see-example-analysis">
         <div className="exampleAnalysisHeader">
           <div>
-            <p className="trustEyebrow">See Example Analysis</p>
-            <h2>Preview the report before you import anything.</h2>
+            <p className="trustEyebrow">Sample analysis</p>
+            <h2>Preview the result before importing.</h2>
             <p>
-              Open a sample report or scan the preview panels to see the exact kind of evidence
-              OpeningFit generates from online games.
+              Scan the preview panels or open the sample report to see the kind of evidence
+              OpeningFit creates from online game history.
             </p>
           </div>
 
           <button type="button" className="trustSecondaryBtn" onClick={handleExample}>
-            View Example Report
+            View sample report
           </button>
         </div>
 
@@ -331,7 +331,7 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onF
             <strong>£8</strong>
           </div>
 
-          <h2>Upgrade for depth, history, and workflow.</h2>
+          <h2>Founder Pass adds depth when you want it.</h2>
 
           <p>
             The free report gives the useful opening snapshot. Founder Pass
@@ -340,7 +340,7 @@ export default function OpeningFitTrustUpgrade({ onImport, onSample, onDemo, onF
           </p>
 
           <button type="button" className="founderButton" onClick={onFounderPass}>
-            Pricing
+            See Founder Pass
           </button>
         </article>
       </div>

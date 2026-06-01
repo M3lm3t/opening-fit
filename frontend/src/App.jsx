@@ -8642,19 +8642,19 @@ function LandingSection({ onOpeningClick }) {
               <span>Built for Chess.com and Lichess players</span>
             </div>
 
-            <h1>Find the openings that actually fit your games.</h1>
+            <h1>Find the openings that fit how you actually play.</h1>
 
             <p className="landingSubtext">
-              OpeningFit analyses your recent games and gives you a simple plan:
-              what to keep, what to improve, and what to replace.
+              OpeningFit imports recent public games from your username and gives you a simple plan:
+              what to keep, what to improve, and what to study next.
             </p>
 
             <div className="landingHeroActions">
               <a className="landingPrimaryBtn" href="#app-dashboard">
-                Analyse My Games
+                Analyse username
               </a>
               <a className="landingSecondaryBtn" href="#sample-report">
-                View Example Report
+                View sample report
               </a>
             </div>
 
@@ -8689,10 +8689,10 @@ function LandingSection({ onOpeningClick }) {
 
       <div className="landingMobileStickyCta" aria-label="Start Opening Fit">
         <a className="landingPrimaryBtn" href="#app-dashboard">
-          Analyse My Games
+          Analyse username
         </a>
         <a className="landingSecondaryBtn" href="#sample-report">
-          Example
+          Sample
         </a>
       </div>
 
@@ -9105,10 +9105,10 @@ function LandingSection({ onOpeningClick }) {
 
         <div className="landingFinalActions">
           <a className="landingPrimaryBtn" href="#app-dashboard">
-            Analyse My Games
+            Analyse username
           </a>
           <a className="landingSecondaryBtn" href="#sample-report">
-            View Example Report
+            View sample report
           </a>
         </div>
       </section>
@@ -12190,13 +12190,17 @@ function App() {
           <header className="hero heroCard compactImportHero analyseImportHero" aria-busy={loading}>
             <div className="heroTop">
               <div className="heroTitleWrap">
-                <p className="eyebrow">OpeningFit</p>
-                <h1>Build a chess repertoire from your own games</h1>
+                <p className="eyebrow">OpeningFit for club players</p>
+                <h1>Find the openings that fit how you actually play</h1>
                 <p className="subtext">
-                  Import your Chess.com or Lichess username. OpeningFit finds
-                  which openings are helping you, which ones are costing points,
-                  and what to study next.
+                  Enter a Chess.com or Lichess username. OpeningFit imports recent public games,
+                  finds your own opening patterns, and recommends what to keep, improve, or study next.
                 </p>
+                <div className="landingHeroProof" aria-label="OpeningFit trust summary">
+                  <span>No password needed</span>
+                  <span>Uses public game history</span>
+                  <span>Not generic grandmaster theory</span>
+                </div>
               </div>
               <a
                 className="analyseLoginButton"
@@ -12210,10 +12214,10 @@ function App() {
             <div className="searchRow topBar appActionPanel heroImportFlow" id="import">
               <div className="heroImportHeader">
                 <div>
-                  <span>Analyse public games</span>
-                  <strong>Enter your username</strong>
+                  <span>Start with your username</span>
+                  <strong>Analyse recent games from your own account</strong>
                 </div>
-                <small>No password needed</small>
+                <small>Chess.com or Lichess</small>
               </div>
 
               <div className="platformSelector">
@@ -12253,47 +12257,6 @@ function App() {
                 />
               </label>
 
-              <select
-                className="input monthSelect"
-                value={importMonths}
-                onChange={(e) => setImportMonths(Number(e.target.value))}
-                aria-label="Months to import"
-                disabled={loading}
-              >
-                <option value={1}>1 month</option>
-                <option value={3}>3 months</option>
-                <option value={6} disabled={!isPremium}>
-                  6 months {isPremium ? "" : "— Premium"}
-                </option>
-                <option value={12} disabled={!isPremium}>
-                  12 months {isPremium ? "" : "— Premium"}
-                </option>
-              </select>
-
-              <fieldset className="analysisTimeFormatSelector">
-                <legend>Time format to analyse</legend>
-                <div className="analysisTimeFormatGrid">
-                  {ANALYSIS_TIME_FORMAT_OPTIONS.map((option) => (
-                    <button
-                      key={option.key}
-                      className={`analysisTimeFormatButton ${
-                        analysisTimeFormat === option.key ? "analysisTimeFormatButtonActive" : ""
-                      }`}
-                      type="button"
-                      onClick={() => setAnalysisTimeFormat(option.key)}
-                      disabled={loading}
-                      aria-pressed={analysisTimeFormat === option.key}
-                    >
-                      <strong>{option.label}</strong>
-                      <span>{option.description}</span>
-                    </button>
-                  ))}
-                </div>
-                <small>
-                  PGN time-control metadata is auto-detected when available. You can override it here before analysing.
-                </small>
-              </fieldset>
-
               <div className="appActionButtons">
                 <button
                   className="primaryBtn"
@@ -12301,28 +12264,69 @@ function App() {
                   onClick={() => importGames()}
                   disabled={loading || !username.trim()}
                 >
-                  {loading ? "Analysing..." : "Analyse My Games"}
+                  {loading ? "Analysing..." : "Analyse username"}
                 </button>
               </div>
+
+              <details className="landingAdvancedOptions">
+                <summary>Analysis options</summary>
+                <div className="landingAdvancedGrid">
+                  <select
+                    className="input monthSelect"
+                    value={importMonths}
+                    onChange={(e) => setImportMonths(Number(e.target.value))}
+                    aria-label="Months to import"
+                    disabled={loading}
+                  >
+                    <option value={1}>1 month</option>
+                    <option value={3}>3 months</option>
+                    <option value={6} disabled={!isPremium}>
+                      6 months {isPremium ? "" : "- Premium"}
+                    </option>
+                    <option value={12} disabled={!isPremium}>
+                      12 months {isPremium ? "" : "- Premium"}
+                    </option>
+                  </select>
+
+                  <fieldset className="analysisTimeFormatSelector">
+                    <legend>Time format</legend>
+                    <div className="analysisTimeFormatGrid">
+                      {ANALYSIS_TIME_FORMAT_OPTIONS.map((option) => (
+                        <button
+                          key={option.key}
+                          className={`analysisTimeFormatButton ${
+                            analysisTimeFormat === option.key ? "analysisTimeFormatButtonActive" : ""
+                          }`}
+                          type="button"
+                          onClick={() => setAnalysisTimeFormat(option.key)}
+                          disabled={loading}
+                          aria-pressed={analysisTimeFormat === option.key}
+                        >
+                          <strong>{option.label}</strong>
+                          <span>{option.description}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+                </div>
+              </details>
             </div>
 
             <div className="compactTrustRow">
-              <span>Uses public games</span>
-              <span>Shows strengths and leaks</span>
+              <span>Result: opening verdicts, confidence, and one study focus</span>
               <button
                 className="inlineSampleButton"
                 type="button"
                 onClick={loadDemoReport}
                 disabled={loading}
               >
-                View Example Report
+                View sample report
               </button>
             </div>
 
-            {apiStatus !== "online" ? (
+            {apiStatus === "offline" ? (
               <p className="statusMessage">
-                Backend status: {apiStatus}. Some features may not work until
-                your backend is running.
+                Live import is temporarily unavailable. You can still view the sample report.
               </p>
             ) : null}
 
