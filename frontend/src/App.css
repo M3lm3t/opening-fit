@@ -33472,14 +33472,11 @@ body,
   }
 
   .openingAppMenu {
-    top: max(10px, env(safe-area-inset-top)) !important;
-    right: 10px !important;
-    z-index: 130 !important;
+    display: none !important;
   }
 
   .themeToggle {
-    top: calc(58px + env(safe-area-inset-top)) !important;
-    right: 10px !important;
+    display: none !important;
   }
 
   .profileGrid {
