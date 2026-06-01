@@ -1834,6 +1834,12 @@ th {
 }
 
 .cleanReplayBoard {
+  --board-light-square: #EEEED2;
+  --board-dark-square: #769656;
+  --board-selected: rgba(59, 130, 246, 0.45);
+  --board-invalid: rgba(239, 68, 68, 0.48);
+  --board-last-move: rgba(255, 221, 87, 0.50);
+  --board-legal-move: rgba(34, 197, 94, 0.35);
   width: 100%;
   aspect-ratio: 1 / 1;
   display: grid;
@@ -1891,14 +1897,36 @@ th {
 .cleanReplaySquare.cleanReplayLight:hover,
 .cleanReplaySquare.cleanReplayLight:focus,
 .cleanReplaySquare.cleanReplayLight:active {
-  background: var(--board-light-square);
+  background: var(--board-light-square, #EEEED2) !important;
+  background-color: var(--board-light-square, #EEEED2) !important;
+  background-image: none !important;
 }
 
 .cleanReplaySquare.cleanReplayDark,
 .cleanReplaySquare.cleanReplayDark:hover,
 .cleanReplaySquare.cleanReplayDark:focus,
 .cleanReplaySquare.cleanReplayDark:active {
-  background: var(--board-dark-square);
+  background: var(--board-dark-square, #769656) !important;
+  background-color: var(--board-dark-square, #769656) !important;
+  background-image: none !important;
+}
+
+.chess-board .white,
+.chessboard .white,
+.react-chessboard .white,
+.react-chessboard .square-light,
+.square-light {
+  background: var(--board-light-square, #EEEED2) !important;
+  background-color: var(--board-light-square, #EEEED2) !important;
+}
+
+.chess-board .black,
+.chessboard .black,
+.react-chessboard .black,
+.react-chessboard .square-dark,
+.square-dark {
+  background: var(--board-dark-square, #769656) !important;
+  background-color: var(--board-dark-square, #769656) !important;
 }
 
 .cleanReplayPiece {
@@ -1914,7 +1942,7 @@ th {
   -webkit-tap-highlight-color: transparent;
   font-size: clamp(28px, 6.2vw, 54px);
   transform: none;
-  filter: drop-shadow(0 2px 2px rgba(2, 6, 23, 0.35));
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)) !important;
 }
 
 .practiceSelectedSquare {
@@ -2037,6 +2065,31 @@ th {
   border: 1px solid var(--border);
   border-radius: 14px;
   background: color-mix(in srgb, var(--card-bg-soft) 82%, transparent);
+}
+
+.boardThemeControls {
+  width: min(100%, 520px);
+  margin: 0 auto 10px;
+  text-align: center;
+}
+
+.boardThemeControls .boardThemeToggle {
+  margin-bottom: 6px;
+}
+
+.boardThemeDebugLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
+  border-radius: 999px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--card-bg-soft) 78%, transparent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .boardThemeToggle button {
@@ -5129,12 +5182,12 @@ th {
   --danger-bg: #7f1d1d;
   --danger-border: #b91c1c;
   --danger-text: #fecaca;
-  --board-light-square: #f0d9b5;
-  --board-dark-square: #b58863;
+  --board-light-square: #EEEED2;
+  --board-dark-square: #769656;
   --board-border: rgba(15, 23, 42, 0.32);
   --board-selected: rgba(59, 130, 246, 0.45);
   --board-invalid: rgba(239, 68, 68, 0.48);
-  --board-last-move: rgba(255, 221, 87, 0.45);
+  --board-last-move: rgba(255, 221, 87, 0.50);
   --board-legal-move: rgba(34, 197, 94, 0.35);
   color-scheme: dark;
 }
@@ -5156,12 +5209,12 @@ th {
   --danger-bg: #fee2e2;
   --danger-border: #fecaca;
   --danger-text: #991b1b;
-  --board-light-square: #f0d9b5;
-  --board-dark-square: #b58863;
+  --board-light-square: #EEEED2;
+  --board-dark-square: #769656;
   --board-border: rgba(15, 23, 42, 0.26);
   --board-selected: rgba(59, 130, 246, 0.45);
   --board-invalid: rgba(239, 68, 68, 0.48);
-  --board-last-move: rgba(255, 221, 87, 0.45);
+  --board-last-move: rgba(255, 221, 87, 0.50);
   --board-legal-move: rgba(34, 197, 94, 0.35);
   color-scheme: light;
 }
@@ -37577,6 +37630,7 @@ svg {
   .opening-board-shell,
   .practice-board-shell,
   .game-replay-board-shell,
+  .boardThemeControls,
   .boardThemeToggle {
     width: min(100%, calc(100vw - 16px));
     max-width: none;

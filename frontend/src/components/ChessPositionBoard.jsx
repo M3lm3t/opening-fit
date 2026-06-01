@@ -57,7 +57,7 @@ export default function ChessPositionBoard({
   showCoordinates = true,
   className = "",
 }) {
-  const { boardThemeVars } = useBoardTheme();
+  const { boardTheme, boardThemeVars } = useBoardTheme();
   const chess = useMemo(() => buildChess(position), [position]);
   const board = useMemo(() => getBoard(chess, orientation), [chess, orientation]);
   const pointerHandledRef = useRef(false);
@@ -124,6 +124,7 @@ export default function ChessPositionBoard({
     <div
       className={`cleanReplayBoard chessPositionBoard opening-board-shell ${className}`}
       style={boardThemeVars}
+      data-board-theme={boardTheme}
     >
       {board.map((rank, rowIndex) =>
         rank.map((piece, colIndex) => {

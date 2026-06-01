@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
-import { BoardThemeToggle, useBoardTheme } from "./boardThemes";
+import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes";
 
 export const SUPPORTED_OPENINGS = [
   "Vienna Game",
@@ -428,11 +428,18 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
         />
       </div>
 
-      <BoardThemeToggle boardTheme={boardTheme} onChange={setBoardTheme} />
+      <div className="boardThemeControls">
+        <BoardThemeToggle boardTheme={boardTheme} onChange={setBoardTheme} />
+        <BoardThemeStatusLabel boardTheme={boardTheme} />
+      </div>
 
       <div className="practiceLayout">
         <div className="practiceBoardBox practice-board-shell">
-          <div className="cleanReplayBoard opening-board-shell" style={boardThemeVars}>
+          <div
+            className="cleanReplayBoard opening-board-shell"
+            style={boardThemeVars}
+            data-board-theme={boardTheme}
+          >
             {board.map((rank, rowIndex) =>
               rank.map((piece, colIndex) => {
                 const squareName = getSquareName(rowIndex, colIndex, orientation);

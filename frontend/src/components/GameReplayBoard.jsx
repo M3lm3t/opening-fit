@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import ChessPositionBoard from "./ChessPositionBoard";
-import { BoardThemeToggle, useBoardTheme } from "./boardThemes";
+import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes";
 
 function buildPositionFromMoves(moves, moveIndex) {
   const chess = new Chess();
@@ -88,7 +88,10 @@ export default function GameReplayBoard({
         </button>
       </div>
 
-      <BoardThemeToggle boardTheme={boardTheme} onChange={setBoardTheme} />
+      <div className="boardThemeControls">
+        <BoardThemeToggle boardTheme={boardTheme} onChange={setBoardTheme} />
+        <BoardThemeStatusLabel boardTheme={boardTheme} />
+      </div>
 
       {moves.length === 0 ? (
         <div className="replayWarning">

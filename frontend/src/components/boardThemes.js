@@ -9,6 +9,7 @@ export const BOARD_THEMES = {
   },
   lichess: {
     label: "Green",
+    statusLabel: "Green High Contrast",
     light: "#EEEED2",
     dark: "#769656",
   },
@@ -26,17 +27,18 @@ export const BOARD_THEME_OPTIONS = [
 ];
 
 const STORAGE_KEY = "openingFit:boardTheme";
+const DEFAULT_BOARD_THEME = "lichess";
 
 function normaliseBoardTheme(value) {
   if (value === "green") return "lichess";
-  return BOARD_THEMES[value] ? value : "classic";
+  return BOARD_THEMES[value] ? value : DEFAULT_BOARD_THEME;
 }
 
 function readLocalBoardTheme() {
   try {
     return normaliseBoardTheme(window.localStorage.getItem(STORAGE_KEY));
   } catch {
-    return "classic";
+    return DEFAULT_BOARD_THEME;
   }
 }
 
@@ -57,7 +59,7 @@ export function getBoardThemeVariables(themeKey) {
     "--board-border": "rgba(15, 23, 42, 0.32)",
     "--board-selected": "rgba(59, 130, 246, 0.45)",
     "--board-invalid": "rgba(239, 68, 68, 0.48)",
-    "--board-last-move": "rgba(255, 221, 87, 0.45)",
+    "--board-last-move": "rgba(255, 221, 87, 0.50)",
     "--board-legal-move": "rgba(34, 197, 94, 0.35)",
   };
 }
@@ -103,8 +105,21 @@ export function useBoardTheme() {
     boardTheme,
     setBoardTheme,
     boardThemeVars,
-    boardThemeLabel: BOARD_THEMES[boardTheme]?.label || BOARD_THEMES.classic.label,
+    boardThemeLabel: BOARD_THEMES[boardTheme]?.label || BOARD_THEMES[DEFAULT_BOARD_THEME].label,
   };
+}
+
+export function BoardThemeStatusLabel({ boardTheme }) {
+  const theme = normaliseBoardTheme(boardTheme);
+
+  return (
+    <span className="boardThemeDebugLabel">
+      Board theme:{" "}
+      {BOARD_THEMES[theme]?.statusLabel ||
+        BOARD_THEMES[theme]?.label ||
+        BOARD_THEMES[DEFAULT_BOARD_THEME].label}
+    </span>
+  );
 }
 
 export function BoardThemeToggle({ boardTheme, onChange }) {

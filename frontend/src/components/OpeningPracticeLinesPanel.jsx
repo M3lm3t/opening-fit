@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import ChessPositionBoard from "./ChessPositionBoard";
-import { BoardThemeToggle, useBoardTheme } from "./boardThemes";
+import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes";
 import { findOpeningPracticePack, openingPracticePacks } from "../data/openingPracticeLines";
 import { OPENINGS, normaliseOpeningKey, searchOpenings } from "../data/openings";
 import { fetchOpeningFitCloudState, saveOpeningFitCloudState } from "./openingFitCloudState";
@@ -587,7 +587,10 @@ export default function OpeningPracticeLinesPanel({
 
       <div className="practiceBoardLayout">
         <div className="practiceBoardColumn">
-          <BoardThemeToggle boardTheme={boardTheme} onChange={setBoardTheme} />
+          <div className="boardThemeControls">
+            <BoardThemeToggle boardTheme={boardTheme} onChange={setBoardTheme} />
+            <BoardThemeStatusLabel boardTheme={boardTheme} />
+          </div>
           <div className="practiceBoardWrap practice-board-shell">
             <ChessPositionBoard
               position={fen}
