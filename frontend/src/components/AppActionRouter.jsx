@@ -256,6 +256,10 @@ export default function AppActionRouter({ onViewChange }) {
       "login": { view: "profile", target: "login", path: "/login" },
       "log in": { view: "profile", target: "login", path: "/login" },
       "sign in": { view: "profile", target: "login", path: "/login" },
+      "connect account": { view: "profile", target: "login", path: "/login" },
+      "create account": { view: "profile", target: "login", path: "/login" },
+      "sync account": { view: "profile", target: "profile-account", path: "/account" },
+      "cloud sync": { view: "profile", target: "profile-account", path: "/account" },
       "history": { view: "profile", target: "recommendation-history", path: "/account" },
       "progress": { view: "profile", target: "openingfit-progress", path: "/account" },
       "view progress": { view: "profile", target: "openingfit-progress", path: "/account" },
@@ -279,10 +283,7 @@ export default function AppActionRouter({ onViewChange }) {
       "download pdf": "PDF download is not live yet. This should become a premium report export.",
       "analyse latest games": "Auto re-analysis is not live yet. For now, import again to refresh your report.",
       "analyze latest games": "Auto re-analysis is not live yet. For now, import again to refresh your report.",
-      "connect account": "Full account connection is not live yet. Saved local reports are the bridge for now.",
-      "sync account": "Cloud sync is not live yet. This should come with proper login history.",
       "start drill": "Interactive drills are not live yet. This is a strong premium/training upgrade.",
-      "create account": "Account creation is not fully live yet. Saved report history is active for now.",
       "sign out": "Use the account panel to sign out so the app can clear report state safely.",
     };
 

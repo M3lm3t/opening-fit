@@ -8146,6 +8146,73 @@ function AppPrimaryNav({ activeView, accountUser, onNavigate, onExampleReport, o
   );
 }
 
+function AccountSyncStatusBar({
+  user,
+  isSupabaseConfigured,
+  authLoading,
+  profileLoading,
+  authHydrated,
+  syncStatus,
+  lastSavedAt,
+  syncError,
+  onAccount,
+}) {
+  const savedTime = useMemo(() => {
+    if (!lastSavedAt) return "";
+    const date = new Date(lastSavedAt);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }, [lastSavedAt]);
+
+  let label = "Logged out";
+  let detail = "Create a free account to save reports and sync across devices.";
+  let tone = "loggedOut";
+  let action = "Login";
+
+  if (!isSupabaseConfigured) {
+    label = "Logged out";
+    detail = "Supabase env vars missing. Cloud accounts and saving are not connected.";
+    tone = "error";
+    action = "Account";
+  } else if (authLoading || !authHydrated) {
+    label = "Checking account...";
+    detail = "OpeningFit is checking your Supabase session.";
+    tone = "loading";
+    action = "Account";
+  } else if (profileLoading) {
+    label = "Restoring saved data...";
+    detail = "Loading your profile, reports, settings, and recommendations from Supabase.";
+    tone = "loading";
+    action = "Account";
+  } else if (user?.id) {
+    label = `Logged in as ${user.email || "OpeningFit user"}`;
+    action = "Account";
+
+    if (syncStatus === "saving") {
+      detail = "Saving...";
+      tone = "saving";
+    } else if (syncStatus === "error") {
+      detail = syncError || "Save failed — retry";
+      tone = "error";
+    } else {
+      detail = savedTime ? `Cloud sync active · Saved ${savedTime}` : "Cloud sync active · Saved";
+      tone = "synced";
+    }
+  }
+
+  return (
+    <section className={`accountSyncStatusBar accountSyncStatusBar--${tone}`} role="status">
+      <div>
+        <span>{label}</span>
+        <strong>{detail}</strong>
+      </div>
+      <button type="button" onClick={onAccount}>
+        {syncStatus === "error" ? "Retry" : action}
+      </button>
+    </section>
+  );
+}
+
 
 function AppViewTabs({ activeView, onNavigate }) {
   const tabs = [
@@ -10281,6 +10348,11 @@ function App() {
     openingFitUserState,
     upsertUserData: upsertCloudUserData,
     refreshUserData,
+    profileLoading,
+    syncStatus,
+    lastSavedAt,
+    syncError,
+    isSupabaseConfigured,
   } = useAuth();
 
   useEffect(() => {
@@ -10466,6 +10538,25 @@ function App() {
         fallbackIds: ["profile"],
       });
     }, 120);
+  };
+
+  const retryAccountSync = async (event) => {
+    event?.preventDefault?.();
+
+    if (!supabaseUser?.id) {
+      openLoginPage(event);
+      return;
+    }
+
+    try {
+      setCloudSaveWarning("");
+      await refreshUserData?.(supabaseUser);
+      setCloudSaveStatus("saved");
+    } catch (retryError) {
+      console.warn("OpeningFit Supabase retry failed", retryError);
+      setCloudSaveStatus("failed");
+      setCloudSaveWarning(retryError?.message || "Could not restore Supabase sync.");
+    }
   };
 
 
@@ -12059,7 +12150,7 @@ function App() {
 
   useEffect(() => {
     const openAccountPage = () => {
-      navigateApp("account", { setView: setActiveView });
+      openLoginPage();
     };
 
     window.addEventListener("openingfit:open-account-payment", openAccountPage);
@@ -12067,7 +12158,7 @@ function App() {
     return () => {
       window.removeEventListener("openingfit:open-account-payment", openAccountPage);
     };
-  }, []);
+  }, [openLoginPage]);
 
   useEffect(() => {
     const syncViewFromPath = () => {
@@ -12104,6 +12195,17 @@ function App() {
           onExampleReport={loadDemoReport}
           onLogin={openLoginPage}
           onPricing={openPricingPage}
+        />
+        <AccountSyncStatusBar
+          user={supabaseUser || accountUser}
+          isSupabaseConfigured={isSupabaseConfigured}
+          authLoading={authLoading}
+          profileLoading={profileLoading}
+          authHydrated={authHydrated}
+          syncStatus={syncStatus || cloudSaveStatus}
+          lastSavedAt={lastSavedAt}
+          syncError={syncError || cloudSaveWarning}
+          onAccount={syncStatus === "error" || cloudSaveStatus === "failed" ? retryAccountSync : openLoginPage}
         />
         <AppActionRouter onViewChange={setActiveView} />
 
@@ -12257,9 +12359,9 @@ function App() {
                   finds your own opening patterns, and recommends what to keep, improve, or study next.
                 </p>
                 <div className="landingHeroProof" aria-label="OpeningFit trust summary">
-                  <span>No password needed</span>
-                  <span>Uses public game history</span>
-                  <span>Not generic grandmaster theory</span>
+                  <span>Analyse public games instantly</span>
+                  <span>Free account saves reports</span>
+                  <span>Sync across devices</span>
                 </div>
               </div>
               <a
@@ -12511,13 +12613,20 @@ function App() {
 
           {reportData && cloudSaveStatus && !cloudSaveWarning ? (
             <div className="cloudSaveStatusPill" role="status">
-              {cloudSaveStatus === "saving"
-                ? "Saving to cloud..."
-                : cloudSaveStatus === "saved"
-                  ? "Saved to cloud"
-                  : cloudSaveStatus === "local"
-                    ? "Saved locally. Log in to sync this report."
-                    : "Cloud save failed - report kept locally"}
+              <span>
+                {cloudSaveStatus === "saving"
+                  ? "Saving to cloud..."
+                  : cloudSaveStatus === "saved"
+                    ? "Saved to cloud"
+                    : cloudSaveStatus === "local"
+                      ? "Saved locally. Log in to sync this report."
+                      : "Cloud save failed — report kept locally"}
+              </span>
+              {cloudSaveStatus === "local" || cloudSaveStatus === "failed" ? (
+                <button type="button" onClick={openLoginPage}>
+                  {accountUser ? "Open account" : "Login"}
+                </button>
+              ) : null}
             </div>
           ) : null}
 

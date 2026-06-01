@@ -176,7 +176,7 @@ export default function OpeningFitDiagnosisFirst({
           <p className="diagnosisFirst__eyebrow">Your 30-second opening diagnosis</p>
           <h2>{verdict}</h2>
           <p className="diagnosisFirst__sub">
-            Based on {totalGames || "your recent"} imported games. No passwords. Just your public game history turned into a practical opening plan.
+            Based on {totalGames || "your recent"} imported games. Analyse public games instantly, then create a free account to save reports and sync across devices.
           </p>
         </div>
 

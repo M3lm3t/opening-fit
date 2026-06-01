@@ -16,7 +16,7 @@ export default function OpeningFitTrustBar({ data }) {
         <div className="ofTrustBarStats">
           <article>
             <strong>Public games</strong>
-            <span>No password needed</span>
+            <span>Free account saves reports</span>
           </article>
 
           <article>

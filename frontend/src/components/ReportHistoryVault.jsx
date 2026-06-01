@@ -327,14 +327,12 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
       return;
     }
 
-    const next = [
-      item,
-      ...history.filter((existing) => existing.id !== item.id),
-    ].slice(0, 10);
+    const next = [item, ...history.filter((existing) => existing.id !== item.id)].slice(0, 10);
 
     writeHistory(next);
     setHistory(next);
-    setStatus("Report saved locally. Log in to keep history across devices.");
+    setStatus("Report saved locally. Login to sync report history across devices.");
+    window.dispatchEvent(new CustomEvent("openingfit:open-account-payment"));
   };
 
   const loadReport = (item) => {
@@ -393,7 +391,7 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
 
       {!user?.id ? (
         <div className="historyLoginNote">
-          Log in to keep report history across devices. Local history is available in this browser.
+          Login to keep report history across devices. Local history is available in this browser.
         </div>
       ) : null}
 

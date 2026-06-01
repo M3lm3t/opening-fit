@@ -279,6 +279,24 @@ export function AuthDataProvider({ children }) {
     }
   }, [refreshUserData]);
 
+  const runSyncedMutation = useCallback(async (work, fallbackMessage = "Could not save to Supabase.") => {
+    setSyncState((current) => ({ ...current, status: "saving", error: "" }));
+
+    try {
+      const result = await work();
+      setSyncState({
+        status: "synced",
+        lastSavedAt: new Date().toISOString(),
+        error: "",
+      });
+      return result;
+    } catch (mutationError) {
+      const message = mutationError?.message || fallbackMessage;
+      setSyncState((current) => ({ ...current, status: "error", error: message }));
+      throw mutationError;
+    }
+  }, []);
+
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
       setAuthLoading(false);
@@ -513,11 +531,25 @@ export function AuthDataProvider({ children }) {
       syncError: syncState.error,
       refreshUserData,
       retryRestore,
-      upsertUserData: (table, row, options) => upsertUserRow(table, user?.id, row, options),
-      deleteUserData: (table, id) => deleteUserRow(table, user?.id, id),
-      saveSettings: (patch) => saveSettings(user?.id, patch),
-      saveReport: (report, summary) => saveReport(user?.id, report, summary),
-      saveRecommendationHistory: (snapshot) => saveRecommendationHistory(user?.id, snapshot),
+      upsertUserData: (table, row, options) =>
+        runSyncedMutation(
+          () => upsertUserRow(table, user?.id, row, options),
+          `Could not save ${table}.`
+        ),
+      deleteUserData: (table, id) =>
+        runSyncedMutation(
+          () => deleteUserRow(table, user?.id, id),
+          `Could not delete ${table}.`
+        ),
+      saveSettings: (patch) =>
+        runSyncedMutation(() => saveSettings(user?.id, patch), "Could not save settings."),
+      saveReport: (report, summary) =>
+        runSyncedMutation(() => saveReport(user?.id, report, summary), "Could not save report."),
+      saveRecommendationHistory: (snapshot) =>
+        runSyncedMutation(
+          () => saveRecommendationHistory(user?.id, snapshot),
+          "Could not save opening recommendations."
+        ),
       recordActivity: (type, payload) => recordActivity(user?.id, type, payload),
       uploadUserFile: (file, pathPrefix) => uploadUserFile(user?.id, file, pathPrefix),
     }),
@@ -530,6 +562,7 @@ export function AuthDataProvider({ children }) {
       restoreAttempt,
       restoreError,
       restoreTimedOut,
+      runSyncedMutation,
       syncState,
       retryRestore,
       session,

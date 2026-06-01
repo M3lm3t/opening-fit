@@ -70,7 +70,7 @@ function requireClient() {
   return supabase;
 }
 
-function safeUserMessage(error, fallback = "OpeningFit could not reach Supabase. Please try again.") {
+export function safeUserMessage(error, fallback = "OpeningFit could not reach Supabase. Please try again.") {
   const message = String(error?.message || error?.error_description || "");
 
   if (/already registered|already exists|user already/i.test(message)) {
@@ -78,11 +78,15 @@ function safeUserMessage(error, fallback = "OpeningFit could not reach Supabase.
   }
 
   if (/invalid login|invalid credentials/i.test(message)) {
-    return "That email or password was not accepted.";
+    return "Wrong email or password. Please check both and try again.";
+  }
+
+  if (/email not confirmed|confirm.*email|email confirmation/i.test(message)) {
+    return "Email confirmation required. Check your inbox, confirm your email, then log in.";
   }
 
   if (/row-level security|permission denied|violates row-level security/i.test(message)) {
-    return "Supabase blocked that save. Please check your account permissions and try again.";
+    return "Save failed — Supabase blocked this account from writing that row. Please check RLS policies and try again.";
   }
 
   return message || fallback;
@@ -116,6 +120,27 @@ export async function ensureProfile(user) {
     user.email ||
     "";
 
+  const { data: existingProfile, error: profileFetchError } = await client
+    .from("profiles")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (profileFetchError) {
+    logQueryFailure("profiles", "select profile before ensure upsert", profileFetchError, {
+      userId: user.id,
+    });
+    throw new Error(safeUserMessage(profileFetchError, "Profile failed to load from Supabase."));
+  }
+
+  if (existingProfile) {
+    logQuerySuccess("profiles", "select existing profile before ensure upsert", {
+      userId: user.id,
+      rowId: existingProfile.id,
+    });
+    return existingProfile;
+  }
+
   const { data, error } = await client
     .from("profiles")
     .upsert(
@@ -133,7 +158,7 @@ export async function ensureProfile(user) {
 
   if (error) {
     logQueryFailure("profiles", "upsert profile by user_id", error, { userId: user.id });
-    throw error;
+    throw new Error(safeUserMessage(error, "Profile failed to save in Supabase."));
   }
   logQuerySuccess("profiles", "upsert profile by user_id", { userId: user.id, rowId: data?.id });
   return data;
@@ -323,7 +348,7 @@ export async function fetchAllUserData(user) {
     logQueryFailure("profiles", "ensure profile during full restore", profileError, {
       userId: user.id,
     });
-    console.warn("OpeningFit could not restore profile row; using default profile.", profileError);
+    throw new Error(profileError?.message || "Profile failed to load from Supabase.");
   }
 
   const tableNames = USER_DATA_TABLES.filter((table) => table !== "profiles");
@@ -369,7 +394,7 @@ export async function upsertUserRow(table, userId, row, options = {}) {
 
   if (error) {
     logQueryFailure(table, "upsert row", error, { userId, row, options });
-    throw error;
+    throw new Error(safeUserMessage(error, `Could not save ${table}.`));
   }
   logQuerySuccess(table, "upsert row", { userId, count: data?.length || 0, options });
   return data;
@@ -387,7 +412,7 @@ export async function deleteUserRow(table, userId, id) {
 
   if (error) {
     logQueryFailure(table, "delete row by user_id and id", error, { userId, id });
-    throw error;
+    throw new Error(safeUserMessage(error, `Could not delete ${table}.`));
   }
   logQuerySuccess(table, "delete row by user_id and id", { userId, id });
 }
@@ -404,7 +429,7 @@ export async function getSettings(userId) {
 
   if (error) {
     logQueryFailure("settings", "select settings by user_id", error, { userId });
-    throw error;
+    throw new Error(safeUserMessage(error, "Could not load saved settings from Supabase."));
   }
   logQuerySuccess("settings", "select settings by user_id", { userId, found: Boolean(data) });
   return data || {};
@@ -582,7 +607,7 @@ export async function saveReport(userId, report, summary = {}) {
           userId,
           reportKey,
         });
-        throw existingError;
+        throw new Error(safeUserMessage(existingError, "Could not update saved report in Supabase."));
       }
 
       logQuerySuccess("report_history", "update existing report after dedupe collision", {
@@ -594,7 +619,7 @@ export async function saveReport(userId, report, summary = {}) {
     }
 
     logQueryFailure("report_history", "insert report with dedupe key", error, { userId, reportKey });
-    throw error;
+    throw new Error(safeUserMessage(error, "Could not save report to Supabase."));
   }
 
   logQuerySuccess("report_history", "insert report with dedupe key", {
@@ -637,7 +662,7 @@ export async function saveRecommendationHistory(userId, snapshot = {}) {
       userId,
       snapshot,
     });
-    throw error;
+    throw new Error(safeUserMessage(error, "Could not save recommendations to Supabase."));
   }
 
   logQuerySuccess("recommendation_history", "insert recommendation snapshot", {

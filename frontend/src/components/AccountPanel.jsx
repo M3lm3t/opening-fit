@@ -3,6 +3,8 @@ import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 import {
   signInWithEmailPassword,
   signUpWithEmailPassword,
+  getCurrentUser,
+  getUserProfile,
   upsertUserProfile,
 } from "../services/userDataService";
 import "./AccountPanel.css";
@@ -406,7 +408,7 @@ export default function AccountPanel({ variant = "floating",
           onClick={() => setIsOpen((value) => !value)}
         >
           <span className="accountDot" />
-          {user ? "My account" : "Sign in"}
+          {user ? "Account" : "Login"}
         </button>
       ) : null}
 
@@ -447,6 +449,14 @@ export default function AccountPanel({ variant = "floating",
 
           {isSupabaseConfigured && !user ? (
             <div className="accountAuthStack">
+              <div className="premiumStatusCard accountLoginStatusCard">
+                <span>Account status</span>
+                <strong>{accountLoading ? "Checking Supabase session..." : "Logged out"}</strong>
+                <small>
+                  Analyse public games instantly. Create a free account to save reports and sync across devices.
+                </small>
+              </div>
+
               <p>
                 Sign in to save reports, connect your Chess.com or Lichess username, and keep your profile available across devices.
               </p>
@@ -573,6 +583,32 @@ export default function AccountPanel({ variant = "floating",
                   Logged in as {user.email || displayName}. Last saved: {formattedLastSaved}
                   {syncError ? ` · ${syncError}` : ""}
                 </small>
+                {syncStatus === "error" ? (
+                  <button
+                    className="accountInlineRetry"
+                    type="button"
+                    onClick={async () => {
+                      setStatus("Retrying Supabase profile load...");
+                      try {
+                        const currentUser = await getCurrentUser();
+                        if (!currentUser?.id) {
+                          setStatus("Supabase session is no longer active. Please log in again.");
+                          return;
+                        }
+
+                        const existingProfile = await getUserProfile(currentUser.id);
+                        if (!existingProfile) await upsertUserProfile(currentUser);
+                        await refreshUserData(currentUser);
+                        setStatus("Supabase sync restored.");
+                      } catch (retryError) {
+                        console.error("OpeningFit Supabase retry failed", retryError);
+                        setStatus(retryError?.message || "Supabase retry failed.");
+                      }
+                    }}
+                  >
+                    Retry sync
+                  </button>
+                ) : null}
               </div>
 
               <label className="accountLabel">

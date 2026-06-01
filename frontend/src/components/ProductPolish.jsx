@@ -121,7 +121,7 @@ export function LandingSampleReport() {
       </div>
 
       <div className="trustStrip">
-        <span>No password needed</span>
+        <span>Free account saves reports</span>
         <span>Uses public games</span>
         <span>Built for club players</span>
         <span>Free report first</span>

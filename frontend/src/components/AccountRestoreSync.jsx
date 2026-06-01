@@ -220,7 +220,7 @@ export default function AccountRestoreSync({
 
         await refreshUserData(user);
       } catch (error) {
-        console.warn("Could not save Opening Fit account data", error);
+        console.error("OpeningFit cloud account save failed", error);
       }
     }
 
