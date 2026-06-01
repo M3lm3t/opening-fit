@@ -2,6 +2,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 
 export const USER_DATA_TABLES = [
   "profiles",
+  "user_profiles",
   "premium_entitlements",
   "openingfit_user_state",
   "onboarding_answers",
@@ -11,9 +12,18 @@ export const USER_DATA_TABLES = [
   "uploads",
   "ai_generations",
   "settings",
+  "user_settings",
   "activity_history",
   "report_history",
+  "analysis_history",
+  "analysed_games",
   "recommendation_history",
+  "saved_recommendations",
+  "opening_preferences",
+  "repertoire",
+  "saved_openings",
+  "chess_account_links",
+  "notification_preferences",
 ];
 
 export const USER_FILE_BUCKET = "user-uploads";
@@ -58,6 +68,24 @@ function requireClient() {
   }
 
   return supabase;
+}
+
+function safeUserMessage(error, fallback = "OpeningFit could not reach Supabase. Please try again.") {
+  const message = String(error?.message || error?.error_description || "");
+
+  if (/already registered|already exists|user already/i.test(message)) {
+    return "An account already exists for this email. Log in instead.";
+  }
+
+  if (/invalid login|invalid credentials/i.test(message)) {
+    return "That email or password was not accepted.";
+  }
+
+  if (/row-level security|permission denied|violates row-level security/i.test(message)) {
+    return "Supabase blocked that save. Please check your account permissions and try again.";
+  }
+
+  return message || fallback;
 }
 
 function logQueryFailure(table, operation, error, details = {}) {
@@ -110,23 +138,177 @@ export async function ensureProfile(user) {
   return data;
 }
 
-async function selectUserRows(table, userId) {
+export async function getCurrentUser() {
+  const client = requireClient();
+  const { data, error } = await client.auth.getUser();
+
+  if (error) {
+    logQueryFailure("auth.users", "get current user", error);
+    throw new Error(safeUserMessage(error, "Could not confirm your Supabase login."));
+  }
+
+  logQuerySuccess("auth.users", "get current user", { userId: data?.user?.id || null });
+  return data?.user || null;
+}
+
+export async function signUpWithEmailPassword({ email, password, displayName, redirectTo }) {
+  const client = requireClient();
+  const cleanEmail = String(email || "").trim().toLowerCase();
+
+  if (!cleanEmail || !password) {
+    throw new Error("Enter an email and password.");
+  }
+
+  const { data, error } = await client.auth.signUp({
+    email: cleanEmail,
+    password,
+    options: {
+      emailRedirectTo: redirectTo,
+      data: {
+        display_name: displayName || cleanEmail,
+      },
+    },
+  });
+
+  if (error) {
+    logQueryFailure("auth.users", "sign up with email/password", error, { email: cleanEmail });
+    throw new Error(safeUserMessage(error, "Could not create your OpeningFit account."));
+  }
+
+  const user = data?.user || data?.session?.user || null;
+  if (user && Array.isArray(user.identities) && user.identities.length === 0) {
+    throw new Error("An account already exists for this email. Log in instead.");
+  }
+
+  if (user?.id) {
+    await ensureProfile(user);
+  }
+
+  logQuerySuccess("auth.users", "sign up with email/password", {
+    email: cleanEmail,
+    userId: user?.id || null,
+    hasSession: Boolean(data?.session),
+  });
+
+  return {
+    user,
+    session: data?.session || null,
+    needsEmailConfirmation: Boolean(user && !data?.session),
+  };
+}
+
+export async function signInWithEmailPassword({ email, password }) {
+  const client = requireClient();
+  const cleanEmail = String(email || "").trim().toLowerCase();
+
+  if (!cleanEmail || !password) {
+    throw new Error("Enter an email and password.");
+  }
+
+  const { data, error } = await client.auth.signInWithPassword({
+    email: cleanEmail,
+    password,
+  });
+
+  if (error) {
+    logQueryFailure("auth.users", "sign in with email/password", error, { email: cleanEmail });
+    throw new Error(safeUserMessage(error, "Could not log in to OpeningFit."));
+  }
+
+  const confirmedUser = await getCurrentUser();
+  if (!confirmedUser?.id) {
+    throw new Error("Login started, but Supabase did not return a confirmed user.");
+  }
+
+  await ensureProfile(confirmedUser);
+
+  logQuerySuccess("auth.users", "sign in with email/password", {
+    email: cleanEmail,
+    userId: confirmedUser.id,
+  });
+
+  return {
+    session: data?.session || null,
+    user: confirmedUser,
+  };
+}
+
+export async function getUserProfile(userId) {
+  if (!userId) return null;
+
   const client = requireClient();
   const { data, error } = await client
+    .from("profiles")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    logQueryFailure("profiles", "select profile by user_id", error, { userId });
+    throw new Error(safeUserMessage(error, "Could not load your OpeningFit profile."));
+  }
+
+  logQuerySuccess("profiles", "select profile by user_id", { userId, found: Boolean(data) });
+  return data || null;
+}
+
+export async function upsertUserProfile(user, patch = {}) {
+  if (!user?.id) throw new Error("Missing Supabase user.");
+
+  const [row] = await upsertUserRow(
+    "profiles",
+    user.id,
+    {
+      email: user.email || patch.email || "",
+      display_name:
+        patch.display_name ||
+        patch.displayName ||
+        user.user_metadata?.full_name ||
+        user.user_metadata?.display_name ||
+        user.email ||
+        "",
+      ...patch,
+    },
+    { onConflict: "user_id" }
+  );
+
+  return row || null;
+}
+
+async function selectUserRows(table, userId) {
+  const client = requireClient();
+  const ordered = await client
     .from(table)
     .select("*")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false, nullsFirst: false });
 
-  if (error) {
-    logQueryFailure(table, "select rows by user_id ordered by updated_at", error, { userId });
-    throw error;
+  if (!ordered.error) {
+    logQuerySuccess(table, "select rows by user_id ordered by updated_at", {
+      userId,
+      count: ordered.data?.length || 0,
+    });
+    return ordered.data || [];
   }
-  logQuerySuccess(table, "select rows by user_id ordered by updated_at", {
-    userId,
-    count: data?.length || 0,
-  });
-  return data || [];
+
+  if (/updated_at/i.test(ordered.error.message || "")) {
+    const fallback = await client.from(table).select("*").eq("user_id", userId);
+    if (!fallback.error) {
+      logQuerySuccess(table, "select rows by user_id without updated_at ordering", {
+        userId,
+        count: fallback.data?.length || 0,
+      });
+      return fallback.data || [];
+    }
+
+    logQueryFailure(table, "select rows by user_id without updated_at ordering", fallback.error, {
+      userId,
+    });
+    throw fallback.error;
+  }
+
+  logQueryFailure(table, "select rows by user_id ordered by updated_at", ordered.error, { userId });
+  throw ordered.error;
 }
 
 export async function fetchAllUserData(user) {
@@ -226,6 +408,8 @@ export async function getSettings(userId) {
   return data || {};
 }
 
+export const loadUserSettings = getSettings;
+
 export async function saveSettings(userId, patch) {
   if (!userId) return null;
 
@@ -247,6 +431,26 @@ export async function saveSettings(userId, patch) {
   );
 
   return row;
+}
+
+export const saveUserSettings = saveSettings;
+
+export async function loadAnalysisHistory(userId) {
+  if (!userId) return [];
+  return selectUserRows("report_history", userId);
+}
+
+export async function saveAnalysisHistory(userId, report, summary = {}) {
+  return saveReport(userId, report, summary);
+}
+
+export async function loadOpeningRecommendations(userId) {
+  if (!userId) return [];
+  return selectUserRows("recommendation_history", userId);
+}
+
+export async function saveOpeningRecommendations(userId, snapshot = {}) {
+  return saveRecommendationHistory(userId, snapshot);
 }
 
 export async function saveReport(userId, report, summary = {}) {

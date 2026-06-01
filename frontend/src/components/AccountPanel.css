@@ -358,6 +358,14 @@
   color: #fecaca;
 }
 
+.googleSignInBtn:disabled,
+.emailSignInBtn:disabled,
+.saveAccountBtn:disabled,
+.signOutBtn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .page.light .signOutBtn,
 .light .signOutBtn {
   color: #991b1b;
@@ -377,6 +385,47 @@
   height: 1px;
   flex: 1;
   background: rgba(148, 163, 184, 0.22);
+}
+
+.accountAuthMode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.28);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.accountAuthMode button {
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: transparent;
+  color: rgba(226, 232, 240, 0.76);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.accountAuthMode button.isActive {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.page.light .accountAuthMode,
+.light .accountAuthMode {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.page.light .accountAuthMode button,
+.light .accountAuthMode button {
+  color: #475569;
+}
+
+.page.light .accountAuthMode button.isActive,
+.light .accountAuthMode button.isActive {
+  background: #0f172a;
+  color: #f8fafc;
 }
 
 .accountLabel {

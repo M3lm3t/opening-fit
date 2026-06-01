@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
+import {
+  signInWithEmailPassword,
+  signUpWithEmailPassword,
+  upsertUserProfile,
+} from "../services/userDataService";
 import "./AccountPanel.css";
 import { startPremiumCheckout, deleteOpeningFitAccount } from "../accountApi";
 import { useAuth } from "../context/AuthDataProvider";
@@ -87,12 +92,17 @@ export default function AccountPanel({ variant = "floating",
     loading: accountLoading,
     error: accountError,
     hasPremiumAccess,
+    profileLoading,
+    syncStatus,
+    lastSavedAt,
+    syncError,
     refreshUserData,
-    upsertUserData,
   } = useAuth();
   const [isOpen, setIsOpen] = useState(isScreen);
   const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authMode, setAuthMode] = useState("login");
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -110,6 +120,13 @@ export default function AccountPanel({ variant = "floating",
     if (!user) return "Account";
     return user.user_metadata?.full_name || user.email || "My account";
   }, [user]);
+
+  const formattedLastSaved = useMemo(() => {
+    if (!lastSavedAt) return "Not saved yet";
+    const date = new Date(lastSavedAt);
+    if (Number.isNaN(date.getTime())) return "Not saved yet";
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }, [lastSavedAt]);
 
   useEffect(() => {
     if (!user) {
@@ -202,6 +219,55 @@ export default function AccountPanel({ variant = "floating",
     }
   };
 
+  const handleEmailPasswordAuth = async () => {
+    if (!supabase) {
+      console.error("OpeningFit email auth failed: Supabase client is not configured.");
+      setStatus("Supabase is not configured. Add your environment variables first.");
+      return;
+    }
+
+    if (!email.trim() || !password) {
+      setStatus("Enter your email and password first.");
+      return;
+    }
+
+    setSaving(true);
+    setStatus(authMode === "signup" ? "Creating your OpeningFit account..." : "Logging in...");
+
+    try {
+      const result =
+        authMode === "signup"
+          ? await signUpWithEmailPassword({
+              email,
+              password,
+              displayName: email.trim(),
+              redirectTo: getAuthRedirectTo(),
+            })
+          : await signInWithEmailPassword({ email, password });
+
+      if (result.user?.id) {
+        await refreshUserData(result.user);
+      }
+
+      if (authMode === "signup" && result.needsEmailConfirmation) {
+        setStatus("Account created. Check your email to confirm before logging in.");
+      } else if (authMode === "signup") {
+        setStatus("Account created and synced.");
+      } else {
+        setStatus("Logged in. Your saved OpeningFit data is loaded.");
+      }
+    } catch (error) {
+      console.error("OpeningFit email auth failed", {
+        mode: authMode,
+        email: email.trim(),
+        error,
+      });
+      setStatus(error?.message || "Supabase could not complete that request.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveProfile = async () => {
     if (!supabase || !user) return;
 
@@ -209,21 +275,11 @@ export default function AccountPanel({ variant = "floating",
     setStatus("Saving account...");
 
     try {
-      await upsertUserData(
-        "profiles",
-        {
-          ...(cloudProfile?.id ? { id: cloudProfile.id } : {}),
-          email: user.email || "",
-          display_name:
-            user.user_metadata?.full_name ||
-            user.user_metadata?.display_name ||
-            user.email ||
-            "",
-          chesscom_username: profile.chesscom_username.trim(),
-          lichess_username: profile.lichess_username.trim(),
-        },
-        { onConflict: "user_id" }
-      );
+      await upsertUserProfile(user, {
+        ...(cloudProfile?.id ? { id: cloudProfile.id } : {}),
+        chesscom_username: profile.chesscom_username.trim(),
+        lichess_username: profile.lichess_username.trim(),
+      });
       await refreshUserData(user);
       logRetentionEvent(
         "profile_updated",
@@ -379,7 +435,7 @@ export default function AccountPanel({ variant = "floating",
           {!isSupabaseConfigured ? (
             <div className="accountNotice">
               Supabase is not configured yet. Add your VITE_SUPABASE_URL and
-              VITE_SUPABASE_ANON_KEY (or VITE_SUPABASE_PUBLISHABLE_KEY) values to <code>frontend/.env.local</code>.
+              VITE_SUPABASE_ANON_KEY values to <code>frontend/.env.local</code>.
             </div>
           ) : null}
 
@@ -405,6 +461,62 @@ export default function AccountPanel({ variant = "floating",
                 Beta note: Google may show our Supabase auth provider during sign-in.
                 This is the secure login service OpeningFit uses while in beta.
               </p>
+
+              <div className="accountDivider">
+                <span>or</span>
+              </div>
+
+              <div className="accountAuthMode" role="tablist" aria-label="Account mode">
+                <button
+                  type="button"
+                  className={authMode === "login" ? "isActive" : ""}
+                  onClick={() => setAuthMode("login")}
+                >
+                  Log in
+                </button>
+                <button
+                  type="button"
+                  className={authMode === "signup" ? "isActive" : ""}
+                  onClick={() => setAuthMode("signup")}
+                >
+                  Sign up
+                </button>
+              </div>
+
+              <label className="accountLabel">
+                Email
+                <input
+                  type="email"
+                  value={email}
+                  placeholder="you@example.com"
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </label>
+
+              <label className="accountLabel">
+                Password
+                <input
+                  type="password"
+                  value={password}
+                  placeholder="Minimum 6 characters"
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+              </label>
+
+              <button
+                className="emailSignInBtn"
+                type="button"
+                onClick={handleEmailPasswordAuth}
+                disabled={saving || accountLoading || profileLoading}
+              >
+                {saving
+                  ? authMode === "signup"
+                    ? "Creating account..."
+                    : "Logging in..."
+                  : authMode === "signup"
+                    ? "Create account"
+                    : "Log in"}
+              </button>
 
               <div className="accountDivider">
                 <span>or</span>
@@ -443,6 +555,23 @@ export default function AccountPanel({ variant = "floating",
                 <strong>{user.email || displayName}</strong>
                 <small>
                   Provider: {user.app_metadata?.provider || user.identities?.[0]?.provider || "email"}
+                </small>
+              </div>
+
+              <div className="premiumStatusCard accountLoginStatusCard">
+                <span>Supabase sync</span>
+                <strong>
+                  {profileLoading
+                    ? "Restoring..."
+                    : saving
+                      ? "Saving..."
+                      : syncStatus === "error"
+                        ? "Save failed — retry"
+                        : "Cloud sync active"}
+                </strong>
+                <small>
+                  Logged in as {user.email || displayName}. Last saved: {formattedLastSaved}
+                  {syncError ? ` · ${syncError}` : ""}
                 </small>
               </div>
 

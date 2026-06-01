@@ -257,7 +257,7 @@ async function ensureRetentionProfile(userId: string) {
 
   const { data, error } = await client
     .from("user_profiles")
-    .upsert({ id: userId }, { onConflict: "id" })
+    .upsert({ id: userId, user_id: userId }, { onConflict: "id" })
     .select("*")
     .single();
 

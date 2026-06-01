@@ -141,6 +141,7 @@ export function AuthDataProvider({ children }) {
   const [restoreError, setRestoreError] = useState("");
   const [restoreTimedOut, setRestoreTimedOut] = useState(false);
   const [restoreAttempt, setRestoreAttempt] = useState(0);
+  const [syncState, setSyncState] = useState({ status: "idle", lastSavedAt: "", error: "" });
   const debounceRef = useRef(null);
   const userRef = useRef(null);
   const restoreSeqRef = useRef(0);
@@ -175,6 +176,12 @@ export function AuthDataProvider({ children }) {
         if (applyState && restoreSeq === restoreSeqRef.current) {
           setUserData(data || null);
           hydrateLegacyStorage(data?.settings?.[0]?.preferences?.legacyStorage || {});
+          setSyncState((current) => ({
+            ...current,
+            status: "synced",
+            error: "",
+            lastSavedAt: current.lastSavedAt || new Date().toISOString(),
+          }));
           setHydrated(true);
         }
         return data;
@@ -184,6 +191,7 @@ export function AuthDataProvider({ children }) {
           const message = refreshError.message || "Could not load your saved data.";
           setError(message);
           setRestoreError(message);
+          setSyncState((current) => ({ ...current, status: "error", error: message }));
           setUserData(null);
           setHydrated(true);
         }
@@ -404,6 +412,7 @@ export function AuthDataProvider({ children }) {
           setProfileLoading(false);
           setRestoreError("");
           setRestoreTimedOut(false);
+          setSyncState({ status: "logged-out", lastSavedAt: "", error: "" });
         }
       }
     );
@@ -434,8 +443,15 @@ export function AuthDataProvider({ children }) {
             ...(current || {}),
             settings: nextSettings ? [nextSettings] : current?.settings || [],
           }));
+          setSyncState({
+            status: "synced",
+            lastSavedAt: new Date().toISOString(),
+            error: "",
+          });
         } catch (syncError) {
-          setError(syncError.message || "Could not sync settings.");
+          const message = syncError.message || "Could not sync settings.";
+          setError(message);
+          setSyncState((current) => ({ ...current, status: "error", error: message }));
         }
       }, 350);
     };
@@ -492,6 +508,9 @@ export function AuthDataProvider({ children }) {
       restoreError,
       restoreTimedOut,
       restoreAttempt,
+      syncStatus: syncState.status,
+      lastSavedAt: syncState.lastSavedAt,
+      syncError: syncState.error,
       refreshUserData,
       retryRestore,
       upsertUserData: (table, row, options) => upsertUserRow(table, user?.id, row, options),
@@ -511,6 +530,7 @@ export function AuthDataProvider({ children }) {
       restoreAttempt,
       restoreError,
       restoreTimedOut,
+      syncState,
       retryRestore,
       session,
       user,
