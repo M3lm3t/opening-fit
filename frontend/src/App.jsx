@@ -5055,6 +5055,8 @@ function FinalReportFlow({
   onPractice,
   onViewChange,
   onNavigate,
+  onLoadReport,
+  recentGames = [],
   isPremium = false,
 }) {
   const studyTarget = buildStudyThisNextTarget(fitData);
@@ -5088,64 +5090,45 @@ function FinalReportFlow({
         onUpgrade={() => onNavigate?.("premium")}
       />
 
-      <MobileReportQuickGuide
-        data={data}
-        fitData={fitData}
-        onPractice={onPractice}
-        onViewChange={onViewChange}
-      />
-
       <CurrentReportSummary
         data={data}
         fitData={fitData}
-        onViewChange={onViewChange}
+        onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
         reportMode={reportMode}
         onReportModeChange={setReportMode}
       />
 
-      <PostAnalysisActionFlow
+      <MobileReportQuickGuide
         data={data}
         fitData={fitData}
         onPractice={onPractice}
-        onViewChange={onViewChange}
-      />
-
-      <WeeklyOpeningReport data={data} />
-
-      <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
-
-      <ComeBackAfterPlayingPrompt
-        data={data}
-        fitData={fitData}
-        onAnalyse={() => {
-          onViewChange?.("analyse");
-          setTimeout(() => {
-            const target = document.getElementById("import") || document.querySelector(".analyseImportHero");
-            if (target?.scrollIntoView) target.scrollIntoView({ behavior: "smooth", block: "center" });
-          }, 80);
-        }}
+        onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
       />
 
       <AnalysisNextStepsPanel
         data={data}
         fitData={fitData}
         onPractice={onPractice}
-        onViewChange={onViewChange}
+        onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
+      />
+
+      <ReportTrainingPreview
+        data={data}
+        fitData={fitData}
+        studyTarget={studyTarget}
+        recentGames={recentGames}
+        onPractice={onPractice}
+        onNavigate={onNavigate}
       />
 
       {showFullReport ? (
         <>
-          <ImportQualitySummary data={data} />
-
-          <OpeningFitVerdictSection data={data} fitData={fitData} />
-          <TopActionsSection data={data} fitData={fitData} onPractice={onPractice} />
           <FullReportHighlights data={data} fitData={fitData} onPractice={onPractice} />
 
           <RepertoireCommandPanel data={data} onPractice={onPractice} />
           <RepertoireMap data={data} />
           <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
           <InterestingThinDataSection data={data} fitData={fitData} />
-          <StudyThisNextCard target={studyTarget} onPractice={onPractice} onViewChange={onViewChange} />
         </>
       ) : null}
 
@@ -5153,7 +5136,78 @@ function FinalReportFlow({
         <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
       ) : null}
 
+      <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
+      <ImportQualitySummary data={data} />
+      <WeeklyOpeningReport data={data} />
+
+      <ComeBackAfterPlayingPrompt
+        data={data}
+        fitData={fitData}
+        onAnalyse={() => onNavigate?.("analyse") || onViewChange?.("analyse")}
+      />
+
+      <ReportExportAndHistory
+        data={data}
+        isPremium={isPremium}
+        onUpgrade={() => onNavigate?.("premium")}
+        onLoadReport={onLoadReport}
+      />
     </div>
+  );
+}
+
+function ReportTrainingPreview({ data, fitData, studyTarget, recentGames = [], onPractice, onNavigate }) {
+  if (!data) return null;
+
+  const targetName =
+    studyTarget?.name ||
+    getOpeningName(fitData?.weakestOpening) ||
+    getOpeningName(fitData?.bestOpening) ||
+    "your recommended opening";
+  const replayGame = Array.isArray(recentGames) ? recentGames.find(Boolean) : null;
+  const replayOpening = replayGame?.opening || replayGame?.eco || replayGame?.name || "latest imported game";
+
+  return (
+    <section className="reportTrainingPreview" id="report-training-preview" aria-label="Training and replay preview">
+      <div className="commandPanelHeader">
+        <p className="eyebrow">Train next</p>
+        <h2>Turn the report into one study session</h2>
+        <p>Practice the main target first. Replay and raw game details are available after the advice.</p>
+      </div>
+
+      <div className="reportTrainingPreviewGrid">
+        <article>
+          <span>Practice board</span>
+          <strong>{targetName}</strong>
+          <p>{studyTarget?.goal || "Learn one clean line and the first middlegame plan."}</p>
+          <button type="button" className="primaryBtn" onClick={() => onPractice?.(targetName)}>
+            Practice target
+          </button>
+        </article>
+
+        <article>
+          <span>Training plan</span>
+          <strong>{studyTarget?.timeNeeded || "10-15 minutes"}</strong>
+          <p>{studyTarget?.why || "Keep the session focused so your next import has clearer evidence."}</p>
+          <button type="button" className="secondaryBtn" onClick={() => onNavigate?.("training")}>
+            Open training
+          </button>
+        </article>
+
+        <article>
+          <span>Replay</span>
+          <strong>{replayOpening}</strong>
+          <p>
+            {replayGame
+              ? "Replay a recent imported game after you understand the main recommendation."
+              : "Replay appears when imported games include PGN or move data."}
+          </p>
+          <button type="button" className="secondaryBtn" onClick={() => onNavigate?.("games")} disabled={!replayGame}>
+            Open replay
+          </button>
+        </article>
+      </div>
+    </section>
   );
 }
 
@@ -5164,13 +5218,6 @@ function FullReportHighlights({ data, fitData, onPractice }) {
     .sort(evidenceSort);
   const verdictFor = (opening) =>
     openingVerdictLabel(opening, data, opening.fitVerdict || opening.verdict);
-  const bestOpenings = usableOpenings
-    .filter((opening) => verdictFor(opening) === "Keep")
-    .slice(0, 3);
-  const weakOpenings = usableOpenings
-    .filter((opening) => ["Improve", "Avoid"].includes(verdictFor(opening)))
-    .sort((a, b) => getWinRate(a) - getWinRate(b))
-    .slice(0, 3);
   const verdictGroups = [
     {
       key: "keep",
@@ -5197,6 +5244,7 @@ function FullReportHighlights({ data, fitData, onPractice }) {
         .slice(0, 3),
     },
   ];
+  const visibleVerdictGroups = verdictGroups.filter((group) => group.items.length);
 
   const renderOpening = (opening, fallbackContext = "") => {
     const verdict = openingVerdictLabel(
@@ -5247,48 +5295,22 @@ function FullReportHighlights({ data, fitData, onPractice }) {
   return (
     <section className="fullReportHighlights finalReportBlock" id="full-report-highlights">
       <div className="commandPanelHeader">
-        <p className="eyebrow">Full report</p>
-        <h2>Best openings, weak openings, and verdicts</h2>
-        <p>Each row includes confidence, games analysed, win rate, and the practical next step.</p>
-      </div>
-
-      <div className="fullReportColumns">
-        <article>
-          <h3>Best openings</h3>
-          <div className="fullReportOpeningList">
-            {bestOpenings.length ? (
-              bestOpenings.map((opening) => renderOpening(opening, "Keep this as a reference point."))
-            ) : (
-              <EmptyState title="No clear best fit yet" text="Import more games to identify your strongest opening signals." />
-            )}
-          </div>
-        </article>
-
-        <article>
-          <h3>Weak openings</h3>
-          <div className="fullReportOpeningList">
-            {weakOpenings.length ? (
-              weakOpenings.map((opening) => renderOpening(opening, "Review this before adding new opening material."))
-            ) : (
-              <EmptyState title="No clear weak spot yet" text="OpeningFit has not found a repeated opening leak in this import." />
-            )}
-          </div>
-        </article>
+        <p className="eyebrow">Opening verdicts</p>
+        <h2>Keep, improve, and avoid decisions</h2>
+        <p>These are the clearest verdicts from your imported games. Empty verdict groups are hidden.</p>
       </div>
 
       <div className="fullReportVerdictGrid">
-        {verdictGroups.map((group) => (
+        {visibleVerdictGroups.length ? visibleVerdictGroups.map((group) => (
           <article key={group.key}>
             <h3>{group.title}</h3>
             <div className="fullReportOpeningList">
-              {group.items.length ? (
-                group.items.map((opening) => renderOpening(opening))
-              ) : (
-                <p className="fullReportEmptyText">No {group.title.toLowerCase()} verdicts in this import yet.</p>
-              )}
+              {group.items.map((opening) => renderOpening(opening))}
             </div>
           </article>
-        ))}
+        )) : (
+          <EmptyState title="No confident verdict groups yet" text="OpeningFit found games, but the opening sample is too thin for a keep/improve/avoid split." />
+        )}
       </div>
     </section>
   );
@@ -5401,7 +5423,7 @@ function CurrentReportSummary({
 
     setTimeout(() => {
       const target =
-        document.getElementById(mode === "table" ? "evidence-table" : "openingfit-verdict") ||
+        document.getElementById(mode === "table" ? "evidence-table" : "full-report-highlights") ||
         document.getElementById("app-results");
 
       if (target?.scrollIntoView) {
@@ -5414,8 +5436,13 @@ function CurrentReportSummary({
     <section className="currentReportSummaryCard" aria-label="Current report summary">
       <div className="commandCentreHero">
         <div className="currentReportSummaryMain">
-          <p className="eyebrow">What did OpeningFit learn?</p>
-          <h1>Your Opening Profile Has Been Updated</h1>
+          <p className="eyebrow">OpeningFit report</p>
+          <h1>Opening advice for {playerName}</h1>
+          <div className="currentReportMetaInline" aria-label="Report details">
+            <span>{platformLabel}</span>
+            <span>{games || "—"} games</span>
+            <span>{analysedDate}</span>
+          </div>
           <p>{verdict.profile}</p>
         </div>
 
@@ -5436,10 +5463,10 @@ function CurrentReportSummary({
 
         <div className="nextBestMoveActions">
           <button type="button" className="primaryBtn" onClick={() => chooseReportMode("table")}>
-            See What We Learned
+            View evidence
           </button>
-          <button type="button" className="secondaryBtn" onClick={() => onViewChange?.("train")}>
-            Add to study plan
+          <button type="button" className="secondaryBtn" onClick={() => onViewChange?.("training")}>
+            Start training
           </button>
           <button type="button" className="secondaryBtn" onClick={() => chooseReportMode("full")}>
             Compare options
@@ -7151,52 +7178,53 @@ function RepertoireCommandPanel({ data, onPractice }) {
   const sections = buildRepertoireReportSections(data);
 
   return (
-    <section className="commandPanel">
+    <section className="commandPanel" id="recommended-repertoire">
       <div className="commandPanelHeader">
-        <p className="eyebrow">Repertoire</p>
+        <p className="eyebrow">Recommended repertoire</p>
         <h2>What to play by colour</h2>
+        <p>Only roles with useful evidence are expanded. Empty roles stay out of the way until your games create a signal.</p>
       </div>
 
       <div className="colourRepertoireGrid commandRepertoireGrid">
-        {sections.map((section) => (
-          <article className="colourRepertoireSection" key={section.key}>
-            <div className="colourRepertoireHeader">
-              <p className="eyebrow">{sectionHealth(section)}</p>
-              <h3>{section.title}</h3>
-            </div>
+        {sections.map((section) => {
+          const populatedBuckets = REPERTOIRE_BUCKETS.map((bucket) => {
+            const items = section.buckets[bucket.key] || [];
+            const first = items[0];
 
-            <div className="colourRepertoireBuckets">
-              {REPERTOIRE_BUCKETS.map((bucket) => {
-                const items = section.buckets[bucket.key] || [];
-                const first = items[0];
+            return first ? { bucket, items, first } : null;
+          }).filter(Boolean);
 
-                return (
+          return (
+            <article className="colourRepertoireSection" key={section.key}>
+              <div className="colourRepertoireHeader">
+                <p className="eyebrow">{sectionHealth(section)}</p>
+                <h3>{section.title}</h3>
+              </div>
+
+              <div className="colourRepertoireBuckets">
+                {populatedBuckets.length ? populatedBuckets.slice(0, 3).map(({ bucket, items, first }) => (
                   <div className="repertoireBucket" key={`${section.key}-${bucket.key}`}>
                     <div className="repertoireBucketHeader">
                       <h4>{bucket.title}</h4>
                       <span>{items.length}</span>
                     </div>
                     <p>{colourAwareBucketCopy(section.key, bucket.key)}</p>
-                    {first ? (
-                      <button
-                        type="button"
-                        className="commandMiniOpening"
-                        onClick={() => onPractice?.(first.name)}
-                      >
-                        <strong>{first.name}</strong>
-                        <span>
-                          {confidenceRowText(first)}
-                        </span>
-                      </button>
-                    ) : (
-                      <small className="commandEmptyText">{section.empty}</small>
-                    )}
+                    <button
+                      type="button"
+                      className="commandMiniOpening"
+                      onClick={() => onPractice?.(first.name)}
+                    >
+                      <strong>{first.name}</strong>
+                      <span>{confidenceRowText(first)}</span>
+                    </button>
                   </div>
-                );
-              })}
-            </div>
-          </article>
-        ))}
+                )) : (
+                  <EmptyState title="No role signal yet" text={section.empty} />
+                )}
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
@@ -9300,7 +9328,7 @@ function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgra
     onLoadReport(report.data);
 
     setTimeout(() => {
-      const reportTop = document.getElementById("opening-fit-report");
+      const reportTop = document.getElementById("app-results") || document.getElementById("opening-fit-report");
       if (reportTop) {
         reportTop.scrollIntoView({ behavior: "smooth", block: "start" });
       }
@@ -12527,6 +12555,8 @@ function App() {
                   onPractice={startOpeningPractice}
                   onViewChange={setActiveView}
                   onNavigate={handleAppNavigate}
+                  onLoadReport={setData}
+                  recentGames={filteredRecentGames}
                   isPremium={isPremium}
                 />
               ) : null}
