@@ -8200,6 +8200,14 @@ function AccountSyncStatusBar({
     }
   }
 
+  const shouldShow =
+    Boolean(user?.id) ||
+    syncStatus === "saving" ||
+    syncStatus === "error" ||
+    Boolean(syncError);
+
+  if (!shouldShow) return null;
+
   return (
     <section className={`accountSyncStatusBar accountSyncStatusBar--${tone}`} role="status">
       <div>

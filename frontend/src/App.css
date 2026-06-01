@@ -32220,21 +32220,22 @@ body,
 }
 
 .accountSyncStatusBar {
-  position: sticky;
-  top: 0;
-  z-index: 650;
+  position: fixed;
+  right: 16px;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 150;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  width: min(1180px, calc(100% - 28px));
-  margin: 10px auto 0;
-  padding: 10px 12px;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+  margin: 0;
+  padding: 8px 10px;
   border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 10px;
+  border-radius: 12px;
   background: rgba(15, 23, 42, 0.9);
   color: #f8fafc;
-  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.22);
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.18);
   backdrop-filter: blur(12px);
 }
 
@@ -32246,7 +32247,7 @@ body,
 
 .accountSyncStatusBar span {
   color: rgba(226, 232, 240, 0.78);
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -32254,7 +32255,7 @@ body,
 
 .accountSyncStatusBar strong {
   overflow-wrap: anywhere;
-  font-size: 0.94rem;
+  font-size: 0.82rem;
   line-height: 1.25;
 }
 
@@ -32263,9 +32264,11 @@ body,
   flex: 0 0 auto;
   border: 1px solid rgba(125, 211, 252, 0.3);
   border-radius: 9px;
-  padding: 8px 11px;
+  min-height: 32px;
+  padding: 0 10px;
   background: rgba(14, 165, 233, 0.14);
   color: #e0f2fe;
+  font-size: 0.78rem;
   font-weight: 900;
   cursor: pointer;
 }
@@ -32313,6 +32316,36 @@ body,
   background: #ffffff;
   border-color: rgba(37, 99, 235, 0.18);
   color: #1e293b;
+}
+
+@media (max-width: 760px) {
+  .accountSyncStatusBar {
+    top: auto;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    left: 12px;
+    right: 12px;
+    width: auto;
+    min-height: 44px;
+    padding: 6px 7px;
+  }
+
+  .accountSyncStatusBar span {
+    font-size: 0.62rem;
+  }
+
+  .accountSyncStatusBar strong {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 0.76rem;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .accountSyncStatusBar button {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 0.72rem;
+  }
 }
 
 .analyseImportHero .heroTitleWrap h1 {
