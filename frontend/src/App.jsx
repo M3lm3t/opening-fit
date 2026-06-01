@@ -53,6 +53,7 @@ import AchievementsPanel from "./components/AchievementsPanel";
 import DailyOpeningHabit from "./components/DailyOpeningHabit";
 import MobileBottomNav from "./components/MobileBottomNav";
 import { useAuth } from "./context/AuthDataProvider";
+import { getAppSection, navigateApp, scrollToAppTarget } from "./appNavigation";
 
 
 import { CoachSummaryCard, SeriousAppTabs, SeriousPremiumStrip, NextBestActions } from "./components/SeriousAppUpgrade";
@@ -4948,8 +4949,10 @@ function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
 function FinalReportFlow({
   data,
   fitData,
+  activeView,
   onPractice,
   onViewChange,
+  onNavigate,
   isPremium = false,
 }) {
   const studyTarget = buildStudyThisNextTarget(fitData);
@@ -4957,8 +4960,32 @@ function FinalReportFlow({
   const showFullReport = reportMode === "full";
   const showOpeningTable = reportMode === "table";
 
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const handleReportMode = (event) => {
+      const mode = event.detail?.mode;
+      if (["summary", "full", "table"].includes(mode)) {
+        setReportMode(mode);
+      }
+    };
+
+    window.addEventListener("openingfit:set-report-mode", handleReportMode);
+    return () => window.removeEventListener("openingfit:set-report-mode", handleReportMode);
+  }, []);
+
   return (
     <div className="finalReportFlow">
+      <ReportCommandBar
+        data={data}
+        activeView={activeView}
+        reportMode={reportMode}
+        onReportModeChange={setReportMode}
+        onNavigate={onNavigate}
+        isPremium={isPremium}
+        onUpgrade={() => onNavigate?.("premium")}
+      />
+
       <MobileReportQuickGuide
         data={data}
         fitData={fitData}
@@ -7860,69 +7887,25 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
   );
 }
 
-function FloatingAppMenu({ data, onJump, activeView, onViewChange }) {
+function FloatingAppMenu({ data, activeView, onNavigate }) {
   const [open, setOpen] = useState(false);
   const activeSection = getAppSection(activeView);
 
-  const menuRoutes = data
-    ? [
-        { key: "analyse", label: "Analyse", view: "analyse", target: "app-dashboard", path: "/" },
-        { key: "report", label: "Report", view: "report", target: "app-results", path: "/report" },
-        { key: "train", label: "Train", view: "train", target: "training-plan", path: "/train" },
-        { key: "profile", label: "Profile", view: "profile", target: "profile", path: "/account" },
-        { key: "feedback", label: "Feedback", view: "feedback", target: "feedback", path: "/" },
-      ]
-    : [
-        { key: "analyse", label: "Analyse", view: "analyse", target: "app-dashboard", path: "/" },
-        { key: "report", label: "Report", view: "report", target: "app-results", path: "/report" },
-        { key: "train", label: "Train", view: "train", target: "training-plan", path: "/train" },
-        { key: "profile", label: "Profile", view: "profile", target: "profile", path: "/account" },
-        { key: "feedback", label: "Feedback", view: "feedback", target: "feedback", path: "/" },
-      ];
-
-  const scrollToElement = (target) => {
-    if (!target) return false;
-    const offset = window.innerWidth <= 760 ? 86 : 108;
-    const top = target.getBoundingClientRect().top + window.scrollY - offset;
-
-    window.scrollTo({
-      top: Math.max(0, top),
-      behavior: "smooth",
-    });
-
-    return true;
-  };
-
-  const scrollToTarget = (targetId) => {
-    const target =
-      document.getElementById(targetId) ||
-      document.getElementById("app-results") ||
-      document.getElementById("app-dashboard");
-
-    scrollToElement(target);
-  };
+  const menuRoutes = [
+    { key: "analyse", label: "Analyse" },
+    { key: "report", label: "Report" },
+    { key: "training", label: "Training" },
+    { key: "profile", label: "Profile" },
+    { key: "premium", label: "Premium" },
+    { key: "feedback", label: "Feedback" },
+  ];
 
   const navigate = (event, route) => {
     event?.preventDefault();
     event?.stopPropagation();
 
-    if (route.view && typeof onViewChange === "function") {
-      onViewChange(route.view);
-    }
-
-    if (route.path && window.location.pathname !== route.path) {
-      window.history.pushState({}, "", route.path);
-    }
-
-    if (!route.view && typeof onJump === "function") {
-      onJump(route.target);
-    }
-
     setOpen(false);
-
-    [80, 220, 480].forEach((delay) => {
-      setTimeout(() => scrollToTarget(route.target), delay);
-    });
+    onNavigate?.(route.key);
   };
 
   return (
@@ -7951,7 +7934,7 @@ function FloatingAppMenu({ data, onJump, activeView, onViewChange }) {
                 type="button"
                 className={
                   activeView === route.view ||
-                  (route.key !== "feedback" && activeSection === getAppSection(route.view))
+                  (route.key !== "feedback" && activeSection === getAppSection(route.key))
                     ? "isActive"
                     : ""
                 }
@@ -7967,28 +7950,26 @@ function FloatingAppMenu({ data, onJump, activeView, onViewChange }) {
   );
 }
 
-function AppPrimaryNav({ activeView, accountUser, onViewChange, onExampleReport, onLogin, onPricing }) {
+function AppPrimaryNav({ activeView, accountUser, onNavigate, onExampleReport, onLogin, onPricing }) {
   const activeSection = getAppSection(activeView);
   const items = accountUser
     ? [
-        { key: "white", label: "My White Repertoire", path: "/report", target: "recommended-repertoire", view: "repertoire" },
-        { key: "black", label: "My Black Repertoire", path: "/report", target: "repertoire-map", view: "repertoire" },
-        { key: "weaknesses", label: "Weaknesses", path: "/report", target: "analysis-next-steps", view: "repertoire" },
-        { key: "study", label: "Study Plan", path: "/train", target: "study-planner", view: "train" },
-        { key: "progress", label: "Progress", path: "/account", target: "openingfit-progress", view: "profile" },
-        { key: "history", label: "History", path: "/account", target: "recommendation-history", view: "profile" },
-        { key: "settings", label: "Settings", path: "/account", target: "profile-account", view: "profile" },
+        { key: "recommendations", label: "Recommendations" },
+        { key: "training", label: "Training" },
+        { key: "games", label: "Games" },
+        { key: "history", label: "History" },
+        { key: "account", label: "Account" },
       ]
     : [
-        { key: "analyse", label: "Analyse", path: "/", target: "import", view: "analyse" },
+        { key: "analyse", label: "Analyse" },
         { key: "example", label: "Example Report", path: "/report", target: "app-results", action: onExampleReport },
         { key: "pricing", label: "Pricing", path: "/premium", target: "premium", action: onPricing },
         { key: "login", label: "Login", path: "/login", target: "login", action: onLogin },
       ];
   const primaryAction = accountUser
-    ? { key: "analyse", label: "Analyse New Games", path: "/", target: "import", view: "analyse" }
-    : { key: "get-started", label: "Get Started", path: "/", target: "import", view: "analyse" };
-  const activeItemKey = items.find((item) => getAppSection(item.view || item.key) === activeSection)?.key;
+    ? { key: "analyse", label: "Analyse New Games" }
+    : { key: "analyse", label: "Get Started" };
+  const activeItemKey = items.find((item) => getAppSection(item.key) === activeSection)?.key;
 
   const navigate = (event, item) => {
     event.preventDefault();
@@ -7998,26 +7979,7 @@ function AppPrimaryNav({ activeView, accountUser, onViewChange, onExampleReport,
       return;
     }
 
-    if (typeof onViewChange === "function") {
-      onViewChange(item.view || item.key);
-    }
-
-    if (item.path && window.location.pathname !== item.path) {
-      window.history.pushState({}, "", item.path);
-    }
-
-    setTimeout(() => {
-      const target =
-        document.getElementById(item.target) ||
-        document.getElementById("app-dashboard") ||
-        document.querySelector(".appShell");
-
-      if (!target) return;
-
-      const offset = window.innerWidth <= 760 ? 18 : 92;
-      const top = target.getBoundingClientRect().top + window.scrollY - offset;
-      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-    }, 80);
+    onNavigate?.(item.key);
   };
 
   return (
@@ -8034,7 +7996,7 @@ function AppPrimaryNav({ activeView, accountUser, onViewChange, onExampleReport,
             return (
               <a
                 key={item.key}
-                href={item.path}
+                href={item.path || "#app-dashboard"}
                 role="listitem"
                 className={isActive ? "appPrimaryTab appPrimaryTabActive" : "appPrimaryTab"}
                 aria-current={isActive ? "page" : undefined}
@@ -8055,7 +8017,7 @@ function AppPrimaryNav({ activeView, accountUser, onViewChange, onExampleReport,
 }
 
 
-function AppViewTabs({ activeView, onChange }) {
+function AppViewTabs({ activeView, onNavigate }) {
   const tabs = [
     { key: "overview", label: "Overview", icon: "⌂" },
     { key: "repertoire", label: "Repertoire", icon: "♙" },
@@ -8065,29 +8027,7 @@ function AppViewTabs({ activeView, onChange }) {
     { key: "data", label: "Data", icon: "♟" },
   ];
 
-  const selectTab = (view) => {
-    if (typeof onChange === "function") {
-      onChange(view);
-    }
-
-    const scrollToTabs = () => {
-      const target =
-        document.getElementById("app-results") ||
-        document.querySelector(".appTabsCard");
-
-      if (!target) return;
-
-      const offset = window.innerWidth <= 760 ? 86 : 108;
-      const top = target.getBoundingClientRect().top + window.scrollY - offset;
-
-      window.scrollTo({
-        top: Math.max(0, top),
-        behavior: "smooth",
-      });
-    };
-
-    setTimeout(scrollToTabs, 80);
-  };
+  const selectTab = (view) => onNavigate?.(view);
 
   return (
     <section className="appTabsCard compactReportNav commandTabs" id="app-view-tabs">
@@ -8159,30 +8099,13 @@ function getInitialAppView() {
   if (path === "/upgrade" || path === "/premium") return "profile";
   if (path === "/train") return "train";
   if (path === "/report") return "report";
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (saved?.analysis) return "report";
+  } catch {
+    // Ignore invalid saved reports; hydration will clean them up.
+  }
   return "analyse";
-}
-
-function getAppSection(view) {
-  const aliases = {
-    import: "analyse",
-    analyse: "analyse",
-    analyze: "analyse",
-    overview: "report",
-    report: "report",
-    repertoire: "report",
-    openings: "report",
-    weakspots: "report",
-    recommendations: "report",
-    data: "train",
-    training: "train",
-    train: "train",
-    profile: "profile",
-    account: "profile",
-    upgrade: "profile",
-    feedback: "profile",
-  };
-
-  return aliases[String(view || "").toLowerCase()] || "analyse";
 }
 
 function setMetaAttribute(selector, attributes) {
@@ -10330,13 +10253,7 @@ function App() {
     }
 
     setTimeout(() => {
-      const el =
-        document.getElementById("app-dashboard") ||
-        document.getElementById("report") ||
-        document.querySelector(".app-dashboard") ||
-        document.querySelector(".report-shell");
-
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      scrollToAppTarget("app-results");
     }, 80);
   };
 
@@ -10378,14 +10295,7 @@ function App() {
     }
 
     setTimeout(() => {
-      const target =
-        document.getElementById("premium") ||
-        document.querySelector(".profileFounderCard") ||
-        document.getElementById("profile");
-
-      if (target?.scrollIntoView) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      scrollToAppTarget("premium", { fallbackIds: ["profile"] });
     }, 100);
   };
 
@@ -10404,14 +10314,9 @@ function App() {
     }
 
     setTimeout(() => {
-      const accountTarget =
-        document.getElementById("login") ||
-        document.getElementById("profile-account") ||
-        document.querySelector(".accountPanel");
-
-      if (accountTarget?.scrollIntoView) {
-        accountTarget.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      scrollToAppTarget(accountUser ? "profile-account" : "login", {
+        fallbackIds: ["profile"],
+      });
     }, 120);
   };
 
@@ -10545,11 +10450,18 @@ function App() {
         const parsed = JSON.parse(savedAnalysis);
 
         if (parsed?.analysis) {
+          setData(parsed.analysis);
           setLocalSavedAt(parsed.savedAt || "");
+          setShowLanding(false);
+          setShowPublicLanding(false);
+          if (getCurrentPath() === "/") {
+            setActiveView("report");
+            window.history.replaceState({}, "", "/report");
+          }
           setSavedProfileMessage(
             `Saved local report found${
               parsed.username ? ` for ${parsed.username}` : ""
-            }. Click Load Saved Profile to open it.`
+            }.`
           );
         }
       } catch {
@@ -10916,8 +10828,7 @@ function App() {
 
   const scrollToId = (id) => {
     setTimeout(() => {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      scrollToAppTarget(id);
     }, 80);
   };
 
@@ -10942,19 +10853,30 @@ function App() {
     "study-planner": { view: "train", target: "study-planner" },
     "game-replay": { view: "train", target: "game-replay" },
     "section-replay": { view: "train", target: "section-replay" },
-    "section-verdicts": { view: "openings", target: "evidence-table" },
-    "keep-improve-avoid": { view: "openings", target: "evidence-table" },
-    "opening-suggestions": { view: "repertoire", target: "repertoire-map" },
-    "section-recommendations": { view: "repertoire", target: "repertoire-map" },
-    "recommended-repertoire": { view: "repertoire", target: "repertoire-map" },
-    "repertoire-plan": { view: "repertoire", target: "repertoire-map" },
-    "my-repertoire": { view: "repertoire", target: "repertoire-map" },
+    "section-verdicts": { view: "report", target: "evidence-table", reportMode: "table" },
+    "keep-improve-avoid": { view: "report", target: "evidence-table", reportMode: "table" },
+    "opening-suggestions": { view: "report", target: "repertoire-map", reportMode: "full" },
+    "section-recommendations": { view: "report", target: "repertoire-map", reportMode: "full" },
+    "recommended-repertoire": { view: "report", target: "repertoire-map", reportMode: "full" },
+    "repertoire-plan": { view: "report", target: "repertoire-map", reportMode: "full" },
+    "my-repertoire": { view: "report", target: "repertoire-map", reportMode: "full" },
     "progress-tracker": { view: "profile", target: "profile" },
     "share-report": { view: "profile", target: "report-history" },
     "report-history": { view: "profile", target: "report-history" },
-    "top-openings-table": { view: "openings", target: "evidence-table" },
-    "section-top": { view: "openings", target: "evidence-table" },
-    "section-chart": { view: "openings", target: "evidence-table" },
+    "top-openings-table": { view: "report", target: "evidence-table", reportMode: "table" },
+    "section-top": { view: "report", target: "evidence-table", reportMode: "table" },
+    "section-chart": { view: "report", target: "evidence-table", reportMode: "table" },
+  };
+
+  const handleAppNavigate = (routeOrKey, options = {}) => {
+    const requested =
+      typeof routeOrKey === "string"
+        ? sectionRouteMap[routeOrKey] || routeOrKey
+        : routeOrKey;
+    navigateApp(requested, {
+      ...options,
+      setView: setActiveView,
+    });
   };
 
   const jumpToSection = (target) => {
@@ -10970,33 +10892,7 @@ function App() {
       }));
     }
 
-    if (route.view) {
-      setActiveView(route.view);
-    }
-
-    setTimeout(() => {
-      const el =
-        document.getElementById(targetId) ||
-        document.getElementById(requestedTarget) ||
-        document.getElementById("app-results");
-
-      if (el) {
-        const y = el.getBoundingClientRect().top + window.scrollY - 18;
-        window.scrollTo({
-          top: Math.max(y, 0),
-          behavior: "smooth",
-        });
-        return;
-      }
-
-      const fallback = document.getElementById("app-dashboard");
-      if (fallback) {
-        fallback.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }
-    }, route.view ? 240 : 160);
+    handleAppNavigate({ ...route, target: targetId });
   };
 
   const startOpeningPractice = (openingName) => {
@@ -11807,99 +11703,27 @@ function App() {
   };
 
   const goToAnalyseImport = () => {
-    setActiveView("analyse");
-    if (window.location.pathname !== "/") {
-      window.history.pushState({}, "", "/");
-    }
-
-    setTimeout(() => {
-      const target =
-        document.getElementById("import") ||
-        document.querySelector(".returnUserDashboard") ||
-        document.querySelector(".analyseImportHero");
-
-      if (target?.scrollIntoView) {
-        target.scrollIntoView({ behavior: "smooth", block: target.id === "import" ? "center" : "start" });
-      }
-    }, 80);
+    handleAppNavigate("analyse");
   };
 
   const goToReturnUserRepertoire = () => {
     loadLatestCloudReport();
-    setActiveView("repertoire");
-    if (window.location.pathname !== "/report") {
-      window.history.pushState({}, "", "/report");
-    }
-
-    setTimeout(() => {
-      const target =
-        document.getElementById("recommended-repertoire") ||
-        document.getElementById("repertoire-map") ||
-        document.getElementById("app-results");
-
-      if (target?.scrollIntoView) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 100);
+    handleAppNavigate("recommendations");
   };
 
   const goToReturnUserWeaknesses = () => {
     loadLatestCloudReport();
-    setActiveView("repertoire");
-    if (window.location.pathname !== "/report") {
-      window.history.pushState({}, "", "/report");
-    }
-
-    setTimeout(() => {
-      const target =
-        document.getElementById("analysis-next-steps") ||
-        document.getElementById("openingfit-verdict") ||
-        document.getElementById("app-results");
-
-      if (target?.scrollIntoView) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 100);
+    handleAppNavigate("weakspots");
   };
 
   const goToReturnUserStudyPlan = () => {
     loadLatestCloudReport();
-    setActiveView("train");
-    if (window.location.pathname !== "/train") {
-      window.history.pushState({}, "", "/train");
-    }
-
-    setTimeout(() => {
-      const target =
-        document.getElementById("study-planner") ||
-        document.getElementById("analysis-next-steps") ||
-        document.querySelector(".trainingSuite") ||
-        document.getElementById("app-results");
-
-      if (target?.scrollIntoView) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 100);
+    handleAppNavigate({ view: "train", path: "/train", target: "study-planner" });
   };
 
   const goToReturnUserProfileSection = (targetId = "profile") => {
     loadLatestCloudReport();
-    setActiveView("profile");
-    if (window.location.pathname !== "/account") {
-      window.history.pushState({}, "", "/account");
-    }
-
-    setTimeout(() => {
-      const target =
-        document.getElementById(targetId) ||
-        document.getElementById("recommendation-history") ||
-        document.querySelector(".profileDashboard") ||
-        document.getElementById("app-dashboard");
-
-      if (target?.scrollIntoView) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 100);
+    handleAppNavigate({ view: "profile", path: "/account", target: targetId, fallbackIds: ["profile"] });
   };
 
 
@@ -11985,20 +11809,7 @@ function App() {
 
   useEffect(() => {
     const openAccountPage = () => {
-      setActiveView("profile");
-      if (window.location.pathname !== "/account") {
-        window.history.pushState({}, "", "/account");
-      }
-
-      setTimeout(() => {
-        const accountTarget =
-          document.getElementById("account") ||
-          document.querySelector(".accountPanel");
-
-        if (accountTarget?.scrollIntoView) {
-          accountTarget.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      }, 120);
+      navigateApp("account", { setView: setActiveView });
     };
 
     window.addEventListener("openingfit:open-account-payment", openAccountPage);
@@ -12039,7 +11850,7 @@ function App() {
         <AppPrimaryNav
           activeView={activeView}
           accountUser={accountUser}
-          onViewChange={setActiveView}
+          onNavigate={handleAppNavigate}
           onExampleReport={loadDemoReport}
           onLogin={openLoginPage}
           onPricing={openPricingPage}
@@ -12063,7 +11874,7 @@ function App() {
 
         <MobileBottomNav
           activeView={activeView}
-          onViewChange={setActiveView}
+          onNavigate={handleAppNavigate}
         />
 
         <FounderPassLoginUpgrade accountUser={accountUser} />
@@ -12091,13 +11902,11 @@ function App() {
           setData={setData}
         />
 
-        <FloatingAppMenu
+        {false ? <FloatingAppMenu
           data={data}
-          onJump={jumpToSection}
-          onPractice={startOpeningPractice}
           activeView={activeView}
-          onViewChange={setActiveView}
-        />
+          onNavigate={handleAppNavigate}
+        /> : null}
 
         {loading ? (
           <ImportLoadingOverlay
@@ -12335,17 +12144,8 @@ function App() {
             <OpeningFitTrustUpgrade
               onFounderPass={handleFounderPassClick}
               onDemo={loadDemoReport}
-              onImport={() => {
-                const el =
-                  document.getElementById("import") ||
-                  document.querySelector("input");
-
-                if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-              }}
-              onSample={() => {
-                const el = document.getElementById("see-example-analysis");
-                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
+              onImport={() => handleAppNavigate("analyse")}
+              onSample={() => scrollToAppTarget("see-example-analysis", { fallbackIds: ["sample-report"] })}
             />
           ) : null}
           </>
@@ -12356,7 +12156,7 @@ function App() {
               <p className="eyebrow">Report</p>
               <h2>No opening analysis yet</h2>
               <p>Import your recent Chess.com or Lichess games first, then your latest report will live here.</p>
-              <button className="primaryBtn" type="button" onClick={() => setActiveView("analyse")}>
+              <button className="primaryBtn" type="button" onClick={() => handleAppNavigate("analyse")}>
                 Go to Analyse
               </button>
             </section>
@@ -12379,7 +12179,7 @@ function App() {
                 <p className="eyebrow">Train</p>
                 <h2>No training plan yet</h2>
                 <p>Training actions are generated from your current opening report.</p>
-                <button className="primaryBtn" type="button" onClick={() => setActiveView("analyse")}>
+                <button className="primaryBtn" type="button" onClick={() => handleAppNavigate("analyse")}>
                   Start an import
                 </button>
               </section>
@@ -12483,8 +12283,10 @@ function App() {
                 <FinalReportFlow
                   data={reportData}
                   fitData={fitData}
+                  activeView={activeView}
                   onPractice={startOpeningPractice}
                   onViewChange={setActiveView}
+                  onNavigate={handleAppNavigate}
                   isPremium={isPremium}
                 />
               ) : null}
@@ -13347,39 +13149,11 @@ function App() {
                 platform={platform}
                 isPremium={isPremium}
                 isPremiumPreview={isPremiumPreview}
-                onAnalyse={() => {
-                  setActiveView("analyse");
-                  if (window.location.pathname !== "/") {
-                    window.history.pushState({}, "", "/");
-                  }
-                  setTimeout(() => {
-                    const target = document.getElementById("app-dashboard") || document.querySelector(".analyseImportHero");
-                    if (target?.scrollIntoView) {
-                      target.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }
-                  }, 80);
-                }}
-                onOpenReport={() => {
-                  setActiveView("report");
-                  if (window.location.pathname !== "/report") {
-                    window.history.pushState({}, "", "/report");
-                  }
-                  setTimeout(() => {
-                    const target =
-                      document.getElementById("app-results") ||
-                      document.querySelector(".finalReportFlow") ||
-                      document.getElementById("opening-fit-report");
-                    if (target?.scrollIntoView) {
-                      target.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }
-                  }, 80);
-                }}
+                onAnalyse={() => handleAppNavigate("analyse")}
+                onOpenReport={() => handleAppNavigate("report")}
                 onLoadReport={(report) => {
                   setData(report);
-                  setActiveView("report");
-                  if (window.location.pathname !== "/report") {
-                    window.history.pushState({}, "", "/report");
-                  }
+                  handleAppNavigate("report");
                 }}
                 onFounderPass={handleFounderPassClick}
                 onUserChange={setAccountUser}

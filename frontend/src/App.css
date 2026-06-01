@@ -37918,6 +37918,16 @@ svg {
 }
 
 /* Final landing-page overrides live last so the broad app button rules do not dilute the import hero. */
+[id] {
+  scroll-margin-top: 92px;
+}
+
+@media (max-width: 760px) {
+  [id] {
+    scroll-margin-top: 18px;
+  }
+}
+
 .analyseImportHero .primaryBtn {
   min-height: 60px !important;
   border-radius: 12px !important;

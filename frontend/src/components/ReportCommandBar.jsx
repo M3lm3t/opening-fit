@@ -67,7 +67,9 @@ function findFocusOpening(data) {
 export default function ReportCommandBar({
   data,
   activeView,
-  onViewChange,
+  reportMode,
+  onReportModeChange,
+  onNavigate,
   isPremium,
   onUpgrade,
 }) {
@@ -79,26 +81,17 @@ export default function ReportCommandBar({
   const focusOpening = findFocusOpening(data);
 
   const views = [
-    { key: "overview", label: "Overview" },
-    { key: "recommendations", label: "Recommendations" },
+    { key: "overview", label: "Overview", mode: "summary" },
+    { key: "recommendations", label: "Recommendations", mode: "full" },
     { key: "training", label: "Training" },
     { key: "games", label: "Games" },
     { key: "data", label: "Data" },
+    { key: "interactive", label: "Interactive" },
   ];
 
   const jumpToView = (view) => {
-    if (typeof onViewChange === "function") {
-      onViewChange(view);
-    }
-
-    setTimeout(() => {
-      const el =
-        document.getElementById("app-results") ||
-        document.getElementById("opening-diagnosis") ||
-        document.getElementById("app-dashboard");
-
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
+    if (view.mode) onReportModeChange?.(view.mode);
+    onNavigate?.(view.key);
   };
 
   const handleUpgrade = () => {
@@ -138,8 +131,13 @@ export default function ReportCommandBar({
           <button
             key={view.key}
             type="button"
-            className={activeView === view.key ? "is-active" : ""}
-            onClick={() => jumpToView(view.key)}
+            className={
+              activeView === view.key ||
+              (view.mode && reportMode === view.mode)
+                ? "is-active"
+                : ""
+            }
+            onClick={() => jumpToView(view)}
           >
             {view.label}
           </button>

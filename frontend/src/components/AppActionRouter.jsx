@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { navigateApp } from "../appNavigation";
 
 function normalise(text) {
   return String(text || "")
@@ -308,14 +309,6 @@ export default function AppActionRouter({ onViewChange }) {
       const soonMessage = exactSoon || fuzzySoon;
 
       if (route) {
-        if (typeof onViewChange === "function") {
-          onViewChange(route.view);
-        }
-
-        if (route.path && window.location.pathname !== route.path) {
-          window.history.pushState({}, "", route.path);
-        }
-
         if (route.founderIntent) {
           window.dispatchEvent(
             new CustomEvent("openingfit:founder-pass-intent", {
@@ -324,12 +317,7 @@ export default function AppActionRouter({ onViewChange }) {
           );
         }
 
-        setTimeout(() => {
-          const moved = scrollToTarget(route.target);
-          if (!moved && route.target !== "app-results") {
-            scrollToTarget("app-results");
-          }
-        }, 80);
+        navigateApp(route, { setView: onViewChange });
 
         return;
       }
