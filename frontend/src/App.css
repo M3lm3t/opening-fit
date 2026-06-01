@@ -7556,6 +7556,20 @@ button[aria-label="Open navigation menu"] {
   margin-bottom: clamp(24px, 5vw, 60px);
 }
 
+.cloudSaveStatusPill {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 38px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--success) 34%, var(--border));
+  border-radius: 999px;
+  padding: 0 14px;
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
 
 /* =========================================================
    Proper app dashboard, mobile nav, launch sections

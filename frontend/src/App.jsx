@@ -10427,6 +10427,7 @@ function App() {
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [, setLocalSavedAt] = useState("");
   const [cloudSaveWarning, setCloudSaveWarning] = useState("");
+  const [cloudSaveStatus, setCloudSaveStatus] = useState("");
   const [activeView, setActiveView] = useState(getInitialAppView);
   const previousAuthUserIdRef = useRef(undefined);
   const shouldShowLandingIntro = () => {
@@ -10486,6 +10487,7 @@ function App() {
       setSavedProfileMessage("");
       setError("");
       setCloudSaveWarning("");
+      setCloudSaveStatus("");
     }
 
     previousAuthUserIdRef.current = currentUserId;
@@ -10508,6 +10510,7 @@ function App() {
 
   useEffect(() => {
     if (authLoading || !authHydrated) return;
+    if (supabaseUser?.id) return;
 
     const savedUsername = localStorage.getItem(USERNAME_KEY);
     const savedPlatform = localStorage.getItem(PLATFORM_KEY);
@@ -10553,7 +10556,7 @@ function App() {
         localStorage.removeItem(STORAGE_KEY);
       }
     }
-  }, [authHydrated, authLoading]);
+  }, [authHydrated, authLoading, supabaseUser?.id]);
 
   useEffect(() => {
     let mounted = true;
@@ -11033,6 +11036,7 @@ function App() {
     );
     setError("");
     setCloudSaveWarning("");
+    setCloudSaveStatus("");
     setSavedProfileMessage("");
     setData(null);
     setSelectedGameIndex(0);
@@ -11162,6 +11166,7 @@ function App() {
 
       if (supabaseUser?.id) {
         try {
+          setCloudSaveStatus("saving");
           setLoadingStep("Generating recommendations...");
           const importFitData = buildOpeningFitData(cleanData);
           const reportSummary = buildReportHistorySummary(cleanData, importFitData);
@@ -11187,12 +11192,16 @@ function App() {
             dedupe_key: `report_imported:${userReportRetentionKey}`,
           });
           await refreshUserData?.(supabaseUser);
+          setCloudSaveStatus("saved");
         } catch (cloudError) {
           console.warn("Could not save imported report to Supabase", cloudError);
+          setCloudSaveStatus("failed");
           setCloudSaveWarning(
-            "We analysed your games, but could not save your results. Please log in or try again."
+            "We analysed your games, but could not save your results. Your report is kept locally."
           );
         }
+      } else {
+        setCloudSaveStatus("local");
       }
 
       setLoadingStep("Preparing results...");
@@ -12425,6 +12434,18 @@ function App() {
               >
                 {accountUser ? "Open account" : "Log in to save"}
               </button>
+            </div>
+          ) : null}
+
+          {reportData && cloudSaveStatus && !cloudSaveWarning ? (
+            <div className="cloudSaveStatusPill" role="status">
+              {cloudSaveStatus === "saving"
+                ? "Saving to cloud..."
+                : cloudSaveStatus === "saved"
+                  ? "Saved to cloud"
+                  : cloudSaveStatus === "local"
+                    ? "Saved locally. Log in to sync this report."
+                    : "Cloud save failed - report kept locally"}
             </div>
           ) : null}
 

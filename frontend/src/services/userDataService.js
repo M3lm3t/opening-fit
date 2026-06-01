@@ -17,6 +17,9 @@ export const USER_DATA_TABLES = [
 ];
 
 export const USER_FILE_BUCKET = "user-uploads";
+const DEBUG_ENABLED =
+  typeof import.meta !== "undefined" &&
+  (import.meta.env?.DEV || import.meta.env?.VITE_OPENINGFIT_SUPABASE_DEBUG === "true");
 
 function createDefaultUserData(profile = null) {
   return {
@@ -66,6 +69,15 @@ function logQueryFailure(table, operation, error, details = {}) {
   });
 }
 
+function logQuerySuccess(table, operation, details = {}) {
+  if (!DEBUG_ENABLED) return;
+  console.debug("OpeningFit Supabase query succeeded", {
+    table,
+    operation,
+    details,
+  });
+}
+
 export async function ensureProfile(user) {
   if (!user?.id) return null;
 
@@ -94,6 +106,7 @@ export async function ensureProfile(user) {
     logQueryFailure("profiles", "upsert profile by user_id", error, { userId: user.id });
     throw error;
   }
+  logQuerySuccess("profiles", "upsert profile by user_id", { userId: user.id, rowId: data?.id });
   return data;
 }
 
@@ -109,6 +122,10 @@ async function selectUserRows(table, userId) {
     logQueryFailure(table, "select rows by user_id ordered by updated_at", error, { userId });
     throw error;
   }
+  logQuerySuccess(table, "select rows by user_id ordered by updated_at", {
+    userId,
+    count: data?.length || 0,
+  });
   return data || [];
 }
 
@@ -170,6 +187,7 @@ export async function upsertUserRow(table, userId, row, options = {}) {
     logQueryFailure(table, "upsert row", error, { userId, row, options });
     throw error;
   }
+  logQuerySuccess(table, "upsert row", { userId, count: data?.length || 0, options });
   return data;
 }
 
@@ -187,6 +205,7 @@ export async function deleteUserRow(table, userId, id) {
     logQueryFailure(table, "delete row by user_id and id", error, { userId, id });
     throw error;
   }
+  logQuerySuccess(table, "delete row by user_id and id", { userId, id });
 }
 
 export async function getSettings(userId) {
@@ -203,6 +222,7 @@ export async function getSettings(userId) {
     logQueryFailure("settings", "select settings by user_id", error, { userId });
     throw error;
   }
+  logQuerySuccess("settings", "select settings by user_id", { userId, found: Boolean(data) });
   return data || {};
 }
 
@@ -315,6 +335,7 @@ export async function saveReport(userId, report, summary = {}) {
       null,
   };
 
+  let activePayload = payload;
   let { data, error } = await client.from("report_history").insert(payload).select("*").single();
 
   if (
@@ -330,6 +351,7 @@ export async function saveReport(userId, report, summary = {}) {
     });
 
     const retry = await client.from("report_history").insert(basePayload).select("*").single();
+    activePayload = basePayload;
     data = retry.data;
     error = retry.error;
   }
@@ -338,19 +360,30 @@ export async function saveReport(userId, report, summary = {}) {
     if (error.code === "23505") {
       const { data: existing, error: existingError } = await client
         .from("report_history")
-        .select("*")
+        .update({
+          ...activePayload,
+          user_id: userId,
+          report_key: reportKey,
+          updated_at: new Date().toISOString(),
+        })
         .eq("user_id", userId)
         .eq("report_key", reportKey)
+        .select("*")
         .maybeSingle();
 
       if (existingError) {
-        logQueryFailure("report_history", "select existing report after dedupe collision", existingError, {
+        logQueryFailure("report_history", "update existing report after dedupe collision", existingError, {
           userId,
           reportKey,
         });
         throw existingError;
       }
 
+      logQuerySuccess("report_history", "update existing report after dedupe collision", {
+        userId,
+        reportKey,
+        rowId: existing?.id,
+      });
       return existing;
     }
 
@@ -358,6 +391,11 @@ export async function saveReport(userId, report, summary = {}) {
     throw error;
   }
 
+  logQuerySuccess("report_history", "insert report with dedupe key", {
+    userId,
+    reportKey,
+    rowId: data?.id,
+  });
   return data;
 }
 
@@ -396,6 +434,10 @@ export async function saveRecommendationHistory(userId, snapshot = {}) {
     throw error;
   }
 
+  logQuerySuccess("recommendation_history", "insert recommendation snapshot", {
+    userId,
+    rowId: data?.id,
+  });
   return data;
 }
 

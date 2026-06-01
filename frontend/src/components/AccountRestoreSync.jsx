@@ -1,6 +1,33 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 
+const LOCAL_REPORT_KEY = "openingFit:lastAnalysis";
+const MIGRATION_PREFIX = "openingFit:migratedLocalReport:";
+
+function readLocalReport() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LOCAL_REPORT_KEY) || "null");
+    if (!parsed?.analysis) return null;
+
+    const report = parsed.analysis;
+    const stableKey = [
+      parsed.platform || report.platform || report.importPlatform || "unknown",
+      parsed.username || report.username || report.playerName || "unknown",
+      report.analysisTimeFormat || report.analysis_time_format || "custom",
+      report.importedAt || report.imported_at || report.lastUpdated || parsed.savedAt || "",
+      report.gamesImported || report.total_games || report.gamesAnalysed || "",
+    ].join(":");
+
+    return {
+      ...parsed,
+      report,
+      stableKey,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function AccountRestoreSync({
   user,
   username,
@@ -18,11 +45,13 @@ export default function AccountRestoreSync({
     openingFitUserState,
     reportHistory,
     saveSettings,
+    saveReport,
     upsertUserData,
     refreshUserData,
   } = useAuth();
   const restoredUserRef = useRef(null);
   const lastSavedRef = useRef("");
+  const migratedLocalRef = useRef("");
 
   useEffect(() => {
     if (loading || profileLoading || !user?.id) return;
@@ -35,17 +64,33 @@ export default function AccountRestoreSync({
       profile?.last_report ||
       reportHistory?.[0]?.report ||
       null;
+    const localReport = readLocalReport();
 
-    if ((primaryWorkspace?.username || profile?.username) && typeof setUsername === "function") {
-      setUsername(primaryWorkspace?.username || profile.username);
+    if (
+      (primaryWorkspace?.username || profile?.username || localReport?.username || localReport?.report?.username) &&
+      typeof setUsername === "function"
+    ) {
+      setUsername(
+        primaryWorkspace?.username ||
+          profile.username ||
+          localReport?.username ||
+          localReport?.report?.username
+      );
     }
 
-    if ((primaryWorkspace?.platform || profile?.platform) && typeof setPlatform === "function") {
-      setPlatform(primaryWorkspace?.platform || profile.platform);
+    if ((primaryWorkspace?.platform || profile?.platform || localReport?.platform || localReport?.report?.platform) && typeof setPlatform === "function") {
+      setPlatform(
+        primaryWorkspace?.platform ||
+          profile.platform ||
+          localReport?.platform ||
+          localReport?.report?.platform
+      );
     }
 
     if (latestReport && typeof setData === "function") {
       setData(latestReport);
+    } else if (localReport?.report && typeof setData === "function") {
+      setData(localReport.report);
     }
 
     restoredUserRef.current = user.id;
@@ -68,6 +113,24 @@ export default function AccountRestoreSync({
       if (profileLoading) return;
       if (restoreError) return;
       if (restoredUserRef.current !== user.id) return;
+      if (!data) {
+        const emptySignature = JSON.stringify({
+          userId: user.id,
+          username,
+          platform,
+          hasReport: false,
+        });
+        if (lastSavedRef.current === emptySignature) return;
+        lastSavedRef.current = emptySignature;
+
+        await saveSettings({
+          preferences: {
+            lastUsername: username || "",
+            lastPlatform: platform || "",
+          },
+        });
+        return;
+      }
 
       const saveSignature = JSON.stringify({
         userId: user.id,
@@ -98,6 +161,16 @@ export default function AccountRestoreSync({
       lastSavedRef.current = saveSignature;
 
       try {
+        const localReport = readLocalReport();
+        const migrationKey = localReport?.stableKey
+          ? `${MIGRATION_PREFIX}${user.id}:${localReport.stableKey}`
+          : "";
+        const shouldMarkMigrated =
+          migrationKey &&
+          localStorage.getItem(migrationKey) !== "true" &&
+          (localReport?.report === data ||
+            JSON.stringify(localReport?.report || null) === JSON.stringify(data || null));
+
         await upsertUserData(
           "openingfit_user_state",
           {
@@ -129,8 +202,21 @@ export default function AccountRestoreSync({
           preferences: {
             lastUsername: username || "",
             lastPlatform: platform || "",
+            ...(migrationKey && shouldMarkMigrated ? { lastLocalReportMigrationKey: migrationKey } : {}),
           },
         });
+
+        if (migrationKey && shouldMarkMigrated && migratedLocalRef.current !== migrationKey) {
+          await saveReport?.(data, {
+            username: username || data?.username || data?.playerName || "Unknown player",
+            platform: platform || data?.platform || data?.importPlatform || "unknown",
+            games: data?.gamesImported || data?.total_games || data?.gamesAnalysed || 0,
+            savedAt: localReport?.savedAt || new Date().toISOString(),
+            migratedFromLocal: true,
+          });
+          localStorage.setItem(migrationKey, "true");
+          migratedLocalRef.current = migrationKey;
+        }
 
         await refreshUserData(user);
       } catch (error) {
@@ -139,7 +225,7 @@ export default function AccountRestoreSync({
     }
 
     saveAccount();
-  }, [data, platform, profile?.id, profile?.last_report, profileLoading, refreshUserData, restoreError, saveSettings, upsertUserData, user, username]);
+  }, [data, platform, profile?.id, profile?.last_report, profileLoading, refreshUserData, restoreError, saveReport, saveSettings, upsertUserData, user, username]);
 
   return null;
 }

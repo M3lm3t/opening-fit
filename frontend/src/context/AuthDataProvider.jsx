@@ -100,7 +100,6 @@ function readLegacyStorageSnapshot() {
 
 function hydrateLegacyStorage(snapshot = {}) {
   try {
-    clearLegacyStorage();
     Object.entries(snapshot).forEach(([key, value]) => {
       if (isSafeLegacySyncKey(key) && value !== null && value !== undefined) {
         window.localStorage.setItem(key, value);
@@ -518,6 +517,88 @@ export function AuthDataProvider({ children }) {
       userData,
     ]
   );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    window.openingFitDebug = {
+      authState: {
+        isSupabaseConfigured,
+        hasSession: Boolean(session),
+        userId: user?.id || null,
+        email: user?.email || null,
+        authLoading,
+        profileLoading,
+        hydrated,
+        restoreError,
+        tableCounts: {
+          reportHistory: userData?.report_history?.length || 0,
+          openingFitUserState: userData?.openingfit_user_state?.length || 0,
+          recommendationHistory: userData?.recommendation_history?.length || 0,
+          settings: userData?.settings?.length || 0,
+        },
+      },
+      testSupabaseConnection: async () => {
+        if (!isSupabaseConfigured || !supabase) {
+          return { ok: false, error: "Supabase is not configured." };
+        }
+
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        return {
+          ok: !sessionError,
+          hasSession: Boolean(data?.session),
+          userId: data?.session?.user?.id || null,
+          error: sessionError?.message || null,
+        };
+      },
+      testCloudLoad: async () => {
+        const nextUser = userRef.current;
+        if (!nextUser?.id) return { ok: false, error: "No authenticated user." };
+
+        try {
+          const data = await refreshUserData(nextUser, { applyState: false });
+          return {
+            ok: true,
+            reportHistory: data?.report_history?.length || 0,
+            openingFitUserState: data?.openingfit_user_state?.length || 0,
+            recommendationHistory: data?.recommendation_history?.length || 0,
+          };
+        } catch (loadError) {
+          return { ok: false, error: loadError?.message || String(loadError) };
+        }
+      },
+      testCloudSave: async () => {
+        const nextUser = userRef.current;
+        if (!nextUser?.id) return { ok: false, error: "No authenticated user." };
+
+        try {
+          const row = await saveSettings(nextUser.id, {
+            preferences: {
+              debugLastTestAt: new Date().toISOString(),
+            },
+          });
+          return { ok: true, table: "settings", rowId: row?.id || null };
+        } catch (saveError) {
+          return { ok: false, error: saveError?.message || String(saveError) };
+        }
+      },
+    };
+
+    return () => {
+      if (window.openingFitDebug?.authState?.userId === (user?.id || null)) {
+        delete window.openingFitDebug;
+      }
+    };
+  }, [
+    authLoading,
+    hydrated,
+    profileLoading,
+    refreshUserData,
+    restoreError,
+    session,
+    user,
+    userData,
+  ]);
 
   return (
     <AuthDataContext.Provider value={api}>
