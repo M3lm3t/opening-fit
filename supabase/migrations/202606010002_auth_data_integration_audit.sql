@@ -10,6 +10,152 @@ begin
 end;
 $$;
 
+alter table if exists public.profiles
+add column if not exists user_id uuid references auth.users(id) on delete cascade;
+
+alter table if exists public.profiles
+add column if not exists email text;
+
+alter table if exists public.profiles
+add column if not exists display_name text;
+
+alter table if exists public.profiles
+add column if not exists created_at timestamptz not null default now();
+
+alter table if exists public.profiles
+add column if not exists updated_at timestamptz not null default now();
+
+do $$
+begin
+  if to_regclass('public.profiles') is not null
+     and exists (
+       select 1
+       from information_schema.columns
+       where table_schema = 'public'
+         and table_name = 'profiles'
+         and column_name = 'id'
+         and udt_name = 'uuid'
+     ) then
+    alter table public.profiles alter column id set default gen_random_uuid();
+  end if;
+end;
+$$;
+
+update public.profiles
+set user_id = id
+where user_id is null
+  and exists (
+    select 1
+    from auth.users
+    where auth.users.id = public.profiles.id
+  );
+
+insert into public.profiles (id, user_id, email, display_name, created_at, updated_at)
+select
+  gen_random_uuid(),
+  users.id,
+  users.email,
+  coalesce(
+    users.raw_user_meta_data ->> 'full_name',
+    users.raw_user_meta_data ->> 'display_name',
+    users.email,
+    ''
+  ),
+  now(),
+  now()
+from auth.users as users
+where not exists (
+  select 1
+  from public.profiles
+  where profiles.user_id = users.id
+);
+
+do $$
+begin
+  if to_regclass('public.profiles') is not null
+     and not exists (
+       select 1
+       from pg_constraint
+       where conname = 'profiles_user_id_key'
+         and conrelid = 'public.profiles'::regclass
+     ) then
+    alter table public.profiles add constraint profiles_user_id_key unique (user_id);
+  end if;
+end;
+$$;
+
+create or replace function public.create_profile_for_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (
+    id,
+    user_id,
+    email,
+    display_name,
+    created_at,
+    updated_at
+  )
+  values (
+    gen_random_uuid(),
+    new.id,
+    new.email,
+    coalesce(
+      new.raw_user_meta_data ->> 'full_name',
+      new.raw_user_meta_data ->> 'display_name',
+      new.email,
+      ''
+    ),
+    now(),
+    now()
+  )
+  on conflict (user_id) do update
+  set
+    email = coalesce(excluded.email, public.profiles.email),
+    display_name = coalesce(nullif(excluded.display_name, ''), public.profiles.display_name),
+    updated_at = now();
+
+  return new;
+end;
+$$;
+
+create or replace function public.handle_new_auth_user_profile()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, user_id, email, display_name)
+  values (
+    gen_random_uuid(),
+    new.id,
+    coalesce(new.email, ''),
+    coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'display_name', new.email, '')
+  )
+  on conflict (user_id) do update
+  set
+    email = excluded.email,
+    display_name = coalesce(nullif(public.profiles.display_name, ''), excluded.display_name),
+    updated_at = now();
+
+  insert into public.settings (user_id, preferences)
+  values (new.id, '{}'::jsonb)
+  on conflict (user_id) do nothing;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists create_profile_after_auth_user_insert on auth.users;
+drop trigger if exists on_auth_user_created_openingfit_profile on auth.users;
+create trigger on_auth_user_created_openingfit_profile
+after insert on auth.users
+for each row execute function public.handle_new_auth_user_profile();
+
 create table if not exists public.user_settings (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -89,7 +235,6 @@ create table if not exists public.chess_account_links (
   unique (user_id, platform, username)
 );
 
-alter table if exists public.profiles add column if not exists user_id uuid references auth.users(id) on delete cascade;
 alter table if exists public.user_profiles add column if not exists user_id uuid references auth.users(id) on delete cascade;
 update public.user_profiles set user_id = id where user_id is null and id in (select id from auth.users);
 
