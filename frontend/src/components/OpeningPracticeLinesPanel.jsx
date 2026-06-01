@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import ChessPositionBoard from "./ChessPositionBoard";
-import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes";
+import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes.jsx";
 import { findOpeningPracticePack, openingPracticePacks } from "../data/openingPracticeLines";
 import { OPENINGS, normaliseOpeningKey, searchOpenings } from "../data/openings";
 import { fetchOpeningFitCloudState, saveOpeningFitCloudState } from "./openingFitCloudState";

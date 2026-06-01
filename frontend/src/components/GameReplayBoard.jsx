@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import ChessPositionBoard from "./ChessPositionBoard";
-import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes";
+import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes.jsx";
 
 function buildPositionFromMoves(moves, moveIndex) {
   const chess = new Chess();

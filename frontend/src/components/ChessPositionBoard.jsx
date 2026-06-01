@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import { Chess } from "chess.js";
-import { useBoardTheme } from "./boardThemes";
+import { useBoardTheme } from "./boardThemes.jsx";
 
 const PIECES = {
   p: "♟",

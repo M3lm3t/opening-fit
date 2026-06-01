@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
-import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes";
+import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes.jsx";
 
 export const SUPPORTED_OPENINGS = [
   "Vienna Game",
