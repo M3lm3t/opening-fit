@@ -4,19 +4,19 @@ import { useAuth } from "../context/AuthDataProvider";
 export const BOARD_THEMES = {
   classic: {
     label: "Classic",
-    light: "#F0D9B5",
-    dark: "#B58863",
+    light: "#f0d9b5",
+    dark: "#b4845c",
   },
   lichess: {
     label: "Green",
     statusLabel: "Green High Contrast",
-    light: "#EEEED2",
-    dark: "#769656",
+    light: "#eeeed2",
+    dark: "#6d9146",
   },
   highContrast: {
     label: "High Contrast",
-    light: "#F7F7F7",
-    dark: "#4A5568",
+    light: "#f3f6f8",
+    dark: "#536174",
   },
 };
 
@@ -56,11 +56,11 @@ export function getBoardThemeVariables(themeKey) {
   return {
     "--board-light-square": theme.light,
     "--board-dark-square": theme.dark,
-    "--board-border": "rgba(15, 23, 42, 0.32)",
-    "--board-selected": "rgba(59, 130, 246, 0.45)",
-    "--board-invalid": "rgba(239, 68, 68, 0.48)",
-    "--board-last-move": "rgba(255, 221, 87, 0.50)",
-    "--board-legal-move": "rgba(34, 197, 94, 0.35)",
+    "--board-border": "rgba(15, 23, 42, 0.42)",
+    "--board-selected": "rgba(59, 130, 246, 0.58)",
+    "--board-invalid": "rgba(239, 68, 68, 0.58)",
+    "--board-last-move": "rgba(255, 214, 89, 0.58)",
+    "--board-legal-move": "rgba(20, 83, 45, 0.34)",
   };
 }
 

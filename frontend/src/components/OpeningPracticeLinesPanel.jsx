@@ -26,6 +26,27 @@ function getOpeningName(opening) {
   return opening?.name || opening?.opening || opening?.label || "Unknown opening";
 }
 
+function normaliseLineSearch(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[’]/g, "'")
+    .replace(/[^a-z0-9\s'-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getBestLineIndex(lines = [], focusLine = "") {
+  const query = normaliseLineSearch(focusLine);
+  if (!query) return 0;
+
+  const exactIndex = lines.findIndex((line) => {
+    const haystack = normaliseLineSearch([line.name, line.moves?.join(" "), line.idea].filter(Boolean).join(" "));
+    return haystack.includes(query) || query.includes(normaliseLineSearch(line.name));
+  });
+
+  return exactIndex >= 0 ? exactIndex : 0;
+}
+
 function formatMoveNumber(index) {
   const moveNumber = Math.floor(index / 2) + 1;
   return index % 2 === 0 ? `${moveNumber}.` : `${moveNumber}...`;
@@ -178,6 +199,7 @@ export default function OpeningPracticeLinesPanel({
   featured = false,
   showBrowser = true,
   heading = "",
+  focusLine = "",
 }) {
   const openingName = getOpeningName(opening);
   const { boardTheme, setBoardTheme } = useBoardTheme();
@@ -296,6 +318,17 @@ export default function OpeningPracticeLinesPanel({
   }, [activeOpeningName]);
 
   useEffect(() => {
+    if (!pack?.lines?.length || !focusLine) return;
+    setSelectedLineIndex(getBestLineIndex(pack.lines, focusLine));
+    setMoveIndex(0);
+    setFen(new Chess().fen());
+    setStatus("");
+    setShowHint(false);
+    setSelectedSquare(null);
+    setFeedbackSquare(null);
+  }, [focusLine, pack]);
+
+  useEffect(() => {
     const game = buildGameToMove(moves, moveIndex);
     setFen(game.fen());
   }, [moves, moveIndex]);
@@ -327,7 +360,9 @@ export default function OpeningPracticeLinesPanel({
         <div className="practiceComingSoon">
           <h3>No exact pack for {openingName} yet</h3>
           <p>
-            Pick a working practice pack below. These boards are live now and cover common structures while this specific opening is added.
+            {focusLine
+              ? `Target weak line: ${focusLine}. Pick a working practice pack below while this exact variation is added.`
+              : "Pick a working practice pack below. These boards are live now and cover common structures while this specific opening is added."}
           </p>
 
           <div className="supportedOpeningGrid">
@@ -574,6 +609,7 @@ export default function OpeningPracticeLinesPanel({
               {featured ? `${pack.opening.name} · ` : ""}
               {pack.opening.eco ? `${pack.opening.eco} · ` : ""}
               {pack.opening.color} · {pack.opening.difficulty} · {completedLineCount}/{pack.lines.length} lines complete
+              {focusLine ? ` · focus: ${focusLine}` : ""}
             </p>
           ) : null}
         </div>

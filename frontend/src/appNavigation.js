@@ -25,7 +25,7 @@ export const APP_NAV_ROUTES = {
     fallbackIds: ["app-results"],
     reportMode: "table",
   },
-  weakspots: { view: "report", path: "/report", target: "analysis-next-steps", fallbackIds: ["app-results"] },
+  weakspots: { view: "report", path: "/report", target: "weak-lines", fallbackIds: ["analysis-next-steps", "app-results"] },
   verdicts: {
     view: "report",
     path: "/report",

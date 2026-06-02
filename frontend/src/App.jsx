@@ -426,6 +426,90 @@ function getOpeningName(opening) {
   );
 }
 
+function getOpeningVariationName(item) {
+  if (!item || typeof item === "string") return "";
+
+  const direct =
+    item.variation ||
+    item.variationName ||
+    item.openingVariation ||
+    item.opening_variation ||
+    item.line ||
+    item.lineName ||
+    item.ecoVariation ||
+    item.subOpening ||
+    item.sub_opening ||
+    "";
+
+  if (direct) return String(direct).trim();
+
+  const opening = String(item.opening || item.name || item.ecoName || "");
+  if (opening.includes(":")) return opening.split(":").slice(1).join(":").trim();
+
+  return "";
+}
+
+function extractOpeningMovesFromPgn(pgnText) {
+  return String(pgnText || "")
+    .replace(/\{[^}]*\}/g, " ")
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\d+\.(\.\.)?/g, " ")
+    .replace(/\b(1-0|0-1|1\/2-1\/2|\*)\b/g, " ")
+    .split(/\s+/)
+    .map((move) => move.trim())
+    .filter((move) => move && !move.startsWith("$"))
+    .slice(0, 10);
+}
+
+function getOpeningMoveLine(item) {
+  if (!item || typeof item === "string") return "";
+
+  const direct =
+    item.moveLine ||
+    item.move_line ||
+    item.movesText ||
+    item.moves_text ||
+    item.lineMoves ||
+    item.line_moves ||
+    item.variationMoves ||
+    item.variation_moves ||
+    "";
+
+  if (Array.isArray(direct)) return direct.slice(0, 10).join(" ");
+  if (direct) return String(direct).trim();
+
+  if (Array.isArray(item.moves)) return item.moves.slice(0, 10).join(" ");
+
+  const parsed = extractOpeningMovesFromPgn(item.pgn || item.PGN || "");
+  return parsed.length ? parsed.join(" ") : "";
+}
+
+function normaliseSearchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[’]/g, "'")
+    .replace(/[^a-z0-9\s'-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function lineMatchesOpeningFilter(item, filters = {}) {
+  const query = normaliseSearchText(filters.openingQuery || filters.openingVariation || filters.openingName || "");
+  if (!query) return true;
+
+  const haystack = normaliseSearchText(
+    [
+      getOpeningName(item),
+      getOpeningVariationName(item),
+      getOpeningMoveLine(item),
+      item?.eco,
+      item?.ecoCode,
+    ].filter(Boolean).join(" ")
+  );
+
+  return haystack.includes(query);
+}
+
 function getOpeningGames(opening) {
   if (typeof opening === "string") return 0;
   return safeNumber(opening?.games ?? opening?.count ?? opening?.total);
@@ -3343,6 +3427,7 @@ function gamePassesReportFilters(game, filters) {
 
   if (timeFilter === "serious" && !["rapid", "blitz"].includes(timeClass)) return false;
   if (timeFilter !== "all" && timeFilter !== "serious" && timeClass !== timeFilter) return false;
+  if (!lineMatchesOpeningFilter(game, filters)) return false;
 
   const days = DATE_RANGE_FILTERS.find((item) => item.key === filters?.dateRange)?.days;
   if (!days) return true;
@@ -3366,6 +3451,113 @@ function gameResultStats(result) {
   if (clean.includes("draw") || clean.includes("1/2")) return { wins: 0, draws: 1, losses: 0 };
   if (clean.includes("loss") || clean.includes("lose") || clean === "0-1") return { wins: 0, draws: 0, losses: 1 };
   return { wins: 0, draws: 0, losses: 0 };
+}
+
+function buildWeakLineReason(line, parentOpening) {
+  const parentRate = parentOpening ? getWinRate(parentOpening) : null;
+  const parentText =
+    parentRate !== null && parentRate !== undefined
+      ? ` The overall ${line.opening} score is ${parentRate}%, so this looks like a specific variation problem.`
+      : "";
+
+  if (line.lossRate >= 60) {
+    return `${line.lossRate}% of this line sample is losses across ${line.games} games.${parentText}`;
+  }
+
+  if (line.winRate <= 35) {
+    return `The line scores only ${line.winRate}% across ${line.games} games, below the safe opening threshold.${parentText}`;
+  }
+
+  return `This variation is underperforming compared with the rest of the opening sample.${parentText}`;
+}
+
+function findWeakLinesFromGames(filteredGames, openings) {
+  if (!Array.isArray(filteredGames) || !filteredGames.length) return [];
+
+  const openingByName = new Map(
+    (openings || []).map((opening) => [normaliseSearchText(getOpeningName(opening)), opening])
+  );
+  const statsByLine = new Map();
+
+  filteredGames.forEach((game, index) => {
+    const opening = getOpeningName(game);
+    if (!opening || isUnknownOpeningName(opening)) return;
+
+    const variation = getOpeningVariationName(game);
+    const moveLine = getOpeningMoveLine(game);
+    const lineLabel = variation || moveLine;
+    if (!lineLabel) return;
+
+    const context = itemContext(game);
+    const key = `${normaliseSearchText(opening)}::${normaliseSearchText(lineLabel)}::${context}`;
+
+    if (!statsByLine.has(key)) {
+      statsByLine.set(key, {
+        id: `weak-line-${statsByLine.size + 1}`,
+        opening,
+        name: opening,
+        variation: variation || "",
+        line: lineLabel,
+        moveLine,
+        games: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        context,
+        contextLabel: contextLabel(context),
+        sampleGames: [],
+      });
+    }
+
+    const stats = statsByLine.get(key);
+    const resultStats = gameResultStats(game?.result);
+    stats.games += 1;
+    stats.wins += resultStats.wins;
+    stats.draws += resultStats.draws;
+    stats.losses += resultStats.losses;
+    if (stats.sampleGames.length < 3) stats.sampleGames.push(game?.url || game?.id || index);
+  });
+
+  return Array.from(statsByLine.values())
+    .map((line) => {
+      const winRate = line.games
+        ? Math.round(((line.wins + line.draws * 0.5) / line.games) * 100)
+        : 0;
+      const lossRate = line.games ? Math.round((line.losses / line.games) * 100) : 0;
+      const parent = openingByName.get(normaliseSearchText(line.opening));
+
+      return {
+        ...line,
+        winRate,
+        win_rate: winRate,
+        lossRate,
+        loss_rate: lossRate,
+        parentWinRate: parent ? getWinRate(parent) : null,
+      };
+    })
+    .filter((line) => {
+      if (line.games < 3) return false;
+      const parentLooksOkay = line.parentWinRate === null || line.parentWinRate >= 45;
+      return line.lossRate >= 55 || line.winRate <= 35 || (parentLooksOkay && line.games >= 4 && line.winRate <= 42);
+    })
+    .map((line) => ({
+      ...line,
+      flagReason: buildWeakLineReason(line, openingByName.get(normaliseSearchText(line.opening))),
+      trainingTarget: {
+        name: line.opening,
+        opening: line.opening,
+        variation: line.variation || line.line,
+        moveLine: line.moveLine,
+        line: line.line,
+        weakLine: true,
+      },
+    }))
+    .sort((a, b) => {
+      if (b.games !== a.games) return b.games - a.games;
+      if (b.lossRate !== a.lossRate) return b.lossRate - a.lossRate;
+      return a.winRate - b.winRate;
+    })
+    .slice(0, 12);
 }
 
 function aggregateFilteredOpeningGames(data, filters) {
@@ -3441,12 +3633,14 @@ function aggregateFilteredOpeningGames(data, filters) {
   });
   const preferredWhite = byGames.filter((item) => item.context === "played_as_white");
   const preferredBlack = byGames.filter((item) => item.context.startsWith("black"));
+  const weakLines = findWeakLinesFromGames(filteredGames, byGames);
 
   return {
     topOpenings: byGames,
     bestOpenings: byScore,
     preferredWhite,
     preferredBlack,
+    weakLines,
     filteredGames,
     totalGames: filteredGames.length,
     sourceGames: uniqueGames.length,
@@ -3459,12 +3653,13 @@ function applyReportFilters(data, filters) {
   const aggregate = aggregateFilteredOpeningGames(data, filters);
   const timeLabel = TIME_CONTROL_FILTERS.find((item) => item.key === filters.timeControl)?.label || "Rapid + Blitz";
   const dateLabel = DATE_RANGE_FILTERS.find((item) => item.key === filters.dateRange)?.label || "Last 90 days";
+  const openingLabel = filters.openingQuery ? `, ${filters.openingQuery}` : "";
 
   if (!aggregate) {
     return {
       ...data,
       reportFilters: { ...filters, timeLabel, dateLabel, limited: true },
-      filterSummary: `${timeLabel}, ${dateLabel}`,
+      filterSummary: `${timeLabel}, ${dateLabel}${openingLabel}`,
     };
   }
 
@@ -3478,6 +3673,8 @@ function applyReportFilters(data, filters) {
     preferredWhite: aggregate.preferredWhite,
     preferred_black: aggregate.preferredBlack,
     preferredBlack: aggregate.preferredBlack,
+    weak_lines: aggregate.weakLines,
+    weakLines: aggregate.weakLines,
     total_games: aggregate.totalGames,
     totalGames: aggregate.totalGames,
     gamesImported: aggregate.totalGames,
@@ -3494,7 +3691,7 @@ function applyReportFilters(data, filters) {
             },
           ]
         : [],
-    filterSummary: `${timeLabel}, ${dateLabel}`,
+    filterSummary: `${timeLabel}, ${dateLabel}${openingLabel}`,
     timeRange: dateLabel,
     dateRange: dateLabel,
     reportFilters: {
@@ -5048,6 +5245,86 @@ function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
   );
 }
 
+function ReportOpeningFilters({ filters, onFiltersChange, data }) {
+  const activeFilters = filters || {};
+  const updateFilter = (key, value) => {
+    onFiltersChange?.((current) => ({
+      ...(current || {}),
+      [key]: value,
+    }));
+  };
+  const clearOpeningQuery = () => updateFilter("openingQuery", "");
+  const hasOpeningQuery = Boolean(String(activeFilters.openingQuery || "").trim());
+
+  return (
+    <section className="reportFilters reportOpeningFilters" aria-label="Report filters">
+      <div className="reportFiltersHeader">
+        <div>
+          <p className="eyebrow">Report filters</p>
+          <h2>Focus by opening or variation</h2>
+        </div>
+        <span>{data?.filterSummary || "Current report"}</span>
+      </div>
+
+      <div className="reportFilterControls">
+        <label className="reportOpeningSearch">
+          <span>Opening / variation</span>
+          <input
+            className="input"
+            type="search"
+            value={activeFilters.openingQuery || ""}
+            onChange={(event) => updateFilter("openingQuery", event.target.value)}
+            placeholder="Italian, Caro-Kann Advance, 1.e4 c6..."
+          />
+        </label>
+
+        <div>
+          <span>Time control</span>
+          <div className="segmentedControl compactSegmentedControl">
+            {TIME_CONTROL_FILTERS.filter((item) => ["serious", "blitz", "rapid", "all"].includes(item.key)).map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={activeFilters.timeControl === item.key ? "active" : ""}
+                onClick={() => updateFilter("timeControl", item.key)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <span>Date range</span>
+          <div className="segmentedControl compactSegmentedControl">
+            {DATE_RANGE_FILTERS.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={activeFilters.dateRange === item.key ? "active" : ""}
+                onClick={() => updateFilter("dateRange", item.key)}
+              >
+                {item.label.replace("Last ", "")}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <p>
+        {hasOpeningQuery
+          ? "Only games matching that opening, variation, or move line are included in the report below."
+          : "Use this to isolate one opening family or variation without changing the existing time and date filters."}
+        {hasOpeningQuery ? (
+          <button className="inlineFilterClear" type="button" onClick={clearOpeningQuery}>
+            Clear opening filter
+          </button>
+        ) : null}
+      </p>
+    </section>
+  );
+}
+
 function FinalReportFlow({
   data,
   fitData,
@@ -5058,6 +5335,8 @@ function FinalReportFlow({
   onLoadReport,
   recentGames = [],
   isPremium = false,
+  reportFilters,
+  onReportFiltersChange,
 }) {
   const studyTarget = buildStudyThisNextTarget(fitData);
   const [reportMode, setReportMode] = useState("summary");
@@ -5098,6 +5377,12 @@ function FinalReportFlow({
         onReportModeChange={setReportMode}
       />
 
+      <ReportOpeningFilters
+        filters={reportFilters}
+        onFiltersChange={onReportFiltersChange}
+        data={data}
+      />
+
       <MobileReportQuickGuide
         data={data}
         fitData={fitData}
@@ -5106,6 +5391,13 @@ function FinalReportFlow({
       />
 
       <AnalysisNextStepsPanel
+        data={data}
+        fitData={fitData}
+        onPractice={onPractice}
+        onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
+      />
+
+      <WeakSpotsCommandPanel
         data={data}
         fitData={fitData}
         onPractice={onPractice}
@@ -7621,6 +7913,7 @@ function OpeningsCommandPanel({ data, onPractice }) {
 }
 
 function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
+  const weakLines = data?.weak_lines || data?.weakLines || [];
   const weak = [...(fitData?.scoredOpenings || [])]
     .filter((item) => ["avoid", "review", "improve"].includes(item.fitCategory))
     .sort((a, b) => {
@@ -7632,26 +7925,74 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
   const focus = weak[0];
 
   return (
-    <section className="commandPanel">
+    <section className="commandPanel weakLinesSection" id="weak-lines">
       <div className="commandPanelHeader">
-        <p className="eyebrow">Weak spots</p>
-        <h2>Where points are leaking</h2>
+        <p className="eyebrow">Weak lines</p>
+        <h2>Specific variations causing trouble</h2>
+        <p>
+          These are opening lines with enough repeated games to review. OpeningFit flags the variation first, before blaming the whole opening.
+        </p>
       </div>
+
+      {weakLines.length ? (
+        <div className="weakLineGrid">
+          {weakLines.slice(0, 6).map((line) => (
+            <article className="weakLineCard" key={`${line.opening}-${line.line}-${line.context}`}>
+              <div className="weakLineCardTop">
+                <div>
+                  <span>{line.contextLabel || "Opening line"}</span>
+                  <strong>{line.opening}</strong>
+                </div>
+                <em>{line.games} games</em>
+              </div>
+
+              <h3>{line.line}</h3>
+              {line.moveLine && line.moveLine !== line.line ? <p className="weakLineMoves">{line.moveLine}</p> : null}
+
+              <dl className="weakLineStats">
+                <div>
+                  <dt>Win rate</dt>
+                  <dd>{line.winRate}%</dd>
+                </div>
+                <div>
+                  <dt>Loss rate</dt>
+                  <dd>{line.lossRate}%</dd>
+                </div>
+                <div>
+                  <dt>Sample</dt>
+                  <dd>{line.games >= 5 ? "Reliable" : "Early"}</dd>
+                </div>
+              </dl>
+
+              <p>{line.flagReason}</p>
+
+              <button type="button" onClick={() => onPractice?.(line.trainingTarget || line.opening)}>
+                Train this line
+              </button>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="No repeated weak line yet"
+          text="OpeningFit needs at least a few games in the same variation before it flags a weak line."
+        />
+      )}
 
       {focus ? (
         <article className="nextBestActionCard weakSpotFeature">
           <div>
-            <span>Primary leak</span>
+            <span>Opening-level fallback</span>
             <strong>{getOpeningContextTitle(focus)}</strong>
             <p>{focus.fitExplanation}</p>
             <FitReasonList opening={focus} compact />
           </div>
-          <button type="button" onClick={() => onViewChange?.("train")}>
-            Build drill
+          <button type="button" onClick={() => onPractice?.(getOpeningName(focus)) || onViewChange?.("train")}>
+            Train opening
           </button>
         </article>
       ) : (
-        <EmptyState title="No urgent leak found" text="Your current import does not show a clear repeated weak spot." />
+        <EmptyState title="No opening-level leak found" text="Your current import does not show a clear repeated weak opening." />
       )}
 
       <div className="commandOpeningList">
@@ -10608,6 +10949,7 @@ function App() {
       localStorage.getItem(ANALYSIS_TIME_FORMAT_KEY) || "custom"
     ),
     dateRange: "90",
+    openingQuery: "",
   }));
   const [openingSamplePercent, setOpeningSamplePercent] = useState(() =>
     clampOpeningSamplePercent(localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY) ?? 2)
@@ -11352,6 +11694,11 @@ function App() {
     scrollToId("opening-practice");
   };
 
+  const practiceOpeningName = practiceOpening ? getOpeningName(practiceOpening) : "";
+  const practiceLineFocus = practiceOpening
+    ? getOpeningVariationName(practiceOpening) || getOpeningMoveLine(practiceOpening) || practiceOpening?.line || ""
+    : "";
+
   const isUnknownOpening = (name) => isUnknownOpeningName(name);
 
   const filterUnknownOpenings = useCallback((items) => {
@@ -11774,7 +12121,7 @@ function App() {
 
   useEffect(() => {
     setSelectedGameIndex(0);
-  }, [reportFilters.timeControl, reportFilters.dateRange]);
+  }, [reportFilters.timeControl, reportFilters.dateRange, reportFilters.openingQuery]);
 
   const filteredTopOpenings = useMemo(() => {
     return filterOpeningsBySamplePercent(
@@ -12746,8 +13093,9 @@ function App() {
           {practiceOpening && activeAppSection !== "train" && (
             <div id="opening-practice">
               <OpeningPracticeLinesPanel
-                openingName={practiceOpening}
+                openingName={practiceOpeningName}
                 opening={practiceOpening}
+                focusLine={practiceLineFocus}
                 user={supabaseUser || accountUser}
                 data={reportData || data || {}}
                 onClose={() => setPracticeOpening(null)}
@@ -12872,6 +13220,8 @@ function App() {
                   onLoadReport={setData}
                   recentGames={filteredRecentGames}
                   isPremium={isPremium}
+                  reportFilters={reportFilters}
+                  onReportFiltersChange={setReportFilters}
                 />
               ) : null}
 
@@ -13336,6 +13686,7 @@ function App() {
                   <div id="opening-practice">
                     <OpeningPracticeLinesPanel
                       opening={practiceOpening || featuredTrainOpening}
+                      focusLine={practiceLineFocus}
                       user={supabaseUser || accountUser}
                       data={reportData || data || {}}
                       onClose={practiceOpening ? () => setPracticeOpening(null) : null}
