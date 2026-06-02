@@ -8233,11 +8233,15 @@ function AccountSyncStatusBar({
   authLoading,
   profileLoading,
   authHydrated,
+  hasPremiumAccess,
   syncStatus,
   lastSavedAt,
   syncError,
   onAccount,
+  onSignOut,
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const statusRef = useRef(null);
   const savedTime = useMemo(() => {
     if (!lastSavedAt) return "";
     const date = new Date(lastSavedAt);
@@ -8246,27 +8250,34 @@ function AccountSyncStatusBar({
   }, [lastSavedAt]);
 
   let label = "Logged out";
+  let identity = "Account";
   let detail = "Create a free account to save reports and sync across devices.";
   let tone = "loggedOut";
+  let plan = "Free";
   let action = "Login";
 
   if (!isSupabaseConfigured) {
     label = "Logged out";
+    identity = "Cloud off";
     detail = "Supabase env vars missing. Cloud accounts and saving are not connected.";
     tone = "error";
     action = "Account";
   } else if (authLoading || !authHydrated) {
     label = "Checking account...";
+    identity = "Checking";
     detail = "OpeningFit is checking your Supabase session.";
     tone = "loading";
     action = "Account";
   } else if (profileLoading) {
     label = "Restoring saved data...";
+    identity = "Restoring";
     detail = "Loading your profile, reports, settings, and recommendations from Supabase.";
     tone = "loading";
     action = "Account";
   } else if (user?.id) {
-    label = `Logged in as ${user.email || "OpeningFit user"}`;
+    identity = user.email || "OpeningFit user";
+    label = "Logged in";
+    plan = hasPremiumAccess ? "Founder" : "Free";
     action = "Account";
 
     if (syncStatus === "saving") {
@@ -8281,15 +8292,106 @@ function AccountSyncStatusBar({
     }
   }
 
+  const initials = useMemo(() => {
+    if (!user?.id) return "OF";
+    const source = identity || user?.email || "OF";
+    const [first = "", second = ""] = source.split(/[\s@._-]+/).filter(Boolean);
+    return `${first[0] || "O"}${second[0] || "F"}`.toUpperCase();
+  }, [identity, user?.email, user?.id]);
+
+  useEffect(() => {
+    if (!isExpanded) return undefined;
+
+    const closeOnOutside = (event) => {
+      if (!statusRef.current?.contains(event.target)) {
+        setIsExpanded(false);
+      }
+    };
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setIsExpanded(false);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutside);
+    document.addEventListener("mousedown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutside);
+      document.removeEventListener("mousedown", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isExpanded]);
+
+  const handleAccountAction = (event) => {
+    event.stopPropagation();
+    setIsExpanded(false);
+    onAccount?.(event);
+  };
+
+  const handleSignOut = async (event) => {
+    event.stopPropagation();
+    await onSignOut?.();
+    setIsExpanded(false);
+  };
+
   return (
-    <section className={`accountSyncStatusBar accountSyncStatusBar--${tone}`} role="status">
-      <div>
-        <span>{label}</span>
-        <strong>{detail}</strong>
-      </div>
-      <button type="button" onClick={onAccount}>
-        {syncStatus === "error" ? "Retry" : action}
+    <section
+      className={`accountSyncStatusBar accountSyncStatusBar--${tone} ${isExpanded ? "accountSyncStatusBar--expanded" : ""}`}
+      ref={statusRef}
+      aria-label="Account status"
+    >
+      <button
+        className="accountSyncChip"
+        type="button"
+        aria-expanded={isExpanded}
+        aria-controls="account-sync-details"
+        onClick={() => setIsExpanded((current) => !current)}
+      >
+        <span className="accountSyncAvatar" aria-hidden="true">{initials}</span>
+        <span className="accountSyncCompactText">
+          <span>{label}</span>
+          <strong>{identity}</strong>
+        </span>
+        <span className="accountSyncPlan">{plan}</span>
+        <span className="accountSyncChevron" aria-hidden="true">⌄</span>
       </button>
+
+      <div className="accountSyncDetails" id="account-sync-details" hidden={!isExpanded}>
+        <div className="accountSyncDetailsHeader">
+          <span>{label}</span>
+          <strong>{identity}</strong>
+          <small>{detail}</small>
+        </div>
+
+        <dl className="accountSyncMeta">
+          <div>
+            <dt>Access</dt>
+            <dd>{hasPremiumAccess ? "Founder Pass active" : "Free plan"}</dd>
+          </div>
+          <div>
+            <dt>Cloud save</dt>
+            <dd>{detail}</dd>
+          </div>
+          {syncError ? (
+            <div>
+              <dt>Sync issue</dt>
+              <dd>{syncError}</dd>
+            </div>
+          ) : null}
+        </dl>
+
+        <div className="accountSyncActions">
+          <button type="button" onClick={handleAccountAction}>
+            {syncStatus === "error" ? "Retry sync" : action}
+          </button>
+          {user?.id ? (
+            <button className="accountSyncSignOut" type="button" onClick={handleSignOut}>
+              Sign out
+            </button>
+          ) : null}
+        </div>
+      </div>
     </section>
   );
 }
@@ -10434,6 +10536,7 @@ function App() {
     lastSavedAt,
     syncError,
     isSupabaseConfigured,
+    supabase: supabaseClient,
   } = useAuth();
 
   useEffect(() => {
@@ -10638,6 +10741,12 @@ function App() {
       setCloudSaveStatus("failed");
       setCloudSaveWarning(retryError?.message || "Could not restore Supabase sync.");
     }
+  };
+
+  const handleAccountSignOut = async () => {
+    if (!supabaseClient) return;
+    await supabaseClient.auth.signOut();
+    setAccountUser(null);
   };
 
 
@@ -12287,10 +12396,12 @@ function App() {
           authLoading={authLoading}
           profileLoading={profileLoading}
           authHydrated={authHydrated}
+          hasPremiumAccess={isPremium}
           syncStatus={syncStatus || cloudSaveStatus}
           lastSavedAt={lastSavedAt}
           syncError={syncError || cloudSaveWarning}
           onAccount={syncStatus === "error" || cloudSaveStatus === "failed" ? retryAccountSync : openLoginPage}
+          onSignOut={handleAccountSignOut}
         />
         <AppActionRouter onViewChange={setActiveView} />
         <MobileBottomNav

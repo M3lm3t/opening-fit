@@ -32254,32 +32254,54 @@ body,
 }
 
 .accountSyncStatusBar {
-  position: fixed;
-  right: 16px;
-  bottom: max(18px, env(safe-area-inset-bottom));
-  z-index: 150;
-  display: flex;
+  position: relative;
+  z-index: 120;
+  display: grid;
+  justify-items: end;
+  width: min(1180px, calc(100vw - 24px));
+  margin: 8px auto 0;
+  padding: 0;
+}
+
+.accountSyncChip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: min(360px, calc(100vw - 32px));
-  margin: 0;
-  padding: 8px 10px;
+  gap: 8px;
+  width: min(340px, 100%);
+  min-height: 42px;
+  padding: 5px 8px 5px 6px;
   border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 12px;
+  border-radius: 999px;
   background: rgba(15, 23, 42, 0.9);
   color: #f8fafc;
-  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.18);
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.14);
   backdrop-filter: blur(12px);
+  cursor: pointer;
 }
 
-.accountSyncStatusBar div {
+.accountSyncAvatar {
   display: grid;
-  gap: 2px;
-  min-width: 0;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.2);
+  color: #dbeafe;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0;
 }
 
-.accountSyncStatusBar span {
+.accountSyncCompactText {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.accountSyncCompactText span,
+.accountSyncDetailsHeader span,
+.accountSyncMeta dt {
   color: rgba(226, 232, 240, 0.78);
   font-size: 0.68rem;
   font-weight: 900;
@@ -32287,19 +32309,112 @@ body,
   letter-spacing: 0.06em;
 }
 
-.accountSyncStatusBar strong {
-  overflow-wrap: anywhere;
+.accountSyncCompactText strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.82rem;
-  line-height: 1.25;
+  line-height: 1.1;
 }
 
-.accountSyncStatusBar button,
-.cloudSaveStatusPill button {
-  flex: 0 0 auto;
+.accountSyncPlan {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
   border: 1px solid rgba(125, 211, 252, 0.3);
-  border-radius: 9px;
-  min-height: 32px;
-  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.14);
+  color: #e0f2fe;
+  font-size: 0.7rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.accountSyncChevron {
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.9rem;
+  transition: transform 0.16s ease;
+}
+
+.accountSyncStatusBar--expanded .accountSyncChevron {
+  transform: rotate(180deg);
+}
+
+.accountSyncChip:focus-visible,
+.accountSyncActions button:focus-visible,
+.cloudSaveStatusPill button:focus-visible {
+  outline: 3px solid rgba(96, 165, 250, 0.42);
+  outline-offset: 2px;
+}
+
+.accountSyncDetails {
+  display: grid;
+  gap: 12px;
+  width: min(380px, 100%);
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.96);
+  color: #f8fafc;
+  box-shadow: 0 18px 44px rgba(2, 6, 23, 0.22);
+  backdrop-filter: blur(14px);
+}
+
+.accountSyncDetails[hidden] {
+  display: none;
+}
+
+.accountSyncDetailsHeader {
+  display: grid;
+  gap: 3px;
+}
+
+.accountSyncDetailsHeader strong {
+  overflow-wrap: anywhere;
+  font-size: 0.98rem;
+}
+
+.accountSyncDetailsHeader small,
+.accountSyncMeta dd {
+  color: rgba(203, 213, 225, 0.84);
+  line-height: 1.4;
+}
+
+.accountSyncMeta {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.accountSyncMeta div {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.accountSyncMeta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.accountSyncActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.accountSyncActions button,
+.cloudSaveStatusPill button {
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 10px;
+  min-height: 36px;
+  padding: 0 11px;
   background: rgba(14, 165, 233, 0.14);
   color: #e0f2fe;
   font-size: 0.78rem;
@@ -32307,42 +32422,101 @@ body,
   cursor: pointer;
 }
 
+.accountSyncActions .accountSyncSignOut {
+  border-color: rgba(248, 113, 113, 0.28);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+}
+
 .accountSyncStatusBar--synced {
-  border-color: rgba(34, 197, 94, 0.28);
+  --account-sync-tone: rgba(34, 197, 94, 0.28);
 }
 
 .accountSyncStatusBar--saving,
 .accountSyncStatusBar--loading {
-  border-color: rgba(250, 204, 21, 0.28);
+  --account-sync-tone: rgba(250, 204, 21, 0.28);
 }
 
 .accountSyncStatusBar--error {
-  border-color: rgba(248, 113, 113, 0.4);
+  --account-sync-tone: rgba(248, 113, 113, 0.4);
 }
 
-.accountSyncStatusBar--error button {
+.accountSyncStatusBar--synced .accountSyncChip,
+.accountSyncStatusBar--synced .accountSyncDetails,
+.accountSyncStatusBar--saving .accountSyncChip,
+.accountSyncStatusBar--saving .accountSyncDetails,
+.accountSyncStatusBar--loading .accountSyncChip,
+.accountSyncStatusBar--loading .accountSyncDetails,
+.accountSyncStatusBar--error .accountSyncChip,
+.accountSyncStatusBar--error .accountSyncDetails {
+  border-color: var(--account-sync-tone);
+}
+
+.accountSyncStatusBar--error .accountSyncActions button {
   background: rgba(248, 113, 113, 0.16);
   border-color: rgba(248, 113, 113, 0.34);
 }
 
-.page.light .accountSyncStatusBar,
-[data-theme="light"] .accountSyncStatusBar {
+.page.light .accountSyncChip,
+.page.light .accountSyncDetails,
+[data-theme="light"] .accountSyncChip,
+[data-theme="light"] .accountSyncDetails {
   background: rgba(255, 255, 255, 0.94);
   color: #0f172a;
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
 }
 
-.page.light .accountSyncStatusBar span,
-[data-theme="light"] .accountSyncStatusBar span {
+.page.light .accountSyncCompactText span,
+.page.light .accountSyncDetailsHeader span,
+.page.light .accountSyncMeta dt,
+[data-theme="light"] .accountSyncCompactText span,
+[data-theme="light"] .accountSyncDetailsHeader span,
+[data-theme="light"] .accountSyncMeta dt {
   color: #475569;
 }
 
-.page.light .accountSyncStatusBar button,
-[data-theme="light"] .accountSyncStatusBar button,
+.page.light .accountSyncAvatar,
+[data-theme="light"] .accountSyncAvatar {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.page.light .accountSyncPlan,
+[data-theme="light"] .accountSyncPlan {
+  color: #075985;
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.page.light .accountSyncChevron,
+[data-theme="light"] .accountSyncChevron {
+  color: #64748b;
+}
+
+.page.light .accountSyncDetailsHeader small,
+.page.light .accountSyncMeta dd,
+[data-theme="light"] .accountSyncDetailsHeader small,
+[data-theme="light"] .accountSyncMeta dd {
+  color: #475569;
+}
+
+.page.light .accountSyncMeta div,
+[data-theme="light"] .accountSyncMeta div {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.page.light .accountSyncActions button,
+[data-theme="light"] .accountSyncActions button,
 .page.light .cloudSaveStatusPill button,
 [data-theme="light"] .cloudSaveStatusPill button {
   color: #075985;
   background: rgba(14, 165, 233, 0.1);
+}
+
+.page.light .accountSyncActions .accountSyncSignOut,
+[data-theme="light"] .accountSyncActions .accountSyncSignOut {
+  color: #be123c;
+  background: #fff1f2;
+  border-color: rgba(225, 29, 72, 0.22);
 }
 
 .page.light .analyseLoginButton,
@@ -32354,31 +32528,51 @@ body,
 
 @media (max-width: 760px) {
   .accountSyncStatusBar {
-    top: 58px;
-    bottom: auto;
-    left: 10px;
-    right: 10px;
-    width: auto;
-    min-height: 44px;
-    padding: 6px 7px;
+    justify-items: end;
+    width: calc(100vw - 20px);
+    margin-top: 6px;
   }
 
-  .accountSyncStatusBar span {
+  .accountSyncChip {
+    width: min(270px, 100%);
+    min-height: 38px;
+    gap: 6px;
+    padding: 4px 7px 4px 5px;
+  }
+
+  .accountSyncAvatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.68rem;
+  }
+
+  .accountSyncCompactText span {
+    font-size: 0.58rem;
+  }
+
+  .accountSyncCompactText strong {
+    font-size: 0.74rem;
+  }
+
+  .accountSyncPlan {
+    min-height: 22px;
+    padding: 0 7px;
     font-size: 0.62rem;
   }
 
-  .accountSyncStatusBar strong {
-    display: -webkit-box;
-    overflow: hidden;
-    font-size: 0.76rem;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+  .accountSyncDetails {
+    width: min(340px, 100%);
+    padding: 10px;
+    border-radius: 14px;
   }
 
-  .accountSyncStatusBar button {
-    min-height: 30px;
-    padding: 0 8px;
-    font-size: 0.72rem;
+  .accountSyncActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .accountSyncActions button {
+    width: 100%;
   }
 }
 
