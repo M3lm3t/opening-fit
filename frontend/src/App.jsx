@@ -12531,20 +12531,6 @@ function App() {
         <main className="container appShell" id="app-dashboard">
           {activeAppSection === "analyse" ? (
           <>
-          <ReturnUserDashboard
-            user={supabaseUser || accountUser}
-            data={reportData}
-            fitData={fitData}
-            reportHistory={cloudReportHistory}
-            openingFitUserState={openingFitUserState}
-            onAnalyse={goToAnalyseImport}
-            onViewRepertoire={goToReturnUserRepertoire}
-            onImproveRecommendation={goToReturnUserWeaknesses}
-            onStudyPlan={goToReturnUserStudyPlan}
-            onProgress={() => goToReturnUserProfileSection("openingfit-progress")}
-            onHistory={() => goToReturnUserProfileSection("recommendation-history")}
-            onSettings={() => goToReturnUserProfileSection("profile-account")}
-          />
           <header className="hero heroCard compactImportHero analyseImportHero" aria-busy={loading}>
             <div className="heroTop">
               <div className="heroTitleWrap">
@@ -12693,14 +12679,22 @@ function App() {
             ) : null}
 
           </header>
-          {!reportData ? (
-            <OpeningFitTrustUpgrade
-              onFounderPass={handleFounderPassClick}
-              onDemo={loadDemoReport}
-              onImport={() => handleAppNavigate("analyse")}
-              onSample={() => scrollToAppTarget("see-example-analysis", { fallbackIds: ["sample-report"] })}
+          <div className="preAnalysisSupport">
+            <ReturnUserDashboard
+              user={supabaseUser || accountUser}
+              data={reportData}
+              fitData={fitData}
+              reportHistory={cloudReportHistory}
+              openingFitUserState={openingFitUserState}
+              onAnalyse={goToAnalyseImport}
+              onViewRepertoire={goToReturnUserRepertoire}
+              onImproveRecommendation={goToReturnUserWeaknesses}
+              onStudyPlan={goToReturnUserStudyPlan}
+              onProgress={() => goToReturnUserProfileSection("openingfit-progress")}
+              onHistory={() => goToReturnUserProfileSection("recommendation-history")}
+              onSettings={() => goToReturnUserProfileSection("profile-account")}
             />
-          ) : null}
+          </div>
           </>
           ) : null}
 
@@ -12761,16 +12755,50 @@ function App() {
             </div>
           )}
 
-          {importStatus ? (
-            <div
-              className={`importStatusBox importStatusBox--${importStatus.tone || "info"}`}
-              role={importStatus.tone === "warning" ? "alert" : "status"}
-            >
-              <div>
-                <strong>{importStatus.title}</strong>
-                <p>{importStatus.message}</p>
-              </div>
-              {importStatus.meta ? <span>{importStatus.meta}</span> : null}
+          {importStatus || (reportData && cloudSaveStatus && !cloudSaveWarning) ? (
+            <div className="postImportStatusStack" aria-label="Import status">
+              {importStatus ? (
+                <div
+                  className={`importStatusBox importStatusBox--${importStatus.tone || "info"}`}
+                  role={importStatus.tone === "warning" ? "alert" : "status"}
+                >
+                  <div>
+                    <strong>{importStatus.title}</strong>
+                    <p>{importStatus.message}</p>
+                  </div>
+                  {importStatus.meta ? <span>{importStatus.meta}</span> : null}
+                </div>
+              ) : null}
+
+              {reportData && cloudSaveStatus && !cloudSaveWarning ? (
+                <div className="cloudSaveStatusPill" role="status">
+                  <div>
+                    <strong>
+                      {cloudSaveStatus === "saving"
+                        ? "Saving report"
+                        : cloudSaveStatus === "saved"
+                          ? "Report saved"
+                          : cloudSaveStatus === "local"
+                            ? "Saved locally"
+                            : "Save fallback"}
+                    </strong>
+                    <span>
+                      {cloudSaveStatus === "saving"
+                        ? "Syncing this report to your account..."
+                        : cloudSaveStatus === "saved"
+                          ? "Synced to your OpeningFit account."
+                          : cloudSaveStatus === "local"
+                            ? "Log in to sync this report across devices."
+                            : "Cloud save failed, but the report is kept locally."}
+                    </span>
+                  </div>
+                  {cloudSaveStatus === "local" || cloudSaveStatus === "failed" ? (
+                    <button type="button" onClick={openLoginPage}>
+                      {accountUser ? "Open account" : "Login"}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -12804,25 +12832,6 @@ function App() {
               >
                 {accountUser ? "Open account" : "Log in to save"}
               </button>
-            </div>
-          ) : null}
-
-          {reportData && cloudSaveStatus && !cloudSaveWarning ? (
-            <div className="cloudSaveStatusPill" role="status">
-              <span>
-                {cloudSaveStatus === "saving"
-                  ? "Saving to cloud..."
-                  : cloudSaveStatus === "saved"
-                    ? "Saved to cloud"
-                    : cloudSaveStatus === "local"
-                      ? "Saved locally. Log in to sync this report."
-                      : "Cloud save failed — report kept locally"}
-              </span>
-              {cloudSaveStatus === "local" || cloudSaveStatus === "failed" ? (
-                <button type="button" onClick={openLoginPage}>
-                  {accountUser ? "Open account" : "Login"}
-                </button>
-              ) : null}
             </div>
           ) : null}
 

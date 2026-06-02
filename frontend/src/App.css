@@ -7636,18 +7636,19 @@ button[aria-label="Open navigation menu"] {
 }
 
 .cloudSaveStatusPill {
-  display: inline-flex;
-  width: fit-content;
-  min-height: 38px;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  border: 1px solid color-mix(in srgb, var(--success) 34%, var(--border));
-  border-radius: 999px;
-  padding: 5px 8px 5px 14px;
-  color: var(--success);
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+  min-height: 84px;
+  border: 1px solid color-mix(in srgb, var(--success) 30%, var(--border));
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: var(--text);
   background: color-mix(in srgb, var(--success) 12%, transparent);
-  font-size: 0.9rem;
-  font-weight: 900;
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.1);
 }
 
 
@@ -32817,34 +32818,57 @@ body,
   min-width: 130px;
 }
 
+.postImportStatusStack {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: 12px;
+  width: min(980px, 100%);
+  margin: 18px auto 0;
+  align-items: stretch;
+}
+
+.postImportStatusStack > :only-child {
+  grid-column: 1 / -1;
+}
+
 .importStatusBox {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  max-width: 900px;
-  margin: 18px auto 0;
+  min-width: 0;
+  min-height: 84px;
+  margin: 0;
   padding: 16px 18px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid rgba(125, 211, 252, 0.2);
   background: rgba(14, 165, 233, 0.1);
   color: var(--text);
-  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.12);
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.1);
 }
 
 .importStatusBox strong,
-.importStatusBox p {
+.importStatusBox p,
+.cloudSaveStatusPill strong,
+.cloudSaveStatusPill span {
   margin: 0;
 }
 
-.importStatusBox strong {
+.importStatusBox strong,
+.cloudSaveStatusPill strong {
   display: block;
+  color: var(--text);
+  font-size: 0.98rem;
+  line-height: 1.2;
 }
 
-.importStatusBox p {
+.importStatusBox p,
+.cloudSaveStatusPill span {
+  display: block;
   margin-top: 4px;
   color: var(--text-soft);
-  line-height: 1.5;
+  font-size: 0.9rem;
+  line-height: 1.42;
 }
 
 .importStatusBox > span {
@@ -32859,6 +32883,14 @@ body,
   white-space: nowrap;
 }
 
+.cloudSaveStatusPill > div {
+  min-width: 0;
+}
+
+.cloudSaveStatusPill button {
+  flex: 0 0 auto;
+}
+
 .importStatusBox--success {
   border-color: rgba(34, 197, 94, 0.26);
   background: rgba(34, 197, 94, 0.1);
@@ -32870,10 +32902,12 @@ body,
 }
 
 .page.light .importStatusBox,
-[data-theme="light"] .importStatusBox {
+[data-theme="light"] .importStatusBox,
+.page.light .cloudSaveStatusPill,
+[data-theme="light"] .cloudSaveStatusPill {
   background: #f8fafc;
   border-color: rgba(37, 99, 235, 0.16);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
 }
 
 .page.light .importStatusBox--success,
@@ -33124,7 +33158,6 @@ body,
 @media (max-width: 720px) {
   .analyseImportHero .heroTop,
   .analyseErrorBox,
-  .importStatusBox,
   .styleStarterHeader {
     align-items: stretch;
     flex-direction: column;
@@ -33135,8 +33168,27 @@ body,
     width: 100%;
   }
 
+  .postImportStatusStack {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .importStatusBox,
+  .cloudSaveStatusPill {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    padding: 14px;
+  }
+
   .importStatusBox > span {
     width: fit-content;
+  }
+
+  .cloudSaveStatusPill button {
+    width: 100%;
   }
 
   .analysisTimeFormatGrid {
@@ -38871,5 +38923,428 @@ svg {
 
   .mobileBottomNav button {
     font-size: 0.6rem !important;
+  }
+}
+
+/* =========================================================
+   Responsive product layout cleanup
+   Keeps the import task primary, quiets secondary cards, and
+   normalises report spacing across mobile/tablet/desktop.
+   ========================================================= */
+:root {
+  --of-shell: min(1120px, calc(100vw - 32px));
+  --of-shell-wide: min(1280px, calc(100vw - 40px));
+  --of-card-radius: 16px;
+  --of-card-border: rgba(148, 163, 184, 0.18);
+  --of-card-bg: rgba(15, 23, 42, 0.62);
+  --of-card-shadow: 0 18px 44px rgba(2, 6, 23, 0.16);
+  --of-section-gap: clamp(14px, 2vw, 22px);
+}
+
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.appReportPage {
+  min-width: 0;
+}
+
+.appShell,
+.page .appShell,
+.publicLandingPage .appShell {
+  width: var(--of-shell) !important;
+  max-width: var(--of-shell) !important;
+  display: grid !important;
+  gap: var(--of-section-gap) !important;
+  margin: clamp(10px, 1.8vw, 18px) auto 0 !important;
+  padding-inline: 0 !important;
+}
+
+.appShell > *,
+.finalReportFlow > *,
+.preAnalysisSupport > * {
+  min-width: 0;
+}
+
+.card,
+.heroCard,
+.analyseImportHero,
+.currentReportSummaryCard,
+.reportTrainingPreview,
+.analysisNextStepsPanel,
+.returnUserDashboard,
+.openingFitTrustUpgrade,
+.founderPassOutcomePanel,
+.premiumStatusCard,
+.profileDashboardCard,
+.appEmptySection {
+  border-radius: var(--of-card-radius) !important;
+  border-color: var(--of-card-border) !important;
+  box-shadow: var(--of-card-shadow) !important;
+}
+
+.analyseImportHero {
+  width: min(100%, 960px) !important;
+  max-width: 960px !important;
+  margin: 0 auto !important;
+  padding: clamp(22px, 3.4vw, 36px) !important;
+  background:
+    radial-gradient(circle at 0 0, rgba(37, 99, 235, 0.16), transparent 26rem),
+    rgba(15, 23, 42, 0.68) !important;
+}
+
+.page.light .analyseImportHero,
+[data-theme="light"] .analyseImportHero {
+  background:
+    radial-gradient(circle at 0 0, rgba(37, 99, 235, 0.1), transparent 24rem),
+    #ffffff !important;
+}
+
+.analyseImportHero .heroTop {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: clamp(14px, 2.5vw, 24px) !important;
+  align-items: start !important;
+}
+
+.analyseImportHero .heroTitleWrap h1 {
+  max-width: 760px !important;
+  margin-bottom: 10px !important;
+  letter-spacing: 0 !important;
+}
+
+.analyseImportHero .subtext {
+  max-width: 720px !important;
+}
+
+.heroImportFlow {
+  margin-top: 2px !important;
+  border-radius: 14px !important;
+  background: rgba(2, 6, 23, 0.26) !important;
+  box-shadow: none !important;
+}
+
+.page.light .heroImportFlow,
+[data-theme="light"] .heroImportFlow {
+  background: #f8fafc !important;
+}
+
+.preAnalysisSupport {
+  display: grid;
+  gap: clamp(14px, 2.4vw, 24px);
+  width: min(100%, 1040px);
+  margin: clamp(4px, 1vw, 10px) auto 0;
+}
+
+.preAnalysisSupport:empty {
+  display: none;
+}
+
+.preAnalysisSupport .returnUserDashboard {
+  order: 2;
+}
+
+.preAnalysisSupport .openingFitTrustUpgrade,
+.preAnalysisSupport [class*="TrustUpgrade"],
+.preAnalysisSupport [class*="FounderPass"] {
+  order: 3;
+}
+
+.returnUserDashboard {
+  padding: clamp(16px, 2.4vw, 22px) !important;
+  background: rgba(15, 23, 42, 0.46) !important;
+}
+
+.page.light .returnUserDashboard,
+[data-theme="light"] .returnUserDashboard {
+  background: #ffffff !important;
+}
+
+.returnDashboardHero {
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 180px) !important;
+  gap: 16px !important;
+}
+
+.returnDashboardHero h1 {
+  font-size: clamp(1.45rem, 2.4vw, 2.2rem) !important;
+  line-height: 1.08 !important;
+}
+
+.returnDashboardNav {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+.returnDashboardNav button {
+  flex: 0 1 auto !important;
+  min-height: 36px !important;
+  border-radius: 999px !important;
+  padding: 0 11px !important;
+  font-size: 0.78rem !important;
+}
+
+.returnDashboardGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.returnDashboardGrid article {
+  min-width: 0 !important;
+  padding: 13px !important;
+  border-radius: 12px !important;
+}
+
+.returnDashboardActions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+
+.finalReportFlow {
+  width: min(100%, 1120px) !important;
+  margin: 0 auto !important;
+  gap: clamp(12px, 1.8vw, 18px) !important;
+}
+
+.reportCommandBar {
+  position: relative !important;
+  top: auto !important;
+  z-index: 80 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 10px !important;
+  align-items: center !important;
+  padding: 10px !important;
+  margin: 0 auto !important;
+  border-radius: 14px !important;
+}
+
+.reportCommandBar__summary,
+.reportCommandBar__next {
+  display: none !important;
+}
+
+.reportCommandBar__tabs {
+  grid-column: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  gap: 6px !important;
+  overflow-x: auto !important;
+  padding: 4px !important;
+}
+
+.reportCommandBar__tabs button {
+  flex: 0 0 auto !important;
+  min-height: 36px !important;
+  border-radius: 999px !important;
+  padding: 0 12px !important;
+  font-size: 0.78rem !important;
+}
+
+.reportCommandBar__upgrade {
+  grid-column: 2 !important;
+  min-height: 38px !important;
+  border-radius: 999px !important;
+}
+
+.currentReportSummaryCard {
+  padding: clamp(14px, 2vw, 20px) !important;
+}
+
+.commandCentreHero {
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 160px) !important;
+  align-items: start !important;
+}
+
+.currentReportSummaryMain h1 {
+  font-size: clamp(1.65rem, 3vw, 2.7rem) !important;
+  line-height: 1.05 !important;
+}
+
+.currentReportSummaryGrid,
+.keepImproveAvoidSummary,
+.commandCentreActions,
+.reportTrainingPreviewGrid {
+  gap: 10px !important;
+}
+
+.mobileReportGuide {
+  margin-top: 0 !important;
+}
+
+.analysisNextStepsPanel,
+.reportTrainingPreview {
+  padding: clamp(14px, 2vw, 18px) !important;
+}
+
+@media (min-width: 1280px) {
+  .appShell,
+  .page .appShell,
+  .publicLandingPage .appShell {
+    width: var(--of-shell-wide) !important;
+    max-width: var(--of-shell-wide) !important;
+  }
+
+  .analyseImportHero {
+    max-width: 1000px !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --of-shell: min(100vw - 24px, 960px);
+  }
+
+  .returnDashboardGrid,
+  .reportTrainingPreviewGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --of-shell: calc(100vw - 20px);
+    --of-card-radius: 14px;
+    --of-section-gap: 12px;
+  }
+
+  .appShell,
+  .page .appShell,
+  .publicLandingPage .appShell {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    margin-top: 10px !important;
+  }
+
+  .analyseImportHero {
+    width: 100% !important;
+    padding: 14px !important;
+    gap: 12px !important;
+  }
+
+  .analyseImportHero .heroTop,
+  .returnDashboardHero,
+  .commandCentreHero,
+  .nextBestMoveCard {
+    grid-template-columns: 1fr !important;
+  }
+
+  .analyseLoginButton {
+    justify-self: start !important;
+    width: auto !important;
+    min-height: 38px !important;
+    padding: 0 12px !important;
+  }
+
+  .analyseImportHero .heroTitleWrap h1 {
+    margin: 0 0 6px !important;
+    font-size: clamp(1.85rem, 8.8vw, 2.25rem) !important;
+    line-height: 1.02 !important;
+  }
+
+  .analyseImportHero .subtext {
+    margin-top: 0 !important;
+    font-size: 0.94rem !important;
+    line-height: 1.42 !important;
+  }
+
+  .landingHeroProof {
+    display: none !important;
+  }
+
+  .heroImportFlow {
+    padding: 12px !important;
+    gap: 10px !important;
+  }
+
+  .heroImportHeader {
+    display: none !important;
+  }
+
+  .heroImportFlow,
+  .platformSelector,
+  .analysisTimeFormatGrid,
+  .landingAdvancedGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landingAdvancedOptions {
+    display: none !important;
+  }
+
+  .preAnalysisSupport {
+    width: 100%;
+  }
+
+  .returnDashboardGrid,
+  .currentReportSummaryGrid,
+  .keepImproveAvoidSummary,
+  .commandCentreActions,
+  .commandCentreOpeningGrid,
+  .reportTrainingPreviewGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .returnDashboardNav {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    padding-bottom: 2px !important;
+  }
+
+  .returnDashboardNav button {
+    flex: 0 0 auto !important;
+  }
+
+  .reportCommandBar {
+    grid-template-columns: 1fr !important;
+    padding: 8px !important;
+  }
+
+  .reportCommandBar__tabs,
+  .reportCommandBar__upgrade {
+    grid-column: 1 !important;
+  }
+
+  .reportCommandBar__upgrade {
+    width: 100% !important;
+  }
+
+  .currentReportSummaryActions {
+    display: none !important;
+  }
+
+  .nextBestMoveActions {
+    display: none !important;
+  }
+
+  .analysisNextStepsPanel {
+    margin-top: 0 !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .currentReportSummaryMain h1,
+  .analyseImportHero .heroTitleWrap h1 {
+    font-size: clamp(2rem, 10vw, 2.45rem) !important;
+  }
+
+  .accountSyncStatusBar {
+    width: calc(100vw - 20px) !important;
+  }
+
+  .accountSyncChip {
+    width: min(270px, 100%) !important;
+  }
+
+  .analyseLoginButton {
+    display: none !important;
+  }
+
+  .analyseImportHero .compactTrustRow {
+    display: none !important;
   }
 }
