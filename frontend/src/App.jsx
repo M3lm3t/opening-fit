@@ -89,6 +89,7 @@ import { DEMO_REPORT } from "./demoReportData";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
 import ReportCommandBar from "./components/ReportCommandBar";
+import MobileBottomNav from "./components/MobileBottomNav.jsx";
 import SeoLandingPage, {
   SEO_LINKS,
   SEO_PAGES,
@@ -12292,6 +12293,11 @@ function App() {
           onAccount={syncStatus === "error" || cloudSaveStatus === "failed" ? retryAccountSync : openLoginPage}
         />
         <AppActionRouter onViewChange={setActiveView} />
+        <MobileBottomNav
+          activeView={activeView}
+          hasReport={Boolean(reportData)}
+          onNavigate={handleAppNavigate}
+        />
 
         {data ? (
           <>

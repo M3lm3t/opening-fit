@@ -1,4 +1,5 @@
 export const APP_NAV_ROUTES = {
+  home: { view: "analyse", path: "/", target: "app-dashboard", fallbackIds: ["import"] },
   analyse: { view: "analyse", path: "/", target: "import" },
   import: { view: "analyse", path: "/", target: "import" },
   report: { view: "report", path: "/report", target: "app-results" },
@@ -34,8 +35,8 @@ export const APP_NAV_ROUTES = {
   },
   training: { view: "train", path: "/train", target: "training-plan" },
   train: { view: "train", path: "/train", target: "training-plan" },
-  games: { view: "train", path: "/train", target: "game-replay", fallbackIds: ["training-plan", "app-results"] },
-  data: { view: "train", path: "/train", target: "game-replay", fallbackIds: ["training-plan", "app-results"] },
+  games: { view: "games", path: "/train", target: "game-replay", fallbackIds: ["training-plan", "app-results"] },
+  data: { view: "games", path: "/train", target: "game-replay", fallbackIds: ["training-plan", "app-results"] },
   interactive: { view: "train", path: "/train", target: "opening-practice", fallbackIds: ["training-plan", "app-results"] },
   practice: { view: "train", path: "/train", target: "opening-practice", fallbackIds: ["training-plan", "app-results"] },
   profile: { view: "profile", path: "/account", target: "profile" },
@@ -55,6 +56,7 @@ export const APP_NAV_ROUTES = {
 export function getAppSection(view) {
   const aliases = {
     import: "analyse",
+    home: "analyse",
     analyse: "analyse",
     analyze: "analyse",
     overview: "report",
