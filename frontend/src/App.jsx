@@ -12642,7 +12642,7 @@ function App() {
       return {
         title: "Chess Opening Guides | OpeningFit",
         description:
-          "Explore chess opening guides for popular repertoire choices, then analyze your Chess.com and Lichess games to find what fits you.",
+          "Explore chess opening guides and discover which openings fit your playing style, from the London System and Caro-Kann to the King's Indian Defence.",
         path: "/openings",
         url: `${SITE_URL}/openings`,
       };

@@ -3,6 +3,33 @@ import { openingSeoPages, getOpeningSeoPage } from "../data/openingSeoPages.js";
 import { SITE_URL } from "./SeoLandingPage.jsx";
 import "./SeoLandingPage.css";
 
+const OPENING_STYLE_TAGS = {
+  "london-system": "Beginner-friendly",
+  "caro-kann": "Solid",
+  "kings-indian-defence": "Aggressive",
+  "queens-gambit": "Positional",
+  "sicilian-defence": "Tactical",
+  "french-defence": "Strategic",
+  "vienna-game": "Attacking",
+  "scotch-game": "Tactical",
+  "english-opening": "Flexible",
+  "ruy-lopez": "Classical",
+  "italian-game": "Beginner-friendly",
+  "queens-indian-defence": "Positional",
+  "nimzo-indian-defence": "Strategic",
+  "grunfeld-defence": "Dynamic",
+  "slav-defence": "Solid",
+  "scandinavian-defence": "Practical",
+  "pirc-defence": "Counterattacking",
+  "modern-defence": "Flexible",
+  "dutch-defence": "Aggressive",
+  "benko-gambit": "Pressure",
+};
+
+function getOpeningHubDescription(opening) {
+  return opening.seoDescription || opening.intro;
+}
+
 function OpeningTopNav({ ThemeToggle, seoTheme, setSeoTheme }) {
   return (
     <nav className="seoTopNav" aria-label="OpeningFit navigation">
@@ -80,21 +107,39 @@ export function OpeningHubPage({ ThemeToggle, Analytics }) {
               <p className="seoEyebrow">Opening guides</p>
               <h1>Chess opening guides for real online games</h1>
               <p>
-                Learn the core ideas behind popular openings, then use OpeningFit to check whether those openings actually fit your Chess.com or Lichess results.
+                OpeningFit helps players choose openings from the evidence in their own games, not from generic lists. These guides explain what each opening is trying to do, who it tends to suit, and where it can go wrong before you add it to your repertoire.
+              </p>
+              <p>
+                Browse the guides, compare the style fit, then analyse your Chess.com or Lichess games for personalised recommendations based on how you actually play.
               </p>
               <div className="seoHeroActions">
                 <a className="seoPrimaryCta" href="/#app-dashboard">Analyze my games</a>
-                <a className="seoSecondaryCta" href="/openingfit-sample-report">View sample report</a>
+                <a className="seoSecondaryCta" href="/">OpeningFit home</a>
               </div>
             </div>
+          </section>
+
+          <section className="seoInternalLinks openingHubLinks" aria-label="OpeningFit opening guide navigation">
+            <div>
+              <p className="seoEyebrow">Start here</p>
+              <h2>Find openings by guide, data, or playing style</h2>
+            </div>
+            <nav>
+              <a href="/">Homepage</a>
+              <a href="/#app-dashboard">Analysis page</a>
+              <a href="/openings?style=aggressive">Aggressive style</a>
+              <a href="/openings?style=positional">Positional style</a>
+              <a href="/openings?style=solid">Solid style</a>
+              <a href="/openings?style=tactical">Tactical style</a>
+            </nav>
           </section>
 
           <section className="openingSeoCardGrid" aria-label="Opening guide pages">
             {openingSeoPages.map((opening) => (
               <article className="openingSeoCard" key={opening.slug}>
-                <span>Opening guide</span>
+                <span>{OPENING_STYLE_TAGS[opening.slug] || "Opening guide"}</span>
                 <h2>{opening.name}</h2>
-                <p>{opening.intro}</p>
+                <p>{getOpeningHubDescription(opening)}</p>
                 <a href={`/openings/${opening.slug}`}>Read guide</a>
               </article>
             ))}

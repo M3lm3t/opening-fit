@@ -314,6 +314,10 @@
   justify-content: flex-start;
 }
 
+.openingHubLinks nav {
+  justify-content: flex-start;
+}
+
 .openingSeoCard {
   display: grid;
   gap: 12px;
