@@ -461,7 +461,7 @@ export default function AccountPanel({ variant = "floating",
                 Sign in to save reports, connect your Chess.com or Lichess username, and keep your profile available across devices.
               </p>
 
-              <PreLoginCuriosityHooks />
+              {!isScreen ? <PreLoginCuriosityHooks /> : null}
 
               <button className="googleSignInBtn" type="button" onClick={signInWithGoogle}>
                 Continue with Google

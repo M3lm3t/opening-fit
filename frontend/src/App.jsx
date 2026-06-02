@@ -51,7 +51,6 @@ import DashboardHome from "./components/DashboardHome";
 import TodayDashboard from "./components/TodayDashboard";
 import AchievementsPanel from "./components/AchievementsPanel";
 import DailyOpeningHabit from "./components/DailyOpeningHabit";
-import MobileBottomNav from "./components/MobileBottomNav";
 import { useAuth } from "./context/AuthDataProvider";
 import { getAppSection, navigateApp, scrollToAppTarget } from "./appNavigation";
 
@@ -6665,7 +6664,7 @@ function OpeningFitProfileDashboard({
 
   if (!data) {
     return (
-      <div className="profileDashboard">
+      <div className="profileDashboard profileDashboardNoReport">
       <section className="profileNoReportState">
         <p className="eyebrow">Profile</p>
         <h1>Let's build your opening profile.</h1>
@@ -6676,6 +6675,20 @@ function OpeningFitProfileDashboard({
           Analyse Username
         </button>
       </section>
+
+        <div className="profileDashboardGrid profileAccountPremiumGrid">
+          <section className="profileDashboardCard profileAccountCard" id="profile-account">
+            <span className="profileLoginAnchor" id="login" aria-hidden="true" />
+            <div className="profileCardHeader">
+              <p className="eyebrow">Account security</p>
+              <h2>Account settings</h2>
+              <p>Manage login, connected usernames, and saved account data.</p>
+            </div>
+            <AccountPanel variant="screen" onUserChange={onUserChange} />
+          </section>
+
+          <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
+        </div>
 
         {hasStoredProgress ? (
           <OpeningFitProgressCard
@@ -8080,7 +8093,17 @@ function FloatingAppMenu({ data, activeView, onNavigate }) {
   );
 }
 
-function AppPrimaryNav({ activeView, accountUser, onNavigate, onExampleReport, onLogin, onPricing }) {
+function AppPrimaryNav({
+  activeView,
+  accountUser,
+  onNavigate,
+  onExampleReport,
+  onLogin,
+  onPricing,
+  theme,
+  onThemeToggle,
+}) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const activeSection = getAppSection(activeView);
   const items = accountUser
     ? [
@@ -8100,9 +8123,11 @@ function AppPrimaryNav({ activeView, accountUser, onNavigate, onExampleReport, o
     ? { key: "analyse", label: "Analyse New Games" }
     : { key: "analyse", label: "Get Started" };
   const activeItemKey = items.find((item) => getAppSection(item.key) === activeSection)?.key;
+  const mobileMenuId = "openingfit-mobile-menu";
 
   const navigate = (event, item) => {
     event.preventDefault();
+    setMobileMenuOpen(false);
 
     if (typeof item.action === "function") {
       item.action(event);
@@ -8111,6 +8136,17 @@ function AppPrimaryNav({ activeView, accountUser, onNavigate, onExampleReport, o
 
     onNavigate?.(item.key);
   };
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [mobileMenuOpen]);
 
   return (
     <nav className="appPrimaryNav" aria-label="OpeningFit sections">
@@ -8141,6 +8177,50 @@ function AppPrimaryNav({ activeView, accountUser, onNavigate, onExampleReport, o
         <a className="appPrimaryGetStarted" href="/" onClick={(event) => navigate(event, primaryAction)}>
           {primaryAction.label}
         </a>
+
+        <button
+          className="appPrimaryMenuToggle"
+          type="button"
+          aria-controls={mobileMenuId}
+          aria-expanded={mobileMenuOpen}
+          aria-label={mobileMenuOpen ? "Close OpeningFit menu" : "Open OpeningFit menu"}
+          onClick={() => setMobileMenuOpen((open) => !open)}
+        >
+          <span aria-hidden="true">{mobileMenuOpen ? "×" : "☰"}</span>
+        </button>
+      </div>
+
+      <div
+        className={`appPrimaryMobilePanel ${mobileMenuOpen ? "appPrimaryMobilePanelOpen" : ""}`}
+        id={mobileMenuId}
+        hidden={!mobileMenuOpen}
+      >
+        <div className="appPrimaryMobileHeader">
+          <strong>OpeningFit</strong>
+          <span>{accountUser ? "Account connected" : "Analyse first. Save after login."}</span>
+        </div>
+
+        <div className="appPrimaryMobileLinks">
+          {[primaryAction, ...items].map((item) => {
+            const isActive = item.key === activeItemKey || getAppSection(item.key) === activeSection;
+            return (
+              <a
+                key={`${item.key}-${item.label}`}
+                href={item.path || "#app-dashboard"}
+                className={isActive ? "appPrimaryMobileLink appPrimaryMobileLinkActive" : "appPrimaryMobileLink"}
+                aria-current={isActive ? "page" : undefined}
+                onClick={(event) => navigate(event, item)}
+              >
+                {item.label}
+              </a>
+            );
+          })}
+        </div>
+
+        <button className="appPrimaryMobileTheme" type="button" onClick={onThemeToggle}>
+          <span>{theme === "light" ? "Light mode" : "Dark mode"}</span>
+          <strong>{theme === "light" ? "Switch to dark" : "Switch to light"}</strong>
+        </button>
       </div>
     </nav>
   );
@@ -8199,14 +8279,6 @@ function AccountSyncStatusBar({
       tone = "synced";
     }
   }
-
-  const shouldShow =
-    Boolean(user?.id) ||
-    syncStatus === "saving" ||
-    syncStatus === "error" ||
-    Boolean(syncError);
-
-  if (!shouldShow) return null;
 
   return (
     <section className={`accountSyncStatusBar accountSyncStatusBar--${tone}`} role="status">
@@ -12203,6 +12275,10 @@ function App() {
           onExampleReport={loadDemoReport}
           onLogin={openLoginPage}
           onPricing={openPricingPage}
+          theme={theme}
+          onThemeToggle={() =>
+            setTheme((current) => (current === "dark" ? "light" : "dark"))
+          }
         />
         <AccountSyncStatusBar
           user={supabaseUser || accountUser}
@@ -12231,11 +12307,6 @@ function App() {
 
           </>
         ) : null}
-
-        <MobileBottomNav
-          activeView={activeView}
-          onNavigate={handleAppNavigate}
-        />
 
         <FounderPassLoginUpgrade accountUser={accountUser} />
 
