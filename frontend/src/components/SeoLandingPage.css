@@ -14,6 +14,8 @@
 .seoHero,
 .seoProblemSolution article,
 .seoMiniReport,
+.seoStyleSection,
+.seoStyleCard,
 .seoFaq article,
 .seoInternalLinks,
 .seoBottomCta {
@@ -89,6 +91,7 @@
 .seoHero h1,
 .seoMiniReport h2,
 .seoSectionHeading h2,
+.seoStyleCard h3,
 .seoInternalLinks h2,
 .seoBottomCta h2 {
   margin: 0;
@@ -105,6 +108,7 @@
 .seoHero p,
 .seoProblemSolution p,
 .seoMiniReport p,
+.seoStyleCard p,
 .seoFaq p,
 .seoBottomCta p {
   color: #cbd5e1;
@@ -162,6 +166,7 @@
 
 .seoExampleCard span,
 .seoProblemSolution span,
+.seoStyleCard span,
 .seoReportRows span {
   color: #7dd3fc;
   font-size: 0.74rem;
@@ -206,6 +211,8 @@
 
 .seoProblemSolution article,
 .seoMiniReport,
+.seoStyleSection,
+.seoStyleCard,
 .seoFaq article,
 .seoInternalLinks,
 .seoBottomCta {
@@ -214,10 +221,53 @@
 }
 
 .seoProblemSolution h2,
+.seoStyleCard h3,
 .seoFaq h3 {
   margin: 8px 0 0;
   color: #f8fafc;
   letter-spacing: -0.03em;
+}
+
+.seoStyleSection {
+  display: grid;
+  gap: 18px;
+}
+
+.seoStyleCardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.seoStyleCard {
+  display: grid;
+  gap: 10px;
+  padding: clamp(16px, 3vw, 22px);
+}
+
+.seoStyleCard h3,
+.seoStyleCard p {
+  margin: 0;
+}
+
+.seoStyleCard a {
+  justify-self: start;
+  color: #dbeafe;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.seoStyleList {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding-left: 20px;
+  color: #cbd5e1;
+  line-height: 1.55;
+}
+
+.seoOpeningGuideLinks nav {
+  justify-content: flex-start;
 }
 
 .seoProblemSolution p,
@@ -434,6 +484,8 @@
 [data-theme="light"] .seoHero,
 [data-theme="light"] .seoProblemSolution article,
 [data-theme="light"] .seoMiniReport,
+[data-theme="light"] .seoStyleSection,
+[data-theme="light"] .seoStyleCard,
 [data-theme="light"] .seoFaq article,
 [data-theme="light"] .seoInternalLinks,
 [data-theme="light"] .seoBottomCta {
@@ -450,6 +502,7 @@
 [data-theme="light"] .seoInternalLinks h2,
 [data-theme="light"] .seoBottomCta h2,
 [data-theme="light"] .seoProblemSolution h2,
+[data-theme="light"] .seoStyleCard h3,
 [data-theme="light"] .seoFaq h3,
 [data-theme="light"] .seoExampleCard h3,
 [data-theme="light"] .seoExampleCard strong,
@@ -463,6 +516,8 @@
 [data-theme="light"] .seoFaq p,
 [data-theme="light"] .seoBottomCta p,
 [data-theme="light"] .seoExampleCard p,
+[data-theme="light"] .seoStyleCard p,
+[data-theme="light"] .seoStyleList,
 [data-theme="light"] .seoReportRows small,
 [data-theme="light"] .seoTopNav a {
   color: #475569;
@@ -474,6 +529,7 @@
 
 [data-theme="light"] .seoExampleCard,
 [data-theme="light"] .seoReportRows div,
+[data-theme="light"] .seoStyleCard,
 [data-theme="light"] .seoSecondaryCta,
 [data-theme="light"] .seoInternalLinks a,
 [data-theme="light"] .openingMoveCard,
@@ -506,6 +562,7 @@
   .seoMiniReport,
   .seoFaqGrid,
   .seoInternalLinks,
+  .seoStyleCardGrid,
   .openingSeoTwoColumn,
   .openingSeoCardGrid {
     grid-template-columns: 1fr;

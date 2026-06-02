@@ -127,10 +127,10 @@ export function OpeningHubPage({ ThemeToggle, Analytics }) {
             <nav>
               <a href="/">Homepage</a>
               <a href="/#app-dashboard">Analysis page</a>
-              <a href="/openings?style=aggressive">Aggressive style</a>
-              <a href="/openings?style=positional">Positional style</a>
-              <a href="/openings?style=solid">Solid style</a>
-              <a href="/openings?style=tactical">Tactical style</a>
+              <a href="/best-chess-openings-for-aggressive-players">Aggressive style</a>
+              <a href="/best-chess-openings-for-positional-players">Positional style</a>
+              <a href="/best-chess-openings-for-beginners">Beginner style</a>
+              <a href="/best-chess-openings-for-tactical-players">Tactical style</a>
             </nav>
           </section>
 
