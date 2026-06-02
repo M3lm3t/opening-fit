@@ -8,11 +8,11 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>Opening Fit | Chess Opening Analysis & Repertoire Builder</title>
+    <title>OpeningFit - Find Chess Openings That Match Your Playing Style</title>
 
     <meta
       name="description"
-      content="Import your Chess.com or Lichess games and get a practical chess opening repertoire plan based on how you actually play."
+      content="Analyze your Chess.com and Lichess games to discover chess openings that fit your playing style, results, and weaknesses."
     />
 
     <meta
@@ -20,56 +20,99 @@
       content="chess opening analysis, chess repertoire builder, Chess.com analysis, Lichess analysis, chess opening trainer, chess study plan, best chess openings"
     />
 
-    <meta name="author" content="Opening Fit" />
+    <meta name="author" content="OpeningFit" />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#020617" />
 
-    <link rel="canonical" href="https://www.openingfit.com/" />
+    <link rel="canonical" href="https://openingfit.com/" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://www.openingfit.com/" />
-    <meta property="og:site_name" content="Opening Fit" />
+    <meta property="og:url" content="https://openingfit.com/" />
+    <meta property="og:site_name" content="OpeningFit" />
     <meta
       property="og:title"
-      content="Opening Fit | Chess Opening Analysis & Repertoire Builder"
+      content="OpeningFit - Find Chess Openings That Match Your Playing Style"
     />
     <meta
       property="og:description"
-      content="Import your Chess.com or Lichess games and get a practical chess opening repertoire plan based on how you actually play."
+      content="Analyze your Chess.com and Lichess games to discover chess openings that fit your playing style, results, and weaknesses."
     />
-    <meta property="og:image" content="https://www.openingfit.com/og-image.png" />
+    <meta property="og:image" content="https://openingfit.com/og-image.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://www.openingfit.com/" />
+    <meta name="twitter:url" content="https://openingfit.com/" />
     <meta
       name="twitter:title"
-      content="Opening Fit | Chess Opening Analysis & Repertoire Builder"
+      content="OpeningFit - Find Chess Openings That Match Your Playing Style"
     />
     <meta
       name="twitter:description"
-      content="Import your Chess.com or Lichess games and get a practical chess opening repertoire plan based on how you actually play."
+      content="Analyze your Chess.com and Lichess games to discover chess openings that fit your playing style, results, and weaknesses."
     />
-    <meta name="twitter:image" content="https://www.openingfit.com/og-image.png" />
+    <meta name="twitter:image" content="https://openingfit.com/og-image.png" />
 
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "Opening Fit",
-        "applicationCategory": "EducationalApplication",
-        "operatingSystem": "Web",
-        "url": "https://www.openingfit.com/",
-        "description": "Import your Chess.com or Lichess games and get a practical chess opening repertoire plan based on how you actually play.",
-        "offers": {
-          "@type": "Offer",
-          "price": "8",
-          "priceCurrency": "GBP",
-          "description": "Founder Pass lifetime access"
-        },
-        "creator": {
-          "@type": "Organization",
-          "name": "Opening Fit"
-        }
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://openingfit.com/#organization",
+            "name": "OpeningFit",
+            "url": "https://openingfit.com/",
+            "logo": "https://openingfit.com/icons/openingfit-icon.svg"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://openingfit.com/#website",
+            "name": "OpeningFit",
+            "url": "https://openingfit.com/",
+            "publisher": {
+              "@id": "https://openingfit.com/#organization"
+            },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://openingfit.com/?username={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://openingfit.com/#webapplication",
+            "name": "OpeningFit",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web",
+            "url": "https://openingfit.com/",
+            "image": "https://openingfit.com/og-image.png",
+            "description": "Analyze your Chess.com and Lichess games to discover chess openings that fit your playing style, results, and weaknesses.",
+            "publisher": {
+              "@id": "https://openingfit.com/#organization"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "GBP"
+            }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://openingfit.com/#software",
+            "name": "OpeningFit",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web",
+            "url": "https://openingfit.com/",
+            "image": "https://openingfit.com/og-image.png",
+            "description": "Analyze your Chess.com and Lichess games to discover chess openings that fit your playing style, results, and weaknesses.",
+            "publisher": {
+              "@id": "https://openingfit.com/#organization"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "GBP"
+            }
+          }
+        ]
       }
     </script>
   </head>

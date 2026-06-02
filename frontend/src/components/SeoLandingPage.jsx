@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import "./SeoLandingPage.css";
 
-export const SITE_URL = "https://www.openingfit.com";
+export const SITE_URL = "https://openingfit.com";
+export const DEFAULT_SHARE_IMAGE = `${SITE_URL}/og-image.png`;
+export const ORGANIZATION_NAME = "OpeningFit";
 
 export const HOME_SEO = {
-  title: "Opening Fit | Chess Opening Analysis & Repertoire Builder",
+  title: "OpeningFit - Find Chess Openings That Match Your Playing Style",
   description:
-    "Import your Chess.com or Lichess games and get a practical chess opening repertoire plan based on how you actually play.",
+    "Analyze your Chess.com and Lichess games to discover chess openings that fit your playing style, results, and weaknesses.",
   path: "/",
   h1: "Find the chess openings that fit how you actually play",
 };
 
 export const SEO_LINKS = [
+  ["Opening guides", "/openings"],
   ["Repertoire builder", "/chess-opening-repertoire-builder"],
   ["Which opening?", "/which-chess-opening-should-i-play"],
   ["Chess.com analysis", "/chess-com-opening-analysis"],
@@ -166,17 +169,40 @@ export function getSeoData(path) {
 }
 
 export function getSeoJsonLd(page) {
-  if (!page?.path || page.path === "/") return null;
-
-  const graph = [
+  const baseGraph = [
     {
-      "@type": "SoftwareApplication",
-      "@id": `${SITE_URL}/#software`,
-      name: "OpeningFit",
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: ORGANIZATION_NAME,
+      url: `${SITE_URL}/`,
+      logo: `${SITE_URL}/icons/openingfit-icon.svg`,
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: ORGANIZATION_NAME,
+      url: `${SITE_URL}/`,
+      publisher: {
+        "@id": `${SITE_URL}/#organization`,
+      },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${SITE_URL}/?username={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@type": "WebApplication",
+      "@id": `${SITE_URL}/#webapplication`,
+      name: ORGANIZATION_NAME,
       applicationCategory: "GameApplication",
       operatingSystem: "Web",
       url: `${SITE_URL}/`,
       description: HOME_SEO.description,
+      image: DEFAULT_SHARE_IMAGE,
+      publisher: {
+        "@id": `${SITE_URL}/#organization`,
+      },
       offers: {
         "@type": "Offer",
         price: "0",
@@ -184,15 +210,42 @@ export function getSeoJsonLd(page) {
       },
     },
     {
+      "@type": "SoftwareApplication",
+      "@id": `${SITE_URL}/#software`,
+      name: ORGANIZATION_NAME,
+      applicationCategory: "GameApplication",
+      operatingSystem: "Web",
+      url: `${SITE_URL}/`,
+      description: HOME_SEO.description,
+      image: DEFAULT_SHARE_IMAGE,
+      publisher: {
+        "@id": `${SITE_URL}/#organization`,
+      },
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "GBP",
+      },
+    },
+  ];
+
+  if (!page?.path || page.path === "/") {
+    return {
+      "@context": "https://schema.org",
+      "@graph": baseGraph,
+    };
+  }
+
+  const graph = [
+    ...baseGraph,
+    {
       "@type": "WebPage",
       "@id": `${page.url}#webpage`,
       name: page.title,
       url: page.url,
       description: page.description,
       isPartOf: {
-        "@type": "WebSite",
-        name: "OpeningFit",
-        url: `${SITE_URL}/`,
+        "@id": `${SITE_URL}/#website`,
       },
       about: {
         "@id": `${SITE_URL}/#software`,

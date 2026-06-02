@@ -90,13 +90,23 @@ import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
 import ReportCommandBar from "./components/ReportCommandBar";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
+import OpeningLandingPage, {
+  OpeningHubPage,
+  OpeningNotFoundPage,
+  getOpeningPageJsonLd,
+} from "./components/OpeningLandingPage.jsx";
 import SeoLandingPage, {
+  DEFAULT_SHARE_IMAGE,
   SEO_LINKS,
   SEO_PAGES,
   SITE_URL,
   getSeoData,
   getSeoJsonLd,
 } from "./components/SeoLandingPage.jsx";
+import {
+  getOpeningSeoPage,
+  getOpeningSeoSlugFromPath,
+} from "./data/openingSeoPages.js";
 
 const SAMPLE_OPENING_FIT_REPORT = {
   username: "DemoPlayer",
@@ -8814,6 +8824,10 @@ function getCurrentPath() {
   return path.length > 1 ? path.replace(/\/+$/, "") : "/";
 }
 
+function isPrivateSeoPath(path) {
+  return ["/account", "/login", "/report", "/train", "/premium", "/upgrade"].includes(path);
+}
+
 function getInitialAppView() {
   const path = getCurrentPath();
   if (path === "/account" || path === "/login") return "profile";
@@ -9272,6 +9286,7 @@ function LandingSection({ onOpeningClick }) {
             <a href="#how-it-works">How it works</a>
             <a href="#output-examples">Examples</a>
             <a href="#use-cases">Use cases</a>
+            <a href="/openings">Openings</a>
             <a href="#premium">Premium</a>
             <a href="#faq">FAQ</a>
             <a href="#app-dashboard">Launch app</a>
@@ -11045,7 +11060,7 @@ function App() {
     }, 100);
   };
 
-  const openLoginPage = (event) => {
+  const openLoginPage = useCallback((event) => {
     event?.preventDefault?.();
     const currentPath = `${window.location.pathname || "/"}${window.location.search || ""}${window.location.hash || ""}`;
     if (!accountUser && currentPath !== "/login") {
@@ -11064,7 +11079,7 @@ function App() {
         fallbackIds: ["profile"],
       });
     }, 120);
-  };
+  }, [accountUser, setActiveView]);
 
   const retryAccountSync = async (event) => {
     event?.preventDefault?.();
@@ -12617,15 +12632,55 @@ function App() {
   }, [hasReport]);
 
   const currentPath = getCurrentPath();
+  const openingSlug = getOpeningSeoSlugFromPath(currentPath);
+  const openingSeoPage = openingSlug ? getOpeningSeoPage(openingSlug) : null;
+  const isOpeningHub = currentPath === "/openings";
+  const isUnknownOpeningPath = Boolean(openingSlug && !openingSeoPage);
   const seoPage = SEO_PAGES[currentPath] || null;
-  const seoData = useMemo(() => getSeoData(currentPath), [currentPath]);
+  const seoData = useMemo(() => {
+    if (isOpeningHub) {
+      return {
+        title: "Chess Opening Guides | OpeningFit",
+        description:
+          "Explore chess opening guides for popular repertoire choices, then analyze your Chess.com and Lichess games to find what fits you.",
+        path: "/openings",
+        url: `${SITE_URL}/openings`,
+      };
+    }
+
+    if (openingSeoPage) {
+      return {
+        title: openingSeoPage.seoTitle,
+        description: openingSeoPage.seoDescription,
+        path: `/openings/${openingSeoPage.slug}`,
+        url: `${SITE_URL}/openings/${openingSeoPage.slug}`,
+      };
+    }
+
+    if (isUnknownOpeningPath) {
+      return {
+        title: "Opening guide not found | OpeningFit",
+        description: "This OpeningFit chess opening guide has not been published yet.",
+        path: currentPath,
+        url: `${SITE_URL}/openings`,
+      };
+    }
+
+    return getSeoData(currentPath);
+  }, [currentPath, isOpeningHub, isUnknownOpeningPath, openingSeoPage]);
+  const shouldNoindex = isPrivateSeoPath(currentPath) || isUnknownOpeningPath || (currentPath === "/" && hasReport);
+  const canonicalUrl = isUnknownOpeningPath ? `${SITE_URL}/openings` : shouldNoindex ? `${SITE_URL}/` : seoData.url;
 
   useEffect(() => {
     document.title = seoData.title;
-    setCanonical(seoData.url);
+    setCanonical(canonicalUrl);
     setMetaAttribute('meta[name="description"]', {
       name: "description",
       content: seoData.description,
+    });
+    setMetaAttribute('meta[name="robots"]', {
+      name: "robots",
+      content: shouldNoindex ? "noindex, nofollow" : "index, follow",
     });
     setMetaAttribute('meta[property="og:title"]', {
       property: "og:title",
@@ -12637,15 +12692,19 @@ function App() {
     });
     setMetaAttribute('meta[property="og:url"]', {
       property: "og:url",
-      content: seoData.url,
+      content: canonicalUrl,
     });
     setMetaAttribute('meta[property="og:type"]', {
       property: "og:type",
-      content: "website",
+      content: openingSeoPage ? "article" : "website",
+    });
+    setMetaAttribute('meta[property="og:site_name"]', {
+      property: "og:site_name",
+      content: "OpeningFit",
     });
     setMetaAttribute('meta[property="og:image"]', {
       property: "og:image",
-      content: `${SITE_URL}/og-image.png`,
+      content: DEFAULT_SHARE_IMAGE,
     });
     setMetaAttribute('meta[name="twitter:card"]', {
       name: "twitter:card",
@@ -12661,11 +12720,11 @@ function App() {
     });
     setMetaAttribute('meta[name="twitter:url"]', {
       name: "twitter:url",
-      content: seoData.url,
+      content: canonicalUrl,
     });
     setMetaAttribute('meta[name="twitter:image"]', {
       name: "twitter:image",
-      content: `${SITE_URL}/og-image.png`,
+      content: DEFAULT_SHARE_IMAGE,
     });
     setMetaAttribute('meta[name="theme-color"]', {
       name: "theme-color",
@@ -12675,15 +12734,15 @@ function App() {
     const existingJsonLd = document.getElementById("seo-route-jsonld");
     if (existingJsonLd) existingJsonLd.remove();
 
-    const jsonLd = getSeoJsonLd(seoData);
-    if (jsonLd) {
+    const jsonLd = openingSeoPage ? getOpeningPageJsonLd(openingSeoPage) : getSeoJsonLd(seoData);
+    if (jsonLd && !shouldNoindex) {
       const script = document.createElement("script");
       script.id = "seo-route-jsonld";
       script.type = "application/ld+json";
       script.textContent = JSON.stringify(jsonLd);
       document.head.appendChild(script);
     }
-  }, [currentPath, seoData]);
+  }, [canonicalUrl, currentPath, openingSeoPage, seoData, shouldNoindex]);
 
   useEffect(() => {
     const openAccountPage = () => {
@@ -12708,6 +12767,18 @@ function App() {
       window.removeEventListener("popstate", syncViewFromPath);
     };
   }, []);
+
+  if (isOpeningHub) {
+    return <OpeningHubPage ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+  }
+
+  if (openingSeoPage) {
+    return <OpeningLandingPage opening={openingSeoPage} ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+  }
+
+  if (isUnknownOpeningPath) {
+    return <OpeningNotFoundPage slug={openingSlug} ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+  }
 
   if (seoPage) {
     return <SeoLandingPage page={seoData} ThemeToggle={ThemeToggle} Analytics={Analytics} />;

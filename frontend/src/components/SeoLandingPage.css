@@ -226,6 +226,116 @@
   margin: 10px 0 0;
 }
 
+.openingSeoPage {
+  gap: 18px;
+}
+
+.openingSeoHero {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 380px);
+}
+
+.openingMoveCard,
+.openingSeoTwoColumn article,
+.openingSeoCard {
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 22px;
+  padding: clamp(16px, 3vw, 24px);
+  background: rgba(15, 23, 42, 0.68);
+  box-shadow: 0 18px 44px rgba(2, 6, 23, 0.18);
+}
+
+.openingMoveCard {
+  display: grid;
+  gap: 12px;
+}
+
+.openingMoveCard span,
+.openingSeoTwoColumn article > span,
+.openingSeoCard span {
+  color: #7dd3fc;
+  font-size: 0.74rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.openingMoveCard strong {
+  color: #f8fafc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  line-height: 1.55;
+}
+
+.openingSeoTwoColumn,
+.openingSeoCardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.openingSeoTwoColumn h2,
+.openingSeoCard h2,
+.openingNotFound h1 {
+  margin: 8px 0 0;
+  color: #f8fafc;
+  letter-spacing: -0.03em;
+}
+
+.openingSeoList {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.openingSeoList li {
+  position: relative;
+  padding-left: 18px;
+  color: #cbd5e1;
+  line-height: 1.55;
+}
+
+.openingSeoList li::before {
+  content: "";
+  position: absolute;
+  top: 0.7em;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #38bdf8;
+}
+
+.openingMistakesSection {
+  align-items: start;
+}
+
+.openingRelatedLinks nav {
+  justify-content: flex-start;
+}
+
+.openingSeoCard {
+  display: grid;
+  gap: 12px;
+}
+
+.openingSeoCard h2,
+.openingSeoCard p {
+  margin: 0;
+}
+
+.openingSeoCard p {
+  color: #cbd5e1;
+  line-height: 1.55;
+}
+
+.openingSeoCard a {
+  justify-self: start;
+  color: #dbeafe;
+  font-weight: 950;
+  text-decoration: none;
+}
+
 .seoMiniReport {
   display: grid;
   grid-template-columns: minmax(0, 0.8fr) minmax(300px, 1fr);
@@ -361,10 +471,25 @@
 [data-theme="light"] .seoExampleCard,
 [data-theme="light"] .seoReportRows div,
 [data-theme="light"] .seoSecondaryCta,
-[data-theme="light"] .seoInternalLinks a {
+[data-theme="light"] .seoInternalLinks a,
+[data-theme="light"] .openingMoveCard,
+[data-theme="light"] .openingSeoTwoColumn article,
+[data-theme="light"] .openingSeoCard {
   color: #0f172a;
   background: rgba(255, 255, 255, 0.72);
   border-color: rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="light"] .openingMoveCard strong,
+[data-theme="light"] .openingSeoTwoColumn h2,
+[data-theme="light"] .openingSeoCard h2,
+[data-theme="light"] .openingNotFound h1 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .openingSeoList li,
+[data-theme="light"] .openingSeoCard p {
+  color: #475569;
 }
 
 @media (max-width: 820px) {
@@ -376,7 +501,9 @@
   .seoProblemSolution,
   .seoMiniReport,
   .seoFaqGrid,
-  .seoInternalLinks {
+  .seoInternalLinks,
+  .openingSeoTwoColumn,
+  .openingSeoCardGrid {
     grid-template-columns: 1fr;
   }
 
