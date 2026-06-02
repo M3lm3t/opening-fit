@@ -5,6 +5,7 @@ import "./FounderPassLoginUpgrade.css";
 export default function FounderPassLoginUpgrade({ accountUser }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState("");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
     const handleFounderIntent = () => {
@@ -71,15 +72,22 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
 
   const continueToAccountPayment = async () => {
     if (accountUser?.id) {
+      if (checkoutLoading) return;
+
       try {
+        setCheckoutLoading(true);
         setStatus("Opening secure Stripe checkout...");
         await startPremiumCheckout(accountUser);
       } catch (error) {
         console.error("Founder Pass checkout failed", error);
-        setStatus(error?.message || "Could not start Stripe checkout.");
+        setStatus(error?.message || "We could not start checkout. Please try again.");
+      } finally {
+        setCheckoutLoading(false);
       }
       return;
     }
+
+    setStatus("Please sign in or create an account before upgrading.");
 
     // Close this Founder Pass modal first so the account/payment UI is not hidden behind it.
     setOpen(false);
@@ -193,8 +201,13 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
           className="founderPassUpgradePrimary"
           type="button"
           onClick={continueToAccountPayment}
+          disabled={checkoutLoading}
         >
-          {accountUser ? "Continue to secure payment" : "Login to continue"}
+          {checkoutLoading
+            ? "Opening checkout..."
+            : accountUser
+              ? "Continue to secure payment"
+              : "Login to continue"}
         </button>
 
         <button

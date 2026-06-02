@@ -112,6 +112,7 @@ export default function AccountPanel({ variant = "floating",
   const [authMode, setAuthMode] = useState("login");
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
     if (isScreen) setIsOpen(true);
@@ -283,7 +284,9 @@ export default function AccountPanel({ variant = "floating",
             })
           : await signInWithEmailPassword({ email: cleanEmail, password });
 
-      if (result.user?.id) {
+      const hasAuthenticatedSession = Boolean(result.session);
+
+      if (result.user?.id && hasAuthenticatedSession) {
         if (authMode === "signup" && result.session) {
           try {
             await upsertUserProfile(result.user, {
@@ -310,7 +313,7 @@ export default function AccountPanel({ variant = "floating",
         setStatus(
           result.profileError || profileUpdateFailed
             ? "Account created. Profile details will finish syncing shortly."
-            : "Account created and synced."
+            : "Your account was created. You can now continue."
         );
         setPassword("");
         setConfirmPassword("");
@@ -381,16 +384,21 @@ export default function AccountPanel({ variant = "floating",
   async function handlePremiumCheckout() {
     if (!user) {
       setIsOpen(true);
-      setStatus("Please sign in first, then you can unlock premium.");
+      setStatus("Please sign in or create an account before upgrading.");
       return;
     }
 
+    if (checkoutLoading) return;
+
     try {
+      setCheckoutLoading(true);
       setStatus("Opening secure Stripe checkout...");
       await startPremiumCheckout(user);
     } catch (error) {
       console.error("Premium checkout failed", error);
-      setStatus(error?.message || "Could not start Stripe checkout.");
+      setStatus(error?.message || "We could not start checkout. Please try again.");
+    } finally {
+      setCheckoutLoading(false);
     }
   }
 
@@ -781,8 +789,9 @@ export default function AccountPanel({ variant = "floating",
                     className="accountPrimaryAction"
                     type="button"
                     onClick={handlePremiumCheckout}
+                    disabled={checkoutLoading}
                   >
-                    Pricing
+                    {checkoutLoading ? "Opening checkout..." : "Pricing"}
                   </button>
                 ) : (
                   <span className="accountPremiumBadge">Active</span>

@@ -1,25 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./CheckoutStatusNotice.css";
 
 export default function CheckoutStatusNotice({ onRestoreAccess, onClose }) {
   const [status, setStatus] = useState(null);
+  const restoredAfterSuccessRef = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const checkout = params.get("checkout");
+    const payment = params.get("payment");
     const stripeSuccess = params.get("success");
     const stripeCancelled = params.get("cancelled");
     const sessionId = params.get("session_id");
 
-    if (checkout === "success" || stripeSuccess === "true" || sessionId) {
+    if (checkout === "success" || payment === "success" || stripeSuccess === "true" || sessionId) {
       setStatus("success");
       return;
     }
 
-    if (checkout === "cancelled" || stripeCancelled === "true") {
+    if (checkout === "cancelled" || payment === "cancelled" || stripeCancelled === "true") {
       setStatus("cancelled");
     }
   }, []);
+
+  useEffect(() => {
+    if (status !== "success" || restoredAfterSuccessRef.current) return;
+
+    restoredAfterSuccessRef.current = true;
+    onRestoreAccess?.();
+  }, [onRestoreAccess, status]);
 
   const clearCheckoutUrl = () => {
     const cleanUrl = `${window.location.origin}${window.location.pathname}${window.location.hash || ""}`;

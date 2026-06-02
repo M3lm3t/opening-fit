@@ -1,6 +1,36 @@
 import { supabase } from "./lib/supabaseClient";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
+const API_BASE = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8001").replace(/\/$/, "");
+
+async function readJsonOrText(response) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return response.json().catch(() => ({}));
+  }
+
+  const text = await response.text().catch(() => "");
+  return text ? { error: text } : {};
+}
+
+function friendlyApiError(payload, fallback) {
+  const rawMessage =
+    payload?.error ||
+    payload?.message ||
+    payload?.detail ||
+    "";
+  const message = typeof rawMessage === "string" ? rawMessage : fallback;
+
+  if (/missing auth token|invalid auth token|forbidden|unauthorized|userId/i.test(message)) {
+    return "Please sign in or create an account before upgrading.";
+  }
+
+  if (/stripe|checkout|price|secret|not configured/i.test(message)) {
+    return "We could not start checkout. Please try again.";
+  }
+
+  return message || fallback;
+}
 
 async function authHeaders() {
   const { data } = supabase ? await supabase.auth.getSession() : { data: null };
@@ -53,8 +83,14 @@ export async function loadAccountProfile(userId) {
 
 export async function startPremiumCheckout(user) {
   if (!user?.id) {
-    throw new Error("Please log in before upgrading.");
+    throw new Error("Please sign in or create an account before upgrading.");
   }
+
+  console.info("OpeningFit checkout requested", {
+    userId: user.id,
+    hasEmail: Boolean(user.email),
+    apiBase: API_BASE,
+  });
 
   const response = await fetch(`${API_BASE}/api/account/create-checkout-session`, {
     method: "POST",
@@ -65,16 +101,26 @@ export async function startPremiumCheckout(user) {
     }),
   });
 
+  const data = await readJsonOrText(response);
+
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || "Could not start checkout.");
+    console.error("OpeningFit checkout endpoint failed", {
+      status: response.status,
+      payload: data,
+    });
+    throw new Error(friendlyApiError(data, "We could not start checkout. Please try again."));
   }
 
-  const data = await response.json();
-
-  if (data?.url) {
-    window.location.href = data.url;
+  if (!data?.url) {
+    console.error("OpeningFit checkout endpoint returned no URL", data);
+    throw new Error("We could not start checkout. Please try again.");
   }
+
+  console.info("OpeningFit redirecting to Stripe checkout", {
+    userId: user.id,
+    hasUrl: true,
+  });
+  window.location.href = data.url;
 
   return data;
 }

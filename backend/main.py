@@ -25,6 +25,7 @@ from supabase import create_client, Client
 
 
 load_dotenv(".env")
+load_dotenv(".env.local", override=False)
 
 app = FastAPI(title="Opening Fit API")
 
@@ -4202,6 +4203,11 @@ def require_matching_auth_user(request: Request, user_id: str):
     return auth_user
 
 
+def checkout_error_response(status_code: int, message: str, log_message: str, **details):
+    print("OpeningFit checkout error:", log_message, details)
+    return JSONResponse(status_code=status_code, content={"error": message})
+
+
 @app.post("/api/account/sync")
 async def sync_account_profile(payload: AccountProfilePayload, request: Request):
     require_matching_auth_user(request, payload.userId)
@@ -4265,13 +4271,27 @@ async def get_account_profile(user_id: str, request: Request):
 @app.post("/api/account/create-checkout-session")
 async def create_checkout_session(payload: Dict[str, Any], request: Request):
     stripe_secret_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
-    stripe_price_id = os.getenv("STRIPE_PREMIUM_PRICE_ID", "").strip()
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").strip()
+    stripe_price_id = (
+        os.getenv("STRIPE_PRICE_ID", "").strip()
+        or os.getenv("STRIPE_PREMIUM_PRICE_ID", "").strip()
+        or os.getenv("STRIPE_FOUNDER_PASS_PRICE_ID", "").strip()
+    )
+    frontend_url = (
+        os.getenv("FRONTEND_URL", "").strip()
+        or os.getenv("CLIENT_URL", "").strip()
+        or "http://localhost:5173"
+    ).rstrip("/")
 
     if not stripe_secret_key or not stripe_price_id:
-        raise HTTPException(
-            status_code=500,
-            detail="Stripe is not configured. Add STRIPE_SECRET_KEY and STRIPE_PREMIUM_PRICE_ID.",
+        missing = [
+            "STRIPE_SECRET_KEY" if not stripe_secret_key else None,
+            "STRIPE_PRICE_ID or STRIPE_PREMIUM_PRICE_ID" if not stripe_price_id else None,
+        ]
+        return checkout_error_response(
+            500,
+            "We could not start checkout. Please try again.",
+            "missing Stripe environment variables",
+            missing=[item for item in missing if item],
         )
 
     stripe.api_key = stripe_secret_key
@@ -4279,29 +4299,76 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
     requested_user_id = payload.get("userId")
 
     if not requested_user_id:
-        raise HTTPException(status_code=400, detail="Missing userId.")
+        return checkout_error_response(
+            400,
+            "Please sign in or create an account before upgrading.",
+            "missing userId in checkout payload",
+        )
 
-    auth_user = require_matching_auth_user(request, requested_user_id)
+    if not is_valid_uuid(requested_user_id):
+        return checkout_error_response(
+            400,
+            "Please sign in or create an account before upgrading.",
+            "invalid userId in checkout payload",
+            user_id=requested_user_id,
+        )
+
+    try:
+        auth_user = require_matching_auth_user(request, requested_user_id)
+    except HTTPException as exc:
+        return checkout_error_response(
+            exc.status_code,
+            "Please sign in or create an account before upgrading.",
+            "checkout auth validation failed",
+            status_code=exc.status_code,
+            detail=exc.detail,
+            user_id=requested_user_id,
+        )
+
     user_id = str(auth_user.id)
     email = getattr(auth_user, "email", None) or payload.get("email")
 
-    session = stripe.checkout.Session.create(
-        mode="payment",
-        line_items=[
-            {
-                "price": stripe_price_id,
-                "quantity": 1,
-            }
-        ],
-        success_url=f"{frontend_url}?payment=success",
-        cancel_url=f"{frontend_url}?payment=cancelled",
-        customer_email=email,
-        client_reference_id=user_id,
-        metadata={
-            "user_id": user_id,
-            "product": "openingfit_premium",
-        },
-    )
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            line_items=[
+                {
+                    "price": stripe_price_id,
+                    "quantity": 1,
+                }
+            ],
+            success_url=f"{frontend_url}/account?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{frontend_url}/account?checkout=cancelled",
+            customer_email=email,
+            client_reference_id=user_id,
+            metadata={
+                "user_id": user_id,
+                "product": "openingfit_premium",
+            },
+        )
+    except Exception as exc:
+        return checkout_error_response(
+            500,
+            "We could not start checkout. Please try again.",
+            "Stripe checkout session creation failed",
+            error=str(exc),
+            user_id=user_id,
+        )
+
+    if not getattr(session, "url", None):
+        return checkout_error_response(
+            500,
+            "We could not start checkout. Please try again.",
+            "Stripe checkout session returned no URL",
+            user_id=user_id,
+            session_id=getattr(session, "id", None),
+        )
+
+    print("OpeningFit checkout session created", {
+        "user_id": user_id,
+        "session_id": getattr(session, "id", None),
+        "has_url": True,
+    })
 
     return {"url": session.url}
 
@@ -4312,9 +4379,10 @@ async def stripe_webhook(request: Request):
     webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
 
     if not stripe_secret_key or not webhook_secret:
-        raise HTTPException(
+        print("OpeningFit Stripe webhook error: missing webhook configuration")
+        return JSONResponse(
             status_code=500,
-            detail="Stripe webhook is not configured.",
+            content={"error": "Stripe webhook is not configured."},
         )
 
     stripe.api_key = stripe_secret_key
@@ -4329,6 +4397,7 @@ async def stripe_webhook(request: Request):
             secret=webhook_secret,
         )
     except Exception as exc:
+        print("OpeningFit Stripe webhook signature verification failed:", exc)
         raise HTTPException(status_code=400, detail=f"Webhook error: {str(exc)}")
 
     if event["type"] == "checkout.session.completed":
@@ -4336,31 +4405,48 @@ async def stripe_webhook(request: Request):
         user_id = session.get("client_reference_id") or session.get("metadata", {}).get("user_id")
 
         if user_id:
-            supabase_admin = get_supabase_admin_client()
-            premium_since = datetime.now(timezone.utc).isoformat()
+            try:
+                supabase_admin = get_supabase_admin_client()
+                premium_since = datetime.now(timezone.utc).isoformat()
 
-            supabase_admin.table("premium_entitlements").upsert(
-                {
-                    "user_id": user_id,
-                    "status": "active",
-                    "source": "stripe_checkout",
-                    "premium_since": premium_since,
-                    "stripe_customer_id": session.get("customer"),
-                    "stripe_checkout_session_id": session.get("id"),
-                    "updated_at": premium_since,
-                },
-                on_conflict="user_id",
-            ).execute()
+                supabase_admin.table("premium_entitlements").upsert(
+                    {
+                        "user_id": user_id,
+                        "status": "active",
+                        "source": "stripe_checkout",
+                        "premium_since": premium_since,
+                        "stripe_customer_id": session.get("customer"),
+                        "stripe_checkout_session_id": session.get("id"),
+                        "updated_at": premium_since,
+                    },
+                    on_conflict="user_id",
+                ).execute()
 
-            supabase_admin.table("profiles").upsert(
-                {
+                supabase_admin.table("profiles").upsert(
+                    {
+                        "user_id": user_id,
+                        "email": session.get("customer_email"),
+                        "is_premium": True,
+                        "updated_at": premium_since,
+                    },
+                    on_conflict="user_id",
+                ).execute()
+
+                print("OpeningFit premium entitlement activated", {
                     "user_id": user_id,
-                    "email": session.get("customer_email"),
-                    "is_premium": True,
-                    "updated_at": premium_since,
-                },
-                on_conflict="user_id",
-            ).execute()
+                    "session_id": session.get("id"),
+                })
+            except Exception as exc:
+                print("OpeningFit premium entitlement update failed:", {
+                    "user_id": user_id,
+                    "session_id": session.get("id"),
+                    "error": str(exc),
+                })
+                raise HTTPException(status_code=500, detail="Premium entitlement update failed.")
+        else:
+            print("OpeningFit Stripe checkout completed without a user id", {
+                "session_id": session.get("id"),
+            })
 
     return {"received": True}
 

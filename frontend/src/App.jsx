@@ -12846,15 +12846,17 @@ function App() {
         <FounderPassLoginUpgrade accountUser={accountUser} />
 
         <CheckoutStatusNotice
-          onRestoreAccess={() => {
-            window.dispatchEvent(
-              new CustomEvent("openingfit:founder-pass-intent", {
-                detail: {
-                  source: "checkout-success",
-                  plan: "founder_pass",
-                },
-              })
-            );
+          onRestoreAccess={async () => {
+            if (!supabaseUser?.id) {
+              openLoginPage();
+              return;
+            }
+
+            try {
+              await refreshUserData?.(supabaseUser);
+            } catch (error) {
+              console.error("OpeningFit premium access refresh failed after checkout", error);
+            }
           }}
         />
 
