@@ -17,6 +17,8 @@ const EMPTY_PROFILE = {
   lichess_username: "",
 };
 const AUTH_RETURN_PATH_KEY = "openingFit:authReturnPath";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 6;
 
 function getAuthRedirectTo() {
   const origin = window.location.origin;
@@ -102,8 +104,11 @@ export default function AccountPanel({ variant = "floating",
   } = useAuth();
   const [isOpen, setIsOpen] = useState(isScreen);
   const [profile, setProfile] = useState(EMPTY_PROFILE);
+  const [signupDisplayName, setSignupDisplayName] = useState("");
+  const [signupUsername, setSignupUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [authMode, setAuthMode] = useState("login");
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
@@ -228,8 +233,37 @@ export default function AccountPanel({ variant = "floating",
       return;
     }
 
-    if (!email.trim() || !password) {
-      setStatus("Enter your email and password first.");
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanDisplayName = signupDisplayName.trim();
+    const cleanUsername = signupUsername.trim();
+
+    if (!cleanEmail) {
+      setStatus("Enter your email first.");
+      return;
+    }
+
+    if (!EMAIL_PATTERN.test(cleanEmail)) {
+      setStatus("Enter a valid email address.");
+      return;
+    }
+
+    if (!password) {
+      setStatus("Enter your password first.");
+      return;
+    }
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setStatus(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+
+    if (authMode === "signup" && !confirmPassword) {
+      setStatus("Confirm your password first.");
+      return;
+    }
+
+    if (authMode === "signup" && password !== confirmPassword) {
+      setStatus("Passwords do not match.");
       return;
     }
 
@@ -237,31 +271,57 @@ export default function AccountPanel({ variant = "floating",
     setStatus(authMode === "signup" ? "Creating your OpeningFit account..." : "Logging in...");
 
     try {
+      let profileUpdateFailed = false;
       const result =
         authMode === "signup"
           ? await signUpWithEmailPassword({
-              email,
+              email: cleanEmail,
               password,
-              displayName: email.trim(),
+              displayName: cleanDisplayName || cleanUsername || cleanEmail,
+              username: cleanUsername,
               redirectTo: getAuthRedirectTo(),
             })
-          : await signInWithEmailPassword({ email, password });
+          : await signInWithEmailPassword({ email: cleanEmail, password });
 
       if (result.user?.id) {
-        await refreshUserData(result.user);
+        if (authMode === "signup" && result.session) {
+          try {
+            await upsertUserProfile(result.user, {
+              display_name: cleanDisplayName || cleanUsername || cleanEmail,
+              username: cleanUsername || null,
+              chesscom_username: cleanUsername || "",
+            });
+          } catch (profileError) {
+            profileUpdateFailed = true;
+            console.warn("OpeningFit profile update after signup failed; restore will retry later.", profileError);
+          }
+        }
+
+        try {
+          await refreshUserData(result.user);
+        } catch (refreshError) {
+          console.warn("OpeningFit account refresh after email auth failed", refreshError);
+        }
       }
 
       if (authMode === "signup" && result.needsEmailConfirmation) {
         setStatus("Account created. Check your email to confirm before logging in.");
       } else if (authMode === "signup") {
-        setStatus("Account created and synced.");
+        setStatus(
+          result.profileError || profileUpdateFailed
+            ? "Account created. Profile details will finish syncing shortly."
+            : "Account created and synced."
+        );
+        setPassword("");
+        setConfirmPassword("");
       } else {
         setStatus("Logged in. Your saved OpeningFit data is loaded.");
+        setPassword("");
       }
     } catch (error) {
       console.error("OpeningFit email auth failed", {
         mode: authMode,
-        email: email.trim(),
+        email: cleanEmail,
         error,
       });
       setStatus(error?.message || "Supabase could not complete that request.");
@@ -463,7 +523,12 @@ export default function AccountPanel({ variant = "floating",
 
               {!isScreen ? <PreLoginCuriosityHooks /> : null}
 
-              <button className="googleSignInBtn" type="button" onClick={signInWithGoogle}>
+              <button
+                className="googleSignInBtn"
+                type="button"
+                onClick={signInWithGoogle}
+                disabled={saving || accountLoading || profileLoading}
+              >
                 Continue with Google
               </button>
 
@@ -480,18 +545,50 @@ export default function AccountPanel({ variant = "floating",
                 <button
                   type="button"
                   className={authMode === "login" ? "isActive" : ""}
-                  onClick={() => setAuthMode("login")}
+                  onClick={() => {
+                    setAuthMode("login");
+                    setStatus("");
+                  }}
                 >
                   Log in
                 </button>
                 <button
                   type="button"
                   className={authMode === "signup" ? "isActive" : ""}
-                  onClick={() => setAuthMode("signup")}
+                  onClick={() => {
+                    setAuthMode("signup");
+                    setStatus("");
+                  }}
                 >
-                  Sign up
+                  Create account
                 </button>
               </div>
+
+              {authMode === "signup" ? (
+                <>
+                  <label className="accountLabel">
+                    Display name
+                    <input
+                      type="text"
+                      value={signupDisplayName}
+                      placeholder="Your name"
+                      autoComplete="name"
+                      onChange={(event) => setSignupDisplayName(event.target.value)}
+                    />
+                  </label>
+
+                  <label className="accountLabel">
+                    Chess username
+                    <input
+                      type="text"
+                      value={signupUsername}
+                      placeholder="Optional, e.g. melmet"
+                      autoComplete="username"
+                      onChange={(event) => setSignupUsername(event.target.value)}
+                    />
+                  </label>
+                </>
+              ) : null}
 
               <label className="accountLabel">
                 Email
@@ -499,6 +596,7 @@ export default function AccountPanel({ variant = "floating",
                   type="email"
                   value={email}
                   placeholder="you@example.com"
+                  autoComplete="email"
                   onChange={(event) => setEmail(event.target.value)}
                 />
               </label>
@@ -509,9 +607,23 @@ export default function AccountPanel({ variant = "floating",
                   type="password"
                   value={password}
                   placeholder="Minimum 6 characters"
+                  autoComplete={authMode === "signup" ? "new-password" : "current-password"}
                   onChange={(event) => setPassword(event.target.value)}
                 />
               </label>
+
+              {authMode === "signup" ? (
+                <label className="accountLabel">
+                  Confirm password
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    placeholder="Repeat password"
+                    autoComplete="new-password"
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                  />
+                </label>
+              ) : null}
 
               <button
                 className="emailSignInBtn"
@@ -527,6 +639,19 @@ export default function AccountPanel({ variant = "floating",
                     ? "Create account"
                     : "Log in"}
               </button>
+
+              <p className="accountAuthSwitchHint">
+                {authMode === "signup" ? "Already have an account?" : "New to OpeningFit?"}{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode(authMode === "signup" ? "login" : "signup");
+                    setStatus("");
+                  }}
+                >
+                  {authMode === "signup" ? "Log in" : "Create account"}
+                </button>
+              </p>
 
               <div className="accountDivider">
                 <span>or</span>

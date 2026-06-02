@@ -85,6 +85,10 @@ export function safeUserMessage(error, fallback = "OpeningFit could not reach Su
     return "Email confirmation required. Check your inbox, confirm your email, then log in.";
   }
 
+  if (/security purposes|only request this after|rate limit|too many/i.test(message)) {
+    return "We just sent an account email. Please wait a minute, then check your inbox or try logging in.";
+  }
+
   if (/row-level security|permission denied|violates row-level security/i.test(message)) {
     return "Save failed — Supabase blocked this account from writing that row. Please check RLS policies and try again.";
   }
@@ -110,13 +114,26 @@ function logQuerySuccess(table, operation, details = {}) {
   });
 }
 
-export async function ensureProfile(user) {
+export async function ensureProfile(user, patch = {}) {
   if (!user?.id) return null;
 
   const client = requireClient();
+  const cleanDisplayName = String(
+    patch.display_name ||
+      patch.displayName ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.display_name ||
+      user.email ||
+      ""
+  ).trim();
+  const cleanUsername = String(
+    patch.username ||
+      user.user_metadata?.username ||
+      user.user_metadata?.preferred_username ||
+      ""
+  ).trim();
   const displayName =
-    user.user_metadata?.full_name ||
-    user.user_metadata?.display_name ||
+    cleanDisplayName ||
     user.email ||
     "";
 
@@ -133,7 +150,17 @@ export async function ensureProfile(user) {
     throw new Error(safeUserMessage(profileFetchError, "Profile failed to load from Supabase."));
   }
 
-  if (existingProfile) {
+  const profilePatch = {
+    email: user.email || patch.email || "",
+    display_name: displayName,
+    ...(cleanUsername ? { username: cleanUsername } : {}),
+    ...patch,
+    id: patch.id || existingProfile?.id || user.id,
+    user_id: user.id,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existingProfile && !Object.keys(patch).length && !cleanUsername) {
     logQuerySuccess("profiles", "select existing profile before ensure upsert", {
       userId: user.id,
       rowId: existingProfile.id,
@@ -144,13 +171,7 @@ export async function ensureProfile(user) {
   const { data, error } = await client
     .from("profiles")
     .upsert(
-      {
-        id: user.id,
-        user_id: user.id,
-        email: user.email || "",
-        display_name: displayName,
-        updated_at: new Date().toISOString(),
-      },
+      profilePatch,
       { onConflict: "user_id" }
     )
     .select("*")
@@ -177,9 +198,11 @@ export async function getCurrentUser() {
   return data?.user || null;
 }
 
-export async function signUpWithEmailPassword({ email, password, displayName, redirectTo }) {
+export async function signUpWithEmailPassword({ email, password, displayName, username, redirectTo }) {
   const client = requireClient();
   const cleanEmail = String(email || "").trim().toLowerCase();
+  const cleanDisplayName = String(displayName || username || cleanEmail).trim();
+  const cleanUsername = String(username || "").trim();
 
   if (!cleanEmail || !password) {
     throw new Error("Enter an email and password.");
@@ -191,7 +214,9 @@ export async function signUpWithEmailPassword({ email, password, displayName, re
     options: {
       emailRedirectTo: redirectTo,
       data: {
-        display_name: displayName || cleanEmail,
+        display_name: cleanDisplayName || cleanEmail,
+        full_name: cleanDisplayName || cleanEmail,
+        username: cleanUsername || undefined,
       },
     },
   });
@@ -206,8 +231,17 @@ export async function signUpWithEmailPassword({ email, password, displayName, re
     throw new Error("An account already exists for this email. Log in instead.");
   }
 
-  if (user?.id) {
-    await ensureProfile(user);
+  let profileError = null;
+  if (user?.id && data?.session) {
+    try {
+      await ensureProfile(user, {
+        display_name: cleanDisplayName || cleanEmail,
+        username: cleanUsername || null,
+      });
+    } catch (error) {
+      profileError = error;
+      logQueryFailure("profiles", "ensure profile after sign up", error, { userId: user.id });
+    }
   }
 
   logQuerySuccess("auth.users", "sign up with email/password", {
@@ -220,6 +254,7 @@ export async function signUpWithEmailPassword({ email, password, displayName, re
     user,
     session: data?.session || null,
     needsEmailConfirmation: Boolean(user && !data?.session),
+    profileError,
   };
 }
 
@@ -246,7 +281,13 @@ export async function signInWithEmailPassword({ email, password }) {
     throw new Error("Login started, but Supabase did not return a confirmed user.");
   }
 
-  await ensureProfile(confirmedUser);
+  let profileError = null;
+  try {
+    await ensureProfile(confirmedUser);
+  } catch (error) {
+    profileError = error;
+    logQueryFailure("profiles", "ensure profile after sign in", error, { userId: confirmedUser.id });
+  }
 
   logQuerySuccess("auth.users", "sign in with email/password", {
     email: cleanEmail,
@@ -256,6 +297,7 @@ export async function signInWithEmailPassword({ email, password }) {
   return {
     session: data?.session || null,
     user: confirmedUser,
+    profileError,
   };
 }
 

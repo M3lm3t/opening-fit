@@ -428,6 +428,27 @@
   color: #f8fafc;
 }
 
+.accountAuthSwitchHint {
+  margin: -2px 0 0;
+  text-align: center;
+  font-size: 0.86rem;
+}
+
+.accountAuthSwitchHint button {
+  border: 0;
+  background: transparent;
+  color: #7dd3fc;
+  padding: 0;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.page.light .accountAuthSwitchHint button,
+.light .accountAuthSwitchHint button {
+  color: #1d4ed8;
+}
+
 .accountLabel {
   display: grid;
   gap: 7px;
