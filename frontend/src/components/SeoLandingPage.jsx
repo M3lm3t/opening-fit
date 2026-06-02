@@ -6,11 +6,11 @@ export const DEFAULT_SHARE_IMAGE = `${SITE_URL}/og-image.png`;
 export const ORGANIZATION_NAME = "OpeningFit";
 
 export const HOME_SEO = {
-  title: "OpeningFit - Find Chess Openings That Match Your Playing Style",
+  title: "Find Chess Openings That Match Your Playing Style | OpeningFit",
   description:
     "Analyze your Chess.com and Lichess games to discover chess openings that fit your playing style, results, and weaknesses.",
   path: "/",
-  h1: "Find the chess openings that fit how you actually play",
+  h1: "Find Chess Openings That Match Your Playing Style",
 };
 
 export const SEO_LINKS = [

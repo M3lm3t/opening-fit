@@ -9301,11 +9301,11 @@ function LandingSection({ onOpeningClick }) {
               <span>Built for Chess.com and Lichess players</span>
             </div>
 
-            <h1>Find the openings that fit how you actually play.</h1>
+            <h1>Find Chess Openings That Match Your Playing Style</h1>
 
             <p className="landingSubtext">
-              OpeningFit imports recent public games from your username and gives you a simple plan:
-              what to keep, what to improve, and what to study next.
+              Import your Chess.com or Lichess games and discover which openings fit your results,
+              strengths, and weaknesses.
             </p>
 
             <div className="landingHeroActions">
@@ -9683,6 +9683,40 @@ function LandingSection({ onOpeningClick }) {
               <p>{useCase.text}</p>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="landingStorySection landingProblemSection" id="opening-choice">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Chess opening analysis</p>
+          <h2>Stop Guessing Which Openings To Play</h2>
+          <p>
+            Most players pick openings from YouTube or grandmaster games. OpeningFit looks at your own games and helps you choose openings that actually fit how you play.
+          </p>
+          <p>
+            Use it for chess opening analysis, chess opening recommendations, and a chess repertoire builder workflow: analyse Chess.com games, analyse Lichess games, then shape an opening repertoire around personalised chess openings.
+          </p>
+        </div>
+
+        <div className="landingProblemGrid">
+          <article className="landingStoryCard">
+            <h3>Personalised chess openings</h3>
+            <p>
+              Analyse Chess.com games or analyse Lichess games to see which positions already match your strengths.
+            </p>
+          </article>
+          <article className="landingStoryCard">
+            <h3>Chess opening recommendations</h3>
+            <p>
+              OpeningFit turns your results and weaknesses into practical recommendations instead of generic theory lists.
+            </p>
+          </article>
+          <article className="landingStoryCard">
+            <h3>Chess repertoire builder</h3>
+            <p>
+              Build an opening repertoire around the lines you understand, then repair the choices that keep costing points.
+            </p>
+          </article>
         </div>
       </section>
 
@@ -12955,10 +12989,10 @@ function App() {
             <div className="heroTop">
               <div className="heroTitleWrap">
                 <p className="eyebrow">OpeningFit for club players</p>
-                <h1>Find the openings that fit how you actually play</h1>
+                <h1>Find Chess Openings That Match Your Playing Style</h1>
                 <p className="subtext">
-                  Enter a Chess.com or Lichess username. OpeningFit imports recent public games,
-                  finds your own opening patterns, and recommends what to keep, improve, or study next.
+                  Import your Chess.com or Lichess games and discover which openings fit your results,
+                  strengths, and weaknesses.
                 </p>
                 <div className="landingHeroProof" aria-label="OpeningFit trust summary">
                   <span>Analyse public games instantly</span>
@@ -13099,6 +13133,39 @@ function App() {
             ) : null}
 
           </header>
+          <section className="landingStorySection landingProblemSection" id="opening-choice-app">
+            <div className="landingQuestionBlock">
+              <p className="landingEyebrow">Chess opening analysis</p>
+              <h2>Stop Guessing Which Openings To Play</h2>
+              <p>
+                Most players pick openings from YouTube or grandmaster games. OpeningFit looks at your own games and helps you choose openings that actually fit how you play.
+              </p>
+              <p>
+                Use it for chess opening analysis, chess opening recommendations, and a chess repertoire builder workflow: analyse Chess.com games, analyse Lichess games, then shape an opening repertoire around personalised chess openings.
+              </p>
+            </div>
+
+            <div className="landingProblemGrid">
+              <article className="landingStoryCard">
+                <h3>Personalised chess openings</h3>
+                <p>
+                  Analyse Chess.com games or analyse Lichess games to see which positions already match your strengths.
+                </p>
+              </article>
+              <article className="landingStoryCard">
+                <h3>Chess opening recommendations</h3>
+                <p>
+                  OpeningFit turns your results and weaknesses into practical recommendations instead of generic theory lists.
+                </p>
+              </article>
+              <article className="landingStoryCard">
+                <h3>Chess repertoire builder</h3>
+                <p>
+                  Build an opening repertoire around the lines you understand, then repair the choices that keep costing points.
+                </p>
+              </article>
+            </div>
+          </section>
           <div className="preAnalysisSupport">
             <ReturnUserDashboard
               user={supabaseUser || accountUser}
