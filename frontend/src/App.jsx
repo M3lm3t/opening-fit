@@ -10976,6 +10976,7 @@ function App() {
   const [error, setError] = useState("");
   const [importStatus, setImportStatus] = useState(null);
   const [data, setData] = useState(null);
+  const [activeView, setActiveView] = useState(getInitialAppView);
   const importAbortRef = useRef(null);
 
   useEffect(() => {
@@ -11119,7 +11120,6 @@ function App() {
   const [, setLocalSavedAt] = useState("");
   const [cloudSaveWarning, setCloudSaveWarning] = useState("");
   const [cloudSaveStatus, setCloudSaveStatus] = useState("");
-  const [activeView, setActiveView] = useState(getInitialAppView);
   const previousAuthUserIdRef = useRef(undefined);
   const shouldShowLandingIntro = () => {
     const landingSeen = localStorage.getItem("openingfit_landing_seen") === "true";
