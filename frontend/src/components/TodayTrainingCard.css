@@ -1,0 +1,205 @@
+.todayTrainingCard {
+  scroll-margin-top: 110px;
+  display: grid;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: clamp(16px, 2.5vw, 24px);
+  border: 1px solid rgba(45, 212, 191, 0.24);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(45, 212, 191, 0.14), transparent 28%),
+    rgba(15, 23, 42, 0.62);
+}
+
+.nextBestTrainingAction {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  margin: 0 0 24px;
+  padding: clamp(14px, 2.2vw, 20px);
+  border: 1px solid rgba(45, 212, 191, 0.24);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.nextBestTrainingAction h2,
+.nextBestTrainingAction p {
+  margin: 0;
+}
+
+.nextBestTrainingAction h2 {
+  margin-top: 5px;
+  font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+}
+
+.nextBestTrainingAction p {
+  margin-top: 6px;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.nextBestTrainingAction button {
+  border: 0;
+  border-radius: 12px;
+  min-height: 42px;
+  padding: 0 14px;
+  background: #2dd4bf;
+  color: #042f2e;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.todayTrainingHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.todayTrainingHeader h2,
+.todayTrainingHeader p {
+  margin: 0;
+}
+
+.todayTrainingHeader h2 {
+  margin-top: 6px;
+  font-size: clamp(1.45rem, 2.5vw, 2rem);
+}
+
+.todayTrainingHeader p,
+.todayTrainingReason,
+.todayTrainingSavePrompt,
+.todayTrainingStatus {
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.todayTrainingTime {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 8px 11px;
+  background: rgba(45, 212, 191, 0.12);
+  color: var(--text);
+  font-weight: 900;
+}
+
+.todayTrainingPrimary {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.22);
+}
+
+.todayTrainingPrimary h3 {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.3vw, 1.7rem);
+}
+
+.todayTrainingLine {
+  margin: 0;
+  color: var(--text-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.todayTrainingStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.todayTrainingStats span {
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-soft);
+  font-weight: 850;
+}
+
+.todayTrainingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.todayTrainingActions button {
+  border: 0;
+  border-radius: 12px;
+  min-height: 42px;
+  padding: 0 14px;
+  background: #2dd4bf;
+  color: #042f2e;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.todayTrainingActions button + button {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: transparent;
+  color: var(--text);
+}
+
+.todayTrainingSupport {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.todayTrainingSupport article {
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.16);
+}
+
+.todayTrainingSupport strong,
+.todayTrainingSupport span {
+  display: block;
+}
+
+.todayTrainingSupport span {
+  margin-top: 4px;
+  color: var(--text-soft);
+}
+
+@media (max-width: 700px) {
+  .todayTrainingCard {
+    margin-top: 0;
+    border-radius: 18px;
+  }
+
+  .nextBestTrainingAction {
+    grid-template-columns: 1fr;
+  }
+
+  .nextBestTrainingAction button {
+    width: 100%;
+  }
+
+  .todayTrainingHeader {
+    display: block;
+  }
+
+  .todayTrainingTime {
+    display: inline-flex;
+    margin-top: 12px;
+  }
+
+  .todayTrainingActions,
+  .todayTrainingSupport {
+    grid-template-columns: 1fr;
+  }
+
+  .todayTrainingActions {
+    display: grid;
+  }
+
+  .todayTrainingActions button {
+    width: 100%;
+  }
+}

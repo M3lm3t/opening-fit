@@ -29,7 +29,9 @@ import PremiumTrustStrip from "./components/PremiumTrustStrip";
 import ReportSnapshot from "./components/ReportSnapshot";
 import OpeningCoachPlan from "./components/OpeningCoachPlan";
 import OpeningProgressTracker from "./components/OpeningProgressTracker";
-import WeeklyOpeningReport from "./components/WeeklyOpeningReport";
+import WeeklyOpeningReport, { buildWeeklyOpeningSnapshot } from "./components/WeeklyOpeningReport";
+import OpeningGamificationProgress from "./components/OpeningGamificationProgress";
+import TodayTrainingCard from "./components/TodayTrainingCard";
 import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./components/OpeningEvidence";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
@@ -78,6 +80,8 @@ import AccountRestoreSync from "./components/AccountRestoreSync";
 import { buildReportRetentionKey, logRetentionEvent } from "./services/retentionEvents";
 import { buildOpeningHealthSnapshot } from "./services/openingHealth";
 import { mergeWeakLines } from "./services/weakLineDetection";
+import { buildOpeningGamificationSnapshot } from "./services/openingGamification";
+import { buildTrainingRecommendations } from "./services/trainingRecommendations";
 import { DEMO_REPORT } from "./demoReportData";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
@@ -5224,6 +5228,7 @@ function FinalReportFlow({
   recentGames = [],
   isPremium = false,
   reportHistory = [],
+  openingFitUserState = [],
   reportFilters,
   onReportFiltersChange,
 }) {
@@ -5256,6 +5261,19 @@ function FinalReportFlow({
         onNavigate={onNavigate}
         isPremium={isPremium}
         onUpgrade={() => onNavigate?.("premium")}
+      />
+
+      <NextBestTrainingActionCard
+        data={data}
+        fitData={fitData}
+        onStartTraining={() => {
+          onNavigate?.({
+            view: "train",
+            path: "/train",
+            target: "today-training",
+            fallbackIds: ["training-plan", "opening-practice"],
+          });
+        }}
       />
 
       <CurrentReportSummary
@@ -5325,7 +5343,23 @@ function FinalReportFlow({
 
       <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
       <ImportQualitySummary data={data} />
-      <WeeklyOpeningReport data={data} />
+      <WeeklyOpeningReport
+        data={data}
+        savedHistory={
+          openingFitUserState
+            .flatMap((row) => row?.coach_progress?.weeklyOpeningSnapshots || [])
+            .filter(Boolean)
+        }
+      />
+      <OpeningGamificationProgress
+        data={data}
+        fitData={fitData}
+        savedProgress={
+          openingFitUserState
+            .map((row) => row?.coach_progress?.openingGamification || null)
+            .filter(Boolean)[0] || null
+        }
+      />
 
       <ComeBackAfterPlayingPrompt
         data={data}
@@ -5340,6 +5374,29 @@ function FinalReportFlow({
         onLoadReport={onLoadReport}
       />
     </div>
+  );
+}
+
+function NextBestTrainingActionCard({ data, fitData, onStartTraining }) {
+  const plan = useMemo(() => buildTrainingRecommendations(data, fitData), [data, fitData]);
+  const action = plan.primary;
+
+  if (!data || !action) return null;
+
+  return (
+    <section className="nextBestTrainingAction" aria-label="Your next best training action">
+      <div>
+        <p className="eyebrow">Your Next Best Action</p>
+        <h2>We found the best thing for you to train next.</h2>
+        <p>
+          <strong>{action.opening}</strong>
+          {action.variation ? ` · ${action.variation}` : ""}. {action.reason}. {action.why}
+        </p>
+      </div>
+      <button type="button" onClick={() => onStartTraining?.(action)}>
+        Start Training
+      </button>
+    </section>
   );
 }
 
@@ -6925,6 +6982,16 @@ function OpeningFitProfileDashboard({
           />
         ) : null}
 
+        <OpeningGamificationProgress
+          data={null}
+          fitData={fitData}
+          savedProgress={
+            (Array.isArray(openingFitUserState) ? openingFitUserState : [])
+              .map((row) => row?.coach_progress?.openingGamification || null)
+              .filter(Boolean)[0] || null
+          }
+        />
+
         <RecommendationHistorySection
           data={null}
           fitData={fitData}
@@ -6974,6 +7041,15 @@ function OpeningFitProfileDashboard({
         openingFitUserState={openingFitUserState}
         onAnalyse={onAnalyse}
         onOpenReport={onOpenReport}
+      />
+      <OpeningGamificationProgress
+        data={data}
+        fitData={fitData}
+        savedProgress={
+          (Array.isArray(openingFitUserState) ? openingFitUserState : [])
+            .map((row) => row?.coach_progress?.openingGamification || null)
+            .filter(Boolean)[0] || null
+        }
       />
       <RecommendationHistorySection
         data={data}
@@ -7849,6 +7925,7 @@ function OpeningsCommandPanel({ data, onPractice }) {
 }
 
 function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
+  const { user, recordActivity } = useAuth();
   const weakLines = mergeWeakLines(data);
   const [selectedLine, setSelectedLine] = useState(null);
   const weak = [...(fitData?.scoredOpenings || [])]
@@ -7860,6 +7937,27 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
       return (a.fitScore || 100) - (b.fitScore || 100);
     });
   const focus = weak[0];
+  const trainSelectedLine = async () => {
+    if (!selectedLine) return;
+
+    if (user?.id && recordActivity) {
+      try {
+        await recordActivity("weak_line_training_started", {
+          opening: selectedLine.opening,
+          variation: selectedLine.variation || selectedLine.line,
+          move_line: selectedLine.moveLine,
+          games: selectedLine.games,
+          win_rate: selectedLine.winRate,
+          loss_rate: selectedLine.lossRate,
+          points: 40,
+        });
+      } catch (error) {
+        console.warn("OpeningFit could not record weak-line training activity.", error);
+      }
+    }
+
+    onPractice?.(selectedLine.trainingTarget || selectedLine.opening);
+  };
 
   return (
     <section className="commandPanel weakLinesSection" id="weak-lines">
@@ -7949,7 +8047,7 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
           </div>
 
           <div className="weakLineTrainingActions">
-            <button type="button" onClick={() => onPractice?.(selectedLine.trainingTarget || selectedLine.opening)}>
+            <button type="button" onClick={trainSelectedLine}>
               Open practice board
             </button>
             <button type="button" onClick={() => setSelectedLine(null)}>
@@ -11619,6 +11717,15 @@ function App() {
     const existingImportHistory = Array.isArray(existingState?.import_history)
       ? existingState.import_history
       : [];
+    const existingWeeklySnapshots = Array.isArray(existingState?.coach_progress?.weeklyOpeningSnapshots)
+      ? existingState.coach_progress.weeklyOpeningSnapshots
+      : [];
+    const weeklyOpeningReport = buildWeeklyOpeningSnapshot(report, existingWeeklySnapshots);
+    const openingGamification = buildOpeningGamificationSnapshot(
+      report,
+      null,
+      existingState?.coach_progress?.openingGamification || {}
+    );
     const dedupeDate = progressSnapshot.lastAnalysisDate || summary?.reportDate || new Date().toISOString();
     const nextProgressHistory = [
       progressSnapshot,
@@ -11639,6 +11746,12 @@ function App() {
       },
       ...existingImportHistory.filter((item) => item?.reportDate !== summary?.reportDate),
     ].slice(0, 20);
+    const nextWeeklySnapshots = [
+      weeklyOpeningReport,
+      ...existingWeeklySnapshots.filter(
+        (item) => item?.weekKey !== weeklyOpeningReport.weekKey && item?.id !== weeklyOpeningReport.id
+      ),
+    ].slice(0, 16);
 
     return upsertCloudUserData(
       "openingfit_user_state",
@@ -11652,6 +11765,9 @@ function App() {
           openingFitProgress: progressSnapshot,
           openingHealth,
           weakLines,
+          weeklyOpeningReport,
+          weeklyOpeningSnapshots: nextWeeklySnapshots,
+          openingGamification,
           latestSummary: summary,
         },
         progress_history: nextProgressHistory,
@@ -11975,10 +12091,13 @@ function App() {
             cloudReportHistory || []
           );
           const recommendationSnapshot = buildRecommendationHistorySnapshot(cleanData, importFitData);
+          const openingGamification = buildOpeningGamificationSnapshot(cleanData, importFitData);
           reportSummary.openingFitProgress = progressSnapshot;
+          reportSummary.openingGamification = openingGamification;
 
           await saveCloudReport(cleanData, reportSummary);
           await saveOpeningFitProgressState(cleanData, reportSummary, progressSnapshot);
+          const weeklyOpeningReport = buildWeeklyOpeningSnapshot(cleanData, openingFitUserState?.[0]?.coach_progress?.weeklyOpeningSnapshots || []);
           await saveRecommendationHistory?.(recommendationSnapshot);
           await recordCloudActivity("report_imported", {
             username: cleanData.username || cleanUsername,
@@ -11989,6 +12108,8 @@ function App() {
             openingfit_progress: progressSnapshot,
             opening_health: progressSnapshot.openingHealth || reportSummary.openingHealth,
             weak_lines: progressSnapshot.weakLines || reportSummary.weakLines,
+            weekly_opening_report: weeklyOpeningReport,
+            opening_gamification: openingGamification,
             recommendation_snapshot: recommendationSnapshot,
             dedupe_key: `report_imported:${userReportRetentionKey}`,
           });
@@ -13139,6 +13260,13 @@ function App() {
 
           {activeAppSection === "train" && !reportData && !loading ? (
             <>
+              <TodayTrainingCard
+                data={null}
+                fitData={fitData}
+                onAnalyse={() => handleAppNavigate("analyse")}
+                onStartTraining={(recommendation) => startOpeningPractice(recommendation?.trainingTarget || recommendation?.opening)}
+              />
+
               <div id="opening-practice">
                 <OpeningPracticeLinesPanel
                   opening="Italian Game"
@@ -13302,6 +13430,7 @@ function App() {
                   recentGames={filteredRecentGames}
                   isPremium={isPremium}
                   reportHistory={cloudReportHistory}
+                  openingFitUserState={openingFitUserState}
                   reportFilters={reportFilters}
                   onReportFiltersChange={setReportFilters}
                 />
@@ -13755,6 +13884,13 @@ function App() {
 
               {activeAppSection === "train" ? (
                 <>
+                  <TodayTrainingCard
+                    data={reportData}
+                    fitData={fitData}
+                    onAnalyse={() => handleAppNavigate("analyse")}
+                    onStartTraining={(recommendation) => startOpeningPractice(recommendation?.trainingTarget || recommendation?.opening)}
+                  />
+
                   <div id="opening-practice">
                     <OpeningPracticeLinesPanel
                       opening={practiceOpening || featuredTrainOpening}

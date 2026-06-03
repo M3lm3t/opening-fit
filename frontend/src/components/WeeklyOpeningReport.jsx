@@ -341,9 +341,32 @@ function buildIdentityLine(weekly) {
   return "Your opening identity baseline is saved. The next import will show what changed.";
 }
 
+function buildNextBestAction({ biggestWeakness, mostImproved, mostPlayed, comparison }) {
+  if (biggestWeakness?.name && biggestWeakness.winRate < 45) {
+    return `Review 3 lost ${biggestWeakness.name} games`;
+  }
+
+  if (biggestWeakness?.name) {
+    return `Train ${biggestWeakness.name}`;
+  }
+
+  if (mostPlayed?.name && (mostPlayed.gamesDelta || 0) < 5) {
+    return `Play 5 more ${mostPlayed.name} games`;
+  }
+
+  if (mostImproved?.name) {
+    return `Keep testing ${mostImproved.name}`;
+  }
+
+  return comparison?.newOpenings?.[0]?.name
+    ? `Play 5 more ${comparison.newOpenings[0].name} games`
+    : "Run another import next week";
+}
+
 function buildWeeklyReport(data, current, previous, history) {
   const comparison = compareSnapshots(current, previous);
   const openings = current.openings;
+  const bestOpening = [...openings].sort((a, b) => b.mastery - a.mastery || b.winRate - a.winRate)[0] || null;
   const mostImproved =
     comparison.changes.find((item) => (item.masteryDelta ?? 0) > 0) ||
     [...openings].sort((a, b) => b.mastery - a.mastery)[0] ||
@@ -364,11 +387,15 @@ function buildWeeklyReport(data, current, previous, history) {
     [...comparison.changes].sort((a, b) => b.gamesDelta - a.gamesDelta)[0] ||
     openings[0] ||
     null;
+  const newOpening = comparison.newOpenings[0] || null;
+  const mostPlayed = [...openings].sort((a, b) => b.games - a.games)[0] || null;
   const coach = data?.ai_chess_coach || data?.aiChessCoach || {};
-  const studyFocus =
+  const fallbackFocus =
     coach.headline ||
     coach.recommendations?.[0]?.title ||
     (biggestWeakness ? `Repair ${biggestWeakness.name}` : "Save this report as your weekly baseline");
+  const nextBestAction = buildNextBestAction({ biggestWeakness, mostImproved, mostPlayed, comparison });
+  const studyFocus = nextBestAction || fallbackFocus;
   const repertoireConfidence = average(openings.slice(0, 8).map((item) => item.confidence));
   const studyConsistency = previous
     ? Math.max(0, Math.min(100, 45 + Math.min(35, Math.max(0, comparison.gamesDelta) * 2) + Math.min(20, comparison.changes.length * 4)))
@@ -383,16 +410,61 @@ function buildWeeklyReport(data, current, previous, history) {
 
   return {
     comparison,
+    bestOpening,
     mostImproved,
     biggestWeakness,
     trendOpening,
+    newOpening,
+    mostPlayed,
     studyFocus,
+    nextBestAction,
     repertoireConfidence,
     studyConsistency,
     streak,
     ratingTrend,
     weaknessUpdates,
     identityLine,
+  };
+}
+
+export function buildWeeklyOpeningSnapshot(data = {}, savedHistory = []) {
+  const current = makeSnapshot(data);
+  const history = Array.isArray(savedHistory) ? savedHistory : [];
+  const previous = history.find((item) => item.id !== current.id) || null;
+  const weekly = buildWeeklyReport(data, current, previous, history);
+  const comparisonRows = weekly.comparison.changes.slice(0, 8).map((item) => ({
+    name: item.name,
+    previousWinRate: item.previousWinRate ?? null,
+    winRate: item.winRate,
+    delta: item.winRateDelta ?? null,
+    text:
+      item.previousWinRate !== undefined
+        ? `${item.name}: ${item.previousWinRate} → ${item.winRate} (${signed(item.winRateDelta)})`
+        : `${item.name}: new this week`,
+  }));
+
+  return {
+    ...current,
+    summary: `Best: ${weekly.bestOpening?.name || "Not enough data"}. Next: ${weekly.nextBestAction}.`,
+    bestOpening: weekly.bestOpening,
+    mostImproved: weekly.mostImproved,
+    biggestWeakness: weekly.biggestWeakness,
+    newOpening: weekly.newOpening,
+    mostPlayed: weekly.mostPlayed,
+    nextBestAction: weekly.nextBestAction,
+    comparisonRows,
+    emailReady: {
+      subject: `Your OpeningFit weekly report: ${weekly.nextBestAction}`,
+      preview: `Best opening: ${weekly.bestOpening?.name || "baseline"}. Biggest focus: ${weekly.biggestWeakness?.name || "keep playing"}.`,
+      sections: {
+        bestOpening: weekly.bestOpening,
+        mostImproved: weekly.mostImproved,
+        biggestWeakness: weekly.biggestWeakness,
+        newOpening: weekly.newOpening,
+        mostPlayed: weekly.mostPlayed,
+        nextBestAction: weekly.nextBestAction,
+      },
+    },
   };
 }
 
@@ -410,11 +482,15 @@ function Meter({ value, label }) {
   );
 }
 
-export default function WeeklyOpeningReport({ data }) {
+export default function WeeklyOpeningReport({ data, savedHistory = [] }) {
   const key = useMemo(() => storageKey(data || {}), [data]);
   const currentSnapshot = useMemo(() => makeSnapshot(data || {}), [data]);
   const history = useMemo(() => {
-    const saved = loadHistory(key);
+    const cloudSaved = Array.isArray(savedHistory) ? savedHistory : [];
+    const localSaved = loadHistory(key);
+    const saved = [...cloudSaved, ...localSaved].filter(
+      (item, index, list) => item?.id && list.findIndex((candidate) => candidate?.id === item.id) === index
+    );
 
     if (!currentSnapshot.openings.length) return saved;
 
@@ -458,6 +534,25 @@ export default function WeeklyOpeningReport({ data }) {
       </div>
 
       <div className="weeklyOpeningGrid">
+        <article className="weeklyOpeningCard weeklyOpeningCard--positive weeklyProgressThisWeekCard">
+          <span>Your Progress This Week</span>
+          <h3>{weekly.nextBestAction}</h3>
+          <p>
+            Best opening: {weekly.bestOpening?.name || "baseline pending"}.
+            {previousSnapshot ? " Compared against your previous saved period." : " Save another import next week for deltas."}
+          </p>
+        </article>
+
+        <article className="weeklyOpeningCard weeklyOpeningCard--positive">
+          <span>Best opening this week</span>
+          <h3>{weekly.bestOpening?.name || "Not enough data"}</h3>
+          <p>
+            {weekly.bestOpening
+              ? `${weekly.bestOpening.name} is at ${weekly.bestOpening.winRate}% with ${weekly.bestOpening.games} games.`
+              : "Import more games to identify a weekly strength."}
+          </p>
+        </article>
+
         <article className="weeklyOpeningCard weeklyOpeningCard--positive">
           <span>Most improved opening</span>
           <h3>{weekly.mostImproved?.name || "No movement yet"}</h3>
@@ -479,18 +574,30 @@ export default function WeeklyOpeningReport({ data }) {
         </article>
 
         <article className="weeklyOpeningCard">
-          <span>New opponent trends</span>
-          <h3>{weekly.trendOpening?.name || "Trend baseline"}</h3>
+          <span>New opening discovered</span>
+          <h3>{weekly.newOpening?.name || weekly.trendOpening?.name || "Trend baseline"}</h3>
           <p>
-            {weekly.trendOpening
-              ? `${weekly.trendOpening.name} gained ${weekly.trendOpening.gamesDelta > 0 ? weekly.trendOpening.gamesDelta : weekly.trendOpening.games} tracked games. Opponents may be steering you into this family more often.`
+            {weekly.newOpening
+              ? `${weekly.newOpening.name} appeared with ${weekly.newOpening.games} tracked games.`
+              : weekly.trendOpening
+                ? `${weekly.trendOpening.name} gained ${weekly.trendOpening.gamesDelta > 0 ? weekly.trendOpening.gamesDelta : weekly.trendOpening.games} tracked games.`
               : "New opponent trends will appear once another import is saved."}
           </p>
         </article>
 
+        <article className="weeklyOpeningCard">
+          <span>Most played opening</span>
+          <h3>{weekly.mostPlayed?.name || "Not enough data"}</h3>
+          <p>
+            {weekly.mostPlayed
+              ? `${weekly.mostPlayed.games} games this period, scoring ${weekly.mostPlayed.winRate}%.`
+              : "Most played opening appears after your first imported sample."}
+          </p>
+        </article>
+
         <article className="weeklyOpeningCard weeklyOpeningCard--focus">
-          <span>Recommended study focus</span>
-          <h3>{weekly.studyFocus}</h3>
+          <span>Next Best Action</span>
+          <h3>{weekly.nextBestAction}</h3>
           <p>Keep this week narrow: one opening repair, one repeatable plan, then another import.</p>
         </article>
       </div>
@@ -592,7 +699,7 @@ export default function WeeklyOpeningReport({ data }) {
                 <p>
                   {item.type === "new"
                     ? `${item.games} games added to your identity map.`
-                    : `${formatPercent(item.previousWinRate)} to ${formatPercent(item.winRate)} score, mastery ${signed(item.masteryDelta, "%")}.`}
+                    : `${formatPercent(item.previousWinRate)} → ${formatPercent(item.winRate)} (${signed(item.winRateDelta)}), mastery ${signed(item.masteryDelta, "%")}.`}
                 </p>
               </article>
             ))}
