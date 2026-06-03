@@ -337,6 +337,12 @@
 .googleSignInBtn {
   background: linear-gradient(135deg, #2563eb, #16a34a);
   color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .emailSignInBtn,
@@ -362,8 +368,13 @@
 .emailSignInBtn:disabled,
 .saveAccountBtn:disabled,
 .signOutBtn:disabled {
-  opacity: 0.6;
+  opacity: 0.82;
   cursor: progress;
+}
+
+.googleSignInBtn:disabled {
+  color: #ffffff;
+  background: linear-gradient(135deg, #1d4ed8, #15803d);
 }
 
 .page.light .signOutBtn,
@@ -1265,6 +1276,11 @@
   border-radius: 14px;
 }
 
+.accountPanel--screen .googleSignInBtn {
+  width: 100%;
+  color: #ffffff;
+}
+
 .page.light .accountPanel--screen,
 .light .accountPanel--screen {
   background:
@@ -1293,6 +1309,19 @@
     border-radius: 18px;
     max-height: none;
     overflow: visible;
+  }
+
+  .accountPanel--screen .accountAuthStack,
+  .accountPanel--screen .accountProfileStack {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .accountPanel--screen .googleSignInBtn,
+  .accountPanel--screen .emailSignInBtn,
+  .accountPanel--screen .saveAccountBtn,
+  .accountPanel--screen .signOutBtn {
+    min-height: 44px;
   }
 
   .accountPanel--screen .accountPanelHeader {
