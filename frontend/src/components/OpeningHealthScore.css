@@ -1,0 +1,136 @@
+.openingHealthDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 0.85rem;
+  margin-top: 0.9rem;
+}
+
+.openingHealthPanel {
+  padding: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.openingHealthPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.openingHealthPanelHeader span,
+.openingHealthRatingRow span,
+.openingHealthFactors span,
+.healthDeltaPositive,
+.healthDeltaNegative {
+  color: rgba(248, 250, 252, 0.68);
+  font-size: 0.85rem;
+  font-weight: 850;
+}
+
+.openingHealthRatingRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.7rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.openingHealthRatingRow:first-child {
+  border-top: 0;
+}
+
+.openingHealthRatingRow strong,
+.openingHealthRatingRow span {
+  display: block;
+}
+
+.openingHealthRatingRow > div:last-child {
+  min-width: 92px;
+  text-align: right;
+}
+
+.healthDeltaPositive {
+  color: #bbf7d0;
+}
+
+.healthDeltaNegative {
+  color: #fecaca;
+}
+
+.openingHealthTrendGraph {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(18px, 1fr));
+  gap: 0.45rem;
+  align-items: end;
+  min-height: 150px;
+  padding: 0.75rem;
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.34);
+}
+
+.openingHealthTrendGraph span {
+  position: relative;
+  display: block;
+  min-height: 16px;
+  height: var(--bar-height);
+  border-radius: 999px 999px 6px 6px;
+  background: linear-gradient(180deg, #d9f99d, #22c55e);
+}
+
+.openingHealthTrendGraph em {
+  position: absolute;
+  right: 50%;
+  bottom: calc(100% + 0.25rem);
+  transform: translateX(50%);
+  color: rgba(248, 250, 252, 0.76);
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.openingHealthTrendEmpty {
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+  padding: 1rem;
+  border-radius: 16px;
+  color: rgba(248, 250, 252, 0.7);
+  background: rgba(2, 6, 23, 0.34);
+  text-align: center;
+  font-weight: 850;
+}
+
+.openingHealthFactors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.openingHealthFactors span {
+  padding: 0.42rem 0.56rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 760px) {
+  .openingHealthDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .openingHealthPanelHeader,
+  .openingHealthRatingRow {
+    grid-template-columns: 1fr;
+  }
+
+  .openingHealthPanelHeader {
+    display: block;
+  }
+
+  .openingHealthRatingRow > div:last-child {
+    text-align: left;
+  }
+}

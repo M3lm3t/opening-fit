@@ -50,7 +50,7 @@ import { CoachSummaryCard, SeriousAppTabs, SeriousPremiumStrip, NextBestActions 
 
 import ReportHistoryVault from "./components/ReportHistoryVault";
 
-import AppActionRouter, { AppOpeningHealthScore } from "./components/AppActionRouter";
+import AppActionRouter from "./components/AppActionRouter";
 
 import OpeningDiagnosisPanel from "./components/OpeningDiagnosisPanel";
 import EvidenceBackedOpeningDiagnosis from "./components/EvidenceBackedOpeningDiagnosis";
@@ -75,6 +75,7 @@ import {
 } from "./components/playerLevelLogic";
 import AccountRestoreSync from "./components/AccountRestoreSync";
 import { buildReportRetentionKey, logRetentionEvent } from "./services/retentionEvents";
+import { buildOpeningHealthSnapshot } from "./services/openingHealth";
 import { DEMO_REPORT } from "./demoReportData";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
@@ -3613,6 +3614,7 @@ function buildReportHistorySummary(data, fitData = null) {
     topOpenings[0]?.name ||
     "No clear target yet";
   const progressSnapshot = buildOpeningFitProgressSnapshot(data, fitData);
+  const openingHealth = buildOpeningHealthSnapshot(data, fitData);
 
   return {
     reportDate: new Date().toISOString(),
@@ -3642,11 +3644,13 @@ function buildReportHistorySummary(data, fitData = null) {
     confidenceLevels: Object.fromEntries(topOpenings.map((item) => [item.name, item.confidence])),
     studyTarget,
     healthScore:
+      openingHealth.score ??
       fitData?.overallScore ??
       data?.openingFitScore ??
       data?.opening_fit_score ??
       data?.opening_health_score ??
       null,
+    openingHealth,
     openingFitProgress: progressSnapshot,
   };
 }
@@ -3822,6 +3826,7 @@ function buildOpeningFitProgressSnapshot(data = {}, fitData = null, reportHistor
       data?.opening_health_score
   );
   const recommendation = getProgressRecommendationCandidate(data, fitData);
+  const openingHealth = buildOpeningHealthSnapshot(data, fitData, reportHistory);
   const mainOpeningRecommendation = recommendation ? getOpeningName(recommendation) : "No clear recommendation yet";
   const gamesNeeded = Math.max(0, 10 - gamesAnalysed);
 
@@ -3837,7 +3842,8 @@ function buildOpeningFitProgressSnapshot(data = {}, fitData = null, reportHistor
       new Date().toISOString(),
     mainOpeningRecommendation,
     recommendationConfidence: getProgressRecommendationConfidence(recommendation, data),
-    repertoireConfidenceScore: score,
+    repertoireConfidenceScore: openingHealth.score ?? score,
+    openingHealth,
     styleProfileSummary: getProgressStyleSummary(data),
     gamesNeededForStrongerRecommendation: gamesNeeded,
     suggestedNextAction: gamesNeeded
@@ -5211,6 +5217,7 @@ function FinalReportFlow({
   onLoadReport,
   recentGames = [],
   isPremium = false,
+  reportHistory = [],
   reportFilters,
   onReportFiltersChange,
 }) {
@@ -5251,6 +5258,12 @@ function FinalReportFlow({
         onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
         reportMode={reportMode}
         onReportModeChange={setReportMode}
+      />
+
+      <OpeningHealthScore
+        data={data}
+        fitData={fitData}
+        history={reportHistory}
       />
 
       <ReportOpeningFilters
@@ -11527,6 +11540,7 @@ function App() {
 
   const saveOpeningFitProgressState = async (report, summary, progressSnapshot) => {
     if (!supabaseUser?.id || !upsertCloudUserData || !progressSnapshot) return null;
+    const openingHealth = progressSnapshot.openingHealth || summary?.openingHealth || null;
 
     const nextUsername =
       report?.username ||
@@ -11582,6 +11596,7 @@ function App() {
         coach_progress: {
           ...(existingState?.coach_progress || {}),
           openingFitProgress: progressSnapshot,
+          openingHealth,
           latestSummary: summary,
         },
         progress_history: nextProgressHistory,
@@ -11917,6 +11932,7 @@ function App() {
             analysis_time_format: cleanData.analysisTimeFormat,
             detected_time_format: cleanData.detectedTimeFormat,
             openingfit_progress: progressSnapshot,
+            opening_health: progressSnapshot.openingHealth || reportSummary.openingHealth,
             recommendation_snapshot: recommendationSnapshot,
             dedupe_key: `report_imported:${userReportRetentionKey}`,
           });
@@ -13229,6 +13245,7 @@ function App() {
                   onLoadReport={setData}
                   recentGames={filteredRecentGames}
                   isPremium={isPremium}
+                  reportHistory={cloudReportHistory}
                   reportFilters={reportFilters}
                   onReportFiltersChange={setReportFilters}
                 />
