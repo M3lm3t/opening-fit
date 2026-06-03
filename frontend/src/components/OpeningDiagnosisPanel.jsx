@@ -273,7 +273,7 @@ export default function OpeningDiagnosisPanel({ data, onViewChange }) {
       onViewChange("train");
     }
 
-    setTimeout(() => scrollToTarget("next-actions"), 80);
+    setTimeout(() => scrollToTarget("training-plan"), 80);
   };
 
   const goProgress = () => {

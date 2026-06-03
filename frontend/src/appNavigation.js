@@ -36,20 +36,20 @@ export const APP_NAV_ROUTES = {
   training: { view: "train", path: "/train", target: "training-plan" },
   train: { view: "train", path: "/train", target: "training-plan" },
   games: { view: "games", path: "/train", target: "game-replay", fallbackIds: ["training-plan", "app-results"] },
-  data: { view: "games", path: "/train", target: "game-replay", fallbackIds: ["training-plan", "app-results"] },
-  interactive: { view: "train", path: "/train", target: "opening-practice", fallbackIds: ["training-plan", "app-results"] },
-  practice: { view: "train", path: "/train", target: "opening-practice", fallbackIds: ["training-plan", "app-results"] },
+  data: { view: "data", path: "/train", target: "game-replay", fallbackIds: ["training-plan", "app-results"] },
+  interactive: { view: "interactive", path: "/train", target: "opening-practice", fallbackIds: ["training-plan", "app-results"] },
+  practice: { view: "practice", path: "/train", target: "opening-practice", fallbackIds: ["training-plan", "app-results"] },
   profile: { view: "profile", path: "/account", target: "profile" },
-  account: { view: "profile", path: "/account", target: "profile-account" },
-  login: { view: "profile", path: "/login", target: "login" },
+  account: { view: "account", path: "/account", target: "profile-account" },
+  login: { view: "login", path: "/login", target: "login" },
   history: {
-    view: "profile",
+    view: "history",
     path: "/account",
     target: "recommendation-history",
     fallbackIds: ["report-history", "profile"],
   },
-  progress: { view: "profile", path: "/account", target: "openingfit-progress" },
-  premium: { view: "profile", path: "/premium", target: "premium", fallbackIds: ["profile"] },
+  progress: { view: "progress", path: "/account", target: "openingfit-progress" },
+  premium: { view: "premium", path: "/premium", target: "premium", fallbackIds: ["profile"] },
   feedback: { view: "feedback", path: "/", target: "feedback" },
 };
 
@@ -79,7 +79,7 @@ export function getAppSection(view) {
     progress: "profile",
     premium: "profile",
     upgrade: "profile",
-    feedback: "profile",
+    feedback: "feedback",
   };
 
   return aliases[String(view || "").toLowerCase()] || "analyse";

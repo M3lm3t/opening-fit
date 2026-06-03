@@ -5,10 +5,16 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
   const activeSection = getAppSection(activeView);
   const items = [
     { key: "home", label: "Home", Icon: Home, activeSections: ["analyse"] },
-    { key: "report", label: "Report", Icon: BarChart3, needsReport: true },
-    { key: "training", label: "Training", Icon: Dumbbell, needsReport: true, activeViews: ["train", "training"] },
-    { key: "games", label: "Games", Icon: Gamepad2, needsReport: true },
-    { key: "profile", label: "Profile", Icon: User },
+    { key: "report", label: "Report", Icon: BarChart3, needsReport: true, activeSections: ["report"] },
+    {
+      key: "training",
+      label: "Training",
+      Icon: Dumbbell,
+      needsReport: true,
+      activeViews: ["train", "training", "interactive", "practice"],
+    },
+    { key: "games", label: "Games", Icon: Gamepad2, needsReport: true, activeViews: ["games", "data"] },
+    { key: "profile", label: "Profile", Icon: User, activeSections: ["profile"] },
   ];
 
   function handleClick(event, item) {
@@ -25,7 +31,7 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
           activeView === item.key ||
           item.activeViews?.includes(activeView) ||
           item.activeSections?.includes(activeSection) ||
-          (!item.activeSections && activeSection === getAppSection(item.key) && item.key !== "games");
+          (!item.activeViews && !item.activeSections && activeSection === getAppSection(item.key));
 
         return (
           <button

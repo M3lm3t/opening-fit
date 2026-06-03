@@ -139,7 +139,7 @@ export function AppOpeningHealthScore({ data, onViewChange }) {
 
   const goTraining = () => {
     if (typeof onViewChange === "function") onViewChange("train");
-    setTimeout(() => scrollToTarget("next-actions"), 80);
+    setTimeout(() => scrollToTarget("training-plan"), 80);
   };
 
   const goProgress = () => {

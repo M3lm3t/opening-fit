@@ -81,12 +81,17 @@ export default function ReportCommandBar({
   const focusOpening = findFocusOpening(data);
 
   const views = [
-    { key: "overview", label: "Overview", mode: "summary" },
-    { key: "recommendations", label: "Recommendations", mode: "full" },
-    { key: "training", label: "Training" },
-    { key: "games", label: "Games" },
-    { key: "data", label: "Data" },
-    { key: "interactive", label: "Interactive" },
+    { key: "overview", label: "Overview", mode: "summary", activeViews: ["overview", "report"] },
+    {
+      key: "recommendations",
+      label: "Recommendations",
+      mode: "full",
+      activeViews: ["recommendations", "repertoire", "openings", "weakspots", "verdicts"],
+    },
+    { key: "training", label: "Training", activeViews: ["train", "training"] },
+    { key: "games", label: "Games", activeViews: ["games"] },
+    { key: "data", label: "Data", activeViews: ["data"] },
+    { key: "interactive", label: "Interactive", activeViews: ["interactive", "practice"] },
   ];
 
   const jumpToView = (view) => {
@@ -133,6 +138,7 @@ export default function ReportCommandBar({
             type="button"
             className={
               activeView === view.key ||
+              view.activeViews?.includes(activeView) ||
               (view.mode && reportMode === view.mode)
                 ? "is-active"
                 : ""

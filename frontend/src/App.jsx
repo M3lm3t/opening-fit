@@ -5046,7 +5046,7 @@ function MobileReportQuickGuide({ data, fitData, onPractice, onViewChange }) {
       opening: replaceOpening,
       fallback: "No replacement needed yet",
       score: replaceOpening ? getWinRate(replaceOpening) : null,
-      reason: replaceOpening ? "Costing rating points" : "Current data is not clear enough",
+      reason: replaceOpening ? "Creating avoidable risk" : "Current data is not clear enough",
       cta: "Find Alternative",
       target: "analysis-next-steps",
       onClick: () => scrollToTarget("analysis-next-steps"),
@@ -8387,13 +8387,23 @@ function FloatingAppMenu({ data, activeView, onNavigate }) {
   const activeSection = getAppSection(activeView);
 
   const menuRoutes = [
-    { key: "analyse", label: "Analyse" },
-    { key: "report", label: "Report" },
-    { key: "training", label: "Training" },
-    { key: "profile", label: "Profile" },
-    { key: "premium", label: "Premium" },
-    { key: "feedback", label: "Feedback" },
+    { key: "analyse", label: "Analyse", activeSections: ["analyse"] },
+    { key: "report", label: "Report", activeSections: ["report"] },
+    { key: "training", label: "Training", activeViews: ["train", "training", "interactive", "practice"] },
+    { key: "profile", label: "Profile", activeViews: ["profile", "account", "login", "history", "progress"] },
+    { key: "premium", label: "Premium", activeViews: ["premium", "upgrade"], activePaths: ["/premium"] },
+    { key: "feedback", label: "Feedback", activeSections: ["feedback"] },
   ];
+
+  const isRouteActive = (route) => {
+    const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+    return (
+      route.activeViews?.includes(activeView) ||
+      route.activeSections?.includes(activeSection) ||
+      route.activePaths?.includes(currentPath) ||
+      activeView === route.key
+    );
+  };
 
   const navigate = (event, route) => {
     event?.preventDefault();
@@ -8427,12 +8437,7 @@ function FloatingAppMenu({ data, activeView, onNavigate }) {
               <button
                 key={route.key}
                 type="button"
-                className={
-                  activeView === route.view ||
-                  (route.key !== "feedback" && activeSection === getAppSection(route.key))
-                    ? "isActive"
-                    : ""
-                }
+                className={isRouteActive(route) ? "isActive" : ""}
                 onClick={(event) => navigate(event, route)}
               >
                 {route.label}
@@ -8456,7 +8461,6 @@ function AppPrimaryNav({
   onThemeToggle,
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const activeSection = getAppSection(activeView);
   const items = accountUser
     ? [
         { key: "recommendations", label: "Recommendations" },
@@ -8474,8 +8478,31 @@ function AppPrimaryNav({
   const primaryAction = accountUser
     ? { key: "analyse", label: "Analyse New Games" }
     : { key: "analyse", label: "Get Started" };
-  const activeItemKey = items.find((item) => getAppSection(item.key) === activeSection)?.key;
   const mobileMenuId = "openingfit-mobile-menu";
+  const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+
+  const isPrimaryNavItemActive = (item) => {
+    if (item.key === activeView) return true;
+
+    const activeViewsByKey = {
+      analyse: ["analyse", "home", "import"],
+      recommendations: ["report", "overview", "recommendations", "repertoire", "openings", "weakspots", "verdicts"],
+      example: ["report", "overview", "recommendations", "repertoire", "openings", "weakspots", "verdicts"],
+      training: ["train", "training", "interactive", "practice"],
+      games: ["games", "data"],
+      history: ["history"],
+      account: ["profile", "account", "progress"],
+      pricing: ["premium", "upgrade"],
+      login: ["login"],
+    };
+
+    if (activeViewsByKey[item.key]?.includes(activeView)) return true;
+    if (item.key === "pricing" && currentPath === "/premium") return true;
+    if (item.key === "login" && currentPath === "/login") return true;
+    if (item.key === "account" && currentPath === "/account" && !["history"].includes(activeView)) return true;
+
+    return false;
+  };
 
   const navigate = (event, item) => {
     event.preventDefault();
@@ -8509,7 +8536,7 @@ function AppPrimaryNav({
 
         <div className="appPrimaryTabs" role="list">
           {items.map((item) => {
-            const isActive = item.key === activeItemKey;
+            const isActive = isPrimaryNavItemActive(item);
 
             return (
               <a
@@ -8554,7 +8581,7 @@ function AppPrimaryNav({
 
         <div className="appPrimaryMobileLinks">
           {[primaryAction, ...items].map((item) => {
-            const isActive = item.key === activeItemKey || getAppSection(item.key) === activeSection;
+            const isActive = isPrimaryNavItemActive(item);
             return (
               <a
                 key={`${item.key}-${item.label}`}
@@ -9003,7 +9030,7 @@ function LandingSection({ onOpeningClick }) {
     },
     {
       title: "Scan openings",
-      text: "Review recent results in under a minute.",
+      text: "Review recent opening results.",
     },
     {
       title: "Get the plan",
@@ -9025,7 +9052,7 @@ function LandingSection({ onOpeningClick }) {
     {
       label: "Replace",
       title: "Englund Gambit",
-      text: "Costing rating points. Find a safer alternative.",
+      text: "Creating avoidable risk. Find a safer alternative.",
     },
   ];
 
@@ -9044,40 +9071,40 @@ function LandingSection({ onOpeningClick }) {
 
   const credibilityStats = [
     {
-      value: "30+",
-      label: "early testers",
-      detail: "Players used sample and real imports during the launch period.",
+      value: "Public",
+      label: "game imports",
+      detail: "OpeningFit works from public Chess.com and Lichess game history.",
     },
     {
-      value: "1,900+",
-      label: "public games processed",
-      detail: "Across beta imports, demo reports, and QA test accounts.",
+      value: "Colour-aware",
+      label: "opening grouping",
+      detail: "White choices and Black responses are kept separate in the report.",
     },
     {
-      value: "42 sec",
-      label: "median sample import",
-      detail: "Measured on recent test imports with public Chess.com/Lichess data.",
+      value: "Confidence",
+      label: "before verdicts",
+      detail: "Small samples are labelled before OpeningFit makes a strong recommendation.",
     },
   ];
 
   const credibilityTestimonials = [
     {
       quote:
-        "I cut my opening review from a 90-minute spreadsheet check to a 12-minute shortlist.",
-      name: "Rapid player, 1350 Chess.com",
-      metric: "1 study target instead of 7 candidate openings",
+        "A player with scattered White results can use the report to choose one study target instead of reviewing every opening at once.",
+      name: "Example workflow",
+      metric: "One study target instead of a long candidate list",
     },
     {
       quote:
-        "The report showed my Black vs 1.d4 results were scattered, so I stopped blaming my whole repertoire.",
-      name: "Club player, weekend prep",
-      metric: "Reduced prep from 4 openings to 1 repair line",
+        "A player struggling as Black can check whether the issue is all 1.d4 games or one repeated structure.",
+      name: "Example workflow",
+      metric: "Narrow prep from broad repertoire change to one repair line",
     },
     {
       quote:
-        "I expected generic advice. The useful part was seeing low-confidence openings separated from real patterns.",
-      name: "Lichess rapid improver",
-      metric: "Found 3 reliable openings and 2 low-data experiments",
+        "A player trying new gambits can see which openings are low-data experiments before replacing a stable repertoire choice.",
+      name: "Example workflow",
+      metric: "Separate reliable openings from experiments",
     },
   ];
 
@@ -9100,7 +9127,7 @@ function LandingSection({ onOpeningClick }) {
     {
       item: "Manual review",
       manual: "60-120 min",
-      openingFit: "Under 1 min import, then review",
+      openingFit: "Automated import, then focused review",
     },
     {
       item: "Opening grouping",
@@ -9261,7 +9288,7 @@ function LandingSection({ onOpeningClick }) {
         <div className="floatingRepertoireCard floatingRepertoireCardWhite" aria-hidden="true">
           <span>White</span>
           <strong>Italian Game</strong>
-          <small>stable fit · 64%</small>
+          <small>stable fit · review plan</small>
         </div>
         <div className="floatingRepertoireCard floatingRepertoireCardBlack" aria-hidden="true">
           <span>Black vs e4</span>
@@ -9585,7 +9612,7 @@ function LandingSection({ onOpeningClick }) {
           <p className="landingEyebrow">Social proof</p>
           <h2>Players use OpeningFit to make opening study simpler.</h2>
           <p>
-            Early users are turning messy game history into one clear study target.
+            The workflow is designed to turn messy game history into one clear study target.
           </p>
         </div>
 
