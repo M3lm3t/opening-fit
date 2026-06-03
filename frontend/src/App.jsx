@@ -13088,16 +13088,52 @@ function App() {
           <header className="hero heroCard compactImportHero analyseImportHero" aria-busy={loading}>
             <div className="heroTop">
               <div className="heroTitleWrap">
-                <p className="eyebrow">OpeningFit for club players</p>
-                <h1>Find Chess Openings That Match Your Playing Style</h1>
+                <p className="eyebrow">Chess opening analysis app</p>
+                <h1>Find the openings that actually fit your games</h1>
                 <p className="subtext">
-                  Import your Chess.com or Lichess games and discover which openings fit your results,
-                  strengths, and weaknesses.
+                  Turn your Chess.com or Lichess history into a clear repertoire decision:
+                  what to keep, what to repair, and what to train next.
                 </p>
                 <div className="landingHeroProof" aria-label="OpeningFit trust summary">
-                  <span>Analyse public games instantly</span>
-                  <span>Free account saves reports</span>
-                  <span>Sync across devices</span>
+                  <span>Chess.com</span>
+                  <span>Lichess</span>
+                  <span>One recommended action</span>
+                </div>
+              </div>
+              <div className="analyseHeroVisual" aria-hidden="true">
+                <div className="analyseHeroVisualTop">
+                  <span>Live report preview</span>
+                  <strong>OpeningFit Dashboard</strong>
+                </div>
+                <div className="analyseHeroPlatformBadges">
+                  <span>Chess.com</span>
+                  <span>Lichess</span>
+                </div>
+                <div className="analyseHeroVisualBoard">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <strong>72</strong>
+                </div>
+                <div className="analyseHeroScorePills">
+                  <span>Opening Fit Score</span>
+                  <span>Keep</span>
+                  <span>Improve</span>
+                  <span>Avoid</span>
+                </div>
+                <div className="analyseHeroVisualPanel">
+                  <span>Opening fit</span>
+                  <strong>Caro-Kann</strong>
+                  <small>Train this line</small>
+                </div>
+                <div className="analyseHeroVisualMetric">
+                  <span>Weak spot</span>
+                  <strong>3 losses</strong>
                 </div>
               </div>
               <a
@@ -13157,6 +13193,9 @@ function App() {
                     platforms[platform]?.usernamePlaceholder || "Chess username"
                   }
                 />
+                <small className="heroUsernameHelp">
+                  Enter a public username. OpeningFit imports recent games and returns a single next step.
+                </small>
               </label>
 
               <div className="appActionButtons">
