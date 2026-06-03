@@ -1,4 +1,3 @@
-import OpeningFitUXCleanup from "./components/OpeningFitUXCleanup.jsx";
 import OpeningFitStudyPlanner from "./components/OpeningFitStudyPlanner.jsx";
 import OpeningFitRetentionCommandCenter from "./components/OpeningFitRetentionCommandCenter.jsx";
 import OpeningFitProgressionDashboard from "./components/OpeningFitProgressionDashboard.jsx";
@@ -6,10 +5,6 @@ import OpeningFitRetentionSystems from "./components/OpeningFitRetentionSystems.
 import OpeningFitImportDoctor from "./components/OpeningFitImportDoctor.jsx";
 import OpeningFitFunctionalityHub from "./components/OpeningFitFunctionalityHub.jsx";
 import OpeningFitFunctionalTools from "./components/OpeningFitFunctionalTools.jsx";
-import OpeningFitFinalCTA from "./components/OpeningFitFinalCTA.jsx";
-import OpeningFitTrustBar from "./components/OpeningFitTrustBar.jsx";
-import PolishedOpeningFitReportHero from "./components/OpeningFitReportHero.jsx";
-import OpeningFitTrustSections from "./components/OpeningFitTrustSections.jsx";
 import OpeningFitPolishToast from "./components/OpeningFitPolishToast.jsx";
 import "./components/OpeningFitPolish.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -28,20 +23,16 @@ import ResultsCommandCenter from "./components/ResultsCommandCenter";
 import OpeningHealthScore from "./components/OpeningHealthScore";
 import ProgressTracker from "./components/ProgressTracker";
 import ShareReport from "./components/ShareReport";
-import PremiumCoachPlan from "./components/PremiumCoachPlan";
 import MyRepertoire from "./components/MyRepertoire";
 import PremiumTrustStrip from "./components/PremiumTrustStrip";
-import LandingModal from "./components/LandingModal";
 import ReportSnapshot from "./components/ReportSnapshot";
 import OpeningCoachPlan from "./components/OpeningCoachPlan";
 import OpeningProgressTracker from "./components/OpeningProgressTracker";
 import WeeklyOpeningReport from "./components/WeeklyOpeningReport";
 import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./components/OpeningEvidence";
-import OpeningFitTrustUpgrade from "./components/OpeningFitTrustUpgrade";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
-import TrustFaq from "./components/TrustFaq";
 import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
 import OpeningSnapshot from "./components/OpeningSnapshot";
@@ -66,7 +57,6 @@ import EvidenceBackedOpeningDiagnosis from "./components/EvidenceBackedOpeningDi
 
 import ShipReadyPanel from "./components/ShipReadyPanel";
 
-import { CoachVerdict, RecommendedRepertoire, PremiumPath } from "./components/ProductPolish";
 
 import CleanReportHeader from "./components/CleanReportHeader";
 
@@ -107,130 +97,6 @@ import {
   getOpeningSeoPage,
   getOpeningSeoSlugFromPath,
 } from "./data/openingSeoPages.js";
-
-const SAMPLE_OPENING_FIT_REPORT = {
-  username: "DemoPlayer",
-  playerName: "DemoPlayer",
-  requestedUsername: "DemoPlayer",
-  platform: "demo",
-  importPlatform: "demo",
-  gamesImported: 84,
-  totalGames: 84,
-  gamesFound: 84,
-  gamesAnalysed: 84,
-  gamesAnalyzed: 84,
-  skippedGames: 0,
-  monthsChecked: 3,
-  importedAt: new Date().toISOString(),
-  styleLabel: "Attacking practical player",
-  styleSummary:
-    "Your strongest results come from active piece play, open centres, and positions where you can develop quickly before choosing a direct attacking plan.",
-  openings: [
-    {
-      name: "Vienna Game",
-      games: 18,
-      winRate: 67,
-      colour: "white",
-      verdict: "keep",
-    },
-    {
-      name: "Italian Game",
-      games: 14,
-      winRate: 61,
-      colour: "white",
-      verdict: "keep",
-    },
-    {
-      name: "Scandinavian Defence",
-      games: 16,
-      winRate: 44,
-      colour: "black",
-      verdict: "improve",
-    },
-    {
-      name: "Caro-Kann Defence",
-      games: 11,
-      winRate: 55,
-      colour: "black",
-      verdict: "keep",
-    },
-    {
-      name: "King's Gambit",
-      games: 7,
-      winRate: 29,
-      colour: "white",
-      verdict: "avoid",
-    },
-    {
-      name: "Sicilian Defence sidelines",
-      games: 9,
-      winRate: 33,
-      colour: "black",
-      verdict: "avoid",
-    },
-  ],
-  topOpenings: [
-    {
-      name: "Vienna Game",
-      games: 18,
-      winRate: 67,
-      colour: "white",
-    },
-    {
-      name: "Italian Game",
-      games: 14,
-      winRate: 61,
-      colour: "white",
-    },
-    {
-      name: "Caro-Kann Defence",
-      games: 11,
-      winRate: 55,
-      colour: "black",
-    },
-  ],
-  openingStats: {
-    "Vienna Game": {
-      games: 18,
-      winRate: 67,
-      colour: "white",
-    },
-    "Italian Game": {
-      games: 14,
-      winRate: 61,
-      colour: "white",
-    },
-    "Scandinavian Defence": {
-      games: 16,
-      winRate: 44,
-      colour: "black",
-    },
-    "Caro-Kann Defence": {
-      games: 11,
-      winRate: 55,
-      colour: "black",
-    },
-    "King's Gambit": {
-      games: 7,
-      winRate: 29,
-      colour: "white",
-    },
-  },
-  recommendations: [
-    {
-      name: "Vienna Game",
-      games: 18,
-      winRate: 67,
-      colour: "white",
-    },
-    {
-      name: "Caro-Kann Defence",
-      games: 11,
-      winRate: 55,
-      colour: "black",
-    },
-  ],
-};
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
@@ -11039,6 +10905,7 @@ function App() {
   const [data, setData] = useState(null);
   const [activeView, setActiveView] = useState(getInitialAppView);
   const importAbortRef = useRef(null);
+  const parsedPgnMovesCacheRef = useRef(new Map());
 
   useEffect(() => {
     setAccountUser(supabaseUser || null);
@@ -11069,10 +10936,6 @@ function App() {
 
     if (window.location.pathname !== "/report") {
       window.history.pushState({}, "", "/report");
-    }
-
-    if (typeof setShowLanding === "function") {
-      setShowLanding(false);
     }
 
     setTimeout(() => {
@@ -11189,12 +11052,7 @@ function App() {
     return !hasSavedReport && !landingSeen && !hasAppHash;
   };
 
-  const [showLanding, setShowLanding] = useState(shouldShowLandingIntro);
-
   // This is intentionally session-only.
-  // First visit: public/example landing is visible behind the modal.
-  // Close modal: public/example landing stays visible.
-  // Refresh after close: localStorage prevents it coming back.
   const [showPublicLanding, setShowPublicLanding] = useState(shouldShowLandingIntro);
 
   useEffect(() => {
@@ -11247,7 +11105,6 @@ function App() {
 
   const rememberLandingSeen = ({ keepPublicLanding = true } = {}) => {
     localStorage.setItem("openingfit_landing_seen", "true");
-    setShowLanding(false);
     setShowPublicLanding(Boolean(keepPublicLanding));
   };
 
@@ -11299,7 +11156,6 @@ function App() {
         if (parsed?.analysis) {
           setData(parsed.analysis);
           setLocalSavedAt(parsed.savedAt || "");
-          setShowLanding(false);
           setShowPublicLanding(false);
           if (getCurrentPath() === "/") {
             setActiveView("report");
@@ -12601,10 +12457,24 @@ function App() {
   const selectedReplayGame = useMemo(() => {
     if (!selectedGame) return null;
 
-    const parsedMoves =
-      Array.isArray(selectedGame.moves) && selectedGame.moves.length
-        ? selectedGame.moves
-        : getMovesFromPgn(selectedGame.pgn);
+    let parsedMoves = Array.isArray(selectedGame.moves) && selectedGame.moves.length
+      ? selectedGame.moves
+      : null;
+
+    if (!parsedMoves) {
+      const pgn = selectedGame.pgn || selectedGame.PGN || selectedGame.rawPgn || "";
+      const cacheKey = selectedGame.url || pgn;
+
+      if (cacheKey && parsedPgnMovesCacheRef.current.has(cacheKey)) {
+        parsedMoves = parsedPgnMovesCacheRef.current.get(cacheKey);
+      } else {
+        parsedMoves = getMovesFromPgn(pgn);
+
+        if (cacheKey) {
+          parsedPgnMovesCacheRef.current.set(cacheKey, parsedMoves);
+        }
+      }
+    }
 
     return {
       id: selectedGame.url || selectedGame.pgn || `${selectedGameIndex}`,
@@ -12683,7 +12553,6 @@ function App() {
 
   useEffect(() => {
     if (hasReport) {
-      setShowLanding(false);
       try {
         localStorage.setItem("openingFit:landingSeen", "true");
       } catch {
@@ -12891,14 +12760,6 @@ function App() {
 
         {data ? (
           <>
-            {false ? <OpeningFitUXCleanup
-              data={data}
-              username={username}
-              onJump={jumpToSection}
-              activeView={activeView}
-              onViewChange={setActiveView}
-            /> : null}
-
             <OpeningFitImportDoctor username={username} />
 
           </>
@@ -12947,66 +12808,6 @@ function App() {
             showWakeupMessage={loadingElapsedSeconds >= 15}
             onCancel={cancelImport}
           />
-        ) : null}
-
-        {false && data ? <OpeningFitTrustBar data={data} /> : null}
-
-        {false && data ? (
-          <OpeningFitTrustUpgrade
-            onFounderPass={handleFounderPassClick}
-            onDemo={loadDemoReport}
-            onImport={() => {
-              const el =
-                document.getElementById("app-dashboard") ||
-                document.getElementById("import") ||
-                document.querySelector("input");
-
-              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-            }}
-            onSample={() => {
-              const el = document.getElementById("sample-report");
-              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-          />
-        ) : null}
-
-        {false && showLanding && !hasReport ? (
-          <LandingModal
-            username={username}
-            setUsername={setUsername}
-            platform={platform}
-            setPlatform={setPlatform}
-            onImport={importGames}
-            loading={loading}
-            onClose={rememberLandingSeen}
-            theme={theme}
-            onThemeToggle={() =>
-              setTheme((current) => (current === "dark" ? "light" : "dark"))
-            }
-            onDemoReport={() => {
-            const cleanDemo = normaliseData(SAMPLE_OPENING_FIT_REPORT);
-            setData(cleanDemo);
-            setUsername("DemoPlayer");
-            setPlatform("chesscom");
-            rememberLandingSeen({ keepPublicLanding: false });
-            setActiveView("report");
-
-            setTimeout(() => {
-              const el = document.getElementById("app-results");
-              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-            }, 80);
-          }}
-        />
-
-        
-) : null}
-
-
-        {false && isPublicLanding ? (
-          <div className="publicLandingTop" id="public-landing-top">
-            <LandingSection onOpeningClick={startOpeningPractice} />
-            <TrustFaq />
-          </div>
         ) : null}
 
         <main className="container appShell" id="app-dashboard">
@@ -13838,16 +13639,6 @@ function App() {
                 </>
               ) : null}
 
-        {false && data ? (
-          <div className="productPolishFlow">
-            <CoachVerdict data={data} />
-            <RecommendedRepertoire data={data} />
-            <PremiumPath />
-          </div>
-        ) : null}
-
-
-
               {activeAppSection === "train" ? (
                 <>
                   <div id="opening-practice">
@@ -13892,12 +13683,6 @@ function App() {
                   />
 
                   <OpeningFitStudyPlanner data={reportData} username={username} />
-
-                  {false ? <PremiumCoachPlan
-                    data={reportData}
-                    isPremium={isPremium}
-                    onUnlockDemo={unlockPremiumDemo}
-                  /> : null}
 
                   <div id="training-plan">
                   <div id="section-training">
@@ -14231,13 +14016,6 @@ function App() {
                 </>
               ) : null}
 
-              {false && activeView !== "feedback" ? (
-                <OpeningFitFinalCTA
-                  data={data}
-                  username={username}
-                  onJump={jumpToSection}
-                />
-              ) : null}
             </div>
           )}
 

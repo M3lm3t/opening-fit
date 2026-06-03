@@ -171,10 +171,12 @@ export default function AccountPanel({ variant = "floating",
         return;
       }
 
-      console.info("OpeningFit Google signup/sign-in started", {
-        provider: "google",
-        hasUrl: Boolean(data?.url),
-      });
+      if (import.meta.env.DEV) {
+        console.info("OpeningFit Google signup/sign-in started", {
+          provider: "google",
+          hasUrl: Boolean(data?.url),
+        });
+      }
     } catch (error) {
       console.error("OpeningFit Google signup/sign-in crashed", error);
       setStatus(error?.message || "Could not start Google sign-in.");
@@ -211,11 +213,13 @@ export default function AccountPanel({ variant = "floating",
         });
         setStatus(error.message || "Could not send login link.");
       } else {
-        console.info("OpeningFit email magic-link signup requested", {
-          email: email.trim(),
-          hasUser: Boolean(data?.user),
-          hasSession: Boolean(data?.session),
-        });
+        if (import.meta.env.DEV) {
+          console.info("OpeningFit email magic-link signup requested", {
+            email: email.trim(),
+            hasUser: Boolean(data?.user),
+            hasSession: Boolean(data?.session),
+          });
+        }
       setStatus("Check your email for your login link.");
       }
     } catch (error) {

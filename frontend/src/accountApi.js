@@ -86,11 +86,13 @@ export async function startPremiumCheckout(user) {
     throw new Error("Please sign in or create an account before upgrading.");
   }
 
-  console.info("OpeningFit checkout requested", {
-    userId: user.id,
-    hasEmail: Boolean(user.email),
-    apiBase: API_BASE,
-  });
+  if (import.meta.env.DEV) {
+    console.info("OpeningFit checkout requested", {
+      userId: user.id,
+      hasEmail: Boolean(user.email),
+      apiBase: API_BASE,
+    });
+  }
 
   const response = await fetch(`${API_BASE}/api/account/create-checkout-session`, {
     method: "POST",
@@ -116,10 +118,12 @@ export async function startPremiumCheckout(user) {
     throw new Error("We could not start checkout. Please try again.");
   }
 
-  console.info("OpeningFit redirecting to Stripe checkout", {
-    userId: user.id,
-    hasUrl: true,
-  });
+  if (import.meta.env.DEV) {
+    console.info("OpeningFit redirecting to Stripe checkout", {
+      userId: user.id,
+      hasUrl: true,
+    });
+  }
   window.location.href = data.url;
 
   return data;
