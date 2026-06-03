@@ -181,7 +181,7 @@ export default function PremiumPanel({
             className="premiumCheckoutBtn"
             onClick={onFounderPass}
           >
-            Pricing
+            Get Founder Pass for £8
           </button>
 
           <button type="button" className="premiumDemoBtn" onClick={onUnlockDemo}>

@@ -40335,3 +40335,641 @@ body,
     display: none !important;
   }
 }
+
+/* Report dashboard upgrade */
+.reportDashboardStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.reportDashboardStat {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--app-border);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025)),
+    var(--app-surface-soft);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+}
+
+.reportDashboardStat span,
+.dashboardInsightCard span,
+.openingRecommendationMetrics span {
+  color: var(--app-muted);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.reportDashboardStat strong {
+  color: var(--app-text);
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.reportDashboardStat-score strong {
+  font-size: clamp(1.8rem, 3vw, 2.45rem);
+  color: #b6ffd2;
+}
+
+.reportDashboardStat small,
+.dashboardInsightCard p,
+.openingCoachSummary {
+  color: var(--app-text-soft);
+  line-height: 1.45;
+}
+
+.dashboardInsightGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.dashboardInsightCard {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  padding: 15px;
+  border: 1px solid var(--app-border);
+  border-radius: 18px;
+  background: var(--app-surface-soft);
+}
+
+.dashboardInsightCard strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--app-text);
+  line-height: 1.25;
+}
+
+.dashboardInsightCard em {
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(73, 168, 255, 0.14);
+  color: #cdeaff;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.dashboardInsightCard-keep,
+.dashboardInsightCard-best {
+  border-color: rgba(68, 214, 130, 0.26);
+}
+
+.dashboardInsightCard-improve,
+.dashboardInsightCard-leak {
+  border-color: rgba(243, 201, 105, 0.30);
+}
+
+.dashboardInsightCard-avoid {
+  border-color: rgba(255, 107, 107, 0.30);
+}
+
+.dashboardProgressBar,
+.openingScoreBars div {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.dashboardProgressBar span,
+.openingScoreBars span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--app-green), var(--app-blue));
+}
+
+.openingFitScoreCard {
+  padding: clamp(16px, 2.4vw, 24px) !important;
+}
+
+.fitOpeningList {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px !important;
+}
+
+.openingRecommendationCard {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  padding: 16px !important;
+  border-radius: 20px !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025)),
+    var(--app-surface-soft) !important;
+  border-color: var(--app-border) !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
+}
+
+.openingRecommendationCard.status-keep {
+  border-color: rgba(68, 214, 130, 0.32) !important;
+}
+
+.openingRecommendationCard.status-improve,
+.openingRecommendationCard.status-try-next {
+  border-color: rgba(243, 201, 105, 0.32) !important;
+}
+
+.openingRecommendationCard.status-avoid {
+  border-color: rgba(255, 107, 107, 0.32) !important;
+}
+
+.openingRecommendationTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.openingRecommendationTop strong {
+  display: block;
+  margin-top: 7px;
+  color: var(--app-text);
+  font-size: 1.05rem;
+  line-height: 1.22;
+}
+
+.openingSideBadge,
+.openingStatusBadge,
+.openingRecommendationAction span {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 9px;
+  border: 1px solid rgba(73, 168, 255, 0.24);
+  border-radius: 999px;
+  background: rgba(73, 168, 255, 0.12);
+  color: #cdeaff;
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.openingStatusBadge-keep {
+  border-color: rgba(68, 214, 130, 0.32);
+  background: rgba(68, 214, 130, 0.14);
+  color: #b6ffd2;
+}
+
+.openingStatusBadge-improve,
+.openingStatusBadge-try-next {
+  border-color: rgba(243, 201, 105, 0.34);
+  background: rgba(243, 201, 105, 0.14);
+  color: #ffe7a6;
+}
+
+.openingStatusBadge-avoid {
+  border-color: rgba(255, 107, 107, 0.34);
+  background: rgba(255, 107, 107, 0.13);
+  color: #ffd1d1;
+}
+
+.openingRecommendationMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.openingRecommendationMetrics div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.openingRecommendationMetrics strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--app-text);
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.openingScoreBars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.openingCoachSummary {
+  margin: 0 !important;
+  font-size: 0.92rem;
+}
+
+.openingRecommendationAction {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.openingRecommendationAction strong {
+  color: var(--app-text);
+  font-size: 0.9rem;
+}
+
+:root[data-theme="light"] .reportDashboardStat,
+:root[data-theme="light"] .dashboardInsightCard,
+:root[data-theme="light"] .openingRecommendationCard,
+:root[data-theme="light"] .openingRecommendationMetrics div {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(15, 23, 42, 0.11) !important;
+}
+
+:root[data-theme="light"] .reportDashboardStat-score strong {
+  color: #047857;
+}
+
+:root[data-theme="light"] .openingSideBadge,
+:root[data-theme="light"] .openingStatusBadge,
+:root[data-theme="light"] .openingRecommendationAction span {
+  color: #1e40af;
+  background: #e0f2fe;
+}
+
+@media (max-width: 1180px) {
+  .dashboardInsightGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .reportDashboardStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .reportDashboardStats,
+  .dashboardInsightGrid,
+  .fitOpeningList,
+  .openingRecommendationMetrics {
+    grid-template-columns: 1fr !important;
+  }
+
+  .openingRecommendationTop,
+  .openingRecommendationAction {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .openingScoreBars {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Premium value and app navigation polish */
+.profileFounderCard,
+.premiumUpgradeHero,
+.premiumPriceCard,
+.premiumUpgradeShell,
+.founderPassOutcomePanel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(243, 201, 105, 0.42) !important;
+  background:
+    linear-gradient(135deg, rgba(243, 201, 105, 0.20), transparent 34rem),
+    linear-gradient(225deg, rgba(73, 168, 255, 0.12), transparent 28rem),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025)),
+    var(--app-surface) !important;
+  box-shadow:
+    0 0 0 1px rgba(243, 201, 105, 0.08),
+    0 28px 80px rgba(0, 0, 0, 0.30),
+    0 18px 46px rgba(243, 201, 105, 0.10) !important;
+}
+
+.profileFounderCard::before,
+.premiumUpgradeHero::before,
+.premiumPriceCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.11) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.11) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(130deg, black, transparent 72%);
+}
+
+.profileFounderCard > *,
+.premiumUpgradeHero > *,
+.premiumPriceCard > * {
+  position: relative;
+  z-index: 1;
+}
+
+.profileFounderCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(220px, 0.8fr) minmax(190px, 0.55fr);
+  gap: clamp(14px, 2vw, 22px);
+  align-items: stretch;
+  padding: clamp(18px, 2.6vw, 28px) !important;
+  border-radius: 24px !important;
+}
+
+.profileFounderMain h2 {
+  margin: 0.35rem 0 0.65rem;
+  color: var(--app-text);
+  font-size: clamp(1.55rem, 2.5vw, 2.35rem);
+  line-height: 1.04;
+}
+
+.profileFounderMain p {
+  color: var(--app-text-soft);
+  line-height: 1.55;
+}
+
+.profileFounderTrust,
+.profileFounderValue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.profileFounderTrust span,
+.profileFounderValue span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(243, 201, 105, 0.30);
+  background: rgba(243, 201, 105, 0.12);
+  color: #ffe7a6;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.profileFounderValue {
+  align-content: center;
+  margin-top: 0;
+}
+
+.profileFounderOffer {
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  padding: 16px;
+  border: 1px solid rgba(243, 201, 105, 0.30);
+  border-radius: 18px;
+  background: rgba(5, 7, 13, 0.38);
+}
+
+.profileFounderOffer span {
+  color: var(--app-muted);
+  font-size: 0.76rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.profileFounderOffer strong {
+  color: #ffe7a6;
+  font-size: clamp(2.4rem, 4vw, 3.8rem);
+  line-height: 0.9;
+}
+
+.profileFounderOffer small {
+  color: var(--app-text-soft);
+  line-height: 1.35;
+}
+
+.profileFounderOffer .primaryBtn,
+.premiumCheckoutBtn,
+.founderPassUpgradePrimary {
+  min-height: 50px;
+  border: 0 !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, #f7d979, #44d682 48%, #49a8ff) !important;
+  color: #06111e !important;
+  box-shadow:
+    0 0 0 1px rgba(243, 201, 105, 0.28),
+    0 18px 42px rgba(243, 201, 105, 0.24) !important;
+  font-weight: 950;
+}
+
+.premiumCheckoutBtn:hover,
+.founderPassUpgradePrimary:hover,
+.profileFounderOffer .primaryBtn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.premiumPriceCard {
+  border-radius: 22px !important;
+}
+
+.premiumPrice,
+.premiumPriceCard strong {
+  color: #ffe7a6 !important;
+  text-shadow: 0 12px 32px rgba(243, 201, 105, 0.18);
+}
+
+.premiumHeroBullets span,
+.premiumUpgradeTrust span,
+.founderPassUpgradeTrust span {
+  border-color: rgba(243, 201, 105, 0.30) !important;
+  background: rgba(243, 201, 105, 0.12) !important;
+  color: #ffe7a6 !important;
+}
+
+:root[data-theme="light"] .profileFounderCard,
+:root[data-theme="light"] .premiumUpgradeHero,
+:root[data-theme="light"] .premiumPriceCard,
+:root[data-theme="light"] .premiumUpgradeShell,
+:root[data-theme="light"] .founderPassOutcomePanel {
+  background:
+    linear-gradient(135deg, rgba(253, 230, 138, 0.58), transparent 34rem),
+    linear-gradient(225deg, rgba(219, 234, 254, 0.76), transparent 28rem),
+    #ffffff !important;
+  border-color: rgba(180, 83, 9, 0.20) !important;
+}
+
+:root[data-theme="light"] .profileFounderTrust span,
+:root[data-theme="light"] .profileFounderValue span,
+:root[data-theme="light"] .premiumHeroBullets span,
+:root[data-theme="light"] .premiumUpgradeTrust span,
+:root[data-theme="light"] .founderPassUpgradeTrust span {
+  background: #fef3c7 !important;
+  border-color: #fcd34d !important;
+  color: #92400e !important;
+}
+
+:root[data-theme="light"] .profileFounderOffer {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+:root[data-theme="light"] .profileFounderOffer strong,
+:root[data-theme="light"] .premiumPrice,
+:root[data-theme="light"] .premiumPriceCard strong {
+  color: #92400e !important;
+}
+
+.appPrimaryNav {
+  padding-top: 8px !important;
+}
+
+.appPrimaryNavInner {
+  max-width: 1180px !important;
+  min-height: 56px !important;
+  padding: 7px !important;
+  gap: 10px !important;
+}
+
+.appPrimaryBrand::before {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 9px !important;
+}
+
+.appPrimaryTabs {
+  gap: 2px !important;
+  max-width: min(58vw, 540px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.appPrimaryTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.appPrimaryTab {
+  min-height: 38px !important;
+  padding: 0 12px !important;
+  white-space: nowrap;
+}
+
+.appPrimaryGetStarted {
+  min-height: 42px !important;
+  padding: 0 15px !important;
+  white-space: nowrap;
+}
+
+.appShell,
+.finalReportFlow,
+.profileDashboard,
+.preAnalysisSupport {
+  max-width: 1180px;
+}
+
+.finalReportFlow {
+  display: grid;
+  gap: clamp(14px, 2vw, 22px);
+  margin: 0 auto;
+}
+
+.premiumStandalonePage {
+  display: grid;
+  gap: clamp(16px, 2.4vw, 26px);
+  margin: clamp(18px, 4vw, 44px) auto;
+}
+
+.premiumNoReportCard {
+  display: grid;
+  gap: 10px;
+  border-color: rgba(73, 168, 255, 0.22) !important;
+  background:
+    linear-gradient(135deg, rgba(73, 168, 255, 0.12), transparent 30rem),
+    var(--app-surface) !important;
+}
+
+.premiumNoReportCard h2 {
+  margin: 0;
+}
+
+.premiumNoReportCard p {
+  max-width: 68ch;
+  color: var(--app-text-soft);
+}
+
+.mobileBottomNav {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .profileFounderCard {
+    grid-template-columns: 1fr;
+    padding: 16px !important;
+    border-radius: 20px !important;
+  }
+
+  .profileFounderOffer {
+    padding: 14px;
+  }
+
+  .appPrimaryNav {
+    padding: 8px 10px 0 !important;
+  }
+
+  .appPrimaryTabs,
+  .appPrimaryGetStarted {
+    display: none !important;
+  }
+
+  .appPrimaryMenuToggle {
+    display: none !important;
+  }
+
+  .appPrimaryNavInner {
+    min-height: 54px !important;
+    border-radius: 16px !important;
+  }
+
+  .mobileBottomNav {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    left: max(10px, env(safe-area-inset-left)) !important;
+    right: max(10px, env(safe-area-inset-right)) !important;
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    min-height: 64px !important;
+    padding: 5px !important;
+    border: 1px solid var(--app-border-strong) !important;
+    border-radius: 20px !important;
+    background: rgba(5, 7, 13, 0.86) !important;
+    box-shadow: 0 18px 54px rgba(0, 0, 0, 0.38) !important;
+    backdrop-filter: blur(18px);
+  }
+
+  .mobileBottomNav button {
+    min-width: 0;
+    min-height: 52px !important;
+    padding: 4px 2px !important;
+    border-radius: 15px !important;
+    background: transparent !important;
+    color: var(--app-muted) !important;
+    font-size: 0.68rem !important;
+    font-weight: 900 !important;
+  }
+
+  .mobileBottomNav button span {
+    width: 22px !important;
+    height: 22px !important;
+    margin-bottom: 2px;
+  }
+
+  .mobileBottomNav .mobileBottomNavActive {
+    background: linear-gradient(135deg, rgba(73, 168, 255, 0.22), rgba(68, 214, 130, 0.14)) !important;
+    color: var(--app-text) !important;
+    box-shadow: inset 0 0 0 1px rgba(73, 168, 255, 0.20);
+  }
+
+  .mobileBottomNav .mobileBottomNavNeedsReport:not(.mobileBottomNavActive) {
+    opacity: 0.72;
+  }
+
+  :root[data-theme="light"] .mobileBottomNav {
+    background: rgba(255, 255, 255, 0.92) !important;
+  }
+}

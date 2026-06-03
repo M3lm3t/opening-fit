@@ -77,8 +77,8 @@ export function getAppSection(view) {
     login: "profile",
     history: "profile",
     progress: "profile",
-    premium: "profile",
-    upgrade: "profile",
+    premium: "premium",
+    upgrade: "premium",
     feedback: "feedback",
   };
 

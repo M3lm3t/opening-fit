@@ -1,20 +1,20 @@
-import { BarChart3, Dumbbell, Gamepad2, Home, User } from "lucide-react";
+import { BarChart3, Crown, Dumbbell, Home, User } from "lucide-react";
 import { getAppSection } from "../appNavigation";
 
 export default function MobileBottomNav({ activeView, hasReport = false, onNavigate }) {
   const activeSection = getAppSection(activeView);
   const items = [
-    { key: "home", label: "Home", Icon: Home, activeSections: ["analyse"] },
+    { key: "analyse", label: "Home", Icon: Home, activeSections: ["analyse"] },
     { key: "report", label: "Report", Icon: BarChart3, needsReport: true, activeSections: ["report"] },
     {
       key: "training",
-      label: "Training",
+      label: "Train",
       Icon: Dumbbell,
       needsReport: true,
       activeViews: ["train", "training", "interactive", "practice"],
     },
-    { key: "games", label: "Games", Icon: Gamepad2, needsReport: true, activeViews: ["games", "data"] },
     { key: "profile", label: "Profile", Icon: User, activeSections: ["profile"] },
+    { key: "premium", label: "Premium", Icon: Crown, activeViews: ["premium", "upgrade"], activePaths: ["/premium", "/upgrade"] },
   ];
 
   function handleClick(event, item) {
@@ -27,10 +27,14 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
     <nav className="mobileBottomNav" aria-label="Mobile app navigation">
       {items.map((item) => {
         const isReportPrompt = item.needsReport && !hasReport;
+        const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+        const isPremiumPath = currentPath === "/premium" || currentPath === "/upgrade";
         const isActive =
           activeView === item.key ||
           item.activeViews?.includes(activeView) ||
-          item.activeSections?.includes(activeSection) ||
+          (item.key !== "profile" && item.activeSections?.includes(activeSection)) ||
+          (item.key === "profile" && !isPremiumPath && item.activeSections?.includes(activeSection)) ||
+          item.activePaths?.includes(currentPath) ||
           (!item.activeViews && !item.activeSections && activeSection === getAppSection(item.key));
 
         return (

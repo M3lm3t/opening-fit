@@ -462,6 +462,31 @@ function getOpeningContextTitle(opening, fallback = "Opening signal") {
   return `${name} (mixed signal)`;
 }
 
+function getOpeningSideLabel(opening) {
+  const context = getOpeningContext(opening);
+  if (context.type === "white") return "White";
+  if (context.type === "black") return "Black";
+  if (context.type === "faced") return "Faced";
+  return "Both";
+}
+
+function getOpeningStatusLabel(opening, data = {}) {
+  const verdict = openingVerdictLabel(opening, data, opening?.fitVerdict || opening?.verdict);
+  if (verdict === "Keep") return "Keep";
+  if (verdict === "Avoid") return "Avoid";
+  if (verdict === "Improve") return "Improve";
+  return canTreatAsRepertoireOpening(opening) ? "Try next" : "Track";
+}
+
+function getOpeningCardAction(opening, data = {}) {
+  const status = getOpeningStatusLabel(opening, data);
+  if (status === "Keep") return "Add to repertoire";
+  if (status === "Avoid") return "Review games";
+  if (status === "Improve") return "Practise line";
+  if (status === "Try next") return "Study this";
+  return "Track sample";
+}
+
 function getOpeningIdentityKey(opening) {
   if (!opening) return "";
   const context = getOpeningContext(opening);
@@ -2678,34 +2703,69 @@ function OpeningFitScoreList({ fitData, onPractice }) {
         {fitData.scoredOpenings.slice(0, 10).map((opening, index) => {
           const name = getOpeningName(opening);
           const canPractice = canTreatAsRepertoireOpening(opening);
+          const status = getOpeningStatusLabel(opening);
+          const action = getOpeningCardAction(opening);
+          const games = getOpeningGames(opening);
+          const winRate = getWinRate(opening);
+          const fitScore = safeNumber(opening.fitScore ?? opening.openingFitScore ?? winRate, 0);
+          const coachText =
+            opening.fitReasonBullets?.[0] ||
+            opening.fitConfidenceReason ||
+            opening.fitExplanation ||
+            getOpeningConfidenceReason(opening);
 
           return (
             <button
-              className="fitOpeningRow"
+              className={`fitOpeningRow openingRecommendationCard status-${status.toLowerCase().replace(/\s+/g, "-")}`}
               key={`${name}-${index}`}
               type="button"
-              disabled={!canPractice}
+              aria-disabled={!canPractice}
               onClick={() => canPractice && onPractice(name)}
             >
-              <div className="fitOpeningMain">
+              <div className="openingRecommendationTop">
                 <div>
+                  <span className="openingSideBadge">{getOpeningSideLabel(opening)}</span>
                   <strong>{getOpeningContextTitle(opening, name)}</strong>
-                  <p>
-                    {confidenceRowText(opening)}
-                  </p>
                 </div>
+                <span className={`openingStatusBadge openingStatusBadge-${status.toLowerCase().replace(/\s+/g, "-")}`}>
+                  {status}
+                </span>
+              </div>
 
-                <div className="fitOpeningScore">
-                  {opening.fitScore}
-                  <span>/100</span>
+              <div className="openingRecommendationMetrics">
+                <div>
+                  <span>Fit score</span>
+                  <strong>{fitScore || "—"}</strong>
+                </div>
+                <div>
+                  <span>Win rate</span>
+                  <strong>{winRate || "—"}%</strong>
+                </div>
+                <div>
+                  <span>Sample</span>
+                  <strong>{games || "—"} games</strong>
                 </div>
               </div>
 
-              <p className="fitOpeningReason">
-                {opening.fitDisplayVerdict || confidenceVerdictLabel(opening, {}, opening.fitVerdict)}.{" "}
-                {opening.fitConfidenceReason || opening.fitExplanation}
+              <div className="openingScoreBars" aria-hidden="true">
+                <div>
+                  <span style={{ width: `${Math.max(4, Math.min(100, fitScore || 0))}%` }} />
+                </div>
+                <div>
+                  <span style={{ width: `${Math.max(4, Math.min(100, winRate || 0))}%` }} />
+                </div>
+              </div>
+
+              <p className="fitOpeningReason openingCoachSummary">
+                {opening.fitDisplayVerdict || confidenceVerdictLabel(opening, {}, opening.fitVerdict)}. {coachText}
               </p>
+
               <FitReasonList opening={opening} />
+
+              <div className="openingRecommendationAction">
+                <span>{getOpeningConfidence(opening)}</span>
+                <strong>{action}</strong>
+              </div>
             </button>
           );
         })}
@@ -5324,6 +5384,11 @@ function FinalReportFlow({
         onReportModeChange={setReportMode}
       />
 
+      <OpeningFitScoreList
+        fitData={fitData}
+        onPractice={onPractice}
+      />
+
       <OpeningHealthScore
         data={data}
         fitData={fitData}
@@ -5690,6 +5755,57 @@ function CurrentReportSummary({
     studyTarget?.name && studyTarget?.context
       ? `Study ${studyTarget.name} ${studyTarget.context}`
       : verdict.actions?.[0] || "Review the highest-confidence repertoire signal first.";
+  const bestOpeningTitle = bestOpening ? getOpeningContextTitle(bestOpening) : "Not enough data yet";
+  const weakOpeningTitle = weakOpening ? getOpeningContextTitle(weakOpening) : "No recurring leak yet";
+  const avoidOpening = avoidItems[0] || null;
+  const dashboardStats = [
+    { label: "Player", value: playerName, detail: platformLabel, tone: "player" },
+    { label: "Date analysed", value: analysedDate, detail: `${games || "—"} games analysed`, tone: "date" },
+    { label: "Opening Fit Score", value: score || "—", detail: score ? "/100 repertoire health" : "Score pending", tone: "score" },
+    { label: "Top recommendation", value: mainRecommendation, detail: focusOpening ? getOpeningContextTitle(focusOpening) : "One clear next step", tone: "recommendation" },
+  ];
+  const insightCards = [
+    {
+      label: "Keep playing",
+      title: bestOpeningTitle,
+      value: bestOpening ? `${getWinRate(bestOpening)}%` : "—",
+      bar: bestOpening ? getWinRate(bestOpening) : 0,
+      tone: "keep",
+      text: bestOpening ? "Your strongest reliable signal." : "Import more games to confirm a keeper.",
+    },
+    {
+      label: "Needs work",
+      title: weakOpeningTitle,
+      value: weakOpening ? `${getWinRate(weakOpening)}%` : "—",
+      bar: weakOpening ? getWinRate(weakOpening) : 0,
+      tone: "improve",
+      text: weakOpening ? "Review the first repeated branch." : "No repeated repair target yet.",
+    },
+    {
+      label: "Avoid for now",
+      title: avoidOpening ? getOpeningContextTitle(avoidOpening) : "No hard avoid",
+      value: avoidOpening ? `${getWinRate(avoidOpening)}%` : "—",
+      bar: avoidOpening ? getWinRate(avoidOpening) : 0,
+      tone: "avoid",
+      text: avoidOpening ? "Treat as a review target before playing again." : "Nothing is clearly dangerous yet.",
+    },
+    {
+      label: "Your best opening",
+      title: bestOpeningTitle,
+      value: bestOpening ? `${getOpeningGames(bestOpening)} games` : "—",
+      bar: bestOpening ? Math.min(100, getOpeningGames(bestOpening) * 8) : 0,
+      tone: "best",
+      text: bestOpening ? "Use this as your reference point." : "Build a bigger sample first.",
+    },
+    {
+      label: "Your biggest leak",
+      title: weakOpeningTitle,
+      value: weakOpening ? `${getOpeningGames(weakOpening)} games` : "—",
+      bar: weakOpening ? Math.max(8, 100 - getWinRate(weakOpening)) : 0,
+      tone: "leak",
+      text: weakOpening ? "This is where a small fix can matter." : "No leak detected yet.",
+    },
+  ];
   const nextBestMove =
     focusOpening && focusWinRate !== null
       ? `Focus on improving ${focusName} ${focusRole}. You have ${focusGames || "enough"} game${focusGames === 1 ? "" : "s"}, the results are below your strongest baseline, and this position appears often enough to matter.`
@@ -5720,8 +5836,8 @@ function CurrentReportSummary({
     <section className="currentReportSummaryCard" aria-label="Current report summary">
       <div className="commandCentreHero">
         <div className="currentReportSummaryMain">
-          <p className="eyebrow">OpeningFit report</p>
-          <h1>Opening advice for {playerName}</h1>
+          <p className="eyebrow">Personal chess dashboard</p>
+          <h1>{playerName}'s OpeningFit dashboard</h1>
           <div className="currentReportMetaInline" aria-label="Report details">
             <span>{platformLabel}</span>
             <span>{games || "—"} games</span>
@@ -5736,6 +5852,16 @@ function CurrentReportSummary({
           <small>{score ? "/100" : "score pending"}</small>
           <em>{profile.shortLabel || profile.label || "Overall verdict"}</em>
         </div>
+      </div>
+
+      <div className="reportDashboardStats" aria-label="Report dashboard stats">
+        {dashboardStats.map((item) => (
+          <article className={`reportDashboardStat reportDashboardStat-${item.tone}`} key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+            <small>{item.detail}</small>
+          </article>
+        ))}
       </div>
 
       <div className="nextBestMoveCard">
@@ -5766,6 +5892,22 @@ function CurrentReportSummary({
           </li>
         ))}
       </ol>
+
+      <div className="dashboardInsightGrid" aria-label="Key opening insights">
+        {insightCards.map((item) => (
+          <article className={`dashboardInsightCard dashboardInsightCard-${item.tone}`} key={item.label}>
+            <div>
+              <span>{item.label}</span>
+              <strong>{item.title}</strong>
+            </div>
+            <em>{item.value}</em>
+            <p>{item.text}</p>
+            <div className="dashboardProgressBar" aria-hidden="true">
+              <span style={{ width: `${Math.max(4, Math.min(100, item.bar || 0))}%` }} />
+            </div>
+          </article>
+        ))}
+      </div>
 
       <div className="keepImproveAvoidSummary">
         {verdictSummary.map((group) => (
@@ -6934,24 +7076,50 @@ function ReturnUserDashboard({
 }
 
 function FounderPassProfileCard({ isPremium, onFounderPass }) {
+  const valueBullets = [
+    "Save reports",
+    "Track progress",
+    "Deeper opening insights",
+    "More history",
+    "Premium training plan",
+  ];
+  const trustItems = ["Built for club players", "One-time early supporter access", "No theory overload"];
+
   return (
     <section className={isPremium ? "profileFounderCard profileFounderCardActive" : "profileFounderCard"}>
-      <div>
+      <div className="profileFounderMain">
         <p className="eyebrow">Founder Pass</p>
-        <h2>{isPremium ? "Founder Pass active" : "Unlock deeper opening history"}</h2>
+        <h2>{isPremium ? "Founder Pass active" : "Upgrade your OpeningFit dashboard"}</h2>
         <p>
           {isPremium
             ? "Your profile has Founder Pass access. Future premium analysis will stay attached to this account."
-            : "Unlock longer game history, saved reports, deeper opening tables, and future advanced analysis."}
+            : "Turn the free snapshot into a saved progress system for your repertoire, training plan, and deeper opening history."}
         </p>
+        <div className="profileFounderTrust">
+          {trustItems.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
       </div>
-      {!isPremium ? (
-        <button type="button" className="primaryBtn" onClick={onFounderPass}>
-          Get Founder Pass
-        </button>
-      ) : (
-        <span className="profileFounderStatus">Active</span>
-      )}
+
+      <div className="profileFounderValue">
+        {valueBullets.map((item) => (
+          <span key={item}>{item}</span>
+        ))}
+      </div>
+
+      <div className="profileFounderOffer">
+        <span>One-time early supporter price</span>
+        <strong>£8</strong>
+        <small>Lifetime Founder Pass while OpeningFit is early.</small>
+        {!isPremium ? (
+          <button type="button" className="primaryBtn" onClick={onFounderPass}>
+            Get Founder Pass
+          </button>
+        ) : (
+          <span className="profileFounderStatus">Active</span>
+        )}
+      </div>
     </section>
   );
 }
@@ -8571,16 +8739,17 @@ function AppPrimaryNav({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const items = accountUser
     ? [
-        { key: "recommendations", label: "Recommendations" },
-        { key: "training", label: "Training" },
-        { key: "games", label: "Games" },
-        { key: "history", label: "History" },
-        { key: "account", label: "Account" },
+        { key: "analyse", label: "Home" },
+        { key: "report", label: "Report" },
+        { key: "training", label: "Train" },
+        { key: "account", label: "Profile" },
+        { key: "pricing", label: "Premium", path: "/premium", target: "premium", action: onPricing },
       ]
     : [
-        { key: "analyse", label: "Analyse" },
-        { key: "example", label: "Example Report", path: "/report", target: "app-results", action: onExampleReport },
-        { key: "pricing", label: "Pricing", path: "/premium", target: "premium", action: onPricing },
+        { key: "analyse", label: "Home" },
+        { key: "example", label: "Report", path: "/report", target: "app-results", action: onExampleReport },
+        { key: "training", label: "Train" },
+        { key: "pricing", label: "Premium", path: "/premium", target: "premium", action: onPricing },
         { key: "login", label: "Login", path: "/login", target: "login", action: onLogin },
       ];
   const primaryAction = accountUser
@@ -8590,10 +8759,13 @@ function AppPrimaryNav({
   const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
 
   const isPrimaryNavItemActive = (item) => {
+    const isPremiumPath = currentPath === "/premium" || currentPath === "/upgrade";
+    if (item.key === "account" && isPremiumPath) return false;
     if (item.key === activeView) return true;
 
     const activeViewsByKey = {
       analyse: ["analyse", "home", "import"],
+      report: ["report", "overview", "recommendations", "repertoire", "openings", "weakspots", "verdicts"],
       recommendations: ["report", "overview", "recommendations", "repertoire", "openings", "weakspots", "verdicts"],
       example: ["report", "overview", "recommendations", "repertoire", "openings", "weakspots", "verdicts"],
       training: ["train", "training", "interactive", "practice"],
@@ -8966,7 +9138,7 @@ function isPrivateSeoPath(path) {
 function getInitialAppView() {
   const path = getCurrentPath();
   if (path === "/account" || path === "/login") return "profile";
-  if (path === "/upgrade" || path === "/premium") return "profile";
+  if (path === "/upgrade" || path === "/premium") return "upgrade";
   if (path === "/train") return "train";
   if (path === "/report") return "report";
   try {
@@ -11832,9 +12004,9 @@ function App() {
 
   const sectionRouteMap = {
     "feedback": { view: "feedback", target: "feedback" },
-    "premium": { view: "profile", target: "premium" },
-    "premium-offer": { view: "profile", target: "premium" },
-    "premium-workspace": { view: "profile", target: "premium-workspace" },
+    "premium": { view: "upgrade", target: "premium" },
+    "premium-offer": { view: "upgrade", target: "premium" },
+    "premium-workspace": { view: "upgrade", target: "premium-workspace" },
     "training-plan": { view: "train", target: "training-plan" },
     "section-training": { view: "train", target: "section-training" },
     "seven-day-plan": { view: "train", target: "seven-day-plan" },
@@ -13364,6 +13536,50 @@ function App() {
                 </button>
               </section>
             </>
+          ) : null}
+
+          {activeAppSection === "premium" ? (
+            <section className="premiumStandalonePage" id="premium">
+              {reportData ? (
+                <>
+                  <PremiumPanel
+                    data={reportData}
+                    isPremium={isPremium}
+                    isPremiumPreview={isPremiumPreview}
+                    onUnlockDemo={unlockPremiumDemo}
+                    onResetDemo={resetPremiumDemo}
+                    onFounderPass={handleFounderPassClick}
+                  />
+
+                  <PremiumDashboard
+                    data={reportData}
+                    username={username}
+                    isPremium={isPremium}
+                    onFounderPass={handleFounderPassClick}
+                    onUnlockDemo={unlockPremiumDemo}
+                    onPractice={startOpeningPractice}
+                  />
+
+                  <SeriousPremiumStrip />
+                </>
+              ) : (
+                <>
+                  <FounderPassProfileCard isPremium={isPremium} onFounderPass={handleFounderPassClick} />
+                  <section className="card premiumNoReportCard">
+                    <p className="eyebrow">Premium analysis</p>
+                    <h2>Unlock the upgrade, then analyse your games.</h2>
+                    <p>
+                      Founder Pass is built for club players who want saved reports,
+                      progress tracking, deeper opening insights, and a premium training plan
+                      without theory overload.
+                    </p>
+                    <button className="secondaryBtn" type="button" onClick={() => handleAppNavigate("analyse")}>
+                      Analyse a username
+                    </button>
+                  </section>
+                </>
+              )}
+            </section>
           ) : null}
 
           {loading && activeAppSection !== "analyse" && (
