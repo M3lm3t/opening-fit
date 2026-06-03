@@ -87,6 +87,15 @@ function getReason(opening, data) {
   return getComparisonText(opening, data);
 }
 
+function getRecommendedAction(data, focusOpening) {
+  const existing = data?.recommendedAction || data?.recommended_action || data?.nextAction || data?.next_action;
+  if (typeof existing === "string" && existing.trim()) return existing.trim();
+
+  if (focusOpening) return `Train this line: ${focusOpening}.`;
+
+  return "Play 5 games, then run a fresh analysis.";
+}
+
 function collectOpenings(data) {
   const candidates = [
     data?.topOpenings,
@@ -339,6 +348,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const bestOpening = keep?.name || "your strongest repeated opening";
   const weakOpening = avoid?.name || "your lowest-scoring repeated opening";
   const focusOpening = improve?.name || bestOpening;
+  const recommendedAction = getRecommendedAction(data, focusOpening);
 
   return (
     <section className="openingReportShell">
@@ -426,10 +436,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
       <div className="openingReportNextSteps">
         <div>
           <strong>Recommended next step</strong>
-          <span>
-            Study one opening at a time. Start with {focusOpening}, then compare
-            your results after another batch of games.
-          </span>
+          <span>{recommendedAction}</span>
         </div>
 
         <div>

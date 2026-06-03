@@ -68,6 +68,20 @@ function isUnknown(name) {
   );
 }
 
+function getRecommendedAction(data, fallbackOpening) {
+  const existing = data?.recommendedAction || data?.recommended_action || data?.nextAction || data?.next_action;
+  if (typeof existing === "string" && existing.trim()) return existing.trim();
+
+  if (fallbackOpening?.displayName) {
+    if (Number(fallbackOpening.losses || 0) >= 3) {
+      return `Review these 3 losses in ${fallbackOpening.displayName}.`;
+    }
+    return `Train this line: ${fallbackOpening.displayName}.`;
+  }
+
+  return "Play 5 games, then run a fresh analysis.";
+}
+
 function inferStyle(data, openings) {
   const existing =
     data?.styleProfile?.label ||
@@ -160,6 +174,7 @@ export default function OpeningFitSummary({ data, onPractice }) {
       keep,
       improve,
       next,
+      recommendedAction: getRecommendedAction(data, improve || keep),
       openings,
     };
   }, [data]);
@@ -226,7 +241,7 @@ export default function OpeningFitSummary({ data, onPractice }) {
       <div className="summaryBottomStrip">
         <div>
           <strong>Recommended next step:</strong>{" "}
-          Build your full White and Black repertoire from this result.
+          {summary.recommendedAction}
         </div>
 
         {onPractice ? (

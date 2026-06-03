@@ -2072,6 +2072,61 @@ def build_training_plan(
     return plan[:6]
 
 
+def build_recommended_action(
+    preferred_white: List[Dict[str, Any]],
+    preferred_black: List[Dict[str, Any]],
+    best_openings: List[Dict[str, Any]],
+    training_plan: List[str],
+    report_mode: str = "normal_user",
+) -> str:
+    public_mode = report_mode != "normal_user"
+    usable_best_openings = [
+        opening for opening in best_openings if not is_unknown_opening_name(opening.get("name", ""))
+    ]
+    clean_best = next(
+        (opening for opening in usable_best_openings if is_clean_repertoire_context(opening)),
+        None,
+    )
+    clean_weak = next(
+        (
+            opening
+            for opening in sorted(
+                usable_best_openings,
+                key=lambda item: (item.get("fitScore", 100), -(item.get("games") or 0)),
+            )
+            if is_clean_repertoire_context(opening) and (opening.get("games") or 0) >= 2
+        ),
+        None,
+    )
+
+    if public_mode:
+        if usable_best_openings:
+            return f"Review the {repertoire_context_title(usable_best_openings[0])} sample by time control."
+        return "Review the imported games by time control."
+
+    if clean_weak and clean_weak.get("losses", 0) >= 3:
+        losses = min(3, clean_weak.get("losses", 3))
+        return f"Review these {losses} losses in {repertoire_context_title(clean_weak)}."
+
+    if clean_best:
+        verdict = str(clean_best.get("verdict") or clean_best.get("fitVerdict") or "").lower()
+        if verdict in {"keep", "strong fit", "recent strength"} or (clean_best.get("fitScore") or 0) >= 70:
+            return f"Train this line: {repertoire_context_title(clean_best)}."
+        return f"Play 5 games with {repertoire_context_title(clean_best)}."
+
+    if preferred_white:
+        return f"Play 5 games with {preferred_white[0]['name']} as White."
+
+    if preferred_black:
+        return f"Play 5 games with {preferred_black[0]['name']} as Black."
+
+    if training_plan:
+        first_step = str(training_plan[0]).strip()
+        return first_step if first_step.endswith(".") else f"{first_step}."
+
+    return "Play 5 games, then run a fresh analysis."
+
+
 def build_recommendations(
     preferred_white: List[Dict[str, Any]],
     preferred_black: List[Dict[str, Any]],
@@ -2406,6 +2461,13 @@ def import_chesscom_logic(username: str, months: int = 3):
         best_openings,
         report_mode,
     )
+    recommended_action = build_recommended_action(
+        preferred_white,
+        preferred_black,
+        best_openings,
+        training_plan,
+        report_mode,
+    )
     recommendations = build_recommendations(
         preferred_white,
         preferred_black,
@@ -2466,6 +2528,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "opening_recommendations": opening_recommendations,
         "openingRecommendations": opening_recommendations,
         "recommendedOpenings": opening_recommendations,
+        "recommended_action": recommended_action,
+        "recommendedAction": recommended_action,
         "training_plan": training_plan,
         "trainingPlan": training_plan,
         "lastUpdated": now_iso(),
@@ -2787,6 +2851,13 @@ def build_lichess_analysis(
         best_openings,
         report_mode,
     )
+    recommended_action = build_recommended_action(
+        preferred_white,
+        preferred_black,
+        best_openings,
+        training_plan,
+        report_mode,
+    )
     recommendations = build_recommendations(
         preferred_white,
         preferred_black,
@@ -2860,6 +2931,8 @@ def build_lichess_analysis(
         "opening_recommendations": opening_recommendations,
         "openingRecommendations": opening_recommendations,
         "recommendedOpenings": opening_recommendations,
+        "recommended_action": recommended_action,
+        "recommendedAction": recommended_action,
         "training_plan": training_plan,
         "trainingPlan": training_plan,
         "lastUpdated": now_iso(),
@@ -3279,6 +3352,8 @@ def demo_profile():
         "opening_recommendations": opening_recommendations,
         "openingRecommendations": opening_recommendations,
         "recommendedOpenings": opening_recommendations,
+        "recommended_action": "Train this line: Vienna Game as White.",
+        "recommendedAction": "Train this line: Vienna Game as White.",
         "training_plan": [
             "As White, play Vienna Game for your next 10 to 15 games.",
             "As Black, stick with Scandinavian Defence and learn the first 6 to 8 moves well.",

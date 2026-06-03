@@ -238,6 +238,25 @@ def import_chesscom(username: str, months: int = 3):
     if not recommendations:
         recommendations.append("Play more games to unlock stronger opening suggestions.")
 
+    recommended_action = "Play 5 games, then run a fresh analysis."
+    if top_openings:
+        recurring = sorted(
+            [o for o in top_openings if o["games"] >= 2],
+            key=lambda x: (x["win_rate"], x["games"]),
+            reverse=True,
+        )
+        target = recurring[0] if recurring else top_openings[0]
+        if target["losses"] >= 3:
+            recommended_action = f"Review these 3 losses in {target['name']}."
+        elif target["games"] >= 2:
+            recommended_action = f"Train this line: {target['name']}."
+        else:
+            recommended_action = f"Play 5 games with {target['name']}."
+    elif preferred_white:
+        recommended_action = f"Play 5 games with {preferred_white[0][0]} as White."
+    elif preferred_black:
+        recommended_action = f"Play 5 games with {preferred_black[0][0]} as Black."
+
     recent_games = sorted(
         recent_games,
         key=lambda x: x["end_time"] or 0,
@@ -253,5 +272,7 @@ def import_chesscom(username: str, months: int = 3):
         "preferred_white": [{"name": n, "games": g} for n, g in preferred_white],
         "preferred_black": [{"name": n, "games": g} for n, g in preferred_black],
         "recommendations": recommendations,
+        "recommended_action": recommended_action,
+        "recommendedAction": recommended_action,
         "recent_games": recent_games
     }

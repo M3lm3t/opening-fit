@@ -493,6 +493,52 @@ function canTreatAsRepertoireOpening(opening) {
   return context.canRecommend && signal.canBePrimary;
 }
 
+function buildSingleRecommendedAction(data = {}) {
+  const existing = data?.recommendedAction || data?.recommended_action || data?.nextAction || data?.next_action;
+  if (typeof existing === "string" && existing.trim()) return existing.trim();
+
+  const asArray = (value) => (Array.isArray(value) ? value : []);
+  const openingRecommendations = data?.opening_recommendations || data?.openingRecommendations || {};
+  const candidates = [
+    ...asArray(data?.best_openings),
+    ...asArray(data?.bestOpenings),
+    ...asArray(data?.top_openings),
+    ...asArray(data?.topOpenings),
+    ...asArray(openingRecommendations?.whiteDetailed),
+    ...asArray(openingRecommendations?.blackDetailed),
+    ...asArray(openingRecommendations?.white_repertoire),
+    ...asArray(openingRecommendations?.black_vs_e4),
+    ...asArray(openingRecommendations?.black_vs_d4),
+    ...asArray(openingRecommendations?.black_vs_other),
+  ].filter((opening) => opening && getOpeningName(opening) !== "Unknown Opening");
+
+  const cleanOpening = candidates.find((opening) => canTreatAsRepertoireOpening(opening));
+  const weakOpening = [...candidates]
+    .filter((opening) => canTreatAsRepertoireOpening(opening) && safeNumber(opening?.losses) >= 3)
+    .sort((a, b) => safeNumber(b.losses) - safeNumber(a.losses))[0];
+
+  if (weakOpening) {
+    return `Review these 3 losses in ${getOpeningContextTitle(weakOpening)}.`;
+  }
+
+  if (cleanOpening) {
+    const score = safeNumber(cleanOpening?.fitScore ?? cleanOpening?.openingFitScore ?? cleanOpening?.score);
+    const verdict = String(cleanOpening?.verdict || cleanOpening?.fitVerdict || "").toLowerCase();
+    if (score >= 70 || verdict.includes("keep")) {
+      return `Train this line: ${getOpeningContextTitle(cleanOpening)}.`;
+    }
+    return `Play 5 games with ${getOpeningContextTitle(cleanOpening)}.`;
+  }
+
+  const whitePick = asArray(data?.preferred_white || data?.preferredWhite)[0];
+  if (whitePick) return `Play 5 games with ${getOpeningName(whitePick)} as White.`;
+
+  const blackPick = asArray(data?.preferred_black || data?.preferredBlack)[0];
+  if (blackPick) return `Play 5 games with ${getOpeningName(blackPick)} as Black.`;
+
+  return "Play 5 games, then run a fresh analysis.";
+}
+
 function commandVerdictClass(verdict) {
   const lower = String(verdict || "").toLowerCase();
   if (lower.includes("keep") || lower.includes("main") || lower.includes("reliable")) return "verdict keep";
@@ -2433,6 +2479,7 @@ function buildOpeningFitData(data) {
     bestOpening,
     weakestOpening,
     overallScore: backendScore || overallScore,
+    recommendedAction: buildSingleRecommendedAction(data),
     scoreExplanation:
       data?.openingFitScoreExplanation ||
       data?.opening_fit_score_explanation ||
@@ -2498,6 +2545,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
   } = fitData;
   const publicMode = fitData.reportMode !== "normal_user";
   const bestCanBeRepertoire = canTreatAsRepertoireOpening(bestOpening);
+  const recommendedAction = fitData.recommendedAction || buildSingleRecommendedAction(fitData);
 
   const keepCount = scoredOpenings.filter(
     (opening) => opening.fitCategory === "keep"
@@ -2576,15 +2624,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
 
       <div className="fitRecommendationBox">
         <strong>Recommended next step:</strong>{" "}
-        {bestOpening
-          ? !bestCanBeRepertoire
-            ? `${getOpeningContextTitle(bestOpening)} is not clean enough to use as a repertoire recommendation yet. Track more side-specific games first.`
-            : publicMode
-            ? `Use ${getOpeningName(bestOpening)} as the recent strength sample, then compare lower-scoring samples by time control and opponent pool.`
-            : `Build your short repertoire around ${getOpeningContextTitle(
-                bestOpening
-              )}, then review your least stable opening.`
-          : "Import more games to get a stronger recommendation."}
+        {recommendedAction}
 
         {bestOpening && bestCanBeRepertoire ? (
           <button
@@ -10936,12 +10976,7 @@ function OpeningFitReportHero({ data }) {
       ? `${weakOpening.winRate}%`
       : "—";
 
-  const recommendation =
-    bestOpening?.displayName && bestOpening.displayName !== "Not enough data yet"
-      ? canTreatAsRepertoireOpening(bestOpening)
-        ? `Build around ${getOpeningContextTitle(bestOpening)} positions and use weaker openings as your next study targets.`
-        : `Track ${getOpeningContextTitle(bestOpening)} by side/context before treating it as a repertoire recommendation.`
-      : "Import more games to unlock clearer opening recommendations.";
+  const recommendation = buildSingleRecommendedAction(data);
 
   return (
     <section className="reportHero">
@@ -11566,6 +11601,7 @@ function App() {
       incoming.detected_time_format ||
       detectReportTimeFormat(incoming);
     const weakLines = mergeWeakLines(incoming);
+    const recommendedAction = buildSingleRecommendedAction(incoming);
 
     return {
       ...incoming,
@@ -11652,6 +11688,8 @@ function App() {
       training_plan: incoming.training_plan ?? incoming.trainingPlan ?? [],
       premium_preview: incoming.premium_preview ?? incoming.premiumPreview ?? {},
       recommendations: incoming.recommendations ?? [],
+      recommended_action: recommendedAction,
+      recommendedAction,
       lockedFeatures: incoming.lockedFeatures ?? [],
       reportMode: incoming.reportMode ?? incoming.report_mode ?? "normal_user",
       report_mode: incoming.report_mode ?? incoming.reportMode ?? "normal_user",
