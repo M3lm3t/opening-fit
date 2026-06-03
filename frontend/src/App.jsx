@@ -5754,7 +5754,7 @@ function ProfileIdentityCard({
     fitData?.playerStyle?.title ||
     data.styleLabel ||
     data.style_label ||
-    data.style_profile?.labels?.[0] ||
+    data?.style_profile?.labels?.[0] ||
     "Opening improver";
   const analysedAt =
     data.importedAt ||
@@ -6163,7 +6163,9 @@ function SavedReportsProfileCard({ onLoadReport, onCreateReport }) {
   }, [user?.id]);
 
   const reports = useMemo(() => {
-    const source = user?.id ? reportHistory || [] : localReports;
+    const source = user?.id
+      ? (Array.isArray(reportHistory) ? reportHistory : [])
+      : (Array.isArray(localReports) ? localReports : []);
     const seen = new Set();
     return source
       .map(normalizeProfileHistoryItem)
@@ -6296,8 +6298,9 @@ function OpeningFitProgressCard({
   onAnalyse,
   onOpenReport,
 }) {
+  const safeOpeningFitUserState = Array.isArray(openingFitUserState) ? openingFitUserState : [];
   const latestStoredProgress =
-    openingFitUserState
+    safeOpeningFitUserState
       .map((row) => row?.coach_progress?.openingFitProgress || row?.coach_progress?.opening_fit_progress || null)
       .filter(Boolean)
       .sort(
@@ -6391,13 +6394,42 @@ function RecommendationHistorySection({
   fitData,
   accountUser,
   recommendationHistory = [],
+  authLoading = false,
+  profileLoading = false,
+  authHydrated = true,
   onAnalyse,
   onViewRepertoire,
 }) {
-  if (!accountUser?.id) return null;
+  if (authLoading || profileLoading || !authHydrated) {
+    return (
+      <section className="profileDashboardCard recommendationHistoryCard" id="recommendation-history">
+        <div className="profileCardHeader">
+          <p className="eyebrow">Recommendation History</p>
+          <h2>Loading your history</h2>
+          <p>OpeningFit is checking your account and saved recommendation snapshots.</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!accountUser?.id) {
+    return (
+      <section className="profileDashboardCard recommendationHistoryCard" id="recommendation-history">
+        <div className="profileCardHeader">
+          <p className="eyebrow">Recommendation History</p>
+          <h2>Login to save history</h2>
+          <p>Create a free account or log in to keep recommendation history across devices.</p>
+        </div>
+        <button type="button" className="primaryBtn" onClick={onAnalyse}>
+          Analyse your first games
+        </button>
+      </section>
+    );
+  }
 
   const activeSnapshot = data ? buildRecommendationHistorySnapshot(data, fitData) : null;
-  const savedRows = (recommendationHistory || [])
+  const safeRecommendationHistory = Array.isArray(recommendationHistory) ? recommendationHistory : [];
+  const savedRows = safeRecommendationHistory
     .map(normalizeRecommendationHistoryRow)
     .filter(Boolean)
     .sort((a, b) => Date.parse(b.analysisDate || "") - Date.parse(a.analysisDate || ""));
@@ -6824,10 +6856,13 @@ function OpeningFitProfileDashboard({
   reportHistory,
   openingFitUserState,
   recommendationHistory,
+  authLoading = false,
+  profileLoading = false,
+  authHydrated = true,
 }) {
   const hasStoredProgress =
     accountUser?.id &&
-    (openingFitUserState || []).some(
+    (Array.isArray(openingFitUserState) ? openingFitUserState : []).some(
       (row) => row?.coach_progress?.openingFitProgress || row?.coach_progress?.opening_fit_progress
     );
 
@@ -6876,6 +6911,9 @@ function OpeningFitProfileDashboard({
           fitData={fitData}
           accountUser={accountUser}
           recommendationHistory={recommendationHistory}
+          authLoading={authLoading}
+          profileLoading={profileLoading}
+          authHydrated={authHydrated}
           onAnalyse={onAnalyse}
           onViewRepertoire={onOpenReport}
         />
@@ -6923,6 +6961,9 @@ function OpeningFitProfileDashboard({
         fitData={fitData}
         accountUser={accountUser}
         recommendationHistory={recommendationHistory}
+        authLoading={authLoading}
+        profileLoading={profileLoading}
+        authHydrated={authHydrated}
         onAnalyse={onAnalyse}
         onViewRepertoire={onOpenReport}
       />
@@ -14040,6 +14081,9 @@ function App() {
                 reportHistory={cloudReportHistory}
                 openingFitUserState={openingFitUserState}
                 recommendationHistory={recommendationHistory}
+                authLoading={authLoading}
+                profileLoading={profileLoading}
+                authHydrated={authHydrated}
               />
             </section>
           ) : null}

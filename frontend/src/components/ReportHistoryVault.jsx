@@ -186,6 +186,13 @@ function writeHistory(items) {
 }
 
 function normalizeHistoryItem(item) {
+  if (!item || typeof item !== "object") {
+    if (import.meta.env.DEV) {
+      console.warn("OpeningFit skipped malformed report history item", item);
+    }
+    return null;
+  }
+
   const summary = item.summary || item.snapshot || {};
 
   return {
@@ -257,11 +264,11 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
 
   useEffect(() => {
     if (user?.id) {
-      setHistory((reportHistory || []).map(normalizeHistoryItem));
+      setHistory((Array.isArray(reportHistory) ? reportHistory : []).map(normalizeHistoryItem).filter(Boolean));
       return;
     }
 
-    setHistory(readHistory().map(normalizeHistoryItem));
+    setHistory(readHistory().map(normalizeHistoryItem).filter(Boolean));
   }, [reportHistory, user?.id]);
 
   const previousReport = useMemo(() => {
@@ -297,7 +304,30 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
     [currentSnapshot, previousReport]
   );
 
-  if (!data || !currentSnapshot) return null;
+  if (!data || !currentSnapshot) {
+    return (
+      <section className="reportHistoryVault" id="report-history">
+        <div className="reportHistoryHeader">
+          <div>
+            <p className="eyebrow">Report history</p>
+            <h2>Track your opening profile over time</h2>
+            <p>Import games to create your first report, then save snapshots here for comparison.</p>
+          </div>
+        </div>
+
+        {!user?.id ? (
+          <div className="historyLoginNote">
+            Login to keep report history across devices. Local history is available in this browser.
+          </div>
+        ) : null}
+
+        <div className="emptyHistoryState">
+          <strong>No active report yet</strong>
+          <span>Analyse a Chess.com or Lichess username first, then return here to save and compare reports.</span>
+        </div>
+      </section>
+    );
+  }
 
   const saveCurrentReport = async () => {
     const item = {
