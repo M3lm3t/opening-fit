@@ -36,6 +36,9 @@ backend/.env.*.local
 backend/data/
 backend/**/*.jsonl
 
+# Supabase local temp/cache
+supabase/.temp/
+
 # Local backups
 *.backup-*
 *.bak
