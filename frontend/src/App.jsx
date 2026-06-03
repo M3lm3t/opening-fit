@@ -7,6 +7,7 @@ import OpeningFitFunctionalityHub from "./components/OpeningFitFunctionalityHub.
 import OpeningFitFunctionalTools from "./components/OpeningFitFunctionalTools.jsx";
 import OpeningFitPolishToast from "./components/OpeningFitPolishToast.jsx";
 import "./components/OpeningFitPolish.css";
+import "./components/WeakLineDetection.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
@@ -76,6 +77,7 @@ import {
 import AccountRestoreSync from "./components/AccountRestoreSync";
 import { buildReportRetentionKey, logRetentionEvent } from "./services/retentionEvents";
 import { buildOpeningHealthSnapshot } from "./services/openingHealth";
+import { mergeWeakLines } from "./services/weakLineDetection";
 import { DEMO_REPORT } from "./demoReportData";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
@@ -3615,6 +3617,7 @@ function buildReportHistorySummary(data, fitData = null) {
     "No clear target yet";
   const progressSnapshot = buildOpeningFitProgressSnapshot(data, fitData);
   const openingHealth = buildOpeningHealthSnapshot(data, fitData);
+  const weakLines = mergeWeakLines(data);
 
   return {
     reportDate: new Date().toISOString(),
@@ -3651,6 +3654,7 @@ function buildReportHistorySummary(data, fitData = null) {
       data?.opening_health_score ??
       null,
     openingHealth,
+    weakLines,
     openingFitProgress: progressSnapshot,
   };
 }
@@ -3827,6 +3831,7 @@ function buildOpeningFitProgressSnapshot(data = {}, fitData = null, reportHistor
   );
   const recommendation = getProgressRecommendationCandidate(data, fitData);
   const openingHealth = buildOpeningHealthSnapshot(data, fitData, reportHistory);
+  const weakLines = mergeWeakLines(data);
   const mainOpeningRecommendation = recommendation ? getOpeningName(recommendation) : "No clear recommendation yet";
   const gamesNeeded = Math.max(0, 10 - gamesAnalysed);
 
@@ -3844,6 +3849,7 @@ function buildOpeningFitProgressSnapshot(data = {}, fitData = null, reportHistor
     recommendationConfidence: getProgressRecommendationConfidence(recommendation, data),
     repertoireConfidenceScore: openingHealth.score ?? score,
     openingHealth,
+    weakLines,
     styleProfileSummary: getProgressStyleSummary(data),
     gamesNeededForStrongerRecommendation: gamesNeeded,
     suggestedNextAction: gamesNeeded
@@ -7843,7 +7849,8 @@ function OpeningsCommandPanel({ data, onPractice }) {
 }
 
 function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
-  const weakLines = data?.weak_lines || data?.weakLines || [];
+  const weakLines = mergeWeakLines(data);
+  const [selectedLine, setSelectedLine] = useState(null);
   const weak = [...(fitData?.scoredOpenings || [])]
     .filter((item) => ["avoid", "review", "improve"].includes(item.fitCategory))
     .sort((a, b) => {
@@ -7896,7 +7903,7 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
 
               <p>{line.flagReason}</p>
 
-              <button type="button" onClick={() => onPractice?.(line.trainingTarget || line.opening)}>
+              <button type="button" onClick={() => setSelectedLine(line)}>
                 Train this line
               </button>
             </article>
@@ -7908,6 +7915,49 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
           text="OpeningFit needs at least a few games in the same variation before it flags a weak line."
         />
       )}
+
+      {selectedLine ? (
+        <article className="weakLineTrainingPanel" aria-live="polite">
+          <div className="weakLineCardTop">
+            <div>
+              <span>Train this line</span>
+              <strong>{selectedLine.opening}</strong>
+            </div>
+            <em>{selectedLine.games} games</em>
+          </div>
+
+          <h3>{selectedLine.variation || selectedLine.line}</h3>
+          <p className="weakLineMoves">{selectedLine.moveLine}</p>
+          <p>
+            This exact move sequence is scoring {selectedLine.winRate}% with a {selectedLine.lossRate}% loss rate.
+            Start by checking where your plan changes after the final move shown.
+          </p>
+
+          <div className="weakLineContinuationList">
+            <span>Common continuations</span>
+            {selectedLine.commonContinuations?.length ? (
+              <ul>
+                {selectedLine.commonContinuations.map((item) => (
+                  <li key={item.move}>
+                    {item.move} <small>{item.count} game{item.count === 1 ? "" : "s"}</small>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No clear continuation yet. Review the next 2-3 moves from your losses.</p>
+            )}
+          </div>
+
+          <div className="weakLineTrainingActions">
+            <button type="button" onClick={() => onPractice?.(selectedLine.trainingTarget || selectedLine.opening)}>
+              Open practice board
+            </button>
+            <button type="button" onClick={() => setSelectedLine(null)}>
+              Close
+            </button>
+          </div>
+        </article>
+      ) : null}
 
       {focus ? (
         <article className="nextBestActionCard weakSpotFeature">
@@ -11417,6 +11467,7 @@ function App() {
       incoming.detectedTimeFormat ||
       incoming.detected_time_format ||
       detectReportTimeFormat(incoming);
+    const weakLines = mergeWeakLines(incoming);
 
     return {
       ...incoming,
@@ -11484,6 +11535,8 @@ function App() {
       recentGames: incoming.recentGames ?? incoming.recent_games ?? [],
       opening_games: incoming.opening_games ?? incoming.openingGames ?? [],
       openingGames: incoming.openingGames ?? incoming.opening_games ?? [],
+      weak_lines: weakLines,
+      weakLines,
       style_profile: incoming.style_profile ?? incoming.styleProfile ?? {},
       styleBasedRecommendations:
         incoming.styleBasedRecommendations ??
@@ -11541,6 +11594,7 @@ function App() {
   const saveOpeningFitProgressState = async (report, summary, progressSnapshot) => {
     if (!supabaseUser?.id || !upsertCloudUserData || !progressSnapshot) return null;
     const openingHealth = progressSnapshot.openingHealth || summary?.openingHealth || null;
+    const weakLines = summary?.weakLines || mergeWeakLines(report);
 
     const nextUsername =
       report?.username ||
@@ -11597,6 +11651,7 @@ function App() {
           ...(existingState?.coach_progress || {}),
           openingFitProgress: progressSnapshot,
           openingHealth,
+          weakLines,
           latestSummary: summary,
         },
         progress_history: nextProgressHistory,
@@ -11933,6 +11988,7 @@ function App() {
             detected_time_format: cleanData.detectedTimeFormat,
             openingfit_progress: progressSnapshot,
             opening_health: progressSnapshot.openingHealth || reportSummary.openingHealth,
+            weak_lines: progressSnapshot.weakLines || reportSummary.weakLines,
             recommendation_snapshot: recommendationSnapshot,
             dedupe_key: `report_imported:${userReportRetentionKey}`,
           });

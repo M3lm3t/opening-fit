@@ -1,0 +1,79 @@
+.weakLineTrainingPanel {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid rgba(251, 191, 36, 0.26);
+  border-radius: 14px;
+  background: rgba(120, 53, 15, 0.14);
+}
+
+.weakLineTrainingPanel h3,
+.weakLineTrainingPanel p {
+  margin: 0;
+}
+
+.weakLineContinuationList {
+  display: grid;
+  gap: 8px;
+}
+
+.weakLineContinuationList > span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.weakLineContinuationList ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weakLineContinuationList li {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 900;
+}
+
+.weakLineContinuationList small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.weakLineTrainingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.weakLineTrainingActions button {
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  border-radius: 10px;
+  min-height: 38px;
+  padding: 0 12px;
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--text);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.weakLineTrainingActions button + button {
+  background: transparent;
+}
+
+@media (max-width: 760px) {
+  .weakLineTrainingActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .weakLineTrainingActions button {
+    width: 100%;
+  }
+}
