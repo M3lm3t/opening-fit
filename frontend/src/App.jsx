@@ -13275,37 +13275,45 @@ function App() {
               <div className="analyseHeroVisual" aria-hidden="true">
                 <div className="analyseHeroVisualTop">
                   <span>Live report preview</span>
-                  <strong>OpeningFit Dashboard</strong>
+                  <strong>Report for @clubplayer</strong>
                 </div>
-                <div className="analyseHeroPlatformBadges">
-                  <span>Chess.com</span>
-                  <span>Lichess</span>
+                <div className="analyseHeroPreviewHeader">
+                  <div>
+                    <span>Opening Fit Score</span>
+                    <strong>72</strong>
+                  </div>
+                  <small>Analysed from Chess.com</small>
                 </div>
-                <div className="analyseHeroVisualBoard">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <strong>72</strong>
+                <div className="analyseHeroRecommendation">
+                  <span>Top recommendation</span>
+                  <strong>Keep the Caro-Kann</strong>
+                  <small>Best recent fit as Black vs e4</small>
                 </div>
-                <div className="analyseHeroScorePills">
-                  <span>Opening Fit Score</span>
-                  <span>Keep</span>
-                  <span>Improve</span>
-                  <span>Avoid</span>
+                <div className="analyseHeroVerdictGrid">
+                  <div>
+                    <span>Keep</span>
+                    <strong>Caro-Kann</strong>
+                    <small>61% score</small>
+                  </div>
+                  <div>
+                    <span>Improve</span>
+                    <strong>London</strong>
+                    <small>3 weak lines</small>
+                  </div>
+                  <div>
+                    <span>Avoid</span>
+                    <strong>Early queen</strong>
+                    <small>Low sample fit</small>
+                  </div>
                 </div>
-                <div className="analyseHeroVisualPanel">
-                  <span>Opening fit</span>
-                  <strong>Caro-Kann</strong>
-                  <small>Train this line</small>
+                <div className="analyseHeroPreviewBars">
+                  <span style={{ "--bar-width": "78%" }}>Opening reliability</span>
+                  <span style={{ "--bar-width": "54%" }}>Tactical conversion</span>
+                  <span style={{ "--bar-width": "38%" }}>Early queen safety</span>
                 </div>
-                <div className="analyseHeroVisualMetric">
-                  <span>Weak spot</span>
-                  <strong>3 losses</strong>
+                <div className="analyseHeroAction">
+                  <span>Recommended action</span>
+                  <strong>Practise the Advance line</strong>
                 </div>
               </div>
               <a

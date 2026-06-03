@@ -40894,6 +40894,213 @@ body,
   color: var(--app-text-soft);
 }
 
+.appPrimaryBrand::before {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent),
+    url("/icons/openingfit-icon.svg") center / 100% 100% no-repeat !important;
+  background-color: transparent !important;
+  box-shadow:
+    0 12px 28px rgba(29, 140, 248, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.18) !important;
+}
+
+.analyseHeroVisual {
+  min-height: 286px !important;
+  display: grid !important;
+  grid-template-rows: auto auto auto 1fr auto;
+  gap: 10px;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 85% 18%, rgba(68, 214, 130, 0.18), transparent 32%),
+    radial-gradient(circle at 12% 80%, rgba(73, 168, 255, 0.18), transparent 38%),
+    linear-gradient(135deg, rgba(8, 13, 25, 0.94), rgba(13, 24, 43, 0.88)),
+    rgba(255, 255, 255, 0.055) !important;
+}
+
+.analyseHeroVisual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.14;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(135deg, black, transparent 76%);
+}
+
+.analyseHeroVisualTop,
+.analyseHeroPreviewHeader,
+.analyseHeroRecommendation,
+.analyseHeroVerdictGrid,
+.analyseHeroPreviewBars,
+.analyseHeroAction {
+  position: relative !important;
+  z-index: 1;
+}
+
+.analyseHeroVisualTop {
+  position: relative !important;
+  inset: auto !important;
+}
+
+.analyseHeroPreviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.analyseHeroPreviewHeader div,
+.analyseHeroRecommendation,
+.analyseHeroAction {
+  border: 1px solid rgba(73, 168, 255, 0.22);
+  border-radius: 16px;
+  background: rgba(5, 7, 13, 0.62);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.20);
+}
+
+.analyseHeroPreviewHeader div {
+  min-width: 118px;
+  display: grid;
+  gap: 2px;
+  padding: 11px 13px;
+}
+
+.analyseHeroPreviewHeader span,
+.analyseHeroRecommendation span,
+.analyseHeroAction span,
+.analyseHeroVerdictGrid span {
+  color: var(--app-muted);
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.analyseHeroPreviewHeader strong {
+  color: #b6ffd2;
+  font-size: 2.25rem;
+  line-height: 0.95;
+}
+
+.analyseHeroPreviewHeader small {
+  align-self: center;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border: 1px solid rgba(73, 168, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(73, 168, 255, 0.14);
+  color: #d9eeff;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.analyseHeroRecommendation {
+  display: grid;
+  gap: 4px;
+  padding: 12px 13px;
+  border-color: rgba(68, 214, 130, 0.30);
+}
+
+.analyseHeroRecommendation strong,
+.analyseHeroAction strong {
+  color: var(--app-text);
+  font-size: 0.98rem;
+}
+
+.analyseHeroRecommendation small {
+  color: #b6ffd2;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.analyseHeroVerdictGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.analyseHeroVerdictGrid div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.065);
+}
+
+.analyseHeroVerdictGrid div:nth-child(1) {
+  border-color: rgba(68, 214, 130, 0.28);
+}
+
+.analyseHeroVerdictGrid div:nth-child(2) {
+  border-color: rgba(243, 201, 105, 0.28);
+}
+
+.analyseHeroVerdictGrid div:nth-child(3) {
+  border-color: rgba(255, 107, 107, 0.26);
+}
+
+.analyseHeroVerdictGrid strong {
+  overflow: hidden;
+  color: var(--app-text);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analyseHeroVerdictGrid small {
+  color: var(--app-text-soft);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.analyseHeroPreviewBars {
+  display: grid;
+  gap: 8px;
+}
+
+.analyseHeroPreviewBars span {
+  position: relative;
+  overflow: hidden;
+  min-height: 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  color: transparent;
+}
+
+.analyseHeroPreviewBars span::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--bar-width, 50%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--app-green), var(--app-blue));
+}
+
+.analyseHeroAction {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border-color: rgba(243, 201, 105, 0.30);
+}
+
+.analyseHeroAction strong {
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .analyseHeroVisual {
+    display: none !important;
+  }
+}
+
 .mobileBottomNav {
   display: none;
 }
