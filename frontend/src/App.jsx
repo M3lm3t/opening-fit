@@ -13273,9 +13273,21 @@ function App() {
                 </div>
               </div>
               <div className="analyseHeroVisual" aria-hidden="true">
+                <div className="analyseHeroGlowBadge analyseHeroGlowBadgeFit">
+                  <span>Fit</span>
+                  <strong>72</strong>
+                </div>
+                <div className="analyseHeroGlowBadge analyseHeroGlowBadgeLive">
+                  Live report
+                </div>
                 <div className="analyseHeroVisualTop">
                   <span>Live report preview</span>
                   <strong>Report for @clubplayer</strong>
+                </div>
+                <div className="analyseHeroPlatformRow">
+                  <span>Chess.com import</span>
+                  <span>Lichess ready</span>
+                  <span>12 recent games</span>
                 </div>
                 <div className="analyseHeroPreviewHeader">
                   <div>
@@ -13290,17 +13302,17 @@ function App() {
                   <small>Best recent fit as Black vs e4</small>
                 </div>
                 <div className="analyseHeroVerdictGrid">
-                  <div>
+                  <div className="analyseHeroVerdictKeep">
                     <span>Keep</span>
                     <strong>Caro-Kann</strong>
                     <small>61% score</small>
                   </div>
-                  <div>
+                  <div className="analyseHeroVerdictImprove">
                     <span>Improve</span>
                     <strong>London</strong>
                     <small>3 weak lines</small>
                   </div>
-                  <div>
+                  <div className="analyseHeroVerdictAvoid">
                     <span>Avoid</span>
                     <strong>Early queen</strong>
                     <small>Low sample fit</small>
@@ -13310,6 +13322,11 @@ function App() {
                   <span style={{ "--bar-width": "78%" }}>Opening reliability</span>
                   <span style={{ "--bar-width": "54%" }}>Tactical conversion</span>
                   <span style={{ "--bar-width": "38%" }}>Early queen safety</span>
+                </div>
+                <div className="analyseHeroMoveStrip">
+                  <span>1. e4 c6</span>
+                  <span>2. d4 d5</span>
+                  <strong>Advance line</strong>
                 </div>
                 <div className="analyseHeroAction">
                   <span>Recommended action</span>

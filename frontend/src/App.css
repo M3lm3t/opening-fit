@@ -41881,3 +41881,474 @@ textarea:focus,
     padding-right: 172px;
   }
 }
+
+/* --------------------------------------------------
+   Landing hero app-launch upgrade
+-------------------------------------------------- */
+
+.analyseImportHero {
+  width: min(1120px, 100%) !important;
+  max-width: 1120px !important;
+  margin-top: clamp(12px, 2.5vw, 28px) !important;
+  padding: clamp(18px, 3.4vw, 36px) !important;
+  border-radius: 32px !important;
+}
+
+.analyseImportHero .heroTop {
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.74fr) auto !important;
+  gap: clamp(16px, 2.5vw, 30px) !important;
+  align-items: center !important;
+}
+
+.analyseImportHero .heroTitleWrap {
+  display: grid;
+  align-content: center;
+}
+
+.analyseImportHero .heroTitleWrap h1 {
+  max-width: 680px;
+  font-size: clamp(2.8rem, 5.4vw, 5rem) !important;
+  line-height: 0.94 !important;
+}
+
+.analyseImportHero .subtext {
+  max-width: 620px;
+  margin-top: 16px !important;
+  font-size: clamp(1.04rem, 1.4vw, 1.2rem) !important;
+  line-height: 1.55 !important;
+}
+
+.landingHeroProof {
+  gap: 8px !important;
+  margin-top: 20px !important;
+}
+
+.landingHeroProof span {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  border-color: rgba(88, 199, 255, 0.26) !important;
+  background: rgba(3, 7, 18, 0.36) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.analyseHeroVisual {
+  min-height: 430px !important;
+  isolation: isolate;
+  align-self: center !important;
+  grid-template-rows: auto auto auto auto auto 1fr auto auto !important;
+  gap: 12px !important;
+  padding: 20px !important;
+  border-color: rgba(88, 199, 255, 0.34) !important;
+  border-radius: 28px !important;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(73, 222, 145, 0.22), transparent 30%),
+    radial-gradient(circle at 8% 84%, rgba(88, 199, 255, 0.20), transparent 38%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(145deg, rgba(7, 13, 25, 0.98), rgba(10, 24, 42, 0.92)) !important;
+  background-size: auto, auto, 28px 28px, 28px 28px, auto !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(88, 199, 255, 0.08),
+    0 28px 74px rgba(0, 0, 0, 0.34),
+    0 0 64px rgba(88, 199, 255, 0.10) !important;
+}
+
+.analyseHeroVisual::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(88, 199, 255, 0.46), transparent 34%, rgba(73, 222, 145, 0.34) 74%, transparent);
+  opacity: 0.4;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  padding: 1px;
+}
+
+.analyseHeroGlowBadge {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid rgba(88, 199, 255, 0.30);
+  border-radius: 999px;
+  background: rgba(5, 12, 23, 0.82);
+  color: #dff4ff;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+}
+
+.analyseHeroGlowBadgeFit {
+  top: 16px;
+  right: 16px;
+}
+
+.analyseHeroGlowBadgeLive {
+  right: 18px;
+  bottom: 84px;
+  color: #b6ffd2;
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.analyseHeroGlowBadge span {
+  color: var(--of-muted);
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.analyseHeroGlowBadge strong {
+  color: #b6ffd2;
+  font-size: 1rem;
+}
+
+.analyseHeroPlatformRow,
+.analyseHeroMoveStrip {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.analyseHeroPlatformRow span,
+.analyseHeroMoveStrip span,
+.analyseHeroMoveStrip strong {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border: 1px solid rgba(88, 199, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #d9eeff;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.analyseHeroMoveStrip strong {
+  border-color: rgba(73, 222, 145, 0.28);
+  color: #b6ffd2;
+}
+
+.analyseHeroVisualTop {
+  padding-right: 70px;
+}
+
+.analyseHeroVisualTop span {
+  color: #9eb4c8 !important;
+}
+
+.analyseHeroVisualTop strong {
+  font-size: 1.08rem !important;
+}
+
+.analyseHeroPreviewHeader div,
+.analyseHeroRecommendation,
+.analyseHeroAction,
+.analyseHeroVerdictGrid div {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
+    rgba(3, 7, 18, 0.58) !important;
+  backdrop-filter: blur(12px);
+}
+
+.analyseHeroVerdictKeep {
+  box-shadow: inset 0 0 0 1px rgba(73, 222, 145, 0.12), 0 10px 28px rgba(73, 222, 145, 0.08);
+}
+
+.analyseHeroVerdictImprove {
+  box-shadow: inset 0 0 0 1px rgba(244, 201, 107, 0.12), 0 10px 28px rgba(244, 201, 107, 0.07);
+}
+
+.analyseHeroVerdictAvoid {
+  box-shadow: inset 0 0 0 1px rgba(251, 113, 133, 0.12), 0 10px 28px rgba(251, 113, 133, 0.07);
+}
+
+.heroImportFlow {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 14px !important;
+  margin-top: clamp(14px, 2.4vw, 24px) !important;
+  padding: clamp(14px, 2.2vw, 22px) !important;
+  border-radius: 24px !important;
+  border-color: rgba(88, 199, 255, 0.32) !important;
+  background:
+    linear-gradient(135deg, rgba(88, 199, 255, 0.12), rgba(73, 222, 145, 0.06)),
+    rgba(2, 6, 23, 0.42) !important;
+}
+
+.heroImportHeader strong {
+  color: var(--of-ink) !important;
+  font-size: clamp(1.08rem, 1.6vw, 1.35rem) !important;
+}
+
+.heroImportHeader span,
+.heroUsernameField span {
+  color: #a8bed2 !important;
+  letter-spacing: 0.04em !important;
+}
+
+.platformSelector {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px !important;
+}
+
+.analyseImportHero .platformButton {
+  min-height: 50px !important;
+  border-radius: 16px !important;
+  font-size: 0.98rem;
+}
+
+.analyseImportHero .input {
+  min-height: 58px !important;
+  border-radius: 16px !important;
+  padding-inline: 16px !important;
+  font-size: 1rem;
+}
+
+.heroUsernameHelp {
+  color: var(--of-muted) !important;
+}
+
+.analyseImportHero .primaryBtn {
+  min-height: 60px !important;
+  border-radius: 16px !important;
+  font-size: 1.04rem !important;
+}
+
+.compactTrustRow {
+  color: var(--of-muted) !important;
+}
+
+@media (max-width: 980px) {
+  .analyseImportHero .heroTop {
+    grid-template-columns: 1fr !important;
+  }
+
+  .analyseHeroVisual {
+    width: min(100%, 620px) !important;
+    min-height: 260px !important;
+    justify-self: stretch;
+  }
+
+  .analyseLoginButton {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+  }
+}
+
+@media (max-width: 900px) {
+  .analyseHeroVisual {
+    display: grid !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .analyseImportHero {
+    width: min(100%, calc(100vw - 20px)) !important;
+    padding: 14px !important;
+    border-radius: 22px !important;
+  }
+
+  .analyseImportHero .heroTop {
+    gap: 12px !important;
+  }
+
+  .analyseImportHero .heroTitleWrap h1 {
+    font-size: clamp(2rem, 9vw, 2.7rem) !important;
+    line-height: 1 !important;
+  }
+
+  .analyseImportHero .subtext {
+    max-width: 34rem;
+    margin-top: 8px !important;
+    font-size: 0.94rem !important;
+    line-height: 1.38 !important;
+  }
+
+  .analyseHeroVisual {
+    min-height: 172px !important;
+    max-height: 190px;
+    overflow: hidden;
+    grid-template-rows: auto auto auto auto !important;
+    gap: 8px !important;
+    padding: 13px !important;
+    border-radius: 20px !important;
+  }
+
+  .analyseHeroVisualTop {
+    padding-right: 64px;
+  }
+
+  .analyseHeroVisualTop span,
+  .analyseHeroPlatformRow,
+  .analyseHeroMoveStrip,
+  .analyseHeroPreviewBars,
+  .analyseHeroGlowBadgeLive {
+    display: none !important;
+  }
+
+  .analyseHeroVisualTop strong {
+    font-size: 0.94rem !important;
+  }
+
+  .analyseHeroPreviewHeader {
+    gap: 8px !important;
+  }
+
+  .analyseHeroPreviewHeader div {
+    min-width: 96px;
+    padding: 9px 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .analyseHeroPreviewHeader strong {
+    font-size: 1.65rem !important;
+  }
+
+  .analyseHeroPreviewHeader small {
+    min-height: 26px;
+    padding: 4px 8px;
+    font-size: 0.66rem !important;
+  }
+
+  .analyseHeroRecommendation {
+    padding: 9px 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .analyseHeroRecommendation strong {
+    font-size: 0.9rem !important;
+  }
+
+  .analyseHeroRecommendation small {
+    display: none;
+  }
+
+  .analyseHeroVerdictGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  .analyseHeroVerdictGrid div {
+    padding: 7px !important;
+    border-radius: 12px !important;
+  }
+
+  .analyseHeroVerdictGrid span {
+    font-size: 0.58rem !important;
+  }
+
+  .analyseHeroVerdictGrid strong {
+    font-size: 0.68rem !important;
+  }
+
+  .analyseHeroVerdictGrid small,
+  .analyseHeroAction {
+    display: none !important;
+  }
+
+  .analyseHeroGlowBadgeFit {
+    top: 11px;
+    right: 11px;
+    min-height: 28px;
+    padding: 4px 8px;
+  }
+
+  .heroImportFlow {
+    margin-top: 0 !important;
+    padding: 12px !important;
+    gap: 10px !important;
+    border-radius: 18px !important;
+  }
+
+  .platformSelector {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .analyseImportHero .platformButton,
+  .analyseImportHero .input,
+  .analyseImportHero .primaryBtn {
+    min-height: 48px !important;
+    border-radius: 14px !important;
+  }
+
+  .heroUsernameHelp {
+    font-size: 0.82rem !important;
+    line-height: 1.35 !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .analyseImportHero {
+    padding: 12px !important;
+  }
+
+  .analyseImportHero .heroTitleWrap h1 {
+    font-size: clamp(1.85rem, 8.4vw, 2.35rem) !important;
+  }
+
+  .analyseImportHero .subtext {
+    font-size: 0.88rem !important;
+    line-height: 1.32 !important;
+  }
+
+  .analyseHeroVisual {
+    min-height: 118px !important;
+    max-height: 124px;
+    gap: 6px !important;
+    padding: 11px !important;
+  }
+
+  .analyseHeroVisualTop strong {
+    font-size: 0.86rem !important;
+  }
+
+  .analyseHeroPreviewHeader div {
+    min-width: 88px;
+    padding: 7px 9px !important;
+  }
+
+  .analyseHeroPreviewHeader span {
+    font-size: 0.56rem !important;
+  }
+
+  .analyseHeroPreviewHeader strong {
+    font-size: 1.4rem !important;
+  }
+
+  .analyseHeroPreviewHeader small,
+  .analyseHeroRecommendation,
+  .heroUsernameHelp {
+    display: none !important;
+  }
+
+  .analyseHeroVerdictGrid div:nth-child(3) {
+    display: none;
+  }
+
+  .analyseHeroVerdictGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .heroImportFlow {
+    padding: 10px !important;
+    gap: 8px !important;
+  }
+
+  .analyseImportHero .platformButton,
+  .analyseImportHero .input,
+  .analyseImportHero .primaryBtn {
+    min-height: 46px !important;
+  }
+}
