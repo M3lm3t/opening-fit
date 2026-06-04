@@ -116,6 +116,7 @@ import {
   MessageSquareText,
   Target,
 } from "lucide-react";
+import "./ThemePolish.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 

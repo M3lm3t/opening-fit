@@ -1,0 +1,333 @@
+/* Final light/dark ownership layer. Keep this imported after App.css. */
+
+:root {
+  --ds-bg-0: #07101c;
+  --ds-bg-1: #0a1523;
+  --ds-bg-2: #0d1927;
+  --ds-surface: rgba(17, 29, 46, 0.9);
+  --ds-surface-strong: rgba(20, 34, 53, 0.97);
+  --ds-surface-muted: rgba(148, 178, 210, 0.08);
+  --ds-border: rgba(190, 218, 246, 0.2);
+  --ds-border-strong: rgba(190, 218, 246, 0.34);
+  --ds-muted: #9eb2c7;
+}
+
+:root[data-theme="light"],
+.page.light,
+body.light {
+  --ds-bg-0: #f4f8fc;
+  --ds-bg-1: #edf4f8;
+  --ds-bg-2: #f8fafc;
+  --ds-surface: #ffffff;
+  --ds-surface-strong: #ffffff;
+  --ds-surface-muted: #f1f5f9;
+  --ds-border: rgba(51, 65, 85, 0.18);
+  --ds-border-strong: rgba(30, 41, 59, 0.3);
+  --ds-text: #0b1628;
+  --ds-text-soft: #33465d;
+  --ds-muted: #5b6f86;
+  --ds-shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.09);
+  --ds-shadow: 0 22px 54px rgba(15, 23, 42, 0.14);
+}
+
+body:not(.light) {
+  background:
+    radial-gradient(circle at 15% 2%, rgba(56, 189, 248, 0.12), transparent 28rem),
+    radial-gradient(circle at 88% 8%, rgba(245, 200, 107, 0.07), transparent 25rem),
+    linear-gradient(180deg, #07101c, #0a1421 48%, #0c1724) !important;
+}
+
+body.light,
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(14, 165, 233, 0.08), transparent 28rem),
+    radial-gradient(circle at 88% 5%, rgba(34, 197, 94, 0.06), transparent 24rem),
+    linear-gradient(180deg, #f5f9fd, #edf3f7 48%, #f8fafc) !important;
+}
+
+.reportCommandBar__upgrade,
+.premiumPrimaryBtn,
+.premiumCheckoutBtn,
+.premiumCheckoutButton,
+.premiumUnlockBtn,
+.commandUpgradeCta,
+.profileFounderOffer .primaryBtn,
+.founderPassUpgradePrimary {
+  border: 1px solid rgba(161, 98, 7, 0.24) !important;
+  background: linear-gradient(135deg, #facc15, #f59e0b) !important;
+  color: #271600 !important;
+  box-shadow: 0 12px 28px rgba(245, 158, 11, 0.26) !important;
+}
+
+.premiumCard,
+.premiumHeroCard,
+.premiumRoadmapStrip,
+.landingPriceCardPremium,
+.premiumLockedInline,
+.premiumPanel,
+.premiumPriceCard {
+  border-color: color-mix(in srgb, #f5b942 52%, var(--ds-border)) !important;
+}
+
+.page.light .premiumCard,
+.page.light .premiumHeroCard,
+.page.light .premiumRoadmapStrip,
+.page.light .landingPriceCardPremium,
+.page.light .premiumPanel,
+.page.light .premiumPriceCard,
+[data-theme="light"] .premiumCard,
+[data-theme="light"] .premiumHeroCard,
+[data-theme="light"] .premiumRoadmapStrip,
+[data-theme="light"] .landingPriceCardPremium,
+[data-theme="light"] .premiumPanel,
+[data-theme="light"] .premiumPriceCard {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(245, 158, 11, 0.14), transparent 18rem),
+    linear-gradient(145deg, #fffdf5, #ffffff) !important;
+  box-shadow: 0 16px 38px rgba(146, 94, 12, 0.12) !important;
+}
+
+.page.light .reportCommandBar,
+[data-theme="light"] .reportCommandBar {
+  border-color: rgba(51, 65, 85, 0.2) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1) !important;
+}
+
+.page.light .reportCommandBar__tabs,
+[data-theme="light"] .reportCommandBar__tabs {
+  border-color: rgba(51, 65, 85, 0.16) !important;
+  background: #edf2f7 !important;
+}
+
+.page.light .reportCommandBar__tabs button,
+[data-theme="light"] .reportCommandBar__tabs button {
+  color: #42566c !important;
+}
+
+.page.light .reportCommandBar .reportCommandBar__tabs button,
+[data-theme="light"] .reportCommandBar .reportCommandBar__tabs button {
+  color: #42566c !important;
+}
+
+body .page.light .reportCommandBar .reportCommandBar__tabs button:not(.is-active),
+body [data-theme="light"] .reportCommandBar .reportCommandBar__tabs button:not(.is-active) {
+  color: #42566c !important;
+}
+
+.page.light .reportCommandBar__tabs button.is-active,
+[data-theme="light"] .reportCommandBar__tabs button.is-active {
+  background: #d9e9fb !important;
+  color: #124f91 !important;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.16) !important;
+}
+
+.page.light .reportCommandBar .reportCommandBar__tabs button.is-active,
+[data-theme="light"] .reportCommandBar .reportCommandBar__tabs button.is-active {
+  color: #124f91 !important;
+}
+
+.page.light .platformButton,
+.page.light .analysisTimeFormatButton,
+.page.light .appTabButton,
+.page.light .inlineSampleButton,
+[data-theme="light"] .platformButton,
+[data-theme="light"] .analysisTimeFormatButton,
+[data-theme="light"] .appTabButton,
+[data-theme="light"] .inlineSampleButton {
+  border-color: rgba(51, 65, 85, 0.22) !important;
+  background: #edf2f7 !important;
+  color: #26384d !important;
+}
+
+.page.light .platformButtonActive,
+.page.light .analysisTimeFormatButtonActive,
+.page.light .appTabButtonActive,
+[data-theme="light"] .platformButtonActive,
+[data-theme="light"] .analysisTimeFormatButtonActive,
+[data-theme="light"] .appTabButtonActive {
+  border-color: #1d6fdc !important;
+  background: linear-gradient(135deg, #2563eb, #38bdf8) !important;
+  color: #ffffff !important;
+}
+
+.page.light .inlineSampleButton,
+[data-theme="light"] .inlineSampleButton {
+  color: #075985 !important;
+  border-color: rgba(14, 116, 144, 0.3) !important;
+  background: #e6f6fc !important;
+}
+
+.page.light input,
+.page.light select,
+.page.light textarea,
+.page.light .input,
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea,
+[data-theme="light"] .input {
+  border-color: rgba(51, 65, 85, 0.3) !important;
+  background: linear-gradient(180deg, #ffffff, #f8fafc) !important;
+  color: #0b1628 !important;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.07) !important;
+}
+
+.page.light .card,
+.page.light .panel,
+.page.light .reportDashboardStat,
+.page.light .dashboardInsightCard,
+.page.light .reportCoachCard,
+.page.light .nextBestMoveCard,
+[data-theme="light"] .card,
+[data-theme="light"] .panel,
+[data-theme="light"] .reportDashboardStat,
+[data-theme="light"] .dashboardInsightCard,
+[data-theme="light"] .reportCoachCard,
+[data-theme="light"] .nextBestMoveCard {
+  border-color: rgba(51, 65, 85, 0.18) !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08) !important;
+}
+
+.page.dark .card,
+.page.dark .panel,
+.page.dark .reportDashboardStat,
+.page.dark .dashboardInsightCard,
+.page.dark .reportCoachCard,
+[data-theme="dark"] .card,
+[data-theme="dark"] .panel,
+[data-theme="dark"] .reportDashboardStat,
+[data-theme="dark"] .dashboardInsightCard,
+[data-theme="dark"] .reportCoachCard {
+  border-color: rgba(190, 218, 246, 0.22) !important;
+  background-color: rgba(20, 34, 53, 0.92) !important;
+}
+
+.page.light .nextBestMoveActions .secondaryBtn,
+.page.light .nextBestMoveActions .secondaryButton,
+.page.light .nextBestMoveActions .ghostButton,
+[data-theme="light"] .nextBestMoveActions .secondaryBtn,
+[data-theme="light"] .nextBestMoveActions .secondaryButton,
+[data-theme="light"] .nextBestMoveActions .ghostButton {
+  border-color: rgba(37, 99, 235, 0.3) !important;
+  background: #eef5ff !important;
+  color: #174f91 !important;
+}
+
+.page.light .nextBestMoveCard .nextBestMoveActions .secondaryBtn,
+[data-theme="light"] .nextBestMoveCard .nextBestMoveActions .secondaryBtn {
+  color: #174f91 !important;
+}
+
+.page.light .accountSyncChip,
+.page.light .accountSyncDetails,
+[data-theme="light"] .accountSyncChip,
+[data-theme="light"] .accountSyncDetails {
+  border: 1px solid rgba(51, 65, 85, 0.18) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  color: #26384d !important;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.1) !important;
+}
+
+.page.light .analyseHeroPreviewHeader > div,
+[data-theme="light"] .analyseHeroPreviewHeader > div {
+  border-color: rgba(5, 150, 105, 0.28) !important;
+  background: linear-gradient(145deg, #e7faf1, #ffffff) !important;
+}
+
+.page.light .analyseHeroPreviewHeader strong,
+[data-theme="light"] .analyseHeroPreviewHeader strong {
+  color: #067647 !important;
+}
+
+.page.light .landingHeroProof span,
+[data-theme="light"] .landingHeroProof span {
+  border-color: rgba(51, 65, 85, 0.2) !important;
+  background: #eef3f7 !important;
+  color: #33465d !important;
+}
+
+@media (max-width: 760px) {
+  .commandCentreHero {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .currentReportSummaryMain {
+    min-height: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .commandCentreScore {
+    position: static !important;
+    width: 100% !important;
+    min-height: 108px !important;
+    grid-template-columns: auto auto auto !important;
+    justify-content: start !important;
+    justify-items: start !important;
+    gap: 6px 12px !important;
+    text-align: left !important;
+  }
+
+  .commandCentreScore span {
+    grid-column: 1 / -1;
+  }
+
+  .commandCentreScore strong {
+    grid-row: 2 / 4;
+    align-self: center;
+  }
+
+  .currentReportSummaryMain h1 {
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+  }
+
+  .page.dark .mobileBottomNav,
+  [data-theme="dark"] .mobileBottomNav {
+    border-color: rgba(190, 218, 246, 0.3) !important;
+    background: rgba(14, 25, 41, 0.97) !important;
+  }
+
+  .page.dark .mobileBottomNav button,
+  [data-theme="dark"] .mobileBottomNav button {
+    color: #aebed0 !important;
+  }
+
+  .page.light .mobileBottomNav,
+  [data-theme="light"] .mobileBottomNav {
+    border-color: rgba(51, 65, 85, 0.24) !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+  }
+
+  .page.light .mobileBottomNav button,
+  [data-theme="light"] .mobileBottomNav button {
+    color: #53667b !important;
+  }
+
+  .page.light .mobileBottomNav .mobileBottomNavActive,
+  [data-theme="light"] .mobileBottomNav .mobileBottomNavActive {
+    color: #064e3b !important;
+    background: #dff7ec !important;
+    box-shadow: inset 0 0 0 1px rgba(5, 150, 105, 0.24) !important;
+  }
+
+  .page.light .mobileBottomNav button.mobileBottomNavActive,
+  [data-theme="light"] .mobileBottomNav button.mobileBottomNavActive {
+    color: #064e3b !important;
+  }
+
+  body .page.light nav.mobileBottomNav button.mobileBottomNavActive,
+  body [data-theme="light"] nav.mobileBottomNav button.mobileBottomNavActive {
+    color: #064e3b !important;
+  }
+
+  .mobileBottomNav button:last-child {
+    color: #f4c96b !important;
+  }
+
+  .page.light .mobileBottomNav button:last-child,
+  [data-theme="light"] .mobileBottomNav button:last-child {
+    color: #9a6700 !important;
+  }
+}
