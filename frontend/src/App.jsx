@@ -104,6 +104,18 @@ import {
   getOpeningSeoPage,
   getOpeningSeoSlugFromPath,
 } from "./data/openingSeoPages.js";
+import {
+  ArrowRight,
+  BookOpenCheck,
+  ChartNoAxesCombined,
+  CircleCheck,
+  Database,
+  Gamepad2,
+  Layers3,
+  ListChecks,
+  MessageSquareText,
+  Target,
+} from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
@@ -9359,6 +9371,93 @@ function LandingSampleResultPreview({ onOpeningClick }) {
   );
 }
 
+function HomepageVisualStory() {
+  const benefits = [
+    ["Built from your real games", "Recommendations start with positions you actually reach.", Database, "cyan"],
+    ["Simple club-player advice", "Clear verdicts show what to keep, improve, watch, or replace.", MessageSquareText, "green"],
+    ["No endless theory", "Focus on useful plans and recurring trouble spots.", Layers3, "gold"],
+    ["Practical training actions", "Finish with a short study queue for your next session.", ListChecks, "blue"],
+  ];
+
+  const steps = [
+    ["Import your games", "Connect a public Chess.com or Lichess username.", Gamepad2, "import"],
+    ["Find your opening fit", "See which openings suit your results and habits.", Target, "fit"],
+    ["Build a simple repertoire", "Turn the evidence into a focused plan for White and Black.", BookOpenCheck, "plan"],
+  ];
+
+  return (
+    <div className="homepageVisualStory">
+      <section className="landingStorySection landingDifferenceSection" id="why-opening-fit-app">
+        <div className="landingQuestionBlock">
+          <p className="landingEyebrow">Why OpeningFit</p>
+          <h2>Opening advice that feels personal, practical, and finishable.</h2>
+          <p>Your recent games become a small set of confident repertoire decisions.</p>
+        </div>
+
+        <div className="landingWhyProduct">
+          <div className="landingBenefitGrid">
+            {benefits.map(([title, text, icon, accent]) => {
+              const BenefitIcon = icon;
+              return (
+                <article className={`landingBenefitCard landingBenefitCard-${accent}`} key={title}>
+                  <span className="landingBenefitIcon"><BenefitIcon size={21} strokeWidth={2.2} /></span>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="landingRepertoireMock" aria-label="Sample repertoire dashboard">
+            <div className="landingMockTopbar">
+              <div><span>Repertoire snapshot</span><strong>Three decisions. One clear plan.</strong></div>
+              <span className="landingMockScore"><ChartNoAxesCombined size={15} /> 84 fit</span>
+            </div>
+            <div className="landingMockRows">
+              <div><span className="landingMockPiece">W</span><p><strong>White</strong><small>Italian Game</small></p><span className="verdict keep">Keep</span></div>
+              <div><span className="landingMockPiece landingMockPieceDark">B</span><p><strong>Black vs 1.e4</strong><small>Caro-Kann Defence</small></p><span className="verdict keep">Keep</span></div>
+              <div><span className="landingMockPiece landingMockPieceGold">B</span><p><strong>Black vs 1.d4</strong><small>Too many systems</small></p><span className="verdict improve">Focus</span></div>
+            </div>
+            <div className="landingMockAction">
+              <CircleCheck size={18} />
+              <p><span>Next training action</span><strong>Choose one response to 1.d4 and review its first plan.</strong></p>
+              <ArrowRight size={18} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="landingContentSection homepageHowSection" id="how-it-works-app">
+        <div className="landingSectionHeading">
+          <p className="landingEyebrow">How it works</p>
+          <h2>From game history to a repertoire you can actually remember.</h2>
+          <p>OpeningFit does the sorting. You make three useful decisions.</p>
+        </div>
+        <div className="landingStepsList landingVisualSteps">
+          {steps.map(([title, text, icon, visual], index) => {
+            const StepIcon = icon;
+            return (
+            <article className="landingStepCard landingVisualStepCard" key={title}>
+              <div className="landingStepTop">
+                <div className="landingStepNumber">{index + 1}</div>
+                <span className="landingStepIcon"><StepIcon size={20} strokeWidth={2.2} /></span>
+              </div>
+              <div className="landingStepCopy"><h3>{title}</h3><p>{text}</p></div>
+              <div className={`landingStepVisual landingStepVisual-${visual}`} aria-hidden="true">
+                {visual === "import" ? <><span className="landingPlatformChip">Chess.com</span><span className="landingPlatformChip">Lichess</span><div className="landingImportProgress"><i /></div></> : null}
+                {visual === "fit" ? <><div><span>Italian</span><i style={{ width: "84%" }} /></div><div><span>Caro-Kann</span><i style={{ width: "76%" }} /></div><div><span>Dutch</span><i style={{ width: "38%" }} /></div></> : null}
+                {visual === "plan" ? <><div><CircleCheck size={15} /><span>Keep Italian</span></div><div><CircleCheck size={15} /><span>Repair Caro-Kann</span></div><div><CircleCheck size={15} /><span>Choose vs 1.d4</span></div></> : null}
+              </div>
+              <div className="landingStepMeta"><CircleCheck size={15} /> Ready for your next session</div>
+            </article>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function LandingSection({ onOpeningClick }) {
   const problemPoints = [
     {
@@ -9377,20 +9476,25 @@ function LandingSection({ onOpeningClick }) {
 
   const steps = [
     {
-      title: "Import Games",
-      text: "Enter a Chess.com or Lichess username.",
+      title: "Import your games",
+      text: "Connect a public Chess.com or Lichess username. No PGN sorting required.",
+      meta: "Recent games ready",
+      icon: Gamepad2,
+      visual: "import",
     },
     {
-      title: "Analyse Openings",
-      text: "OpeningFit finds what to keep, improve, or replace.",
+      title: "Find your opening fit",
+      text: "See which openings suit your results, habits, and recurring positions.",
+      meta: "Fit signals found",
+      icon: Target,
+      visual: "fit",
     },
     {
-      title: "Get Study Plan",
-      text: "Leave with one practical opening task.",
-    },
-    {
-      title: "Train your repertoire",
-      text: "Use the next study action before your next rated session.",
+      title: "Build a simple repertoire",
+      text: "Turn the evidence into a focused plan for White and Black.",
+      meta: "3 clear priorities",
+      icon: BookOpenCheck,
+      visual: "plan",
     },
   ];
 
@@ -9517,44 +9621,30 @@ function LandingSection({ onOpeningClick }) {
     },
   ];
 
-  const differentiationPillars = [
+  const benefitCards = [
     {
-      label: "Repertoire fingerprint",
-      title: "Your openings are treated like a pattern, not a database search.",
-      text: "Opening Fit splits White, Black vs 1.e4, and Black vs 1.d4 so your plan has shape.",
+      title: "Built from your real games",
+      text: "Recommendations start with positions you actually reach, not a generic course.",
+      icon: Database,
+      accent: "cyan",
     },
     {
-      label: "Confidence gate",
-      title: "Small samples do not get loud verdicts.",
-      text: "Thin evidence is marked as watch, not dressed up as a recommendation.",
+      title: "Simple club-player advice",
+      text: "Clear verdicts explain what to keep, improve, watch, or replace.",
+      icon: MessageSquareText,
+      accent: "green",
     },
     {
-      label: "One-line repair",
-      title: "The output is a next action, not a theory rabbit hole.",
-      text: "You leave with one opening to keep, one to fix, and one study target.",
-    },
-  ];
-
-  const differentiationComparisons = [
-    {
-      alternative: "Opening databases",
-      gap: "Show theory popularity.",
-      openingFit: "Shows what works in your games.",
+      title: "No endless theory",
+      text: "Focus on useful plans and recurring trouble spots without drowning in lines.",
+      icon: Layers3,
+      accent: "gold",
     },
     {
-      alternative: "Engines",
-      gap: "Find move mistakes.",
-      openingFit: "Finds repertoire decisions.",
-    },
-    {
-      alternative: "Spreadsheets",
-      gap: "Require manual sorting.",
-      openingFit: "Groups sides and verdicts automatically.",
-    },
-    {
-      alternative: "Generic courses",
-      gap: "Teach someone else’s repertoire.",
-      openingFit: "Builds from your recent results.",
+      title: "Practical training actions",
+      text: "Finish with a short study queue you can use before your next rated session.",
+      icon: ListChecks,
+      accent: "blue",
     },
   ];
 
@@ -9775,53 +9865,57 @@ function LandingSection({ onOpeningClick }) {
       <section className="landingStorySection landingDifferenceSection" id="why-opening-fit">
         <div className="landingQuestionBlock">
           <p className="landingEyebrow">Why Opening Fit</p>
-          <h2>Not more chess data. A decision layer for your repertoire.</h2>
+          <h2>Opening advice that feels personal, practical, and finishable.</h2>
           <p>
-            Most tools show moves, evals, or master games. Opening Fit answers:
-            what should you keep, fix, watch, or study next?
+            Your report turns recent games into a small set of confident repertoire decisions.
           </p>
         </div>
 
-        <div className="landingFingerprintDemo" aria-label="Opening Fit repertoire fingerprint demo">
-          <div className="fingerprintBoard" aria-hidden="true">
-            <span className="fingerprintSquare fingerprintKeep">Keep</span>
-            <span />
-            <span className="fingerprintSquare fingerprintFix">Fix</span>
-            <span />
-            <span />
-            <span className="fingerprintSquare fingerprintWatch">Watch</span>
-            <span />
-            <span className="fingerprintSquare fingerprintStudy">Study</span>
-            <span />
+        <div className="landingWhyProduct">
+          <div className="landingBenefitGrid">
+            {benefitCards.map((benefit) => {
+              const BenefitIcon = benefit.icon;
+              return (
+                <article className={`landingBenefitCard landingBenefitCard-${benefit.accent}`} key={benefit.title}>
+                  <span className="landingBenefitIcon"><BenefitIcon size={21} strokeWidth={2.2} /></span>
+                  <h3>{benefit.title}</h3>
+                  <p>{benefit.text}</p>
+                </article>
+              );
+            })}
           </div>
-          <div className="fingerprintCopy">
-            <span>Repertoire fingerprint</span>
-            <strong>White: stable. Black vs e4: strong. Black vs d4: scattered.</strong>
-            <p>
-              The memorable bit: your report becomes a small map of opening
-              decisions, not a wall of theory.
-            </p>
+
+          <div className="landingRepertoireMock" aria-label="Sample repertoire dashboard">
+            <div className="landingMockTopbar">
+              <div>
+                <span>Repertoire snapshot</span>
+                <strong>Three decisions. One clear plan.</strong>
+              </div>
+              <span className="landingMockScore"><ChartNoAxesCombined size={15} /> 84 fit</span>
+            </div>
+            <div className="landingMockRows">
+              <div>
+                <span className="landingMockPiece">W</span>
+                <p><strong>White</strong><small>Italian Game</small></p>
+                <span className="verdict keep">Keep</span>
+              </div>
+              <div>
+                <span className="landingMockPiece landingMockPieceDark">B</span>
+                <p><strong>Black vs 1.e4</strong><small>Caro-Kann Defence</small></p>
+                <span className="verdict keep">Keep</span>
+              </div>
+              <div>
+                <span className="landingMockPiece landingMockPieceGold">B</span>
+                <p><strong>Black vs 1.d4</strong><small>Too many systems</small></p>
+                <span className="verdict improve">Focus</span>
+              </div>
+            </div>
+            <div className="landingMockAction">
+              <CircleCheck size={18} />
+              <p><span>Next training action</span><strong>Choose one response to 1.d4 and review its first plan.</strong></p>
+              <ArrowRight size={18} />
+            </div>
           </div>
-        </div>
-
-        <div className="landingDifferentiatorGrid">
-          {differentiationPillars.map((pillar) => (
-            <article className="landingDifferentiatorCard" key={pillar.label}>
-              <span>{pillar.label}</span>
-              <h3>{pillar.title}</h3>
-              <p>{pillar.text}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className="landingAlternativeGrid">
-          {differentiationComparisons.map((item) => (
-            <article className="landingAlternativeCard" key={item.alternative}>
-              <h3>{item.alternative}</h3>
-              <p>{item.gap}</p>
-              <strong>{item.openingFit}</strong>
-            </article>
-          ))}
         </div>
       </section>
 
@@ -9874,19 +9968,50 @@ function LandingSection({ onOpeningClick }) {
       <section className="landingContentSection" id="how-it-works">
         <div className="landingSectionHeading">
           <p className="landingEyebrow">How it works</p>
-          <h2>From username to study plan in three steps.</h2>
+          <h2>From game history to a repertoire you can actually remember.</h2>
+          <p>OpeningFit does the sorting. You make three useful decisions.</p>
         </div>
 
-        <div className="landingStepsList">
-          {steps.slice(0, 3).map((step, index) => (
-            <div className="landingStepCard" key={step.title}>
-              <div className="landingStepNumber">{index + 1}</div>
-              <div>
+        <div className="landingStepsList landingVisualSteps">
+          {steps.map((step, index) => {
+            const StepIcon = step.icon;
+            return (
+            <article className="landingStepCard landingVisualStepCard" key={step.title}>
+              <div className="landingStepTop">
+                <div className="landingStepNumber">{index + 1}</div>
+                <span className="landingStepIcon"><StepIcon size={20} strokeWidth={2.2} /></span>
+              </div>
+              <div className="landingStepCopy">
                 <h3>{step.title}</h3>
                 <p>{step.text}</p>
               </div>
-            </div>
-          ))}
+              <div className={`landingStepVisual landingStepVisual-${step.visual}`} aria-hidden="true">
+                {step.visual === "import" && (
+                  <>
+                    <span className="landingPlatformChip">Chess.com</span>
+                    <span className="landingPlatformChip">Lichess</span>
+                    <div className="landingImportProgress"><i /></div>
+                  </>
+                )}
+                {step.visual === "fit" && (
+                  <>
+                    <div><span>Italian</span><i style={{ width: "84%" }} /></div>
+                    <div><span>Caro-Kann</span><i style={{ width: "76%" }} /></div>
+                    <div><span>Dutch</span><i style={{ width: "38%" }} /></div>
+                  </>
+                )}
+                {step.visual === "plan" && (
+                  <>
+                    <div><CircleCheck size={15} /><span>Keep Italian</span></div>
+                    <div><CircleCheck size={15} /><span>Repair Caro-Kann</span></div>
+                    <div><CircleCheck size={15} /><span>Choose vs 1.d4</span></div>
+                  </>
+                )}
+              </div>
+              <div className="landingStepMeta"><CircleCheck size={15} /> {step.meta}</div>
+            </article>
+            );
+          })}
         </div>
       </section>
 
@@ -13561,39 +13686,7 @@ function App() {
             ) : null}
 
           </header>
-          <section className="landingStorySection landingProblemSection" id="opening-choice-app">
-            <div className="landingQuestionBlock">
-              <p className="landingEyebrow">Chess opening analysis</p>
-              <h2>Stop Guessing Which Openings To Play</h2>
-              <p>
-                Most players pick openings from YouTube or grandmaster games. OpeningFit looks at your own games and helps you choose openings that actually fit how you play.
-              </p>
-              <p>
-                Use it for chess opening analysis, chess opening recommendations, and a chess repertoire builder workflow: analyse Chess.com games, analyse Lichess games, then shape an opening repertoire around personalised chess openings.
-              </p>
-            </div>
-
-            <div className="landingProblemGrid">
-              <article className="landingStoryCard">
-                <h3>Personalised chess openings</h3>
-                <p>
-                  Analyse Chess.com games or analyse Lichess games to see which positions already match your strengths.
-                </p>
-              </article>
-              <article className="landingStoryCard">
-                <h3>Chess opening recommendations</h3>
-                <p>
-                  OpeningFit turns your results and weaknesses into practical recommendations instead of generic theory lists.
-                </p>
-              </article>
-              <article className="landingStoryCard">
-                <h3>Chess repertoire builder</h3>
-                <p>
-                  Build an opening repertoire around the lines you understand, then repair the choices that keep costing points.
-                </p>
-              </article>
-            </div>
-          </section>
+          <HomepageVisualStory />
           <div className="preAnalysisSupport">
             <ReturnUserDashboard
               user={supabaseUser || accountUser}
