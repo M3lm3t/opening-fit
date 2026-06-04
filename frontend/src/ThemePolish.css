@@ -331,3 +331,360 @@ body [data-theme="light"] .reportCommandBar .reportCommandBar__tabs button:not(.
     color: #9a6700 !important;
   }
 }
+
+/* Premium product details */
+.primaryActionMicrocopy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  color: var(--ds-muted) !important;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.primaryActionMicrocopy svg {
+  flex: 0 0 auto;
+  color: var(--ds-primary);
+}
+
+.premiumActionMicrocopy {
+  display: block;
+  margin-top: 7px;
+  color: var(--ds-muted) !important;
+  font-size: 0.71rem;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.productStatus {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border-radius: 12px !important;
+  padding: 11px 12px !important;
+}
+
+.productStatus > svg {
+  color: var(--ds-primary-2);
+}
+
+.productStatus p {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.productStatus strong {
+  color: var(--ds-text);
+  font-size: 0.82rem;
+}
+
+.productStatus span {
+  color: var(--ds-muted);
+  font-size: 0.76rem;
+}
+
+.productStatus .inlineSampleButton {
+  min-height: 34px;
+  border-radius: 9px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.page.light .productStatus .inlineSampleButton,
+[data-theme="light"] .productStatus .inlineSampleButton {
+  border: 1px solid rgba(37, 99, 235, 0.24) !important;
+  background: #ffffff !important;
+  color: #174f91 !important;
+}
+
+body .page.light .productStatus button.inlineSampleButton,
+body [data-theme="light"] .productStatus button.inlineSampleButton {
+  color: #174f91 !important;
+}
+
+.productEmptyState {
+  position: relative;
+  width: min(780px, 100%);
+  overflow: hidden;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px 16px !important;
+  align-items: start;
+  border-style: solid !important;
+  padding: clamp(18px, 3vw, 26px) !important;
+}
+
+.productEmptyState::after {
+  content: "";
+  position: absolute;
+  right: -28px;
+  bottom: -34px;
+  width: 130px;
+  height: 130px;
+  border: 1px solid color-mix(in srgb, var(--ds-primary-2) 18%, transparent);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.productStateIcon,
+.productFeedbackIcon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--ds-primary-2) 28%, var(--ds-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ds-primary-2) 11%, transparent);
+  color: var(--ds-primary-2);
+}
+
+.productStateIcon {
+  width: 44px;
+  height: 44px;
+}
+
+.productFeedbackIcon {
+  width: 36px;
+  height: 36px;
+}
+
+.productEmptyState > div:nth-child(2) {
+  display: grid;
+  gap: 7px;
+}
+
+.productEmptyState .eyebrow,
+.productEmptyState h2,
+.productEmptyState p {
+  margin: 0;
+}
+
+.productStatePreview {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.productStatePreview span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--ds-border);
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: color-mix(in srgb, var(--ds-surface-muted) 88%, transparent);
+  color: var(--ds-text-soft);
+  font-size: 0.73rem;
+  font-weight: 850;
+}
+
+.productStatePreview svg {
+  color: var(--ds-primary);
+}
+
+.productStateAction {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.productStateAction small {
+  color: var(--ds-muted) !important;
+  font-size: 0.73rem;
+  font-weight: 800;
+}
+
+.emptyState {
+  border-style: solid !important;
+}
+
+.emptyStateIcon {
+  border-radius: 10px !important;
+}
+
+.emptyStateLabel {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+}
+
+.importStatusBox,
+.cloudSaveStatusPill,
+.analyseErrorBox {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.importStatusBox,
+.cloudSaveStatusPill {
+  display: grid !important;
+}
+
+.analyseErrorBox {
+  display: grid !important;
+  border-color: color-mix(in srgb, var(--ds-danger) 38%, var(--ds-border)) !important;
+  background: color-mix(in srgb, var(--ds-danger) 8%, var(--ds-surface)) !important;
+}
+
+.analyseErrorBox .productFeedbackIcon {
+  border-color: color-mix(in srgb, var(--ds-danger) 34%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-danger) 11%, transparent);
+  color: var(--ds-danger);
+}
+
+.analyseErrorBox small {
+  display: block;
+  margin-top: 5px;
+  color: var(--ds-muted) !important;
+  font-size: 0.73rem;
+  font-weight: 750;
+}
+
+.importStatusBox--success .productFeedbackIcon,
+.cloudSaveStatusPill .productFeedbackIcon {
+  border-color: color-mix(in srgb, var(--ds-primary) 32%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-primary) 10%, transparent);
+  color: var(--ds-primary);
+}
+
+.importStatusBox--warning .productFeedbackIcon {
+  border-color: color-mix(in srgb, var(--ds-premium) 34%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-premium) 11%, transparent);
+  color: var(--ds-premium);
+}
+
+.loadingCard {
+  min-height: 96px;
+  align-items: center;
+  border-color: var(--ds-border-strong) !important;
+}
+
+.loadingCard::before {
+  content: "";
+  width: min(280px, 42%);
+  height: 42px;
+  margin-left: auto;
+  border-radius: 9px;
+  background:
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--ds-text) 9%, transparent), transparent),
+    linear-gradient(var(--ds-surface-muted) 8px, transparent 8px 16px, var(--ds-surface-muted) 16px 24px, transparent 24px 32px, var(--ds-surface-muted) 32px);
+  background-size: 200% 100%, 100% 100%;
+  animation: productSkeletonShimmer 1.8s ease-in-out infinite;
+}
+
+button,
+a[href],
+.card,
+.panel,
+.productStatePreview span {
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+button:focus-visible,
+a[href]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ds-primary-2) 78%, white);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .productStatePreview span:hover,
+  .emptyState:hover {
+    border-color: var(--ds-border-strong) !important;
+  }
+
+  .productEmptyState:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ds-shadow) !important;
+  }
+}
+
+@keyframes productSkeletonShimmer {
+  from { background-position: 180% 0, 0 0; }
+  to { background-position: -80% 0, 0 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .postImportStatusStack,
+  .analyseErrorBox,
+  .appEmptySection,
+  .finalReportFlow > section {
+    animation: productSectionIn 240ms ease-out both;
+  }
+}
+
+@keyframes productSectionIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 760px) {
+  .productStatus,
+  .importStatusBox,
+  .cloudSaveStatusPill,
+  .analyseErrorBox {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .productStatus .inlineSampleButton,
+  .importStatusBox > span:last-child,
+  .cloudSaveStatusPill button,
+  .analyseErrorBox .primaryBtn {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .productEmptyState {
+    grid-template-columns: 1fr;
+  }
+
+  .productStateIcon,
+  .productStatePreview,
+  .productStateAction {
+    grid-column: 1;
+  }
+
+  .productStateAction {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .productStateAction .primaryBtn {
+    width: 100%;
+  }
+
+  .loadingCard::before {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingCard::before,
+  .postImportStatusStack,
+  .analyseErrorBox,
+  .appEmptySection,
+  .finalReportFlow > section {
+    animation: none !important;
+  }
+}

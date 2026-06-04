@@ -486,6 +486,7 @@ export default function PremiumDashboard({
               <button className="premiumCheckoutButton" type="button" onClick={unlockAction}>
                 Pricing
               </button>
+              <small className="premiumActionMicrocopy">One-time Founder Pass. No subscription.</small>
               <button className="premiumDemoToggle" type="button" onClick={togglePremiumDemo}>
                 {isPremiumPreview ? "Preview on" : "Preview premium"}
               </button>

@@ -105,15 +105,23 @@ import {
   getOpeningSeoSlugFromPath,
 } from "./data/openingSeoPages.js";
 import {
+  AlertTriangle,
   ArrowRight,
   BookOpenCheck,
   ChartNoAxesCombined,
+  CheckCircle2,
   CircleCheck,
+  Clock3,
   Database,
   Gamepad2,
+  History,
   Layers3,
   ListChecks,
+  LockKeyhole,
   MessageSquareText,
+  Search,
+  ShieldCheck,
+  Sparkles,
   Target,
 } from "lucide-react";
 import "./ThemePolish.css";
@@ -2555,9 +2563,9 @@ function Section({ title, isOpen, onToggle, children, badge = null }) {
 function EmptyState({ title, text }) {
   return (
     <div className="emptyState">
-      <div className="emptyStateIcon" aria-hidden="true">+</div>
+      <div className="emptyStateIcon" aria-hidden="true"><Search size={19} /></div>
       <div>
-        <span className="emptyStateLabel">Next best action</span>
+        <span className="emptyStateLabel"><Sparkles size={13} /> Next best action</span>
         <h3>{title}</h3>
         <p>{text}</p>
       </div>
@@ -2573,7 +2581,7 @@ function LockedPremiumCard({ title, text }) {
         <h3>{title}</h3>
         <p>{text}</p>
       </div>
-      <span className="lockIcon">🔒</span>
+      <span className="lockIcon" aria-hidden="true"><LockKeyhole size={18} /></span>
     </div>
   );
 }
@@ -13622,6 +13630,9 @@ function App() {
                 >
                   {loading ? `Analysing ${platforms[platform]?.label || "games"}...` : "Analyse username"}
                 </button>
+                <small className="primaryActionMicrocopy">
+                  <ShieldCheck size={14} /> Personalised from your public games. No PGN upload.
+                </small>
               </div>
 
               <details className="landingAdvancedOptions">
@@ -13681,12 +13692,32 @@ function App() {
             </div>
 
             {apiStatus === "offline" ? (
-              <p className="statusMessage">
-                Live import is temporarily unavailable. You can still view the sample report.
-              </p>
+              <div className="statusMessage productStatus productStatusInfo">
+                <Clock3 size={18} />
+                <p><strong>Live import is taking a break</strong><span>You can still explore the complete sample report.</span></p>
+                <button className="inlineSampleButton" type="button" onClick={loadDemoReport}>Open sample</button>
+              </div>
             ) : null}
 
           </header>
+          {error ? (
+            <div className="errorBox analyseErrorBox" role="alert">
+              <span className="productFeedbackIcon" aria-hidden="true"><AlertTriangle size={19} /></span>
+              <div>
+                <strong>Analysis could not finish</strong>
+                <p>{error}</p>
+                <small>Check the username and platform, then try once more.</small>
+              </div>
+              <button
+                className="primaryBtn"
+                type="button"
+                onClick={() => importGames()}
+                disabled={loading}
+              >
+                Try again
+              </button>
+            </div>
+          ) : null}
           <HomepageVisualStory />
           <div className="preAnalysisSupport">
             <ReturnUserDashboard
@@ -13708,13 +13739,17 @@ function App() {
           ) : null}
 
           {activeAppSection === "report" && !reportData && !loading ? (
-            <section className="card appEmptySection" id="app-results">
-              <p className="eyebrow">Report</p>
-              <h2>No opening analysis yet</h2>
-              <p>Import your recent Chess.com or Lichess games first, then your latest report will live here.</p>
-              <button className="primaryBtn" type="button" onClick={() => handleAppNavigate("analyse")}>
-                Go to Analyse
-              </button>
+            <section className="card appEmptySection productEmptyState" id="app-results">
+              <span className="productStateIcon"><ChartNoAxesCombined size={22} /></span>
+              <div><p className="eyebrow">Your report</p><h2>Your opening profile starts with one import.</h2>
+              <p>OpeningFit will turn recent games into verdicts, confidence labels, and one clear study focus.</p></div>
+              <div className="productStatePreview" aria-label="Report contents">
+                <span><CheckCircle2 size={15} /> Opening fit score</span>
+                <span><CheckCircle2 size={15} /> Keep and improve verdicts</span>
+                <span><CheckCircle2 size={15} /> Personal training action</span>
+              </div>
+              <div className="productStateAction"><button className="primaryBtn" type="button" onClick={() => handleAppNavigate("analyse")}>Analyse your games</button>
+              <small>Uses public Chess.com or Lichess games.</small></div>
             </section>
           ) : null}
 
@@ -13738,13 +13773,12 @@ function App() {
                 />
               </div>
 
-              <section className="card appEmptySection" id="training-plan">
-                <p className="eyebrow">Train</p>
-                <h2>No training plan yet</h2>
-                <p>Training actions are generated from your current opening report.</p>
-                <button className="primaryBtn" type="button" onClick={() => handleAppNavigate("analyse")}>
-                  Start an import
-                </button>
+              <section className="card appEmptySection productEmptyState" id="training-plan">
+                <span className="productStateIcon"><BookOpenCheck size={22} /></span>
+                <div><p className="eyebrow">Personal training</p><h2>Your first training plan is one report away.</h2>
+                <p>We use your recurring openings and weak lines to choose a practical next session.</p></div>
+                <div className="productStateAction"><button className="primaryBtn" type="button" onClick={() => handleAppNavigate("analyse")}>Build my training plan</button>
+                <small>Focused actions, not an endless theory list.</small></div>
               </section>
             </>
           ) : null}
@@ -13823,6 +13857,9 @@ function App() {
                   className={`importStatusBox importStatusBox--${importStatus.tone || "info"}`}
                   role={importStatus.tone === "warning" ? "alert" : "status"}
                 >
+                  <span className="productFeedbackIcon" aria-hidden="true">
+                    {importStatus.tone === "warning" ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
+                  </span>
                   <div>
                     <strong>{importStatus.title}</strong>
                     <p>{importStatus.message}</p>
@@ -13833,6 +13870,9 @@ function App() {
 
               {reportData && cloudSaveStatus && !cloudSaveWarning ? (
                 <div className="cloudSaveStatusPill" role="status">
+                  <span className="productFeedbackIcon" aria-hidden="true">
+                    {cloudSaveStatus === "saving" ? <Clock3 size={18} /> : <CheckCircle2 size={18} />}
+                  </span>
                   <div>
                     <strong>
                       {cloudSaveStatus === "saving"
@@ -13863,28 +13903,13 @@ function App() {
             </div>
           ) : null}
 
-          {error ? (
-            <div className="errorBox analyseErrorBox" role="alert">
-              <div>
-                <strong>Analysis could not finish</strong>
-                <p>{error}</p>
-              </div>
-              <button
-                className="primaryBtn"
-                type="button"
-                onClick={() => importGames()}
-                disabled={loading}
-              >
-                Try again
-              </button>
-            </div>
-          ) : null}
-
           {cloudSaveWarning ? (
             <div className="errorBox analyseErrorBox cloudSaveWarningBox" role="status">
+              <span className="productFeedbackIcon" aria-hidden="true"><History size={19} /></span>
               <div>
                 <strong>Cloud save needs attention</strong>
                 <p>{cloudSaveWarning}</p>
+                <small>Your report remains available on this device.</small>
               </div>
               <button
                 className="primaryBtn"

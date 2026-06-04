@@ -229,6 +229,9 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
               ? "Continue to secure payment"
               : "Login to continue"}
         </button>
+        <small className="premiumActionMicrocopy">
+          One-time payment. Access stays linked to your account.
+        </small>
 
         <button
           className="founderPassUpgradeSecondary"
