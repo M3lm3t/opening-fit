@@ -8872,7 +8872,6 @@ function AppPrimaryNav({
 
   const isPrimaryNavItemActive = (item) => {
     const isPremiumPath = currentPath === "/premium" || currentPath === "/upgrade";
-    if (item.key === "account" && isPremiumPath) return false;
     if (item.key === activeView) return true;
 
     const activeViewsByKey = {
@@ -8885,11 +8884,12 @@ function AppPrimaryNav({
       history: ["history"],
       account: ["profile", "account", "progress"],
       pricing: ["premium", "upgrade"],
-      login: ["login"],
+      login: ["login", "profile", "account", "progress"],
     };
 
     if (activeViewsByKey[item.key]?.includes(activeView)) return true;
-    if (item.key === "pricing" && currentPath === "/premium") return true;
+    if (item.key === "account" && isPremiumPath) return false;
+    if (item.key === "pricing" && isPremiumPath && ["premium", "upgrade"].includes(activeView)) return true;
     if (item.key === "login" && currentPath === "/login") return true;
     if (item.key === "account" && currentPath === "/account" && !["history"].includes(activeView)) return true;
 
