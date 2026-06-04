@@ -8808,6 +8808,7 @@ function FloatingAppMenu({ data, activeView, onNavigate }) {
 function AppPrimaryNav({
   activeView,
   accountUser,
+  hasReport,
   onNavigate,
   onExampleReport,
   onLogin,
@@ -8816,21 +8817,32 @@ function AppPrimaryNav({
   onThemeToggle,
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const items = accountUser
+  const items = hasReport
     ? [
-        { key: "analyse", label: "Home" },
         { key: "report", label: "Report" },
+        { key: "recommendations", label: "Repertoire" },
         { key: "training", label: "Train" },
-        { key: "account", label: "Profile" },
+        accountUser
+          ? { key: "account", label: "Profile" }
+          : { key: "login", label: "Profile", path: "/login", target: "login", action: onLogin },
         { key: "pricing", label: "Premium", path: "/premium", target: "premium", action: onPricing },
       ]
-    : [
-        { key: "analyse", label: "Home" },
-        { key: "example", label: "Report", path: "/report", target: "app-results", action: onExampleReport },
-        { key: "training", label: "Train" },
-        { key: "pricing", label: "Premium", path: "/premium", target: "premium", action: onPricing },
-        { key: "login", label: "Login", path: "/login", target: "login", action: onLogin },
-      ];
+    : accountUser
+      ? [
+          { key: "analyse", label: "Home" },
+          { key: "report", label: "Report" },
+          { key: "training", label: "Train" },
+          { key: "account", label: "Profile" },
+          { key: "pricing", label: "Premium", path: "/premium", target: "premium", action: onPricing },
+        ]
+      : [
+          { key: "analyse", label: "Home" },
+          { key: "example", label: "Sample Report", path: "/report", target: "app-results", action: onExampleReport },
+          { key: "training", label: "Train" },
+          { key: "pricing", label: "Premium", path: "/premium", target: "premium", action: onPricing },
+          { key: "login", label: "Login", path: "/login", target: "login", action: onLogin },
+        ];
+  const brandAction = hasReport ? { key: "report", label: "Report" } : { key: "analyse", label: "Home" };
   const primaryAction = accountUser
     ? { key: "analyse", label: "Analyse New Games" }
     : { key: "analyse", label: "Get Started" };
@@ -8844,8 +8856,8 @@ function AppPrimaryNav({
 
     const activeViewsByKey = {
       analyse: ["analyse", "home", "import"],
-      report: ["report", "overview", "recommendations", "repertoire", "openings", "weakspots", "verdicts"],
-      recommendations: ["report", "overview", "recommendations", "repertoire", "openings", "weakspots", "verdicts"],
+      report: ["report", "overview"],
+      recommendations: ["recommendations", "repertoire", "openings", "weakspots", "verdicts"],
       example: ["report", "overview", "recommendations", "repertoire", "openings", "weakspots", "verdicts"],
       training: ["train", "training", "interactive", "practice"],
       games: ["games", "data"],
@@ -8889,7 +8901,7 @@ function AppPrimaryNav({
   return (
     <nav className="appPrimaryNav" aria-label="OpeningFit sections">
       <div className="appPrimaryNavInner">
-        <a className="appPrimaryBrand" href="#app-dashboard" onClick={(event) => navigate(event, primaryAction)}>
+        <a className="appPrimaryBrand" href="#app-dashboard" onClick={(event) => navigate(event, brandAction)}>
           <span>OpeningFit</span>
         </a>
 
@@ -13252,6 +13264,7 @@ function App() {
         <AppPrimaryNav
           activeView={activeView}
           accountUser={accountUser}
+          hasReport={Boolean(reportData)}
           onNavigate={handleAppNavigate}
           onExampleReport={loadDemoReport}
           onLogin={openLoginPage}

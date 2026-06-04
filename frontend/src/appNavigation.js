@@ -5,14 +5,14 @@ export const APP_NAV_ROUTES = {
   report: { view: "report", path: "/report", target: "app-results" },
   overview: { view: "report", path: "/report", target: "app-results" },
   recommendations: {
-    view: "report",
+    view: "recommendations",
     path: "/report",
     target: "recommended-repertoire",
     fallbackIds: ["repertoire-map", "openingfit-verdict", "app-results"],
     reportMode: "full",
   },
   repertoire: {
-    view: "report",
+    view: "recommendations",
     path: "/report",
     target: "recommended-repertoire",
     fallbackIds: ["repertoire-map", "openingfit-verdict", "app-results"],

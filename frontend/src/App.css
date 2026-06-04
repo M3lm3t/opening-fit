@@ -43856,3 +43856,326 @@ textarea,
     font-size: 4rem !important;
   }
 }
+
+/* App-like navigation and layout polish */
+:root {
+  --app-shell-width: min(1180px, calc(100vw - 36px));
+  --app-shell-width-mobile: calc(100vw - 20px);
+}
+
+.appPrimaryNav {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 920 !important;
+  padding: 8px max(14px, env(safe-area-inset-left)) 0 max(14px, env(safe-area-inset-right)) !important;
+  background:
+    linear-gradient(180deg, rgba(3, 7, 18, 0.92), rgba(3, 7, 18, 0.66) 72%, transparent) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.appPrimaryNavInner {
+  width: var(--app-shell-width) !important;
+  max-width: var(--app-shell-width) !important;
+  min-height: 54px !important;
+  margin: 0 auto !important;
+  padding: 6px !important;
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto auto !important;
+  gap: 8px !important;
+  align-items: center !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
+    rgba(7, 12, 22, 0.82) !important;
+  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.26) !important;
+}
+
+.appPrimaryBrand {
+  min-height: 42px !important;
+  padding: 0 10px 0 8px !important;
+  gap: 8px !important;
+  border-radius: 13px !important;
+  font-size: 0.96rem !important;
+  font-weight: 950 !important;
+}
+
+.appPrimaryBrand::before {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 9px !important;
+  box-shadow: 0 10px 26px rgba(68, 214, 130, 0.22) !important;
+}
+
+.appPrimaryTabs {
+  justify-self: center !important;
+  width: fit-content !important;
+  max-width: min(100%, 620px) !important;
+  padding: 4px !important;
+  gap: 2px !important;
+  border-radius: 14px !important;
+  overflow-x: auto !important;
+  scrollbar-width: none;
+}
+
+.appPrimaryTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.appPrimaryTab {
+  min-height: 36px !important;
+  padding: 0 12px !important;
+  border-radius: 11px !important;
+  font-size: 0.84rem !important;
+  white-space: nowrap !important;
+}
+
+.appPrimaryTabActive,
+.appPrimaryTabActive:hover {
+  background: linear-gradient(135deg, rgba(68, 214, 130, 0.22), rgba(73, 168, 255, 0.16)) !important;
+  color: #f8fafc !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(68, 214, 130, 0.26),
+    0 8px 22px rgba(68, 214, 130, 0.12) !important;
+}
+
+.appPrimaryGetStarted {
+  min-height: 40px !important;
+  padding: 0 14px !important;
+  border-radius: 12px !important;
+  font-size: 0.86rem !important;
+  white-space: nowrap !important;
+}
+
+.appPrimaryMenuToggle {
+  display: none !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 12px !important;
+}
+
+.appShell,
+.page .appShell,
+.publicLandingPage .appShell,
+.appReportPage .appShell {
+  width: var(--app-shell-width) !important;
+  max-width: var(--app-shell-width) !important;
+  margin: 0 auto !important;
+  display: grid !important;
+  gap: clamp(14px, 2vw, 22px) !important;
+  padding-top: clamp(14px, 2vw, 22px) !important;
+}
+
+.appShell > section,
+.appShell > header,
+.appShell > div {
+  min-width: 0;
+}
+
+.finalReportFlow,
+.premiumStandalonePage,
+.profileDashboard,
+.preAnalysisSupport,
+.postImportStatusStack {
+  width: 100%;
+  max-width: 100%;
+}
+
+.accountSyncStatusBar {
+  z-index: 880 !important;
+  width: var(--app-shell-width) !important;
+  max-width: var(--app-shell-width) !important;
+  margin: 8px auto 0 !important;
+}
+
+.accountSyncChip {
+  min-height: 38px !important;
+  border-radius: 14px !important;
+}
+
+.page.light .appPrimaryNav,
+[data-theme="light"] .appPrimaryNav {
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(248, 250, 252, 0.72) 72%, transparent) !important;
+}
+
+.page.light .appPrimaryNavInner,
+[data-theme="light"] .appPrimaryNavInner {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.90), rgba(255, 255, 255, 0.72)),
+    rgba(255, 255, 255, 0.88) !important;
+  border-color: rgba(15, 23, 42, 0.10) !important;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12) !important;
+}
+
+.page.light .appPrimaryTabActive,
+[data-theme="light"] .appPrimaryTabActive {
+  color: #064e3b !important;
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.18), rgba(59, 130, 246, 0.13)) !important;
+}
+
+@media (max-width: 980px) {
+  .appPrimaryNavInner {
+    grid-template-columns: auto 1fr auto !important;
+  }
+
+  .appPrimaryTabs {
+    justify-self: end !important;
+    max-width: min(56vw, 460px) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .page,
+  .appReportPage {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .appPrimaryNav {
+    padding: 7px 10px 0 !important;
+  }
+
+  .appPrimaryNavInner {
+    width: var(--app-shell-width-mobile) !important;
+    max-width: var(--app-shell-width-mobile) !important;
+    min-height: 50px !important;
+    grid-template-columns: 1fr auto !important;
+    border-radius: 16px !important;
+  }
+
+  .appPrimaryBrand {
+    width: fit-content !important;
+    min-height: 38px !important;
+  }
+
+  .appPrimaryBrand::before {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .appPrimaryTabs,
+  .appPrimaryGetStarted,
+  .appPrimaryMenuToggle,
+  .appPrimaryMobilePanel,
+  .openingAppMenu,
+  .themeToggle {
+    display: none !important;
+  }
+
+  .accountSyncStatusBar {
+    width: var(--app-shell-width-mobile) !important;
+    max-width: var(--app-shell-width-mobile) !important;
+    margin-top: 6px !important;
+  }
+
+  .accountSyncChip {
+    min-height: 34px !important;
+    padding: 4px 8px !important;
+  }
+
+  .accountSyncCompactText span,
+  .accountSyncPlan,
+  .accountSyncChevron {
+    display: none !important;
+  }
+
+  .appShell,
+  .page .appShell,
+  .publicLandingPage .appShell,
+  .appReportPage .appShell {
+    width: var(--app-shell-width-mobile) !important;
+    max-width: var(--app-shell-width-mobile) !important;
+    gap: 14px !important;
+    padding-top: 12px !important;
+    padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .mobileBottomNav {
+    position: fixed !important;
+    left: max(10px, env(safe-area-inset-left)) !important;
+    right: max(10px, env(safe-area-inset-right)) !important;
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    z-index: 940 !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    min-height: 66px !important;
+    padding: 6px !important;
+    border: 1px solid rgba(148, 163, 184, 0.22) !important;
+    border-radius: 22px !important;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
+      rgba(5, 7, 13, 0.90) !important;
+    box-shadow: 0 -18px 48px rgba(2, 6, 23, 0.38) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .mobileBottomNav button {
+    min-width: 0 !important;
+    min-height: 52px !important;
+    display: grid !important;
+    place-items: center !important;
+    gap: 2px !important;
+    padding: 4px 2px !important;
+    border: 0 !important;
+    border-radius: 16px !important;
+    background: transparent !important;
+    color: rgba(203, 213, 225, 0.76) !important;
+    font-size: 0.66rem !important;
+    font-weight: 900 !important;
+    line-height: 1.05 !important;
+  }
+
+  .mobileBottomNav button span {
+    width: 23px !important;
+    height: 23px !important;
+    display: grid !important;
+    place-items: center !important;
+  }
+
+  .mobileBottomNav .mobileBottomNavActive {
+    background: linear-gradient(135deg, rgba(68, 214, 130, 0.24), rgba(73, 168, 255, 0.17)) !important;
+    color: #f8fafc !important;
+    box-shadow: inset 0 0 0 1px rgba(68, 214, 130, 0.20) !important;
+  }
+
+  .mobileBottomNav .mobileBottomNavNeedsReport:not(.mobileBottomNavActive) {
+    color: rgba(148, 163, 184, 0.58) !important;
+  }
+
+  .page.light .mobileBottomNav,
+  [data-theme="light"] .mobileBottomNav {
+    background: rgba(255, 255, 255, 0.94) !important;
+    border-color: rgba(15, 23, 42, 0.12) !important;
+    box-shadow: 0 -16px 38px rgba(15, 23, 42, 0.14) !important;
+  }
+
+  .page.light .mobileBottomNav button,
+  [data-theme="light"] .mobileBottomNav button {
+    color: #64748b !important;
+  }
+
+  .page.light .mobileBottomNav .mobileBottomNavActive,
+  [data-theme="light"] .mobileBottomNav .mobileBottomNavActive {
+    color: #064e3b !important;
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.18), rgba(59, 130, 246, 0.13)) !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .mobileBottomNav {
+    left: max(6px, env(safe-area-inset-left)) !important;
+    right: max(6px, env(safe-area-inset-right)) !important;
+    padding: 5px !important;
+  }
+
+  .mobileBottomNav button {
+    font-size: 0.6rem !important;
+  }
+}
