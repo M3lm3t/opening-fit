@@ -119,6 +119,19 @@ export default function PremiumPanel({
   onResetDemo,
   onFounderPass,
 }) {
+  const founderValueBullets = [
+    "Save reports",
+    "Track progress",
+    "Deeper opening insights",
+    "More history",
+    "Premium training plan",
+  ];
+  const founderTrustItems = [
+    "Built for club players",
+    "One-time early supporter access",
+    "No theory overload",
+  ];
+
   const premiumInsights = useMemo(() => {
     const openings = collectOpenings(data)
       .map((item) => ({
@@ -156,25 +169,37 @@ export default function PremiumPanel({
         <div className="premiumUpgradeCopy">
           <div className="premiumUpgradeEyebrow">Founder Pass</div>
 
-          <h2>Go deeper when the free snapshot gives you a direction.</h2>
+          <h2>Turn OpeningFit into your personal chess dashboard.</h2>
 
           <p>
-            The free report gives the main verdict and first actions. Founder
-            Pass adds the depth and convenience for players who want to track,
-            filter, export, and refine a repertoire over time.
+            Founder Pass adds the premium workflow around your report: saved
+            progress, deeper opening history, clearer repertoire decisions, and
+            a training plan you can return to after every import.
           </p>
 
           <div className="premiumHeroBullets">
-            <span>✓ 12-month import and deeper history</span>
-            <span>✓ Full opening table, advanced filters, and saved progress</span>
-            <span>✓ Exportable study plan and full repertoire tools</span>
+            {founderValueBullets.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
+
+          <div className="premiumUpgradeTrust" aria-label="Founder Pass principles">
+            {founderTrustItems.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
           </div>
         </div>
 
         <div className="premiumPriceCard">
-          <div className="premiumPriceTag">Early lifetime access</div>
+          <div className="premiumPriceTag">One-time Founder Pass</div>
           <div className="premiumPrice">£8</div>
-          <p>Support Opening Fit while it is still early.</p>
+          <p>Early supporter access. Pay once while OpeningFit is still early.</p>
+
+          <div className="premiumPriceMiniStats">
+            <span>Saved reports</span>
+            <span>Progress tools</span>
+            <span>Deeper history</span>
+          </div>
 
           <button
             type="button"

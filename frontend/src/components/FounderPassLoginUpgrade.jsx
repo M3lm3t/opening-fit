@@ -3,6 +3,19 @@ import { startPremiumCheckout } from "../accountApi";
 import "./FounderPassLoginUpgrade.css";
 
 export default function FounderPassLoginUpgrade({ accountUser }) {
+  const valueBullets = [
+    "Save reports",
+    "Track progress",
+    "Deeper opening insights",
+    "More history",
+    "Premium training plan",
+  ];
+  const trustItems = [
+    "Built for club players",
+    "One-time early supporter access",
+    "No theory overload",
+  ];
+
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -151,13 +164,20 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
           <strong>£8 early lifetime access</strong>
         </div>
 
-        <h2>Unlock deeper history and saved repertoire tools.</h2>
+        <h2>Unlock the Founder Pass dashboard.</h2>
 
         <p>
-          The free report stays useful. Founder Pass adds 12-month imports,
-          saved progress, full tables, advanced filters, and exportable study
-          plans. Login first so your access can be linked to your account.
+          The free report stays useful. Founder Pass adds the serious app layer:
+          saved reports, progress tracking, deeper opening insights, more
+          history, and a premium training plan. Login first so your access can
+          be linked to your account.
         </p>
+
+        <div className="founderPassUpgradeValue" aria-label="Founder Pass value">
+          {valueBullets.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
 
         <div className="founderPassUpgradeSteps">
           <div>
@@ -184,9 +204,9 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
         </div>
 
         <div className="founderPassUpgradeTrust">
-          <span>Early lifetime access</span>
-          <span>One-off payment</span>
-          <span>Depth tools included</span>
+          {trustItems.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
         </div>
 
         <p className="founderPassUpgradeNote">

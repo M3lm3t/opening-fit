@@ -43606,3 +43606,253 @@ textarea,
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+/* Founder Pass premium presentation */
+.profileFounderCard,
+.premiumUpgradeHero,
+.premiumPriceCard {
+  isolation: isolate;
+}
+
+.profileFounderCard::after,
+.premiumUpgradeHero::after,
+.premiumPriceCard::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 24%),
+    linear-gradient(315deg, rgba(243, 201, 105, 0.18), transparent 34%);
+  opacity: 0.7;
+  mask-image: linear-gradient(#000, transparent 72%);
+}
+
+.premiumUpgradeHero {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr) !important;
+  gap: clamp(16px, 2.4vw, 28px) !important;
+  align-items: stretch !important;
+  padding: clamp(18px, 3vw, 32px) !important;
+}
+
+.premiumUpgradeCopy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  gap: 14px;
+}
+
+.premiumUpgradeCopy h2 {
+  max-width: 780px;
+  margin: 0;
+  font-size: 3.5rem;
+  line-height: 0.98;
+  color: var(--app-text);
+}
+
+.premiumUpgradeCopy p {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--app-text-soft);
+  font-size: 1.06rem;
+  line-height: 1.58;
+}
+
+.premiumHeroBullets,
+.premiumUpgradeTrust,
+.premiumPriceMiniStats,
+.profileFounderOfferBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.premiumHeroBullets {
+  margin-top: 4px;
+}
+
+.premiumHeroBullets span,
+.premiumUpgradeTrust span,
+.profileFounderValue span,
+.profileFounderTrust span,
+.premiumPriceMiniStats span,
+.profileFounderOfferBadges span {
+  min-width: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+.premiumHeroBullets span,
+.profileFounderValue span {
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(243, 201, 105, 0.16), rgba(68, 214, 130, 0.09)) !important;
+}
+
+.premiumHeroBullets span::before,
+.profileFounderValue span::before,
+.founderPassUpgradeValue span::before {
+  content: "✓";
+  margin-right: 7px;
+  color: #44d682;
+}
+
+.premiumUpgradeTrust span,
+.profileFounderTrust span,
+.premiumPriceMiniStats span,
+.profileFounderOfferBadges span {
+  min-height: 28px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  letter-spacing: 0;
+}
+
+.premiumPriceCard {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  padding: clamp(18px, 2.2vw, 24px) !important;
+  background:
+    linear-gradient(160deg, rgba(251, 191, 36, 0.20), rgba(7, 12, 22, 0.52) 46%),
+    rgba(5, 7, 13, 0.58) !important;
+}
+
+.premiumPriceTag {
+  width: fit-content;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid rgba(243, 201, 105, 0.38);
+  border-radius: 999px;
+  background: rgba(243, 201, 105, 0.14);
+  color: #ffe7a6;
+  font-size: 0.76rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.premiumPrice {
+  margin-top: 2px;
+  font-size: 5.6rem !important;
+  letter-spacing: 0;
+}
+
+.premiumPriceCard p {
+  margin: 0;
+  color: var(--app-text-soft);
+  line-height: 1.45;
+}
+
+.premiumPriceMiniStats span,
+.profileFounderOfferBadges span {
+  border: 1px solid rgba(243, 201, 105, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--app-text-soft);
+  font-weight: 900;
+}
+
+.premiumCheckoutBtn,
+.profileFounderOffer .primaryBtn {
+  margin-top: 4px;
+  min-height: 54px;
+}
+
+.premiumDemoBtn,
+.premiumResetBtn {
+  min-height: 44px !important;
+  border-radius: 14px !important;
+  font-weight: 900 !important;
+}
+
+.premiumDemoBtn {
+  border: 1px solid rgba(73, 168, 255, 0.30) !important;
+  background: rgba(73, 168, 255, 0.12) !important;
+  color: var(--app-text) !important;
+}
+
+.premiumResetBtn {
+  color: var(--app-muted) !important;
+}
+
+.profileFounderOffer {
+  min-height: 100%;
+  background:
+    linear-gradient(160deg, rgba(243, 201, 105, 0.16), rgba(5, 7, 13, 0.38)) !important;
+}
+
+.profileFounderOfferBadges {
+  margin: -2px 0 2px;
+}
+
+.profileFounderStatus {
+  min-height: 46px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px !important;
+  background: rgba(68, 214, 130, 0.16) !important;
+  color: #b6ffd2 !important;
+}
+
+:root[data-theme="light"] .premiumPriceCard,
+:root[data-theme="light"] .profileFounderOffer {
+  background:
+    linear-gradient(160deg, rgba(253, 230, 138, 0.66), rgba(255, 255, 255, 0.82) 48%),
+    #ffffff !important;
+}
+
+:root[data-theme="light"] .premiumPriceTag,
+:root[data-theme="light"] .premiumPriceMiniStats span,
+:root[data-theme="light"] .profileFounderOfferBadges span {
+  border-color: rgba(180, 83, 9, 0.20);
+  background: rgba(254, 243, 199, 0.80);
+  color: #92400e;
+}
+
+:root[data-theme="light"] .premiumDemoBtn {
+  background: rgba(219, 234, 254, 0.78) !important;
+  color: #0f172a !important;
+}
+
+@media (max-width: 840px) {
+  .premiumUpgradeHero {
+    grid-template-columns: 1fr !important;
+  }
+
+  .premiumUpgradeCopy h2 {
+    font-size: 2.6rem;
+  }
+
+  .premiumPriceCard {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 560px) {
+  .premiumUpgradeHero {
+    padding: 16px !important;
+    border-radius: 20px !important;
+  }
+
+  .premiumHeroBullets,
+  .premiumPriceMiniStats {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .premiumHeroBullets span,
+  .profileFounderValue span {
+    width: 100%;
+  }
+
+  .premiumPrice {
+    font-size: 4rem !important;
+  }
+}

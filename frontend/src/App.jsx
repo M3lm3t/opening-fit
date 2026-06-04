@@ -7186,10 +7186,14 @@ function FounderPassProfileCard({ isPremium, onFounderPass }) {
       <div className="profileFounderOffer">
         <span>One-time early supporter price</span>
         <strong>£8</strong>
+        <div className="profileFounderOfferBadges" aria-label="Founder Pass offer details">
+          <span>Pay once</span>
+          <span>Lifetime early access</span>
+        </div>
         <small>Lifetime Founder Pass while OpeningFit is early.</small>
         {!isPremium ? (
           <button type="button" className="primaryBtn" onClick={onFounderPass}>
-            Get Founder Pass
+            Get Founder Pass - £8
           </button>
         ) : (
           <span className="profileFounderStatus">Active</span>
