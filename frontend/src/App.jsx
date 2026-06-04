@@ -5363,6 +5363,14 @@ function FinalReportFlow({
         onUpgrade={() => onNavigate?.("premium")}
       />
 
+      <CurrentReportSummary
+        data={data}
+        fitData={fitData}
+        onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
+        reportMode={reportMode}
+        onReportModeChange={setReportMode}
+      />
+
       <NextBestTrainingActionCard
         data={data}
         fitData={fitData}
@@ -5374,14 +5382,6 @@ function FinalReportFlow({
             fallbackIds: ["training-plan", "opening-practice"],
           });
         }}
-      />
-
-      <CurrentReportSummary
-        data={data}
-        fitData={fitData}
-        onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
-        reportMode={reportMode}
-        onReportModeChange={setReportMode}
       />
 
       <OpeningFitScoreList
@@ -5766,6 +5766,7 @@ function CurrentReportSummary({
   ];
   const insightCards = [
     {
+      marker: "✓",
       label: "Keep playing",
       title: bestOpeningTitle,
       value: bestOpening ? `${getWinRate(bestOpening)}%` : "—",
@@ -5774,6 +5775,7 @@ function CurrentReportSummary({
       text: bestOpening ? "Your strongest reliable signal." : "Import more games to confirm a keeper.",
     },
     {
+      marker: "!",
       label: "Needs work",
       title: weakOpeningTitle,
       value: weakOpening ? `${getWinRate(weakOpening)}%` : "—",
@@ -5782,6 +5784,7 @@ function CurrentReportSummary({
       text: weakOpening ? "Review the first repeated branch." : "No repeated repair target yet.",
     },
     {
+      marker: "×",
       label: "Avoid for now",
       title: avoidOpening ? getOpeningContextTitle(avoidOpening) : "No hard avoid",
       value: avoidOpening ? `${getWinRate(avoidOpening)}%` : "—",
@@ -5790,6 +5793,7 @@ function CurrentReportSummary({
       text: avoidOpening ? "Treat as a review target before playing again." : "Nothing is clearly dangerous yet.",
     },
     {
+      marker: "♙",
       label: "Your best opening",
       title: bestOpeningTitle,
       value: bestOpening ? `${getOpeningGames(bestOpening)} games` : "—",
@@ -5798,6 +5802,7 @@ function CurrentReportSummary({
       text: bestOpening ? "Use this as your reference point." : "Build a bigger sample first.",
     },
     {
+      marker: "↯",
       label: "Your biggest leak",
       title: weakOpeningTitle,
       value: weakOpening ? `${getOpeningGames(weakOpening)} games` : "—",
@@ -5806,10 +5811,40 @@ function CurrentReportSummary({
       text: weakOpening ? "This is where a small fix can matter." : "No leak detected yet.",
     },
   ];
+  const openingChips = [
+    bestOpening ? { label: "Best opening", value: getOpeningContextTitle(bestOpening), tone: "keep" } : null,
+    weakOpening ? { label: "Biggest leak", value: getOpeningContextTitle(weakOpening), tone: "improve" } : null,
+    avoidOpening ? { label: "Avoid", value: getOpeningContextTitle(avoidOpening), tone: "avoid" } : null,
+    focusOpening ? { label: "Study next", value: getOpeningContextTitle(focusOpening), tone: "study" } : null,
+  ].filter(Boolean);
   const nextBestMove =
     focusOpening && focusWinRate !== null
       ? `Focus on improving ${focusName} ${focusRole}. You have ${focusGames || "enough"} game${focusGames === 1 ? "" : "s"}, the results are below your strongest baseline, and this position appears often enough to matter.`
       : `Focus on building one repeatable opening setup first. OpeningFit needs a few more clear games before making a stronger repair recommendation.`;
+  const coachingCards = [
+    {
+      label: "Best opening",
+      title: bestOpeningTitle,
+      text: bestOpening
+        ? `${getWinRate(bestOpening)}% result over ${getOpeningGames(bestOpening)} game${getOpeningGames(bestOpening) === 1 ? "" : "s"}. Keep this as a stable repertoire anchor.`
+        : "No stable best opening yet. Import more games or keep one setup for a few sessions.",
+      tone: "keep",
+    },
+    {
+      label: "Biggest leak",
+      title: weakOpeningTitle,
+      text: weakOpening
+        ? `${getWinRate(weakOpening)}% result over ${getOpeningGames(weakOpening)} game${getOpeningGames(weakOpening) === 1 ? "" : "s"}. Review one loss before playing it again.`
+        : "No repeated leak is visible yet. Keep building a cleaner sample.",
+      tone: "improve",
+    },
+    {
+      label: "Coach note",
+      title: focusName,
+      text: nextBestMove,
+      tone: "coach",
+    },
+  ];
   const renderMiniOpening = (opening) => (
     <li key={getOpeningIdentityKey(opening)}>
       <strong>{getOpeningContextTitle(opening)}</strong>
@@ -5864,6 +5899,15 @@ function CurrentReportSummary({
         ))}
       </div>
 
+      <div className="reportOpeningChipRail" aria-label="Opening highlights">
+        {openingChips.map((chip) => (
+          <span className={`reportOpeningChip reportOpeningChip-${chip.tone}`} key={`${chip.label}-${chip.value}`}>
+            <small>{chip.label}</small>
+            {chip.value}
+          </span>
+        ))}
+      </div>
+
       <div className="nextBestMoveCard">
         <div>
           <span>What should I do next?</span>
@@ -5896,15 +5940,28 @@ function CurrentReportSummary({
       <div className="dashboardInsightGrid" aria-label="Key opening insights">
         {insightCards.map((item) => (
           <article className={`dashboardInsightCard dashboardInsightCard-${item.tone}`} key={item.label}>
-            <div>
-              <span>{item.label}</span>
-              <strong>{item.title}</strong>
+            <div className="dashboardInsightTopline">
+              <i aria-hidden="true">{item.marker}</i>
+              <div>
+                <span>{item.label}</span>
+                <strong>{item.title}</strong>
+              </div>
             </div>
             <em>{item.value}</em>
             <p>{item.text}</p>
             <div className="dashboardProgressBar" aria-hidden="true">
               <span style={{ width: `${Math.max(4, Math.min(100, item.bar || 0))}%` }} />
             </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="reportCoachCardGrid" aria-label="Short coaching summary">
+        {coachingCards.map((card) => (
+          <article className={`reportCoachCard reportCoachCard-${card.tone}`} key={`${card.label}-${card.title}`}>
+            <span>{card.label}</span>
+            <strong>{card.title}</strong>
+            <p>{card.text}</p>
           </article>
         ))}
       </div>
