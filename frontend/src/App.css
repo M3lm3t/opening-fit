@@ -43284,3 +43284,325 @@ textarea,
     line-height: 1.45;
   }
 }
+
+/* --------------------------------------------------
+   Opening recommendation card upgrade
+-------------------------------------------------- */
+
+.openingFitScoreCard {
+  display: grid;
+  gap: 18px;
+}
+
+.fitOpeningList {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+}
+
+.openingRecommendationCard {
+  position: relative;
+  overflow: hidden;
+  align-content: start;
+  min-height: 360px;
+  padding: 18px !important;
+  border-radius: 26px !important;
+  border: 1px solid var(--ds-border) !important;
+  background:
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--ds-primary-2) 12%, transparent), transparent 16rem),
+    linear-gradient(145deg, color-mix(in srgb, var(--ds-text) 8%, transparent), color-mix(in srgb, var(--ds-text) 2%, transparent)),
+    var(--ds-surface-muted) !important;
+  box-shadow: var(--ds-shadow-soft) !important;
+  text-align: left;
+}
+
+.openingRecommendationCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ds-text) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(0deg, color-mix(in srgb, var(--ds-text) 4%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.26;
+  mask-image: linear-gradient(135deg, black, transparent 70%);
+}
+
+.openingRecommendationCard > * {
+  position: relative;
+  z-index: 1;
+}
+
+.openingRecommendationCard.status-keep {
+  border-color: color-mix(in srgb, var(--ds-primary) 42%, var(--ds-border)) !important;
+}
+
+.openingRecommendationCard.status-improve,
+.openingRecommendationCard.status-try-next {
+  border-color: color-mix(in srgb, var(--ds-premium) 42%, var(--ds-border)) !important;
+}
+
+.openingRecommendationCard.status-avoid {
+  border-color: color-mix(in srgb, var(--ds-danger) 42%, var(--ds-border)) !important;
+}
+
+.openingRecommendationTop {
+  align-items: flex-start !important;
+}
+
+.openingRecommendationTitleBlock {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.openingCardIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ds-border);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--ds-primary-2) 16%, transparent);
+  color: var(--ds-text);
+  font-size: 1.12rem;
+  font-weight: 950;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ds-text) 8%, transparent);
+}
+
+.openingCardIcon-keep {
+  border-color: color-mix(in srgb, var(--ds-primary) 46%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-primary) 18%, transparent);
+  color: color-mix(in srgb, var(--ds-primary) 70%, var(--ds-text));
+}
+
+.openingCardIcon-improve,
+.openingCardIcon-try-next {
+  border-color: color-mix(in srgb, var(--ds-premium) 48%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-premium) 16%, transparent);
+  color: color-mix(in srgb, var(--ds-premium) 76%, var(--ds-text));
+}
+
+.openingCardIcon-avoid {
+  border-color: color-mix(in srgb, var(--ds-danger) 48%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-danger) 15%, transparent);
+  color: color-mix(in srgb, var(--ds-danger) 76%, var(--ds-text));
+}
+
+.openingRecommendationBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.openingRecommendationTop strong {
+  max-width: 100%;
+  margin-top: 9px !important;
+  color: var(--ds-text) !important;
+  font-size: clamp(1.08rem, 1.55vw, 1.35rem) !important;
+  line-height: 1.14 !important;
+  overflow-wrap: anywhere;
+}
+
+.openingSideBadge,
+.openingStatusBadge,
+.openingRecommendationAction span {
+  min-height: 28px !important;
+  padding: 5px 9px !important;
+  border-color: var(--ds-border) !important;
+  background: color-mix(in srgb, var(--ds-primary-2) 13%, transparent) !important;
+  color: var(--ds-text-soft) !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.openingStatusBadge-keep {
+  border-color: color-mix(in srgb, var(--ds-primary) 42%, var(--ds-border)) !important;
+  background: color-mix(in srgb, var(--ds-primary) 15%, transparent) !important;
+  color: color-mix(in srgb, var(--ds-primary) 72%, var(--ds-text)) !important;
+}
+
+.openingStatusBadge-improve,
+.openingStatusBadge-try-next {
+  border-color: color-mix(in srgb, var(--ds-premium) 44%, var(--ds-border)) !important;
+  background: color-mix(in srgb, var(--ds-premium) 14%, transparent) !important;
+  color: color-mix(in srgb, var(--ds-premium) 78%, var(--ds-text)) !important;
+}
+
+.openingStatusBadge-avoid {
+  border-color: color-mix(in srgb, var(--ds-danger) 44%, var(--ds-border)) !important;
+  background: color-mix(in srgb, var(--ds-danger) 13%, transparent) !important;
+  color: color-mix(in srgb, var(--ds-danger) 78%, var(--ds-text)) !important;
+}
+
+.openingFitScorePill {
+  flex: 0 0 auto;
+  min-width: 76px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--ds-primary-2) 34%, var(--ds-border));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--ds-bg-1) 68%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ds-text) 7%, transparent);
+}
+
+.openingFitScorePill span {
+  color: var(--ds-muted);
+  font-size: 0.64rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.openingFitScorePill strong {
+  color: color-mix(in srgb, var(--ds-primary) 70%, var(--ds-text));
+  font-size: 1.25rem !important;
+  line-height: 1;
+}
+
+.openingRecommendationMetrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+}
+
+.openingRecommendationMetrics div {
+  padding: 11px !important;
+  border-radius: 16px !important;
+  border-color: var(--ds-border) !important;
+  background: color-mix(in srgb, var(--ds-text) 5%, transparent) !important;
+}
+
+.openingRecommendationMetrics span {
+  color: var(--ds-muted) !important;
+  font-size: 0.66rem !important;
+  letter-spacing: 0.04em;
+}
+
+.openingRecommendationMetrics strong {
+  color: var(--ds-text) !important;
+  font-size: 0.95rem !important;
+}
+
+.openingScoreBars {
+  gap: 7px !important;
+}
+
+.openingScoreBars div {
+  height: 9px !important;
+  background: color-mix(in srgb, var(--ds-text) 10%, transparent) !important;
+}
+
+.openingScoreBars span {
+  background: linear-gradient(90deg, var(--ds-primary), var(--ds-primary-2)) !important;
+}
+
+.openingCoachSummary {
+  padding: 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--ds-bg-1) 48%, transparent);
+  color: var(--ds-text-soft) !important;
+  line-height: 1.45;
+}
+
+.openingRecommendationCard .fitReasonList {
+  margin: -2px 0 0 !important;
+  padding-left: 18px !important;
+  color: var(--ds-muted) !important;
+}
+
+.openingRecommendationAction {
+  min-height: 48px;
+  margin-top: auto !important;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--ds-primary) 14%, transparent), color-mix(in srgb, var(--ds-primary-2) 10%, transparent));
+}
+
+.openingRecommendationAction strong {
+  color: var(--ds-text) !important;
+  font-size: 0.96rem !important;
+}
+
+.fullReportOpeningRow,
+.openingExplainCard {
+  border-radius: 22px !important;
+  border-color: var(--ds-border) !important;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--ds-text) 7%, transparent), color-mix(in srgb, var(--ds-text) 2%, transparent)),
+    var(--ds-surface-muted) !important;
+  box-shadow: var(--ds-shadow-soft) !important;
+}
+
+.fullReportOpeningRow strong,
+.openingExplainCard h4 {
+  color: var(--ds-text) !important;
+}
+
+.fullReportOpeningRow dl {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+}
+
+.fullReportOpeningRow dd {
+  color: var(--ds-text) !important;
+}
+
+.openingExplainCard > span {
+  border: 1px solid color-mix(in srgb, var(--ds-primary-2) 30%, var(--ds-border)) !important;
+  background: color-mix(in srgb, var(--ds-primary-2) 12%, transparent) !important;
+  color: var(--ds-text-soft) !important;
+}
+
+@media (max-width: 980px) {
+  .fitOpeningList {
+    grid-template-columns: 1fr !important;
+  }
+
+  .openingRecommendationCard {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .openingRecommendationCard {
+    padding: 14px !important;
+    border-radius: 20px !important;
+    gap: 12px;
+  }
+
+  .openingRecommendationTop {
+    display: grid !important;
+    grid-template-columns: 1fr;
+  }
+
+  .openingFitScorePill {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: auto 1fr;
+    justify-items: start;
+    align-items: center;
+  }
+
+  .openingRecommendationMetrics {
+    grid-template-columns: 1fr !important;
+  }
+
+  .openingScoreBars {
+    grid-template-columns: 1fr !important;
+  }
+
+  .openingRecommendationAction {
+    display: grid !important;
+    justify-items: start;
+  }
+
+  .fullReportOpeningRow dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

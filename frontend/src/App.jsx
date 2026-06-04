@@ -475,7 +475,7 @@ function getOpeningStatusLabel(opening, data = {}) {
   if (verdict === "Keep") return "Keep";
   if (verdict === "Avoid") return "Avoid";
   if (verdict === "Improve") return "Improve";
-  return canTreatAsRepertoireOpening(opening) ? "Try next" : "Track";
+  return "Try next";
 }
 
 function getOpeningCardAction(opening, data = {}) {
@@ -484,7 +484,14 @@ function getOpeningCardAction(opening, data = {}) {
   if (status === "Avoid") return "Review games";
   if (status === "Improve") return "Practise line";
   if (status === "Try next") return "Study this";
-  return "Track sample";
+  return "Study this";
+}
+
+function getOpeningStatusIcon(status) {
+  if (status === "Keep") return "✓";
+  if (status === "Improve") return "!";
+  if (status === "Avoid") return "×";
+  return "+";
 }
 
 function getOpeningIdentityKey(opening) {
@@ -2723,23 +2730,34 @@ function OpeningFitScoreList({ fitData, onPractice }) {
               onClick={() => canPractice && onPractice(name)}
             >
               <div className="openingRecommendationTop">
-                <div>
-                  <span className="openingSideBadge">{getOpeningSideLabel(opening)}</span>
-                  <strong>{getOpeningContextTitle(opening, name)}</strong>
+                <div className="openingRecommendationTitleBlock">
+                  <div className={`openingCardIcon openingCardIcon-${status.toLowerCase().replace(/\s+/g, "-")}`} aria-hidden="true">
+                    {getOpeningStatusIcon(status)}
+                  </div>
+                  <div>
+                    <div className="openingRecommendationBadges">
+                      <span className="openingSideBadge">{getOpeningSideLabel(opening)}</span>
+                      <span className={`openingStatusBadge openingStatusBadge-${status.toLowerCase().replace(/\s+/g, "-")}`}>
+                        {status}
+                      </span>
+                    </div>
+                    <strong>{getOpeningContextTitle(opening, name)}</strong>
+                  </div>
                 </div>
-                <span className={`openingStatusBadge openingStatusBadge-${status.toLowerCase().replace(/\s+/g, "-")}`}>
-                  {status}
-                </span>
+                <div className="openingFitScorePill">
+                  <span>{fitScore ? "Fit" : "Confidence"}</span>
+                  <strong>{fitScore || getOpeningConfidence(opening)}</strong>
+                </div>
               </div>
 
               <div className="openingRecommendationMetrics">
                 <div>
                   <span>Fit score</span>
-                  <strong>{fitScore || "—"}</strong>
+                  <strong>{fitScore || "—"}{fitScore ? "/100" : ""}</strong>
                 </div>
                 <div>
                   <span>Win rate</span>
-                  <strong>{winRate || "—"}%</strong>
+                  <strong>{winRate ? `${winRate}%` : "—"}</strong>
                 </div>
                 <div>
                   <span>Sample</span>
