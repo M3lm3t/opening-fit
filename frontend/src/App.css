@@ -41180,3 +41180,704 @@ body,
     background: rgba(255, 255, 255, 0.92) !important;
   }
 }
+
+/* --------------------------------------------------
+   OpeningFit modern app skin
+-------------------------------------------------- */
+
+:root {
+  --of-ink: #f8fbff;
+  --of-copy: #d7e3ef;
+  --of-muted: #91a7bb;
+  --of-panel: rgba(9, 16, 28, 0.78);
+  --of-panel-strong: rgba(13, 22, 37, 0.92);
+  --of-panel-soft: rgba(255, 255, 255, 0.07);
+  --of-border: rgba(214, 230, 255, 0.18);
+  --of-border-strong: rgba(214, 230, 255, 0.32);
+  --of-cyan: #58c7ff;
+  --of-blue: #4f8cff;
+  --of-green: #49de91;
+  --of-gold: #f4c96b;
+  --of-red: #fb7185;
+  --of-shadow: 0 22px 70px rgba(0, 0, 0, 0.34);
+  --of-shadow-soft: 0 16px 42px rgba(0, 0, 0, 0.22);
+  --of-focus: 0 0 0 4px rgba(88, 199, 255, 0.2);
+}
+
+:root[data-theme="light"],
+.page.light,
+body.light {
+  --of-ink: #07111f;
+  --of-copy: #31445b;
+  --of-muted: #64748b;
+  --of-panel: rgba(255, 255, 255, 0.84);
+  --of-panel-strong: rgba(255, 255, 255, 0.96);
+  --of-panel-soft: rgba(15, 23, 42, 0.045);
+  --of-border: rgba(15, 23, 42, 0.12);
+  --of-border-strong: rgba(15, 23, 42, 0.2);
+  --of-shadow: 0 22px 62px rgba(15, 23, 42, 0.12);
+  --of-shadow-soft: 0 14px 34px rgba(15, 23, 42, 0.08);
+}
+
+body,
+body.light {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(88, 199, 255, 0.16), transparent 42%),
+    linear-gradient(225deg, rgba(73, 222, 145, 0.12), transparent 48%),
+    linear-gradient(180deg, #050813 0%, #081420 46%, #030711 100%);
+  background-size: 40px 40px, 40px 40px, auto, auto, auto;
+}
+
+body.light {
+  background:
+    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(59, 130, 246, 0.1), transparent 44%),
+    linear-gradient(225deg, rgba(34, 197, 94, 0.1), transparent 48%),
+    linear-gradient(180deg, #f7fbff 0%, #edf6f3 48%, #ffffff 100%);
+  background-size: 44px 44px, 44px 44px, auto, auto, auto;
+}
+
+.page {
+  color: var(--of-copy);
+  background:
+    linear-gradient(115deg, rgba(88, 199, 255, 0.12), transparent 35%),
+    linear-gradient(245deg, rgba(244, 201, 107, 0.1), transparent 42%);
+}
+
+.container,
+.appShell {
+  width: min(1220px, calc(100% - clamp(18px, 4vw, 56px)));
+}
+
+.appPrimaryNav {
+  z-index: 900;
+  background:
+    linear-gradient(180deg, rgba(3, 7, 18, 0.88), rgba(3, 7, 18, 0.62) 76%, transparent) !important;
+  border-bottom: 0 !important;
+}
+
+.page.light .appPrimaryNav,
+[data-theme="light"] .appPrimaryNav {
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(248, 250, 252, 0.7) 76%, transparent) !important;
+}
+
+.appPrimaryNavInner {
+  min-height: 64px;
+  padding: 8px 10px;
+  border: 1px solid var(--of-border);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03)),
+    var(--of-panel);
+  box-shadow: var(--of-shadow-soft);
+  backdrop-filter: blur(20px);
+}
+
+.appPrimaryBrand {
+  gap: 10px;
+  color: var(--of-ink) !important;
+  font-size: 1.02rem;
+  letter-spacing: 0;
+}
+
+.appPrimaryBrand::before,
+.landingBrandIcon,
+.landingLogoMark,
+.footerBrand .landingBrandIcon {
+  border-radius: 14px !important;
+  background:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.82) 25%, transparent 25% 50%, rgba(255, 255, 255, 0.82) 50% 75%, transparent 75%),
+    linear-gradient(135deg, var(--of-green), var(--of-cyan)) !important;
+  background-size: 16px 16px, auto !important;
+  color: #04111f !important;
+  box-shadow: 0 14px 36px rgba(88, 199, 255, 0.25) !important;
+}
+
+.appPrimaryTabs {
+  padding: 5px;
+  border-radius: 16px;
+  border-color: var(--of-border);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.appPrimaryTab {
+  min-height: 40px;
+  border-radius: 12px;
+  color: var(--of-copy);
+}
+
+.appPrimaryTab:hover,
+.appPrimaryTabActive,
+.appPrimaryTabActive:hover {
+  color: var(--of-ink);
+  background:
+    linear-gradient(135deg, rgba(88, 199, 255, 0.22), rgba(73, 222, 145, 0.14));
+  box-shadow: inset 0 0 0 1px rgba(88, 199, 255, 0.22);
+}
+
+.appPrimaryGetStarted,
+.primaryBtn,
+.landingPrimaryBtn,
+.reportPrimaryLink,
+.premiumPrimaryBtn,
+.commandUpgradeCta,
+.seoPrimaryCta {
+  border: 0 !important;
+  background: linear-gradient(135deg, var(--of-green), var(--of-cyan)) !important;
+  color: #03111f !important;
+  box-shadow: 0 16px 38px rgba(88, 199, 255, 0.24) !important;
+  font-weight: 950;
+}
+
+.appPrimaryGetStarted:hover,
+.primaryBtn:hover,
+.landingPrimaryBtn:hover,
+.reportPrimaryLink:hover,
+.premiumPrimaryBtn:hover,
+.commandUpgradeCta:hover,
+.seoPrimaryCta:hover {
+  filter: saturate(1.08) brightness(1.04);
+  transform: translateY(-1px);
+}
+
+.secondaryBtn,
+.secondaryButton,
+.landingSecondaryBtn,
+.reportSecondaryLink,
+.premiumGhostBtn,
+.ghostButton,
+.seoSecondaryCta,
+.analyseLoginButton,
+.savedProfileButton,
+.demoAccountButton {
+  border: 1px solid var(--of-border-strong) !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035)) !important;
+  color: var(--of-ink) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.secondaryBtn:hover,
+.secondaryButton:hover,
+.landingSecondaryBtn:hover,
+.reportSecondaryLink:hover,
+.premiumGhostBtn:hover,
+.ghostButton:hover,
+.seoSecondaryCta:hover,
+.analyseLoginButton:hover {
+  border-color: rgba(88, 199, 255, 0.48) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.landingHero,
+.analyseImportHero,
+.reportHero,
+.profileHeroDashboard,
+.profileIdentityCard,
+.premiumHeroCard,
+.currentReportSummaryCard,
+.seoHero,
+.seoBottomCta {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--of-border-strong) !important;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(88, 199, 255, 0.20), rgba(73, 222, 145, 0.11) 42%, rgba(244, 201, 107, 0.09)),
+    var(--of-panel-strong) !important;
+  background-size: 34px 34px, 34px 34px, auto, auto !important;
+  box-shadow: var(--of-shadow) !important;
+  backdrop-filter: blur(18px);
+}
+
+.landingHero::before,
+.analyseImportHero::before,
+.reportHero::before,
+.profileHeroDashboard::before,
+.premiumHeroCard::before,
+.seoHero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.03) 0 12px,
+      transparent 12px 24px
+    );
+  opacity: 0.7;
+}
+
+.landingHero > *,
+.analyseImportHero > *,
+.reportHero > *,
+.profileHeroDashboard > *,
+.premiumHeroCard > *,
+.seoHero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.landingHero,
+.reportHero,
+.seoHero {
+  border-radius: 30px !important;
+  padding: clamp(20px, 4vw, 38px) !important;
+}
+
+.landingHeroCopy h1,
+.landingHeroCompact h1,
+.heroTitleWrap h1,
+.reportHero h1,
+.seoHero h1 {
+  color: var(--of-ink) !important;
+  line-height: 0.98 !important;
+  letter-spacing: 0 !important;
+  text-wrap: balance;
+}
+
+.landingSubtext,
+.landingSubcopy,
+.subtext,
+.reportHeroMain p,
+.seoHero p,
+.profileIdentityMain p,
+.profileSectionHeader p:not(.eyebrow) {
+  color: var(--of-copy) !important;
+}
+
+.landingPill,
+.landingEyebrow,
+.eyebrow,
+.premiumLabel,
+.sectionBadge,
+.chip,
+.landingFitBadge,
+.landingPriceBadge,
+.premiumBadge,
+.reportEyebrow,
+.seoEyebrow,
+.fitPlanCardTop span,
+.sectionLabel {
+  min-height: 30px;
+  border: 1px solid rgba(88, 199, 255, 0.28) !important;
+  background:
+    linear-gradient(135deg, rgba(88, 199, 255, 0.18), rgba(73, 222, 145, 0.10)) !important;
+  color: #dff4ff !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.page.light .landingPill,
+.page.light .landingEyebrow,
+.page.light .eyebrow,
+.page.light .premiumLabel,
+.page.light .sectionBadge,
+.page.light .chip,
+.page.light .landingFitBadge,
+.page.light .landingPriceBadge,
+.page.light .premiumBadge,
+.page.light .reportEyebrow,
+.page.light .seoEyebrow,
+[data-theme="light"] .landingPill,
+[data-theme="light"] .landingEyebrow,
+[data-theme="light"] .eyebrow,
+[data-theme="light"] .premiumLabel,
+[data-theme="light"] .sectionBadge,
+[data-theme="light"] .chip,
+[data-theme="light"] .landingFitBadge,
+[data-theme="light"] .landingPriceBadge,
+[data-theme="light"] .premiumBadge,
+[data-theme="light"] .reportEyebrow,
+[data-theme="light"] .seoEyebrow {
+  color: #075985 !important;
+  background: linear-gradient(135deg, #e0f7ff, #e8fff1) !important;
+  border-color: rgba(14, 116, 144, 0.18) !important;
+}
+
+.card,
+.heroCard,
+.feedbackCard,
+.quickNavCard,
+.premiumCard,
+.premiumMiniCard,
+.openingFitHeroCard,
+.openingFitScoreCard,
+.loadingCard,
+.smallCard,
+.statCard,
+.appEmptySection,
+.collapsibleCard,
+.reportActionsCard,
+.reportCommandCenter,
+.commandPanel,
+.fullReportShell,
+.currentReportSummaryCard,
+.profileDashboardCard,
+.profileHubSection,
+.analysisNextStepsPanel,
+.premiumRecommendationCard,
+.reportTrainingPreview,
+.nextBestTrainingAction,
+.nextStudyShell,
+.openingReportShell,
+.premiumFoundationShell,
+.premiumHeroCard,
+.premiumSummaryCard,
+.premiumInsightCard,
+.premiumLockedCard,
+.importSummaryCard,
+.importQualitySummary,
+.importDiagnosticCard,
+.landingPreviewCard,
+.landingInfoCard,
+.landingFeatureCard,
+.landingStepCard,
+.landingPriceCard,
+.landingPremiumCard,
+.landingFaq,
+.aboutCard,
+.ratingGuideCard,
+.trainingPlanItem,
+.adviceCard,
+.repertoireBuilder,
+.studyPlanCard,
+.premiumRoadmapStrip,
+.fitPlanCard,
+.seoProblemSolution article,
+.seoMiniReport,
+.seoStyleSection,
+.seoStyleCard,
+.seoFaq article,
+.seoInternalLinks,
+.openingSeoCard,
+.openingSeoTwoColumn article,
+.openingMoveCard {
+  border: 1px solid var(--of-border) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
+    var(--of-panel) !important;
+  color: var(--of-copy) !important;
+  box-shadow: var(--of-shadow-soft) !important;
+  backdrop-filter: blur(18px);
+}
+
+.card:hover,
+.landingPreviewCard:hover,
+.landingInfoCard:hover,
+.landingFeatureCard:hover,
+.landingStepCard:hover,
+.landingPriceCard:hover,
+.statCard:hover,
+.reportMetricCard:hover,
+.adviceCard:hover,
+.fitPlanCard:hover,
+.trainingPlanItem:hover,
+.openingSeoCard:hover {
+  border-color: var(--of-border-strong) !important;
+  box-shadow: var(--of-shadow) !important;
+  transform: translateY(-1px);
+}
+
+.landingStatCard,
+.reportMetricCard,
+.fitMiniCard,
+.listItem,
+.gamePickerButton,
+.lockedFeature,
+.openingExplainCard,
+.repertoireRow,
+.profileIdentityStats div,
+.profileRepertoireSnapshot div,
+.accountSyncChip,
+.accountSyncDetails,
+.openingSampleControl,
+.landingVerdictRow,
+.openingFitPositioningGrid div,
+.seoExampleCard {
+  border: 1px solid var(--of-border) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025)),
+    var(--of-panel-soft) !important;
+  color: var(--of-copy) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16) !important;
+}
+
+.statValue,
+.statCard strong,
+.landingStatCard strong,
+.reportMetricCard strong,
+.fitMiniCard strong,
+.adviceCard h3,
+.fitPlanCard h3,
+.repertoireRow strong,
+.profileIdentityStats strong,
+.profileRepertoireSnapshot strong,
+.seoExampleCard h3,
+.seoStyleCard h3,
+.openingSeoCard h2,
+.openingMoveCard strong,
+.landingPreviewCard strong,
+.landingInfoCard h2,
+.landingPremiumCard h2,
+.landingFaq h2 {
+  color: var(--of-ink) !important;
+}
+
+.smallText,
+.statLabel,
+.landingStatCard span,
+.reportMetricCard small,
+.fitMiniCard p,
+.fitPlanContext,
+.fitPlanCard p,
+.adviceMeta,
+.profileIdentityStats span,
+.profileRepertoireSnapshot span,
+.landingTrustLine,
+.landingPreviewCard p,
+.landingInfoCard li,
+.landingPremiumCard p,
+.landingFaq p,
+.seoExampleCard p,
+.seoStyleCard p,
+.openingSeoCard p,
+.openingSeoList,
+.openingMoveCard span {
+  color: var(--of-muted) !important;
+}
+
+.landingImportCard,
+.heroImportFlow,
+.searchRow,
+.topBar {
+  border: 1px solid var(--of-border-strong) !important;
+  border-radius: 22px !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.035)),
+    rgba(3, 7, 18, 0.35) !important;
+  box-shadow: var(--of-shadow-soft) !important;
+}
+
+input,
+select,
+textarea,
+.input,
+.monthSelect,
+.landingUsernameInput,
+.landingPlatformSelect,
+.reportOpeningSearch input {
+  border: 1px solid var(--of-border-strong) !important;
+  border-radius: 14px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
+    rgba(2, 6, 23, 0.46) !important;
+  color: var(--of-ink) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.input:focus {
+  border-color: rgba(88, 199, 255, 0.72) !important;
+  box-shadow: var(--of-focus) !important;
+}
+
+.platformButton,
+.analysisTimeFormatButton,
+.appTabButton,
+.quickNavBtn,
+.returnDashboardNav button,
+.reportCommandBar__tab,
+.ratingOpeningBtn,
+.supportedOpeningGrid span,
+.supportedOpeningGrid button {
+  border: 1px solid var(--of-border) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--of-copy) !important;
+}
+
+.platformButtonActive,
+.analysisTimeFormatButtonActive,
+.appTabButtonActive,
+.quickNavBtn:hover,
+.reportCommandBar__tabActive,
+.ratingOpeningBtn:hover,
+.supportedOpeningGrid button:hover {
+  border-color: rgba(88, 199, 255, 0.5) !important;
+  background:
+    linear-gradient(135deg, rgba(88, 199, 255, 0.22), rgba(73, 222, 145, 0.13)) !important;
+  color: var(--of-ink) !important;
+  box-shadow: inset 0 0 0 1px rgba(88, 199, 255, 0.16);
+}
+
+.reportMetricCard.best,
+.adviceCard.keep,
+.verdict.keep {
+  border-color: rgba(73, 222, 145, 0.34) !important;
+}
+
+.reportMetricCard.improve,
+.adviceCard.improve,
+.verdict.improve {
+  border-color: rgba(244, 201, 107, 0.36) !important;
+}
+
+.reportMetricCard.plan,
+.landingPriceCardPremium,
+.premiumCard,
+.premiumLockedInline,
+.premiumRoadmapStrip {
+  border-color: rgba(88, 199, 255, 0.34) !important;
+}
+
+.reportMetricCard.best span,
+.adviceCard.keep .adviceTopline span,
+.verdict.keep {
+  color: #baf7d5 !important;
+  background: rgba(73, 222, 145, 0.15) !important;
+}
+
+.reportMetricCard.improve span,
+.adviceCard.improve .adviceTopline span,
+.verdict.improve {
+  color: #ffe7a6 !important;
+  background: rgba(244, 201, 107, 0.16) !important;
+}
+
+.reportMetricCard.style span,
+.reportMetricCard.plan span,
+.verdict.test {
+  color: #cbeeff !important;
+  background: rgba(88, 199, 255, 0.15) !important;
+}
+
+.reportMetricCard.avoid span,
+.adviceCard.avoid .adviceTopline span,
+.verdict.avoid {
+  color: #fecdd3 !important;
+  background: rgba(251, 113, 133, 0.14) !important;
+}
+
+.chartBar {
+  background: linear-gradient(90deg, var(--of-green), var(--of-cyan), var(--of-blue)) !important;
+  box-shadow: 0 0 18px rgba(88, 199, 255, 0.25);
+}
+
+.fitScoreCircle {
+  border-color: rgba(88, 199, 255, 0.46) !important;
+  background:
+    linear-gradient(135deg, rgba(73, 222, 145, 0.18), rgba(88, 199, 255, 0.18)) !important;
+  box-shadow: 0 18px 44px rgba(88, 199, 255, 0.22) !important;
+}
+
+.cleanReplayBoard,
+.opening-board-shell,
+.practice-board-shell,
+.game-replay-board-shell {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 22px 52px rgba(0, 0, 0, 0.32) !important;
+}
+
+.siteFooter {
+  border-color: var(--of-border) !important;
+  background: var(--of-panel) !important;
+  box-shadow: var(--of-shadow-soft);
+}
+
+.footerLinks a {
+  border: 1px solid var(--of-border) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--of-copy) !important;
+}
+
+@media (max-width: 900px) {
+  .landingHero,
+  .reportHero,
+  .seoHero {
+    border-radius: 24px !important;
+  }
+
+  .landingStats,
+  .reportHeroCards,
+  .adviceGrid,
+  .openingFitPlanGrid {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 760px) {
+  .appPrimaryNav {
+    background:
+      linear-gradient(180deg, rgba(3, 7, 18, 0.9), rgba(3, 7, 18, 0.55) 72%, transparent) !important;
+  }
+
+  .appPrimaryNavInner {
+    min-height: 56px !important;
+    border-radius: 18px !important;
+  }
+
+  .accountSyncStatusBar {
+    margin-top: 8px;
+  }
+
+  .mobileBottomNav {
+    border-color: rgba(214, 230, 255, 0.24) !important;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.035)),
+      rgba(3, 7, 18, 0.88) !important;
+  }
+
+  .mobileBottomNav .mobileBottomNavActive {
+    background:
+      linear-gradient(135deg, rgba(88, 199, 255, 0.24), rgba(73, 222, 145, 0.16)) !important;
+  }
+
+  .landingHero,
+  .analyseImportHero,
+  .reportHero,
+  .seoHero,
+  .card,
+  .panel {
+    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.22) !important;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card,
+  .landingPreviewCard,
+  .landingInfoCard,
+  .landingFeatureCard,
+  .landingStepCard,
+  .landingPriceCard,
+  .statCard,
+  .reportMetricCard,
+  .adviceCard,
+  .fitPlanCard,
+  .trainingPlanItem,
+  .openingSeoCard,
+  .primaryBtn,
+  .secondaryButton,
+  .ghostButton {
+    transition:
+      transform 160ms ease,
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      background-color 160ms ease;
+  }
+}
+
+@media (min-width: 761px) {
+  .accountSyncStatusBar {
+    box-sizing: border-box;
+    padding-right: 172px;
+  }
+}
