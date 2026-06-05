@@ -4,6 +4,10 @@ from fastapi.responses import JSONResponse, Response
 from intelligence import enrich_analysis_result
 from analysis.style_fingerprint import build_style_fingerprint
 from analysis.opening_recommender import build_opening_recommendations as build_style_opening_recommendations
+from analysis.engine_analysis import (
+    apply_engine_adjustments_to_style_fingerprint,
+    build_engine_summary,
+)
 from opening_detection import (
     detect_opening,
     detect_opening_from_pgn,
@@ -2440,6 +2444,8 @@ def import_chesscom_logic(username: str, months: int = 3):
 
     style_profile = build_style_profile(analysed_games, username)
     style_fingerprint = build_style_fingerprint(recent_games, username=username)
+    engine_summary = build_engine_summary(recent_games, username=username, is_premium=False)
+    style_fingerprint = apply_engine_adjustments_to_style_fingerprint(style_fingerprint, engine_summary)
     best_openings = build_opening_scores(context_opening_results)
     report_mode_data = detect_report_mode(
         title=player.get("title"),
@@ -2533,6 +2539,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "styleProfile": style_profile,
         "style_fingerprint": style_fingerprint,
         "styleFingerprint": style_fingerprint,
+        "engine_summary": engine_summary,
+        "engineSummary": engine_summary,
         "style_based_recommendations": style_based_recommendations,
         "styleBasedRecommendations": style_based_recommendations,
         "recommended_openings": recommended_openings,
@@ -2828,6 +2836,8 @@ def build_lichess_analysis(
     best_openings = build_opening_scores(context_opening_results)
     style_profile = build_lichess_style_profile(top_openings, preferred_white, preferred_black)
     style_fingerprint = build_style_fingerprint(recent_games, username=username)
+    engine_summary = build_engine_summary(recent_games, username=username, is_premium=False)
+    style_fingerprint = apply_engine_adjustments_to_style_fingerprint(style_fingerprint, engine_summary)
     current_rating = max(player_ratings) if player_ratings else None
 
     if current_rating is None:
@@ -2948,6 +2958,8 @@ def build_lichess_analysis(
         "styleProfile": style_profile,
         "style_fingerprint": style_fingerprint,
         "styleFingerprint": style_fingerprint,
+        "engine_summary": engine_summary,
+        "engineSummary": engine_summary,
         "style_based_recommendations": style_based_recommendations,
         "styleBasedRecommendations": style_based_recommendations,
         "recommended_openings": recommended_openings,
@@ -3347,6 +3359,8 @@ def demo_profile():
         24,
         style_profile,
     )
+    engine_summary = build_engine_summary([], username="DemoPlayer", is_premium=False)
+    style_fingerprint = apply_engine_adjustments_to_style_fingerprint(style_fingerprint, engine_summary)
     recommended_openings = build_style_opening_recommendations(
         style_fingerprint,
         current_opening_stats=demo_best_openings,
@@ -3391,6 +3405,8 @@ def demo_profile():
         "styleProfile": style_profile,
         "style_fingerprint": style_fingerprint,
         "styleFingerprint": style_fingerprint,
+        "engine_summary": engine_summary,
+        "engineSummary": engine_summary,
         "recommended_openings": recommended_openings,
         "recommendedOpeningsByStyle": recommended_openings,
         "top_openings": demo_best_openings,
