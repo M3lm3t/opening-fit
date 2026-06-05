@@ -34,6 +34,7 @@ import OpeningGamificationProgress from "./components/OpeningGamificationProgres
 import TodayTrainingCard from "./components/TodayTrainingCard";
 import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
 import RecommendedOpeningFit from "./components/RecommendedOpeningFit";
+import OpeningInsights from "./components/OpeningInsights";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./components/OpeningEvidence";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
@@ -5429,6 +5430,8 @@ function FinalReportFlow({
         fitData={fitData}
         onPractice={onPractice}
       />
+
+      <OpeningInsights data={data} onPractice={onPractice} />
 
       <RecommendedOpeningFit data={data} />
 
