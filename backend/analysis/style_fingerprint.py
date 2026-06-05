@@ -26,6 +26,7 @@ TRAIT_KEYS = [
     "development_speed",
     "king_safety_risk",
     "endgame_conversion",
+    "theory_tolerance",
     "short_game_success",
     "long_game_success",
     "opening_phase_stability",
@@ -46,6 +47,7 @@ LOW_SAMPLE_TRAITS = {
     "development_speed": 50,
     "king_safety_risk": 50,
     "endgame_conversion": 50,
+    "theory_tolerance": 50,
     "short_game_success": 50,
     "long_game_success": 50,
     "opening_phase_stability": 50,
@@ -366,6 +368,8 @@ def evidence_for_traits(games: List[Dict[str, Any]], traits: Dict[str, int]) -> 
         evidence.append("Your opening phase is fairly stable because your games repeat the same families.")
     if traits["development_speed"] >= 62:
         evidence.append("You usually develop pieces and castle quickly in the opening.")
+    if traits["theory_tolerance"] >= 62:
+        evidence.append("Your repeated openings suggest you can handle a moderate theory workload.")
     if not evidence:
         evidence.append("OpeningFit found useful signals, but no single style pattern dominates yet.")
 
@@ -455,6 +459,12 @@ def build_style_fingerprint(games: List[Dict[str, Any]], username: Optional[str]
         "long_game_success": clamp_score(score_from_success(long_success) if any(game["long_game"] for game in parsed_games) else 45 + (overall_success * 10)),
         "opening_phase_stability": opening_stability_score(parsed_games),
     }
+    traits["theory_tolerance"] = clamp_score(
+        traits["opening_phase_stability"] * 0.45
+        + traits["development_speed"] * 0.25
+        + (100 - traits["king_safety_risk"]) * 0.20
+        + min(100, game_count * 4) * 0.10
+    )
 
     primary = primary_style_for_traits(traits)
     secondary = secondary_style_for_traits(traits, primary)

@@ -4,11 +4,13 @@ from fastapi.responses import JSONResponse, Response
 from intelligence import enrich_analysis_result
 from analysis.style_fingerprint import build_style_fingerprint
 from analysis.opening_recommender import build_opening_recommendations as build_style_opening_recommendations
+from analysis.opening_recommender import build_basic_recommendation_summary
 from analysis.engine_analysis import (
     apply_engine_adjustments_to_style_fingerprint,
     build_engine_summary,
 )
 from analysis.game_diagnostics import build_diagnostic_summary
+from analysis.opening_fit_metrics import build_opening_fit_metrics, merge_opening_fit_metrics
 from opening_detection import (
     detect_opening,
     detect_opening_from_pgn,
@@ -2447,7 +2449,10 @@ def import_chesscom_logic(username: str, months: int = 3):
     style_fingerprint = build_style_fingerprint(recent_games, username=username)
     engine_summary = build_engine_summary(recent_games, username=username, is_premium=False)
     style_fingerprint = apply_engine_adjustments_to_style_fingerprint(style_fingerprint, engine_summary)
+    opening_fit_metrics = build_opening_fit_metrics(recent_games)
+    top_openings = merge_opening_fit_metrics(top_openings, opening_fit_metrics)
     best_openings = build_opening_scores(context_opening_results)
+    best_openings = merge_opening_fit_metrics(best_openings, opening_fit_metrics)
     report_mode_data = detect_report_mode(
         title=player.get("title"),
         total_games=len(analysed_games),
@@ -2498,6 +2503,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         colour_needs=["white", "black_vs_e4", "black_vs_d4"],
         existing_openings=list(opening_counter.keys()),
     )
+    basic_opening_recommendations = build_basic_recommendation_summary(recommended_openings)
 
     premium_data = build_premium_data(best_openings, style_profile)
     diagnostic_summary = build_diagnostic_summary(recent_games, username=username)
@@ -2545,10 +2551,14 @@ def import_chesscom_logic(username: str, months: int = 3):
         "engineSummary": engine_summary,
         "diagnostic_summary": diagnostic_summary,
         "diagnosticSummary": diagnostic_summary,
+        "opening_fit_metrics": opening_fit_metrics,
+        "openingFitMetrics": opening_fit_metrics,
         "style_based_recommendations": style_based_recommendations,
         "styleBasedRecommendations": style_based_recommendations,
         "recommended_openings": recommended_openings,
         "recommendedOpeningsByStyle": recommended_openings,
+        "basic_opening_recommendations": basic_opening_recommendations,
+        "basicOpeningRecommendations": basic_opening_recommendations,
         "best_openings": best_openings[:8],
         "bestOpenings": best_openings[:8],
         "opening_recommendations": opening_recommendations,
@@ -2842,6 +2852,9 @@ def build_lichess_analysis(
     style_fingerprint = build_style_fingerprint(recent_games, username=username)
     engine_summary = build_engine_summary(recent_games, username=username, is_premium=False)
     style_fingerprint = apply_engine_adjustments_to_style_fingerprint(style_fingerprint, engine_summary)
+    opening_fit_metrics = build_opening_fit_metrics(recent_games)
+    top_openings = merge_opening_fit_metrics(top_openings, opening_fit_metrics)
+    best_openings = merge_opening_fit_metrics(best_openings, opening_fit_metrics)
     current_rating = max(player_ratings) if player_ratings else None
 
     if current_rating is None:
@@ -2907,6 +2920,7 @@ def build_lichess_analysis(
         colour_needs=["white", "black_vs_e4", "black_vs_d4"],
         existing_openings=list(opening_counter.keys()),
     )
+    basic_opening_recommendations = build_basic_recommendation_summary(recommended_openings)
 
     premium_data = build_premium_data(best_openings, style_profile)
     diagnostic_summary = build_diagnostic_summary(recent_games, username=username)
@@ -2967,10 +2981,14 @@ def build_lichess_analysis(
         "engineSummary": engine_summary,
         "diagnostic_summary": diagnostic_summary,
         "diagnosticSummary": diagnostic_summary,
+        "opening_fit_metrics": opening_fit_metrics,
+        "openingFitMetrics": opening_fit_metrics,
         "style_based_recommendations": style_based_recommendations,
         "styleBasedRecommendations": style_based_recommendations,
         "recommended_openings": recommended_openings,
         "recommendedOpeningsByStyle": recommended_openings,
+        "basic_opening_recommendations": basic_opening_recommendations,
+        "basicOpeningRecommendations": basic_opening_recommendations,
         "best_openings": best_openings[:8],
         "bestOpenings": best_openings[:8],
         "opening_recommendations": opening_recommendations,

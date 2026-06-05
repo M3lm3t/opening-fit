@@ -89,10 +89,7 @@ def trait_fit_score(item: OpeningCatalogItem, traits: Dict[str, Any]) -> float:
     weight_total = 0.0
 
     for trait, weight in item.get("fit_weights", {}).items():
-        if trait == "theory_tolerance":
-            trait_value = max(0, 100 - traits.get("king_safety_risk", 50))
-        else:
-            trait_value = float(traits.get(trait, 50) or 50)
+        trait_value = float(traits.get(trait, 50) or 50)
 
         if weight >= 0:
             weighted_total += trait_value * weight
@@ -402,3 +399,60 @@ def build_opening_recommendations(
         output[slot] = balanced_top_recommendations(recommendations, limit=limit_per_slot)
 
     return output
+
+
+def first_non_gambit(items: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    return next((item for item in items if not is_gambit(item)), None)
+
+
+def first_safe(items: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    return next((item for item in items if is_safe(item) and not is_gambit(item)), None)
+
+
+def first_ambitious(items: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    return next((item for item in items if is_ambitious(item)), None)
+
+
+def build_basic_recommendation_summary(
+    recommendations: Dict[str, List[Dict[str, Any]]],
+) -> Dict[str, Any]:
+    white = sorted(recommendations.get("white") or [], key=lambda item: item.get("fit_score", 0), reverse=True)
+    black_e4 = sorted(recommendations.get("black_vs_e4") or [], key=lambda item: item.get("fit_score", 0), reverse=True)
+    black_d4 = sorted(recommendations.get("black_vs_d4") or [], key=lambda item: item.get("fit_score", 0), reverse=True)
+
+    safe_white = first_safe(white) or first_non_gambit(white) or (white[0] if white else None)
+    ambitious_white = first_ambitious([item for item in white if item != safe_white]) or first_non_gambit(white) or (white[0] if white else None)
+    black_vs_e4 = first_non_gambit(black_e4) or (black_e4[0] if black_e4 else None)
+    black_vs_d4 = first_non_gambit(black_d4) or (black_d4[0] if black_d4 else None)
+    avoid_or_delay = [
+        item
+        for item in white + black_e4 + black_d4
+        if item.get("learning_cost") == "high"
+        or item.get("risk_level") == "high"
+        or item.get("upgrade_type") == "avoid"
+    ]
+
+    selected_names = {
+        item.get("name")
+        for item in [safe_white, ambitious_white, black_vs_e4, black_vs_d4]
+        if item
+    }
+    avoid_or_delay = [
+        item
+        for item in avoid_or_delay
+        if item.get("name") not in selected_names and not is_gambit(item)
+    ][:4]
+
+    return {
+        "safe_white": safe_white,
+        "safeWhite": safe_white,
+        "ambitious_white": ambitious_white,
+        "ambitiousWhite": ambitious_white,
+        "black_vs_e4": black_vs_e4,
+        "blackVsE4": black_vs_e4,
+        "black_vs_d4": black_vs_d4,
+        "blackVsD4": black_vs_d4,
+        "delay_or_avoid": avoid_or_delay,
+        "delayOrAvoid": avoid_or_delay,
+        "method": "catalog_recommendation_summary_v1",
+    }
