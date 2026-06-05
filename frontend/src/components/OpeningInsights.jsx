@@ -1,3 +1,4 @@
+import { useState } from "react";
 import "./OpeningInsights.css";
 
 const PATTERN_COPY = {
@@ -14,10 +15,10 @@ const PATTERN_COPY = {
 };
 
 const PHASE_COPY = {
-  opening: "Your trouble appears in the first 10 moves, so make the setup more repeatable before adding new ideas.",
-  transition: "Your openings are mostly fine, but results drop after move 10 when the position leaves familiar theory.",
-  middlegame: "You are reaching playable openings, then losing direction once the first plan has to become a middlegame plan.",
-  endgame: "The opening is not the main leak here; your longer games need cleaner conversion and simplification choices.",
+  opening: "Your trouble appears in the first 10 moves.",
+  transition: "Results drop after move 10 when the position leaves familiar theory.",
+  middlegame: "You reach playable openings, then lose direction in the first middlegame plan.",
+  endgame: "The opening is mostly holding; conversion is the bigger leak.",
 };
 
 function asArray(value) {
@@ -33,6 +34,13 @@ function titleCase(value) {
 function number(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function firstSentence(value, fallback) {
+  const text = String(value || fallback || "").trim();
+  if (!text) return "";
+  const match = text.match(/^.*?[.!?](\s|$)/);
+  return (match ? match[0] : text).trim();
 }
 
 function getName(item) {
@@ -61,19 +69,40 @@ function getWeakLines(data) {
   return diagnosticLines;
 }
 
-function getKeepOpenings(data) {
-  const metrics = getMetrics(data);
-  return asArray(metrics.openings)
-    .filter((item) =>
-      ["strong_keep", "promising_small_sample"].includes(
-        String(item.fitClassification || item.fit_classification || "")
-      )
-    )
-    .slice(0, 4);
+function getOpeningRows(data) {
+  return asArray(getMetrics(data).openings).filter(Boolean);
+}
+
+function classification(item) {
+  return String(item?.fitClassification || item?.fit_classification || "").toLowerCase();
+}
+
+function statusForOpening(item) {
+  const value = classification(item);
+  if (value === "strong_keep") return "Keep";
+  if (value === "good_opening_bad_execution" || value === "needs_training_line") return "Train";
+  if (value === "weak_fit") return "Avoid for now";
+  return "Review";
 }
 
 function fitScore(item) {
   return number(item?.fitScore ?? item?.fit_score ?? item?.score ?? item?.winRate ?? item?.win_rate ?? 0);
+}
+
+function confidence(item) {
+  return titleCase(item?.confidence || item?.fitConfidence || item?.fit_confidence || "medium");
+}
+
+function gamesPlayed(item) {
+  return number(item?.gamesPlayed ?? item?.games_played ?? item?.games);
+}
+
+function winRate(item) {
+  return number(item?.winRate ?? item?.win_rate);
+}
+
+function lossRate(item) {
+  return number(item?.lossRate ?? item?.loss_rate);
 }
 
 function watchOut(item) {
@@ -94,20 +123,43 @@ function whyItFits(item) {
   );
 }
 
+function openingReason(item) {
+  const evidence = asArray(item?.evidence || item?.fitEvidence || item?.fit_evidence);
+  return firstSentence(
+    item?.shortReason ||
+      item?.short_reason ||
+      evidence[0] ||
+      item?.reason ||
+      item?.fitConfidenceReason ||
+      item?.fit_confidence_reason ||
+      item?.fitExplanation ||
+      item?.fit_explanation,
+    "Use this as a practical signal from your current game sample."
+  );
+}
+
+function recommendationTooltip(item) {
+  return [
+    `Fit score: ${fitScore(item) || "unknown"}`,
+    `Confidence: ${confidence(item)}`,
+    `Learning cost: ${titleCase(item?.learningCost || item?.learning_cost || "medium")}`,
+    `Watch out: ${watchOut(item)}`,
+  ].join("\n");
+}
+
 function RecommendationCard({ title, item, tone }) {
   if (!item) return null;
 
   return (
     <article className={`openingInsightRecommendation ${tone}`}>
-      <span>{title}</span>
-      <h3>{getName(item)}</h3>
-      <div className="openingInsightMeta">
-        <b>Fit {fitScore(item)}</b>
-        <b>{titleCase(item.confidence || "medium")} confidence</b>
-        <b>{titleCase(item.learningCost || item.learning_cost || "medium")} learning</b>
+      <div className="openingInsightCardTitle">
+        <span>{title}</span>
+        <button type="button" className="openingInsightInfo" title={recommendationTooltip(item)} aria-label={`${title} details`}>
+          i
+        </button>
       </div>
-      <p>{whyItFits(item)}</p>
-      <small>Watch out: {watchOut(item)}</small>
+      <h3>{getName(item)}</h3>
+      <p>{firstSentence(whyItFits(item), "This is the clearest next repertoire choice from the current sample.")}</p>
     </article>
   );
 }
@@ -115,7 +167,11 @@ function RecommendationCard({ title, item, tone }) {
 function WeakLineCard({ line, onPractice }) {
   const name = line.line || line.name || line.opening || "Weak line";
   const opening = line.opening || name.split(":")[0];
-  const likelyIssue = asArray(line.commonPatterns || line.common_patterns)[0] || line.fitClassification || line.fit_classification || "needs_training_line";
+  const likelyIssue =
+    asArray(line.commonPatterns || line.common_patterns)[0] ||
+    line.fitClassification ||
+    line.fit_classification ||
+    "needs_training_line";
   const canTrain = typeof onPractice === "function";
 
   return (
@@ -125,9 +181,9 @@ function WeakLineCard({ line, onPractice }) {
         <h3>{name}</h3>
       </div>
       <div className="openingInsightMeta">
-        <b>{number(line.gamesPlayed ?? line.games_played ?? line.games)} games</b>
-        <b>{number(line.winRate ?? line.win_rate)}% win</b>
-        <b>{number(line.lossRate ?? line.loss_rate)}% loss</b>
+        <b>{gamesPlayed(line)} games</b>
+        <b>{winRate(line)}% win</b>
+        <b>{lossRate(line)}% loss</b>
       </div>
       <p>Likely issue: {PATTERN_COPY[likelyIssue] || titleCase(likelyIssue)}</p>
       <button type="button" onClick={() => canTrain && onPractice(opening)}>
@@ -137,90 +193,170 @@ function WeakLineCard({ line, onPractice }) {
   );
 }
 
+function CompactOpeningCard({ opening }) {
+  const status = statusForOpening(opening);
+  const details = [
+    opening?.fitExplanation || opening?.fit_explanation,
+    opening?.fitConfidenceReason || opening?.fit_confidence_reason,
+    ...asArray(opening?.evidence || opening?.fitEvidence || opening?.fit_evidence),
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return (
+    <article className={`openingInsightMiniCard status-${status.toLowerCase().replace(/\s+/g, "-")}`}>
+      <div className="openingInsightCardTitle">
+        <span>{status}</span>
+        {details ? (
+          <button type="button" className="openingInsightInfo" title={details} aria-label={`${getName(opening)} details`}>
+            i
+          </button>
+        ) : null}
+      </div>
+      <h4>{getName(opening)}</h4>
+      <div className="openingInsightMeta">
+        <b>{winRate(opening)}% win</b>
+        <b>{gamesPlayed(opening)} games</b>
+        <b>{confidence(opening)}</b>
+      </div>
+      <p>{openingReason(opening)}</p>
+    </article>
+  );
+}
+
+function recommendationItems(recommendations) {
+  const delayItems = asArray(recommendations.delayOrAvoid || recommendations.delay_or_avoid);
+  const keep = recommendations.safeWhite || recommendations.safe_white;
+  const tryNext =
+    recommendations.ambitiousWhite ||
+    recommendations.ambitious_white ||
+    recommendations.blackVsE4 ||
+    recommendations.black_vs_e4 ||
+    recommendations.blackVsD4 ||
+    recommendations.black_vs_d4;
+
+  return [
+    { key: "try", title: "Try next", item: tryNext, tone: "try" },
+    { key: "keep", title: "Keep improving", item: keep, tone: "keep" },
+    { key: "delay", title: "Delay for now", item: delayItems[0], tone: "delay" },
+  ].filter((entry) => entry.item);
+}
+
 export default function OpeningInsights({ data, onPractice }) {
+  const [showAllWeakLines, setShowAllWeakLines] = useState(false);
   if (!data) return null;
 
   const diagnosis = getDiagnosis(data);
   const metrics = getMetrics(data);
   const recommendations = getRecommendations(data);
   const mainPhase = diagnosis.mainIssuePhase || diagnosis.main_issue_phase;
-  const confidence = diagnosis.confidence;
+  const confidenceLevel = diagnosis.confidence;
   const coachNotes = asArray(diagnosis.coachNotes || diagnosis.coach_notes);
   const commonPatterns = asArray(diagnosis.commonPatterns || diagnosis.common_patterns);
-  const keepOpenings = getKeepOpenings(data);
+  const openingRows = getOpeningRows(data);
+  const keepOpenings = openingRows.filter((item) => ["strong_keep", "promising_small_sample"].includes(classification(item)));
   const weakLines = getWeakLines(data);
-  const hasRecommendations = Boolean(
-    recommendations.safeWhite ||
-      recommendations.safe_white ||
-      recommendations.ambitiousWhite ||
-      recommendations.ambitious_white ||
-      recommendations.blackVsE4 ||
-      recommendations.black_vs_e4 ||
-      recommendations.blackVsD4 ||
-      recommendations.black_vs_d4 ||
-      asArray(recommendations.delayOrAvoid || recommendations.delay_or_avoid).length
-  );
+  const visibleWeakLines = showAllWeakLines ? weakLines : weakLines.slice(0, 3);
+  const recItems = recommendationItems(recommendations);
+  const bestOpening = keepOpenings[0] || openingRows[0] || null;
+  const weakestLine = weakLines[0] || null;
+  const mainDiagnosis = mainPhase ? PHASE_COPY[mainPhase] : coachNotes[0] || "Not enough evidence for a strong diagnosis yet.";
+  const nextAction = weakestLine
+    ? `Review ${weakestLine.line || weakestLine.name || weakestLine.opening}.`
+    : recItems[0]
+      ? `Try ${getName(recItems[0].item)} next.`
+      : bestOpening
+        ? `Keep improving ${getName(bestOpening)}.`
+        : "Import a few more recent games for a cleaner recommendation.";
 
   const hasContent =
     mainPhase ||
-    keepOpenings.length ||
+    openingRows.length ||
     weakLines.length ||
     commonPatterns.length ||
-    hasRecommendations ||
+    recItems.length ||
     asArray(metrics.openings).length;
 
-  if (!hasContent) return null;
+  if (!hasContent) {
+    return (
+      <section className="openingInsights" id="opening-insights" aria-labelledby="opening-insights-title">
+        <div className="openingInsightsHero">
+          <div>
+            <p className="eyebrow">30-second report</p>
+            <h2 id="opening-insights-title">Your OpeningFit summary</h2>
+            <p>Import a few more recent games and OpeningFit will turn them into a focused opening plan.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="openingInsights" id="opening-insights" aria-labelledby="opening-insights-title">
-      {mainPhase ? (
-        <div className="openingInsightsHero">
-          <div>
-            <p className="eyebrow">Opening diagnosis</p>
-            <h2 id="opening-insights-title">{PHASE_COPY[mainPhase] || "OpeningFit found a trainable pattern in your games."}</h2>
-            <p>{coachNotes[0] || "Treat this as a practical training clue, not a final verdict."}</p>
-          </div>
-          <div className="openingInsightPhase">
-            <span>Main phase</span>
-            <strong>{titleCase(mainPhase)}</strong>
-            {confidence ? <small>{titleCase(confidence)} confidence</small> : null}
-          </div>
+      <div className="openingInsightsHero">
+        <div>
+          <p className="eyebrow">30-second report</p>
+          <h2 id="opening-insights-title">Your OpeningFit summary</h2>
+          <p>{firstSentence(coachNotes[0], mainDiagnosis)}</p>
         </div>
-      ) : null}
+        <div className="openingInsightPhase">
+          <span>Main diagnosis</span>
+          <strong>{mainPhase ? titleCase(mainPhase) : "Low sample"}</strong>
+          {confidenceLevel ? <small>{titleCase(confidenceLevel)} confidence</small> : null}
+        </div>
+      </div>
 
-      {keepOpenings.length ? (
+      <div className="openingInsightSummaryGrid">
+        <article>
+          <span>Best opening to keep</span>
+          <strong>{bestOpening ? getName(bestOpening) : "More games needed"}</strong>
+        </article>
+        <article>
+          <span>Weakest line to train</span>
+          <strong>{weakestLine ? weakestLine.line || weakestLine.name || weakestLine.opening : "No repeated weak line yet"}</strong>
+        </article>
+        <article>
+          <span>Main diagnosis</span>
+          <strong>{mainDiagnosis}</strong>
+        </article>
+        <article>
+          <span>Next action</span>
+          <strong>{nextAction}</strong>
+        </article>
+      </div>
+
+      {openingRows.length ? (
         <div className="openingInsightBlock">
           <div className="openingInsightBlockHeader">
-            <span>Best openings to keep</span>
-            <h3>Keep improving what is already scoring.</h3>
+            <span>Opening cards</span>
+            <h3>Compact verdicts from your sample.</h3>
           </div>
           <div className="openingInsightGrid">
-            {keepOpenings.map((opening) => (
-              <article className="openingInsightMiniCard" key={getName(opening)}>
-                <h4>{getName(opening)}</h4>
-                <p>{titleCase(opening.fitClassification || opening.fit_classification)}</p>
-                <div className="openingInsightMeta">
-                  <b>{number(opening.gamesPlayed ?? opening.games_played ?? opening.games)} games</b>
-                  <b>{number(opening.winRate ?? opening.win_rate)}% win</b>
-                  <b>{titleCase(opening.confidence)}</b>
-                </div>
-              </article>
+            {openingRows.slice(0, 6).map((opening, index) => (
+              <CompactOpeningCard key={`${getName(opening)}-${classification(opening)}-${index}`} opening={opening} />
             ))}
           </div>
         </div>
-      ) : null}
+      ) : (
+        <p className="openingInsightQuietNote">Opening cards will appear once there is enough recent game evidence.</p>
+      )}
 
       {weakLines.length ? (
         <div className="openingInsightBlock">
           <div className="openingInsightBlockHeader">
             <span>Weak lines to train</span>
-            <h3>Work on the repeated variation, not just the opening name.</h3>
+            <h3>Prioritise the variation, not just the opening name.</h3>
           </div>
           <div className="openingInsightGrid">
-            {weakLines.slice(0, 4).map((line) => (
+            {visibleWeakLines.map((line) => (
               <WeakLineCard key={line.line || line.name || line.opening} line={line} onPractice={onPractice} />
             ))}
           </div>
+          {weakLines.length > 3 ? (
+            <button type="button" className="openingInsightShowMore" onClick={() => setShowAllWeakLines((value) => !value)}>
+              {showAllWeakLines ? "Show less" : `Show ${weakLines.length - 3} more`}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -228,10 +364,10 @@ export default function OpeningInsights({ data, onPractice }) {
         <div className="openingInsightBlock">
           <div className="openingInsightBlockHeader">
             <span>Common patterns</span>
-            <h3>Recurring habits from the sample.</h3>
+            <h3>Recurring habits.</h3>
           </div>
           <div className="openingInsightTags">
-            {commonPatterns.slice(0, 6).map((pattern) => {
+            {commonPatterns.slice(0, 3).map((pattern) => {
               const type = pattern.type || pattern;
               return <span key={type}>{PATTERN_COPY[type] || pattern.example || titleCase(type)}</span>;
             })}
@@ -239,19 +375,15 @@ export default function OpeningInsights({ data, onPractice }) {
         </div>
       ) : null}
 
-      {hasRecommendations ? (
+      {recItems.length ? (
         <div className="openingInsightBlock">
           <div className="openingInsightBlockHeader">
             <span>Recommendations</span>
             <h3>Simple next repertoire decisions.</h3>
           </div>
           <div className="openingInsightRecommendationGrid">
-            <RecommendationCard title="Keep improving" tone="keep" item={recommendations.safeWhite || recommendations.safe_white} />
-            <RecommendationCard title="Try next" tone="try" item={recommendations.ambitiousWhite || recommendations.ambitious_white} />
-            <RecommendationCard title="Black vs e4" tone="try" item={recommendations.blackVsE4 || recommendations.black_vs_e4} />
-            <RecommendationCard title="Black vs d4" tone="try" item={recommendations.blackVsD4 || recommendations.black_vs_d4} />
-            {asArray(recommendations.delayOrAvoid || recommendations.delay_or_avoid).slice(0, 2).map((item) => (
-              <RecommendationCard key={getName(item)} title="Delay for now" tone="delay" item={item} />
+            {recItems.map((entry) => (
+              <RecommendationCard key={`${entry.key}-${getName(entry.item)}`} title={entry.title} tone={entry.tone} item={entry.item} />
             ))}
           </div>
         </div>

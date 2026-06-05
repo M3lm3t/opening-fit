@@ -72,6 +72,39 @@
   color: rgba(226, 232, 240, 0.72);
 }
 
+.openingInsightSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.openingInsightSummaryGrid article {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.openingInsightSummaryGrid span,
+.openingInsightCardTitle span {
+  display: block;
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.openingInsightSummaryGrid strong {
+  display: block;
+  margin-top: 6px;
+  color: rgba(248, 250, 252, 0.94);
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
 .openingInsightBlock {
   margin-top: 24px;
 }
@@ -108,7 +141,46 @@
 .openingInsightRecommendation p {
   margin: 0;
   color: rgba(248, 250, 252, 0.9);
-  line-height: 1.55;
+  line-height: 1.45;
+  font-size: 0.93rem;
+}
+
+.openingInsightCardTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.openingInsightInfo {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: rgba(248, 250, 252, 0.9);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: help;
+}
+
+.openingInsightMiniCard.status-keep {
+  border-color: rgba(34, 197, 94, 0.36);
+}
+
+.openingInsightMiniCard.status-train {
+  border-color: rgba(56, 189, 248, 0.36);
+}
+
+.openingInsightMiniCard.status-review {
+  border-color: rgba(250, 204, 21, 0.32);
+}
+
+.openingInsightMiniCard.status-avoid-for-now {
+  border-color: rgba(251, 146, 60, 0.4);
 }
 
 .openingInsightWeakLine button {
@@ -120,6 +192,23 @@
   color: #082f49;
   font-weight: 800;
   cursor: pointer;
+}
+
+.openingInsightShowMore {
+  margin-top: 12px;
+  padding: 9px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(248, 250, 252, 0.92);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.openingInsightQuietNote {
+  margin: 16px 0 0;
+  color: rgba(226, 232, 240, 0.76);
+  line-height: 1.5;
 }
 
 .openingInsightTags {
@@ -178,6 +267,8 @@
 
 .page.light .openingInsightPhase,
 [data-theme="light"] .openingInsightPhase,
+.page.light .openingInsightSummaryGrid article,
+[data-theme="light"] .openingInsightSummaryGrid article,
 .page.light .openingInsightMiniCard,
 [data-theme="light"] .openingInsightMiniCard,
 .page.light .openingInsightWeakLine,
@@ -194,6 +285,27 @@
 [data-theme="light"] .openingInsightMeta b {
   background: rgba(226, 232, 240, 0.82);
   color: #0f172a;
+}
+
+.page.light .openingInsightInfo,
+[data-theme="light"] .openingInsightInfo {
+  border-color: rgba(15, 23, 42, 0.16);
+  background: rgba(226, 232, 240, 0.82);
+  color: #0f172a;
+}
+
+.page.light .openingInsightSummaryGrid span,
+[data-theme="light"] .openingInsightSummaryGrid span,
+.page.light .openingInsightCardTitle span,
+[data-theme="light"] .openingInsightCardTitle span,
+.page.light .openingInsightQuietNote,
+[data-theme="light"] .openingInsightQuietNote {
+  color: rgba(15, 23, 42, 0.68);
+}
+
+.page.light .openingInsightSummaryGrid strong,
+[data-theme="light"] .openingInsightSummaryGrid strong {
+  color: rgba(15, 23, 42, 0.92);
 }
 
 .page.light .openingInsightMiniCard p,
@@ -214,8 +326,15 @@
   }
 
   .openingInsightsHero,
+  .openingInsightSummaryGrid,
   .openingInsightGrid,
   .openingInsightRecommendationGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 821px) and (max-width: 1080px) {
+  .openingInsightSummaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

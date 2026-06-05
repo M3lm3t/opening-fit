@@ -5405,118 +5405,100 @@ function FinalReportFlow({
         onUpgrade={() => onNavigate?.("premium")}
       />
 
-      <CurrentReportSummary
-        data={data}
-        fitData={fitData}
-        onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
-        reportMode={reportMode}
-        onReportModeChange={setReportMode}
-      />
-
-      <NextBestTrainingActionCard
-        data={data}
-        fitData={fitData}
-        onStartTraining={() => {
-          onNavigate?.({
-            view: "train",
-            path: "/train",
-            target: "today-training",
-            fallbackIds: ["training-plan", "opening-practice"],
-          });
-        }}
-      />
-
-      <OpeningFitScoreList
-        fitData={fitData}
-        onPractice={onPractice}
-      />
-
       <OpeningInsights data={data} onPractice={onPractice} />
-
-      <RecommendedOpeningFit data={data} />
-
-      <OpeningHealthScore
-        data={data}
-        fitData={fitData}
-        history={reportHistory}
-      />
-
-      <ReportOpeningFilters
-        filters={reportFilters}
-        onFiltersChange={onReportFiltersChange}
-        data={data}
-      />
-
-      <MobileReportQuickGuide
-        data={data}
-        fitData={fitData}
-        onPractice={onPractice}
-        onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
-      />
-
-      <AnalysisNextStepsPanel
-        data={data}
-        fitData={fitData}
-        onPractice={onPractice}
-        onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
-      />
-
-      <WeakSpotsCommandPanel
-        data={data}
-        fitData={fitData}
-        onPractice={onPractice}
-        onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
-      />
-
-      <ReportTrainingPreview
-        data={data}
-        fitData={fitData}
-        studyTarget={studyTarget}
-        recentGames={recentGames}
-        onPractice={onPractice}
-        onNavigate={onNavigate}
-      />
 
       {showFullReport ? (
         <>
-          <FullReportHighlights data={data} fitData={fitData} onPractice={onPractice} />
+          <CurrentReportSummary
+            data={data}
+            fitData={fitData}
+            onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
+            reportMode={reportMode}
+            onReportModeChange={setReportMode}
+          />
 
+          <NextBestTrainingActionCard
+            data={data}
+            fitData={fitData}
+            onStartTraining={() => {
+              onNavigate?.({
+                view: "train",
+                path: "/train",
+                target: "today-training",
+                fallbackIds: ["training-plan", "opening-practice"],
+              });
+            }}
+          />
+
+          <OpeningFitScoreList fitData={fitData} onPractice={onPractice} />
+          <RecommendedOpeningFit data={data} />
+          <OpeningHealthScore data={data} fitData={fitData} history={reportHistory} />
+          <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
+          <MobileReportQuickGuide
+            data={data}
+            fitData={fitData}
+            onPractice={onPractice}
+            onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
+          />
+          <AnalysisNextStepsPanel
+            data={data}
+            fitData={fitData}
+            onPractice={onPractice}
+            onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
+          />
+          <WeakSpotsCommandPanel
+            data={data}
+            fitData={fitData}
+            onPractice={onPractice}
+            onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
+          />
+          <ReportTrainingPreview
+            data={data}
+            fitData={fitData}
+            studyTarget={studyTarget}
+            recentGames={recentGames}
+            onPractice={onPractice}
+            onNavigate={onNavigate}
+          />
+          <FullReportHighlights data={data} fitData={fitData} onPractice={onPractice} />
           <RepertoireCommandPanel data={data} onPractice={onPractice} />
           <RepertoireMap data={data} />
           <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
           <InterestingThinDataSection data={data} fitData={fitData} />
+          <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
+          <ImportQualitySummary data={data} />
+          <WeeklyOpeningReport
+            data={data}
+            savedHistory={
+              openingFitUserState
+                .flatMap((row) => row?.coach_progress?.weeklyOpeningSnapshots || [])
+                .filter(Boolean)
+            }
+          />
+          <OpeningGamificationProgress
+            data={data}
+            fitData={fitData}
+            savedProgress={
+              openingFitUserState
+                .map((row) => row?.coach_progress?.openingGamification || null)
+                .filter(Boolean)[0] || null
+            }
+          />
+          <ComeBackAfterPlayingPrompt
+            data={data}
+            fitData={fitData}
+            onAnalyse={() => onNavigate?.("analyse") || onViewChange?.("analyse")}
+          />
         </>
       ) : null}
 
       {showOpeningTable ? (
-        <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
+        <>
+          <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
+          <OpeningFitScoreList fitData={fitData} onPractice={onPractice} />
+          <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
+        </>
       ) : null}
-
-      <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
-      <ImportQualitySummary data={data} />
-      <WeeklyOpeningReport
-        data={data}
-        savedHistory={
-          openingFitUserState
-            .flatMap((row) => row?.coach_progress?.weeklyOpeningSnapshots || [])
-            .filter(Boolean)
-        }
-      />
-      <OpeningGamificationProgress
-        data={data}
-        fitData={fitData}
-        savedProgress={
-          openingFitUserState
-            .map((row) => row?.coach_progress?.openingGamification || null)
-            .filter(Boolean)[0] || null
-        }
-      />
-
-      <ComeBackAfterPlayingPrompt
-        data={data}
-        fitData={fitData}
-        onAnalyse={() => onNavigate?.("analyse") || onViewChange?.("analyse")}
-      />
 
       <ReportExportAndHistory
         data={data}
