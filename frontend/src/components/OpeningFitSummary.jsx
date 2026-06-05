@@ -191,12 +191,7 @@ export default function OpeningFitSummary({ data, onPractice }) {
         <div className="openingFitSummaryContent">
           <div className="summaryEyebrow">Your OpeningFit result</div>
           <h2>{summary.style}</h2>
-          <p>
-            Based on {summary.gamesImported || "your imported"} games from{" "}
-            <strong>{summary.username}</strong>, your next improvement should be simple:
-            keep what already scores well, fix the opening that is costing you games, and
-            build one repeatable repertoire.
-          </p>
+          <p>{summary.gamesImported || "Imported"} games from <strong>{summary.username}</strong>. Keep the strength, repair the leak.</p>
         </div>
 
         <div className="summaryScoreCard">
@@ -213,28 +208,19 @@ export default function OpeningFitSummary({ data, onPractice }) {
         <div className="summaryActionCard keep">
           <span>Keep</span>
           <h3>{keepName}</h3>
-          <p>
-            This looks like the opening family to build around first. Your premium plan
-            should turn this into a clear move-order and middlegame setup.
-          </p>
+          <p>Build around this first.</p>
         </div>
 
         <div className="summaryActionCard improve">
           <span>Improve</span>
           <h3>{improveName}</h3>
-          <p>
-            This is where your fastest rating gain may come from. The aim is not to memorise
-            everything, but to stop reaching uncomfortable positions early.
-          </p>
+          <p>Patch the early uncomfortable positions.</p>
         </div>
 
         <div className="summaryActionCard next">
           <span>Study next</span>
           <h3>{nextName}</h3>
-          <p>
-            Your next study block should be narrow: learn the first 6–8 moves, review your
-            own losses, then test it in rapid games.
-          </p>
+          <p>Learn one short line, review losses, then test it.</p>
         </div>
       </div>
 

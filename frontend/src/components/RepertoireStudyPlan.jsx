@@ -146,10 +146,7 @@ export default function RepertoireStudyPlan({ data }) {
         <div>
           <p className="repertoirePlanEyebrow">Action plan</p>
           <h2>Your recommended repertoire path</h2>
-          <p>
-            Use this as your short-term study direction. Keep the repertoire simple,
-            focus on one improvement target, then re-import games to check progress.
-          </p>
+          <p>Keep it simple: one repertoire, one repair target, one re-import.</p>
         </div>
       </div>
 
@@ -158,21 +155,21 @@ export default function RepertoireStudyPlan({ data }) {
           label="Main White weapon"
           opening={whitePick}
           type="white"
-          text="Use this as your main opening with White. Build depth around common plans rather than memorising too many sidelines."
+          text="Build depth around common plans, not endless sidelines."
         />
 
         <PlanCard
           label="Main Black defence"
           opening={blackPick}
           type="black"
-          text="Use this as your reliable Black option. The goal is to reach familiar middlegames with fewer early mistakes."
+          text="Aim for familiar middlegames with fewer early mistakes."
         />
 
         <PlanCard
           label="Study target"
           opening={studyTarget}
           type="study"
-          text="This is where focused study should give the biggest return. Review losses and identify the first recurring mistake."
+          text="Review losses and find the first recurring mistake."
         />
       </div>
 

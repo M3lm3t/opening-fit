@@ -411,7 +411,7 @@ export default function OpeningReportActions({
         <div>
           <p className="eyebrow">Export and share</p>
           <h2>Opening report PDF</h2>
-          <p>Download a cleaner report or share Opening Fit with your chess friends.</p>
+          <p>Download or share your report.</p>
         </div>
       </div>
 
@@ -437,8 +437,7 @@ export default function OpeningReportActions({
       {copyStatus ? <p className="reportCopyStatus">{copyStatus}</p> : null}
 
       <p className="reportShareNote">
-        PDF downloads to your device. Social buttons share the Opening Fit link and report text.
-        Some platforms do not support attaching PDFs through browser share links.
+        PDF downloads to your device. Social buttons share the link and report text.
       </p>
     </section>
   );

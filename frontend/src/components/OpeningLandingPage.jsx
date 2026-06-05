@@ -105,12 +105,9 @@ export function OpeningHubPage({ ThemeToggle, Analytics }) {
           <section className="seoHero openingSeoHero">
             <div>
               <p className="seoEyebrow">Opening guides</p>
-              <h1>Chess opening guides for real online games</h1>
+              <h1>Opening guides for real games</h1>
               <p>
-                OpeningFit helps players choose openings from the evidence in their own games, not from generic lists. These guides explain what each opening is trying to do, who it tends to suit, and where it can go wrong before you add it to your repertoire.
-              </p>
-              <p>
-                Browse the guides, compare the style fit, then analyse your Chess.com or Lichess games for personalised recommendations based on how you actually play.
+                Learn the plan, the style fit, and the common traps before adding an opening to your repertoire.
               </p>
               <div className="seoHeroActions">
                 <a className="seoPrimaryCta" href="/#app-dashboard">Analyze my games</a>
@@ -122,7 +119,7 @@ export function OpeningHubPage({ ThemeToggle, Analytics }) {
           <section className="seoInternalLinks openingHubLinks" aria-label="OpeningFit opening guide navigation">
             <div>
               <p className="seoEyebrow">Start here</p>
-              <h2>Find openings by guide, data, or playing style</h2>
+              <h2>Browse by guide or style</h2>
             </div>
             <nav>
               <a href="/">Homepage</a>
@@ -170,7 +167,7 @@ export function OpeningNotFoundPage({ slug, ThemeToggle, Analytics }) {
             <p className="seoEyebrow">Opening not found</p>
             <h1>No opening guide for {slug || "that page"} yet</h1>
             <p>
-              This opening page has not been published yet. Browse the available opening guides or analyze your games to find your current repertoire signals.
+              Browse available guides or analyse your games for repertoire signals.
             </p>
             <div className="seoHeroActions">
               <a className="seoPrimaryCta" href="/openings">Browse openings</a>

@@ -1,3 +1,4 @@
+import InfoHint from "./InfoHint";
 import {
   canGiveAvoidVerdict,
   getLevelToneCopy,
@@ -778,7 +779,10 @@ export default function OpeningEvidenceBlock({
 
       {compact ? null : (
         <p className="openingEvidenceHelp">
-          Confidence is based mainly on game count, score availability, repeated use, and signal clarity.
+          Confidence
+          <InfoHint label="Confidence details">
+            Confidence is based mainly on game count, score availability, repeated use, and signal clarity.
+          </InfoHint>
         </p>
       )}
 

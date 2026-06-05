@@ -545,13 +545,13 @@ function StyleRecommendations({ page }) {
       <div className="seoSectionHeading">
         <p className="seoEyebrow">Recommendations</p>
         <h2>{page.recommendationsTitle || "Recommended openings"}</h2>
-        <p>Your best opening depends on your actual games, not just your rating.</p>
+        <p>Use your games, not just your rating.</p>
       </div>
 
       <div className="seoStyleCardGrid">
         {page.recommendations.map((opening) => (
           <article className="seoStyleCard" key={opening.name}>
-            <span>Why it fits</span>
+            <span>Fit note</span>
             <h3>{opening.name}</h3>
             <p>{opening.why}</p>
             <a href={opening.href}>Read the {opening.name} guide</a>

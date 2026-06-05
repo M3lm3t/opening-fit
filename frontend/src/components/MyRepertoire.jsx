@@ -226,10 +226,7 @@ export default function MyRepertoire({ data, isPremium, onUnlockDemo }) {
         <div>
           <div className="myRepertoireEyebrow">My Repertoire</div>
           <h2>Turn recommendations into a saved opening plan.</h2>
-          <p>
-            This is where OpeningFit starts becoming sticky. Users can save what they want
-            to play, build a simple repertoire, and come back later to improve it.
-          </p>
+          <p>Save what you want to play and improve it over time.</p>
         </div>
 
         <div className="myRepertoireActions">
@@ -304,10 +301,7 @@ export default function MyRepertoire({ data, isPremium, onUnlockDemo }) {
       <div className="repertoireNotesCard">
         <div>
           <h3>Personal repertoire notes</h3>
-          <p>
-            Use this to note move-order problems, openings you want to avoid, or what you
-            plan to study next.
-          </p>
+          <p>Track move-order problems, avoids, and next study ideas.</p>
         </div>
 
         <textarea

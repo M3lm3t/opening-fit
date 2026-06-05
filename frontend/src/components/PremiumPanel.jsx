@@ -193,7 +193,7 @@ export default function PremiumPanel({
         <div className="premiumPriceCard">
           <div className="premiumPriceTag">One-time Founder Pass</div>
           <div className="premiumPrice">£8</div>
-          <p>Early supporter access. Pay once while OpeningFit is still early.</p>
+          <p>Pay once. Keep early access.</p>
 
           <div className="premiumPriceMiniStats">
             <span>Saved reports</span>

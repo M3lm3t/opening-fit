@@ -463,13 +463,8 @@ export default function PremiumDashboard({
           <span className="premiumEyebrow">
             {isPremium ? "Founder Pass active" : isPremiumPreview ? "Audit preview" : "Founder Pass"}
           </span>
-          <h2>Founder Pass adds depth and convenience</h2>
-          <p>
-            Your free report gives the main verdict, top actions, and a useful
-            opening snapshot. Founder Pass unlocks the longer workflow:
-            12-month imports, saved history, full tables, advanced filters,
-            progress tracking, and exportable study plans.
-          </p>
+          <h2>Deeper history, sharper study plans</h2>
+          <p>Unlock longer imports, saved history, filters, progress tracking, and exportable plans.</p>
         </div>
 
         <div className="premiumPriceCard">
@@ -477,8 +472,8 @@ export default function PremiumDashboard({
           <strong>£8 one-time</strong>
           <small>
             {isPremium
-              ? "Depth tools are unlocked for this report."
-              : "Upgrade when you want deeper history, filters, and saved progress."}
+              ? "Depth tools unlocked."
+              : "Upgrade for deeper history and saved progress."}
           </small>
 
           {!isPremium ? (
@@ -629,7 +624,7 @@ export default function PremiumDashboard({
                 ))
               ) : (
                 <p className="premiumEmpty">
-                  Weak-line tracking unlocks properly once there are repeated lines in your imported games.
+                  Repeated weak lines will appear here.
                 </p>
               )}
             </div>
@@ -655,9 +650,7 @@ export default function PremiumDashboard({
 
           <div className={`premiumLockedArea ${!premiumActive ? "isLocked" : ""}`}>
             <p className="premiumPanelText">
-              This is a later premium direction: engine-assisted review of the
-              latest imported PGN, line-specific mistake detection, and clearer
-              opening diagnosis when Stockfish is available.
+              Engine-assisted review for clearer opening diagnosis.
             </p>
 
             {stockfishError ? <div className="premiumError">{stockfishError}</div> : null}

@@ -152,10 +152,7 @@ export default function DashboardHome({
         <div>
           <p className="eyebrow">Dashboard</p>
           <h2>Your Opening Fit home</h2>
-          <p>
-            Here is what Opening Fit found, what to practise next, and where to go
-            after importing your games.
-          </p>
+          <p>Your report, next practice target, and progress in one place.</p>
         </div>
 
         <div className="dashboardHeroScore">
@@ -196,7 +193,7 @@ export default function DashboardHome({
           <h3>{weakOpening?.name || "Not enough data"}</h3>
           <p>
             {weakOpening
-              ? `${weakOpening.winRate}% score. This is a good candidate for review.`
+              ? `${weakOpening.winRate}% score. Review this next.`
               : "Your weakest recurring opening will appear here."}
           </p>
 

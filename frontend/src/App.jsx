@@ -2724,8 +2724,8 @@ function OpeningFitScoreList({ fitData, onPractice }) {
           <h2>Opening verdicts</h2>
           <p className="muted">
             {publicMode
-              ? "These labels describe recent online performance samples only."
-              : "These scores estimate which openings fit your results and playing style."}
+              ? "Recent online samples only."
+              : "Fit labels from your games and style."}
           </p>
         </div>
       </div>
@@ -4376,7 +4376,7 @@ function InterestingThinDataSection({ data, fitData }) {
       </div>
 
       <p>
-        These openings appeared in the import, but they are not driving the main verdict yet.
+        Found in the import, but not driving the main verdict yet.
       </p>
 
       <ul className="interestingThinDataList">
@@ -5348,7 +5348,7 @@ function ReportOpeningFilters({ filters, onFiltersChange, data }) {
       <p>
         {hasOpeningQuery
           ? "Only games matching that opening, variation, or move line are included in the report below."
-          : "Use this to isolate one opening family or variation without changing the existing time and date filters."}
+          : "Isolate one opening family or variation."}
         {hasOpeningQuery ? (
           <button className="inlineFilterClear" type="button" onClick={clearOpeningQuery}>
             Clear opening filter
@@ -5674,7 +5674,7 @@ function FullReportHighlights({ data, fitData, onPractice }) {
       <div className="commandPanelHeader">
         <p className="eyebrow">Opening verdicts</p>
         <h2>Keep, improve, and avoid decisions</h2>
-        <p>These are the clearest verdicts from your imported games. Empty verdict groups are hidden.</p>
+        <p>The clearest keep, improve, and avoid verdicts.</p>
       </div>
 
       <div className="fullReportVerdictGrid">
@@ -7681,7 +7681,7 @@ function CompactReportSummary({ data, fitData, onViewChange, onPractice }) {
           </div>
 
           <p>
-            These openings were found in your games, but they are not included in your main verdict because the sample size is too small.
+            Found in your games, but too thin for the main verdict.
           </p>
 
           <ul className="interestingThinDataList">
@@ -8262,7 +8262,7 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
         <p className="eyebrow">Weak lines</p>
         <h2>Specific variations causing trouble</h2>
         <p>
-          These are opening lines with enough repeated games to review. OpeningFit flags the variation first, before blaming the whole opening.
+          Repeated variations worth reviewing before blaming the whole opening.
         </p>
       </div>
 
@@ -9785,14 +9785,13 @@ function LandingSection({ onOpeningClick }) {
             <div className="landingPill">
               <span>Opening report tool</span>
               <span className="landingDot">•</span>
-              <span>Built for Chess.com and Lichess players</span>
+              <span>Chess.com and Lichess</span>
             </div>
 
-            <h1>Find Chess Openings That Match Your Playing Style</h1>
+            <h1>Find openings that fit your games.</h1>
 
             <p className="landingSubtext">
-              Import your Chess.com or Lichess games and discover which openings fit your results,
-              strengths, and weaknesses.
+              Import a username. Get a clear keep, train, and try-next plan.
             </p>
 
             <div className="landingHeroActions">
@@ -9805,7 +9804,7 @@ function LandingSection({ onOpeningClick }) {
             </div>
 
             <p className="landingTrustLine">
-              No PGN upload · Public games only · Confidence labels included
+              No PGN upload · Public games only · Confidence labels
             </p>
 
             <div className="landingHeroMiniHow" aria-label="How Opening Fit works">
@@ -13505,15 +13504,14 @@ function App() {
             <div className="heroTop">
               <div className="heroTitleWrap">
                 <p className="eyebrow">Chess opening analysis app</p>
-                <h1>Find the openings that actually fit your games</h1>
+                <h1>Find openings that fit your games.</h1>
                 <p className="subtext">
-                  Turn your Chess.com or Lichess history into a clear repertoire decision:
-                  what to keep, what to repair, and what to train next.
+                  Import a username. Get one clear keep, repair, and train-next plan.
                 </p>
                 <div className="landingHeroProof" aria-label="OpeningFit trust summary">
                   <span>Chess.com</span>
                   <span>Lichess</span>
-                  <span>One recommended action</span>
+                  <span>One next action</span>
                 </div>
               </div>
               <div className="analyseHeroVisual" aria-hidden="true">
@@ -13535,13 +13533,13 @@ function App() {
                 </div>
                 <div className="analyseHeroPreviewHeader">
                   <div>
-                    <span>Opening Fit Score</span>
+                    <span>Fit score</span>
                     <strong>72</strong>
                   </div>
                   <small>Analysed from Chess.com</small>
                 </div>
                 <div className="analyseHeroRecommendation">
-                  <span>Top recommendation</span>
+                  <span>Top pick</span>
                   <strong>Keep the Caro-Kann</strong>
                   <small>Best recent fit as Black vs e4</small>
                 </div>

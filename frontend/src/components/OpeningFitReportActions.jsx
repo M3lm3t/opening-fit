@@ -93,10 +93,7 @@ Would be interested to hear what other players think of the idea and whether the
         <div>
           <div className="ofEyebrow">Next steps</div>
           <h2>Save, share, or improve your report.</h2>
-          <p>
-            Your report is most useful when it becomes a study plan. Copy the summary,
-            save it as a PDF, or send feedback while the results are fresh.
-          </p>
+          <p>Turn this report into one useful next step.</p>
         </div>
       </div>
 
@@ -104,7 +101,7 @@ Would be interested to hear what other players think of the idea and whether the
         <article className="ofActionCard primary">
           <span>Share</span>
           <strong>Copy a quick result summary</strong>
-          <p>Useful for Discord, Chess.com messages, Reddit, or sending to a coach.</p>
+          <p>Short enough to share anywhere.</p>
           <button
             type="button"
             onClick={() => copyText(shortSummary, "Share summary copied.")}
@@ -116,7 +113,7 @@ Would be interested to hear what other players think of the idea and whether the
         <article className="ofActionCard">
           <span>Feedback</span>
           <strong>Copy a forum feedback post</strong>
-          <p>A ready-made friendly post for asking other chess players what they think.</p>
+          <p>Ask other players for a second opinion.</p>
           <button
             type="button"
             onClick={() => copyText(forumPost, "Forum post copied.")}
@@ -128,7 +125,7 @@ Would be interested to hear what other players think of the idea and whether the
         <article className="ofActionCard">
           <span>Save</span>
           <strong>Print or save as PDF</strong>
-          <p>Keep your current report as a simple study snapshot before re-analysing.</p>
+          <p>Keep a study snapshot.</p>
           <button type="button" onClick={handlePrint}>
             Print / save PDF
           </button>
@@ -137,7 +134,7 @@ Would be interested to hear what other players think of the idea and whether the
         <article className="ofActionCard">
           <span>Improve</span>
           <strong>Tell us what felt wrong</strong>
-          <p>OpeningFit is still improving. Bad recommendations are the most useful feedback.</p>
+          <p>Flag anything that felt off.</p>
           <button type="button" onClick={() => onJump?.("feedback")}>
             Leave feedback
           </button>
@@ -147,10 +144,7 @@ Would be interested to hear what other players think of the idea and whether the
       <div className="ofBetaRoadmap">
         <div>
           <strong>Beta roadmap</strong>
-          <p>
-            Next targets: cleaner mobile report flow, stronger opening confidence scoring,
-            account history, and sharper premium/free separation.
-          </p>
+          <p>Next: mobile polish, confidence scoring, history, and premium clarity.</p>
         </div>
 
         <div className="ofBetaRoadmapTags">

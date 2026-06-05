@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import InfoHint from "./InfoHint";
 import { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 
 const MIN_RELIABLE_GAMES = 5;
@@ -622,8 +623,11 @@ export default function OpeningFitRepertoirePlan({ data }) {
       <div className="openingFitPlanHeader">
         <span>Opening Fit Repertoire Plan</span>
         <h2>Your Opening Fit Repertoire Plan</h2>
-        <p>Here is the practical opening plan the report can support from your imported games.</p>
-        <p className="fitPlanConfidenceNote">Confidence is based mainly on game count and signal clarity.</p>
+        <p>A practical repertoire plan from your imported games.</p>
+        <p className="fitPlanConfidenceNote">
+          Confidence
+          <InfoHint label="Confidence details">Confidence is based mainly on game count and signal clarity.</InfoHint>
+        </p>
       </div>
 
       <div className="openingFitPlanGrid">

@@ -242,15 +242,15 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
             {report.publicMode
               ? publicCaution(data)
               : report.strongProfile
-              ? "A repertoire audit built from recent games, highlighting core weapons, trend changes, and lines worth reviewing."
-              : "A simple report built from your recent games, showing what to keep, what needs work, and where your opening study should go next."}
+              ? "Core weapons, trend changes, and review targets."
+              : "What to keep, what to repair, and what to study next."}
           </p>
         </div>
 
         <div className="ofScoreCard">
           <span>OpeningFit Score</span>
           <strong>{scoreText}</strong>
-          <small>Based on opening results, sample size, and consistency.</small>
+          <small>Results, sample size, consistency.</small>
         </div>
       </div>
 
@@ -258,7 +258,7 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
         <article>
           <span>Style type</span>
           <strong>{report.style}</strong>
-          <p>Your recommendations should support the way you naturally play.</p>
+          <p>Recommendations should match how you win.</p>
         </article>
 
         <article>
@@ -275,10 +275,10 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
           <strong>{getContextTitle(report.improve)}</strong>
           <p>
             {!report.improve
-              ? "Import more repeated games before making this a study target."
+              ? "Import more repeated games first."
               : report.strongProfile
-              ? "Compare the trend by time control, opponent pool, and game context before drawing conclusions."
-              : "Review the repeated branch here before changing the whole repertoire."}
+              ? "Compare time control, opponents, and context."
+              : "Review the branch before changing the repertoire."}
           </p>
         </article>
 
@@ -287,10 +287,10 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
           <strong>{getContextTitle(report.avoid)}</strong>
           <p>
             {!report.avoid
-              ? "Low-sample openings will be tracked here instead of shown as firm advice."
+              ? "Low-sample openings are tracked here."
               : report.strongProfile
-              ? "Treat this as a recent online trend signal, not a hard opening verdict."
-              : "Low-confidence or poor-result openings should be simplified before being abandoned."}
+              ? "Treat this as a trend, not a verdict."
+              : "Simplify before abandoning it."}
           </p>
         </article>
       </div>
