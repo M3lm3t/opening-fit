@@ -129,6 +129,31 @@ export async function startPremiumCheckout(user) {
   return data;
 }
 
+export async function syncPremiumCheckoutSession(user, sessionId) {
+  if (!user?.id || !sessionId) return null;
+
+  const response = await fetch(`${API_BASE}/api/account/sync-checkout-session`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({
+      userId: user.id,
+      sessionId,
+    }),
+  });
+
+  const data = await readJsonOrText(response);
+
+  if (!response.ok) {
+    console.error("OpeningFit checkout sync endpoint failed", {
+      status: response.status,
+      payload: data,
+    });
+    throw new Error(friendlyApiError(data, "We could not verify checkout yet. Please try again."));
+  }
+
+  return data;
+}
+
 export async function deleteOpeningFitAccount(userId) {
   if (!userId) {
     throw new Error("Missing user id.");

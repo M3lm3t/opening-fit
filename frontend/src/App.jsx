@@ -37,6 +37,7 @@ import RecommendedOpeningFit from "./components/RecommendedOpeningFit";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./components/OpeningEvidence";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
+import { syncPremiumCheckoutSession } from "./accountApi";
 import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
 import OpeningSnapshot from "./components/OpeningSnapshot";
@@ -13467,13 +13468,16 @@ function App() {
         <FounderPassLoginUpgrade accountUser={accountUser} />
 
         <CheckoutStatusNotice
-          onRestoreAccess={async () => {
+          onRestoreAccess={async (checkoutSessionId) => {
             if (!supabaseUser?.id) {
               openLoginPage();
               return;
             }
 
             try {
+              if (checkoutSessionId) {
+                await syncPremiumCheckoutSession(supabaseUser, checkoutSessionId);
+              }
               await refreshUserData?.(supabaseUser);
             } catch (error) {
               console.error("OpeningFit premium access refresh failed after checkout", error);

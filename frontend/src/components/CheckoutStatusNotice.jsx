@@ -3,6 +3,7 @@ import "./CheckoutStatusNotice.css";
 
 export default function CheckoutStatusNotice({ onRestoreAccess, onClose }) {
   const [status, setStatus] = useState(null);
+  const [checkoutSessionId, setCheckoutSessionId] = useState("");
   const restoredAfterSuccessRef = useRef(false);
 
   useEffect(() => {
@@ -15,6 +16,7 @@ export default function CheckoutStatusNotice({ onRestoreAccess, onClose }) {
 
     if (checkout === "success" || payment === "success" || stripeSuccess === "true" || sessionId) {
       setStatus("success");
+      setCheckoutSessionId(sessionId || "");
       return;
     }
 
@@ -27,8 +29,8 @@ export default function CheckoutStatusNotice({ onRestoreAccess, onClose }) {
     if (status !== "success" || restoredAfterSuccessRef.current) return;
 
     restoredAfterSuccessRef.current = true;
-    onRestoreAccess?.();
-  }, [onRestoreAccess, status]);
+    onRestoreAccess?.(checkoutSessionId);
+  }, [checkoutSessionId, onRestoreAccess, status]);
 
   const clearCheckoutUrl = () => {
     const cleanUrl = `${window.location.origin}${window.location.pathname}${window.location.hash || ""}`;
@@ -83,7 +85,7 @@ export default function CheckoutStatusNotice({ onRestoreAccess, onClose }) {
               className="checkoutNoticePrimary"
               type="button"
               onClick={() => {
-                if (onRestoreAccess) onRestoreAccess();
+                if (onRestoreAccess) onRestoreAccess(checkoutSessionId);
                 closeNotice();
               }}
             >

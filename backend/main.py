@@ -4382,20 +4382,33 @@ def stripe_metadata(obj: Any) -> Dict[str, Any]:
 
 
 def upsert_premium_entitlement(supabase_admin, payload: Dict[str, Any]) -> None:
+    optional_stripe_columns = {
+        "stripe_subscription_id",
+        "stripe_payment_intent_id",
+        "stripe_price_id",
+        "checkout_mode",
+    }
+    active_payload = dict(payload)
+
     try:
         supabase_admin.table("premium_entitlements").upsert(
-            payload,
+            active_payload,
             on_conflict="user_id",
         ).execute()
     except Exception as exc:
-        if "stripe_subscription_id" not in payload or "stripe_subscription_id" not in str(exc):
+        missing_columns = [
+            column
+            for column in optional_stripe_columns
+            if column in active_payload and column in str(exc)
+        ]
+        if not missing_columns:
             raise
 
-        legacy_payload = dict(payload)
-        legacy_payload.pop("stripe_subscription_id", None)
-        print("OpeningFit premium entitlement retrying without stripe_subscription_id column")
+        for column in missing_columns:
+            active_payload.pop(column, None)
+        print("OpeningFit premium entitlement retrying without optional Stripe columns", missing_columns)
         supabase_admin.table("premium_entitlements").upsert(
-            legacy_payload,
+            active_payload,
             on_conflict="user_id",
         ).execute()
 
@@ -4411,10 +4424,12 @@ def find_premium_user_id_for_stripe_object(supabase_admin, stripe_object: Any) -
         return str(client_reference_id)
 
     subscription_id = stripe_value(stripe_object, "subscription") or stripe_value(stripe_object, "id")
+    payment_intent_id = stripe_value(stripe_object, "payment_intent")
     customer_id = stripe_value(stripe_object, "customer")
 
     lookup_columns = [
         ("stripe_subscription_id", subscription_id),
+        ("stripe_payment_intent_id", payment_intent_id),
         ("stripe_customer_id", customer_id),
     ]
 
@@ -4451,6 +4466,59 @@ def set_profile_premium_status(supabase_admin, user_id: str, is_premium: bool, w
         },
         on_conflict="user_id",
     ).execute()
+
+
+def checkout_session_is_paid(session: Any) -> bool:
+    status = str(stripe_value(session, "status", "") or "").lower()
+    payment_status = str(stripe_value(session, "payment_status", "") or "").lower()
+    mode = str(stripe_value(session, "mode", "") or "").lower()
+
+    if status != "complete":
+        return False
+
+    if mode == "subscription":
+        return payment_status in {"paid", "no_payment_required"}
+
+    return payment_status == "paid"
+
+
+def activate_premium_from_checkout_session(supabase_admin, session: Any, source: str = "stripe_checkout") -> Dict[str, Any]:
+    user_id = stripe_value(session, "client_reference_id") or stripe_metadata(session).get("user_id")
+    if not user_id:
+        raise ValueError("Stripe checkout session is missing user_id metadata.")
+
+    now = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "user_id": str(user_id),
+        "status": "active",
+        "source": source,
+        "premium_since": now,
+        "expires_at": None,
+        "stripe_customer_id": stripe_value(session, "customer"),
+        "stripe_checkout_session_id": stripe_value(session, "id"),
+        "stripe_subscription_id": stripe_value(session, "subscription"),
+        "stripe_payment_intent_id": stripe_value(session, "payment_intent"),
+        "stripe_price_id": stripe_metadata(session).get("price_id"),
+        "checkout_mode": stripe_value(session, "mode"),
+        "updated_at": now,
+    }
+
+    upsert_premium_entitlement(supabase_admin, payload)
+    supabase_admin.table("profiles").upsert(
+        {
+            "user_id": str(user_id),
+            "email": stripe_value(session, "customer_email"),
+            "is_premium": True,
+            "updated_at": now,
+        },
+        on_conflict="user_id",
+    ).execute()
+
+    return {
+        "user_id": str(user_id),
+        "status": "active",
+        "updated_at": now,
+    }
 
 
 @app.post("/api/account/sync")
@@ -4574,23 +4642,45 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
     email = getattr(auth_user, "email", None) or payload.get("email")
 
     try:
-        session = stripe.checkout.Session.create(
-            mode="payment",
-            line_items=[
+        price = stripe.Price.retrieve(stripe_price_id)
+        checkout_mode = "subscription" if stripe_value(price, "recurring") else "payment"
+        session_params = {
+            "mode": checkout_mode,
+            "line_items": [
                 {
                     "price": stripe_price_id,
                     "quantity": 1,
                 }
             ],
-            success_url=f"{frontend_url}/account?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{frontend_url}/account?checkout=cancelled",
-            customer_email=email,
-            client_reference_id=user_id,
-            metadata={
+            "success_url": f"{frontend_url}/account?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
+            "cancel_url": f"{frontend_url}/account?checkout=cancelled",
+            "customer_email": email,
+            "client_reference_id": user_id,
+            "metadata": {
                 "user_id": user_id,
+                "price_id": stripe_price_id,
                 "product": "openingfit_premium",
             },
-        )
+        }
+
+        if checkout_mode == "subscription":
+            session_params["subscription_data"] = {
+                "metadata": {
+                    "user_id": user_id,
+                    "price_id": stripe_price_id,
+                    "product": "openingfit_premium",
+                },
+            }
+        else:
+            session_params["payment_intent_data"] = {
+                "metadata": {
+                    "user_id": user_id,
+                    "price_id": stripe_price_id,
+                    "product": "openingfit_premium",
+                },
+            }
+
+        session = stripe.checkout.Session.create(**session_params)
     except Exception as exc:
         return checkout_error_response(
             500,
@@ -4612,10 +4702,107 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
     print("OpeningFit checkout session created", {
         "user_id": user_id,
         "session_id": getattr(session, "id", None),
+        "mode": getattr(session, "mode", None),
         "has_url": True,
     })
 
     return {"url": session.url}
+
+
+@app.post("/api/account/sync-checkout-session")
+async def sync_checkout_session(payload: Dict[str, Any], request: Request):
+    stripe_secret_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
+    if not stripe_secret_key:
+        return checkout_error_response(
+            500,
+            "We could not verify checkout yet. Please try restore access again.",
+            "missing Stripe secret key for checkout sync",
+        )
+
+    stripe.api_key = stripe_secret_key
+    requested_user_id = payload.get("userId")
+    session_id = str(payload.get("sessionId") or "").strip()
+
+    if not requested_user_id or not is_valid_uuid(requested_user_id):
+        return checkout_error_response(
+            400,
+            "Please sign in or create an account before restoring access.",
+            "invalid userId in checkout sync payload",
+            user_id=requested_user_id,
+        )
+
+    if not session_id.startswith("cs_"):
+        return checkout_error_response(
+            400,
+            "We could not verify that checkout session. Please try restore access again.",
+            "invalid checkout session id",
+            session_id=session_id,
+        )
+
+    try:
+        auth_user = require_matching_auth_user(request, requested_user_id)
+    except HTTPException as exc:
+        return checkout_error_response(
+            exc.status_code,
+            "Please sign in or create an account before restoring access.",
+            "checkout sync auth validation failed",
+            status_code=exc.status_code,
+            detail=exc.detail,
+            user_id=requested_user_id,
+        )
+
+    user_id = str(auth_user.id)
+
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except Exception as exc:
+        return checkout_error_response(
+            502,
+            "Stripe has not confirmed that checkout session yet. Please try restore access again.",
+            "Stripe checkout session retrieve failed",
+            error=str(exc),
+            user_id=user_id,
+            session_id=session_id,
+        )
+
+    session_user_id = stripe_value(session, "client_reference_id") or stripe_metadata(session).get("user_id")
+    if str(session_user_id or "") != user_id:
+        return checkout_error_response(
+            403,
+            "That checkout session belongs to a different account.",
+            "checkout sync user mismatch",
+            user_id=user_id,
+            session_user_id=session_user_id,
+            session_id=session_id,
+        )
+
+    if not checkout_session_is_paid(session):
+        return {
+            "ok": True,
+            "hasPremiumAccess": False,
+            "status": stripe_value(session, "status"),
+            "paymentStatus": stripe_value(session, "payment_status"),
+        }
+
+    try:
+        result = activate_premium_from_checkout_session(
+            get_supabase_admin_client(),
+            session,
+            source="stripe_checkout_success_sync",
+        )
+    except Exception as exc:
+        print("OpeningFit checkout success sync failed:", {
+            "user_id": user_id,
+            "session_id": session_id,
+            "error": str(exc),
+        })
+        raise HTTPException(status_code=500, detail="Premium checkout sync failed.")
+
+    return {
+        "ok": True,
+        "hasPremiumAccess": True,
+        "entitlement": result,
+    }
 
 
 @app.post("/api/stripe/webhook")
@@ -4651,38 +4838,17 @@ async def stripe_webhook(request: Request):
 
         if user_id:
             try:
-                supabase_admin = get_supabase_admin_client()
-                premium_since = datetime.now(timezone.utc).isoformat()
-                subscription_id = stripe_value(session, "subscription")
-
-                upsert_premium_entitlement(
-                    supabase_admin,
-                    {
-                        "user_id": user_id,
-                        "status": "active",
-                        "source": "stripe_checkout",
-                        "premium_since": premium_since,
-                        "stripe_customer_id": stripe_value(session, "customer"),
-                        "stripe_checkout_session_id": stripe_value(session, "id"),
-                        "stripe_subscription_id": subscription_id,
-                        "updated_at": premium_since,
-                    },
+                result = activate_premium_from_checkout_session(
+                    get_supabase_admin_client(),
+                    session,
+                    source="stripe_checkout",
                 )
 
-                supabase_admin.table("profiles").upsert(
-                    {
-                        "user_id": user_id,
-                        "email": stripe_value(session, "customer_email"),
-                        "is_premium": True,
-                        "updated_at": premium_since,
-                    },
-                    on_conflict="user_id",
-                ).execute()
-
                 print("OpeningFit premium entitlement activated", {
-                    "user_id": user_id,
+                    "user_id": result["user_id"],
                     "session_id": stripe_value(session, "id"),
-                    "subscription_id": subscription_id,
+                    "subscription_id": stripe_value(session, "subscription"),
+                    "payment_intent_id": stripe_value(session, "payment_intent"),
                 })
             except Exception as exc:
                 print("OpeningFit premium entitlement update failed:", {
@@ -4765,6 +4931,49 @@ async def stripe_webhook(request: Request):
                     "error": str(exc),
                 })
                 raise HTTPException(status_code=500, detail="Premium lifecycle update failed.")
+    elif event["type"] in {"charge.refunded", "refund.updated"}:
+        stripe_object = event["data"]["object"]
+        event_type = event["type"]
+        refund_status = str(stripe_value(stripe_object, "status", "") or "").lower()
+        should_deactivate = event_type == "charge.refunded" or refund_status in {"succeeded", "requires_action"}
+
+        if should_deactivate:
+            try:
+                supabase_admin = get_supabase_admin_client()
+                user_id = find_premium_user_id_for_stripe_object(supabase_admin, stripe_object)
+                now = datetime.now(timezone.utc).isoformat()
+
+                if user_id:
+                    upsert_premium_entitlement(
+                        supabase_admin,
+                        {
+                            "user_id": user_id,
+                            "status": "refunded",
+                            "source": f"stripe_{event_type}",
+                            "stripe_customer_id": stripe_value(stripe_object, "customer"),
+                            "stripe_payment_intent_id": stripe_value(stripe_object, "payment_intent"),
+                            "expires_at": now,
+                            "updated_at": now,
+                        },
+                    )
+                    set_profile_premium_status(supabase_admin, user_id, False, now)
+                    print("OpeningFit premium entitlement refunded", {
+                        "user_id": user_id,
+                        "event_type": event_type,
+                        "payment_intent_id": stripe_value(stripe_object, "payment_intent"),
+                    })
+                else:
+                    print("OpeningFit refund event could not be matched to a user", {
+                        "event_type": event_type,
+                        "customer_id": stripe_value(stripe_object, "customer"),
+                        "payment_intent_id": stripe_value(stripe_object, "payment_intent"),
+                    })
+            except Exception as exc:
+                print("OpeningFit premium refund update failed:", {
+                    "event_type": event_type,
+                    "error": str(exc),
+                })
+                raise HTTPException(status_code=500, detail="Premium refund update failed.")
 
     return {"received": True}
 
