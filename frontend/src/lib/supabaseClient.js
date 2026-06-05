@@ -21,11 +21,7 @@ if (!isSupabaseConfigured) {
     " and "
   )}. Cloud auth/save/load is disabled.`;
 
-  if (import.meta.env.DEV) {
-    throw new Error(message);
-  }
-
-  console.error(message);
+  console.warn(message);
 }
 
 export const supabase = isSupabaseConfigured

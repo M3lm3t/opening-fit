@@ -51,7 +51,8 @@ function createDefaultUserData(profile = null) {
 
 export function hasActivePremiumEntitlement(entitlements = [], profile = null) {
   const now = Date.now();
-  const activeEntitlement = (entitlements || []).find((entitlement) => {
+  const entitlementRows = entitlements || [];
+  const activeEntitlement = entitlementRows.find((entitlement) => {
     if (String(entitlement?.status || "").toLowerCase() !== "active") return false;
     if (!entitlement.expires_at) return true;
 
@@ -59,7 +60,11 @@ export function hasActivePremiumEntitlement(entitlements = [], profile = null) {
     return Number.isFinite(expiresAt) && expiresAt > now;
   });
 
-  return Boolean(activeEntitlement || profile?.is_premium);
+  if (entitlementRows.length > 0) {
+    return Boolean(activeEntitlement);
+  }
+
+  return Boolean(profile?.is_premium);
 }
 
 function requireClient() {
