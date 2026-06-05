@@ -3,6 +3,7 @@ from collections import Counter, defaultdict
 from fastapi.responses import JSONResponse, Response
 from intelligence import enrich_analysis_result
 from analysis.style_fingerprint import build_style_fingerprint
+from analysis.opening_recommender import build_opening_recommendations as build_style_opening_recommendations
 from opening_detection import (
     detect_opening,
     detect_opening_from_pgn,
@@ -2483,6 +2484,13 @@ def import_chesscom_logic(username: str, months: int = 3):
         top_openings,
         len(analysed_games),
     )
+    recommended_openings = build_style_opening_recommendations(
+        style_fingerprint,
+        current_opening_stats=best_openings,
+        player_rating=None,
+        colour_needs=["white", "black_vs_e4", "black_vs_d4"],
+        existing_openings=list(opening_counter.keys()),
+    )
 
     premium_data = build_premium_data(best_openings, style_profile)
 
@@ -2527,6 +2535,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "styleFingerprint": style_fingerprint,
         "style_based_recommendations": style_based_recommendations,
         "styleBasedRecommendations": style_based_recommendations,
+        "recommended_openings": recommended_openings,
+        "recommendedOpeningsByStyle": recommended_openings,
         "best_openings": best_openings[:8],
         "bestOpenings": best_openings[:8],
         "opening_recommendations": opening_recommendations,
@@ -2876,6 +2886,13 @@ def build_lichess_analysis(
         top_openings,
         len(games),
     )
+    recommended_openings = build_style_opening_recommendations(
+        style_fingerprint,
+        current_opening_stats=best_openings,
+        player_rating=current_rating,
+        colour_needs=["white", "black_vs_e4", "black_vs_d4"],
+        existing_openings=list(opening_counter.keys()),
+    )
 
     premium_data = build_premium_data(best_openings, style_profile)
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
@@ -2933,6 +2950,8 @@ def build_lichess_analysis(
         "styleFingerprint": style_fingerprint,
         "style_based_recommendations": style_based_recommendations,
         "styleBasedRecommendations": style_based_recommendations,
+        "recommended_openings": recommended_openings,
+        "recommendedOpeningsByStyle": recommended_openings,
         "best_openings": best_openings[:8],
         "bestOpenings": best_openings[:8],
         "opening_recommendations": opening_recommendations,
@@ -3328,6 +3347,13 @@ def demo_profile():
         24,
         style_profile,
     )
+    recommended_openings = build_style_opening_recommendations(
+        style_fingerprint,
+        current_opening_stats=demo_best_openings,
+        player_rating=1300,
+        colour_needs=["white", "black_vs_e4", "black_vs_d4"],
+        existing_openings=[item["name"] for item in demo_best_openings],
+    )
 
     demo_data = {
         "username": "DemoPlayer",
@@ -3365,6 +3391,8 @@ def demo_profile():
         "styleProfile": style_profile,
         "style_fingerprint": style_fingerprint,
         "styleFingerprint": style_fingerprint,
+        "recommended_openings": recommended_openings,
+        "recommendedOpeningsByStyle": recommended_openings,
         "top_openings": demo_best_openings,
         "topOpenings": demo_best_openings,
         "best_openings": demo_best_openings,

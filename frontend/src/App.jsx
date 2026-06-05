@@ -12083,6 +12083,14 @@ function App() {
         incoming.openingRecommendations ??
         incoming.recommendedOpenings ??
         {},
+      recommended_openings:
+        incoming.recommended_openings ??
+        incoming.recommendedOpeningsByStyle ??
+        {},
+      recommendedOpeningsByStyle:
+        incoming.recommendedOpeningsByStyle ??
+        incoming.recommended_openings ??
+        {},
       training_plan: incoming.training_plan ?? incoming.trainingPlan ?? [],
       premium_preview: incoming.premium_preview ?? incoming.premiumPreview ?? {},
       recommendations: incoming.recommendations ?? [],
