@@ -8,6 +8,7 @@ from analysis.engine_analysis import (
     apply_engine_adjustments_to_style_fingerprint,
     build_engine_summary,
 )
+from analysis.game_diagnostics import build_diagnostic_summary
 from opening_detection import (
     detect_opening,
     detect_opening_from_pgn,
@@ -2499,6 +2500,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     )
 
     premium_data = build_premium_data(best_openings, style_profile)
+    diagnostic_summary = build_diagnostic_summary(recent_games, username=username)
 
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
@@ -2541,6 +2543,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "styleFingerprint": style_fingerprint,
         "engine_summary": engine_summary,
         "engineSummary": engine_summary,
+        "diagnostic_summary": diagnostic_summary,
+        "diagnosticSummary": diagnostic_summary,
         "style_based_recommendations": style_based_recommendations,
         "styleBasedRecommendations": style_based_recommendations,
         "recommended_openings": recommended_openings,
@@ -2905,6 +2909,7 @@ def build_lichess_analysis(
     )
 
     premium_data = build_premium_data(best_openings, style_profile)
+    diagnostic_summary = build_diagnostic_summary(recent_games, username=username)
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
     result = {
@@ -2960,6 +2965,8 @@ def build_lichess_analysis(
         "styleFingerprint": style_fingerprint,
         "engine_summary": engine_summary,
         "engineSummary": engine_summary,
+        "diagnostic_summary": diagnostic_summary,
+        "diagnosticSummary": diagnostic_summary,
         "style_based_recommendations": style_based_recommendations,
         "styleBasedRecommendations": style_based_recommendations,
         "recommended_openings": recommended_openings,
