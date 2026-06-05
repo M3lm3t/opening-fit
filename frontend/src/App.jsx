@@ -8923,6 +8923,7 @@ function AppPrimaryNav({
     <nav className="appPrimaryNav" aria-label="OpeningFit sections">
       <div className="appPrimaryNavInner">
         <a className="appPrimaryBrand" href="#app-dashboard" onClick={(event) => navigate(event, brandAction)}>
+          <img className="appPrimaryBrandLogo" src="/icons/openingfit-icon.svg" alt="" aria-hidden="true" />
           <span>OpeningFit</span>
         </a>
 

@@ -820,3 +820,78 @@ textarea:focus-visible {
     padding: 0 !important;
   }
 }
+
+/* Restore the real OpeningFit logo mark in the primary header. */
+.appPrimaryBrand::before {
+  content: none !important;
+  display: none !important;
+}
+
+.appPrimaryBrandLogo {
+  display: block;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(73, 168, 255, 0.24);
+}
+
+.appPrimaryBrand span {
+  line-height: 1 !important;
+}
+
+@media (max-width: 760px) {
+  .appPrimaryBrandLogo {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+    border-radius: 9px;
+  }
+}
+
+/* Final text-centering pass for compact boxes whose dimensions are already right. */
+.appPrimaryTab,
+.appPrimaryGetStarted,
+.appPrimaryMenuToggle,
+.mobileBottomNav button,
+.primaryBtn,
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.inlineSampleButton,
+.platformButton,
+.analysisTimeFormatButton,
+.premiumDemoBtn,
+.premiumResetBtn,
+.premiumCheckoutBtn,
+.profileFounderStatus,
+.profileFounderTrust span,
+.profileFounderValue span,
+.profileFounderOfferBadges span,
+.premiumHeroBullets span,
+.premiumUpgradeTrust span,
+.premiumPriceMiniStats span,
+.productStatePreview span,
+.statusPill,
+.badge,
+.pill {
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1.15 !important;
+  text-align: center;
+}
+
+.mobileBottomNav button {
+  align-content: center !important;
+}
+
+.mobileBottomNav button span,
+.appPrimaryMenuToggle span {
+  line-height: 1 !important;
+}
+
+.analysisTimeFormatButton strong,
+.analysisTimeFormatButton span {
+  width: 100%;
+  text-align: center;
+}
