@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import InfoHint from "./InfoHint";
 import "./RecommendedOpeningFit.css";
 
 const TRAIT_CONFIG = [
@@ -269,7 +270,15 @@ function RecommendationCard({ item, label, tone, traits }) {
           <span>{label}</span>
           <h3>{name}</h3>
         </div>
-        <strong><span>Fit score</span>{fit}</strong>
+        <strong>
+          <span>
+            Fit score
+            <InfoHint label="Fit score details">
+              Fit score blends results, sample size, style match, risk, and learning cost. It should guide study order, not overrule your repertoire by itself.
+            </InfoHint>
+          </span>
+          {fit}
+        </strong>
       </div>
 
       <div className="recommendedOpeningMetrics" aria-label={`${name} recommendation metrics`}>
@@ -319,7 +328,12 @@ export default function RecommendedOpeningFit({ data }) {
       <div className="recommendedOpeningFitHeader">
         <div>
           <p className="eyebrow">OpeningFit recommendations</p>
-          <h2 id="recommended-opening-fit-title">{styleHeadline(fingerprint)}</h2>
+          <div className="recommendedOpeningFitTitleRow">
+            <h2 id="recommended-opening-fit-title">{styleHeadline(fingerprint)}</h2>
+            <InfoHint label="Style fingerprint details">
+              Your style fingerprint is inferred from recurring patterns in your games, such as open positions, tactics, development speed, and king safety.
+            </InfoHint>
+          </div>
           <p>{styleCoachCopy(fingerprint)}</p>
         </div>
         <div className="recommendedOpeningFitBadge">

@@ -1,0 +1,58 @@
+.infoHint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.infoHintButton {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: rgba(248, 250, 252, 0.92);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: help;
+}
+
+.infoHintButton:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.infoHintBubble {
+  position: fixed;
+  z-index: 10000;
+  max-width: calc(100vw - 24px);
+  padding: 10px 11px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 8px;
+  background: #0f172a;
+  color: rgba(248, 250, 252, 0.94);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  text-transform: none;
+}
+
+.page.light .infoHintButton,
+[data-theme="light"] .infoHintButton {
+  border-color: rgba(15, 23, 42, 0.16);
+  background: rgba(226, 232, 240, 0.82);
+  color: #0f172a;
+}
+
+.page.light .infoHintBubble,
+[data-theme="light"] .infoHintBubble {
+  border-color: rgba(15, 23, 42, 0.14);
+  background: #ffffff;
+  color: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+}

@@ -128,6 +128,9 @@
 }
 
 .openingInsightMeta b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 8px;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.72);
@@ -153,18 +156,10 @@
   margin-bottom: 6px;
 }
 
-.openingInsightInfo {
-  flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.72);
-  color: rgba(248, 250, 252, 0.9);
-  font-size: 0.78rem;
-  font-weight: 800;
-  line-height: 1;
-  cursor: help;
+.openingInsightMeta .infoHintButton {
+  width: 18px;
+  height: 18px;
+  font-size: 0.68rem;
 }
 
 .openingInsightMiniCard.status-keep {
@@ -283,13 +278,6 @@
 
 .page.light .openingInsightMeta b,
 [data-theme="light"] .openingInsightMeta b {
-  background: rgba(226, 232, 240, 0.82);
-  color: #0f172a;
-}
-
-.page.light .openingInsightInfo,
-[data-theme="light"] .openingInsightInfo {
-  border-color: rgba(15, 23, 42, 0.16);
   background: rgba(226, 232, 240, 0.82);
   color: #0f172a;
 }

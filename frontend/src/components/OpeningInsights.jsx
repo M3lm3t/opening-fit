@@ -1,4 +1,5 @@
 import { useState } from "react";
+import InfoHint from "./InfoHint";
 import "./OpeningInsights.css";
 
 const PATTERN_COPY = {
@@ -154,9 +155,7 @@ function RecommendationCard({ title, item, tone }) {
     <article className={`openingInsightRecommendation ${tone}`}>
       <div className="openingInsightCardTitle">
         <span>{title}</span>
-        <button type="button" className="openingInsightInfo" title={recommendationTooltip(item)} aria-label={`${title} details`}>
-          i
-        </button>
+        <InfoHint label={`${title} details`}>{recommendationTooltip(item)}</InfoHint>
       </div>
       <h3>{getName(item)}</h3>
       <p>{firstSentence(whyItFits(item), "This is the clearest next repertoire choice from the current sample.")}</p>
@@ -177,7 +176,12 @@ function WeakLineCard({ line, onPractice }) {
   return (
     <article className="openingInsightWeakLine">
       <div>
-        <span>Weak line</span>
+        <div className="openingInsightCardTitle">
+          <span>Weak line</span>
+          <InfoHint label="Weak line details">
+            A weak line means this exact early variation repeated enough times to be more useful than a general opening label.
+          </InfoHint>
+        </div>
         <h3>{name}</h3>
       </div>
       <div className="openingInsightMeta">
@@ -208,16 +212,24 @@ function CompactOpeningCard({ opening }) {
       <div className="openingInsightCardTitle">
         <span>{status}</span>
         {details ? (
-          <button type="button" className="openingInsightInfo" title={details} aria-label={`${getName(opening)} details`}>
-            i
-          </button>
+          <InfoHint label={`${getName(opening)} details`}>{details}</InfoHint>
         ) : null}
       </div>
       <h4>{getName(opening)}</h4>
       <div className="openingInsightMeta">
-        <b>{winRate(opening)}% win</b>
+        <b>
+          {winRate(opening)}% win
+          <InfoHint label="Win rate details">
+            Win rate is useful only with enough games. Treat very small samples as a clue, not a final verdict.
+          </InfoHint>
+        </b>
         <b>{gamesPlayed(opening)} games</b>
-        <b>{confidence(opening)}</b>
+        <b>
+          Confidence: {confidence(opening)}
+          <InfoHint label="Confidence details">
+            High confidence means this is based on enough games to be useful. Low confidence means treat it as a clue.
+          </InfoHint>
+        </b>
       </div>
       <p>{openingReason(opening)}</p>
     </article>

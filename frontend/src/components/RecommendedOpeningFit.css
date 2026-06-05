@@ -25,6 +25,13 @@
   letter-spacing: 0;
 }
 
+.recommendedOpeningFitTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .recommendedOpeningFitHeader p:not(.eyebrow) {
   max-width: 760px;
   margin: 0;
@@ -186,12 +193,21 @@
 }
 
 .recommendedOpeningCardHeader strong span {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   margin-bottom: 2px;
   color: rgba(226, 232, 240, 0.7);
   font-size: 0.62rem;
   line-height: 1;
   letter-spacing: 0.05em;
+}
+
+.recommendedOpeningCardHeader .infoHintButton {
+  width: 18px;
+  height: 18px;
+  font-size: 0.68rem;
 }
 
 .recommendedOpeningMetrics {
