@@ -33,6 +33,7 @@ import WeeklyOpeningReport, { buildWeeklyOpeningSnapshot } from "./components/We
 import OpeningGamificationProgress from "./components/OpeningGamificationProgress";
 import TodayTrainingCard from "./components/TodayTrainingCard";
 import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
+import RecommendedOpeningFit from "./components/RecommendedOpeningFit";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./components/OpeningEvidence";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
@@ -5427,6 +5428,8 @@ function FinalReportFlow({
         fitData={fitData}
         onPractice={onPractice}
       />
+
+      <RecommendedOpeningFit data={data} />
 
       <OpeningHealthScore
         data={data}
