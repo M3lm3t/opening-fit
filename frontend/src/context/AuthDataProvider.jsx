@@ -13,6 +13,7 @@ import {
   fetchAllUserData,
   hasActivePremiumEntitlement,
   recordActivity,
+  saveAnalysedGames,
   saveRecommendationHistory,
   saveReport,
   saveSettings,
@@ -545,6 +546,8 @@ export function AuthDataProvider({ children }) {
         runSyncedMutation(() => saveSettings(user?.id, patch), "Could not save settings."),
       saveReport: (report, summary) =>
         runSyncedMutation(() => saveReport(user?.id, report, summary), "Could not save report."),
+      saveAnalysedGames: (report, summary) =>
+        saveAnalysedGames(user?.id, report, summary),
       saveRecommendationHistory: (snapshot) =>
         runSyncedMutation(
           () => saveRecommendationHistory(user?.id, snapshot),

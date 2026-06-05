@@ -253,7 +253,15 @@ function compareSnapshots(previous, current) {
 }
 
 export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
-  const { user, hasPremiumAccess, reportHistory, saveReport, deleteUserData, refreshUserData } = useAuth();
+  const {
+    user,
+    hasPremiumAccess,
+    profileLoading,
+    reportHistory,
+    saveReport,
+    deleteUserData,
+    refreshUserData,
+  } = useAuth();
   const [history, setHistory] = useState(() => readHistory().map(normalizeHistoryItem));
   const [status, setStatus] = useState("");
 
@@ -474,7 +482,12 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
 
       {status ? <p className="historyStatus">{status}</p> : null}
 
-      {history.length > 0 ? (
+      {user?.id && profileLoading ? (
+        <div className="emptyHistoryState">
+          <strong>Loading saved cloud history</strong>
+          <span>OpeningFit is restoring your account reports before showing this list.</span>
+        </div>
+      ) : history.length > 0 ? (
         <>
           <div className="historyList">
             {history.map((item) => (

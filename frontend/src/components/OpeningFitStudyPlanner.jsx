@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../context/AuthDataProvider";
 import { getOpeningSignal } from "./OpeningEvidence";
+import { fetchOpeningFitCloudState, saveOpeningFitCloudState } from "./openingFitCloudState";
 import {
   adaptVerdictForPlayerLevel,
   getLevelToneCopy,
@@ -149,11 +151,13 @@ function buildTasks(opening, side, data) {
 }
 
 export default function OpeningFitStudyPlanner({ data, username }) {
+  const { user } = useAuth();
   const openings = useMemo(() => getOpenings(data).slice(0, 12), [data]);
 
   const [selectedName, setSelectedName] = useState("");
   const [side, setSide] = useState("White");
   const [completed, setCompleted] = useState({});
+  const [cloudPlannerReady, setCloudPlannerReady] = useState(false);
 
   const selectedOpening = useMemo(() => {
     return openings.find((item) => openingName(item) === selectedName) || openings[0];
@@ -172,6 +176,9 @@ export default function OpeningFitStudyPlanner({ data, username }) {
   }, [openings, selectedName]);
 
   useEffect(() => {
+    let cancelled = false;
+    setCloudPlannerReady(!user?.id);
+
     try {
       const saved = JSON.parse(localStorage.getItem(key) || "{}");
       if (saved?.completed && typeof saved.completed === "object") {
@@ -186,23 +193,65 @@ export default function OpeningFitStudyPlanner({ data, username }) {
     } catch {
       // Ignore corrupt saved planner data.
     }
-  }, [key]);
+
+    if (user?.id) {
+      fetchOpeningFitCloudState(user, data || {})
+        .then((state) => {
+          if (cancelled) return;
+          const planner = state?.coach_progress?.studyPlanner;
+          if (planner && typeof planner === "object") {
+            if (planner.completed && typeof planner.completed === "object") {
+              setCompleted(planner.completed);
+            }
+            if (planner.selectedName) setSelectedName(planner.selectedName);
+            if (planner.side) setSide(planner.side);
+          }
+          setCloudPlannerReady(true);
+        })
+        .catch(() => {
+          if (!cancelled) setCloudPlannerReady(true);
+        });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data, key, user]);
 
   useEffect(() => {
+    const snapshot = {
+      selectedName,
+      side,
+      completed,
+      updatedAt: new Date().toISOString(),
+    };
+
     try {
-      localStorage.setItem(
-        key,
-        JSON.stringify({
-          selectedName,
-          side,
-          completed,
-          updatedAt: new Date().toISOString(),
-        })
-      );
+      localStorage.setItem(key, JSON.stringify(snapshot));
     } catch {
       // Ignore local storage failure.
     }
-  }, [key, selectedName, side, completed]);
+
+    if (user?.id && cloudPlannerReady) {
+      fetchOpeningFitCloudState(user, data || {})
+        .then((state) => {
+          const coachProgress =
+            state?.coach_progress && typeof state.coach_progress === "object"
+              ? state.coach_progress
+              : {};
+
+          return saveOpeningFitCloudState(user, data || {}, {
+            coach_progress: {
+              ...coachProgress,
+              studyPlanner: snapshot,
+            },
+          });
+        })
+        .catch(() => {
+          // The local copy is still available if cloud sync fails.
+        });
+    }
+  }, [cloudPlannerReady, completed, data, key, selectedName, side, user]);
 
   if (!data || !openings.length) return null;
 

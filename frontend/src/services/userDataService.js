@@ -681,9 +681,26 @@ export async function saveRecommendationHistory(userId, snapshot = {}) {
   if (!userId || !snapshot) return null;
 
   const client = requireClient();
+  const progress = snapshot.progress || {};
+  const analysisDate = snapshot.analysisDate || snapshot.analysis_date || new Date().toISOString();
+  const timeControlFilter =
+    snapshot.timeControlFilter || snapshot.time_control_filter || snapshot.analysisTimeFormat || "custom";
+  const snapshotKey = String(
+    snapshot.snapshotKey ||
+      snapshot.snapshot_key ||
+      [
+        progress.platform || snapshot.platform || "unknown",
+        progress.username || snapshot.username || "unknown",
+        String(analysisDate).slice(0, 19),
+        snapshot.gamesAnalysed ?? snapshot.games_analyzed ?? snapshot.games_analysed ?? 0,
+        timeControlFilter,
+        snapshot.currentRecommendation || snapshot.current_recommendation || "",
+      ].join(":")
+  );
   const payload = {
     user_id: userId,
-    analysis_date: snapshot.analysisDate || snapshot.analysis_date || new Date().toISOString(),
+    snapshot_key: snapshotKey,
+    analysis_date: analysisDate,
     games_analysed:
       Number(snapshot.gamesAnalysed ?? snapshot.games_analyzed ?? snapshot.games_analysed ?? 0) || 0,
     detected_openings: snapshot.detectedOpenings || snapshot.detected_openings || [],
@@ -691,18 +708,36 @@ export async function saveRecommendationHistory(userId, snapshot = {}) {
     confidence_score:
       snapshot.confidenceScore ?? snapshot.confidence_score ?? snapshot.repertoireConfidenceScore ?? null,
     style_profile: snapshot.styleProfile || snapshot.style_profile || null,
-    time_control_filter:
-      snapshot.timeControlFilter || snapshot.time_control_filter || snapshot.analysisTimeFormat || "custom",
+    time_control_filter: timeControlFilter,
     analysis_version: snapshot.analysisVersion || snapshot.analysis_version || "retention-history-v1",
     snapshot,
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await client
+  let activePayload = payload;
+  let { data, error } = await client
     .from("recommendation_history")
-    .insert(payload)
+    .upsert(payload, { onConflict: "user_id,snapshot_key" })
     .select("*")
     .single();
+
+  if (
+    error &&
+    (
+      error.code === "PGRST204" ||
+      /snapshot_key|user_id,snapshot_key/i.test(error.message || "")
+    )
+  ) {
+    activePayload = { ...payload };
+    delete activePayload.snapshot_key;
+    const retry = await client
+      .from("recommendation_history")
+      .insert(activePayload)
+      .select("*")
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     logQueryFailure("recommendation_history", "insert recommendation snapshot", error, {
@@ -717,6 +752,95 @@ export async function saveRecommendationHistory(userId, snapshot = {}) {
     rowId: data?.id,
   });
   return data;
+}
+
+function stableGameId(game, index) {
+  const raw =
+    game?.game_id ||
+    game?.gameId ||
+    game?.id ||
+    game?.url ||
+    game?.link ||
+    game?.pgn ||
+    JSON.stringify(game || {});
+  const input = String(raw || `game-${index}`);
+  let hash = 0;
+
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
+  }
+
+  return String(game?.game_id || game?.gameId || game?.id || game?.url || `game-${index}-${hash}`);
+}
+
+function extractAnalysedGames(report = {}) {
+  const candidates = [
+    report.analysed_games,
+    report.analyzed_games,
+    report.analysedGames,
+    report.analyzedGames,
+    report.imported_games,
+    report.importedGames,
+    report.recent_games,
+    report.recentGames,
+    report.games,
+  ];
+
+  return candidates.find((value) => Array.isArray(value) && value.some((item) => item && typeof item === "object")) || [];
+}
+
+export async function saveAnalysedGames(userId, report = {}, summary = {}) {
+  if (!userId || !report) return [];
+
+  const games = extractAnalysedGames(report).slice(0, 80);
+  if (!games.length) return [];
+
+  const client = requireClient();
+  const platform = summary.platform || report.platform || report.importPlatform || report.import_platform || "unknown";
+  const username =
+    summary.username ||
+    report.username ||
+    report.playerName ||
+    report.player_name ||
+    "Unknown player";
+  const now = new Date().toISOString();
+  const rows = games.map((game, index) => ({
+    user_id: userId,
+    platform,
+    username,
+    game_id: stableGameId(game, index),
+    game,
+    analysis: {
+      opening: game.opening || game.eco || game.detected_opening || null,
+      result: game.result || game.user_result || null,
+      colour: game.colour || game.color || null,
+      saved_from_report: true,
+    },
+    updated_at: now,
+  }));
+
+  const { data, error } = await client
+    .from("analysed_games")
+    .upsert(rows, { onConflict: "user_id,platform,username,game_id" })
+    .select("*");
+
+  if (error) {
+    logQueryFailure("analysed_games", "upsert analysed games", error, {
+      userId,
+      platform,
+      username,
+      count: rows.length,
+    });
+    throw new Error(safeUserMessage(error, "Could not save analysed games to Supabase."));
+  }
+
+  logQuerySuccess("analysed_games", "upsert analysed games", {
+    userId,
+    platform,
+    username,
+    count: data?.length || 0,
+  });
+  return data || [];
 }
 
 export async function recordActivity(userId, type, payload = {}) {

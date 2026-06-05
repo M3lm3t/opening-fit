@@ -10354,6 +10354,7 @@ const REPORT_HISTORY_KEY = "openingFit:reportHistory";
 function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgrade }) {
   const {
     user: cloudUser,
+    profileLoading: cloudProfileLoading,
     reportHistory: cloudReportHistory,
     saveReport: saveCloudReportFromAuth,
     deleteUserData,
@@ -10577,17 +10578,27 @@ function ReportExportAndHistory({ data, onLoadReport, isPremium = false, onUpgra
         <div className="savedReportsHeader">
           <div>
             <span>Saved history</span>
-            <h3>{savedReports.length ? "Previous reports" : "No saved reports yet"}</h3>
+            <h3>
+              {cloudUser?.id && cloudProfileLoading
+                ? "Loading saved reports..."
+                : savedReports.length
+                  ? "Previous reports"
+                  : "No saved reports yet"}
+            </h3>
           </div>
 
-          {savedReports.length ? (
+          {savedReports.length && !(cloudUser?.id && cloudProfileLoading) ? (
             <button type="button" onClick={clearReports}>
               Clear
             </button>
           ) : null}
         </div>
 
-        {savedReports.length ? (
+        {cloudUser?.id && cloudProfileLoading ? (
+          <p className="emptySavedReports">
+            Restoring your OpeningFit account history...
+          </p>
+        ) : savedReports.length ? (
           <div className="savedReportsList">
             {savedReports.map((report) => (
               <button
@@ -11445,6 +11456,7 @@ function App() {
     hydrated: authHydrated,
     hasPremiumAccess,
     saveReport: saveCloudReport,
+    saveAnalysedGames: saveCloudAnalysedGames,
     recordActivity: recordCloudActivity,
     reportHistory: cloudReportHistory,
     recommendationHistory,
@@ -12543,6 +12555,11 @@ function App() {
           reportSummary.openingGamification = openingGamification;
 
           await saveCloudReport(cleanData, reportSummary);
+          try {
+            await saveCloudAnalysedGames?.(cleanData, reportSummary);
+          } catch (analysedGamesError) {
+            console.warn("Could not save analysed games to Supabase", analysedGamesError);
+          }
           await saveOpeningFitProgressState(cleanData, reportSummary, progressSnapshot);
           const weeklyOpeningReport = buildWeeklyOpeningSnapshot(cleanData, openingFitUserState?.[0]?.coach_progress?.weeklyOpeningSnapshots || []);
           await saveRecommendationHistory?.(recommendationSnapshot);

@@ -33,9 +33,20 @@ export default function TodayTrainingCard({
   onAnalyse,
   onStartTraining,
 }) {
-  const { user, recordActivity } = useAuth();
+  const { user, openingFitUserState, recordActivity, upsertUserData } = useAuth();
   const plan = useMemo(() => buildTrainingRecommendations(data, fitData), [data, fitData]);
   const primary = plan.primary;
+  const cloudState = useMemo(() => {
+    if (!user?.id) return null;
+    const platform = String(data?.platform || data?.importPlatform || data?.import_platform || "").toLowerCase();
+    const username = String(data?.username || data?.playerName || data?.player_name || "").toLowerCase();
+
+    return (openingFitUserState || []).find((row) => {
+      const samePlatform = !platform || String(row?.platform || "").toLowerCase() === platform;
+      const sameUsername = !username || String(row?.username || "").toLowerCase() === username;
+      return samePlatform && sameUsername;
+    }) || openingFitUserState?.[0] || null;
+  }, [data, openingFitUserState, user?.id]);
   const [status, setStatus] = useState(() => {
     const key = recommendationKey(primary);
     const local = readLocalProgress();
@@ -45,8 +56,10 @@ export default function TodayTrainingCard({
   useEffect(() => {
     const key = recommendationKey(primary);
     const local = readLocalProgress();
-    setStatus(key && local.currentKey === key && local.lastState === "started" ? "Continue Training" : "");
-  }, [primary]);
+    const cloudProgress = cloudState?.coach_progress?.todayTraining;
+    const saved = cloudProgress?.recommendation_key === key ? cloudProgress : local;
+    setStatus(key && saved?.currentKey === key && saved?.lastState === "started" ? "Continue Training" : "");
+  }, [cloudState, primary]);
 
   const saveProgress = async (state) => {
     const payload = {
@@ -71,6 +84,32 @@ export default function TodayTrainingCard({
         ...payload,
         points: state === "completed" ? 80 : 35,
       });
+    }
+
+    if (user?.id && upsertUserData) {
+      const coachProgress =
+        cloudState?.coach_progress && typeof cloudState.coach_progress === "object"
+          ? cloudState.coach_progress
+          : {};
+
+      await upsertUserData(
+        "openingfit_user_state",
+        {
+          ...(cloudState?.id ? { id: cloudState.id } : {}),
+          platform: data?.platform || data?.importPlatform || data?.import_platform || "unknown",
+          username: data?.username || data?.playerName || data?.player_name || "guest",
+          last_report: data || cloudState?.last_report || null,
+          coach_progress: {
+            ...coachProgress,
+            todayTraining: {
+              ...payload,
+              currentKey: payload.recommendation_key,
+              lastState: state,
+            },
+          },
+        },
+        { onConflict: "user_id,platform,username" }
+      );
     }
   };
 
