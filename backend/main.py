@@ -2,6 +2,7 @@ import stripe
 from collections import Counter, defaultdict
 from fastapi.responses import JSONResponse, Response
 from intelligence import enrich_analysis_result
+from analysis.style_fingerprint import build_style_fingerprint
 from opening_detection import (
     detect_opening,
     detect_opening_from_pgn,
@@ -2437,6 +2438,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     ]
 
     style_profile = build_style_profile(analysed_games, username)
+    style_fingerprint = build_style_fingerprint(recent_games, username=username)
     best_openings = build_opening_scores(context_opening_results)
     report_mode_data = detect_report_mode(
         title=player.get("title"),
@@ -2521,6 +2523,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "openingGames": opening_game_samples,
         "style_profile": style_profile,
         "styleProfile": style_profile,
+        "style_fingerprint": style_fingerprint,
+        "styleFingerprint": style_fingerprint,
         "style_based_recommendations": style_based_recommendations,
         "styleBasedRecommendations": style_based_recommendations,
         "best_openings": best_openings[:8],
@@ -2813,6 +2817,7 @@ def build_lichess_analysis(
 
     best_openings = build_opening_scores(context_opening_results)
     style_profile = build_lichess_style_profile(top_openings, preferred_white, preferred_black)
+    style_fingerprint = build_style_fingerprint(recent_games, username=username)
     current_rating = max(player_ratings) if player_ratings else None
 
     if current_rating is None:
@@ -2924,6 +2929,8 @@ def build_lichess_analysis(
         "openingGames": opening_game_samples,
         "style_profile": style_profile,
         "styleProfile": style_profile,
+        "style_fingerprint": style_fingerprint,
+        "styleFingerprint": style_fingerprint,
         "style_based_recommendations": style_based_recommendations,
         "styleBasedRecommendations": style_based_recommendations,
         "best_openings": best_openings[:8],
@@ -3207,6 +3214,40 @@ def demo_profile():
             "flexible": 2,
         },
     }
+    style_fingerprint = {
+        "primary_style": "Tactical Attacker",
+        "primaryStyle": "Tactical Attacker",
+        "secondary_style": "Open Position Player",
+        "secondaryStyle": "Open Position Player",
+        "confidence": "medium",
+        "traits": {
+            "tactical_tendency": 78,
+            "positional_tendency": 52,
+            "open_position_preference": 82,
+            "closed_position_comfort": 44,
+            "gambit_comfort": 64,
+            "early_attack_frequency": 68,
+            "queen_trade_frequency": 38,
+            "simplified_position_comfort": 46,
+            "castling_consistency": 72,
+            "opposite_side_castling_frequency": 42,
+            "central_pawn_break_frequency": 70,
+            "development_speed": 76,
+            "king_safety_risk": 58,
+            "endgame_conversion": 46,
+            "short_game_success": 73,
+            "long_game_success": 42,
+            "opening_phase_stability": 66,
+        },
+        "evidence": [
+            "You score best in games where the centre opens early.",
+            "Your wins are often decided before move 30.",
+            "Your losses often include delayed castling or exposed king positions.",
+        ],
+        "sample_size": 24,
+        "sampleSize": 24,
+        "method": "deterministic_pgn_heuristics_v1",
+    }
 
     opening_recommendations = {
         "white_repertoire": [
@@ -3322,6 +3363,8 @@ def demo_profile():
         **opening_fit_profile,
         "style_profile": style_profile,
         "styleProfile": style_profile,
+        "style_fingerprint": style_fingerprint,
+        "styleFingerprint": style_fingerprint,
         "top_openings": demo_best_openings,
         "topOpenings": demo_best_openings,
         "best_openings": demo_best_openings,
