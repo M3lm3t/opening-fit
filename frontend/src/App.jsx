@@ -13462,7 +13462,7 @@ function App() {
         />
 
         <AccountRestoreSync
-          user={accountUser}
+          user={supabaseUser || accountUser}
           username={username}
           setUsername={setUsername}
           platform={platform}
