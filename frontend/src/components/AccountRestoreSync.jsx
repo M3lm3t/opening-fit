@@ -40,6 +40,7 @@ export default function AccountRestoreSync({
   const {
     loading,
     profileLoading,
+    profileLoaded,
     restoreError,
     profile,
     openingFitUserState,
@@ -55,7 +56,7 @@ export default function AccountRestoreSync({
   const migratedLocalRef = useRef("");
 
   useEffect(() => {
-    if (loading || profileLoading || !user?.id) return;
+    if (loading || profileLoading || !profileLoaded || !user?.id) return;
     if (restoreInProgress) return;
     if (restoreError) return;
     if (restoredUserRef.current === user.id) return;
@@ -98,6 +99,7 @@ export default function AccountRestoreSync({
     restoredUserRef.current = user.id;
   }, [
     loading,
+    profileLoaded,
     profileLoading,
     restoreError,
     openingFitUserState,
@@ -115,6 +117,7 @@ export default function AccountRestoreSync({
       if (!user?.id) return;
       if (restoreInProgress) return;
       if (profileLoading) return;
+      if (!profileLoaded) return;
       if (restoreError) return;
       if (restoredUserRef.current !== user.id) return;
       if (!data) {
@@ -229,7 +232,7 @@ export default function AccountRestoreSync({
     }
 
     saveAccount();
-  }, [data, platform, profile?.id, profile?.last_report, profileLoading, refreshUserData, restoreError, restoreInProgress, saveReport, saveSettings, upsertUserData, user, username]);
+  }, [data, platform, profile?.id, profile?.last_report, profileLoaded, profileLoading, refreshUserData, restoreError, restoreInProgress, saveReport, saveSettings, upsertUserData, user, username]);
 
   return null;
 }

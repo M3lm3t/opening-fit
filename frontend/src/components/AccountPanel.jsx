@@ -99,6 +99,8 @@ export default function AccountPanel({ variant = "floating",
     error: accountError,
     hasPremiumAccess,
     profileLoading,
+    profileLoaded,
+    profileError,
     authLoading,
     hydrated: authHydrated,
     restoreInProgress,
@@ -147,11 +149,13 @@ export default function AccountPanel({ variant = "floating",
       return;
     }
 
+    if (!profileLoaded || profileLoading) return;
+
     setProfile({
       chesscom_username: cloudProfile?.chesscom_username || "",
       lichess_username: cloudProfile?.lichess_username || "",
     });
-  }, [cloudProfile, user]);
+  }, [cloudProfile, profileLoaded, profileLoading, user]);
 
   const signInWithGoogle = async () => {
     if (!supabase) {
@@ -534,6 +538,9 @@ export default function AccountPanel({ variant = "floating",
           ) : null}
 
           {accountError ? <div className="accountStatus">{accountError}</div> : null}
+          {profileError && profileError !== accountError ? (
+            <div className="accountStatus">{profileError}</div>
+          ) : null}
 
           {isSupabaseConfigured && !user ? (
             <div className="accountAuthStack">
@@ -724,7 +731,7 @@ export default function AccountPanel({ variant = "floating",
               <div className="premiumStatusCard accountLoginStatusCard">
                 <span>Supabase sync</span>
                 <strong>
-                  {profileLoading
+                  {profileLoading || !profileLoaded
                     ? "Restoring..."
                     : saving
                       ? "Saving..."
@@ -832,7 +839,12 @@ export default function AccountPanel({ variant = "floating",
               </div>
 
               <div className="accountActions">
-                <button type="button" className="saveAccountBtn" onClick={saveProfile} disabled={saving}>
+                <button
+                  type="button"
+                  className="saveAccountBtn"
+                  onClick={saveProfile}
+                  disabled={saving || profileLoading || !profileLoaded}
+                >
                   {saving ? "Saving..." : "Save account"}
                 </button>
 
@@ -840,7 +852,14 @@ export default function AccountPanel({ variant = "floating",
                   type="button"
                   className="saveAccountBtn"
                   onClick={handleCloudRestoreClick}
-                  disabled={saving || authLoading || !authHydrated || profileLoading || restoreInProgress}
+                  disabled={
+                    saving ||
+                    authLoading ||
+                    !authHydrated ||
+                    profileLoading ||
+                    !profileLoaded ||
+                    restoreInProgress
+                  }
                 >
                   {restoreInProgress ? "Restoring..." : "Cloud Restore"}
                 </button>

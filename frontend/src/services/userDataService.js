@@ -30,6 +30,9 @@ export const USER_FILE_BUCKET = "user-uploads";
 const DEBUG_ENABLED =
   typeof import.meta !== "undefined" &&
   (import.meta.env?.DEV || import.meta.env?.VITE_OPENINGFIT_SUPABASE_DEBUG === "true");
+const DEBUG_CLOUD_RESTORE =
+  typeof import.meta !== "undefined" &&
+  import.meta.env?.VITE_DEBUG_CLOUD_RESTORE === "true";
 
 function createDefaultUserData(profile = null) {
   return {
@@ -115,12 +118,62 @@ function logQueryFailure(table, operation, error, details = {}) {
 }
 
 function logQuerySuccess(table, operation, details = {}) {
-  if (!DEBUG_ENABLED) return;
+  if (!DEBUG_ENABLED && !DEBUG_CLOUD_RESTORE) return;
   console.debug("OpeningFit Supabase query succeeded", {
     table,
     operation,
     details,
   });
+}
+
+function debugCloudRestore(message, details = {}) {
+  if (!DEBUG_CLOUD_RESTORE) return;
+  console.debug(`[OpeningFit cloud restore] ${message}`, details);
+}
+
+async function selectProfileByUserId(userId) {
+  const client = requireClient();
+  const { data, error } = await client
+    .from("profiles")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    const message = String(error.message || "");
+    if (/user_id|column/i.test(message) && /does not exist|schema cache/i.test(message)) {
+      debugCloudRestore("profile user_id lookup unavailable; trying id fallback", { userId, message });
+      return null;
+    }
+
+    logQueryFailure("profiles", "select profile by user_id", error, { userId });
+    throw new Error(safeUserMessage(error, "Could not load your OpeningFit profile."));
+  }
+
+  debugCloudRestore("profile select by user_id completed", { userId, found: Boolean(data) });
+  return data || null;
+}
+
+async function selectProfileByPrimaryId(userId) {
+  const client = requireClient();
+  const { data, error } = await client
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    logQueryFailure("profiles", "select profile by id fallback", error, { userId });
+    throw new Error(safeUserMessage(error, "Could not load your OpeningFit profile."));
+  }
+
+  debugCloudRestore("profile select by id fallback completed", { userId, found: Boolean(data) });
+  return data || null;
+}
+
+async function loadExistingProfile(userId) {
+  if (!userId) return null;
+  return (await selectProfileByUserId(userId)) || (await selectProfileByPrimaryId(userId));
 }
 
 export async function ensureProfile(user, patch = {}) {
@@ -146,30 +199,26 @@ export async function ensureProfile(user, patch = {}) {
     user.email ||
     "";
 
-  const { data: existingProfile, error: profileFetchError } = await client
-    .from("profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (profileFetchError) {
-    logQueryFailure("profiles", "select profile before ensure upsert", profileFetchError, {
-      userId: user.id,
-    });
-    throw new Error(safeUserMessage(profileFetchError, "Profile failed to load from Supabase."));
-  }
+  const existingProfile = await loadExistingProfile(user.id);
 
   const profilePatch = {
-    email: user.email || patch.email || "",
-    display_name: displayName,
-    ...(cleanUsername ? { username: cleanUsername } : {}),
+    email: patch.email ?? existingProfile?.email ?? user.email ?? "",
+    display_name: patch.display_name ?? patch.displayName ?? existingProfile?.display_name ?? displayName,
+    username: patch.username ?? existingProfile?.username ?? cleanUsername ?? null,
+    platform: patch.platform ?? existingProfile?.platform ?? null,
+    chesscom_username: patch.chesscom_username ?? existingProfile?.chesscom_username ?? "",
+    lichess_username: patch.lichess_username ?? existingProfile?.lichess_username ?? "",
+    is_premium: patch.is_premium ?? existingProfile?.is_premium ?? false,
+    last_report: patch.last_report ?? existingProfile?.last_report ?? null,
     ...patch,
     id: patch.id || existingProfile?.id || user.id,
     user_id: user.id,
     updated_at: new Date().toISOString(),
   };
 
-  if (existingProfile && !Object.keys(patch).length && !cleanUsername) {
+  const profileNeedsUserIdBackfill = existingProfile && existingProfile.user_id !== user.id;
+
+  if (existingProfile && !Object.keys(patch).length && !profileNeedsUserIdBackfill) {
     logQuerySuccess("profiles", "select existing profile before ensure upsert", {
       userId: user.id,
       rowId: existingProfile.id,
@@ -313,20 +362,9 @@ export async function signInWithEmailPassword({ email, password }) {
 export async function getUserProfile(userId) {
   if (!userId) return null;
 
-  const client = requireClient();
-  const { data, error } = await client
-    .from("profiles")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    logQueryFailure("profiles", "select profile by user_id", error, { userId });
-    throw new Error(safeUserMessage(error, "Could not load your OpeningFit profile."));
-  }
-
-  logQuerySuccess("profiles", "select profile by user_id", { userId, found: Boolean(data) });
-  return data || null;
+  const profile = await loadExistingProfile(userId);
+  logQuerySuccess("profiles", "select profile by user key", { userId, found: Boolean(profile) });
+  return profile;
 }
 
 export async function upsertUserProfile(user, patch = {}) {

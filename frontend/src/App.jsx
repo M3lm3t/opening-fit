@@ -9034,6 +9034,7 @@ function AccountSyncStatusBar({
   isSupabaseConfigured,
   authLoading,
   profileLoading,
+  profileLoaded = true,
   authHydrated,
   restoreInProgress,
   hasPremiumAccess,
@@ -9072,7 +9073,7 @@ function AccountSyncStatusBar({
     detail = "OpeningFit is checking your Supabase session.";
     tone = "loading";
     action = "Account";
-  } else if (profileLoading) {
+  } else if (profileLoading || (user?.id && !profileLoaded)) {
     label = "Restoring saved data...";
     identity = "Restoring";
     detail = "Loading your profile, reports, settings, and recommendations from Supabase.";
@@ -9198,7 +9199,13 @@ function AccountSyncStatusBar({
             <button
               type="button"
               onClick={handleCloudRestore}
-              disabled={authLoading || !authHydrated || profileLoading || restoreInProgress}
+              disabled={
+                authLoading ||
+                !authHydrated ||
+                profileLoading ||
+                !profileLoaded ||
+                restoreInProgress
+              }
             >
               {restoreInProgress ? "Restoring..." : "Cloud Restore"}
             </button>
@@ -11508,6 +11515,7 @@ function App() {
     upsertUserData: upsertCloudUserData,
     refreshUserData,
     profileLoading,
+    profileLoaded,
     syncStatus,
     lastSavedAt,
     syncError,
@@ -13590,6 +13598,7 @@ function App() {
           isSupabaseConfigured={isSupabaseConfigured}
           authLoading={authLoading}
           profileLoading={profileLoading}
+          profileLoaded={profileLoaded}
           authHydrated={authHydrated}
           restoreInProgress={restoreInProgress}
           hasPremiumAccess={isPremium}

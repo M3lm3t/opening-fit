@@ -38,6 +38,9 @@ const DANGEROUS_LEGACY_KEY_PATTERNS = [
   /unlock/i,
 ];
 const RESTORE_TIMEOUT_MS = 8000;
+const DEBUG_CLOUD_RESTORE =
+  typeof import.meta !== "undefined" &&
+  import.meta.env?.VITE_DEBUG_CLOUD_RESTORE === "true";
 
 const EMPTY_RESTORED_COUNTS = {
   history: 0,
@@ -209,11 +212,18 @@ function clearLegacyStorage() {
   }
 }
 
+function debugCloudRestore(message, details = {}) {
+  if (!DEBUG_CLOUD_RESTORE) return;
+  console.debug(`[OpeningFit cloud restore] ${message}`, details);
+}
+
 export function AuthDataProvider({ children }) {
   const [session, setSession] = useState(null);
   const [userData, setUserData] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [profileError, setProfileError] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState("");
   const [restoreError, setRestoreError] = useState("");
@@ -240,6 +250,8 @@ export function AuthDataProvider({ children }) {
           setUserData(null);
           setHydrated(true);
           setProfileLoading(false);
+          setProfileLoaded(true);
+          setProfileError("");
         }
         return null;
       }
@@ -247,9 +259,14 @@ export function AuthDataProvider({ children }) {
       setError("");
       setRestoreError("");
       setRestoreTimedOut(false);
-      if (applyState) setProfileLoading(true);
+      if (applyState) {
+        setProfileLoading(true);
+        setProfileLoaded(false);
+        setProfileError("");
+      }
 
       try {
+        debugCloudRestore("loading user data", { userId: nextUser.id, applyState });
         const data = await withRestoreTimeout(
           fetchAllUserData(nextUser),
           "workspace table restore"
@@ -257,6 +274,8 @@ export function AuthDataProvider({ children }) {
         if (applyState && restoreSeq === restoreSeqRef.current) {
           setUserData(data || null);
           hydrateLegacyStorage(data?.settings?.[0]?.preferences?.legacyStorage || {});
+          setProfileLoaded(true);
+          setProfileError("");
           setSyncState((current) => ({
             ...current,
             status: "synced",
@@ -271,10 +290,12 @@ export function AuthDataProvider({ children }) {
         if (applyState && restoreSeq === restoreSeqRef.current) {
           const message = refreshError.message || "Could not load your saved data.";
           setError(message);
+          setProfileError(message);
           setRestoreError(message);
           setSyncState((current) => ({ ...current, status: "error", error: message }));
           setUserData(null);
           setHydrated(true);
+          setProfileLoaded(true);
         }
         throw refreshError;
       } finally {
@@ -308,6 +329,7 @@ export function AuthDataProvider({ children }) {
 
         if (!nextSession?.user) {
           setHydrated(true);
+          setProfileLoaded(true);
           return null;
         }
 
@@ -321,6 +343,12 @@ export function AuthDataProvider({ children }) {
         });
         setAuthLoading(false);
         setRestoreTimedOut(timedOut);
+        setProfileLoaded(true);
+        setProfileError(
+          timedOut
+            ? "Supabase auth restore timed out. You can keep using OpeningFit locally."
+            : authRetryError.message || "Could not restore your session."
+        );
         setRestoreError(
           timedOut
             ? "Supabase auth restore timed out. You can keep using OpeningFit locally."
@@ -333,6 +361,8 @@ export function AuthDataProvider({ children }) {
 
     const restoreSeq = ++restoreSeqRef.current;
     setProfileLoading(true);
+    setProfileLoaded(false);
+    setProfileError("");
 
     try {
       return await withRestoreTimeout(
@@ -344,6 +374,12 @@ export function AuthDataProvider({ children }) {
       console.warn("OpeningFit manual workspace restore failed; continuing with default state.", retryError);
       if (restoreSeq === restoreSeqRef.current) {
         setRestoreTimedOut(timedOut);
+        setProfileLoaded(true);
+        setProfileError(
+          timedOut
+            ? "Supabase restore timed out. You can keep using OpeningFit with local/default data."
+            : retryError.message || "Could not restore your saved data."
+        );
         setRestoreError(
           timedOut
             ? "Supabase restore timed out. You can keep using OpeningFit with local/default data."
@@ -371,12 +407,16 @@ export function AuthDataProvider({ children }) {
 
     setRestoreInProgress(true);
     legacySyncSuspendedRef.current = true;
+    setProfileLoaded(false);
+    setProfileError("");
     setManualRestoreResult(null);
     setRestoreError("");
     setRestoreTimedOut(false);
 
     try {
       if (!isSupabaseConfigured || !supabase) {
+        setProfileLoaded(true);
+        setProfileError("Supabase config missing");
         return {
           ok: false,
           reason: "Supabase config missing",
@@ -393,6 +433,8 @@ export function AuthDataProvider({ children }) {
       const nextSession = data?.session || null;
       const sessionUser = nextSession?.user || userRef.current || null;
       if (!sessionUser?.id) {
+        setProfileLoaded(true);
+        setProfileError("not logged in");
         return {
           ok: false,
           reason: "not logged in",
@@ -401,6 +443,8 @@ export function AuthDataProvider({ children }) {
       }
 
       if (requestedUserId && requestedUserId !== sessionUser.id) {
+        setProfileLoaded(true);
+        setProfileError("not logged in");
         return {
           ok: false,
           reason: "not logged in",
@@ -419,6 +463,8 @@ export function AuthDataProvider({ children }) {
       const restoredCounts = getRestoreCounts(snapshot);
 
       if (!snapshot || typeof snapshot !== "object") {
+        setProfileLoaded(true);
+        setProfileError("data format error");
         return {
           ok: false,
           reason: "data format error",
@@ -429,6 +475,8 @@ export function AuthDataProvider({ children }) {
       if (!snapshotHasCloudBackup(snapshot)) {
         setUserData(snapshot);
         setHydrated(true);
+        setProfileLoaded(true);
+        setProfileError("");
         setManualRestoreResult({
           ok: false,
           reason: "No cloud backup found for this account yet.",
@@ -445,6 +493,8 @@ export function AuthDataProvider({ children }) {
       if (restoreSeq === restoreSeqRef.current) {
         setUserData(snapshot);
         hydrateLegacyStorage(snapshot?.settings?.[0]?.preferences?.legacyStorage || {});
+        setProfileLoaded(true);
+        setProfileError("");
         setSyncState({
           status: "synced",
           error: "",
@@ -469,6 +519,8 @@ export function AuthDataProvider({ children }) {
         restoredCounts: EMPTY_RESTORED_COUNTS,
       };
       setRestoreError(reason);
+      setProfileLoaded(true);
+      setProfileError(reason);
       setSyncState((current) => ({ ...current, status: "error", error: reason }));
       setManualRestoreResult(result);
       return result;
@@ -501,6 +553,7 @@ export function AuthDataProvider({ children }) {
     if (!isSupabaseConfigured || !supabase) {
       setAuthLoading(false);
       setHydrated(true);
+      setProfileLoaded(true);
       return undefined;
     }
 
@@ -532,6 +585,8 @@ export function AuthDataProvider({ children }) {
         if (nextSession?.user) {
           const restoreSeq = ++restoreSeqRef.current;
           setProfileLoading(true);
+          setProfileLoaded(false);
+          setProfileError("");
           try {
             await withRestoreTimeout(
               refreshUserData(nextSession.user, { restoreSeq }),
@@ -542,6 +597,12 @@ export function AuthDataProvider({ children }) {
             console.warn("OpeningFit initial workspace restore failed; using default state.", restoreError);
             if (mounted && restoreSeq === restoreSeqRef.current) {
               setRestoreTimedOut(timedOut);
+              setProfileLoaded(true);
+              setProfileError(
+                timedOut
+                  ? "Supabase restore timed out. You can keep using OpeningFit with local/default data."
+                  : restoreError.message || "Could not restore your saved data."
+              );
               setRestoreError(
                 timedOut
                   ? "Supabase restore timed out. You can keep using OpeningFit with local/default data."
@@ -558,6 +619,8 @@ export function AuthDataProvider({ children }) {
         } else {
           setUserData(null);
           setHydrated(true);
+          setProfileLoaded(true);
+          setProfileError("");
         }
       } catch (restoreError) {
         const timedOut = restoreError?.name === "WorkspaceRestoreTimeout";
@@ -571,7 +634,13 @@ export function AuthDataProvider({ children }) {
           setAuthLoading(false);
           setUserData(null);
           setHydrated(true);
+          setProfileLoaded(true);
           setRestoreTimedOut(timedOut);
+          setProfileError(
+            timedOut
+              ? "Supabase auth restore timed out. You can keep using OpeningFit locally."
+              : restoreError.message || "Could not restore your session."
+          );
           setRestoreError(
             timedOut
               ? "Supabase auth restore timed out. You can keep using OpeningFit locally."
@@ -596,6 +665,8 @@ export function AuthDataProvider({ children }) {
         if (nextSession?.user) {
           setAuthLoading(false);
           setProfileLoading(true);
+          setProfileLoaded(false);
+          setProfileError("");
           try {
             const restoreSeq = ++restoreSeqRef.current;
             await withRestoreTimeout(
@@ -607,6 +678,12 @@ export function AuthDataProvider({ children }) {
             console.warn("OpeningFit auth workspace restore failed; using default state.", restoreError);
             if (mounted) {
               setRestoreTimedOut(timedOut);
+              setProfileLoaded(true);
+              setProfileError(
+                timedOut
+                  ? "Supabase restore timed out. You can keep using OpeningFit with local/default data."
+                  : restoreError.message || "Could not restore your saved data."
+              );
               setRestoreError(
                 timedOut
                   ? "Supabase restore timed out. You can keep using OpeningFit with local/default data."
@@ -628,6 +705,8 @@ export function AuthDataProvider({ children }) {
           setHydrated(true);
           setAuthLoading(false);
           setProfileLoading(false);
+          setProfileLoaded(true);
+          setProfileError("");
           setRestoreError("");
           setRestoreTimedOut(false);
           setSyncState({ status: "logged-out", lastSavedAt: "", error: "" });
@@ -642,7 +721,9 @@ export function AuthDataProvider({ children }) {
   }, [refreshUserData]);
 
   useEffect(() => {
-    if (!user?.id || !hydrated || restoreInProgress) return undefined;
+    if (!user?.id || !hydrated || restoreInProgress || profileLoading || !profileLoaded) {
+      return undefined;
+    }
 
     const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
     const originalRemoveItem = window.localStorage.removeItem.bind(window.localStorage);
@@ -692,7 +773,7 @@ export function AuthDataProvider({ children }) {
       window.localStorage.setItem = originalSetItem;
       window.localStorage.removeItem = originalRemoveItem;
     };
-  }, [hydrated, restoreInProgress, user?.id]);
+  }, [hydrated, profileLoaded, profileLoading, restoreInProgress, user?.id]);
 
   const api = useMemo(
     () => ({
@@ -722,6 +803,8 @@ export function AuthDataProvider({ children }) {
       loading: authLoading,
       authLoading,
       profileLoading,
+      profileLoaded,
+      profileError,
       restoringProfile: profileLoading,
       hydrated,
       error,
@@ -764,6 +847,8 @@ export function AuthDataProvider({ children }) {
       authLoading,
       error,
       hydrated,
+      profileError,
+      profileLoaded,
       profileLoading,
       refreshUserData,
       restoreAttempt,
@@ -792,6 +877,8 @@ export function AuthDataProvider({ children }) {
         email: user?.email || null,
         authLoading,
         profileLoading,
+        profileLoaded,
+        profileError,
         hydrated,
         restoreError,
         tableCounts: {
@@ -855,6 +942,8 @@ export function AuthDataProvider({ children }) {
   }, [
     authLoading,
     hydrated,
+    profileError,
+    profileLoaded,
     profileLoading,
     refreshUserData,
     restoreError,
