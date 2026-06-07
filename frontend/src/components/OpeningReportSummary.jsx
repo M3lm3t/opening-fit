@@ -151,6 +151,10 @@ function getStyleOpeningMatch(data) {
   return data?.styleOpeningMatch || data?.style_opening_match || null;
 }
 
+function getRepertoireCoherence(data) {
+  return data?.repertoireCoherence || data?.repertoire_coherence || null;
+}
+
 function collectOpenings(data) {
   const candidates = [
     data?.topOpenings,
@@ -410,6 +414,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const coverageRows = getCoverageRows(data);
   const opponentResponseReport = getOpponentResponseReport(data);
   const styleOpeningMatch = getStyleOpeningMatch(data);
+  const repertoireCoherence = getRepertoireCoherence(data);
 
   return (
     <section className="openingReportShell">
@@ -525,6 +530,23 @@ export default function OpeningReportSummary({ data, username, platform }) {
         <CoverageColumn title="White repertoire" rows={coverageRows.white} />
         <CoverageColumn title="Black repertoire" rows={coverageRows.black} />
       </div>
+
+      {repertoireCoherence ? (
+        <div className="openingReportCoherence">
+          <strong>Repertoire coherence · {repertoireCoherence.status}</strong>
+          <span>{repertoireCoherence.summary}</span>
+          <ul>
+            {(repertoireCoherence.rows || repertoireCoherence.lanes || []).map((row) => (
+              <li key={row.key}>
+                <span>{row.label}</span>
+                <em>{row.status} · {row.score}/100</em>
+                <small>{row.summary}</small>
+              </li>
+            ))}
+          </ul>
+          <small>{repertoireCoherence.advice}</small>
+        </div>
+      ) : null}
 
       {opponentResponseReport ? (
         <div className="openingReportResponses">

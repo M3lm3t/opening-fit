@@ -14546,6 +14546,7 @@ main > section,
 .openingReportCoverage ul,
 .openingReportResponses ul,
 .openingReportStyleFits ul,
+.openingReportCoherence ul,
 .openingReportHabits ul {
   display: grid;
   gap: 8px;
@@ -14561,12 +14562,14 @@ main > section,
 .light .openingReportCoverage ul,
 .light .openingReportResponses ul,
 .light .openingReportStyleFits ul,
+.light .openingReportCoherence ul,
 .light .openingReportHabits ul,
 [data-theme="light"] .openingReportActionList,
 [data-theme="light"] .openingReportProblemList,
 [data-theme="light"] .openingReportCoverage ul,
 [data-theme="light"] .openingReportResponses ul,
 [data-theme="light"] .openingReportStyleFits ul,
+[data-theme="light"] .openingReportCoherence ul,
 [data-theme="light"] .openingReportHabits ul {
   color: #475569;
 }
@@ -14575,6 +14578,7 @@ main > section,
 .openingReportCoverage li,
 .openingReportResponses li,
 .openingReportStyleFits li,
+.openingReportCoherence li,
 .openingReportHabits li {
   min-width: 0;
 }
@@ -14590,6 +14594,9 @@ main > section,
 .openingReportStyleFits span,
 .openingReportStyleFits em,
 .openingReportStyleFits small,
+.openingReportCoherence span,
+.openingReportCoherence em,
+.openingReportCoherence small,
 .openingReportHabits span,
 .openingReportHabits small {
   display: block;
@@ -14599,6 +14606,7 @@ main > section,
 .openingReportCoverage small,
 .openingReportResponses small,
 .openingReportStyleFits small,
+.openingReportCoherence small,
 .openingReportHabits small {
   margin-top: 3px;
   color: rgba(226, 232, 240, 0.54);
@@ -14610,11 +14618,13 @@ main > section,
 .light .openingReportCoverage small,
 .light .openingReportResponses small,
 .light .openingReportStyleFits small,
+.light .openingReportCoherence small,
 .light .openingReportHabits small,
 [data-theme="light"] .openingReportProblemList small,
 [data-theme="light"] .openingReportCoverage small,
 [data-theme="light"] .openingReportResponses small,
 [data-theme="light"] .openingReportStyleFits small,
+[data-theme="light"] .openingReportCoherence small,
 [data-theme="light"] .openingReportHabits small {
   color: #64748b;
 }
@@ -14627,7 +14637,8 @@ main > section,
   margin-top: 16px;
 }
 
-.openingReportStyleFits {
+.openingReportStyleFits,
+.openingReportCoherence {
   margin-top: 16px;
   padding: 15px;
   border-radius: 22px;
@@ -14636,25 +14647,44 @@ main > section,
 }
 
 .light .openingReportStyleFits,
-[data-theme="light"] .openingReportStyleFits {
+.light .openingReportCoherence,
+[data-theme="light"] .openingReportStyleFits,
+[data-theme="light"] .openingReportCoherence {
   background: rgba(15, 23, 42, 0.035);
   border-color: rgba(15, 23, 42, 0.06);
 }
 
-.openingReportStyleFits > strong {
+.openingReportStyleFits > strong,
+.openingReportCoherence > strong {
   display: block;
   font-size: 0.95rem;
 }
 
-.openingReportStyleFits em {
+.openingReportStyleFits em,
+.openingReportCoherence em {
   color: rgba(226, 232, 240, 0.78);
   font-style: normal;
   line-height: 1.4;
 }
 
 .light .openingReportStyleFits em,
-[data-theme="light"] .openingReportStyleFits em {
+.light .openingReportCoherence em,
+[data-theme="light"] .openingReportStyleFits em,
+[data-theme="light"] .openingReportCoherence em {
   color: #475569;
+}
+
+.openingReportCoherence > span {
+  display: block;
+  margin-top: 8px;
+  color: rgba(226, 232, 240, 0.64);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.light .openingReportCoherence > span,
+[data-theme="light"] .openingReportCoherence > span {
+  color: #64748b;
 }
 
 .openingReportCoverage > div,

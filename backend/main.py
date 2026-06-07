@@ -2577,6 +2577,128 @@ def build_repertoire_coverage(best_openings: List[Dict[str, Any]]) -> Dict[str, 
     }
 
 
+def repertoire_lane_label(key: str) -> str:
+    return {
+        "white": "White repertoire",
+        "black_vs_e4": "Black vs 1.e4",
+        "black_vs_d4": "Black vs 1.d4",
+    }.get(key, key)
+
+
+def lane_coherence(key: str, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    total_games = sum(int(item.get("games", 0) or 0) for item in items)
+    sorted_items = sorted(items, key=lambda item: int(item.get("games", 0) or 0), reverse=True)
+    main_items = [item for item in sorted_items if int(item.get("games", 0) or 0) >= 3]
+    low_sample_items = [item for item in sorted_items if 0 < int(item.get("games", 0) or 0) < 3]
+    top_three = sorted_items[:3]
+    top_one_games = int(sorted_items[0].get("games", 0) or 0) if sorted_items else 0
+    top_three_games = sum(int(item.get("games", 0) or 0) for item in top_three)
+    top_one_pct = round((top_one_games / total_games) * 100, 1) if total_games else 0
+    top_three_pct = round((top_three_games / total_games) * 100, 1) if total_games else 0
+    random_pct = round((sum(int(item.get("games", 0) or 0) for item in low_sample_items) / total_games) * 100, 1) if total_games else 0
+
+    if total_games < 3:
+        status = "Too random to train efficiently"
+        score = 0
+    else:
+        score = round(max(0, min(100, top_three_pct - max(0, len(main_items) - 3) * 8 - random_pct * 0.7)))
+        if top_one_pct >= 60 or (top_three_pct >= 85 and len(main_items) <= 3 and random_pct <= 12):
+            status = "Simple and focused"
+        elif top_three_pct >= 70 and len(main_items) <= 5 and random_pct <= 22:
+            status = "Mostly focused"
+        elif top_three_pct >= 50 and random_pct <= 35:
+            status = "Fragmented"
+        else:
+            status = "Too random to train efficiently"
+
+    names = [item.get("name", "Unknown") for item in top_three if int(item.get("games", 0) or 0) > 0]
+    label = repertoire_lane_label(key)
+    if status in {"Simple and focused", "Mostly focused"} and names:
+        summary = f"{label} is focused: {top_three_pct}% of games use {', '.join(names)}."
+    elif total_games:
+        summary = f"{label} is fragmented: {random_pct}% of games are low-sample openings and the top three systems cover {top_three_pct}%."
+    else:
+        summary = f"{label} has no clear imported sample yet."
+
+    advice = (
+        f"Keep training around {names[0]} before adding new systems."
+        if status in {"Simple and focused", "Mostly focused"} and names
+        else f"Simplify {label.lower()} to one main system and one backup until the sample stabilises."
+    )
+
+    return {
+        "key": key,
+        "label": label,
+        "status": status,
+        "score": score,
+        "totalGames": total_games,
+        "total_games": total_games,
+        "mainOpeningCount": len(main_items),
+        "main_opening_count": len(main_items),
+        "lowSampleOpeningCount": len(low_sample_items),
+        "low_sample_opening_count": len(low_sample_items),
+        "topOneCoverage": top_one_pct,
+        "top_one_coverage": top_one_pct,
+        "topThreeCoverage": top_three_pct,
+        "top_three_coverage": top_three_pct,
+        "randomOpeningShare": random_pct,
+        "random_opening_share": random_pct,
+        "topSystems": names,
+        "top_systems": names,
+        "summary": summary,
+        "advice": advice,
+    }
+
+
+def build_repertoire_coherence(best_openings: List[Dict[str, Any]]) -> Dict[str, Any]:
+    lanes = {
+        "white": [],
+        "black_vs_e4": [],
+        "black_vs_d4": [],
+    }
+
+    for item in best_openings or []:
+        context = str(item.get("context") or item.get("repertoireContext") or "")
+        if context == "played_as_white":
+            lanes["white"].append(item)
+        elif context == "black_vs_e4":
+            lanes["black_vs_e4"].append(item)
+        elif context in {"black_vs_d4", "black_vs_other", "black_vs_d4_other"}:
+            lanes["black_vs_d4"].append(item)
+
+    lane_rows = [lane_coherence(key, value) for key, value in lanes.items()]
+    active = [row for row in lane_rows if row["totalGames"] > 0]
+    overall_score = round(sum(row["score"] for row in active) / len(active)) if active else 0
+
+    if not active:
+        status = "Too random to train efficiently"
+    elif overall_score >= 82:
+        status = "Simple and focused"
+    elif overall_score >= 65:
+        status = "Mostly focused"
+    elif overall_score >= 45:
+        status = "Fragmented"
+    else:
+        status = "Too random to train efficiently"
+
+    messy = [row for row in lane_rows if row["status"] in {"Fragmented", "Too random to train efficiently"} and row["totalGames"] > 0]
+    if messy:
+        advice = f"Simplify {messy[0]['label']} first: {messy[0]['advice']}"
+    elif active:
+        advice = "Your repertoire is trainable. Keep adding games to the same core systems before expanding."
+    else:
+        advice = "Collect a few more games before judging repertoire coherence."
+
+    return {
+        "status": status,
+        "score": overall_score,
+        "lanes": lane_rows,
+        "rows": lane_rows,
+        "advice": advice,
+        "summary": f"Repertoire coherence: {status} ({overall_score}/100).",
+    }
+
+
 def sanitise_recommendation_sections(sections: Dict[str, Any]) -> Dict[str, Any]:
     primary_keys = ["white_repertoire", "black_vs_e4", "black_vs_d4", "black_vs_other"]
     seen: Dict[str, Dict[str, Any]] = {}
@@ -2631,6 +2753,7 @@ def build_next_training_actions(
     coverage: Dict[str, Any],
     problem_lines: List[Dict[str, Any]],
     rating: Optional[int] = None,
+    coherence: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     band = rating_band(rating)
     actions: List[str] = []
@@ -2647,6 +2770,9 @@ def build_next_training_actions(
     missing = coverage.get("missing") or []
     if missing:
         actions.append(f"Choose one plan for {missing[0]} because the current games do not show stable coverage there.")
+
+    if coherence and coherence.get("status") in {"Fragmented", "Too random to train efficiently"}:
+        actions.append(str(coherence.get("advice") or "Simplify the repertoire before adding new openings."))
 
     if band == "under_1000":
         actions.append("Use simple development plans and avoid adding theory-heavy openings until the sample is stable.")
@@ -3762,6 +3888,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     opening_phase_habits = build_opening_phase_habits(recent_games)
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
+    repertoire_coherence = build_repertoire_coherence(best_openings)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, None)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
@@ -3788,6 +3915,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         repertoire_coverage,
         problem_lines,
         None,
+        repertoire_coherence,
     )
     training_plan = next_training_actions
     if next_training_actions:
@@ -3883,6 +4011,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "styleOpeningMatch": style_opening_match,
         "repertoire_coverage": repertoire_coverage,
         "repertoireCoverage": repertoire_coverage,
+        "repertoire_coherence": repertoire_coherence,
+        "repertoireCoherence": repertoire_coherence,
         "next_training_actions": next_training_actions,
         "nextTrainingActions": next_training_actions,
         "recommended_action": recommended_action,
@@ -4229,6 +4359,7 @@ def build_lichess_analysis(
     opening_phase_habits = build_opening_phase_habits(recent_games)
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
+    repertoire_coherence = build_repertoire_coherence(best_openings)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, current_rating)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
@@ -4255,6 +4386,7 @@ def build_lichess_analysis(
         repertoire_coverage,
         problem_lines,
         current_rating,
+        repertoire_coherence,
     )
     training_plan = next_training_actions
     if next_training_actions:
@@ -4363,6 +4495,8 @@ def build_lichess_analysis(
         "styleOpeningMatch": style_opening_match,
         "repertoire_coverage": repertoire_coverage,
         "repertoireCoverage": repertoire_coverage,
+        "repertoire_coherence": repertoire_coherence,
+        "repertoireCoherence": repertoire_coherence,
         "next_training_actions": next_training_actions,
         "nextTrainingActions": next_training_actions,
         "recommended_action": recommended_action,
