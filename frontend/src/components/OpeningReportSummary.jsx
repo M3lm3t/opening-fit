@@ -186,6 +186,26 @@ function getRatingBandBenchmark(data) {
   return benchmark;
 }
 
+function getOpeningRoi(data) {
+  const roi = data?.openingROI || data?.openingRoi || data?.opening_roi || null;
+  if (!roi || typeof roi !== "object") return null;
+  const items = Array.isArray(roi.topItems || roi.top_items)
+    ? (roi.topItems || roi.top_items)
+    : Array.isArray(roi.items)
+      ? roi.items.slice(0, 3)
+      : [];
+  if (!items.length) return null;
+  return { ...roi, items: items.slice(0, 3) };
+}
+
+function getEngineOpeningValidation(data) {
+  const validation = data?.engineOpeningValidation || data?.engine_opening_validation || null;
+  if (!validation || typeof validation !== "object") return null;
+  const items = Array.isArray(validation.items) ? validation.items.slice(0, 3) : [];
+  if (!validation.available || !items.length) return null;
+  return { ...validation, items };
+}
+
 function collectOpenings(data) {
   const candidates = [
     data?.topOpenings,
@@ -457,6 +477,8 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const repertoireCoherence = getRepertoireCoherence(data);
   const progressComparison = getProgressComparison(data);
   const ratingBandBenchmark = getRatingBandBenchmark(data);
+  const openingRoi = getOpeningRoi(data);
+  const engineOpeningValidation = getEngineOpeningValidation(data);
 
   return (
     <section className="openingReportShell">
@@ -661,6 +683,40 @@ export default function OpeningReportSummary({ data, username, platform }) {
             <small>{ratingBandBenchmark.feedback[0]}</small>
           ) : null}
           <small>{ratingBandBenchmark.caution || "This is a practical benchmark, not an exact rating model."}</small>
+        </div>
+      ) : null}
+
+      {openingRoi ? (
+        <div className="openingReportRoi">
+          <strong>Opening ROI priorities</strong>
+          <span>{openingRoi.summary || "These openings are most likely to reward study time."}</span>
+          <ul>
+            {openingRoi.items.map((item) => (
+              <li key={`${item.name || item.opening}-${item.context || ""}`}>
+                <span>{item.category || item.roiCategory || item.roi_category}: {item.name || item.opening}</span>
+                <em>{item.roiScore ?? item.roi_score ?? item.score}/100</em>
+                <small>{item.advice || item.summary}</small>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {engineOpeningValidation ? (
+        <div className="openingReportEngineValidation">
+          <strong>Optional engine validation</strong>
+          <span>{engineOpeningValidation.summary}</span>
+          <ul>
+            {engineOpeningValidation.items.map((item) => (
+              <li key={`${item.opening}-${item.line}`}>
+                <span>{item.opening}: {item.status}</span>
+                {item.firstMajorDrop || item.first_major_drop ? (
+                  <em>{(item.firstMajorDrop || item.first_major_drop).copy}</em>
+                ) : null}
+                <small>{item.summary}</small>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 

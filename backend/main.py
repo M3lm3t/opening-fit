@@ -23,11 +23,15 @@ from dotenv import load_dotenv
 import re
 import json
 import math
+import hashlib
+import shutil
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from uuid import UUID
 
 import requests
+import chess
+import chess.engine
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -124,6 +128,7 @@ LICHESS_HEADERS = {
 DATA_DIR = Path("data")
 PROFILES_DIR = DATA_DIR / "profiles"
 ANALYTICS_FILE = DATA_DIR / "analytics.jsonl"
+ENGINE_CACHE_FILE = DATA_DIR / "engine_validation_cache.json"
 
 DATA_DIR.mkdir(exist_ok=True)
 PROFILES_DIR.mkdir(exist_ok=True)
@@ -2159,6 +2164,193 @@ def line_key_from_pgn(pgn: str, plies: int = 8) -> str:
     return " ".join(move.rstrip("+#?!") for move in moves[:plies])
 
 
+def load_engine_cache() -> Dict[str, Any]:
+    if not ENGINE_CACHE_FILE.exists():
+        return {}
+    try:
+        data = json.loads(ENGINE_CACHE_FILE.read_text())
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def save_engine_cache(cache: Dict[str, Any]) -> None:
+    try:
+        ENGINE_CACHE_FILE.write_text(json.dumps(cache, indent=2))
+    except Exception:
+        pass
+
+
+def stockfish_path() -> Optional[str]:
+    configured = os.getenv("OPENINGFIT_STOCKFISH_PATH", "").strip()
+    if configured and Path(configured).exists():
+        return configured
+    return shutil.which("stockfish") or shutil.which("/usr/games/stockfish")
+
+
+def stockfish_validation_enabled() -> bool:
+    flag = os.getenv("OPENINGFIT_ENABLE_STOCKFISH", "1").strip().lower()
+    return flag not in {"0", "false", "no", "off"}
+
+
+def moves_to_board_at_ply(moves: List[str], ply: int) -> Optional[chess.Board]:
+    board = chess.Board()
+    for move in moves[:ply]:
+        try:
+            board.push_san(clean_san_move(move))
+        except Exception:
+            return None
+    return board
+
+
+def engine_score_cp(info: Dict[str, Any], colour: chess.Color) -> Optional[int]:
+    score = info.get("score") if isinstance(info, dict) else None
+    if not score:
+        return None
+    try:
+        return score.pov(colour).score(mate_score=10000)
+    except Exception:
+        return None
+
+
+def engine_verdict(cp: Optional[int]) -> str:
+    if cp is None:
+        return "unknown"
+    if cp <= -250:
+        return "opening position losing/serious issue"
+    if cp <= -90:
+        return "opening position slightly worse"
+    return "opening position acceptable"
+
+
+def line_user_colour(context: str) -> chess.Color:
+    return chess.WHITE if context == "played_as_white" else chess.BLACK
+
+
+def validate_problem_lines_with_stockfish(problem_lines: List[Dict[str, Any]], max_lines: int = 2) -> Dict[str, Any]:
+    if not problem_lines:
+        return {
+            "enabled": False,
+            "available": False,
+            "status": "no_problem_lines",
+            "summary": "No repeated problem lines needed engine validation.",
+            "items": [],
+        }
+    if not stockfish_validation_enabled():
+        return {
+            "enabled": False,
+            "available": False,
+            "status": "disabled",
+            "summary": "Stockfish validation is optional and currently disabled.",
+            "items": [],
+        }
+
+    path = stockfish_path()
+    if not path:
+        return {
+            "enabled": True,
+            "available": False,
+            "status": "engine_unavailable",
+            "summary": "Stockfish validation was skipped because no engine binary was found.",
+            "items": [],
+        }
+
+    cache = load_engine_cache()
+    items = []
+    changed = False
+    engine = None
+
+    try:
+        engine = chess.engine.SimpleEngine.popen_uci(path)
+        for line in problem_lines[:max_lines]:
+            moves = line.get("sampleMoves") or line.get("sample_moves") or []
+            if not moves:
+                moves = clean_moves_from_pgn(str(line.get("samplePgn") or line.get("sample_pgn") or ""))
+            if not moves:
+                continue
+            checkpoints = [ply for ply in [8, 12, 16] if len(moves) >= ply]
+            if not checkpoints:
+                continue
+
+            cache_key = hashlib.sha256(
+                json.dumps({"moves": moves[:16], "checkpoints": checkpoints, "context": line.get("context")}, sort_keys=True).encode()
+            ).hexdigest()
+            if cache_key in cache:
+                items.append(cache[cache_key])
+                continue
+
+            colour = line_user_colour(str(line.get("context") or ""))
+            evaluations = []
+            previous_cp = None
+            first_drop = None
+            for ply in checkpoints:
+                board = moves_to_board_at_ply(moves, ply)
+                if not board:
+                    continue
+                info = engine.analyse(board, chess.engine.Limit(time=0.04))
+                cp = engine_score_cp(info, colour)
+                evaluation = {
+                    "ply": ply,
+                    "moveNumber": math.ceil(ply / 2),
+                    "fen": board.fen(),
+                    "cp": cp,
+                    "verdict": engine_verdict(cp),
+                }
+                evaluations.append(evaluation)
+                if previous_cp is not None and cp is not None and cp <= previous_cp - 120 and first_drop is None:
+                    first_drop = {
+                        "fromPly": evaluations[-2]["ply"],
+                        "toPly": ply,
+                        "dropCp": previous_cp - cp,
+                        "copy": f"First major evaluation drop appears around move {math.ceil(ply / 2)}.",
+                    }
+                if cp is not None:
+                    previous_cp = cp
+
+            if not evaluations:
+                continue
+            worst = min((item for item in evaluations if item.get("cp") is not None), key=lambda item: item["cp"], default=evaluations[-1])
+            result = {
+                "opening": line.get("opening") or line.get("name"),
+                "line": line.get("line"),
+                "context": line.get("context"),
+                "contextLabel": line.get("contextLabel") or context_label(str(line.get("context") or "")),
+                "status": worst.get("verdict", "unknown"),
+                "evaluations": evaluations,
+                "firstMajorDrop": first_drop,
+                "first_major_drop": first_drop,
+                "cached": False,
+                "summary": f"{line.get('opening') or 'This line'}: Stockfish says the sampled opening position is {worst.get('verdict', 'unknown')}.",
+            }
+            cache[cache_key] = {**result, "cached": True}
+            changed = True
+            items.append(result)
+    except Exception as exc:
+        return {
+            "enabled": True,
+            "available": False,
+            "status": "engine_error",
+            "summary": f"Stockfish validation was skipped after an engine error: {exc}",
+            "items": items,
+        }
+    finally:
+        if engine:
+            try:
+                engine.quit()
+            except Exception:
+                pass
+        if changed:
+            save_engine_cache(cache)
+
+    return {
+        "enabled": True,
+        "available": True,
+        "status": "completed" if items else "no_usable_samples",
+        "summary": "Stockfish checked only repeated problem-line samples at moves 8, 12, and 16.",
+        "items": items,
+    }
+
+
 def build_problem_lines(games: List[Dict[str, Any]], min_games: int = 3) -> List[Dict[str, Any]]:
     grouped: Dict[str, Dict[str, Any]] = {}
 
@@ -2182,6 +2374,10 @@ def build_problem_lines(games: List[Dict[str, Any]], min_games: int = 3) -> List
                 "wins": 0,
                 "draws": 0,
                 "losses": 0,
+                "samplePgn": str(game.get("pgn") or ""),
+                "sample_pgn": str(game.get("pgn") or ""),
+                "sampleMoves": clean_moves_from_pgn(str(game.get("pgn") or ""))[:20],
+                "sample_moves": clean_moves_from_pgn(str(game.get("pgn") or ""))[:20],
             },
         )
         row["games"] += 1
@@ -3872,6 +4068,124 @@ def build_study_queue(
     return deduped
 
 
+def roi_category(score: int, games: int) -> str:
+    if games < 3:
+        return "Ignore for now"
+    if score >= 72:
+        return "High ROI"
+    if score >= 48:
+        return "Medium ROI"
+    if score >= 25:
+        return "Low ROI"
+    return "Ignore for now"
+
+
+def build_opening_roi(
+    best_openings: List[Dict[str, Any]],
+    problem_lines: List[Dict[str, Any]],
+    opening_phase_habits: List[Dict[str, Any]],
+    coverage: Dict[str, Any],
+    total_games: int,
+) -> Dict[str, Any]:
+    problem_by_opening = defaultdict(list)
+    for line in problem_lines or []:
+        problem_by_opening[normalise_opening_key(str(line.get("opening") or line.get("name") or ""))].append(line)
+
+    habit_by_opening = defaultdict(list)
+    for habit in opening_phase_habits or []:
+        habit_by_opening[normalise_opening_key(str(habit.get("opening") or habit.get("name") or ""))].append(habit)
+
+    gap_openings = {
+        normalise_opening_key(str(row.get("opening") or "")): row
+        for row in (coverage or {}).get("white", []) + (coverage or {}).get("black", [])
+        if row.get("opening") and row.get("status") in {"Needs work", "No clear plan", "Too little data"}
+    }
+
+    items = []
+    total = max(1, int(total_games or 0))
+    for opening in best_openings or []:
+        name = str(opening.get("name") or "")
+        if not name or is_unknown_opening_name(name):
+            continue
+        games = int(opening.get("games", 0) or 0)
+        if games <= 0:
+            continue
+        key = normalise_opening_key(name)
+        score_pct = float(opening.get("openingAdjustedScore", opening.get("winRate", opening.get("win_rate", 50))) or 50)
+        sample_pct = round((games / total) * 100, 1)
+        frequency_score = min(35, round(sample_pct * 1.5))
+        weakness_score = max(0, min(25, round((55 - score_pct) * 0.8)))
+        sample_score = 0 if games < 3 else min(15, games)
+        fixable_score = 0
+        reasons = []
+        if problem_by_opening.get(key):
+            fixable_score += 18
+            reasons.append("repeated problem line")
+        if habit_by_opening.get(key):
+            fixable_score += 10
+            reasons.append("repeated opening habit")
+        if str(opening.get("moveOrderStatus") or "").lower() in {"unstable", "some variation"}:
+            fixable_score += 8
+            reasons.append("move-order inconsistency")
+        coverage_score = 0
+        if key in gap_openings:
+            coverage_score = 12
+            reasons.append("repertoire coverage gap")
+        elif is_clean_repertoire_context(opening):
+            coverage_score = 6
+            reasons.append("main repertoire area")
+        if games < 3:
+            score = min(20, frequency_score + weakness_score)
+            reasons = ["sample too small"]
+        else:
+            score = min(100, frequency_score + weakness_score + sample_score + min(25, fixable_score) + coverage_score)
+
+        category = roi_category(score, games)
+        if category == "High ROI":
+            advice = f"Study {name} first: it appears often enough and has a repeated, fixable issue."
+        elif category == "Medium ROI":
+            advice = f"Review {name} after the highest-impact issue; the sample is useful but not the only priority."
+        elif category == "Low ROI":
+            advice = f"Keep {name} on the watch list, but do not let it crowd out higher-impact openings."
+        else:
+            advice = f"Do not spend study time on {name} yet; the sample is too small or low impact."
+
+        items.append(
+            {
+                "name": name,
+                "opening": name,
+                "context": opening.get("context"),
+                "contextLabel": opening.get("contextLabel") or context_label(str(opening.get("context") or "")),
+                "games": games,
+                "samplePercentage": sample_pct,
+                "sample_percentage": sample_pct,
+                "score": score,
+                "roiScore": score,
+                "roi_score": score,
+                "category": category,
+                "roiCategory": category,
+                "roi_category": category,
+                "reasons": reasons[:4],
+                "advice": advice,
+                "summary": (
+                    f"{category}: {name}. It appears in {sample_pct}% of analysed games"
+                    f"{' and has ' + ', '.join(reasons[:2]) if reasons else ''}."
+                ),
+            }
+        )
+
+    items.sort(key=lambda item: (item["category"] != "Ignore for now", item["score"], item["games"]), reverse=True)
+    top = [item for item in items if item["category"] in {"High ROI", "Medium ROI"}][:3]
+    if not top:
+        top = items[:3]
+    return {
+        "summary": "Opening ROI prioritises the openings most likely to reward study time.",
+        "topItems": top,
+        "top_items": top,
+        "items": items,
+    }
+
+
 def weighted_score(items: List[Dict[str, Any]]) -> Optional[float]:
     total_games = sum(int(item.get("games", 0) or 0) for item in items)
     if total_games <= 0:
@@ -4965,10 +5279,18 @@ def import_chesscom_logic(username: str, months: int = 3):
     top_openings = sort_openings_for_recommendation(apply_opening_risk_profiles(top_openings, None))
     opening_recommendations = build_colour_aware_recommendations(context_opening_results, rating=None)
     problem_lines = build_problem_lines(recent_games)
+    engine_opening_validation = validate_problem_lines_with_stockfish(problem_lines)
     opening_phase_habits = build_opening_phase_habits(recent_games)
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
     repertoire_coherence = build_repertoire_coherence(best_openings)
+    opening_roi = build_opening_roi(
+        best_openings,
+        problem_lines,
+        opening_phase_habits,
+        repertoire_coverage,
+        len(analysed_games),
+    )
     rating_band_benchmark = build_rating_band_benchmark(None, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, None)
     opening_fit_profile = build_opening_fit_profile(
@@ -5092,6 +5414,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "recommendedOpenings": opening_recommendations,
         "problem_lines": problem_lines,
         "problemLines": problem_lines,
+        "engine_opening_validation": engine_opening_validation,
+        "engineOpeningValidation": engine_opening_validation,
         "opening_phase_habits": opening_phase_habits,
         "openingPhaseHabits": opening_phase_habits,
         "opponent_response_report": opponent_response_report,
@@ -5102,6 +5426,9 @@ def import_chesscom_logic(username: str, months: int = 3):
         "repertoireCoverage": repertoire_coverage,
         "repertoire_coherence": repertoire_coherence,
         "repertoireCoherence": repertoire_coherence,
+        "opening_roi": opening_roi,
+        "openingRoi": opening_roi,
+        "openingROI": opening_roi,
         "rating_band_benchmark": rating_band_benchmark,
         "ratingBandBenchmark": rating_band_benchmark,
         "next_training_actions": next_training_actions,
@@ -5457,10 +5784,18 @@ def build_lichess_analysis(
     top_openings = sort_openings_for_recommendation(apply_opening_risk_profiles(top_openings, current_rating))
     opening_recommendations = build_colour_aware_recommendations(context_opening_results, rating=current_rating)
     problem_lines = build_problem_lines(recent_games)
+    engine_opening_validation = validate_problem_lines_with_stockfish(problem_lines)
     opening_phase_habits = build_opening_phase_habits(recent_games)
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
     repertoire_coherence = build_repertoire_coherence(best_openings)
+    opening_roi = build_opening_roi(
+        best_openings,
+        problem_lines,
+        opening_phase_habits,
+        repertoire_coverage,
+        len(games),
+    )
     rating_band_benchmark = build_rating_band_benchmark(current_rating, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, current_rating)
     opening_fit_profile = build_opening_fit_profile(
@@ -5597,6 +5932,8 @@ def build_lichess_analysis(
         "recommendedOpenings": opening_recommendations,
         "problem_lines": problem_lines,
         "problemLines": problem_lines,
+        "engine_opening_validation": engine_opening_validation,
+        "engineOpeningValidation": engine_opening_validation,
         "opening_phase_habits": opening_phase_habits,
         "openingPhaseHabits": opening_phase_habits,
         "opponent_response_report": opponent_response_report,
@@ -5607,6 +5944,9 @@ def build_lichess_analysis(
         "repertoireCoverage": repertoire_coverage,
         "repertoire_coherence": repertoire_coherence,
         "repertoireCoherence": repertoire_coherence,
+        "opening_roi": opening_roi,
+        "openingRoi": opening_roi,
+        "openingROI": opening_roi,
         "rating_band_benchmark": rating_band_benchmark,
         "ratingBandBenchmark": rating_band_benchmark,
         "next_training_actions": next_training_actions,

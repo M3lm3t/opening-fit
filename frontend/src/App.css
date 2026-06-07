@@ -14550,6 +14550,8 @@ main > section,
 .openingReportCoherence ul,
 .openingReportProgress ul,
 .openingReportBenchmark ul,
+.openingReportRoi ul,
+.openingReportEngineValidation ul,
 .openingReportHabits ul {
   display: grid;
   gap: 8px;
@@ -14569,6 +14571,8 @@ main > section,
 .light .openingReportCoherence ul,
 .light .openingReportProgress ul,
 .light .openingReportBenchmark ul,
+.light .openingReportRoi ul,
+.light .openingReportEngineValidation ul,
 .light .openingReportHabits ul,
 [data-theme="light"] .openingReportActionList,
 [data-theme="light"] .openingReportProblemList,
@@ -14579,6 +14583,8 @@ main > section,
 [data-theme="light"] .openingReportCoherence ul,
 [data-theme="light"] .openingReportProgress ul,
 [data-theme="light"] .openingReportBenchmark ul,
+[data-theme="light"] .openingReportRoi ul,
+[data-theme="light"] .openingReportEngineValidation ul,
 [data-theme="light"] .openingReportHabits ul {
   color: #475569;
 }
@@ -14591,6 +14597,8 @@ main > section,
 .openingReportCoherence li,
 .openingReportProgress li,
 .openingReportBenchmark li,
+.openingReportRoi li,
+.openingReportEngineValidation li,
 .openingReportHabits li {
   min-width: 0;
 }
@@ -14617,6 +14625,12 @@ main > section,
 .openingReportBenchmark span,
 .openingReportBenchmark em,
 .openingReportBenchmark small,
+.openingReportRoi span,
+.openingReportRoi em,
+.openingReportRoi small,
+.openingReportEngineValidation span,
+.openingReportEngineValidation em,
+.openingReportEngineValidation small,
 .openingReportHabits span,
 .openingReportHabits small {
   display: block;
@@ -14630,6 +14644,8 @@ main > section,
 .openingReportCoherence small,
 .openingReportProgress small,
 .openingReportBenchmark small,
+.openingReportRoi small,
+.openingReportEngineValidation small,
 .openingReportHabits small {
   margin-top: 3px;
   color: rgba(226, 232, 240, 0.54);
@@ -14645,6 +14661,8 @@ main > section,
 .light .openingReportCoherence small,
 .light .openingReportProgress small,
 .light .openingReportBenchmark small,
+.light .openingReportRoi small,
+.light .openingReportEngineValidation small,
 .light .openingReportHabits small,
 [data-theme="light"] .openingReportProblemList small,
 [data-theme="light"] .openingReportStudyQueue small,
@@ -14654,6 +14672,8 @@ main > section,
 [data-theme="light"] .openingReportCoherence small,
 [data-theme="light"] .openingReportProgress small,
 [data-theme="light"] .openingReportBenchmark small,
+[data-theme="light"] .openingReportRoi small,
+[data-theme="light"] .openingReportEngineValidation small,
 [data-theme="light"] .openingReportHabits small {
   color: #64748b;
 }
@@ -14683,7 +14703,9 @@ main > section,
 .openingReportStyleFits,
 .openingReportCoherence,
 .openingReportProgress,
-.openingReportBenchmark {
+.openingReportBenchmark,
+.openingReportRoi,
+.openingReportEngineValidation {
   margin-top: 16px;
   padding: 15px;
   border-radius: 22px;
@@ -14695,10 +14717,14 @@ main > section,
 .light .openingReportCoherence,
 .light .openingReportProgress,
 .light .openingReportBenchmark,
+.light .openingReportRoi,
+.light .openingReportEngineValidation,
 [data-theme="light"] .openingReportStyleFits,
 [data-theme="light"] .openingReportCoherence,
 [data-theme="light"] .openingReportProgress,
-[data-theme="light"] .openingReportBenchmark {
+[data-theme="light"] .openingReportBenchmark,
+[data-theme="light"] .openingReportRoi,
+[data-theme="light"] .openingReportEngineValidation {
   background: rgba(15, 23, 42, 0.035);
   border-color: rgba(15, 23, 42, 0.06);
 }
@@ -14706,7 +14732,9 @@ main > section,
 .openingReportStyleFits > strong,
 .openingReportCoherence > strong,
 .openingReportProgress > strong,
-.openingReportBenchmark > strong {
+.openingReportBenchmark > strong,
+.openingReportRoi > strong,
+.openingReportEngineValidation > strong {
   display: block;
   font-size: 0.95rem;
 }
@@ -14714,7 +14742,9 @@ main > section,
 .openingReportStyleFits em,
 .openingReportCoherence em,
 .openingReportProgress em,
-.openingReportBenchmark em {
+.openingReportBenchmark em,
+.openingReportRoi em,
+.openingReportEngineValidation em {
   color: rgba(226, 232, 240, 0.78);
   font-style: normal;
   line-height: 1.4;
@@ -14724,16 +14754,22 @@ main > section,
 .light .openingReportCoherence em,
 .light .openingReportProgress em,
 .light .openingReportBenchmark em,
+.light .openingReportRoi em,
+.light .openingReportEngineValidation em,
 [data-theme="light"] .openingReportStyleFits em,
 [data-theme="light"] .openingReportCoherence em,
 [data-theme="light"] .openingReportProgress em,
-[data-theme="light"] .openingReportBenchmark em {
+[data-theme="light"] .openingReportBenchmark em,
+[data-theme="light"] .openingReportRoi em,
+[data-theme="light"] .openingReportEngineValidation em {
   color: #475569;
 }
 
 .openingReportCoherence > span,
 .openingReportProgress > span,
-.openingReportBenchmark > span {
+.openingReportBenchmark > span,
+.openingReportRoi > span,
+.openingReportEngineValidation > span {
   display: block;
   margin-top: 8px;
   color: rgba(226, 232, 240, 0.64);
@@ -14744,9 +14780,13 @@ main > section,
 .light .openingReportCoherence > span,
 .light .openingReportProgress > span,
 .light .openingReportBenchmark > span,
+.light .openingReportRoi > span,
+.light .openingReportEngineValidation > span,
 [data-theme="light"] .openingReportCoherence > span,
 [data-theme="light"] .openingReportProgress > span,
-[data-theme="light"] .openingReportBenchmark > span {
+[data-theme="light"] .openingReportBenchmark > span,
+[data-theme="light"] .openingReportRoi > span,
+[data-theme="light"] .openingReportEngineValidation > span {
   color: #64748b;
 }
 
