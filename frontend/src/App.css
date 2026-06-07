@@ -14543,7 +14543,8 @@ main > section,
 
 .openingReportActionList,
 .openingReportProblemList,
-.openingReportCoverage ul {
+.openingReportCoverage ul,
+.openingReportHabits ul {
   display: grid;
   gap: 8px;
   margin: 8px 0 0;
@@ -14556,14 +14557,17 @@ main > section,
 .light .openingReportActionList,
 .light .openingReportProblemList,
 .light .openingReportCoverage ul,
+.light .openingReportHabits ul,
 [data-theme="light"] .openingReportActionList,
 [data-theme="light"] .openingReportProblemList,
-[data-theme="light"] .openingReportCoverage ul {
+[data-theme="light"] .openingReportCoverage ul,
+[data-theme="light"] .openingReportHabits ul {
   color: #475569;
 }
 
 .openingReportProblemList li,
-.openingReportCoverage li {
+.openingReportCoverage li,
+.openingReportHabits li {
   min-width: 0;
 }
 
@@ -14571,12 +14575,15 @@ main > section,
 .openingReportProblemList small,
 .openingReportCoverage span,
 .openingReportCoverage em,
-.openingReportCoverage small {
+.openingReportCoverage small,
+.openingReportHabits span,
+.openingReportHabits small {
   display: block;
 }
 
 .openingReportProblemList small,
-.openingReportCoverage small {
+.openingReportCoverage small,
+.openingReportHabits small {
   margin-top: 3px;
   color: rgba(226, 232, 240, 0.54);
   font-size: 0.78rem;
@@ -14585,8 +14592,10 @@ main > section,
 
 .light .openingReportProblemList small,
 .light .openingReportCoverage small,
+.light .openingReportHabits small,
 [data-theme="light"] .openingReportProblemList small,
-[data-theme="light"] .openingReportCoverage small {
+[data-theme="light"] .openingReportCoverage small,
+[data-theme="light"] .openingReportHabits small {
   color: #64748b;
 }
 
@@ -14632,6 +14641,38 @@ main > section,
 [data-theme="light"] .openingReportCoverage em {
   color: #475569;
   background: rgba(15, 23, 42, 0.055);
+}
+
+.openingReportHabits {
+  margin-top: 16px;
+  padding: 15px;
+  border-radius: 22px;
+  background: rgba(2, 6, 23, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.light .openingReportHabits,
+[data-theme="light"] .openingReportHabits {
+  background: rgba(15, 23, 42, 0.035);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+.openingReportHabits > strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.openingReportHabits > span {
+  display: block;
+  margin-top: 8px;
+  color: rgba(226, 232, 240, 0.64);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.light .openingReportHabits > span,
+[data-theme="light"] .openingReportHabits > span {
+  color: #64748b;
 }
 
 @media (max-width: 900px) {

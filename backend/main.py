@@ -1630,6 +1630,249 @@ def build_problem_lines(games: List[Dict[str, Any]], min_games: int = 3) -> List
     return problem_lines[:6]
 
 
+def clean_san_move(move: str) -> str:
+    cleaned = str(move or "").strip()
+    cleaned = re.sub(r"^[0-9]+\.(\.\.)?", "", cleaned)
+    cleaned = cleaned.replace("+", "").replace("#", "")
+    cleaned = cleaned.replace("!", "").replace("?", "")
+    return cleaned.strip()
+
+
+def own_opening_moves(game: Dict[str, Any], plies: int = 20) -> List[Dict[str, Any]]:
+    moves = game.get("moves")
+    if isinstance(moves, list) and moves:
+        all_moves = [clean_san_move(move) for move in moves]
+    else:
+        all_moves = [clean_san_move(move) for move in clean_moves_from_pgn(str(game.get("pgn") or ""))]
+
+    colour = str(game.get("colour") or game.get("color") or "").lower()
+    if colour not in {"white", "black"}:
+        return []
+
+    own_parity = 0 if colour == "white" else 1
+    own_moves = []
+    for index, move in enumerate(all_moves[:plies]):
+        if index % 2 != own_parity or not move:
+            continue
+        own_moves.append(
+            {
+                "san": move,
+                "ply": index + 1,
+                "moveNumber": (index // 2) + 1,
+            }
+        )
+    return own_moves
+
+
+def is_castle_move(move: str) -> bool:
+    return move in {"O-O", "O-O-O", "0-0", "0-0-0"}
+
+
+def is_pawn_move(move: str) -> bool:
+    return bool(move) and move[0].islower()
+
+
+def is_flank_pawn_move(move: str) -> bool:
+    return bool(re.match(r"^[abgh](?:x[a-h])?[1-8]", move))
+
+
+def opening_phase_issues_for_game(game: Dict[str, Any]) -> List[Dict[str, str]]:
+    own_moves = own_opening_moves(game)
+    if not own_moves:
+        return []
+
+    castled_move = next((move for move in own_moves if is_castle_move(move["san"])), None)
+    queen_moves = [move for move in own_moves if move["san"].startswith("Q")]
+    minor_moves_by_move_8 = [
+        move for move in own_moves
+        if move["moveNumber"] <= 8 and move["san"][:1] in {"N", "B"}
+    ]
+    minor_moves_by_move_10 = [
+        move for move in own_moves
+        if move["moveNumber"] <= 10 and move["san"][:1] in {"N", "B"}
+    ]
+    pawn_moves_by_move_8 = [
+        move for move in own_moves
+        if move["moveNumber"] <= 8 and is_pawn_move(move["san"])
+    ]
+    early_flank_pawns = [
+        move for move in pawn_moves_by_move_8
+        if is_flank_pawn_move(move["san"]) and len(minor_moves_by_move_8) < 2
+    ]
+    king_moves = [
+        move for move in own_moves
+        if move["san"].startswith("K") and not is_castle_move(move["san"])
+    ]
+    early_rook_moves = [
+        move for move in own_moves
+        if move["moveNumber"] <= 8 and move["san"].startswith("R")
+    ]
+
+    piece_counts: Dict[str, int] = defaultdict(int)
+    repeated_piece_symbol = ""
+    for move in own_moves:
+        symbol = move["san"][:1]
+        if symbol in {"Q", "R", "B", "N"}:
+            piece_counts[symbol] += 1
+            if piece_counts[symbol] >= 3 and not repeated_piece_symbol:
+                repeated_piece_symbol = symbol
+
+    issues = []
+
+    def add_issue(issue: str, label: str, advice: str) -> None:
+        issues.append({"issue": issue, "label": label, "advice": advice})
+
+    if not castled_move:
+        add_issue(
+            "castled_late_or_never",
+            "Castling was delayed or missing",
+            "Castle earlier when the centre can open, especially before launching extra pawn moves.",
+        )
+    elif castled_move["moveNumber"] > 8:
+        add_issue(
+            "castled_late_or_never",
+            "Castling often happens late",
+            "Try to finish kingside development and castle before move 8 in this opening.",
+        )
+
+    if queen_moves and queen_moves[0]["moveNumber"] <= 5:
+        add_issue(
+            "queen_moved_too_early",
+            "Queen moved too early",
+            "Develop minor pieces first unless the queen move wins something concrete.",
+        )
+    if len(queen_moves) >= 2 and queen_moves[1]["moveNumber"] <= 8:
+        add_issue(
+            "queen_moved_multiple_times",
+            "Queen moved multiple times before move 8",
+            "Avoid spending several opening tempi on the queen while pieces are still undeveloped.",
+        )
+
+    if repeated_piece_symbol:
+        piece_name = {"Q": "queen", "R": "rook", "B": "bishop", "N": "knight"}.get(repeated_piece_symbol, "piece")
+        add_issue(
+            "same_piece_repeated",
+            "Same piece moved repeatedly",
+            f"The {piece_name} moved several times early; use those tempi to bring new pieces out.",
+        )
+
+    if len(minor_moves_by_move_10) < 2:
+        add_issue(
+            "minor_pieces_undeveloped",
+            "Minor pieces still undeveloped by move 10",
+            "Aim to develop at least two knights or bishops before starting side plans.",
+        )
+
+    if early_flank_pawns:
+        add_issue(
+            "early_flank_pawn_pushes",
+            "Flank pawns moved before development",
+            "Save wing pawn moves until your centre, minor pieces, and king safety are under control.",
+        )
+
+    if king_moves:
+        add_issue(
+            "lost_castling_rights_early",
+            "Castling rights were lost early",
+            "Avoid early king moves unless forced; they leave the king in the centre and cost time.",
+        )
+
+    if king_moves or not castled_move:
+        add_issue(
+            "king_stuck_in_centre",
+            "King stayed in the centre",
+            "Make king safety part of the opening plan, not something to fix after tactics start.",
+        )
+
+    if early_rook_moves:
+        add_issue(
+            "lost_castling_rights_early",
+            "A rook moved before development",
+            "Early rook moves can spoil castling plans; develop pieces first unless there is a clear tactic.",
+        )
+
+    if len(pawn_moves_by_move_8) >= 5 and len(minor_moves_by_move_8) < 2:
+        add_issue(
+            "too_many_pawn_moves",
+            "Too many pawn moves before development",
+            "Use fewer pawn moves in the first 8 moves and bring pieces toward the centre.",
+        )
+
+    unique: Dict[str, Dict[str, str]] = {}
+    for issue in issues:
+        unique.setdefault(issue["issue"], issue)
+    return list(unique.values())
+
+
+def build_opening_phase_habits(games: List[Dict[str, Any]], min_games: int = 2) -> List[Dict[str, Any]]:
+    grouped: Dict[str, Dict[str, Any]] = {}
+
+    for game in games or []:
+        opening = str(game.get("opening") or game.get("name") or "").strip()
+        if not opening or is_unknown_opening_name(opening):
+            continue
+        context = str(game.get("context") or game.get("repertoireContext") or "unknown_mixed")
+        result = str(game.get("result") or "").lower()
+        issues = opening_phase_issues_for_game(game)
+        if not issues:
+            continue
+
+        for issue in issues:
+            key = f"{opening}::{context}::{issue['issue']}"
+            row = grouped.setdefault(
+                key,
+                {
+                    "opening": opening,
+                    "name": opening,
+                    "context": context,
+                    "contextLabel": context_label(context),
+                    "issue": issue["issue"],
+                    "label": issue["label"],
+                    "advice": issue["advice"],
+                    "games": 0,
+                    "wins": 0,
+                    "draws": 0,
+                    "losses": 0,
+                },
+            )
+            row["games"] += 1
+            if result == "win":
+                row["wins"] += 1
+            elif result == "draw":
+                row["draws"] += 1
+            elif result == "loss":
+                row["losses"] += 1
+
+    habits = []
+    for row in grouped.values():
+        games_count = int(row["games"])
+        if games_count < min_games:
+            continue
+        score = round(((row["wins"] + 0.5 * row["draws"]) / games_count) * 100, 1)
+        loss_rate = round((row["losses"] / games_count) * 100, 1)
+        row["score"] = score
+        row["scorePct"] = score
+        row["lossRate"] = loss_rate
+        row["summary"] = f"{row['opening']}: {row['label'].lower()} appeared in {games_count} games."
+        if row["issue"] == "queen_moved_multiple_times":
+            row["summary"] = f"{row['opening']}: your results can suffer when the queen moves multiple times before move 8."
+        elif row["issue"] == "castled_late_or_never":
+            row["summary"] = f"{row['opening']}: your kingside castling is often delayed or missing."
+        elif row["issue"] == "minor_pieces_undeveloped":
+            row["summary"] = f"{row['opening']}: minor pieces are often still undeveloped around move 8 to 10."
+        elif row["issue"] == "too_many_pawn_moves":
+            row["summary"] = f"{row['opening']}: too many early pawn moves are slowing development."
+        row["evidence"] = [
+            f"Detected in {games_count} {row['opening']} game{'' if games_count == 1 else 's'}.",
+            f"Score in those games: {score}%.",
+            row["advice"],
+        ]
+        habits.append(row)
+
+    habits.sort(key=lambda item: (item["games"], item["lossRate"], 100 - item["score"]), reverse=True)
+    return habits[:8]
+
+
 def coverage_status(item: Optional[Dict[str, Any]]) -> str:
     if not item:
         return "No clear plan"
@@ -2846,6 +3089,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
     opening_recommendations = build_colour_aware_recommendations(context_opening_results)
     problem_lines = build_problem_lines(recent_games)
+    opening_phase_habits = build_opening_phase_habits(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
@@ -2959,6 +3203,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "recommendedOpenings": opening_recommendations,
         "problem_lines": problem_lines,
         "problemLines": problem_lines,
+        "opening_phase_habits": opening_phase_habits,
+        "openingPhaseHabits": opening_phase_habits,
         "repertoire_coverage": repertoire_coverage,
         "repertoireCoverage": repertoire_coverage,
         "next_training_actions": next_training_actions,
@@ -3280,6 +3526,7 @@ def build_lichess_analysis(
     top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
     opening_recommendations = build_colour_aware_recommendations(context_opening_results)
     problem_lines = build_problem_lines(recent_games)
+    opening_phase_habits = build_opening_phase_habits(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
@@ -3406,6 +3653,8 @@ def build_lichess_analysis(
         "recommendedOpenings": opening_recommendations,
         "problem_lines": problem_lines,
         "problemLines": problem_lines,
+        "opening_phase_habits": opening_phase_habits,
+        "openingPhaseHabits": opening_phase_habits,
         "repertoire_coverage": repertoire_coverage,
         "repertoireCoverage": repertoire_coverage,
         "next_training_actions": next_training_actions,

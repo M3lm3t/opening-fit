@@ -131,6 +131,11 @@ function getProblemLines(data) {
   return Array.isArray(lines) ? lines.slice(0, 3) : [];
 }
 
+function getOpeningPhaseHabits(data) {
+  const habits = data?.openingPhaseHabits || data?.opening_phase_habits || [];
+  return Array.isArray(habits) ? habits.slice(0, 4) : [];
+}
+
 function getCoverageRows(data) {
   const coverage = data?.repertoireCoverage || data?.repertoire_coverage || {};
   const white = Array.isArray(coverage.white) ? coverage.white : [];
@@ -393,6 +398,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const recommendedAction = getRecommendedAction(data, focusOpening);
   const nextTrainingActions = getNextTrainingActions(data, recommendedAction);
   const problemLines = getProblemLines(data);
+  const openingPhaseHabits = getOpeningPhaseHabits(data);
   const coverageRows = getCoverageRows(data);
 
   return (
@@ -508,6 +514,26 @@ export default function OpeningReportSummary({ data, username, platform }) {
       <div className="openingReportCoverage">
         <CoverageColumn title="White repertoire" rows={coverageRows.white} />
         <CoverageColumn title="Black repertoire" rows={coverageRows.black} />
+      </div>
+
+      <div className="openingReportHabits">
+        <strong>Opening-phase habits</strong>
+        {openingPhaseHabits.length ? (
+          <ul>
+            {openingPhaseHabits.map((habit) => (
+              <li key={`${habit.opening || habit.name}-${habit.issue}`}>
+                <span>{habit.summary || `${habit.opening || habit.name}: ${habit.label}.`}</span>
+                {Array.isArray(habit.evidence) && habit.evidence.length ? (
+                  <small>{habit.evidence.slice(0, 2).join(" ")}</small>
+                ) : (
+                  <small>{habit.advice}</small>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span>No repeated opening-principle issue appeared often enough to flag yet.</span>
+        )}
       </div>
     </section>
   );
