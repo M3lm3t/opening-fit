@@ -606,6 +606,8 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type, data })
               winRate,
               verdict,
               confidence: confidenceLabel,
+              lossTimingNote: opening.raw?.lossTimingNote || opening.raw?.loss_timing_note,
+              lossTiming: opening.raw?.lossTiming || opening.raw?.loss_timing,
               comparisonText,
               reason,
               nextAction:

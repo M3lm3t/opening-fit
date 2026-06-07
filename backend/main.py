@@ -22,6 +22,7 @@ import os
 from dotenv import load_dotenv
 import re
 import json
+import math
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from uuid import UUID
@@ -1158,6 +1159,117 @@ def empty_opening_stats() -> Dict[str, Any]:
         "black_vs_other": 0,
         "black_vs_d4_other": 0,
         "unknown_mixed": 0,
+        "opening_losses": 0,
+        "middlegame_losses": 0,
+        "late_losses": 0,
+        "unknown_losses": 0,
+    }
+
+
+def move_count_from_moves(moves: List[str]) -> int:
+    return math.ceil(len(moves or []) / 2)
+
+
+def classify_loss_timing(result: str, moves: Optional[List[str]] = None, pgn: str = "") -> Dict[str, Any]:
+    if str(result or "").lower() != "loss":
+        return {
+            "bucket": "none",
+            "label": "Not a loss",
+            "move_count": move_count_from_moves(moves or clean_moves_from_pgn(pgn)),
+        }
+
+    clean_moves = moves if isinstance(moves, list) else clean_moves_from_pgn(pgn)
+    move_count = move_count_from_moves(clean_moves)
+
+    if not move_count:
+        return {
+            "bucket": "unknown",
+            "label": "Unknown",
+            "move_count": 0,
+        }
+    if move_count <= 15:
+        return {
+            "bucket": "opening",
+            "label": "Opening loss",
+            "move_count": move_count,
+        }
+    if move_count <= 35:
+        return {
+            "bucket": "middlegame",
+            "label": "Middlegame loss",
+            "move_count": move_count,
+        }
+    return {
+        "bucket": "late",
+        "label": "Late loss",
+        "move_count": move_count,
+    }
+
+
+def add_loss_timing_to_stats(stats: Dict[str, Any], timing: Dict[str, Any]) -> None:
+    bucket = str(timing.get("bucket") or "unknown")
+    if bucket == "opening":
+        stats["opening_losses"] += 1
+    elif bucket == "middlegame":
+        stats["middlegame_losses"] += 1
+    elif bucket == "late":
+        stats["late_losses"] += 1
+    elif bucket == "unknown":
+        stats["unknown_losses"] += 1
+
+
+def loss_timing_fields(opening: Dict[str, Any]) -> Dict[str, Any]:
+    opening_losses = int(opening.get("opening_losses", opening.get("openingLosses", 0)) or 0)
+    middlegame_losses = int(opening.get("middlegame_losses", opening.get("middlegameLosses", 0)) or 0)
+    late_losses = int(opening.get("late_losses", opening.get("lateLosses", 0)) or 0)
+    unknown_losses = int(opening.get("unknown_losses", opening.get("unknownLosses", 0)) or 0)
+    total_losses = int(opening.get("losses", 0) or 0)
+    weighted_losses = opening_losses + middlegame_losses * 0.65 + late_losses * 0.25 + unknown_losses * 0.75
+
+    note = ""
+    if total_losses:
+        name = str(opening.get("name") or "this opening")
+        if late_losses >= max(2, math.ceil(total_losses * 0.5)):
+            note = (
+                f"You lost {total_losses} game{'' if total_losses == 1 else 's'} in {name}, "
+                f"but {late_losses} were long games, so OpeningFit is not blaming the opening too strongly."
+            )
+        elif opening_losses >= max(2, math.ceil(total_losses * 0.5)):
+            note = (
+                f"Your {name} losses mostly happen before move 15, so this may be a real opening issue."
+            )
+        elif middlegame_losses >= max(2, math.ceil(total_losses * 0.5)):
+            note = (
+                f"Most {name} losses happen after the opening phase, so review early middlegame plans before blaming the opening itself."
+            )
+
+    return {
+        "opening_losses": opening_losses,
+        "openingLosses": opening_losses,
+        "middlegame_losses": middlegame_losses,
+        "middlegameLosses": middlegame_losses,
+        "late_losses": late_losses,
+        "lateLosses": late_losses,
+        "unknown_losses": unknown_losses,
+        "unknownLosses": unknown_losses,
+        "weighted_opening_losses": round(weighted_losses, 2),
+        "weightedOpeningLosses": round(weighted_losses, 2),
+        "loss_timing_note": note,
+        "lossTimingNote": note,
+        "loss_timing": {
+            "opening": opening_losses,
+            "middlegame": middlegame_losses,
+            "late": late_losses,
+            "unknown": unknown_losses,
+            "weightedOpeningLosses": round(weighted_losses, 2),
+        },
+        "lossTiming": {
+            "opening": opening_losses,
+            "middlegame": middlegame_losses,
+            "late": late_losses,
+            "unknown": unknown_losses,
+            "weightedOpeningLosses": round(weighted_losses, 2),
+        },
     }
 
 
@@ -1180,6 +1292,10 @@ def opening_item(
         "wins": int(stats.get("wins", 0) or 0),
         "draws": int(stats.get("draws", 0) or 0),
         "losses": int(stats.get("losses", 0) or 0),
+        "opening_losses": int(stats.get("opening_losses", 0) or 0),
+        "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
+        "late_losses": int(stats.get("late_losses", 0) or 0),
+        "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
         "context": context,
         "contextLabel": context_label(context),
         "repertoireContext": context,
@@ -1193,6 +1309,7 @@ def opening_item(
         item["win_rate"] = win_rate
         item["winRate"] = win_rate
 
+    item.update(loss_timing_fields(item))
     item.update(opening_confidence_fields(item, total_games))
     item.update(balanced_opening_fit_score(item))
     item["evidence"] = opening_evidence_bullets(item)
@@ -1276,11 +1393,18 @@ def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
     wins = int(opening.get("wins", 0) or 0)
     draws = int(opening.get("draws", 0) or 0)
     losses = int(opening.get("losses", 0) or 0)
+    timing = loss_timing_fields(opening)
+    weighted_opening_losses = float(timing.get("weighted_opening_losses", 0) or 0)
     confidence_score = confidence_numeric_score(opening.get("confidence_level") or opening.get("confidence"))
-    result_score = round(((wins + 0.5 * draws) / games) * 100) if games else 0
+    raw_result_score = round(((wins + 0.5 * draws) / games) * 100) if games else 0
+    opening_adjusted_score = round(
+        ((wins + 0.5 * draws + max(0, losses - weighted_opening_losses) * 0.35) / games) * 100
+    ) if games else 0
+    result_score = min(100, max(raw_result_score, opening_adjusted_score))
     context = str(opening.get("context") or opening.get("repertoireContext") or "")
     style_score = 75 if is_clean_repertoire_context(opening) else 35
-    stability_score = max(20, 100 - min(80, abs(wins - losses) * 7)) if games >= 5 else 25
+    stability_penalty = abs(wins - weighted_opening_losses) * 7
+    stability_score = max(20, 100 - min(80, stability_penalty)) if games >= 5 else 25
     recent_score = result_score
 
     fit_score = round(
@@ -1297,21 +1421,29 @@ def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "fitScore": max(0, min(100, fit_score)),
         "fit_score": max(0, min(100, fit_score)),
+        "openingAdjustedScore": result_score,
+        "opening_adjusted_score": result_score,
+        "rawResultScore": raw_result_score,
+        "raw_result_score": raw_result_score,
         "fitScoreBreakdown": {
             "sampleConfidence": confidence_score,
             "resultScore": result_score,
+            "rawResultScore": raw_result_score,
             "styleMatch": style_score,
             "stability": stability_score,
             "recentForm": recent_score,
             "context": context,
+            "lossTiming": timing.get("loss_timing"),
         },
         "fit_score_breakdown": {
             "sample_confidence": confidence_score,
             "result_score": result_score,
+            "raw_result_score": raw_result_score,
             "style_match": style_score,
             "stability": stability_score,
             "recent_form": recent_score,
             "context": context,
+            "loss_timing": timing.get("loss_timing"),
         },
     }
 
@@ -1328,6 +1460,10 @@ def opening_evidence_bullets(opening: Dict[str, Any]) -> List[str]:
 
     if score is not None:
         bullets.append(f"You scored {round(float(score), 1)}%.")
+
+    timing_note = opening.get("lossTimingNote") or opening.get("loss_timing_note")
+    if timing_note:
+        bullets.append(str(timing_note))
 
     if "too little" in confidence.lower():
         bullets.append("There is not enough data yet to judge this strongly.")
@@ -1524,18 +1660,6 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
         win_rate = round((wins / games) * 100, 1)
         score = round((wins + 0.5 * draws) / games, 2)
 
-        if games < 5:
-            verdict = "Too little data to judge"
-        elif games >= 5:
-            if win_rate >= 55:
-                verdict = "Keep"
-            elif win_rate >= 40:
-                verdict = "Improve"
-            else:
-                verdict = "Avoid"
-        else:
-            verdict = "Test More"
-
         context = dominant_opening_context(stats)
 
         item = {
@@ -1544,18 +1668,33 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "wins": wins,
                 "draws": draws,
                 "losses": losses,
+                "opening_losses": int(stats.get("opening_losses", 0) or 0),
+                "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
+                "late_losses": int(stats.get("late_losses", 0) or 0),
+                "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
                 "win_rate": win_rate,
                 "winRate": win_rate,
                 "score": score,
-                "verdict": verdict,
                 "colour": dominant_opening_colour(stats),
                 "color": dominant_opening_colour(stats),
                 "context": context,
                 "contextLabel": context_label(context),
                 "repertoireContext": context,
             }
+        item.update(loss_timing_fields(item))
         item.update(opening_confidence_fields(item, total_opening_games))
         item.update(balanced_opening_fit_score(item))
+        adjusted_score = float(item.get("openingAdjustedScore", win_rate) or 0)
+        opening_losses = int(item.get("openingLosses", 0) or 0)
+        if games < 5:
+            verdict = "Too little data to judge"
+        elif adjusted_score >= 55:
+            verdict = "Keep"
+        elif adjusted_score >= 40 or (losses and opening_losses < max(2, math.ceil(losses * 0.5))):
+            verdict = "Improve"
+        else:
+            verdict = "Avoid"
+        item["verdict"] = verdict
         item["evidence"] = opening_evidence_bullets(item)
         item["evidenceBullets"] = item["evidence"]
         scored.append(item)
@@ -2945,10 +3084,14 @@ def import_chesscom_logic(username: str, months: int = 3):
     opening_game_samples = []
 
     for game in analysed_games:
-        opening = guess_opening_from_pgn(game.get("pgn", ""))
+        pgn = game.get("pgn", "")
+        moves = clean_moves_from_pgn(pgn)
+        move_count = move_count_from_moves(moves)
+        opening = guess_opening_from_pgn(pgn)
         colour = colour_for_user(game, username)
         result = result_for_user(game, username)
-        first_white_move = extract_first_white_move_from_text(game.get("pgn", ""))
+        loss_timing = classify_loss_timing(result, moves=moves)
+        first_white_move = extract_first_white_move_from_text(pgn)
         repertoire_context = opening_context_for_game(colour, first_white_move)
 
         opening_counter[opening] += 1
@@ -2972,6 +3115,7 @@ def import_chesscom_logic(username: str, months: int = 3):
                 stats["draws"] += 1
             elif result == "loss":
                 stats["losses"] += 1
+                add_loss_timing_to_stats(stats, loss_timing)
 
         recent_games.append(
             {
@@ -2988,7 +3132,12 @@ def import_chesscom_logic(username: str, months: int = 3):
                 "repertoireContext": repertoire_context,
                 "end_time": game.get("end_time"),
                 "endTime": game.get("end_time"),
-                "pgn": game.get("pgn", ""),
+                "pgn": pgn,
+                "moves": moves,
+                "move_count": move_count,
+                "moveCount": move_count,
+                "loss_timing": loss_timing,
+                "lossTiming": loss_timing,
                 "white_username": game.get("white", {}).get("username", ""),
                 "whiteUsername": game.get("white", {}).get("username", ""),
                 "black_username": game.get("black", {}).get("username", ""),
@@ -3011,34 +3160,46 @@ def import_chesscom_logic(username: str, months: int = 3):
                 "repertoireContext": repertoire_context,
                 "end_time": game.get("end_time"),
                 "endTime": game.get("end_time"),
+                "move_count": move_count,
+                "moveCount": move_count,
+                "loss_timing": loss_timing,
+                "lossTiming": loss_timing,
             }
         )
 
     top_openings = []
+    total_opening_games = sum(int(stats.get("games", 0) or 0) for stats in opening_results.values())
 
     for opening, _count in opening_counter.most_common(10):
         stats = opening_results[opening]
         games = stats["games"]
         win_rate = round((stats["wins"] / games) * 100, 1) if games else 0
         explanation = opening_explanation(opening)
-
-        top_openings.append(
-            {
-                "name": opening,
-                "games": games,
-                "wins": stats["wins"],
-                "draws": stats["draws"],
-                "losses": stats["losses"],
-                "win_rate": win_rate,
-                "winRate": win_rate,
-                "colour": dominant_opening_colour(stats),
-                "color": dominant_opening_colour(stats),
-                "context": dominant_opening_context(stats),
-                "contextLabel": context_label(dominant_opening_context(stats)),
-                "repertoireContext": dominant_opening_context(stats),
-                **explanation,
-            }
-        )
+        item = {
+            "name": opening,
+            "games": games,
+            "wins": stats["wins"],
+            "draws": stats["draws"],
+            "losses": stats["losses"],
+            "opening_losses": int(stats.get("opening_losses", 0) or 0),
+            "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
+            "late_losses": int(stats.get("late_losses", 0) or 0),
+            "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
+            "win_rate": win_rate,
+            "winRate": win_rate,
+            "colour": dominant_opening_colour(stats),
+            "color": dominant_opening_colour(stats),
+            "context": dominant_opening_context(stats),
+            "contextLabel": context_label(dominant_opening_context(stats)),
+            "repertoireContext": dominant_opening_context(stats),
+            **explanation,
+        }
+        item.update(loss_timing_fields(item))
+        item.update(opening_confidence_fields(item, total_opening_games))
+        item.update(balanced_opening_fit_score(item))
+        item["evidence"] = opening_evidence_bullets(item)
+        item["evidenceBullets"] = item["evidence"]
+        top_openings.append(item)
 
     preferred_white = [
         {
@@ -3349,8 +3510,10 @@ def build_lichess_analysis(
 
         moves_text = game.get("moves", "")
         moves = moves_text.split() if moves_text else []
+        move_count = move_count_from_moves(moves)
         first_white_move = moves[0] if moves else ""
         repertoire_context = opening_context_for_game(colour, first_white_move)
+        loss_timing = classify_loss_timing(result, moves=moves)
 
         pgn_moves = []
         for index in range(0, len(moves), 2):
@@ -3392,6 +3555,7 @@ def build_lichess_analysis(
                 stats["draws"] += 1
             elif result == "loss":
                 stats["losses"] += 1
+                add_loss_timing_to_stats(stats, loss_timing)
 
         recent_games.append(
             {
@@ -3411,6 +3575,10 @@ def build_lichess_analysis(
                 "pgn": simple_pgn,
                 "moves": moves,
                 "movesText": moves_text,
+                "move_count": move_count,
+                "moveCount": move_count,
+                "loss_timing": loss_timing,
+                "lossTiming": loss_timing,
                 "white_username": white_name,
                 "whiteUsername": white_name,
                 "black_username": black_name,
@@ -3433,34 +3601,46 @@ def build_lichess_analysis(
                 "repertoireContext": repertoire_context,
                 "end_time": game.get("lastMoveAt") or game.get("createdAt"),
                 "endTime": game.get("lastMoveAt") or game.get("createdAt"),
+                "move_count": move_count,
+                "moveCount": move_count,
+                "loss_timing": loss_timing,
+                "lossTiming": loss_timing,
             }
         )
 
     top_openings = []
+    total_opening_games = sum(int(stats.get("games", 0) or 0) for stats in opening_results.values())
 
     for opening, _count in opening_counter.most_common(10):
         stats = opening_results[opening]
         games_count = stats["games"]
         win_rate = round((stats["wins"] / games_count) * 100, 1) if games_count else 0
         explanation = opening_explanation(opening)
-
-        top_openings.append(
-            {
-                "name": opening,
-                "games": games_count,
-                "wins": stats["wins"],
-                "draws": stats["draws"],
-                "losses": stats["losses"],
-                "win_rate": win_rate,
-                "winRate": win_rate,
-                "colour": dominant_opening_colour(stats),
-                "color": dominant_opening_colour(stats),
-                "context": dominant_opening_context(stats),
-                "contextLabel": context_label(dominant_opening_context(stats)),
-                "repertoireContext": dominant_opening_context(stats),
-                **explanation,
-            }
-        )
+        item = {
+            "name": opening,
+            "games": games_count,
+            "wins": stats["wins"],
+            "draws": stats["draws"],
+            "losses": stats["losses"],
+            "opening_losses": int(stats.get("opening_losses", 0) or 0),
+            "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
+            "late_losses": int(stats.get("late_losses", 0) or 0),
+            "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
+            "win_rate": win_rate,
+            "winRate": win_rate,
+            "colour": dominant_opening_colour(stats),
+            "color": dominant_opening_colour(stats),
+            "context": dominant_opening_context(stats),
+            "contextLabel": context_label(dominant_opening_context(stats)),
+            "repertoireContext": dominant_opening_context(stats),
+            **explanation,
+        }
+        item.update(loss_timing_fields(item))
+        item.update(opening_confidence_fields(item, total_opening_games))
+        item.update(balanced_opening_fit_score(item))
+        item["evidence"] = opening_evidence_bullets(item)
+        item["evidenceBullets"] = item["evidence"]
+        top_openings.append(item)
 
     preferred_white = [
         {

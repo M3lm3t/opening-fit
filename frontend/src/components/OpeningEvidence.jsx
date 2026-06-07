@@ -608,6 +608,8 @@ export function getEvidenceReason(opening, data) {
   const games = getEvidenceGames(opening);
   const context = getOpeningContext(opening);
   const explicit = textField(opening, [
+    "lossTimingNote",
+    "loss_timing_note",
     "confidenceReason",
     "confidence_reason",
     "verdictReason",
