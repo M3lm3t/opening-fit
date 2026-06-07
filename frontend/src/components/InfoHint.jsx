@@ -20,10 +20,12 @@ export default function InfoHint({ label, children, className = "" }) {
   const bubbleRef = useRef(null);
   const pointerFocusRef = useRef(false);
   const openedByHoverRef = useRef(false);
-  const closeRef = useRef(null);
-  if (!closeRef.current) {
-    closeRef.current = () => setOpen(false);
-  }
+  const closeActiveHint = useCallback(() => setOpen(false), []);
+  const closeRef = useRef(closeActiveHint);
+
+  useEffect(() => {
+    closeRef.current = closeActiveHint;
+  }, [closeActiveHint]);
 
   const openHint = useCallback(() => {
     if (activeInfoHint && activeInfoHint !== closeRef.current) {

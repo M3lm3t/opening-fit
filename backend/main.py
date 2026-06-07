@@ -1166,6 +1166,7 @@ def opening_item(
     games: int,
     context: str,
     stats: Optional[Dict[str, int]] = None,
+    total_games: int = 0,
 ) -> Dict[str, Any]:
     stats = stats or {}
     win_rate = None
@@ -1192,7 +1193,150 @@ def opening_item(
         item["win_rate"] = win_rate
         item["winRate"] = win_rate
 
+    item.update(opening_confidence_fields(item, total_games))
+    item.update(balanced_opening_fit_score(item))
+    item["evidence"] = opening_evidence_bullets(item)
+    item["evidenceBullets"] = item["evidence"]
+
     return item
+
+
+def opening_confidence_fields(opening: Dict[str, Any], total_games: int = 0) -> Dict[str, Any]:
+    games = int(opening.get("games", 0) or 0)
+    total = int(total_games or 0)
+    sample_pct = round((games / total) * 100, 1) if total > 0 else 0
+    context = str(opening.get("context") or opening.get("repertoireContext") or "unknown_mixed")
+    clean_context = context != "unknown_mixed" and context_is_compatible(str(opening.get("name", "")), context)
+    score = opening.get("winRate", opening.get("win_rate"))
+    wins = int(opening.get("wins", 0) or 0)
+    draws = int(opening.get("draws", 0) or 0)
+    losses = int(opening.get("losses", 0) or 0)
+    decisive_gap = abs(wins - losses)
+    score_text = f"{round(float(score), 1)}% score" if score is not None else "score unavailable"
+    sample_text = f"{games} game{'' if games == 1 else 's'}"
+    pct_text = f"{sample_pct}% of your imported games" if sample_pct else "a small share of your imported games"
+
+    if games < 5:
+        label = "Too little data"
+        tier = "too_little_data"
+        reason = (
+            f"You only reached this structure in {sample_text}, so OpeningFit cannot judge it properly yet."
+        )
+    elif clean_context and games >= 15 and sample_pct >= 8 and decisive_gap >= 4:
+        label = "High confidence"
+        tier = "high"
+        reason = (
+            f"You have played it regularly ({sample_text}, {pct_text}), the colour context is clear, "
+            f"and the result pattern is stable at {score_text}."
+        )
+    elif clean_context and games >= 10 and sample_pct >= 4:
+        label = "Medium confidence"
+        tier = "medium"
+        reason = (
+            f"You have a useful sample ({sample_text}, {pct_text}) in the right colour context, "
+            f"but more games would make the verdict sharper."
+        )
+    elif clean_context and games >= 5:
+        label = "Low confidence"
+        tier = "low"
+        reason = (
+            f"This is an early signal ({sample_text}, {pct_text}) with {score_text}; treat it as a trend to watch."
+        )
+    else:
+        label = "Low confidence"
+        tier = "low"
+        reason = "The sample exists, but the colour or repertoire context is not clean enough for a firm verdict."
+
+    return {
+        "confidence": label,
+        "confidence_label": label,
+        "confidenceLabel": label,
+        "confidence_level": tier,
+        "confidenceLevel": tier,
+        "confidence_reason": reason,
+        "confidenceReason": reason,
+        "sample_percentage": sample_pct,
+        "samplePercentage": sample_pct,
+    }
+
+
+def confidence_numeric_score(confidence_level: str) -> int:
+    level = str(confidence_level or "").lower()
+    if "high" in level:
+        return 100
+    if "medium" in level:
+        return 72
+    if "low" in level:
+        return 42
+    return 12
+
+
+def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
+    games = int(opening.get("games", 0) or 0)
+    wins = int(opening.get("wins", 0) or 0)
+    draws = int(opening.get("draws", 0) or 0)
+    losses = int(opening.get("losses", 0) or 0)
+    confidence_score = confidence_numeric_score(opening.get("confidence_level") or opening.get("confidence"))
+    result_score = round(((wins + 0.5 * draws) / games) * 100) if games else 0
+    context = str(opening.get("context") or opening.get("repertoireContext") or "")
+    style_score = 75 if is_clean_repertoire_context(opening) else 35
+    stability_score = max(20, 100 - min(80, abs(wins - losses) * 7)) if games >= 5 else 25
+    recent_score = result_score
+
+    fit_score = round(
+        confidence_score * 0.25
+        + result_score * 0.25
+        + style_score * 0.25
+        + stability_score * 0.15
+        + recent_score * 0.10
+    )
+
+    if games < 5:
+        fit_score = min(fit_score, 42)
+
+    return {
+        "fitScore": max(0, min(100, fit_score)),
+        "fit_score": max(0, min(100, fit_score)),
+        "fitScoreBreakdown": {
+            "sampleConfidence": confidence_score,
+            "resultScore": result_score,
+            "styleMatch": style_score,
+            "stability": stability_score,
+            "recentForm": recent_score,
+            "context": context,
+        },
+        "fit_score_breakdown": {
+            "sample_confidence": confidence_score,
+            "result_score": result_score,
+            "style_match": style_score,
+            "stability": stability_score,
+            "recent_form": recent_score,
+            "context": context,
+        },
+    }
+
+
+def opening_evidence_bullets(opening: Dict[str, Any]) -> List[str]:
+    games = int(opening.get("games", 0) or 0)
+    score = opening.get("winRate", opening.get("win_rate"))
+    confidence = str(opening.get("confidence") or "Too little data")
+    context = str(opening.get("contextLabel") or context_label(str(opening.get("context") or "")))
+    bullets = [
+        f"You played this opening {games} time{'' if games == 1 else 's'}.",
+        f"Colour context: {context}.",
+    ]
+
+    if score is not None:
+        bullets.append(f"You scored {round(float(score), 1)}%.")
+
+    if "too little" in confidence.lower():
+        bullets.append("There is not enough data yet to judge this strongly.")
+    elif "low" in confidence.lower():
+        bullets.append("The sample is still early, so treat this as a trend to watch.")
+    elif "high" in confidence.lower():
+        bullets.append("The sample is repeated enough to treat as a reliable pattern.")
+
+    return bullets[:4]
 
 
 def context_is_compatible(name: str, context: str) -> bool:
@@ -1237,6 +1381,7 @@ def build_colour_aware_recommendations(
     opening_results: Dict[str, Dict[str, int]],
     max_items: int = 5,
 ) -> Dict[str, Any]:
+    total_opening_games = sum(int(stats.get("games", 0) or 0) for stats in opening_results.values())
     sections = {
         "white_repertoire": [],
         "black_vs_e4": [],
@@ -1250,37 +1395,41 @@ def build_colour_aware_recommendations(
         display_name = str(stats.get("name") or name).split("::")[0]
         games = int(stats.get("games", 0) or 0)
         context = dominant_opening_context(stats)
-        item = opening_item(display_name, games, context, stats)
+        item = opening_item(display_name, games, context, stats, total_games=total_opening_games)
 
         if is_unknown_opening_name(display_name):
+            adjusted = {
+                **item,
+                "context": "unknown_mixed",
+                "contextLabel": context_label("unknown_mixed"),
+                "repertoireContext": "unknown_mixed",
+                "colour": "mixed",
+                "color": "mixed",
+                "recommendationCopy": SAFE_CONTEXT_FALLBACK_COPY,
+            }
+            adjusted.update(opening_confidence_fields(adjusted, total_opening_games))
             sections["too_little_data"].append(
-                {
-                    **item,
-                    "context": "unknown_mixed",
-                    "contextLabel": context_label("unknown_mixed"),
-                    "repertoireContext": "unknown_mixed",
-                    "colour": "mixed",
-                    "color": "mixed",
-                    "recommendationCopy": SAFE_CONTEXT_FALLBACK_COPY,
-                }
+                adjusted
             )
             continue
 
-        if games < 2:
-            sections["experimental_rare"].append(item)
+        if games <= 2:
+            sections["too_little_data"].append(item)
             continue
 
         if context == "unknown_mixed" or not context_is_compatible(display_name, context):
+            adjusted = {
+                **item,
+                "context": "unknown_mixed",
+                "contextLabel": context_label("unknown_mixed"),
+                "repertoireContext": "unknown_mixed",
+                "colour": "mixed",
+                "color": "mixed",
+                "recommendationCopy": SAFE_CONTEXT_FALLBACK_COPY,
+            }
+            adjusted.update(opening_confidence_fields(adjusted, total_opening_games))
             sections["too_little_data"].append(
-                {
-                    **item,
-                    "context": "unknown_mixed",
-                    "contextLabel": context_label("unknown_mixed"),
-                    "repertoireContext": "unknown_mixed",
-                    "colour": "mixed",
-                    "color": "mixed",
-                    "recommendationCopy": SAFE_CONTEXT_FALLBACK_COPY,
-                }
+                adjusted
             )
             continue
 
@@ -1302,6 +1451,7 @@ def build_colour_aware_recommendations(
         )[:max_items]
 
     sections = {key: rank(value) for key, value in sections.items()}
+    sections = sanitise_recommendation_sections(sections)
     black_combined = sections["black_vs_e4"] + sections["black_vs_d4"] + sections["black_vs_other"]
     black_d4_other = sections["black_vs_d4"] + sections["black_vs_other"]
 
@@ -1359,6 +1509,7 @@ def build_colour_aware_recommendations(
 
 def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dict[str, Any]]:
     scored = []
+    total_opening_games = sum(int(stats.get("games", 0) or 0) for stats in opening_results.values())
 
     for opening, stats in opening_results.items():
         display_name = str(stats.get("name") or opening).split("::")[0]
@@ -1373,7 +1524,9 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
         win_rate = round((wins / games) * 100, 1)
         score = round((wins + 0.5 * draws) / games, 2)
 
-        if games >= 5:
+        if games < 5:
+            verdict = "Too little data to judge"
+        elif games >= 5:
             if win_rate >= 55:
                 verdict = "Keep"
             elif win_rate >= 40:
@@ -1385,8 +1538,7 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
 
         context = dominant_opening_context(stats)
 
-        scored.append(
-            {
+        item = {
                 "name": display_name,
                 "games": games,
                 "wins": wins,
@@ -1402,10 +1554,240 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "contextLabel": context_label(context),
                 "repertoireContext": context,
             }
-        )
+        item.update(opening_confidence_fields(item, total_opening_games))
+        item.update(balanced_opening_fit_score(item))
+        item["evidence"] = opening_evidence_bullets(item)
+        item["evidenceBullets"] = item["evidence"]
+        scored.append(item)
 
     scored.sort(key=lambda x: (x["games"] >= 5, x["score"], x["games"]), reverse=True)
     return scored
+
+
+def line_key_from_pgn(pgn: str, plies: int = 8) -> str:
+    moves = clean_moves_from_pgn(pgn)
+    return " ".join(move.rstrip("+#?!") for move in moves[:plies])
+
+
+def build_problem_lines(games: List[Dict[str, Any]], min_games: int = 3) -> List[Dict[str, Any]]:
+    grouped: Dict[str, Dict[str, Any]] = {}
+
+    for game in games or []:
+        opening = str(game.get("opening") or game.get("name") or "").strip()
+        line = line_key_from_pgn(str(game.get("pgn") or ""))
+        if not opening or not line:
+            continue
+
+        context = str(game.get("context") or game.get("repertoireContext") or "unknown_mixed")
+        key = f"{opening}::{context}::{line}"
+        row = grouped.setdefault(
+            key,
+            {
+                "opening": opening,
+                "name": opening,
+                "context": context,
+                "contextLabel": context_label(context),
+                "line": line,
+                "games": 0,
+                "wins": 0,
+                "draws": 0,
+                "losses": 0,
+            },
+        )
+        row["games"] += 1
+        result = str(game.get("result") or "").lower()
+        if result == "win":
+            row["wins"] += 1
+        elif result == "draw":
+            row["draws"] += 1
+        elif result == "loss":
+            row["losses"] += 1
+
+    problem_lines = []
+    for row in grouped.values():
+        games_count = int(row["games"])
+        if games_count < min_games:
+            continue
+        score = round(((row["wins"] + 0.5 * row["draws"]) / games_count) * 100, 1)
+        loss_rate = round((row["losses"] / games_count) * 100, 1)
+        if row["losses"] < 2 or loss_rate < 45:
+            continue
+        row["score"] = score
+        row["scorePct"] = score
+        row["lossRate"] = loss_rate
+        row["summary"] = (
+            f"{row['opening']}: results drop in the line {row['line']} "
+            f"({games_count} games, {loss_rate}% losses)."
+        )
+        row["evidence"] = [
+            f"You reached this early sequence {games_count} times.",
+            f"You lost {row['losses']} of those games.",
+            f"Your score in this line was {score}%.",
+        ]
+        problem_lines.append(row)
+
+    problem_lines.sort(key=lambda item: (item["lossRate"], item["losses"], item["games"]), reverse=True)
+    return problem_lines[:6]
+
+
+def coverage_status(item: Optional[Dict[str, Any]]) -> str:
+    if not item:
+        return "No clear plan"
+    games = int(item.get("games", 0) or 0)
+    confidence = str(item.get("confidence") or "").lower()
+    if games < 3 or "too little" in confidence:
+        return "Too little data"
+    if games >= 8 and str(item.get("verdict") or "").lower() in {"keep", "improve"}:
+        return "Covered"
+    return "Needs work"
+
+
+def best_by_context(best_openings: List[Dict[str, Any]], context: str) -> Optional[Dict[str, Any]]:
+    candidates = [
+        item for item in best_openings
+        if str(item.get("context") or item.get("repertoireContext") or "") == context
+        and is_clean_repertoire_context(item)
+    ]
+    if not candidates:
+        return None
+    return sorted(candidates, key=lambda item: (confidence_numeric_score(item.get("confidence")), item.get("games", 0), item.get("fitScore", 0)), reverse=True)[0]
+
+
+def build_repertoire_coverage(best_openings: List[Dict[str, Any]]) -> Dict[str, Any]:
+    white = best_by_context(best_openings, "played_as_white")
+    black_e4 = best_by_context(best_openings, "black_vs_e4")
+    black_d4 = best_by_context(best_openings, "black_vs_d4")
+    black_other = best_by_context(best_openings, "black_vs_other") or best_by_context(best_openings, "black_vs_d4_other")
+
+    def row(key: str, label: str, item: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        return {
+            "key": key,
+            "label": label,
+            "status": coverage_status(item),
+            "opening": item.get("name") if item else "",
+            "confidence": item.get("confidence") if item else "Too little data",
+            "games": item.get("games", 0) if item else 0,
+        }
+
+    white_rows = [
+        row("main_white", "Main White opening", white),
+        row("vs_sicilian", "White vs Sicilian", None),
+        row("vs_french", "White vs French", None),
+        row("vs_caro_kann", "White vs Caro-Kann", None),
+        row("vs_e5", "White vs 1...e5", white if white and any(token in str(white.get("name", "")).lower() for token in ["vienna", "italian", "ruy", "scotch"]) else None),
+    ]
+    black_rows = [
+        row("black_vs_e4", "Black vs 1.e4", black_e4),
+        row("black_vs_d4", "Black vs 1.d4", black_d4),
+        row("black_vs_c4_nf3", "Black vs 1.c4 / 1.Nf3", black_other),
+    ]
+
+    missing = [item["label"] for item in white_rows + black_rows if item["status"] in {"No clear plan", "Too little data"}]
+    return {
+        "white": white_rows,
+        "black": black_rows,
+        "missing": missing,
+        "summary": "Coverage is strongest where status is Covered; No clear plan marks the next repertoire gap.",
+    }
+
+
+def sanitise_recommendation_sections(sections: Dict[str, Any]) -> Dict[str, Any]:
+    primary_keys = ["white_repertoire", "black_vs_e4", "black_vs_d4", "black_vs_other"]
+    seen: Dict[str, Dict[str, Any]] = {}
+    alternatives = list(sections.get("experimental_rare") or [])
+
+    for key in primary_keys:
+        cleaned = []
+        for item in sections.get(key, []):
+            name_key = str(item.get("name") or "").lower()
+            incompatible = (
+                (key == "white_repertoire" and opening_name_colour_hint(item.get("name", "")) == "black")
+                or (key.startswith("black") and opening_name_colour_hint(item.get("name", "")) == "white")
+            )
+            if incompatible or str(item.get("confidence", "")).lower().startswith("too little"):
+                demoted = {**item, "sanityNote": "Demoted because the colour context or sample size is not strong enough."}
+                alternatives.append(demoted)
+                continue
+            current = seen.get(name_key)
+            if current:
+                stronger = max(
+                    [current["item"], item],
+                    key=lambda value: (confidence_numeric_score(value.get("confidence")), value.get("games", 0), value.get("fitScore", 0)),
+                )
+                weaker = item if stronger is current["item"] else current["item"]
+                alternatives.append({**weaker, "upgrade_type": "alternative", "upgradeType": "alternative", "sanityNote": "Alternative to explore; a higher-confidence recommendation kept the main slot."})
+                if stronger is not current["item"]:
+                    seen[name_key] = {"section": key, "item": item}
+                    cleaned.append(item)
+                continue
+            seen[name_key] = {"section": key, "item": item}
+            cleaned.append(item)
+        sections[key] = cleaned
+
+    sections["experimental_rare"] = alternatives[:5]
+    return sections
+
+
+def rating_band(rating: Optional[int]) -> str:
+    if not rating:
+        return "unknown"
+    if rating < 1000:
+        return "under_1000"
+    if rating < 1400:
+        return "1000_1400"
+    if rating < 1800:
+        return "1400_1800"
+    return "1800_plus"
+
+
+def build_next_training_actions(
+    best_openings: List[Dict[str, Any]],
+    coverage: Dict[str, Any],
+    problem_lines: List[Dict[str, Any]],
+    rating: Optional[int] = None,
+) -> List[str]:
+    band = rating_band(rating)
+    actions: List[str] = []
+    keep = next((item for item in best_openings if str(item.get("verdict", "")).lower() == "keep" and is_clean_repertoire_context(item) and int(item.get("games", 0) or 0) >= 5), None)
+    weak = next((item for item in best_openings if str(item.get("verdict", "")).lower() in {"improve", "avoid"} and is_clean_repertoire_context(item) and int(item.get("games", 0) or 0) >= 5), None)
+
+    if keep:
+        actions.append(f"Keep playing {repertoire_context_title(keep)}; {keep.get('confidenceReason') or keep.get('confidence_reason')}")
+    if problem_lines:
+        actions.append(f"Study this problem line: {problem_lines[0]['summary']}")
+    elif weak:
+        actions.append(f"Review {repertoire_context_title(weak)} because it is your clearest lower-scoring repeated sample.")
+
+    missing = coverage.get("missing") or []
+    if missing:
+        actions.append(f"Choose one plan for {missing[0]} because the current games do not show stable coverage there.")
+
+    if band == "under_1000":
+        actions.append("Use simple development plans and avoid adding theory-heavy openings until the sample is stable.")
+    elif band == "1000_1400":
+        actions.append("Pick practical openings with clear first plans; do not rotate systems after one or two games.")
+    elif band == "1400_1800":
+        actions.append("Build one structured White plan and one Black plan before adding sidelines.")
+    elif band == "1800_plus":
+        actions.append("Audit move-order details and opponent-specific branches before changing the repertoire.")
+    else:
+        actions.append("Play 5 more games in your main opening, then re-import to confirm the pattern.")
+
+    deduped = []
+    for action in actions:
+        if action and action not in deduped:
+            deduped.append(action)
+    fallback_actions = [
+        "Keep the current main opening sample together long enough to measure it.",
+        "Review one repeated loss from your lowest-scoring opening before adding a new system.",
+        "Play 5 more games, then re-import to confirm whether the pattern is stable.",
+    ]
+    for action in fallback_actions:
+        if len(deduped) >= 3:
+            break
+        if action not in deduped:
+            deduped.append(action)
+    return deduped[:3]
 
 
 def weighted_score(items: List[Dict[str, Any]]) -> Optional[float]:
@@ -2463,6 +2845,8 @@ def import_chesscom_logic(username: str, months: int = 3):
     best_openings = adapt_openings_for_report_mode(best_openings, report_mode)
     top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
     opening_recommendations = build_colour_aware_recommendations(context_opening_results)
+    problem_lines = build_problem_lines(recent_games)
+    repertoire_coverage = build_repertoire_coverage(best_openings)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
         opening_recommendations,
@@ -2483,6 +2867,15 @@ def import_chesscom_logic(username: str, months: int = 3):
         training_plan,
         report_mode,
     )
+    next_training_actions = build_next_training_actions(
+        best_openings,
+        repertoire_coverage,
+        problem_lines,
+        None,
+    )
+    training_plan = next_training_actions
+    if next_training_actions:
+        recommended_action = next_training_actions[0]
     recommendations = build_recommendations(
         preferred_white,
         preferred_black,
@@ -2564,6 +2957,12 @@ def import_chesscom_logic(username: str, months: int = 3):
         "opening_recommendations": opening_recommendations,
         "openingRecommendations": opening_recommendations,
         "recommendedOpenings": opening_recommendations,
+        "problem_lines": problem_lines,
+        "problemLines": problem_lines,
+        "repertoire_coverage": repertoire_coverage,
+        "repertoireCoverage": repertoire_coverage,
+        "next_training_actions": next_training_actions,
+        "nextTrainingActions": next_training_actions,
         "recommended_action": recommended_action,
         "recommendedAction": recommended_action,
         "training_plan": training_plan,
@@ -2880,6 +3279,8 @@ def build_lichess_analysis(
     best_openings = adapt_openings_for_report_mode(best_openings, report_mode)
     top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
     opening_recommendations = build_colour_aware_recommendations(context_opening_results)
+    problem_lines = build_problem_lines(recent_games)
+    repertoire_coverage = build_repertoire_coverage(best_openings)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
         opening_recommendations,
@@ -2900,6 +3301,15 @@ def build_lichess_analysis(
         training_plan,
         report_mode,
     )
+    next_training_actions = build_next_training_actions(
+        best_openings,
+        repertoire_coverage,
+        problem_lines,
+        current_rating,
+    )
+    training_plan = next_training_actions
+    if next_training_actions:
+        recommended_action = next_training_actions[0]
     recommendations = build_recommendations(
         preferred_white,
         preferred_black,
@@ -2994,6 +3404,12 @@ def build_lichess_analysis(
         "opening_recommendations": opening_recommendations,
         "openingRecommendations": opening_recommendations,
         "recommendedOpenings": opening_recommendations,
+        "problem_lines": problem_lines,
+        "problemLines": problem_lines,
+        "repertoire_coverage": repertoire_coverage,
+        "repertoireCoverage": repertoire_coverage,
+        "next_training_actions": next_training_actions,
+        "nextTrainingActions": next_training_actions,
         "recommended_action": recommended_action,
         "recommendedAction": recommended_action,
         "training_plan": training_plan,

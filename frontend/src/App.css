@@ -14541,6 +14541,99 @@ main > section,
   color: #64748b;
 }
 
+.openingReportActionList,
+.openingReportProblemList,
+.openingReportCoverage ul {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.light .openingReportActionList,
+.light .openingReportProblemList,
+.light .openingReportCoverage ul,
+[data-theme="light"] .openingReportActionList,
+[data-theme="light"] .openingReportProblemList,
+[data-theme="light"] .openingReportCoverage ul {
+  color: #475569;
+}
+
+.openingReportProblemList li,
+.openingReportCoverage li {
+  min-width: 0;
+}
+
+.openingReportProblemList span,
+.openingReportProblemList small,
+.openingReportCoverage span,
+.openingReportCoverage em,
+.openingReportCoverage small {
+  display: block;
+}
+
+.openingReportProblemList small,
+.openingReportCoverage small {
+  margin-top: 3px;
+  color: rgba(226, 232, 240, 0.54);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.light .openingReportProblemList small,
+.light .openingReportCoverage small,
+[data-theme="light"] .openingReportProblemList small,
+[data-theme="light"] .openingReportCoverage small {
+  color: #64748b;
+}
+
+.openingReportCoverage {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.openingReportCoverage > div {
+  min-width: 0;
+  padding: 15px;
+  border-radius: 22px;
+  background: rgba(2, 6, 23, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.light .openingReportCoverage > div,
+[data-theme="light"] .openingReportCoverage > div {
+  background: rgba(15, 23, 42, 0.035);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+.openingReportCoverage strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.openingReportCoverage em {
+  width: fit-content;
+  margin-top: 4px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(148, 163, 184, 0.14);
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.light .openingReportCoverage em,
+[data-theme="light"] .openingReportCoverage em {
+  color: #475569;
+  background: rgba(15, 23, 42, 0.055);
+}
+
 @media (max-width: 900px) {
   .openingReportHero {
     grid-template-columns: 1fr;
@@ -14568,6 +14661,10 @@ main > section,
   }
 
   .openingReportNextSteps {
+    grid-template-columns: 1fr;
+  }
+
+  .openingReportCoverage {
     grid-template-columns: 1fr;
   }
 }

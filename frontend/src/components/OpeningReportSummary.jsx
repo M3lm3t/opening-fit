@@ -49,12 +49,14 @@ function getWinRate(opening) {
 }
 
 function getConfidenceLabel(opening) {
-  return (
+  const explicit =
     opening?.confidenceLabel ||
     opening?.confidence_label ||
-    opening?.confidence ||
-    getOpeningConfidence(opening)
-  );
+    opening?.confidence;
+
+  if (explicit) return getOpeningConfidence({ ...opening, confidence: explicit });
+
+  return getOpeningConfidence(opening);
 }
 
 function getComparisonText(opening, data) {
@@ -83,6 +85,7 @@ function getReason(opening, data) {
   const confidence = getConfidenceLabel(opening).toLowerCase();
 
   if (games <= 2) return "This opening appears only once or twice, so the result is too noisy to judge.";
+  if (confidence.includes("too little")) return "The sample is too small to judge properly yet.";
   if (confidence.includes("low")) return "The sample is still modest, so treat this as a provisional pattern.";
   return getComparisonText(opening, data);
 }
@@ -94,6 +97,45 @@ function getRecommendedAction(data, focusOpening) {
   if (focusOpening) return `Train this line: ${focusOpening}.`;
 
   return "Play 5 games, then run a fresh analysis.";
+}
+
+function getNextTrainingActions(data, fallbackAction) {
+  const raw =
+    data?.nextTrainingActions ||
+    data?.next_training_actions ||
+    data?.trainingPlan ||
+    data?.training_plan ||
+    [];
+  const actions = Array.isArray(raw) ? raw : [];
+  const cleaned = actions
+    .map((action) => String(action || "").trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const fallback = [
+    fallbackAction,
+    "Review one repeated weak line before changing openings.",
+    "Re-import after 5 more games to confirm the pattern.",
+  ];
+
+  for (const action of fallback) {
+    if (cleaned.length >= 3) break;
+    if (action && !cleaned.includes(action)) cleaned.push(action);
+  }
+
+  return cleaned.slice(0, 3);
+}
+
+function getProblemLines(data) {
+  const lines = data?.problemLines || data?.problem_lines || [];
+  return Array.isArray(lines) ? lines.slice(0, 3) : [];
+}
+
+function getCoverageRows(data) {
+  const coverage = data?.repertoireCoverage || data?.repertoire_coverage || {};
+  const white = Array.isArray(coverage.white) ? coverage.white : [];
+  const black = Array.isArray(coverage.black) ? coverage.black : [];
+  return { white, black };
 }
 
 function collectOpenings(data) {
@@ -349,6 +391,9 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const weakOpening = avoid?.name || "your lowest-scoring repeated opening";
   const focusOpening = improve?.name || bestOpening;
   const recommendedAction = getRecommendedAction(data, focusOpening);
+  const nextTrainingActions = getNextTrainingActions(data, recommendedAction);
+  const problemLines = getProblemLines(data);
+  const coverageRows = getCoverageRows(data);
 
   return (
     <section className="openingReportShell">
@@ -435,19 +480,53 @@ export default function OpeningReportSummary({ data, username, platform }) {
 
       <div className="openingReportNextSteps">
         <div>
-          <strong>Recommended next step</strong>
-          <span>{recommendedAction}</span>
+          <strong>Next 3 training actions</strong>
+          <ol className="openingReportActionList">
+            {nextTrainingActions.map((action) => (
+              <li key={action}>{action}</li>
+            ))}
+          </ol>
         </div>
 
         <div>
-          <strong>Premium direction</strong>
-          <span>
-            A paid version should turn this into a deeper repertoire plan, with
-            explanations, progress tracking, and study priorities.
-          </span>
+          <strong>Problem lines to study</strong>
+          {problemLines.length ? (
+            <ul className="openingReportProblemList">
+              {problemLines.map((line) => (
+                <li key={`${line.opening || line.name}-${line.line}`}>
+                  <span>{line.summary || `${line.opening || line.name}: results drop in ${line.line}.`}</span>
+                  {Array.isArray(line.evidence) && line.evidence[0] ? <small>{line.evidence[0]}</small> : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span>No repeated poor-result line appeared often enough to flag yet.</span>
+          )}
         </div>
       </div>
+
+      <div className="openingReportCoverage">
+        <CoverageColumn title="White repertoire" rows={coverageRows.white} />
+        <CoverageColumn title="Black repertoire" rows={coverageRows.black} />
+      </div>
     </section>
+  );
+}
+
+function CoverageColumn({ title, rows }) {
+  return (
+    <div>
+      <strong>{title}</strong>
+      <ul>
+        {(rows || []).map((row) => (
+          <li key={row.key || row.label}>
+            <span>{row.label}</span>
+            <em>{row.status}</em>
+            {row.opening ? <small>{row.opening} · {row.games || 0} games</small> : <small>No stable opening yet</small>}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

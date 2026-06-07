@@ -500,7 +500,7 @@ export default function WeeklyOpeningReport({ data, savedHistory = [] }) {
     const nextHistory = [currentSnapshot, ...saved].slice(0, MAX_HISTORY);
     saveHistory(key, nextHistory);
     return nextHistory;
-  }, [key, currentSnapshot]);
+  }, [key, currentSnapshot, savedHistory]);
 
   if (!data || !currentSnapshot.openings.length) return null;
 

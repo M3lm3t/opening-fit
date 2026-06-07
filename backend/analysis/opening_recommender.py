@@ -191,22 +191,48 @@ def risk_level(item: OpeningCatalogItem) -> str:
     return "high"
 
 
-def confidence_for_recommendation(
+def confidence_details_for_recommendation(
     style_fingerprint: Dict[str, Any],
     fit_score: int,
     currently_played: bool,
     current_games: int,
-) -> str:
+) -> Dict[str, Any]:
     sample_size = int(style_fingerprint.get("sample_size") or style_fingerprint.get("sampleSize") or 0)
     base = str(style_fingerprint.get("confidence") or "low")
 
-    if currently_played and current_games >= 5 and fit_score >= 70:
-        return "high"
-    if sample_size >= 12 and base in {"medium", "high"} and fit_score >= 72:
-        return "high"
-    if sample_size >= 3 and fit_score >= 58:
-        return "medium"
-    return "low"
+    if currently_played and current_games < 5:
+        label = "Too little data"
+        reason = (
+            f"You have only reached this opening {current_games} time"
+            f"{'' if current_games == 1 else 's'}, so OpeningFit cannot judge it properly yet."
+        )
+        tier = "too_little_data"
+    elif currently_played and current_games >= 10 and fit_score >= 70:
+        label = "High confidence"
+        reason = "You have played it regularly, the fit score is strong, and the result pattern is stable enough to trust."
+        tier = "high"
+    elif sample_size >= 12 and base in {"medium", "high"} and fit_score >= 72:
+        label = "High confidence"
+        reason = "Your imported games give a stable style fingerprint and this opening matches it strongly."
+        tier = "high"
+    elif currently_played and current_games >= 5 and fit_score >= 58:
+        label = "Medium confidence"
+        reason = "You have a usable sample and the fit is positive, but more games would make the verdict sharper."
+        tier = "medium"
+    elif sample_size >= 5 and fit_score >= 58:
+        label = "Medium confidence"
+        reason = "This matches your style profile, but it is mostly a suggestion rather than a proven result from your own games."
+        tier = "medium"
+    else:
+        label = "Low confidence"
+        reason = "The style signal is still modest, so treat this as a candidate to test rather than a firm recommendation."
+        tier = "low"
+
+    return {
+        "tier": tier,
+        "label": label,
+        "reason": reason,
+    }
 
 
 def upgrade_type(stats: Optional[Dict[str, Any]]) -> str:
@@ -215,8 +241,8 @@ def upgrade_type(stats: Optional[Dict[str, Any]]) -> str:
 
     games = int(stats.get("games", 0) or 0)
     score = score_for_opening_stats(stats)
-    if games < 3 or score is None:
-        return "improve"
+    if games < 5 or score is None:
+        return "too_little_data"
     if score >= 55:
         return "keep"
     if score >= 40:
@@ -247,6 +273,7 @@ def reason_for_item(item: OpeningCatalogItem, traits: Dict[str, Any], upgrade: s
         "keep": "This already looks like a useful fit:",
         "improve": "This is close to your style but needs cleaner execution:",
         "avoid": "This appears risky for your current results:",
+        "too_little_data": "This appears in your games, but the sample is too small:",
         "new_recommendation": "This is a new candidate because your games point toward",
     }.get(upgrade, "This opening matches")
 
@@ -287,12 +314,24 @@ def build_recommendation(
     fit += existing_opening_adjustment(item, stats)
     fit_score = clamp_score(fit)
     upgrade = upgrade_type(stats)
+    confidence = confidence_details_for_recommendation(
+        style_fingerprint,
+        fit_score,
+        currently_played,
+        current_games,
+    )
 
     return {
         "name": item["name"],
         "fit_score": fit_score,
         "fitScore": fit_score,
-        "confidence": confidence_for_recommendation(style_fingerprint, fit_score, currently_played, current_games),
+        "confidence": confidence["label"],
+        "confidence_level": confidence["tier"],
+        "confidenceLevel": confidence["tier"],
+        "confidence_label": confidence["label"],
+        "confidenceLabel": confidence["label"],
+        "confidence_reason": confidence["reason"],
+        "confidenceReason": confidence["reason"],
         "reason": reason_for_item(item, traits, upgrade),
         "evidence": list(style_fingerprint.get("evidence") or [])[:3],
         "learning_cost": learning_cost(item),
