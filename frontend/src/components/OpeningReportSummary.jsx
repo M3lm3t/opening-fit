@@ -126,6 +126,23 @@ function getNextTrainingActions(data, fallbackAction) {
   return cleaned.slice(0, 3);
 }
 
+function getStudyQueue(data) {
+  const raw = data?.studyQueue || data?.study_queue || [];
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((task) => ({
+      title: String(task?.title || "").trim(),
+      why: String(task?.whyItMatters || task?.why_it_matters || task?.why || "").trim(),
+      action: String(task?.recommendedAction || task?.recommended_action || task?.action || "").trim(),
+      priority: String(task?.priority || "medium").trim().toLowerCase(),
+      opening: String(task?.relatedOpening || task?.related_opening || "").trim(),
+      colour: String(task?.colour || task?.color || "").trim(),
+    }))
+    .filter((task) => task.title && task.why && task.action)
+    .slice(0, 5);
+}
+
 function getProblemLines(data) {
   const lines = data?.problemLines || data?.problem_lines || [];
   return Array.isArray(lines) ? lines.slice(0, 3) : [];
@@ -417,6 +434,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const focusOpening = improve?.name || bestOpening;
   const recommendedAction = getRecommendedAction(data, focusOpening);
   const nextTrainingActions = getNextTrainingActions(data, recommendedAction);
+  const studyQueue = getStudyQueue(data);
   const problemLines = getProblemLines(data);
   const openingPhaseHabits = getOpeningPhaseHabits(data);
   const coverageRows = getCoverageRows(data);
@@ -530,6 +548,29 @@ export default function OpeningReportSummary({ data, username, platform }) {
             </ul>
           ) : (
             <span>No repeated poor-result line appeared often enough to flag yet.</span>
+          )}
+        </div>
+
+        <div>
+          <strong>Personal study queue</strong>
+          {studyQueue.length ? (
+            <ul className="openingReportStudyQueue">
+              {studyQueue.map((task) => (
+                <li key={`${task.title}-${task.opening || task.colour}`}>
+                  <span>
+                    {task.title}
+                    <em>{task.priority}</em>
+                  </span>
+                  <small>{task.why}</small>
+                  <small>{task.action}</small>
+                  {task.opening || task.colour ? (
+                    <small>{[task.colour, task.opening].filter(Boolean).join(" · ")}</small>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span>No study queue yet. Import a few more games to create focused tasks.</span>
           )}
         </div>
       </div>

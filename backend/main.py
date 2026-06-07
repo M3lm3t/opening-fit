@@ -2817,6 +2817,215 @@ def build_next_training_actions(
     return deduped[:3]
 
 
+def study_task(
+    title: str,
+    why: str,
+    action: str,
+    priority: str,
+    opening: str = "",
+    colour: str = "",
+    source: str = "",
+) -> Dict[str, str]:
+    return {
+        "title": title,
+        "why": why,
+        "whyItMatters": why,
+        "why_it_matters": why,
+        "recommendedAction": action,
+        "recommended_action": action,
+        "action": action,
+        "priority": priority,
+        "relatedOpening": opening,
+        "related_opening": opening,
+        "colour": colour,
+        "color": colour,
+        "source": source,
+    }
+
+
+def context_colour_label(context: str) -> str:
+    key = str(context or "").lower()
+    if key == "played_as_white" or key.startswith("white"):
+        return "White"
+    if key == "black_vs_e4":
+        return "Black vs 1.e4"
+    if key in {"black_vs_d4", "black_vs_d4_other", "black_vs_other"}:
+        return "Black vs 1.d4 / 1.c4 / 1.Nf3"
+    if key.startswith("black"):
+        return "Black"
+    return "Mixed"
+
+
+def first_style_experiment(style_opening_match: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    for section in (style_opening_match or {}).get("sections", []) or []:
+        for item in section.get("items", []) or []:
+            label = str(item.get("label") or item.get("recommendationType") or item.get("recommendation_type") or "").lower()
+            verdict = str(item.get("verdict") or item.get("recommendationCategory") or "").lower()
+            games = int(item.get("games", 0) or 0)
+            if "experiment" in label or "experiment" in verdict or games < 3:
+                return {**item, "sectionKey": section.get("key"), "sectionTitle": section.get("title")}
+    return None
+
+
+def build_study_queue(
+    best_openings: List[Dict[str, Any]],
+    problem_lines: List[Dict[str, Any]],
+    opening_phase_habits: List[Dict[str, Any]],
+    coverage: Dict[str, Any],
+    coherence: Optional[Dict[str, Any]] = None,
+    style_opening_match: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, str]]:
+    tasks: List[Dict[str, str]] = []
+
+    if problem_lines:
+        line = problem_lines[0]
+        opening = str(line.get("opening") or line.get("name") or "this opening")
+        move_line = str(line.get("line") or "the repeated early line")
+        losses = int(line.get("losses", 0) or 0)
+        games = int(line.get("games", 0) or 0)
+        tasks.append(
+            study_task(
+                f"Fix your {opening} line",
+                f"Your results drop after {move_line}; this line produced {losses} loss{'' if losses == 1 else 'es'} in {games} repeated games.",
+                "Review one simple setup for this line, then play 5 focused games and re-import.",
+                "high",
+                opening,
+                context_colour_label(str(line.get("context") or "")),
+                "weakest_repeated_line",
+            )
+        )
+
+    missing_rows = []
+    for row in (coverage or {}).get("white", []) + (coverage or {}).get("black", []):
+        if row.get("status") in {"No clear plan", "Too little data", "Needs work"}:
+            missing_rows.append(row)
+    if missing_rows:
+        gap = sorted(missing_rows, key=lambda row: (row.get("status") == "Needs work", int(row.get("games", 0) or 0)))[0]
+        label = str(gap.get("label") or "a repertoire gap")
+        games = int(gap.get("games", 0) or 0)
+        tasks.append(
+            study_task(
+                f"Choose a plan for {label}",
+                f"The report marks {label} as {gap.get('status')}; only {games} imported game{'' if games == 1 else 's'} support the current plan.",
+                "Pick one practical setup for this area and use it consistently for the next small sample.",
+                "high" if gap.get("status") == "No clear plan" else "medium",
+                str(gap.get("opening") or ""),
+                "White" if str(gap.get("key") or "").startswith(("main_white", "vs_")) else "Black",
+                "biggest_repertoire_gap",
+            )
+        )
+
+    experiment = first_style_experiment(style_opening_match)
+    if experiment:
+        name = str(experiment.get("name") or "a style-fit opening")
+        tasks.append(
+            study_task(
+                f"Test {name} as an experiment",
+                str(experiment.get("whyItFits") or experiment.get("explanation") or f"{name} matches your style profile, but the sample is still low-confidence."),
+                "Learn the starter plan, play 3 to 5 focused games, and keep it experimental until the sample grows.",
+                "low",
+                name,
+                context_colour_label(str(experiment.get("sectionKey") or experiment.get("slot") or "")),
+                "low_confidence_promising_opening",
+            )
+        )
+
+    if opening_phase_habits:
+        habit = sorted(
+            opening_phase_habits,
+            key=lambda item: (float(item.get("lossRate", 0) or 0), int(item.get("games", 0) or 0)),
+            reverse=True,
+        )[0]
+        opening = str(habit.get("opening") or habit.get("name") or "your opening")
+        tasks.append(
+            study_task(
+                f"Clean up {habit.get('label', 'your opening habit').lower()}",
+                str(habit.get("summary") or f"This habit repeats in {opening} and is hurting your opening phase."),
+                str(habit.get("advice") or "Play through the first 10 moves slowly and prioritise development, king safety, and one clear pawn break."),
+                "high" if float(habit.get("lossRate", 0) or 0) >= 50 else "medium",
+                opening,
+                context_colour_label(str(habit.get("context") or "")),
+                "most_harmful_opening_habit",
+            )
+        )
+
+    messy_lane = None
+    for row in (coherence or {}).get("rows", []) or (coherence or {}).get("lanes", []) or []:
+        if row.get("status") in {"Fragmented", "Too random to train efficiently"} and int(row.get("totalGames", 0) or 0) > 0:
+            messy_lane = row
+            break
+    if messy_lane:
+        tasks.append(
+            study_task(
+                f"Simplify {messy_lane.get('label', 'one repertoire area')}",
+                str(messy_lane.get("summary") or "This repertoire area is spread across too many unrelated openings."),
+                str(messy_lane.get("advice") or "Choose one main system and one backup until your results stabilise."),
+                "medium",
+                ", ".join(messy_lane.get("topSystems", []) or messy_lane.get("top_systems", []) or []),
+                str(messy_lane.get("label") or ""),
+                "fragmented_repertoire_area",
+            )
+        )
+
+    fallback_opening = next(
+        (
+            item for item in best_openings or []
+            if is_clean_repertoire_context(item) and not is_unknown_opening_name(item.get("name", ""))
+        ),
+        None,
+    )
+    if len(tasks) < 3 and fallback_opening:
+        opening = str(fallback_opening.get("name") or "your main opening")
+        tasks.append(
+            study_task(
+                f"Build a reliable {opening} sample",
+                f"{opening} is the clearest repeated opening in the report, but the next decision needs more focused games.",
+                "Play 5 games with the same early plan, then re-import to confirm the pattern.",
+                "medium",
+                opening,
+                context_colour_label(str(fallback_opening.get("context") or "")),
+                "fallback_repeated_opening",
+            )
+        )
+
+    fallback_tasks = [
+        study_task(
+            "Review one repeated opening loss",
+            "The report needs a concrete review target before changing the repertoire.",
+            "Pick the most recent opening loss, write down where development or king safety first went wrong, then play one focused rematch.",
+            "medium",
+            "",
+            "Mixed",
+            "fallback_review",
+        ),
+        study_task(
+            "Collect a stable opening sample",
+            "OpeningFit needs repeated games in the same structures before making stronger judgments.",
+            "Play 5 games using one White plan and one Black plan, then re-import.",
+            "low",
+            "",
+            "Mixed",
+            "fallback_sample",
+        ),
+    ]
+    for task in fallback_tasks:
+        if len(tasks) >= 3:
+            break
+        tasks.append(task)
+
+    deduped: List[Dict[str, str]] = []
+    seen_titles = set()
+    for task in tasks:
+        title = task["title"].lower()
+        if title in seen_titles:
+            continue
+        seen_titles.add(title)
+        deduped.append(task)
+        if len(deduped) >= 5:
+            break
+    return deduped
+
+
 def weighted_score(items: List[Dict[str, Any]]) -> Optional[float]:
     total_games = sum(int(item.get("games", 0) or 0) for item in items)
     if total_games <= 0:
@@ -3934,6 +4143,14 @@ def import_chesscom_logic(username: str, months: int = 3):
         None,
         repertoire_coherence,
     )
+    study_queue = build_study_queue(
+        best_openings,
+        problem_lines,
+        opening_phase_habits,
+        repertoire_coverage,
+        repertoire_coherence,
+        style_opening_match,
+    )
     training_plan = next_training_actions
     if next_training_actions:
         recommended_action = next_training_actions[0]
@@ -4032,6 +4249,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "repertoireCoherence": repertoire_coherence,
         "next_training_actions": next_training_actions,
         "nextTrainingActions": next_training_actions,
+        "study_queue": study_queue,
+        "studyQueue": study_queue,
         "recommended_action": recommended_action,
         "recommendedAction": recommended_action,
         "training_plan": training_plan,
@@ -4405,6 +4624,14 @@ def build_lichess_analysis(
         current_rating,
         repertoire_coherence,
     )
+    study_queue = build_study_queue(
+        best_openings,
+        problem_lines,
+        opening_phase_habits,
+        repertoire_coverage,
+        repertoire_coherence,
+        style_opening_match,
+    )
     training_plan = next_training_actions
     if next_training_actions:
         recommended_action = next_training_actions[0]
@@ -4516,6 +4743,8 @@ def build_lichess_analysis(
         "repertoireCoherence": repertoire_coherence,
         "next_training_actions": next_training_actions,
         "nextTrainingActions": next_training_actions,
+        "study_queue": study_queue,
+        "studyQueue": study_queue,
         "recommended_action": recommended_action,
         "recommendedAction": recommended_action,
         "training_plan": training_plan,

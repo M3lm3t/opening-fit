@@ -14505,7 +14505,7 @@ main > section,
 
 .openingReportNextSteps {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: 16px;
 }
@@ -14543,6 +14543,7 @@ main > section,
 
 .openingReportActionList,
 .openingReportProblemList,
+.openingReportStudyQueue,
 .openingReportCoverage ul,
 .openingReportResponses ul,
 .openingReportStyleFits ul,
@@ -14559,6 +14560,7 @@ main > section,
 
 .light .openingReportActionList,
 .light .openingReportProblemList,
+.light .openingReportStudyQueue,
 .light .openingReportCoverage ul,
 .light .openingReportResponses ul,
 .light .openingReportStyleFits ul,
@@ -14566,6 +14568,7 @@ main > section,
 .light .openingReportHabits ul,
 [data-theme="light"] .openingReportActionList,
 [data-theme="light"] .openingReportProblemList,
+[data-theme="light"] .openingReportStudyQueue,
 [data-theme="light"] .openingReportCoverage ul,
 [data-theme="light"] .openingReportResponses ul,
 [data-theme="light"] .openingReportStyleFits ul,
@@ -14575,6 +14578,7 @@ main > section,
 }
 
 .openingReportProblemList li,
+.openingReportStudyQueue li,
 .openingReportCoverage li,
 .openingReportResponses li,
 .openingReportStyleFits li,
@@ -14585,6 +14589,8 @@ main > section,
 
 .openingReportProblemList span,
 .openingReportProblemList small,
+.openingReportStudyQueue span,
+.openingReportStudyQueue small,
 .openingReportCoverage span,
 .openingReportCoverage em,
 .openingReportCoverage small,
@@ -14603,6 +14609,7 @@ main > section,
 }
 
 .openingReportProblemList small,
+.openingReportStudyQueue small,
 .openingReportCoverage small,
 .openingReportResponses small,
 .openingReportStyleFits small,
@@ -14615,17 +14622,33 @@ main > section,
 }
 
 .light .openingReportProblemList small,
+.light .openingReportStudyQueue small,
 .light .openingReportCoverage small,
 .light .openingReportResponses small,
 .light .openingReportStyleFits small,
 .light .openingReportCoherence small,
 .light .openingReportHabits small,
 [data-theme="light"] .openingReportProblemList small,
+[data-theme="light"] .openingReportStudyQueue small,
 [data-theme="light"] .openingReportCoverage small,
 [data-theme="light"] .openingReportResponses small,
 [data-theme="light"] .openingReportStyleFits small,
 [data-theme="light"] .openingReportCoherence small,
 [data-theme="light"] .openingReportHabits small {
+  color: #64748b;
+}
+
+.openingReportStudyQueue em {
+  display: inline-flex;
+  margin-left: 6px;
+  font-size: 0.72rem;
+  font-style: normal;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.55);
+}
+
+.light .openingReportStudyQueue em,
+[data-theme="light"] .openingReportStudyQueue em {
   color: #64748b;
 }
 
