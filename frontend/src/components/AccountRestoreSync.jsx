@@ -49,7 +49,6 @@ export default function AccountRestoreSync({
     saveSettings,
     saveReport,
     upsertUserData,
-    refreshUserData,
   } = useAuth();
   const restoredUserRef = useRef(null);
   const lastSavedRef = useRef("");
@@ -225,14 +224,13 @@ export default function AccountRestoreSync({
           migratedLocalRef.current = migrationKey;
         }
 
-        await refreshUserData(user);
       } catch (error) {
         console.error("OpeningFit cloud account save failed", error);
       }
     }
 
     saveAccount();
-  }, [data, platform, profile?.id, profile?.last_report, profileLoaded, profileLoading, refreshUserData, restoreError, restoreInProgress, saveReport, saveSettings, upsertUserData, user, username]);
+  }, [data, platform, profile?.id, profile?.last_report, profileLoaded, profileLoading, restoreError, restoreInProgress, saveReport, saveSettings, upsertUserData, user, username]);
 
   return null;
 }

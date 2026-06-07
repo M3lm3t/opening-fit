@@ -313,11 +313,7 @@ export default function AccountPanel({ variant = "floating",
           }
         }
 
-        try {
-          await refreshUserData(result.user);
-        } catch (refreshError) {
-          console.warn("OpeningFit account refresh after email auth failed", refreshError);
-        }
+        // AuthDataProvider owns the post-auth cloud restore.
       }
 
       if (authMode === "signup" && result.needsEmailConfirmation) {

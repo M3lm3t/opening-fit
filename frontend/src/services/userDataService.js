@@ -33,6 +33,30 @@ const DEBUG_ENABLED =
 const DEBUG_CLOUD_RESTORE =
   typeof import.meta !== "undefined" &&
   import.meta.env?.VITE_DEBUG_CLOUD_RESTORE === "true";
+const DEFAULT_RESTORE_LIMIT = 50;
+const RESTORE_TABLE_LIMITS = {
+  premium_entitlements: 10,
+  openingfit_user_state: 20,
+  onboarding_answers: 20,
+  measurements: 20,
+  outfits: 20,
+  favorites: 50,
+  uploads: 20,
+  ai_generations: 20,
+  settings: 5,
+  user_settings: 5,
+  activity_history: 50,
+  report_history: 20,
+  analysis_history: 20,
+  analysed_games: 50,
+  recommendation_history: 50,
+  saved_recommendations: 50,
+  opening_preferences: 20,
+  repertoire: 50,
+  saved_openings: 50,
+  chess_account_links: 10,
+  notification_preferences: 10,
+};
 
 function createDefaultUserData(profile = null) {
   return {
@@ -101,7 +125,7 @@ export function safeUserMessage(error, fallback = "OpeningFit could not reach Su
     return "Supabase permission error. Please check RLS policies and try again.";
   }
 
-  if (/failed to fetch|network|load failed|fetch/i.test(message) || error?.name === "TypeError") {
+  if (/failed to fetch|network|load failed|fetch|timeout|timed out/i.test(message) || error?.name === "TypeError") {
     return "Network error. Check your connection and try again.";
   }
 
@@ -391,27 +415,31 @@ export async function upsertUserProfile(user, patch = {}) {
   return row || null;
 }
 
-async function selectUserRows(table, userId) {
+async function selectUserRows(table, userId, options = {}) {
   const client = requireClient();
+  const limit = options.limit ?? RESTORE_TABLE_LIMITS[table] ?? DEFAULT_RESTORE_LIMIT;
   const ordered = await client
     .from(table)
     .select("*")
     .eq("user_id", userId)
-    .order("updated_at", { ascending: false, nullsFirst: false });
+    .order("updated_at", { ascending: false, nullsFirst: false })
+    .limit(limit);
 
   if (!ordered.error) {
     logQuerySuccess(table, "select rows by user_id ordered by updated_at", {
       userId,
+      limit,
       count: ordered.data?.length || 0,
     });
     return ordered.data || [];
   }
 
   if (/updated_at/i.test(ordered.error.message || "")) {
-    const fallback = await client.from(table).select("*").eq("user_id", userId);
+    const fallback = await client.from(table).select("*").eq("user_id", userId).limit(limit);
     if (!fallback.error) {
       logQuerySuccess(table, "select rows by user_id without updated_at ordering", {
         userId,
+        limit,
         count: fallback.data?.length || 0,
       });
       return fallback.data || [];
@@ -432,12 +460,15 @@ export async function fetchAllUserData(user, options = {}) {
 
   let profile = null;
   try {
-    profile = await ensureProfile(user);
+    profile = await loadExistingProfile(user.id);
   } catch (profileError) {
-    logQueryFailure("profiles", "ensure profile during full restore", profileError, {
+    logQueryFailure("profiles", "select profile during full restore", profileError, {
       userId: user.id,
     });
-    throw new Error(profileError?.message || "Profile failed to load from Supabase.");
+    if (options.strict) {
+      throw new Error(profileError?.message || "Profile failed to load from Supabase.");
+    }
+    console.warn("OpeningFit could not restore profile; using empty profile.", profileError);
   }
 
   const tableNames = USER_DATA_TABLES.filter((table) => table !== "profiles");

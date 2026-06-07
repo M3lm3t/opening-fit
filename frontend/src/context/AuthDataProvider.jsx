@@ -49,34 +49,30 @@ const EMPTY_RESTORED_COUNTS = {
   reports: 0,
 };
 
-function createRestoreTimeout() {
+function withTimeout(promise, ms = RESTORE_TIMEOUT_MS, label = "Supabase request") {
   let timeoutId;
-  const promise = new Promise((_, reject) => {
-    timeoutId = window.setTimeout(() => {
-      const error = new Error("Workspace restore timed out.");
+
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      const error = new Error(`${label} timed out after ${ms}ms`);
       error.name = "WorkspaceRestoreTimeout";
       reject(error);
-    }, RESTORE_TIMEOUT_MS);
+    }, ms);
   });
 
-  return {
-    promise,
-    clear: () => window.clearTimeout(timeoutId),
-  };
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    clearTimeout(timeoutId);
+  });
 }
 
-async function withRestoreTimeout(work, label = "workspace restore") {
-  const timeout = createRestoreTimeout();
-
+async function withRestoreTimeout(promise, label = "workspace restore") {
   try {
-    return await Promise.race([work, timeout.promise]);
+    return await withTimeout(promise, RESTORE_TIMEOUT_MS, label);
   } catch (restoreError) {
     if (restoreError?.name === "WorkspaceRestoreTimeout") {
       console.warn(`OpeningFit ${label} timed out; continuing with default workspace.`);
     }
     throw restoreError;
-  } finally {
-    timeout.clear();
   }
 }
 
@@ -217,11 +213,18 @@ function debugCloudRestore(message, details = {}) {
   console.debug(`[OpeningFit cloud restore] ${message}`, details);
 }
 
+function getSessionRestoreKey(nextSession) {
+  const userId = nextSession?.user?.id || "";
+  if (!userId) return "";
+  return `${userId}:${nextSession?.access_token || ""}`;
+}
+
 export function AuthDataProvider({ children }) {
   const [session, setSession] = useState(null);
   const [userData, setUserData] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [cloudRestoreLoading, setCloudRestoreLoading] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [hydrated, setHydrated] = useState(false);
@@ -235,6 +238,7 @@ export function AuthDataProvider({ children }) {
   const debounceRef = useRef(null);
   const userRef = useRef(null);
   const restoreSeqRef = useRef(0);
+  const restoredSessionKeyRef = useRef("");
   const legacySyncSuspendedRef = useRef(false);
 
   const user = session?.user || null;
@@ -250,6 +254,7 @@ export function AuthDataProvider({ children }) {
           setUserData(null);
           setHydrated(true);
           setProfileLoading(false);
+          setCloudRestoreLoading(false);
           setProfileLoaded(true);
           setProfileError("");
         }
@@ -261,11 +266,13 @@ export function AuthDataProvider({ children }) {
       setRestoreTimedOut(false);
       if (applyState) {
         setProfileLoading(true);
+        setCloudRestoreLoading(true);
         setProfileLoaded(false);
         setProfileError("");
       }
 
       try {
+        console.info("[OpeningFit] restore start", nextUser.id);
         debugCloudRestore("loading user data", { userId: nextUser.id, applyState });
         const data = await withRestoreTimeout(
           fetchAllUserData(nextUser),
@@ -284,9 +291,10 @@ export function AuthDataProvider({ children }) {
           }));
           setHydrated(true);
         }
+        console.info("[OpeningFit] restore complete");
         return data;
       } catch (refreshError) {
-        console.warn("OpeningFit could not restore saved workspace; using default state.", refreshError);
+        console.warn("[OpeningFit] restore failed", refreshError);
         if (applyState && restoreSeq === restoreSeqRef.current) {
           const message = refreshError.message || "Could not load your saved data.";
           setError(message);
@@ -302,6 +310,7 @@ export function AuthDataProvider({ children }) {
         if (applyState && restoreSeq === restoreSeqRef.current) {
           setHydrated(true);
           setProfileLoading(false);
+          setCloudRestoreLoading(false);
         }
       }
     },
@@ -309,66 +318,25 @@ export function AuthDataProvider({ children }) {
   );
 
   const retryRestore = useCallback(async () => {
-    let nextUser = userRef.current;
+    const nextUser = userRef.current;
     setRestoreAttempt((value) => value + 1);
     setRestoreError("");
     setRestoreTimedOut(false);
 
     if (!nextUser?.id) {
-      setAuthLoading(true);
-      try {
-        const { data, error: sessionError } = await withRestoreTimeout(
-          supabase.auth.getSession(),
-          "manual auth session restore"
-        );
-        if (sessionError) throw sessionError;
-
-        const nextSession = data?.session || null;
-        setSession(nextSession);
-        setAuthLoading(false);
-
-        if (!nextSession?.user) {
-          setHydrated(true);
-          setProfileLoaded(true);
-          return null;
-        }
-
-        nextUser = nextSession.user;
-      } catch (authRetryError) {
-        const timedOut = authRetryError?.name === "WorkspaceRestoreTimeout";
-        console.error("OpeningFit Supabase query failed", {
-          table: "auth.sessions",
-          operation: "manual auth/session retry",
-          error: authRetryError,
-        });
-        setAuthLoading(false);
-        setRestoreTimedOut(timedOut);
-        setProfileLoaded(true);
-        setProfileError(
-          timedOut
-            ? "Supabase auth restore timed out. You can keep using OpeningFit locally."
-            : authRetryError.message || "Could not restore your session."
-        );
-        setRestoreError(
-          timedOut
-            ? "Supabase auth restore timed out. You can keep using OpeningFit locally."
-            : authRetryError.message || "Could not restore your session."
-        );
-        setHydrated(true);
-        return null;
-      }
+      setHydrated(true);
+      setProfileLoaded(true);
+      return null;
     }
 
     const restoreSeq = ++restoreSeqRef.current;
     setProfileLoading(true);
+    setCloudRestoreLoading(true);
     setProfileLoaded(false);
     setProfileError("");
 
     try {
-      return await withRestoreTimeout(
-        refreshUserData(nextUser, { restoreSeq }),
-        "manual workspace restore"
-      );
+      return await refreshUserData(nextUser, { restoreSeq });
     } catch (retryError) {
       const timedOut = retryError?.name === "WorkspaceRestoreTimeout";
       console.warn("OpeningFit manual workspace restore failed; continuing with default state.", retryError);
@@ -392,6 +360,7 @@ export function AuthDataProvider({ children }) {
     } finally {
       if (restoreSeq === restoreSeqRef.current) {
         setProfileLoading(false);
+        setCloudRestoreLoading(false);
       }
     }
   }, [refreshUserData]);
@@ -406,6 +375,7 @@ export function AuthDataProvider({ children }) {
     }
 
     setRestoreInProgress(true);
+    setCloudRestoreLoading(true);
     legacySyncSuspendedRef.current = true;
     setProfileLoaded(false);
     setProfileError("");
@@ -453,9 +423,11 @@ export function AuthDataProvider({ children }) {
       }
 
       setSession(nextSession);
+      restoredSessionKeyRef.current = getSessionRestoreKey(nextSession);
       const restoreSeq = ++restoreSeqRef.current;
       setProfileLoading(true);
 
+      console.info("[OpeningFit] restore start", sessionUser.id);
       const snapshot = await withRestoreTimeout(
         fetchAllUserData(sessionUser, { strict: true }),
         "manual cloud snapshot restore"
@@ -465,6 +437,7 @@ export function AuthDataProvider({ children }) {
       if (!snapshot || typeof snapshot !== "object") {
         setProfileLoaded(true);
         setProfileError("data format error");
+        console.warn("[OpeningFit] restore failed", new Error("data format error"));
         return {
           ok: false,
           reason: "data format error",
@@ -482,6 +455,7 @@ export function AuthDataProvider({ children }) {
           reason: "No cloud backup found for this account yet.",
           restoredCounts,
         });
+        console.info("[OpeningFit] restore complete");
         return {
           ok: false,
           reason: "No cloud backup found for this account yet.",
@@ -510,8 +484,10 @@ export function AuthDataProvider({ children }) {
         snapshot,
       };
       setManualRestoreResult(result);
+      console.info("[OpeningFit] restore complete");
       return result;
     } catch (error) {
+      console.warn("[OpeningFit] restore failed", error);
       const reason = friendlyRestoreReason(error);
       const result = {
         ok: false,
@@ -528,6 +504,7 @@ export function AuthDataProvider({ children }) {
       legacySyncSuspendedRef.current = false;
       setRestoreInProgress(false);
       setProfileLoading(false);
+      setCloudRestoreLoading(false);
     }
   }, [restoreInProgress]);
 
@@ -553,6 +530,7 @@ export function AuthDataProvider({ children }) {
     if (!isSupabaseConfigured || !supabase) {
       setAuthLoading(false);
       setHydrated(true);
+      setCloudRestoreLoading(false);
       setProfileLoaded(true);
       return undefined;
     }
@@ -580,18 +558,17 @@ export function AuthDataProvider({ children }) {
 
         const nextSession = data?.session || null;
         setSession(nextSession);
+        restoredSessionKeyRef.current = getSessionRestoreKey(nextSession);
         setAuthLoading(false);
 
         if (nextSession?.user) {
           const restoreSeq = ++restoreSeqRef.current;
           setProfileLoading(true);
+          setCloudRestoreLoading(true);
           setProfileLoaded(false);
           setProfileError("");
           try {
-            await withRestoreTimeout(
-              refreshUserData(nextSession.user, { restoreSeq }),
-              "initial workspace restore"
-            );
+            await refreshUserData(nextSession.user, { restoreSeq });
           } catch (restoreError) {
             const timedOut = restoreError?.name === "WorkspaceRestoreTimeout";
             console.warn("OpeningFit initial workspace restore failed; using default state.", restoreError);
@@ -614,6 +591,7 @@ export function AuthDataProvider({ children }) {
           } finally {
             if (mounted && restoreSeq === restoreSeqRef.current) {
               setProfileLoading(false);
+              setCloudRestoreLoading(false);
             }
           }
         } else {
@@ -632,6 +610,7 @@ export function AuthDataProvider({ children }) {
         console.warn("OpeningFit auth restore failed; using default state.", restoreError);
         if (mounted) {
           setAuthLoading(false);
+          setCloudRestoreLoading(false);
           setUserData(null);
           setHydrated(true);
           setProfileLoaded(true);
@@ -658,21 +637,33 @@ export function AuthDataProvider({ children }) {
     restoreInitialWorkspace();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, nextSession) => {
+      async (event, nextSession) => {
         if (!mounted) return;
         setSession(nextSession || null);
+        const nextSessionKey = getSessionRestoreKey(nextSession);
+
+        if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+          restoredSessionKeyRef.current = nextSessionKey;
+          setAuthLoading(false);
+          return;
+        }
+
+        if (nextSessionKey && nextSessionKey === restoredSessionKeyRef.current) {
+          setAuthLoading(false);
+          return;
+        }
 
         if (nextSession?.user) {
+          restoredSessionKeyRef.current = nextSessionKey;
           setAuthLoading(false);
           setProfileLoading(true);
+          setCloudRestoreLoading(true);
           setProfileLoaded(false);
           setProfileError("");
           try {
             const restoreSeq = ++restoreSeqRef.current;
-            await withRestoreTimeout(
-              refreshUserData(nextSession.user, { restoreSeq }),
-              "auth workspace restore"
-            );
+            console.info("[OpeningFit] auth restore event", event);
+            await refreshUserData(nextSession.user, { restoreSeq });
           } catch (restoreError) {
             const timedOut = restoreError?.name === "WorkspaceRestoreTimeout";
             console.warn("OpeningFit auth workspace restore failed; using default state.", restoreError);
@@ -696,15 +687,18 @@ export function AuthDataProvider({ children }) {
             if (mounted) {
               setHydrated(true);
               setProfileLoading(false);
+              setCloudRestoreLoading(false);
             }
           }
         } else {
           restoreSeqRef.current += 1;
+          restoredSessionKeyRef.current = "";
           clearLegacyStorage();
           setUserData(null);
           setHydrated(true);
           setAuthLoading(false);
           setProfileLoading(false);
+          setCloudRestoreLoading(false);
           setProfileLoaded(true);
           setProfileError("");
           setRestoreError("");
@@ -803,6 +797,7 @@ export function AuthDataProvider({ children }) {
       loading: authLoading,
       authLoading,
       profileLoading,
+      cloudRestoreLoading,
       profileLoaded,
       profileError,
       restoringProfile: profileLoading,
@@ -811,6 +806,7 @@ export function AuthDataProvider({ children }) {
       restoreError,
       restoreTimedOut,
       restoreInProgress,
+      retryCloudRestore: retryRestore,
       manualRestoreResult,
       restoreAttempt,
       syncStatus: syncState.status,
@@ -850,6 +846,7 @@ export function AuthDataProvider({ children }) {
       profileError,
       profileLoaded,
       profileLoading,
+      cloudRestoreLoading,
       refreshUserData,
       restoreAttempt,
       restoreError,
@@ -960,15 +957,15 @@ export function AuthDataProvider({ children }) {
             <strong>{restoreTimedOut ? "Cloud restore timed out" : "Cloud restore failed"}</strong>
             <p>{restoreError}</p>
           </div>
-          <button type="button" onClick={retryRestore} disabled={profileLoading}>
-            {profileLoading ? "Retrying..." : "Retry"}
+          <button type="button" onClick={retryRestore} disabled={cloudRestoreLoading}>
+            {cloudRestoreLoading ? "Retrying..." : "Retry"}
           </button>
         </div>
       ) : authLoading ? (
         <div className="restoreNotice restoreNoticeLoading" role="status">
           Checking OpeningFit account...
         </div>
-      ) : profileLoading ? (
+      ) : cloudRestoreLoading ? (
         <div className="restoreNotice restoreNoticeLoading" role="status">
           Restoring saved OpeningFit workspace...
         </div>
