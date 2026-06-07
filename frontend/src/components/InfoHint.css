@@ -42,6 +42,10 @@
   text-transform: none;
 }
 
+.infoHintBubble * {
+  text-transform: none;
+}
+
 .page.light .infoHintButton,
 [data-theme="light"] .infoHintButton {
   border-color: rgba(15, 23, 42, 0.16);

@@ -44,6 +44,16 @@ function firstSentence(value, fallback) {
   return (match ? match[0] : text).trim();
 }
 
+function shortTooltipText(values, fallback) {
+  const sentences = values
+    .flat()
+    .filter(Boolean)
+    .flatMap((value) => String(value).split(/\n+/))
+    .map((value) => firstSentence(value, ""))
+    .filter(Boolean);
+  return [...new Set(sentences)].slice(0, 2).join(" ") || fallback || "";
+}
+
 function getName(item) {
   return item?.name || item?.opening || item?.line || "Opening";
 }
@@ -140,12 +150,7 @@ function openingReason(item) {
 }
 
 function recommendationTooltip(item) {
-  return [
-    `Fit score: ${fitScore(item) || "unknown"}`,
-    `Confidence: ${confidence(item)}`,
-    `Learning cost: ${titleCase(item?.learningCost || item?.learning_cost || "medium")}`,
-    `Watch out: ${watchOut(item)}`,
-  ].join("\n");
+  return `Fit score is ${fitScore(item) || "unknown"} with ${confidence(item).toLowerCase()} confidence. Watch out: ${watchOut(item)}`;
 }
 
 function RecommendationCard({ title, item, tone }) {
@@ -199,13 +204,13 @@ function WeakLineCard({ line, onPractice }) {
 
 function CompactOpeningCard({ opening }) {
   const status = statusForOpening(opening);
-  const details = [
-    opening?.fitExplanation || opening?.fit_explanation,
-    opening?.fitConfidenceReason || opening?.fit_confidence_reason,
-    ...asArray(opening?.evidence || opening?.fitEvidence || opening?.fit_evidence),
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const details = shortTooltipText(
+    [
+      opening?.fitExplanation || opening?.fit_explanation,
+      opening?.fitConfidenceReason || opening?.fit_confidence_reason,
+      asArray(opening?.evidence || opening?.fitEvidence || opening?.fit_evidence),
+    ]
+  );
 
   return (
     <article className={`openingInsightMiniCard status-${status.toLowerCase().replace(/\s+/g, "-")}`}>

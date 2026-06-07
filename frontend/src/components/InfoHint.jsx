@@ -1,9 +1,11 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import "./InfoHint.css";
 
 const TOOLTIP_WIDTH = 280;
-const ESTIMATED_TOOLTIP_HEIGHT = 180;
 const EDGE_GAP = 12;
+
+let activeInfoHint = null;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -15,26 +17,57 @@ export default function InfoHint({ label, children, className = "" }) {
   const id = useId();
   const rootRef = useRef(null);
   const buttonRef = useRef(null);
+  const bubbleRef = useRef(null);
+  const pointerFocusRef = useRef(false);
+  const openedByHoverRef = useRef(false);
+  const closeRef = useRef(null);
+  if (!closeRef.current) {
+    closeRef.current = () => setOpen(false);
+  }
+
+  const openHint = useCallback(() => {
+    if (activeInfoHint && activeInfoHint !== closeRef.current) {
+      activeInfoHint();
+    }
+    activeInfoHint = closeRef.current;
+    setOpen(true);
+  }, []);
+
+  const closeHint = useCallback(({ restoreFocus = false } = {}) => {
+    openedByHoverRef.current = false;
+    setOpen(false);
+    if (activeInfoHint === closeRef.current) {
+      activeInfoHint = null;
+    }
+    if (restoreFocus) {
+      buttonRef.current?.focus();
+    }
+  }, []);
+
+  const updatePosition = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const width = Math.min(TOOLTIP_WIDTH, window.innerWidth - EDGE_GAP * 2);
+    const bubbleHeight = bubbleRef.current?.offsetHeight || 96;
+    const left = clamp(
+      rect.left + rect.width / 2 - width / 2,
+      EDGE_GAP,
+      window.innerWidth - width - EDGE_GAP
+    );
+    const spaceBelow = window.innerHeight - rect.bottom - EDGE_GAP;
+    const spaceAbove = rect.top - EDGE_GAP;
+    const top =
+      spaceBelow >= bubbleHeight + 8 || spaceBelow >= spaceAbove
+        ? Math.min(rect.bottom + 8, window.innerHeight - bubbleHeight - EDGE_GAP)
+        : Math.max(EDGE_GAP, rect.top - bubbleHeight - 8);
+
+    setPosition({ left, top, width });
+  }, []);
 
   useEffect(() => {
     if (!open || typeof window === "undefined") return undefined;
-
-    const updatePosition = () => {
-      const rect = buttonRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const width = Math.min(TOOLTIP_WIDTH, window.innerWidth - EDGE_GAP * 2);
-      const left = clamp(
-        rect.left + rect.width / 2 - width / 2,
-        EDGE_GAP,
-        window.innerWidth - width - EDGE_GAP
-      );
-      const shouldOpenAbove = rect.bottom + ESTIMATED_TOOLTIP_HEIGHT > window.innerHeight;
-      const top = shouldOpenAbove
-        ? Math.max(EDGE_GAP, rect.top - ESTIMATED_TOOLTIP_HEIGHT - 8)
-        : rect.bottom + 8;
-      setPosition({ left, top, width });
-    };
 
     updatePosition();
     window.addEventListener("resize", updatePosition);
@@ -43,20 +76,25 @@ export default function InfoHint({ label, children, className = "" }) {
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [open]);
+  }, [open, updatePosition]);
+
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    const frame = window.requestAnimationFrame(updatePosition);
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, children, updatePosition]);
 
   useEffect(() => {
     if (!open) return undefined;
 
     const handlePointerDown = (event) => {
       if (!rootRef.current?.contains(event.target)) {
-        setOpen(false);
+        closeHint();
       }
     };
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
-        setOpen(false);
-        buttonRef.current?.focus();
+        closeHint({ restoreFocus: true });
       }
     };
 
@@ -66,14 +104,25 @@ export default function InfoHint({ label, children, className = "" }) {
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open]);
+  }, [open, closeHint]);
+
+  useEffect(() => {
+    return () => {
+      if (activeInfoHint === closeRef.current) {
+        activeInfoHint = null;
+      }
+    };
+  }, []);
 
   return (
     <span
       ref={rootRef}
       className={`infoHint ${className}`.trim()}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={() => {
+        openedByHoverRef.current = true;
+        openHint();
+      }}
+      onMouseLeave={() => closeHint()}
     >
       <button
         ref={buttonRef}
@@ -82,16 +131,39 @@ export default function InfoHint({ label, children, className = "" }) {
         aria-label={label}
         aria-describedby={open ? id : undefined}
         aria-expanded={open}
+        onPointerDown={() => {
+          pointerFocusRef.current = true;
+          window.setTimeout(() => {
+            pointerFocusRef.current = false;
+          }, 0);
+        }}
         onClick={(event) => {
           event.stopPropagation();
-          setOpen((value) => !value);
+          if (open && openedByHoverRef.current) {
+            openedByHoverRef.current = false;
+            openHint();
+            return;
+          }
+          if (open) {
+            closeHint();
+          } else {
+            openedByHoverRef.current = false;
+            openHint();
+          }
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          if (!pointerFocusRef.current) {
+            openedByHoverRef.current = false;
+            openHint();
+          }
+        }}
+        onBlur={() => closeHint()}
       >
         i
       </button>
-      {open ? (
+      {open && typeof document !== "undefined" ? createPortal(
         <span
+          ref={bubbleRef}
           id={id}
           role="tooltip"
           className="infoHintBubble"
@@ -102,7 +174,8 @@ export default function InfoHint({ label, children, className = "" }) {
           }}
         >
           {children}
-        </span>
+        </span>,
+        document.body
       ) : null}
     </span>
   );
