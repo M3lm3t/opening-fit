@@ -2,35 +2,49 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 
 export const BOARD_THEMES = {
-  classic: {
-    label: "Classic",
-    light: "#f0d9b5",
-    dark: "#b4845c",
+  green: {
+    label: "Classic green",
+    statusLabel: "Classic green",
+    light: "#eeeed2",
+    dark: "#769656",
   },
   lichess: {
-    label: "Green",
-    statusLabel: "Green High Contrast",
-    light: "#eeeed2",
-    dark: "#6d9146",
+    label: "Lichess brown",
+    statusLabel: "Lichess brown",
+    light: "#f0d9b5",
+    dark: "#b58863",
+  },
+  blue: {
+    label: "Blue",
+    light: "#dee3e6",
+    dark: "#8ca2ad",
+  },
+  grey: {
+    label: "Grey",
+    light: "#d8d9dc",
+    dark: "#8c9299",
   },
   highContrast: {
     label: "High Contrast",
-    light: "#f3f6f8",
-    dark: "#536174",
+    light: "#f7f7f7",
+    dark: "#4b5563",
   },
 };
 
 export const BOARD_THEME_OPTIONS = [
-  { key: "classic", label: "Classic" },
-  { key: "lichess", label: "Green" },
+  { key: "green", label: "Classic green" },
+  { key: "lichess", label: "Lichess brown" },
+  { key: "blue", label: "Blue" },
+  { key: "grey", label: "Grey" },
   { key: "highContrast", label: "High Contrast" },
 ];
 
 const STORAGE_KEY = "openingFit:boardTheme";
-const DEFAULT_BOARD_THEME = "lichess";
+const DEFAULT_BOARD_THEME = "green";
 
 function normaliseBoardTheme(value) {
-  if (value === "green") return "lichess";
+  if (value === "classic") return "lichess";
+  if (value === "lichessGreen") return "green";
   return BOARD_THEMES[value] ? value : DEFAULT_BOARD_THEME;
 }
 
