@@ -88,7 +88,9 @@ function PreLoginCuriosityHooks() {
 }
 
 export default function AccountPanel({ variant = "floating",
-  onUserChange,}) {
+  onUserChange,
+  onCloudRestore,
+}) {
   const isScreen = variant === "screen";
   const {
     user,
@@ -97,6 +99,9 @@ export default function AccountPanel({ variant = "floating",
     error: accountError,
     hasPremiumAccess,
     profileLoading,
+    authLoading,
+    hydrated: authHydrated,
+    restoreInProgress,
     syncStatus,
     lastSavedAt,
     syncError,
@@ -429,6 +434,17 @@ export default function AccountPanel({ variant = "floating",
       console.error("Delete account failed", error);
       setStatus(error?.message || "Could not delete account.");
     }
+  }
+
+  async function handleCloudRestoreClick(event) {
+    if (!onCloudRestore) {
+      setStatus("Cloud restore is not available here.");
+      return;
+    }
+
+    setStatus("Restoring cloud data...");
+    const result = await onCloudRestore(event);
+    setStatus(result?.reason || (result?.ok ? "Cloud data restored." : "Cloud restore failed."));
   }
 
 
@@ -818,6 +834,15 @@ export default function AccountPanel({ variant = "floating",
               <div className="accountActions">
                 <button type="button" className="saveAccountBtn" onClick={saveProfile} disabled={saving}>
                   {saving ? "Saving..." : "Save account"}
+                </button>
+
+                <button
+                  type="button"
+                  className="saveAccountBtn"
+                  onClick={handleCloudRestoreClick}
+                  disabled={saving || authLoading || !authHydrated || profileLoading || restoreInProgress}
+                >
+                  {restoreInProgress ? "Restoring..." : "Cloud Restore"}
                 </button>
 
                 <button type="button" className="signOutBtn" onClick={signOut}>

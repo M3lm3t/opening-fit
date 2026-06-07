@@ -6890,6 +6890,47 @@ function getLatestCloudReport(reportHistory = []) {
     )[0] || null;
 }
 
+function getRestoredCloudReport(snapshot = {}) {
+  const workspaceReport =
+    (snapshot.openingfit_user_state || []).find((row) => row?.last_report)?.last_report ||
+    null;
+  if (workspaceReport && typeof workspaceReport === "object") {
+    return {
+      report: workspaceReport,
+      username:
+        snapshot.openingfit_user_state?.find((row) => row?.last_report)?.username ||
+        workspaceReport.username ||
+        workspaceReport.playerName ||
+        "",
+      platform:
+        snapshot.openingfit_user_state?.find((row) => row?.last_report)?.platform ||
+        workspaceReport.platform ||
+        workspaceReport.importPlatform ||
+        "",
+    };
+  }
+
+  if (snapshot.profile?.last_report && typeof snapshot.profile.last_report === "object") {
+    const report = snapshot.profile.last_report;
+    return {
+      report,
+      username: snapshot.profile.username || report.username || report.playerName || "",
+      platform: snapshot.profile.platform || report.platform || report.importPlatform || "",
+    };
+  }
+
+  const latestReport = getLatestCloudReport(snapshot.report_history || []);
+  if (latestReport?.report && typeof latestReport.report === "object") {
+    return {
+      report: latestReport.report,
+      username: latestReport.username || latestReport.summary?.username || latestReport.report.username || "",
+      platform: latestReport.platform || latestReport.summary?.platform || latestReport.report.platform || "",
+    };
+  }
+
+  return null;
+}
+
 function getReturnDashboardProgress({ data, fitData, reportHistory = [], openingFitUserState = [] }) {
   if (data) return buildOpeningFitProgressSnapshot(data, fitData, reportHistory);
 
@@ -7225,6 +7266,7 @@ function OpeningFitProfileDashboard({
   onOpenReport,
   onLoadReport,
   onFounderPass,
+  onCloudRestore,
   onUserChange,
   reportHistory,
   openingFitUserState,
@@ -7261,7 +7303,7 @@ function OpeningFitProfileDashboard({
               <h2>Account settings</h2>
               <p>Manage login, connected usernames, and saved account data.</p>
             </div>
-            <AccountPanel variant="screen" onUserChange={onUserChange} />
+            <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
           </section>
 
           <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
@@ -7369,7 +7411,7 @@ function OpeningFitProfileDashboard({
             <h2>Account settings</h2>
             <p>Manage login, connected usernames, and saved account data.</p>
           </div>
-          <AccountPanel variant="screen" onUserChange={onUserChange} />
+          <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
         </section>
 
         <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
@@ -8993,11 +9035,13 @@ function AccountSyncStatusBar({
   authLoading,
   profileLoading,
   authHydrated,
+  restoreInProgress,
   hasPremiumAccess,
   syncStatus,
   lastSavedAt,
   syncError,
   onAccount,
+  onCloudRestore,
   onSignOut,
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -9089,6 +9133,11 @@ function AccountSyncStatusBar({
     onAccount?.(event);
   };
 
+  const handleCloudRestore = async (event) => {
+    event.stopPropagation();
+    await onCloudRestore?.(event);
+  };
+
   const handleSignOut = async (event) => {
     event.stopPropagation();
     await onSignOut?.();
@@ -9145,6 +9194,15 @@ function AccountSyncStatusBar({
           <button type="button" onClick={handleAccountAction}>
             {syncStatus === "error" ? "Retry sync" : action}
           </button>
+          {user?.id ? (
+            <button
+              type="button"
+              onClick={handleCloudRestore}
+              disabled={authLoading || !authHydrated || profileLoading || restoreInProgress}
+            >
+              {restoreInProgress ? "Restoring..." : "Cloud Restore"}
+            </button>
+          ) : null}
           {user?.id ? (
             <button className="accountSyncSignOut" type="button" onClick={handleSignOut}>
               Sign out
@@ -11453,6 +11511,8 @@ function App() {
     syncStatus,
     lastSavedAt,
     syncError,
+    restoreInProgress,
+    restoreCloudSnapshot,
     isSupabaseConfigured,
     supabase: supabaseClient,
   } = useAuth();
@@ -12131,6 +12191,109 @@ function App() {
       normalizeAnalysisTimeFormat(analysis.analysisTimeFormat || analysisTimeFormat)
     );
     setLocalSavedAt(savedAt);
+  };
+
+  const handleCloudRestore = async (event) => {
+    event?.preventDefault?.();
+
+    if (restoreInProgress) return;
+
+    if (!isSupabaseConfigured) {
+      setCloudSaveStatus("failed");
+      setCloudSaveWarning("Supabase config missing");
+      setImportStatus({
+        tone: "warning",
+        title: "Cloud restore failed",
+        message: "Supabase config missing",
+      });
+      return { ok: false, reason: "Supabase config missing", restoredCounts: { history: 0, progress: 0, savedGames: 0, reports: 0 } };
+    }
+
+    if (authLoading || !authHydrated) {
+      setCloudSaveStatus("saving");
+      setCloudSaveWarning("");
+      setImportStatus({
+        tone: "info",
+        title: "Checking account",
+        message: "OpeningFit is still checking your login session. Try Cloud Restore again in a moment.",
+      });
+      return { ok: false, reason: "not logged in", restoredCounts: { history: 0, progress: 0, savedGames: 0, reports: 0 } };
+    }
+
+    if (!supabaseUser?.id) {
+      setCloudSaveStatus("failed");
+      setCloudSaveWarning("not logged in");
+      setImportStatus({
+        tone: "warning",
+        title: "Cloud restore failed",
+        message: "not logged in",
+      });
+      openLoginPage(event);
+      return { ok: false, reason: "not logged in", restoredCounts: { history: 0, progress: 0, savedGames: 0, reports: 0 } };
+    }
+
+    setCloudSaveStatus("saving");
+    setCloudSaveWarning("");
+    setImportStatus({
+      tone: "info",
+      title: "Restoring cloud data",
+      message: "Loading your saved OpeningFit data from Supabase...",
+    });
+
+    const result = await restoreCloudSnapshot?.(supabaseUser.id);
+
+    if (!result?.ok) {
+      const reason = result?.reason || "Cloud restore failed.";
+      setCloudSaveStatus("failed");
+      setCloudSaveWarning(reason);
+      setImportStatus({
+        tone: reason === "No cloud backup found for this account yet." ? "info" : "warning",
+        title:
+          reason === "No cloud backup found for this account yet."
+            ? "No cloud backup found"
+            : "Cloud restore failed",
+        message: reason,
+      });
+      return result;
+    }
+
+    const restored = getRestoredCloudReport(result.snapshot || {});
+    if (restored?.report) {
+      const restoredUsername =
+        restored.username ||
+        restored.report.username ||
+        restored.report.playerName ||
+        username ||
+        "Unknown player";
+      const restoredPlatform =
+        platforms[restored.platform] ? restored.platform : restored.report.platform || platform;
+
+      setData(restored.report);
+      setUsername(restoredUsername);
+      if (platforms[restoredPlatform]) {
+        setPlatform(restoredPlatform);
+      }
+      saveLocalAnalysis(restored.report, restoredUsername, restoredPlatform);
+      setShowPublicLanding(false);
+      setActiveView("report");
+      if (getCurrentPath() === "/" || getCurrentPath() === "/login" || getCurrentPath() === "/account") {
+        window.history.replaceState({}, "", "/report");
+      }
+    }
+
+    setCloudSaveStatus("saved");
+    setCloudSaveWarning("");
+    setImportStatus({
+      tone: "success",
+      title: "Cloud data restored.",
+      message: restored?.report
+        ? "Your saved report and account data are loaded."
+        : "Your saved account data is loaded.",
+      meta: result.restoredCounts
+        ? `${result.restoredCounts.reports} reports · ${result.restoredCounts.progress} progress rows`
+        : null,
+    });
+    return result;
   };
 
   const saveOpeningFitProgressState = async (report, summary, progressSnapshot) => {
@@ -13428,11 +13591,13 @@ function App() {
           authLoading={authLoading}
           profileLoading={profileLoading}
           authHydrated={authHydrated}
+          restoreInProgress={restoreInProgress}
           hasPremiumAccess={isPremium}
           syncStatus={syncStatus || cloudSaveStatus}
           lastSavedAt={lastSavedAt}
           syncError={syncError || cloudSaveWarning}
           onAccount={syncStatus === "error" || cloudSaveStatus === "failed" ? retryAccountSync : openLoginPage}
+          onCloudRestore={handleCloudRestore}
           onSignOut={handleAccountSignOut}
         />
         <AppActionRouter onViewChange={setActiveView} />
@@ -14838,6 +15003,7 @@ function App() {
                 authLoading={authLoading}
                 profileLoading={profileLoading}
                 authHydrated={authHydrated}
+                onCloudRestore={handleCloudRestore}
               />
             </section>
           ) : null}

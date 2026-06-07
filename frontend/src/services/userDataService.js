@@ -95,7 +95,11 @@ export function safeUserMessage(error, fallback = "OpeningFit could not reach Su
   }
 
   if (/row-level security|permission denied|violates row-level security/i.test(message)) {
-    return "Save failed — Supabase blocked this account from writing that row. Please check RLS policies and try again.";
+    return "Supabase permission error. Please check RLS policies and try again.";
+  }
+
+  if (/failed to fetch|network|load failed|fetch/i.test(message) || error?.name === "TypeError") {
+    return "Network error. Check your connection and try again.";
   }
 
   return message || fallback;
@@ -385,7 +389,7 @@ async function selectUserRows(table, userId) {
   throw ordered.error;
 }
 
-export async function fetchAllUserData(user) {
+export async function fetchAllUserData(user, options = {}) {
   if (!user?.id) return createDefaultUserData();
 
   let profile = null;
@@ -399,6 +403,7 @@ export async function fetchAllUserData(user) {
   }
 
   const tableNames = USER_DATA_TABLES.filter((table) => table !== "profiles");
+  const tableErrors = [];
   const results = await Promise.all(
     tableNames.map(async (table) => {
       try {
@@ -407,11 +412,25 @@ export async function fetchAllUserData(user) {
         logQueryFailure(table, "restore table during full restore", tableError, {
           userId: user.id,
         });
+        tableErrors.push({ table, error: tableError });
+        if (options.strict) {
+          return [table, null];
+        }
         console.warn(`OpeningFit could not restore ${table}; using empty rows.`, tableError);
         return [table, []];
       }
     })
   );
+
+  if (options.strict && tableErrors.length) {
+    const first = tableErrors[0];
+    const error = new Error(
+      safeUserMessage(first.error, `Could not restore ${first.table} from Supabase.`)
+    );
+    error.table = first.table;
+    error.cause = first.error;
+    throw error;
+  }
 
   const restored = {
     ...createDefaultUserData(profile),

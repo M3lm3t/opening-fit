@@ -39,6 +39,13 @@ const DANGEROUS_LEGACY_KEY_PATTERNS = [
 ];
 const RESTORE_TIMEOUT_MS = 8000;
 
+const EMPTY_RESTORED_COUNTS = {
+  history: 0,
+  progress: 0,
+  savedGames: 0,
+  reports: 0,
+};
+
 function createRestoreTimeout() {
   let timeoutId;
   const promise = new Promise((_, reject) => {
@@ -111,6 +118,76 @@ function hydrateLegacyStorage(snapshot = {}) {
   }
 }
 
+function countRows(value) {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+function hasReportPayload(report) {
+  return Boolean(report && typeof report === "object" && Object.keys(report).length);
+}
+
+function getRestoreCounts(snapshot = {}) {
+  const progressRows = countRows(snapshot.openingfit_user_state);
+  const reportRows = countRows(snapshot.report_history || snapshot.analysis_history);
+  return {
+    history:
+      countRows(snapshot.activity_history) +
+      countRows(snapshot.recommendation_history) +
+      countRows(snapshot.saved_recommendations),
+    progress: progressRows,
+    savedGames: countRows(snapshot.analysed_games),
+    reports: reportRows,
+  };
+}
+
+function snapshotHasCloudBackup(snapshot = {}) {
+  const counts = getRestoreCounts(snapshot);
+  const workspaceReport = (snapshot.openingfit_user_state || []).some((row) =>
+    hasReportPayload(row?.last_report) || hasReportPayload(row?.coach_progress)
+  );
+  const profileReport = hasReportPayload(snapshot.profile?.last_report);
+  const settingsBackup = (snapshot.settings || []).some((row) =>
+    hasReportPayload(row?.preferences?.legacyStorage)
+  );
+  return (
+    workspaceReport ||
+    profileReport ||
+    settingsBackup ||
+    counts.history > 0 ||
+    counts.progress > 0 ||
+    counts.savedGames > 0 ||
+    counts.reports > 0
+  );
+}
+
+function friendlyRestoreReason(error, fallback = "Cloud restore failed.") {
+  const message = String(error?.message || error?.error_description || "");
+  const causeMessage = String(error?.cause?.message || "");
+  const combined = `${message} ${causeMessage}`.trim();
+
+  if (/not logged in|missing user|no authenticated|auth session/i.test(combined)) {
+    return "not logged in";
+  }
+
+  if (/supabase.*not configured|missing.*supabase|env vars/i.test(combined)) {
+    return "Supabase config missing";
+  }
+
+  if (/row-level security|permission denied|violates row-level security|rls|permission/i.test(combined)) {
+    return "permission/RLS error";
+  }
+
+  if (/failed to fetch|network|load failed|fetch|timeout/i.test(combined) || error?.name === "TypeError") {
+    return "network error";
+  }
+
+  if (/format|invalid|parse/i.test(combined)) {
+    return "data format error";
+  }
+
+  return message || fallback;
+}
+
 function clearLegacyStorage() {
   try {
     const keysToRemove = [];
@@ -141,11 +218,14 @@ export function AuthDataProvider({ children }) {
   const [error, setError] = useState("");
   const [restoreError, setRestoreError] = useState("");
   const [restoreTimedOut, setRestoreTimedOut] = useState(false);
+  const [restoreInProgress, setRestoreInProgress] = useState(false);
+  const [manualRestoreResult, setManualRestoreResult] = useState(null);
   const [restoreAttempt, setRestoreAttempt] = useState(0);
   const [syncState, setSyncState] = useState({ status: "idle", lastSavedAt: "", error: "" });
   const debounceRef = useRef(null);
   const userRef = useRef(null);
   const restoreSeqRef = useRef(0);
+  const legacySyncSuspendedRef = useRef(false);
 
   const user = session?.user || null;
   userRef.current = user;
@@ -279,6 +359,125 @@ export function AuthDataProvider({ children }) {
       }
     }
   }, [refreshUserData]);
+
+  const restoreCloudSnapshot = useCallback(async (requestedUserId = userRef.current?.id) => {
+    if (restoreInProgress) {
+      return {
+        ok: false,
+        reason: "Cloud restore is already running.",
+        restoredCounts: EMPTY_RESTORED_COUNTS,
+      };
+    }
+
+    setRestoreInProgress(true);
+    legacySyncSuspendedRef.current = true;
+    setManualRestoreResult(null);
+    setRestoreError("");
+    setRestoreTimedOut(false);
+
+    try {
+      if (!isSupabaseConfigured || !supabase) {
+        return {
+          ok: false,
+          reason: "Supabase config missing",
+          restoredCounts: EMPTY_RESTORED_COUNTS,
+        };
+      }
+
+      const { data, error: sessionError } = await withRestoreTimeout(
+        supabase.auth.getSession(),
+        "manual cloud restore session check"
+      );
+      if (sessionError) throw sessionError;
+
+      const nextSession = data?.session || null;
+      const sessionUser = nextSession?.user || userRef.current || null;
+      if (!sessionUser?.id) {
+        return {
+          ok: false,
+          reason: "not logged in",
+          restoredCounts: EMPTY_RESTORED_COUNTS,
+        };
+      }
+
+      if (requestedUserId && requestedUserId !== sessionUser.id) {
+        return {
+          ok: false,
+          reason: "not logged in",
+          restoredCounts: EMPTY_RESTORED_COUNTS,
+        };
+      }
+
+      setSession(nextSession);
+      const restoreSeq = ++restoreSeqRef.current;
+      setProfileLoading(true);
+
+      const snapshot = await withRestoreTimeout(
+        fetchAllUserData(sessionUser, { strict: true }),
+        "manual cloud snapshot restore"
+      );
+      const restoredCounts = getRestoreCounts(snapshot);
+
+      if (!snapshot || typeof snapshot !== "object") {
+        return {
+          ok: false,
+          reason: "data format error",
+          restoredCounts,
+        };
+      }
+
+      if (!snapshotHasCloudBackup(snapshot)) {
+        setUserData(snapshot);
+        setHydrated(true);
+        setManualRestoreResult({
+          ok: false,
+          reason: "No cloud backup found for this account yet.",
+          restoredCounts,
+        });
+        return {
+          ok: false,
+          reason: "No cloud backup found for this account yet.",
+          restoredCounts,
+          snapshot,
+        };
+      }
+
+      if (restoreSeq === restoreSeqRef.current) {
+        setUserData(snapshot);
+        hydrateLegacyStorage(snapshot?.settings?.[0]?.preferences?.legacyStorage || {});
+        setSyncState({
+          status: "synced",
+          error: "",
+          lastSavedAt: new Date().toISOString(),
+        });
+        setHydrated(true);
+      }
+
+      const result = {
+        ok: true,
+        reason: "Cloud data restored.",
+        restoredCounts,
+        snapshot,
+      };
+      setManualRestoreResult(result);
+      return result;
+    } catch (error) {
+      const reason = friendlyRestoreReason(error);
+      const result = {
+        ok: false,
+        reason,
+        restoredCounts: EMPTY_RESTORED_COUNTS,
+      };
+      setRestoreError(reason);
+      setSyncState((current) => ({ ...current, status: "error", error: reason }));
+      setManualRestoreResult(result);
+      return result;
+    } finally {
+      legacySyncSuspendedRef.current = false;
+      setRestoreInProgress(false);
+      setProfileLoading(false);
+    }
+  }, [restoreInProgress]);
 
   const runSyncedMutation = useCallback(async (work, fallbackMessage = "Could not save to Supabase.") => {
     setSyncState((current) => ({ ...current, status: "saving", error: "" }));
@@ -443,12 +642,13 @@ export function AuthDataProvider({ children }) {
   }, [refreshUserData]);
 
   useEffect(() => {
-    if (!user?.id || !hydrated) return undefined;
+    if (!user?.id || !hydrated || restoreInProgress) return undefined;
 
     const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
     const originalRemoveItem = window.localStorage.removeItem.bind(window.localStorage);
 
     const queueLegacySync = () => {
+      if (legacySyncSuspendedRef.current) return;
       window.clearTimeout(debounceRef.current);
       debounceRef.current = window.setTimeout(async () => {
         try {
@@ -492,7 +692,7 @@ export function AuthDataProvider({ children }) {
       window.localStorage.setItem = originalSetItem;
       window.localStorage.removeItem = originalRemoveItem;
     };
-  }, [hydrated, user?.id]);
+  }, [hydrated, restoreInProgress, user?.id]);
 
   const api = useMemo(
     () => ({
@@ -516,6 +716,7 @@ export function AuthDataProvider({ children }) {
       history: userData?.activity_history || [],
       openingFitUserState: userData?.openingfit_user_state || [],
       reportHistory: userData?.report_history || [],
+      analysedGames: userData?.analysed_games || [],
       recommendationHistory: userData?.recommendation_history || [],
       userData,
       loading: authLoading,
@@ -526,12 +727,15 @@ export function AuthDataProvider({ children }) {
       error,
       restoreError,
       restoreTimedOut,
+      restoreInProgress,
+      manualRestoreResult,
       restoreAttempt,
       syncStatus: syncState.status,
       lastSavedAt: syncState.lastSavedAt,
       syncError: syncState.error,
       refreshUserData,
       retryRestore,
+      restoreCloudSnapshot,
       upsertUserData: (table, row, options) =>
         runSyncedMutation(
           () => upsertUserRow(table, user?.id, row, options),
@@ -565,9 +769,12 @@ export function AuthDataProvider({ children }) {
       restoreAttempt,
       restoreError,
       restoreTimedOut,
+      restoreInProgress,
+      manualRestoreResult,
       runSyncedMutation,
       syncState,
       retryRestore,
+      restoreCloudSnapshot,
       session,
       user,
       userData,

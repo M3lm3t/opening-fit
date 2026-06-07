@@ -44,6 +44,7 @@ export default function AccountRestoreSync({
     profile,
     openingFitUserState,
     reportHistory,
+    restoreInProgress,
     saveSettings,
     saveReport,
     upsertUserData,
@@ -55,6 +56,7 @@ export default function AccountRestoreSync({
 
   useEffect(() => {
     if (loading || profileLoading || !user?.id) return;
+    if (restoreInProgress) return;
     if (restoreError) return;
     if (restoredUserRef.current === user.id) return;
 
@@ -101,6 +103,7 @@ export default function AccountRestoreSync({
     openingFitUserState,
     profile,
     reportHistory,
+    restoreInProgress,
     user?.id,
     setUsername,
     setPlatform,
@@ -110,6 +113,7 @@ export default function AccountRestoreSync({
   useEffect(() => {
     async function saveAccount() {
       if (!user?.id) return;
+      if (restoreInProgress) return;
       if (profileLoading) return;
       if (restoreError) return;
       if (restoredUserRef.current !== user.id) return;
@@ -225,7 +229,7 @@ export default function AccountRestoreSync({
     }
 
     saveAccount();
-  }, [data, platform, profile?.id, profile?.last_report, profileLoading, refreshUserData, restoreError, saveReport, saveSettings, upsertUserData, user, username]);
+  }, [data, platform, profile?.id, profile?.last_report, profileLoading, refreshUserData, restoreError, restoreInProgress, saveReport, saveSettings, upsertUserData, user, username]);
 
   return null;
 }
