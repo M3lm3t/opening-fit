@@ -105,13 +105,13 @@ function getAllRecommendations(data) {
 
   const legacy = data?.opening_recommendations || data?.openingRecommendations || {};
   return [
-    ...asArray(legacy.white_repertoire || legacy.whiteDetailed).map((item) => ({ ...item, slotLabel: "White repertoire", currently_played: true, upgrade_type: "improve" })),
-    ...asArray(legacy.black_vs_e4 || legacy.blackVsE4Detailed).map((item) => ({ ...item, slotLabel: "Black vs 1.e4", upgrade_type: "new_recommendation" })),
-    ...asArray(legacy.black_vs_d4 || legacy.blackVsD4Detailed).map((item) => ({ ...item, slotLabel: "Black vs 1.d4", upgrade_type: "new_recommendation" })),
+    ...asArray(legacy.white_repertoire || legacy.whiteDetailed).map((item) => ({ ...item, slotLabel: "White repertoire", currently_played: true, upgrade_type: "fix" })),
+    ...asArray(legacy.black_vs_e4 || legacy.blackVsE4Detailed).map((item) => ({ ...item, slotLabel: "Black vs 1.e4", upgrade_type: "experiment" })),
+    ...asArray(legacy.black_vs_d4 || legacy.blackVsD4Detailed).map((item) => ({ ...item, slotLabel: "Black vs 1.d4", upgrade_type: "experiment" })),
     ...asArray(legacy.experimental_rare || legacy.experimentalRare).map((item) => ({
       ...item,
       slotLabel: item.contextLabel || "Experimental line",
-      upgrade_type: "avoid",
+      upgrade_type: "replace",
       risk_level: "high",
       learning_cost: "medium",
     })),
@@ -131,7 +131,7 @@ function getBestExistingFallback(data) {
       reason: `You already have useful practical experience here, so the next gains should come from cleaner plans rather than a full repertoire reset.`,
       watch_out: ["Do not judge it from one noisy game. Review the first recurring position where your plan becomes unclear."],
       currently_played: true,
-      upgrade_type: "improve",
+      upgrade_type: "fix",
     }));
 }
 
@@ -144,13 +144,16 @@ function chooseRecommendations(data) {
     const learning = String(item.learning_cost || item.learningCost || "").toLowerCase();
     const theory = String(item.theory_load || item.theoryLoad || "").toLowerCase();
     const upgrade = String(item.upgrade_type || item.upgradeType || "").toLowerCase();
-    return upgrade === "avoid" || risk === "high" || learning === "high" || theory === "high";
+    return upgrade === "replace" || upgrade === "avoid" || risk === "high" || learning === "high" || theory === "high";
   };
   const existing = all
     .filter(isCurrentlyPlayed)
     .sort((a, b) => clamp(b.fit_score ?? b.fitScore) - clamp(a.fit_score ?? a.fitScore));
   const newIdeas = all
-    .filter((item) => (item.upgrade_type || item.upgradeType) === "new_recommendation" && !isDelayCandidate(item))
+    .filter((item) => {
+      const upgrade = String(item.upgrade_type || item.upgradeType || item.recommendationType || "").toLowerCase();
+      return ["experiment", "experimental", "new_recommendation", "style fit"].includes(upgrade) && !isDelayCandidate(item);
+    })
     .sort((a, b) => clamp(b.fit_score ?? b.fitScore) - clamp(a.fit_score ?? a.fitScore));
   const delay = all
     .filter((item) => isDelayCandidate(item) && !isCurrentlyPlayed(item))

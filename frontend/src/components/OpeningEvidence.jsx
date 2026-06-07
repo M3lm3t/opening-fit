@@ -577,31 +577,35 @@ export function getEvidenceVerdict(opening, data) {
   const avoidAllowed = signal.canBeFirm && canGiveAvoidVerdict({ level, games, score });
 
   if (!signal.canBePrimary) {
-    return "Not enough data";
+    return "Experiment";
   }
 
   if ((!signal.canBeFirm || !avoidAllowed) && explicit.includes("avoid")) {
-    return "Improve";
+    return "Fix";
+  }
+
+  if (explicit.includes("experiment")) {
+    return "Experiment";
   }
 
   if (explicit.includes("keep") || explicit.includes("reliable") || explicit.includes("main")) {
     return "Keep";
   }
 
-  if (explicit.includes("improve") || explicit.includes("review") || explicit.includes("repair")) {
-    return "Improve";
+  if (explicit.includes("fix") || explicit.includes("improve") || explicit.includes("review") || explicit.includes("repair")) {
+    return "Fix";
   }
 
-  if (avoidAllowed && explicit.includes("avoid")) {
-    return "Improve";
+  if (avoidAllowed && (explicit.includes("replace") || explicit.includes("avoid"))) {
+    return "Replace";
   }
 
-  if (score === null) return "Not enough data";
+  if (score === null) return "Experiment";
   if (score >= 58) return "Keep";
-  if (score >= 42) return "Improve";
+  if (score >= 42) return "Fix";
 
-  if (avoidAllowed) return "Improve";
-  return "Improve";
+  if (avoidAllowed) return "Replace";
+  return "Fix";
 }
 
 export function getEvidenceReason(opening, data) {
@@ -665,7 +669,7 @@ export function getEvidenceReason(opening, data) {
   if (verdict.includes("keep") || verdict.includes("reliable") || score >= 58) {
     return "The score is strong enough to keep this in the current plan.";
   }
-  if (verdict.includes("avoid") || verdict.includes("review") || score < 42) {
+  if (verdict.includes("replace") || verdict.includes("avoid") || verdict.includes("review") || score < 42) {
     return "The score is low enough to inspect the repeated positions before trusting this line.";
   }
 
@@ -744,8 +748,8 @@ export function getOpeningEvidence(opening, data, options = {}) {
   const baseline = baselineComparison(opening, data);
   const baseVerdict = getEvidenceVerdict(opening, data);
   const verdict =
-    baseVerdict === "Not enough data"
-      ? "Not enough data"
+    baseVerdict === "Experiment"
+      ? "Experiment"
       : `${baseVerdict} — ${signal.badge}`;
   const chips = [
     `Colour: ${getEvidenceColour(opening)}`,

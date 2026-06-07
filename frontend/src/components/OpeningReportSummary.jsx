@@ -234,11 +234,15 @@ function getVerdict(opening, data, index = 0) {
   const signal = getOpeningSignal(opening);
   const mainOpening = index <= 2 && signal.tier === "strong";
 
-  if (games <= 2 || signal.badge === "Too little data") return "Too little data — not used for verdict";
-  if (games <= 7 || signal.badge === "Low confidence") return "Interesting signal — Low confidence";
+  if (games <= 2 || signal.badge === "Too little data") return `Experiment — ${getConfidenceLabel(opening)}`;
+  if (games <= 7 || signal.badge === "Low confidence") return `Experiment — ${getConfidenceLabel(opening)}`;
 
   if (existing) {
     const lower = String(existing).toLowerCase();
+
+    if (lower.includes("experiment")) {
+      return `Experiment — ${getConfidenceLabel(opening)}`;
+    }
 
     if (
       lower.includes("too little data") ||
@@ -252,11 +256,14 @@ function getVerdict(opening, data, index = 0) {
       return `Keep — ${getConfidenceLabel(opening)}`;
     }
 
-    if (lower.includes("improve") || lower.includes("fine-tune")) {
-      return `Improve — ${getConfidenceLabel(opening)}`;
+    if (lower.includes("fix") || lower.includes("improve") || lower.includes("fine-tune")) {
+      return `Fix — ${getConfidenceLabel(opening)}`;
     }
-    if (lower.includes("avoid") || lower.includes("review")) {
-      return `Improve — ${getConfidenceLabel(opening)}`;
+    if (lower.includes("replace") || lower.includes("avoid")) {
+      return `Replace — ${getConfidenceLabel(opening)}`;
+    }
+    if (lower.includes("review")) {
+      return `Fix — ${getConfidenceLabel(opening)}`;
     }
 
     return `Interesting signal — ${getConfidenceLabel(opening)}`;
@@ -264,21 +271,21 @@ function getVerdict(opening, data, index = 0) {
 
   if (tier === "elite") {
     if (mainOpening && winRate >= 45) return `Keep — ${getConfidenceLabel(opening)}`;
-    if (mainOpening) return `Improve — ${getConfidenceLabel(opening)}`;
-    if (sampleTier === "large" && winRate < 25) return `Improve — ${getConfidenceLabel(opening)}`;
-    if (winRate < 45) return `Improve — ${getConfidenceLabel(opening)}`;
+    if (mainOpening) return `Fix — ${getConfidenceLabel(opening)}`;
+    if (sampleTier === "large" && winRate < 25) return `Replace — ${getConfidenceLabel(opening)}`;
+    if (winRate < 45) return `Fix — ${getConfidenceLabel(opening)}`;
     return `Keep — ${getConfidenceLabel(opening)}`;
   }
 
   if (tier === "strong") {
     if (mainOpening && winRate >= 45) return `Keep — ${getConfidenceLabel(opening)}`;
-    if (mainOpening && winRate >= 35) return `Improve — ${getConfidenceLabel(opening)}`;
-    if (winRate < 40) return `Improve — ${getConfidenceLabel(opening)}`;
+    if (mainOpening && winRate >= 35) return `Fix — ${getConfidenceLabel(opening)}`;
+    if (winRate < 40) return `Replace — ${getConfidenceLabel(opening)}`;
     return `Keep — ${getConfidenceLabel(opening)}`;
   }
 
   if (winRate >= 58) return `Keep — ${getConfidenceLabel(opening)}`;
-  return `Improve — ${getConfidenceLabel(opening)}`;
+  return `Fix — ${getConfidenceLabel(opening)}`;
 }
 
 function isStrongProfile(data) {
@@ -291,8 +298,9 @@ function getVerdictClass(verdict) {
 
   if (lower.includes("keep")) return "reportVerdictKeep";
   if (lower.includes("core") || lower.includes("trusted")) return "reportVerdictKeep";
-  if (lower.includes("avoid")) return "reportVerdictAvoid";
+  if (lower.includes("replace") || lower.includes("avoid")) return "reportVerdictAvoid";
   if (
+    lower.includes("fix") ||
     lower.includes("improve") ||
     lower.includes("review") ||
     lower.includes("fine") ||
@@ -473,7 +481,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
         />
 
         <ReportCard
-          title={improve?.verdict === "Improve" || improve?.verdict === "Promising but unstable" ? (strongProfile ? "Review next" : "Improve next") : "Build sample"}
+          title={improve?.verdict === "Fix" || improve?.verdict === "Promising but unstable" ? (strongProfile ? "Review next" : "Fix next") : "Build sample"}
           opening={improve}
           fallbackTitle={strongProfile ? "Main review target" : "Main study target"}
           fallbackText={
@@ -486,7 +494,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
         />
 
         <ReportCard
-          title={avoid?.verdict === "Avoid" || avoid?.verdict === "Needs review" ? (strongProfile ? "Check carefully" : "Needs review") : "Wait before judging"}
+          title={avoid?.verdict === "Replace" || avoid?.verdict === "Needs review" ? (strongProfile ? "Check carefully" : "Replace candidate") : "Wait before judging"}
           opening={avoid}
           fallbackTitle={strongProfile ? "Trend to inspect" : "Risky opening"}
           fallbackText={

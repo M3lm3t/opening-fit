@@ -66,12 +66,12 @@ def test_existing_opening_samples_drive_upgrade_type_without_tiny_sample_overcla
     french = next(item for item in recommendations["black_vs_e4"] if item["name"] == "French Defence")
 
     assert italian["currently_played"] is True
-    assert italian["upgrade_type"] == "too_little_data"
+    assert italian["upgrade_type"] == "experiment"
     assert italian["confidence"] == "Too little data"
     assert "cannot judge" in italian["confidence_reason"]
     assert caro["upgrade_type"] == "keep"
     assert caro["confidence"] in {"Medium confidence", "Low confidence"}
-    assert french["upgrade_type"] == "avoid"
+    assert french["upgrade_type"] == "replace"
 
 
 def test_output_contains_required_fields_and_slot_groups():

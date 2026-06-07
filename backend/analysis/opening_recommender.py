@@ -237,17 +237,17 @@ def confidence_details_for_recommendation(
 
 def upgrade_type(stats: Optional[Dict[str, Any]]) -> str:
     if not stats:
-        return "new_recommendation"
+        return "experiment"
 
     games = int(stats.get("games", 0) or 0)
     score = score_for_opening_stats(stats)
     if games < 5 or score is None:
-        return "too_little_data"
+        return "experiment"
     if score >= 55:
         return "keep"
     if score >= 40:
-        return "improve"
-    return "avoid"
+        return "fix"
+    return "replace"
 
 
 def reason_for_item(item: OpeningCatalogItem, traits: Dict[str, Any], upgrade: str) -> str:
@@ -271,13 +271,12 @@ def reason_for_item(item: OpeningCatalogItem, traits: Dict[str, Any], upgrade: s
 
     prefix = {
         "keep": "This already looks like a useful fit:",
-        "improve": "This is close to your style but needs cleaner execution:",
-        "avoid": "This appears risky for your current results:",
-        "too_little_data": "This appears in your games, but the sample is too small:",
-        "new_recommendation": "This is a new candidate because your games point toward",
+        "fix": "This is close to your style but needs cleaner execution:",
+        "replace": "This appears risky for your current results:",
+        "experiment": "This is a low-sample style experiment because your games point toward",
     }.get(upgrade, "This opening matches")
 
-    if upgrade == "new_recommendation":
+    if upgrade == "experiment":
         return f"{prefix} {', '.join(reasons[:2])}."
     return f"{prefix} it matches {', '.join(reasons[:2])}."
 
@@ -343,6 +342,8 @@ def build_recommendation(
         "currentlyPlayed": currently_played,
         "upgrade_type": upgrade,
         "upgradeType": upgrade,
+        "recommendation_category": upgrade.title(),
+        "recommendationCategory": upgrade.title(),
         "watch_out": watch_out_for_item(item, traits),
         "watchOut": watch_out_for_item(item, traits),
         "style_tags": list(item.get("style_tags", [])),
@@ -468,7 +469,7 @@ def build_basic_recommendation_summary(
         for item in white + black_e4 + black_d4
         if item.get("learning_cost") == "high"
         or item.get("risk_level") == "high"
-        or item.get("upgrade_type") == "avoid"
+        or item.get("upgrade_type") == "replace"
     ]
 
     selected_names = {

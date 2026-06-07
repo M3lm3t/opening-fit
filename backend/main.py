@@ -1077,11 +1077,14 @@ def public_mode_verdict(verdict: str, games: int) -> str:
     if verdict == "Keep":
         return "Recent strength"
 
-    if verdict == "Improve":
+    if verdict in {"Fix", "Improve"}:
         return "Lower-scoring sample"
 
-    if verdict == "Avoid":
+    if verdict in {"Replace", "Avoid"}:
         return "Recent underperformer"
+
+    if verdict == "Experiment":
+        return "Not enough context to judge"
 
     return "Not enough context to judge"
 
@@ -1800,15 +1803,24 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
         item.update(balanced_opening_fit_score(item))
         adjusted_score = float(item.get("openingAdjustedScore", win_rate) or 0)
         opening_losses = int(item.get("openingLosses", 0) or 0)
+        has_fixable_issue = (
+            str(item.get("moveOrderStatus") or "").lower() == "unstable"
+            or opening_losses >= 2
+            or int(item.get("middlegameLosses", 0) or 0) >= 2
+        )
         if games < 5:
-            verdict = "Too little data to judge"
-        elif adjusted_score >= 55:
+            verdict = "Experiment"
+        elif adjusted_score >= 55 and not has_fixable_issue:
             verdict = "Keep"
-        elif adjusted_score >= 40 or (losses and opening_losses < max(2, math.ceil(losses * 0.5))):
-            verdict = "Improve"
+        elif adjusted_score >= 40 or (has_fixable_issue and adjusted_score >= 35) or (losses and opening_losses < max(2, math.ceil(losses * 0.5))):
+            verdict = "Fix"
         else:
-            verdict = "Avoid"
+            verdict = "Replace"
         item["verdict"] = verdict
+        item["fitVerdict"] = verdict
+        item["fit_verdict"] = verdict
+        item["recommendationCategory"] = verdict
+        item["recommendation_category"] = verdict
         item["evidence"] = opening_evidence_bullets(item)
         item["evidenceBullets"] = item["evidence"]
         scored.append(item)
@@ -2457,10 +2469,10 @@ def infer_style_opening_match(games: List[Dict[str, Any]], best_openings: List[D
         played = existing.get(key)
         games_count = int(played.get("games", 0) or 0) if played else 0
         confidence = "Medium confidence" if games_count >= 5 or total >= 20 else "Low confidence"
-        recommendation_type = "style fit" if games_count >= 3 else "experimental"
+        recommendation_type = "style fit" if games_count >= 3 else "experiment"
         if rating and rating < 1100 and any(token in name.lower() for token in ["king's gambit", "sicilian", "dutch", "king's indian"]):
             confidence = "Low confidence"
-            recommendation_type = "experimental"
+            recommendation_type = "experiment"
         explanation = (
             f"{name} is a {recommendation_type} for your {style_label} profile: "
             f"it matches the style signals in your games, but it is not being presented as a proven repertoire result."
@@ -2474,7 +2486,10 @@ def infer_style_opening_match(games: List[Dict[str, Any]], best_openings: List[D
             "name": name,
             "slot": slot,
             "role": slot,
-            "label": "Style fit" if recommendation_type == "style fit" else "Experimental",
+            "label": "Style fit" if recommendation_type == "style fit" else "Experiment",
+            "verdict": "Experiment" if recommendation_type == "experiment" else "Fix",
+            "recommendationCategory": "Experiment" if recommendation_type == "experiment" else "Fix",
+            "recommendation_category": "Experiment" if recommendation_type == "experiment" else "Fix",
             "recommendationType": recommendation_type,
             "recommendation_type": recommendation_type,
             "confidence": confidence,
@@ -2523,7 +2538,7 @@ def coverage_status(item: Optional[Dict[str, Any]]) -> str:
     confidence = str(item.get("confidence") or "").lower()
     if games < 3 or "too little" in confidence:
         return "Too little data"
-    if games >= 8 and str(item.get("verdict") or "").lower() in {"keep", "improve"}:
+    if games >= 8 and str(item.get("verdict") or "").lower() in {"keep", "fix", "improve"}:
         return "Covered"
     return "Needs work"
 
@@ -2758,7 +2773,7 @@ def build_next_training_actions(
     band = rating_band(rating)
     actions: List[str] = []
     keep = next((item for item in best_openings if str(item.get("verdict", "")).lower() == "keep" and is_clean_repertoire_context(item) and int(item.get("games", 0) or 0) >= 5), None)
-    weak = next((item for item in best_openings if str(item.get("verdict", "")).lower() in {"improve", "avoid"} and is_clean_repertoire_context(item) and int(item.get("games", 0) or 0) >= 5), None)
+    weak = next((item for item in best_openings if str(item.get("verdict", "")).lower() in {"fix", "replace", "improve", "avoid"} and is_clean_repertoire_context(item) and int(item.get("games", 0) or 0) >= 5), None)
 
     if keep:
         actions.append(f"Keep playing {repertoire_context_title(keep)}; {keep.get('confidenceReason') or keep.get('confidence_reason')}")
@@ -3451,10 +3466,12 @@ def build_training_plan(
             plan.append(f"Treat {top_title} as an emerging pattern and collect more games before judging it.")
         elif top["verdict"] == "Keep":
             plan.append(f"Keep building around {top_title}. It is currently your best practical opening in that context.")
-        elif top["verdict"] == "Improve":
-            plan.append(f"Keep {top_title} in your pool, but review the early middlegame plans.")
-        elif top["verdict"] == "Avoid":
+        elif top["verdict"] in {"Fix", "Improve"}:
+            plan.append(f"Keep {top_title} in your pool, but fix the repeated problem lines before expanding it.")
+        elif top["verdict"] in {"Replace", "Avoid"}:
             plan.append(f"Review {top_title} before using it again as a main repertoire choice.")
+        elif top["verdict"] == "Experiment":
+            plan.append(f"Treat {top_title} as an experiment until it has enough games for a firm verdict.")
 
     labels = style_profile.get("labels", [])
 
