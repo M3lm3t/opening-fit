@@ -4284,6 +4284,184 @@ def build_do_not_study_yet(
     }
 
 
+def style_profile_label(style_profile: Dict[str, Any]) -> str:
+    if style_profile.get("primaryStyle"):
+        return str(style_profile["primaryStyle"])
+    if style_profile.get("label"):
+        return str(style_profile["label"])
+    labels = [str(label) for label in style_profile.get("labels", []) if label]
+    if labels:
+        return " ".join(labels[:2])
+    return "practical"
+
+
+def repertoire_anchor(best_openings: List[Dict[str, Any]], context: str, min_games: int = 3) -> Optional[Dict[str, Any]]:
+    item = best_by_context(best_openings, context)
+    if item and int(item.get("games", 0) or 0) >= min_games:
+        return item
+    return None
+
+
+def build_repertoire_identity_summary(
+    best_openings: List[Dict[str, Any]],
+    style_profile: Dict[str, Any],
+    coherence: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    white = repertoire_anchor(best_openings, "played_as_white")
+    black_e4 = repertoire_anchor(best_openings, "black_vs_e4")
+    black_d4 = repertoire_anchor(best_openings, "black_vs_d4") or repertoire_anchor(best_openings, "black_vs_d4_other") or repertoire_anchor(best_openings, "black_vs_other")
+    coherence_status = str((coherence or {}).get("status") or "Unknown")
+    coherence_score = int((coherence or {}).get("score", 0) or 0)
+    style = style_profile_label(style_profile)
+    anchors = [item for item in [white, black_e4, black_d4] if item]
+
+    if len(anchors) < 2 or coherence_status in {"Fragmented", "Too random to train efficiently"} and coherence_score < 45:
+        summary = "You currently have no clear repertoire identity because your openings are fragmented."
+        confidence = "Low confidence"
+        identity = "No clear repertoire identity yet"
+    else:
+        names = [item["name"] for item in anchors[:3]]
+        identity = " + ".join(names)
+        style_article = "an" if style[:1].lower() in {"a", "e", "i", "o", "u"} else "a"
+        summary = f"You are a {identity} player with {style_article} {style.lower()} style."
+        confidence = "Medium confidence" if len(anchors) == 2 else "High confidence"
+
+    evidence = []
+    if white:
+        evidence.append(f"Main White sample: {white['name']} ({white.get('games', 0)} games).")
+    if black_e4:
+        evidence.append(f"Black vs 1.e4 sample: {black_e4['name']} ({black_e4.get('games', 0)} games).")
+    if black_d4:
+        evidence.append(f"Black vs 1.d4/flank sample: {black_d4['name']} ({black_d4.get('games', 0)} games).")
+    evidence.append(f"Repertoire coherence: {coherence_status} ({coherence_score}/100).")
+
+    return {
+        "identity": identity,
+        "summary": summary,
+        "styleLabel": style,
+        "style_label": style,
+        "confidence": confidence,
+        "whiteOpening": white.get("name") if white else "",
+        "white_opening": white.get("name") if white else "",
+        "blackVsE4": black_e4.get("name") if black_e4 else "",
+        "black_vs_e4": black_e4.get("name") if black_e4 else "",
+        "blackVsD4": black_d4.get("name") if black_d4 else "",
+        "black_vs_d4": black_d4.get("name") if black_d4 else "",
+        "coherenceStatus": coherence_status,
+        "coherence_status": coherence_status,
+        "evidence": evidence[:4],
+    }
+
+
+def simple_gap_filler(slot: str, rating: Optional[int], style_profile: Dict[str, Any]) -> Dict[str, str]:
+    band = rating_band(rating)
+    style_text = " ".join(style_profile.get("labels", []) + [style_profile.get("primaryStyle", ""), style_profile.get("summary", "")]).lower()
+    solid = "solid" in style_text or "positional" in style_text
+
+    if slot == "main_white":
+        name = "London System" if solid or band in {"under_1000", "1000_1400", "unknown"} else "Italian Game"
+        return {"name": name, "label": "gap filler", "action": f"Add {name} as a simple main White plan until your White sample stabilises."}
+    if slot == "white_vs_e5":
+        return {"name": "Italian/Vienna-style development", "label": "gap filler", "action": "Use a simple e4-e5 development setup: develop knights and bishops, castle, then choose the central break."}
+    if slot == "white_vs_sicilian":
+        return {"name": "Simple Anti-Sicilian setup", "label": "gap filler", "action": "Use one quiet Anti-Sicilian setup rather than learning several sharp Sicilian sidelines."}
+    if slot == "white_vs_french":
+        return {"name": "Simple French Defence plan", "label": "gap filler", "action": "Use one practical plan against the French and focus on development before pawn breaks."}
+    if slot == "white_vs_caro":
+        return {"name": "Simple Caro-Kann plan", "label": "gap filler", "action": "Use one practical plan against the Caro-Kann and avoid switching lines after one result."}
+    if slot == "black_vs_e4":
+        name = "Caro-Kann Defence" if solid or band in {"under_1000", "1000_1400", "unknown"} else "e5 systems"
+        return {"name": name, "label": "gap filler", "action": f"Add {name} as your simple answer to 1.e4."}
+    if slot == "black_vs_d4":
+        return {"name": "Queen's Gambit Declined setup", "label": "gap filler", "action": "Add a simple QGD-style setup because your data does not show a stable plan against 1.d4."}
+    return {"name": "QGD/Slav-style setup", "label": "gap filler", "action": "Use one Queen's Gambit Declined or Slav-style setup against 1.c4 and 1.Nf3 until you have enough games to specialise."}
+
+
+def repertoire_plan_item(
+    slot: str,
+    title: str,
+    existing: Optional[Dict[str, Any]],
+    rating: Optional[int],
+    style_profile: Dict[str, Any],
+    fallback_slot: str,
+) -> Dict[str, Any]:
+    if existing and int(existing.get("games", 0) or 0) >= 5 and str(existing.get("verdict", "")).lower() in {"keep", "fix"}:
+        verdict = str(existing.get("verdict") or "Keep")
+        action = (
+            f"Keep {existing['name']} here."
+            if verdict.lower() == "keep"
+            else f"Keep {existing['name']}, but fix the repeated issues before adding alternatives."
+        )
+        return {
+            "slot": slot,
+            "title": title,
+            "opening": existing["name"],
+            "label": "existing repertoire",
+            "action": action,
+            "confidence": existing.get("confidence", "Low confidence"),
+            "games": existing.get("games", 0),
+        }
+
+    filler = simple_gap_filler(fallback_slot, rating, style_profile)
+    return {
+        "slot": slot,
+        "title": title,
+        "opening": filler["name"],
+        "label": filler["label"],
+        "action": filler["action"],
+        "confidence": "New suggestion",
+        "games": 0,
+    }
+
+
+def build_recommended_repertoire_plan(
+    best_openings: List[Dict[str, Any]],
+    coverage: Dict[str, Any],
+    style_profile: Dict[str, Any],
+    rating: Optional[int] = None,
+    style_opening_match: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    white = repertoire_anchor(best_openings, "played_as_white", min_games=5)
+    black_e4 = repertoire_anchor(best_openings, "black_vs_e4", min_games=5)
+    black_d4 = repertoire_anchor(best_openings, "black_vs_d4", min_games=5)
+    black_other = repertoire_anchor(best_openings, "black_vs_other", min_games=5) or repertoire_anchor(best_openings, "black_vs_d4_other", min_games=5)
+
+    items = [
+        repertoire_plan_item("main_white", "Main White opening", white, rating, style_profile, "main_white"),
+        repertoire_plan_item("white_vs_e5", "White plan vs ...e5", white if white and any(token in white["name"].lower() for token in ["vienna", "italian", "scotch", "ruy"]) else None, rating, style_profile, "white_vs_e5"),
+        repertoire_plan_item("white_vs_sicilian", "White plan vs Sicilian", None, rating, style_profile, "white_vs_sicilian"),
+        repertoire_plan_item("white_vs_french", "White plan vs French", None, rating, style_profile, "white_vs_french"),
+        repertoire_plan_item("white_vs_caro", "White plan vs Caro-Kann", None, rating, style_profile, "white_vs_caro"),
+        repertoire_plan_item("black_vs_e4", "Black plan vs 1.e4", black_e4, rating, style_profile, "black_vs_e4"),
+        repertoire_plan_item("black_vs_d4", "Black plan vs 1.d4", black_d4, rating, style_profile, "black_vs_d4"),
+    ]
+
+    if black_other or "Black vs 1.c4 / 1.Nf3" in (coverage.get("missing") or []):
+        items.append(repertoire_plan_item("black_vs_c4_nf3", "Black plan vs 1.c4 / 1.Nf3", black_other, rating, style_profile, "black_vs_c4_nf3"))
+
+    experiment = first_style_experiment(style_opening_match)
+    if experiment:
+        items.append(
+            {
+                "slot": "experimental_option",
+                "title": "Experimental option",
+                "opening": experiment.get("name"),
+                "label": "experimental",
+                "action": f"Treat {experiment.get('name')} as an experiment only; play 3 to 5 focused games before judging it.",
+                "confidence": experiment.get("confidence", "Low confidence"),
+                "games": experiment.get("games", 0),
+            }
+        )
+
+    return {
+        "summary": "One coherent repertoire plan based on your current data and rating band.",
+        "items": items,
+        "white": [item for item in items if item["slot"].startswith("white") or item["slot"] == "main_white"],
+        "black": [item for item in items if item["slot"].startswith("black")],
+        "experimental": [item for item in items if item["slot"] == "experimental_option"],
+    }
+
+
 def weighted_score(items: List[Dict[str, Any]]) -> Optional[float]:
     total_games = sum(int(item.get("games", 0) or 0) for item in items)
     if total_games <= 0:
@@ -5392,6 +5570,14 @@ def import_chesscom_logic(username: str, months: int = 3):
     do_not_study_yet = build_do_not_study_yet(best_openings, opening_roi, repertoire_coverage, None)
     rating_band_benchmark = build_rating_band_benchmark(None, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, None)
+    repertoire_identity_summary = build_repertoire_identity_summary(best_openings, style_profile, repertoire_coherence)
+    recommended_repertoire_plan = build_recommended_repertoire_plan(
+        best_openings,
+        repertoire_coverage,
+        style_profile,
+        None,
+        style_opening_match,
+    )
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
         opening_recommendations,
@@ -5532,6 +5718,10 @@ def import_chesscom_logic(username: str, months: int = 3):
         "doNotStudyYet": do_not_study_yet,
         "rating_band_benchmark": rating_band_benchmark,
         "ratingBandBenchmark": rating_band_benchmark,
+        "repertoire_identity_summary": repertoire_identity_summary,
+        "repertoireIdentitySummary": repertoire_identity_summary,
+        "recommended_repertoire_plan": recommended_repertoire_plan,
+        "recommendedRepertoirePlan": recommended_repertoire_plan,
         "next_training_actions": next_training_actions,
         "nextTrainingActions": next_training_actions,
         "study_queue": study_queue,
@@ -5900,6 +6090,14 @@ def build_lichess_analysis(
     do_not_study_yet = build_do_not_study_yet(best_openings, opening_roi, repertoire_coverage, current_rating)
     rating_band_benchmark = build_rating_band_benchmark(current_rating, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, current_rating)
+    repertoire_identity_summary = build_repertoire_identity_summary(best_openings, style_profile, repertoire_coherence)
+    recommended_repertoire_plan = build_recommended_repertoire_plan(
+        best_openings,
+        repertoire_coverage,
+        style_profile,
+        current_rating,
+        style_opening_match,
+    )
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
         opening_recommendations,
@@ -6053,6 +6251,10 @@ def build_lichess_analysis(
         "doNotStudyYet": do_not_study_yet,
         "rating_band_benchmark": rating_band_benchmark,
         "ratingBandBenchmark": rating_band_benchmark,
+        "repertoire_identity_summary": repertoire_identity_summary,
+        "repertoireIdentitySummary": repertoire_identity_summary,
+        "recommended_repertoire_plan": recommended_repertoire_plan,
+        "recommendedRepertoirePlan": recommended_repertoire_plan,
         "next_training_actions": next_training_actions,
         "nextTrainingActions": next_training_actions,
         "study_queue": study_queue,

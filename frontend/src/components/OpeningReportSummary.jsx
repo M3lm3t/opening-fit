@@ -214,6 +214,20 @@ function getDoNotStudyYet(data) {
   return { ...block, items };
 }
 
+function getRepertoireIdentitySummary(data) {
+  const identity = data?.repertoireIdentitySummary || data?.repertoire_identity_summary || null;
+  if (!identity || typeof identity !== "object") return null;
+  return identity.summary ? identity : null;
+}
+
+function getRecommendedRepertoirePlan(data) {
+  const plan = data?.recommendedRepertoirePlan || data?.recommended_repertoire_plan || null;
+  if (!plan || typeof plan !== "object") return null;
+  const items = Array.isArray(plan.items) ? plan.items.slice(0, 8) : [];
+  if (!items.length) return null;
+  return { ...plan, items };
+}
+
 function collectOpenings(data) {
   const candidates = [
     data?.topOpenings,
@@ -488,6 +502,8 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const openingRoi = getOpeningRoi(data);
   const engineOpeningValidation = getEngineOpeningValidation(data);
   const doNotStudyYet = getDoNotStudyYet(data);
+  const repertoireIdentitySummary = getRepertoireIdentitySummary(data);
+  const recommendedRepertoirePlan = getRecommendedRepertoirePlan(data);
 
   return (
     <section className="openingReportShell">
@@ -534,6 +550,34 @@ export default function OpeningReportSummary({ data, username, platform }) {
           </p>
         </div>
       </div>
+
+      {repertoireIdentitySummary ? (
+        <div className="openingReportIdentity">
+          <strong>Repertoire identity</strong>
+          <span>{repertoireIdentitySummary.summary}</span>
+          <ul>
+            {(repertoireIdentitySummary.evidence || []).map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {recommendedRepertoirePlan ? (
+        <div className="openingReportRepertoirePlan">
+          <strong>Recommended repertoire plan</strong>
+          <span>{recommendedRepertoirePlan.summary}</span>
+          <ul>
+            {recommendedRepertoirePlan.items.map((item) => (
+              <li key={item.slot || `${item.title}-${item.opening}`}>
+                <span>{item.title}: {item.opening}</span>
+                <em>{item.label || item.confidence}</em>
+                <small>{item.action}</small>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="openingReportGrid">
         <ReportCard
