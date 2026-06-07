@@ -4186,6 +4186,104 @@ def build_opening_roi(
     }
 
 
+def build_do_not_study_yet(
+    best_openings: List[Dict[str, Any]],
+    opening_roi: Dict[str, Any],
+    coverage: Dict[str, Any],
+    rating: Optional[int] = None,
+) -> Dict[str, Any]:
+    items = []
+    seen = set()
+    missing = coverage.get("missing") or []
+    bigger_gap = missing[0] if missing else ""
+
+    def add_item(key: str, title: str, why: str, redirect: str, opening: str = "", reason: str = "") -> None:
+        if key in seen or len(items) >= 4:
+            return
+        seen.add(key)
+        items.append(
+            {
+                "title": title,
+                "why": why,
+                "whyItMatters": why,
+                "why_it_matters": why,
+                "redirect": redirect,
+                "recommendedAlternative": redirect,
+                "recommended_alternative": redirect,
+                "opening": opening,
+                "reason": reason,
+            }
+        )
+
+    for roi_item in (opening_roi or {}).get("items", []):
+        name = str(roi_item.get("name") or roi_item.get("opening") or "")
+        games = int(roi_item.get("games", 0) or 0)
+        category = str(roi_item.get("category") or roi_item.get("roiCategory") or "")
+        sample_pct = float(roi_item.get("samplePercentage", roi_item.get("sample_percentage", 0)) or 0)
+        if category == "Ignore for now" or games < 3:
+            add_item(
+                f"sample-{normalise_opening_key(name)}",
+                f"Do not study {name} yet",
+                f"Only {games} game{'' if games == 1 else 's'} found, so the sample is too small to spend study time here.",
+                f"Put that time into {bigger_gap} first." if bigger_gap else "Build a larger sample in your main repertoire first.",
+                name,
+                "low_sample",
+            )
+        elif category == "Low ROI" or sample_pct < 5:
+            add_item(
+                f"rare-{normalise_opening_key(name)}",
+                f"Do not study rare {name} sidelines yet",
+                f"{name} appears in only {sample_pct}% of analysed games, so it is unlikely to move your results quickly.",
+                f"Prioritise {bigger_gap} instead." if bigger_gap else "Prioritise the highest-ROI opening first.",
+                name,
+                "rare_low_impact",
+            )
+
+    for opening in best_openings or []:
+        name = str(opening.get("name") or "")
+        if not name or is_unknown_opening_name(name):
+            continue
+        games = int(opening.get("games", 0) or 0)
+        verdict = str(opening.get("verdict") or "").lower()
+        risk = opening.get("openingRiskProfile") or opening.get("opening_risk_profile") or {}
+        theory = str(risk.get("theoryLoad") or risk.get("theory_load") or "medium")
+        penalty = int(opening.get("practicalDifficultyPenalty", opening.get("practical_difficulty_penalty", 0)) or 0)
+        if games <= 2 and verdict in {"replace", "avoid", "fix"}:
+            add_item(
+                f"do-not-replace-{normalise_opening_key(name)}",
+                f"Do not replace {name} based on this sample",
+                f"{name} has only {games} imported game{'' if games == 1 else 's'}, so bad results may be noise.",
+                f"Study {bigger_gap} first." if bigger_gap else "Collect more games before making a repertoire decision.",
+                name,
+                "do_not_overreact",
+            )
+        if theory == "high" and penalty >= 10 and games < 15:
+            add_item(
+                f"theory-{normalise_opening_key(name)}",
+                f"Do not make {name} a main study project yet",
+                f"{name} is theory-heavy for your current rating band and does not have enough strong sample support yet.",
+                f"Use a clearer plan for {bigger_gap} first." if bigger_gap else "Focus on a lower-theory main system first.",
+                name,
+                "theory_heavy",
+            )
+
+    if bigger_gap:
+        add_item(
+            "rare-sidelines-general",
+            "Do not study rare sidelines yet",
+            f"Your main improvement area is {bigger_gap}, which will affect more games than rare sidelines.",
+            f"Choose one practical plan for {bigger_gap}.",
+            "",
+            "bigger_gap_exists",
+        )
+
+    return {
+        "summary": "These are the openings or areas OpeningFit does not think deserve study time yet.",
+        "items": items[:4],
+        "enabled": bool(items),
+    }
+
+
 def weighted_score(items: List[Dict[str, Any]]) -> Optional[float]:
     total_games = sum(int(item.get("games", 0) or 0) for item in items)
     if total_games <= 0:
@@ -5291,6 +5389,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         repertoire_coverage,
         len(analysed_games),
     )
+    do_not_study_yet = build_do_not_study_yet(best_openings, opening_roi, repertoire_coverage, None)
     rating_band_benchmark = build_rating_band_benchmark(None, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, None)
     opening_fit_profile = build_opening_fit_profile(
@@ -5429,6 +5528,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "opening_roi": opening_roi,
         "openingRoi": opening_roi,
         "openingROI": opening_roi,
+        "do_not_study_yet": do_not_study_yet,
+        "doNotStudyYet": do_not_study_yet,
         "rating_band_benchmark": rating_band_benchmark,
         "ratingBandBenchmark": rating_band_benchmark,
         "next_training_actions": next_training_actions,
@@ -5796,6 +5897,7 @@ def build_lichess_analysis(
         repertoire_coverage,
         len(games),
     )
+    do_not_study_yet = build_do_not_study_yet(best_openings, opening_roi, repertoire_coverage, current_rating)
     rating_band_benchmark = build_rating_band_benchmark(current_rating, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, current_rating)
     opening_fit_profile = build_opening_fit_profile(
@@ -5947,6 +6049,8 @@ def build_lichess_analysis(
         "opening_roi": opening_roi,
         "openingRoi": opening_roi,
         "openingROI": opening_roi,
+        "do_not_study_yet": do_not_study_yet,
+        "doNotStudyYet": do_not_study_yet,
         "rating_band_benchmark": rating_band_benchmark,
         "ratingBandBenchmark": rating_band_benchmark,
         "next_training_actions": next_training_actions,

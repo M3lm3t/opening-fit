@@ -206,6 +206,14 @@ function getEngineOpeningValidation(data) {
   return { ...validation, items };
 }
 
+function getDoNotStudyYet(data) {
+  const block = data?.doNotStudyYet || data?.do_not_study_yet || null;
+  if (!block || typeof block !== "object") return null;
+  const items = Array.isArray(block.items) ? block.items.slice(0, 4) : [];
+  if (!items.length) return null;
+  return { ...block, items };
+}
+
 function collectOpenings(data) {
   const candidates = [
     data?.topOpenings,
@@ -479,6 +487,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const ratingBandBenchmark = getRatingBandBenchmark(data);
   const openingRoi = getOpeningRoi(data);
   const engineOpeningValidation = getEngineOpeningValidation(data);
+  const doNotStudyYet = getDoNotStudyYet(data);
 
   return (
     <section className="openingReportShell">
@@ -696,6 +705,23 @@ export default function OpeningReportSummary({ data, username, platform }) {
                 <span>{item.category || item.roiCategory || item.roi_category}: {item.name || item.opening}</span>
                 <em>{item.roiScore ?? item.roi_score ?? item.score}/100</em>
                 <small>{item.advice || item.summary}</small>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {doNotStudyYet ? (
+        <div className="openingReportDoNotStudy">
+          <strong>Do not spend time on this yet</strong>
+          <span>{doNotStudyYet.summary}</span>
+          <ul>
+            {doNotStudyYet.items.map((item) => (
+              <li key={`${item.title}-${item.opening || item.reason || ""}`}>
+                <span>{item.title}</span>
+                <em>{item.reason || "lower priority"}</em>
+                <small>{item.why || item.whyItMatters || item.why_it_matters}</small>
+                <small>{item.redirect || item.recommendedAlternative || item.recommended_alternative}</small>
               </li>
             ))}
           </ul>
