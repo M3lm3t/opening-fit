@@ -1728,6 +1728,7 @@ def opening_item(
     item.update(move_order_consistency_fields(item))
     item.update(opening_confidence_fields(item, total_games))
     item.update(balanced_opening_fit_score(item))
+    item = apply_opening_risk_profile(item)
     item["evidence"] = opening_evidence_bullets(item)
     item["evidenceBullets"] = item["evidence"]
 
@@ -1891,6 +1892,10 @@ def opening_evidence_bullets(opening: Dict[str, Any]) -> List[str]:
     if move_order_note and "no clear move order" not in str(move_order_note).lower():
         bullets.append(str(move_order_note))
 
+    practical_note = opening.get("practicalDifficultyNote") or opening.get("practical_difficulty_note")
+    if practical_note:
+        bullets.append(str(practical_note))
+
     if "too little" in confidence.lower():
         bullets.append("There is not enough data yet to judge this strongly.")
     elif "low" in confidence.lower():
@@ -1898,7 +1903,7 @@ def opening_evidence_bullets(opening: Dict[str, Any]) -> List[str]:
     elif "high" in confidence.lower():
         bullets.append("The sample is repeated enough to treat as a reliable pattern.")
 
-    return bullets[:4]
+    return bullets[:5]
 
 
 def context_is_compatible(name: str, context: str) -> bool:
@@ -1942,6 +1947,7 @@ def is_clean_repertoire_context(opening: Dict[str, Any]) -> bool:
 def build_colour_aware_recommendations(
     opening_results: Dict[str, Dict[str, int]],
     max_items: int = 5,
+    rating: Optional[int] = None,
 ) -> Dict[str, Any]:
     total_opening_games = sum(int(stats.get("games", 0) or 0) for stats in opening_results.values())
     sections = {
@@ -1958,6 +1964,7 @@ def build_colour_aware_recommendations(
         games = int(stats.get("games", 0) or 0)
         context = dominant_opening_context(stats)
         item = opening_item(display_name, games, context, stats, total_games=total_opening_games)
+        item = apply_opening_risk_profile(item, rating)
 
         if is_unknown_opening_name(display_name):
             adjusted = {
@@ -1970,6 +1977,7 @@ def build_colour_aware_recommendations(
                 "recommendationCopy": SAFE_CONTEXT_FALLBACK_COPY,
             }
             adjusted.update(opening_confidence_fields(adjusted, total_opening_games))
+            adjusted = apply_opening_risk_profile(adjusted, rating)
             sections["too_little_data"].append(
                 adjusted
             )
@@ -1990,6 +1998,7 @@ def build_colour_aware_recommendations(
                 "recommendationCopy": SAFE_CONTEXT_FALLBACK_COPY,
             }
             adjusted.update(opening_confidence_fields(adjusted, total_opening_games))
+            adjusted = apply_opening_risk_profile(adjusted, rating)
             sections["too_little_data"].append(
                 adjusted
             )
@@ -2136,6 +2145,7 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
         item["fit_verdict"] = verdict
         item["recommendationCategory"] = verdict
         item["recommendation_category"] = verdict
+        item = apply_opening_risk_profile(item)
         item["evidence"] = opening_evidence_bullets(item)
         item["evidenceBullets"] = item["evidence"]
         scored.append(item)
@@ -2783,9 +2793,14 @@ def infer_style_opening_match(games: List[Dict[str, Any]], best_openings: List[D
         key = normalise_opening_key(name)
         played = existing.get(key)
         games_count = int(played.get("games", 0) or 0) if played else 0
+        risk_profile = opening_risk_profile(name)
+        difficulty_penalty = opening_difficulty_penalty(risk_profile, rating)
         confidence = "Medium confidence" if games_count >= 5 or total >= 20 else "Low confidence"
         recommendation_type = "style fit" if games_count >= 3 else "experiment"
         if rating and rating < 1100 and any(token in name.lower() for token in ["king's gambit", "sicilian", "dutch", "king's indian"]):
+            confidence = "Low confidence"
+            recommendation_type = "experiment"
+        if difficulty_penalty >= 10 and games_count < 15:
             confidence = "Low confidence"
             recommendation_type = "experiment"
         explanation = (
@@ -2797,6 +2812,9 @@ def infer_style_opening_match(games: List[Dict[str, Any]], best_openings: List[D
                 f"{name} is a style fit for your {style_label} profile and you already have {games_count} game"
                 f"{'' if games_count == 1 else 's'} of experience with it."
             )
+        risk_note = opening_practical_note(name, risk_profile, rating, played or {"games": games_count})
+        if difficulty_penalty >= 10:
+            explanation = f"{risk_note} Treat it as an experiment until your sample supports it."
         return {
             "name": name,
             "slot": slot,
@@ -2815,10 +2833,16 @@ def infer_style_opening_match(games: List[Dict[str, Any]], best_openings: List[D
             "explanation": explanation,
             "whyItFits": explanation,
             "why_it_fits": explanation,
+            "openingRiskProfile": risk_profile,
+            "opening_risk_profile": risk_profile,
+            "practicalDifficultyPenalty": difficulty_penalty,
+            "practical_difficulty_penalty": difficulty_penalty,
+            "practicalDifficultyNote": risk_note,
+            "practical_difficulty_note": risk_note,
             "currentlyPlayed": bool(played),
             "currently_played": bool(played),
             "games": games_count,
-            "evidence": evidence[:2],
+            "evidence": (evidence[:2] + [risk_note])[:3],
             "corePlan": STARTER_OPENING_LIBRARY.get(name, {}).get("corePlan", opening_explanation(name).get("plan")),
             "starterMoveSequence": STARTER_OPENING_LIBRARY.get(name, {}).get("starterMoves", []),
         }
@@ -3076,6 +3100,513 @@ def rating_band(rating: Optional[int]) -> str:
     if rating < 1800:
         return "1400_1800"
     return "1800_plus"
+
+
+OPENING_RISK_PROFILES: Dict[str, Dict[str, Any]] = {
+    "vienna": {
+        "theoryLoad": "medium",
+        "theory_load": "medium",
+        "tacticalSharpness": "medium",
+        "tactical_sharpness": "medium",
+        "solidTendency": "medium",
+        "solid_tendency": "medium",
+        "planClarity": "high",
+        "plan_clarity": "high",
+        "beginnerFriendliness": "high",
+        "beginner_friendliness": "high",
+        "attackingPotential": "high",
+        "attacking_potential": "high",
+        "positionalComplexity": "medium",
+        "positional_complexity": "medium",
+        "practicalSummary": "The Vienna gives attacking chances without requiring extreme theory depth.",
+        "practical_summary": "The Vienna gives attacking chances without requiring extreme theory depth.",
+    },
+    "italian": {
+        "theoryLoad": "medium",
+        "theory_load": "medium",
+        "tacticalSharpness": "medium",
+        "tactical_sharpness": "medium",
+        "solidTendency": "medium",
+        "solid_tendency": "medium",
+        "planClarity": "high",
+        "plan_clarity": "high",
+        "beginnerFriendliness": "high",
+        "beginner_friendliness": "high",
+        "attackingPotential": "medium",
+        "attacking_potential": "medium",
+        "positionalComplexity": "medium",
+        "positional_complexity": "medium",
+        "practicalSummary": "The Italian gives clear development rules with enough tactics to stay useful.",
+        "practical_summary": "The Italian gives clear development rules with enough tactics to stay useful.",
+    },
+    "scotch": {
+        "theoryLoad": "medium",
+        "theory_load": "medium",
+        "tacticalSharpness": "high",
+        "tactical_sharpness": "high",
+        "solidTendency": "low",
+        "solid_tendency": "low",
+        "planClarity": "medium",
+        "plan_clarity": "medium",
+        "beginnerFriendliness": "medium",
+        "beginner_friendliness": "medium",
+        "attackingPotential": "high",
+        "attacking_potential": "high",
+        "positionalComplexity": "medium",
+        "positional_complexity": "medium",
+        "practicalSummary": "The Scotch is practical for tactical players, but early calculation matters.",
+        "practical_summary": "The Scotch is practical for tactical players, but early calculation matters.",
+    },
+    "sicilian": {
+        "theoryLoad": "high",
+        "theory_load": "high",
+        "tacticalSharpness": "high",
+        "tactical_sharpness": "high",
+        "solidTendency": "low",
+        "solid_tendency": "low",
+        "planClarity": "medium",
+        "plan_clarity": "medium",
+        "beginnerFriendliness": "low",
+        "beginner_friendliness": "low",
+        "attackingPotential": "high",
+        "attacking_potential": "high",
+        "positionalComplexity": "high",
+        "positional_complexity": "high",
+        "practicalSummary": "The Sicilian offers winning chances, but the theory load and sharpness can punish unstable opening habits.",
+        "practical_summary": "The Sicilian offers winning chances, but the theory load and sharpness can punish unstable opening habits.",
+    },
+    "scandinavian": {
+        "theoryLoad": "low",
+        "theory_load": "low",
+        "tacticalSharpness": "medium",
+        "tactical_sharpness": "medium",
+        "solidTendency": "medium",
+        "solid_tendency": "medium",
+        "planClarity": "high",
+        "plan_clarity": "high",
+        "beginnerFriendliness": "high",
+        "beginner_friendliness": "high",
+        "attackingPotential": "medium",
+        "attacking_potential": "medium",
+        "positionalComplexity": "low",
+        "positional_complexity": "low",
+        "practicalSummary": "The Scandinavian is easy to start, but repeated queen moves can make it risky in practice.",
+        "practical_summary": "The Scandinavian is easy to start, but repeated queen moves can make it risky in practice.",
+    },
+    "caro": {
+        "theoryLoad": "medium",
+        "theory_load": "medium",
+        "tacticalSharpness": "low",
+        "tactical_sharpness": "low",
+        "solidTendency": "high",
+        "solid_tendency": "high",
+        "planClarity": "high",
+        "plan_clarity": "high",
+        "beginnerFriendliness": "high",
+        "beginner_friendliness": "high",
+        "attackingPotential": "low",
+        "attacking_potential": "low",
+        "positionalComplexity": "medium",
+        "positional_complexity": "medium",
+        "practicalSummary": "The Caro-Kann is a practical solid choice with clear structure and moderate theory.",
+        "practical_summary": "The Caro-Kann is a practical solid choice with clear structure and moderate theory.",
+    },
+    "french": {
+        "theoryLoad": "medium",
+        "theory_load": "medium",
+        "tacticalSharpness": "medium",
+        "tactical_sharpness": "medium",
+        "solidTendency": "high",
+        "solid_tendency": "high",
+        "planClarity": "medium",
+        "plan_clarity": "medium",
+        "beginnerFriendliness": "medium",
+        "beginner_friendliness": "medium",
+        "attackingPotential": "medium",
+        "attacking_potential": "medium",
+        "positionalComplexity": "high",
+        "positional_complexity": "high",
+        "practicalSummary": "The French is solid, but pawn-chain plans and the light-square bishop need attention.",
+        "practical_summary": "The French is solid, but pawn-chain plans and the light-square bishop need attention.",
+    },
+    "london": {
+        "theoryLoad": "low",
+        "theory_load": "low",
+        "tacticalSharpness": "low",
+        "tactical_sharpness": "low",
+        "solidTendency": "high",
+        "solid_tendency": "high",
+        "planClarity": "high",
+        "plan_clarity": "high",
+        "beginnerFriendliness": "high",
+        "beginner_friendliness": "high",
+        "attackingPotential": "medium",
+        "attacking_potential": "medium",
+        "positionalComplexity": "low",
+        "positional_complexity": "low",
+        "practicalSummary": "The London is low-theory and clear, which helps players who need a repeatable plan.",
+        "practical_summary": "The London is low-theory and clear, which helps players who need a repeatable plan.",
+    },
+    "queen's gambit": {
+        "theoryLoad": "medium",
+        "theory_load": "medium",
+        "tacticalSharpness": "medium",
+        "tactical_sharpness": "medium",
+        "solidTendency": "high",
+        "solid_tendency": "high",
+        "planClarity": "medium",
+        "plan_clarity": "medium",
+        "beginnerFriendliness": "medium",
+        "beginner_friendliness": "medium",
+        "attackingPotential": "medium",
+        "attacking_potential": "medium",
+        "positionalComplexity": "high",
+        "positional_complexity": "high",
+        "practicalSummary": "The Queen's Gambit is healthy and structured, but it asks for more pawn-structure understanding.",
+        "practical_summary": "The Queen's Gambit is healthy and structured, but it asks for more pawn-structure understanding.",
+    },
+    "king's indian": {
+        "theoryLoad": "high",
+        "theory_load": "high",
+        "tacticalSharpness": "high",
+        "tactical_sharpness": "high",
+        "solidTendency": "low",
+        "solid_tendency": "low",
+        "planClarity": "medium",
+        "plan_clarity": "medium",
+        "beginnerFriendliness": "low",
+        "beginner_friendliness": "low",
+        "attackingPotential": "high",
+        "attacking_potential": "high",
+        "positionalComplexity": "high",
+        "positional_complexity": "high",
+        "practicalSummary": "King's Indian structures are powerful, but the theory and strategic complexity are high.",
+        "practical_summary": "King's Indian structures are powerful, but the theory and strategic complexity are high.",
+    },
+    "english": {
+        "theoryLoad": "medium",
+        "theory_load": "medium",
+        "tacticalSharpness": "low",
+        "tactical_sharpness": "low",
+        "solidTendency": "high",
+        "solid_tendency": "high",
+        "planClarity": "medium",
+        "plan_clarity": "medium",
+        "beginnerFriendliness": "medium",
+        "beginner_friendliness": "medium",
+        "attackingPotential": "medium",
+        "attacking_potential": "medium",
+        "positionalComplexity": "high",
+        "positional_complexity": "high",
+        "practicalSummary": "The English is flexible and solid, but it can feel vague without a clear setup.",
+        "practical_summary": "The English is flexible and solid, but it can feel vague without a clear setup.",
+    },
+}
+
+
+DEFAULT_OPENING_RISK_PROFILE = {
+    "theoryLoad": "medium",
+    "theory_load": "medium",
+    "tacticalSharpness": "medium",
+    "tactical_sharpness": "medium",
+    "solidTendency": "medium",
+    "solid_tendency": "medium",
+    "planClarity": "medium",
+    "plan_clarity": "medium",
+    "beginnerFriendliness": "medium",
+    "beginner_friendliness": "medium",
+    "attackingPotential": "medium",
+    "attacking_potential": "medium",
+    "positionalComplexity": "medium",
+    "positional_complexity": "medium",
+    "practicalSummary": "OpeningFit does not have a detailed risk profile for this opening yet, so it treats the practical difficulty as medium.",
+    "practical_summary": "OpeningFit does not have a detailed risk profile for this opening yet, so it treats the practical difficulty as medium.",
+}
+
+
+def opening_risk_profile(name: str) -> Dict[str, Any]:
+    lower = normalise_opening_key(name)
+    for token, profile in OPENING_RISK_PROFILES.items():
+        if token in lower:
+            return {**profile}
+    return {**DEFAULT_OPENING_RISK_PROFILE}
+
+
+def opening_difficulty_penalty(profile: Dict[str, Any], rating: Optional[int]) -> int:
+    band = rating_band(rating)
+    theory = str(profile.get("theoryLoad") or profile.get("theory_load") or "medium")
+    sharpness = str(profile.get("tacticalSharpness") or profile.get("tactical_sharpness") or "medium")
+    clarity = str(profile.get("planClarity") or profile.get("plan_clarity") or "medium")
+    beginner = str(profile.get("beginnerFriendliness") or profile.get("beginner_friendliness") or "medium")
+    penalty = 0
+
+    if band == "under_1000":
+        if theory == "high":
+            penalty += 14
+        elif theory == "medium":
+            penalty += 4
+        if sharpness == "high":
+            penalty += 8
+        if clarity == "low" or beginner == "low":
+            penalty += 6
+    elif band == "1000_1400":
+        if theory == "high":
+            penalty += 10
+        if sharpness == "high":
+            penalty += 4
+        if clarity == "low":
+            penalty += 4
+    elif band == "1400_1800":
+        if theory == "high":
+            penalty += 4
+    elif band == "unknown":
+        if theory == "high":
+            penalty += 5
+
+    return penalty
+
+
+def opening_practical_note(name: str, profile: Dict[str, Any], rating: Optional[int], opening: Optional[Dict[str, Any]] = None) -> str:
+    band = rating_band(rating)
+    theory = str(profile.get("theoryLoad") or profile.get("theory_load") or "medium")
+    sharpness = str(profile.get("tacticalSharpness") or profile.get("tactical_sharpness") or "medium")
+    clarity = str(profile.get("planClarity") or profile.get("plan_clarity") or "medium")
+    score = float((opening or {}).get("openingAdjustedScore", (opening or {}).get("winRate", 50)) or 50)
+    games = int((opening or {}).get("games", 0) or 0)
+
+    if theory == "high" and band in {"under_1000", "1000_1400"} and (games < 15 or score < 55):
+        return (
+            f"OpeningFit is cautious with {name} as a main choice because your rating band and current sample "
+            "suggest the theory load may be too high right now."
+        )
+    if theory == "high" and band == "unknown":
+        return f"{name} has a high theory load, so OpeningFit treats it as a careful experiment unless your results are clearly strong."
+    if clarity == "high" and theory in {"low", "medium"}:
+        return f"{name} fits practically because it gives clear plans without requiring extreme theory depth."
+    if sharpness == "high":
+        return f"{name} can fit attacking players, but the sharpness means repeated opening habits matter more."
+    return str(profile.get("practicalSummary") or profile.get("practical_summary") or DEFAULT_OPENING_RISK_PROFILE["practicalSummary"])
+
+
+def apply_opening_risk_profile(opening: Dict[str, Any], rating: Optional[int] = None) -> Dict[str, Any]:
+    name = str(opening.get("name") or opening.get("opening") or "")
+    profile = opening_risk_profile(name)
+    penalty = opening_difficulty_penalty(profile, rating)
+    adjusted = {**opening}
+    adjusted["openingRiskProfile"] = profile
+    adjusted["opening_risk_profile"] = profile
+    adjusted["practicalDifficultyPenalty"] = penalty
+    adjusted["practical_difficulty_penalty"] = penalty
+    adjusted["practicalDifficultyNote"] = opening_practical_note(name or "this opening", profile, rating, opening)
+    adjusted["practical_difficulty_note"] = adjusted["practicalDifficultyNote"]
+
+    if penalty and adjusted.get("fitScore") is not None:
+        new_score = max(0, int(adjusted.get("fitScore", 0) or 0) - penalty)
+        adjusted["fitScore"] = new_score
+        adjusted["fit_score"] = new_score
+        if isinstance(adjusted.get("fitScoreBreakdown"), dict):
+            adjusted["fitScoreBreakdown"] = {
+                **adjusted["fitScoreBreakdown"],
+                "practicalDifficultyPenalty": penalty,
+            }
+        if isinstance(adjusted.get("fit_score_breakdown"), dict):
+            adjusted["fit_score_breakdown"] = {
+                **adjusted["fit_score_breakdown"],
+                "practical_difficulty_penalty": penalty,
+            }
+
+    verdict = str(adjusted.get("verdict") or "").lower()
+    games = int(adjusted.get("games", 0) or 0)
+    if penalty >= 10 and verdict == "keep" and games < 20:
+        adjusted["verdict"] = "Fix"
+        adjusted["fitVerdict"] = "Fix"
+        adjusted["fit_verdict"] = "Fix"
+        adjusted["recommendationCategory"] = "Fix"
+        adjusted["recommendation_category"] = "Fix"
+        adjusted["riskAdjustedVerdict"] = "Fix"
+        adjusted["risk_adjusted_verdict"] = "Fix"
+
+    evidence = list(adjusted.get("evidence") or adjusted.get("evidenceBullets") or [])
+    note = adjusted["practicalDifficultyNote"]
+    if note and note not in evidence:
+        evidence.append(note)
+    adjusted["evidence"] = evidence[:5]
+    adjusted["evidenceBullets"] = adjusted["evidence"]
+    return adjusted
+
+
+def apply_opening_risk_profiles(openings: List[Dict[str, Any]], rating: Optional[int] = None) -> List[Dict[str, Any]]:
+    return [apply_opening_risk_profile(item, rating) for item in openings or []]
+
+
+def sort_openings_for_recommendation(openings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return sorted(
+        openings or [],
+        key=lambda item: (
+            int(item.get("games", 0) or 0) >= 5,
+            int(item.get("fitScore", 0) or 0),
+            float(item.get("score", item.get("winRate", item.get("win_rate", 0))) or 0),
+            int(item.get("games", 0) or 0),
+            -int(item.get("practicalDifficultyPenalty", item.get("practical_difficulty_penalty", 0)) or 0),
+        ),
+        reverse=True,
+    )
+
+
+RATING_BAND_BENCHMARKS = {
+    "under_1000": {
+        "label": "Under 1000",
+        "expectedMainOpenings": "1 simple White setup and 1 simple Black setup",
+        "expected_main_openings": "1 simple White setup and 1 simple Black setup",
+        "expectedCoverage": "A clear answer as White and one basic Black plan is enough.",
+        "expected_coverage": "A clear answer as White and one basic Black plan is enough.",
+        "acceptableTheoryDepth": "Very light theory: development, king safety, and one pawn break.",
+        "acceptable_theory_depth": "Very light theory: development, king safety, and one pawn break.",
+        "sampleSizeNeeded": 5,
+        "sample_size_needed": 5,
+        "commonTrainingPriority": "Reach safe, developed positions more often than memorising lines.",
+        "common_training_priority": "Reach safe, developed positions more often than memorising lines.",
+    },
+    "1000_1400": {
+        "label": "1000-1400",
+        "expectedMainOpenings": "2-3 main systems across White and Black",
+        "expected_main_openings": "2-3 main systems across White and Black",
+        "expectedCoverage": "One White plan plus clear Black replies to 1.e4 and 1.d4.",
+        "expected_coverage": "One White plan plus clear Black replies to 1.e4 and 1.d4.",
+        "acceptableTheoryDepth": "Practical plans and first 6-8 moves, not heavy sidelines.",
+        "acceptable_theory_depth": "Practical plans and first 6-8 moves, not heavy sidelines.",
+        "sampleSizeNeeded": 8,
+        "sample_size_needed": 8,
+        "commonTrainingPriority": "Keep the repertoire focused before adding more openings.",
+        "common_training_priority": "Keep the repertoire focused before adding more openings.",
+    },
+    "1400_1800": {
+        "label": "1400-1800",
+        "expectedMainOpenings": "3-5 stable systems with clear side-specific coverage",
+        "expected_main_openings": "3-5 stable systems with clear side-specific coverage",
+        "expectedCoverage": "White plans by opponent response and Black plans versus 1.e4, 1.d4, and flank openings.",
+        "expected_coverage": "White plans by opponent response and Black plans versus 1.e4, 1.d4, and flank openings.",
+        "acceptableTheoryDepth": "Structured main lines with known plans and common problem branches.",
+        "acceptable_theory_depth": "Structured main lines with known plans and common problem branches.",
+        "sampleSizeNeeded": 12,
+        "sample_size_needed": 12,
+        "commonTrainingPriority": "Fix recurring branches and move-order issues before replacing openings.",
+        "common_training_priority": "Fix recurring branches and move-order issues before replacing openings.",
+    },
+    "1800_plus": {
+        "label": "1800+",
+        "expectedMainOpenings": "A compact but prepared repertoire with opponent-specific branches",
+        "expected_main_openings": "A compact but prepared repertoire with opponent-specific branches",
+        "expectedCoverage": "Clear coverage across common first moves, transpositions, and repeated sidelines.",
+        "expected_coverage": "Clear coverage across common first moves, transpositions, and repeated sidelines.",
+        "acceptableTheoryDepth": "Deeper theory is useful, but only where the player repeats the positions.",
+        "acceptable_theory_depth": "Deeper theory is useful, but only where the player repeats the positions.",
+        "sampleSizeNeeded": 15,
+        "sample_size_needed": 15,
+        "commonTrainingPriority": "Audit move orders, recurring problem lines, and opponent-specific preparation.",
+        "common_training_priority": "Audit move orders, recurring problem lines, and opponent-specific preparation.",
+    },
+    "unknown": {
+        "label": "Rating unavailable",
+        "expectedMainOpenings": "A small set of repeatable White and Black systems",
+        "expected_main_openings": "A small set of repeatable White and Black systems",
+        "expectedCoverage": "At least one White plan and one Black answer to the most common first moves.",
+        "expected_coverage": "At least one White plan and one Black answer to the most common first moves.",
+        "acceptableTheoryDepth": "Practical plans first; add theory only after the sample repeats.",
+        "acceptable_theory_depth": "Practical plans first; add theory only after the sample repeats.",
+        "sampleSizeNeeded": 8,
+        "sample_size_needed": 8,
+        "commonTrainingPriority": "Build a stable sample before making rating-specific repertoire changes.",
+        "common_training_priority": "Build a stable sample before making rating-specific repertoire changes.",
+    },
+}
+
+
+def build_rating_band_benchmark(
+    rating: Optional[int],
+    best_openings: List[Dict[str, Any]],
+    coverage: Dict[str, Any],
+    coherence: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    band = rating_band(rating)
+    benchmark = RATING_BAND_BENCHMARKS.get(band, RATING_BAND_BENCHMARKS["unknown"])
+    sample_needed = int(benchmark["sampleSizeNeeded"])
+    repeated_openings = [
+        item for item in best_openings or []
+        if is_clean_repertoire_context(item)
+        and not is_unknown_opening_name(item.get("name", ""))
+        and int(item.get("games", 0) or 0) >= 3
+    ]
+    confident_openings = [item for item in repeated_openings if int(item.get("games", 0) or 0) >= sample_needed]
+    low_sample_openings = [
+        item for item in best_openings or []
+        if is_clean_repertoire_context(item)
+        and not is_unknown_opening_name(item.get("name", ""))
+        and 0 < int(item.get("games", 0) or 0) < sample_needed
+    ]
+    coverage_rows = (coverage or {}).get("white", []) + (coverage or {}).get("black", [])
+    covered = [row for row in coverage_rows if row.get("status") == "Covered"]
+    needs_work = [row for row in coverage_rows if row.get("status") in {"Needs work", "No clear plan", "Too little data"}]
+    coherence_status = str((coherence or {}).get("status") or "Unknown")
+    top_systems = []
+    for row in (coherence or {}).get("rows", []) or (coherence or {}).get("lanes", []) or []:
+        top_systems.extend(row.get("topSystems", []) or row.get("top_systems", []) or [])
+    top_systems = list(dict.fromkeys(str(name) for name in top_systems if name))[:3]
+
+    feedback = []
+    if band == "unknown":
+        feedback.append("Rating was not available, so this benchmark uses conservative repertoire expectations rather than a precise rating target.")
+    if coherence_status in {"Simple and focused", "Mostly focused"}:
+        feedback.append(f"Your repertoire is {coherence_status.lower()}, which fits the benchmark preference for repeatable systems.")
+    elif coherence_status in {"Fragmented", "Too random to train efficiently"}:
+        feedback.append(f"Your repertoire is {coherence_status.lower()}, so the benchmark points toward simplifying before adding theory.")
+    if covered:
+        feedback.append(f"{len(covered)} repertoire area{'' if len(covered) == 1 else 's'} look covered against this benchmark.")
+    if needs_work:
+        feedback.append(f"{needs_work[0]['label']} is the clearest benchmark gap to address next.")
+    if low_sample_openings and not confident_openings:
+        feedback.append(f"Your opening samples are still below the {sample_needed}-game confidence target for this band.")
+
+    if band == "1000_1400":
+        summary = "For 1000-1400 players, a focused repertoire usually beats learning many openings."
+    elif band == "under_1000":
+        summary = "For under-1000 players, simple development plans matter more than broad opening theory."
+    elif band == "1400_1800":
+        summary = "For 1400-1800 players, a structured repertoire should cover common first moves without becoming too wide."
+    elif band == "1800_plus":
+        summary = "For 1800+ players, repertoire health depends more on coverage, move orders, and repeated problem branches."
+    else:
+        summary = "Without a rating, OpeningFit compares your repertoire to a practical club-player benchmark."
+
+    if coherence_status in {"Simple and focused", "Mostly focused"} and needs_work:
+        summary = f"{summary} Your repertoire is focused overall, but {needs_work[0]['label']} still needs work."
+    elif coherence_status in {"Fragmented", "Too random to train efficiently"}:
+        summary = f"{summary} Your current sample is more fragmented than this benchmark would prefer."
+
+    return {
+        "band": band,
+        "rating": rating,
+        "benchmark": benchmark,
+        "summary": summary,
+        "feedback": feedback[:4],
+        "measured": {
+            "mainOpeningCount": len(repeated_openings),
+            "main_opening_count": len(repeated_openings),
+            "confidentOpeningCount": len(confident_openings),
+            "confident_opening_count": len(confident_openings),
+            "lowSampleOpeningCount": len(low_sample_openings),
+            "low_sample_opening_count": len(low_sample_openings),
+            "coveredAreaCount": len(covered),
+            "covered_area_count": len(covered),
+            "gapCount": len(needs_work),
+            "gap_count": len(needs_work),
+            "coherenceStatus": coherence_status,
+            "coherence_status": coherence_status,
+            "topSystems": top_systems,
+            "top_systems": top_systems,
+        },
+        "caution": "This is a practical benchmark, not an exact rating model.",
+    }
 
 
 def build_next_training_actions(
@@ -3862,6 +4393,7 @@ def starter_opening_names_for_style(style_profile: Dict[str, Any], games_analyze
 
 def build_style_recommendation_item(name: str, style_profile: Dict[str, Any], reliability: Dict[str, Any], games_analyzed: int) -> Dict[str, Any]:
     library = STARTER_OPENING_LIBRARY.get(name, {})
+    risk_profile = opening_risk_profile(name)
     labels = style_profile.get("labels", ["Developing"])
     label_text = ", ".join(labels)
     low_data = bool(reliability.get("lowData"))
@@ -3874,6 +4406,7 @@ def build_style_recommendation_item(name: str, style_profile: Dict[str, Any], re
     future = bool(library.get("futureUpgrade") or library.get("advanced"))
     if future:
         confidence = "Low Confidence"
+    risk_note = opening_practical_note(name, risk_profile, None, {"games": 0})
 
     return {
         "name": name,
@@ -3884,8 +4417,12 @@ def build_style_recommendation_item(name: str, style_profile: Dict[str, Any], re
         "confidence": confidence,
         "confidenceLevel": confidence,
         "confidence_level": confidence,
-        "whyItFits": f"{name} fits your current {label_text.lower()} profile because it gives you a clearer opening plan without depending on a large existing repertoire sample.",
-        "why_it_fits": f"{name} fits your current {label_text.lower()} profile because it gives you a clearer opening plan without depending on a large existing repertoire sample.",
+        "whyItFits": f"{name} fits your current {label_text.lower()} profile because it gives you a clearer opening plan without depending on a large existing repertoire sample. {risk_note}",
+        "why_it_fits": f"{name} fits your current {label_text.lower()} profile because it gives you a clearer opening plan without depending on a large existing repertoire sample. {risk_note}",
+        "openingRiskProfile": risk_profile,
+        "opening_risk_profile": risk_profile,
+        "practicalDifficultyNote": risk_note,
+        "practical_difficulty_note": risk_note,
         "corePlan": library.get("corePlan", opening_explanation(name).get("plan")),
         "core_plan": library.get("corePlan", opening_explanation(name).get("plan")),
         "commonMistakeAvoided": library.get("commonMistakeAvoided", opening_explanation(name).get("mistakeToAvoid")),
@@ -4424,12 +4961,15 @@ def import_chesscom_logic(username: str, months: int = 3):
     report_mode = report_mode_data["report_mode"]
     best_openings = adapt_openings_for_report_mode(best_openings, report_mode)
     top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
-    opening_recommendations = build_colour_aware_recommendations(context_opening_results)
+    best_openings = sort_openings_for_recommendation(apply_opening_risk_profiles(best_openings, None))
+    top_openings = sort_openings_for_recommendation(apply_opening_risk_profiles(top_openings, None))
+    opening_recommendations = build_colour_aware_recommendations(context_opening_results, rating=None)
     problem_lines = build_problem_lines(recent_games)
     opening_phase_habits = build_opening_phase_habits(recent_games)
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
     repertoire_coherence = build_repertoire_coherence(best_openings)
+    rating_band_benchmark = build_rating_band_benchmark(None, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, None)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
@@ -4562,6 +5102,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "repertoireCoverage": repertoire_coverage,
         "repertoire_coherence": repertoire_coherence,
         "repertoireCoherence": repertoire_coherence,
+        "rating_band_benchmark": rating_band_benchmark,
+        "ratingBandBenchmark": rating_band_benchmark,
         "next_training_actions": next_training_actions,
         "nextTrainingActions": next_training_actions,
         "study_queue": study_queue,
@@ -4911,12 +5453,15 @@ def build_lichess_analysis(
     report_mode = report_mode_data["report_mode"]
     best_openings = adapt_openings_for_report_mode(best_openings, report_mode)
     top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
-    opening_recommendations = build_colour_aware_recommendations(context_opening_results)
+    best_openings = sort_openings_for_recommendation(apply_opening_risk_profiles(best_openings, current_rating))
+    top_openings = sort_openings_for_recommendation(apply_opening_risk_profiles(top_openings, current_rating))
+    opening_recommendations = build_colour_aware_recommendations(context_opening_results, rating=current_rating)
     problem_lines = build_problem_lines(recent_games)
     opening_phase_habits = build_opening_phase_habits(recent_games)
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
     repertoire_coherence = build_repertoire_coherence(best_openings)
+    rating_band_benchmark = build_rating_band_benchmark(current_rating, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, current_rating)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
@@ -5062,6 +5607,8 @@ def build_lichess_analysis(
         "repertoireCoverage": repertoire_coverage,
         "repertoire_coherence": repertoire_coherence,
         "repertoireCoherence": repertoire_coherence,
+        "rating_band_benchmark": rating_band_benchmark,
+        "ratingBandBenchmark": rating_band_benchmark,
         "next_training_actions": next_training_actions,
         "nextTrainingActions": next_training_actions,
         "study_queue": study_queue,

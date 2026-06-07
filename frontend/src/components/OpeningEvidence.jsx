@@ -612,6 +612,8 @@ export function getEvidenceReason(opening, data) {
   const games = getEvidenceGames(opening);
   const context = getOpeningContext(opening);
   const explicit = textField(opening, [
+    "practicalDifficultyNote",
+    "practical_difficulty_note",
     "lossTimingNote",
     "loss_timing_note",
     "moveOrderNote",
@@ -756,6 +758,9 @@ export function getOpeningEvidence(opening, data, options = {}) {
     `Verdict: ${verdict}`,
     games ? `${games} game${games === 1 ? "" : "s"}` : "Game count unavailable",
     score !== null ? `${score}% score` : "Score unavailable",
+    opening?.openingRiskProfile?.theoryLoad || opening?.opening_risk_profile?.theory_load
+      ? `Theory: ${opening.openingRiskProfile?.theoryLoad || opening.opening_risk_profile?.theory_load}`
+      : "",
     baseline,
     signal.badge,
   ].filter(Boolean);

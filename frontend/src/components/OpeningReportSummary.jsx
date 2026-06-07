@@ -180,6 +180,12 @@ function getProgressComparison(data) {
   return { ...comparison, items };
 }
 
+function getRatingBandBenchmark(data) {
+  const benchmark = data?.ratingBandBenchmark || data?.rating_band_benchmark || null;
+  if (!benchmark || typeof benchmark !== "object") return null;
+  return benchmark;
+}
+
 function collectOpenings(data) {
   const candidates = [
     data?.topOpenings,
@@ -450,6 +456,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const styleOpeningMatch = getStyleOpeningMatch(data);
   const repertoireCoherence = getRepertoireCoherence(data);
   const progressComparison = getProgressComparison(data);
+  const ratingBandBenchmark = getRatingBandBenchmark(data);
 
   return (
     <section className="openingReportShell">
@@ -622,6 +629,41 @@ export default function OpeningReportSummary({ data, username, platform }) {
         </div>
       ) : null}
 
+      {ratingBandBenchmark ? (
+        <div className="openingReportBenchmark">
+          <strong>Rating-band benchmark · {ratingBandBenchmark.benchmark?.label || ratingBandBenchmark.band}</strong>
+          <span>{ratingBandBenchmark.summary}</span>
+          <ul>
+            <li>
+              <span>Expected repertoire</span>
+              <em>{ratingBandBenchmark.benchmark?.expectedMainOpenings || ratingBandBenchmark.benchmark?.expected_main_openings}</em>
+              <small>{ratingBandBenchmark.benchmark?.expectedCoverage || ratingBandBenchmark.benchmark?.expected_coverage}</small>
+            </li>
+            <li>
+              <span>Theory depth</span>
+              <em>{ratingBandBenchmark.benchmark?.acceptableTheoryDepth || ratingBandBenchmark.benchmark?.acceptable_theory_depth}</em>
+              <small>
+                Confidence target: {ratingBandBenchmark.benchmark?.sampleSizeNeeded || ratingBandBenchmark.benchmark?.sample_size_needed} games in a repeated opening.
+              </small>
+            </li>
+            <li>
+              <span>Your current shape</span>
+              <em>
+                {ratingBandBenchmark.measured?.coherenceStatus || ratingBandBenchmark.measured?.coherence_status || "Unknown"}
+              </em>
+              <small>
+                {ratingBandBenchmark.measured?.mainOpeningCount ?? ratingBandBenchmark.measured?.main_opening_count ?? 0} repeated openings ·{" "}
+                {ratingBandBenchmark.measured?.gapCount ?? ratingBandBenchmark.measured?.gap_count ?? 0} repertoire gaps
+              </small>
+            </li>
+          </ul>
+          {Array.isArray(ratingBandBenchmark.feedback) && ratingBandBenchmark.feedback.length ? (
+            <small>{ratingBandBenchmark.feedback[0]}</small>
+          ) : null}
+          <small>{ratingBandBenchmark.caution || "This is a practical benchmark, not an exact rating model."}</small>
+        </div>
+      ) : null}
+
       {opponentResponseReport ? (
         <div className="openingReportResponses">
           <ResponseColumn title="White response gaps" report={opponentResponseReport.white} />
@@ -771,6 +813,9 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type, data })
               moveOrderNote: opening.raw?.moveOrderNote || opening.raw?.move_order_note,
               moveOrderStatus: opening.raw?.moveOrderStatus || opening.raw?.move_order_status,
               mostReliableMoveOrder: opening.raw?.mostReliableMoveOrder || opening.raw?.most_reliable_move_order,
+              openingRiskProfile: opening.raw?.openingRiskProfile || opening.raw?.opening_risk_profile,
+              practicalDifficultyNote: opening.raw?.practicalDifficultyNote || opening.raw?.practical_difficulty_note,
+              practicalDifficultyPenalty: opening.raw?.practicalDifficultyPenalty || opening.raw?.practical_difficulty_penalty,
               comparisonText,
               reason,
               nextAction:
