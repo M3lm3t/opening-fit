@@ -147,6 +147,10 @@ function getOpponentResponseReport(data) {
   return data?.opponentResponseReport || data?.opponent_response_report || null;
 }
 
+function getStyleOpeningMatch(data) {
+  return data?.styleOpeningMatch || data?.style_opening_match || null;
+}
+
 function collectOpenings(data) {
   const candidates = [
     data?.topOpenings,
@@ -405,6 +409,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const openingPhaseHabits = getOpeningPhaseHabits(data);
   const coverageRows = getCoverageRows(data);
   const opponentResponseReport = getOpponentResponseReport(data);
+  const styleOpeningMatch = getStyleOpeningMatch(data);
 
   return (
     <section className="openingReportShell">
@@ -525,6 +530,26 @@ export default function OpeningReportSummary({ data, username, platform }) {
         <div className="openingReportResponses">
           <ResponseColumn title="White response gaps" report={opponentResponseReport.white} />
           <ResponseColumn title="Black response gaps" report={opponentResponseReport.black} />
+        </div>
+      ) : null}
+
+      {styleOpeningMatch ? (
+        <div className="openingReportStyleFits">
+          <strong>Style-fit openings · {styleOpeningMatch.styleLabel || styleOpeningMatch.style_label}</strong>
+          <ul>
+            {(styleOpeningMatch.sections || []).map((section) => (
+              <li key={section.key}>
+                <span>{section.title}</span>
+                <em>
+                  {(section.items || [])
+                    .slice(0, 3)
+                    .map((item) => `${item.name} (${item.label || item.recommendationType})`)
+                    .join(", ")}
+                </em>
+                {(section.items || [])[0]?.explanation ? <small>{section.items[0].explanation}</small> : null}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 

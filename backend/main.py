@@ -2320,6 +2320,202 @@ def build_opponent_response_report(games: List[Dict[str, Any]]) -> Dict[str, Any
     }
 
 
+STYLE_OPENING_FAMILIES = {
+    "Tactical Attacker": {
+        "white": ["Vienna Game", "Scotch Game", "Italian Game", "King's Gambit"],
+        "black_vs_e4": ["Scandinavian Defence", "Sicilian Defence", "e5 systems"],
+        "black_vs_d4": ["Dutch Defence", "King's Indian as future option"],
+    },
+    "Solid Builder": {
+        "white": ["London System", "Queen's Gambit", "Colle System"],
+        "black_vs_e4": ["Caro-Kann Defence", "French Defence"],
+        "black_vs_d4": ["Queen's Gambit Declined", "Slav Defence"],
+    },
+    "System Player": {
+        "white": ["London System", "Colle System", "King's Indian Attack", "Stonewall structures"],
+        "black_vs_e4": ["Caro-Kann Defence", "e5 systems"],
+        "black_vs_d4": ["Queen's Gambit Declined setup", "Slav Defence"],
+    },
+    "Positional Grinder": {
+        "white": ["Queen's Gambit", "English Opening", "Catalan-style setups"],
+        "black_vs_e4": ["Caro-Kann Defence", "French Defence"],
+        "black_vs_d4": ["Queen's Gambit Declined", "Slav Defence"],
+    },
+    "Chaos Handler": {
+        "white": ["Scotch Game", "Vienna Game", "Jobava London"],
+        "black_vs_e4": ["Sicilian Defence", "Scandinavian Defence"],
+        "black_vs_d4": ["Dutch Defence", "King's Indian as future option"],
+    },
+    "Balanced Improver": {
+        "white": ["Italian Game", "Queen's Gambit", "London System"],
+        "black_vs_e4": ["Caro-Kann Defence", "e5 systems"],
+        "black_vs_d4": ["Queen's Gambit Declined setup", "Slav Defence"],
+    },
+}
+
+
+def normalise_opening_key(name: str) -> str:
+    return str(name or "").strip().lower().replace("’", "'")
+
+
+def infer_style_opening_match(games: List[Dict[str, Any]], best_openings: List[Dict[str, Any]], rating: Optional[int] = None) -> Dict[str, Any]:
+    total = len(games or [])
+    signals = {
+        "open_games": 0,
+        "closed_games": 0,
+        "short_games": 0,
+        "long_games": 0,
+        "early_queen": 0,
+        "early_attack": 0,
+        "pawn_storms": 0,
+        "castled_kingside": 0,
+        "castled_queenside": 0,
+        "system_openings": 0,
+        "chaos_openings": 0,
+        "solid_openings": 0,
+        "positional_openings": 0,
+    }
+    structure_results: Dict[str, Dict[str, int]] = defaultdict(lambda: {"games": 0, "wins": 0, "draws": 0, "losses": 0})
+
+    for game in games or []:
+        moves = game_moves(game)
+        own_moves = own_opening_moves(game)
+        opening = str(game.get("opening") or "").lower()
+        result = str(game.get("result") or "").lower()
+        move_count = int(game.get("moveCount") or game.get("move_count") or move_count_from_moves(moves))
+        first = moves[0] if moves else ""
+        second = moves[1] if len(moves) > 1 else ""
+        structure = "open" if first == "e4" and second in {"e5", "c5"} else "closed"
+
+        if structure == "open":
+            signals["open_games"] += 1
+        else:
+            signals["closed_games"] += 1
+        if move_count and move_count <= 25:
+            signals["short_games"] += 1
+        if move_count >= 45:
+            signals["long_games"] += 1
+
+        own_sans = [move["san"] for move in own_moves]
+        if any(move.startswith("Q") for move in own_sans[:5]):
+            signals["early_queen"] += 1
+        if any(move in {"f4", "g4", "h4", "b4", "a4"} for move in own_sans[:6]):
+            signals["early_attack"] += 1
+        if sum(1 for move in own_sans[:10] if is_flank_pawn_move(move)) >= 2:
+            signals["pawn_storms"] += 1
+        if any(is_castle_move(move) and move in {"O-O", "0-0"} for move in own_sans[:10]):
+            signals["castled_kingside"] += 1
+        if any(is_castle_move(move) and move in {"O-O-O", "0-0-0"} for move in own_sans[:10]):
+            signals["castled_queenside"] += 1
+
+        if any(token in opening for token in ["london", "colle", "stonewall"]):
+            signals["system_openings"] += 1
+        if any(token in opening for token in ["sicilian", "scandinavian", "gambit", "dutch", "king's indian"]):
+            signals["chaos_openings"] += 1
+        if any(token in opening for token in ["caro-kann", "french", "queen's gambit declined", "slav"]):
+            signals["solid_openings"] += 1
+        if any(token in opening for token in ["queen's gambit", "english", "catalan", "reti", "réti"]):
+            signals["positional_openings"] += 1
+
+        row = structure_results[structure]
+        row["games"] += 1
+        if result == "win":
+            row["wins"] += 1
+        elif result == "draw":
+            row["draws"] += 1
+        elif result == "loss":
+            row["losses"] += 1
+
+    tactical_score = signals["open_games"] + signals["early_attack"] * 2 + signals["early_queen"] + signals["short_games"] + signals["chaos_openings"]
+    solid_score = signals["solid_openings"] * 2 + signals["castled_kingside"] + signals["long_games"]
+    system_score = signals["system_openings"] * 3 + max(0, signals["closed_games"] - signals["open_games"])
+    positional_score = signals["positional_openings"] * 2 + signals["closed_games"] + signals["long_games"]
+    chaos_score = signals["chaos_openings"] * 2 + signals["pawn_storms"] * 2 + signals["early_queen"]
+
+    style_scores = {
+        "Tactical Attacker": tactical_score,
+        "Solid Builder": solid_score,
+        "System Player": system_score,
+        "Positional Grinder": positional_score,
+        "Chaos Handler": chaos_score,
+        "Balanced Improver": max(1, total) + min(tactical_score, solid_score, positional_score),
+    }
+    style_label = max(style_scores.items(), key=lambda item: item[1])[0] if total else "Balanced Improver"
+    if total < 8 or max(style_scores.values() or [0]) < max(4, total * 0.35):
+        style_label = "Balanced Improver"
+
+    existing = {normalise_opening_key(item.get("name", "")): item for item in best_openings or []}
+    families = STYLE_OPENING_FAMILIES.get(style_label, STYLE_OPENING_FAMILIES["Balanced Improver"])
+    evidence = [
+        f"Analysed {total} game{'' if total == 1 else 's'} for style signals.",
+        f"Open-game signals: {signals['open_games']}; closed/system signals: {signals['closed_games'] + signals['system_openings']}.",
+        f"Early attacking signals: {signals['early_attack'] + signals['early_queen']}; pawn-storm signals: {signals['pawn_storms']}.",
+    ]
+
+    def item_for(name: str, slot: str) -> Dict[str, Any]:
+        key = normalise_opening_key(name)
+        played = existing.get(key)
+        games_count = int(played.get("games", 0) or 0) if played else 0
+        confidence = "Medium confidence" if games_count >= 5 or total >= 20 else "Low confidence"
+        recommendation_type = "style fit" if games_count >= 3 else "experimental"
+        if rating and rating < 1100 and any(token in name.lower() for token in ["king's gambit", "sicilian", "dutch", "king's indian"]):
+            confidence = "Low confidence"
+            recommendation_type = "experimental"
+        explanation = (
+            f"{name} is a {recommendation_type} for your {style_label} profile: "
+            f"it matches the style signals in your games, but it is not being presented as a proven repertoire result."
+        )
+        if played and games_count >= 3:
+            explanation = (
+                f"{name} is a style fit for your {style_label} profile and you already have {games_count} game"
+                f"{'' if games_count == 1 else 's'} of experience with it."
+            )
+        return {
+            "name": name,
+            "slot": slot,
+            "role": slot,
+            "label": "Style fit" if recommendation_type == "style fit" else "Experimental",
+            "recommendationType": recommendation_type,
+            "recommendation_type": recommendation_type,
+            "confidence": confidence,
+            "confidenceLabel": confidence,
+            "confidence_label": confidence,
+            "confidenceLevel": confidence.lower().split()[0],
+            "confidence_level": confidence.lower().split()[0],
+            "explanation": explanation,
+            "whyItFits": explanation,
+            "why_it_fits": explanation,
+            "currentlyPlayed": bool(played),
+            "currently_played": bool(played),
+            "games": games_count,
+            "evidence": evidence[:2],
+            "corePlan": STARTER_OPENING_LIBRARY.get(name, {}).get("corePlan", opening_explanation(name).get("plan")),
+            "starterMoveSequence": STARTER_OPENING_LIBRARY.get(name, {}).get("starterMoves", []),
+        }
+
+    sections = []
+    for slot, title in [("white", "White style fits"), ("black_vs_e4", "Black style fits vs 1.e4"), ("black_vs_d4", "Black style fits vs 1.d4")]:
+        sections.append(
+            {
+                "key": slot,
+                "title": title,
+                "items": [item_for(name, slot) for name in families.get(slot, [])[:4]],
+            }
+        )
+
+    return {
+        "styleLabel": style_label,
+        "style_label": style_label,
+        "styleScores": style_scores,
+        "style_scores": style_scores,
+        "signals": signals,
+        "structureResults": dict(structure_results),
+        "structure_results": dict(structure_results),
+        "evidence": evidence,
+        "sections": sections,
+    }
+
+
 def coverage_status(item: Optional[Dict[str, Any]]) -> str:
     if not item:
         return "No clear plan"
@@ -3566,6 +3762,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     opening_phase_habits = build_opening_phase_habits(recent_games)
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
+    style_opening_match = infer_style_opening_match(recent_games, best_openings, None)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
         opening_recommendations,
@@ -3682,6 +3879,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "openingPhaseHabits": opening_phase_habits,
         "opponent_response_report": opponent_response_report,
         "opponentResponseReport": opponent_response_report,
+        "style_opening_match": style_opening_match,
+        "styleOpeningMatch": style_opening_match,
         "repertoire_coverage": repertoire_coverage,
         "repertoireCoverage": repertoire_coverage,
         "next_training_actions": next_training_actions,
@@ -4030,6 +4229,7 @@ def build_lichess_analysis(
     opening_phase_habits = build_opening_phase_habits(recent_games)
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
+    style_opening_match = infer_style_opening_match(recent_games, best_openings, current_rating)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
         opening_recommendations,
@@ -4159,6 +4359,8 @@ def build_lichess_analysis(
         "openingPhaseHabits": opening_phase_habits,
         "opponent_response_report": opponent_response_report,
         "opponentResponseReport": opponent_response_report,
+        "style_opening_match": style_opening_match,
+        "styleOpeningMatch": style_opening_match,
         "repertoire_coverage": repertoire_coverage,
         "repertoireCoverage": repertoire_coverage,
         "next_training_actions": next_training_actions,

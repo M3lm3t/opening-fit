@@ -14545,6 +14545,7 @@ main > section,
 .openingReportProblemList,
 .openingReportCoverage ul,
 .openingReportResponses ul,
+.openingReportStyleFits ul,
 .openingReportHabits ul {
   display: grid;
   gap: 8px;
@@ -14559,11 +14560,13 @@ main > section,
 .light .openingReportProblemList,
 .light .openingReportCoverage ul,
 .light .openingReportResponses ul,
+.light .openingReportStyleFits ul,
 .light .openingReportHabits ul,
 [data-theme="light"] .openingReportActionList,
 [data-theme="light"] .openingReportProblemList,
 [data-theme="light"] .openingReportCoverage ul,
 [data-theme="light"] .openingReportResponses ul,
+[data-theme="light"] .openingReportStyleFits ul,
 [data-theme="light"] .openingReportHabits ul {
   color: #475569;
 }
@@ -14571,6 +14574,7 @@ main > section,
 .openingReportProblemList li,
 .openingReportCoverage li,
 .openingReportResponses li,
+.openingReportStyleFits li,
 .openingReportHabits li {
   min-width: 0;
 }
@@ -14583,6 +14587,9 @@ main > section,
 .openingReportResponses span,
 .openingReportResponses em,
 .openingReportResponses small,
+.openingReportStyleFits span,
+.openingReportStyleFits em,
+.openingReportStyleFits small,
 .openingReportHabits span,
 .openingReportHabits small {
   display: block;
@@ -14591,6 +14598,7 @@ main > section,
 .openingReportProblemList small,
 .openingReportCoverage small,
 .openingReportResponses small,
+.openingReportStyleFits small,
 .openingReportHabits small {
   margin-top: 3px;
   color: rgba(226, 232, 240, 0.54);
@@ -14601,10 +14609,12 @@ main > section,
 .light .openingReportProblemList small,
 .light .openingReportCoverage small,
 .light .openingReportResponses small,
+.light .openingReportStyleFits small,
 .light .openingReportHabits small,
 [data-theme="light"] .openingReportProblemList small,
 [data-theme="light"] .openingReportCoverage small,
 [data-theme="light"] .openingReportResponses small,
+[data-theme="light"] .openingReportStyleFits small,
 [data-theme="light"] .openingReportHabits small {
   color: #64748b;
 }
@@ -14615,6 +14625,36 @@ main > section,
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 16px;
+}
+
+.openingReportStyleFits {
+  margin-top: 16px;
+  padding: 15px;
+  border-radius: 22px;
+  background: rgba(2, 6, 23, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.light .openingReportStyleFits,
+[data-theme="light"] .openingReportStyleFits {
+  background: rgba(15, 23, 42, 0.035);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+.openingReportStyleFits > strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.openingReportStyleFits em {
+  color: rgba(226, 232, 240, 0.78);
+  font-style: normal;
+  line-height: 1.4;
+}
+
+.light .openingReportStyleFits em,
+[data-theme="light"] .openingReportStyleFits em {
+  color: #475569;
 }
 
 .openingReportCoverage > div,
