@@ -1163,6 +1163,100 @@ def empty_opening_stats() -> Dict[str, Any]:
         "middlegame_losses": 0,
         "late_losses": 0,
         "unknown_losses": 0,
+        "move_orders_4": {},
+        "move_orders_6": {},
+        "move_orders_8": {},
+    }
+
+
+def move_order_key(moves: List[str], plies: int) -> str:
+    cleaned = [clean_san_move(move).rstrip("+#?!") for move in (moves or [])[:plies]]
+    cleaned = [move for move in cleaned if move]
+    return " ".join(cleaned)
+
+
+def add_move_order_to_stats(stats: Dict[str, Any], moves: List[str]) -> None:
+    for plies in (4, 6, 8):
+        key = move_order_key(moves, plies)
+        if not key:
+            continue
+        bucket = stats.setdefault(f"move_orders_{plies}", {})
+        bucket[key] = int(bucket.get(key, 0) or 0) + 1
+
+
+def move_order_consistency_fields(opening: Dict[str, Any]) -> Dict[str, Any]:
+    games = int(opening.get("games", 0) or 0)
+    breakdown = {}
+    best_sequence = ""
+    best_ply = 0
+    best_count = 0
+    weighted_pct = 0.0
+    weight_total = 0.0
+
+    for plies, weight in [(4, 0.25), (6, 0.35), (8, 0.40)]:
+        orders = opening.get(f"move_orders_{plies}") or opening.get(f"moveOrders{plies}") or {}
+        if not isinstance(orders, dict) or not orders:
+            breakdown[str(plies)] = {
+                "plies": plies,
+                "topSequence": "",
+                "topCount": 0,
+                "topPercentage": 0,
+                "variationCount": 0,
+            }
+            continue
+
+        total = sum(int(value or 0) for value in orders.values())
+        top_sequence, top_count = sorted(
+            orders.items(),
+            key=lambda item: (int(item[1] or 0), -len(str(item[0]))),
+            reverse=True,
+        )[0]
+        top_pct = round((int(top_count or 0) / total) * 100, 1) if total else 0
+        weighted_pct += top_pct * weight
+        weight_total += weight
+        breakdown[str(plies)] = {
+            "plies": plies,
+            "topSequence": top_sequence,
+            "topCount": int(top_count or 0),
+            "topPercentage": top_pct,
+            "variationCount": len(orders),
+        }
+        if int(top_count or 0) > best_count or (int(top_count or 0) == best_count and plies > best_ply):
+            best_sequence = str(top_sequence)
+            best_ply = plies
+            best_count = int(top_count or 0)
+
+    score = round(weighted_pct / weight_total) if weight_total else 0
+    variation_count = max((row["variationCount"] for row in breakdown.values()), default=0)
+
+    if games < 3 or not best_sequence:
+        status = "No clear move order"
+        note = "There is not enough repeated move-order data to judge this opening plan yet."
+    elif score >= 70 and best_count >= 3:
+        status = "Consistent"
+        note = f"{opening.get('name', 'This opening')}: Consistent. You usually reach the same setup by move {max(2, best_ply // 2)}."
+    elif score >= 50:
+        status = "Some variation"
+        note = f"{opening.get('name', 'This opening')}: Some variation. Your main setup is visible, but the early move order still changes."
+    else:
+        status = "Unstable"
+        note = f"{opening.get('name', 'This opening')}: Unstable. You use several different early move orders, so the plan is not settled yet."
+
+    return {
+        "move_order_status": status,
+        "moveOrderStatus": status,
+        "move_order_score": score,
+        "moveOrderScore": score,
+        "move_order_note": note,
+        "moveOrderNote": note,
+        "most_reliable_move_order": best_sequence,
+        "mostReliableMoveOrder": best_sequence,
+        "most_reliable_move_order_plies": best_ply,
+        "mostReliableMoveOrderPlies": best_ply,
+        "move_order_variation_count": variation_count,
+        "moveOrderVariationCount": variation_count,
+        "move_order_breakdown": breakdown,
+        "moveOrderBreakdown": breakdown,
     }
 
 
@@ -1296,6 +1390,9 @@ def opening_item(
         "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
         "late_losses": int(stats.get("late_losses", 0) or 0),
         "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
+        "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
+        "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
+        "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
         "context": context,
         "contextLabel": context_label(context),
         "repertoireContext": context,
@@ -1310,6 +1407,7 @@ def opening_item(
         item["winRate"] = win_rate
 
     item.update(loss_timing_fields(item))
+    item.update(move_order_consistency_fields(item))
     item.update(opening_confidence_fields(item, total_games))
     item.update(balanced_opening_fit_score(item))
     item["evidence"] = opening_evidence_bullets(item)
@@ -1402,7 +1500,11 @@ def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
     ) if games else 0
     result_score = min(100, max(raw_result_score, opening_adjusted_score))
     context = str(opening.get("context") or opening.get("repertoireContext") or "")
-    style_score = 75 if is_clean_repertoire_context(opening) else 35
+    move_order_score = int(opening.get("moveOrderScore", opening.get("move_order_score", 0)) or 0)
+    if is_clean_repertoire_context(opening):
+        style_score = round(48 + move_order_score * 0.52) if move_order_score else 68
+    else:
+        style_score = 35
     stability_penalty = abs(wins - weighted_opening_losses) * 7
     stability_score = max(20, 100 - min(80, stability_penalty)) if games >= 5 else 25
     recent_score = result_score
@@ -1430,6 +1532,7 @@ def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
             "resultScore": result_score,
             "rawResultScore": raw_result_score,
             "styleMatch": style_score,
+            "moveOrderConsistency": move_order_score,
             "stability": stability_score,
             "recentForm": recent_score,
             "context": context,
@@ -1440,6 +1543,7 @@ def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
             "result_score": result_score,
             "raw_result_score": raw_result_score,
             "style_match": style_score,
+            "move_order_consistency": move_order_score,
             "stability": stability_score,
             "recent_form": recent_score,
             "context": context,
@@ -1464,6 +1568,10 @@ def opening_evidence_bullets(opening: Dict[str, Any]) -> List[str]:
     timing_note = opening.get("lossTimingNote") or opening.get("loss_timing_note")
     if timing_note:
         bullets.append(str(timing_note))
+
+    move_order_note = opening.get("moveOrderNote") or opening.get("move_order_note")
+    if move_order_note and "no clear move order" not in str(move_order_note).lower():
+        bullets.append(str(move_order_note))
 
     if "too little" in confidence.lower():
         bullets.append("There is not enough data yet to judge this strongly.")
@@ -1581,6 +1689,8 @@ def build_colour_aware_recommendations(
             items,
             key=lambda item: (
                 item.get("games", 0),
+                item.get("fitScore", 0),
+                item.get("moveOrderScore", item.get("move_order_score", 0)),
                 item.get("win_rate") if item.get("win_rate") is not None else -1,
             ),
             reverse=True,
@@ -1672,6 +1782,9 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
                 "late_losses": int(stats.get("late_losses", 0) or 0),
                 "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
+                "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
+                "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
+                "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
                 "win_rate": win_rate,
                 "winRate": win_rate,
                 "score": score,
@@ -1682,6 +1795,7 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "repertoireContext": context,
             }
         item.update(loss_timing_fields(item))
+        item.update(move_order_consistency_fields(item))
         item.update(opening_confidence_fields(item, total_opening_games))
         item.update(balanced_opening_fit_score(item))
         adjusted_score = float(item.get("openingAdjustedScore", win_rate) or 0)
@@ -1699,7 +1813,7 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
         item["evidenceBullets"] = item["evidence"]
         scored.append(item)
 
-    scored.sort(key=lambda x: (x["games"] >= 5, x["score"], x["games"]), reverse=True)
+    scored.sort(key=lambda x: (x["games"] >= 5, x.get("fitScore", 0), x["score"], x["games"]), reverse=True)
     return scored
 
 
@@ -3105,6 +3219,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         for stats in (opening_results[opening], context_opening_results[context_key]):
             stats["name"] = opening
             stats["games"] += 1
+            add_move_order_to_stats(stats, moves)
             if colour in {"white", "black"}:
                 stats[colour] += 1
             stats[repertoire_context] += 1
@@ -3185,6 +3300,9 @@ def import_chesscom_logic(username: str, months: int = 3):
             "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
             "late_losses": int(stats.get("late_losses", 0) or 0),
             "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
+            "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
+            "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
+            "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
             "win_rate": win_rate,
             "winRate": win_rate,
             "colour": dominant_opening_colour(stats),
@@ -3195,6 +3313,7 @@ def import_chesscom_logic(username: str, months: int = 3):
             **explanation,
         }
         item.update(loss_timing_fields(item))
+        item.update(move_order_consistency_fields(item))
         item.update(opening_confidence_fields(item, total_opening_games))
         item.update(balanced_opening_fit_score(item))
         item["evidence"] = opening_evidence_bullets(item)
@@ -3545,6 +3664,7 @@ def build_lichess_analysis(
         for stats in (opening_results[opening], context_opening_results[context_key]):
             stats["name"] = opening
             stats["games"] += 1
+            add_move_order_to_stats(stats, moves)
             if colour in {"white", "black"}:
                 stats[colour] += 1
             stats[repertoire_context] += 1
@@ -3626,6 +3746,9 @@ def build_lichess_analysis(
             "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
             "late_losses": int(stats.get("late_losses", 0) or 0),
             "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
+            "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
+            "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
+            "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
             "win_rate": win_rate,
             "winRate": win_rate,
             "colour": dominant_opening_colour(stats),
@@ -3636,6 +3759,7 @@ def build_lichess_analysis(
             **explanation,
         }
         item.update(loss_timing_fields(item))
+        item.update(move_order_consistency_fields(item))
         item.update(opening_confidence_fields(item, total_opening_games))
         item.update(balanced_opening_fit_score(item))
         item["evidence"] = opening_evidence_bullets(item)

@@ -608,6 +608,9 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type, data })
               confidence: confidenceLabel,
               lossTimingNote: opening.raw?.lossTimingNote || opening.raw?.loss_timing_note,
               lossTiming: opening.raw?.lossTiming || opening.raw?.loss_timing,
+              moveOrderNote: opening.raw?.moveOrderNote || opening.raw?.move_order_note,
+              moveOrderStatus: opening.raw?.moveOrderStatus || opening.raw?.move_order_status,
+              mostReliableMoveOrder: opening.raw?.mostReliableMoveOrder || opening.raw?.most_reliable_move_order,
               comparisonText,
               reason,
               nextAction:

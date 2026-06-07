@@ -610,6 +610,8 @@ export function getEvidenceReason(opening, data) {
   const explicit = textField(opening, [
     "lossTimingNote",
     "loss_timing_note",
+    "moveOrderNote",
+    "move_order_note",
     "confidenceReason",
     "confidence_reason",
     "verdictReason",
