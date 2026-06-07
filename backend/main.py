@@ -2126,6 +2126,200 @@ def build_opening_phase_habits(games: List[Dict[str, Any]], min_games: int = 2) 
     return habits[:8]
 
 
+WHITE_RESPONSE_AREAS = [
+    ("e5", "vs ...e5", "1.e4 e5"),
+    ("c5", "vs ...c5", "Sicilian Defence"),
+    ("e6", "vs ...e6", "French Defence"),
+    ("c6", "vs ...c6", "Caro-Kann"),
+    ("d5", "vs ...d5", "Scandinavian / direct ...d5"),
+    ("other", "other", "other first replies"),
+]
+
+
+BLACK_RESPONSE_AREAS = [
+    ("e4", "vs 1.e4", "1.e4"),
+    ("d4", "vs 1.d4", "1.d4"),
+    ("c4", "vs 1.c4", "1.c4"),
+    ("Nf3", "vs 1.Nf3", "1.Nf3"),
+    ("other", "other", "other first moves"),
+]
+
+
+def game_moves(game: Dict[str, Any]) -> List[str]:
+    moves = game.get("moves")
+    if isinstance(moves, list) and moves:
+        return [clean_san_move(move) for move in moves if clean_san_move(move)]
+    return [clean_san_move(move) for move in clean_moves_from_pgn(str(game.get("pgn") or ""))]
+
+
+def white_response_key(moves: List[str]) -> str:
+    if len(moves) < 2:
+        return "other"
+    response = clean_san_move(moves[1])
+    if response in {"e5", "c5", "e6", "c6", "d5"}:
+        return response
+    return "other"
+
+
+def black_response_key(moves: List[str]) -> str:
+    if not moves:
+        return "other"
+    first = clean_san_move(moves[0])
+    if first in {"e4", "d4", "c4", "Nf3"}:
+        return first
+    return "other"
+
+
+def response_status(games_count: int, score: Optional[float]) -> str:
+    if games_count <= 0:
+        return "No data"
+    if games_count < 3:
+        return "Too little data"
+    if score is not None and score >= 55:
+        return "Strong"
+    if score is not None and score >= 40:
+        return "Needs work"
+    return "Weak"
+
+
+def response_row(key: str, label: str, name: str, stats: Dict[str, int]) -> Dict[str, Any]:
+    games_count = int(stats.get("games", 0) or 0)
+    wins = int(stats.get("wins", 0) or 0)
+    draws = int(stats.get("draws", 0) or 0)
+    losses = int(stats.get("losses", 0) or 0)
+    score = round(((wins + 0.5 * draws) / games_count) * 100, 1) if games_count else None
+    status = response_status(games_count, score)
+    evidence = [f"{games_count} game{'' if games_count == 1 else 's'} in this area."]
+    if score is not None:
+        evidence.append(f"Score: {score}%.")
+    else:
+        evidence.append("No imported games reached this area.")
+    return {
+        "key": key,
+        "label": label,
+        "name": name,
+        "games": games_count,
+        "wins": wins,
+        "draws": draws,
+        "losses": losses,
+        "score": score,
+        "scorePct": score,
+        "status": status,
+        "evidence": evidence,
+    }
+
+
+def strongest_response(rows: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    candidates = [
+        row for row in rows
+        if int(row.get("games", 0) or 0) >= 3
+        and row.get("score") is not None
+        and row.get("score", 0) >= 40
+    ]
+    if not candidates:
+        return None
+    return sorted(candidates, key=lambda row: (row["score"], row["games"]), reverse=True)[0]
+
+
+def weakest_response(rows: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    candidates = [row for row in rows if int(row.get("games", 0) or 0) >= 3 and row.get("score") is not None]
+    if not candidates:
+        return None
+    return sorted(candidates, key=lambda row: (row["score"], -row["games"]))[0]
+
+
+def response_priority(side: str, rows: List[Dict[str, Any]]) -> str:
+    weak = weakest_response(rows)
+    no_data = [row for row in rows if int(row.get("games", 0) or 0) == 0 and row["key"] != "other"]
+    too_little = [
+        row for row in rows
+        if 0 < int(row.get("games", 0) or 0) < 3 and row["key"] != "other"
+    ]
+
+    if weak and weak.get("score", 100) < 40:
+        if side == "white":
+            return f"As White, your biggest gap is {weak['label']} ({weak['score']}% score). Study one stable plan for {weak['name']}."
+        return f"As Black, your biggest gap is {weak['label']} ({weak['score']}% score). Choose one stable system there."
+
+    if too_little:
+        area = too_little[0]
+        if side == "white":
+            return f"As White, you have too few stable games after {area['name']} to judge it properly yet."
+        return f"As Black, you have too few stable games {area['label']} to judge that system properly yet."
+
+    if no_data:
+        area = no_data[0]
+        if side == "white":
+            return f"As White, there is no imported sample against {area['name']} yet."
+        return f"As Black, you have no stable system shown {area['label']} yet."
+
+    strong = strongest_response(rows)
+    if strong:
+        if side == "white":
+            return f"As White, keep your current plan {strong['label']}, then review the next lowest-scoring response area."
+        return f"As Black, keep your current answer {strong['label']}, then review the next lowest-scoring first move."
+
+    return "No response-area priority yet because the imported sample is too small."
+
+
+def build_opponent_response_report(games: List[Dict[str, Any]]) -> Dict[str, Any]:
+    white_stats = {key: {"games": 0, "wins": 0, "draws": 0, "losses": 0} for key, _label, _name in WHITE_RESPONSE_AREAS}
+    black_stats = {key: {"games": 0, "wins": 0, "draws": 0, "losses": 0} for key, _label, _name in BLACK_RESPONSE_AREAS}
+
+    for game in games or []:
+        colour = str(game.get("colour") or game.get("color") or "").lower()
+        moves = game_moves(game)
+        result = str(game.get("result") or "").lower()
+        if colour == "white":
+            bucket = white_response_key(moves)
+            stats = white_stats[bucket]
+        elif colour == "black":
+            bucket = black_response_key(moves)
+            stats = black_stats[bucket]
+        else:
+            continue
+        stats["games"] += 1
+        if result == "win":
+            stats["wins"] += 1
+        elif result == "draw":
+            stats["draws"] += 1
+        elif result == "loss":
+            stats["losses"] += 1
+
+    white_rows = [
+        response_row(key, label, name, white_stats[key])
+        for key, label, name in WHITE_RESPONSE_AREAS
+    ]
+    black_rows = [
+        response_row(key, label, name, black_stats[key])
+        for key, label, name in BLACK_RESPONSE_AREAS
+    ]
+
+    white_strongest = strongest_response(white_rows)
+    white_weakest = weakest_response(white_rows)
+    black_strongest = strongest_response(black_rows)
+    black_weakest = weakest_response(black_rows)
+
+    return {
+        "white": {
+            "title": "White response areas",
+            "rows": white_rows,
+            "strongest": white_strongest,
+            "weakest": white_weakest,
+            "noDataAreas": [row for row in white_rows if row["games"] == 0 and row["key"] != "other"],
+            "studyPriority": response_priority("white", white_rows),
+        },
+        "black": {
+            "title": "Black response areas",
+            "rows": black_rows,
+            "strongest": black_strongest,
+            "weakest": black_weakest,
+            "noDataAreas": [row for row in black_rows if row["games"] == 0 and row["key"] != "other"],
+            "studyPriority": response_priority("black", black_rows),
+        },
+    }
+
+
 def coverage_status(item: Optional[Dict[str, Any]]) -> str:
     if not item:
         return "No clear plan"
@@ -3370,6 +3564,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     opening_recommendations = build_colour_aware_recommendations(context_opening_results)
     problem_lines = build_problem_lines(recent_games)
     opening_phase_habits = build_opening_phase_habits(recent_games)
+    opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
@@ -3485,6 +3680,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "problemLines": problem_lines,
         "opening_phase_habits": opening_phase_habits,
         "openingPhaseHabits": opening_phase_habits,
+        "opponent_response_report": opponent_response_report,
+        "opponentResponseReport": opponent_response_report,
         "repertoire_coverage": repertoire_coverage,
         "repertoireCoverage": repertoire_coverage,
         "next_training_actions": next_training_actions,
@@ -3831,6 +4028,7 @@ def build_lichess_analysis(
     opening_recommendations = build_colour_aware_recommendations(context_opening_results)
     problem_lines = build_problem_lines(recent_games)
     opening_phase_habits = build_opening_phase_habits(recent_games)
+    opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
     opening_fit_profile = build_opening_fit_profile(
         best_openings,
@@ -3959,6 +4157,8 @@ def build_lichess_analysis(
         "problemLines": problem_lines,
         "opening_phase_habits": opening_phase_habits,
         "openingPhaseHabits": opening_phase_habits,
+        "opponent_response_report": opponent_response_report,
+        "opponentResponseReport": opponent_response_report,
         "repertoire_coverage": repertoire_coverage,
         "repertoireCoverage": repertoire_coverage,
         "next_training_actions": next_training_actions,

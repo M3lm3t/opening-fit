@@ -14544,6 +14544,7 @@ main > section,
 .openingReportActionList,
 .openingReportProblemList,
 .openingReportCoverage ul,
+.openingReportResponses ul,
 .openingReportHabits ul {
   display: grid;
   gap: 8px;
@@ -14557,16 +14558,19 @@ main > section,
 .light .openingReportActionList,
 .light .openingReportProblemList,
 .light .openingReportCoverage ul,
+.light .openingReportResponses ul,
 .light .openingReportHabits ul,
 [data-theme="light"] .openingReportActionList,
 [data-theme="light"] .openingReportProblemList,
 [data-theme="light"] .openingReportCoverage ul,
+[data-theme="light"] .openingReportResponses ul,
 [data-theme="light"] .openingReportHabits ul {
   color: #475569;
 }
 
 .openingReportProblemList li,
 .openingReportCoverage li,
+.openingReportResponses li,
 .openingReportHabits li {
   min-width: 0;
 }
@@ -14576,6 +14580,9 @@ main > section,
 .openingReportCoverage span,
 .openingReportCoverage em,
 .openingReportCoverage small,
+.openingReportResponses span,
+.openingReportResponses em,
+.openingReportResponses small,
 .openingReportHabits span,
 .openingReportHabits small {
   display: block;
@@ -14583,6 +14590,7 @@ main > section,
 
 .openingReportProblemList small,
 .openingReportCoverage small,
+.openingReportResponses small,
 .openingReportHabits small {
   margin-top: 3px;
   color: rgba(226, 232, 240, 0.54);
@@ -14592,21 +14600,25 @@ main > section,
 
 .light .openingReportProblemList small,
 .light .openingReportCoverage small,
+.light .openingReportResponses small,
 .light .openingReportHabits small,
 [data-theme="light"] .openingReportProblemList small,
 [data-theme="light"] .openingReportCoverage small,
+[data-theme="light"] .openingReportResponses small,
 [data-theme="light"] .openingReportHabits small {
   color: #64748b;
 }
 
-.openingReportCoverage {
+.openingReportCoverage,
+.openingReportResponses {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 16px;
 }
 
-.openingReportCoverage > div {
+.openingReportCoverage > div,
+.openingReportResponses > div {
   min-width: 0;
   padding: 15px;
   border-radius: 22px;
@@ -14615,17 +14627,21 @@ main > section,
 }
 
 .light .openingReportCoverage > div,
-[data-theme="light"] .openingReportCoverage > div {
+.light .openingReportResponses > div,
+[data-theme="light"] .openingReportCoverage > div,
+[data-theme="light"] .openingReportResponses > div {
   background: rgba(15, 23, 42, 0.035);
   border-color: rgba(15, 23, 42, 0.06);
 }
 
-.openingReportCoverage strong {
+.openingReportCoverage strong,
+.openingReportResponses strong {
   display: block;
   font-size: 0.95rem;
 }
 
-.openingReportCoverage em {
+.openingReportCoverage em,
+.openingReportResponses em {
   width: fit-content;
   margin-top: 4px;
   border-radius: 999px;
@@ -14638,7 +14654,9 @@ main > section,
 }
 
 .light .openingReportCoverage em,
-[data-theme="light"] .openingReportCoverage em {
+.light .openingReportResponses em,
+[data-theme="light"] .openingReportCoverage em,
+[data-theme="light"] .openingReportResponses em {
   color: #475569;
   background: rgba(15, 23, 42, 0.055);
 }
@@ -14705,7 +14723,8 @@ main > section,
     grid-template-columns: 1fr;
   }
 
-  .openingReportCoverage {
+  .openingReportCoverage,
+  .openingReportResponses {
     grid-template-columns: 1fr;
   }
 }

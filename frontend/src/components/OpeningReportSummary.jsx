@@ -143,6 +143,10 @@ function getCoverageRows(data) {
   return { white, black };
 }
 
+function getOpponentResponseReport(data) {
+  return data?.opponentResponseReport || data?.opponent_response_report || null;
+}
+
 function collectOpenings(data) {
   const candidates = [
     data?.topOpenings,
@@ -400,6 +404,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const problemLines = getProblemLines(data);
   const openingPhaseHabits = getOpeningPhaseHabits(data);
   const coverageRows = getCoverageRows(data);
+  const opponentResponseReport = getOpponentResponseReport(data);
 
   return (
     <section className="openingReportShell">
@@ -516,6 +521,13 @@ export default function OpeningReportSummary({ data, username, platform }) {
         <CoverageColumn title="Black repertoire" rows={coverageRows.black} />
       </div>
 
+      {opponentResponseReport ? (
+        <div className="openingReportResponses">
+          <ResponseColumn title="White response gaps" report={opponentResponseReport.white} />
+          <ResponseColumn title="Black response gaps" report={opponentResponseReport.black} />
+        </div>
+      ) : null}
+
       <div className="openingReportHabits">
         <strong>Opening-phase habits</strong>
         {openingPhaseHabits.length ? (
@@ -536,6 +548,33 @@ export default function OpeningReportSummary({ data, username, platform }) {
         )}
       </div>
     </section>
+  );
+}
+
+function ResponseColumn({ title, report }) {
+  const strongest = report?.strongest;
+  const weakest = report?.weakest;
+  const noData = Array.isArray(report?.noDataAreas) ? report.noDataAreas : [];
+
+  return (
+    <div>
+      <strong>{title}</strong>
+      <ul>
+        <li>
+          <span>Strongest</span>
+          <em>{strongest ? `${strongest.label} · ${strongest.score}%` : "No stable sample"}</em>
+        </li>
+        <li>
+          <span>Weakest</span>
+          <em>{weakest ? `${weakest.label} · ${weakest.score}%` : "No stable sample"}</em>
+        </li>
+        <li>
+          <span>No-data areas</span>
+          <em>{noData.length ? noData.map((row) => row.label).join(", ") : "None"}</em>
+        </li>
+      </ul>
+      <small>{report?.studyPriority || "No response-area priority yet."}</small>
+    </div>
   );
 }
 
