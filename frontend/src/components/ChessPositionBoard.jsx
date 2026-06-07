@@ -1,72 +1,47 @@
 import { useMemo, useRef } from "react";
 import { Chess } from "chess.js";
 import { useBoardTheme } from "./boardThemes.jsx";
+import classicBlackBishop from "../assets/chess-pieces/classic/bB.svg";
+import classicBlackKing from "../assets/chess-pieces/classic/bK.svg";
+import classicBlackKnight from "../assets/chess-pieces/classic/bN.svg";
+import classicBlackPawn from "../assets/chess-pieces/classic/bP.svg";
+import classicBlackQueen from "../assets/chess-pieces/classic/bQ.svg";
+import classicBlackRook from "../assets/chess-pieces/classic/bR.svg";
+import classicWhiteBishop from "../assets/chess-pieces/classic/wB.svg";
+import classicWhiteKing from "../assets/chess-pieces/classic/wK.svg";
+import classicWhiteKnight from "../assets/chess-pieces/classic/wN.svg";
+import classicWhitePawn from "../assets/chess-pieces/classic/wP.svg";
+import classicWhiteQueen from "../assets/chess-pieces/classic/wQ.svg";
+import classicWhiteRook from "../assets/chess-pieces/classic/wR.svg";
 
-const PIECE_PATHS = {
-  k: (
-    <>
-      <path d="M45 8v12M39 14h12" />
-      <path d="M32 64h26l4 10H28l4-10Z" />
-      <path d="M34 59h22c0-9-4-16-11-21-7 5-11 12-11 21Z" />
-      <path d="M28 38c6-7 28-7 34 0-2 5-8 8-17 8s-15-3-17-8Z" />
-      <path d="M31 31c2-9 9-14 14-14s12 5 14 14" />
-    </>
-  ),
-  q: (
-    <>
-      <circle cx="24" cy="26" r="4" />
-      <circle cx="34" cy="18" r="4" />
-      <circle cx="45" cy="15" r="4" />
-      <circle cx="56" cy="18" r="4" />
-      <circle cx="66" cy="26" r="4" />
-      <path d="M25 33l8 25h24l8-25-14 14-6-23-6 23-14-14Z" />
-      <path d="M31 64h28l4 10H27l4-10Z" />
-    </>
-  ),
-  r: (
-    <>
-      <path d="M28 18h10v8h14v-8h10v22H28V18Z" />
-      <path d="M33 40h24v21H33V40Z" />
-      <path d="M29 61h32l4 13H25l4-13Z" />
-    </>
-  ),
-  b: (
-    <>
-      <path d="M45 14c9 8 14 16 14 27 0 10-6 18-14 18s-14-8-14-18c0-11 5-19 14-27Z" />
-      <path d="M39 45l12-14" />
-      <path d="M32 61h26l5 13H27l5-13Z" />
-    </>
-  ),
-  n: (
-    <>
-      <path d="M30 70h34l-4-14c-2-8-4-17-2-27-6-8-17-12-27-8 5 4 5 8 2 12-3 3-7 5-9 10 5 1 9 0 13-3-2 7-5 13-7 30Z" />
-      <path d="M42 25h.5" />
-      <path d="M35 36c5 2 10 2 15 0" />
-    </>
-  ),
-  p: (
-    <>
-      <circle cx="45" cy="25" r="10" />
-      <path d="M35 45c0-7 5-12 10-12s10 5 10 12c0 6-3 11-7 14h9l5 15H28l5-15h9c-4-3-7-8-7-14Z" />
-    </>
-  ),
+const PIECE_ASSETS = {
+  wK: classicWhiteKing,
+  wQ: classicWhiteQueen,
+  wR: classicWhiteRook,
+  wB: classicWhiteBishop,
+  wN: classicWhiteKnight,
+  wP: classicWhitePawn,
+  bK: classicBlackKing,
+  bQ: classicBlackQueen,
+  bR: classicBlackRook,
+  bB: classicBlackBishop,
+  bN: classicBlackKnight,
+  bP: classicBlackPawn,
 };
 
 function ChessPiece({ piece, className = "" }) {
   if (!piece) return null;
-  const tone = piece.color === "w" ? "white" : "black";
+  const pieceCode = `${piece.color}${piece.type.toUpperCase()}`;
+  const pieceAsset = PIECE_ASSETS[pieceCode];
 
   return (
-    <svg
-      className={`cleanReplayPieceSvg cleanReplayPieceSvg-${tone} ${className}`.trim()}
-      viewBox="0 0 90 90"
+    <img
+      className={`chess-piece cleanReplayPieceImage ${className}`.trim()}
+      src={pieceAsset}
+      alt=""
+      draggable={false}
       aria-hidden="true"
-      focusable="false"
-    >
-      <g>
-        {PIECE_PATHS[piece.type]}
-      </g>
-    </svg>
+    />
   );
 }
 

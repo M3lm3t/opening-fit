@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 
 export const BOARD_THEMES = {
@@ -40,6 +40,7 @@ export const BOARD_THEME_OPTIONS = [
 ];
 
 const STORAGE_KEY = "openingFit:boardTheme";
+const BOARD_THEME_EVENT = "openingfit:board-theme-change";
 const DEFAULT_BOARD_THEME = "green";
 
 function normaliseBoardTheme(value) {
@@ -82,6 +83,7 @@ export function useBoardTheme() {
   const { settings, saveSettings, user } = useAuth();
   const savedTheme = settings?.preferences?.boardTheme || settings?.preferences?.board_theme;
   const [boardTheme, setBoardThemeState] = useState(() => readLocalBoardTheme());
+  const persistTimerRef = useRef(null);
 
   useEffect(() => {
     if (!savedTheme) return;
@@ -91,26 +93,44 @@ export function useBoardTheme() {
     writeLocalBoardTheme(nextTheme);
   }, [savedTheme]);
 
+  useEffect(() => {
+    const syncBoardTheme = (event) => {
+      const nextTheme = normaliseBoardTheme(event?.detail?.boardTheme);
+      setBoardThemeState(nextTheme);
+      writeLocalBoardTheme(nextTheme);
+    };
+
+    window.addEventListener(BOARD_THEME_EVENT, syncBoardTheme);
+
+    return () => {
+      window.removeEventListener(BOARD_THEME_EVENT, syncBoardTheme);
+      window.clearTimeout(persistTimerRef.current);
+    };
+  }, []);
+
   const setBoardTheme = useCallback(
-    async (nextTheme) => {
+    (nextTheme) => {
       const theme = normaliseBoardTheme(nextTheme);
       setBoardThemeState(theme);
       writeLocalBoardTheme(theme);
+      window.dispatchEvent(new CustomEvent(BOARD_THEME_EVENT, { detail: { boardTheme: theme } }));
 
-      if (user?.id && saveSettings) {
+      window.clearTimeout(persistTimerRef.current);
+      if (!user?.id || !saveSettings) return;
+
+      persistTimerRef.current = window.setTimeout(async () => {
         try {
           await saveSettings({
             preferences: {
-              ...(settings?.preferences || {}),
               boardTheme: theme,
             },
           });
         } catch (error) {
           console.warn("Could not save board theme preference", error);
         }
-      }
+      }, 400);
     },
-    [saveSettings, settings, user?.id]
+    [saveSettings, user?.id]
   );
 
   const boardThemeVars = useMemo(() => getBoardThemeVariables(boardTheme), [boardTheme]);
