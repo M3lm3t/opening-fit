@@ -37,7 +37,7 @@ const DANGEROUS_LEGACY_KEY_PATTERNS = [
   /paid/i,
   /unlock/i,
 ];
-const RESTORE_TIMEOUT_MS = 8000;
+const RESTORE_TIMEOUT_MS = 7000;
 const DEBUG_CLOUD_RESTORE =
   typeof import.meta !== "undefined" &&
   import.meta.env?.VITE_DEBUG_CLOUD_RESTORE === "true";
@@ -232,12 +232,15 @@ export function AuthDataProvider({ children }) {
   const [restoreError, setRestoreError] = useState("");
   const [restoreTimedOut, setRestoreTimedOut] = useState(false);
   const [restoreInProgress, setRestoreInProgress] = useState(false);
+  const [cloudRestored, setCloudRestored] = useState(false);
   const [manualRestoreResult, setManualRestoreResult] = useState(null);
   const [restoreAttempt, setRestoreAttempt] = useState(0);
   const [syncState, setSyncState] = useState({ status: "idle", lastSavedAt: "", error: "" });
   const debounceRef = useRef(null);
   const userRef = useRef(null);
   const restoreSeqRef = useRef(0);
+  const restoreInFlightRef = useRef(false);
+  const restoredUserIdRef = useRef(null);
   const restoredSessionKeyRef = useRef("");
   const legacySyncSuspendedRef = useRef(false);
 
@@ -272,17 +275,18 @@ export function AuthDataProvider({ children }) {
       }
 
       try {
-        console.info("[OpeningFit] restore start", nextUser.id);
+        console.info("[OpeningFit restore] cloud restore start", nextUser.id);
         debugCloudRestore("loading user data", { userId: nextUser.id, applyState });
         const data = await withRestoreTimeout(
           fetchAllUserData(nextUser),
-          "workspace table restore"
+          "OpeningFit cloud restore"
         );
         if (applyState && restoreSeq === restoreSeqRef.current) {
           setUserData(data || null);
           hydrateLegacyStorage(data?.settings?.[0]?.preferences?.legacyStorage || {});
           setProfileLoaded(true);
           setProfileError("");
+          setCloudRestored(true);
           setSyncState((current) => ({
             ...current,
             status: "synced",
@@ -291,17 +295,16 @@ export function AuthDataProvider({ children }) {
           }));
           setHydrated(true);
         }
-        console.info("[OpeningFit] restore complete");
+        console.info("[OpeningFit restore] profile/settings/history complete");
         return data;
       } catch (refreshError) {
-        console.warn("[OpeningFit] restore failed", refreshError);
+        console.warn("[OpeningFit restore] failed", refreshError);
         if (applyState && restoreSeq === restoreSeqRef.current) {
           const message = refreshError.message || "Could not load your saved data.";
           setError(message);
           setProfileError(message);
           setRestoreError(message);
           setSyncState((current) => ({ ...current, status: "error", error: message }));
-          setUserData(null);
           setHydrated(true);
           setProfileLoaded(true);
         }
@@ -322,6 +325,7 @@ export function AuthDataProvider({ children }) {
     setRestoreAttempt((value) => value + 1);
     setRestoreError("");
     setRestoreTimedOut(false);
+    restoredUserIdRef.current = null;
 
     if (!nextUser?.id) {
       setHydrated(true);
@@ -353,7 +357,6 @@ export function AuthDataProvider({ children }) {
             ? "Supabase restore timed out. You can keep using OpeningFit with local/default data."
             : retryError.message || "Could not restore your saved data."
         );
-        setUserData(null);
         setHydrated(true);
       }
       return null;
@@ -535,170 +538,61 @@ export function AuthDataProvider({ children }) {
       return undefined;
     }
 
-    let mounted = true;
+    let cancelled = false;
 
-    async function restoreInitialWorkspace() {
+    async function initAuth() {
+      console.info("[OpeningFit restore] auth session start");
       setAuthLoading(true);
 
       try {
-        const { data, error: sessionError } = await withRestoreTimeout(
-          supabase.auth.getSession(),
-          "auth session restore"
-        );
-        if (!mounted) return;
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        if (cancelled) return;
         if (sessionError) {
-          console.error("OpeningFit Supabase query failed", {
-            table: "auth.sessions",
-            operation: "getSession",
-            error: sessionError,
-          });
-          console.warn("OpeningFit auth session restore failed; continuing.", sessionError);
-          setError(sessionError.message || "Could not restore your session.");
+          throw sessionError;
         }
 
         const nextSession = data?.session || null;
         setSession(nextSession);
         restoredSessionKeyRef.current = getSessionRestoreKey(nextSession);
-        setAuthLoading(false);
-
-        if (nextSession?.user) {
-          const restoreSeq = ++restoreSeqRef.current;
-          setProfileLoading(true);
-          setCloudRestoreLoading(true);
-          setProfileLoaded(false);
-          setProfileError("");
-          try {
-            await refreshUserData(nextSession.user, { restoreSeq });
-          } catch (restoreError) {
-            const timedOut = restoreError?.name === "WorkspaceRestoreTimeout";
-            console.warn("OpeningFit initial workspace restore failed; using default state.", restoreError);
-            if (mounted && restoreSeq === restoreSeqRef.current) {
-              setRestoreTimedOut(timedOut);
-              setProfileLoaded(true);
-              setProfileError(
-                timedOut
-                  ? "Supabase restore timed out. You can keep using OpeningFit with local/default data."
-                  : restoreError.message || "Could not restore your saved data."
-              );
-              setRestoreError(
-                timedOut
-                  ? "Supabase restore timed out. You can keep using OpeningFit with local/default data."
-                  : restoreError.message || "Could not restore your saved data."
-              );
-              setUserData(null);
-              setHydrated(true);
-            }
-          } finally {
-            if (mounted && restoreSeq === restoreSeqRef.current) {
-              setProfileLoading(false);
-              setCloudRestoreLoading(false);
-            }
-          }
-        } else {
-          setUserData(null);
-          setHydrated(true);
-          setProfileLoaded(true);
-          setProfileError("");
-        }
-      } catch (restoreError) {
-        const timedOut = restoreError?.name === "WorkspaceRestoreTimeout";
-        console.error("OpeningFit Supabase query failed", {
-          table: "auth.sessions",
-          operation: "initial auth/session restore",
-          error: restoreError,
-        });
-        console.warn("OpeningFit auth restore failed; using default state.", restoreError);
-        if (mounted) {
-          setAuthLoading(false);
-          setCloudRestoreLoading(false);
-          setUserData(null);
-          setHydrated(true);
-          setProfileLoaded(true);
-          setRestoreTimedOut(timedOut);
-          setProfileError(
-            timedOut
-              ? "Supabase auth restore timed out. You can keep using OpeningFit locally."
-              : restoreError.message || "Could not restore your session."
-          );
-          setRestoreError(
-            timedOut
-              ? "Supabase auth restore timed out. You can keep using OpeningFit locally."
-              : restoreError.message || "Could not restore your session."
-          );
+        console.info("[OpeningFit restore] auth session complete");
+      } catch (authError) {
+        console.warn("[OpeningFit restore] auth session failed", authError);
+        if (!cancelled) {
+          setSession(null);
+          restoredSessionKeyRef.current = "";
+          setError(authError?.message || "Could not restore your session.");
         }
       } finally {
-        if (mounted) {
+        if (!cancelled) {
           setHydrated(true);
           setAuthLoading(false);
         }
       }
     }
 
-    restoreInitialWorkspace();
+    initAuth();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (event, nextSession) => {
-        if (!mounted) return;
+      (event, nextSession) => {
+        if (cancelled) return;
         setSession(nextSession || null);
         const nextSessionKey = getSessionRestoreKey(nextSession);
+        restoredSessionKeyRef.current = nextSessionKey;
+        setAuthLoading(false);
+        setHydrated(true);
 
         if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-          restoredSessionKeyRef.current = nextSessionKey;
-          setAuthLoading(false);
           return;
         }
 
-        if (nextSessionKey && nextSessionKey === restoredSessionKeyRef.current) {
-          setAuthLoading(false);
-          return;
-        }
-
-        if (nextSession?.user) {
-          restoredSessionKeyRef.current = nextSessionKey;
-          setAuthLoading(false);
-          setProfileLoading(true);
-          setCloudRestoreLoading(true);
-          setProfileLoaded(false);
-          setProfileError("");
-          try {
-            const restoreSeq = ++restoreSeqRef.current;
-            console.info("[OpeningFit] auth restore event", event);
-            await refreshUserData(nextSession.user, { restoreSeq });
-          } catch (restoreError) {
-            const timedOut = restoreError?.name === "WorkspaceRestoreTimeout";
-            console.warn("OpeningFit auth workspace restore failed; using default state.", restoreError);
-            if (mounted) {
-              setRestoreTimedOut(timedOut);
-              setProfileLoaded(true);
-              setProfileError(
-                timedOut
-                  ? "Supabase restore timed out. You can keep using OpeningFit with local/default data."
-                  : restoreError.message || "Could not restore your saved data."
-              );
-              setRestoreError(
-                timedOut
-                  ? "Supabase restore timed out. You can keep using OpeningFit with local/default data."
-                  : restoreError.message || "Could not restore your saved data."
-              );
-              setUserData(null);
-              setHydrated(true);
-            }
-          } finally {
-            if (mounted) {
-              setHydrated(true);
-              setProfileLoading(false);
-              setCloudRestoreLoading(false);
-            }
-          }
-        } else {
+        if (!nextSession?.user) {
           restoreSeqRef.current += 1;
-          restoredSessionKeyRef.current = "";
+          restoredUserIdRef.current = null;
           clearLegacyStorage();
           setUserData(null);
-          setHydrated(true);
-          setAuthLoading(false);
           setProfileLoading(false);
           setCloudRestoreLoading(false);
+          setCloudRestored(false);
           setProfileLoaded(true);
           setProfileError("");
           setRestoreError("");
@@ -709,10 +603,72 @@ export function AuthDataProvider({ children }) {
     );
 
     return () => {
-      mounted = false;
+      cancelled = true;
       listener?.subscription?.unsubscribe?.();
     };
-  }, [refreshUserData]);
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+
+    const nextUser = userRef.current;
+
+    if (!nextUser?.id) {
+      restoreInFlightRef.current = false;
+      restoredUserIdRef.current = null;
+      setCloudRestoreLoading(false);
+      setCloudRestored(false);
+      return;
+    }
+
+    if (restoreInFlightRef.current || restoredUserIdRef.current === nextUser.id) {
+      return;
+    }
+
+    let cancelled = false;
+    const restoreSeq = ++restoreSeqRef.current;
+    restoreInFlightRef.current = true;
+    setProfileLoading(true);
+    setCloudRestoreLoading(true);
+    setProfileLoaded(false);
+    setProfileError("");
+    setRestoreError("");
+    setRestoreTimedOut(false);
+
+    refreshUserData(nextUser, { restoreSeq })
+      .then(() => {
+        if (cancelled || restoreSeq !== restoreSeqRef.current) return;
+        restoredUserIdRef.current = nextUser.id;
+        setCloudRestored(true);
+      })
+      .catch((restoreError) => {
+        if (cancelled || restoreSeq !== restoreSeqRef.current) return;
+        const timedOut = restoreError?.name === "WorkspaceRestoreTimeout";
+        const message = timedOut
+          ? "Cloud restore is taking longer than expected. Your account is still signed in."
+          : restoreError?.message || "Could not restore your saved data.";
+        setRestoreTimedOut(timedOut);
+        setProfileLoaded(true);
+        setProfileError(message);
+        setRestoreError(message);
+        setHydrated(true);
+      })
+      .finally(() => {
+        if (restoreSeq === restoreSeqRef.current) {
+          restoreInFlightRef.current = false;
+          setProfileLoading(false);
+          setCloudRestoreLoading(false);
+          setHydrated(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      if (restoreSeq === restoreSeqRef.current) {
+        restoreInFlightRef.current = false;
+      }
+    };
+  }, [refreshUserData, user?.id]);
 
   useEffect(() => {
     if (!user?.id || !hydrated || restoreInProgress || profileLoading || !profileLoaded) {
@@ -798,6 +754,7 @@ export function AuthDataProvider({ children }) {
       authLoading,
       profileLoading,
       cloudRestoreLoading,
+      cloudRestored,
       profileLoaded,
       profileError,
       restoringProfile: profileLoading,
@@ -847,6 +804,7 @@ export function AuthDataProvider({ children }) {
       profileLoaded,
       profileLoading,
       cloudRestoreLoading,
+      cloudRestored,
       refreshUserData,
       restoreAttempt,
       restoreError,
@@ -874,6 +832,8 @@ export function AuthDataProvider({ children }) {
         email: user?.email || null,
         authLoading,
         profileLoading,
+        cloudRestoreLoading,
+        cloudRestored,
         profileLoaded,
         profileError,
         hydrated,
@@ -942,6 +902,8 @@ export function AuthDataProvider({ children }) {
     profileError,
     profileLoaded,
     profileLoading,
+    cloudRestoreLoading,
+    cloudRestored,
     refreshUserData,
     restoreError,
     session,

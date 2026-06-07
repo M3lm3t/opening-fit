@@ -57,6 +57,19 @@ const RESTORE_TABLE_LIMITS = {
   chess_account_links: 10,
   notification_preferences: 10,
 };
+const RESTORE_TABLE_COLUMNS = {
+  openingfit_user_state: "id,user_id,platform,username,coach_progress,created_at,updated_at",
+  report_history:
+    "id,user_id,username,platform,summary,report_key,analysis_time_format,effective_time_format,detected_time_format,style_profile,style_based_recommendations,created_at,updated_at",
+  analysis_history:
+    "id,user_id,username,platform,summary,report_key,analysis_time_format,effective_time_format,detected_time_format,style_profile,style_based_recommendations,created_at,updated_at",
+  activity_history: "id,user_id,type,payload,created_at,updated_at",
+  analysed_games: "id,user_id,username,platform,summary,created_at,updated_at",
+  uploads: "id,user_id,path,name,size,type,created_at,updated_at",
+  ai_generations: "id,user_id,type,summary,created_at,updated_at",
+};
+const PROFILE_RESTORE_COLUMNS =
+  "id,user_id,email,display_name,username,platform,chesscom_username,lichess_username,is_premium,created_at,updated_at";
 
 function createDefaultUserData(profile = null) {
   return {
@@ -155,11 +168,11 @@ function debugCloudRestore(message, details = {}) {
   console.debug(`[OpeningFit cloud restore] ${message}`, details);
 }
 
-async function selectProfileByUserId(userId) {
+async function selectProfileByUserId(userId, columns = "*") {
   const client = requireClient();
   const { data, error } = await client
     .from("profiles")
-    .select("*")
+    .select(columns)
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -178,11 +191,11 @@ async function selectProfileByUserId(userId) {
   return data || null;
 }
 
-async function selectProfileByPrimaryId(userId) {
+async function selectProfileByPrimaryId(userId, columns = "*") {
   const client = requireClient();
   const { data, error } = await client
     .from("profiles")
-    .select("*")
+    .select(columns)
     .eq("id", userId)
     .maybeSingle();
 
@@ -195,9 +208,9 @@ async function selectProfileByPrimaryId(userId) {
   return data || null;
 }
 
-async function loadExistingProfile(userId) {
+async function loadExistingProfile(userId, columns = "*") {
   if (!userId) return null;
-  return (await selectProfileByUserId(userId)) || (await selectProfileByPrimaryId(userId));
+  return (await selectProfileByUserId(userId, columns)) || (await selectProfileByPrimaryId(userId, columns));
 }
 
 export async function ensureProfile(user, patch = {}) {
@@ -418,9 +431,10 @@ export async function upsertUserProfile(user, patch = {}) {
 async function selectUserRows(table, userId, options = {}) {
   const client = requireClient();
   const limit = options.limit ?? RESTORE_TABLE_LIMITS[table] ?? DEFAULT_RESTORE_LIMIT;
+  const columns = options.columns || RESTORE_TABLE_COLUMNS[table] || "*";
   const ordered = await client
     .from(table)
-    .select("*")
+    .select(columns)
     .eq("user_id", userId)
     .order("updated_at", { ascending: false, nullsFirst: false })
     .limit(limit);
@@ -435,7 +449,7 @@ async function selectUserRows(table, userId, options = {}) {
   }
 
   if (/updated_at/i.test(ordered.error.message || "")) {
-    const fallback = await client.from(table).select("*").eq("user_id", userId).limit(limit);
+    const fallback = await client.from(table).select(columns).eq("user_id", userId).limit(limit);
     if (!fallback.error) {
       logQuerySuccess(table, "select rows by user_id without updated_at ordering", {
         userId,
@@ -460,7 +474,7 @@ export async function fetchAllUserData(user, options = {}) {
 
   let profile = null;
   try {
-    profile = await loadExistingProfile(user.id);
+    profile = await loadExistingProfile(user.id, PROFILE_RESTORE_COLUMNS);
   } catch (profileError) {
     logQueryFailure("profiles", "select profile during full restore", profileError, {
       userId: user.id,
