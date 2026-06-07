@@ -172,6 +172,14 @@ function getRepertoireCoherence(data) {
   return data?.repertoireCoherence || data?.repertoire_coherence || null;
 }
 
+function getProgressComparison(data) {
+  const comparison = data?.progressComparison || data?.progress_comparison || null;
+  if (!comparison || comparison.enabled === false || comparison.available === false) return null;
+  const items = Array.isArray(comparison.items) ? comparison.items.filter((item) => item?.copy || item?.title).slice(0, 6) : [];
+  if (!items.length) return null;
+  return { ...comparison, items };
+}
+
 function collectOpenings(data) {
   const candidates = [
     data?.topOpenings,
@@ -441,6 +449,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const opponentResponseReport = getOpponentResponseReport(data);
   const styleOpeningMatch = getStyleOpeningMatch(data);
   const repertoireCoherence = getRepertoireCoherence(data);
+  const progressComparison = getProgressComparison(data);
 
   return (
     <section className="openingReportShell">
@@ -594,6 +603,22 @@ export default function OpeningReportSummary({ data, username, platform }) {
             ))}
           </ul>
           <small>{repertoireCoherence.advice}</small>
+        </div>
+      ) : null}
+
+      {progressComparison ? (
+        <div className="openingReportProgress">
+          <strong>Progress since last report</strong>
+          {progressComparison.summary ? <span>{progressComparison.summary}</span> : null}
+          <ul>
+            {progressComparison.items.map((item) => (
+              <li key={`${item.type || "progress"}-${item.title || item.copy}`}>
+                <span>{item.title || "Progress update"}</span>
+                <em>{item.status || "changed"}</em>
+                <small>{item.copy}</small>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 

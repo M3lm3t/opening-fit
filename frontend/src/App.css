@@ -14548,6 +14548,7 @@ main > section,
 .openingReportResponses ul,
 .openingReportStyleFits ul,
 .openingReportCoherence ul,
+.openingReportProgress ul,
 .openingReportHabits ul {
   display: grid;
   gap: 8px;
@@ -14565,6 +14566,7 @@ main > section,
 .light .openingReportResponses ul,
 .light .openingReportStyleFits ul,
 .light .openingReportCoherence ul,
+.light .openingReportProgress ul,
 .light .openingReportHabits ul,
 [data-theme="light"] .openingReportActionList,
 [data-theme="light"] .openingReportProblemList,
@@ -14573,6 +14575,7 @@ main > section,
 [data-theme="light"] .openingReportResponses ul,
 [data-theme="light"] .openingReportStyleFits ul,
 [data-theme="light"] .openingReportCoherence ul,
+[data-theme="light"] .openingReportProgress ul,
 [data-theme="light"] .openingReportHabits ul {
   color: #475569;
 }
@@ -14583,6 +14586,7 @@ main > section,
 .openingReportResponses li,
 .openingReportStyleFits li,
 .openingReportCoherence li,
+.openingReportProgress li,
 .openingReportHabits li {
   min-width: 0;
 }
@@ -14603,6 +14607,9 @@ main > section,
 .openingReportCoherence span,
 .openingReportCoherence em,
 .openingReportCoherence small,
+.openingReportProgress span,
+.openingReportProgress em,
+.openingReportProgress small,
 .openingReportHabits span,
 .openingReportHabits small {
   display: block;
@@ -14614,6 +14621,7 @@ main > section,
 .openingReportResponses small,
 .openingReportStyleFits small,
 .openingReportCoherence small,
+.openingReportProgress small,
 .openingReportHabits small {
   margin-top: 3px;
   color: rgba(226, 232, 240, 0.54);
@@ -14627,6 +14635,7 @@ main > section,
 .light .openingReportResponses small,
 .light .openingReportStyleFits small,
 .light .openingReportCoherence small,
+.light .openingReportProgress small,
 .light .openingReportHabits small,
 [data-theme="light"] .openingReportProblemList small,
 [data-theme="light"] .openingReportStudyQueue small,
@@ -14634,6 +14643,7 @@ main > section,
 [data-theme="light"] .openingReportResponses small,
 [data-theme="light"] .openingReportStyleFits small,
 [data-theme="light"] .openingReportCoherence small,
+[data-theme="light"] .openingReportProgress small,
 [data-theme="light"] .openingReportHabits small {
   color: #64748b;
 }
@@ -14661,7 +14671,8 @@ main > section,
 }
 
 .openingReportStyleFits,
-.openingReportCoherence {
+.openingReportCoherence,
+.openingReportProgress {
   margin-top: 16px;
   padding: 15px;
   border-radius: 22px;
@@ -14671,20 +14682,24 @@ main > section,
 
 .light .openingReportStyleFits,
 .light .openingReportCoherence,
+.light .openingReportProgress,
 [data-theme="light"] .openingReportStyleFits,
-[data-theme="light"] .openingReportCoherence {
+[data-theme="light"] .openingReportCoherence,
+[data-theme="light"] .openingReportProgress {
   background: rgba(15, 23, 42, 0.035);
   border-color: rgba(15, 23, 42, 0.06);
 }
 
 .openingReportStyleFits > strong,
-.openingReportCoherence > strong {
+.openingReportCoherence > strong,
+.openingReportProgress > strong {
   display: block;
   font-size: 0.95rem;
 }
 
 .openingReportStyleFits em,
-.openingReportCoherence em {
+.openingReportCoherence em,
+.openingReportProgress em {
   color: rgba(226, 232, 240, 0.78);
   font-style: normal;
   line-height: 1.4;
@@ -14692,12 +14707,15 @@ main > section,
 
 .light .openingReportStyleFits em,
 .light .openingReportCoherence em,
+.light .openingReportProgress em,
 [data-theme="light"] .openingReportStyleFits em,
-[data-theme="light"] .openingReportCoherence em {
+[data-theme="light"] .openingReportCoherence em,
+[data-theme="light"] .openingReportProgress em {
   color: #475569;
 }
 
-.openingReportCoherence > span {
+.openingReportCoherence > span,
+.openingReportProgress > span {
   display: block;
   margin-top: 8px;
   color: rgba(226, 232, 240, 0.64);
@@ -14706,7 +14724,9 @@ main > section,
 }
 
 .light .openingReportCoherence > span,
-[data-theme="light"] .openingReportCoherence > span {
+.light .openingReportProgress > span,
+[data-theme="light"] .openingReportCoherence > span,
+[data-theme="light"] .openingReportProgress > span {
   color: #64748b;
 }
 
