@@ -927,7 +927,7 @@ def chesscom_skip_reason(game: Dict[str, Any]) -> Optional[str]:
     if len(moves) < 2:
         return "tooFewLegalMoves"
 
-    if len(moves) < 8:
+    if move_count_from_moves(moves) < 8:
         return "veryShort"
 
     if is_unknown_opening_name(guess_opening_from_pgn(pgn)):
@@ -956,13 +956,13 @@ def lichess_skip_reason(game: Dict[str, Any]) -> Optional[str]:
     if status in {"timeout", "outoftime"} and len(moves) < 12:
         return "earlyTimeout"
 
-    if not winner and status in {"aborted", "draw"} and len(moves) < 8:
+    if not winner and status in {"aborted", "draw"} and move_count_from_moves(moves) < 8:
         return "veryShort"
 
     if len(moves) < 2:
         return "tooFewLegalMoves"
 
-    if len(moves) < 8:
+    if move_count_from_moves(moves) < 8:
         return "veryShort"
 
     if is_unknown_opening_name(get_lichess_opening_name(game)):
@@ -4044,7 +4044,25 @@ def trend_early_loss_rate(row: Dict[str, int]) -> float:
     return round((int(row.get("opening_losses", 0) or 0) / games) * 100, 1)
 
 
-def add_game_to_trend_bucket(bucket: Dict[str, int], game: Dict[str, Any]) -> None:
+def empty_trend_bucket(name: str = "") -> Dict[str, Any]:
+    return {
+        "name": name,
+        "games": 0,
+        "wins": 0,
+        "draws": 0,
+        "losses": 0,
+        "opening_losses": 0,
+        "move_orders_4": {},
+        "move_orders_6": {},
+        "move_orders_8": {},
+        "move_orders_10": {},
+        "plan_structures_6": {},
+        "plan_structures_8": {},
+        "plan_structures_10": {},
+    }
+
+
+def add_game_to_trend_bucket(bucket: Dict[str, Any], game: Dict[str, Any]) -> None:
     bucket["games"] += 1
     result = str(game.get("result") or "").lower()
     if result == "win":
@@ -4056,6 +4074,26 @@ def add_game_to_trend_bucket(bucket: Dict[str, int], game: Dict[str, Any]) -> No
         timing = game.get("loss_timing") or game.get("lossTiming") or {}
         if str(timing.get("bucket") or "") == "opening":
             bucket["opening_losses"] += 1
+    moves = game_moves(game)
+    add_move_order_to_stats(bucket, moves)
+    add_plan_structure_to_stats(bucket, moves, result)
+
+
+def trend_plan_clarity(name: str, bucket: Dict[str, Any]) -> Dict[str, Any]:
+    item = {**bucket, "name": name}
+    item.update(move_order_consistency_fields(item))
+    item.update(plan_clarity_fields(item))
+    return {
+        "status": item.get("planClarityStatus"),
+        "score": int(item.get("planClarityScore", 0) or 0),
+        "bestSequence": item.get("planClarityBestSequence", ""),
+        "note": item.get("planClarityNote", ""),
+    }
+
+
+def game_sort_timestamp(game: Dict[str, Any], fallback: int) -> float:
+    ts = epoch_seconds(game.get("end_time") or game.get("endTime"))
+    return ts if ts is not None else float(fallback)
 
 
 def build_recent_opening_trend_report(
@@ -4064,6 +4102,30 @@ def build_recent_opening_trend_report(
     min_total_games: int = 8,
     min_split_games: int = 3,
 ) -> Dict[str, Any]:
+    indexed_games = [
+        (index, game)
+        for index, game in enumerate(games or [])
+        if isinstance(game, dict)
+    ]
+    all_dated_games = [
+        game
+        for _index, game in indexed_games
+        if epoch_seconds(game.get("end_time") or game.get("endTime")) is not None
+    ]
+    all_recent_30_count = len(
+        [
+            game for game in all_dated_games
+            if datetime.now(timezone.utc).timestamp() - (epoch_seconds(game.get("end_time") or game.get("endTime")) or 0) <= 30 * 24 * 60 * 60
+        ]
+    )
+    all_older_30_count = max(0, len(all_dated_games) - all_recent_30_count)
+    all_sorted_games = sorted(
+        [game for _index, game in indexed_games],
+        key=lambda game: game_sort_timestamp(game, 0),
+        reverse=True,
+    )
+    all_recent_half_count = max(1, len(all_sorted_games) // 2) if all_sorted_games else 0
+    all_older_half_count = max(0, len(all_sorted_games) - all_recent_half_count)
     opening_lookup = {
         (normalise_opening_key(str(item.get("name") or item.get("opening") or "")), str(item.get("context") or item.get("repertoireContext") or "")): item
         for item in best_openings or []
@@ -4109,8 +4171,8 @@ def build_recent_opening_trend_report(
         if len(recent_rows) < min_split_games or len(older_rows) < min_split_games:
             continue
 
-        recent = {"games": 0, "wins": 0, "draws": 0, "losses": 0, "opening_losses": 0}
-        older = {"games": 0, "wins": 0, "draws": 0, "losses": 0, "opening_losses": 0}
+        recent = empty_trend_bucket(str(rows[0].get("opening") or ""))
+        older = empty_trend_bucket(str(rows[0].get("opening") or ""))
         for row in recent_rows:
             add_game_to_trend_bucket(recent, row)
         for row in older_rows:
@@ -4122,23 +4184,36 @@ def build_recent_opening_trend_report(
         recent_early_loss = trend_early_loss_rate(recent)
         older_early_loss = trend_early_loss_rate(older)
         early_loss_delta = round(recent_early_loss - older_early_loss, 1)
-        recent_usage = round((recent["games"] / len(games)) * 100, 1) if games else 0
-        older_usage = round((older["games"] / len(games)) * 100, 1) if games else 0
+        if split_method == "last 30 days":
+            recent_denominator = max(1, all_recent_30_count)
+            older_denominator = max(1, all_older_30_count)
+        else:
+            recent_denominator = max(1, all_recent_half_count)
+            older_denominator = max(1, all_older_half_count)
+        recent_usage = round((recent["games"] / recent_denominator) * 100, 1)
+        older_usage = round((older["games"] / older_denominator) * 100, 1)
         usage_delta = round(recent_usage - older_usage, 1)
         opening_info = opening_lookup.get(key) or opening_lookup.get((key[0], "unknown_mixed")) or {}
-        plan_status = str(opening_info.get("planClarityStatus") or opening_info.get("plan_clarity_status") or "Unavailable")
-        plan_score = int(opening_info.get("planClarityScore", opening_info.get("plan_clarity_score", 0)) or 0)
+        overall_plan_status = str(opening_info.get("planClarityStatus") or opening_info.get("plan_clarity_status") or "Unavailable")
+        overall_plan_score = int(opening_info.get("planClarityScore", opening_info.get("plan_clarity_score", 0)) or 0)
+        recent_plan = trend_plan_clarity(str(rows[0].get("opening") or ""), recent)
+        older_plan = trend_plan_clarity(str(rows[0].get("opening") or ""), older)
+        plan_score_delta = round(float(recent_plan["score"] or 0) - float(older_plan["score"] or 0), 1)
 
-        if score_delta >= 12 and early_loss_delta <= 8:
+        if (score_delta >= 12 and early_loss_delta <= 8) or (score_delta >= 6 and plan_score_delta >= 18):
             trend = "Improving"
             summary = f"{rows[0].get('opening')}: improving recently."
             advice = "Keep this opening in the current plan, but confirm the trend with more games."
-        elif score_delta <= -12 or early_loss_delta >= 18:
+            if plan_score_delta >= 18:
+                advice = f"{advice} Your recent games also show clearer repeated plans."
+        elif score_delta <= -12 or early_loss_delta >= 18 or (score_delta <= -6 and plan_score_delta <= -18):
             trend = "Declining"
             summary = f"{rows[0].get('opening')}: declining recently."
             advice = "Review recent losses before relying on older positive results."
             if early_loss_delta >= 18:
                 advice = f"{advice} Your recent games show more early problems."
+            elif plan_score_delta <= -18:
+                advice = f"{advice} Your recent plan clarity is also weaker than the older sample."
         else:
             trend = "Stable"
             summary = f"{rows[0].get('opening')}: stable recently."
@@ -4176,10 +4251,16 @@ def build_recent_opening_trend_report(
                 "early_loss_delta": early_loss_delta,
                 "usageDelta": usage_delta,
                 "usage_delta": usage_delta,
-                "planClarityStatus": plan_status,
-                "plan_clarity_status": plan_status,
-                "planClarityScore": plan_score,
-                "plan_clarity_score": plan_score,
+                "planClarityStatus": overall_plan_status,
+                "plan_clarity_status": overall_plan_status,
+                "planClarityScore": overall_plan_score,
+                "plan_clarity_score": overall_plan_score,
+                "recentPlanClarity": recent_plan,
+                "recent_plan_clarity": recent_plan,
+                "olderPlanClarity": older_plan,
+                "older_plan_clarity": older_plan,
+                "planClarityDelta": plan_score_delta,
+                "plan_clarity_delta": plan_score_delta,
                 "summary": summary,
                 "advice": advice,
             }
@@ -4221,6 +4302,24 @@ def apply_recent_trends_to_openings(openings: List[Dict[str, Any]], trend_report
         item["recent_trend_confidence"] = trend.get("confidence")
         item["recentTrendScoreDelta"] = trend.get("scoreDelta")
         item["recent_trend_score_delta"] = trend.get("scoreDelta")
+        trend_adjustment = 0
+        if int(item.get("games", 0) or 0) >= 5:
+            confidence_multiplier = 1 if "medium" in str(trend.get("confidence") or "").lower() else 0.5
+            if trend.get("trend") == "Improving":
+                trend_adjustment = round(3 * confidence_multiplier)
+            elif trend.get("trend") == "Declining":
+                trend_adjustment = -round(4 * confidence_multiplier)
+        if trend_adjustment:
+            current_fit = int(item.get("fitScore", item.get("fit_score", 0)) or 0)
+            adjusted_fit = max(0, min(100, current_fit + trend_adjustment))
+            item["fitScore"] = adjusted_fit
+            item["fit_score"] = adjusted_fit
+            breakdown = dict(item.get("fitScoreBreakdown") or {})
+            breakdown["recentTrendAdjustment"] = trend_adjustment
+            item["fitScoreBreakdown"] = breakdown
+            snake_breakdown = dict(item.get("fit_score_breakdown") or {})
+            snake_breakdown["recent_trend_adjustment"] = trend_adjustment
+            item["fit_score_breakdown"] = snake_breakdown
         evidence = list(item.get("evidence") or item.get("evidenceBullets") or [])
         trend_note = f"{trend.get('summary')} {trend.get('confidence')}."
         if trend_note not in evidence:

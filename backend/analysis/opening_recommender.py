@@ -95,6 +95,18 @@ def flatten_current_openings(current_opening_stats: Any) -> Dict[str, Dict[str, 
             existing["planClarityNote"] = clarity_note
             existing["plan_clarity_note"] = clarity_note
 
+        for target_key, source_keys in {
+            "recentTrend": ("recentTrend", "recent_trend"),
+            "recentTrendConfidence": ("recentTrendConfidence", "recent_trend_confidence"),
+            "recentTrendScoreDelta": ("recentTrendScoreDelta", "recent_trend_score_delta"),
+            "opponentRatingAdjustment": ("opponentRatingAdjustment", "opponent_rating_adjustment"),
+            "opponentRatingNote": ("opponentRatingNote", "opponent_rating_note"),
+            "opponentRatingDelta": ("opponentRatingDelta", "opponent_rating_delta"),
+        }.items():
+            value = next((item.get(key) for key in source_keys if item.get(key) is not None), None)
+            if value is not None:
+                existing[target_key] = value
+
         flattened[key] = existing
 
     if isinstance(current_opening_stats, dict):
@@ -223,6 +235,37 @@ def plan_clarity_adjustment(stats: Optional[Dict[str, Any]]) -> float:
     if status == "unclear plan" or (score and score < 45):
         return -9 if games >= 5 else -5
     return 0
+
+
+def recent_trend_adjustment(stats: Optional[Dict[str, Any]]) -> float:
+    if not stats:
+        return 0
+
+    games = int(stats.get("games", 0) or 0)
+    if games < 5:
+        return 0
+
+    trend = str(stats.get("recentTrend") or stats.get("recent_trend") or "").lower()
+    confidence = str(stats.get("recentTrendConfidence") or stats.get("recent_trend_confidence") or "").lower()
+    multiplier = 1.0 if "medium" in confidence or "high" in confidence else 0.5
+
+    if trend == "improving":
+        return 3 * multiplier
+    if trend == "declining":
+        return -4 * multiplier
+    return 0
+
+
+def opponent_rating_adjustment(stats: Optional[Dict[str, Any]]) -> float:
+    if not stats:
+        return 0
+
+    games = int(stats.get("games", 0) or 0)
+    if games < 3:
+        return 0
+
+    raw = float(stats.get("opponentRatingAdjustment", stats.get("opponent_rating_adjustment", 0)) or 0)
+    return max(-4, min(4, raw * 0.5))
 
 
 def learning_cost(item: OpeningCatalogItem) -> str:
@@ -364,6 +407,8 @@ def build_recommendation(
     fit += successful_tag_boost(item, current_stats, catalog_lookup)
     fit += existing_opening_adjustment(item, stats)
     fit += plan_clarity_adjustment(stats)
+    fit += recent_trend_adjustment(stats)
+    fit += opponent_rating_adjustment(stats)
     fit_score = clamp_score(fit)
     upgrade = upgrade_type(stats)
     confidence = confidence_details_for_recommendation(
@@ -391,6 +436,10 @@ def build_recommendation(
         "planClarityScore": round(float(stats.get("planClarityScore", 0) or 0)) if stats else None,
         "plan_clarity_note": stats.get("planClarityNote") if stats else None,
         "planClarityNote": stats.get("planClarityNote") if stats else None,
+        "recent_trend": stats.get("recentTrend") if stats else None,
+        "recentTrend": stats.get("recentTrend") if stats else None,
+        "opponent_rating_note": stats.get("opponentRatingNote") if stats else None,
+        "opponentRatingNote": stats.get("opponentRatingNote") if stats else None,
         "evidence": list(style_fingerprint.get("evidence") or [])[:3],
         "learning_cost": learning_cost(item),
         "learningCost": learning_cost(item),
