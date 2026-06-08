@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
+import { upsertUserRow } from "../services/userDataService";
 
 function normalisePlatform(value) {
   const platform = String(value || "unknown").trim().toLowerCase();
@@ -57,7 +58,17 @@ export async function fetchOpeningFitCloudState(user, data = {}) {
     .eq("username", identity.username)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    if (import.meta.env.DEV) {
+      console.warn("OpeningFit cloud state load failed", {
+        userId: identity.userId,
+        platform: identity.platform,
+        username: identity.username,
+        error,
+      });
+    }
+    throw error;
+  }
   return row || null;
 }
 
@@ -69,18 +80,15 @@ export async function saveOpeningFitCloudState(user, data = {}, partialState = {
 
   const payload = Object.fromEntries(
     Object.entries({
-      user_id: identity.userId,
       platform: identity.platform,
       username: identity.username,
       ...partialState,
     }).filter(([, value]) => value !== undefined)
   );
 
-  const { data: rows, error } = await supabase
-    .from("openingfit_user_state")
-    .upsert(payload, { onConflict: "user_id,platform,username" })
-    .select("*");
-
-  if (error) throw error;
+  const rows = await upsertUserRow("openingfit_user_state", identity.userId, payload, {
+    onConflict: "user_id,platform,username",
+    required: false,
+  });
   return rows?.[0] || null;
 }

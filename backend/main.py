@@ -9158,54 +9158,6 @@ def demo_profile():
 
     return demo_data
 
-# =========================================================
-# Cloud saved user state
-# Saves local app state to Supabase by platform + username.
-# =========================================================
-
-from urllib.parse import quote
-from typing import Dict, Any
-
-
-class UserStatePayload(BaseModel):
-    username: str
-    platform: str = "chesscom"
-    state: Dict[str, Any]
-
-
-def get_supabase_config():
-    supabase_url = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
-    supabase_key = (
-        os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
-        or os.getenv("SUPABASE_SERVICE_KEY", "").strip()
-        or os.getenv("SUPABASE_KEY", "").strip()
-        or os.getenv("SUPABASE_ANON_KEY", "").strip()
-    )
-
-    if not supabase_url or not supabase_key:
-        raise HTTPException(
-            status_code=500,
-            detail="Supabase is not configured. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to your backend environment.",
-        )
-
-    return supabase_url, supabase_key
-
-
-def supabase_headers(extra=None):
-    _, supabase_key = get_supabase_config()
-
-    headers = {
-        "apikey": supabase_key,
-        "Authorization": f"Bearer {supabase_key}",
-        "Content-Type": "application/json",
-    }
-
-    if extra:
-        headers.update(extra)
-
-    return headers
-
-
 @app.get("/api/user-state/{platform}/{username}")
 def get_user_state(platform: str, username: str, request: Request):
     get_auth_user(request)
@@ -9213,103 +9165,15 @@ def get_user_state(platform: str, username: str, request: Request):
         status_code=410,
         detail="This username-based cloud state endpoint is deprecated. Use /api/account/state/{user_id}.",
     )
-    clean_username = username.strip()
-    clean_platform = platform.strip().lower() or "chesscom"
-
-    if not clean_username:
-        raise HTTPException(status_code=400, detail="Username is required.")
-
-    supabase_url, _ = get_supabase_config()
-
-    query = (
-        f"{supabase_url}/rest/v1/user_states"
-        f"?platform=eq.{quote(clean_platform)}"
-        f"&username=eq.{quote(clean_username)}"
-        f"&select=username,platform,state,updated_at"
-        f"&limit=1"
-    )
-
-    response = requests.get(
-        query,
-        headers=supabase_headers(),
-        timeout=20,
-    )
-
-    if response.status_code >= 400:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=response.text,
-        )
-
-    rows = response.json()
-
-    if not rows:
-        return {
-            "found": False,
-            "username": clean_username,
-            "platform": clean_platform,
-            "state": {},
-            "updated_at": None,
-        }
-
-    row = rows[0]
-
-    return {
-        "found": True,
-        "username": row.get("username", clean_username),
-        "platform": row.get("platform", clean_platform),
-        "state": row.get("state") or {},
-        "updated_at": row.get("updated_at"),
-    }
 
 
 @app.post("/api/user-state")
-def save_user_state(payload: UserStatePayload, request: Request):
+def save_user_state(request: Request):
     get_auth_user(request)
     raise HTTPException(
         status_code=410,
         detail="This username-based cloud state endpoint is deprecated. Use /api/account/state.",
     )
-    clean_username = payload.username.strip()
-    clean_platform = payload.platform.strip().lower() or "chesscom"
-
-    if not clean_username:
-        raise HTTPException(status_code=400, detail="Username is required.")
-
-    supabase_url, _ = get_supabase_config()
-
-    row = {
-        "username": clean_username,
-        "platform": clean_platform,
-        "state": payload.state,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }
-
-    response = requests.post(
-        f"{supabase_url}/rest/v1/user_states?on_conflict=platform,username",
-        headers=supabase_headers(
-            {
-                "Prefer": "resolution=merge-duplicates,return=representation",
-            }
-        ),
-        json=row,
-        timeout=20,
-    )
-
-    if response.status_code >= 400:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=response.text,
-        )
-
-    saved_rows = response.json()
-
-    return {
-        "saved": True,
-        "username": clean_username,
-        "platform": clean_platform,
-        "updated_at": saved_rows[0].get("updated_at") if saved_rows else row["updated_at"],
-    }
 
 # -----------------------------
 # Premium / Stockfish endpoints
