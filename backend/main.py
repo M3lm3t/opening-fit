@@ -884,6 +884,10 @@ SKIPPED_REASON_LABELS = {
     "bullet": "Bullet games",
     "variants": "Variants",
     "veryShort": "Very short games",
+    "abandoned": "Abandoned or disconnected games",
+    "earlyTimeout": "Very early timeouts",
+    "oneMoveResignation": "One-move resignations",
+    "tooFewLegalMoves": "Too few legal moves to classify",
     "missingOpening": "Missing opening/ECO data",
     "outsideWindow": "Games outside selected import window",
 }
@@ -907,6 +911,21 @@ def chesscom_skip_reason(game: Dict[str, Any]) -> Optional[str]:
 
     pgn = game.get("pgn", "")
     moves = clean_moves_from_pgn(pgn)
+    white_result = str((game.get("white") or {}).get("result") or "").lower()
+    black_result = str((game.get("black") or {}).get("result") or "").lower()
+    result_tokens = {white_result, black_result}
+
+    if result_tokens & {"abandoned", "disconnected"}:
+        return "abandoned"
+
+    if "resigned" in result_tokens and len(moves) <= 2:
+        return "oneMoveResignation"
+
+    if "timeout" in result_tokens and len(moves) < 12:
+        return "earlyTimeout"
+
+    if len(moves) < 2:
+        return "tooFewLegalMoves"
 
     if len(moves) < 8:
         return "veryShort"
@@ -925,6 +944,23 @@ def lichess_skip_reason(game: Dict[str, Any]) -> Optional[str]:
         return "variants"
 
     moves = str(game.get("moves") or "").split()
+    status = str(game.get("status") or "").lower()
+    winner = game.get("winner")
+
+    if status in {"aborted", "no_start", "created"}:
+        return "abandoned"
+
+    if status in {"resign", "outoftime"} and len(moves) <= 2:
+        return "oneMoveResignation" if status == "resign" else "earlyTimeout"
+
+    if status in {"timeout", "outoftime"} and len(moves) < 12:
+        return "earlyTimeout"
+
+    if not winner and status in {"aborted", "draw"} and len(moves) < 8:
+        return "veryShort"
+
+    if len(moves) < 2:
+        return "tooFewLegalMoves"
 
     if len(moves) < 8:
         return "veryShort"
@@ -3637,8 +3673,12 @@ def build_game_import_quality(
     analysed = len(games or [])
     found = int(total_found if total_found is not None else analysed + sum(int(value or 0) for value in skipped.values()))
     very_short = int(skipped.get("veryShort", 0) or 0)
+    noisy_ignored = sum(
+        int(skipped.get(key, 0) or 0)
+        for key in ["veryShort", "abandoned", "earlyTimeout", "oneMoveResignation", "tooFewLegalMoves"]
+    )
     missing_opening = int(skipped.get("missingOpening", 0) or 0)
-    classified_candidates = max(1, found - int(skipped.get("variants", 0) or 0) - very_short)
+    classified_candidates = max(1, found - int(skipped.get("variants", 0) or 0) - noisy_ignored)
     classification_success = round((analysed / classified_candidates) * 100, 1) if classified_candidates else 0
 
     now_ts = datetime.now(timezone.utc).timestamp()
@@ -3674,7 +3714,7 @@ def build_game_import_quality(
     white = int(colour_counts.get("white", 0) or 0)
     black = int(colour_counts.get("black", 0) or 0)
     colour_balance = round((min(white, black) / max(1, white + black)) * 100, 1) if white or black else 0
-    short_total = very_short + analysed_short
+    short_total = noisy_ignored + analysed_short
     short_pct = round((short_total / max(1, found)) * 100, 1)
 
     score = 0
@@ -3728,6 +3768,8 @@ def build_game_import_quality(
         warnings.append("Colour balance is uneven, so one side of the repertoire is less reliable.")
     if short_pct > 18:
         warnings.append(f"{short_pct}% of found games were very short or opening-light, which weakens the opening signal.")
+    if noisy_ignored:
+        warnings.append(f"OpeningFit ignored {noisy_ignored} very short or noisy game{'' if noisy_ignored == 1 else 's'} because they do not provide reliable opening evidence.")
     if classification_success < 75:
         warnings.append(f"Opening classification succeeded on about {classification_success}% of usable games.")
     if rated_pct is not None and rated_pct < 40:
@@ -3763,6 +3805,8 @@ def build_game_import_quality(
             "colourBalance": colour_balance,
             "colorBalance": colour_balance,
             "veryShortGames": very_short,
+            "ignoredNoisyGames": noisy_ignored,
+            "ignored_noisy_games": noisy_ignored,
             "shortGameShare": short_pct,
             "openingClassificationSuccessRate": classification_success,
             "missingOpeningCount": missing_opening,

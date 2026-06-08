@@ -642,6 +642,11 @@ export default function OpeningReportSummary({ data, username, platform }) {
               <em>{importQuality.metrics?.openingClassificationSuccessRate ?? 0}%</em>
               <small>Confidence impact: {importQuality.confidenceImpact || importQuality.confidence_impact || "none"}</small>
             </li>
+            <li>
+              <span>Ignored noisy games</span>
+              <em>{importQuality.metrics?.ignoredNoisyGames ?? importQuality.metrics?.ignored_noisy_games ?? 0}</em>
+              <small>Very short, abandoned, or too noisy for opening evidence</small>
+            </li>
           </ul>
           {Array.isArray(importQuality.warnings) && importQuality.warnings[0] ? <small>{importQuality.warnings[0]}</small> : null}
         </div>
