@@ -6264,7 +6264,7 @@ function getProfileOpeningFacts(data, fitData) {
   };
 }
 
-function getShortsOpeningReason(opening, fallback) {
+function getPlayerSummaryOpeningReason(opening, fallback) {
   if (!opening || typeof opening === "string") return fallback;
 
   const reason =
@@ -6279,9 +6279,10 @@ function getShortsOpeningReason(opening, fallback) {
   return String(reason || fallback).replace(/\s+/g, " ").replace(/[.]+$/, "");
 }
 
-function buildShortsScript(data, fitData) {
+function buildPlayerSummary(data, fitData) {
   const username = getProfilePlayerName(data, data?.username || data?.playerName || data?.player_name);
   const archetype = getProfileStyleLabel(data, fitData);
+  const styleSummary = getProfileStyleSummary(data, fitData);
   const facts = getProfileOpeningFacts(data, fitData);
   const bestOpening =
     fitData?.bestOpening ||
@@ -6302,17 +6303,22 @@ function buildShortsScript(data, fitData) {
     : "the profile has promise, but the next jump comes from fixing one repeat opening problem.";
 
   return [
-    `I analysed ${username}'s chess openings with OpeningFit.`,
+    "Player Summary",
     "",
-    `The first thing I noticed is that this player is a ${archetype}.`,
+    "Opening Identity:",
+    `${username} profiles as a ${archetype}. ${styleSummary}`,
     "",
-    `Their best fit is ${bestName}, because ${getShortsOpeningReason(bestOpening, "it is the clearest positive signal in their current games")}.`,
+    "Best Fit:",
+    `${bestName} currently suits this player best because ${getPlayerSummaryOpeningReason(bestOpening, "it is the clearest positive signal in their current games")}.`,
     "",
-    `But their biggest leak is ${weakness}.`,
+    "Main Leak:",
+    `${weakness}.`,
     "",
-    `OpeningFit recommends ${recommendedName} because ${studyTarget?.why || getShortsOpeningReason(recommendedOpening, "it gives them the most practical next training target")}.`,
+    "Recommended Next Step:",
+    `Focus on ${recommendedName}. ${studyTarget?.why || getPlayerSummaryOpeningReason(recommendedOpening, "It gives them the most practical next training target")}.`,
     "",
-    `Final verdict: ${finalVerdict}`,
+    "Coach Verdict:",
+    finalVerdict,
   ].join("\n");
 }
 
@@ -6468,7 +6474,7 @@ function ChessProfileCard({ data, fitData }) {
   const style = getProfileStyleLabel(data, fitData);
   const summary = getProfileStyleSummary(data, fitData);
   const facts = getProfileOpeningFacts(data, fitData);
-  const [shortsScript, setShortsScript] = useState("");
+  const [playerSummary, setPlayerSummary] = useState("");
 
   return (
     <section className="profileDashboardCard chessProfileCard">
@@ -6502,19 +6508,20 @@ function ChessProfileCard({ data, fitData }) {
         </article>
       </div>
 
-      <div className="shortsScriptActions">
+      <div className="playerSummaryActions">
+        <p>Turn this report into a clear summary of the player's opening style, strengths, weaknesses, and next steps.</p>
         <button
           type="button"
           className="secondaryButton"
-          onClick={() => setShortsScript(buildShortsScript(data || {}, fitData || {}))}
+          onClick={() => setPlayerSummary(buildPlayerSummary(data || {}, fitData || {}))}
         >
-          Generate Shorts Script
+          Create Player Summary
         </button>
       </div>
 
-      {shortsScript ? (
-        <div className="shortsScriptPanel" aria-live="polite">
-          <pre>{shortsScript}</pre>
+      {playerSummary ? (
+        <div className="playerSummaryPanel" aria-live="polite">
+          <pre>{playerSummary}</pre>
         </div>
       ) : null}
     </section>
@@ -15273,7 +15280,7 @@ function App() {
             <input
               value={feedbackContact}
               onChange={(e) => setFeedbackContact(e.target.value)}
-              placeholder="Email or TikTok username optional"
+              placeholder="Email optional"
             />
             </label>
 
