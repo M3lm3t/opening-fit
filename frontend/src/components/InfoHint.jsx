@@ -20,6 +20,8 @@ export default function InfoHint({ label, children, className = "" }) {
   const bubbleRef = useRef(null);
   const pointerFocusRef = useRef(false);
   const openedByHoverRef = useRef(false);
+  const bubbleHoverRef = useRef(false);
+  const closeTimerRef = useRef(null);
   const closeActiveHint = useCallback(() => setOpen(false), []);
   const closeRef = useRef(closeActiveHint);
 
@@ -36,6 +38,11 @@ export default function InfoHint({ label, children, className = "" }) {
   }, []);
 
   const closeHint = useCallback(({ restoreFocus = false } = {}) => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    bubbleHoverRef.current = false;
     openedByHoverRef.current = false;
     setOpen(false);
     if (activeInfoHint === closeRef.current) {
@@ -45,6 +52,18 @@ export default function InfoHint({ label, children, className = "" }) {
       buttonRef.current?.focus();
     }
   }, []);
+
+  const scheduleHoverClose = useCallback(() => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      if (!bubbleHoverRef.current) {
+        closeHint();
+      }
+    }, 120);
+  }, [closeHint]);
 
   const updatePosition = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -113,6 +132,9 @@ export default function InfoHint({ label, children, className = "" }) {
       if (activeInfoHint === closeRef.current) {
         activeInfoHint = null;
       }
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current);
+      }
     };
   }, []);
 
@@ -124,7 +146,7 @@ export default function InfoHint({ label, children, className = "" }) {
         openedByHoverRef.current = true;
         openHint();
       }}
-      onMouseLeave={() => closeHint()}
+      onMouseLeave={scheduleHoverClose}
     >
       <button
         ref={buttonRef}
@@ -169,6 +191,14 @@ export default function InfoHint({ label, children, className = "" }) {
           id={id}
           role="tooltip"
           className="infoHintBubble"
+          onMouseEnter={() => {
+            bubbleHoverRef.current = true;
+            if (closeTimerRef.current) {
+              window.clearTimeout(closeTimerRef.current);
+              closeTimerRef.current = null;
+            }
+          }}
+          onMouseLeave={() => closeHint()}
           style={{
             left: `${position.left}px`,
             top: `${position.top}px`,

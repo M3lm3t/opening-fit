@@ -2172,7 +2172,7 @@ function getSmartOpeningVerdict(opening, data, index = 0) {
       severity: "neutral",
       message:
         publicMode
-          ? "This is too small a recent online sample for a hard verdict. It may be an experiment, a content game, or a one-off opponent-specific choice."
+          ? "This recent online sample is too small for a firm opening call. It may be an experiment, a content game, or a one-off opponent-specific choice."
           : "We need a few more games before making this a main recommendation.",
     };
   }
@@ -8720,7 +8720,7 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
           <p>{reasonText}</p>
           <div className="nextStudyMeta">
             <span>{hasFocusedSession ? `${studyGames} games` : "General sample"}</span>
-            <span>{hasFocusedSession ? `${studyScore}% score` : "No hard verdict"}</span>
+            <span>{hasFocusedSession ? `${studyScore}% score` : "No firm verdict yet"}</span>
           </div>
         </article>
 
@@ -11047,11 +11047,11 @@ function OpeningFitFullReport({ data }) {
 
     if (type === "avoid") {
       return publicMode
-        ? "This sample is too contextual for a hard verdict. Treat it as recent online trend evidence only."
+        ? "This sample is too contextual for a firm opening call. Treat it as recent online trend evidence only."
         : `Treat this as a review target first. If the same branch keeps causing trouble, simplify that line before replacing the entire opening.`;
     }
 
-    return "Use this as a practical guide for what to study next.";
+    return "Use this to choose the next opening line to study.";
   };
 
   const whiteRecommendation = bestWhite
@@ -13680,7 +13680,7 @@ function App() {
                 <p className="eyebrow">Chess opening analysis app</p>
                 <h1>Find openings that fit your games.</h1>
                 <p className="subtext">
-                  Import a username. Get one clear keep, repair, and train-next plan.
+                  Import a username. See what to keep, what to repair, and which line to train next.
                 </p>
                 <div className="landingHeroProof" aria-label="OpeningFit trust summary">
                   <span>Chess.com</span>
@@ -13807,7 +13807,7 @@ function App() {
                   }
                 />
                 <small className="heroUsernameHelp">
-                  Enter a public username. OpeningFit imports recent games and returns a single next step.
+                  Enter a public username. OpeningFit reads recent games and returns one opening-focused next step.
                 </small>
               </label>
 
@@ -13870,7 +13870,7 @@ function App() {
             </div>
 
             <div className="compactTrustRow">
-              <span>Result: opening verdicts, confidence, and one study focus</span>
+              <span>Result: opening verdicts, confidence, weak lines, and one study focus</span>
               <button
                 className="inlineSampleButton"
                 type="button"
@@ -13932,7 +13932,7 @@ function App() {
             <section className="card appEmptySection productEmptyState" id="app-results">
               <span className="productStateIcon"><ChartNoAxesCombined size={22} /></span>
               <div><p className="eyebrow">Your report</p><h2>Your opening profile starts with one import.</h2>
-              <p>OpeningFit will turn recent games into verdicts, confidence labels, and one clear study focus.</p></div>
+              <p>OpeningFit will turn recent games into opening verdicts, confidence labels, and one clear line to study.</p></div>
               <div className="productStatePreview" aria-label="Report contents">
                 <span><CheckCircle2 size={15} /> Opening fit score</span>
                 <span><CheckCircle2 size={15} /> Keep and improve verdicts</span>
@@ -13966,7 +13966,7 @@ function App() {
               <section className="card appEmptySection productEmptyState" id="training-plan">
                 <span className="productStateIcon"><BookOpenCheck size={22} /></span>
                 <div><p className="eyebrow">Personal training</p><h2>Your first training plan is one report away.</h2>
-                <p>We use your recurring openings and weak lines to choose a practical next session.</p></div>
+                <p>We use recurring openings, weak lines, and plan clarity to choose the next session.</p></div>
                 <div className="productStateAction"><button className="primaryBtn" type="button" onClick={() => handleAppNavigate("analyse")}>Build my training plan</button>
                 <small>Focused actions, not an endless theory list.</small></div>
               </section>

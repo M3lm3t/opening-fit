@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
+import { sampleSizeCopy } from "./openingCopy";
 
 export default function OpeningDetailsModal({ opening, onClose, onReview, onPracticeLines }) {
   useEffect(() => {
@@ -77,23 +78,23 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
 
     if (!context.canRecommend) {
       return context.type === "faced"
-        ? "This looks like an opening you faced from the opponent side. Review how you handled it, but do not treat it as something you should play."
-        : "This opening appears in your games, but the side/context is not clear enough for a clean repertoire recommendation.";
+        ? "You mostly faced this opening from the opponent side. Review how you handled it, but do not add it to your repertoire from this data alone."
+        : "This opening appears in mixed or unclear contexts. Separate it by colour before treating it as a repertoire choice.";
     }
 
     if (v.includes("keep") || v.includes("main weapon") || v.includes("reliable choice")) {
-      return "You are scoring well with this opening, so it should probably stay in your repertoire.";
+      return "Your results support keeping this opening. The next step is to make the main plan more repeatable.";
     }
 
     if (v.includes("promising") || v.includes("review")) {
-      return "This side/context has enough games to review properly. The results are useful, but the sample points to recurring positions worth checking.";
+      return "There is enough here to review. Check the recurring branch before deciding whether the opening or the move order is the issue.";
     }
 
     if (v.includes("low-confidence") || v.includes("experimental") || v.includes("too little") || v.includes("too few") || v.includes("no reliable") || v.includes("emerging") || v.includes("needs more games")) {
-      return "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation.";
+      return `${sampleSizeCopy(games)} Treat this as a trend to watch, not a recommendation.`;
     }
 
-    return "Your results are currently under pressure with this opening. Review the losses before deciding whether the opening itself is the issue.";
+    return "Your results are under pressure here. Review the losses before deciding whether the opening, move order, or first plan is the issue.";
   }
 
   const verdictClass = String(verdict).replace(/\s+/g, "");
@@ -177,9 +178,9 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
           <p className="eyebrow">Future premium detail</p>
           <ul>
             <li>Example games from your own imports</li>
-            <li>Most common move order</li>
-            <li>Suggested replacement opening</li>
-            <li>Training plan for this exact opening</li>
+            <li>Most common move order and transpositions</li>
+            <li>Replacement idea only if the repeated line stays poor</li>
+            <li>Training plan for this exact opening family</li>
           </ul>
         </div>
       </div>

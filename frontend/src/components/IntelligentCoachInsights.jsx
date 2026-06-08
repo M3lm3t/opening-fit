@@ -150,7 +150,7 @@ function buildFallbackPsychology(data, useful, openings, averageScore, whiteScor
       type: "nemesis_opening",
       severity: score !== null && score <= 35 && games >= 5 ? "high" : "medium",
       title: `Players ${score !== null && score <= 35 ? "crush" : "keep hurting"} you with ${name}`,
-      body: `${name} is becoming an emotional pressure point: ${games} games${score !== null ? `, ${score}% score` : ""}. Treat it like a revenge matchup, not a random bad opening.`,
+      body: `${name} is becoming an emotional pressure point: ${games} games${score !== null ? `, ${score}% score` : ""}. Treat it as a specific anti-line to prepare, not proof the whole opening is bad.`,
       action: "Build one anti-plan and play a 10-game repair block before judging yourself again.",
     });
   }

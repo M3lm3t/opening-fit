@@ -35,7 +35,7 @@ const sharedFaqs = [
   ],
   [
     "What does Keep, Improve, and Watch mean?",
-    "Keep means an opening is currently reliable, Improve means a line or pattern needs repair, and Watch means the sample is too noisy for a hard verdict.",
+    "Keep means an opening is currently reliable, Improve means a line or pattern needs repair, and Watch means the sample is too noisy for a firm opening call.",
   ],
 ];
 

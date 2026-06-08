@@ -149,8 +149,8 @@ function getVerdict(opening, data, index = 0) {
       label: sampleTier === "none" ? "No reliable data" : "Too few games",
       tone: "neutral",
       reason:
-        "Too few games to make a firm call. Treat this as a trend to watch, not a recommendation.",
-      action: "Collect more games before making a final call.",
+        "Too few games for a firm opening call. Treat this as a trend to watch, not a recommendation.",
+      action: "Collect more games before changing your repertoire.",
     };
   }
 

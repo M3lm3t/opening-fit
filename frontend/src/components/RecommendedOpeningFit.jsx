@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import InfoHint from "./InfoHint";
+import { OPENING_COPY } from "./openingCopy";
 import "./RecommendedOpeningFit.css";
 
 const TRAIT_CONFIG = [
@@ -128,8 +129,8 @@ function getBestExistingFallback(data) {
       confidence: item.confidence || "medium",
       learning_cost: "medium",
       risk_level: "medium",
-      reason: `You already have useful practical experience here, so the next gains should come from cleaner plans rather than a full repertoire reset.`,
-      watch_out: ["Do not judge it from one noisy game. Review the first recurring position where your plan becomes unclear."],
+      reason: "You already have practical experience here. The next gain is a cleaner plan, not a full repertoire reset.",
+      watch_out: ["Review the first recurring position where your plan becomes unclear before judging the whole opening."],
       currently_played: true,
       upgrade_type: "fix",
     }));
@@ -190,9 +191,9 @@ function styleCoachCopy(fingerprint) {
     return "Your wins point toward open centres, forcing development, and positions where activity matters quickly.";
   }
   if (kingSafety < 45) {
-    return "Your report says the next jump is practical: castle earlier, keep the centre under control, then choose active plans.";
+    return "Your next opening gain is practical: castle on time, keep the centre under control, then choose active plans.";
   }
-  return "Your fingerprint is balanced enough to build a repertoire around repeatable plans instead of memorising everything.";
+  return "Your games point toward a repertoire built around repeatable plans, not memorising every branch.";
 }
 
 function coachReason(item, traits) {
@@ -215,7 +216,7 @@ function coachReason(item, traits) {
       : `This fits your initiative streak, especially when you use the gambit to speed development rather than chase tricks.`;
   }
   if (tags.has("solid") || tags.has("system")) {
-    return `This gives you a repeatable structure, useful when the report says consistency matters more than adding theory.`;
+    return "This gives you a repeatable structure, useful when consistency matters more than adding theory.";
   }
   return reason || `This is here because your recent games give it enough style overlap to study without rebuilding everything.`;
 }
@@ -277,7 +278,7 @@ function RecommendationCard({ item, label, tone, traits }) {
           <span>
             Fit score
             <InfoHint label="Fit score details">
-              Fit score blends results, sample size, style match, risk, and learning cost. It should guide study order, not overrule your repertoire by itself.
+              {OPENING_COPY.fitScore}
             </InfoHint>
           </span>
           {fit}
@@ -297,7 +298,7 @@ function RecommendationCard({ item, label, tone, traits }) {
 
       <div className="recommendedOpeningDetailGrid">
         <div>
-          <h4>Watch out</h4>
+          <h4>Check first</h4>
           <ul>
             {watchOut(item).map((text) => (
               <li key={text}>{text}</li>
@@ -305,7 +306,7 @@ function RecommendationCard({ item, label, tone, traits }) {
           </ul>
         </div>
         <div>
-          <h4>First 3 lines to learn</h4>
+          <h4>First lines to learn</h4>
           <ol>
             {lines.map((line) => (
               <li key={line}>{line}</li>
@@ -334,7 +335,7 @@ export default function RecommendedOpeningFit({ data }) {
           <div className="recommendedOpeningFitTitleRow">
             <h2 id="recommended-opening-fit-title">{styleHeadline(fingerprint)}</h2>
             <InfoHint label="Style fingerprint details">
-              Your style fingerprint is inferred from recurring patterns in your games, such as open positions, tactics, development speed, and king safety.
+              {OPENING_COPY.styleFingerprint}
             </InfoHint>
           </div>
           <p>{styleCoachCopy(fingerprint)}</p>
@@ -364,7 +365,7 @@ export default function RecommendedOpeningFit({ data }) {
         <div className="recommendedOpeningGroup">
           <div className="recommendedOpeningGroupHeader">
             <span>Best openings you already play</span>
-            <h3>Keep improving what is already working.</h3>
+            <h3>Keep the openings your games already support.</h3>
           </div>
           <div className="recommendedOpeningCardGrid">
             {recommendations.existing.map((item) => (
@@ -384,7 +385,7 @@ export default function RecommendedOpeningFit({ data }) {
         <div className="recommendedOpeningGroup">
           <div className="recommendedOpeningGroupHeader">
             <span>New openings to consider</span>
-            <h3>Try these before adding more theory.</h3>
+            <h3>Try these only if they solve a real repertoire gap.</h3>
           </div>
           <div className="recommendedOpeningCardGrid">
             {recommendations.newIdeas.map((item) => (
@@ -404,7 +405,7 @@ export default function RecommendedOpeningFit({ data }) {
         <div className="recommendedOpeningGroup">
           <div className="recommendedOpeningGroupHeader">
             <span>Openings to avoid or delay</span>
-            <h3>Keep these on the bench for now.</h3>
+            <h3>Delay these until the core lines are steadier.</h3>
           </div>
           <div className="recommendedOpeningCardGrid">
             {recommendations.delay.map((item) => (

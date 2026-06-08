@@ -225,8 +225,8 @@ export default function MyRepertoire({ data, isPremium, onUnlockDemo }) {
       <div className="myRepertoireHeader">
         <div>
           <div className="myRepertoireEyebrow">My Repertoire</div>
-          <h2>Turn recommendations into a saved opening plan.</h2>
-          <p>Save what you want to play and improve it over time.</p>
+          <h2>Save the openings you plan to play.</h2>
+          <p>Keep your White and Black choices in one place, then repair the lines that keep costing points.</p>
         </div>
 
         <div className="myRepertoireActions">
@@ -281,7 +281,7 @@ export default function MyRepertoire({ data, isPremium, onUnlockDemo }) {
               {repertoire.white.map((opening) => renderSavedOpening("white", opening))}
             </div>
           ) : (
-            <p>No White openings saved yet. Add one from the recommendations above.</p>
+            <p>No White openings saved yet. Save a White line when you want it in your repertoire.</p>
           )}
         </div>
 
@@ -293,7 +293,7 @@ export default function MyRepertoire({ data, isPremium, onUnlockDemo }) {
               {repertoire.black.map((opening) => renderSavedOpening("black", opening))}
             </div>
           ) : (
-            <p>No Black openings saved yet. Add one from the recommendations above.</p>
+            <p>No Black openings saved yet. Save one response to 1.e4 or 1.d4 when the report gives a clear fit.</p>
           )}
         </div>
       </div>
@@ -301,13 +301,13 @@ export default function MyRepertoire({ data, isPremium, onUnlockDemo }) {
       <div className="repertoireNotesCard">
         <div>
           <h3>Personal repertoire notes</h3>
-          <p>Track move-order problems, avoids, and next study ideas.</p>
+          <p>Track move-order problems, sidelines to avoid, and the next branch to study.</p>
         </div>
 
         <textarea
           value={repertoire.notes}
           onChange={updateNotes}
-          placeholder="Example: As White I want to build around the Vienna. As Black I need one clear response to 1.d4..."
+          placeholder="Example: As White, build around the Vienna. As Black, prepare one clear answer to 1.d4..."
         />
       </div>
     </section>

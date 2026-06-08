@@ -1,4 +1,3 @@
-import InfoHint from "./InfoHint";
 import {
   canGiveAvoidVerdict,
   getLevelToneCopy,
@@ -321,10 +320,10 @@ export function getConfidenceDetails(opening) {
       canBeFirm: false,
       evidenceLine:
         context.type === "faced"
-          ? "Insufficient data: this appears to be an opening you faced, not a clean repertoire choice from your side."
-          : "Insufficient data: the side or context is unclear, so this is not a firm recommendation.",
+          ? "Not a repertoire verdict: this appears to be an opening you faced, not a line you played from your side."
+          : "Not a firm recommendation: the colour or opening context is unclear.",
       explanation:
-        "The current data is not clear enough to treat this as a clean repertoire recommendation.",
+        "Separate the games by colour before using this as a repertoire signal.",
     };
   }
 
@@ -336,8 +335,8 @@ export function getConfidenceDetails(opening) {
       className: "insufficient",
       canBePrimary: false,
       canBeFirm: false,
-      evidenceLine: "Insufficient data: game count or score is unavailable.",
-      explanation: "No reliable game sample is available yet.",
+      evidenceLine: "No reliable sample: game count or score is unavailable.",
+      explanation: "Import more games before making a repertoire call.",
     };
   }
 
@@ -349,8 +348,8 @@ export function getConfidenceDetails(opening) {
       className: "high",
       canBePrimary: true,
       canBeFirm: true,
-      evidenceLine: `High confidence: ${games} games, ${score}% score, repeated enough to treat as a reliable pattern.`,
-      explanation: "25+ games in this opening or family.",
+      evidenceLine: `High confidence: ${games} games, ${score}% score. This opening family repeats enough to trust the pattern.`,
+      explanation: "25+ games in this opening or family. Good enough for a repertoire decision.",
     };
   }
 
@@ -362,8 +361,8 @@ export function getConfidenceDetails(opening) {
       className: "medium",
       canBePrimary: true,
       canBeFirm: false,
-      evidenceLine: `Medium confidence: ${games} games, ${score}% score. Useful signal, but not definitive yet.`,
-      explanation: "10-24 games: useful signal, but still worth confirming.",
+      evidenceLine: `Medium confidence: ${games} games, ${score}% score. Useful signal, but confirm before making a major change.`,
+      explanation: "10-24 games. Good for study order, not definitive enough for a full reset.",
     };
   }
 
@@ -375,8 +374,8 @@ export function getConfidenceDetails(opening) {
       className: "low",
       canBePrimary: false,
       canBeFirm: false,
-      evidenceLine: `Low confidence: ${games} games, ${score}% score. Interesting early pattern, but not enough for a firm verdict.`,
-      explanation: "5-9 games: early pattern only. Useful to watch, not strong enough for a firm verdict.",
+      evidenceLine: `Low confidence: ${games} games, ${score}% score. Treat this as a watch item, not a firm verdict.`,
+      explanation: "5-9 games. Watch the line and collect more evidence before changing your repertoire.",
     };
   }
 
@@ -388,7 +387,7 @@ export function getConfidenceDetails(opening) {
     canBePrimary: false,
     canBeFirm: false,
     evidenceLine: `Too little data: only ${games} game${games === 1 ? "" : "s"}. Not used for a repertoire verdict.`,
-    explanation: "0-4 games. Not enough data for a full verdict.",
+    explanation: "0-4 games. Collect more games before judging the opening.",
   };
 }
 
@@ -429,7 +428,7 @@ export function getOpeningSignal(opening) {
       canBeFirm: false,
       evidenceLine: confidence.evidenceLine,
       explanation:
-        "This looks like an opening you faced from the opponent side, so it is not a clean repertoire recommendation.",
+        "Review how you handled it, but do not add it to your repertoire from this sample alone.",
     };
   }
 
@@ -443,7 +442,7 @@ export function getOpeningSignal(opening) {
       canBeFirm: false,
       evidenceLine: confidence.evidenceLine,
       explanation:
-        "This opening appears in your games, but the current data is not clear enough to treat it as a clean repertoire recommendation.",
+        "Separate the colour or context before using this as a repertoire recommendation.",
     };
   }
 
@@ -637,8 +636,8 @@ export function getEvidenceReason(opening, data) {
 
   if (!context.canRecommend) {
     return context.type === "faced"
-      ? "This looks like an opening you faced from the opponent side, so Opening Fit is not treating it as something you should play."
-      : "This opening appears in your games, but the current data is not clear enough to treat it as a clean repertoire recommendation.";
+      ? "You mostly faced this opening from the opponent side, so OpeningFit is not treating it as something you should play."
+      : "This opening appears in mixed or unclear contexts. Separate it by colour before using it as a repertoire signal.";
   }
 
   if (games < CONFIDENCE_THRESHOLDS.mediumGames) {
@@ -656,9 +655,9 @@ export function getEvidenceReason(opening, data) {
     }
 
     return games >= CONFIDENCE_THRESHOLDS.lowGames
-      ? "Early pattern from 5-9 games. Treat it as a watch signal, not a full verdict."
+      ? "Early pattern from 5-9 games. Watch it, but do not make a full repertoire call yet."
       : games
-        ? "Fewer than 5 games. Not enough data for a full verdict."
+        ? "Fewer than 5 games. Not enough data for a full opening verdict."
         : "No reliable game sample is available yet.";
   }
 
@@ -678,10 +677,10 @@ export function getEvidenceReason(opening, data) {
     return "The score is strong enough to keep this in the current plan.";
   }
   if (verdict.includes("replace") || verdict.includes("avoid") || verdict.includes("review") || score < 42) {
-    return "The score is low enough to inspect the repeated positions before trusting this line.";
+    return "The score is low enough to inspect the repeated move order before trusting this line.";
   }
 
-  return data ? "The result is usable, but not conclusive enough to make this a settled repertoire choice." : "The result is usable, but not conclusive.";
+  return data ? "The result is useful, but not conclusive enough to make this a settled repertoire choice." : "The result is useful, but not conclusive.";
 }
 
 export function getEvidenceNextAction(opening, slot = "", data = null) {
@@ -816,15 +815,6 @@ export default function OpeningEvidenceBlock({
           <span className={chipClassName(chip)} key={chip}>{chip}</span>
         ))}
       </div>
-
-      {compact ? null : (
-        <p className="openingEvidenceHelp">
-          Confidence
-          <InfoHint label="Confidence details">
-            Confidence is based mainly on game count, score availability, repeated use, and signal clarity.
-          </InfoHint>
-        </p>
-      )}
 
       <p>
         <strong>Why this?</strong> {evidence.why}

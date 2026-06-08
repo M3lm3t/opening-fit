@@ -30,22 +30,22 @@ export default function ImportLoadingOverlay({
     },
     {
       title: "Reading openings",
-      detail: "Grouping recurring openings and positions.",
+      detail: "Grouping opening families, move orders, and transpositions.",
       icon: BookOpen,
     },
     {
       title: "Measuring results",
-      detail: "Comparing results, confidence, and patterns.",
+      detail: "Comparing score, sample size, early losses, and plan clarity.",
       icon: BarChart3,
     },
     {
       title: "Building recommendations",
-      detail: "Choosing what to keep, improve, and watch.",
+      detail: "Choosing what to keep, repair, try, or delay.",
       icon: Lightbulb,
     },
     {
       title: "Creating training plan",
-      detail: "Turning the report into practical next actions.",
+      detail: "Turning the report into the first line to train.",
       icon: ListChecks,
     },
   ];
@@ -66,11 +66,11 @@ export default function ImportLoadingOverlay({
     )
   );
   const friendlyMessages = [
-    "Starting with the games you actually play.",
-    "Looking for opening patterns that repeat.",
-    "Separating strong signals from small samples.",
+    "Starting with the positions you actually reach.",
+    "Looking for opening patterns and transpositions that repeat.",
+    "Separating strong signals from small or noisy samples.",
     "Turning the evidence into clear repertoire choices.",
-    "Finishing with a plan you can use next session.",
+    "Finishing with a line you can train next session.",
   ];
   const platformLabel =
     typeof platform === "string" && platform.length ? platform : "your chess platform";
@@ -163,7 +163,7 @@ export default function ImportLoadingOverlay({
               ))}
             </div>
             <div className="importLoadingRecommendationSkeleton">
-              <span><Sparkles size={14} /> Recommendation</span>
+              <span><Sparkles size={14} /> Opening recommendation</span>
               <i className="importSkeleton importSkeletonLong" />
               <i className="importSkeleton importSkeletonMedium" />
             </div>
@@ -171,7 +171,7 @@ export default function ImportLoadingOverlay({
         </div>
 
         {showWakeupMessage ? (
-          <p className="importLoadingWakeup">Still working. The first analysis can take a little longer while the service gets ready.</p>
+          <p className="importLoadingWakeup">Still working. The first analysis can take longer while OpeningFit reads the full game sample.</p>
         ) : null}
 
         <footer className="importLoadingFooter">

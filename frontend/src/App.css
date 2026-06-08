@@ -45127,3 +45127,135 @@ textarea,
     font-size: 0.6rem !important;
   }
 }
+
+/* App Store polish pass: final responsive and report-density refinements */
+.inlineSampleButton,
+.reportCommandBar__tabs button,
+.reportCommandBar__upgrade {
+  min-height: 44px !important;
+}
+
+.mobileBottomNav {
+  display: none !important;
+}
+
+.reportCommandBar {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.reportCommandBar__tabs {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overscroll-behavior-inline: contain !important;
+  scrollbar-width: none !important;
+}
+
+.reportCommandBar__tabs::-webkit-scrollbar {
+  display: none !important;
+}
+
+.openingReportCoherence,
+.openingReportMaintenance,
+.openingReportPlanClarity,
+.openingReportTimeControl,
+.openingReportRecentTrend,
+.openingReportImportQuality,
+.openingReportMainLeak {
+  border-radius: 16px !important;
+  padding: clamp(12px, 2vw, 15px) !important;
+}
+
+.openingReportCoherence ul,
+.openingReportMaintenance ul,
+.openingReportPlanClarity ul,
+.openingReportTimeControl ul,
+.openingReportRecentTrend ul,
+.openingReportImportQuality ul,
+.openingReportMainLeak ul {
+  list-style: none !important;
+  padding-left: 0 !important;
+  gap: 6px !important;
+}
+
+.openingReportCoherence li,
+.openingReportMaintenance li,
+.openingReportPlanClarity li,
+.openingReportTimeControl li,
+.openingReportRecentTrend li,
+.openingReportImportQuality li,
+.openingReportMainLeak li {
+  padding: 9px 10px !important;
+  border: 1px solid rgba(148, 163, 184, 0.14) !important;
+  border-radius: 12px !important;
+  background: rgba(15, 23, 42, 0.18) !important;
+}
+
+.page.light .openingReportCoherence li,
+.page.light .openingReportMaintenance li,
+.page.light .openingReportPlanClarity li,
+.page.light .openingReportTimeControl li,
+.page.light .openingReportRecentTrend li,
+.page.light .openingReportImportQuality li,
+.page.light .openingReportMainLeak li,
+[data-theme="light"] .openingReportCoherence li,
+[data-theme="light"] .openingReportMaintenance li,
+[data-theme="light"] .openingReportPlanClarity li,
+[data-theme="light"] .openingReportTimeControl li,
+[data-theme="light"] .openingReportRecentTrend li,
+[data-theme="light"] .openingReportImportQuality li,
+[data-theme="light"] .openingReportMainLeak li {
+  background: rgba(255, 255, 255, 0.66) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+@media (min-width: 641px) and (max-width: 760px) {
+  .appShell,
+  .page .appShell,
+  .publicLandingPage .appShell,
+  .appReportPage .appShell {
+    padding-bottom: 32px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .mobileBottomNav {
+    position: fixed !important;
+    left: max(10px, env(safe-area-inset-left)) !important;
+    right: max(10px, env(safe-area-inset-right)) !important;
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    z-index: 940 !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+  }
+
+  .reportCommandBar {
+    grid-template-columns: 1fr !important;
+    overflow: visible !important;
+  }
+
+  .reportCommandBar__tabs {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .reportCommandBar__tabs button {
+    width: 100% !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    line-height: 1.1 !important;
+  }
+
+  .reportCommandBar__upgrade {
+    width: 100% !important;
+  }
+
+  .finalReportFlow,
+  .appReportPage .appShell {
+    padding-bottom: calc(124px + env(safe-area-inset-bottom)) !important;
+  }
+}

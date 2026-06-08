@@ -1,5 +1,6 @@
 import { useState } from "react";
 import InfoHint from "./InfoHint";
+import { OPENING_COPY, sampleSizeCopy, weakLineIssueCopy } from "./openingCopy";
 import "./OpeningInsights.css";
 
 const PATTERN_COPY = {
@@ -150,7 +151,7 @@ function openingReason(item) {
 }
 
 function recommendationTooltip(item) {
-  return `Fit score is ${fitScore(item) || "unknown"} with ${confidence(item).toLowerCase()} confidence. Watch out: ${watchOut(item)}`;
+  return `Fit score ${fitScore(item) || "unknown"}. ${sampleSizeCopy(gamesPlayed(item))} Check first: ${watchOut(item)}`;
 }
 
 function RecommendationCard({ title, item, tone }) {
@@ -184,7 +185,7 @@ function WeakLineCard({ line, onPractice }) {
         <div className="openingInsightCardTitle">
           <span>Weak line</span>
           <InfoHint label="Weak line details">
-            A weak line means this exact early variation repeated enough times to be more useful than a general opening label.
+            {OPENING_COPY.weakLine}
           </InfoHint>
         </div>
         <h3>{name}</h3>
@@ -194,7 +195,7 @@ function WeakLineCard({ line, onPractice }) {
         <b>{winRate(line)}% win</b>
         <b>{lossRate(line)}% loss</b>
       </div>
-      <p>Likely issue: {PATTERN_COPY[likelyIssue] || titleCase(likelyIssue)}</p>
+      <p>{PATTERN_COPY[likelyIssue] || weakLineIssueCopy(likelyIssue, gamesPlayed(line))}</p>
       <button type="button" onClick={() => canTrain && onPractice(opening)}>
         {canTrain ? "Train this line" : "Review this line"}
       </button>
@@ -225,14 +226,14 @@ function CompactOpeningCard({ opening }) {
         <b>
           {winRate(opening)}% win
           <InfoHint label="Win rate details">
-            Win rate is useful only with enough games. Treat very small samples as a clue, not a final verdict.
+            {sampleSizeCopy(gamesPlayed(opening))}
           </InfoHint>
         </b>
         <b>{gamesPlayed(opening)} games</b>
         <b>
           Confidence: {confidence(opening)}
           <InfoHint label="Confidence details">
-            High confidence means this is based on enough games to be useful. Low confidence means treat it as a clue.
+            Confidence tells you how much weight to put on this opening signal before changing your repertoire.
           </InfoHint>
         </b>
       </div>

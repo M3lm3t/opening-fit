@@ -113,7 +113,7 @@ export function AppOpeningHealthScore({ data, onViewChange }) {
     if (finalScore >= 80) {
       label = "Strong opening base";
       verdict =
-        "You have a solid foundation. The next step is targeted improvement, not adding random new openings.";
+        "Your opening base is already useful. Study the repeated branches before adding new openings.";
     } else if (finalScore >= 62) {
       label = "Good improvement base";
       verdict =
@@ -121,7 +121,7 @@ export function AppOpeningHealthScore({ data, onViewChange }) {
     } else if (finalScore >= 45) {
       label = "Early but useful";
       verdict =
-        "Opening Fit has enough to give direction, but more games will make recommendations sharper.";
+        "OpeningFit can point to a first repair area, but more games will make the verdict sharper.";
     }
 
     return {

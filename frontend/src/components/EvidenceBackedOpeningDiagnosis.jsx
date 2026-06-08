@@ -236,7 +236,7 @@ function getConfidence(games) {
   if (label === "High confidence") return "High confidence: repeated enough to treat as a reliable pattern.";
   if (label === "Medium confidence") return "Medium confidence: useful, but still worth confirming with more games.";
   if (label === "Insufficient data") return "Insufficient data: import games before making a verdict.";
-  return "Low confidence: too few games for a hard verdict yet.";
+  return "Low confidence: too few games for a firm opening call.";
 }
 
 function getOpeningRead(name) {
