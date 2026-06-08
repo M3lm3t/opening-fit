@@ -172,6 +172,23 @@ function getRepertoireCoherence(data) {
   return data?.repertoireCoherence || data?.repertoire_coherence || null;
 }
 
+function getRepertoireMaintenanceCost(data) {
+  const cost = data?.repertoireMaintenanceCost || data?.repertoire_maintenance_cost || null;
+  if (!cost || typeof cost !== "object") return null;
+  return cost.category ? cost : null;
+}
+
+function getImportQuality(data) {
+  const quality =
+    data?.gameImportQuality ||
+    data?.game_import_quality ||
+    data?.importQuality ||
+    data?.import_quality ||
+    null;
+  if (!quality || typeof quality !== "object") return null;
+  return quality.category ? quality : null;
+}
+
 function getProgressComparison(data) {
   const comparison = data?.progressComparison || data?.progress_comparison || null;
   if (!comparison || comparison.enabled === false || comparison.available === false) return null;
@@ -518,7 +535,9 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const coverageRows = getCoverageRows(data);
   const opponentResponseReport = getOpponentResponseReport(data);
   const styleOpeningMatch = getStyleOpeningMatch(data);
+  const importQuality = getImportQuality(data);
   const repertoireCoherence = getRepertoireCoherence(data);
+  const repertoireMaintenanceCost = getRepertoireMaintenanceCost(data);
   const progressComparison = getProgressComparison(data);
   const ratingBandBenchmark = getRatingBandBenchmark(data);
   const openingRoi = getOpeningRoi(data);
@@ -587,6 +606,26 @@ export default function OpeningReportSummary({ data, username, platform }) {
             </ul>
           ) : null}
           {mainOpeningLeak.action ? <small>{mainOpeningLeak.action}</small> : null}
+        </div>
+      ) : null}
+
+      {importQuality ? (
+        <div className="openingReportImportQuality">
+          <strong>Analysis reliability · {importQuality.category}</strong>
+          <span>{importQuality.summary}</span>
+          <ul>
+            <li>
+              <span>Games analysed</span>
+              <em>{importQuality.metrics?.gamesAnalysed ?? importQuality.metrics?.gamesAnalyzed ?? 0}</em>
+              <small>{importQuality.metrics?.recentGames ?? 0} recent games in the imported window</small>
+            </li>
+            <li>
+              <span>Opening classification</span>
+              <em>{importQuality.metrics?.openingClassificationSuccessRate ?? 0}%</em>
+              <small>Confidence impact: {importQuality.confidenceImpact || importQuality.confidence_impact || "none"}</small>
+            </li>
+          </ul>
+          {Array.isArray(importQuality.warnings) && importQuality.warnings[0] ? <small>{importQuality.warnings[0]}</small> : null}
         </div>
       ) : null}
 
@@ -724,6 +763,19 @@ export default function OpeningReportSummary({ data, username, platform }) {
             ))}
           </ul>
           <small>{repertoireCoherence.advice}</small>
+        </div>
+      ) : null}
+
+      {repertoireMaintenanceCost ? (
+        <div className="openingReportMaintenance">
+          <strong>Repertoire maintenance · {repertoireMaintenanceCost.category}</strong>
+          <span>{repertoireMaintenanceCost.summary}</span>
+          <ul>
+            {(repertoireMaintenanceCost.reasons || []).map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+          <small>{repertoireMaintenanceCost.advice}</small>
         </div>
       ) : null}
 

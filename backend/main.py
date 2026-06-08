@@ -3366,6 +3366,337 @@ def build_repertoire_coherence(best_openings: List[Dict[str, Any]]) -> Dict[str,
     }
 
 
+def opening_family_key(name: str) -> str:
+    lower = normalise_opening_key(name)
+    families = {
+        "vienna": "Vienna",
+        "italian": "Italian",
+        "scotch": "Scotch",
+        "ruy": "Ruy Lopez",
+        "london": "London",
+        "queen": "Queen's Gambit",
+        "caro": "Caro-Kann",
+        "french": "French",
+        "sicilian": "Sicilian",
+        "scandinavian": "Scandinavian",
+        "slav": "Slav",
+        "dutch": "Dutch",
+        "kings indian": "King's Indian",
+        "king s indian": "King's Indian",
+        "nimzo": "Nimzo-Indian",
+        "gruenfeld": "Grunfeld",
+        "grunfeld": "Grunfeld",
+        "pirc": "Pirc",
+        "modern": "Modern",
+        "benoni": "Benoni",
+        "alekhine": "Alekhine",
+    }
+    for token, label in families.items():
+        if token in lower:
+            return label
+    first = str(name or "Unknown opening").split(":")[0].strip()
+    return first or "Unknown opening"
+
+
+def build_repertoire_maintenance_cost(
+    best_openings: List[Dict[str, Any]],
+    coverage: Dict[str, Any],
+    rating: Optional[int] = None,
+) -> Dict[str, Any]:
+    repeated = [
+        item for item in best_openings or []
+        if is_clean_repertoire_context(item)
+        and not is_unknown_opening_name(item.get("name", ""))
+        and int(item.get("games", 0) or 0) > 0
+    ]
+    main_openings = [item for item in repeated if int(item.get("games", 0) or 0) >= 3]
+    families = sorted({opening_family_key(str(item.get("name") or "")) for item in main_openings})
+    band = rating_band(rating)
+    uncovered = [
+        row for row in (coverage or {}).get("white", []) + (coverage or {}).get("black", [])
+        if row.get("status") in {"No clear plan", "Too little data", "Needs work"}
+    ]
+
+    high_theory = []
+    sharp = []
+    unstable = []
+    clear_plan = []
+    for item in main_openings:
+        risk = item.get("openingRiskProfile") or item.get("opening_risk_profile") or opening_risk_profile(str(item.get("name") or ""))
+        theory = str(risk.get("theoryLoad") or risk.get("theory_load") or "medium")
+        tactical = str(risk.get("tacticalSharpness") or risk.get("tactical_sharpness") or "medium")
+        if theory == "high":
+            high_theory.append(item)
+        if tactical == "high":
+            sharp.append(item)
+        if str(item.get("moveOrderStatus") or item.get("move_order_status") or "").lower() in {"unstable", "some variation"}:
+            unstable.append(item)
+        if str(item.get("planClarityStatus") or item.get("plan_clarity_status") or "") == "Clear plan":
+            clear_plan.append(item)
+
+    cost = 20
+    cost += max(0, len(families) - 2) * 10
+    cost += len(high_theory) * 12
+    cost += len(sharp) * 7
+    cost += len(unstable) * 8
+    cost += len(uncovered) * 9
+    if band in {"under_1000", "1000_1400"}:
+        cost += len(high_theory) * 8 + max(0, len(families) - 3) * 6
+    elif band == "1400_1800":
+        cost += len(high_theory) * 3
+    cost -= min(18, len(clear_plan) * 5)
+    cost = max(0, min(100, round(cost)))
+
+    if cost >= 68:
+        category = "High maintenance"
+    elif cost >= 38:
+        category = "Medium maintenance"
+    else:
+        category = "Low maintenance"
+
+    reasons = []
+    if len(families) > 3:
+        reasons.append(f"You use {len(families)} different opening families.")
+    elif families:
+        family_word = "family" if len(families) == 1 else "families"
+        reasons.append(f"Your main repertoire uses {len(families)} opening {family_word}.")
+    if high_theory:
+        opening_word = "opening carries" if len(high_theory) == 1 else "openings carry"
+        reasons.append(f"{len(high_theory)} main {opening_word} a high theory load.")
+    if sharp:
+        reasons.append(f"{len(sharp)} repeated opening{'' if len(sharp) == 1 else 's'} are tactically sharp.")
+    if unstable:
+        reasons.append(f"{len(unstable)} opening{'' if len(unstable) == 1 else 's'} show move-order instability.")
+    if uncovered:
+        reasons.append(f"{len(uncovered)} common response area{'' if len(uncovered) == 1 else 's'} are not fully covered.")
+    if clear_plan:
+        reasons.append(f"{len(clear_plan)} opening{'' if len(clear_plan) == 1 else 's'} have clear repeatable plans.")
+
+    if category == "High maintenance":
+        summary = "Your repertoire is high maintenance because it asks you to remember too many sharp, theory-heavy, or uncovered areas."
+        advice = "Simplify first: keep one main White plan, one Black answer to 1.e4, and one stable Black system vs 1.d4 before adding sidelines."
+    elif category == "Medium maintenance":
+        summary = "Your repertoire is medium maintenance: it is trainable, but a few areas still need regular upkeep."
+        advice = "Keep the useful core, then reduce unstable move orders and fill the biggest uncovered response area."
+    else:
+        summary = "Your repertoire is low maintenance because your openings use repeatable plans and do not demand excessive theory."
+        advice = "Keep building games in the same systems and avoid adding theory-heavy openings unless the current core stays stable."
+
+    if band in {"under_1000", "1000_1400"} and category != "Low maintenance":
+        advice = f"{advice} For this rating band, a simpler focused repertoire is usually the fastest way to improve."
+
+    return {
+        "category": category,
+        "score": cost,
+        "maintenanceCost": cost,
+        "maintenance_cost": cost,
+        "ratingBand": band,
+        "rating_band": band,
+        "familyCount": len(families),
+        "family_count": len(families),
+        "families": families[:8],
+        "highTheoryCount": len(high_theory),
+        "high_theory_count": len(high_theory),
+        "sharpOpeningCount": len(sharp),
+        "sharp_opening_count": len(sharp),
+        "unstableMoveOrderCount": len(unstable),
+        "unstable_move_order_count": len(unstable),
+        "uncoveredResponseCount": len(uncovered),
+        "uncovered_response_count": len(uncovered),
+        "summary": summary,
+        "advice": advice,
+        "reasons": reasons[:5],
+    }
+
+
+def epoch_seconds(value: Any) -> Optional[float]:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if numeric > 10_000_000_000:
+        numeric = numeric / 1000
+    return numeric
+
+
+def build_game_import_quality(
+    games: List[Dict[str, Any]],
+    skipped_reason_counts: Optional[Dict[str, int]] = None,
+    total_found: Optional[int] = None,
+) -> Dict[str, Any]:
+    skipped = skipped_reason_counts or {}
+    analysed = len(games or [])
+    found = int(total_found if total_found is not None else analysed + sum(int(value or 0) for value in skipped.values()))
+    very_short = int(skipped.get("veryShort", 0) or 0)
+    missing_opening = int(skipped.get("missingOpening", 0) or 0)
+    classified_candidates = max(1, found - int(skipped.get("variants", 0) or 0) - very_short)
+    classification_success = round((analysed / classified_candidates) * 100, 1) if classified_candidates else 0
+
+    now_ts = datetime.now(timezone.utc).timestamp()
+    recent_count = 0
+    time_controls = Counter()
+    rated_known = 0
+    rated_count = 0
+    colour_counts = Counter()
+    analysed_short = 0
+
+    for game in games or []:
+        end_time = epoch_seconds(game.get("end_time") or game.get("endTime"))
+        if end_time and now_ts - end_time <= 90 * 24 * 60 * 60:
+            recent_count += 1
+        time_control = str(game.get("time_class") or game.get("timeClass") or "unknown").lower()
+        time_controls[time_control] += 1
+        rated = game.get("rated")
+        if rated is not None:
+            rated_known += 1
+            if bool(rated):
+                rated_count += 1
+        colour = str(game.get("colour") or game.get("color") or "unknown").lower()
+        colour_counts[colour] += 1
+        if int(game.get("move_count", game.get("moveCount", 0)) or 0) <= 10:
+            analysed_short += 1
+
+    if analysed and recent_count == 0:
+        recent_count = analysed
+
+    dominant_time_control, dominant_time_count = time_controls.most_common(1)[0] if time_controls else ("unknown", 0)
+    dominant_time_pct = round((dominant_time_count / analysed) * 100, 1) if analysed else 0
+    rated_pct = round((rated_count / rated_known) * 100, 1) if rated_known else None
+    white = int(colour_counts.get("white", 0) or 0)
+    black = int(colour_counts.get("black", 0) or 0)
+    colour_balance = round((min(white, black) / max(1, white + black)) * 100, 1) if white or black else 0
+    short_total = very_short + analysed_short
+    short_pct = round((short_total / max(1, found)) * 100, 1)
+
+    score = 0
+    if analysed >= 60:
+        score += 35
+    elif analysed >= 30:
+        score += 28
+    elif analysed >= 15:
+        score += 20
+    elif analysed >= 8:
+        score += 12
+    elif analysed >= 4:
+        score += 6
+
+    if recent_count >= 30:
+        score += 20
+    elif recent_count >= 15:
+        score += 15
+    elif recent_count >= 8:
+        score += 10
+    elif recent_count >= 4:
+        score += 5
+
+    score += 12 if classification_success >= 90 else 8 if classification_success >= 75 else 3 if classification_success >= 55 else 0
+    score += 10 if colour_balance >= 35 else 6 if colour_balance >= 25 else 2 if colour_balance >= 12 else 0
+    if rated_pct is None:
+        score += 5
+    else:
+        score += 10 if rated_pct >= 70 else 6 if rated_pct >= 40 else 2
+    score += 8 if dominant_time_pct <= 70 else 4 if dominant_time_pct <= 85 else 1
+    score += 5 if short_pct <= 8 else 2 if short_pct <= 18 else 0
+    score = max(0, min(100, round(score)))
+
+    if analysed < 5:
+        category = "Not enough data"
+    elif score < 45:
+        category = "Weak data"
+    elif score < 72:
+        category = "Usable data"
+    else:
+        category = "Strong data"
+
+    warnings = []
+    if analysed < 12:
+        warnings.append(f"Only {analysed} analysed game{'' if analysed == 1 else 's'} found, so recommendations are lower confidence.")
+    if dominant_time_pct >= 80 and dominant_time_control in {"bullet", "blitz"}:
+        warnings.append(f"Skewed data: {dominant_time_pct}% of analysed games are {dominant_time_control}, so use this as a rough guide.")
+    elif dominant_time_pct >= 85 and dominant_time_control != "unknown":
+        warnings.append(f"Time-control mix is narrow: {dominant_time_pct}% of analysed games are {dominant_time_control}.")
+    if colour_balance < 25 and analysed >= 8:
+        warnings.append("Colour balance is uneven, so one side of the repertoire is less reliable.")
+    if short_pct > 18:
+        warnings.append(f"{short_pct}% of found games were very short or opening-light, which weakens the opening signal.")
+    if classification_success < 75:
+        warnings.append(f"Opening classification succeeded on about {classification_success}% of usable games.")
+    if rated_pct is not None and rated_pct < 40:
+        warnings.append("Many imported games were unrated, so treat performance signals more cautiously.")
+
+    if category == "Strong data":
+        summary = f"Strong data: {analysed} recent {dominant_time_control} game{'' if analysed == 1 else 's'} analysed."
+    elif category == "Usable data":
+        summary = f"Usable data: {analysed} games analysed, enough for a practical but still cautious report."
+    elif category == "Weak data":
+        summary = f"Weak data: only {analysed} games produced usable opening signals, so recommendations are lower confidence."
+    else:
+        summary = f"Not enough data: only {analysed} usable game{'' if analysed == 1 else 's'} found."
+
+    if warnings:
+        summary = f"{summary} {warnings[0]}"
+
+    return {
+        "category": category,
+        "score": score,
+        "summary": summary,
+        "warnings": warnings[:5],
+        "confidenceImpact": "none" if category == "Strong data" else "minor" if category == "Usable data" else "major",
+        "confidence_impact": "none" if category == "Strong data" else "minor" if category == "Usable data" else "major",
+        "metrics": {
+            "gamesAnalysed": analysed,
+            "gamesAnalyzed": analysed,
+            "gamesFound": found,
+            "recentGames": recent_count,
+            "dominantTimeControl": dominant_time_control,
+            "dominantTimeControlShare": dominant_time_pct,
+            "ratedShare": rated_pct,
+            "colourBalance": colour_balance,
+            "colorBalance": colour_balance,
+            "veryShortGames": very_short,
+            "shortGameShare": short_pct,
+            "openingClassificationSuccessRate": classification_success,
+            "missingOpeningCount": missing_opening,
+        },
+    }
+
+
+def cap_confidence_for_import_quality(openings: List[Dict[str, Any]], import_quality: Dict[str, Any]) -> List[Dict[str, Any]]:
+    category = str((import_quality or {}).get("category") or "")
+    if category == "Strong data":
+        return openings
+
+    caps = {
+        "Usable data": ("Medium confidence", "medium"),
+        "Weak data": ("Low confidence", "low"),
+        "Not enough data": ("Too little data", "too_little_data"),
+    }
+    cap_label, cap_level = caps.get(category, ("Low confidence", "low"))
+    cap_score = confidence_numeric_score(cap_label)
+    summary = str((import_quality or {}).get("summary") or "The imported data quality limits confidence.")
+    adjusted = []
+    for opening in openings or []:
+        current_label = str(opening.get("confidence") or opening.get("confidenceLabel") or "")
+        if confidence_numeric_score(current_label) <= cap_score:
+            adjusted.append(opening)
+            continue
+        item = {**opening}
+        item["confidence"] = cap_label
+        item["confidence_label"] = cap_label
+        item["confidenceLabel"] = cap_label
+        item["confidence_level"] = cap_level
+        item["confidenceLevel"] = cap_level
+        item["confidenceReason"] = f"{summary} This caps the recommendation at {cap_label.lower()}."
+        item["confidence_reason"] = item["confidenceReason"]
+        evidence = list(item.get("evidence") or item.get("evidenceBullets") or [])
+        if item["confidenceReason"] not in evidence:
+            evidence.append(item["confidenceReason"])
+        item["evidence"] = evidence[:5]
+        item["evidenceBullets"] = item["evidence"]
+        adjusted.append(item)
+    return adjusted
+
+
 def sanitise_recommendation_sections(sections: Dict[str, Any]) -> Dict[str, Any]:
     primary_keys = ["white_repertoire", "black_vs_e4", "black_vs_d4", "black_vs_other"]
     seen: Dict[str, Dict[str, Any]] = {}
@@ -6199,10 +6530,14 @@ def import_chesscom_logic(username: str, months: int = 3):
     engine_opening_validation = validate_problem_lines_with_stockfish(problem_lines)
     best_openings = sort_openings_for_recommendation(apply_opening_fixability_scores(best_openings, problem_lines, None))
     top_openings = sort_openings_for_recommendation(apply_opening_fixability_scores(top_openings, problem_lines, None))
+    import_quality = build_game_import_quality(recent_games, skipped_reason_counts, len(all_games))
+    best_openings = sort_openings_for_recommendation(cap_confidence_for_import_quality(best_openings, import_quality))
+    top_openings = sort_openings_for_recommendation(cap_confidence_for_import_quality(top_openings, import_quality))
     opening_phase_habits = build_opening_phase_habits(recent_games)
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
     repertoire_coherence = build_repertoire_coherence(best_openings)
+    repertoire_maintenance_cost = build_repertoire_maintenance_cost(best_openings, repertoire_coverage, None)
     opening_roi = build_opening_roi(
         best_openings,
         problem_lines,
@@ -6367,6 +6702,12 @@ def import_chesscom_logic(username: str, months: int = 3):
         "repertoireCoverage": repertoire_coverage,
         "repertoire_coherence": repertoire_coherence,
         "repertoireCoherence": repertoire_coherence,
+        "repertoire_maintenance_cost": repertoire_maintenance_cost,
+        "repertoireMaintenanceCost": repertoire_maintenance_cost,
+        "import_quality": import_quality,
+        "importQuality": import_quality,
+        "game_import_quality": import_quality,
+        "gameImportQuality": import_quality,
         "opening_roi": opening_roi,
         "openingRoi": opening_roi,
         "openingROI": opening_roi,
@@ -6744,10 +7085,14 @@ def build_lichess_analysis(
     engine_opening_validation = validate_problem_lines_with_stockfish(problem_lines)
     best_openings = sort_openings_for_recommendation(apply_opening_fixability_scores(best_openings, problem_lines, current_rating))
     top_openings = sort_openings_for_recommendation(apply_opening_fixability_scores(top_openings, problem_lines, current_rating))
+    import_quality = build_game_import_quality(recent_games, skipped_reason_counts, games_found)
+    best_openings = sort_openings_for_recommendation(cap_confidence_for_import_quality(best_openings, import_quality))
+    top_openings = sort_openings_for_recommendation(cap_confidence_for_import_quality(top_openings, import_quality))
     opening_phase_habits = build_opening_phase_habits(recent_games)
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
     repertoire_coherence = build_repertoire_coherence(best_openings)
+    repertoire_maintenance_cost = build_repertoire_maintenance_cost(best_openings, repertoire_coverage, current_rating)
     opening_roi = build_opening_roi(
         best_openings,
         problem_lines,
@@ -6925,6 +7270,12 @@ def build_lichess_analysis(
         "repertoireCoverage": repertoire_coverage,
         "repertoire_coherence": repertoire_coherence,
         "repertoireCoherence": repertoire_coherence,
+        "repertoire_maintenance_cost": repertoire_maintenance_cost,
+        "repertoireMaintenanceCost": repertoire_maintenance_cost,
+        "import_quality": import_quality,
+        "importQuality": import_quality,
+        "game_import_quality": import_quality,
+        "gameImportQuality": import_quality,
         "opening_roi": opening_roi,
         "openingRoi": opening_roi,
         "openingROI": opening_roi,
