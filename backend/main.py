@@ -1489,6 +1489,10 @@ def empty_opening_stats() -> Dict[str, Any]:
         "move_orders_4": {},
         "move_orders_6": {},
         "move_orders_8": {},
+        "move_orders_10": {},
+        "plan_structures_6": {},
+        "plan_structures_8": {},
+        "plan_structures_10": {},
     }
 
 
@@ -1499,12 +1503,28 @@ def move_order_key(moves: List[str], plies: int) -> str:
 
 
 def add_move_order_to_stats(stats: Dict[str, Any], moves: List[str]) -> None:
-    for plies in (4, 6, 8):
+    for plies in (4, 6, 8, 10):
         key = move_order_key(moves, plies)
         if not key:
             continue
         bucket = stats.setdefault(f"move_orders_{plies}", {})
         bucket[key] = int(bucket.get(key, 0) or 0) + 1
+
+
+def add_plan_structure_to_stats(stats: Dict[str, Any], moves: List[str], result: str) -> None:
+    for plies in (6, 8, 10):
+        key = move_order_key(moves, plies)
+        if not key:
+            continue
+        bucket = stats.setdefault(f"plan_structures_{plies}", {})
+        row = bucket.setdefault(key, {"games": 0, "wins": 0, "draws": 0, "losses": 0})
+        row["games"] += 1
+        if result == "win":
+            row["wins"] += 1
+        elif result == "draw":
+            row["draws"] += 1
+        elif result == "loss":
+            row["losses"] += 1
 
 
 def move_order_consistency_fields(opening: Dict[str, Any]) -> Dict[str, Any]:
@@ -1516,7 +1536,7 @@ def move_order_consistency_fields(opening: Dict[str, Any]) -> Dict[str, Any]:
     weighted_pct = 0.0
     weight_total = 0.0
 
-    for plies, weight in [(4, 0.25), (6, 0.35), (8, 0.40)]:
+    for plies, weight in [(4, 0.15), (6, 0.25), (8, 0.30), (10, 0.30)]:
         orders = opening.get(f"move_orders_{plies}") or opening.get(f"moveOrders{plies}") or {}
         if not isinstance(orders, dict) or not orders:
             breakdown[str(plies)] = {
@@ -1580,6 +1600,82 @@ def move_order_consistency_fields(opening: Dict[str, Any]) -> Dict[str, Any]:
         "moveOrderVariationCount": variation_count,
         "move_order_breakdown": breakdown,
         "moveOrderBreakdown": breakdown,
+    }
+
+
+def plan_clarity_fields(opening: Dict[str, Any]) -> Dict[str, Any]:
+    games = int(opening.get("games", 0) or 0)
+    move_breakdown = opening.get("moveOrderBreakdown") or opening.get("move_order_breakdown") or {}
+    structure_breakdown = {}
+    weighted_concentration = 0.0
+    weight_total = 0.0
+    best_sequence = ""
+    best_count = 0
+    best_plies = 0
+    structure_scores = []
+
+    for plies, weight in [(6, 0.30), (8, 0.35), (10, 0.35)]:
+        row = move_breakdown.get(str(plies), {}) if isinstance(move_breakdown, dict) else {}
+        top_pct = float(row.get("topPercentage", 0) or 0)
+        weighted_concentration += top_pct * weight
+        weight_total += weight
+        if int(row.get("topCount", 0) or 0) > best_count:
+            best_count = int(row.get("topCount", 0) or 0)
+            best_sequence = str(row.get("topSequence") or "")
+            best_plies = plies
+
+        structures = opening.get(f"plan_structures_{plies}") or opening.get(f"planStructures{plies}") or {}
+        repeated = []
+        if isinstance(structures, dict):
+            for sequence, stats in structures.items():
+                structure_games = int((stats or {}).get("games", 0) or 0)
+                if structure_games < 2:
+                    continue
+                wins = int((stats or {}).get("wins", 0) or 0)
+                draws = int((stats or {}).get("draws", 0) or 0)
+                score = round(((wins + 0.5 * draws) / structure_games) * 100, 1)
+                repeated.append({"sequence": sequence, "games": structure_games, "score": score})
+                structure_scores.append(score)
+        structure_breakdown[str(plies)] = repeated[:4]
+
+    concentration_score = round(weighted_concentration / weight_total) if weight_total else 0
+    if len(structure_scores) >= 2:
+        spread = max(structure_scores) - min(structure_scores)
+        stability_score = max(20, round(100 - min(80, spread)))
+    elif structure_scores:
+        stability_score = 70
+    else:
+        stability_score = 35
+
+    move_order_score = int(opening.get("moveOrderScore", opening.get("move_order_score", 0)) or 0)
+    score = round(concentration_score * 0.55 + move_order_score * 0.20 + stability_score * 0.25)
+
+    if games < 3 or not best_sequence:
+        status = "Too little data"
+        note = f"{opening.get('name', 'This opening')}: Too little data. There are not enough repeated games to judge the plan after the opening."
+    elif score >= 72 and best_count >= 3:
+        status = "Clear plan"
+        note = f"{opening.get('name', 'This opening')}: Clear plan. You usually reach similar structures by move {max(3, best_plies // 2)}."
+    elif score >= 52:
+        status = "Some plan"
+        note = f"{opening.get('name', 'This opening')}: Some plan. A main setup is visible, but your follow-up choices still branch."
+    else:
+        status = "Unclear plan"
+        note = f"{opening.get('name', 'This opening')}: Unclear plan. Your early setup and follow-up structures vary heavily."
+
+    return {
+        "plan_clarity_status": status,
+        "planClarityStatus": status,
+        "plan_clarity_score": score,
+        "planClarityScore": score,
+        "plan_clarity_note": note,
+        "planClarityNote": note,
+        "plan_clarity_best_sequence": best_sequence,
+        "planClarityBestSequence": best_sequence,
+        "plan_clarity_structure_stability": stability_score,
+        "planClarityStructureStability": stability_score,
+        "plan_clarity_breakdown": structure_breakdown,
+        "planClarityBreakdown": structure_breakdown,
     }
 
 
@@ -1716,6 +1812,10 @@ def opening_item(
         "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
         "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
         "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
+        "move_orders_10": dict(stats.get("move_orders_10", {}) or {}),
+        "plan_structures_6": dict(stats.get("plan_structures_6", {}) or {}),
+        "plan_structures_8": dict(stats.get("plan_structures_8", {}) or {}),
+        "plan_structures_10": dict(stats.get("plan_structures_10", {}) or {}),
         "context": context,
         "contextLabel": context_label(context),
         "repertoireContext": context,
@@ -1731,6 +1831,7 @@ def opening_item(
 
     item.update(loss_timing_fields(item))
     item.update(move_order_consistency_fields(item))
+    item.update(plan_clarity_fields(item))
     item.update(opening_confidence_fields(item, total_games))
     item.update(balanced_opening_fit_score(item))
     item = apply_opening_risk_profile(item)
@@ -1825,8 +1926,12 @@ def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
     result_score = min(100, max(raw_result_score, opening_adjusted_score))
     context = str(opening.get("context") or opening.get("repertoireContext") or "")
     move_order_score = int(opening.get("moveOrderScore", opening.get("move_order_score", 0)) or 0)
+    plan_clarity_score = int(opening.get("planClarityScore", opening.get("plan_clarity_score", 0)) or 0)
     if is_clean_repertoire_context(opening):
-        style_score = round(48 + move_order_score * 0.52) if move_order_score else 68
+        if move_order_score or plan_clarity_score:
+            style_score = round(42 + move_order_score * 0.25 + plan_clarity_score * 0.45)
+        else:
+            style_score = 68
     else:
         style_score = 35
     stability_penalty = abs(wins - weighted_opening_losses) * 7
@@ -1857,6 +1962,7 @@ def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
             "rawResultScore": raw_result_score,
             "styleMatch": style_score,
             "moveOrderConsistency": move_order_score,
+            "planClarity": plan_clarity_score,
             "stability": stability_score,
             "recentForm": recent_score,
             "context": context,
@@ -1868,6 +1974,7 @@ def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
             "raw_result_score": raw_result_score,
             "style_match": style_score,
             "move_order_consistency": move_order_score,
+            "plan_clarity": plan_clarity_score,
             "stability": stability_score,
             "recent_form": recent_score,
             "context": context,
@@ -1896,6 +2003,10 @@ def opening_evidence_bullets(opening: Dict[str, Any]) -> List[str]:
     move_order_note = opening.get("moveOrderNote") or opening.get("move_order_note")
     if move_order_note and "no clear move order" not in str(move_order_note).lower():
         bullets.append(str(move_order_note))
+
+    plan_clarity_note = opening.get("planClarityNote") or opening.get("plan_clarity_note")
+    if plan_clarity_note:
+        bullets.append(str(plan_clarity_note))
 
     practical_note = opening.get("practicalDifficultyNote") or opening.get("practical_difficulty_note")
     if practical_note:
@@ -2117,6 +2228,10 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
                 "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
                 "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
+                "move_orders_10": dict(stats.get("move_orders_10", {}) or {}),
+                "plan_structures_6": dict(stats.get("plan_structures_6", {}) or {}),
+                "plan_structures_8": dict(stats.get("plan_structures_8", {}) or {}),
+                "plan_structures_10": dict(stats.get("plan_structures_10", {}) or {}),
                 "win_rate": win_rate,
                 "winRate": win_rate,
                 "score": score,
@@ -2128,12 +2243,14 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
             }
         item.update(loss_timing_fields(item))
         item.update(move_order_consistency_fields(item))
+        item.update(plan_clarity_fields(item))
         item.update(opening_confidence_fields(item, total_opening_games))
         item.update(balanced_opening_fit_score(item))
         adjusted_score = float(item.get("openingAdjustedScore", win_rate) or 0)
         opening_losses = int(item.get("openingLosses", 0) or 0)
         has_fixable_issue = (
             str(item.get("moveOrderStatus") or "").lower() == "unstable"
+            or str(item.get("planClarityStatus") or "").lower() == "unclear plan"
             or opening_losses >= 2
             or int(item.get("middlegameLosses", 0) or 0) >= 2
         )
@@ -4127,6 +4244,9 @@ def build_opening_roi(
         if str(opening.get("moveOrderStatus") or "").lower() in {"unstable", "some variation"}:
             fixable_score += 8
             reasons.append("move-order inconsistency")
+        if str(opening.get("planClarityStatus") or "").lower() == "unclear plan":
+            fixable_score += 12
+            reasons.append("unclear repeatable plan")
         coverage_score = 0
         if key in gap_openings:
             coverage_score = 12
@@ -4350,6 +4470,44 @@ def build_repertoire_identity_summary(
         "coherenceStatus": coherence_status,
         "coherence_status": coherence_status,
         "evidence": evidence[:4],
+    }
+
+
+def build_plan_clarity_report(best_openings: List[Dict[str, Any]]) -> Dict[str, Any]:
+    items = []
+    for opening in best_openings or []:
+        name = str(opening.get("name") or "")
+        if not name or is_unknown_opening_name(name):
+            continue
+        games = int(opening.get("games", 0) or 0)
+        if games <= 0:
+            continue
+        status = str(opening.get("planClarityStatus") or opening.get("plan_clarity_status") or "Too little data")
+        items.append(
+            {
+                "name": name,
+                "opening": name,
+                "context": opening.get("context"),
+                "contextLabel": opening.get("contextLabel") or context_label(str(opening.get("context") or "")),
+                "games": games,
+                "status": status,
+                "score": opening.get("planClarityScore", opening.get("plan_clarity_score", 0)),
+                "note": opening.get("planClarityNote") or opening.get("plan_clarity_note"),
+                "bestSequence": opening.get("planClarityBestSequence") or opening.get("plan_clarity_best_sequence"),
+                "best_sequence": opening.get("planClarityBestSequence") or opening.get("plan_clarity_best_sequence"),
+            }
+        )
+
+    priority = {"Unclear plan": 0, "Some plan": 1, "Clear plan": 2, "Too little data": 3}
+    items.sort(key=lambda item: (priority.get(item["status"], 4), -int(item.get("games", 0) or 0)))
+    summary = "Plan clarity checks whether your games repeat a usable setup after the opening name appears."
+    return {
+        "summary": summary,
+        "items": items[:6],
+        "clearCount": len([item for item in items if item["status"] == "Clear plan"]),
+        "clear_count": len([item for item in items if item["status"] == "Clear plan"]),
+        "unclearCount": len([item for item in items if item["status"] == "Unclear plan"]),
+        "unclear_count": len([item for item in items if item["status"] == "Unclear plan"]),
     }
 
 
@@ -5415,6 +5573,7 @@ def import_chesscom_logic(username: str, months: int = 3):
             elif result == "loss":
                 stats["losses"] += 1
                 add_loss_timing_to_stats(stats, loss_timing)
+            add_plan_structure_to_stats(stats, moves, result)
 
         recent_games.append(
             {
@@ -5484,9 +5643,13 @@ def import_chesscom_logic(username: str, months: int = 3):
             "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
             "late_losses": int(stats.get("late_losses", 0) or 0),
             "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
-            "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
-            "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
-            "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
+                "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
+                "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
+                "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
+                "move_orders_10": dict(stats.get("move_orders_10", {}) or {}),
+                "plan_structures_6": dict(stats.get("plan_structures_6", {}) or {}),
+                "plan_structures_8": dict(stats.get("plan_structures_8", {}) or {}),
+                "plan_structures_10": dict(stats.get("plan_structures_10", {}) or {}),
             "win_rate": win_rate,
             "winRate": win_rate,
             "colour": dominant_opening_colour(stats),
@@ -5498,6 +5661,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         }
         item.update(loss_timing_fields(item))
         item.update(move_order_consistency_fields(item))
+        item.update(plan_clarity_fields(item))
         item.update(opening_confidence_fields(item, total_opening_games))
         item.update(balanced_opening_fit_score(item))
         item["evidence"] = opening_evidence_bullets(item)
@@ -5570,6 +5734,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     do_not_study_yet = build_do_not_study_yet(best_openings, opening_roi, repertoire_coverage, None)
     rating_band_benchmark = build_rating_band_benchmark(None, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, None)
+    plan_clarity_report = build_plan_clarity_report(best_openings)
     repertoire_identity_summary = build_repertoire_identity_summary(best_openings, style_profile, repertoire_coherence)
     recommended_repertoire_plan = build_recommended_repertoire_plan(
         best_openings,
@@ -5722,6 +5887,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "repertoireIdentitySummary": repertoire_identity_summary,
         "recommended_repertoire_plan": recommended_repertoire_plan,
         "recommendedRepertoirePlan": recommended_repertoire_plan,
+        "plan_clarity_report": plan_clarity_report,
+        "planClarityReport": plan_clarity_report,
         "next_training_actions": next_training_actions,
         "nextTrainingActions": next_training_actions,
         "study_queue": study_queue,
@@ -5919,6 +6086,7 @@ def build_lichess_analysis(
             elif result == "loss":
                 stats["losses"] += 1
                 add_loss_timing_to_stats(stats, loss_timing)
+            add_plan_structure_to_stats(stats, moves, result)
 
         recent_games.append(
             {
@@ -5989,9 +6157,13 @@ def build_lichess_analysis(
             "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
             "late_losses": int(stats.get("late_losses", 0) or 0),
             "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
-            "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
-            "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
-            "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
+                "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
+                "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
+                "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
+                "move_orders_10": dict(stats.get("move_orders_10", {}) or {}),
+                "plan_structures_6": dict(stats.get("plan_structures_6", {}) or {}),
+                "plan_structures_8": dict(stats.get("plan_structures_8", {}) or {}),
+                "plan_structures_10": dict(stats.get("plan_structures_10", {}) or {}),
             "win_rate": win_rate,
             "winRate": win_rate,
             "colour": dominant_opening_colour(stats),
@@ -6003,6 +6175,7 @@ def build_lichess_analysis(
         }
         item.update(loss_timing_fields(item))
         item.update(move_order_consistency_fields(item))
+        item.update(plan_clarity_fields(item))
         item.update(opening_confidence_fields(item, total_opening_games))
         item.update(balanced_opening_fit_score(item))
         item["evidence"] = opening_evidence_bullets(item)
@@ -6090,6 +6263,7 @@ def build_lichess_analysis(
     do_not_study_yet = build_do_not_study_yet(best_openings, opening_roi, repertoire_coverage, current_rating)
     rating_band_benchmark = build_rating_band_benchmark(current_rating, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, current_rating)
+    plan_clarity_report = build_plan_clarity_report(best_openings)
     repertoire_identity_summary = build_repertoire_identity_summary(best_openings, style_profile, repertoire_coherence)
     recommended_repertoire_plan = build_recommended_repertoire_plan(
         best_openings,
@@ -6255,6 +6429,8 @@ def build_lichess_analysis(
         "repertoireIdentitySummary": repertoire_identity_summary,
         "recommended_repertoire_plan": recommended_repertoire_plan,
         "recommendedRepertoirePlan": recommended_repertoire_plan,
+        "plan_clarity_report": plan_clarity_report,
+        "planClarityReport": plan_clarity_report,
         "next_training_actions": next_training_actions,
         "nextTrainingActions": next_training_actions,
         "study_queue": study_queue,

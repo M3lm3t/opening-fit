@@ -228,6 +228,14 @@ function getRecommendedRepertoirePlan(data) {
   return { ...plan, items };
 }
 
+function getPlanClarityReport(data) {
+  const report = data?.planClarityReport || data?.plan_clarity_report || null;
+  if (!report || typeof report !== "object") return null;
+  const items = Array.isArray(report.items) ? report.items.slice(0, 6) : [];
+  if (!items.length) return null;
+  return { ...report, items };
+}
+
 function collectOpenings(data) {
   const candidates = [
     data?.topOpenings,
@@ -504,6 +512,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const doNotStudyYet = getDoNotStudyYet(data);
   const repertoireIdentitySummary = getRepertoireIdentitySummary(data);
   const recommendedRepertoirePlan = getRecommendedRepertoirePlan(data);
+  const planClarityReport = getPlanClarityReport(data);
 
   return (
     <section className="openingReportShell">
@@ -685,6 +694,22 @@ export default function OpeningReportSummary({ data, username, platform }) {
             ))}
           </ul>
           <small>{repertoireCoherence.advice}</small>
+        </div>
+      ) : null}
+
+      {planClarityReport ? (
+        <div className="openingReportPlanClarity">
+          <strong>Plan clarity</strong>
+          <span>{planClarityReport.summary}</span>
+          <ul>
+            {planClarityReport.items.map((item) => (
+              <li key={`${item.name || item.opening}-${item.context || ""}`}>
+                <span>{item.name || item.opening}: {item.status}</span>
+                <em>{item.score}/100</em>
+                <small>{item.note}</small>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 
@@ -939,6 +964,9 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type, data })
               moveOrderNote: opening.raw?.moveOrderNote || opening.raw?.move_order_note,
               moveOrderStatus: opening.raw?.moveOrderStatus || opening.raw?.move_order_status,
               mostReliableMoveOrder: opening.raw?.mostReliableMoveOrder || opening.raw?.most_reliable_move_order,
+              planClarityStatus: opening.raw?.planClarityStatus || opening.raw?.plan_clarity_status,
+              planClarityScore: opening.raw?.planClarityScore || opening.raw?.plan_clarity_score,
+              planClarityNote: opening.raw?.planClarityNote || opening.raw?.plan_clarity_note,
               openingRiskProfile: opening.raw?.openingRiskProfile || opening.raw?.opening_risk_profile,
               practicalDifficultyNote: opening.raw?.practicalDifficultyNote || opening.raw?.practical_difficulty_note,
               practicalDifficultyPenalty: opening.raw?.practicalDifficultyPenalty || opening.raw?.practical_difficulty_penalty,
