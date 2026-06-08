@@ -1486,6 +1486,9 @@ def empty_opening_stats() -> Dict[str, Any]:
         "middlegame_losses": 0,
         "late_losses": 0,
         "unknown_losses": 0,
+        "user_rating_total": 0,
+        "opponent_rating_total": 0,
+        "rating_game_count": 0,
         "move_orders_4": {},
         "move_orders_6": {},
         "move_orders_8": {},
@@ -1493,6 +1496,90 @@ def empty_opening_stats() -> Dict[str, Any]:
         "plan_structures_6": {},
         "plan_structures_8": {},
         "plan_structures_10": {},
+    }
+
+
+def numeric_rating(value: Any) -> Optional[int]:
+    try:
+        rating = int(value)
+    except (TypeError, ValueError):
+        return None
+    return rating if rating > 0 else None
+
+
+def chesscom_user_and_opponent_rating(game: Dict[str, Any], username: str) -> Tuple[Optional[int], Optional[int]]:
+    username_lower = username.lower()
+    white = game.get("white", {}) or {}
+    black = game.get("black", {}) or {}
+    if str(white.get("username", "")).lower() == username_lower:
+        return numeric_rating(white.get("rating")), numeric_rating(black.get("rating"))
+    if str(black.get("username", "")).lower() == username_lower:
+        return numeric_rating(black.get("rating")), numeric_rating(white.get("rating"))
+    return None, None
+
+
+def lichess_user_and_opponent_rating(game: Dict[str, Any], username: str) -> Tuple[Optional[int], Optional[int]]:
+    username_lower = username.lower()
+    players = game.get("players", {}) or {}
+    white_player = players.get("white", {}) or {}
+    black_player = players.get("black", {}) or {}
+    white_name = lichess_user_name(white_player, "White")
+    black_name = lichess_user_name(black_player, "Black")
+    if white_name.lower() == username_lower:
+        return numeric_rating(white_player.get("rating")), numeric_rating(black_player.get("rating"))
+    if black_name.lower() == username_lower:
+        return numeric_rating(black_player.get("rating")), numeric_rating(white_player.get("rating"))
+    return None, None
+
+
+def add_rating_context_to_stats(stats: Dict[str, Any], user_rating: Optional[int], opponent_rating: Optional[int]) -> None:
+    if user_rating is None or opponent_rating is None:
+        return
+    stats["user_rating_total"] = int(stats.get("user_rating_total", 0) or 0) + int(user_rating)
+    stats["opponent_rating_total"] = int(stats.get("opponent_rating_total", 0) or 0) + int(opponent_rating)
+    stats["rating_game_count"] = int(stats.get("rating_game_count", 0) or 0) + 1
+
+
+def opponent_rating_fields(opening: Dict[str, Any]) -> Dict[str, Any]:
+    count = int(opening.get("rating_game_count", opening.get("ratingGameCount", 0)) or 0)
+    if count <= 0:
+        return {
+            "ratingGameCount": 0,
+            "rating_game_count": 0,
+            "opponentRatingAvailable": False,
+            "opponent_rating_available": False,
+            "opponentRatingNote": "",
+            "opponent_rating_note": "",
+            "opponentRatingAdjustment": 0,
+            "opponent_rating_adjustment": 0,
+        }
+
+    user_avg = round(int(opening.get("user_rating_total", opening.get("userRatingTotal", 0)) or 0) / count)
+    opponent_avg = round(int(opening.get("opponent_rating_total", opening.get("opponentRatingTotal", 0)) or 0) / count)
+    delta = opponent_avg - user_avg
+    adjustment = max(-8, min(8, round(delta / 50)))
+    if delta >= 75:
+        note = "Your score is modestly adjusted upward because opponents were usually higher rated."
+    elif delta <= -75:
+        note = "Your high win rate may be inflated because opponents were usually lower rated."
+    else:
+        note = "Opponent ratings were close enough that no major rating context is needed."
+
+    return {
+        "ratingGameCount": count,
+        "rating_game_count": count,
+        "averageUserRating": user_avg,
+        "average_user_rating": user_avg,
+        "averageOpponentRating": opponent_avg,
+        "average_opponent_rating": opponent_avg,
+        "opponentRatingDelta": delta,
+        "opponent_rating_delta": delta,
+        "opponentRatingAdjustment": adjustment,
+        "opponent_rating_adjustment": adjustment,
+        "opponentRatingAvailable": True,
+        "opponent_rating_available": True,
+        "opponentRatingNote": note,
+        "opponent_rating_note": note,
     }
 
 
@@ -1809,6 +1896,9 @@ def opening_item(
         "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
         "late_losses": int(stats.get("late_losses", 0) or 0),
         "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
+        "user_rating_total": int(stats.get("user_rating_total", 0) or 0),
+        "opponent_rating_total": int(stats.get("opponent_rating_total", 0) or 0),
+        "rating_game_count": int(stats.get("rating_game_count", 0) or 0),
         "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
         "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
         "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
@@ -1830,6 +1920,7 @@ def opening_item(
         item["winRate"] = win_rate
 
     item.update(loss_timing_fields(item))
+    item.update(opponent_rating_fields(item))
     item.update(move_order_consistency_fields(item))
     item.update(plan_clarity_fields(item))
     item.update(opening_confidence_fields(item, total_games))
@@ -1924,6 +2015,9 @@ def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
         ((wins + 0.5 * draws + max(0, losses - weighted_opening_losses) * 0.35) / games) * 100
     ) if games else 0
     result_score = min(100, max(raw_result_score, opening_adjusted_score))
+    rating_context = opponent_rating_fields(opening)
+    rating_adjustment = int(rating_context.get("opponentRatingAdjustment", 0) or 0)
+    rating_adjusted_result_score = max(0, min(100, result_score + rating_adjustment))
     context = str(opening.get("context") or opening.get("repertoireContext") or "")
     move_order_score = int(opening.get("moveOrderScore", opening.get("move_order_score", 0)) or 0)
     plan_clarity_score = int(opening.get("planClarityScore", opening.get("plan_clarity_score", 0)) or 0)
@@ -1940,7 +2034,7 @@ def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
 
     fit_score = round(
         confidence_score * 0.25
-        + result_score * 0.25
+        + rating_adjusted_result_score * 0.25
         + style_score * 0.25
         + stability_score * 0.15
         + recent_score * 0.10
@@ -1952,13 +2046,18 @@ def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "fitScore": max(0, min(100, fit_score)),
         "fit_score": max(0, min(100, fit_score)),
-        "openingAdjustedScore": result_score,
-        "opening_adjusted_score": result_score,
+        "openingAdjustedScore": rating_adjusted_result_score,
+        "opening_adjusted_score": rating_adjusted_result_score,
+        "opponentNeutralResultScore": result_score,
+        "opponent_neutral_result_score": result_score,
         "rawResultScore": raw_result_score,
         "raw_result_score": raw_result_score,
+        **rating_context,
         "fitScoreBreakdown": {
             "sampleConfidence": confidence_score,
-            "resultScore": result_score,
+            "resultScore": rating_adjusted_result_score,
+            "opponentNeutralResultScore": result_score,
+            "opponentRatingAdjustment": rating_adjustment,
             "rawResultScore": raw_result_score,
             "styleMatch": style_score,
             "moveOrderConsistency": move_order_score,
@@ -1970,7 +2069,9 @@ def balanced_opening_fit_score(opening: Dict[str, Any]) -> Dict[str, Any]:
         },
         "fit_score_breakdown": {
             "sample_confidence": confidence_score,
-            "result_score": result_score,
+            "result_score": rating_adjusted_result_score,
+            "opponent_neutral_result_score": result_score,
+            "opponent_rating_adjustment": rating_adjustment,
             "raw_result_score": raw_result_score,
             "style_match": style_score,
             "move_order_consistency": move_order_score,
@@ -1995,6 +2096,10 @@ def opening_evidence_bullets(opening: Dict[str, Any]) -> List[str]:
 
     if score is not None:
         bullets.append(f"You scored {round(float(score), 1)}%.")
+
+    rating_note = opening.get("opponentRatingNote") or opening.get("opponent_rating_note")
+    if rating_note:
+        bullets.append(str(rating_note))
 
     timing_note = opening.get("lossTimingNote") or opening.get("loss_timing_note")
     if timing_note:
@@ -2225,6 +2330,9 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
                 "late_losses": int(stats.get("late_losses", 0) or 0),
                 "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
+                "user_rating_total": int(stats.get("user_rating_total", 0) or 0),
+                "opponent_rating_total": int(stats.get("opponent_rating_total", 0) or 0),
+                "rating_game_count": int(stats.get("rating_game_count", 0) or 0),
                 "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
                 "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
                 "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
@@ -2242,6 +2350,7 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "repertoireContext": context,
             }
         item.update(loss_timing_fields(item))
+        item.update(opponent_rating_fields(item))
         item.update(move_order_consistency_fields(item))
         item.update(plan_clarity_fields(item))
         item.update(opening_confidence_fields(item, total_opening_games))
@@ -6744,6 +6853,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         opening = guess_opening_from_pgn(pgn)
         colour = colour_for_user(game, username)
         result = result_for_user(game, username)
+        user_rating, opponent_rating = chesscom_user_and_opponent_rating(game, username)
         loss_timing = classify_loss_timing(result, moves=moves)
         first_white_move = extract_first_white_move_from_text(pgn)
         repertoire_context = opening_context_for_game(colour, first_white_move)
@@ -6759,6 +6869,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         for stats in (opening_results[opening], context_opening_results[context_key]):
             stats["name"] = opening
             stats["games"] += 1
+            add_rating_context_to_stats(stats, user_rating, opponent_rating)
             add_move_order_to_stats(stats, moves)
             if colour in {"white", "black"}:
                 stats[colour] += 1
@@ -6779,6 +6890,10 @@ def import_chesscom_logic(username: str, months: int = 3):
                 "time_class": game.get("time_class"),
                 "timeClass": game.get("time_class"),
                 "rated": game.get("rated"),
+                "user_rating": user_rating,
+                "userRating": user_rating,
+                "opponent_rating": opponent_rating,
+                "opponentRating": opponent_rating,
                 "colour": colour,
                 "color": colour,
                 "result": result,
@@ -6840,7 +6955,10 @@ def import_chesscom_logic(username: str, months: int = 3):
             "opening_losses": int(stats.get("opening_losses", 0) or 0),
             "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
             "late_losses": int(stats.get("late_losses", 0) or 0),
-            "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
+                "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
+                "user_rating_total": int(stats.get("user_rating_total", 0) or 0),
+                "opponent_rating_total": int(stats.get("opponent_rating_total", 0) or 0),
+                "rating_game_count": int(stats.get("rating_game_count", 0) or 0),
                 "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
                 "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
                 "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
@@ -6858,6 +6976,7 @@ def import_chesscom_logic(username: str, months: int = 3):
             **explanation,
         }
         item.update(loss_timing_fields(item))
+        item.update(opponent_rating_fields(item))
         item.update(move_order_consistency_fields(item))
         item.update(plan_clarity_fields(item))
         item.update(opening_confidence_fields(item, total_opening_games))
@@ -7250,6 +7369,7 @@ def build_lichess_analysis(
         opening = get_lichess_opening_name(game)
         colour = get_lichess_colour(game, username)
         result = get_lichess_result(game, username)
+        user_rating, opponent_rating = lichess_user_and_opponent_rating(game, username)
 
         players = game.get("players", {})
         white_player = players.get("white", {})
@@ -7306,6 +7426,7 @@ def build_lichess_analysis(
         for stats in (opening_results[opening], context_opening_results[context_key]):
             stats["name"] = opening
             stats["games"] += 1
+            add_rating_context_to_stats(stats, user_rating, opponent_rating)
             add_move_order_to_stats(stats, moves)
             if colour in {"white", "black"}:
                 stats[colour] += 1
@@ -7326,6 +7447,10 @@ def build_lichess_analysis(
                 "time_class": lichess_time_class(game),
                 "timeClass": lichess_time_class(game),
                 "rated": game.get("rated"),
+                "user_rating": user_rating,
+                "userRating": user_rating,
+                "opponent_rating": opponent_rating,
+                "opponentRating": opponent_rating,
                 "colour": colour,
                 "color": colour,
                 "result": result,
@@ -7389,6 +7514,9 @@ def build_lichess_analysis(
             "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
             "late_losses": int(stats.get("late_losses", 0) or 0),
             "unknown_losses": int(stats.get("unknown_losses", 0) or 0),
+            "user_rating_total": int(stats.get("user_rating_total", 0) or 0),
+            "opponent_rating_total": int(stats.get("opponent_rating_total", 0) or 0),
+            "rating_game_count": int(stats.get("rating_game_count", 0) or 0),
                 "move_orders_4": dict(stats.get("move_orders_4", {}) or {}),
                 "move_orders_6": dict(stats.get("move_orders_6", {}) or {}),
                 "move_orders_8": dict(stats.get("move_orders_8", {}) or {}),
@@ -7406,6 +7534,7 @@ def build_lichess_analysis(
             **explanation,
         }
         item.update(loss_timing_fields(item))
+        item.update(opponent_rating_fields(item))
         item.update(move_order_consistency_fields(item))
         item.update(plan_clarity_fields(item))
         item.update(opening_confidence_fields(item, total_opening_games))

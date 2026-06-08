@@ -614,6 +614,8 @@ export function getEvidenceReason(opening, data) {
   const explicit = textField(opening, [
     "practicalDifficultyNote",
     "practical_difficulty_note",
+    "opponentRatingNote",
+    "opponent_rating_note",
     "fixabilityExplanation",
     "fixability_explanation",
     "planClarityNote",
@@ -764,6 +766,9 @@ export function getOpeningEvidence(opening, data, options = {}) {
     score !== null ? `${score}% score` : "Score unavailable",
     opening?.openingRiskProfile?.theoryLoad || opening?.opening_risk_profile?.theory_load
       ? `Theory: ${opening.openingRiskProfile?.theoryLoad || opening.opening_risk_profile?.theory_load}`
+      : "",
+    opening?.averageOpponentRating || opening?.average_opponent_rating
+      ? `Opp avg: ${opening.averageOpponentRating || opening.average_opponent_rating}`
       : "",
     opening?.planClarityStatus || opening?.plan_clarity_status
       ? `Plan: ${opening.planClarityStatus || opening.plan_clarity_status}`
