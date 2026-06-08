@@ -154,7 +154,7 @@ export default function OpeningFitFunctionalTools({ data, username, onLoadReport
         <article>
           <span>Download</span>
           <strong>Export report JSON</strong>
-          <p>Useful as a backup while account history is still being developed.</p>
+          <p>Useful as a portable backup alongside your account history.</p>
           <button type="button" onClick={downloadReport}>
             Download report
           </button>

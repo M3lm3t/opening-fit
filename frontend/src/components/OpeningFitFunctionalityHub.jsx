@@ -336,7 +336,7 @@ export default function OpeningFitFunctionalityHub({
         <article>
           <span>Export</span>
           <strong>Download current report</strong>
-          <p>Save your current analysis as a JSON backup while account history is being built.</p>
+          <p>Save your current analysis as a JSON backup you can keep outside the app.</p>
           <button type="button" onClick={downloadReport}>Download report</button>
         </article>
 

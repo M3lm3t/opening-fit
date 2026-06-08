@@ -45259,3 +45259,126 @@ textarea,
     padding-bottom: calc(124px + env(safe-area-inset-bottom)) !important;
   }
 }
+
+/* App readiness pass: legal/support destinations and native-style utility links */
+.appPrimaryMobileUtilityLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.appPrimaryMobileUtilityLinks a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.appStoreReadinessFooter {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: min(1180px, 100%);
+  margin: 28px auto max(22px, env(safe-area-inset-bottom));
+  padding-top: 18px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.appLegalPanel {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.page.light .appLegalPanel,
+[data-theme="light"] .appLegalPanel {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.appLegalPanel span {
+  display: inline-flex;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.appLegalPanel h2,
+.appLegalPanel p {
+  margin: 0;
+}
+
+.appLegalPanel h2 {
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.appLegalPanel p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.appLegalActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.appLegalActions a,
+.appLegalActions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border-radius: 10px;
+  padding: 0 12px;
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.feedbackField {
+  display: grid;
+  gap: 7px;
+}
+
+.feedbackField span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 920px) {
+  .appStoreReadinessFooter {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .appStoreReadinessFooter {
+    margin-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+}

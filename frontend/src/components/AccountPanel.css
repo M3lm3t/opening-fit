@@ -1102,7 +1102,6 @@
   background: rgba(248, 113, 113, 0.2);
 }
 
-
 /* --- Account panel scroll + premium visibility fix --- */
 
 .accountPanel {
@@ -1201,6 +1200,40 @@
   background: rgba(248, 113, 113, 0.2);
 }
 
+.accountDangerLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 0.65rem;
+  border-radius: 999px;
+  color: #fecaca;
+  font-size: 0.86rem;
+  font-weight: 850;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.accountLegalLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.accountLegalLinks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  border-radius: 999px;
+  padding: 0 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  color: rgba(226, 232, 240, 0.82);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
 @media (max-width: 720px) {
   .accountPanelShell {
     position: relative;
@@ -1222,6 +1255,18 @@
   position: static;
   width: 100%;
   z-index: 1;
+}
+
+.page.light .accountDangerLink,
+.light .accountDangerLink {
+  color: #be123c;
+}
+
+.page.light .accountLegalLinks a,
+.light .accountLegalLinks a {
+  color: #334155;
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(248, 250, 252, 0.72);
 }
 
 .accountPanel--screen {

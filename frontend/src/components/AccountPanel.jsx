@@ -19,6 +19,9 @@ const EMPTY_PROFILE = {
 const AUTH_RETURN_PATH_KEY = "openingFit:authReturnPath";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 6;
+const SUPPORT_EMAIL = "m3lm3t@gmail.com";
+const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`;
+const DELETE_REQUEST_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20account%20deletion%20request`;
 
 function getAuthRedirectTo() {
   const origin = window.location.origin;
@@ -436,6 +439,13 @@ export default function AccountPanel({ variant = "floating",
     }
   }
 
+  function handleRequestDeleteAccount(event) {
+    event?.preventDefault?.();
+    window.location.href = `${DELETE_REQUEST_MAILTO}&body=${encodeURIComponent(
+      `Please delete my OpeningFit account and saved cloud data.\n\nAccount email: ${user?.email || ""}\nUser id: ${user?.id || ""}`
+    )}`;
+  }
+
   async function handleCloudRestoreClick(event) {
     if (!onCloudRestore) {
       setStatus("Cloud restore is not available here.");
@@ -824,7 +834,7 @@ export default function AccountPanel({ variant = "floating",
 
               <div className="accountDangerZone">
                 <strong>Delete account</strong>
-                <p>You can delete your account and saved data at any time. This action cannot be undone.</p>
+                <p>You can delete your account and saved cloud data at any time. This action cannot be undone.</p>
                 <button
                   className="accountDangerButton"
                   type="button"
@@ -832,6 +842,9 @@ export default function AccountPanel({ variant = "floating",
                 >
                   Delete my account
                 </button>
+                <a className="accountDangerLink" href={DELETE_REQUEST_MAILTO} onClick={handleRequestDeleteAccount}>
+                  Request account deletion by email
+                </a>
               </div>
 
               <div className="accountActions">
@@ -868,6 +881,12 @@ export default function AccountPanel({ variant = "floating",
           ) : null}
 
           {status ? <div className="accountStatus">{status}</div> : null}
+
+          <nav className="accountLegalLinks" aria-label="Account help and legal links">
+            <a href="#privacy">Privacy Policy</a>
+            <a href="#terms">Terms</a>
+            <a href={SUPPORT_MAILTO}>Support</a>
+          </nav>
         </div>
       ) : null}
     </div>

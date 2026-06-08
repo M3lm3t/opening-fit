@@ -175,7 +175,7 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
         </div>
 
         <div className="openingPremiumPreview">
-          <p className="eyebrow">Future premium detail</p>
+          <p className="eyebrow">Premium detail preview</p>
           <ul>
             <li>Example games from your own imports</li>
             <li>Most common move order and transpositions</li>

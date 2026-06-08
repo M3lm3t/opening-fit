@@ -293,10 +293,10 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
         </div>
 
         <div className="practiceComingSoon">
-          <h3>Practice line coming soon</h3>
+          <h3>Practice line unavailable</h3>
           <p>
-            This opening is not in the practice trainer yet. Supported lines are
-            being added gradually so the practice board stays accurate and useful.
+            This opening is not in the practice trainer. Choose one of the supported
+            lines below, or review the report for the first move order to study.
           </p>
 
           <div className="supportedOpeningGrid">

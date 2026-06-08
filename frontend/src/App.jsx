@@ -138,6 +138,7 @@ const IMPORT_MONTHS_KEY = "openingFit:lastImportMonths";
 const OPENING_SAMPLE_PERCENT_KEY = "openingFit:openingSamplePercent";
 const ANALYSIS_TIME_FORMAT_KEY = "openingFit:lastAnalysisTimeFormat";
 const AUTH_RETURN_PATH_KEY = "openingFit:authReturnPath";
+const SUPPORT_EMAIL = "m3lm3t@gmail.com";
 
 const platforms = {
   chesscom: {
@@ -7218,7 +7219,7 @@ function FounderPassProfileCard({ isPremium, onFounderPass }) {
         <h2>{isPremium ? "Founder Pass active" : "Upgrade your OpeningFit dashboard"}</h2>
         <p>
           {isPremium
-            ? "Your profile has Founder Pass access. Future premium analysis will stay attached to this account."
+            ? "Your profile has Founder Pass access. Premium analysis stays attached to this account."
             : "Turn the free snapshot into a saved progress system for your repertoire, training plan, and deeper opening history."}
         </p>
         <div className="profileFounderTrust">
@@ -8869,6 +8870,7 @@ function AppPrimaryNav({
   onThemeToggle,
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const profileLabel = accountUser ? "Profile" : "Log in";
   const items = hasReport
     ? [
         { key: "report", label: "Report" },
@@ -8876,7 +8878,7 @@ function AppPrimaryNav({
         { key: "training", label: "Train" },
         accountUser
           ? { key: "account", label: "Profile" }
-          : { key: "login", label: "Profile", path: "/login", target: "login", action: onLogin },
+          : { key: "login", label: "Log in", path: "/login", target: "login", action: onLogin },
         { key: "pricing", label: "Premium", path: "/premium", target: "premium", action: onPricing },
       ]
     : accountUser
@@ -9000,7 +9002,7 @@ function AppPrimaryNav({
       >
         <div className="appPrimaryMobileHeader">
           <strong>OpeningFit</strong>
-          <span>{accountUser ? "Account connected" : "Analyse first. Save after login."}</span>
+          <span>{accountUser ? "Account connected" : "Log in to save reports across devices."}</span>
         </div>
 
         <div className="appPrimaryMobileLinks">
@@ -9024,8 +9026,56 @@ function AppPrimaryNav({
           <span>{theme === "light" ? "Light mode" : "Dark mode"}</span>
           <strong>{theme === "light" ? "Switch to dark" : "Switch to light"}</strong>
         </button>
+
+        <div className="appPrimaryMobileUtilityLinks" aria-label="Account and support links">
+          <a href="/login" onClick={(event) => navigate(event, { key: "login", action: onLogin })}>
+            {profileLabel}
+          </a>
+          <a href="#privacy" onClick={() => setMobileMenuOpen(false)}>Privacy</a>
+          <a href="#terms" onClick={() => setMobileMenuOpen(false)}>Terms</a>
+          <a href={`mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`}>Support</a>
+        </div>
       </div>
     </nav>
+  );
+}
+
+function AppStoreReadinessFooter({ onAccount }) {
+  return (
+    <footer className="appStoreReadinessFooter" aria-label="OpeningFit legal and support">
+      <section id="privacy" className="appLegalPanel">
+        <div>
+          <span>Privacy Policy</span>
+          <h2>Your chess data stays focused on OpeningFit.</h2>
+        </div>
+        <p>
+          OpeningFit analyses public Chess.com or Lichess games you choose to import. If you create an account,
+          saved reports, profile settings, and purchase access can sync through Supabase.
+        </p>
+      </section>
+
+      <section id="terms" className="appLegalPanel">
+        <div>
+          <span>Terms</span>
+          <h2>Use OpeningFit as training guidance.</h2>
+        </div>
+        <p>
+          OpeningFit provides opening recommendations from game history. It is not engine analysis, coaching certification,
+          or a guarantee of results.
+        </p>
+      </section>
+
+      <section id="support" className="appLegalPanel">
+        <div>
+          <span>Support</span>
+          <h2>Need help with login, saved data, or account deletion?</h2>
+        </div>
+        <div className="appLegalActions">
+          <a href={`mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`}>Email support</a>
+          <button type="button" onClick={onAccount}>Open account settings</button>
+        </div>
+      </section>
+    </footer>
   );
 }
 
@@ -15021,22 +15071,27 @@ function App() {
             <section className="card feedbackCard" id="feedback">
             <h2>Help improve Opening Fit</h2>
             <p>
-              Found a bug, confusing result, or feature idea? Send quick feedback
-              before launch.
+              Found a bug, confusing result, or feature idea? Send quick feedback to the OpeningFit team.
             </p>
 
+            <label className="feedbackField">
+              <span>Feedback</span>
             <textarea
               value={feedbackMessage}
               onChange={(e) => setFeedbackMessage(e.target.value)}
               placeholder="What should be improved?"
               rows={4}
             />
+            </label>
 
+            <label className="feedbackField">
+              <span>Contact, optional</span>
             <input
               value={feedbackContact}
               onChange={(e) => setFeedbackContact(e.target.value)}
               placeholder="Email or TikTok username optional"
             />
+            </label>
 
             <button
               className="secondaryButton"
@@ -15052,6 +15107,8 @@ function App() {
             ) : null}
             </section>
           ) : null}
+
+          <AppStoreReadinessFooter onAccount={openLoginPage} />
         </main>
 
         {false ? <div className="landingWrap">
