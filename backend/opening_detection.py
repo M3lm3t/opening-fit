@@ -6,6 +6,8 @@ from typing import Any
 
 
 UNKNOWN_OPENING = "Unknown Opening"
+OPEN_GAME_FAMILY = "Open Game"
+QUEEN_PAWN_FAMILY = "Queen's Pawn Opening"
 
 
 def clean_san(move: str) -> str:
@@ -41,12 +43,16 @@ def normalise_opening_name(name: str) -> str:
         (["king's indian attack", "kings indian attack"], "King's Indian Attack"),
         (["king's indian", "kings indian"], "King's Indian Defence"),
         (["grünfeld", "grunfeld"], "Grünfeld Defence"),
+        (["queen's gambit declined", "queens gambit declined", "qgd"], "Queen's Gambit Declined"),
         (["queen's gambit", "queens gambit"], "Queen's Gambit"),
         (["slav"], "Slav Defence"),
         (["nimzo"], "Nimzo-Indian Defence"),
         (["english"], "English Opening"),
         (["catalan"], "Catalan Opening"),
+        (["jobava"], "Jobava London System"),
         (["london"], "London System"),
+        (["queen pawn", "queen's pawn"], QUEEN_PAWN_FAMILY),
+        (["open game"], OPEN_GAME_FAMILY),
         (["benoni"], "Benoni Defence"),
         (["dutch"], "Dutch Defence"),
         (["scandinavian", "center counter", "centre counter"], "Scandinavian Defence"),
@@ -147,11 +153,11 @@ def eco_family(eco: str) -> str:
 
     if letter == "D":
         if 0 <= number <= 5:
-            return "Queen Pawn Game"
+            return QUEEN_PAWN_FAMILY
         if 10 <= number <= 19 or 43 <= number <= 49:
             return "Slav Defence"
         if 6 <= number <= 69:
-            return "Queen's Gambit"
+            return "Queen's Gambit Declined" if number >= 30 else "Queen's Gambit"
         if 70 <= number <= 99:
             return "Grünfeld Defence"
 
@@ -180,6 +186,8 @@ BOOK_LINES = [
     BookLine("Scotch Game", "Open Game / Scotch", ("e4", "e5", "Nf3", "Nc6", "d4"), "C45"),
     BookLine("Vienna Game", "Open Game / Vienna", ("e4", "e5", "Nc3"), "C25"),
     BookLine("King's Gambit", "Open Game / King's Gambit", ("e4", "e5", "f4"), "C30"),
+    BookLine("Four Knights Game", "Open Game / Four Knights", ("e4", "e5", "Nf3", "Nc6", "Nc3", "Nf6"), "C47"),
+    BookLine("Four Knights Game", "Open Game / Four Knights", ("e4", "e5", "Nc3", "Nf6", "Nf3", "Nc6"), "C47"),
     BookLine("Sicilian Defence", "Sicilian structure", ("e4", "c5"), "B20"),
     BookLine("French Defence", "French structure", ("e4", "e6"), "C00"),
     BookLine("Caro-Kann Defence", "Caro-Kann structure", ("e4", "c6"), "B10"),
@@ -188,8 +196,11 @@ BOOK_LINES = [
     BookLine("Pirc Defence", "Pirc / Modern complex", ("e4", "d6", "d4", "Nf6"), "B07"),
     BookLine("Modern Defence", "Modern / Pirc complex", ("e4", "g6"), "B06"),
     BookLine("Queen's Gambit", "Queen's Gambit structure", ("d4", "d5", "c4"), "D06"),
+    BookLine("Queen's Gambit Declined", "Queen's Gambit Declined structure", ("d4", "d5", "c4", "e6"), "D30"),
     BookLine("Slav Defence", "Slav structure", ("d4", "d5", "c4", "c6"), "D10"),
     BookLine("London System", "London System setup", ("d4", "d5", "Nf3", "Nf6", "Bf4"), "D02"),
+    BookLine("Jobava London System", "Jobava London setup", ("d4", "d5", "Nc3", "Nf6", "Bf4"), "D00"),
+    BookLine("Jobava London System", "Jobava London setup", ("d4", "Nf6", "Nc3", "d5", "Bf4"), "D00"),
     BookLine("King's Indian Defence", "King's Indian type setup", ("d4", "Nf6", "c4", "g6"), "E60"),
     BookLine("Grünfeld Defence", "Grünfeld type setup", ("d4", "Nf6", "c4", "g6", "Nc3", "d5"), "D70"),
     BookLine("Nimzo-Indian Defence", "Nimzo-Indian structure", ("d4", "Nf6", "c4", "e6", "Nc3", "Bb4"), "E20"),
@@ -212,17 +223,21 @@ OPENING_THEMES = {
     "King's Indian Defence": ["challenge White's centre", "prepare ...e5 or ...c5 pawn breaks", "create kingside counterplay after castling"],
     "Grünfeld Defence": ["invite White's centre forward", "attack d4 with pieces", "use ...c5 pressure"],
     "Queen's Gambit": ["pressure d5", "develop smoothly", "use c-file and central breaks"],
+    "Queen's Gambit Declined": ["hold the d5 centre", "develop solidly", "prepare ...c5 or ...e5 breaks"],
     "Slav Defence": ["support d5 with ...c6", "develop the light-square bishop", "strike with ...c5 or ...e5"],
     "Nimzo-Indian Defence": ["pin the c3 knight", "fight for dark squares", "pressure doubled pawns when created"],
     "English Opening": ["control d5", "transpose flexibly", "expand without rushing the centre"],
     "Catalan Opening": ["pressure the long diagonal", "combine c4 with g3/Bg2", "recover or pressure queenside pawns"],
     "London System": ["complete a stable setup", "control e5", "choose queenside expansion or kingside pressure"],
+    "Jobava London System": ["combine Nc3 and Bf4 quickly", "watch e4/e5 jumps", "avoid drifting into random queen-pawn play"],
     "Benoni Defence": ["accept space disadvantage", "use ...c5 counterplay", "attack dark squares and queenside breaks"],
     "Dutch Defence": ["claim kingside space", "fight for e4", "watch light-square weaknesses"],
     "Scandinavian Defence": ["challenge e4 immediately", "develop after queen movement", "avoid losing tempi"],
     "Alekhine Defence": ["provoke pawn advances", "attack the extended centre", "time ...d6 and ...c5 breaks"],
     "Vienna Game": ["develop flexibly", "keep f4 attacking ideas", "watch e5 and kingside tactics"],
     "King's Gambit": ["open the f-file", "prioritise development", "calculate king-safety tactics"],
+    OPEN_GAME_FAMILY: ["develop knights and bishops quickly", "fight for the centre", "avoid naming a sharper line too early"],
+    QUEEN_PAWN_FAMILY: ["build a d4 centre", "identify the c4 or system setup", "choose the main pawn break before expanding"],
 }
 
 
@@ -259,6 +274,11 @@ OPENING_TYPICAL_PLANS = {
         "Develop smoothly before resolving central tension.",
         "Use the c-file and e4 break when the position supports it.",
     ],
+    "Queen's Gambit Declined": [
+        "Hold the d5 centre without releasing tension too early.",
+        "Develop the kingside before committing the queenside structure.",
+        "Look for ...c5 or ...e5 when White's centre is ready to be challenged.",
+    ],
     "Slav Defence": [
         "Support d5 with ...c6.",
         "Develop the light-square bishop before closing it in.",
@@ -283,6 +303,11 @@ OPENING_TYPICAL_PLANS = {
         "Complete the d4, Nf3, Bf4, e3 setup efficiently.",
         "Fight for e5 before starting a direct attack.",
         "Choose queenside expansion or kingside pressure based on Black's setup.",
+    ],
+    "Jobava London System": [
+        "Use Nc3 and Bf4 to pressure e5 and c7 early.",
+        "Decide quickly whether e4 is playable.",
+        "Keep development smooth so the setup stays a plan, not just a move order.",
     ],
     "Benoni Defence": [
         "Accept less space in return for active counterplay.",
@@ -333,6 +358,7 @@ def repertoire_bucket_for(opening: str) -> str:
         "Modern Defence",
         "King's Indian Defence",
         "Grünfeld Defence",
+        "Queen's Gambit Declined",
         "Slav Defence",
         "Nimzo-Indian Defence",
         "Benoni Defence",
@@ -350,8 +376,11 @@ def repertoire_bucket_for(opening: str) -> str:
         "English Opening",
         "Catalan Opening",
         "London System",
+        "Jobava London System",
         "Réti Opening",
         "King's Indian Attack",
+        OPEN_GAME_FAMILY,
+        QUEEN_PAWN_FAMILY,
     }
 
     if name in black_defences:
@@ -383,7 +412,7 @@ def prefix_match(moves: list[str], pattern: tuple[str, ...]) -> bool:
 
 
 def exact_book_signal(moves: list[str]) -> dict[str, Any] | None:
-    matches = [line for line in BOOK_LINES if prefix_match(moves, line.moves)]
+    matches = [line for line in BOOK_LINES if len(line.moves) >= 3 and prefix_match(moves, line.moves)]
 
     if not matches:
         return None
@@ -394,7 +423,7 @@ def exact_book_signal(moves: list[str]) -> dict[str, Any] | None:
         "opening": best.name,
         "family": best.family,
         "confidence": 0.96,
-        "weight": 42 + len(best.moves),
+        "weight": 34 + len(best.moves),
         "evidence": f"Matched book line through {' '.join(best.moves)}.",
         "eco": best.eco,
     }
@@ -428,7 +457,9 @@ def family_for_opening(opening: str) -> str:
         "Italian Game": "Open Game / Italian",
         "Scotch Game": "Open Game / Scotch",
         "Vienna Game": "Open Game / Vienna",
+        "Four Knights Game": "Open Game / Four Knights",
         "King's Gambit": "Open Game / King's Gambit",
+        OPEN_GAME_FAMILY: "Open Game family",
         "Sicilian Defence": "Sicilian structure",
         "French Defence": "French Defence structure",
         "Caro-Kann Defence": "Caro-Kann structure",
@@ -439,11 +470,14 @@ def family_for_opening(opening: str) -> str:
         "King's Indian Defence": "King's Indian type setup",
         "Grünfeld Defence": "Grünfeld type setup",
         "Queen's Gambit": "Queen's Gambit structure",
+        "Queen's Gambit Declined": "Queen's Gambit Declined structure",
         "Slav Defence": "Slav structure",
         "Nimzo-Indian Defence": "Nimzo-Indian structure",
         "English Opening": "English Opening structure",
         "Catalan Opening": "Catalan structure",
         "London System": "London System setup",
+        "Jobava London System": "Jobava London setup",
+        QUEEN_PAWN_FAMILY: "Queen's Pawn family",
         "Benoni Defence": "Benoni structure",
         "Dutch Defence": "Dutch structure",
     }
@@ -456,10 +490,10 @@ def structure_signals(moves: list[str]) -> list[dict[str, Any]]:
     black = side_moves(early, False)
     signals: list[dict[str, Any]] = []
 
-    def add(opening: str, confidence: float, evidence: str, weight: int = 24) -> None:
+    def add(opening: str, confidence: float, evidence: str, weight: int = 24, signal_type: str = "structure") -> None:
         signals.append(
             {
-                "type": "structure",
+                "type": signal_type,
                 "opening": opening,
                 "family": family_for_opening(opening),
                 "confidence": confidence,
@@ -468,9 +502,9 @@ def structure_signals(moves: list[str]) -> list[dict[str, Any]]:
             }
         )
 
-    if early[:1] == ["c4"]:
+    if early[:1] == ["c4"] and not ("d4" in white and "d5" in black):
         add("English Opening", 0.84, "White starts with c4 and keeps English transposition options.")
-    if early[:1] == ["Nf3"]:
+    if early[:1] == ["Nf3"] and not ("d4" in white and "c4" in white):
         add("Réti Opening", 0.72, "White starts with Nf3 and delays the central pawn choice.", 18)
     if early[:2] == ["d4", "f5"]:
         add("Dutch Defence", 0.93, "Black answers 1.d4 with ...f5.")
@@ -485,32 +519,50 @@ def structure_signals(moves: list[str]) -> list[dict[str, Any]]:
     if early[:2] == ["e4", "c6"]:
         add("Caro-Kann Defence", 0.92, "Black answers 1.e4 with ...c6 and prepares ...d5.")
 
+    if "e4" in white and "c5" in black and early[:1] != ["c4"]:
+        add("Sicilian Defence", 0.86, "The game transposes to a 1.e4 versus ...c5 Sicilian structure.", 36, "transposition")
+    if "e4" in white and "e6" in black and "d5" in black:
+        add("French Defence", 0.86, "Black reaches the French ...e6/...d5 structure against e4.", 36, "transposition")
+    if "e4" in white and "c6" in black and "d5" in black:
+        add("Caro-Kann Defence", 0.86, "Black reaches the Caro-Kann ...c6/...d5 structure against e4.", 36, "transposition")
+    if "e4" in white and "d5" in black and (early[:2] == ["e4", "d5"] or "exd5" in white or "e5" in white):
+        add("Scandinavian Defence", 0.88, "The early e4 versus ...d5 structure is Scandinavian even if the follow-up varies.", 36, "transposition")
+
     if has_all(white, {"d4", "c4"}) and has_all(black, {"d5", "c6"}):
-        add("Slav Defence", 0.9, "The d4/c4 versus d5/c6 pawn shell is a Slav structure.")
+        add("Slav Defence", 0.9, "The d4/c4 versus d5/c6 pawn shell is a Slav structure.", 42, "transposition")
+    elif has_all(white, {"d4", "c4"}) and has_all(black, {"d5", "e6"}):
+        add("Queen's Gambit Declined", 0.88, "The d4/c4 versus ...d5/...e6 shell is a Queen's Gambit Declined structure.", 42, "transposition")
     elif has_all(white, {"d4", "c4"}) and "d5" in black:
-        add("Queen's Gambit", 0.82, "White uses d4/c4 against a ...d5 centre.")
+        add("Queen's Gambit", 0.84, "White uses d4/c4 against a ...d5 centre.", 38, "transposition")
+
+    if "d4" in white and "c4" not in white and ("Bf4" in white or "Bg5" in white or "Nc3" in white):
+        add(QUEEN_PAWN_FAMILY, 0.76, "White is in a queen-pawn system without enough c4 evidence for a Queen's Gambit label.", 34)
 
     if has_all(white, {"d4", "c4"}) and "c5" in black and ("Nf6" in black or "e6" in black or "g6" in black):
         add("Benoni Defence", 0.84, "Black meets d4/c4 with early ...c5 counterplay.")
 
     if has_all(white, {"d4", "c4"}) and has_all(black, {"Nf6", "g6", "d5"}):
-        add("Grünfeld Defence", 0.9, "Black combines ...Nf6, ...g6, and a quick ...d5 against d4/c4.", 28)
+        add("Grünfeld Defence", 0.9, "Black combines ...Nf6, ...g6, and a quick ...d5 against d4/c4.", 42, "transposition")
     elif has_all(white, {"d4", "c4"}) and has_all(black, {"Nf6", "g6"}) and ("Bg7" in black or "d6" in black):
-        add("King's Indian Defence", 0.88, "Black has the ...Nf6/...g6/...Bg7 King's Indian shell.", 28)
+        add("King's Indian Defence", 0.88, "Black has the ...Nf6/...g6/...Bg7 King's Indian shell.", 40, "transposition")
 
     if has_all(white, {"d4", "c4", "Nc3"}) and has_all(black, {"Nf6", "e6", "Bb4"}):
-        add("Nimzo-Indian Defence", 0.92, "Black pins Nc3 with ...Bb4 after ...Nf6/...e6.")
+        add("Nimzo-Indian Defence", 0.92, "Black pins Nc3 with ...Bb4 after ...Nf6/...e6.", 42, "transposition")
 
     if has_all(white, {"d4", "c4", "g3"}) and ("Bg2" in white or len(white) <= 5) and ("Nf6" in black or "d5" in black or "e6" in black):
-        add("Catalan Opening", 0.86, "White combines d4/c4 with g3/Bg2.")
+        add("Catalan Opening", 0.86, "White combines d4/c4 with g3/Bg2.", 38, "transposition")
 
-    if "d4" in white and ("Bf4" in white or "Bg5" in white) and ("Nf3" in white or "e3" in white or "c3" in white):
-        add("London System", 0.82, "White builds a d4 plus Bf4/Bg5 system setup.")
+    if "d4" in white and "Nc3" in white and "Bf4" in white and "c4" not in white:
+        add("Jobava London System", 0.88, "White combines d4, Nc3, and Bf4 in a Jobava London setup.", 40, "transposition")
+    elif "d4" in white and ("Bf4" in white or "Bg5" in white) and ("Nf3" in white or "e3" in white or "c3" in white):
+        add("London System", 0.84, "White builds a d4 plus Bf4/Bg5 system setup.", 36, "transposition")
 
-    if early[:2] == ["e4", "d6"] and ("Nf6" in black or "g6" in black):
-        add("Pirc Defence", 0.84, "Black uses ...d6 with kingside development against 1.e4.")
-    if early[:2] == ["e4", "g6"] or ("g6" in black and "Bg7" in black and "Nf6" not in black[:3]):
-        add("Modern Defence", 0.78, "Black fianchettoes early and delays a classical centre.")
+    if "e4" in white and "d4" in white and "d6" in black and "Nf6" in black and ("g6" in black or "Bg7" in black):
+        add("Pirc Defence", 0.88, "Black reaches the Pirc ...d6/...Nf6/...g6 setup against e4/d4.", 40, "transposition")
+    elif early[:2] == ["e4", "d6"] and ("Nf6" in black or "g6" in black):
+        add("Pirc Defence", 0.84, "Black uses ...d6 with kingside development against 1.e4.", 34, "transposition")
+    if early[:2] == ["e4", "g6"] or ("e4" in white and "g6" in black and "Bg7" in black and "Nf6" not in black[:3]):
+        add("Modern Defence", 0.8, "Black fianchettoes early and delays a classical centre.", 34, "transposition")
 
     return signals
 
@@ -521,28 +573,38 @@ def piece_placement_signals(moves: list[str]) -> list[dict[str, Any]]:
     black = side_moves(early, False)
     signals: list[dict[str, Any]] = []
 
-    def add(opening: str, confidence: float, evidence: str) -> None:
+    def add(opening: str, confidence: float, evidence: str, weight: int = 20, signal_type: str = "piece_placement") -> None:
         signals.append(
             {
-                "type": "piece_placement",
+                "type": signal_type,
                 "opening": opening,
                 "family": family_for_opening(opening),
                 "confidence": confidence,
-                "weight": 20,
+                "weight": weight,
                 "evidence": evidence,
             }
         )
 
-    if early[:4] == ["e4", "e5", "Nf3", "Nc6"] and "Bb5" in white[:4]:
-        add("Ruy Lopez", 0.94, "White develops Bb5 against the knight defending e5.")
-    if early[:4] == ["e4", "e5", "Nf3", "Nc6"] and "Bc4" in white[:4]:
-        add("Italian Game", 0.92, "White develops Bc4 in an open game.")
-    if early[:4] == ["e4", "e5", "Nf3", "Nc6"] and "d4" in white[:4]:
-        add("Scotch Game", 0.9, "White opens the centre with d4 in an open game.")
-    if early[:2] == ["e4", "e5"] and "Nc3" in white[:3]:
-        add("Vienna Game", 0.84, "White develops Nc3 before Nf3 or alongside f4 ideas.")
+    is_open_game = early[:2] == ["e4", "e5"]
+    both_white_knights = "Nf3" in white[:4] and "Nc3" in white[:4]
+    both_black_knights = "Nf6" in black[:4] and "Nc6" in black[:4]
+
+    if is_open_game and both_white_knights and both_black_knights:
+        add("Four Knights Game", 0.9, "Both sides develop both knights, so the game has transposed to a Four Knights structure.", 48, "transposition")
+    if is_open_game and "Bb5" in white[:4] and not both_white_knights:
+        add("Ruy Lopez", 0.94, "White develops Bb5 against the knight defending e5.", 28)
+    if is_open_game and "Bc4" in white[:4] and "Nf3" in white[:4] and not both_white_knights:
+        add("Italian Game", 0.92, "White develops Nf3 and Bc4 in an open game.", 28)
+    if is_open_game and "Bc4" in white[:4] and "Nf3" not in white[:3] and "Nc3" in white[:3]:
+        add("Vienna Game", 0.76, "White reaches Bc4 from a Vienna-style Nc3 move order, so exact line precision is limited.", 22)
+        add(OPEN_GAME_FAMILY, 0.78, "The move order overlaps Vienna and Italian themes; keeping it as an Open Game family is safer.", 30, "transposition")
+    if is_open_game and "d4" in white[:4] and "Nf3" in white[:3]:
+        add("Scotch Game", 0.9, "White opens the centre with d4 in an open game.", 28)
+    if is_open_game and "Nc3" in white[:3] and not both_white_knights:
+        confidence = 0.9 if "f4" in white[:3] or "Bc4" in white[:3] else 0.8
+        add("Vienna Game", confidence, "White develops Nc3 before Nf3 or alongside Vienna attacking ideas.", 28)
     if early[:2] == ["e4", "e5"] and "f4" in white[:3]:
-        add("King's Gambit", 0.92, "White challenges e5 with early f4.")
+        add("King's Gambit", 0.92, "White challenges e5 with early f4.", 30)
     if count_matches(black, {"g6", "Bg7", "d6", "O-O"}) >= 3 and count_matches(white, {"d4", "c4", "Nf3", "Nc3", "e4"}) >= 2:
         add("King's Indian Defence", 0.82, "Black's pieces form a fianchettoed King's Indian shell.")
     if count_matches(black, {"Nf6", "g6", "Bg7", "d5"}) >= 3 and count_matches(white, {"d4", "c4", "Nc3"}) >= 2:

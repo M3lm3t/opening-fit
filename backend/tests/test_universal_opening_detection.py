@@ -12,17 +12,20 @@ OPENING_CASES = [
     ("Modern Defence", ["e4", "g6", "d4", "Bg7", "Nc3", "d6"]),
     ("King's Indian Defence", ["d4", "Nf6", "c4", "g6", "Nc3", "Bg7", "e4", "d6"]),
     ("Grünfeld Defence", ["d4", "Nf6", "c4", "g6", "Nc3", "d5"]),
-    ("Queen's Gambit", ["d4", "d5", "c4", "e6"]),
+    ("Queen's Gambit", ["d4", "d5", "c4", "dxc4"]),
+    ("Queen's Gambit Declined", ["d4", "d5", "c4", "e6", "Nc3", "Nf6"]),
     ("Slav Defence", ["d4", "d5", "c4", "c6"]),
     ("Nimzo-Indian Defence", ["d4", "Nf6", "c4", "e6", "Nc3", "Bb4"]),
     ("English Opening", ["c4", "e5", "Nc3", "Nf6"]),
     ("Catalan Opening", ["d4", "Nf6", "c4", "e6", "g3", "d5", "Bg2"]),
     ("London System", ["d4", "Nf6", "Nf3", "d5", "Bf4", "e6"]),
+    ("Jobava London System", ["d4", "Nf6", "Nc3", "d5", "Bf4", "e6"]),
     ("Benoni Defence", ["d4", "Nf6", "c4", "c5", "d5", "e6"]),
     ("Dutch Defence", ["d4", "f5", "g3", "Nf6"]),
     ("Scandinavian Defence", ["e4", "d5", "exd5", "Qxd5"]),
     ("Alekhine Defence", ["e4", "Nf6", "e5", "Nd5"]),
     ("Vienna Game", ["e4", "e5", "Nc3", "Nf6"]),
+    ("Four Knights Game", ["e4", "e5", "Nc3", "Nf6", "Nf3", "Nc6"]),
     ("King's Gambit", ["e4", "e5", "f4", "exf4"]),
 ]
 
@@ -52,6 +55,23 @@ def test_eco_ranges_cover_major_families():
     assert eco_family("B12") == "Caro-Kann Defence"
     assert eco_family("C65") == "Ruy Lopez"
     assert eco_family("D15") == "Slav Defence"
+    assert eco_family("D35") == "Queen's Gambit Declined"
     assert eco_family("E20") == "Nimzo-Indian Defence"
     assert eco_family("E70") == "King's Indian Defence"
 
+
+def test_transpositions_override_first_move_labels():
+    english_to_qgd = detect_opening(["c4", "e6", "d4", "d5", "Nc3", "Nf6", "Nf3", "Be7"])
+    reti_to_slav = detect_opening(["Nf3", "d5", "c4", "c6", "d4", "Nf6", "Nc3"])
+    reti_to_sicilian = detect_opening(["Nf3", "c5", "e4", "d6", "d4", "cxd4"])
+
+    assert english_to_qgd["opening"] == "Queen's Gambit Declined"
+    assert reti_to_slav["opening"] == "Slav Defence"
+    assert reti_to_sicilian["opening"] == "Sicilian Defence"
+
+
+def test_uncertain_systems_prefer_broad_family_over_wrong_precision():
+    queen_pawn = detect_opening(["d4", "Nf6", "Nc3", "e6", "Bg5", "Be7"])
+
+    assert queen_pawn["opening"] == "Queen's Pawn Opening"
+    assert queen_pawn["confidence"] in {"medium", "high"}

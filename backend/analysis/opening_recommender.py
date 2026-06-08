@@ -58,12 +58,43 @@ def flatten_current_openings(current_opening_stats: Any) -> Dict[str, Dict[str, 
             return
         key = normalise_name(name)
         existing = flattened.get(key, {"name": name, "games": 0, "wins": 0, "draws": 0, "losses": 0})
-        existing["games"] = int(existing.get("games", 0) or 0) + int(item.get("games", 0) or 0)
+        previous_games = int(existing.get("games", 0) or 0)
+        item_games = int(item.get("games", 0) or item.get("games_played", 0) or item.get("gamesPlayed", 0) or 0)
+        existing["games"] = int(existing.get("games", 0) or 0) + item_games
         existing["wins"] = int(existing.get("wins", 0) or 0) + int(item.get("wins", 0) or 0)
         existing["draws"] = int(existing.get("draws", 0) or 0) + int(item.get("draws", 0) or 0)
         existing["losses"] = int(existing.get("losses", 0) or 0) + int(item.get("losses", 0) or 0)
         existing["context"] = item.get("context") or item.get("repertoireContext") or existing.get("context")
         existing["score"] = score_for_opening_stats(existing)
+
+        clarity_score = item.get("planClarityScore", item.get("plan_clarity_score"))
+        if clarity_score is not None:
+            clarity_score = float(clarity_score or 0)
+            previous_score = existing.get("planClarityScore")
+            if previous_score is None or previous_games <= 0:
+                existing["planClarityScore"] = clarity_score
+            else:
+                total_games = max(1, previous_games + item_games)
+                existing["planClarityScore"] = (
+                    float(previous_score or 0) * previous_games + clarity_score * item_games
+                ) / total_games
+            existing["plan_clarity_score"] = existing["planClarityScore"]
+
+        clarity_status = item.get("planClarityStatus") or item.get("plan_clarity_status")
+        current_status = existing.get("planClarityStatus")
+        status_priority = {"Clear plan": 3, "Some plan": 2, "Unclear plan": 1, "Too little data": 0}
+        if clarity_status and (
+            not current_status
+            or status_priority.get(str(clarity_status), 0) > status_priority.get(str(current_status), 0)
+        ):
+            existing["planClarityStatus"] = clarity_status
+            existing["plan_clarity_status"] = clarity_status
+
+        clarity_note = item.get("planClarityNote") or item.get("plan_clarity_note")
+        if clarity_note and not existing.get("planClarityNote"):
+            existing["planClarityNote"] = clarity_note
+            existing["plan_clarity_note"] = clarity_note
+
         flattened[key] = existing
 
     if isinstance(current_opening_stats, dict):
@@ -170,6 +201,27 @@ def existing_opening_adjustment(item: OpeningCatalogItem, stats: Optional[Dict[s
         return -12
     if score < 45:
         return -6
+    return 0
+
+
+def plan_clarity_adjustment(stats: Optional[Dict[str, Any]]) -> float:
+    if not stats:
+        return 0
+
+    games = int(stats.get("games", 0) or 0)
+    if games < 3:
+        return 0
+
+    status = str(stats.get("planClarityStatus") or stats.get("plan_clarity_status") or "").lower()
+    score = stats.get("planClarityScore", stats.get("plan_clarity_score"))
+    score = float(score or 0)
+
+    if status == "clear plan" or score >= 72:
+        return 7
+    if status == "some plan" or score >= 52:
+        return 2
+    if status == "unclear plan" or (score and score < 45):
+        return -9 if games >= 5 else -5
     return 0
 
 
@@ -311,6 +363,7 @@ def build_recommendation(
     fit -= theory_penalty(item, rating, traits)
     fit += successful_tag_boost(item, current_stats, catalog_lookup)
     fit += existing_opening_adjustment(item, stats)
+    fit += plan_clarity_adjustment(stats)
     fit_score = clamp_score(fit)
     upgrade = upgrade_type(stats)
     confidence = confidence_details_for_recommendation(
@@ -332,6 +385,12 @@ def build_recommendation(
         "confidence_reason": confidence["reason"],
         "confidenceReason": confidence["reason"],
         "reason": reason_for_item(item, traits, upgrade),
+        "plan_clarity_status": stats.get("planClarityStatus") if stats else None,
+        "planClarityStatus": stats.get("planClarityStatus") if stats else None,
+        "plan_clarity_score": round(float(stats.get("planClarityScore", 0) or 0)) if stats else None,
+        "planClarityScore": round(float(stats.get("planClarityScore", 0) or 0)) if stats else None,
+        "plan_clarity_note": stats.get("planClarityNote") if stats else None,
+        "planClarityNote": stats.get("planClarityNote") if stats else None,
         "evidence": list(style_fingerprint.get("evidence") or [])[:3],
         "learning_cost": learning_cost(item),
         "learningCost": learning_cost(item),
