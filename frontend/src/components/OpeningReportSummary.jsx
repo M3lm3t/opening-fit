@@ -236,6 +236,20 @@ function getPlanClarityReport(data) {
   return { ...report, items };
 }
 
+function getMainOpeningLeak(data) {
+  const leak = data?.mainOpeningLeak || data?.main_opening_leak || null;
+  if (!leak || typeof leak !== "object") return null;
+  const evidence = Array.isArray(leak.evidence)
+    ? leak.evidence.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 4)
+    : [];
+
+  return {
+    ...leak,
+    evidence,
+    action: String(leak.suggestedAction || leak.suggested_action || "").trim(),
+  };
+}
+
 function collectOpenings(data) {
   const candidates = [
     data?.topOpenings,
@@ -513,6 +527,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const repertoireIdentitySummary = getRepertoireIdentitySummary(data);
   const recommendedRepertoirePlan = getRecommendedRepertoirePlan(data);
   const planClarityReport = getPlanClarityReport(data);
+  const mainOpeningLeak = getMainOpeningLeak(data);
 
   return (
     <section className="openingReportShell">
@@ -559,6 +574,21 @@ export default function OpeningReportSummary({ data, username, platform }) {
           </p>
         </div>
       </div>
+
+      {mainOpeningLeak ? (
+        <div className="openingReportMainLeak">
+          <strong>{mainOpeningLeak.hasLeak === false || mainOpeningLeak.has_leak === false ? "Main opening leak" : mainOpeningLeak.title}</strong>
+          <span>{mainOpeningLeak.summary}</span>
+          {mainOpeningLeak.evidence.length ? (
+            <ul>
+              {mainOpeningLeak.evidence.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          ) : null}
+          {mainOpeningLeak.action ? <small>{mainOpeningLeak.action}</small> : null}
+        </div>
+      ) : null}
 
       {repertoireIdentitySummary ? (
         <div className="openingReportIdentity">
@@ -970,6 +1000,9 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type, data })
               openingRiskProfile: opening.raw?.openingRiskProfile || opening.raw?.opening_risk_profile,
               practicalDifficultyNote: opening.raw?.practicalDifficultyNote || opening.raw?.practical_difficulty_note,
               practicalDifficultyPenalty: opening.raw?.practicalDifficultyPenalty || opening.raw?.practical_difficulty_penalty,
+              fixabilityCategory: opening.raw?.fixabilityCategory || opening.raw?.fixability_category,
+              fixabilityScore: opening.raw?.fixabilityScore || opening.raw?.fixability_score,
+              fixabilityExplanation: opening.raw?.fixabilityExplanation || opening.raw?.fixability_explanation,
               comparisonText,
               reason,
               nextAction:

@@ -614,6 +614,8 @@ export function getEvidenceReason(opening, data) {
   const explicit = textField(opening, [
     "practicalDifficultyNote",
     "practical_difficulty_note",
+    "fixabilityExplanation",
+    "fixability_explanation",
     "planClarityNote",
     "plan_clarity_note",
     "lossTimingNote",
@@ -765,6 +767,9 @@ export function getOpeningEvidence(opening, data, options = {}) {
       : "",
     opening?.planClarityStatus || opening?.plan_clarity_status
       ? `Plan: ${opening.planClarityStatus || opening.plan_clarity_status}`
+      : "",
+    opening?.fixabilityCategory || opening?.fixability_category
+      ? `Fixability: ${opening.fixabilityCategory || opening.fixability_category}`
       : "",
     baseline,
     signal.badge,

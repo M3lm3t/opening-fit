@@ -17,7 +17,7 @@ from opening_detection import (
     normalise_opening_name as detect_normalise_opening_name,
     pgn_tag_value,
 )
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import os
 from dotenv import load_dotenv
 import re
@@ -3752,6 +3752,171 @@ def apply_opening_risk_profiles(openings: List[Dict[str, Any]], rating: Optional
     return [apply_opening_risk_profile(item, rating) for item in openings or []]
 
 
+def opening_fixability_fields(
+    opening: Dict[str, Any],
+    related_problem_lines: Optional[List[Dict[str, Any]]] = None,
+    rating: Optional[int] = None,
+) -> Dict[str, Any]:
+    name = str(opening.get("name") or opening.get("opening") or "this opening")
+    games = int(opening.get("games", 0) or 0)
+    losses = int(opening.get("losses", 0) or 0)
+    score = float(opening.get("openingAdjustedScore", opening.get("winRate", opening.get("win_rate", 50))) or 50)
+    opening_losses = int(opening.get("openingLosses", opening.get("opening_losses", 0)) or 0)
+    late_losses = int(opening.get("lateLosses", opening.get("late_losses", 0)) or 0)
+    plan_score = int(opening.get("planClarityScore", opening.get("plan_clarity_score", 0)) or 0)
+    variation_count = int(opening.get("moveOrderVariationCount", opening.get("move_order_variation_count", 0)) or 0)
+    related_lines = related_problem_lines or []
+    problem_line_count = len(related_lines)
+    risk = opening.get("openingRiskProfile") or opening.get("opening_risk_profile") or opening_risk_profile(name)
+    theory = str(risk.get("theoryLoad") or risk.get("theory_load") or "medium")
+    band = rating_band(rating)
+    penalty = int(opening.get("practicalDifficultyPenalty", opening.get("practical_difficulty_penalty", 0)) or 0)
+
+    ease = 55
+    reasons = []
+
+    if games < 5:
+        ease -= 18
+        reasons.append("The sample is still small, so the fix/replace call is provisional.")
+    elif games >= 12:
+        ease += 8
+        reasons.append(f"The sample is useful enough to judge: {games} games.")
+    else:
+        reasons.append(f"The sample is moderate: {games} games.")
+
+    if problem_line_count == 1:
+        ease += 18
+        reasons.append("The issue appears concentrated in one repeated line.")
+    elif problem_line_count >= 3:
+        ease -= 22
+        reasons.append("Problems appear across several unrelated early lines.")
+    elif problem_line_count == 2:
+        ease -= 8
+        reasons.append("There are two separate repeated problem lines.")
+    elif variation_count >= 5:
+        ease -= 12
+        reasons.append("Your early move orders vary a lot, so the fix is less targeted.")
+
+    if losses:
+        if opening_losses >= max(2, math.ceil(losses * 0.5)):
+            ease += 10
+            reasons.append("Losses are happening early, which makes the opening issue easier to isolate.")
+        elif late_losses >= max(2, math.ceil(losses * 0.5)):
+            ease -= 8
+            reasons.append("Many losses are late, so the opening may not be the main cause.")
+
+    if plan_score >= 70:
+        ease += 10
+        reasons.append("Plan clarity is good, so one branch may be fixable without changing openings.")
+    elif plan_score and plan_score < 45:
+        ease -= 14
+        reasons.append("Plan clarity is low, so the problem may be structural rather than one move.")
+
+    if theory == "high":
+        ease -= 14
+        reasons.append("The opening has a high theory load.")
+    elif theory == "low":
+        ease += 6
+        reasons.append("The opening is practical enough to repair without heavy theory.")
+
+    if band in {"under_1000", "1000_1400"} and (theory == "high" or penalty >= 10):
+        ease -= 12
+        reasons.append("For this rating band, the practical difficulty is a real factor.")
+
+    if score < 38:
+        ease -= 12
+        reasons.append(f"The adjusted score is low at {round(score, 1)}%.")
+    elif score >= 50:
+        ease += 8
+        reasons.append(f"The adjusted score is still workable at {round(score, 1)}%.")
+
+    ease = max(0, min(100, round(ease)))
+
+    enough_to_replace = games >= 8 and confidence_numeric_score(str(opening.get("confidence") or "")) >= 42
+    broad_and_hard = problem_line_count >= 3 or (variation_count >= 6 and plan_score < 45)
+    difficult_for_band = theory == "high" and band in {"under_1000", "1000_1400", "unknown"}
+
+    if enough_to_replace and score < 42 and (broad_and_hard or difficult_for_band):
+        category = "Better to replace"
+        explanation = (
+            f"Better to replace: {name} is scoring poorly across a hard-to-isolate pattern, "
+            "so a simpler system may save study time."
+        )
+    elif ease >= 70:
+        category = "Easy fix"
+        explanation = f"Easy fix: {name} is workable overall, but one repeated issue is hurting results."
+    elif ease >= 45:
+        category = "Medium fix"
+        explanation = f"Medium fix: {name} is probably repairable, but the fix needs a focused review plan."
+    else:
+        category = "Hard fix"
+        explanation = f"Hard fix: {name} has multiple or unclear problems, so repair may take more work than usual."
+
+    return {
+        "fixabilityScore": ease,
+        "fixability_score": ease,
+        "fixabilityCategory": category,
+        "fixability_category": category,
+        "fixabilityExplanation": explanation,
+        "fixability_explanation": explanation,
+        "fixabilityReasons": reasons[:5],
+        "fixability_reasons": reasons[:5],
+        "problemLineCount": problem_line_count,
+        "problem_line_count": problem_line_count,
+    }
+
+
+def apply_opening_fixability(
+    opening: Dict[str, Any],
+    related_problem_lines: Optional[List[Dict[str, Any]]] = None,
+    rating: Optional[int] = None,
+) -> Dict[str, Any]:
+    adjusted = {**opening}
+    adjusted.update(opening_fixability_fields(adjusted, related_problem_lines, rating))
+    category = str(adjusted.get("fixabilityCategory") or "")
+    games = int(adjusted.get("games", 0) or 0)
+
+    if category == "Better to replace" and games >= 8:
+        verdict = "Replace"
+    elif category in {"Easy fix", "Medium fix"} and str(adjusted.get("verdict") or "").lower() == "replace":
+        verdict = "Fix"
+    else:
+        verdict = str(adjusted.get("verdict") or adjusted.get("fitVerdict") or "Fix")
+
+    adjusted["verdict"] = verdict
+    adjusted["fitVerdict"] = verdict
+    adjusted["fit_verdict"] = verdict
+    adjusted["recommendationCategory"] = verdict
+    adjusted["recommendation_category"] = verdict
+    adjusted["verdictReason"] = adjusted["fixabilityExplanation"]
+    adjusted["verdict_reason"] = adjusted["fixabilityExplanation"]
+
+    evidence = list(adjusted.get("evidence") or adjusted.get("evidenceBullets") or [])
+    if adjusted["fixabilityExplanation"] not in evidence:
+        evidence.append(adjusted["fixabilityExplanation"])
+    adjusted["evidence"] = evidence[:5]
+    adjusted["evidenceBullets"] = adjusted["evidence"]
+    return adjusted
+
+
+def apply_opening_fixability_scores(
+    openings: List[Dict[str, Any]],
+    problem_lines: List[Dict[str, Any]],
+    rating: Optional[int] = None,
+) -> List[Dict[str, Any]]:
+    lines_by_opening = defaultdict(list)
+    for line in problem_lines or []:
+        key = normalise_opening_key(str(line.get("opening") or line.get("name") or ""))
+        if key:
+            lines_by_opening[key].append(line)
+
+    enriched = []
+    for opening in openings or []:
+        key = normalise_opening_key(str(opening.get("name") or opening.get("opening") or ""))
+        enriched.append(apply_opening_fixability(opening, lines_by_opening.get(key, []), rating))
+    return enriched
+
+
 def sort_openings_for_recommendation(openings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return sorted(
         openings or [],
@@ -4026,6 +4191,19 @@ def first_style_experiment(style_opening_match: Optional[Dict[str, Any]]) -> Opt
     return None
 
 
+def fixability_priority_value(category: str) -> int:
+    label = str(category or "").lower()
+    if "easy" in label:
+        return 0
+    if "medium" in label:
+        return 1
+    if "hard" in label:
+        return 2
+    if "replace" in label:
+        return 3
+    return 4
+
+
 def build_study_queue(
     best_openings: List[Dict[str, Any]],
     problem_lines: List[Dict[str, Any]],
@@ -4035,24 +4213,44 @@ def build_study_queue(
     style_opening_match: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, str]]:
     tasks: List[Dict[str, str]] = []
+    opening_by_key = {
+        normalise_opening_key(str(item.get("name") or item.get("opening") or "")): item
+        for item in best_openings or []
+    }
 
     if problem_lines:
-        line = problem_lines[0]
+        def line_priority(line_item: Dict[str, Any]) -> Tuple[int, int, float, int]:
+            opening = opening_by_key.get(normalise_opening_key(str(line_item.get("opening") or line_item.get("name") or ""))) or {}
+            return (
+                fixability_priority_value(str(opening.get("fixabilityCategory") or opening.get("fixability_category") or "")),
+                -int(opening.get("games", 0) or line_item.get("games", 0) or 0),
+                -float(line_item.get("lossRate", 0) or 0),
+                -int(line_item.get("losses", 0) or 0),
+            )
+
+        line = sorted(problem_lines, key=line_priority)[0]
         opening = str(line.get("opening") or line.get("name") or "this opening")
         move_line = str(line.get("line") or "the repeated early line")
         losses = int(line.get("losses", 0) or 0)
         games = int(line.get("games", 0) or 0)
+        opening_row = opening_by_key.get(normalise_opening_key(opening), {})
+        fixability = str(opening_row.get("fixabilityCategory") or opening_row.get("fixability_category") or "Medium fix")
+        fixability_explanation = str(opening_row.get("fixabilityExplanation") or opening_row.get("fixability_explanation") or "")
         tasks.append(
             study_task(
                 f"Fix your {opening} line",
-                f"Your results drop after {move_line}; this line produced {losses} loss{'' if losses == 1 else 'es'} in {games} repeated games.",
+                f"{fixability}: your results drop after {move_line}; this line produced {losses} loss{'' if losses == 1 else 'es'} in {games} repeated games.",
                 "Review one simple setup for this line, then play 5 focused games and re-import.",
-                "high",
+                "high" if fixability in {"Easy fix", "Medium fix"} else "medium",
                 opening,
                 context_colour_label(str(line.get("context") or "")),
                 "weakest_repeated_line",
             )
         )
+        if fixability_explanation:
+            tasks[-1]["why"] = f"{tasks[-1]['why']} {fixability_explanation}"
+            tasks[-1]["whyItMatters"] = tasks[-1]["why"]
+            tasks[-1]["why_it_matters"] = tasks[-1]["why"]
 
     missing_rows = []
     for row in (coverage or {}).get("white", []) + (coverage or {}).get("black", []):
@@ -4182,7 +4380,10 @@ def build_study_queue(
         deduped.append(task)
         if len(deduped) >= 5:
             break
-    return deduped
+    priority_rank = {"high": 0, "medium": 1, "low": 2}
+    source_rank = {"weakest_repeated_line": 0, "most_harmful_opening_habit": 1, "biggest_repertoire_gap": 2}
+    deduped.sort(key=lambda task: (priority_rank.get(task.get("priority", "medium"), 1), source_rank.get(task.get("source", ""), 4)))
+    return deduped[:5]
 
 
 def roi_category(score: int, games: int) -> str:
@@ -4509,6 +4710,278 @@ def build_plan_clarity_report(best_openings: List[Dict[str, Any]]) -> Dict[str, 
         "unclearCount": len([item for item in items if item["status"] == "Unclear plan"]),
         "unclear_count": len([item for item in items if item["status"] == "Unclear plan"]),
     }
+
+
+def opening_score_pct(opening: Optional[Dict[str, Any]], fallback: float = 50) -> float:
+    if not opening:
+        return fallback
+    value = opening.get("openingAdjustedScore", opening.get("winRate", opening.get("win_rate", fallback)))
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def main_leak_confidence_label(score: int) -> str:
+    if score >= 75:
+        return "High confidence"
+    if score >= 58:
+        return "Medium confidence"
+    if score >= 40:
+        return "Low confidence"
+    return "Too little data"
+
+
+def build_main_opening_leak(
+    best_openings: List[Dict[str, Any]],
+    coverage: Dict[str, Any],
+    problem_lines: List[Dict[str, Any]],
+    opening_phase_habits: List[Dict[str, Any]],
+    coherence: Optional[Dict[str, Any]],
+    plan_clarity_report: Optional[Dict[str, Any]],
+    opening_roi: Optional[Dict[str, Any]],
+    total_games: int,
+    rating: Optional[int] = None,
+) -> Dict[str, Any]:
+    repeated = [
+        item for item in best_openings or []
+        if is_clean_repertoire_context(item)
+        and not is_unknown_opening_name(item.get("name", ""))
+        and int(item.get("games", 0) or 0) >= 3
+    ]
+    if total_games < 10 or not repeated:
+        return {
+            "available": False,
+            "hasLeak": False,
+            "has_leak": False,
+            "type": "too_little_data",
+            "title": "Main opening leak not clear yet",
+            "summary": "OpeningFit needs more repeated games before naming one main opening leak.",
+            "suggestedAction": "Play 5 more games in your main White and Black systems, then re-import.",
+            "suggested_action": "Play 5 more games in your main White and Black systems, then re-import.",
+            "candidates": [],
+        }
+
+    candidates = []
+
+    def add_candidate(
+        leak_type: str,
+        title: str,
+        summary: str,
+        action: str,
+        frequency: int,
+        severity: int,
+        confidence: int,
+        fixability: int,
+        rating_relevance: int,
+        opening: str = "",
+        evidence: Optional[List[str]] = None,
+    ) -> None:
+        score = round(
+            frequency * 0.24
+            + severity * 0.30
+            + confidence * 0.18
+            + fixability * 0.18
+            + rating_relevance * 0.10
+        )
+        candidates.append(
+            {
+                "type": leak_type,
+                "title": title,
+                "summary": summary,
+                "suggestedAction": action,
+                "suggested_action": action,
+                "opening": opening,
+                "score": score,
+                "confidence": main_leak_confidence_label(confidence),
+                "factors": {
+                    "frequency": frequency,
+                    "severity": severity,
+                    "sampleConfidence": confidence,
+                    "sample_confidence": confidence,
+                    "fixability": fixability,
+                    "ratingRelevance": rating_relevance,
+                    "rating_relevance": rating_relevance,
+                },
+                "evidence": [str(item).strip() for item in evidence or [] if str(item).strip()][:4],
+            }
+        )
+
+    total_opening_games = max(1, sum(int(item.get("games", 0) or 0) for item in repeated))
+    black_d4 = best_by_context(best_openings, "black_vs_d4") or best_by_context(best_openings, "black_vs_d4_other") or best_by_context(best_openings, "black_vs_other")
+    black_d4_row = next((row for row in (coverage or {}).get("black", []) if row.get("key") == "black_vs_d4"), None)
+    if black_d4_row and black_d4_row.get("status") in {"No clear plan", "Too little data", "Needs work"}:
+        games = int((black_d4 or {}).get("games", black_d4_row.get("games", 0)) or 0)
+        add_candidate(
+            "black_vs_d4_gap",
+            "Main opening leak: Black vs 1.d4",
+            "Your main opening leak is Black vs 1.d4. You do not currently have a stable system there.",
+            "Choose one simple Black setup against 1.d4 and use it for the next 5 games.",
+            frequency=min(100, 45 + games * 3),
+            severity=88 if black_d4_row.get("status") == "No clear plan" else 72,
+            confidence=75 if total_games >= 20 else 55,
+            fixability=88,
+            rating_relevance=82 if rating_band(rating) in {"under_1000", "1000_1400", "1400_1800", "unknown"} else 65,
+            opening=str((black_d4 or {}).get("name") or ""),
+            evidence=[f"Coverage status: {black_d4_row.get('status')}.", "A stable Black answer to 1.d4 affects a core repertoire area."],
+        )
+
+    black_e4 = best_by_context(best_openings, "black_vs_e4")
+    if black_e4 and int(black_e4.get("games", 0) or 0) >= 5 and opening_score_pct(black_e4) < 45:
+        games = int(black_e4.get("games", 0) or 0)
+        score = opening_score_pct(black_e4)
+        add_candidate(
+            "black_vs_e4_poor_results",
+            f"Main opening leak: {black_e4.get('name')} vs 1.e4",
+            f"Your main Black defence vs 1.e4 is underperforming at {round(score, 1)}%.",
+            f"Review your last 3 {black_e4.get('name')} games and fix the first repeated branch before changing openings.",
+            frequency=min(100, round((games / total_opening_games) * 100)),
+            severity=min(100, round(80 + max(0, 45 - score))),
+            confidence=confidence_numeric_score(str(black_e4.get("confidence") or "")),
+            fixability=76,
+            rating_relevance=80,
+            opening=str(black_e4.get("name") or ""),
+            evidence=[f"{games} games in this Black vs 1.e4 sample.", f"Score: {round(score, 1)}%."],
+        )
+
+    white_lane = next((row for row in (coherence or {}).get("rows", []) or [] if row.get("key") == "white"), None)
+    if white_lane and white_lane.get("status") in {"Fragmented", "Too random to train efficiently"}:
+        add_candidate(
+            "white_fragmented",
+            "Main opening leak: fragmented White repertoire",
+            "Your White repertoire is too fragmented, so it is hard to build one repeatable plan.",
+            "Pick one main White opening and avoid adding new White systems until the sample stabilises.",
+            frequency=min(100, int(white_lane.get("totalGames", 0) or 0) * 4),
+            severity=78 if white_lane.get("status") == "Fragmented" else 88,
+            confidence=70 if int(white_lane.get("totalGames", 0) or 0) >= 8 else 45,
+            fixability=82,
+            rating_relevance=86,
+            evidence=[str(white_lane.get("summary") or ""), str(white_lane.get("advice") or "")],
+        )
+
+    if problem_lines:
+        line = problem_lines[0]
+        games = int(line.get("games", 0) or 0)
+        loss_rate = float(line.get("lossRate", 0) or 0)
+        opening = str(line.get("opening") or line.get("name") or "this opening")
+        add_candidate(
+            "repeated_early_losses",
+            f"Main opening leak: repeated early losses in {opening}",
+            str(line.get("summary") or f"{opening} has a repeated early problem line."),
+            f"Study the repeated {opening} line first, then play 5 focused games from the same setup.",
+            frequency=min(100, games * 16),
+            severity=min(100, round(loss_rate + 25)),
+            confidence=80 if games >= 4 else 58,
+            fixability=90,
+            rating_relevance=82,
+            opening=opening,
+            evidence=list(line.get("evidence") or [])[:3],
+        )
+
+    clarity_items = (plan_clarity_report or {}).get("items", []) or []
+    most_common = max(repeated, key=lambda item: int(item.get("games", 0) or 0), default=None)
+    if most_common:
+        clarity = next((item for item in clarity_items if normalise_opening_key(item.get("name", "")) == normalise_opening_key(most_common.get("name", ""))), None)
+        status = str((clarity or {}).get("status") or most_common.get("planClarityStatus") or "")
+        if status == "Unclear plan":
+            games = int(most_common.get("games", 0) or 0)
+            add_candidate(
+                "low_plan_clarity_main_opening",
+                f"Main opening leak: unclear plan in {most_common.get('name')}",
+                f"{most_common.get('name')} is your most common opening, but the follow-up plan is unclear.",
+                f"Write one move-10 plan for {most_common.get('name')} and use the same setup for the next 5 games.",
+                frequency=min(100, round((games / total_opening_games) * 100)),
+                severity=78,
+                confidence=75 if games >= 5 else 50,
+                fixability=88,
+                rating_relevance=84,
+                opening=str(most_common.get("name") or ""),
+                evidence=[str((clarity or {}).get("note") or most_common.get("planClarityNote") or "")],
+            )
+
+    messy = [
+        row for row in (coherence or {}).get("rows", []) or []
+        if row.get("status") in {"Fragmented", "Too random to train efficiently"}
+        and int(row.get("lowSampleOpeningCount", row.get("low_sample_opening_count", 0)) or 0) >= 2
+    ]
+    if messy:
+        row = sorted(messy, key=lambda value: int(value.get("lowSampleOpeningCount", value.get("low_sample_opening_count", 0)) or 0), reverse=True)[0]
+        low_count = int(row.get("lowSampleOpeningCount", row.get("low_sample_opening_count", 0)) or 0)
+        add_candidate(
+            "too_many_random_openings",
+            f"Main opening leak: too many random openings in {row.get('label')}",
+            f"{row.get('label')} has {low_count} low-sample openings, which makes training inefficient.",
+            f"Simplify {str(row.get('label') or 'this repertoire area').lower()} to one main system and one backup.",
+            frequency=min(100, int(row.get("totalGames", 0) or 0) * 4),
+            severity=70 + min(20, low_count * 4),
+            confidence=70,
+            fixability=84,
+            rating_relevance=88,
+            evidence=[str(row.get("summary") or ""), str(row.get("advice") or "")],
+        )
+
+    if opening_phase_habits:
+        habit = sorted(opening_phase_habits, key=lambda item: (float(item.get("lossRate", 0) or 0), int(item.get("games", 0) or 0)), reverse=True)[0]
+        if habit.get("issue") in {"castled_late_or_never", "minor_pieces_undeveloped", "too_many_pawn_moves", "king_stuck_in_centre"}:
+            games = int(habit.get("games", 0) or 0)
+            add_candidate(
+                "development_castling_habit",
+                f"Main opening leak: {str(habit.get('label') or 'opening habit').lower()}",
+                str(habit.get("summary") or "A repeated development or castling habit is hurting your openings."),
+                str(habit.get("advice") or "Prioritise development and king safety in the first 10 moves."),
+                frequency=min(100, games * 16),
+                severity=min(100, round(float(habit.get("lossRate", 0) or 0) + 20)),
+                confidence=70 if games >= 3 else 48,
+                fixability=92,
+                rating_relevance=90 if rating_band(rating) in {"under_1000", "1000_1400", "unknown"} else 72,
+                opening=str(habit.get("opening") or habit.get("name") or ""),
+                evidence=list(habit.get("evidence") or [])[:3],
+            )
+
+    candidates.sort(key=lambda item: item["score"], reverse=True)
+    if not candidates or candidates[0]["score"] < 52:
+        return {
+            "available": False,
+            "hasLeak": False,
+            "has_leak": False,
+            "type": "too_weak_signal",
+            "title": "Main opening leak not clear yet",
+            "summary": "No single opening leak is strong enough to isolate from the current data.",
+            "suggestedAction": "Keep collecting games in the same core repertoire before changing study priorities.",
+            "suggested_action": "Keep collecting games in the same core repertoire before changing study priorities.",
+            "candidates": candidates[:4],
+        }
+
+    winner = candidates[0]
+    return {
+        "available": True,
+        "hasLeak": True,
+        "has_leak": True,
+        **winner,
+        "candidates": candidates[:4],
+    }
+
+
+def connect_main_leak_to_training_actions(main_opening_leak: Dict[str, Any], actions: List[str]) -> List[str]:
+    cleaned = [str(action).strip() for action in actions or [] if str(action).strip()]
+    if not main_opening_leak.get("hasLeak") and not main_opening_leak.get("available"):
+        return cleaned[:3]
+
+    leak_action = str(
+        main_opening_leak.get("suggestedAction")
+        or main_opening_leak.get("suggested_action")
+        or ""
+    ).strip()
+    if not leak_action:
+        return cleaned[:3]
+
+    deduped = [leak_action]
+    for action in cleaned:
+        if action not in deduped:
+            deduped.append(action)
+        if len(deduped) >= 3:
+            break
+    return deduped[:3]
 
 
 def simple_gap_filler(slot: str, rating: Optional[int], style_profile: Dict[str, Any]) -> Dict[str, str]:
@@ -5411,6 +5884,10 @@ def build_recommendations(
             recommendations.append(
                 f"Your best-scoring recurring opening is {top_title}."
             )
+        if top.get("fixabilityCategory") and str(top.get("fixabilityCategory")) != "Easy fix":
+            recommendations.append(
+                str(top.get("fixabilityExplanation") or "OpeningFit also checked whether this problem looks fixable or replaceable.")
+            )
 
     labels = style_profile.get("labels", [])
 
@@ -5720,6 +6197,8 @@ def import_chesscom_logic(username: str, months: int = 3):
     opening_recommendations = build_colour_aware_recommendations(context_opening_results, rating=None)
     problem_lines = build_problem_lines(recent_games)
     engine_opening_validation = validate_problem_lines_with_stockfish(problem_lines)
+    best_openings = sort_openings_for_recommendation(apply_opening_fixability_scores(best_openings, problem_lines, None))
+    top_openings = sort_openings_for_recommendation(apply_opening_fixability_scores(top_openings, problem_lines, None))
     opening_phase_habits = build_opening_phase_habits(recent_games)
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
@@ -5778,6 +6257,18 @@ def import_chesscom_logic(username: str, months: int = 3):
         repertoire_coherence,
         style_opening_match,
     )
+    main_opening_leak = build_main_opening_leak(
+        best_openings,
+        repertoire_coverage,
+        problem_lines,
+        opening_phase_habits,
+        repertoire_coherence,
+        plan_clarity_report,
+        opening_roi,
+        len(analysed_games),
+        None,
+    )
+    next_training_actions = connect_main_leak_to_training_actions(main_opening_leak, next_training_actions)
     training_plan = next_training_actions
     if next_training_actions:
         recommended_action = next_training_actions[0]
@@ -5889,6 +6380,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "recommendedRepertoirePlan": recommended_repertoire_plan,
         "plan_clarity_report": plan_clarity_report,
         "planClarityReport": plan_clarity_report,
+        "main_opening_leak": main_opening_leak,
+        "mainOpeningLeak": main_opening_leak,
         "next_training_actions": next_training_actions,
         "nextTrainingActions": next_training_actions,
         "study_queue": study_queue,
@@ -6249,6 +6742,8 @@ def build_lichess_analysis(
     opening_recommendations = build_colour_aware_recommendations(context_opening_results, rating=current_rating)
     problem_lines = build_problem_lines(recent_games)
     engine_opening_validation = validate_problem_lines_with_stockfish(problem_lines)
+    best_openings = sort_openings_for_recommendation(apply_opening_fixability_scores(best_openings, problem_lines, current_rating))
+    top_openings = sort_openings_for_recommendation(apply_opening_fixability_scores(top_openings, problem_lines, current_rating))
     opening_phase_habits = build_opening_phase_habits(recent_games)
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
@@ -6307,6 +6802,18 @@ def build_lichess_analysis(
         repertoire_coherence,
         style_opening_match,
     )
+    main_opening_leak = build_main_opening_leak(
+        best_openings,
+        repertoire_coverage,
+        problem_lines,
+        opening_phase_habits,
+        repertoire_coherence,
+        plan_clarity_report,
+        opening_roi,
+        len(games),
+        current_rating,
+    )
+    next_training_actions = connect_main_leak_to_training_actions(main_opening_leak, next_training_actions)
     training_plan = next_training_actions
     if next_training_actions:
         recommended_action = next_training_actions[0]
@@ -6431,6 +6938,8 @@ def build_lichess_analysis(
         "recommendedRepertoirePlan": recommended_repertoire_plan,
         "plan_clarity_report": plan_clarity_report,
         "planClarityReport": plan_clarity_report,
+        "main_opening_leak": main_opening_leak,
+        "mainOpeningLeak": main_opening_leak,
         "next_training_actions": next_training_actions,
         "nextTrainingActions": next_training_actions,
         "study_queue": study_queue,
