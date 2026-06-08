@@ -3697,6 +3697,186 @@ def cap_confidence_for_import_quality(openings: List[Dict[str, Any]], import_qua
     return adjusted
 
 
+def normalise_time_control_group(value: Any) -> str:
+    text = str(value or "unknown").strip().lower()
+    if text in {"bullet"}:
+        return "bullet"
+    if text in {"blitz"}:
+        return "blitz"
+    if text in {"rapid"}:
+        return "rapid"
+    if text in {"daily", "classical", "correspondence"}:
+        return "daily/classical"
+    return "unknown"
+
+
+def time_control_confidence(games: int) -> str:
+    if games >= 12:
+        return "High confidence"
+    if games >= 7:
+        return "Medium confidence"
+    if games >= 3:
+        return "Low confidence"
+    return "Too little data"
+
+
+def time_control_result_score(row: Dict[str, int]) -> float:
+    games = int(row.get("games", 0) or 0)
+    if not games:
+        return 0
+    return round(((int(row.get("wins", 0) or 0) + int(row.get("draws", 0) or 0) * 0.5) / games) * 100, 1)
+
+
+def build_time_control_opening_report(
+    games: List[Dict[str, Any]],
+    best_openings: List[Dict[str, Any]],
+    min_total_games: int = 8,
+    min_group_games: int = 3,
+) -> Dict[str, Any]:
+    opening_lookup = {
+        (normalise_opening_key(str(item.get("name") or item.get("opening") or "")), str(item.get("context") or item.get("repertoireContext") or "")): item
+        for item in best_openings or []
+    }
+    grouped: Dict[Tuple[str, str], Dict[str, Any]] = {}
+
+    for game in games or []:
+        opening = str(game.get("opening") or game.get("name") or "").strip()
+        if not opening or is_unknown_opening_name(opening):
+            continue
+        context = str(game.get("context") or game.get("repertoireContext") or "unknown_mixed")
+        key = (normalise_opening_key(opening), context)
+        row = grouped.setdefault(
+            key,
+            {
+                "opening": opening,
+                "name": opening,
+                "context": context,
+                "contextLabel": context_label(context),
+                "groups": defaultdict(lambda: {"games": 0, "wins": 0, "draws": 0, "losses": 0, "opening_losses": 0, "middlegame_losses": 0, "late_losses": 0, "unknown_losses": 0}),
+            },
+        )
+        group = normalise_time_control_group(game.get("time_class") or game.get("timeClass"))
+        stats = row["groups"][group]
+        stats["games"] += 1
+        result = str(game.get("result") or "").lower()
+        if result == "win":
+            stats["wins"] += 1
+        elif result == "draw":
+            stats["draws"] += 1
+        elif result == "loss":
+            stats["losses"] += 1
+            timing = game.get("loss_timing") or game.get("lossTiming") or {}
+            bucket = str(timing.get("bucket") or "")
+            if bucket == "opening":
+                stats["opening_losses"] += 1
+            elif bucket == "middlegame":
+                stats["middlegame_losses"] += 1
+            elif bucket == "late":
+                stats["late_losses"] += 1
+            else:
+                stats["unknown_losses"] += 1
+
+    items = []
+    for key, row in grouped.items():
+        groups = []
+        total_games = 0
+        for label in ["bullet", "blitz", "rapid", "daily/classical", "unknown"]:
+            stats = row["groups"].get(label)
+            if not stats:
+                continue
+            games_count = int(stats.get("games", 0) or 0)
+            total_games += games_count
+            score = time_control_result_score(stats)
+            groups.append(
+                {
+                    "group": label,
+                    "label": label.title() if label != "daily/classical" else "Daily/classical",
+                    "games": games_count,
+                    "score": score,
+                    "resultScore": score,
+                    "result_score": score,
+                    "confidence": time_control_confidence(games_count),
+                    "lossTiming": {
+                        "opening": int(stats.get("opening_losses", 0) or 0),
+                        "middlegame": int(stats.get("middlegame_losses", 0) or 0),
+                        "late": int(stats.get("late_losses", 0) or 0),
+                        "unknown": int(stats.get("unknown_losses", 0) or 0),
+                    },
+                    "loss_timing": {
+                        "opening": int(stats.get("opening_losses", 0) or 0),
+                        "middlegame": int(stats.get("middlegame_losses", 0) or 0),
+                        "late": int(stats.get("late_losses", 0) or 0),
+                        "unknown": int(stats.get("unknown_losses", 0) or 0),
+                    },
+                }
+            )
+
+        meaningful = [item for item in groups if int(item.get("games", 0) or 0) >= min_group_games]
+        if total_games < min_total_games or len(meaningful) < 2:
+            continue
+
+        best_group = max(meaningful, key=lambda item: (float(item.get("score", 0) or 0), int(item.get("games", 0) or 0)))
+        weakest_group = min(meaningful, key=lambda item: (float(item.get("score", 0) or 0), -int(item.get("games", 0) or 0)))
+        delta = round(float(best_group.get("score", 0) or 0) - float(weakest_group.get("score", 0) or 0), 1)
+        opening_info = opening_lookup.get(key) or opening_lookup.get((key[0], "unknown_mixed")) or {}
+        plan_status = str(opening_info.get("planClarityStatus") or opening_info.get("plan_clarity_status") or "Unavailable")
+        plan_score = int(opening_info.get("planClarityScore", opening_info.get("plan_clarity_score", 0)) or 0)
+
+        if delta < 12:
+            summary = f"{row['opening']}: results are similar across meaningful time-control samples."
+            advice = "Do not change the opening by time control yet; the difference is not large enough."
+        else:
+            summary = f"{row['opening']}: stronger in {best_group['group']} than {weakest_group['group']}."
+            if weakest_group["group"] in {"bullet", "blitz"}:
+                advice = f"Treat weak {weakest_group['group']} results as a speed-practice issue before replacing the opening."
+            else:
+                advice = f"Review why {row['opening']} drops in {weakest_group['group']} before using the same advice across all time controls."
+
+        if weakest_group["lossTiming"]["opening"] >= max(2, math.ceil(int(weakest_group.get("games", 0) or 0) * 0.4)):
+            advice = f"{advice} Losses in {weakest_group['group']} often happen early, so the opening plan may need review there."
+
+        items.append(
+            {
+                "opening": row["opening"],
+                "name": row["opening"],
+                "context": row["context"],
+                "contextLabel": row["contextLabel"],
+                "totalGames": total_games,
+                "total_games": total_games,
+                "groups": groups,
+                "meaningfulGroups": meaningful,
+                "meaningful_groups": meaningful,
+                "bestGroup": best_group,
+                "best_group": best_group,
+                "weakestGroup": weakest_group,
+                "weakest_group": weakest_group,
+                "scoreDelta": delta,
+                "score_delta": delta,
+                "planClarityStatus": plan_status,
+                "plan_clarity_status": plan_status,
+                "planClarityScore": plan_score,
+                "plan_clarity_score": plan_score,
+                "summary": summary,
+                "advice": advice,
+                "confidence": "Medium confidence" if min(int(best_group.get("games", 0) or 0), int(weakest_group.get("games", 0) or 0)) >= 7 else "Low confidence",
+            }
+        )
+
+    items.sort(key=lambda item: (float(item.get("scoreDelta", 0) or 0), int(item.get("totalGames", 0) or 0)), reverse=True)
+    if not items:
+        return {
+            "enabled": False,
+            "summary": "Time-control split needs at least two meaningful samples for the same opening before it can compare advice.",
+            "items": [],
+        }
+
+    return {
+        "enabled": True,
+        "summary": "Time-control split checks whether opening advice changes between bullet, blitz, rapid, and longer games.",
+        "items": items[:5],
+    }
+
+
 def sanitise_recommendation_sections(sections: Dict[str, Any]) -> Dict[str, Any]:
     primary_keys = ["white_repertoire", "black_vs_e4", "black_vs_d4", "black_vs_other"]
     seen: Dict[str, Dict[str, Any]] = {}
@@ -6549,6 +6729,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     rating_band_benchmark = build_rating_band_benchmark(None, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, None)
     plan_clarity_report = build_plan_clarity_report(best_openings)
+    time_control_opening_report = build_time_control_opening_report(recent_games, best_openings)
     repertoire_identity_summary = build_repertoire_identity_summary(best_openings, style_profile, repertoire_coherence)
     recommended_repertoire_plan = build_recommended_repertoire_plan(
         best_openings,
@@ -6721,6 +6902,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "recommendedRepertoirePlan": recommended_repertoire_plan,
         "plan_clarity_report": plan_clarity_report,
         "planClarityReport": plan_clarity_report,
+        "time_control_opening_report": time_control_opening_report,
+        "timeControlOpeningReport": time_control_opening_report,
         "main_opening_leak": main_opening_leak,
         "mainOpeningLeak": main_opening_leak,
         "next_training_actions": next_training_actions,
@@ -7104,6 +7287,7 @@ def build_lichess_analysis(
     rating_band_benchmark = build_rating_band_benchmark(current_rating, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, current_rating)
     plan_clarity_report = build_plan_clarity_report(best_openings)
+    time_control_opening_report = build_time_control_opening_report(recent_games, best_openings)
     repertoire_identity_summary = build_repertoire_identity_summary(best_openings, style_profile, repertoire_coherence)
     recommended_repertoire_plan = build_recommended_repertoire_plan(
         best_openings,
@@ -7289,6 +7473,8 @@ def build_lichess_analysis(
         "recommendedRepertoirePlan": recommended_repertoire_plan,
         "plan_clarity_report": plan_clarity_report,
         "planClarityReport": plan_clarity_report,
+        "time_control_opening_report": time_control_opening_report,
+        "timeControlOpeningReport": time_control_opening_report,
         "main_opening_leak": main_opening_leak,
         "mainOpeningLeak": main_opening_leak,
         "next_training_actions": next_training_actions,

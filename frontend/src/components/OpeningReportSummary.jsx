@@ -253,6 +253,14 @@ function getPlanClarityReport(data) {
   return { ...report, items };
 }
 
+function getTimeControlOpeningReport(data) {
+  const report = data?.timeControlOpeningReport || data?.time_control_opening_report || null;
+  if (!report || typeof report !== "object" || report.enabled === false) return null;
+  const items = Array.isArray(report.items) ? report.items.slice(0, 5) : [];
+  if (!items.length) return null;
+  return { ...report, items };
+}
+
 function getMainOpeningLeak(data) {
   const leak = data?.mainOpeningLeak || data?.main_opening_leak || null;
   if (!leak || typeof leak !== "object") return null;
@@ -546,6 +554,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const repertoireIdentitySummary = getRepertoireIdentitySummary(data);
   const recommendedRepertoirePlan = getRecommendedRepertoirePlan(data);
   const planClarityReport = getPlanClarityReport(data);
+  const timeControlOpeningReport = getTimeControlOpeningReport(data);
   const mainOpeningLeak = getMainOpeningLeak(data);
 
   return (
@@ -791,6 +800,29 @@ export default function OpeningReportSummary({ data, username, platform }) {
                 <small>{item.note}</small>
               </li>
             ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {timeControlOpeningReport ? (
+        <div className="openingReportTimeControl">
+          <strong>Time-control opening split</strong>
+          <span>{timeControlOpeningReport.summary}</span>
+          <ul>
+            {timeControlOpeningReport.items.map((item) => {
+              const best = item.bestGroup || item.best_group || {};
+              const weakest = item.weakestGroup || item.weakest_group || {};
+              return (
+                <li key={`${item.opening || item.name}-${item.context || ""}`}>
+                  <span>{item.summary}</span>
+                  <em>
+                    Best: {best.label || best.group} · {best.score ?? best.resultScore ?? 0}% / Weakest:{" "}
+                    {weakest.label || weakest.group} · {weakest.score ?? weakest.resultScore ?? 0}%
+                  </em>
+                  <small>{item.advice}</small>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}
