@@ -86,6 +86,8 @@ import { mergeWeakLines } from "./services/weakLineDetection";
 import { buildOpeningGamificationSnapshot } from "./services/openingGamification";
 import { buildTrainingRecommendations } from "./services/trainingRecommendations";
 import { DEMO_REPORT } from "./demoReportData";
+import { buildApiUrl, logApiDiagnostic } from "./lib/apiBase";
+import { importGames as importGamesFromApi } from "./lib/importClient";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
 import ReportCommandBar from "./components/ReportCommandBar";
@@ -128,8 +130,6 @@ import {
   Target,
 } from "lucide-react";
 import "./ThemePolish.css";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
 const STORAGE_KEY = "openingFit:lastAnalysis";
 const USERNAME_KEY = "openingFit:lastUsername";
@@ -11931,7 +11931,7 @@ function App() {
 
     async function checkApiHealth() {
       try {
-        const response = await fetch(`${API_BASE}/api/health`);
+        const response = await fetch(buildApiUrl("/api/health"));
 
         if (!mounted) return;
 
@@ -11984,7 +11984,7 @@ function App() {
 
   async function trackEvent(event, eventData = {}) {
     try {
-      await fetch(`${API_BASE}/api/analytics/event`, {
+      await fetch(buildApiUrl("/api/analytics/event"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -12007,6 +12007,10 @@ function App() {
     const lower = String(errorText).toLowerCase();
     const platformLabel = platforms[selectedPlatformKey]?.label || "the selected platform";
 
+    if (lower.includes("timeout") || lower.includes("too long")) {
+      return "The import took too long. Please try fewer months or try again.";
+    }
+
     if (lower.includes("abort") || lower.includes("cancel")) {
       return "Import cancelled. You can adjust the username or platform and try again.";
     }
@@ -12020,7 +12024,7 @@ function App() {
     }
 
     if (lower.includes("not found") || lower.includes("could not find")) {
-      return `Could not find that username on ${platformLabel}. Check the spelling, selected platform, and capitalization, then try again.`;
+      return `We couldn’t find that ${platformLabel} username.`;
     }
 
     if (
@@ -12038,7 +12042,7 @@ function App() {
     }
 
     if (lower.includes("rate limiting") || lower.includes("429")) {
-      return `${platformLabel} is temporarily limiting requests. Wait a minute, then try again.`;
+      return "The chess platform is rate limiting requests. Please try again shortly.";
     }
 
     if (
@@ -12048,15 +12052,15 @@ function App() {
       lower.includes("could not connect") ||
       lower.includes("load failed")
     ) {
-      return "OpeningFit could not reach the import service. The backend may be waking up or temporarily unavailable. Please try again in a moment.";
+      return "OpeningFit could not reach the analysis server. Please try again in a moment.";
     }
 
     if (lower.includes("500") || lower.includes("502") || lower.includes("503") || lower.includes("504")) {
-      return "The import service hit a temporary problem while analysing those games. Please retry in a moment.";
+      return "The analysis server hit an error while importing games.";
     }
 
     if (lower.includes("404") && selectedPlatformKey === "lichess") {
-      return "OpeningFit could not find that Lichess account or the Lichess import route was unavailable. Check the username and try again.";
+      return "We couldn’t find that Lichess username.";
     }
 
     try {
@@ -12587,6 +12591,14 @@ function App() {
       .slice(0, 10)}`;
     const abortController = new AbortController();
     importAbortRef.current = abortController;
+    let importRequestDetails = {
+      platform: selectedPlatformKey,
+      username: cleanUsername,
+      months: monthsToImport,
+      url: "",
+      status: null,
+      responseText: "",
+    };
 
     setLoading(true);
     setLoadingStep(
@@ -12643,29 +12655,27 @@ function App() {
           : `Fetching your recent ${selectedPlatform.label} games...`
       );
 
-      const res = await fetch(
-        `${API_BASE}/api/import/${selectedPlatform.apiPath}/${encodeURIComponent(
-          cleanUsername
-        )}?months=${monthsToImport}`,
-        { signal: abortController.signal }
-      );
+      const importResult = await importGamesFromApi({
+        platform: selectedPlatform.apiPath,
+        username: cleanUsername,
+        months: monthsToImport,
+        controller: abortController,
+      });
+      const json = importResult.data;
+      importRequestDetails = {
+        ...importRequestDetails,
+        url: importResult.url,
+        status: importResult.status,
+        responseText: importResult.responseText,
+      };
 
-      const text = await res.text();
-      let json = null;
-
-      try {
-        json = JSON.parse(text);
-      } catch {
-        json = null;
-      }
-
-      if (!res.ok || !json) {
-        throw new Error(
-          json?.detail ||
-            text ||
-            "We could not import those games right now. Please check the username and try again."
-        );
-      }
+      logApiDiagnostic("import response", {
+        url: importResult.url,
+        platform: selectedPlatformKey,
+        months: monthsToImport,
+        status: importResult.status,
+        ok: true,
+      });
 
       setLoadingStep("Detecting openings...");
       await new Promise((resolve) => setTimeout(resolve, 250));
@@ -12820,7 +12830,45 @@ function App() {
 
       scrollToResults();
     } catch (err) {
-      if (err?.name === "AbortError") {
+      importRequestDetails = {
+        ...importRequestDetails,
+        url: err?.url || importRequestDetails.url,
+        status: err?.status ?? importRequestDetails.status,
+        responseText: err?.responseText || importRequestDetails.responseText,
+      };
+
+      console.error("OpeningFit import failed", {
+        platform: selectedPlatformKey,
+        username: cleanUsername,
+        months: monthsToImport,
+        url: importRequestDetails.url,
+        status: importRequestDetails.status,
+        responseText: importRequestDetails.responseText,
+        errorName: err?.errorName || err?.name,
+        errorMessage: err?.message,
+        errorType: err?.type || "unknown",
+      });
+
+      logApiDiagnostic("import failure", {
+        name: err?.name,
+        message: err?.message,
+        type: err?.type,
+        status: err?.status,
+        platform: selectedPlatformKey,
+      });
+
+      if (err?.type === "timeout") {
+        setError(getFriendlyError("timeout", selectedPlatformKey));
+        setImportStatus({
+          tone: "warning",
+          title: "Import took too long",
+          message: "OpeningFit stopped waiting for this import so the page would not hang.",
+          meta: selectedPlatform.label,
+        });
+        return;
+      }
+
+      if (err?.name === "AbortError" || err?.message === "Import cancelled.") {
         setError("");
         setImportStatus({
           tone: "info",
@@ -12876,7 +12924,7 @@ function App() {
 
       for (const endpoint of ["/api/feedback", "/api/feedback-local"]) {
         try {
-          const response = await fetch(`${API_BASE}${endpoint}`, {
+          const response = await fetch(buildApiUrl(endpoint), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

@@ -1,13 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { buildApiUrl, getApiBaseUrl } from "../lib/apiBase";
 
 const STORAGE_KEY = "openingfit.savedReports.v2";
 const FEEDBACK_KEY = "openingfit.localFeedback.v1";
-
-function getApiBase() {
-  const envBase = import.meta?.env?.VITE_API_URL;
-  if (envBase) return envBase.replace(/\/$/, "");
-  return "";
-}
 
 function getReports() {
   try {
@@ -93,7 +88,7 @@ export default function OpeningFitFunctionalityHub({
   const [feedbackStatus, setFeedbackStatus] = useState("");
   const [qaOpen, setQaOpen] = useState(false);
 
-  const apiBase = getApiBase();
+  const apiBase = getApiBaseUrl();
 
   const reportSummary = useMemo(() => {
     if (!data) return null;
@@ -141,7 +136,7 @@ export default function OpeningFitFunctionalityHub({
 
     async function checkBackend() {
       try {
-        const response = await fetch(`${apiBase}/api/health`, {
+        const response = await fetch(buildApiUrl("/api/health"), {
           method: "GET",
           headers: { Accept: "application/json" },
         });
@@ -263,7 +258,7 @@ export default function OpeningFitFunctionalityHub({
 
     setFeedbackStatus("Sending feedback...");
 
-    const endpoints = [`${apiBase}/api/feedback`, `${apiBase}/api/feedback-local`];
+    const endpoints = [buildApiUrl("/api/feedback"), buildApiUrl("/api/feedback-local")];
 
     for (const endpoint of endpoints) {
       try {

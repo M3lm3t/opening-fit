@@ -1,6 +1,5 @@
 import { supabase } from "./lib/supabaseClient";
-
-const API_BASE = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8001").replace(/\/$/, "");
+import { buildApiUrl, getApiBaseUrl } from "./lib/apiBase";
 
 async function readJsonOrText(response) {
   const contentType = response.headers.get("content-type") || "";
@@ -45,7 +44,7 @@ async function authHeaders() {
 export async function syncAccountProfile({ user, username, platform, lastReport }) {
   if (!user?.id) return null;
 
-  const response = await fetch(`${API_BASE}/api/account/sync`, {
+  const response = await fetch(buildApiUrl("/api/account/sync"), {
     method: "POST",
     headers: await authHeaders(),
     body: JSON.stringify({
@@ -69,7 +68,7 @@ export async function syncAccountProfile({ user, username, platform, lastReport 
 export async function loadAccountProfile(userId) {
   if (!userId) return null;
 
-  const response = await fetch(`${API_BASE}/api/account/profile/${userId}`, {
+  const response = await fetch(buildApiUrl(`/api/account/profile/${userId}`), {
     headers: await authHeaders(),
   });
 
@@ -90,11 +89,11 @@ export async function startPremiumCheckout(user) {
     console.info("OpeningFit checkout requested", {
       userId: user.id,
       hasEmail: Boolean(user.email),
-      apiBase: API_BASE,
+      apiBase: getApiBaseUrl(),
     });
   }
 
-  const response = await fetch(`${API_BASE}/api/account/create-checkout-session`, {
+  const response = await fetch(buildApiUrl("/api/account/create-checkout-session"), {
     method: "POST",
     headers: await authHeaders(),
     body: JSON.stringify({
@@ -132,7 +131,7 @@ export async function startPremiumCheckout(user) {
 export async function syncPremiumCheckoutSession(user, sessionId) {
   if (!user?.id || !sessionId) return null;
 
-  const response = await fetch(`${API_BASE}/api/account/sync-checkout-session`, {
+  const response = await fetch(buildApiUrl("/api/account/sync-checkout-session"), {
     method: "POST",
     headers: await authHeaders(),
     body: JSON.stringify({
@@ -159,7 +158,7 @@ export async function deleteOpeningFitAccount(userId) {
     throw new Error("Missing user id.");
   }
 
-  const response = await fetch(`${API_BASE}/api/account/${userId}`, {
+  const response = await fetch(buildApiUrl(`/api/account/${userId}`), {
     method: "DELETE",
     headers: await authHeaders(),
   });

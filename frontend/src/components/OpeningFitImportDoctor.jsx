@@ -1,10 +1,5 @@
 import { useState } from "react";
-
-function getApiBase() {
-  const envBase = import.meta?.env?.VITE_API_URL;
-  if (envBase) return envBase.replace(/\/$/, "");
-  return "";
-}
+import { buildApiUrl, getApiBaseUrl } from "../lib/apiBase";
 
 function toast(message) {
   window.dispatchEvent(new CustomEvent("openingfit-toast", { detail: message }));
@@ -14,7 +9,7 @@ export default function OpeningFitImportDoctor({ username }) {
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState(null);
 
-  const apiBase = getApiBase();
+  const apiBase = getApiBaseUrl();
 
   const runCheck = async () => {
     const cleanUsername = String(username || "").trim();
@@ -29,7 +24,7 @@ export default function OpeningFitImportDoctor({ username }) {
 
     try {
       const response = await fetch(
-        `${apiBase}/api/diagnose/chesscom/${encodeURIComponent(cleanUsername)}`,
+        buildApiUrl(`/api/diagnose/chesscom/${encodeURIComponent(cleanUsername)}`),
         {
           method: "GET",
           headers: { Accept: "application/json" },
@@ -54,7 +49,7 @@ export default function OpeningFitImportDoctor({ username }) {
         status: "error",
         title: "Backend not reachable",
         message:
-          "The frontend could not reach the backend. Check VITE_API_URL and make sure FastAPI is running.",
+          `The frontend could not reach the backend at ${apiBase}. Check VITE_API_BASE_URL and make sure FastAPI is running.`,
       });
     } finally {
       setChecking(false);

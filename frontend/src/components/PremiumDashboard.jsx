@@ -5,8 +5,7 @@ import {
   getSmartPlayerLevelProfile,
   isAdvancedOrStrongerLevel,
 } from "./playerLevelLogic";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
+import { buildApiUrl } from "../lib/apiBase";
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -430,7 +429,7 @@ export default function PremiumDashboard({
         throw new Error("No PGN game found yet. Import games first, then try Stockfish analysis.");
       }
 
-      const response = await fetch(`${API_BASE}/api/openingfit/analyse-position`, {
+      const response = await fetch(buildApiUrl("/api/openingfit/analyse-position"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

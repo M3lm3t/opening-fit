@@ -25,6 +25,9 @@ import json
 import math
 import hashlib
 import shutil
+import logging
+import sys
+import traceback
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from uuid import UUID
@@ -42,6 +45,48 @@ load_dotenv(".env")
 load_dotenv(".env.local", override=False)
 
 app = FastAPI(title="Opening Fit API")
+logger = logging.getLogger("openingfit.imports")
+
+
+SECRET_QUERY_KEYS = {"token", "key", "secret", "password", "authorization", "session", "access_token"}
+
+
+def safe_query_params(request: Request) -> Dict[str, str]:
+    safe_params = {}
+
+    for key, value in request.query_params.items():
+        if key.lower() in SECRET_QUERY_KEYS:
+            safe_params[key] = "[redacted]"
+        else:
+            safe_params[key] = value
+
+    return safe_params
+
+
+@app.middleware("http")
+async def log_unhandled_exceptions(request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        logger.error(
+            "unhandled_backend_exception method=%s path=%s query=%s origin=%s user_agent=%s exception_type=%s exception_message=%s traceback=%s",
+            request.method,
+            request.url.path,
+            safe_query_params(request),
+            request.headers.get("origin", ""),
+            request.headers.get("user-agent", ""),
+            exc.__class__.__name__,
+            str(exc),
+            traceback.format_exc(),
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "internal_server_error",
+                "message": "The analysis server hit an unexpected error.",
+            },
+        )
+
 
 @app.middleware("http")
 async def enrich_openingfit_analysis_payloads(request, call_next):
@@ -625,7 +670,419 @@ def health():
 
 @app.get("/api/health")
 def api_health():
-    return {"status": "ok"}
+    return {
+        "ok": True,
+        "service": "openingfit-api",
+    }
+
+
+def check_external_reachable(url: str, headers: Optional[Dict[str, str]] = None) -> bool:
+    try:
+        response = requests.get(url, headers=headers or {}, timeout=10)
+        return response.status_code < 500
+    except requests.RequestException:
+        return False
+
+
+def environment_label() -> str:
+    if os.getenv("RENDER"):
+        return "render"
+    return os.getenv("APP_ENV") or os.getenv("ENVIRONMENT") or "unknown"
+
+
+@app.get("/api/diagnostics/import")
+def import_diagnostics():
+    return {
+        "ok": True,
+        "service": "openingfit-api",
+        "time": now_iso(),
+        "environment": environment_label(),
+        "cors_origins_configured": bool(allowed_origins),
+        "chesscom_reachable": check_external_reachable(
+            "https://api.chess.com/pub/player/melmet",
+            headers=CHESSCOM_HEADERS,
+        ),
+        "lichess_reachable": check_external_reachable("https://lichess.org/api/user/QueenMaster77"),
+        "python_version": sys.version.split()[0],
+        "import_routes_registered": [
+            "/api/import/chesscom/{username}",
+            "/api/import/lichess/{username}",
+        ],
+    }
+
+
+@app.get("/api/diagnostics/import/chesscom/{username}")
+def chesscom_import_diagnostics(username: str, months: int = 3):
+    clean_username = username.strip()
+    clean_months = max(1, min(int(months or 3), 12))
+    diagnostics: Dict[str, Any] = {
+        "ok": False,
+        "service": "openingfit-api",
+        "platform": "chess.com",
+        "username": clean_username,
+        "months": clean_months,
+        "time": now_iso(),
+        "stages": [],
+    }
+
+    def stage(name: str, **values):
+        diagnostics["stages"].append({"stage": name, **values})
+
+    if not clean_username:
+        stage("username_received", ok=False)
+        return {**diagnostics, "failed_stage": "username_received", "message": "Username is required."}
+
+    stage("username_received", ok=True)
+
+    profile_url = f"https://api.chess.com/pub/player/{clean_username.lower()}"
+    stage("profile_url_called", url=profile_url)
+
+    try:
+        profile_response = requests.get(profile_url, headers=CHESSCOM_HEADERS, timeout=20)
+    except requests.RequestException as exc:
+        return {
+            **diagnostics,
+            "failed_stage": "profile_fetch",
+            "message": "Could not connect to Chess.com profile endpoint.",
+            "details": exc.__class__.__name__,
+        }
+
+    stage("profile_status_code", status_code=profile_response.status_code)
+
+    if profile_response.status_code == 404:
+        return {
+            **diagnostics,
+            "failed_stage": "profile_fetch",
+            "status_code": 404,
+            "message": "Chess.com username not found.",
+        }
+
+    if profile_response.status_code == 429:
+        return {
+            **diagnostics,
+            "failed_stage": "profile_fetch",
+            "status_code": 429,
+            "message": "Chess.com is rate limiting profile requests.",
+        }
+
+    if not profile_response.ok:
+        return {
+            **diagnostics,
+            "failed_stage": "profile_fetch",
+            "status_code": profile_response.status_code,
+            "message": "Chess.com blocked or rejected profile request.",
+        }
+
+    archives_url = f"https://api.chess.com/pub/player/{clean_username.lower()}/games/archives"
+    stage("archives_url_called", url=archives_url)
+
+    try:
+        archives_response = requests.get(archives_url, headers=CHESSCOM_HEADERS, timeout=20)
+    except requests.RequestException as exc:
+        return {
+            **diagnostics,
+            "failed_stage": "archives_fetch",
+            "message": "Could not connect to Chess.com archives endpoint.",
+            "details": exc.__class__.__name__,
+        }
+
+    stage("archive_list_status_code", status_code=archives_response.status_code)
+
+    if archives_response.status_code == 429:
+        return {
+            **diagnostics,
+            "failed_stage": "archives_fetch",
+            "status_code": 429,
+            "message": "Chess.com is rate limiting archive requests.",
+        }
+
+    if not archives_response.ok:
+        return {
+            **diagnostics,
+            "failed_stage": "archives_fetch",
+            "status_code": archives_response.status_code,
+            "message": "Chess.com blocked or rejected archive request.",
+        }
+
+    try:
+        archives_payload = archives_response.json()
+    except ValueError:
+        return {
+            **diagnostics,
+            "failed_stage": "archives_parse",
+            "status_code": archives_response.status_code,
+            "message": "Chess.com archives response was not valid JSON.",
+        }
+
+    archives = archives_payload.get("archives", [])
+    selected_archives = archives[-clean_months:] if len(archives) >= clean_months else archives
+    stage("archive_count", archive_count=len(archives))
+    stage("selected_archive_months", selected_archive_months=[extract_year_month(url) for url in selected_archives])
+
+    games_fetched_count = 0
+    pgns_parsed_count = 0
+
+    for archive_url in selected_archives:
+        try:
+            games_response = requests.get(archive_url, headers=CHESSCOM_HEADERS, timeout=20)
+        except requests.RequestException as exc:
+            return {
+                **diagnostics,
+                "failed_stage": "games_fetch",
+                "archive": extract_year_month(archive_url),
+                "message": "Could not connect to Chess.com game archive.",
+                "details": exc.__class__.__name__,
+            }
+
+        if not games_response.ok:
+            return {
+                **diagnostics,
+                "failed_stage": "games_fetch",
+                "archive": extract_year_month(archive_url),
+                "status_code": games_response.status_code,
+                "message": "Chess.com blocked or rejected game archive request.",
+            }
+
+        try:
+            games_payload = games_response.json()
+        except ValueError:
+            return {
+                **diagnostics,
+                "failed_stage": "games_parse",
+                "archive": extract_year_month(archive_url),
+                "message": "Chess.com game archive response was not valid JSON.",
+            }
+
+        games = games_payload.get("games", [])
+        games_fetched_count += len(games)
+        pgns_parsed_count += sum(1 for game in games if clean_moves_from_pgn(game.get("pgn", "")))
+
+    stage("games_fetched_count", games_fetched_count=games_fetched_count)
+    stage("pgns_parsed_count", pgns_parsed_count=pgns_parsed_count)
+
+    if not selected_archives or games_fetched_count == 0:
+        return {
+            **diagnostics,
+            "failed_stage": "not_enough_games",
+            "code": "not_enough_games",
+            "message": "We found this account, but there are not enough recent games to build a reliable opening report.",
+            "games_found": games_fetched_count,
+        }
+
+    try:
+        result = import_chesscom_logic(clean_username, clean_months)
+    except HTTPException as exc:
+        return {
+            **diagnostics,
+            "failed_stage": "final_analysis",
+            "status_code": exc.status_code,
+            "message": exc.detail,
+        }
+    except Exception as exc:
+        logger.exception(
+            "chesscom_diagnostic_final_analysis_failed username=%s months=%s reason=%s",
+            clean_username,
+            clean_months,
+            exc.__class__.__name__,
+        )
+        return {
+            **diagnostics,
+            "failed_stage": "final_analysis",
+            "message": "Final analysis raised an unexpected exception.",
+            "details": exc.__class__.__name__,
+        }
+
+    games_imported = int(result.get("gamesImported", 0) or 0) if isinstance(result, dict) else 0
+    stage("final_analysis_built", ok=games_imported > 0, games_imported=games_imported)
+
+    if games_imported <= 0:
+        return {
+            **diagnostics,
+            "failed_stage": "not_enough_games",
+            "code": "not_enough_games",
+            "message": "We found this account, but there are not enough recent games to build a reliable opening report.",
+            "games_found": int(result.get("gamesFound", games_fetched_count) or games_fetched_count) if isinstance(result, dict) else games_fetched_count,
+        }
+
+    return {
+        **diagnostics,
+        "ok": True,
+        "failed_stage": None,
+        "message": "Chess.com import diagnostics completed successfully.",
+        "games_found": int(result.get("gamesFound", games_fetched_count) or games_fetched_count),
+        "games_imported": games_imported,
+    }
+
+
+@app.get("/api/diagnostics/import/lichess/{username}")
+def lichess_import_diagnostics(username: str, months: int = 3):
+    clean_username = username.strip()
+    clean_months = max(1, min(int(months or 3), 12))
+    diagnostics: Dict[str, Any] = {
+        "ok": False,
+        "service": "openingfit-api",
+        "platform": "lichess",
+        "username": clean_username,
+        "months": clean_months,
+        "time": now_iso(),
+        "stages": [],
+    }
+
+    def stage(name: str, **values):
+        diagnostics["stages"].append({"stage": name, **values})
+
+    if not clean_username:
+        stage("username_received", ok=False)
+        return {**diagnostics, "failed_stage": "username_received", "message": "Username is required."}
+
+    stage("username_received", ok=True)
+    profile_url = f"https://lichess.org/api/user/{clean_username}"
+    stage("profile_url_called", url=profile_url)
+
+    try:
+        profile_response = requests.get(profile_url, timeout=20)
+    except requests.RequestException as exc:
+        return {
+            **diagnostics,
+            "failed_stage": "profile_fetch",
+            "message": "Could not connect to Lichess profile endpoint.",
+            "details": exc.__class__.__name__,
+        }
+
+    stage("profile_status_code", status_code=profile_response.status_code)
+
+    if profile_response.status_code == 404:
+        return {
+            **diagnostics,
+            "failed_stage": "profile_fetch",
+            "status_code": 404,
+            "message": "Lichess username not found.",
+        }
+
+    if profile_response.status_code == 429:
+        return {
+            **diagnostics,
+            "failed_stage": "profile_fetch",
+            "status_code": 429,
+            "message": "Lichess is rate limiting profile requests.",
+        }
+
+    if not profile_response.ok:
+        return {
+            **diagnostics,
+            "failed_stage": "profile_fetch",
+            "status_code": profile_response.status_code,
+            "message": "Lichess blocked or rejected profile request.",
+        }
+
+    games_url = f"https://lichess.org/api/games/user/{clean_username}"
+    since_date = datetime.now(timezone.utc) - timedelta(days=clean_months * 31)
+    since_ms = int(since_date.timestamp() * 1000)
+    params = {
+        "max": 300 if clean_months >= 12 else 100,
+        "since": since_ms,
+        "opening": "true",
+        "moves": "true",
+        "pgnInJson": "false",
+        "clocks": "false",
+        "evals": "false",
+        "perfType": "bullet,blitz,rapid,classical",
+        "sort": "dateDesc",
+    }
+    stage("games_url_called", url=games_url)
+
+    try:
+        games_response = requests.get(games_url, params=params, headers=LICHESS_HEADERS, timeout=30)
+    except requests.RequestException as exc:
+        return {
+            **diagnostics,
+            "failed_stage": "games_fetch",
+            "message": "Could not connect to Lichess games endpoint.",
+            "details": exc.__class__.__name__,
+        }
+
+    stage("games_status_code", status_code=games_response.status_code)
+
+    if games_response.status_code == 429:
+        return {
+            **diagnostics,
+            "failed_stage": "games_fetch",
+            "status_code": 429,
+            "message": "Lichess is rate limiting game requests.",
+        }
+
+    if not games_response.ok:
+        return {
+            **diagnostics,
+            "failed_stage": "games_fetch",
+            "status_code": games_response.status_code,
+            "message": "Lichess blocked or rejected games request.",
+        }
+
+    games = []
+    for line in games_response.text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            games.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+
+    stage("games_fetched_count", games_fetched_count=len(games))
+    stage("pgns_parsed_count", pgns_parsed_count=sum(1 for game in games if str(game.get("moves") or "").strip()))
+
+    if not games:
+        return {
+            **diagnostics,
+            "failed_stage": "not_enough_games",
+            "code": "not_enough_games",
+            "message": "We found this account, but there are not enough recent games to build a reliable opening report.",
+            "games_found": 0,
+        }
+
+    try:
+        result = import_lichess_logic(clean_username, clean_months)
+    except HTTPException as exc:
+        return {
+            **diagnostics,
+            "failed_stage": "final_analysis",
+            "status_code": exc.status_code,
+            "message": exc.detail,
+        }
+    except Exception as exc:
+        logger.exception(
+            "lichess_diagnostic_final_analysis_failed username=%s months=%s reason=%s",
+            clean_username,
+            clean_months,
+            exc.__class__.__name__,
+        )
+        return {
+            **diagnostics,
+            "failed_stage": "final_analysis",
+            "message": "Final analysis raised an unexpected exception.",
+            "details": exc.__class__.__name__,
+        }
+
+    games_imported = int(result.get("gamesImported", 0) or 0) if isinstance(result, dict) else 0
+    stage("final_analysis_built", ok=games_imported > 0, games_imported=games_imported)
+
+    if games_imported <= 0:
+        return {
+            **diagnostics,
+            "failed_stage": "not_enough_games",
+            "code": "not_enough_games",
+            "message": "We found this account, but there are not enough recent games to build a reliable opening report.",
+            "games_found": int(result.get("gamesFound", len(games)) or len(games)) if isinstance(result, dict) else len(games),
+        }
+
+    return {
+        **diagnostics,
+        "ok": True,
+        "failed_stage": None,
+        "message": "Lichess import diagnostics completed successfully.",
+        "games_found": int(result.get("gamesFound", len(games)) or len(games)),
+        "games_imported": games_imported,
+    }
 
 
 @app.get("/debug/chesscom/{username}")
@@ -718,10 +1175,7 @@ def fetch_archives(username: str) -> List[str]:
     archives = data.get("archives", [])
 
     if not archives:
-        raise HTTPException(
-            status_code=404,
-            detail=f"This Chess.com profile exists, but no public games were found for '{username}'.",
-        )
+        return []
 
     return archives
 
@@ -6924,6 +7378,76 @@ def build_premium_data(best_openings: List[Dict[str, Any]], style_profile: Dict[
     }
 
 
+def build_not_enough_games_import_result(
+    *,
+    username: str,
+    platform: str,
+    months: int,
+    games_found: int,
+    skipped_reason_counts: Optional[Dict[str, int]] = None,
+    message: str,
+    player_url: Optional[str] = None,
+    archives_checked: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    skipped_reason_counts = skipped_reason_counts or {key: 0 for key in SKIPPED_REASON_LABELS}
+    platform_label = "Chess.com" if platform == "chess.com" else "Lichess"
+
+    return {
+        "ok": False,
+        "code": "not_enough_games",
+        "message": message,
+        "username": username,
+        "player_url": player_url,
+        "playerUrl": player_url,
+        "platform": platform,
+        "importPlatform": platform,
+        "total_games": 0,
+        "totalGames": 0,
+        "gamesImported": 0,
+        "gamesFound": games_found,
+        "games_found": games_found,
+        "gamesAnalysed": 0,
+        "gamesAnalyzed": 0,
+        "skippedGames": games_found,
+        "skipped_game_reasons": skipped_reason_counts,
+        "skippedGameReasons": skipped_reason_items(skipped_reason_counts),
+        "months_checked": months,
+        "monthsChecked": months,
+        "archives_checked": archives_checked or [],
+        "archivesChecked": archives_checked or [],
+        "top_openings": [],
+        "topOpenings": [],
+        "best_openings": [],
+        "bestOpenings": [],
+        "preferred_white": [],
+        "preferredWhite": [],
+        "preferred_black": [],
+        "preferredBlack": [],
+        "recommendations": [
+            f"{platform_label} was reachable, but there were not enough recent public games to build an opening report."
+        ],
+        "recent_games": [],
+        "recentGames": [],
+        "opening_games": [],
+        "openingGames": [],
+        "style_profile": {"summary": message},
+        "styleProfile": {"summary": message},
+        "import_quality": {
+            "status": "not_enough_games",
+            "message": message,
+        },
+        "importQuality": {
+            "status": "not_enough_games",
+            "message": message,
+        },
+        "lastUpdated": now_iso(),
+        "importedAt": now_iso(),
+        "reportMode": "not_enough_games",
+        "report_mode": "not_enough_games",
+        **build_premium_data([], {"summary": message}),
+    }
+
+
 def import_chesscom_logic(username: str, months: int = 3):
     username = username.strip()
 
@@ -6952,6 +7476,17 @@ def import_chesscom_logic(username: str, months: int = 3):
     all_games: List[Dict[str, Any]] = []
     archive_breakdown = []
 
+    if not selected_archives:
+        return build_not_enough_games_import_result(
+            username=player.get("username", username),
+            platform="chess.com",
+            months=months,
+            games_found=0,
+            message=f"This Chess.com profile exists, but no public game archives were found for '{username}'.",
+            player_url=player.get("url"),
+            archives_checked=[],
+        )
+
     for archive_url in selected_archives:
         games = fetch_games_from_archive(archive_url)
         user_games = []
@@ -6974,12 +7509,32 @@ def import_chesscom_logic(username: str, months: int = 3):
         all_games.extend(user_games)
 
     if not all_games:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No games found for Chess.com user '{username}' in the selected archives.",
+        return build_not_enough_games_import_result(
+            username=player.get("username", username),
+            platform="chess.com",
+            months=len(selected_archives),
+            games_found=0,
+            message=f"No recent public Chess.com games were found for '{username}' in the selected archives.",
+            player_url=player.get("url"),
+            archives_checked=archive_breakdown,
         )
 
     analysed_games, skipped_reason_counts = split_usable_games(all_games, chesscom_skip_reason)
+
+    if not analysed_games:
+        return build_not_enough_games_import_result(
+            username=player.get("username", username),
+            platform="chess.com",
+            months=len(selected_archives),
+            games_found=len(all_games),
+            skipped_reason_counts=skipped_reason_counts,
+            message=(
+                "Chess.com games were found, but they were too short, unsupported, "
+                "or missing enough opening data to build a report."
+            ),
+            player_url=player.get("url"),
+            archives_checked=archive_breakdown,
+        )
 
     opening_counter = Counter()
     white_opening_counter = Counter()
@@ -8035,6 +8590,34 @@ def import_lichess_logic(username: str, months: int = 3):
         },
     )
 
+    user_url = f"https://lichess.org/api/user/{username}"
+
+    try:
+        user_response = requests.get(user_url, timeout=20)
+    except requests.RequestException:
+        raise HTTPException(
+            status_code=503,
+            detail="Could not connect to Lichess right now. Please try again later.",
+        )
+
+    if user_response.status_code == 404:
+        raise HTTPException(
+            status_code=404,
+            detail="Could not find that Lichess username. Check the spelling and try again.",
+        )
+
+    if user_response.status_code == 429:
+        raise HTTPException(
+            status_code=429,
+            detail="Lichess is temporarily rate limiting requests. Try again in a minute.",
+        )
+
+    if not user_response.ok:
+        raise HTTPException(
+            status_code=user_response.status_code,
+            detail=f"Lichess profile lookup failed: {user_response.text[:300]}",
+        )
+
     max_games = 300 if months >= 12 else 100
     since_date = datetime.now(timezone.utc) - timedelta(days=months * 31)
     since_ms = int(since_date.timestamp() * 1000)
@@ -8091,12 +8674,44 @@ def import_lichess_logic(username: str, months: int = 3):
             continue
 
     if not games:
-        raise HTTPException(
-            status_code=404,
-            detail="This Lichess profile exists, but no recent blitz, rapid, or classical public games were found.",
+        return build_not_enough_games_import_result(
+            username=username,
+            platform="lichess",
+            months=months,
+            games_found=0,
+            message="This Lichess profile exists, but no recent blitz, rapid, or classical public games were found.",
+            player_url=f"https://lichess.org/@/{username}",
+            archives_checked=[
+                {
+                    "archive": f"lichess-last-{months}-months",
+                    "games_found": 0,
+                    "gamesFound": 0,
+                }
+            ],
         )
 
     analysed_games, skipped_reason_counts = split_usable_games(games, lichess_skip_reason)
+
+    if not analysed_games:
+        return build_not_enough_games_import_result(
+            username=username,
+            platform="lichess",
+            months=months,
+            games_found=len(games),
+            skipped_reason_counts=skipped_reason_counts,
+            message=(
+                "Lichess games were found, but they were too short, unsupported, "
+                "or missing enough opening data to build a report."
+            ),
+            player_url=f"https://lichess.org/@/{username}",
+            archives_checked=[
+                {
+                    "archive": f"lichess-last-{months}-months",
+                    "games_found": len(games),
+                    "gamesFound": len(games),
+                }
+            ],
+        )
 
     return build_lichess_analysis(
         username,
@@ -8107,24 +8722,79 @@ def import_lichess_logic(username: str, months: int = 3):
     )
 
 
+def run_import_route(platform: str, username: str, months: int):
+    clean_username = username.strip()
+    clean_months = max(1, min(int(months or 3), 12))
+
+    logger.info(
+        "import_route_started platform=%s username=%s months=%s",
+        platform,
+        clean_username,
+        clean_months,
+    )
+
+    try:
+        if platform == "chess.com":
+            result = import_chesscom_logic(clean_username, clean_months)
+        else:
+            result = import_lichess_logic(clean_username, clean_months)
+
+        logger.info(
+            "import_route_completed platform=%s username=%s months=%s games_imported=%s games_found=%s",
+            platform,
+            clean_username,
+            clean_months,
+            result.get("gamesImported") if isinstance(result, dict) else None,
+            result.get("gamesFound") if isinstance(result, dict) else None,
+        )
+        return result
+    except HTTPException as exc:
+        logger.warning(
+            "import_route_failed platform=%s username=%s months=%s status=%s reason=%s",
+            platform,
+            clean_username,
+            clean_months,
+            exc.status_code,
+            exc.detail,
+        )
+        raise
+    except Exception as exc:
+        safe_reason = exc.__class__.__name__
+        logger.exception(
+            "import_route_unexpected_failure platform=%s username=%s months=%s reason=%s",
+            platform,
+            clean_username,
+            clean_months,
+            safe_reason,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "import_failed",
+                "message": "Could not import games for this user.",
+                "details": safe_reason,
+            },
+        )
+
+
 @app.get("/import/chesscom/{username}")
 def import_chesscom(username: str, months: int = 3):
-    return import_chesscom_logic(username, months)
+    return run_import_route("chess.com", username, months)
 
 
 @app.get("/api/import/chesscom/{username}")
 def api_import_chesscom(username: str, months: int = 3):
-    return import_chesscom_logic(username, months)
+    return run_import_route("chess.com", username, months)
 
 
 @app.get("/import/lichess/{username}")
 def import_lichess(username: str, months: int = 3):
-    return import_lichess_logic(username, months)
+    return run_import_route("lichess", username, months)
 
 
 @app.get("/api/import/lichess/{username}")
 def api_import_lichess(username: str, months: int = 3):
-    return import_lichess_logic(username, months)
+    return run_import_route("lichess", username, months)
 
 
 @app.get("/api/profile/{username}")

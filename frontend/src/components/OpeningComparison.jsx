@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
+import { importGames } from "../lib/importClient";
 
 function normaliseName(value) {
   return String(value || "")
@@ -236,17 +235,11 @@ export default function OpeningComparison({ data, username, platform }) {
       setTargetError("");
 
       try {
-        const response = await fetch(
-          `${API_BASE}/api/import/${comparePlatform}/${encodeURIComponent(
-            compareUser
-          )}?months=3`
-        );
-
-        if (!response.ok) {
-          throw new Error("Could not load the shared player report.");
-        }
-
-        const payload = await response.json();
+        const { data: payload } = await importGames({
+          platform: comparePlatform,
+          username: compareUser,
+          months: 3,
+        });
 
         if (!cancelled) {
           setTargetData(payload);
