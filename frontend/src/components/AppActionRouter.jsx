@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { navigateApp } from "../appNavigation";
+import { safeScrollToElement } from "../utils/safeDom";
 
 function normalise(text) {
   return String(text || "")
@@ -60,12 +61,7 @@ function scrollToTarget(targetId) {
     document.querySelector(`[data-section="${targetId}"]`) ||
     document.querySelector(`#${targetId}`);
 
-  if (target) {
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-    return true;
-  }
-
-  return false;
+  return safeScrollToElement(target);
 }
 
 export function AppOpeningHealthScore({ data, onViewChange }) {

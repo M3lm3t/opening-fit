@@ -168,6 +168,30 @@ function debugCloudRestore(message, details = {}) {
   console.debug(`[OpeningFit cloud restore] ${message}`, details);
 }
 
+export async function runSupabaseQuery(queryPromise, options = {}) {
+  const { required = false, label = "Supabase query" } = options;
+  const result = await queryPromise;
+
+  if (!result?.error) {
+    return result;
+  }
+
+  if (required) {
+    throw result.error;
+  }
+
+  console.warn("OpeningFit optional Supabase query skipped", {
+    label,
+    error: result.error,
+  });
+
+  return {
+    data: null,
+    error: result.error,
+    skipped: true,
+  };
+}
+
 async function selectProfileByUserId(userId, columns = "*") {
   const client = requireClient();
   const { data, error } = await client
@@ -530,16 +554,27 @@ export async function upsertUserRow(table, userId, row, options = {}) {
   if (!userId) throw new Error("Missing user id.");
 
   const client = requireClient();
+  const { required = true, ...upsertOptions } = options;
   const payload = {
     ...row,
     user_id: userId,
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await client
-    .from(table)
-    .upsert(payload, options)
-    .select("*");
+  const { data, error, skipped } = await runSupabaseQuery(
+    client
+      .from(table)
+      .upsert(payload, upsertOptions)
+      .select("*"),
+    {
+      required,
+      label: `${table} upsert row`,
+    }
+  );
+
+  if (skipped) {
+    return [];
+  }
 
   if (error) {
     logQueryFailure(table, "upsert row", error, { userId, row, options });

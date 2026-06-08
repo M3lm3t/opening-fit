@@ -110,7 +110,7 @@ export function scrollToAppTarget(targetId, options = {}) {
     fallbackIds.map((id) => document.getElementById(id)).find(Boolean) ||
     document.querySelector(".appShell");
 
-  if (!target) return false;
+  if (!target || !document.body.contains(target)) return false;
 
   const offset = options.offset ?? getStickyOffset();
   const top = target.getBoundingClientRect().top + window.scrollY - offset;

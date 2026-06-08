@@ -1,8 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").trim();
+const supabaseAnonKey = String(import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
 const exposedServiceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+const debugSupabase =
+  import.meta.env.DEV ||
+  (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debugSupabase"));
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -24,6 +27,21 @@ if (!isSupabaseConfigured) {
   console.warn(message);
 }
 
+if (debugSupabase) {
+  let urlHost = "";
+  try {
+    urlHost = supabaseUrl ? new URL(supabaseUrl).host : "";
+  } catch {
+    urlHost = "invalid-url";
+  }
+
+  console.info("Supabase config", {
+    hasUrl: Boolean(supabaseUrl),
+    hasAnonKey: Boolean(supabaseAnonKey),
+    urlHost,
+  });
+}
+
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
@@ -34,3 +52,31 @@ export const supabase = isSupabaseConfigured
       },
     })
   : null;
+
+export async function diagnoseSupabase() {
+  if (!debugSupabase || !supabase) return null;
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  console.info("Supabase session diagnostic", {
+    hasSession: Boolean(sessionData?.session),
+    userId: sessionData?.session?.user?.id || null,
+  });
+
+  const result = await supabase
+    .from("settings")
+    .select("user_id")
+    .limit(1);
+
+  console.info("Supabase REST diagnostic", {
+    ok: !result.error,
+    error: result.error,
+  });
+
+  return result;
+}
+
+if (debugSupabase && supabase) {
+  diagnoseSupabase().catch((error) => {
+    console.warn("Supabase diagnostic failed", error);
+  });
+}

@@ -511,7 +511,8 @@ export function AuthDataProvider({ children }) {
     }
   }, [restoreInProgress]);
 
-  const runSyncedMutation = useCallback(async (work, fallbackMessage = "Could not save to Supabase.") => {
+  const runSyncedMutation = useCallback(async (work, fallbackMessage = "Could not save to Supabase.", options = {}) => {
+    const mode = options.mode || "required";
     setSyncState((current) => ({ ...current, status: "saving", error: "" }));
 
     try {
@@ -525,6 +526,13 @@ export function AuthDataProvider({ children }) {
     } catch (mutationError) {
       const message = mutationError?.message || fallbackMessage;
       setSyncState((current) => ({ ...current, status: "error", error: message }));
+      if (mode === "optional") {
+        console.warn("OpeningFit optional Supabase sync failed", {
+          message,
+          error: mutationError,
+        });
+        return null;
+      }
       throw mutationError;
     }
   }, []);
@@ -787,13 +795,20 @@ export function AuthDataProvider({ children }) {
       saveReport: (report, summary) =>
         runSyncedMutation(() => saveReport(user?.id, report, summary), "Could not save report."),
       saveAnalysedGames: (report, summary) =>
-        saveAnalysedGames(user?.id, report, summary),
+        runSyncedMutation(
+          () => saveAnalysedGames(user?.id, report, summary),
+          "Could not save analysed games."
+        ),
       saveRecommendationHistory: (snapshot) =>
         runSyncedMutation(
           () => saveRecommendationHistory(user?.id, snapshot),
           "Could not save opening recommendations."
         ),
-      recordActivity: (type, payload) => recordActivity(user?.id, type, payload),
+      recordActivity: (type, payload) =>
+        runSyncedMutation(
+          () => recordActivity(user?.id, type, payload),
+          "Could not save activity."
+        ),
       uploadUserFile: (file, pathPrefix) => uploadUserFile(user?.id, file, pathPrefix),
     }),
     [

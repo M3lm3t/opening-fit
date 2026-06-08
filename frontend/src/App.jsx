@@ -12442,8 +12442,25 @@ function App() {
         progress_history: nextProgressHistory,
         import_history: nextImportHistory,
       },
-      { onConflict: "user_id,platform,username" }
+      { onConflict: "user_id,platform,username", required: false }
     );
+  };
+
+  const runOptionalCloudSyncStep = async (label, work) => {
+    try {
+      return {
+        ok: true,
+        label,
+        value: await work(),
+      };
+    } catch (cloudError) {
+      console.warn(`OpeningFit optional cloud sync failed: ${label}`, cloudError);
+      return {
+        ok: false,
+        label,
+        error: cloudError,
+      };
+    }
   };
 
   const scrollToId = (id) => {
@@ -12677,6 +12694,7 @@ function App() {
         ok: true,
       });
 
+      try {
       setLoadingStep("Detecting openings...");
       await new Promise((resolve) => setTimeout(resolve, 250));
 
@@ -12754,58 +12772,6 @@ function App() {
         { dedupeKey: importSessionKey }
       );
 
-      if (supabaseUser?.id) {
-        try {
-          setCloudSaveStatus("saving");
-          setLoadingStep("Generating recommendations...");
-          const importFitData = buildOpeningFitData(cleanData);
-          const reportSummary = buildReportHistorySummary(cleanData, importFitData);
-          const progressSnapshot = buildOpeningFitProgressSnapshot(
-            cleanData,
-            importFitData,
-            cloudReportHistory || []
-          );
-          const recommendationSnapshot = buildRecommendationHistorySnapshot(cleanData, importFitData);
-          const openingGamification = buildOpeningGamificationSnapshot(cleanData, importFitData);
-          reportSummary.openingFitProgress = progressSnapshot;
-          reportSummary.openingGamification = openingGamification;
-
-          await saveCloudReport(cleanData, reportSummary);
-          try {
-            await saveCloudAnalysedGames?.(cleanData, reportSummary);
-          } catch (analysedGamesError) {
-            console.warn("Could not save analysed games to Supabase", analysedGamesError);
-          }
-          await saveOpeningFitProgressState(cleanData, reportSummary, progressSnapshot);
-          const weeklyOpeningReport = buildWeeklyOpeningSnapshot(cleanData, openingFitUserState?.[0]?.coach_progress?.weeklyOpeningSnapshots || []);
-          await saveRecommendationHistory?.(recommendationSnapshot);
-          await recordCloudActivity("report_imported", {
-            username: cleanData.username || cleanUsername,
-            platform: selectedPlatformKey,
-            games: cleanData.gamesImported ?? cleanData.total_games,
-            analysis_time_format: cleanData.analysisTimeFormat,
-            detected_time_format: cleanData.detectedTimeFormat,
-            openingfit_progress: progressSnapshot,
-            opening_health: progressSnapshot.openingHealth || reportSummary.openingHealth,
-            weak_lines: progressSnapshot.weakLines || reportSummary.weakLines,
-            weekly_opening_report: weeklyOpeningReport,
-            opening_gamification: openingGamification,
-            recommendation_snapshot: recommendationSnapshot,
-            dedupe_key: `report_imported:${userReportRetentionKey}`,
-          });
-          await refreshUserData?.(supabaseUser);
-          setCloudSaveStatus("saved");
-        } catch (cloudError) {
-          console.warn("Could not save imported report to Supabase", cloudError);
-          setCloudSaveStatus("failed");
-          setCloudSaveWarning(
-            "We analysed your games, but could not save your results. Your report is kept locally."
-          );
-        }
-      } else {
-        setCloudSaveStatus("local");
-      }
-
       setLoadingStep("Preparing results...");
 
       rememberLandingSeen({ keepPublicLanding: false });
@@ -12829,7 +12795,108 @@ function App() {
       });
 
       scrollToResults();
+
+      if (supabaseUser?.id) {
+        setCloudSaveStatus("saving");
+        const importFitData = buildOpeningFitData(cleanData);
+        const reportSummary = buildReportHistorySummary(cleanData, importFitData);
+        const progressSnapshot = buildOpeningFitProgressSnapshot(
+          cleanData,
+          importFitData,
+          cloudReportHistory || []
+        );
+        const recommendationSnapshot = buildRecommendationHistorySnapshot(cleanData, importFitData);
+        const openingGamification = buildOpeningGamificationSnapshot(cleanData, importFitData);
+        const weeklyOpeningReport = buildWeeklyOpeningSnapshot(
+          cleanData,
+          openingFitUserState?.[0]?.coach_progress?.weeklyOpeningSnapshots || []
+        );
+        reportSummary.openingFitProgress = progressSnapshot;
+        reportSummary.openingGamification = openingGamification;
+
+        void (async () => {
+          const cloudSyncResults = await Promise.allSettled([
+            runOptionalCloudSyncStep("report history", () => saveCloudReport?.(cleanData, reportSummary)),
+            runOptionalCloudSyncStep("analysed games", () => saveCloudAnalysedGames?.(cleanData, reportSummary)),
+            runOptionalCloudSyncStep("progress state", () => saveOpeningFitProgressState(cleanData, reportSummary, progressSnapshot)),
+            runOptionalCloudSyncStep("recommendation history", () => saveRecommendationHistory?.(recommendationSnapshot)),
+            runOptionalCloudSyncStep("activity", () =>
+              recordCloudActivity?.("report_imported", {
+                username: cleanData.username || cleanUsername,
+                platform: selectedPlatformKey,
+                games: cleanData.gamesImported ?? cleanData.total_games,
+                analysis_time_format: cleanData.analysisTimeFormat,
+                detected_time_format: cleanData.detectedTimeFormat,
+                openingfit_progress: progressSnapshot,
+                opening_health: progressSnapshot.openingHealth || reportSummary.openingHealth,
+                weak_lines: progressSnapshot.weakLines || reportSummary.weakLines,
+                weekly_opening_report: weeklyOpeningReport,
+                opening_gamification: openingGamification,
+                recommendation_snapshot: recommendationSnapshot,
+                dedupe_key: `report_imported:${userReportRetentionKey}`,
+              })
+            ),
+          ]);
+          const cloudSyncFailures = cloudSyncResults.filter(
+            (result) => result.status === "rejected" || result.value?.ok === false
+          );
+          const cloudSyncSuccesses = cloudSyncResults.filter(
+            (result) => result.status === "fulfilled" && result.value?.ok
+          );
+
+          if (cloudSyncSuccesses.length) {
+            await runOptionalCloudSyncStep("refresh user data", () => refreshUserData?.(supabaseUser));
+          }
+
+          if (!cloudSyncFailures.length) {
+            setCloudSaveStatus("saved");
+            setCloudSaveWarning("");
+          } else {
+            setCloudSaveStatus("failed");
+            setCloudSaveWarning(
+              "Analysis complete, but cloud sync is temporarily unavailable. Your report is kept locally."
+            );
+          }
+        })();
+      } else {
+        console.info("Skipping cloud save: user is not signed in");
+        setCloudSaveStatus("local");
+      }
+      } catch (postImportError) {
+        console.warn("OpeningFit post-import handling failed", {
+          platform: selectedPlatformKey,
+          username: cleanUsername,
+          months: monthsToImport,
+          errorName: postImportError?.name,
+          errorMessage: postImportError?.message,
+          error: postImportError,
+        });
+        setLoadingStep("");
+        setCloudSaveStatus((current) => current || "local");
+        setCloudSaveWarning(
+          "Analysis complete, but some post-import actions could not finish. Your report is kept locally."
+        );
+      }
     } catch (err) {
+      if (err?.name !== "ImportClientError") {
+        console.warn("OpeningFit import setup failed before backend import", {
+          platform: selectedPlatformKey,
+          username: cleanUsername,
+          months: monthsToImport,
+          errorName: err?.name,
+          errorMessage: err?.message,
+          error: err,
+        });
+        setError("OpeningFit could not start the import. Please refresh and try again.");
+        setImportStatus({
+          tone: "warning",
+          title: "Import did not start",
+          message: "OpeningFit hit a local app error before contacting the analysis server.",
+          meta: selectedPlatform.label,
+        });
+        return;
+      }
+
       importRequestDetails = {
         ...importRequestDetails,
         url: err?.url || importRequestDetails.url,
