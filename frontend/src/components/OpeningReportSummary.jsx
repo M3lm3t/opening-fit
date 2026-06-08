@@ -261,6 +261,14 @@ function getTimeControlOpeningReport(data) {
   return { ...report, items };
 }
 
+function getRecentOpeningTrendReport(data) {
+  const report = data?.recentOpeningTrendReport || data?.recent_opening_trend_report || null;
+  if (!report || typeof report !== "object" || report.enabled === false) return null;
+  const items = Array.isArray(report.items) ? report.items.slice(0, 6) : [];
+  if (!items.length) return null;
+  return { ...report, items };
+}
+
 function getMainOpeningLeak(data) {
   const leak = data?.mainOpeningLeak || data?.main_opening_leak || null;
   if (!leak || typeof leak !== "object") return null;
@@ -555,6 +563,7 @@ export default function OpeningReportSummary({ data, username, platform }) {
   const recommendedRepertoirePlan = getRecommendedRepertoirePlan(data);
   const planClarityReport = getPlanClarityReport(data);
   const timeControlOpeningReport = getTimeControlOpeningReport(data);
+  const recentOpeningTrendReport = getRecentOpeningTrendReport(data);
   const mainOpeningLeak = getMainOpeningLeak(data);
 
   return (
@@ -823,6 +832,24 @@ export default function OpeningReportSummary({ data, username, platform }) {
                 </li>
               );
             })}
+          </ul>
+        </div>
+      ) : null}
+
+      {recentOpeningTrendReport ? (
+        <div className="openingReportRecentTrend">
+          <strong>Recent opening trends</strong>
+          <span>{recentOpeningTrendReport.summary}</span>
+          <ul>
+            {recentOpeningTrendReport.items.map((item) => (
+              <li key={`${item.opening || item.name}-${item.context || ""}`}>
+                <span>{item.summary}</span>
+                <em>
+                  {item.trend || item.status} · recent {item.recent?.score ?? 0}% vs older {item.older?.score ?? 0}%
+                </em>
+                <small>{item.advice}</small>
+              </li>
+            ))}
           </ul>
         </div>
       ) : null}

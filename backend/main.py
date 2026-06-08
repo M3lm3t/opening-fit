@@ -3877,6 +3877,216 @@ def build_time_control_opening_report(
     }
 
 
+def trend_result_score(row: Dict[str, int]) -> float:
+    games = int(row.get("games", 0) or 0)
+    if not games:
+        return 0
+    return round(((int(row.get("wins", 0) or 0) + int(row.get("draws", 0) or 0) * 0.5) / games) * 100, 1)
+
+
+def trend_early_loss_rate(row: Dict[str, int]) -> float:
+    games = int(row.get("games", 0) or 0)
+    if not games:
+        return 0
+    return round((int(row.get("opening_losses", 0) or 0) / games) * 100, 1)
+
+
+def add_game_to_trend_bucket(bucket: Dict[str, int], game: Dict[str, Any]) -> None:
+    bucket["games"] += 1
+    result = str(game.get("result") or "").lower()
+    if result == "win":
+        bucket["wins"] += 1
+    elif result == "draw":
+        bucket["draws"] += 1
+    elif result == "loss":
+        bucket["losses"] += 1
+        timing = game.get("loss_timing") or game.get("lossTiming") or {}
+        if str(timing.get("bucket") or "") == "opening":
+            bucket["opening_losses"] += 1
+
+
+def build_recent_opening_trend_report(
+    games: List[Dict[str, Any]],
+    best_openings: List[Dict[str, Any]],
+    min_total_games: int = 8,
+    min_split_games: int = 3,
+) -> Dict[str, Any]:
+    opening_lookup = {
+        (normalise_opening_key(str(item.get("name") or item.get("opening") or "")), str(item.get("context") or item.get("repertoireContext") or "")): item
+        for item in best_openings or []
+    }
+    grouped: Dict[Tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
+    for game in games or []:
+        opening = str(game.get("opening") or game.get("name") or "").strip()
+        if not opening or is_unknown_opening_name(opening):
+            continue
+        context = str(game.get("context") or game.get("repertoireContext") or "unknown_mixed")
+        grouped[(normalise_opening_key(opening), context)].append(game)
+
+    items = []
+    now_ts = datetime.now(timezone.utc).timestamp()
+    for key, rows in grouped.items():
+        if len(rows) < min_total_games:
+            continue
+        dated_rows = [
+            row for row in rows
+            if epoch_seconds(row.get("end_time") or row.get("endTime")) is not None
+        ]
+        if len(dated_rows) >= min_total_games:
+            sorted_rows = sorted(dated_rows, key=lambda row: epoch_seconds(row.get("end_time") or row.get("endTime")) or 0, reverse=True)
+            recent_rows = [
+                row for row in sorted_rows
+                if now_ts - (epoch_seconds(row.get("end_time") or row.get("endTime")) or 0) <= 30 * 24 * 60 * 60
+            ]
+            if len(recent_rows) < min_split_games or len(sorted_rows) - len(recent_rows) < min_split_games:
+                midpoint = max(1, len(sorted_rows) // 2)
+                recent_rows = sorted_rows[:midpoint]
+                older_rows = sorted_rows[midpoint:]
+                split_method = "recent half"
+            else:
+                older_rows = [row for row in sorted_rows if row not in recent_rows]
+                split_method = "last 30 days"
+        else:
+            sorted_rows = list(rows)
+            midpoint = max(1, len(sorted_rows) // 2)
+            recent_rows = sorted_rows[:midpoint]
+            older_rows = sorted_rows[midpoint:]
+            split_method = "recent half"
+
+        if len(recent_rows) < min_split_games or len(older_rows) < min_split_games:
+            continue
+
+        recent = {"games": 0, "wins": 0, "draws": 0, "losses": 0, "opening_losses": 0}
+        older = {"games": 0, "wins": 0, "draws": 0, "losses": 0, "opening_losses": 0}
+        for row in recent_rows:
+            add_game_to_trend_bucket(recent, row)
+        for row in older_rows:
+            add_game_to_trend_bucket(older, row)
+
+        recent_score = trend_result_score(recent)
+        older_score = trend_result_score(older)
+        score_delta = round(recent_score - older_score, 1)
+        recent_early_loss = trend_early_loss_rate(recent)
+        older_early_loss = trend_early_loss_rate(older)
+        early_loss_delta = round(recent_early_loss - older_early_loss, 1)
+        recent_usage = round((recent["games"] / len(games)) * 100, 1) if games else 0
+        older_usage = round((older["games"] / len(games)) * 100, 1) if games else 0
+        usage_delta = round(recent_usage - older_usage, 1)
+        opening_info = opening_lookup.get(key) or opening_lookup.get((key[0], "unknown_mixed")) or {}
+        plan_status = str(opening_info.get("planClarityStatus") or opening_info.get("plan_clarity_status") or "Unavailable")
+        plan_score = int(opening_info.get("planClarityScore", opening_info.get("plan_clarity_score", 0)) or 0)
+
+        if score_delta >= 12 and early_loss_delta <= 8:
+            trend = "Improving"
+            summary = f"{rows[0].get('opening')}: improving recently."
+            advice = "Keep this opening in the current plan, but confirm the trend with more games."
+        elif score_delta <= -12 or early_loss_delta >= 18:
+            trend = "Declining"
+            summary = f"{rows[0].get('opening')}: declining recently."
+            advice = "Review recent losses before relying on older positive results."
+            if early_loss_delta >= 18:
+                advice = f"{advice} Your recent games show more early problems."
+        else:
+            trend = "Stable"
+            summary = f"{rows[0].get('opening')}: stable recently."
+            advice = "Current form looks close to the older sample, so do not overreact to a small recent run."
+
+        confidence = "Medium confidence" if min(recent["games"], older["games"]) >= 7 else "Low confidence"
+        items.append(
+            {
+                "opening": rows[0].get("opening"),
+                "name": rows[0].get("opening"),
+                "context": key[1],
+                "contextLabel": context_label(key[1]),
+                "trend": trend,
+                "status": trend,
+                "confidence": confidence,
+                "splitMethod": split_method,
+                "split_method": split_method,
+                "recent": {
+                    "games": recent["games"],
+                    "score": recent_score,
+                    "resultScore": recent_score,
+                    "earlyLossRate": recent_early_loss,
+                    "usageRate": recent_usage,
+                },
+                "older": {
+                    "games": older["games"],
+                    "score": older_score,
+                    "resultScore": older_score,
+                    "earlyLossRate": older_early_loss,
+                    "usageRate": older_usage,
+                },
+                "scoreDelta": score_delta,
+                "score_delta": score_delta,
+                "earlyLossDelta": early_loss_delta,
+                "early_loss_delta": early_loss_delta,
+                "usageDelta": usage_delta,
+                "usage_delta": usage_delta,
+                "planClarityStatus": plan_status,
+                "plan_clarity_status": plan_status,
+                "planClarityScore": plan_score,
+                "plan_clarity_score": plan_score,
+                "summary": summary,
+                "advice": advice,
+            }
+        )
+
+    priority = {"Declining": 0, "Improving": 1, "Stable": 2}
+    items.sort(key=lambda item: (priority.get(item["trend"], 3), -abs(float(item.get("scoreDelta", 0) or 0)), -int(item["recent"]["games"])), reverse=False)
+    if not items:
+        return {
+            "enabled": False,
+            "summary": "Recent trend needs enough older and newer games in the same opening before it can compare current form.",
+            "items": [],
+        }
+    return {
+        "enabled": True,
+        "summary": "Recent trend compares current opening form against older games without overriding sample confidence.",
+        "items": items[:6],
+    }
+
+
+def apply_recent_trends_to_openings(openings: List[Dict[str, Any]], trend_report: Dict[str, Any]) -> List[Dict[str, Any]]:
+    trend_by_key = {
+        (normalise_opening_key(str(item.get("opening") or item.get("name") or "")), str(item.get("context") or "")): item
+        for item in (trend_report or {}).get("items", []) or []
+    }
+    adjusted = []
+    for opening in openings or []:
+        key = (normalise_opening_key(str(opening.get("name") or opening.get("opening") or "")), str(opening.get("context") or opening.get("repertoireContext") or ""))
+        trend = trend_by_key.get(key)
+        if not trend:
+            adjusted.append(opening)
+            continue
+        item = {**opening}
+        item["recentTrend"] = trend.get("trend")
+        item["recent_trend"] = trend.get("trend")
+        item["recentTrendSummary"] = trend.get("summary")
+        item["recent_trend_summary"] = trend.get("summary")
+        item["recentTrendConfidence"] = trend.get("confidence")
+        item["recent_trend_confidence"] = trend.get("confidence")
+        item["recentTrendScoreDelta"] = trend.get("scoreDelta")
+        item["recent_trend_score_delta"] = trend.get("scoreDelta")
+        evidence = list(item.get("evidence") or item.get("evidenceBullets") or [])
+        trend_note = f"{trend.get('summary')} {trend.get('confidence')}."
+        if trend_note not in evidence:
+            evidence.append(trend_note)
+        item["evidence"] = evidence[:5]
+        item["evidenceBullets"] = item["evidence"]
+        if trend.get("trend") == "Declining" and confidence_numeric_score(str(item.get("confidence") or "")) >= 42:
+            item["verdictReason"] = f"{trend.get('summary')} {trend.get('advice')}"
+            item["verdict_reason"] = item["verdictReason"]
+            if str(item.get("verdict") or "").lower() == "keep":
+                item["verdict"] = "Fix"
+                item["fitVerdict"] = "Fix"
+                item["fit_verdict"] = "Fix"
+                item["recommendationCategory"] = "Fix"
+                item["recommendation_category"] = "Fix"
+        adjusted.append(item)
+    return adjusted
+
+
 def sanitise_recommendation_sections(sections: Dict[str, Any]) -> Dict[str, Any]:
     primary_keys = ["white_repertoire", "black_vs_e4", "black_vs_d4", "black_vs_other"]
     seen: Dict[str, Dict[str, Any]] = {}
@@ -6729,6 +6939,9 @@ def import_chesscom_logic(username: str, months: int = 3):
     rating_band_benchmark = build_rating_band_benchmark(None, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, None)
     plan_clarity_report = build_plan_clarity_report(best_openings)
+    recent_opening_trend_report = build_recent_opening_trend_report(recent_games, best_openings)
+    best_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(best_openings, recent_opening_trend_report))
+    top_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(top_openings, recent_opening_trend_report))
     time_control_opening_report = build_time_control_opening_report(recent_games, best_openings)
     repertoire_identity_summary = build_repertoire_identity_summary(best_openings, style_profile, repertoire_coherence)
     recommended_repertoire_plan = build_recommended_repertoire_plan(
@@ -6904,6 +7117,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "planClarityReport": plan_clarity_report,
         "time_control_opening_report": time_control_opening_report,
         "timeControlOpeningReport": time_control_opening_report,
+        "recent_opening_trend_report": recent_opening_trend_report,
+        "recentOpeningTrendReport": recent_opening_trend_report,
         "main_opening_leak": main_opening_leak,
         "mainOpeningLeak": main_opening_leak,
         "next_training_actions": next_training_actions,
@@ -7287,6 +7502,9 @@ def build_lichess_analysis(
     rating_band_benchmark = build_rating_band_benchmark(current_rating, best_openings, repertoire_coverage, repertoire_coherence)
     style_opening_match = infer_style_opening_match(recent_games, best_openings, current_rating)
     plan_clarity_report = build_plan_clarity_report(best_openings)
+    recent_opening_trend_report = build_recent_opening_trend_report(recent_games, best_openings)
+    best_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(best_openings, recent_opening_trend_report))
+    top_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(top_openings, recent_opening_trend_report))
     time_control_opening_report = build_time_control_opening_report(recent_games, best_openings)
     repertoire_identity_summary = build_repertoire_identity_summary(best_openings, style_profile, repertoire_coherence)
     recommended_repertoire_plan = build_recommended_repertoire_plan(
@@ -7475,6 +7693,8 @@ def build_lichess_analysis(
         "planClarityReport": plan_clarity_report,
         "time_control_opening_report": time_control_opening_report,
         "timeControlOpeningReport": time_control_opening_report,
+        "recent_opening_trend_report": recent_opening_trend_report,
+        "recentOpeningTrendReport": recent_opening_trend_report,
         "main_opening_leak": main_opening_leak,
         "mainOpeningLeak": main_opening_leak,
         "next_training_actions": next_training_actions,
