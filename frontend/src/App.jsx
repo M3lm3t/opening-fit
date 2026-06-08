@@ -6264,6 +6264,58 @@ function getProfileOpeningFacts(data, fitData) {
   };
 }
 
+function getShortsOpeningReason(opening, fallback) {
+  if (!opening || typeof opening === "string") return fallback;
+
+  const reason =
+    opening.fitReasonBullets?.[0] ||
+    opening.reason ||
+    opening.why ||
+    opening.recommendationReason ||
+    opening.recommendation_reason ||
+    opening.explanation ||
+    fallback;
+
+  return String(reason || fallback).replace(/\s+/g, " ").replace(/[.]+$/, "");
+}
+
+function buildShortsScript(data, fitData) {
+  const username = getProfilePlayerName(data, data?.username || data?.playerName || data?.player_name);
+  const archetype = getProfileStyleLabel(data, fitData);
+  const facts = getProfileOpeningFacts(data, fitData);
+  const bestOpening =
+    fitData?.bestOpening ||
+    (Array.isArray(data?.best_openings) ? data.best_openings[0] : null) ||
+    (Array.isArray(data?.bestOpenings) ? data.bestOpenings[0] : null);
+  const studyTarget = buildStudyThisNextTarget(fitData);
+  const recommendedOpening = studyTarget?.opening || bestOpening;
+  const score = fitData?.overallScore ?? data?.openingFitScore ?? data?.opening_fit_score ?? null;
+  const bestName = bestOpening ? getOpeningContextTitle(bestOpening) : facts.strongest;
+  const recommendedName = recommendedOpening
+    ? getOpeningContextTitle(recommendedOpening)
+    : studyTarget?.name || facts.strongest;
+  const weakness = facts.needsWork.includes("No clear")
+    ? "there is not one obvious leak yet; they need a bigger sample before making a huge repertoire change"
+    : facts.needsWork;
+  const finalVerdict = score !== null && score !== undefined && Number(score) >= 70
+    ? "this player has a real opening identity. Patch the leak, and the repertoire starts looking dangerous."
+    : "the profile has promise, but the next jump comes from fixing one repeat opening problem.";
+
+  return [
+    `I analysed ${username}'s chess openings with OpeningFit.`,
+    "",
+    `The first thing I noticed is that this player is a ${archetype}.`,
+    "",
+    `Their best fit is ${bestName}, because ${getShortsOpeningReason(bestOpening, "it is the clearest positive signal in their current games")}.`,
+    "",
+    `But their biggest leak is ${weakness}.`,
+    "",
+    `OpeningFit recommends ${recommendedName} because ${studyTarget?.why || getShortsOpeningReason(recommendedOpening, "it gives them the most practical next training target")}.`,
+    "",
+    `Final verdict: ${finalVerdict}`,
+  ].join("\n");
+}
+
 function getProfilePlanLabel({ isPremium, isPremiumPreview, accountUser }) {
   if (isPremium) return "Founder Pass active";
   if (isPremiumPreview) return "Premium preview";
@@ -6416,6 +6468,7 @@ function ChessProfileCard({ data, fitData }) {
   const style = getProfileStyleLabel(data, fitData);
   const summary = getProfileStyleSummary(data, fitData);
   const facts = getProfileOpeningFacts(data, fitData);
+  const [shortsScript, setShortsScript] = useState("");
 
   return (
     <section className="profileDashboardCard chessProfileCard">
@@ -6448,6 +6501,22 @@ function ChessProfileCard({ data, fitData }) {
           <strong>{facts.needsWork}</strong>
         </article>
       </div>
+
+      <div className="shortsScriptActions">
+        <button
+          type="button"
+          className="secondaryButton"
+          onClick={() => setShortsScript(buildShortsScript(data || {}, fitData || {}))}
+        >
+          Generate Shorts Script
+        </button>
+      </div>
+
+      {shortsScript ? (
+        <div className="shortsScriptPanel" aria-live="polite">
+          <pre>{shortsScript}</pre>
+        </div>
+      ) : null}
     </section>
   );
 }
