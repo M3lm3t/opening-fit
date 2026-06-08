@@ -49,7 +49,7 @@ export default function OpeningFitImportDoctor({ username }) {
         status: "error",
         title: "Backend not reachable",
         message:
-          `The frontend could not reach the backend at ${apiBase}. Check VITE_API_BASE_URL and make sure FastAPI is running.`,
+          `The frontend could not reach the backend at ${apiBase || "/api"}. Check the API proxy or backend service and try again.`,
       });
     } finally {
       setChecking(false);
