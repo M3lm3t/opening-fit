@@ -13,6 +13,14 @@ async function readJsonOrText(response) {
 }
 
 function friendlyApiError(payload, fallback) {
+  if (payload?.code === "checkout_server_not_configured") {
+    return "Checkout is temporarily unavailable. Please contact support so we can fix the payment setup.";
+  }
+
+  if (payload?.code === "stripe_checkout_create_failed" || payload?.code === "stripe_checkout_missing_url") {
+    return "Stripe checkout could not start. Please try again, or contact support if it keeps happening.";
+  }
+
   const rawMessage =
     payload?.error ||
     payload?.message ||
@@ -38,6 +46,7 @@ function safeDiagnosticPayload(payload) {
 
   return {
     error: typeof payload.error === "string" ? payload.error : undefined,
+    code: typeof payload.code === "string" ? payload.code : undefined,
     message: typeof payload.message === "string" ? payload.message : undefined,
     detail: typeof payload.detail === "string" ? payload.detail : undefined,
     ok: payload.ok,
@@ -109,14 +118,26 @@ export async function startPremiumCheckout(user) {
     });
   }
 
-  const response = await fetch(buildApiUrl("/api/account/create-checkout-session"), {
-    method: "POST",
-    headers: await authHeaders(),
-    body: JSON.stringify({
-      userId: user.id,
-      email: user.email,
-    }),
-  });
+  let response;
+  try {
+    response = await fetch(buildApiUrl("/api/account/create-checkout-session"), {
+      method: "POST",
+      headers: await authHeaders(),
+      body: JSON.stringify({
+        userId: user.id,
+        email: user.email,
+      }),
+    });
+  } catch (error) {
+    console.error("OpeningFit checkout request could not reach backend", {
+      apiBase: getApiBaseUrl(),
+      error: {
+        name: error?.name,
+        message: error?.message,
+      },
+    });
+    throw new Error("Could not reach the payment server. Please check your connection and try again.");
+  }
 
   const data = await readJsonOrText(response);
 
@@ -147,14 +168,26 @@ export async function startPremiumCheckout(user) {
 export async function syncPremiumCheckoutSession(user, sessionId) {
   if (!user?.id || !sessionId) return null;
 
-  const response = await fetch(buildApiUrl("/api/account/sync-checkout-session"), {
-    method: "POST",
-    headers: await authHeaders(),
-    body: JSON.stringify({
-      userId: user.id,
-      sessionId,
-    }),
-  });
+  let response;
+  try {
+    response = await fetch(buildApiUrl("/api/account/sync-checkout-session"), {
+      method: "POST",
+      headers: await authHeaders(),
+      body: JSON.stringify({
+        userId: user.id,
+        sessionId,
+      }),
+    });
+  } catch (error) {
+    console.error("OpeningFit checkout sync could not reach backend", {
+      apiBase: getApiBaseUrl(),
+      error: {
+        name: error?.name,
+        message: error?.message,
+      },
+    });
+    throw new Error("Could not reach the payment server to verify checkout. Please try restore access again.");
+  }
 
   const data = await readJsonOrText(response);
 
