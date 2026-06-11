@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
+import { logSupabaseSyncFailure } from "./supabaseSyncDebug";
 
 type JsonObject = Record<string, unknown>;
 
@@ -123,12 +124,7 @@ function getClient() {
 }
 
 function logRetentionQueryFailure(table: string, operation: string, error: unknown, details: JsonObject = {}) {
-  console.error("OpeningFit Supabase query failed", {
-    table,
-    operation,
-    details,
-    error,
-  });
+  logSupabaseSyncFailure(table, operation, error, details);
 }
 
 function todayIsoDate() {
@@ -255,14 +251,27 @@ async function ensureRetentionProfile(userId: string) {
   const client = getClient();
   if (!client || !userId) return null;
 
-  const { data, error } = await client
+  let { data, error } = await client
     .from("user_profiles")
-    .upsert({ id: userId, user_id: userId }, { onConflict: "id" })
+    .upsert({ id: userId, user_id: userId }, { onConflict: "user_id" })
     .select("*")
     .single();
 
+  if (error && /user_id|constraint|conflict|schema cache/i.test(String(error.message || ""))) {
+    logRetentionQueryFailure("user_profiles", "upsert retention profile by user_id unavailable; retrying id", error, {
+      userId,
+    });
+    const retry = await client
+      .from("user_profiles")
+      .upsert({ id: userId, user_id: userId }, { onConflict: "id" })
+      .select("*")
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
+
   if (error) {
-    logRetentionQueryFailure("user_profiles", "upsert retention profile by id", error, { userId });
+    logRetentionQueryFailure("user_profiles", "upsert retention profile by user_id", error, { userId });
     throw error;
   }
   return data as UserProfile;
@@ -577,7 +586,7 @@ export async function addXp(userId: string, points: number) {
         xp: nextXp,
         current_level: nextLevel,
       })
-      .eq("id", userId)
+      .eq("user_id", userId)
       .select("*")
       .single();
 
@@ -620,7 +629,7 @@ export async function checkAndUnlockAchievements(userId: string) {
       client
         .from("user_profiles")
         .select("*")
-        .eq("id", userId)
+        .eq("user_id", userId)
         .maybeSingle(),
       client
         .from("user_goals")

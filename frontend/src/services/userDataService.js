@@ -1,4 +1,9 @@
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
+import {
+  logSupabaseSyncFailure,
+  logSupabaseSyncSuccess,
+  logSupabaseSyncWarning,
+} from "./supabaseSyncDebug";
 
 export const USER_DATA_TABLES = [
   "profiles",
@@ -24,15 +29,25 @@ export const USER_DATA_TABLES = [
   "saved_openings",
   "chess_account_links",
   "notification_preferences",
+  "user_activity_log",
+  "user_streaks",
+  "user_goals",
+  "user_achievements",
+  "weekly_reports",
 ];
 
 export const USER_FILE_BUCKET = "user-uploads";
-const DEBUG_ENABLED =
-  typeof import.meta !== "undefined" &&
-  (import.meta.env?.DEV || import.meta.env?.VITE_OPENINGFIT_SUPABASE_DEBUG === "true");
 const DEBUG_CLOUD_RESTORE =
   typeof import.meta !== "undefined" &&
   import.meta.env?.VITE_DEBUG_CLOUD_RESTORE === "true";
+const REQUIRED_RESTORE_TABLES = new Set([
+  "profiles",
+  "premium_entitlements",
+  "openingfit_user_state",
+  "settings",
+  "report_history",
+  "analysed_games",
+]);
 const DEFAULT_RESTORE_LIMIT = 50;
 const RESTORE_TABLE_LIMITS = {
   premium_entitlements: 10,
@@ -56,20 +71,32 @@ const RESTORE_TABLE_LIMITS = {
   saved_openings: 50,
   chess_account_links: 10,
   notification_preferences: 10,
+  user_profiles: 5,
+  user_activity_log: 50,
+  user_streaks: 5,
+  user_goals: 20,
+  user_achievements: 50,
+  weekly_reports: 20,
 };
 const RESTORE_TABLE_COLUMNS = {
-  openingfit_user_state: "id,user_id,platform,username,coach_progress,created_at,updated_at",
+  openingfit_user_state: "id,user_id,platform,username,last_report,coach_progress,progress_history,import_history,created_at,updated_at",
   report_history:
-    "id,user_id,username,platform,summary,report_key,analysis_time_format,effective_time_format,detected_time_format,style_profile,style_based_recommendations,created_at,updated_at",
+    "id,user_id,username,platform,summary,report,report_key,analysis_time_format,effective_time_format,detected_time_format,style_profile,style_based_recommendations,created_at,updated_at",
   analysis_history:
-    "id,user_id,username,platform,summary,report_key,analysis_time_format,effective_time_format,detected_time_format,style_profile,style_based_recommendations,created_at,updated_at",
+    "id,user_id,username,platform,summary,report,report_key,analysis_time_format,effective_time_format,detected_time_format,style_profile,style_based_recommendations,created_at,updated_at",
   activity_history: "id,user_id,type,payload,created_at,updated_at",
-  analysed_games: "id,user_id,username,platform,summary,created_at,updated_at",
+  analysed_games: "id,user_id,username,platform,game_id,game,analysis,summary,created_at,updated_at",
   uploads: "id,user_id,path,name,size,type,created_at,updated_at",
   ai_generations: "id,user_id,type,summary,created_at,updated_at",
+  user_profiles: "id,user_id,display_name,avatar_url,goal_text,current_level,xp,created_at,updated_at",
+  user_activity_log: "id,user_id,activity_type,points,metadata,dedupe_key,created_at",
+  user_streaks: "user_id,current_streak,best_streak,last_active_date,streak_freezes,updated_at",
+  user_goals: "id,user_id,goal_type,target_value,current_value,period,starts_on,ends_on,completed,created_at",
+  user_achievements: "id,user_id,achievement_key,title,description,unlocked_at",
+  weekly_reports: "id,user_id,week_start,week_end,summary,stats,created_at",
 };
 const PROFILE_RESTORE_COLUMNS =
-  "id,user_id,email,display_name,username,platform,chesscom_username,lichess_username,is_premium,created_at,updated_at";
+  "id,user_id,email,display_name,username,platform,chesscom_username,lichess_username,is_premium,last_report,created_at,updated_at";
 
 function createDefaultUserData(profile = null) {
   return {
@@ -85,7 +112,15 @@ function createDefaultUserData(profile = null) {
     settings: [],
     activity_history: [],
     report_history: [],
+    analysed_games: [],
     recommendation_history: [],
+    notification_preferences: [],
+    user_profiles: [],
+    user_activity_log: [],
+    user_streaks: [],
+    user_goals: [],
+    user_achievements: [],
+    weekly_reports: [],
   };
 }
 
@@ -146,44 +181,16 @@ export function safeUserMessage(error, fallback = "OpeningFit could not reach Su
 }
 
 function logQueryFailure(table, operation, error, details = {}) {
-  const safeDetails = Object.fromEntries(
-    Object.entries(details || {}).map(([key, value]) => {
-      if (/email|token|secret|password|authorization|session/i.test(key)) {
-        return [key, "[redacted]"];
-      }
-
-      if (/row|payload|report|snapshot|game/i.test(key)) {
-        return [key, "[omitted]"];
-      }
-
-      return [key, value];
-    })
-  );
-  const safeError = error
-    ? {
-        name: error.name,
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      }
-    : error;
-
-  console.error("OpeningFit Supabase query failed", {
-    table,
-    operation,
-    details: safeDetails,
-    error: safeError,
-  });
+  logSupabaseSyncFailure(table, operation, error, details);
 }
 
 function logQuerySuccess(table, operation, details = {}) {
-  if (!DEBUG_ENABLED && !DEBUG_CLOUD_RESTORE) return;
-  console.debug("OpeningFit Supabase query succeeded", {
-    table,
-    operation,
-    details,
-  });
+  if (!DEBUG_CLOUD_RESTORE) {
+    logSupabaseSyncSuccess(table, operation, details);
+    return;
+  }
+
+  console.debug("OpeningFit Supabase sync succeeded", { table, operation, details });
 }
 
 function debugCloudRestore(message, details = {}) {
@@ -203,10 +210,7 @@ export async function runSupabaseQuery(queryPromise, options = {}) {
     throw result.error;
   }
 
-  console.warn("OpeningFit optional Supabase query skipped", {
-    label,
-    error: result.error,
-  });
+  logSupabaseSyncWarning("optional", label, result.error);
 
   return {
     data: null,
@@ -543,7 +547,7 @@ export async function fetchAllUserData(user, options = {}) {
           userId: user.id,
         });
         tableErrors.push({ table, error: tableError });
-        if (options.strict) {
+        if (options.strict && REQUIRED_RESTORE_TABLES.has(table)) {
           return [table, null];
         }
         console.warn(`OpeningFit could not restore ${table}; using empty rows.`, tableError);
@@ -552,8 +556,10 @@ export async function fetchAllUserData(user, options = {}) {
     })
   );
 
-  if (options.strict && tableErrors.length) {
-    const first = tableErrors[0];
+  const requiredTableErrors = tableErrors.filter((item) => REQUIRED_RESTORE_TABLES.has(item.table));
+
+  if (options.strict && requiredTableErrors.length) {
+    const first = requiredTableErrors[0];
     const error = new Error(
       safeUserMessage(first.error, `Could not restore ${first.table} from Supabase.`)
     );

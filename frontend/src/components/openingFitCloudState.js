@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
+import { logSupabaseSyncFailure } from "../services/supabaseSyncDebug";
 import { upsertUserRow } from "../services/userDataService";
 
 function normalisePlatform(value) {
@@ -59,14 +60,11 @@ export async function fetchOpeningFitCloudState(user, data = {}) {
     .maybeSingle();
 
   if (error) {
-    if (import.meta.env.DEV) {
-      console.warn("OpeningFit cloud state load failed", {
-        userId: identity.userId,
-        platform: identity.platform,
-        username: identity.username,
-        error,
-      });
-    }
+    logSupabaseSyncFailure("openingfit_user_state", "load cloud state", error, {
+      userId: identity.userId,
+      platform: identity.platform,
+      username: identity.username,
+    });
     throw error;
   }
   return row || null;

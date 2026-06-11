@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
+import { logSupabaseSyncFailure } from "../services/supabaseSyncDebug";
 
 type NotificationPreferencesProps = {
   userId?: string | null;
@@ -114,12 +115,12 @@ export default function NotificationPreferences({ userId }: NotificationPreferen
           });
         }
       } catch (preferenceError) {
-        console.error("OpeningFit Supabase query failed", {
-          table: "notification_preferences",
-          operation: "load/upsert notification preferences",
-          details: { userId },
-          error: preferenceError,
-        });
+        logSupabaseSyncFailure(
+          "notification_preferences",
+          "load/upsert notification preferences",
+          preferenceError,
+          { userId }
+        );
         if (mounted) {
           setError("Could not load notification preferences.");
         }
@@ -162,12 +163,12 @@ export default function NotificationPreferences({ userId }: NotificationPreferen
       if (saveError) throw saveError;
       toast("Notification preferences saved.");
     } catch (preferenceError) {
-      console.error("OpeningFit Supabase query failed", {
-        table: "notification_preferences",
-        operation: "save notification preferences",
-        details: { userId, key },
-        error: preferenceError,
-      });
+      logSupabaseSyncFailure(
+        "notification_preferences",
+        "save notification preferences",
+        preferenceError,
+        { userId, key }
+      );
       setPreferences(preferences);
       setError("Could not save notification preferences.");
     } finally {

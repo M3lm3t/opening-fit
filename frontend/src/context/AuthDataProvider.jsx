@@ -757,6 +757,13 @@ export function AuthDataProvider({ children }) {
       reportHistory: userData?.report_history || [],
       analysedGames: userData?.analysed_games || [],
       recommendationHistory: userData?.recommendation_history || [],
+      notificationPreferences: userData?.notification_preferences || [],
+      retentionProfile: userData?.user_profiles?.[0] || null,
+      retentionActivity: userData?.user_activity_log || [],
+      retentionStreaks: userData?.user_streaks || [],
+      retentionGoals: userData?.user_goals || [],
+      retentionAchievements: userData?.user_achievements || [],
+      weeklyReports: userData?.weekly_reports || [],
       userData,
       loading: authLoading,
       authLoading,
@@ -857,7 +864,11 @@ export function AuthDataProvider({ children }) {
           reportHistory: userData?.report_history?.length || 0,
           openingFitUserState: userData?.openingfit_user_state?.length || 0,
           recommendationHistory: userData?.recommendation_history?.length || 0,
+          analysedGames: userData?.analysed_games?.length || 0,
           settings: userData?.settings?.length || 0,
+          premiumEntitlements: userData?.premium_entitlements?.length || 0,
+          retentionActivity: userData?.user_activity_log?.length || 0,
+          weeklyReports: userData?.weekly_reports?.length || 0,
         },
       },
       testSupabaseConnection: async () => {
@@ -884,6 +895,8 @@ export function AuthDataProvider({ children }) {
             reportHistory: data?.report_history?.length || 0,
             openingFitUserState: data?.openingfit_user_state?.length || 0,
             recommendationHistory: data?.recommendation_history?.length || 0,
+            analysedGames: data?.analysed_games?.length || 0,
+            premiumEntitlements: data?.premium_entitlements?.length || 0,
           };
         } catch (loadError) {
           return { ok: false, error: loadError?.message || String(loadError) };
