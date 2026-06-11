@@ -146,11 +146,34 @@ export function safeUserMessage(error, fallback = "OpeningFit could not reach Su
 }
 
 function logQueryFailure(table, operation, error, details = {}) {
+  const safeDetails = Object.fromEntries(
+    Object.entries(details || {}).map(([key, value]) => {
+      if (/email|token|secret|password|authorization|session/i.test(key)) {
+        return [key, "[redacted]"];
+      }
+
+      if (/row|payload|report|snapshot|game/i.test(key)) {
+        return [key, "[omitted]"];
+      }
+
+      return [key, value];
+    })
+  );
+  const safeError = error
+    ? {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      }
+    : error;
+
   console.error("OpeningFit Supabase query failed", {
     table,
     operation,
-    details,
-    error,
+    details: safeDetails,
+    error: safeError,
   });
 }
 

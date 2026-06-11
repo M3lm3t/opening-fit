@@ -49,6 +49,13 @@ logger = logging.getLogger("openingfit.imports")
 
 
 SECRET_QUERY_KEYS = {"token", "key", "secret", "password", "authorization", "session", "access_token"}
+SECRET_LOG_KEYS = SECRET_QUERY_KEYS | {
+    "email",
+    "customer_email",
+    "stripe_secret_key",
+    "stripe_webhook_secret",
+    "supabase_service_role_key",
+}
 
 
 def safe_query_params(request: Request) -> Dict[str, str]:
@@ -61,6 +68,43 @@ def safe_query_params(request: Request) -> Dict[str, str]:
             safe_params[key] = value
 
     return safe_params
+
+
+def safe_log_value(key: str, value: Any) -> Any:
+    if key and key.lower() in SECRET_LOG_KEYS:
+        return "[redacted]"
+
+    if isinstance(value, BaseException):
+        return {
+            "type": value.__class__.__name__,
+            "message": str(value),
+        }
+
+    if isinstance(value, dict):
+        return {
+            str(child_key): safe_log_value(str(child_key), child_value)
+            for child_key, child_value in value.items()
+        }
+
+    if isinstance(value, (list, tuple)):
+        return [safe_log_value(key, item) for item in value[:20]]
+
+    if isinstance(value, str) and len(value) > 500:
+        return f"{value[:500]}...[truncated]"
+
+    return value
+
+
+def safe_log_details(details: Dict[str, Any]) -> Dict[str, Any]:
+    return {str(key): safe_log_value(str(key), value) for key, value in details.items()}
+
+
+def log_payment_diagnostic(message: str, **details) -> None:
+    print("OpeningFit payment diagnostic:", message, safe_log_details(details))
+
+
+def log_supabase_diagnostic(message: str, **details) -> None:
+    print("OpeningFit Supabase diagnostic:", message, safe_log_details(details))
 
 
 @app.middleware("http")
@@ -9872,6 +9916,11 @@ def get_supabase_admin_client():
     service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
 
     if not supabase_url or not service_key:
+        log_supabase_diagnostic(
+            "backend Supabase admin client missing configuration",
+            has_supabase_url=bool(supabase_url),
+            has_service_role_key=bool(service_key),
+        )
         raise HTTPException(
             status_code=500,
             detail="Supabase is not configured. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
@@ -9892,6 +9941,11 @@ def get_auth_user(request: Request):
     try:
         auth_response = get_supabase_admin_client().auth.get_user(token)
     except Exception as exc:
+        log_supabase_diagnostic(
+            "auth token validation failed",
+            path=request.url.path,
+            error=exc,
+        )
         raise HTTPException(status_code=401, detail=f"Invalid auth token: {exc}")
 
     user = getattr(auth_response, "user", None)
@@ -9910,7 +9964,7 @@ def require_matching_auth_user(request: Request, user_id: str):
 
 
 def checkout_error_response(status_code: int, message: str, log_message: str, **details):
-    print("OpeningFit checkout error:", log_message, details)
+    log_payment_diagnostic(log_message, status_code=status_code, **details)
     return JSONResponse(status_code=status_code, content={"error": message})
 
 
@@ -9940,6 +9994,17 @@ def upsert_premium_entitlement(supabase_admin, payload: Dict[str, Any]) -> None:
             on_conflict="user_id",
         ).execute()
     except Exception as exc:
+        log_supabase_diagnostic(
+            "premium entitlement upsert failed",
+            table="premium_entitlements",
+            user_id=active_payload.get("user_id"),
+            status=active_payload.get("status"),
+            source=active_payload.get("source"),
+            stripe_checkout_session_id=active_payload.get("stripe_checkout_session_id"),
+            stripe_subscription_id=active_payload.get("stripe_subscription_id"),
+            stripe_payment_intent_id=active_payload.get("stripe_payment_intent_id"),
+            error=exc,
+        )
         missing_columns = [
             column
             for column in optional_stripe_columns
@@ -9950,7 +10015,11 @@ def upsert_premium_entitlement(supabase_admin, payload: Dict[str, Any]) -> None:
 
         for column in missing_columns:
             active_payload.pop(column, None)
-        print("OpeningFit premium entitlement retrying without optional Stripe columns", missing_columns)
+        log_supabase_diagnostic(
+            "premium entitlement retrying without optional Stripe columns",
+            missing_columns=missing_columns,
+            user_id=active_payload.get("user_id"),
+        )
         supabase_admin.table("premium_entitlements").upsert(
             active_payload,
             on_conflict="user_id",
@@ -9992,24 +10061,36 @@ def find_premium_user_id_for_stripe_object(supabase_admin, stripe_object: Any) -
             if result.data:
                 return str(result.data[0].get("user_id"))
         except Exception as exc:
-            print("OpeningFit Stripe entitlement user lookup failed", {
-                "column": column,
-                "value": value,
-                "error": str(exc),
-            })
+            log_supabase_diagnostic(
+                "Stripe entitlement user lookup failed",
+                table="premium_entitlements",
+                column=column,
+                value=value,
+                error=exc,
+            )
 
     return None
 
 
 def set_profile_premium_status(supabase_admin, user_id: str, is_premium: bool, when: str) -> None:
-    supabase_admin.table("profiles").upsert(
-        {
-            "user_id": user_id,
-            "is_premium": is_premium,
-            "updated_at": when,
-        },
-        on_conflict="user_id",
-    ).execute()
+    try:
+        supabase_admin.table("profiles").upsert(
+            {
+                "user_id": user_id,
+                "is_premium": is_premium,
+                "updated_at": when,
+            },
+            on_conflict="user_id",
+        ).execute()
+    except Exception as exc:
+        log_supabase_diagnostic(
+            "profile premium status upsert failed",
+            table="profiles",
+            user_id=user_id,
+            is_premium=is_premium,
+            error=exc,
+        )
+        raise
 
 
 def checkout_session_is_paid(session: Any) -> bool:
@@ -10048,15 +10129,25 @@ def activate_premium_from_checkout_session(supabase_admin, session: Any, source:
     }
 
     upsert_premium_entitlement(supabase_admin, payload)
-    supabase_admin.table("profiles").upsert(
-        {
-            "user_id": str(user_id),
-            "email": stripe_value(session, "customer_email"),
-            "is_premium": True,
-            "updated_at": now,
-        },
-        on_conflict="user_id",
-    ).execute()
+    try:
+        supabase_admin.table("profiles").upsert(
+            {
+                "user_id": str(user_id),
+                "email": stripe_value(session, "customer_email"),
+                "is_premium": True,
+                "updated_at": now,
+            },
+            on_conflict="user_id",
+        ).execute()
+    except Exception as exc:
+        log_supabase_diagnostic(
+            "profile premium activation upsert failed",
+            table="profiles",
+            user_id=str(user_id),
+            stripe_checkout_session_id=stripe_value(session, "id"),
+            error=exc,
+        )
+        raise
 
     return {
         "user_id": str(user_id),
@@ -10248,6 +10339,7 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
         "session_id": getattr(session, "id", None),
         "mode": getattr(session, "mode", None),
         "has_url": True,
+        "frontend_url_host": frontend_url,
     })
 
     return {"url": session.url}
@@ -10321,6 +10413,14 @@ async def sync_checkout_session(payload: Dict[str, Any], request: Request):
         )
 
     if not checkout_session_is_paid(session):
+        log_payment_diagnostic(
+            "checkout session sync found unpaid or incomplete session",
+            user_id=user_id,
+            session_id=session_id,
+            status=stripe_value(session, "status"),
+            payment_status=stripe_value(session, "payment_status"),
+            mode=stripe_value(session, "mode"),
+        )
         return {
             "ok": True,
             "hasPremiumAccess": False,
@@ -10335,11 +10435,12 @@ async def sync_checkout_session(payload: Dict[str, Any], request: Request):
             source="stripe_checkout_success_sync",
         )
     except Exception as exc:
-        print("OpeningFit checkout success sync failed:", {
-            "user_id": user_id,
-            "session_id": session_id,
-            "error": str(exc),
-        })
+        log_payment_diagnostic(
+            "checkout success sync failed",
+            user_id=user_id,
+            session_id=session_id,
+            error=exc,
+        )
         raise HTTPException(status_code=500, detail="Premium checkout sync failed.")
 
     return {
@@ -10355,7 +10456,11 @@ async def stripe_webhook(request: Request):
     webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
 
     if not stripe_secret_key or not webhook_secret:
-        print("OpeningFit Stripe webhook error: missing webhook configuration")
+        log_payment_diagnostic(
+            "Stripe webhook missing configuration",
+            has_stripe_secret_key=bool(stripe_secret_key),
+            has_webhook_secret=bool(webhook_secret),
+        )
         return JSONResponse(
             status_code=500,
             content={"error": "Stripe webhook is not configured."},
@@ -10373,8 +10478,19 @@ async def stripe_webhook(request: Request):
             secret=webhook_secret,
         )
     except Exception as exc:
-        print("OpeningFit Stripe webhook signature verification failed:", exc)
+        log_payment_diagnostic(
+            "Stripe webhook signature verification failed",
+            error=exc,
+            has_signature_header=bool(sig_header),
+        )
         raise HTTPException(status_code=400, detail=f"Webhook error: {str(exc)}")
+
+    log_payment_diagnostic(
+        "Stripe webhook received",
+        event_id=event.get("id"),
+        event_type=event.get("type"),
+        livemode=event.get("livemode"),
+    )
 
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]

@@ -31,6 +31,22 @@ function friendlyApiError(payload, fallback) {
   return message || fallback;
 }
 
+function safeDiagnosticPayload(payload) {
+  if (!payload || typeof payload !== "object") {
+    return payload;
+  }
+
+  return {
+    error: typeof payload.error === "string" ? payload.error : undefined,
+    message: typeof payload.message === "string" ? payload.message : undefined,
+    detail: typeof payload.detail === "string" ? payload.detail : undefined,
+    ok: payload.ok,
+    status: payload.status,
+    paymentStatus: payload.paymentStatus,
+    hasPremiumAccess: payload.hasPremiumAccess,
+  };
+}
+
 async function authHeaders() {
   const { data } = supabase ? await supabase.auth.getSession() : { data: null };
   const token = data?.session?.access_token;
@@ -107,13 +123,13 @@ export async function startPremiumCheckout(user) {
   if (!response.ok) {
     console.error("OpeningFit checkout endpoint failed", {
       status: response.status,
-      payload: data,
+      payload: safeDiagnosticPayload(data),
     });
     throw new Error(friendlyApiError(data, "We could not start checkout. Please try again."));
   }
 
   if (!data?.url) {
-    console.error("OpeningFit checkout endpoint returned no URL", data);
+    console.error("OpeningFit checkout endpoint returned no URL", safeDiagnosticPayload(data));
     throw new Error("We could not start checkout. Please try again.");
   }
 
@@ -145,7 +161,7 @@ export async function syncPremiumCheckoutSession(user, sessionId) {
   if (!response.ok) {
     console.error("OpeningFit checkout sync endpoint failed", {
       status: response.status,
-      payload: data,
+      payload: safeDiagnosticPayload(data),
     });
     throw new Error(friendlyApiError(data, "We could not verify checkout yet. Please try again."));
   }
