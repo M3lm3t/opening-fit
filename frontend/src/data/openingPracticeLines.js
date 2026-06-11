@@ -343,6 +343,7 @@ function openingToPracticePack(opening) {
   return {
     key: normaliseOpeningKey(opening.name),
     opening,
+    practiceSide: opening.color === "black" ? "black" : "white",
     aliases: [
       opening.name,
       opening.id,
@@ -352,6 +353,7 @@ function openingToPracticePack(opening) {
     lines: opening.trainingLines.map((line) => ({
       name: line.name,
       moves: line.moves,
+      practiceSide: opening.color === "black" ? "black" : "white",
       idea: line.explanation,
       moveIdeas: line.moves.map((move, index) => {
         if (index === line.moves.length - 1) {

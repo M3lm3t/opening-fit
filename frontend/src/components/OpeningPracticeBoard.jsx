@@ -140,7 +140,9 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
   const { boardTheme, setBoardTheme } = useBoardTheme();
   const feedbackTimerRef = useRef(null);
 
-  const orientation = opening?.side === "black" ? "black" : "white";
+  const practiceSide = opening?.side === "black" ? "black" : "white";
+  const userColor = practiceSide === "black" ? "b" : "w";
+  const orientation = practiceSide === "black" ? "black" : "white";
 
   const expectedMove = opening?.moves?.[moveIndex] || null;
   const isComplete = opening && moveIndex >= opening.moves.length;
@@ -152,12 +154,47 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
     return () => window.clearTimeout(feedbackTimerRef.current);
   }, []);
 
-  const resetPractice = () => {
-    setChess(new Chess());
-    setMoveIndex(0);
+  useEffect(() => {
+    if (!opening) return;
+    const copy = new Chess();
+    let nextIndex = 0;
+
+    while (opening.moves[nextIndex] && copy.turn() !== userColor) {
+      try {
+        const opponentMove = copy.move(opening.moves[nextIndex]);
+        if (!opponentMove) break;
+        nextIndex += 1;
+      } catch {
+        break;
+      }
+    }
+
+    setChess(copy);
+    setMoveIndex(nextIndex);
     setSelectedSquare(null);
     setFeedbackSquare(null);
-    setMessage("");
+    setMessage(nextIndex > 0 ? `OpeningFit played ${practiceSide === "black" ? "White" : "Black"}'s first move.` : "");
+  }, [opening, practiceSide, userColor]);
+
+  const resetPractice = () => {
+    const copy = new Chess();
+    let nextIndex = 0;
+
+    while (opening?.moves?.[nextIndex] && copy.turn() !== userColor) {
+      try {
+        const opponentMove = copy.move(opening.moves[nextIndex]);
+        if (!opponentMove) break;
+        nextIndex += 1;
+      } catch {
+        break;
+      }
+    }
+
+    setChess(copy);
+    setMoveIndex(nextIndex);
+    setSelectedSquare(null);
+    setFeedbackSquare(null);
+    setMessage(nextIndex > 0 ? `OpeningFit played ${practiceSide === "black" ? "White" : "Black"}'s first move.` : "");
   };
 
   const showIllegalFeedback = (squareName, text) => {
@@ -174,6 +211,18 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
     if (!opening || isComplete || !from || !to) return;
 
     const copy = new Chess(chess.fen());
+    if (copy.turn() !== userColor) {
+      showIllegalFeedback(from, `OpeningFit will play ${practiceSide === "black" ? "White" : "Black"}'s replies.`);
+      setSelectedSquare(null);
+      return;
+    }
+
+    const sourcePiece = copy.get(from);
+    if (!sourcePiece || sourcePiece.color !== userColor) {
+      showIllegalFeedback(from, `Move only your ${practiceSide === "black" ? "Black" : "White"} pieces.`);
+      setSelectedSquare(null);
+      return;
+    }
 
     try {
       const move = copy.move({
@@ -189,11 +238,17 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
       }
 
       if (move.san === expectedMove) {
+        let nextIndex = moveIndex + 1;
+        if (opening.moves[nextIndex] && copy.turn() !== userColor) {
+          const opponentMove = copy.move(opening.moves[nextIndex]);
+          if (opponentMove) nextIndex += 1;
+        }
+
         setChess(copy);
-        setMoveIndex((prev) => prev + 1);
+        setMoveIndex(nextIndex);
         setSelectedSquare(null);
 
-        if (moveIndex + 1 >= opening.moves.length) {
+        if (nextIndex >= opening.moves.length) {
           setMessage("Correct. Line complete.");
         } else {
           setMessage("Correct move.");
@@ -210,11 +265,15 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
 
   const handleSquareClick = (squareName) => {
     if (!opening || isComplete) return;
+    if (chess.turn() !== userColor) {
+      setMessage(`OpeningFit will play ${practiceSide === "black" ? "White" : "Black"}'s replies.`);
+      return;
+    }
 
     const piece = chess.get(squareName);
 
     if (!selectedSquare) {
-      if (!piece) {
+      if (!piece || piece.color !== userColor) {
         setMessage("");
         return;
       }
@@ -230,7 +289,7 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
       return;
     }
 
-    if (piece && piece.color === chess.turn()) {
+    if (piece && piece.color === userColor) {
       setSelectedSquare(squareName);
       setMessage("Now choose the square to move to.");
       return;
@@ -250,8 +309,14 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
 
     try {
       copy.move(expectedMove);
+      let nextIndex = moveIndex + 1;
+      if (opening.moves[nextIndex] && copy.turn() !== userColor) {
+        const opponentMove = copy.move(opening.moves[nextIndex]);
+        if (opponentMove) nextIndex += 1;
+      }
+
       setChess(copy);
-      setMoveIndex((prev) => prev + 1);
+      setMoveIndex(nextIndex);
       setSelectedSquare(null);
       setMessage("");
     } catch {
@@ -269,8 +334,14 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
         copy.move(opening.moves[i]);
       }
 
+      let nextIndex = targetIndex + 1;
+      if (opening.moves[nextIndex] && copy.turn() !== userColor) {
+        const opponentMove = copy.move(opening.moves[nextIndex]);
+        if (opponentMove) nextIndex += 1;
+      }
+
       setChess(copy);
-      setMoveIndex(targetIndex + 1);
+      setMoveIndex(nextIndex);
       setSelectedSquare(null);
       setMessage("");
     } catch {
@@ -317,8 +388,8 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
           <h2>{opening.name}</h2>
           <p className="subtext">
             You are practising as{" "}
-            <strong>{opening.side === "black" ? "Black" : "White"}</strong>.
-            Play through the first 6 moves of the main line.
+            <strong>{practiceSide === "black" ? "Black" : "White"}</strong>.
+            OpeningFit will play {practiceSide === "black" ? "White" : "Black"}'s replies.
           </p>
         </div>
 
@@ -364,7 +435,7 @@ export default function OpeningPracticeBoard({ openingName, onClose }) {
               Move {Math.min(moveIndex + 1, opening.moves.length)} of{" "}
               {opening.moves.length}
             </span>
-            <strong>{isComplete ? "Complete" : expectedMove}</strong>
+            <strong>{isComplete ? "Complete" : `Your move as ${practiceSide === "black" ? "Black" : "White"}`}</strong>
           </div>
 
           <div className="practiceMoveLine">

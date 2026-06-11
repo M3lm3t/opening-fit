@@ -9984,6 +9984,17 @@ def stripe_metadata(obj: Any) -> Dict[str, Any]:
     return dict(metadata) if isinstance(metadata, dict) else {}
 
 
+def stripe_customer_email(obj: Any) -> Optional[str]:
+    customer_details = stripe_value(obj, "customer_details", {}) or {}
+    details_email = None
+    if isinstance(customer_details, dict):
+        details_email = customer_details.get("email")
+    else:
+        details_email = getattr(customer_details, "email", None)
+
+    return details_email or stripe_value(obj, "customer_email")
+
+
 def stripe_subscription_price_id(subscription: Any) -> Optional[str]:
     metadata_price_id = stripe_metadata(subscription).get("price_id")
     if metadata_price_id:
@@ -10147,6 +10158,156 @@ def set_profile_premium_status(supabase_admin, user_id: str, is_premium: bool, w
         raise
 
 
+def update_profile_premium_rows(
+    supabase_admin,
+    match_column: str,
+    match_value: str,
+    payload: Dict[str, Any],
+    stripe_session_id: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    optional_profile_columns = {
+        "premium_status",
+        "premium_source",
+        "premium_updated_at",
+        "stripe_customer_id",
+        "stripe_checkout_session_id",
+    }
+    active_payload = dict(payload)
+
+    while True:
+        try:
+            result = (
+                supabase_admin
+                .table("profiles")
+                .update(active_payload)
+                .eq(match_column, match_value)
+                .execute()
+            )
+            rows = result.data or []
+            log_supabase_diagnostic(
+                "profile premium update completed",
+                table="profiles",
+                match_column=match_column,
+                updated_rows=len(rows),
+                stripe_checkout_session_id=stripe_session_id,
+                attempted_columns=sorted(active_payload.keys()),
+            )
+            return rows
+        except Exception as exc:
+            missing_columns = [
+                column
+                for column in optional_profile_columns
+                if column in active_payload and column in str(exc)
+            ]
+            if not missing_columns:
+                log_supabase_diagnostic(
+                    "profile premium update failed",
+                    table="profiles",
+                    match_column=match_column,
+                    stripe_checkout_session_id=stripe_session_id,
+                    error=exc,
+                )
+                raise
+
+            for column in missing_columns:
+                active_payload.pop(column, None)
+            log_supabase_diagnostic(
+                "profile premium update retrying without optional columns",
+                table="profiles",
+                missing_columns=missing_columns,
+                match_column=match_column,
+                stripe_checkout_session_id=stripe_session_id,
+            )
+
+
+def grantPremiumAccess(
+    supabase_admin,
+    *,
+    userId: Optional[str] = None,
+    email: Optional[str] = None,
+    stripeCustomerId: Optional[str] = None,
+    stripeSessionId: Optional[str] = None,
+    source: str = "stripe",
+) -> Dict[str, Any]:
+    now = datetime.now(timezone.utc).isoformat()
+    clean_user_id = str(userId).strip() if userId else ""
+    clean_email = str(email).strip().lower() if email else ""
+    payload = {
+        "is_premium": True,
+        "updated_at": now,
+        "premium_status": "active",
+        "premium_source": source,
+        "premium_updated_at": now,
+        "stripe_customer_id": stripeCustomerId,
+        "stripe_checkout_session_id": stripeSessionId,
+    }
+    payload = {key: value for key, value in payload.items() if value is not None}
+
+    rows: List[Dict[str, Any]] = []
+    matched_by = None
+
+    if clean_user_id:
+        rows = update_profile_premium_rows(
+            supabase_admin,
+            "id",
+            clean_user_id,
+            payload,
+            stripe_session_id=stripeSessionId,
+        )
+        matched_by = "id" if rows else None
+
+        if not rows:
+            rows = update_profile_premium_rows(
+                supabase_admin,
+                "user_id",
+                clean_user_id,
+                payload,
+                stripe_session_id=stripeSessionId,
+            )
+            matched_by = "user_id" if rows else None
+
+    if not rows and clean_email:
+        rows = (
+            supabase_admin
+            .table("profiles")
+            .select("id,user_id,email")
+            .ilike("email", clean_email)
+            .limit(1)
+            .execute()
+        ).data or []
+
+        if rows:
+            profile_id = rows[0].get("id")
+            if profile_id:
+                rows = update_profile_premium_rows(
+                    supabase_admin,
+                    "id",
+                    profile_id,
+                    payload,
+                    stripe_session_id=stripeSessionId,
+                )
+                matched_by = "email"
+
+    if not rows:
+        log_payment_diagnostic(
+            "Stripe premium grant could not find a profile row",
+            user_id=clean_user_id or None,
+            email=clean_email or None,
+            stripe_customer_id=stripeCustomerId,
+            stripe_checkout_session_id=stripeSessionId,
+            source=source,
+        )
+
+    return {
+        "user_id": clean_user_id or (rows[0].get("user_id") if rows else None),
+        "email": clean_email or (rows[0].get("email") if rows else None),
+        "matched_by": matched_by,
+        "updated_rows": len(rows),
+        "updated_at": now,
+        "stripe_checkout_session_id": stripeSessionId,
+    }
+
+
 def checkout_session_is_paid(session: Any) -> bool:
     status = str(stripe_value(session, "status", "") or "").lower()
     payment_status = str(stripe_value(session, "payment_status", "") or "").lower()
@@ -10232,51 +10393,66 @@ def update_premium_from_subscription_event(
 
 
 def activate_premium_from_checkout_session(supabase_admin, session: Any, source: str = "stripe_checkout") -> Dict[str, Any]:
-    user_id = stripe_value(session, "client_reference_id") or stripe_metadata(session).get("user_id")
+    metadata = stripe_metadata(session)
+    user_id = (
+        metadata.get("user_id")
+        or stripe_value(session, "client_reference_id")
+    )
+    email = stripe_customer_email(session)
     if not user_id:
-        raise ValueError("Stripe checkout session is missing user_id metadata.")
+        log_payment_diagnostic(
+            "Stripe checkout session missing user id; attempting email fallback",
+            session_id=stripe_value(session, "id"),
+            email=email,
+        )
 
     now = datetime.now(timezone.utc).isoformat()
-    payload = {
-        "user_id": str(user_id),
-        "status": "active",
-        "source": source,
-        "premium_since": now,
-        "expires_at": None,
-        "stripe_customer_id": stripe_value(session, "customer"),
-        "stripe_checkout_session_id": stripe_value(session, "id"),
-        "stripe_subscription_id": stripe_value(session, "subscription"),
-        "stripe_payment_intent_id": stripe_value(session, "payment_intent"),
-        "stripe_price_id": stripe_metadata(session).get("price_id"),
-        "checkout_mode": stripe_value(session, "mode"),
-        "updated_at": now,
-    }
+    if user_id:
+        payload = {
+            "user_id": str(user_id),
+            "status": "active",
+            "source": source,
+            "premium_since": now,
+            "expires_at": None,
+            "stripe_customer_id": stripe_value(session, "customer"),
+            "stripe_checkout_session_id": stripe_value(session, "id"),
+            "stripe_subscription_id": stripe_value(session, "subscription"),
+            "stripe_payment_intent_id": stripe_value(session, "payment_intent"),
+            "stripe_price_id": metadata.get("price_id"),
+            "checkout_mode": stripe_value(session, "mode"),
+            "updated_at": now,
+        }
 
-    upsert_premium_entitlement(supabase_admin, payload)
-    try:
-        supabase_admin.table("profiles").upsert(
-            {
-                "user_id": str(user_id),
-                "email": stripe_value(session, "customer_email"),
-                "is_premium": True,
-                "updated_at": now,
-            },
-            on_conflict="user_id",
-        ).execute()
-    except Exception as exc:
-        log_supabase_diagnostic(
-            "profile premium activation upsert failed",
-            table="profiles",
-            user_id=str(user_id),
-            stripe_checkout_session_id=stripe_value(session, "id"),
-            error=exc,
-        )
-        raise
+        upsert_premium_entitlement(supabase_admin, payload)
+
+    profile_result = grantPremiumAccess(
+        supabase_admin,
+        userId=str(user_id) if user_id else None,
+        email=email,
+        stripeCustomerId=stripe_value(session, "customer"),
+        stripeSessionId=stripe_value(session, "id"),
+        source=source,
+    )
+
+    if profile_result["updated_rows"] < 1:
+        raise ValueError("Stripe checkout session could not be matched to a profile row.")
+
+    log_payment_diagnostic(
+        "Stripe checkout premium profile grant result",
+        session_id=stripe_value(session, "id"),
+        resolved_user_id=profile_result.get("user_id"),
+        resolved_email=profile_result.get("email") or email,
+        matched_by=profile_result.get("matched_by"),
+        updated_rows=profile_result.get("updated_rows"),
+    )
 
     return {
-        "user_id": str(user_id),
+        "user_id": str(user_id) if user_id else profile_result.get("user_id"),
+        "email": profile_result.get("email") or email,
         "status": "active",
-        "updated_at": now,
+        "updated_at": profile_result.get("updated_at") or now,
+        "matched_by": profile_result.get("matched_by"),
+        "updated_rows": profile_result.get("updated_rows"),
     }
 
 
@@ -10348,6 +10524,7 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
         or os.getenv("STRIPE_PREMIUM_PRICE_ID", "").strip()
         or os.getenv("STRIPE_FOUNDER_PASS_PRICE_ID", "").strip()
     )
+    founder_price_id = os.getenv("STRIPE_FOUNDER_PASS_PRICE_ID", "").strip()
     frontend_url = resolve_checkout_frontend_url(request)
 
     if not stripe_secret_key or not stripe_price_id:
@@ -10396,6 +10573,13 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
 
     user_id = str(auth_user.id)
     email = getattr(auth_user, "email", None) or payload.get("email")
+    product = "founder_pass" if founder_price_id and stripe_price_id == founder_price_id else "premium"
+    checkout_metadata = {
+        "user_id": user_id,
+        "email": email or "",
+        "price_id": stripe_price_id,
+        "product": product,
+    }
 
     try:
         price = stripe.Price.retrieve(stripe_price_id)
@@ -10410,30 +10594,20 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
             ],
             "success_url": f"{frontend_url}/account?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
             "cancel_url": f"{frontend_url}/account?checkout=cancelled",
-            "customer_email": email,
             "client_reference_id": user_id,
-            "metadata": {
-                "user_id": user_id,
-                "price_id": stripe_price_id,
-                "product": "openingfit_premium",
-            },
+            "metadata": checkout_metadata,
         }
+
+        if email:
+            session_params["customer_email"] = email
 
         if checkout_mode == "subscription":
             session_params["subscription_data"] = {
-                "metadata": {
-                    "user_id": user_id,
-                    "price_id": stripe_price_id,
-                    "product": "openingfit_premium",
-                },
+                "metadata": checkout_metadata,
             }
         else:
             session_params["payment_intent_data"] = {
-                "metadata": {
-                    "user_id": user_id,
-                    "price_id": stripe_price_id,
-                    "product": "openingfit_premium",
-                },
+                "metadata": checkout_metadata,
             }
 
         session = stripe.checkout.Session.create(**session_params)
@@ -10463,6 +10637,7 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
         "mode": getattr(session, "mode", None),
         "has_url": True,
         "frontend_url_host": frontend_url,
+        "product": product,
     })
 
     return {"url": session.url}
@@ -10524,7 +10699,7 @@ async def sync_checkout_session(payload: Dict[str, Any], request: Request):
             session_id=session_id,
         )
 
-    session_user_id = stripe_value(session, "client_reference_id") or stripe_metadata(session).get("user_id")
+    session_user_id = stripe_metadata(session).get("user_id") or stripe_value(session, "client_reference_id")
     if str(session_user_id or "") != user_id:
         return checkout_error_response(
             403,
@@ -10617,47 +10792,67 @@ async def stripe_webhook(request: Request):
 
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
-        user_id = stripe_value(session, "client_reference_id") or stripe_metadata(session).get("user_id")
+        metadata = stripe_metadata(session)
+        user_id = metadata.get("user_id") or stripe_value(session, "client_reference_id")
+        email = stripe_customer_email(session)
 
-        if user_id:
-            if not checkout_session_is_paid(session):
-                log_payment_diagnostic(
-                    "Stripe checkout completed but session is not paid",
-                    user_id=user_id,
-                    session_id=stripe_value(session, "id"),
-                    status=stripe_value(session, "status"),
-                    payment_status=stripe_value(session, "payment_status"),
-                    mode=stripe_value(session, "mode"),
-                )
-                return {"received": True}
+        log_payment_diagnostic(
+            "Stripe checkout.session.completed resolving premium grant",
+            event_type=event.get("type"),
+            session_id=stripe_value(session, "id"),
+            resolved_user_id=user_id,
+            resolved_email=email,
+            metadata_user_id=metadata.get("user_id"),
+            client_reference_id=stripe_value(session, "client_reference_id"),
+            customer_id=stripe_value(session, "customer"),
+            product=metadata.get("product"),
+        )
 
-            try:
-                result = activate_premium_from_checkout_session(
-                    get_supabase_admin_client(),
-                    session,
-                    source="stripe_checkout",
-                )
-
-                log_payment_diagnostic(
-                    "Stripe checkout premium entitlement activated",
-                    user_id=result["user_id"],
-                    session_id=stripe_value(session, "id"),
-                    subscription_id=stripe_value(session, "subscription"),
-                    payment_intent_id=stripe_value(session, "payment_intent"),
-                )
-            except Exception as exc:
-                log_payment_diagnostic(
-                    "Stripe checkout premium entitlement update failed",
-                    user_id=user_id,
-                    session_id=stripe_value(session, "id"),
-                    error=exc,
-                )
-                raise HTTPException(status_code=500, detail="Premium entitlement update failed.")
-        else:
+        if not user_id and not email:
             log_payment_diagnostic(
-                "Stripe checkout completed without a user id",
+                "Stripe checkout completed without a user id or email",
                 session_id=stripe_value(session, "id"),
             )
+            return {"received": True}
+
+        if not checkout_session_is_paid(session):
+            log_payment_diagnostic(
+                "Stripe checkout completed but session is not paid",
+                user_id=user_id,
+                email=email,
+                session_id=stripe_value(session, "id"),
+                status=stripe_value(session, "status"),
+                payment_status=stripe_value(session, "payment_status"),
+                mode=stripe_value(session, "mode"),
+            )
+            return {"received": True}
+
+        try:
+            result = activate_premium_from_checkout_session(
+                get_supabase_admin_client(),
+                session,
+                source="stripe_checkout",
+            )
+
+            log_payment_diagnostic(
+                "Stripe checkout premium entitlement activated",
+                user_id=result["user_id"],
+                email=result.get("email"),
+                matched_by=result.get("matched_by"),
+                updated_rows=result.get("updated_rows"),
+                session_id=stripe_value(session, "id"),
+                subscription_id=stripe_value(session, "subscription"),
+                payment_intent_id=stripe_value(session, "payment_intent"),
+            )
+        except Exception as exc:
+            log_payment_diagnostic(
+                "Stripe checkout premium entitlement update failed",
+                user_id=user_id,
+                email=email,
+                session_id=stripe_value(session, "id"),
+                error=exc,
+            )
+            raise HTTPException(status_code=500, detail="Premium entitlement update failed.")
     elif event["type"] == "checkout.session.expired":
         session = event["data"]["object"]
         print("OpeningFit Stripe checkout expired", {

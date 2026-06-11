@@ -88,7 +88,7 @@ const RESTORE_TABLE_COLUMNS = {
 const PROFILE_RESTORE_COLUMNS =
   "id,user_id,email,display_name,username,platform,chesscom_username,lichess_username,is_premium,last_report,created_at,updated_at";
 
-function createDefaultUserData(profile = null) {
+export function createDefaultUserData(profile = null) {
   return {
     profile,
     premium_entitlements: [],
@@ -125,11 +125,7 @@ export function hasActivePremiumEntitlement(entitlements = [], profile = null) {
     return Number.isFinite(expiresAt) && expiresAt > now;
   });
 
-  if (entitlementRows.length > 0) {
-    return Boolean(activeEntitlement);
-  }
-
-  return Boolean(profile?.is_premium);
+  return Boolean(activeEntitlement || profile?.is_premium);
 }
 
 function requireClient() {

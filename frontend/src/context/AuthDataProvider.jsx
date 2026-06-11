@@ -10,6 +10,7 @@ import {
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 import {
   deleteUserRow,
+  createDefaultUserData,
   fetchAllUserData,
   hasActivePremiumEntitlement,
   recordActivity,

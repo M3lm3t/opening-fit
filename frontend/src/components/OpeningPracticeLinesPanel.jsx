@@ -73,6 +73,59 @@ function buildGameToMove(moves, moveCount) {
   return game;
 }
 
+function inferPracticeSide(pack, line) {
+  const explicitSide =
+    line?.practiceSide ||
+    line?.side ||
+    pack?.practiceSide ||
+    pack?.opening?.practiceSide ||
+    pack?.opening?.playerColor;
+
+  if (explicitSide === "black" || explicitSide === "white") return explicitSide;
+  if (pack?.opening?.color === "black") return "black";
+  if (pack?.opening?.color === "white") return "white";
+
+  const text = [pack?.key, ...(pack?.aliases || []), line?.name]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (
+    /\b(defen[cs]e|sicilian|french|caro|scandinavian|pirc|dutch)\b/.test(text) ||
+    text.includes("king's indian")
+  ) {
+    return "black";
+  }
+
+  return "white";
+}
+
+function userColorForPracticeSide(practiceSide) {
+  return practiceSide === "black" ? "b" : "w";
+}
+
+function buildPracticeState(moves, moveCount, practiceSide, stopOnUserTurn = false) {
+  const game = buildGameToMove(moves, moveCount);
+  let nextIndex = Math.min(moveCount, moves.length);
+  const userColor = userColorForPracticeSide(practiceSide);
+
+  if (stopOnUserTurn) {
+    while (moves[nextIndex] && game.turn() !== userColor) {
+      try {
+        const opponentMove = game.move(moves[nextIndex]);
+        if (!opponentMove) break;
+        nextIndex += 1;
+      } catch {
+        break;
+      }
+    }
+  }
+
+  return {
+    fen: game.fen(),
+    moveIndex: nextIndex,
+  };
+}
+
 function loadLocalTrainingProgress() {
   try {
     const parsed = JSON.parse(localStorage.getItem(TRAINING_PROGRESS_KEY) || "{}");
@@ -221,12 +274,15 @@ export default function OpeningPracticeLinesPanel({
 
   const selectedLine = pack?.lines?.[selectedLineIndex];
   const moves = useMemo(() => selectedLine?.moves || [], [selectedLine]);
+  const practiceSide = useMemo(() => inferPracticeSide(pack, selectedLine), [pack, selectedLine]);
+  const userColor = userColorForPracticeSide(practiceSide);
   const expectedMove = moves[moveIndex];
   const isComplete = Boolean(pack) && moveIndex >= moves.length;
   const progressPercent = moves.length ? Math.round((moveIndex / moves.length) * 100) : 0;
   const completedMoves = Math.min(moveIndex, moves.length);
   const currentGame = useMemo(() => new Chess(fen), [fen]);
   const currentTurn = currentGame.turn();
+  const isUsersTurn = currentTurn === userColor;
   const moveExplanation = useMemo(
     () =>
       !isComplete
@@ -309,19 +365,23 @@ export default function OpeningPracticeLinesPanel({
 
   useEffect(() => {
     setSelectedLineIndex(0);
-    setMoveIndex(0);
-    setFen(new Chess().fen());
+    const initialState = buildPracticeState(pack?.lines?.[0]?.moves || [], 0, inferPracticeSide(pack, pack?.lines?.[0]), true);
+    setMoveIndex(initialState.moveIndex);
+    setFen(initialState.fen);
     setStatus("");
     setShowHint(false);
     setSelectedSquare(null);
     setFeedbackSquare(null);
-  }, [activeOpeningName]);
+  }, [activeOpeningName, pack]);
 
   useEffect(() => {
     if (!pack?.lines?.length || !focusLine) return;
-    setSelectedLineIndex(getBestLineIndex(pack.lines, focusLine));
-    setMoveIndex(0);
-    setFen(new Chess().fen());
+    const nextLineIndex = getBestLineIndex(pack.lines, focusLine);
+    const nextLine = pack.lines[nextLineIndex];
+    const initialState = buildPracticeState(nextLine?.moves || [], 0, inferPracticeSide(pack, nextLine), true);
+    setSelectedLineIndex(nextLineIndex);
+    setMoveIndex(initialState.moveIndex);
+    setFen(initialState.fen);
     setStatus("");
     setShowHint(false);
     setSelectedSquare(null);
@@ -329,9 +389,15 @@ export default function OpeningPracticeLinesPanel({
   }, [focusLine, pack]);
 
   useEffect(() => {
-    const game = buildGameToMove(moves, moveIndex);
-    setFen(game.fen());
-  }, [moves, moveIndex]);
+    const state = buildPracticeState(moves, moveIndex, practiceSide, true);
+    if (state.moveIndex !== moveIndex) {
+      setMoveIndex(state.moveIndex);
+      setFen(state.fen);
+      return;
+    }
+
+    setFen(state.fen);
+  }, [moves, moveIndex, practiceSide]);
 
   if (!opening) return null;
 
@@ -386,8 +452,9 @@ export default function OpeningPracticeLinesPanel({
   }
 
   function resetBoard() {
-    setMoveIndex(0);
-    setFen(new Chess().fen());
+    const initialState = buildPracticeState(moves, 0, practiceSide, true);
+    setMoveIndex(initialState.moveIndex);
+    setFen(initialState.fen);
     setStatus("");
     setShowHint(false);
     setSelectedSquare(null);
@@ -456,8 +523,10 @@ export default function OpeningPracticeLinesPanel({
 
   function chooseLine(index) {
     setSelectedLineIndex(index);
-    setMoveIndex(0);
-    setFen(new Chess().fen());
+    const nextLine = pack?.lines?.[index];
+    const initialState = buildPracticeState(nextLine?.moves || [], 0, inferPracticeSide(pack, nextLine), true);
+    setMoveIndex(initialState.moveIndex);
+    setFen(initialState.fen);
     setStatus("");
     setShowHint(false);
     setSelectedSquare(null);
@@ -470,25 +539,38 @@ export default function OpeningPracticeLinesPanel({
     const game = buildGameToMove(moves, moveIndex);
 
     try {
-      game.move(expectedMove);
+      const move = game.move(expectedMove);
+      let nextIndex = moveIndex + 1;
+      while (moves[nextIndex] && game.turn() !== userColor) {
+        const opponentMove = game.move(moves[nextIndex]);
+        if (!opponentMove) break;
+        nextIndex += 1;
+      }
+
       setFen(game.fen());
-      setMoveIndex((current) => current + 1);
+      setMoveIndex(nextIndex);
       setStatus(`Correct. ${explainMove(selectedLine, moves, moveIndex)}`);
       setShowHint(false);
       setSelectedSquare(null);
       setFeedbackSquare(null);
-      if (moveIndex + 1 >= moves.length) markLineComplete();
+      if (move && nextIndex >= moves.length) markLineComplete();
     } catch {
       setStatus("This practice line could not play that move. Check the saved line.");
     }
   }
 
   function undoMove() {
-    const nextIndex = Math.max(0, moveIndex - 1);
-    const game = buildGameToMove(moves, nextIndex);
+    let nextIndex = Math.max(0, moveIndex - 1);
+    while (nextIndex > 0) {
+      const game = buildGameToMove(moves, nextIndex);
+      if (game.turn() === userColor) break;
+      nextIndex -= 1;
+    }
 
-    setFen(game.fen());
-    setMoveIndex(nextIndex);
+    const state = buildPracticeState(moves, nextIndex, practiceSide, true);
+
+    setFen(state.fen);
+    setMoveIndex(state.moveIndex);
     setStatus("");
     setShowHint(false);
     setSelectedSquare(null);
@@ -496,9 +578,9 @@ export default function OpeningPracticeLinesPanel({
   }
 
   function jumpToMove(index) {
-    const game = buildGameToMove(moves, index);
-    setFen(game.fen());
-    setMoveIndex(index);
+    const state = buildPracticeState(moves, index, practiceSide, true);
+    setFen(state.fen);
+    setMoveIndex(state.moveIndex);
     setStatus("");
     setShowHint(false);
     setSelectedSquare(null);
@@ -509,11 +591,23 @@ export default function OpeningPracticeLinesPanel({
     if (!expectedMove || isComplete) return false;
 
     const gameBeforeMove = new Chess(fen);
-    const gameAfterExpectedMove = new Chess(fen);
+    if (gameBeforeMove.turn() !== userColor) {
+      showIllegalFeedback(sourceSquare, `OpeningFit will play ${practiceSide === "black" ? "White" : "Black"}'s replies.`);
+      setSelectedSquare(null);
+      return false;
+    }
+
+    const sourcePiece = gameBeforeMove.get(sourceSquare);
+    if (!sourcePiece || sourcePiece.color !== userColor) {
+      showIllegalFeedback(sourceSquare, `Move only your ${practiceSide === "black" ? "Black" : "White"} pieces.`);
+      setSelectedSquare(null);
+      return false;
+    }
 
     let expectedMoveObject = null;
 
     try {
+      const gameAfterExpectedMove = new Chess(fen);
       expectedMoveObject = gameAfterExpectedMove.move(expectedMove);
     } catch {
       showIllegalFeedback(sourceSquare, "This practice line has a saved move that cannot be played.");
@@ -542,20 +636,27 @@ export default function OpeningPracticeLinesPanel({
       if (!sameMove) {
         showIllegalFeedback(
           targetSquare,
-          `Not quite. Hint: the move is ${formatMoveNumber(moveIndex)} ${expectedMove}. ${moveExplanation}`
+          `Not quite — try the repertoire move here. Hint: ${formatMoveNumber(moveIndex)} ${expectedMove}. ${moveExplanation}`
         );
         setShowHint(true);
         setSelectedSquare(null);
         return false;
       }
 
+      let nextIndex = moveIndex + 1;
+      while (moves[nextIndex] && gameBeforeMove.turn() !== userColor) {
+        const opponentMove = gameBeforeMove.move(moves[nextIndex]);
+        if (!opponentMove) break;
+        nextIndex += 1;
+      }
+
       setFen(gameBeforeMove.fen());
-      setMoveIndex((current) => current + 1);
+      setMoveIndex(nextIndex);
       setStatus(`Correct. ${explainMove(selectedLine, moves, moveIndex)}`);
       setShowHint(false);
       setSelectedSquare(null);
       setFeedbackSquare(null);
-      if (moveIndex + 1 >= moves.length) markLineComplete();
+      if (nextIndex >= moves.length) markLineComplete();
       return true;
     } catch {
       showIllegalFeedback(targetSquare, "That move is not legal.");
@@ -566,11 +667,15 @@ export default function OpeningPracticeLinesPanel({
 
   function handleSquareClick(squareName) {
     if (!expectedMove || isComplete) return;
+    if (!isUsersTurn) {
+      setStatus(`OpeningFit will play ${practiceSide === "black" ? "White" : "Black"}'s replies.`);
+      return;
+    }
 
     const piece = currentGame.get(squareName);
 
     if (!selectedSquare) {
-      if (!piece) {
+      if (!piece || piece.color !== userColor) {
         setStatus("");
         return;
       }
@@ -586,7 +691,7 @@ export default function OpeningPracticeLinesPanel({
       return;
     }
 
-    if (piece && piece.color === currentTurn) {
+    if (piece && piece.color === userColor) {
       setSelectedSquare(squareName);
       setStatus("Choose the square this piece should move to.");
       return;
@@ -630,6 +735,7 @@ export default function OpeningPracticeLinesPanel({
           <div className="practiceBoardWrap practice-board-shell">
             <ChessPositionBoard
               position={fen}
+              orientation={practiceSide === "black" ? "black" : "white"}
               interactive={!isComplete}
               selectedSquare={selectedSquare}
               feedbackSquare={feedbackSquare}
@@ -667,12 +773,12 @@ export default function OpeningPracticeLinesPanel({
               </>
             ) : (
               <>
-                <span>Find the next move</span>
+                <span>{isUsersTurn ? `Your move as ${practiceSide === "black" ? "Black" : "White"}` : "OpeningFit reply"}</span>
                 <strong>
                   {formatMoveNumber(moveIndex)} {showHint ? expectedMove : "?"}
                 </strong>
                 <small>
-                  {currentTurn === "w" ? "White" : "Black"} to move · Move {moveIndex + 1} of {moves.length}
+                  OpeningFit will play {practiceSide === "black" ? "White" : "Black"}'s replies. Move {moveIndex + 1} of {moves.length}
                 </small>
               </>
             )}
