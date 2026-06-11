@@ -298,17 +298,23 @@ export function AuthDataProvider({ children }) {
         console.info("[OpeningFit restore] profile/settings/history complete");
         return data;
       } catch (refreshError) {
-        console.warn("[OpeningFit restore] failed", refreshError);
+        console.warn("[OpeningFit restore] failed; continuing with default workspace.", refreshError);
         if (applyState && restoreSeq === restoreSeqRef.current) {
-          const message = refreshError.message || "Could not load your saved data.";
-          setError(message);
-          setProfileError(message);
-          setRestoreError(message);
-          setSyncState((current) => ({ ...current, status: "error", error: message }));
+          const fallbackData = createDefaultUserData(null);
+          setUserData(fallbackData);
+          setError("");
+          setProfileError("");
+          setRestoreError("");
+          setRestoreTimedOut(refreshError?.name === "WorkspaceRestoreTimeout");
+          setSyncState((current) => ({
+            ...current,
+            status: "idle",
+            error: "",
+          }));
           setHydrated(true);
           setProfileLoaded(true);
         }
-        throw refreshError;
+        return null;
       } finally {
         if (applyState && restoreSeq === restoreSeqRef.current) {
           setHydrated(true);

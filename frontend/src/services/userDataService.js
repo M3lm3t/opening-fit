@@ -79,21 +79,22 @@ const RESTORE_TABLE_LIMITS = {
   weekly_reports: 20,
 };
 const RESTORE_TABLE_COLUMNS = {
-  openingfit_user_state: "id,user_id,platform,username,last_report,coach_progress,progress_history,import_history,created_at,updated_at",
-  report_history:
-    "id,user_id,username,platform,summary,report,report_key,analysis_time_format,effective_time_format,detected_time_format,style_profile,style_based_recommendations,created_at,updated_at",
-  analysis_history:
-    "id,user_id,username,platform,summary,report,report_key,analysis_time_format,effective_time_format,detected_time_format,style_profile,style_based_recommendations,created_at,updated_at",
-  activity_history: "id,user_id,type,payload,created_at,updated_at",
-  analysed_games: "id,user_id,username,platform,game_id,game,analysis,summary,created_at,updated_at",
-  uploads: "id,user_id,path,name,size,type,created_at,updated_at",
-  ai_generations: "id,user_id,type,summary,created_at,updated_at",
-  user_profiles: "id,user_id,display_name,avatar_url,goal_text,current_level,xp,created_at,updated_at",
-  user_activity_log: "id,user_id,activity_type,points,metadata,dedupe_key,created_at",
-  user_streaks: "user_id,current_streak,best_streak,last_active_date,streak_freezes,updated_at",
-  user_goals: "id,user_id,goal_type,target_value,current_value,period,starts_on,ends_on,completed,created_at",
-  user_achievements: "id,user_id,achievement_key,title,description,unlocked_at",
-  weekly_reports: "id,user_id,week_start,week_end,summary,stats,created_at",
+  // Use flexible selects for cloud restore.
+  // Exact column lists make restore fragile: if Supabase is missing one column,
+  // PostgREST rejects the whole table query with a 400.
+  openingfit_user_state: "*",
+  report_history: "*",
+  analysis_history: "*",
+  activity_history: "*",
+  analysed_games: "*",
+  uploads: "*",
+  ai_generations: "*",
+  user_profiles: "*",
+  user_activity_log: "*",
+  user_streaks: "*",
+  user_goals: "*",
+  user_achievements: "*",
+  weekly_reports: "*",
 };
 const PROFILE_RESTORE_COLUMNS =
   "id,user_id,email,display_name,username,platform,chesscom_username,lichess_username,is_premium,last_report,created_at,updated_at";
