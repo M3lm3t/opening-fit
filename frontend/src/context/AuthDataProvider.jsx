@@ -37,7 +37,7 @@ const DANGEROUS_LEGACY_KEY_PATTERNS = [
   /paid/i,
   /unlock/i,
 ];
-const RESTORE_TIMEOUT_MS = 7000;
+const RESTORE_TIMEOUT_MS = 15000;
 const DEBUG_CLOUD_RESTORE =
   typeof import.meta !== "undefined" &&
   import.meta.env?.VITE_DEBUG_CLOUD_RESTORE === "true";
