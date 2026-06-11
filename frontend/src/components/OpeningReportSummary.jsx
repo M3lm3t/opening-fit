@@ -6,6 +6,7 @@ import {
   isMasterLevel,
 } from "./playerLevelLogic";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
+import RecommendationReasonHint from "./RecommendationReasonHint";
 
 function normaliseOpeningName(opening) {
   if (!opening) return "Unknown opening";
@@ -438,6 +439,16 @@ function getVerdictClass(verdict) {
   }
 
   return "reportVerdictWatch";
+}
+
+function friendlyRecommendationLabel(label) {
+  const lower = String(label || "").toLowerCase();
+  if (lower.includes("do not learn") || lower.includes("do not study")) return "Not a priority yet";
+  if (lower.includes("avoid")) return "Improve first";
+  if (lower.includes("bad fit")) return "Style mismatch for now";
+  if (lower.includes("replace")) return "Improve first";
+  if (lower.includes("low priority")) return "Lower priority";
+  return label;
 }
 
 function getStyleLabel(data) {
@@ -928,13 +939,16 @@ export default function OpeningReportSummary({ data, username, platform }) {
 
       {doNotStudyYet ? (
         <div className="openingReportDoNotStudy">
-          <strong>Do not spend time on this yet</strong>
+          <strong>Lower study priorities</strong>
           <span>{doNotStudyYet.summary}</span>
           <ul>
             {doNotStudyYet.items.map((item) => (
               <li key={`${item.title}-${item.opening || item.reason || ""}`}>
-                <span>{item.title}</span>
-                <em>{item.reason || "lower priority"}</em>
+                <span>
+                  {friendlyRecommendationLabel(item.label || item.title)}
+                  <RecommendationReasonHint item={item} label={item.label || item.title} />
+                </span>
+                <em>{friendlyRecommendationLabel(item.reason || "lower priority")}</em>
                 <small>{item.why || item.whyItMatters || item.why_it_matters}</small>
                 <small>{item.redirect || item.recommendedAlternative || item.recommended_alternative}</small>
               </li>
@@ -1065,6 +1079,7 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type, data })
   const games = opening?.games || 0;
   const winRate = opening?.winRate || 0;
   const verdict = opening?.verdict || title;
+  const displayVerdict = friendlyRecommendationLabel(verdict);
   const confidenceLabel = opening?.confidenceLabel || getOpeningConfidence(opening?.raw || opening || {});
   const comparisonText = opening?.comparisonText || "Average comparison unavailable.";
   const reason = opening?.reason || fallbackText;
@@ -1073,7 +1088,10 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type, data })
     <article className={`openingReportCard openingReportCard-${type}`}>
       <div className="openingReportCardTop">
         <span>{title}</span>
-        <em className={getVerdictClass(verdict)}>{verdict}</em>
+        <em className={getVerdictClass(verdict)}>
+          {displayVerdict}
+          <RecommendationReasonHint item={opening?.raw || opening || {}} label={displayVerdict} />
+        </em>
       </div>
 
       <h3>{contextualName}</h3>

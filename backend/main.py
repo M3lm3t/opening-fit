@@ -2920,6 +2920,163 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
     return scored
 
 
+RECOMMENDATION_REASON_COPY: Dict[str, Dict[str, str]] = {
+    "poor_results": {
+        "title": "Results need work",
+        "message": "Your results in this opening are currently weaker than your other options, so OpeningFit suggests improving the basics before making it a main weapon.",
+        "nextStep": "Review your first 6-8 moves and the most common early mistake before using it as a main weapon.",
+        "studyPriority": "medium",
+    },
+    "too_many_openings": {
+        "title": "Too many openings right now",
+        "message": "You are already playing a wide mix of openings. OpeningFit suggests focusing on fewer systems first so your training is more effective.",
+        "nextStep": "Pick one main opening for White and one main reply against 1.e4 and 1.d4 before adding another system.",
+        "studyPriority": "low",
+    },
+    "not_enough_data": {
+        "title": "Not enough games yet",
+        "message": "You have not played this opening enough recently for a confident recommendation. Try a few more games before deciding whether to study it deeply.",
+        "nextStep": "Play a few more games from the same setup, then re-import before making a big study decision.",
+        "studyPriority": "low",
+    },
+    "style_mismatch": {
+        "title": "Style mismatch for now",
+        "message": "This opening may not match your current playing style as well as your stronger options. It is not bad, but it may be harder to get practical value from right now.",
+        "nextStep": "Focus on the openings that already match your results and style, then come back to this later.",
+        "studyPriority": "low",
+    },
+    "too_theoretical": {
+        "title": "Theory-heavy for now",
+        "message": "This opening can become theory-heavy. OpeningFit suggests building a simpler, more reliable repertoire first.",
+        "nextStep": "Use a clearer plan first; add this opening after your core repertoire is stable.",
+        "studyPriority": "low",
+    },
+    "better_alternative": {
+        "title": "A similar option fits better",
+        "message": "OpeningFit found a similar option that currently fits your results or style better, so this is a lower priority for now.",
+        "nextStep": "Spend the next study block on the better-fitting alternative before adding this one.",
+        "studyPriority": "low",
+    },
+    "low_priority": {
+        "title": "Lower study priority",
+        "message": "This opening is not a problem, but it is not the best use of your study time right now.",
+        "nextStep": "Focus on your stronger or more common openings first.",
+        "studyPriority": "low",
+    },
+}
+
+
+def get_opening_recommendation_reason(opening: Dict[str, Any], context: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
+    context = context or {}
+    name = str(opening.get("name") or opening.get("opening") or "this opening")
+    games = int(opening.get("games", 0) or 0)
+    score = float(opening.get("openingAdjustedScore", opening.get("winRate", opening.get("win_rate", 50))) or 50)
+    verdict = str(opening.get("verdict") or opening.get("recommendation") or opening.get("label") or "").lower()
+    risk = opening.get("openingRiskProfile") or opening.get("opening_risk_profile") or opening_risk_profile(name)
+    theory = str(risk.get("theoryLoad") or risk.get("theory_load") or "medium").lower()
+    penalty = int(opening.get("practicalDifficultyPenalty", opening.get("practical_difficulty_penalty", 0)) or 0)
+    variety_count = int(context.get("openingVarietyCount", context.get("opening_variety_count", 0)) or 0)
+    best_alternative = context.get("bestAlternative") or context.get("best_alternative") or {}
+    best_name = str(best_alternative.get("name") or best_alternative.get("opening") or "")
+    best_score = float(best_alternative.get("openingAdjustedScore", best_alternative.get("winRate", best_alternative.get("win_rate", 0))) or 0)
+
+    if games >= 5 and score < 40:
+        reason_type = "poor_results"
+    elif variety_count >= 6 and games < 8:
+        reason_type = "too_many_openings"
+    elif games < 3:
+        reason_type = "not_enough_data"
+    elif theory == "high" and (penalty >= 8 or games < 15):
+        reason_type = "too_theoretical"
+    elif best_name and best_name != name and best_score >= score + 8:
+        reason_type = "better_alternative"
+    elif "mismatch" in verdict or "bad fit" in verdict:
+        reason_type = "style_mismatch"
+    else:
+        reason_type = "low_priority"
+
+    copy = RECOMMENDATION_REASON_COPY[reason_type]
+    message = copy["message"]
+    next_step = copy["nextStep"]
+    if reason_type == "better_alternative" and best_name:
+        message = f"{message} Right now, {best_name} looks like the stronger nearby study focus."
+        next_step = f"Spend the next study block on {best_name}, then revisit {name} later."
+    elif reason_type == "too_theoretical":
+        message = f"{name} can be powerful, but it can also become theory-heavy and sharp. OpeningFit suggests building a simpler repertoire first."
+    elif reason_type == "too_many_openings":
+        message = f"You are already playing several openings in this area. This does not mean {name} is bad; it means your study time is better spent tightening your current main response first."
+    elif reason_type == "poor_results":
+        message = f"Your recent results in {name} are weaker than your other options. OpeningFit suggests reviewing the common early plans before using it as a main weapon."
+
+    return {
+        "type": reason_type,
+        "title": copy["title"],
+        "message": message,
+        "nextStep": next_step,
+        "next_step": next_step,
+        "studyPriority": copy["studyPriority"],
+        "study_priority": copy["studyPriority"],
+    }
+
+
+def attach_opening_recommendation_reasons(
+    openings: List[Dict[str, Any]],
+    context: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, Any]]:
+    if not openings:
+        return []
+
+    clean_openings = [
+        item for item in openings
+        if not is_unknown_opening_name(str(item.get("name") or item.get("opening") or ""))
+    ]
+    variety_count = len(
+        [
+            item for item in clean_openings
+            if is_clean_repertoire_context(item) and int(item.get("games", 0) or 0) > 0
+        ]
+    )
+    best_by_context_map: Dict[str, Dict[str, Any]] = {}
+    for item in clean_openings:
+        ctx = str(item.get("context") or item.get("repertoireContext") or "")
+        if not ctx:
+            continue
+        current = best_by_context_map.get(ctx)
+        if not current or opening_score_pct(item, 0) > opening_score_pct(current, 0):
+            best_by_context_map[ctx] = item
+
+    enriched = []
+    for item in openings:
+        ctx = str(item.get("context") or item.get("repertoireContext") or "")
+        reason = get_opening_recommendation_reason(
+            item,
+            {
+                **(context or {}),
+                "openingVarietyCount": variety_count,
+                "bestAlternative": best_by_context_map.get(ctx, {}),
+            },
+        )
+        tooltip = "This does not mean the opening is bad. It means it is not the best study priority right now."
+        enriched.append(
+            {
+                **item,
+                "recommendationReasonType": reason["type"],
+                "recommendation_reason_type": reason["type"],
+                "recommendationReason": reason["message"],
+                "recommendation_reason": reason["message"],
+                "recommendationReasonTitle": reason["title"],
+                "recommendation_reason_title": reason["title"],
+                "recommendationReasonNextStep": reason["nextStep"],
+                "recommendation_reason_next_step": reason["nextStep"],
+                "recommendationTooltip": tooltip,
+                "recommendation_tooltip": tooltip,
+                "studyPriority": reason["studyPriority"],
+                "study_priority": reason["studyPriority"],
+            }
+        )
+    return enriched
+
+
 def line_key_from_pgn(pgn: str, plies: int = 8) -> str:
     moves = clean_moves_from_pgn(pgn)
     return " ".join(move.rstrip("+#?!") for move in moves[:plies])
@@ -5990,13 +6147,24 @@ def build_do_not_study_yet(
     missing = coverage.get("missing") or []
     bigger_gap = missing[0] if missing else ""
 
-    def add_item(key: str, title: str, why: str, redirect: str, opening: str = "", reason: str = "") -> None:
+    def add_item(
+        key: str,
+        title: str,
+        why: str,
+        redirect: str,
+        opening: str = "",
+        reason: str = "",
+        reason_type: str = "low_priority",
+    ) -> None:
         if key in seen or len(items) >= 4:
             return
+        reason_copy = RECOMMENDATION_REASON_COPY.get(reason_type, RECOMMENDATION_REASON_COPY["low_priority"])
+        tooltip = "This does not mean the opening is bad. It means it is not the best study priority right now."
         seen.add(key)
         items.append(
             {
                 "title": title,
+                "label": title,
                 "why": why,
                 "whyItMatters": why,
                 "why_it_matters": why,
@@ -6005,6 +6173,19 @@ def build_do_not_study_yet(
                 "recommended_alternative": redirect,
                 "opening": opening,
                 "reason": reason,
+                "recommendation": title,
+                "recommendationReasonType": reason_type,
+                "recommendation_reason_type": reason_type,
+                "recommendationReasonTitle": reason_copy["title"],
+                "recommendation_reason_title": reason_copy["title"],
+                "recommendationReason": why,
+                "recommendation_reason": why,
+                "recommendationTooltip": tooltip,
+                "recommendation_tooltip": tooltip,
+                "recommendationReasonNextStep": redirect,
+                "recommendation_reason_next_step": redirect,
+                "studyPriority": reason_copy["studyPriority"],
+                "study_priority": reason_copy["studyPriority"],
             }
         )
 
@@ -6016,20 +6197,22 @@ def build_do_not_study_yet(
         if category == "Ignore for now" or games < 3:
             add_item(
                 f"sample-{normalise_opening_key(name)}",
-                f"Do not study {name} yet",
+                f"Not a priority yet: {name}",
                 f"Only {games} game{'' if games == 1 else 's'} found, so the sample is too small to spend study time here.",
                 f"Put that time into {bigger_gap} first." if bigger_gap else "Build a larger sample in your main repertoire first.",
                 name,
                 "low_sample",
+                "not_enough_data",
             )
         elif category == "Low ROI" or sample_pct < 5:
             add_item(
                 f"rare-{normalise_opening_key(name)}",
-                f"Do not study rare {name} sidelines yet",
+                f"Lower priority: rare {name} sidelines",
                 f"{name} appears in only {sample_pct}% of analysed games, so it is unlikely to move your results quickly.",
                 f"Prioritise {bigger_gap} instead." if bigger_gap else "Prioritise the highest-ROI opening first.",
                 name,
                 "rare_low_impact",
+                "low_priority",
             )
 
     for opening in best_openings or []:
@@ -6044,30 +6227,33 @@ def build_do_not_study_yet(
         if games <= 2 and verdict in {"replace", "avoid", "fix"}:
             add_item(
                 f"do-not-replace-{normalise_opening_key(name)}",
-                f"Do not replace {name} based on this sample",
+                f"Not a priority yet: replacing {name}",
                 f"{name} has only {games} imported game{'' if games == 1 else 's'}, so bad results may be noise.",
                 f"Study {bigger_gap} first." if bigger_gap else "Collect more games before making a repertoire decision.",
                 name,
                 "do_not_overreact",
+                "not_enough_data",
             )
         if theory == "high" and penalty >= 10 and games < 15:
             add_item(
                 f"theory-{normalise_opening_key(name)}",
-                f"Do not make {name} a main study project yet",
+                f"Lower priority: {name}",
                 f"{name} is theory-heavy for your current rating band and does not have enough strong sample support yet.",
                 f"Use a clearer plan for {bigger_gap} first." if bigger_gap else "Focus on a lower-theory main system first.",
                 name,
                 "theory_heavy",
+                "too_theoretical",
             )
 
     if bigger_gap:
         add_item(
             "rare-sidelines-general",
-            "Do not study rare sidelines yet",
+            "Not a priority yet: rare sidelines",
             f"Your main improvement area is {bigger_gap}, which will affect more games than rare sidelines.",
             f"Choose one practical plan for {bigger_gap}.",
             "",
             "bigger_gap_exists",
+            "better_alternative",
         )
 
     return {
@@ -7152,8 +7338,21 @@ def build_style_based_recommendations(
     future_upgrades = [
         {
             "name": name,
-            "label": "Future Upgrade Opening",
+            "label": "Lower priority",
+            "recommendation": "Lower priority",
             "reason": "Theory-heavy opening. Add this later after your starter repertoire is stable.",
+            "recommendationReasonType": "too_theoretical",
+            "recommendation_reason_type": "too_theoretical",
+            "recommendationReasonTitle": RECOMMENDATION_REASON_COPY["too_theoretical"]["title"],
+            "recommendation_reason_title": RECOMMENDATION_REASON_COPY["too_theoretical"]["title"],
+            "recommendationReason": RECOMMENDATION_REASON_COPY["too_theoretical"]["message"],
+            "recommendation_reason": RECOMMENDATION_REASON_COPY["too_theoretical"]["message"],
+            "recommendationTooltip": "This does not mean the opening is bad. It means it is not the best study priority right now.",
+            "recommendation_tooltip": "This does not mean the opening is bad. It means it is not the best study priority right now.",
+            "recommendationReasonNextStep": RECOMMENDATION_REASON_COPY["too_theoretical"]["nextStep"],
+            "recommendation_reason_next_step": RECOMMENDATION_REASON_COPY["too_theoretical"]["nextStep"],
+            "studyPriority": "low",
+            "study_priority": "low",
         }
         for name in THEORY_HEAVY_FUTURE_UPGRADES
     ]
@@ -7790,6 +7989,14 @@ def import_chesscom_logic(username: str, months: int = 3):
     repertoire_coverage = build_repertoire_coverage(best_openings)
     repertoire_coherence = build_repertoire_coherence(best_openings)
     repertoire_maintenance_cost = build_repertoire_maintenance_cost(best_openings, repertoire_coverage, None)
+    rating_band_benchmark = build_rating_band_benchmark(None, best_openings, repertoire_coverage, repertoire_coherence)
+    style_opening_match = infer_style_opening_match(recent_games, best_openings, None)
+    plan_clarity_report = build_plan_clarity_report(best_openings)
+    recent_opening_trend_report = build_recent_opening_trend_report(recent_games, best_openings)
+    best_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(best_openings, recent_opening_trend_report))
+    top_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(top_openings, recent_opening_trend_report))
+    best_openings = attach_opening_recommendation_reasons(best_openings)
+    top_openings = attach_opening_recommendation_reasons(top_openings)
     opening_roi = build_opening_roi(
         best_openings,
         problem_lines,
@@ -7798,12 +8005,6 @@ def import_chesscom_logic(username: str, months: int = 3):
         len(analysed_games),
     )
     do_not_study_yet = build_do_not_study_yet(best_openings, opening_roi, repertoire_coverage, None)
-    rating_band_benchmark = build_rating_band_benchmark(None, best_openings, repertoire_coverage, repertoire_coherence)
-    style_opening_match = infer_style_opening_match(recent_games, best_openings, None)
-    plan_clarity_report = build_plan_clarity_report(best_openings)
-    recent_opening_trend_report = build_recent_opening_trend_report(recent_games, best_openings)
-    best_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(best_openings, recent_opening_trend_report))
-    top_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(top_openings, recent_opening_trend_report))
     time_control_opening_report = build_time_control_opening_report(recent_games, best_openings)
     repertoire_identity_summary = build_repertoire_identity_summary(best_openings, style_profile, repertoire_coherence)
     recommended_repertoire_plan = build_recommended_repertoire_plan(
@@ -8363,6 +8564,14 @@ def build_lichess_analysis(
     repertoire_coverage = build_repertoire_coverage(best_openings)
     repertoire_coherence = build_repertoire_coherence(best_openings)
     repertoire_maintenance_cost = build_repertoire_maintenance_cost(best_openings, repertoire_coverage, current_rating)
+    rating_band_benchmark = build_rating_band_benchmark(current_rating, best_openings, repertoire_coverage, repertoire_coherence)
+    style_opening_match = infer_style_opening_match(recent_games, best_openings, current_rating)
+    plan_clarity_report = build_plan_clarity_report(best_openings)
+    recent_opening_trend_report = build_recent_opening_trend_report(recent_games, best_openings)
+    best_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(best_openings, recent_opening_trend_report))
+    top_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(top_openings, recent_opening_trend_report))
+    best_openings = attach_opening_recommendation_reasons(best_openings)
+    top_openings = attach_opening_recommendation_reasons(top_openings)
     opening_roi = build_opening_roi(
         best_openings,
         problem_lines,
@@ -8371,12 +8580,6 @@ def build_lichess_analysis(
         len(games),
     )
     do_not_study_yet = build_do_not_study_yet(best_openings, opening_roi, repertoire_coverage, current_rating)
-    rating_band_benchmark = build_rating_band_benchmark(current_rating, best_openings, repertoire_coverage, repertoire_coherence)
-    style_opening_match = infer_style_opening_match(recent_games, best_openings, current_rating)
-    plan_clarity_report = build_plan_clarity_report(best_openings)
-    recent_opening_trend_report = build_recent_opening_trend_report(recent_games, best_openings)
-    best_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(best_openings, recent_opening_trend_report))
-    top_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(top_openings, recent_opening_trend_report))
     time_control_opening_report = build_time_control_opening_report(recent_games, best_openings)
     repertoire_identity_summary = build_repertoire_identity_summary(best_openings, style_profile, repertoire_coherence)
     recommended_repertoire_plan = build_recommended_repertoire_plan(

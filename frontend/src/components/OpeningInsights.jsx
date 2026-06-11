@@ -1,5 +1,6 @@
 import { useState } from "react";
 import InfoHint from "./InfoHint";
+import RecommendationReasonHint from "./RecommendationReasonHint";
 import { OPENING_COPY, sampleSizeCopy, weakLineIssueCopy } from "./openingCopy";
 import "./OpeningInsights.css";
 
@@ -162,6 +163,7 @@ function RecommendationCard({ title, item, tone }) {
       <div className="openingInsightCardTitle">
         <span>{title}</span>
         <InfoHint label={`${title} details`}>{recommendationTooltip(item)}</InfoHint>
+        <RecommendationReasonHint item={item} label={title} />
       </div>
       <h3>{getName(item)}</h3>
       <p>{firstSentence(whyItFits(item), "This is the clearest next repertoire choice from the current sample.")}</p>

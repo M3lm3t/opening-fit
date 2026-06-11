@@ -36,6 +36,7 @@ import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
 import RecommendedOpeningFit from "./components/RecommendedOpeningFit";
 import OpeningInsights from "./components/OpeningInsights";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./components/OpeningEvidence";
+import RecommendationReasonHint from "./components/RecommendationReasonHint";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
 import { syncPremiumCheckoutSession } from "./accountApi";
@@ -7612,7 +7613,10 @@ function StyleBasedStarterRecommendations({ data, fitData, onPractice }) {
                         </div>
                       ) : null}
                       {item.futureUpgrade || item.future_upgrade ? (
-                        <em>Future Upgrade Opening</em>
+                        <em>
+                          Lower priority
+                          <RecommendationReasonHint item={item} label="Lower priority" />
+                        </em>
                       ) : null}
                       <button type="button" onClick={() => onPractice?.(item.name)}>
                         Practise this line
@@ -7630,8 +7634,12 @@ function StyleBasedStarterRecommendations({ data, fitData, onPractice }) {
               <span>
                 {(styleRec.futureUpgradeOpenings || styleRec.future_upgrade_openings)
                   .slice(0, 5)
-                  .map((item) => item.name)
-                  .join(", ")}
+                  .map((item) => (
+                    <span key={item.name}>
+                      {item.name}
+                      <RecommendationReasonHint item={item} label="Lower priority" />
+                    </span>
+                  ))}
               </span>
             </div>
           ) : null}
