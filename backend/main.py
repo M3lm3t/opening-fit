@@ -10010,7 +10010,9 @@ def normalize_base_url(value: Any) -> str:
 
 
 def resolve_checkout_frontend_url(request: Request) -> str:
-    configured_url = normalize_base_url(os.getenv("FRONTEND_URL") or os.getenv("CLIENT_URL"))
+    configured_url = normalize_base_url(
+        os.getenv("FRONTEND_URL") or os.getenv("SITE_URL") or os.getenv("CLIENT_URL")
+    )
     if configured_url:
         return configured_url
 
@@ -10028,7 +10030,7 @@ def resolve_checkout_frontend_url(request: Request) -> str:
         if referer_origin and referer_origin in allowed_origins:
             return referer_origin
 
-    return "http://localhost:5173"
+    return "https://openingfit.com"
 
 
 def upsert_premium_entitlement(supabase_admin, payload: Dict[str, Any]) -> None:
