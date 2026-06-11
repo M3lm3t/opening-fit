@@ -300,7 +300,23 @@ export function AuthDataProvider({ children }) {
       } catch (refreshError) {
         console.warn("[OpeningFit restore] failed; continuing with default workspace.", refreshError);
         if (applyState && restoreSeq === restoreSeqRef.current) {
-          const fallbackData = createDefaultUserData(null);
+          const fallbackProfile = {
+            id: nextUser.id,
+            user_id: nextUser.id,
+            email: nextUser.email || "",
+            username:
+              nextUser.user_metadata?.username ||
+              nextUser.user_metadata?.name ||
+              nextUser.email?.split("@")?.[0] ||
+              "OpeningFit user",
+            display_name:
+              nextUser.user_metadata?.full_name ||
+              nextUser.user_metadata?.name ||
+              nextUser.email?.split("@")?.[0] ||
+              "OpeningFit user",
+            is_premium: false,
+          };
+          const fallbackData = createDefaultUserData(fallbackProfile);
           setUserData(fallbackData);
           setError("");
           setProfileError("");

@@ -6,18 +6,12 @@ import {
 } from "./supabaseSyncDebug";
 
 export const USER_DATA_TABLES = [
+  // Keep full cloud restore focused on the tables OpeningFit actually needs.
+  // Restoring old/experimental tables makes startup slow and causes noisy 400s.
   "profiles",
-  "user_profiles",
   "premium_entitlements",
   "openingfit_user_state",
-  "onboarding_answers",
-  "measurements",
-  "outfits",
-  "favorites",
-  "uploads",
-  "ai_generations",
   "settings",
-  "user_settings",
   "activity_history",
   "report_history",
   "analysis_history",
@@ -29,11 +23,6 @@ export const USER_DATA_TABLES = [
   "saved_openings",
   "chess_account_links",
   "notification_preferences",
-  "user_activity_log",
-  "user_streaks",
-  "user_goals",
-  "user_achievements",
-  "weekly_reports",
 ];
 
 export const USER_FILE_BUCKET = "user-uploads";
