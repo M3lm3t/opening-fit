@@ -1,1 +1,1045 @@
-import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";\nimport {\n  logSupabaseSyncFailure,\n  logSupabaseSyncSuccess,\n  logSupabaseSyncWarning,\n} from "./supabaseSyncDebug";\n\nexport const USER_DATA_TABLES = [\n  // Keep full cloud restore focused on the tables OpeningFit actually needs.\n  // Restoring old/experimental tables makes startup slow and causes noisy 400s.\n  "profiles",\n  "premium_entitlements",\n  "openingfit_user_state",\n  "settings",\n  "activity_history",\n  "report_history",\n  "analysis_history",\n  "analysed_games",\n  "recommendation_history",\n  "saved_recommendations",\n  "opening_preferences",\n  "repertoire",\n  "saved_openings",\n  "chess_account_links",\n  "notification_preferences",\n];\n\nexport const USER_FILE_BUCKET = "user-uploads";\nconst DEBUG_CLOUD_RESTORE =\n  typeof import.meta !== "undefined" &&\n  import.meta.env?.VITE_DEBUG_CLOUD_RESTORE === "true";\nconst REQUIRED_RESTORE_TABLES = new Set([\n  "profiles",\n  "premium_entitlements",\n  "openingfit_user_state",\n  "settings",\n  "report_history",\n  "analysed_games",\n]);\nconst DEFAULT_RESTORE_LIMIT = 50;\nconst RESTORE_TABLE_LIMITS = {\n  premium_entitlements: 10,\n  openingfit_user_state: 20,\n  onboarding_answers: 20,\n  measurements: 20,\n  outfits: 20,\n  favorites: 50,\n  uploads: 20,\n  ai_generations: 20,\n  settings: 5,\n  user_settings: 5,\n  activity_history: 50,\n  report_history: 20,\n  analysis_history: 20,\n  analysed_games: 50,\n  recommendation_history: 50,\n  saved_recommendations: 50,\n  opening_preferences: 20,\n  repertoire: 50,\n  saved_openings: 50,\n  chess_account_links: 10,\n  notification_preferences: 10,\n  user_profiles: 5,\n  user_activity_log: 50,\n  user_streaks: 5,\n  user_goals: 20,\n  user_achievements: 50,\n  weekly_reports: 20,\n};\nconst RESTORE_TABLE_COLUMNS = {\n  // Use flexible selects for cloud restore.\n  // Exact column lists make restore fragile: if Supabase is missing one column,\n  // PostgREST rejects the whole table query with a 400.\n  openingfit_user_state: "*",\n  report_history: "*",\n  analysis_history: "*",\n  activity_history: "*",\n  analysed_games: "*",\n  uploads: "*",\n  ai_generations: "*",\n  user_profiles: "*",\n  user_activity_log: "*",\n  user_streaks: "*",\n  user_goals: "*",\n  user_achievements: "*",\n  weekly_reports: "*",\n};\nconst PROFILE_RESTORE_COLUMNS =\n  "id,user_id,email,display_name,username,platform,chesscom_username,lichess_username,is_premium,last_report,created_at,updated_at";\n\nfunction createDefaultUserData(profile = null) {\n  return {\n    profile,\n    premium_entitlements: [],\n    openingfit_user_state: [],\n    onboarding_answers: [],\n    measurements: [],\n    outfits: [],\n    favorites: [],\n    uploads: [],\n    ai_generations: [],\n    settings: [],\n    activity_history: [],\n    report_history: [],\n    analysed_games: [],\n    recommendation_history: [],\n    notification_preferences: [],\n    user_profiles: [],\n    user_activity_log: [],\n    user_streaks: [],\n    user_goals: [],\n    user_achievements: [],\n    weekly_reports: [],\n  };\n}\n\nexport function hasActivePremiumEntitlement(entitlements = [], profile = null) {\n  const now = Date.now();\n  const entitlementRows = entitlements || [];\n  const activeEntitlement = entitlementRows.find((entitlement) => {\n    if (String(entitlement?.status || "").toLowerCase() !== "active") return false;\n    if (!entitlement.expires_at) return true;\n\n    const expiresAt = Date.parse(entitlement.expires_at);\n    return Number.isFinite(expiresAt) && expiresAt > now;\n  });\n\n  if (entitlementRows.length > 0) {\n    return Boolean(activeEntitlement);\n  }\n\n  return Boolean(profile?.is_premium);\n}\n\nfunction requireClient() {\n  if (!isSupabaseConfigured || !supabase) {\n    throw new Error("Supabase is not configured.");\n  }\n\n  return supabase;\n}\n\nexport function safeUserMessage(error, fallback = "OpeningFit could not reach Supabase. Please try again.") {\n  const message = String(error?.message || error?.error_description || "");\n\n  if (/already registered|already exists|user already/i.test(message)) {\n    return "An account already exists for this email. Log in instead.";\n  }\n\n  if (/invalid login|invalid credentials/i.test(message)) {\n    return "Wrong email or password. Please check both and try again.";\n  }\n\n  if (/email not confirmed|confirm.*email|email confirmation/i.test(message)) {\n    return "Email confirmation required. Check your inbox, confirm your email, then log in.";\n  }\n\n  if (/security purposes|only request this after|rate limit|too many/i.test(message)) {\n    return "We just sent an account email. Please wait a minute, then check your inbox or try logging in.";\n  }\n\n  if (/row-level security|permission denied|violates row-level security/i.test(message)) {\n    return "Supabase permission error. Please check RLS policies and try again.";\n  }\n\n  if (/failed to fetch|network|load failed|fetch|timeout|timed out/i.test(message) || error?.name === "TypeError") {\n    return "Network error. Check your connection and try again.";\n  }\n\n  return message || fallback;\n}\n\nfunction logQueryFailure(table, operation, error, details = {}) {\n  logSupabaseSyncFailure(table, operation, error, details);\n}\n\nfunction logQuerySuccess(table, operation, details = {}) {\n  if (!DEBUG_CLOUD_RESTORE) {\n    logSupabaseSyncSuccess(table, operation, details);\n    return;\n  }\n\n  console.debug("OpeningFit Supabase sync succeeded", { table, operation, details });\n}\n\nfunction debugCloudRestore(message, details = {}) {\n  if (!DEBUG_CLOUD_RESTORE) return;\n  console.debug(`[OpeningFit cloud restore] ${message}`, details);\n}\n\nexport async function runSupabaseQuery(queryPromise, options = {}) {\n  const { required = false, label = "Supabase query" } = options;\n  const result = await queryPromise;\n\n  if (!result?.error) {\n    return result;\n  }\n\n  if (required) {\n    throw result.error;\n  }\n\n  logSupabaseSyncWarning("optional", label, result.error);\n\n  return {\n    data: null,\n    error: result.error,\n    skipped: true,\n  };\n}\n\nasync function selectProfileByUserId(userId, columns = "*") {\n  const client = requireClient();\n  const { data, error } = await client\n    .from("profiles")\n    .select(columns)\n    .eq("user_id", userId)\n    .maybeSingle();\n\n  if (error) {\n    const message = String(error.message || "");\n    if (/user_id|column/i.test(message) && /does not exist|schema cache/i.test(message)) {\n      debugCloudRestore("profile user_id lookup unavailable; trying id fallback", { userId, message });\n      return null;\n    }\n\n    logQueryFailure("profiles", "select profile by user_id", error, { userId });\n    throw new Error(safeUserMessage(error, "Could not load your OpeningFit profile."));\n  }\n\n  debugCloudRestore("profile select by user_id completed", { userId, found: Boolean(data) });\n  return data || null;\n}\n\nasync function selectProfileByPrimaryId(userId, columns = "*") {\n  const client = requireClient();\n  const { data, error } = await client\n    .from("profiles")\n    .select(columns)\n    .eq("id", userId)\n    .maybeSingle();\n\n  if (error) {\n    logQueryFailure("profiles", "select profile by id fallback", error, { userId });\n    throw new Error(safeUserMessage(error, "Could not load your OpeningFit profile."));\n  }\n\n  debugCloudRestore("profile select by id fallback completed", { userId, found: Boolean(data) });\n  return data || null;\n}\n\nasync function loadExistingProfile(userId, columns = "*") {\n  if (!userId) return null;\n  return (await selectProfileByUserId(userId, columns)) || (await selectProfileByPrimaryId(userId, columns));\n}\n\nexport async function ensureProfile(user, patch = {}) {\n  if (!user?.id) return null;\n\n  const client = requireClient();\n  const cleanDisplayName = String(\n    patch.display_name ||\n      patch.displayName ||\n      user.user_metadata?.full_name ||\n      user.user_metadata?.display_name ||\n      user.email ||\n      ""\n  ).trim();\n  const cleanUsername = String(\n    patch.username ||\n      user.user_metadata?.username ||\n      user.user_metadata?.preferred_username ||\n      ""\n  ).trim();\n  const displayName =\n    cleanDisplayName ||\n    user.email ||\n    "";\n\n  const existingProfile = await loadExistingProfile(user.id);\n\n  const profilePatch = {\n    email: patch.email ?? existingProfile?.email ?? user.email ?? "",\n    display_name: patch.display_name ?? patch.displayName ?? existingProfile?.display_name ?? displayName,\n    username: patch.username ?? existingProfile?.username ?? cleanUsername ?? null,\n    platform: patch.platform ?? existingProfile?.platform ?? null,\n    chesscom_username: patch.chesscom_username ?? existingProfile?.chesscom_username ?? "",\n    lichess_username: patch.lichess_username ?? existingProfile?.lichess_username ?? "",\n    is_premium: patch.is_premium ?? existingProfile?.is_premium ?? false,\n    last_report: patch.last_report ?? existingProfile?.last_report ?? null,\n    ...patch,\n    id: patch.id || existingProfile?.id || user.id,\n    user_id: user.id,\n    updated_at: new Date().toISOString(),\n  };\n\n  const profileNeedsUserIdBackfill = existingProfile && existingProfile.user_id !== user.id;\n\n  if (existingProfile && !Object.keys(patch).length && !profileNeedsUserIdBackfill) {\n    logQuerySuccess("profiles", "select existing profile before ensure upsert", {\n      userId: user.id,\n      rowId: existingProfile.id,\n    });\n    return existingProfile;\n  }\n\n  const { data, error } = await client\n    .from("profiles")\n    .upsert(\n      profilePatch,\n      { onConflict: "user_id" }\n    )\n    .select("*")\n    .single();\n\n  if (error) {\n    logQueryFailure("profiles", "upsert profile by user_id", error, { userId: user.id });\n    throw new Error(safeUserMessage(error, "Profile failed to save in Supabase."));\n  }\n  logQuerySuccess("profiles", "upsert profile by user_id", { userId: user.id, rowId: data?.id });\n  return data;\n}\n\nexport async function getCurrentUser() {\n  const client = requireClient();\n  const { data, error } = await client.auth.getUser();\n\n  if (error) {\n    logQueryFailure("auth.users", "get current user", error);\n    throw new Error(safeUserMessage(error, "Could not confirm your Supabase login."));\n  }\n\n  logQuerySuccess("auth.users", "get current user", { userId: data?.user?.id || null });\n  return data?.user || null;\n}\n\nexport async function signUpWithEmailPassword({ email, password, displayName, username, redirectTo }) {\n  const client = requireClient();\n  const cleanEmail = String(email || "").trim().toLowerCase();\n  const cleanDisplayName = String(displayName || username || cleanEmail).trim();\n  const cleanUsername = String(username || "").trim();\n\n  if (!cleanEmail || !password) {\n    throw new Error("Enter an email and password.");\n  }\n\n  const { data, error } = await client.auth.signUp({\n    email: cleanEmail,\n    password,\n    options: {\n      emailRedirectTo: redirectTo,\n      data: {\n        display_name: cleanDisplayName || cleanEmail,\n        full_name: cleanDisplayName || cleanEmail,\n        username: cleanUsername || undefined,\n      },\n    },\n  });\n\n  if (error) {\n    logQueryFailure("auth.users", "sign up with email/password", error, { email: cleanEmail });\n    throw new Error(safeUserMessage(error, "Could not create your OpeningFit account."));\n  }\n\n  const user = data?.user || data?.session?.user || null;\n  if (user && Array.isArray(user.identities) && user.identities.length === 0) {\n    throw new Error("An account already exists for this email. Log in instead.");\n  }\n\n  let profileError = null;\n  if (user?.id && data?.session) {\n    try {\n      await ensureProfile(user, {\n        display_name: cleanDisplayName || cleanEmail,\n        username: cleanUsername || null,\n      });\n    } catch (error) {\n      profileError = error;\n      logQueryFailure("profiles", "ensure profile after sign up", error, { userId: user.id });\n    }\n  }\n\n  logQuerySuccess("auth.users", "sign up with email/password", {\n    email: cleanEmail,\n    userId: user?.id || null,\n    hasSession: Boolean(data?.session),\n  });\n\n  return {\n    user,\n    session: data?.session || null,\n    needsEmailConfirmation: Boolean(user && !data?.session),\n    profileError,\n  };\n}\n\nexport async function signInWithEmailPassword({ email, password }) {\n  const client = requireClient();\n  const cleanEmail = String(email || "").trim().toLowerCase();\n\n  if (!cleanEmail || !password) {\n    throw new Error("Enter an email and password.");\n  }\n\n  const { data, error } = await client.auth.signInWithPassword({\n    email: cleanEmail,\n    password,\n  });\n\n  if (error) {\n    logQueryFailure("auth.users", "sign in with email/password", error, { email: cleanEmail });\n    throw new Error(safeUserMessage(error, "Could not log in to OpeningFit."));\n  }\n\n  const confirmedUser = await getCurrentUser();\n  if (!confirmedUser?.id) {\n    throw new Error("Login started, but Supabase did not return a confirmed user.");\n  }\n\n  let profileError = null;\n  try {\n    await ensureProfile(confirmedUser);\n  } catch (error) {\n    profileError = error;\n    logQueryFailure("profiles", "ensure profile after sign in", error, { userId: confirmedUser.id });\n  }\n\n  logQuerySuccess("auth.users", "sign in with email/password", {\n    email: cleanEmail,\n    userId: confirmedUser.id,\n  });\n\n  return {\n    session: data?.session || null,\n    user: confirmedUser,\n    profileError,\n  };\n}\n\nexport async function getUserProfile(userId) {\n  if (!userId) return null;\n\n  const profile = await loadExistingProfile(userId);\n  logQuerySuccess("profiles", "select profile by user key", { userId, found: Boolean(profile) });\n  return profile;\n}\n\nexport async function upsertUserProfile(user, patch = {}) {\n  if (!user?.id) throw new Error("Missing Supabase user.");\n\n  const [row] = await upsertUserRow(\n    "profiles",\n    user.id,\n    {\n      id: patch.id || user.id,\n      email: user.email || patch.email || "",\n      display_name:\n        patch.display_name ||\n        patch.displayName ||\n        user.user_metadata?.full_name ||\n        user.user_metadata?.display_name ||\n        user.email ||\n        "",\n      ...patch,\n    },\n    { onConflict: "user_id" }\n  );\n\n  return row || null;\n}\n\nasync function selectUserRows(table, userId, options = {}) {\n  const client = requireClient();\n  const limit = options.limit ?? RESTORE_TABLE_LIMITS[table] ?? DEFAULT_RESTORE_LIMIT;\n  const columns = options.columns || RESTORE_TABLE_COLUMNS[table] || "*";\n\n  const result = await client\n    .from(table)\n    .select(columns)\n    .eq("user_id", userId)\n    .limit(limit);\n\n  if (!result.error) {\n    logQuerySuccess(table, "select rows by user_id", {\n      userId,\n      limit,\n      count: result.data?.length || 0,\n    });\n    return result.data || [];\n  }\n\n  logQueryFailure(table, "select rows by user_id", result.error, { userId, limit });\n  throw result.error;\n}\n\nexport async function fetchAllUserData(user, options = {}) {\n  if (!user?.id) return createDefaultUserData();\n\n  let profile = null;\n  try {\n    profile = await loadExistingProfile(user.id, PROFILE_RESTORE_COLUMNS);\n  } catch (profileError) {\n    logQueryFailure("profiles", "select profile during full restore", profileError, {\n      userId: user.id,\n    });\n    if (options.strict) {\n      throw new Error(profileError?.message || "Profile failed to load from Supabase.");\n    }\n    console.warn("OpeningFit could not restore profile; using empty profile.", profileError);\n  }\n\n  const tableNames = USER_DATA_TABLES.filter((table) => table !== "profiles");\n  const tableErrors = [];\n  const results = await Promise.all(\n    tableNames.map(async (table) => {\n      try {\n        return [table, await selectUserRows(table, user.id)];\n      } catch (tableError) {\n        logQueryFailure(table, "restore table during full restore", tableError, {\n          userId: user.id,\n        });\n        tableErrors.push({ table, error: tableError });\n        if (options.strict && REQUIRED_RESTORE_TABLES.has(table)) {\n          return [table, null];\n        }\n        console.warn(`OpeningFit could not restore ${table}; using empty rows.`, tableError);\n        return [table, []];\n      }\n    })\n  );\n\n  const requiredTableErrors = tableErrors.filter((item) => REQUIRED_RESTORE_TABLES.has(item.table));\n\n  if (options.strict && requiredTableErrors.length) {\n    const first = requiredTableErrors[0];\n    const error = new Error(\n      safeUserMessage(first.error, `Could not restore ${first.table} from Supabase.`)\n    );\n    error.table = first.table;\n    error.cause = first.error;\n    throw error;\n  }\n\n  const restored = {\n    ...createDefaultUserData(profile),\n    ...Object.fromEntries(results),\n  };\n\n  return {\n    ...restored,\n    hasPremiumAccess: hasActivePremiumEntitlement(restored.premium_entitlements, profile),\n  };\n}\n\nexport async function upsertUserRow(table, userId, row, options = {}) {\n  if (!userId) throw new Error("Missing user id.");\n\n  const client = requireClient();\n  const { required = true, ...upsertOptions } = options;\n  const payload = {\n    ...row,\n    user_id: userId,\n    updated_at: new Date().toISOString(),\n  };\n\n  const { data, error, skipped } = await runSupabaseQuery(\n    client\n      .from(table)\n      .upsert(payload, upsertOptions)\n      .select("*"),\n    {\n      required,\n      label: `${table} upsert row`,\n    }\n  );\n\n  if (skipped) {\n    return [];\n  }\n\n  if (error) {\n    logQueryFailure(table, "upsert row", error, { userId, row, options });\n    throw new Error(safeUserMessage(error, `Could not save ${table}.`));\n  }\n  logQuerySuccess(table, "upsert row", { userId, count: data?.length || 0, options });\n  return data;\n}\n\nexport async function deleteUserRow(table, userId, id) {\n  if (!userId || !id) throw new Error("Missing delete target.");\n\n  const client = requireClient();\n  const { error } = await client\n    .from(table)\n    .delete()\n    .eq("user_id", userId)\n    .eq("id", id);\n\n  if (error) {\n    logQueryFailure(table, "delete row by user_id and id", error, { userId, id });\n    throw new Error(safeUserMessage(error, `Could not delete ${table}.`));\n  }\n  logQuerySuccess(table, "delete row by user_id and id", { userId, id });\n}\n\nexport async function getSettings(userId) {\n  if (!userId) return {};\n\n  const client = requireClient();\n  const { data, error } = await client\n    .from("settings")\n    .select("*")\n    .eq("user_id", userId)\n    .maybeSingle();\n\n  if (error) {\n    logQueryFailure("settings", "select settings by user_id", error, { userId });\n    throw new Error(safeUserMessage(error, "Could not load saved settings from Supabase."));\n  }\n  logQuerySuccess("settings", "select settings by user_id", { userId, found: Boolean(data) });\n  return data || {};\n}\n\nexport const loadUserSettings = getSettings;\n\nexport async function saveSettings(userId, patch) {\n  if (!userId) return null;\n\n  const current = await getSettings(userId);\n  const nextPreferences = {\n    ...(current.preferences || {}),\n    ...(patch.preferences || {}),\n  };\n\n  const [row] = await upsertUserRow(\n    "settings",\n    userId,\n    {\n      ...(current.id ? { id: current.id } : {}),\n      theme: patch.theme ?? current.theme ?? null,\n      preferences: nextPreferences,\n    },\n    { onConflict: "user_id" }\n  );\n\n  return row;\n}\n\nexport const saveUserSettings = saveSettings;\n\nexport async function loadAnalysisHistory(userId) {\n  if (!userId) return [];\n  return selectUserRows("report_history", userId);\n}\n\nexport async function saveAnalysisHistory(userId, report, summary = {}) {\n  return saveReport(userId, report, summary);\n}\n\nexport async function loadOpeningRecommendations(userId) {\n  if (!userId) return [];\n  return selectUserRows("recommendation_history", userId);\n}\n\nexport async function saveOpeningRecommendations(userId, snapshot = {}) {\n  return saveRecommendationHistory(userId, snapshot);\n}\n\nexport async function saveReport(userId, report, summary = {}) {\n  if (!userId || !report) return null;\n\n  const username =\n    summary.username ||\n    report.username ||\n    report.playerName ||\n    report.player_name ||\n    "Unknown player";\n  const platform = summary.platform || report.platform || report.importPlatform || "unknown";\n  const games =\n    summary.games ||\n    report.gamesImported ||\n    report.games_imported ||\n    report.totalGames ||\n    report.total_games ||\n    "recent";\n  const importedAt =\n    summary.importedAt ||\n    summary.savedAt ||\n    report.importedAt ||\n    report.imported_at ||\n    report.lastUpdated ||\n    report.last_updated ||\n    "";\n  const months =\n    summary.months ||\n    report.monthsChecked ||\n    report.months_checked ||\n    report.importMonths ||\n    report.import_months ||\n    "recent";\n  const analysisTimeFormat =\n    summary.analysisTimeFormat ||\n    summary.analysis_time_format ||\n    report.analysisTimeFormat ||\n    report.analysis_time_format ||\n    "custom";\n  const reportKey = [\n    String(platform).toLowerCase(),\n    String(username).toLowerCase(),\n    String(months),\n    String(analysisTimeFormat).toLowerCase(),\n    String(games),\n    String(importedAt).slice(0, 19),\n  ].join(":");\n\n  const client = requireClient();\n  const basePayload = {\n    user_id: userId,\n    username,\n    platform,\n    summary,\n    report,\n    report_key: reportKey,\n    updated_at: new Date().toISOString(),\n  };\n  const payload = {\n    ...basePayload,\n    analysis_time_format: analysisTimeFormat,\n    effective_time_format:\n      summary.effectiveTimeFormat ||\n      summary.effective_time_format ||\n      report.effectiveTimeFormat ||\n      report.effective_time_format ||\n      analysisTimeFormat,\n    detected_time_format:\n      summary.detectedTimeFormat ||\n      summary.detected_time_format ||\n      report.detectedTimeFormat ||\n      report.detected_time_format ||\n      null,\n    style_profile:\n      summary.styleProfile ||\n      summary.style_profile ||\n      report.styleProfile ||\n      report.style_profile ||\n      null,\n    style_based_recommendations:\n      summary.styleBasedRecommendations ||\n      summary.style_based_recommendations ||\n      report.styleBasedRecommendations ||\n      report.style_based_recommendations ||\n      null,\n  };\n\n  let activePayload = payload;\n  let { data, error } = await client.from("report_history").insert(payload).select("*").single();\n\n  if (\n    error &&\n    (\n      error.code === "PGRST204" ||\n      /analysis_time_format|effective_time_format|detected_time_format|style_profile|style_based_recommendations/i.test(error.message || "")\n    )\n  ) {\n    logQueryFailure("report_history", "insert report with time-format columns unavailable; retrying JSON-only save", error, {\n      userId,\n      reportKey,\n    });\n\n    const retry = await client.from("report_history").insert(basePayload).select("*").single();\n    activePayload = basePayload;\n    data = retry.data;\n    error = retry.error;\n  }\n\n  if (error) {\n    if (error.code === "23505") {\n      const { data: existing, error: existingError } = await client\n        .from("report_history")\n        .update({\n          ...activePayload,\n          user_id: userId,\n          report_key: reportKey,\n          updated_at: new Date().toISOString(),\n        })\n        .eq("user_id", userId)\n        .eq("report_key", reportKey)\n        .select("*")\n        .maybeSingle();\n\n      if (existingError) {\n        logQueryFailure("report_history", "update existing report after dedupe collision", existingError, {\n          userId,\n          reportKey,\n        });\n        throw new Error(safeUserMessage(existingError, "Could not update saved report in Supabase."));\n      }\n\n      logQuerySuccess("report_history", "update existing report after dedupe collision", {\n        userId,\n        reportKey,\n        rowId: existing?.id,\n      });\n      return existing;\n    }\n\n    logQueryFailure("report_history", "insert report with dedupe key", error, { userId, reportKey });\n    throw new Error(safeUserMessage(error, "Could not save report to Supabase."));\n  }\n\n  logQuerySuccess("report_history", "insert report with dedupe key", {\n    userId,\n    reportKey,\n    rowId: data?.id,\n  });\n  return data;\n}\n\nexport async function saveRecommendationHistory(userId, snapshot = {}) {\n  if (!userId || !snapshot) return null;\n\n  const client = requireClient();\n  const progress = snapshot.progress || {};\n  const analysisDate = snapshot.analysisDate || snapshot.analysis_date || new Date().toISOString();\n  const timeControlFilter =\n    snapshot.timeControlFilter || snapshot.time_control_filter || snapshot.analysisTimeFormat || "custom";\n  const snapshotKey = String(\n    snapshot.snapshotKey ||\n      snapshot.snapshot_key ||\n      [\n        progress.platform || snapshot.platform || "unknown",\n        progress.username || snapshot.username || "unknown",\n        String(analysisDate).slice(0, 19),\n        snapshot.gamesAnalysed ?? snapshot.games_analyzed ?? snapshot.games_analysed ?? 0,\n        timeControlFilter,\n        snapshot.currentRecommendation || snapshot.current_recommendation || "",\n      ].join(":")\n  );\n  const payload = {\n    user_id: userId,\n    snapshot_key: snapshotKey,\n    analysis_date: analysisDate,\n    games_analysed:\n      Number(snapshot.gamesAnalysed ?? snapshot.games_analyzed ?? snapshot.games_analysed ?? 0) || 0,\n    detected_openings: snapshot.detectedOpenings || snapshot.detected_openings || [],\n    recommended_openings: snapshot.recommendedOpenings || snapshot.recommended_openings || [],\n    confidence_score:\n      snapshot.confidenceScore ?? snapshot.confidence_score ?? snapshot.repertoireConfidenceScore ?? null,\n    style_profile: snapshot.styleProfile || snapshot.style_profile || null,\n    time_control_filter: timeControlFilter,\n    analysis_version: snapshot.analysisVersion || snapshot.analysis_version || "retention-history-v1",\n    snapshot,\n    updated_at: new Date().toISOString(),\n  };\n\n  let activePayload = payload;\n  let { data, error } = await client\n    .from("recommendation_history")\n    .upsert(payload, { onConflict: "user_id,snapshot_key" })\n    .select("*")\n    .single();\n\n  if (\n    error &&\n    (\n      error.code === "PGRST204" ||\n      /snapshot_key|user_id,snapshot_key/i.test(error.message || "")\n    )\n  ) {\n    activePayload = { ...payload };\n    delete activePayload.snapshot_key;\n    const retry = await client\n      .from("recommendation_history")\n      .insert(activePayload)\n      .select("*")\n      .single();\n    data = retry.data;\n    error = retry.error;\n  }\n\n  if (error) {\n    logQueryFailure("recommendation_history", "insert recommendation snapshot", error, {\n      userId,\n      snapshot,\n    });\n    throw new Error(safeUserMessage(error, "Could not save recommendations to Supabase."));\n  }\n\n  logQuerySuccess("recommendation_history", "insert recommendation snapshot", {\n    userId,\n    rowId: data?.id,\n  });\n  return data;\n}\n\nfunction stableGameId(game, index) {\n  const raw =\n    game?.game_id ||\n    game?.gameId ||\n    game?.id ||\n    game?.url ||\n    game?.link ||\n    game?.pgn ||\n    JSON.stringify(game || {});\n  const input = String(raw || `game-${index}`);\n  let hash = 0;\n\n  for (let i = 0; i < input.length; i += 1) {\n    hash = (hash * 31 + input.charCodeAt(i)) >>> 0;\n  }\n\n  return String(game?.game_id || game?.gameId || game?.id || game?.url || `game-${index}-${hash}`);\n}\n\nfunction extractAnalysedGames(report = {}) {\n  const candidates = [\n    report.analysed_games,\n    report.analyzed_games,\n    report.analysedGames,\n    report.analyzedGames,\n    report.imported_games,\n    report.importedGames,\n    report.recent_games,\n    report.recentGames,\n    report.games,\n  ];\n\n  return candidates.find((value) => Array.isArray(value) && value.some((item) => item && typeof item === "object")) || [];\n}\n\nexport async function saveAnalysedGames(userId, report = {}, summary = {}) {\n  if (!userId || !report) return [];\n\n  const games = extractAnalysedGames(report).slice(0, 80);\n  if (!games.length) return [];\n\n  const client = requireClient();\n  const platform = summary.platform || report.platform || report.importPlatform || report.import_platform || "unknown";\n  const username =\n    summary.username ||\n    report.username ||\n    report.playerName ||\n    report.player_name ||\n    "Unknown player";\n  const now = new Date().toISOString();\n  const rows = games.map((game, index) => ({\n    user_id: userId,\n    platform,\n    username,\n    game_id: stableGameId(game, index),\n    game,\n    analysis: {\n      opening: game.opening || game.eco || game.detected_opening || null,\n      result: game.result || game.user_result || null,\n      colour: game.colour || game.color || null,\n      saved_from_report: true,\n    },\n    updated_at: now,\n  }));\n\n  const { data, error } = await client\n    .from("analysed_games")\n    .upsert(rows, { onConflict: "user_id,platform,username,game_id" })\n    .select("*");\n\n  if (error) {\n    logQueryFailure("analysed_games", "upsert analysed games", error, {\n      userId,\n      platform,\n      username,\n      count: rows.length,\n    });\n    throw new Error(safeUserMessage(error, "Could not save analysed games to Supabase."));\n  }\n\n  logQuerySuccess("analysed_games", "upsert analysed games", {\n    userId,\n    platform,\n    username,\n    count: data?.length || 0,\n  });\n  return data || [];\n}\n\nexport async function recordActivity(userId, type, payload = {}) {\n  if (!userId || !type) return null;\n\n  const client = requireClient();\n  const dedupeKey = payload.dedupe_key || payload.dedupeKey || null;\n  const { data, error } = await client\n    .from("activity_history")\n    .insert({\n      user_id: userId,\n      type,\n      action_type: type,\n      points: Number(payload.points || payload.xp || 0) || 0,\n      related_report_id: payload.related_report_id || null,\n      dedupe_key: dedupeKey,\n      payload,\n      updated_at: new Date().toISOString(),\n    })\n    .select("*")\n    .single();\n\n  if (error) {\n    if (error.code === "23505") return null;\n    logQueryFailure("activity_history", "insert activity with dedupe key", error, { userId, type, dedupeKey });\n    throw error;\n  }\n\n  return data;\n}\n\nexport async function uploadUserFile(userId, file, pathPrefix = "uploads") {\n  if (!userId || !file) throw new Error("Missing upload data.");\n\n  const client = requireClient();\n  const cleanName = String(file.name || "upload").replace(/[^a-z0-9._-]/gi, "-");\n  const path = `users/${userId}/${pathPrefix}/${Date.now()}-${cleanName}`;\n\n  const { error: uploadError } = await client.storage\n    .from(USER_FILE_BUCKET)\n    .upload(path, file, { upsert: false });\n\n  if (uploadError) throw uploadError;\n\n  const { data: signedData, error: signedError } = await client.storage\n    .from(USER_FILE_BUCKET)\n    .createSignedUrl(path, 60 * 60 * 24 * 365);\n\n  if (signedError) throw signedError;\n\n  const [row] = await upsertUserRow("uploads", userId, {\n    bucket: USER_FILE_BUCKET,\n    path,\n    url: signedData?.signedUrl || null,\n    metadata: {\n      name: file.name,\n      type: file.type,\n      size: file.size,\n    },\n  });\n\n  return row;\n}\n
+import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
+import {
+  logSupabaseSyncFailure,
+  logSupabaseSyncSuccess,
+  logSupabaseSyncWarning,
+} from "./supabaseSyncDebug";
+
+export const USER_DATA_TABLES = [
+  // Keep full cloud restore focused on the tables OpeningFit actually needs.
+  // Restoring old/experimental tables makes startup slow and causes noisy 400s.
+  "profiles",
+  "premium_entitlements",
+  "openingfit_user_state",
+  "settings",
+  "activity_history",
+  "report_history",
+  "analysis_history",
+  "analysed_games",
+  "recommendation_history",
+  "saved_recommendations",
+  "opening_preferences",
+  "repertoire",
+  "saved_openings",
+  "chess_account_links",
+  "notification_preferences",
+];
+
+export const USER_FILE_BUCKET = "user-uploads";
+const DEBUG_CLOUD_RESTORE =
+  typeof import.meta !== "undefined" &&
+  import.meta.env?.VITE_DEBUG_CLOUD_RESTORE === "true";
+const REQUIRED_RESTORE_TABLES = new Set([
+  "profiles",
+  "premium_entitlements",
+  "openingfit_user_state",
+  "settings",
+  "report_history",
+  "analysed_games",
+]);
+const DEFAULT_RESTORE_LIMIT = 50;
+const RESTORE_TABLE_LIMITS = {
+  premium_entitlements: 10,
+  openingfit_user_state: 20,
+  onboarding_answers: 20,
+  measurements: 20,
+  outfits: 20,
+  favorites: 50,
+  uploads: 20,
+  ai_generations: 20,
+  settings: 5,
+  user_settings: 5,
+  activity_history: 50,
+  report_history: 20,
+  analysis_history: 20,
+  analysed_games: 50,
+  recommendation_history: 50,
+  saved_recommendations: 50,
+  opening_preferences: 20,
+  repertoire: 50,
+  saved_openings: 50,
+  chess_account_links: 10,
+  notification_preferences: 10,
+  user_profiles: 5,
+  user_activity_log: 50,
+  user_streaks: 5,
+  user_goals: 20,
+  user_achievements: 50,
+  weekly_reports: 20,
+};
+const RESTORE_TABLE_COLUMNS = {
+  // Use flexible selects for cloud restore.
+  // Exact column lists make restore fragile: if Supabase is missing one column,
+  // PostgREST rejects the whole table query with a 400.
+  openingfit_user_state: "*",
+  report_history: "*",
+  analysis_history: "*",
+  activity_history: "*",
+  analysed_games: "*",
+  uploads: "*",
+  ai_generations: "*",
+  user_profiles: "*",
+  user_activity_log: "*",
+  user_streaks: "*",
+  user_goals: "*",
+  user_achievements: "*",
+  weekly_reports: "*",
+};
+const PROFILE_RESTORE_COLUMNS =
+  "id,user_id,email,display_name,username,platform,chesscom_username,lichess_username,is_premium,last_report,created_at,updated_at";
+
+function createDefaultUserData(profile = null) {
+  return {
+    profile,
+    premium_entitlements: [],
+    openingfit_user_state: [],
+    onboarding_answers: [],
+    measurements: [],
+    outfits: [],
+    favorites: [],
+    uploads: [],
+    ai_generations: [],
+    settings: [],
+    activity_history: [],
+    report_history: [],
+    analysed_games: [],
+    recommendation_history: [],
+    notification_preferences: [],
+    user_profiles: [],
+    user_activity_log: [],
+    user_streaks: [],
+    user_goals: [],
+    user_achievements: [],
+    weekly_reports: [],
+  };
+}
+
+export function hasActivePremiumEntitlement(entitlements = [], profile = null) {
+  const now = Date.now();
+  const entitlementRows = entitlements || [];
+  const activeEntitlement = entitlementRows.find((entitlement) => {
+    if (String(entitlement?.status || "").toLowerCase() !== "active") return false;
+    if (!entitlement.expires_at) return true;
+
+    const expiresAt = Date.parse(entitlement.expires_at);
+    return Number.isFinite(expiresAt) && expiresAt > now;
+  });
+
+  if (entitlementRows.length > 0) {
+    return Boolean(activeEntitlement);
+  }
+
+  return Boolean(profile?.is_premium);
+}
+
+function requireClient() {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  return supabase;
+}
+
+export function safeUserMessage(error, fallback = "OpeningFit could not reach Supabase. Please try again.") {
+  const message = String(error?.message || error?.error_description || "");
+
+  if (/already registered|already exists|user already/i.test(message)) {
+    return "An account already exists for this email. Log in instead.";
+  }
+
+  if (/invalid login|invalid credentials/i.test(message)) {
+    return "Wrong email or password. Please check both and try again.";
+  }
+
+  if (/email not confirmed|confirm.*email|email confirmation/i.test(message)) {
+    return "Email confirmation required. Check your inbox, confirm your email, then log in.";
+  }
+
+  if (/security purposes|only request this after|rate limit|too many/i.test(message)) {
+    return "We just sent an account email. Please wait a minute, then check your inbox or try logging in.";
+  }
+
+  if (/row-level security|permission denied|violates row-level security/i.test(message)) {
+    return "Supabase permission error. Please check RLS policies and try again.";
+  }
+
+  if (/failed to fetch|network|load failed|fetch|timeout|timed out/i.test(message) || error?.name === "TypeError") {
+    return "Network error. Check your connection and try again.";
+  }
+
+  return message || fallback;
+}
+
+function logQueryFailure(table, operation, error, details = {}) {
+  logSupabaseSyncFailure(table, operation, error, details);
+}
+
+function logQuerySuccess(table, operation, details = {}) {
+  if (!DEBUG_CLOUD_RESTORE) {
+    logSupabaseSyncSuccess(table, operation, details);
+    return;
+  }
+
+  console.debug("OpeningFit Supabase sync succeeded", { table, operation, details });
+}
+
+function debugCloudRestore(message, details = {}) {
+  if (!DEBUG_CLOUD_RESTORE) return;
+  console.debug(`[OpeningFit cloud restore] ${message}`, details);
+}
+
+export async function runSupabaseQuery(queryPromise, options = {}) {
+  const { required = false, label = "Supabase query" } = options;
+  const result = await queryPromise;
+
+  if (!result?.error) {
+    return result;
+  }
+
+  if (required) {
+    throw result.error;
+  }
+
+  logSupabaseSyncWarning("optional", label, result.error);
+
+  return {
+    data: null,
+    error: result.error,
+    skipped: true,
+  };
+}
+
+async function selectProfileByUserId(userId, columns = "*") {
+  const client = requireClient();
+  const { data, error } = await client
+    .from("profiles")
+    .select(columns)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    const message = String(error.message || "");
+    if (/user_id|column/i.test(message) && /does not exist|schema cache/i.test(message)) {
+      debugCloudRestore("profile user_id lookup unavailable; trying id fallback", { userId, message });
+      return null;
+    }
+
+    logQueryFailure("profiles", "select profile by user_id", error, { userId });
+    throw new Error(safeUserMessage(error, "Could not load your OpeningFit profile."));
+  }
+
+  debugCloudRestore("profile select by user_id completed", { userId, found: Boolean(data) });
+  return data || null;
+}
+
+async function selectProfileByPrimaryId(userId, columns = "*") {
+  const client = requireClient();
+  const { data, error } = await client
+    .from("profiles")
+    .select(columns)
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    logQueryFailure("profiles", "select profile by id fallback", error, { userId });
+    throw new Error(safeUserMessage(error, "Could not load your OpeningFit profile."));
+  }
+
+  debugCloudRestore("profile select by id fallback completed", { userId, found: Boolean(data) });
+  return data || null;
+}
+
+async function loadExistingProfile(userId, columns = "*") {
+  if (!userId) return null;
+  return (await selectProfileByUserId(userId, columns)) || (await selectProfileByPrimaryId(userId, columns));
+}
+
+export async function ensureProfile(user, patch = {}) {
+  if (!user?.id) return null;
+
+  const client = requireClient();
+  const cleanDisplayName = String(
+    patch.display_name ||
+      patch.displayName ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.display_name ||
+      user.email ||
+      ""
+  ).trim();
+  const cleanUsername = String(
+    patch.username ||
+      user.user_metadata?.username ||
+      user.user_metadata?.preferred_username ||
+      ""
+  ).trim();
+  const displayName =
+    cleanDisplayName ||
+    user.email ||
+    "";
+
+  const existingProfile = await loadExistingProfile(user.id);
+
+  const profilePatch = {
+    email: patch.email ?? existingProfile?.email ?? user.email ?? "",
+    display_name: patch.display_name ?? patch.displayName ?? existingProfile?.display_name ?? displayName,
+    username: patch.username ?? existingProfile?.username ?? cleanUsername ?? null,
+    platform: patch.platform ?? existingProfile?.platform ?? null,
+    chesscom_username: patch.chesscom_username ?? existingProfile?.chesscom_username ?? "",
+    lichess_username: patch.lichess_username ?? existingProfile?.lichess_username ?? "",
+    is_premium: patch.is_premium ?? existingProfile?.is_premium ?? false,
+    last_report: patch.last_report ?? existingProfile?.last_report ?? null,
+    ...patch,
+    id: patch.id || existingProfile?.id || user.id,
+    user_id: user.id,
+    updated_at: new Date().toISOString(),
+  };
+
+  const profileNeedsUserIdBackfill = existingProfile && existingProfile.user_id !== user.id;
+
+  if (existingProfile && !Object.keys(patch).length && !profileNeedsUserIdBackfill) {
+    logQuerySuccess("profiles", "select existing profile before ensure upsert", {
+      userId: user.id,
+      rowId: existingProfile.id,
+    });
+    return existingProfile;
+  }
+
+  const { data, error } = await client
+    .from("profiles")
+    .upsert(
+      profilePatch,
+      { onConflict: "user_id" }
+    )
+    .select("*")
+    .single();
+
+  if (error) {
+    logQueryFailure("profiles", "upsert profile by user_id", error, { userId: user.id });
+    throw new Error(safeUserMessage(error, "Profile failed to save in Supabase."));
+  }
+  logQuerySuccess("profiles", "upsert profile by user_id", { userId: user.id, rowId: data?.id });
+  return data;
+}
+
+export async function getCurrentUser() {
+  const client = requireClient();
+  const { data, error } = await client.auth.getUser();
+
+  if (error) {
+    logQueryFailure("auth.users", "get current user", error);
+    throw new Error(safeUserMessage(error, "Could not confirm your Supabase login."));
+  }
+
+  logQuerySuccess("auth.users", "get current user", { userId: data?.user?.id || null });
+  return data?.user || null;
+}
+
+export async function signUpWithEmailPassword({ email, password, displayName, username, redirectTo }) {
+  const client = requireClient();
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  const cleanDisplayName = String(displayName || username || cleanEmail).trim();
+  const cleanUsername = String(username || "").trim();
+
+  if (!cleanEmail || !password) {
+    throw new Error("Enter an email and password.");
+  }
+
+  const { data, error } = await client.auth.signUp({
+    email: cleanEmail,
+    password,
+    options: {
+      emailRedirectTo: redirectTo,
+      data: {
+        display_name: cleanDisplayName || cleanEmail,
+        full_name: cleanDisplayName || cleanEmail,
+        username: cleanUsername || undefined,
+      },
+    },
+  });
+
+  if (error) {
+    logQueryFailure("auth.users", "sign up with email/password", error, { email: cleanEmail });
+    throw new Error(safeUserMessage(error, "Could not create your OpeningFit account."));
+  }
+
+  const user = data?.user || data?.session?.user || null;
+  if (user && Array.isArray(user.identities) && user.identities.length === 0) {
+    throw new Error("An account already exists for this email. Log in instead.");
+  }
+
+  let profileError = null;
+  if (user?.id && data?.session) {
+    try {
+      await ensureProfile(user, {
+        display_name: cleanDisplayName || cleanEmail,
+        username: cleanUsername || null,
+      });
+    } catch (error) {
+      profileError = error;
+      logQueryFailure("profiles", "ensure profile after sign up", error, { userId: user.id });
+    }
+  }
+
+  logQuerySuccess("auth.users", "sign up with email/password", {
+    email: cleanEmail,
+    userId: user?.id || null,
+    hasSession: Boolean(data?.session),
+  });
+
+  return {
+    user,
+    session: data?.session || null,
+    needsEmailConfirmation: Boolean(user && !data?.session),
+    profileError,
+  };
+}
+
+export async function signInWithEmailPassword({ email, password }) {
+  const client = requireClient();
+  const cleanEmail = String(email || "").trim().toLowerCase();
+
+  if (!cleanEmail || !password) {
+    throw new Error("Enter an email and password.");
+  }
+
+  const { data, error } = await client.auth.signInWithPassword({
+    email: cleanEmail,
+    password,
+  });
+
+  if (error) {
+    logQueryFailure("auth.users", "sign in with email/password", error, { email: cleanEmail });
+    throw new Error(safeUserMessage(error, "Could not log in to OpeningFit."));
+  }
+
+  const confirmedUser = await getCurrentUser();
+  if (!confirmedUser?.id) {
+    throw new Error("Login started, but Supabase did not return a confirmed user.");
+  }
+
+  let profileError = null;
+  try {
+    await ensureProfile(confirmedUser);
+  } catch (error) {
+    profileError = error;
+    logQueryFailure("profiles", "ensure profile after sign in", error, { userId: confirmedUser.id });
+  }
+
+  logQuerySuccess("auth.users", "sign in with email/password", {
+    email: cleanEmail,
+    userId: confirmedUser.id,
+  });
+
+  return {
+    session: data?.session || null,
+    user: confirmedUser,
+    profileError,
+  };
+}
+
+export async function getUserProfile(userId) {
+  if (!userId) return null;
+
+  const profile = await loadExistingProfile(userId);
+  logQuerySuccess("profiles", "select profile by user key", { userId, found: Boolean(profile) });
+  return profile;
+}
+
+export async function upsertUserProfile(user, patch = {}) {
+  if (!user?.id) throw new Error("Missing Supabase user.");
+
+  const [row] = await upsertUserRow(
+    "profiles",
+    user.id,
+    {
+      id: patch.id || user.id,
+      email: user.email || patch.email || "",
+      display_name:
+        patch.display_name ||
+        patch.displayName ||
+        user.user_metadata?.full_name ||
+        user.user_metadata?.display_name ||
+        user.email ||
+        "",
+      ...patch,
+    },
+    { onConflict: "user_id" }
+  );
+
+  return row || null;
+}
+
+async function selectUserRows(table, userId, options = {}) {
+  const client = requireClient();
+  const limit = options.limit ?? RESTORE_TABLE_LIMITS[table] ?? DEFAULT_RESTORE_LIMIT;
+  const columns = options.columns || RESTORE_TABLE_COLUMNS[table] || "*";
+
+  const result = await client
+    .from(table)
+    .select(columns)
+    .eq("user_id", userId)
+    .limit(limit);
+
+  if (!result.error) {
+    logQuerySuccess(table, "select rows by user_id", {
+      userId,
+      limit,
+      count: result.data?.length || 0,
+    });
+    return result.data || [];
+  }
+
+  logQueryFailure(table, "select rows by user_id", result.error, { userId, limit });
+  throw result.error;
+}
+
+export async function fetchAllUserData(user, options = {}) {
+  if (!user?.id) return createDefaultUserData();
+
+  let profile = null;
+  try {
+    profile = await loadExistingProfile(user.id, PROFILE_RESTORE_COLUMNS);
+  } catch (profileError) {
+    logQueryFailure("profiles", "select profile during full restore", profileError, {
+      userId: user.id,
+    });
+    if (options.strict) {
+      throw new Error(profileError?.message || "Profile failed to load from Supabase.");
+    }
+    console.warn("OpeningFit could not restore profile; using empty profile.", profileError);
+  }
+
+  const tableNames = USER_DATA_TABLES.filter((table) => table !== "profiles");
+  const tableErrors = [];
+  const results = await Promise.all(
+    tableNames.map(async (table) => {
+      try {
+        return [table, await selectUserRows(table, user.id)];
+      } catch (tableError) {
+        logQueryFailure(table, "restore table during full restore", tableError, {
+          userId: user.id,
+        });
+        tableErrors.push({ table, error: tableError });
+        if (options.strict && REQUIRED_RESTORE_TABLES.has(table)) {
+          return [table, null];
+        }
+        console.warn(`OpeningFit could not restore ${table}; using empty rows.`, tableError);
+        return [table, []];
+      }
+    })
+  );
+
+  const requiredTableErrors = tableErrors.filter((item) => REQUIRED_RESTORE_TABLES.has(item.table));
+
+  if (options.strict && requiredTableErrors.length) {
+    const first = requiredTableErrors[0];
+    const error = new Error(
+      safeUserMessage(first.error, `Could not restore ${first.table} from Supabase.`)
+    );
+    error.table = first.table;
+    error.cause = first.error;
+    throw error;
+  }
+
+  const restored = {
+    ...createDefaultUserData(profile),
+    ...Object.fromEntries(results),
+  };
+
+  return {
+    ...restored,
+    hasPremiumAccess: hasActivePremiumEntitlement(restored.premium_entitlements, profile),
+  };
+}
+
+export async function upsertUserRow(table, userId, row, options = {}) {
+  if (!userId) throw new Error("Missing user id.");
+
+  const client = requireClient();
+  const { required = true, ...upsertOptions } = options;
+  const payload = {
+    ...row,
+    user_id: userId,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error, skipped } = await runSupabaseQuery(
+    client
+      .from(table)
+      .upsert(payload, upsertOptions)
+      .select("*"),
+    {
+      required,
+      label: `${table} upsert row`,
+    }
+  );
+
+  if (skipped) {
+    return [];
+  }
+
+  if (error) {
+    logQueryFailure(table, "upsert row", error, { userId, row, options });
+    throw new Error(safeUserMessage(error, `Could not save ${table}.`));
+  }
+  logQuerySuccess(table, "upsert row", { userId, count: data?.length || 0, options });
+  return data;
+}
+
+export async function deleteUserRow(table, userId, id) {
+  if (!userId || !id) throw new Error("Missing delete target.");
+
+  const client = requireClient();
+  const { error } = await client
+    .from(table)
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", id);
+
+  if (error) {
+    logQueryFailure(table, "delete row by user_id and id", error, { userId, id });
+    throw new Error(safeUserMessage(error, `Could not delete ${table}.`));
+  }
+  logQuerySuccess(table, "delete row by user_id and id", { userId, id });
+}
+
+export async function getSettings(userId) {
+  if (!userId) return {};
+
+  const client = requireClient();
+  const { data, error } = await client
+    .from("settings")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    logQueryFailure("settings", "select settings by user_id", error, { userId });
+    throw new Error(safeUserMessage(error, "Could not load saved settings from Supabase."));
+  }
+  logQuerySuccess("settings", "select settings by user_id", { userId, found: Boolean(data) });
+  return data || {};
+}
+
+export const loadUserSettings = getSettings;
+
+export async function saveSettings(userId, patch) {
+  if (!userId) return null;
+
+  const current = await getSettings(userId);
+  const nextPreferences = {
+    ...(current.preferences || {}),
+    ...(patch.preferences || {}),
+  };
+
+  const [row] = await upsertUserRow(
+    "settings",
+    userId,
+    {
+      ...(current.id ? { id: current.id } : {}),
+      theme: patch.theme ?? current.theme ?? null,
+      preferences: nextPreferences,
+    },
+    { onConflict: "user_id" }
+  );
+
+  return row;
+}
+
+export const saveUserSettings = saveSettings;
+
+export async function loadAnalysisHistory(userId) {
+  if (!userId) return [];
+  return selectUserRows("report_history", userId);
+}
+
+export async function saveAnalysisHistory(userId, report, summary = {}) {
+  return saveReport(userId, report, summary);
+}
+
+export async function loadOpeningRecommendations(userId) {
+  if (!userId) return [];
+  return selectUserRows("recommendation_history", userId);
+}
+
+export async function saveOpeningRecommendations(userId, snapshot = {}) {
+  return saveRecommendationHistory(userId, snapshot);
+}
+
+export async function saveReport(userId, report, summary = {}) {
+  if (!userId || !report) return null;
+
+  const username =
+    summary.username ||
+    report.username ||
+    report.playerName ||
+    report.player_name ||
+    "Unknown player";
+  const platform = summary.platform || report.platform || report.importPlatform || "unknown";
+  const games =
+    summary.games ||
+    report.gamesImported ||
+    report.games_imported ||
+    report.totalGames ||
+    report.total_games ||
+    "recent";
+  const importedAt =
+    summary.importedAt ||
+    summary.savedAt ||
+    report.importedAt ||
+    report.imported_at ||
+    report.lastUpdated ||
+    report.last_updated ||
+    "";
+  const months =
+    summary.months ||
+    report.monthsChecked ||
+    report.months_checked ||
+    report.importMonths ||
+    report.import_months ||
+    "recent";
+  const analysisTimeFormat =
+    summary.analysisTimeFormat ||
+    summary.analysis_time_format ||
+    report.analysisTimeFormat ||
+    report.analysis_time_format ||
+    "custom";
+  const reportKey = [
+    String(platform).toLowerCase(),
+    String(username).toLowerCase(),
+    String(months),
+    String(analysisTimeFormat).toLowerCase(),
+    String(games),
+    String(importedAt).slice(0, 19),
+  ].join(":");
+
+  const client = requireClient();
+  const basePayload = {
+    user_id: userId,
+    username,
+    platform,
+    summary,
+    report,
+    report_key: reportKey,
+    updated_at: new Date().toISOString(),
+  };
+  const payload = {
+    ...basePayload,
+    analysis_time_format: analysisTimeFormat,
+    effective_time_format:
+      summary.effectiveTimeFormat ||
+      summary.effective_time_format ||
+      report.effectiveTimeFormat ||
+      report.effective_time_format ||
+      analysisTimeFormat,
+    detected_time_format:
+      summary.detectedTimeFormat ||
+      summary.detected_time_format ||
+      report.detectedTimeFormat ||
+      report.detected_time_format ||
+      null,
+    style_profile:
+      summary.styleProfile ||
+      summary.style_profile ||
+      report.styleProfile ||
+      report.style_profile ||
+      null,
+    style_based_recommendations:
+      summary.styleBasedRecommendations ||
+      summary.style_based_recommendations ||
+      report.styleBasedRecommendations ||
+      report.style_based_recommendations ||
+      null,
+  };
+
+  let activePayload = payload;
+  let { data, error } = await client.from("report_history").insert(payload).select("*").single();
+
+  if (
+    error &&
+    (
+      error.code === "PGRST204" ||
+      /analysis_time_format|effective_time_format|detected_time_format|style_profile|style_based_recommendations/i.test(error.message || "")
+    )
+  ) {
+    logQueryFailure("report_history", "insert report with time-format columns unavailable; retrying JSON-only save", error, {
+      userId,
+      reportKey,
+    });
+
+    const retry = await client.from("report_history").insert(basePayload).select("*").single();
+    activePayload = basePayload;
+    data = retry.data;
+    error = retry.error;
+  }
+
+  if (error) {
+    if (error.code === "23505") {
+      const { data: existing, error: existingError } = await client
+        .from("report_history")
+        .update({
+          ...activePayload,
+          user_id: userId,
+          report_key: reportKey,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId)
+        .eq("report_key", reportKey)
+        .select("*")
+        .maybeSingle();
+
+      if (existingError) {
+        logQueryFailure("report_history", "update existing report after dedupe collision", existingError, {
+          userId,
+          reportKey,
+        });
+        throw new Error(safeUserMessage(existingError, "Could not update saved report in Supabase."));
+      }
+
+      logQuerySuccess("report_history", "update existing report after dedupe collision", {
+        userId,
+        reportKey,
+        rowId: existing?.id,
+      });
+      return existing;
+    }
+
+    logQueryFailure("report_history", "insert report with dedupe key", error, { userId, reportKey });
+    throw new Error(safeUserMessage(error, "Could not save report to Supabase."));
+  }
+
+  logQuerySuccess("report_history", "insert report with dedupe key", {
+    userId,
+    reportKey,
+    rowId: data?.id,
+  });
+  return data;
+}
+
+export async function saveRecommendationHistory(userId, snapshot = {}) {
+  if (!userId || !snapshot) return null;
+
+  const client = requireClient();
+  const progress = snapshot.progress || {};
+  const analysisDate = snapshot.analysisDate || snapshot.analysis_date || new Date().toISOString();
+  const timeControlFilter =
+    snapshot.timeControlFilter || snapshot.time_control_filter || snapshot.analysisTimeFormat || "custom";
+  const snapshotKey = String(
+    snapshot.snapshotKey ||
+      snapshot.snapshot_key ||
+      [
+        progress.platform || snapshot.platform || "unknown",
+        progress.username || snapshot.username || "unknown",
+        String(analysisDate).slice(0, 19),
+        snapshot.gamesAnalysed ?? snapshot.games_analyzed ?? snapshot.games_analysed ?? 0,
+        timeControlFilter,
+        snapshot.currentRecommendation || snapshot.current_recommendation || "",
+      ].join(":")
+  );
+  const payload = {
+    user_id: userId,
+    snapshot_key: snapshotKey,
+    analysis_date: analysisDate,
+    games_analysed:
+      Number(snapshot.gamesAnalysed ?? snapshot.games_analyzed ?? snapshot.games_analysed ?? 0) || 0,
+    detected_openings: snapshot.detectedOpenings || snapshot.detected_openings || [],
+    recommended_openings: snapshot.recommendedOpenings || snapshot.recommended_openings || [],
+    confidence_score:
+      snapshot.confidenceScore ?? snapshot.confidence_score ?? snapshot.repertoireConfidenceScore ?? null,
+    style_profile: snapshot.styleProfile || snapshot.style_profile || null,
+    time_control_filter: timeControlFilter,
+    analysis_version: snapshot.analysisVersion || snapshot.analysis_version || "retention-history-v1",
+    snapshot,
+    updated_at: new Date().toISOString(),
+  };
+
+  let activePayload = payload;
+  let { data, error } = await client
+    .from("recommendation_history")
+    .upsert(payload, { onConflict: "user_id,snapshot_key" })
+    .select("*")
+    .single();
+
+  if (
+    error &&
+    (
+      error.code === "PGRST204" ||
+      /snapshot_key|user_id,snapshot_key/i.test(error.message || "")
+    )
+  ) {
+    activePayload = { ...payload };
+    delete activePayload.snapshot_key;
+    const retry = await client
+      .from("recommendation_history")
+      .insert(activePayload)
+      .select("*")
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
+
+  if (error) {
+    logQueryFailure("recommendation_history", "insert recommendation snapshot", error, {
+      userId,
+      snapshot,
+    });
+    throw new Error(safeUserMessage(error, "Could not save recommendations to Supabase."));
+  }
+
+  logQuerySuccess("recommendation_history", "insert recommendation snapshot", {
+    userId,
+    rowId: data?.id,
+  });
+  return data;
+}
+
+function stableGameId(game, index) {
+  const raw =
+    game?.game_id ||
+    game?.gameId ||
+    game?.id ||
+    game?.url ||
+    game?.link ||
+    game?.pgn ||
+    JSON.stringify(game || {});
+  const input = String(raw || `game-${index}`);
+  let hash = 0;
+
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
+  }
+
+  return String(game?.game_id || game?.gameId || game?.id || game?.url || `game-${index}-${hash}`);
+}
+
+function extractAnalysedGames(report = {}) {
+  const candidates = [
+    report.analysed_games,
+    report.analyzed_games,
+    report.analysedGames,
+    report.analyzedGames,
+    report.imported_games,
+    report.importedGames,
+    report.recent_games,
+    report.recentGames,
+    report.games,
+  ];
+
+  return candidates.find((value) => Array.isArray(value) && value.some((item) => item && typeof item === "object")) || [];
+}
+
+export async function saveAnalysedGames(userId, report = {}, summary = {}) {
+  if (!userId || !report) return [];
+
+  const games = extractAnalysedGames(report).slice(0, 80);
+  if (!games.length) return [];
+
+  const client = requireClient();
+  const platform = summary.platform || report.platform || report.importPlatform || report.import_platform || "unknown";
+  const username =
+    summary.username ||
+    report.username ||
+    report.playerName ||
+    report.player_name ||
+    "Unknown player";
+  const now = new Date().toISOString();
+  const rows = games.map((game, index) => ({
+    user_id: userId,
+    platform,
+    username,
+    game_id: stableGameId(game, index),
+    game,
+    analysis: {
+      opening: game.opening || game.eco || game.detected_opening || null,
+      result: game.result || game.user_result || null,
+      colour: game.colour || game.color || null,
+      saved_from_report: true,
+    },
+    updated_at: now,
+  }));
+
+  const { data, error } = await client
+    .from("analysed_games")
+    .upsert(rows, { onConflict: "user_id,platform,username,game_id" })
+    .select("*");
+
+  if (error) {
+    logQueryFailure("analysed_games", "upsert analysed games", error, {
+      userId,
+      platform,
+      username,
+      count: rows.length,
+    });
+    throw new Error(safeUserMessage(error, "Could not save analysed games to Supabase."));
+  }
+
+  logQuerySuccess("analysed_games", "upsert analysed games", {
+    userId,
+    platform,
+    username,
+    count: data?.length || 0,
+  });
+  return data || [];
+}
+
+export async function recordActivity(userId, type, payload = {}) {
+  if (!userId || !type) return null;
+
+  const client = requireClient();
+  const dedupeKey = payload.dedupe_key || payload.dedupeKey || null;
+  const { data, error } = await client
+    .from("activity_history")
+    .insert({
+      user_id: userId,
+      type,
+      action_type: type,
+      points: Number(payload.points || payload.xp || 0) || 0,
+      related_report_id: payload.related_report_id || null,
+      dedupe_key: dedupeKey,
+      payload,
+      updated_at: new Date().toISOString(),
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    if (error.code === "23505") return null;
+    logQueryFailure("activity_history", "insert activity with dedupe key", error, { userId, type, dedupeKey });
+    throw error;
+  }
+
+  return data;
+}
+
+export async function uploadUserFile(userId, file, pathPrefix = "uploads") {
+  if (!userId || !file) throw new Error("Missing upload data.");
+
+  const client = requireClient();
+  const cleanName = String(file.name || "upload").replace(/[^a-z0-9._-]/gi, "-");
+  const path = `users/${userId}/${pathPrefix}/${Date.now()}-${cleanName}`;
+
+  const { error: uploadError } = await client.storage
+    .from(USER_FILE_BUCKET)
+    .upload(path, file, { upsert: false });
+
+  if (uploadError) throw uploadError;
+
+  const { data: signedData, error: signedError } = await client.storage
+    .from(USER_FILE_BUCKET)
+    .createSignedUrl(path, 60 * 60 * 24 * 365);
+
+  if (signedError) throw signedError;
+
+  const [row] = await upsertUserRow("uploads", userId, {
+    bucket: USER_FILE_BUCKET,
+    path,
+    url: signedData?.signedUrl || null,
+    metadata: {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    },
+  });
+
+  return row;
+}
