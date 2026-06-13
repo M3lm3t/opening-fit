@@ -154,6 +154,47 @@ const platforms = {
   },
 };
 
+function ChessLoadingMark() {
+  return (
+    <div className="chessLoadingMark" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+      <span />
+      <strong>N</strong>
+    </div>
+  );
+}
+
+function getImportedAccountUsername(report, fallback = "") {
+  return (
+    report?.username ||
+    report?.playerName ||
+    report?.player_name ||
+    report?.requestedUsername ||
+    report?.requested_username ||
+    report?.profile?.username ||
+    report?.account?.username ||
+    fallback ||
+    ""
+  );
+}
+
+function getImportedAccountPlatform(report, fallback = "") {
+  const raw =
+    report?.platform ||
+    report?.importPlatform ||
+    report?.import_platform ||
+    report?.profile?.platform ||
+    report?.account?.platform ||
+    fallback ||
+    "";
+  const value = String(raw).toLowerCase();
+  if (value.includes("lichess")) return "lichess";
+  if (value.includes("chess.com") || value.includes("chesscom")) return "chesscom";
+  return value;
+}
+
 function isDemoAnalysis(report) {
   const source = String(report?.platform || report?.importPlatform || report?.import_platform || "").toLowerCase();
   const username = String(report?.username || report?.playerName || report?.player_name || "").toLowerCase();
@@ -6076,15 +6117,9 @@ function ProfileIdentityCard({
 }) {
   if (!data) return null;
 
-  const playerName =
-    data.username ||
-    data.playerName ||
-    data.player_name ||
-    data.requestedUsername ||
-    username ||
-    "OpeningFit player";
+  const playerName = getImportedAccountUsername(data, username) || "OpeningFit player";
   const platformLabel =
-    data.platform === "lichess" || data.importPlatform === "lichess" || platform === "lichess"
+    getImportedAccountPlatform(data, platform).includes("lichess")
       ? "Lichess"
       : "Chess.com";
   const games =
@@ -6176,19 +6211,11 @@ function formatProfileDate(value) {
 }
 
 function getProfilePlayerName(data, fallback = "") {
-  return (
-    data?.username ||
-    data?.playerName ||
-    data?.player_name ||
-    data?.requestedUsername ||
-    data?.requested_username ||
-    fallback ||
-    "OpeningFit player"
-  );
+  return getImportedAccountUsername(data, fallback) || "OpeningFit player";
 }
 
 function getProfilePlatformLabel(data, fallback = "") {
-  const raw = String(data?.platform || data?.importPlatform || data?.import_platform || fallback || "").toLowerCase();
+  const raw = getImportedAccountPlatform(data, fallback);
   if (raw.includes("lichess")) return "Lichess";
   if (raw.includes("chesscom") || raw.includes("chess.com")) return "Chess.com";
   return "Connected chess account";
@@ -7358,15 +7385,23 @@ function OpeningFitProfileDashboard({
     (Array.isArray(openingFitUserState) ? openingFitUserState : []).some(
       (row) => row?.coach_progress?.openingFitProgress || row?.coach_progress?.opening_fit_progress
     );
+  const connectedUsername =
+    username ||
+    accountUser?.user_metadata?.chess_username ||
+    accountUser?.user_metadata?.preferred_username ||
+    "";
+  const connectedPlatform = getProfilePlatformLabel({ platform }, platform);
 
   if (!data) {
     return (
       <div className="profileDashboard profileDashboardNoReport">
       <section className="profileNoReportState">
         <p className="eyebrow">Profile</p>
-        <h1>Let's build your opening profile.</h1>
+        <h1>{connectedUsername ? `${connectedUsername}'s opening profile` : "Let's build your opening profile."}</h1>
         <p>
-          We'll study your games and suggest openings that match your style.
+          {connectedUsername
+            ? `Connected to ${connectedPlatform}. Analyse recent games to load the full profile.`
+            : "We'll study your games and suggest openings that match your style."}
         </p>
         <button className="primaryBtn" type="button" onClick={onAnalyse}>
           Analyse Username
@@ -11991,7 +12026,15 @@ function App() {
         const parsed = JSON.parse(savedAnalysis);
 
         if (parsed?.analysis) {
-          setData(parsed.analysis);
+          const restoredUsername = getImportedAccountUsername(parsed.analysis, parsed.username || savedUsername);
+          const restoredPlatform = getImportedAccountPlatform(parsed.analysis, parsed.platform || savedPlatform);
+          const restoredAnalysis = {
+            ...parsed.analysis,
+            ...(restoredUsername ? { username: restoredUsername } : {}),
+          };
+          setData(restoredAnalysis);
+          if (restoredUsername) setUsername(restoredUsername);
+          if (restoredPlatform && platforms[restoredPlatform]) setPlatform(restoredPlatform);
           setLocalSavedAt(parsed.savedAt || "");
           setShowPublicLanding(false);
           if (getCurrentPath() === "/") {
@@ -12318,20 +12361,26 @@ function App() {
 
   const saveLocalAnalysis = (analysis, cleanUsername, selectedPlatformKey = platform) => {
     const savedAt = new Date().toISOString();
+    const importedUsername = getImportedAccountUsername(analysis, cleanUsername) || cleanUsername;
+    const importedPlatform = getImportedAccountPlatform(analysis, selectedPlatformKey) || selectedPlatformKey;
 
     const payload = {
-      username: cleanUsername,
-      platform: selectedPlatformKey,
+      username: importedUsername,
+      platform: importedPlatform,
       savedAt,
       analysis: {
         ...analysis,
+        username: importedUsername,
+        importPlatform: analysis.importPlatform || importedPlatform,
+        import_platform: analysis.import_platform || importedPlatform,
+        platform: analysis.platform || importedPlatform,
         lastUpdated: analysis.lastUpdated || savedAt,
       },
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    localStorage.setItem(USERNAME_KEY, cleanUsername);
-    localStorage.setItem(PLATFORM_KEY, selectedPlatformKey);
+    localStorage.setItem(USERNAME_KEY, importedUsername);
+    localStorage.setItem(PLATFORM_KEY, importedPlatform);
     localStorage.setItem(
       ANALYSIS_TIME_FORMAT_KEY,
       normalizeAnalysisTimeFormat(analysis.analysisTimeFormat || analysisTimeFormat)
@@ -12406,20 +12455,21 @@ function App() {
     const restored = getRestoredCloudReport(result.snapshot || {});
     if (restored?.report) {
       const restoredUsername =
-        restored.username ||
-        restored.report.username ||
-        restored.report.playerName ||
-        username ||
-        "Unknown player";
+        getImportedAccountUsername(restored.report, restored.username || username) || "Unknown player";
       const restoredPlatform =
-        platforms[restored.platform] ? restored.platform : restored.report.platform || platform;
+        platforms[restored.platform]
+          ? restored.platform
+          : getImportedAccountPlatform(restored.report, platform);
 
-      setData(restored.report);
+      setData({
+        ...restored.report,
+        username: restoredUsername,
+      });
       setUsername(restoredUsername);
       if (platforms[restoredPlatform]) {
         setPlatform(restoredPlatform);
       }
-      saveLocalAnalysis(restored.report, restoredUsername, restoredPlatform);
+      saveLocalAnalysis({ ...restored.report, username: restoredUsername }, restoredUsername, restoredPlatform);
       setShowPublicLanding(false);
       setActiveView("report");
       if (getCurrentPath() === "/" || getCurrentPath() === "/login" || getCurrentPath() === "/account") {
@@ -12448,17 +12498,9 @@ function App() {
     const weakLines = summary?.weakLines || mergeWeakLines(report);
 
     const nextUsername =
-      report?.username ||
-      report?.playerName ||
-      report?.player_name ||
-      username ||
-      "Unknown player";
+      getImportedAccountUsername(report, username) || "Unknown player";
     const nextPlatform =
-      report?.platform ||
-      report?.importPlatform ||
-      report?.import_platform ||
-      platform ||
-      "unknown";
+      getImportedAccountPlatform(report, platform) || "unknown";
     const existingState = (openingFitUserState || []).find(
       (row) =>
         String(row?.username || "").toLowerCase() === String(nextUsername).toLowerCase() &&
@@ -12786,12 +12828,16 @@ function App() {
       await new Promise((resolve) => setTimeout(resolve, 250));
 
       const normalizedImportData = normaliseData(json);
+      const importedUsername =
+        getImportedAccountUsername(normalizedImportData, cleanUsername) || cleanUsername;
+      const importedPlatform =
+        getImportedAccountPlatform(normalizedImportData, selectedPlatformKey) || selectedPlatformKey;
       const cleanData = {
         ...normalizedImportData,
-        username: normalizedImportData.username || normalizedImportData.playerName || cleanUsername,
-        importPlatform: normalizedImportData.importPlatform || selectedPlatformKey,
-        import_platform: normalizedImportData.import_platform || selectedPlatformKey,
-        platform: normalizedImportData.platform || selectedPlatformKey,
+        username: importedUsername,
+        importPlatform: normalizedImportData.importPlatform || importedPlatform,
+        import_platform: normalizedImportData.import_platform || importedPlatform,
+        platform: normalizedImportData.platform || importedPlatform,
       };
       const importOutcome = buildImportOutcome(cleanData, selectedPlatform.label);
 
@@ -12817,8 +12863,9 @@ function App() {
       const userReportRetentionKey = `${supabaseUser?.id || "guest"}:${reportRetentionKey}`;
 
       setData(cleanData);
+      setUsername(importedUsername);
       setImportStatus(importOutcome);
-      saveLocalAnalysis(cleanData, cleanUsername, selectedPlatformKey);
+      saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
 
       logRetentionEvent(
         "data_imported",
@@ -14268,7 +14315,7 @@ function App() {
 
           {loading && activeAppSection !== "analyse" && (
             <section className="card loadingCard">
-              <div className="loadingSpinner" />
+              <ChessLoadingMark />
               <div>
                 <h3>Preparing your report</h3>
                 <p>{loadingStep || "Opening Fit is working..."}</p>

@@ -4,6 +4,35 @@ import { useAuth } from "../context/AuthDataProvider";
 const LOCAL_REPORT_KEY = "openingFit:lastAnalysis";
 const MIGRATION_PREFIX = "openingFit:migratedLocalReport:";
 
+function getImportedAccountUsername(report, fallback = "") {
+  return (
+    report?.username ||
+    report?.playerName ||
+    report?.player_name ||
+    report?.requestedUsername ||
+    report?.requested_username ||
+    report?.profile?.username ||
+    report?.account?.username ||
+    fallback ||
+    ""
+  );
+}
+
+function getImportedAccountPlatform(report, fallback = "") {
+  const value = String(
+    report?.platform ||
+      report?.importPlatform ||
+      report?.import_platform ||
+      report?.profile?.platform ||
+      report?.account?.platform ||
+      fallback ||
+      ""
+  ).toLowerCase();
+  if (value.includes("lichess")) return "lichess";
+  if (value.includes("chess.com") || value.includes("chesscom")) return "chesscom";
+  return value;
+}
+
 function readLocalReport() {
   try {
     const parsed = JSON.parse(localStorage.getItem(LOCAL_REPORT_KEY) || "null");
@@ -67,32 +96,33 @@ export default function AccountRestoreSync({
       reportHistory?.[0]?.report ||
       null;
     const localReport = readLocalReport();
+    const restoredUsername =
+      getImportedAccountUsername(latestReport, primaryWorkspace?.username || profile?.username) ||
+      getImportedAccountUsername(localReport?.report, localReport?.username) ||
+      "";
+    const restoredPlatform =
+      getImportedAccountPlatform(latestReport, primaryWorkspace?.platform || profile?.platform) ||
+      getImportedAccountPlatform(localReport?.report, localReport?.platform) ||
+      "";
 
-    if (
-      (primaryWorkspace?.username || profile?.username || localReport?.username || localReport?.report?.username) &&
-      typeof setUsername === "function"
-    ) {
-      setUsername(
-        primaryWorkspace?.username ||
-          profile.username ||
-          localReport?.username ||
-          localReport?.report?.username
-      );
+    if (restoredUsername && typeof setUsername === "function") {
+      setUsername(restoredUsername);
     }
 
-    if ((primaryWorkspace?.platform || profile?.platform || localReport?.platform || localReport?.report?.platform) && typeof setPlatform === "function") {
-      setPlatform(
-        primaryWorkspace?.platform ||
-          profile.platform ||
-          localReport?.platform ||
-          localReport?.report?.platform
-      );
+    if (restoredPlatform && typeof setPlatform === "function") {
+      setPlatform(restoredPlatform);
     }
 
     if (latestReport && typeof setData === "function") {
-      setData(latestReport);
+      setData({
+        ...latestReport,
+        ...(restoredUsername ? { username: restoredUsername } : {}),
+      });
     } else if (localReport?.report && typeof setData === "function") {
-      setData(localReport.report);
+      setData({
+        ...localReport.report,
+        ...(restoredUsername ? { username: restoredUsername } : {}),
+      });
     }
 
     restoredUserRef.current = user.id;
@@ -138,17 +168,22 @@ export default function AccountRestoreSync({
         return;
       }
 
+      const importedUsername = getImportedAccountUsername(data, username) || "guest";
+      const importedPlatform = getImportedAccountPlatform(data, platform) || "unknown";
+      const reportForSave = {
+        ...data,
+        username: importedUsername,
+        importPlatform: data.importPlatform || importedPlatform,
+        import_platform: data.import_platform || importedPlatform,
+        platform: data.platform || importedPlatform,
+      };
+
       const saveSignature = JSON.stringify({
         userId: user.id,
-        username,
-        platform,
+        username: importedUsername,
+        platform: importedPlatform,
         hasReport: Boolean(data),
-        reportUsername:
-          data?.username ||
-          data?.playerName ||
-          data?.player_name ||
-          data?.profile?.username ||
-          "",
+        reportUsername: importedUsername,
         reportGames:
           data?.games_imported ||
           data?.gamesImported ||
@@ -180,9 +215,9 @@ export default function AccountRestoreSync({
         await upsertUserData(
           "openingfit_user_state",
           {
-            platform: platform || "unknown",
-            username: username || "guest",
-            last_report: data || null,
+            platform: importedPlatform,
+            username: importedUsername,
+            last_report: reportForSave,
           },
           { onConflict: "user_id,platform,username" }
         );
@@ -197,25 +232,25 @@ export default function AccountRestoreSync({
               user.user_metadata?.display_name ||
               user.email ||
               "",
-            username: username || null,
-            platform: platform || null,
-            last_report: data || null,
+            username: importedUsername || null,
+            platform: importedPlatform || null,
+            last_report: reportForSave,
           },
           { onConflict: "user_id" }
         );
 
         await saveSettings({
           preferences: {
-            lastUsername: username || "",
-            lastPlatform: platform || "",
+            lastUsername: importedUsername || "",
+            lastPlatform: importedPlatform || "",
             ...(migrationKey && shouldMarkMigrated ? { lastLocalReportMigrationKey: migrationKey } : {}),
           },
         });
 
         if (migrationKey && shouldMarkMigrated && migratedLocalRef.current !== migrationKey) {
-          await saveReport?.(data, {
-            username: username || data?.username || data?.playerName || "Unknown player",
-            platform: platform || data?.platform || data?.importPlatform || "unknown",
+          await saveReport?.(reportForSave, {
+            username: importedUsername || "Unknown player",
+            platform: importedPlatform || "unknown",
             games: data?.gamesImported || data?.total_games || data?.gamesAnalysed || 0,
             savedAt: localReport?.savedAt || new Date().toISOString(),
             migratedFromLocal: true,

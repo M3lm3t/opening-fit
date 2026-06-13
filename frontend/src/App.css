@@ -1591,19 +1591,88 @@ th {
   color: var(--text-soft);
 }
 
-.loadingSpinner {
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
-  border: 4px solid rgba(96, 165, 250, 0.18);
-  border-top-color: #60a5fa;
-  animation: spin 0.8s linear infinite;
-  flex: 0 0 42px;
+.loadingSpinner,
+.chessLoadingMark {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(96, 165, 250, 0.34);
+  border-radius: 10px;
+  background: #0f172a;
+  box-shadow: inset 0 0 0 1px rgba(2, 6, 23, 0.5), 0 10px 24px rgba(15, 23, 42, 0.18);
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+.loadingSpinner::before,
+.loadingSpinner::after {
+  content: "";
+}
+
+.loadingSpinner::before,
+.loadingSpinner::after,
+.chessLoadingMark span {
+  background: rgba(226, 232, 240, 0.1);
+}
+
+.loadingSpinner::after,
+.chessLoadingMark span:nth-child(2),
+.chessLoadingMark span:nth-child(3) {
+  background: rgba(37, 99, 235, 0.32);
+}
+
+.chessLoadingMark strong {
+  position: absolute;
+  right: 6px;
+  bottom: 5px;
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 0.8rem;
+  font-weight: 950;
+  box-shadow: 0 5px 12px rgba(2, 6, 23, 0.34);
+  animation: chessLoadingKnight 1.4s ease-in-out infinite;
+}
+
+:root[data-theme="light"] .loadingSpinner,
+:root[data-theme="light"] .chessLoadingMark,
+.page.light .loadingSpinner,
+.page.light .chessLoadingMark {
+  background: #e2e8f0;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+:root[data-theme="light"] .loadingSpinner::before,
+:root[data-theme="light"] .loadingSpinner::after,
+:root[data-theme="light"] .chessLoadingMark span,
+.page.light .loadingSpinner::before,
+.page.light .loadingSpinner::after,
+.page.light .chessLoadingMark span {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme="light"] .loadingSpinner::after,
+:root[data-theme="light"] .chessLoadingMark span:nth-child(2),
+:root[data-theme="light"] .chessLoadingMark span:nth-child(3),
+.page.light .loadingSpinner::after,
+.page.light .chessLoadingMark span:nth-child(2),
+.page.light .chessLoadingMark span:nth-child(3) {
+  background: rgba(37, 99, 235, 0.18);
+}
+
+@keyframes chessLoadingKnight {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(-11px, -12px);
   }
 }
 
@@ -36286,10 +36355,6 @@ li,
   );
   background-size: 220% 100%;
   animation: openingFitShimmer 1.8s linear infinite;
-}
-
-.loadingSpinner {
-  box-shadow: 0 0 28px rgba(56, 189, 248, 0.32);
 }
 
 .dashboardHeroScore,

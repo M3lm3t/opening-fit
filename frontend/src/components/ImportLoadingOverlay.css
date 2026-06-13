@@ -152,7 +152,7 @@
 }
 
 .importLoadingActiveMessage {
-  min-height: 114px;
+  min-height: 128px;
   display: grid;
   align-content: center;
   gap: 7px;
@@ -160,6 +160,84 @@
   border-radius: 10px;
   padding: 14px;
   background: rgba(14, 165, 233, 0.08);
+}
+
+.importLoadingChessLoader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 3px;
+}
+
+.importLoadingChessBoard {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(125, 211, 252, 0.34);
+  border-radius: 10px;
+  background: #0f172a;
+  box-shadow: inset 0 0 0 1px rgba(2, 6, 23, 0.55), 0 12px 28px rgba(2, 6, 23, 0.35);
+}
+
+.importLoadingChessBoard span {
+  background: rgba(226, 232, 240, 0.1);
+}
+
+.importLoadingChessBoard span:nth-child(2n),
+.importLoadingChessBoard span:nth-child(5),
+.importLoadingChessBoard span:nth-child(7),
+.importLoadingChessBoard span:nth-child(10),
+.importLoadingChessBoard span:nth-child(12),
+.importLoadingChessBoard span:nth-child(13),
+.importLoadingChessBoard span:nth-child(15) {
+  background: rgba(20, 184, 166, 0.26);
+}
+
+.importLoadingChessBoard::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 2px solid rgba(125, 211, 252, 0.44);
+  border-left-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 8px;
+  animation: importLoadingBoardScan 1.6s ease-in-out infinite;
+}
+
+.importLoadingChessBoard strong {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 950;
+  box-shadow: 0 5px 14px rgba(2, 6, 23, 0.42);
+}
+
+.importLoadingMoveLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.importLoadingMoveLine span {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  padding: 5px 8px;
+  background: rgba(15, 23, 42, 0.62);
+  color: #cbd5e1;
+  font-size: 0.74rem;
+  font-weight: 850;
 }
 
 .importLoadingActiveMessage > span {
@@ -280,6 +358,18 @@
   }
 }
 
+@keyframes importLoadingBoardScan {
+  0%, 100% {
+    transform: translate(-3px, 3px);
+    opacity: 0.58;
+  }
+
+  50% {
+    transform: translate(3px, -3px);
+    opacity: 1;
+  }
+}
+
 :root[data-theme="light"] .importLoadingOverlay,
 .page.light .importLoadingOverlay {
   background: rgba(226, 232, 240, 0.82);
@@ -308,6 +398,23 @@
 :root[data-theme="light"] .importLoadingActiveMessage p,
 .page.light .importLoadingActiveMessage p {
   color: #475569;
+}
+
+:root[data-theme="light"] .importLoadingChessBoard,
+.page.light .importLoadingChessBoard {
+  background: #e2e8f0;
+}
+
+:root[data-theme="light"] .importLoadingChessBoard span,
+.page.light .importLoadingChessBoard span {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+:root[data-theme="light"] .importLoadingMoveLine span,
+.page.light .importLoadingMoveLine span {
+  border-color: rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  color: #334155;
 }
 
 :root[data-theme="light"] .importLoadingSteps > div,
@@ -389,6 +496,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .importLoadingChessBoard::after,
   .importLoadingStepActive .importLoadingStepIcon {
     animation: none;
   }

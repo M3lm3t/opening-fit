@@ -3,13 +3,30 @@ import {
   BarChart3,
   BookOpen,
   Check,
-  CircleDot,
   Lightbulb,
   ListChecks,
   Search,
   Sparkles,
   X,
 } from "lucide-react";
+
+function ChessAnalysisLoader() {
+  return (
+    <div className="importLoadingChessLoader" aria-hidden="true">
+      <div className="importLoadingChessBoard">
+        {Array.from({ length: 16 }).map((_, index) => (
+          <span key={index} />
+        ))}
+        <strong>N</strong>
+      </div>
+      <div className="importLoadingMoveLine">
+        <span>1. e4</span>
+        <span>c6</span>
+        <span>2. d4</span>
+      </div>
+    </div>
+  );
+}
 
 export default function ImportLoadingOverlay({
   platform = "Chess.com",
@@ -113,7 +130,8 @@ export default function ImportLoadingOverlay({
         <div className="importLoadingWorkspace">
           <div className="importLoadingNarrative">
             <div className="importLoadingActiveMessage">
-              <span><CircleDot size={14} /> Now working</span>
+              <ChessAnalysisLoader />
+              <span><Search size={14} /> Analysing games</span>
               <strong>{progressStages[activeStageIndex].title}</strong>
               <p>{friendlyMessages[activeStageIndex]}</p>
             </div>
