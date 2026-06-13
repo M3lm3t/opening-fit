@@ -161,7 +161,7 @@ function ChessLoadingMark() {
       <span />
       <span />
       <span />
-      <strong>N</strong>
+      <img src="/icons/openingfit-icon.svg" alt="" />
     </div>
   );
 }

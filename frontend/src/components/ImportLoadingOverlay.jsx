@@ -17,7 +17,7 @@ function ChessAnalysisLoader() {
         {Array.from({ length: 16 }).map((_, index) => (
           <span key={index} />
         ))}
-        <strong>N</strong>
+        <img src="/icons/openingfit-icon.svg" alt="" />
       </div>
       <div className="importLoadingMoveLine">
         <span>1. e4</span>

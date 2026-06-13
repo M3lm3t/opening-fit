@@ -1623,19 +1623,16 @@ th {
   background: rgba(37, 99, 235, 0.32);
 }
 
-.chessLoadingMark strong {
+.chessLoadingMark img {
   position: absolute;
-  right: 6px;
+  right: 5px;
   bottom: 5px;
-  width: 19px;
-  height: 19px;
-  display: grid;
-  place-items: center;
+  width: 24px;
+  height: 24px;
+  display: block;
   border-radius: 6px;
   background: #f8fafc;
-  color: #0f172a;
-  font-size: 0.8rem;
-  font-weight: 950;
+  object-fit: contain;
   box-shadow: 0 5px 12px rgba(2, 6, 23, 0.34);
   animation: chessLoadingKnight 1.4s ease-in-out infinite;
 }
