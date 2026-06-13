@@ -22,7 +22,7 @@
 
 .importLoadingCard {
   position: relative;
-  width: min(980px, 100%);
+  width: min(680px, 100%);
   max-height: min(92vh, 820px);
   overflow-y: auto;
   border: 1px solid rgba(125, 211, 252, 0.22);
@@ -42,7 +42,6 @@
 .importLoadingHeader,
 .importLoadingIdentity,
 .importLoadingProgressLabel,
-.importLoadingPreviewTop,
 .importLoadingFooter {
   display: flex;
   align-items: center;
@@ -51,7 +50,6 @@
 
 .importLoadingHeader,
 .importLoadingProgressLabel,
-.importLoadingPreviewTop,
 .importLoadingFooter {
   justify-content: space-between;
 }
@@ -69,9 +67,7 @@
 }
 
 .importLoadingEyebrow,
-.importLoadingPreviewTop span,
-.importLoadingActiveMessage > span,
-.importLoadingRecommendationSkeleton > span {
+.importLoadingActiveMessage > span {
   color: #7dd3fc;
   font-size: 0.7rem;
   font-weight: 900;
@@ -138,14 +134,11 @@
 }
 
 .importLoadingWorkspace {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
-  gap: 16px;
+  display: block;
   margin-top: 18px;
 }
 
-.importLoadingNarrative,
-.importLoadingPreview {
+.importLoadingNarrative {
   min-width: 0;
   border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: 12px;
@@ -169,8 +162,7 @@
   background: rgba(14, 165, 233, 0.08);
 }
 
-.importLoadingActiveMessage > span,
-.importLoadingRecommendationSkeleton > span {
+.importLoadingActiveMessage > span {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -256,115 +248,6 @@
   color: #86efac;
 }
 
-.importLoadingPreview {
-  position: relative;
-  display: grid;
-  align-content: start;
-  gap: 12px;
-  overflow: hidden;
-  background:
-    linear-gradient(rgba(56, 189, 248, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 189, 248, 0.025) 1px, transparent 1px),
-    rgba(2, 6, 23, 0.42);
-  background-size: 28px 28px;
-}
-
-.importLoadingPreviewTop {
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-  padding-bottom: 12px;
-}
-
-.importLoadingPreviewTop > div {
-  display: grid;
-  gap: 4px;
-}
-
-.importLoadingPreviewTop strong {
-  font-size: 0.95rem;
-}
-
-.importLoadingLive {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid rgba(34, 197, 94, 0.22);
-  border-radius: 999px;
-  padding: 5px 8px;
-  background: rgba(34, 197, 94, 0.08);
-  color: #86efac !important;
-  white-space: nowrap;
-}
-
-.importLoadingLive i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
-}
-
-.importLoadingScoreSkeleton {
-  display: grid;
-  gap: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  border-radius: 10px;
-  padding: 14px;
-  background: rgba(15, 23, 42, 0.52);
-}
-
-.importLoadingCardSkeletons {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.importLoadingMiniSkeleton {
-  min-width: 0;
-  display: grid;
-  gap: 9px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  border-radius: 10px;
-  padding: 11px;
-  color: #64748b;
-  background: rgba(15, 23, 42, 0.52);
-}
-
-.importLoadingRecommendationSkeleton {
-  display: grid;
-  gap: 9px;
-  border: 1px solid rgba(246, 196, 83, 0.18);
-  border-radius: 10px;
-  padding: 13px;
-  background: rgba(246, 196, 83, 0.06);
-}
-
-.importSkeleton {
-  position: relative;
-  display: block;
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.13);
-}
-
-.importSkeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(226, 232, 240, 0.16), transparent);
-  transform: translateX(-100%);
-  animation: importLoadingShimmer 1.5s ease-in-out infinite;
-}
-
-.importSkeletonShort { width: 32%; }
-.importSkeletonMedium { width: 62%; }
-.importSkeletonLong { width: 88%; }
-.importSkeletonScore {
-  width: 54px;
-  height: 42px;
-  border-radius: 8px;
-}
-
 .importLoadingWakeup {
   margin: 14px 0 0;
   border: 1px solid rgba(246, 196, 83, 0.22);
@@ -390,10 +273,6 @@
   color: #64748b;
 }
 
-@keyframes importLoadingShimmer {
-  to { transform: translateX(100%); }
-}
-
 @keyframes importLoadingIconPulse {
   50% {
     border-color: rgba(56, 189, 248, 0.72);
@@ -415,13 +294,7 @@
 }
 
 :root[data-theme="light"] .importLoadingNarrative,
-:root[data-theme="light"] .importLoadingPreview,
-:root[data-theme="light"] .importLoadingScoreSkeleton,
-:root[data-theme="light"] .importLoadingMiniSkeleton,
-.page.light .importLoadingNarrative,
-.page.light .importLoadingPreview,
-.page.light .importLoadingScoreSkeleton,
-.page.light .importLoadingMiniSkeleton {
+.page.light .importLoadingNarrative {
   border-color: rgba(15, 23, 42, 0.1);
   background-color: #f8fafc;
 }
@@ -447,11 +320,6 @@
   color: #0c4a6e;
 }
 
-:root[data-theme="light"] .importSkeleton,
-.page.light .importSkeleton {
-  background: rgba(15, 23, 42, 0.09);
-}
-
 :root[data-theme="light"] .importLoadingCancel,
 .page.light .importLoadingCancel {
   border-color: rgba(15, 23, 42, 0.12);
@@ -473,8 +341,7 @@
   }
 
   .importLoadingWorkspace {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    margin-top: 14px;
   }
 
   .importLoadingNarrative {
@@ -491,16 +358,6 @@
 
   .importLoadingSteps small {
     white-space: normal;
-  }
-
-  .importLoadingCardSkeletons {
-    grid-template-columns: repeat(3, minmax(84px, 1fr));
-    overflow-x: auto;
-  }
-
-  .importLoadingPreview {
-    min-height: 300px;
-    padding: 11px;
   }
 
   .importLoadingFooter {
@@ -529,13 +386,9 @@
     font-size: 1.08rem;
   }
 
-  .importLoadingPreview {
-    min-height: 260px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .importSkeleton::after,
   .importLoadingStepActive .importLoadingStepIcon {
     animation: none;
   }

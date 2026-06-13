@@ -4,7 +4,6 @@ import {
   BookOpen,
   Check,
   CircleDot,
-  Gamepad2,
   Lightbulb,
   ListChecks,
   Search,
@@ -140,32 +139,6 @@ export default function ImportLoadingOverlay({
                   </div>
                 );
               })}
-            </div>
-          </div>
-
-          <div className="importLoadingPreview" aria-label="Report preview loading">
-            <div className="importLoadingPreviewTop">
-              <div><span>Report preview</span><strong>Your opening profile</strong></div>
-              <span className="importLoadingLive"><i /> Live</span>
-            </div>
-            <div className="importLoadingScoreSkeleton">
-              <span className="importSkeleton importSkeletonShort" />
-              <span className="importSkeleton importSkeletonScore" />
-              <span className="importSkeleton importSkeletonMedium" />
-            </div>
-            <div className="importLoadingCardSkeletons">
-              {[Gamepad2, BookOpen, BarChart3].map((SkeletonIcon, index) => (
-                <div className="importLoadingMiniSkeleton" key={index}>
-                  <SkeletonIcon size={15} />
-                  <span className="importSkeleton importSkeletonMedium" />
-                  <span className="importSkeleton importSkeletonLong" />
-                </div>
-              ))}
-            </div>
-            <div className="importLoadingRecommendationSkeleton">
-              <span><Sparkles size={14} /> Opening recommendation</span>
-              <i className="importSkeleton importSkeletonLong" />
-              <i className="importSkeleton importSkeletonMedium" />
             </div>
           </div>
         </div>
