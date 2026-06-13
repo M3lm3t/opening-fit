@@ -4,6 +4,7 @@ import {
   getSmartPlayerLevelProfile,
   isAdvancedOrStrongerLevel,
 } from "./playerLevelLogic";
+import { getOpeningRecommendationReason } from "./openingCopy";
 
 export const CONFIDENCE_THRESHOLDS = {
   highGames: 25,
@@ -320,8 +321,8 @@ export function getConfidenceDetails(opening) {
       canBeFirm: false,
       evidenceLine:
         context.type === "faced"
-          ? "Not a repertoire verdict: this appears to be an opening you faced, not a line you played from your side."
-          : "Not a firm recommendation: the colour or opening context is unclear.",
+          ? "Opponent-side signal: useful to review, but not a line to add from this sample alone."
+          : "Context unclear: separate it by colour before making a repertoire decision.",
       explanation:
         "Separate the games by colour before using this as a repertoire signal.",
     };
@@ -335,7 +336,7 @@ export function getConfidenceDetails(opening) {
       className: "insufficient",
       canBePrimary: false,
       canBeFirm: false,
-      evidenceLine: "No reliable sample: game count or score is unavailable.",
+      evidenceLine: "Needs more evidence: game count or score is unavailable.",
       explanation: "Import more games before making a repertoire call.",
     };
   }
@@ -348,7 +349,7 @@ export function getConfidenceDetails(opening) {
       className: "high",
       canBePrimary: true,
       canBeFirm: true,
-      evidenceLine: `High confidence: ${games} games, ${score}% score. This opening family repeats enough to trust the pattern.`,
+      evidenceLine: `High confidence: ${games} games, ${score}% score. This pattern repeats enough to trust.`,
       explanation: "25+ games in this opening or family. Good enough for a repertoire decision.",
     };
   }
@@ -361,8 +362,8 @@ export function getConfidenceDetails(opening) {
       className: "medium",
       canBePrimary: true,
       canBeFirm: false,
-      evidenceLine: `Medium confidence: ${games} games, ${score}% score. Useful signal, but confirm before making a major change.`,
-      explanation: "10-24 games. Good for study order, not definitive enough for a full reset.",
+      evidenceLine: `Medium confidence: ${games} games, ${score}% score. Useful, but confirm before a major change.`,
+      explanation: "10-24 games. Good for study order, not a full reset.",
     };
   }
 
@@ -374,7 +375,7 @@ export function getConfidenceDetails(opening) {
       className: "low",
       canBePrimary: false,
       canBeFirm: false,
-      evidenceLine: `Low confidence: ${games} games, ${score}% score. Treat this as a watch item, not a firm verdict.`,
+      evidenceLine: `Low confidence: ${games} games, ${score}% score. Too early for a firm verdict.`,
       explanation: "5-9 games. Watch the line and collect more evidence before changing your repertoire.",
     };
   }
@@ -428,7 +429,7 @@ export function getOpeningSignal(opening) {
       canBeFirm: false,
       evidenceLine: confidence.evidenceLine,
       explanation:
-        "Review how you handled it, but do not add it to your repertoire from this sample alone.",
+        "Review how you handled it, but keep it out of your repertoire decisions for now.",
     };
   }
 
@@ -565,6 +566,28 @@ function verdictText(opening) {
     "recommendation",
     "status",
   ]);
+}
+
+function shouldShowPriorityReason(opening, evidence) {
+  const text = [
+    evidence?.verdict,
+    opening?.fitVerdict,
+    opening?.fit_verdict,
+    opening?.verdict,
+    opening?.recommendation,
+    opening?.status,
+    opening?.upgrade_type,
+    opening?.upgradeType,
+    opening?.recommendationType,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    evidence?.verdict === "Replace" ||
+    evidence?.verdict === "Experiment" ||
+    /avoid|replace|not recommended|don't learn|dont learn|delay|not a priority|side option/.test(text)
+  );
 }
 
 export function getEvidenceVerdict(opening, data) {
@@ -799,6 +822,12 @@ export default function OpeningEvidenceBlock({
   hideNextAction = false,
 }) {
   const evidence = getOpeningEvidence(opening || {}, data, { slot });
+  const priorityReason = shouldShowPriorityReason(opening || {}, evidence)
+    ? getOpeningRecommendationReason(opening || {}, opening || {}, data?.styleProfile || data?.style_profile || data || {}, {
+        activeRepertoireCount: data?.activeRepertoireCount,
+        activeOpenings: data?.activeOpenings || data?.repertoire,
+      })
+    : null;
   const chipClassName = (chip) => {
     const lower = String(chip || "").toLowerCase();
     if (lower.includes("high confidence")) return "confidenceBadge confidenceBadgeHigh";
@@ -830,6 +859,14 @@ export default function OpeningEvidenceBlock({
         <p>
           <strong>Next action:</strong> {evidence.nextAction.replace(/^Next action:\s*/i, "")}
         </p>
+      ) : null}
+
+      {priorityReason ? (
+        <div className="openingPriorityReason">
+          <strong>{priorityReason.label}</strong>
+          <p>{priorityReason.reason}</p>
+          <small>{priorityReason.action}</small>
+        </div>
       ) : null}
     </div>
   );

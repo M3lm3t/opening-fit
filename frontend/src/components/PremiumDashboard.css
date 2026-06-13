@@ -294,8 +294,34 @@
   border-left: 4px solid #f59e0b;
 }
 
+.premiumListItem.priority {
+  border-left: 4px solid #f59e0b;
+}
+
 .premiumListItem.danger {
   border-left: 4px solid #ef4444;
+}
+
+.premiumListItem em {
+  color: #fbbf24;
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.premiumListItem small {
+  color: rgba(226, 232, 240, 0.72);
+  line-height: 1.4;
+}
+
+.page.light .premiumListItem em,
+.light .premiumListItem em {
+  color: #92400e;
+}
+
+.page.light .premiumListItem small,
+.light .premiumListItem small {
+  color: #64748b;
 }
 
 .premiumLineItem {

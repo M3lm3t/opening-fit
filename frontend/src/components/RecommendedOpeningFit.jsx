@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import InfoHint from "./InfoHint";
-import { OPENING_COPY } from "./openingCopy";
+import { OPENING_COPY, getOpeningRecommendationReason } from "./openingCopy";
 import "./RecommendedOpeningFit.css";
 
 const TRAIT_CONFIG = [
@@ -221,25 +221,6 @@ function coachReason(item, traits) {
   return reason || `This is here because your recent games give it enough style overlap to study without rebuilding everything.`;
 }
 
-function delayReason(item, traits) {
-  const name = openingName(item);
-  const learning = String(item.learning_cost || item.learningCost || "medium").toLowerCase();
-  const risk = String(item.risk_level || item.riskLevel || "medium").toLowerCase();
-  const theory = String(item.theory_load || item.theoryLoad || "").toLowerCase();
-  const kingSafety = clamp(traits.king_safety_risk);
-
-  if (/grunfeld|gruenfeld|king's indian/i.test(name) || theory === "high") {
-    return "High theory load and sharp pawn breaks mean one missed detail can decide the game before your plans settle.";
-  }
-  if (risk === "high" && kingSafety >= 55) {
-    return "The positions can open around your king quickly, so delay it until castling and centre control are more automatic.";
-  }
-  if (learning === "high") {
-    return "The learning cost is high enough that it may steal study time from openings already closer to your current strengths.";
-  }
-  return "Keep it on the watchlist, but learn the cleaner fits first so your next games produce clearer feedback.";
-}
-
 function watchOut(item) {
   const watch = asArray(item.watch_out || item.watchOut);
   if (watch.length) return watch.slice(0, 2);
@@ -247,6 +228,25 @@ function watchOut(item) {
   const risk = String(item.risk_level || item.riskLevel || "medium").toLowerCase();
   if (risk === "high") return ["Do not expand the repertoire before you know the common traps and decline lines."];
   return ["Review your first uncomfortable position after move 8 and keep the study version narrow."];
+}
+
+function fitScoreTooltip({ name, fit, confidence, learning, risk, tone }) {
+  const action =
+    tone === "delay"
+      ? "Use this to decide whether the line should stay outside your main repertoire for now."
+      : tone === "existing"
+        ? "Use this to decide whether an opening you already play should stay in the repertoire."
+        : "Use this to decide whether this is worth a small trial before committing it to your repertoire.";
+  return `${name} scores ${fit}/100 for your current game sample. Confidence is ${confidence}, learning cost is ${learning}, and risk is ${risk}. ${action}`;
+}
+
+function styleFingerprintTooltip(fingerprint) {
+  const traits = fingerprint.traits || {};
+  const sample = fingerprint.sampleSize || fingerprint.sample_size || "your current";
+  const tactical = clamp(traits.tactical_tendency);
+  const theory = clamp(traits.theory_tolerance);
+  const kingSafety = clamp(traits.king_safety_risk);
+  return `This explains the recommendation bias. OpeningFit read ${sample} games and saw tactical tendency ${tactical}/100, theory tolerance ${theory}/100, and king-safety risk ${kingSafety}/100. Use it to understand why some openings are suggested even if they are not the trendiest choices.`;
 }
 
 function firstLines(name) {
@@ -258,13 +258,17 @@ function firstLines(name) {
   ];
 }
 
-function RecommendationCard({ item, label, tone, traits }) {
+function RecommendationCard({ item, label, tone, traits, playerProfile, alternatives }) {
   const name = openingName(item);
   const fit = clamp(item.fit_score ?? item.fitScore ?? item.score ?? 60);
   const confidence = titleCase(item.confidence || "medium");
   const learning = titleCase(item.learning_cost || item.learningCost || "medium");
   const risk = titleCase(item.risk_level || item.riskLevel || "medium");
-  const why = tone === "delay" ? delayReason(item, traits) : coachReason(item, traits);
+  const priorityReason =
+    tone === "delay"
+      ? getOpeningRecommendationReason(item, item, playerProfile, { alternatives })
+      : null;
+  const why = priorityReason?.reason || coachReason(item, traits);
   const lines = firstLines(name);
 
   return (
@@ -277,8 +281,8 @@ function RecommendationCard({ item, label, tone, traits }) {
         <strong>
           <span>
             Fit score
-            <InfoHint label="Fit score details">
-              {OPENING_COPY.fitScore}
+            <InfoHint label={`Why ${name} has this fit score`}>
+              {fitScoreTooltip({ name, fit, confidence, learning, risk, tone })}
             </InfoHint>
           </span>
           {fit}
@@ -292,8 +296,9 @@ function RecommendationCard({ item, label, tone, traits }) {
       </div>
 
       <div className="recommendedOpeningWhy">
-        <h4>Why it fits</h4>
+        <h4>{priorityReason ? priorityReason.label : "Why it fits"}</h4>
         <p>{why}</p>
+        {priorityReason ? <small>{priorityReason.action}</small> : null}
       </div>
 
       <div className="recommendedOpeningDetailGrid">
@@ -322,6 +327,8 @@ export default function RecommendedOpeningFit({ data }) {
   const fingerprint = getStyleFingerprint(data);
   const traits = fingerprint.traits || {};
   const recommendations = useMemo(() => chooseRecommendations(data || {}), [data]);
+  const playerProfile = data?.styleProfile || data?.style_profile || fingerprint;
+  const alternatives = [...recommendations.existing, ...recommendations.newIdeas];
   const hasAny =
     recommendations.existing.length || recommendations.newIdeas.length || recommendations.delay.length;
 
@@ -334,8 +341,8 @@ export default function RecommendedOpeningFit({ data }) {
           <p className="eyebrow">OpeningFit recommendations</p>
           <div className="recommendedOpeningFitTitleRow">
             <h2 id="recommended-opening-fit-title">{styleHeadline(fingerprint)}</h2>
-            <InfoHint label="Style fingerprint details">
-              {OPENING_COPY.styleFingerprint}
+            <InfoHint label="How OpeningFit chose these openings">
+              {styleFingerprintTooltip(fingerprint)} {OPENING_COPY.styleFingerprint}
             </InfoHint>
           </div>
           <p>{styleCoachCopy(fingerprint)}</p>
@@ -364,8 +371,8 @@ export default function RecommendedOpeningFit({ data }) {
       {recommendations.existing.length ? (
         <div className="recommendedOpeningGroup">
           <div className="recommendedOpeningGroupHeader">
-            <span>Best openings you already play</span>
-            <h3>Keep the openings your games already support.</h3>
+            <span>Current strengths</span>
+            <h3>Keep the openings with the clearest evidence.</h3>
           </div>
           <div className="recommendedOpeningCardGrid">
             {recommendations.existing.map((item) => (
@@ -384,8 +391,8 @@ export default function RecommendedOpeningFit({ data }) {
       {recommendations.newIdeas.length ? (
         <div className="recommendedOpeningGroup">
           <div className="recommendedOpeningGroupHeader">
-            <span>New openings to consider</span>
-            <h3>Try these only if they solve a real repertoire gap.</h3>
+            <span>Try next</span>
+            <h3>Only add these if they solve a real repertoire gap.</h3>
           </div>
           <div className="recommendedOpeningCardGrid">
             {recommendations.newIdeas.map((item) => (
@@ -404,8 +411,8 @@ export default function RecommendedOpeningFit({ data }) {
       {recommendations.delay.length ? (
         <div className="recommendedOpeningGroup">
           <div className="recommendedOpeningGroupHeader">
-            <span>Openings to avoid or delay</span>
-            <h3>Delay these until the core lines are steadier.</h3>
+            <span>Side options</span>
+            <h3>Keep these outside the main repertoire for now.</h3>
           </div>
           <div className="recommendedOpeningCardGrid">
             {recommendations.delay.map((item) => (
@@ -415,6 +422,8 @@ export default function RecommendedOpeningFit({ data }) {
                 label={`Delay for now${item.slotLabel ? `: ${item.slotLabel}` : ""}`}
                 tone="delay"
                 traits={traits}
+                playerProfile={playerProfile}
+                alternatives={alternatives}
               />
             ))}
           </div>

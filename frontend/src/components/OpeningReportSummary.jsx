@@ -6,7 +6,7 @@ import {
   isMasterLevel,
 } from "./playerLevelLogic";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
-import RecommendationReasonHint from "./RecommendationReasonHint";
+import { getOpeningRecommendationReason } from "./openingCopy";
 
 function normaliseOpeningName(opening) {
   if (!opening) return "Unknown opening";
@@ -441,16 +441,6 @@ function getVerdictClass(verdict) {
   return "reportVerdictWatch";
 }
 
-function friendlyRecommendationLabel(label) {
-  const lower = String(label || "").toLowerCase();
-  if (lower.includes("do not learn") || lower.includes("do not study")) return "Not a priority yet";
-  if (lower.includes("avoid")) return "Improve first";
-  if (lower.includes("bad fit")) return "Style mismatch for now";
-  if (lower.includes("replace")) return "Improve first";
-  if (lower.includes("low priority")) return "Lower priority";
-  return label;
-}
-
 function getStyleLabel(data) {
   const label =
     data?.styleProfile?.label ||
@@ -715,13 +705,13 @@ export default function OpeningReportSummary({ data, username, platform }) {
         />
 
         <ReportCard
-          title={avoid?.verdict === "Replace" || avoid?.verdict === "Needs review" ? (strongProfile ? "Check carefully" : "Replace candidate") : "Wait before judging"}
+          title={avoid ? "Not a priority yet" : "Wait before judging"}
           opening={avoid}
-          fallbackTitle={strongProfile ? "Trend to inspect" : "Risky opening"}
+          fallbackTitle={strongProfile ? "Trend to inspect" : "Side option"}
           fallbackText={
             strongProfile
               ? "This will flag openings where recent results deserve review before any repertoire decision."
-              : "This will flag openings that are repeatedly costing you games or producing poor positions."
+              : "This will flag openings that need more evidence before becoming main repertoire choices."
           }
           type="avoid"
           data={data}
@@ -939,19 +929,30 @@ export default function OpeningReportSummary({ data, username, platform }) {
 
       {doNotStudyYet ? (
         <div className="openingReportDoNotStudy">
-          <strong>Lower study priorities</strong>
+          <strong>Do not spend time on this yet</strong>
           <span>{doNotStudyYet.summary}</span>
           <ul>
             {doNotStudyYet.items.map((item) => (
-              <li key={`${item.title}-${item.opening || item.reason || ""}`}>
-                <span>
-                  {friendlyRecommendationLabel(item.label || item.title)}
-                  <RecommendationReasonHint item={item} label={item.label || item.title} />
-                </span>
-                <em>{friendlyRecommendationLabel(item.reason || "lower priority")}</em>
-                <small>{item.why || item.whyItMatters || item.why_it_matters}</small>
-                <small>{item.redirect || item.recommendedAlternative || item.recommended_alternative}</small>
-              </li>
+              (() => {
+                const recommendationReason = getOpeningRecommendationReason(
+                  item.opening ? item : { ...item, name: item.title },
+                  item,
+                  data?.styleProfile || data?.style_profile || data || {},
+                  {
+                    averageOpeningScore: data?.averageOpeningScore || data?.average_opening_score,
+                    alternatives: cleaned.map((opening) => opening.raw || opening),
+                    activeOpenings: cleaned.slice(0, 4),
+                  }
+                );
+                return (
+                  <li key={`${item.title}-${item.opening || item.reason || ""}`}>
+                    <span>{item.title}</span>
+                    <em>{recommendationReason.label}</em>
+                    <small>{recommendationReason.reason}</small>
+                    <small>{recommendationReason.action}</small>
+                  </li>
+                );
+              })()
             ))}
           </ul>
         </div>
@@ -1079,19 +1080,28 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type, data })
   const games = opening?.games || 0;
   const winRate = opening?.winRate || 0;
   const verdict = opening?.verdict || title;
-  const displayVerdict = friendlyRecommendationLabel(verdict);
   const confidenceLabel = opening?.confidenceLabel || getOpeningConfidence(opening?.raw || opening || {});
   const comparisonText = opening?.comparisonText || "Average comparison unavailable.";
   const reason = opening?.reason || fallbackText;
+  const recommendationReason =
+    type === "avoid" && opening
+      ? getOpeningRecommendationReason(opening.raw || opening, opening, data?.styleProfile || data?.style_profile || data || {}, {
+          averageOpeningScore: data?.averageOpeningScore || data?.average_opening_score,
+          alternatives: [
+            ...(Array.isArray(data?.topOpenings) ? data.topOpenings : []),
+            ...(Array.isArray(data?.top_openings) ? data.top_openings : []),
+            ...(Array.isArray(data?.openingStats) ? data.openingStats : []),
+            ...(Array.isArray(data?.opening_stats) ? data.opening_stats : []),
+          ],
+          activeOpenings: data?.activeOpenings || data?.repertoire,
+        })
+      : null;
 
   return (
     <article className={`openingReportCard openingReportCard-${type}`}>
       <div className="openingReportCardTop">
         <span>{title}</span>
-        <em className={getVerdictClass(verdict)}>
-          {displayVerdict}
-          <RecommendationReasonHint item={opening?.raw || opening || {}} label={displayVerdict} />
-        </em>
+        <em className={getVerdictClass(verdict)}>{verdict}</em>
       </div>
 
       <h3>{contextualName}</h3>
@@ -1147,6 +1157,13 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type, data })
             data={data}
             compact
           />
+          {recommendationReason ? (
+            <div className="openingPriorityReason openingPriorityReasonCard">
+              <strong>{recommendationReason.label}</strong>
+              <p>{recommendationReason.reason}</p>
+              <small>{recommendationReason.action}</small>
+            </div>
+          ) : null}
         </>
       ) : (
         <p>{fallbackText}</p>

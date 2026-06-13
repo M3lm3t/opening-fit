@@ -1,7 +1,6 @@
 import { useState } from "react";
 import InfoHint from "./InfoHint";
-import RecommendationReasonHint from "./RecommendationReasonHint";
-import { OPENING_COPY, sampleSizeCopy, weakLineIssueCopy } from "./openingCopy";
+import { OPENING_COPY, getOpeningRecommendationReason, sampleSizeCopy, weakLineIssueCopy } from "./openingCopy";
 import "./OpeningInsights.css";
 
 const PATTERN_COPY = {
@@ -94,7 +93,7 @@ function statusForOpening(item) {
   const value = classification(item);
   if (value === "strong_keep") return "Keep";
   if (value === "good_opening_bad_execution" || value === "needs_training_line") return "Train";
-  if (value === "weak_fit") return "Avoid for now";
+  if (value === "weak_fit") return "Side option";
   return "Review";
 }
 
@@ -152,21 +151,65 @@ function openingReason(item) {
 }
 
 function recommendationTooltip(item) {
-  return `Fit score ${fitScore(item) || "unknown"}. ${sampleSizeCopy(gamesPlayed(item))} Check first: ${watchOut(item)}`;
+  const score = fitScore(item) || "unknown";
+  const sample = sampleSizeCopy(gamesPlayed(item));
+  const risk = watchOut(item);
+  return `Why this card matters: the fit score is ${score}, based on this report's results and opening pattern. ${sample} Use it to choose the next study target, then check this risk before adding theory: ${risk}`;
 }
 
-function RecommendationCard({ title, item, tone }) {
+function openingDetailsTooltip(opening, details) {
+  const status = statusForOpening(opening);
+  const sample = sampleSizeCopy(gamesPlayed(opening));
+  const nextStep =
+    status === "Keep"
+      ? "Keep it in the repertoire, but still review the common reply that causes the most discomfort."
+      : status === "Train"
+        ? "Train the repeated branch first; the opening may be usable if execution improves."
+        : status === "Side option"
+          ? "Do not expand this line until the repeated problem position is understood."
+          : "Treat this as a review item, not a final verdict.";
+  return `${details || "OpeningFit found a repeatable signal in this opening."} ${sample} ${nextStep}`;
+}
+
+function winRateTooltip(opening) {
+  const games = gamesPlayed(opening);
+  const rate = winRate(opening);
+  return `Win rate is ${rate}% across ${games || "no confirmed"} analysed game${games === 1 ? "" : "s"}. Use it only with the sample size: a high score from a tiny sample is weaker than a modest score from many repeated games.`;
+}
+
+function confidenceTooltip(opening) {
+  const label = confidence(opening);
+  const games = gamesPlayed(opening);
+  return `${label} confidence means OpeningFit ${games >= 10 ? "has enough repeated games to treat this as a useful pattern" : "is still working from a small sample"}. Use high confidence for repertoire decisions; use low confidence as a watchlist item.`;
+}
+
+function RecommendationCard({ title, item, tone, data, alternatives = [] }) {
   if (!item) return null;
+  const priorityReason =
+    tone === "delay"
+      ? getOpeningRecommendationReason(item, item, data?.styleProfile || data?.style_profile || data || {}, {
+          averageOpeningScore: data?.averageOpeningScore || data?.average_opening_score,
+          alternatives,
+          activeOpenings: alternatives,
+        })
+      : null;
 
   return (
     <article className={`openingInsightRecommendation ${tone}`}>
       <div className="openingInsightCardTitle">
         <span>{title}</span>
-        <InfoHint label={`${title} details`}>{recommendationTooltip(item)}</InfoHint>
-        <RecommendationReasonHint item={item} label={title} />
+        <InfoHint label={`Why ${title.toLowerCase()} was suggested`}>{recommendationTooltip(item)}</InfoHint>
       </div>
       <h3>{getName(item)}</h3>
-      <p>{firstSentence(whyItFits(item), "This is the clearest next repertoire choice from the current sample.")}</p>
+      {priorityReason ? (
+        <>
+          <strong className="openingInsightPriorityLabel">{priorityReason.label}</strong>
+          <p>{priorityReason.reason}</p>
+          <small>{priorityReason.action}</small>
+        </>
+      ) : (
+        <p>{firstSentence(whyItFits(item), "This is the clearest next repertoire choice from the current sample.")}</p>
+      )}
     </article>
   );
 }
@@ -186,7 +229,7 @@ function WeakLineCard({ line, onPractice }) {
       <div>
         <div className="openingInsightCardTitle">
           <span>Weak line</span>
-          <InfoHint label="Weak line details">
+          <InfoHint label="Why this weak line matters">
             {OPENING_COPY.weakLine}
           </InfoHint>
         </div>
@@ -220,22 +263,22 @@ function CompactOpeningCard({ opening }) {
       <div className="openingInsightCardTitle">
         <span>{status}</span>
         {details ? (
-          <InfoHint label={`${getName(opening)} details`}>{details}</InfoHint>
+          <InfoHint label={`How to use the ${getName(opening)} signal`}>{openingDetailsTooltip(opening, details)}</InfoHint>
         ) : null}
       </div>
       <h4>{getName(opening)}</h4>
       <div className="openingInsightMeta">
         <b>
           {winRate(opening)}% win
-          <InfoHint label="Win rate details">
-            {sampleSizeCopy(gamesPlayed(opening))}
+          <InfoHint label={`How reliable the ${getName(opening)} win rate is`}>
+            {winRateTooltip(opening)}
           </InfoHint>
         </b>
         <b>{gamesPlayed(opening)} games</b>
         <b>
           Confidence: {confidence(opening)}
-          <InfoHint label="Confidence details">
-            Confidence tells you how much weight to put on this opening signal before changing your repertoire.
+          <InfoHint label={`How much weight to give ${getName(opening)}`}>
+            {confidenceTooltip(opening)}
           </InfoHint>
         </b>
       </div>
@@ -278,6 +321,9 @@ export default function OpeningInsights({ data, onPractice }) {
   const weakLines = getWeakLines(data);
   const visibleWeakLines = showAllWeakLines ? weakLines : weakLines.slice(0, 3);
   const recItems = recommendationItems(recommendations);
+  const recommendationAlternatives = recItems
+    .filter((entry) => entry.tone !== "delay")
+    .map((entry) => entry.item);
   const bestOpening = keepOpenings[0] || openingRows[0] || null;
   const weakestLine = weakLines[0] || null;
   const mainDiagnosis = mainPhase ? PHASE_COPY[mainPhase] : coachNotes[0] || "Not enough evidence for a strong diagnosis yet.";
@@ -403,7 +449,14 @@ export default function OpeningInsights({ data, onPractice }) {
           </div>
           <div className="openingInsightRecommendationGrid">
             {recItems.map((entry) => (
-              <RecommendationCard key={`${entry.key}-${getName(entry.item)}`} title={entry.title} tone={entry.tone} item={entry.item} />
+              <RecommendationCard
+                key={`${entry.key}-${getName(entry.item)}`}
+                title={entry.title}
+                tone={entry.tone}
+                item={entry.item}
+                data={data}
+                alternatives={recommendationAlternatives}
+              />
             ))}
           </div>
         </div>

@@ -1,3 +1,5 @@
+import { getOpeningRecommendationReason } from "./openingCopy";
+
 function getName(opening) {
   return opening?.name || opening?.opening || opening?.label || "Unknown opening";
 }
@@ -84,6 +86,9 @@ export default function OpeningSnapshot({ openings = [], onSelectOpening }) {
     weakest && getName(weakest) !== getName(strongest)
       ? weakest
       : improveOpenings[0] || mostPlayed;
+  const focusReason = focusOpening && isAvoid(focusOpening)
+    ? getOpeningRecommendationReason(focusOpening, focusOpening, {}, { alternatives: keepOpenings })
+    : null;
 
   return (
     <section className="card openingSnapshotCard">
@@ -145,7 +150,7 @@ export default function OpeningSnapshot({ openings = [], onSelectOpening }) {
         <div className="snapshotAdvice">
           <strong>Focus first:</strong>{" "}
           {isAvoid(focusOpening)
-            ? `review or replace ${getName(focusOpening)} because your current Opening Fit verdict says ${getVerdict(focusOpening)}.`
+            ? `${getName(focusOpening)} is not a priority yet. ${focusReason.reason} ${focusReason.action}`
             : `review ${getName(focusOpening)} next because it is one of your most useful openings to improve.`}
         </div>
       ) : null}

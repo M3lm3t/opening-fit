@@ -5,6 +5,7 @@ import {
   getSmartPlayerLevelProfile,
   isAdvancedOrStrongerLevel,
 } from "./playerLevelLogic";
+import { getOpeningRecommendationReason } from "./openingCopy";
 import { buildApiUrl } from "../lib/apiBase";
 
 function asArray(value) {
@@ -591,12 +592,23 @@ export default function PremiumDashboard({
 
           <div className="premiumList">
             {repertoire.avoid.length ? (
-              repertoire.avoid.map((row) => (
-                <div key={`avoid-${row.openingName}`} className="premiumListItem danger">
-                  <strong>{row.openingName}</strong>
-                  <span>{row.games} games · {row.winRate}% score</span>
-                </div>
-              ))
+              repertoire.avoid.map((row) => {
+                const priorityReason = getOpeningRecommendationReason(row, row, data?.styleProfile || data?.style_profile || data || {}, {
+                  averageOpeningScore: data?.averageOpeningScore || data?.average_opening_score,
+                  alternatives: repertoire.keep,
+                  activeOpenings: [...repertoire.keep, ...repertoire.improve],
+                });
+
+                return (
+                  <div key={`avoid-${row.openingName}`} className="premiumListItem priority">
+                    <strong>{row.openingName}</strong>
+                    <span>{row.games} games · {row.winRate}% score</span>
+                    <em>{priorityReason.label}</em>
+                    <small>{priorityReason.reason}</small>
+                    <small>{priorityReason.action}</small>
+                  </div>
+                );
+              })
             ) : (
               <p className="premiumEmpty">No obvious avoid list yet.</p>
             )}

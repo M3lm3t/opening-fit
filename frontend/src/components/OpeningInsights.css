@@ -148,6 +148,14 @@
   font-size: 0.93rem;
 }
 
+.openingInsightPriorityLabel {
+  display: block;
+  margin: 0 0 6px;
+  color: #fbbf24;
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
 .openingInsightCardTitle {
   display: flex;
   align-items: center;
@@ -305,6 +313,11 @@
 .page.light .openingInsightTags span,
 [data-theme="light"] .openingInsightTags span {
   color: rgba(15, 23, 42, 0.82);
+}
+
+.page.light .openingInsightPriorityLabel,
+[data-theme="light"] .openingInsightPriorityLabel {
+  color: #92400e;
 }
 
 @media (max-width: 820px) {
