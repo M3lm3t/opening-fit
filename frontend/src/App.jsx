@@ -3773,6 +3773,7 @@ function applyReportFilters(data, filters) {
 }
 
 function buildReportHistorySummary(data, fitData = null) {
+  const playerProfile = data?.playerProfile || data?.player_profile || null;
   const openings = Array.isArray(fitData?.scoredOpenings) && fitData.scoredOpenings.length
     ? fitData.scoredOpenings
     : Array.isArray(data?.top_openings)
@@ -3810,7 +3811,11 @@ function buildReportHistorySummary(data, fitData = null) {
 
   return {
     reportDate: new Date().toISOString(),
-    username: data?.username || data?.playerName || data?.player_name || "Unknown player",
+    username: playerProfile?.username || data?.username || data?.playerName || data?.player_name || "Unknown player",
+    displayName: playerProfile?.displayName || playerProfile?.display_name || data?.displayName || data?.display_name || null,
+    display_name: playerProfile?.display_name || playerProfile?.displayName || data?.display_name || data?.displayName || null,
+    playerProfile: playerProfile,
+    player_profile: playerProfile,
     platform: data?.platform || data?.importPlatform || "unknown",
     importMonths: data?.monthsChecked || data?.months_checked || data?.importMonths || "Recent",
     analysisTimeFormat: data?.analysisTimeFormat || data?.analysis_time_format || "custom",
@@ -6211,7 +6216,8 @@ function formatProfileDate(value) {
 }
 
 function getProfilePlayerName(data, fallback = "") {
-  return getImportedAccountUsername(data, fallback) || "OpeningFit player";
+  const importedUsername = getImportedAccountUsername(data, fallback) || fallback;
+  return getPlayerIdentity(data, importedUsername).displayName || importedUsername || "OpeningFit player";
 }
 
 function getProfilePlatformLabel(data, fallback = "") {
@@ -6219,6 +6225,92 @@ function getProfilePlatformLabel(data, fallback = "") {
   if (raw.includes("lichess")) return "Lichess";
   if (raw.includes("chesscom") || raw.includes("chess.com")) return "Chess.com";
   return "Connected chess account";
+}
+
+function getPlayerProfileData(data = {}) {
+  return (
+    data?.playerProfile ||
+    data?.player_profile ||
+    data?.summary?.playerProfile ||
+    data?.summary?.player_profile ||
+    data?.report?.playerProfile ||
+    data?.report?.player_profile ||
+    null
+  );
+}
+
+function normalizePlayerName(value = "") {
+  return String(value || "").trim().replace(/^@+/, "").toLowerCase();
+}
+
+function getPlayerInitials(value = "") {
+  const words = String(value || "OF")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const initials = words.length > 1
+    ? `${words[0][0]}${words[1][0]}`
+    : (words[0] || "OF").slice(0, 2);
+  return initials.toUpperCase();
+}
+
+function getPlayerIdentity(data = {}, fallback = "") {
+  const playerProfile = getPlayerProfileData(data);
+  const username =
+    playerProfile?.username ||
+    data?.username ||
+    data?.playerName ||
+    data?.player_name ||
+    data?.requestedUsername ||
+    data?.requested_username ||
+    fallback ||
+    "OpeningFit player";
+  const displayName =
+    playerProfile?.displayName ||
+    playerProfile?.display_name ||
+    data?.displayName ||
+    data?.display_name ||
+    username;
+  const platform = playerProfile?.platform || data?.platform || data?.importPlatform || data?.import_platform || "";
+  const avatarUrl = playerProfile?.avatarUrl || playerProfile?.avatar_url || "";
+  const profileUrl = playerProfile?.profileUrl || playerProfile?.profile_url || data?.playerUrl || data?.player_url || "";
+
+  return {
+    username,
+    displayName,
+    platform,
+    avatarUrl,
+    profileUrl,
+    hasDistinctDisplayName: normalizePlayerName(displayName) !== normalizePlayerName(username),
+  };
+}
+
+function getPlayerIdentitySecondary(identity, platformLabel) {
+  if (identity?.hasDistinctDisplayName && identity?.username) {
+    return `@${identity.username} · ${platformLabel}`;
+  }
+
+  return platformLabel;
+}
+
+function PlayerIdentity({ identity, platformLabel, compact = false }) {
+  const secondary = getPlayerIdentitySecondary(identity, platformLabel);
+
+  return (
+    <div className={`playerIdentity ${compact ? "playerIdentityCompact" : ""}`}>
+      <div className="playerIdentityAvatar" aria-hidden="true">
+        {identity?.avatarUrl ? (
+          <img src={identity.avatarUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+        ) : (
+          <span>{getPlayerInitials(identity?.displayName || identity?.username)}</span>
+        )}
+      </div>
+      <div className="playerIdentityText">
+        <strong>{identity?.displayName || identity?.username || "OpeningFit player"}</strong>
+        <small>{secondary}</small>
+      </div>
+    </div>
+  );
 }
 
 function getProfileImportDate(data) {
@@ -6387,6 +6479,14 @@ function buildProfileInsights(data, fitData) {
 function normalizeProfileHistoryItem(item) {
   const summary = item?.summary || item?.snapshot || {};
   const report = item?.report || item?.data || null;
+  const playerProfile =
+    summary.playerProfile ||
+    summary.player_profile ||
+    item?.playerProfile ||
+    item?.player_profile ||
+    report?.playerProfile ||
+    report?.player_profile ||
+    null;
   const createdAt =
     item?.created_at ||
     item?.createdAt ||
@@ -6401,12 +6501,14 @@ function normalizeProfileHistoryItem(item) {
     createdAt,
     platform: summary.platform || item?.platform || report?.platform || report?.importPlatform || "chess",
     username:
+      playerProfile?.username ||
       summary.username ||
       item?.username ||
       item?.playerName ||
       report?.username ||
       report?.playerName ||
       "OpeningFit player",
+    playerProfile,
     games:
       summary.games ||
       item?.games ||
@@ -6445,7 +6547,7 @@ function ProfileSummaryCard({
   onAnalyse,
   onOpenReport,
 }) {
-  const playerName = getProfilePlayerName(data, username);
+  const playerIdentity = getPlayerIdentity(data, username);
   const platformLabel = getProfilePlatformLabel(data, platform);
   const planLabel = getProfilePlanLabel({ isPremium, isPremiumPreview, accountUser });
   const analysedAt = getProfileImportDate(data);
@@ -6475,8 +6577,7 @@ function ProfileSummaryCard({
       <div className="profileHeroMetaGrid">
         <article>
           <span>Connected chess account</span>
-          <strong>{platformLabel}</strong>
-          <small>{playerName}</small>
+          <PlayerIdentity identity={playerIdentity} platformLabel={platformLabel} />
         </article>
         <article>
           <span>Last analysed</span>
@@ -6557,7 +6658,7 @@ function ChessProfileCard({ data, fitData }) {
 }
 
 function LatestReportCard({ data, fitData, username, platform, onOpenReport }) {
-  const playerName = getProfilePlayerName(data, username);
+  const playerIdentity = getPlayerIdentity(data, username);
   const platformLabel = getProfilePlatformLabel(data, platform);
   const insights = buildProfileInsights(data, fitData);
 
@@ -6575,8 +6676,7 @@ function LatestReportCard({ data, fitData, username, platform, onOpenReport }) {
         </div>
         <div>
           <span>Account</span>
-          <strong>{platformLabel}</strong>
-          <small>{playerName}</small>
+          <PlayerIdentity identity={playerIdentity} platformLabel={platformLabel} compact />
         </div>
         <div>
           <span>Games</span>
@@ -6644,25 +6744,35 @@ function SavedReportsProfileCard({ onLoadReport, onCreateReport }) {
 
       {reports.length ? (
         <div className="profileSavedReportList">
-          {reports.map((item) => (
-            <article className="profileSavedReportRow" key={item.id}>
-              <div>
-                <strong>{formatProfileDate(item.createdAt)}</strong>
-                <span>{getProfilePlatformLabel({ platform: item.platform })} · {item.username}</span>
-              </div>
-              <div>
-                <span>Games analysed</span>
-                <strong>{item.games}</strong>
-              </div>
-              <div>
-                <span>Import window</span>
-                <strong>{item.months}</strong>
-              </div>
-              <button type="button" className="secondaryButton" onClick={() => viewReport(item)} disabled={!item.data}>
-                View
-              </button>
-            </article>
-          ))}
+          {reports.map((item) => {
+            const identity = getPlayerIdentity(item, item.username);
+            const platformLabel = getProfilePlatformLabel({ platform: item.platform });
+
+            return (
+              <article className="profileSavedReportRow" key={item.id}>
+                <div>
+                  <strong>{formatProfileDate(item.createdAt)}</strong>
+                  <span>
+                    {identity.displayName}
+                    {identity.hasDistinctDisplayName ? ` · @${identity.username}` : ""}
+                    {" · "}
+                    {platformLabel}
+                  </span>
+                </div>
+                <div>
+                  <span>Games analysed</span>
+                  <strong>{item.games}</strong>
+                </div>
+                <div>
+                  <span>Import window</span>
+                  <strong>{item.months}</strong>
+                </div>
+                <button type="button" className="secondaryButton" onClick={() => viewReport(item)} disabled={!item.data}>
+                  View
+                </button>
+              </article>
+            );
+          })}
         </div>
       ) : (
         <div className="profileEmptyReports">

@@ -1214,6 +1214,74 @@ def validate_player(username: str) -> Dict[str, Any]:
     return safe_get(url)
 
 
+def clean_display_name(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+
+    cleaned = value.strip()
+    if not cleaned or len(cleaned) > 80:
+        return ""
+
+    return cleaned
+
+
+def normalize_player_profile(platform: str, raw_profile: Any, fallback_username: str) -> Dict[str, Any]:
+    raw = raw_profile if isinstance(raw_profile, dict) else {}
+    fallback = str(fallback_username or "").strip()
+
+    if platform == "chess.com":
+        username = str(raw.get("username") or fallback).strip() or fallback
+        display_name = clean_display_name(raw.get("name")) or username or fallback or "Chess.com player"
+        profile_url = raw.get("url") or (f"https://www.chess.com/member/{username}" if username else None)
+        avatar_url = raw.get("avatar") or None
+
+        return {
+            "platform": "chess.com",
+            "username": username,
+            "displayName": display_name,
+            "display_name": display_name,
+            "avatarUrl": avatar_url,
+            "avatar_url": avatar_url,
+            "profileUrl": profile_url,
+            "profile_url": profile_url,
+            "title": raw.get("title") or None,
+            "country": raw.get("country") or None,
+        }
+
+    if platform == "lichess":
+        profile = raw.get("profile") if isinstance(raw.get("profile"), dict) else {}
+        username = str(raw.get("username") or raw.get("id") or fallback).strip() or fallback
+        display_name = clean_display_name(profile.get("realName")) or username or fallback or "Lichess player"
+        profile_url = f"https://lichess.org/@/{username}" if username else None
+
+        return {
+            "platform": "lichess",
+            "username": username,
+            "displayName": display_name,
+            "display_name": display_name,
+            "avatarUrl": None,
+            "avatar_url": None,
+            "profileUrl": profile_url,
+            "profile_url": profile_url,
+            "title": raw.get("title") or None,
+            "country": profile.get("country") or None,
+        }
+
+    username = fallback or "OpeningFit player"
+    return {
+        "platform": platform or "unknown",
+        "username": username,
+        "displayName": username,
+        "display_name": username,
+        "avatarUrl": None,
+        "avatar_url": None,
+        "profileUrl": None,
+        "profile_url": None,
+        "title": None,
+        "country": None,
+    }
+
+
 def fetch_archives(username: str) -> List[str]:
     url = f"https://api.chess.com/pub/player/{username.lower()}/games/archives"
     data = safe_get(url)
@@ -7631,18 +7699,24 @@ def build_not_enough_games_import_result(
     skipped_reason_counts: Optional[Dict[str, int]] = None,
     message: str,
     player_url: Optional[str] = None,
+    player_profile: Optional[Dict[str, Any]] = None,
     archives_checked: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     skipped_reason_counts = skipped_reason_counts or {key: 0 for key in SKIPPED_REASON_LABELS}
     platform_label = "Chess.com" if platform == "chess.com" else "Lichess"
+    player_profile = player_profile or normalize_player_profile(platform, {}, username)
 
     return {
         "ok": False,
         "code": "not_enough_games",
         "message": message,
-        "username": username,
-        "player_url": player_url,
-        "playerUrl": player_url,
+        "username": player_profile.get("username") or username,
+        "display_name": player_profile.get("display_name") or player_profile.get("displayName"),
+        "displayName": player_profile.get("displayName") or player_profile.get("display_name"),
+        "player_profile": player_profile,
+        "playerProfile": player_profile,
+        "player_url": player_profile.get("profile_url") or player_url,
+        "playerUrl": player_profile.get("profileUrl") or player_url,
         "platform": platform,
         "importPlatform": platform,
         "total_games": 0,
@@ -7714,6 +7788,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     )
 
     player = validate_player(username)
+    player_profile = normalize_player_profile("chess.com", player, username)
     archives = fetch_archives(username)
     selected_archives = archives[-months:] if len(archives) >= months else archives
 
@@ -7728,6 +7803,7 @@ def import_chesscom_logic(username: str, months: int = 3):
             games_found=0,
             message=f"This Chess.com profile exists, but no public game archives were found for '{username}'.",
             player_url=player.get("url"),
+            player_profile=player_profile,
             archives_checked=[],
         )
 
@@ -7760,6 +7836,7 @@ def import_chesscom_logic(username: str, months: int = 3):
             games_found=0,
             message=f"No recent public Chess.com games were found for '{username}' in the selected archives.",
             player_url=player.get("url"),
+            player_profile=player_profile,
             archives_checked=archive_breakdown,
         )
 
@@ -7777,6 +7854,7 @@ def import_chesscom_logic(username: str, months: int = 3):
                 "or missing enough opening data to build a report."
             ),
             player_url=player.get("url"),
+            player_profile=player_profile,
             archives_checked=archive_breakdown,
         )
 
@@ -8092,9 +8170,13 @@ def import_chesscom_logic(username: str, months: int = 3):
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
     result = {
-        "username": player.get("username", username),
-        "player_url": player.get("url"),
-        "playerUrl": player.get("url"),
+        "username": player_profile.get("username") or player.get("username", username),
+        "display_name": player_profile.get("display_name"),
+        "displayName": player_profile.get("displayName"),
+        "player_profile": player_profile,
+        "playerProfile": player_profile,
+        "player_url": player_profile.get("profile_url") or player.get("url"),
+        "playerUrl": player_profile.get("profileUrl") or player.get("url"),
         "platform": "chess.com",
         "importPlatform": "chess.com",
         "title": player.get("title"),
@@ -8297,9 +8379,11 @@ def build_lichess_analysis(
     months: int,
     games_found: Optional[int] = None,
     skipped_reason_counts: Optional[Dict[str, int]] = None,
+    player_profile: Optional[Dict[str, Any]] = None,
 ):
     games_found = games_found if games_found is not None else len(games)
     skipped_reason_counts = skipped_reason_counts or {key: 0 for key in SKIPPED_REASON_LABELS}
+    player_profile = player_profile or normalize_player_profile("lichess", {}, username)
     opening_counter = Counter()
     white_opening_counter = Counter()
     black_opening_counter = Counter()
@@ -8666,9 +8750,13 @@ def build_lichess_analysis(
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
     result = {
-        "username": username,
-        "player_url": f"https://lichess.org/@/{username}",
-        "playerUrl": f"https://lichess.org/@/{username}",
+        "username": player_profile.get("username") or username,
+        "display_name": player_profile.get("display_name"),
+        "displayName": player_profile.get("displayName"),
+        "player_profile": player_profile,
+        "playerProfile": player_profile,
+        "player_url": player_profile.get("profile_url") or f"https://lichess.org/@/{username}",
+        "playerUrl": player_profile.get("profileUrl") or f"https://lichess.org/@/{username}",
         "platform": "lichess",
         "importPlatform": "lichess",
         "rating": current_rating,
@@ -8866,11 +8954,22 @@ def import_lichess_logic(username: str, months: int = 3):
             detail=f"Lichess profile lookup failed: {user_response.text[:300]}",
         )
 
+    try:
+        user_profile = user_response.json()
+    except ValueError:
+        raise HTTPException(
+            status_code=502,
+            detail="Lichess returned invalid profile data. Try again later.",
+        )
+
+    player_profile = normalize_player_profile("lichess", user_profile, username)
+    resolved_username = player_profile.get("username") or username
+
     max_games = 300 if months >= 12 else 100
     since_date = datetime.now(timezone.utc) - timedelta(days=months * 31)
     since_ms = int(since_date.timestamp() * 1000)
 
-    url = f"https://lichess.org/api/games/user/{username}"
+    url = f"https://lichess.org/api/games/user/{resolved_username}"
 
     params = {
         "max": max_games,
@@ -8923,12 +9022,13 @@ def import_lichess_logic(username: str, months: int = 3):
 
     if not games:
         return build_not_enough_games_import_result(
-            username=username,
+            username=resolved_username,
             platform="lichess",
             months=months,
             games_found=0,
             message="This Lichess profile exists, but no recent blitz, rapid, or classical public games were found.",
-            player_url=f"https://lichess.org/@/{username}",
+            player_url=f"https://lichess.org/@/{resolved_username}",
+            player_profile=player_profile,
             archives_checked=[
                 {
                     "archive": f"lichess-last-{months}-months",
@@ -8942,7 +9042,7 @@ def import_lichess_logic(username: str, months: int = 3):
 
     if not analysed_games:
         return build_not_enough_games_import_result(
-            username=username,
+            username=resolved_username,
             platform="lichess",
             months=months,
             games_found=len(games),
@@ -8951,7 +9051,8 @@ def import_lichess_logic(username: str, months: int = 3):
                 "Lichess games were found, but they were too short, unsupported, "
                 "or missing enough opening data to build a report."
             ),
-            player_url=f"https://lichess.org/@/{username}",
+            player_url=f"https://lichess.org/@/{resolved_username}",
+            player_profile=player_profile,
             archives_checked=[
                 {
                     "archive": f"lichess-last-{months}-months",
@@ -8962,11 +9063,12 @@ def import_lichess_logic(username: str, months: int = 3):
         )
 
     return build_lichess_analysis(
-        username,
+        resolved_username,
         analysed_games,
         months,
         games_found=len(games),
         skipped_reason_counts=skipped_reason_counts,
+        player_profile=player_profile,
     )
 
 

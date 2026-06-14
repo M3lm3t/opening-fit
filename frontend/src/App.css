@@ -38936,6 +38936,66 @@ svg {
   line-height: 1.35;
 }
 
+.playerIdentity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin-top: 8px;
+}
+
+.playerIdentityCompact {
+  margin-top: 6px;
+}
+
+.playerIdentityAvatar {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 1px solid var(--of-border-final, rgba(148, 163, 184, 0.2));
+  background: rgba(14, 165, 233, 0.14);
+  display: grid;
+  place-items: center;
+}
+
+.playerIdentityCompact .playerIdentityAvatar {
+  width: 32px;
+  height: 32px;
+  flex-basis: 32px;
+}
+
+.playerIdentityAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.playerIdentityAvatar span {
+  color: var(--foreground);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.playerIdentityText {
+  min-width: 0;
+}
+
+.profileHeroMetaGrid .playerIdentityText strong,
+.latestReportMeta .playerIdentityText strong {
+  margin-top: 0;
+  overflow-wrap: anywhere;
+}
+
+.profileHeroMetaGrid .playerIdentityText small,
+.latestReportMeta .playerIdentityText small {
+  overflow-wrap: anywhere;
+}
+
 .profileDashboardGrid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -45470,5 +45530,170 @@ textarea,
 @media (max-width: 640px) {
   .appStoreReadinessFooter {
     margin-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Feedback polish: keep report/profile cards contained and calm across themes. */
+.playerIdentity,
+.playerIdentityText,
+.profileHeroMetaGrid article,
+.latestReportMeta > div,
+.profileSavedReportRow > div,
+.currentReportSummaryMain,
+.reportDashboardStat,
+.dashboardInsightCard,
+.reportCoachCard,
+.commandCentreOpeningGrid article,
+.nextBestMoveCard,
+.openingRecommendationCard,
+.recommendedOpeningCard {
+  min-width: 0;
+}
+
+.playerIdentityText strong,
+.playerIdentityText small,
+.profileSavedReportRow span,
+.currentReportSummaryMain h1,
+.currentReportMetaInline span,
+.commandCentreMeta span,
+.reportDashboardStat strong,
+.reportDashboardStat small,
+.reportOpeningChip,
+.dashboardInsightCard strong,
+.dashboardInsightCard p,
+.reportCoachCard strong,
+.reportCoachCard p,
+.commandCentreOpeningGrid li,
+.nextBestMoveCard h2,
+.nextBestMoveCard p,
+.openingRecommendationTop strong,
+.openingCoachSummary,
+.openingRecommendationAction strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.playerIdentityText {
+  flex: 1 1 auto;
+}
+
+.profileSavedReportRow {
+  overflow: hidden;
+}
+
+.recommendedOpeningCard.keep,
+.openingRecommendationCard.status-keep {
+  border-color: color-mix(in srgb, var(--ds-primary-2) 34%, var(--ds-border)) !important;
+}
+
+.openingRecommendationCard.status-keep {
+  background:
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--ds-primary-2) 12%, transparent), transparent 16rem),
+    linear-gradient(145deg, color-mix(in srgb, var(--ds-primary-2) 7%, transparent), color-mix(in srgb, var(--ds-text) 2%, transparent)),
+    var(--ds-surface-muted) !important;
+}
+
+.openingCardIcon-keep,
+.openingStatusBadge-keep {
+  border-color: color-mix(in srgb, var(--ds-primary-2) 38%, var(--ds-border)) !important;
+  background: color-mix(in srgb, var(--ds-primary-2) 12%, transparent) !important;
+  color: color-mix(in srgb, var(--ds-primary-2) 70%, var(--ds-text)) !important;
+}
+
+.page.light .openingRecommendationCard.status-keep,
+[data-theme="light"] .openingRecommendationCard.status-keep {
+  border-color: rgba(14, 116, 144, 0.2) !important;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(14, 165, 233, 0.08), transparent 15rem),
+    linear-gradient(145deg, rgba(14, 165, 233, 0.06), rgba(255, 255, 255, 0.84)),
+    #ffffff !important;
+}
+
+.page.light .openingCardIcon-keep,
+.page.light .openingStatusBadge-keep,
+[data-theme="light"] .openingCardIcon-keep,
+[data-theme="light"] .openingStatusBadge-keep {
+  border-color: rgba(14, 116, 144, 0.2) !important;
+  background: rgba(14, 165, 233, 0.08) !important;
+  color: #075985 !important;
+}
+
+@media (max-width: 760px) {
+  #app-results,
+  .finalReportFlow {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  .finalReportFlow {
+    gap: 12px !important;
+  }
+
+  .currentReportSummaryCard {
+    min-height: 0 !important;
+    background-size: auto, auto, 28px 28px, 28px 28px, auto !important;
+  }
+
+  .currentReportSummaryCard::before {
+    opacity: 0.18;
+  }
+
+  .commandCentreHero {
+    align-items: stretch !important;
+  }
+
+  .currentReportSummaryMain {
+    min-height: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .commandCentreScore {
+    position: static !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    grid-template-columns: 1fr auto auto;
+    gap: 6px 10px;
+    align-items: center;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .commandCentreScore strong {
+    font-size: clamp(2rem, 13vw, 2.8rem) !important;
+  }
+
+  .commandCentreScore em {
+    grid-column: 1 / -1;
+  }
+
+  .currentReportMetaInline,
+  .commandCentreMeta {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .reportOpeningChipRail {
+    flex-wrap: wrap !important;
+    overflow-x: visible !important;
+  }
+
+  .reportOpeningChip {
+    flex: 1 1 100%;
+    max-width: 100% !important;
+    white-space: normal;
+  }
+
+  .profileHeroDashboard,
+  .profileDashboardCard,
+  .latestProfileReportCard,
+  .savedReportsProfileCard,
+  .currentReportSummaryCard,
+  .reportDashboardStat,
+  .dashboardInsightCard,
+  .reportCoachCard,
+  .openingRecommendationCard,
+  .recommendedOpeningCard {
+    overflow: hidden;
   }
 }

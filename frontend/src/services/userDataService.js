@@ -700,6 +700,16 @@ export async function saveReport(userId, report, summary = {}) {
     report.analysisTimeFormat ||
     report.analysis_time_format ||
     "custom";
+  const playerProfile =
+    summary.playerProfile ||
+    summary.player_profile ||
+    report.playerProfile ||
+    report.player_profile ||
+    null;
+  const enrichedSummary = {
+    ...summary,
+    ...(playerProfile ? { playerProfile, player_profile: playerProfile } : {}),
+  };
   const reportKey = [
     String(platform).toLowerCase(),
     String(username).toLowerCase(),
@@ -714,7 +724,7 @@ export async function saveReport(userId, report, summary = {}) {
     user_id: userId,
     username,
     platform,
-    summary,
+    summary: enrichedSummary,
     report,
     report_key: reportKey,
     updated_at: new Date().toISOString(),
