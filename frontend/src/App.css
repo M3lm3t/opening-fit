@@ -45158,11 +45158,14 @@ textarea,
 
   .appPrimaryTabs,
   .appPrimaryGetStarted,
-  .appPrimaryMenuToggle,
   .appPrimaryMobilePanel,
   .openingAppMenu,
   .themeToggle {
     display: none !important;
+  }
+
+  .appPrimaryMenuToggle {
+    display: grid !important;
   }
 
   .accountSyncStatusBar {
@@ -45190,28 +45193,11 @@ textarea,
     max-width: var(--app-shell-width-mobile) !important;
     gap: 14px !important;
     padding-top: 12px !important;
-    padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: 28px !important;
   }
 
   .mobileBottomNav {
-    position: fixed !important;
-    left: max(10px, env(safe-area-inset-left)) !important;
-    right: max(10px, env(safe-area-inset-right)) !important;
-    bottom: max(8px, env(safe-area-inset-bottom)) !important;
-    z-index: 940 !important;
-    display: grid !important;
-    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-    gap: 4px !important;
-    min-height: 66px !important;
-    padding: 6px !important;
-    border: 1px solid rgba(148, 163, 184, 0.22) !important;
-    border-radius: 22px !important;
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
-      rgba(5, 7, 13, 0.90) !important;
-    box-shadow: 0 -18px 48px rgba(2, 6, 23, 0.38) !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    display: none !important;
   }
 
   .mobileBottomNav button {
@@ -45370,14 +45356,7 @@ textarea,
 
 @media (max-width: 640px) {
   .mobileBottomNav {
-    position: fixed !important;
-    left: max(10px, env(safe-area-inset-left)) !important;
-    right: max(10px, env(safe-area-inset-right)) !important;
-    bottom: max(8px, env(safe-area-inset-bottom)) !important;
-    z-index: 940 !important;
-    display: grid !important;
-    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-    gap: 4px !important;
+    display: none !important;
   }
 
   .reportCommandBar {
@@ -45406,7 +45385,7 @@ textarea,
 
   .finalReportFlow,
   .appReportPage .appShell {
-    padding-bottom: calc(124px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: 28px !important;
   }
 }
 
@@ -45695,5 +45674,404 @@ textarea,
   .openingRecommendationCard,
   .recommendedOpeningCard {
     overflow: hidden;
+  }
+}
+
+/* Professional product polish pass: shared, intentional surfaces after legacy CSS. */
+:root {
+  --of-space-1: 6px;
+  --of-space-2: 10px;
+  --of-space-3: 14px;
+  --of-space-4: 18px;
+  --of-space-5: 24px;
+  --of-radius-card: 14px;
+  --of-radius-panel: 18px;
+  --of-border-subtle: color-mix(in srgb, var(--ds-text, #e5eefb) 14%, transparent);
+  --of-shadow-card: 0 14px 34px rgba(2, 6, 23, 0.14);
+}
+
+.appShell,
+.finalReportFlow,
+.profileDashboard,
+.premiumStandalonePage,
+.preAnalysisSupport,
+.postImportStatusStack,
+.appStoreReadinessFooter {
+  max-width: min(1180px, calc(100vw - 36px));
+}
+
+.appShell > *,
+.finalReportFlow > *,
+.profileDashboard > *,
+.premiumStandalonePage > *,
+.preAnalysisSupport > *,
+.postImportStatusStack > * {
+  min-width: 0;
+}
+
+.card,
+.panel,
+.heroCard,
+.analyseImportHero,
+.currentReportSummaryCard,
+.profileHeroDashboard,
+.profileDashboardCard,
+.latestProfileReportCard,
+.savedReportsProfileCard,
+.premiumUpgradeHero,
+.premiumHeroCard,
+.premiumPriceCard,
+.appLegalPanel,
+.accountPanel,
+.accountPanel--screen,
+.openingRecommendationCard,
+.recommendedOpeningCard,
+.trainingPlanItem,
+.todayTrainingCard,
+.openingPracticeShell,
+.gameReplayShell {
+  border-radius: var(--of-radius-panel) !important;
+  border-color: var(--of-border-subtle) !important;
+  box-shadow: var(--of-shadow-card) !important;
+}
+
+.page.light .heroCard,
+.page.light .card,
+.page.light .panel,
+.page.light .currentReportSummaryCard,
+.page.light .profileHeroDashboard,
+.page.light .profileDashboardCard,
+.page.light .latestProfileReportCard,
+.page.light .savedReportsProfileCard,
+.page.light .trainingPlanItem,
+.page.light .todayTrainingCard,
+.page.light .openingPracticeShell,
+.page.light .gameReplayShell,
+[data-theme="light"] .heroCard,
+[data-theme="light"] .card,
+[data-theme="light"] .panel,
+[data-theme="light"] .currentReportSummaryCard,
+[data-theme="light"] .profileHeroDashboard,
+[data-theme="light"] .profileDashboardCard,
+[data-theme="light"] .latestProfileReportCard,
+[data-theme="light"] .savedReportsProfileCard,
+[data-theme="light"] .trainingPlanItem,
+[data-theme="light"] .todayTrainingCard,
+[data-theme="light"] .openingPracticeShell,
+[data-theme="light"] .gameReplayShell {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92)),
+    #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0f172a !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08) !important;
+}
+
+.page.light .heroCard::before,
+.page.light .heroCard::after,
+.page.light .currentReportSummaryCard::before,
+[data-theme="light"] .heroCard::before,
+[data-theme="light"] .heroCard::after,
+[data-theme="light"] .currentReportSummaryCard::before {
+  opacity: 0.12 !important;
+}
+
+.page.light .heroCard p,
+.page.light .card p,
+.page.light .panel p,
+.page.light .currentReportSummaryCard p,
+.page.light .trainingPlanItem p,
+.page.light .appLegalPanel p,
+[data-theme="light"] .heroCard p,
+[data-theme="light"] .card p,
+[data-theme="light"] .panel p,
+[data-theme="light"] .currentReportSummaryCard p,
+[data-theme="light"] .trainingPlanItem p,
+[data-theme="light"] .appLegalPanel p {
+  color: #475569 !important;
+}
+
+.page.light .heroCard h1,
+.page.light .heroCard h2,
+.page.light .heroCard h3,
+.page.light .card h1,
+.page.light .card h2,
+.page.light .card h3,
+.page.light .currentReportSummaryCard h1,
+.page.light .currentReportSummaryCard h2,
+[data-theme="light"] .heroCard h1,
+[data-theme="light"] .heroCard h2,
+[data-theme="light"] .heroCard h3,
+[data-theme="light"] .card h1,
+[data-theme="light"] .card h2,
+[data-theme="light"] .card h3,
+[data-theme="light"] .currentReportSummaryCard h1,
+[data-theme="light"] .currentReportSummaryCard h2 {
+  color: #0f172a !important;
+}
+
+.primaryBtn,
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.appPrimaryTab,
+.appPrimaryMobileLink,
+.appPrimaryMobileTheme,
+.appLegalActions a,
+.appLegalActions button {
+  min-height: 44px;
+}
+
+.input,
+input,
+select,
+textarea,
+button,
+a,
+.reportOpeningChip,
+.currentReportMetaInline span,
+.commandCentreMeta span,
+.accountSyncCompactText,
+.accountSyncDetails,
+.appLegalPanel,
+.appLegalActions,
+.recommendedOpeningCard,
+.openingRecommendationCard,
+.trainingPlanItem,
+.cleanReplayBoard {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.appPrimaryMobilePanelOpen {
+  display: grid !important;
+}
+
+.accountSyncStatusBar--loggedOut,
+.analyseImportHero .analyseLoginButton {
+  display: none !important;
+}
+
+.appPrimaryMobilePanel {
+  width: min(420px, calc(100vw - 20px)) !important;
+  margin: 8px auto 0 !important;
+  padding: 12px !important;
+  border: 1px solid var(--of-border-subtle) !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--ds-text, #e5eefb) 8%, transparent), color-mix(in srgb, var(--ds-text, #e5eefb) 2%, transparent)),
+    var(--ds-surface-strong, #111827) !important;
+  box-shadow: var(--of-shadow-card) !important;
+}
+
+.page.light .appPrimaryMobilePanel,
+[data-theme="light"] .appPrimaryMobilePanel {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+.appPrimaryMobileLinks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.appPrimaryMobileLink,
+.appPrimaryMobileTheme {
+  border-radius: 12px !important;
+  text-align: center;
+}
+
+.appPrimaryMobileLinkActive {
+  border-color: color-mix(in srgb, var(--ds-primary-2, #38bdf8) 40%, var(--of-border-subtle)) !important;
+}
+
+.cleanReplayBoard {
+  border-radius: 3px !important;
+  border-color: rgba(15, 23, 42, 0.22) !important;
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.18) !important;
+}
+
+.cleanReplayPiece {
+  width: 92%;
+  height: 92%;
+  will-change: transform;
+}
+
+.cleanReplayPieceImage {
+  width: 92%;
+  height: 92%;
+  image-rendering: auto;
+}
+
+.cleanReplayDragImage {
+  width: clamp(46px, 12vw, 68px) !important;
+  height: clamp(46px, 12vw, 68px) !important;
+}
+
+.productEmptyState,
+.appEmptySection.productEmptyState {
+  color: var(--ds-text, #f8fafc) !important;
+}
+
+.productEmptyState::before,
+.productEmptyState::after,
+.appEmptySection.productEmptyState::before,
+.appEmptySection.productEmptyState::after {
+  opacity: 0.18 !important;
+}
+
+.productEmptyState h1,
+.productEmptyState h2,
+.productEmptyState h3,
+.appEmptySection.productEmptyState h1,
+.appEmptySection.productEmptyState h2,
+.appEmptySection.productEmptyState h3 {
+  color: var(--ds-text, #f8fafc) !important;
+}
+
+.productEmptyState p,
+.appEmptySection.productEmptyState p {
+  color: color-mix(in srgb, var(--ds-text, #f8fafc) 72%, transparent) !important;
+}
+
+.productEmptyState .eyebrow,
+.appEmptySection.productEmptyState .eyebrow {
+  color: color-mix(in srgb, var(--ds-text, #f8fafc) 82%, var(--ds-primary-2, #38bdf8)) !important;
+}
+
+.productEmptyState + .appStoreReadinessFooter,
+.appShell:has(.productEmptyState) + .appStoreReadinessFooter {
+  margin-top: 16px !important;
+}
+
+.appShell:has(.productEmptyState) {
+  gap: 16px !important;
+}
+
+.page.light .productEmptyState,
+.page.light .appEmptySection.productEmptyState,
+[data-theme="light"] .productEmptyState,
+[data-theme="light"] .appEmptySection.productEmptyState {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92)),
+    #ffffff !important;
+  color: #0f172a !important;
+}
+
+.page.light .productEmptyState h1,
+.page.light .productEmptyState h2,
+.page.light .productEmptyState h3,
+.page.light .appEmptySection.productEmptyState h1,
+.page.light .appEmptySection.productEmptyState h2,
+.page.light .appEmptySection.productEmptyState h3,
+[data-theme="light"] .productEmptyState h1,
+[data-theme="light"] .productEmptyState h2,
+[data-theme="light"] .productEmptyState h3,
+[data-theme="light"] .appEmptySection.productEmptyState h1,
+[data-theme="light"] .appEmptySection.productEmptyState h2,
+[data-theme="light"] .appEmptySection.productEmptyState h3 {
+  color: #0f172a !important;
+}
+
+.page.light .productEmptyState p,
+.page.light .appEmptySection.productEmptyState p,
+[data-theme="light"] .productEmptyState p,
+[data-theme="light"] .appEmptySection.productEmptyState p {
+  color: #475569 !important;
+}
+
+@media (min-width: 1200px) {
+  .appShell,
+  .finalReportFlow,
+  .profileDashboard,
+  .premiumStandalonePage,
+  .preAnalysisSupport,
+  .postImportStatusStack,
+  .appStoreReadinessFooter {
+    max-width: 1120px;
+  }
+}
+
+@media (max-width: 760px) {
+  body,
+  .page,
+  .appReportPage {
+    padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .appShell,
+  .page .appShell,
+  .publicLandingPage .appShell,
+  .appReportPage .appShell,
+  .appStoreReadinessFooter {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+
+  .appPrimaryNav {
+    padding: 8px 10px 0 !important;
+  }
+
+  .appPrimaryNavInner {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
+  .appPrimaryBrand {
+    min-width: 0;
+  }
+
+  .appPrimaryBrand span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .accountSyncStatusBar {
+    display: none !important;
+  }
+
+  .appStoreReadinessFooter {
+    margin-top: 18px !important;
+    margin-bottom: 24px !important;
+  }
+
+  .appLegalPanel {
+    padding: 14px !important;
+  }
+
+  .appLegalActions {
+    display: grid !important;
+    grid-template-columns: 1fr;
+  }
+
+  .heroCard,
+  .analyseImportHero,
+  .currentReportSummaryCard,
+  .profileHeroDashboard,
+  .profileDashboardCard,
+  .premiumUpgradeHero,
+  .premiumHeroCard,
+  .premiumPriceCard {
+    border-radius: 16px !important;
+  }
+
+  .cleanReplayBoard {
+    border-radius: 2px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .appPrimaryMobileLinks {
+    grid-template-columns: 1fr;
+  }
+
+  .primaryBtn,
+  .secondaryBtn,
+  .secondaryButton,
+  .ghostButton,
+  .appLegalActions a,
+  .appLegalActions button {
+    width: 100%;
   }
 }
