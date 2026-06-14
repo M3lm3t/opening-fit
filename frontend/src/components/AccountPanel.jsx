@@ -26,8 +26,9 @@ const DELETE_REQUEST_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20acco
 function getAuthRedirectTo() {
   const origin = window.location.origin;
   const savedPath = window.localStorage.getItem(AUTH_RETURN_PATH_KEY);
-  const currentPath = `${window.location.pathname || "/"}${window.location.search || ""}${window.location.hash || ""}`;
-  const returnPath = savedPath || (currentPath === "/login" ? "/" : currentPath);
+  const currentRoutePath = window.location.pathname || "/";
+  const currentPath = `${currentRoutePath}${window.location.search || ""}${window.location.hash || ""}`;
+  const returnPath = savedPath || (currentRoutePath === "/login" ? "/account" : currentPath);
   const safePath = returnPath.startsWith("/") && !returnPath.startsWith("//") ? returnPath : "/";
 
   return `${origin}${safePath}`;
