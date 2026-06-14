@@ -8,6 +8,106 @@ const debugSupabase =
   (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debugSupabase"));
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+export const SUPABASE_AUTH_STORAGE_KEY = "openingfit:supabase.auth";
+
+function getSupabaseProjectRef() {
+  if (!supabaseUrl) return "";
+
+  try {
+    return new URL(supabaseUrl).hostname.split(".")[0] || "";
+  } catch {
+    return "";
+  }
+}
+
+function getLegacySupabaseAuthKeys() {
+  if (typeof window === "undefined" || !window.localStorage) return [];
+
+  const projectRef = getSupabaseProjectRef();
+  const keys = new Set([
+    projectRef ? `sb-${projectRef}-auth-token` : "",
+    "supabase.auth.token",
+  ]);
+
+  try {
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (/^sb-.+-auth-token$/.test(String(key || ""))) {
+        keys.add(key);
+      }
+    }
+  } catch {
+    // Browser storage can be unavailable in private contexts.
+  }
+
+  keys.delete("");
+  keys.delete(SUPABASE_AUTH_STORAGE_KEY);
+
+  return [...keys];
+}
+
+function getBrowserStorage() {
+  if (typeof window === "undefined" || !window.localStorage) return null;
+  return window.localStorage;
+}
+
+const authStorage = {
+  getItem(key) {
+    const storage = getBrowserStorage();
+    if (!storage) return null;
+
+    try {
+      const currentValue = storage.getItem(key);
+      if (currentValue) return currentValue;
+
+      if (key !== SUPABASE_AUTH_STORAGE_KEY) return null;
+
+      for (const legacyKey of getLegacySupabaseAuthKeys()) {
+        const legacyValue = storage.getItem(legacyKey);
+        if (legacyValue) {
+          storage.setItem(SUPABASE_AUTH_STORAGE_KEY, legacyValue);
+          return legacyValue;
+        }
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  },
+  setItem(key, value) {
+    const storage = getBrowserStorage();
+    if (!storage) return;
+
+    try {
+      storage.setItem(key, value);
+
+      if (key === SUPABASE_AUTH_STORAGE_KEY) {
+        getLegacySupabaseAuthKeys().forEach((legacyKey) => {
+          storage.removeItem(legacyKey);
+        });
+      }
+    } catch {
+      // Browser storage can be unavailable in private contexts.
+    }
+  },
+  removeItem(key) {
+    const storage = getBrowserStorage();
+    if (!storage) return;
+
+    try {
+      storage.removeItem(key);
+
+      if (key === SUPABASE_AUTH_STORAGE_KEY) {
+        getLegacySupabaseAuthKeys().forEach((legacyKey) => {
+          storage.removeItem(legacyKey);
+        });
+      }
+    } catch {
+      // Browser storage can be unavailable in private contexts.
+    }
+  },
+};
 
 if (exposedServiceRoleKey) {
   throw new Error(
@@ -48,7 +148,8 @@ export const supabase = isSupabaseConfigured
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        storageKey: "openingfit:supabase.auth",
+        storageKey: SUPABASE_AUTH_STORAGE_KEY,
+        storage: authStorage,
       },
     })
   : null;
