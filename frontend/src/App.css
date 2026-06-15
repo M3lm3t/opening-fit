@@ -39927,6 +39927,12 @@ svg {
   background: transparent;
 }
 
+.profileAccountCard .accountTextButton {
+  width: fit-content;
+  justify-self: center;
+  background: transparent;
+}
+
 .profileFounderCard {
   display: grid;
   align-content: space-between;

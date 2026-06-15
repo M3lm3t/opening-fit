@@ -116,7 +116,7 @@
 .accountAuthStack,
 .accountProfileStack {
   display: grid;
-  gap: 12px;
+  gap: 13px;
 }
 
 .accountAuthStack p,
@@ -326,7 +326,8 @@
 .googleSignInBtn,
 .emailSignInBtn,
 .saveAccountBtn,
-.signOutBtn {
+.signOutBtn,
+.accountTextButton {
   border: 0;
   border-radius: 16px;
   padding: 12px 14px;
@@ -351,6 +352,20 @@
   color: #0f172a;
 }
 
+.accountTextButton {
+  min-height: 40px;
+  justify-self: center;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: transparent;
+  color: #7dd3fc;
+}
+
+.accountTextButton:hover {
+  background: rgba(125, 211, 252, 0.1);
+}
+
 .page.light .emailSignInBtn,
 .page.light .saveAccountBtn,
 .light .emailSignInBtn,
@@ -367,7 +382,8 @@
 .googleSignInBtn:disabled,
 .emailSignInBtn:disabled,
 .saveAccountBtn:disabled,
-.signOutBtn:disabled {
+.signOutBtn:disabled,
+.accountTextButton:disabled {
   opacity: 0.82;
   cursor: progress;
 }
@@ -456,13 +472,18 @@
 }
 
 .page.light .accountAuthSwitchHint button,
+.page.light .accountTextButton,
 .light .accountAuthSwitchHint button {
+  color: #1d4ed8;
+}
+
+.light .accountTextButton {
   color: #1d4ed8;
 }
 
 .accountLabel {
   display: grid;
-  gap: 7px;
+  gap: 6px;
   font-weight: 800;
   font-size: 0.9rem;
 }
@@ -471,7 +492,7 @@
   width: 100%;
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 14px;
-  padding: 12px 13px;
+  padding: 11px 12px;
   background: rgba(15, 23, 42, 0.58);
   color: #f8fafc;
   outline: none;
@@ -1515,4 +1536,41 @@
   .profileAccountCard .accountActions {
     grid-template-columns: 1fr;
   }
+}
+.accountAuthIntro {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 16px;
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.accountAuthIntro span {
+  color: #7dd3fc;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.accountAuthIntro strong {
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.accountAuthIntro p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.page.light .accountAuthIntro,
+.light .accountAuthIntro {
+  background: rgba(14, 165, 233, 0.07);
+  border-color: rgba(14, 165, 233, 0.14);
+}
+
+.page.light .accountAuthIntro span,
+.light .accountAuthIntro span {
+  color: #0369a1;
 }

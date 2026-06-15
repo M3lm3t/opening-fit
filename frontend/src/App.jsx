@@ -7531,6 +7531,8 @@ function OpeningFitProfileDashboard({
     "";
   const connectedPlatform = getProfilePlatformLabel({ platform }, platform);
   const connectedHandle = formatProfileUsername(connectedUsername);
+  const currentPath = getCurrentPath();
+  const shouldOpenAccountDetails = currentPath === "/login" || currentPath === "/account";
 
   if (!data) {
     return (
@@ -7558,7 +7560,7 @@ function OpeningFitProfileDashboard({
           <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
         </ProfileDisclosure>
 
-        <details className="profileSecondaryDetails">
+        <details className="profileSecondaryDetails" open={shouldOpenAccountDetails || undefined}>
           <summary>
             <span>Account and membership</span>
             <strong>{accountUser?.email ? "Signed in" : "Login, sync, and Founder Pass"}</strong>
@@ -7681,7 +7683,7 @@ function OpeningFitProfileDashboard({
         onViewRepertoire={onOpenReport}
       />
 
-      <details className="profileSecondaryDetails">
+      <details className="profileSecondaryDetails" open={shouldOpenAccountDetails || undefined}>
         <summary>
           <span>More profile settings</span>
           <strong>Account, membership, and milestones</strong>

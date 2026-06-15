@@ -16,22 +16,14 @@ const EMPTY_PROFILE = {
   chesscom_username: "",
   lichess_username: "",
 };
-const AUTH_RETURN_PATH_KEY = "openingFit:authReturnPath";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 6;
 const SUPPORT_EMAIL = "m3lm3t@gmail.com";
 const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`;
 const DELETE_REQUEST_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20account%20deletion%20request`;
 
-function getAuthRedirectTo() {
-  const origin = window.location.origin;
-  const savedPath = window.localStorage.getItem(AUTH_RETURN_PATH_KEY);
-  const currentRoutePath = window.location.pathname || "/";
-  const currentPath = `${currentRoutePath}${window.location.search || ""}${window.location.hash || ""}`;
-  const returnPath = savedPath || (currentRoutePath === "/login" ? "/account" : currentPath);
-  const safePath = returnPath.startsWith("/") && !returnPath.startsWith("//") ? returnPath : "/";
-
-  return `${origin}${safePath}`;
+function getStableAuthRedirectTo() {
+  return `${window.location.origin}/account`;
 }
 
 const PRE_LOGIN_TEASERS = [
@@ -124,6 +116,7 @@ export default function AccountPanel({ variant = "floating",
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const authBusy = saving || accountLoading || !authHydrated;
 
   useEffect(() => {
     if (isScreen) setIsOpen(true);
@@ -174,7 +167,10 @@ export default function AccountPanel({ variant = "floating",
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: getAuthRedirectTo(),
+          redirectTo: getStableAuthRedirectTo(),
+          queryParams: {
+            prompt: "select_account",
+          },
         },
       });
 
@@ -214,7 +210,7 @@ export default function AccountPanel({ variant = "floating",
       const { data, error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          emailRedirectTo: getAuthRedirectTo(),
+          emailRedirectTo: getStableAuthRedirectTo(),
           shouldCreateUser: true,
         },
       });
@@ -297,7 +293,7 @@ export default function AccountPanel({ variant = "floating",
               password,
               displayName: cleanDisplayName || cleanUsername || cleanEmail,
               username: cleanUsername,
-              redirectTo: getAuthRedirectTo(),
+              redirectTo: getStableAuthRedirectTo(),
             })
           : await signInWithEmailPassword({ email: cleanEmail, password });
 
@@ -551,17 +547,13 @@ export default function AccountPanel({ variant = "floating",
 
           {isSupabaseConfigured && !user ? (
             <div className="accountAuthStack">
-              <div className="premiumStatusCard accountLoginStatusCard">
-                <span>Account status</span>
-                <strong>{accountLoading ? "Checking Supabase session..." : "Logged out"}</strong>
-                <small>
-                  Analyse public games instantly. Create a free account to save reports and sync across devices.
-                </small>
+              <div className="accountAuthIntro">
+                <span>Free account</span>
+                <strong>{accountLoading ? "Checking your session..." : "Save reports across devices"}</strong>
+                <p>
+                  Use Google for the fastest sign-in, or create an email account with a password.
+                </p>
               </div>
-
-              <p>
-                Sign in to save reports, connect your Chess.com or Lichess username, and keep your profile available across devices.
-              </p>
 
               {!isScreen ? <PreLoginCuriosityHooks /> : null}
 
@@ -569,7 +561,7 @@ export default function AccountPanel({ variant = "floating",
                 className="googleSignInBtn"
                 type="button"
                 onClick={signInWithGoogle}
-                disabled={saving || accountLoading || profileLoading}
+                disabled={authBusy}
               >
                 Continue with Google
               </button>
@@ -671,7 +663,7 @@ export default function AccountPanel({ variant = "floating",
                 className="emailSignInBtn"
                 type="button"
                 onClick={handleEmailPasswordAuth}
-                disabled={saving || accountLoading || profileLoading}
+                disabled={authBusy}
               >
                 {saving
                   ? authMode === "signup"
@@ -695,21 +687,12 @@ export default function AccountPanel({ variant = "floating",
                 </button>
               </p>
 
-              <div className="accountDivider">
-                <span>or</span>
-              </div>
-
-              <label className="accountLabel">
-                Email magic link
-                <input
-                  type="email"
-                  value={email}
-                  placeholder="you@example.com"
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </label>
-
-              <button className="emailSignInBtn" type="button" onClick={sendMagicLink}>
+              <button
+                className="accountTextButton"
+                type="button"
+                onClick={sendMagicLink}
+                disabled={authBusy}
+              >
                 Send login link
               </button>
             </div>
