@@ -7518,19 +7518,26 @@ function OpeningFitProfileDashboard({
         </button>
       </section>
 
-        <div className="profileDashboardGrid profileAccountPremiumGrid">
-          <section className="profileDashboardCard profileAccountCard" id="profile-account">
-            <span className="profileLoginAnchor" id="login" aria-hidden="true" />
-            <div className="profileCardHeader">
-              <p className="eyebrow">Account security</p>
-              <h2>Account settings</h2>
-              <p>Manage login, connected usernames, and saved account data.</p>
-            </div>
-            <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
-          </section>
+        <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
 
-          <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
-        </div>
+        <details className="profileSecondaryDetails">
+          <summary>
+            <span>Account and membership</span>
+            <strong>{accountUser?.email ? "Signed in" : "Login, sync, and Founder Pass"}</strong>
+          </summary>
+          <div className="profileDashboardGrid profileAccountPremiumGrid">
+            <section className="profileDashboardCard profileAccountCard" id="profile-account">
+              <span className="profileLoginAnchor" id="login" aria-hidden="true" />
+              <div className="profileCardHeader">
+                <p className="eyebrow">Account security</p>
+                <h2>Account settings</h2>
+              </div>
+              <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
+            </section>
+
+            <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
+          </div>
+        </details>
 
         {hasStoredProgress ? (
           <OpeningFitProgressCard
@@ -7583,6 +7590,8 @@ function OpeningFitProfileDashboard({
         onOpenReport={onOpenReport}
       />
 
+      <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
+
       <div className="profileDashboardGrid">
         <ChessProfileCard data={data} fitData={fitData} />
         <LatestReportCard
@@ -7593,8 +7602,6 @@ function OpeningFitProfileDashboard({
           onOpenReport={onOpenReport}
         />
       </div>
-
-      <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
       <OpeningFitProgressCard
         data={data}
         fitData={fitData}
@@ -7624,21 +7631,29 @@ function OpeningFitProfileDashboard({
         onAnalyse={onAnalyse}
         onViewRepertoire={onOpenReport}
       />
-      <ProfileAchievementsCard data={data} fitData={fitData} isPremium={isPremium} />
 
-      <div className="profileDashboardGrid profileAccountPremiumGrid">
-        <section className="profileDashboardCard profileAccountCard" id="profile-account">
-          <span className="profileLoginAnchor" id="login" aria-hidden="true" />
-          <div className="profileCardHeader">
-            <p className="eyebrow">Account security</p>
-            <h2>Account settings</h2>
-            <p>Manage login, connected usernames, and saved account data.</p>
+      <details className="profileSecondaryDetails">
+        <summary>
+          <span>More profile settings</span>
+          <strong>Account, membership, and milestones</strong>
+        </summary>
+        <div className="profileDashboardSecondaryStack">
+          <ProfileAchievementsCard data={data} fitData={fitData} isPremium={isPremium} />
+
+          <div className="profileDashboardGrid profileAccountPremiumGrid">
+            <section className="profileDashboardCard profileAccountCard" id="profile-account">
+              <span className="profileLoginAnchor" id="login" aria-hidden="true" />
+              <div className="profileCardHeader">
+                <p className="eyebrow">Account security</p>
+                <h2>Account settings</h2>
+              </div>
+              <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
+            </section>
+
+            <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
           </div>
-          <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
-        </section>
-
-        <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
-      </div>
+        </div>
+      </details>
     </div>
   );
 }

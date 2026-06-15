@@ -1,4 +1,4 @@
-import { BarChart3, Crown, Dumbbell, Home, User } from "lucide-react";
+import { BarChart3, Dumbbell, History, Home, User } from "lucide-react";
 import { getAppSection } from "../appNavigation";
 
 export default function MobileBottomNav({ activeView, hasReport = false, onNavigate }) {
@@ -13,8 +13,8 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
       needsReport: true,
       activeViews: ["train", "training", "interactive", "practice"],
     },
-    { key: "profile", label: "Profile", Icon: User, activeSections: ["profile"] },
-    { key: "premium", label: "Premium", Icon: Crown, activeViews: ["premium", "upgrade"], activePaths: ["/premium", "/upgrade"] },
+    { key: "history", label: "History", Icon: History, activeViews: ["history"] },
+    { key: "profile", label: "Profile", Icon: User, activeViews: ["profile", "account", "login", "progress"] },
   ];
 
   function handleClick(event, item) {
