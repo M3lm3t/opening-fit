@@ -6227,6 +6227,11 @@ function getProfilePlatformLabel(data, fallback = "") {
   return "Connected chess account";
 }
 
+function formatProfileUsername(username) {
+  const clean = String(username || "").trim().replace(/^@+/, "");
+  return clean ? `@${clean}` : "";
+}
+
 function getPlayerProfileData(data = {}) {
   return (
     data?.playerProfile ||
@@ -6310,6 +6315,20 @@ function PlayerIdentity({ identity, platformLabel, compact = false }) {
         <small>{secondary}</small>
       </div>
     </div>
+  );
+}
+
+function ProfileDisclosure({ eyebrow, title, children, defaultOpen = false }) {
+  return (
+    <details className="profileSecondaryDetails profileDisclosure" open={defaultOpen}>
+      <summary>
+        <span>{eyebrow}</span>
+        <strong>{title}</strong>
+      </summary>
+      <div className="profileDisclosureBody">
+        {children}
+      </div>
+    </details>
   );
 }
 
@@ -6553,6 +6572,7 @@ function ProfileSummaryCard({
   const analysedAt = getProfileImportDate(data);
   const games = getProfileGameCount(data);
   const score = fitData?.overallScore ?? data?.openingFitScore ?? data?.opening_fit_score ?? null;
+  const platformUsername = formatProfileUsername(playerIdentity.username);
 
   return (
     <section className="profileHeroDashboard">
@@ -6576,8 +6596,9 @@ function ProfileSummaryCard({
 
       <div className="profileHeroMetaGrid">
         <article>
-          <span>Connected chess account</span>
+          <span>{platformLabel} username</span>
           <PlayerIdentity identity={playerIdentity} platformLabel={platformLabel} />
+          {platformUsername ? <small className="profilePlatformUsername">{platformUsername}</small> : null}
         </article>
         <article>
           <span>Last analysed</span>
@@ -7495,12 +7516,18 @@ function OpeningFitProfileDashboard({
     (Array.isArray(openingFitUserState) ? openingFitUserState : []).some(
       (row) => row?.coach_progress?.openingFitProgress || row?.coach_progress?.opening_fit_progress
     );
+  const savedOpeningGamificationProgress =
+    (Array.isArray(openingFitUserState) ? openingFitUserState : [])
+      .map((row) => row?.coach_progress?.openingGamification || null)
+      .filter(Boolean)[0] || null;
   const connectedUsername =
     username ||
+    accountUser?.user_metadata?.lichess_username ||
     accountUser?.user_metadata?.chess_username ||
     accountUser?.user_metadata?.preferred_username ||
     "";
   const connectedPlatform = getProfilePlatformLabel({ platform }, platform);
+  const connectedHandle = formatProfileUsername(connectedUsername);
 
   if (!data) {
     return (
@@ -7513,12 +7540,20 @@ function OpeningFitProfileDashboard({
             ? `Connected to ${connectedPlatform}. Analyse recent games to load the full profile.`
             : "We'll study your games and suggest openings that match your style."}
         </p>
+        {connectedUsername ? (
+          <div className="profileNoReportIdentity">
+            <span>{connectedPlatform} username</span>
+            <strong>{connectedHandle || connectedUsername}</strong>
+          </div>
+        ) : null}
         <button className="primaryBtn" type="button" onClick={onAnalyse}>
           Analyse Username
         </button>
       </section>
 
-        <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
+        <ProfileDisclosure eyebrow="Saved reports" title="Report history">
+          <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
+        </ProfileDisclosure>
 
         <details className="profileSecondaryDetails">
           <summary>
@@ -7540,26 +7575,28 @@ function OpeningFitProfileDashboard({
         </details>
 
         {hasStoredProgress ? (
-          <OpeningFitProgressCard
-            data={null}
-            fitData={fitData}
-            accountUser={accountUser}
-            reportHistory={reportHistory}
-            openingFitUserState={openingFitUserState}
-            onAnalyse={onAnalyse}
-            onOpenReport={onOpenReport}
-          />
+          <ProfileDisclosure eyebrow="Opening progress" title="Saved repertoire progress">
+            <OpeningFitProgressCard
+              data={null}
+              fitData={fitData}
+              accountUser={accountUser}
+              reportHistory={reportHistory}
+              openingFitUserState={openingFitUserState}
+              onAnalyse={onAnalyse}
+              onOpenReport={onOpenReport}
+            />
+          </ProfileDisclosure>
         ) : null}
 
-        <OpeningGamificationProgress
-          data={null}
-          fitData={fitData}
-          savedProgress={
-            (Array.isArray(openingFitUserState) ? openingFitUserState : [])
-              .map((row) => row?.coach_progress?.openingGamification || null)
-              .filter(Boolean)[0] || null
-          }
-        />
+        {savedOpeningGamificationProgress ? (
+          <ProfileDisclosure eyebrow="Opening XP" title="XP, streaks, and badges">
+            <OpeningGamificationProgress
+              data={null}
+              fitData={fitData}
+              savedProgress={savedOpeningGamificationProgress}
+            />
+          </ProfileDisclosure>
+        ) : null}
 
         <RecommendationHistorySection
           data={null}
@@ -7590,10 +7627,15 @@ function OpeningFitProfileDashboard({
         onOpenReport={onOpenReport}
       />
 
-      <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
+      <ProfileDisclosure eyebrow="Saved reports" title="Report history">
+        <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
+      </ProfileDisclosure>
 
-      <div className="profileDashboardGrid">
+      <div className="profileDashboardGrid profileDashboardSingleGrid">
         <ChessProfileCard data={data} fitData={fitData} />
+      </div>
+
+      <ProfileDisclosure eyebrow="Latest report" title="Most recent import">
         <LatestReportCard
           data={data}
           fitData={fitData}
@@ -7601,25 +7643,29 @@ function OpeningFitProfileDashboard({
           platform={platform}
           onOpenReport={onOpenReport}
         />
-      </div>
-      <OpeningFitProgressCard
-        data={data}
-        fitData={fitData}
-        accountUser={accountUser}
-        reportHistory={reportHistory}
-        openingFitUserState={openingFitUserState}
-        onAnalyse={onAnalyse}
-        onOpenReport={onOpenReport}
-      />
-      <OpeningGamificationProgress
-        data={data}
-        fitData={fitData}
-        savedProgress={
-          (Array.isArray(openingFitUserState) ? openingFitUserState : [])
-            .map((row) => row?.coach_progress?.openingGamification || null)
-            .filter(Boolean)[0] || null
-        }
-      />
+      </ProfileDisclosure>
+
+      {accountUser?.id ? (
+        <ProfileDisclosure eyebrow="Opening progress" title="Saved repertoire progress">
+          <OpeningFitProgressCard
+            data={data}
+            fitData={fitData}
+            accountUser={accountUser}
+            reportHistory={reportHistory}
+            openingFitUserState={openingFitUserState}
+            onAnalyse={onAnalyse}
+            onOpenReport={onOpenReport}
+          />
+        </ProfileDisclosure>
+      ) : null}
+
+      <ProfileDisclosure eyebrow="Opening XP" title="XP, streaks, and badges">
+        <OpeningGamificationProgress
+          data={data}
+          fitData={fitData}
+          savedProgress={savedOpeningGamificationProgress}
+        />
+      </ProfileDisclosure>
       <RecommendationHistorySection
         data={data}
         fitData={fitData}

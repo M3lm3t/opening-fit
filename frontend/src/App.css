@@ -46138,6 +46138,39 @@ a,
   font-size: 0.78rem;
 }
 
+.profilePlatformUsername,
+.profileNoReportIdentity strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profileNoReportIdentity {
+  display: inline-grid;
+  gap: 3px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--of-border-subtle, rgba(148, 163, 184, 0.18));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ds-surface, #111827) 72%, transparent);
+}
+
+.profileNoReportIdentity span {
+  color: var(--ds-muted, #94a3b8);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.profileNoReportIdentity strong {
+  color: var(--ds-text, #f8fafc);
+  font-size: 0.98rem;
+}
+
 .profileDashboardCard,
 .profileFounderCard,
 .profileNoReportState {
@@ -46232,7 +46265,8 @@ a,
 }
 
 .profileSecondaryDetails[open] > .profileDashboardGrid,
-.profileSecondaryDetails[open] .profileDashboardSecondaryStack {
+.profileSecondaryDetails[open] .profileDashboardSecondaryStack,
+.profileSecondaryDetails[open] > .profileDisclosureBody {
   padding: 0 12px;
 }
 
@@ -46241,10 +46275,37 @@ a,
   gap: 12px;
 }
 
+.profileDisclosureBody {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.profileDisclosureBody > .profileDashboardCard,
+.profileDisclosureBody > .openingGamificationProgress {
+  min-width: 0;
+  margin: 0;
+}
+
+.profileDashboardSingleGrid {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
 .page.light .profileSecondaryDetails,
 [data-theme="light"] .profileSecondaryDetails {
   background: #ffffff !important;
   border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+.page.light .profileNoReportIdentity,
+[data-theme="light"] .profileNoReportIdentity {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.page.light .profileNoReportIdentity strong,
+[data-theme="light"] .profileNoReportIdentity strong {
+  color: #0f172a;
 }
 
 .page.light .profileSecondaryDetails > summary strong,
