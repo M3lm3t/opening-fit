@@ -267,7 +267,9 @@ export default function AccountPanel({ variant = "floating",
     }
   };
 
-  const handleEmailPasswordAuth = async () => {
+  const handleEmailPasswordAuth = async (event) => {
+    event?.preventDefault?.();
+
     if (!supabase) {
       console.error("OpeningFit email auth failed: Supabase client is not configured.");
       setStatus("Supabase is not configured. Add your environment variables first.");
@@ -575,7 +577,7 @@ export default function AccountPanel({ variant = "floating",
           ) : null}
 
           {isSupabaseConfigured && !user ? (
-            <div className="accountAuthStack">
+            <form className="accountAuthStack" onSubmit={handleEmailPasswordAuth}>
               <div className="accountAuthIntro">
                 <span>Free account</span>
                 <strong>{accountLoading ? "Checking your session..." : "Save reports across devices"}</strong>
@@ -690,8 +692,7 @@ export default function AccountPanel({ variant = "floating",
 
               <button
                 className="emailSignInBtn"
-                type="button"
-                onClick={handleEmailPasswordAuth}
+                type="submit"
                 disabled={authBusy}
               >
                 {saving
@@ -699,7 +700,7 @@ export default function AccountPanel({ variant = "floating",
                     ? "Creating account..."
                     : "Logging in..."
                   : authMode === "signup"
-                    ? "Create account"
+                    ? "Create free account"
                     : "Log in"}
               </button>
 
@@ -712,7 +713,7 @@ export default function AccountPanel({ variant = "floating",
                     setStatus("");
                   }}
                 >
-                  {authMode === "signup" ? "Log in" : "Create account"}
+                  {authMode === "signup" ? "Log in" : "Create one"}
                 </button>
               </p>
 
@@ -724,7 +725,13 @@ export default function AccountPanel({ variant = "floating",
               >
                 Send login link
               </button>
-            </div>
+
+              {status ? (
+                <div className="accountStatus accountAuthStatus" role="status" aria-live="polite">
+                  {status}
+                </div>
+              ) : null}
+            </form>
           ) : null}
 
           {isSupabaseConfigured && user ? (
@@ -893,7 +900,7 @@ export default function AccountPanel({ variant = "floating",
             </div>
           ) : null}
 
-          {status ? <div className="accountStatus">{status}</div> : null}
+          {status && user ? <div className="accountStatus">{status}</div> : null}
 
           <nav className="accountLegalLinks" aria-label="Account help and legal links">
             <a href="#privacy">Privacy Policy</a>

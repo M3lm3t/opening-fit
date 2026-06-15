@@ -522,6 +522,19 @@
   background: #f8fafc;
 }
 
+.accountAuthStatus {
+  border-color: rgba(125, 211, 252, 0.28);
+  background: rgba(14, 165, 233, 0.1);
+  color: #e0f2fe;
+  font-weight: 800;
+}
+
+.page.light .accountAuthStatus,
+.light .accountAuthStatus {
+  background: rgba(14, 165, 233, 0.08);
+  color: #0f172a;
+}
+
 .premiumStatusCard {
   display: grid;
   gap: 4px;
