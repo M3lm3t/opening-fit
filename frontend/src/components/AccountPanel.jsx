@@ -18,12 +18,22 @@ const EMPTY_PROFILE = {
 };
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 6;
+const AUTH_REQUEST_TIMEOUT_MS = 12000;
 const SUPPORT_EMAIL = "m3lm3t@gmail.com";
 const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`;
 const DELETE_REQUEST_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20account%20deletion%20request`;
 
 function getStableAuthRedirectTo() {
   return `${window.location.origin}/account`;
+}
+
+function withAuthTimeout(request, message = "Supabase auth is taking too long. Please try again shortly.") {
+  return Promise.race([
+    request,
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error(message)), AUTH_REQUEST_TIMEOUT_MS);
+    }),
+  ]);
 }
 
 const PRE_LOGIN_TEASERS = [
@@ -115,8 +125,9 @@ export default function AccountPanel({ variant = "floating",
   const [authMode, setAuthMode] = useState("login");
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const authBusy = saving || accountLoading || !authHydrated;
+  const authBusy = saving || oauthLoading || accountLoading || !authHydrated;
 
   useEffect(() => {
     if (isScreen) setIsOpen(true);
@@ -162,23 +173,35 @@ export default function AccountPanel({ variant = "floating",
     }
 
     setStatus("Opening secure Google sign-in...");
+    setOauthLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: getStableAuthRedirectTo(),
-          queryParams: {
-            prompt: "select_account",
+      const { data, error } = await withAuthTimeout(
+        supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: getStableAuthRedirectTo(),
+            skipBrowserRedirect: true,
+            queryParams: {
+              prompt: "select_account",
+            },
           },
-        },
-      });
+        }),
+        "Supabase Google sign-in is not responding. Please try email login or try again shortly."
+      );
 
       if (error) {
         console.error("OpeningFit Google signup/sign-in failed", error);
         setStatus(error.message || "Could not start Google sign-in.");
         return;
       }
+
+      if (data?.url) {
+        window.location.assign(data.url);
+        return;
+      }
+
+      setStatus("Supabase did not return a Google sign-in URL. Please try email login.");
 
       if (import.meta.env.DEV) {
         console.info("OpeningFit Google signup/sign-in started", {
@@ -189,6 +212,8 @@ export default function AccountPanel({ variant = "floating",
     } catch (error) {
       console.error("OpeningFit Google signup/sign-in crashed", error);
       setStatus(error?.message || "Could not start Google sign-in.");
+    } finally {
+      setOauthLoading(false);
     }
   };
 
@@ -207,13 +232,15 @@ export default function AccountPanel({ variant = "floating",
     setStatus("Sending login link...");
 
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          emailRedirectTo: getStableAuthRedirectTo(),
-          shouldCreateUser: true,
-        },
-      });
+      const { data, error } = await withAuthTimeout(
+        supabase.auth.signInWithOtp({
+          email: email.trim(),
+          options: {
+            emailRedirectTo: getStableAuthRedirectTo(),
+            shouldCreateUser: true,
+          },
+        })
+      );
 
       if (error) {
         console.error("OpeningFit email magic-link signup failed", {
@@ -288,14 +315,16 @@ export default function AccountPanel({ variant = "floating",
       let profileUpdateFailed = false;
       const result =
         authMode === "signup"
-          ? await signUpWithEmailPassword({
-              email: cleanEmail,
-              password,
-              displayName: cleanDisplayName || cleanUsername || cleanEmail,
-              username: cleanUsername,
-              redirectTo: getStableAuthRedirectTo(),
-            })
-          : await signInWithEmailPassword({ email: cleanEmail, password });
+          ? await withAuthTimeout(
+              signUpWithEmailPassword({
+                email: cleanEmail,
+                password,
+                displayName: cleanDisplayName || cleanUsername || cleanEmail,
+                username: cleanUsername,
+                redirectTo: getStableAuthRedirectTo(),
+              })
+            )
+          : await withAuthTimeout(signInWithEmailPassword({ email: cleanEmail, password }));
 
       const hasAuthenticatedSession = Boolean(result.session);
 
