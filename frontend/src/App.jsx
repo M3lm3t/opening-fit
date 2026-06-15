@@ -6320,7 +6320,10 @@ function PlayerIdentity({ identity, platformLabel, compact = false }) {
 
 function ProfileDisclosure({ eyebrow, title, children, defaultOpen = false }) {
   return (
-    <details className="profileSecondaryDetails profileDisclosure" open={defaultOpen}>
+    <details
+      className="profileSecondaryDetails profileDisclosure"
+      {...(defaultOpen ? { open: true } : {})}
+    >
       <summary>
         <span>{eyebrow}</span>
         <strong>{title}</strong>
@@ -9639,12 +9642,12 @@ function getCurrentPath() {
 }
 
 function isPrivateSeoPath(path) {
-  return ["/account", "/login", "/report", "/train", "/premium", "/upgrade"].includes(path);
+  return ["/account", "/profile", "/login", "/report", "/train", "/premium", "/upgrade"].includes(path);
 }
 
 function getInitialAppView() {
   const path = getCurrentPath();
-  if (path === "/account" || path === "/login") return "profile";
+  if (path === "/account" || path === "/profile" || path === "/login") return "profile";
   if (path === "/upgrade" || path === "/premium") return "upgrade";
   if (path === "/train") return "train";
   if (path === "/report") return "report";
@@ -12089,6 +12092,8 @@ function App() {
   const [cloudSaveStatus, setCloudSaveStatus] = useState("");
   const previousAuthUserIdRef = useRef(undefined);
   const shouldShowLandingIntro = () => {
+    if (isPrivateSeoPath(getCurrentPath())) return false;
+
     const landingSeen = localStorage.getItem("openingfit_landing_seen") === "true";
     const hasSavedReport = Boolean(localStorage.getItem(STORAGE_KEY));
     const hasAppHash = window.location.hash && window.location.hash !== "#";
