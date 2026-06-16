@@ -781,12 +781,203 @@ export const openingSeoPages = [
   },
 ];
 
+const openingSeoPageContentOverrides = {
+  "vienna-game": {
+    h1: "Vienna Game: Is It the Right Chess Opening for You?",
+    seoTitle: "Vienna Game Opening Guide | OpeningFit",
+    seoDescription:
+      "Learn if the Vienna Game fits your style, common 800-1500 mistakes, and when OpeningFit may recommend it.",
+    basicMovesLabel: "Basic moves",
+    basicMoves: "1. e4 e5 2. Nc3",
+    intro:
+      "The Vienna Game starts with 1.e4 e5 2.Nc3. It is a practical White opening for players who want active pieces, early pressure, and attacking chances without memorising the deepest Ruy Lopez theory.",
+    styleFit:
+      "Tactical, attacking, initiative-seeking players who like forcing Black to make decisions early.",
+    goodFor:
+      "Players who enjoy active pieces, flexible development, and positions where f4 ideas or quick kingside pressure can appear.",
+    beCarefulIf:
+      "You often fall behind in development, push pawns before castling, or miss tactics after opening the position.",
+    openingFitRecommend:
+      "OpeningFit may recommend the Vienna if your 1.e4 games show good results in open positions and your wins often come from early activity.",
+    openingFitAlternative:
+      "OpeningFit may suggest the Italian Game instead if your Vienna games create loose kings, missed tactics, or repeated early losses.",
+    mainIdeas: [
+      "Develop with 1.e4 e5 2.Nc3 and keep options open before committing the kingside knight.",
+      "Use f4 ideas only when your king and pieces are ready.",
+      "Aim for quick activity, not random pawn pushes.",
+      "Choose calmer development when Black refuses sharp play.",
+    ],
+    whoItSuits: [
+      "800-1500 players who want a lively 1.e4 opening.",
+      "Improvers who like attacking chances but still want sound development.",
+      "Players whose results improve when they get active pieces early.",
+    ],
+    commonMistakes: [
+      "Playing f4 automatically before development supports it.",
+      "Leaving the king in the centre while chasing an attack.",
+      "Forgetting that Black can strike back in the centre.",
+      "Treating the Vienna as a trap opening instead of a development system.",
+    ],
+  },
+  "caro-kann": {
+    h1: "Caro-Kann Defense: Is It the Right Chess Opening for You?",
+    seoTitle: "Caro-Kann Defense Guide | OpeningFit",
+    seoDescription:
+      "See if the Caro-Kann Defense fits your style, with practical plans, 800-1500 mistakes, and OpeningFit signals.",
+    basicMovesLabel: "Basic moves",
+    basicMoves: "1. e4 c6",
+    intro:
+      "The Caro-Kann Defense starts with 1.e4 c6. It is a reliable Black opening for players who want structure, patience, and a clear answer to 1.e4 without entering the sharpest Sicilian-style fights.",
+    styleFit:
+      "Solid, patient, structure-focused players who are comfortable building a position before counterattacking.",
+    goodFor:
+      "Players who want dependable positions against 1.e4 and prefer clear pawn structures over early chaos.",
+    beCarefulIf:
+      "You dislike cramped positions, delay development, or never challenge White's space with breaks like ...c5 or ...e5.",
+    openingFitRecommend:
+      "OpeningFit may recommend the Caro-Kann if your Black games show stable results, lower loss rates, and good middlegames after 1.e4.",
+    mainIdeas: [
+      "Prepare ...d5 with ...c6 and challenge White's centre.",
+      "Develop the light-squared bishop before it gets trapped when possible.",
+      "Use ...c5 or ...e5 breaks so the position does not become passive.",
+      "Learn one clear plan against the Advance, Exchange, and Classical structures.",
+    ],
+    whoItSuits: [
+      "800-1500 players who want a sturdy Black repertoire against 1.e4.",
+      "Players who score well in structured middlegames.",
+      "Players who prefer avoiding early tactical overload.",
+    ],
+    commonMistakes: [
+      "Playing too passively in the Advance Variation.",
+      "Leaving pieces undeveloped while trying to hold a perfect structure.",
+      "Trading into cramped positions with no pawn break.",
+      "Assuming solid means never creating counterplay.",
+    ],
+  },
+  "scandinavian-defence": {
+    h1: "Scandinavian Defense: Is It the Right Chess Opening for You?",
+    seoTitle: "Scandinavian Defense Guide | OpeningFit",
+    seoDescription:
+      "Learn if the Scandinavian Defense fits your style, common mistakes, and when OpeningFit may recommend it.",
+    basicMovesLabel: "Basic moves",
+    basicMoves: "1. e4 d5",
+    intro:
+      "The Scandinavian Defense starts with 1.e4 d5. It is a practical, direct way to meet 1.e4 and can suit players who want early central contact without a huge theory load.",
+    styleFit:
+      "Practical, direct players who want clear plans and fewer branches than many main-line 1.e4 defenses.",
+    goodFor:
+      "Players who like immediate central contact, compact development, and a repertoire that is easy to organise.",
+    beCarefulIf:
+      "You move the queen too much, fall behind in development, or treat the opening as simple enough to stop calculating.",
+    openingFitRecommend:
+      "OpeningFit may recommend the Scandinavian if your Black games show good results from direct structures and you avoid repeated queen-tempo problems.",
+    mainIdeas: [
+      "Challenge White's centre immediately with 1...d5.",
+      "After recapturing, develop quickly and stop moving the queen without a reason.",
+      "Build a compact setup with ...Nf6, ...c6, ...Bf5 or ...Bg4, and ...e6.",
+      "Use the opening's simplicity to reach a playable middlegame, not to ignore development.",
+    ],
+    whoItSuits: [
+      "800-1500 players who want a straightforward answer to 1.e4.",
+      "Players who dislike heavy Sicilian or French theory.",
+      "Players who are disciplined about development after early queen activity.",
+    ],
+    commonMistakes: [
+      "Moving the queen three or four times in the opening.",
+      "Letting White develop freely while Black chases small threats.",
+      "Choosing passive piece squares and never challenging the centre again.",
+      "Forgetting king safety because the first moves feel familiar.",
+    ],
+  },
+  "london-system": {
+    h1: "London System: Is It the Right Chess Opening for You?",
+    seoTitle: "London System Guide | OpeningFit",
+    seoDescription:
+      "See if the London System fits your style, with setup ideas, common mistakes, and OpeningFit recommendation signals.",
+    basicMovesLabel: "Basic setup",
+    basicMoves: "d4, Bf4, Nf3, e3, c3",
+    intro:
+      "The London System is a repeatable White setup based on d4, Bf4, Nf3, e3, and c3. It is popular because the plans are clear, but it still needs attention to Black's threats.",
+    styleFit:
+      "Solid, system-based players who like familiar structures and a low memorisation burden.",
+    goodFor:
+      "Players who want repeatable plans, safe development, and a White opening they can use against many Black setups.",
+    beCarefulIf:
+      "You play the same moves automatically, ignore ...c5 or ...Qb6 pressure, or miss chances to switch plans when Black gives you something better.",
+    openingFitRecommend:
+      "OpeningFit may recommend the London if your White games show stable results, fewer early losses, and good conversion from familiar structures.",
+    mainIdeas: [
+      "Build the setup with d4, Bf4, Nf3, e3, c3, Bd3, and short castling.",
+      "React to Black's pressure instead of playing the setup blindly.",
+      "Use Ne5, h4, or kingside pressure only when development supports it.",
+      "Stay alert for central breaks rather than drifting into a harmless position.",
+    ],
+    whoItSuits: [
+      "800-1500 players who want a dependable White opening.",
+      "Players who prefer plans and structures over long forcing theory.",
+      "Players whose results improve when the first ten moves feel familiar.",
+    ],
+    commonMistakes: [
+      "Playing the London automatically while ignoring Black's threats.",
+      "Launching a kingside attack before finishing development.",
+      "Trading pieces too early and reaching a position with no pressure.",
+      "Assuming the setup works the same against every Black response.",
+    ],
+  },
+  "italian-game": {
+    h1: "Italian Game: Is It the Right Chess Opening for You?",
+    seoTitle: "Italian Game Opening Guide | OpeningFit",
+    seoDescription:
+      "Learn if the Italian Game fits your style, with basic moves, common mistakes, and OpeningFit recommendation signals.",
+    basicMovesLabel: "Basic moves",
+    basicMoves: "1. e4 e5 2. Nf3 Nc6 3. Bc4",
+    intro:
+      "The Italian Game begins with 1.e4 e5 2.Nf3 Nc6 3.Bc4. It is one of the most useful openings for improving players because it teaches development, king safety, central breaks, and attacking themes.",
+    styleFit:
+      "Balanced players, improving players, and tactical learners who want active pieces without choosing a wild gambit every game.",
+    goodFor:
+      "Development, king safety, pressure on f7, and learning when to play quiet d3 systems or central d4 breaks.",
+    beCarefulIf:
+      "You rush attacks before castling, move the same piece repeatedly, or aim at f7 without enough support.",
+    openingFitRecommend:
+      "OpeningFit may recommend the Italian if your White games show good development, playable middlegames, and fewer early collapses than sharper openings.",
+    mainIdeas: [
+      "Develop naturally with e4, Nf3, Bc4, and castling.",
+      "Choose between quiet d3 play and a more direct d4 break.",
+      "Use pressure on f7 as a theme, not a one-move trick.",
+      "Watch Black's central counterplay with ...d5.",
+    ],
+    whoItSuits: [
+      "800-1500 players building a first serious 1.e4 repertoire.",
+      "Players who want attacking ideas while still learning core principles.",
+      "Players who benefit from clear piece placement and familiar structures.",
+    ],
+    commonMistakes: [
+      "Attacking f7 before development supports it.",
+      "Delaying castling because the attack looks tempting.",
+      "Playing quiet moves with no plan to improve the pieces.",
+      "Ignoring Black's central break with ...d5.",
+    ],
+  },
+};
+
+openingSeoPages.forEach((opening) => {
+  Object.assign(opening, openingSeoPageContentOverrides[opening.slug] || {});
+});
+
 export const openingSeoPagesBySlug = Object.fromEntries(
   openingSeoPages.map((opening) => [opening.slug, opening])
 );
 
+const openingSeoSlugAliases = {
+  "caro-kann-defense": "caro-kann",
+  "caro-kann-defence": "caro-kann",
+  "scandinavian-defense": "scandinavian-defence",
+};
+
 export function getOpeningSeoPage(slug) {
-  return openingSeoPagesBySlug[String(slug || "").toLowerCase()] || null;
+  const cleanSlug = String(slug || "").toLowerCase();
+  return openingSeoPagesBySlug[openingSeoSlugAliases[cleanSlug] || cleanSlug] || null;
 }
 
 export function getOpeningSeoSlugFromPath(path) {

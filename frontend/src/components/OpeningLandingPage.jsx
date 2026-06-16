@@ -26,6 +26,87 @@ const OPENING_STYLE_TAGS = {
   "benko-gambit": "Pressure",
 };
 
+const OPENING_HUB_GROUPS = [
+  {
+    title: "Beginner-friendly",
+    text: "Simple openings with clear plans and lower early blunder risk.",
+    links: [
+      ["Italian Game", "/openings/italian-game"],
+      ["London System", "/openings/london-system"],
+      ["Caro-Kann Defense", "/openings/caro-kann-defense"],
+      ["Beginner guide", "/guides/best-chess-openings-for-beginners"],
+    ],
+  },
+  {
+    title: "White openings",
+    text: "Opening choices for active, solid, or system-based White repertoires.",
+    links: [
+      ["Vienna Game", "/openings/vienna-game"],
+      ["Italian Game", "/openings/italian-game"],
+      ["London System", "/openings/london-system"],
+      ["Queen's Gambit", "/openings/queens-gambit"],
+    ],
+  },
+  {
+    title: "Black against 1.e4",
+    text: "Defenses for players who want structure, direct play, or counterattack.",
+    links: [
+      ["Caro-Kann Defense", "/openings/caro-kann-defense"],
+      ["Scandinavian Defense", "/openings/scandinavian-defense"],
+      ["French Defence", "/openings/french-defence"],
+      ["Sicilian Defence", "/openings/sicilian-defence"],
+    ],
+  },
+  {
+    title: "Black against 1.d4",
+    text: "Solid and ambitious setups for Queen's Pawn games.",
+    links: [
+      ["Slav Defence", "/openings/slav-defence"],
+      ["King's Indian Defence", "/openings/kings-indian-defence"],
+      ["Nimzo-Indian Defence", "/openings/nimzo-indian-defence"],
+      ["Dutch Defence", "/openings/dutch-defence"],
+    ],
+  },
+  {
+    title: "Tactical",
+    text: "For players who like initiative, active pieces, and tactical pressure.",
+    links: [
+      ["Vienna Game", "/openings/vienna-game"],
+      ["Scotch Game", "/openings/scotch-game"],
+      ["Sicilian Defence", "/openings/sicilian-defence"],
+      ["Benko Gambit", "/openings/benko-gambit"],
+    ],
+  },
+  {
+    title: "Solid",
+    text: "For players who want repeatable structures before expanding theory.",
+    links: [
+      ["London System", "/openings/london-system"],
+      ["Caro-Kann Defense", "/openings/caro-kann-defense"],
+      ["Queen's Gambit", "/openings/queens-gambit"],
+      ["Slav Defence", "/openings/slav-defence"],
+    ],
+  },
+];
+
+const OPENING_RELATED_GUIDES = [
+  ["Which opening should I play?", "/guides/which-chess-opening-should-i-play"],
+  ["Best beginner openings", "/guides/best-chess-openings-for-beginners"],
+  ["1000 rated openings", "/guides/best-chess-openings-for-1000-rated-players"],
+  ["1200 rated openings", "/guides/best-chess-openings-for-1200-rated-players"],
+];
+
+function getOpeningPublicHref(opening) {
+  const slug = typeof opening === "string" ? opening : opening?.slug;
+  const publicSlug =
+    {
+      "caro-kann": "caro-kann-defense",
+      "scandinavian-defence": "scandinavian-defense",
+    }[slug] || slug;
+
+  return `/openings/${publicSlug}`;
+}
+
 function getOpeningHubDescription(opening) {
   return opening.seoDescription || opening.intro;
 }
@@ -62,26 +143,113 @@ function OpeningList({ items }) {
   );
 }
 
-function RelatedOpeningLinks({ opening }) {
-  const related = (opening.relatedOpenings || [])
-    .map((slug) => getOpeningSeoPage(slug))
-    .filter(Boolean);
+function SeoVisualCard({ eyebrow, title, text, children, tone = "neutral" }) {
+  return (
+    <article className={`seoVisualCard seoVisualCard-${tone}`}>
+      <span>{eyebrow}</span>
+      {title ? <h2>{title}</h2> : null}
+      {text ? <p>{text}</p> : null}
+      {children}
+    </article>
+  );
+}
 
-  if (!related.length) return null;
+function getOpeningRatingRange(opening) {
+  if (opening.ratingRange) return opening.ratingRange;
+  if (["london-system", "italian-game", "vienna-game", "caro-kann", "scandinavian-defence"].includes(opening.slug)) {
+    return "800-1800";
+  }
+  return "1000-1800";
+}
+
+function getOpeningDifficulty(opening) {
+  if (opening.difficulty) return opening.difficulty;
+  if (["london-system", "italian-game", "scandinavian-defence"].includes(opening.slug)) return "Beginner-friendly";
+  if (["vienna-game", "caro-kann", "slav-defence", "french-defence"].includes(opening.slug)) return "Easy to medium";
+  return "Medium";
+}
+
+function getOpeningBestFor(opening) {
+  if (opening.bestFor) return opening.bestFor;
+  return opening.goodFor || opening.whoItSuits?.[0] || "Players who want a practical opening with clear plans.";
+}
+
+function OpeningFitProfileCard({ opening }) {
+  const profileRows = [
+    ["Style fit", opening.styleFit || OPENING_STYLE_TAGS[opening.slug] || "Practical repertoire choice"],
+    ["Rating range", getOpeningRatingRange(opening)],
+    ["Difficulty", getOpeningDifficulty(opening)],
+    ["Best for", getOpeningBestFor(opening)],
+    ["Be careful if", opening.beCarefulIf || opening.weaknesses?.[0] || "The positions do not match how you like to play."],
+    ["First moves", opening.basicMoves || opening.sampleMoves.join(" ")],
+  ];
 
   return (
-    <section className="seoInternalLinks openingRelatedLinks" aria-label="Related chess openings">
-      <div>
-        <p className="seoEyebrow">Related openings</p>
-        <h2>Compare nearby repertoire choices</h2>
-      </div>
-      <nav>
-        {related.map((item) => (
-          <a key={item.slug} href={`/openings/${item.slug}`}>
-            {item.name}
-          </a>
+    <aside className="openingFitProfileCard" aria-label={`${opening.name} opening fit profile`}>
+      <span>Opening fit profile</span>
+      <strong>{opening.name}</strong>
+      <dl>
+        {profileRows.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
         ))}
-      </nav>
+      </dl>
+    </aside>
+  );
+}
+
+function OpeningFitNotes({ opening }) {
+  const fitCards = [
+    opening.styleFit ? ["Fit summary", "Style fit", opening.styleFit, "fit"] : null,
+    opening.goodFor ? ["Good for", "Best use", opening.goodFor, "good"] : null,
+    opening.beCarefulIf ? ["Be careful if", "Watch the risk", opening.beCarefulIf, "careful"] : null,
+    opening.openingFitRecommend ? ["OpeningFit recommendation", "When the app may recommend it", opening.openingFitRecommend, "recommend"] : null,
+    opening.openingFitAlternative ? ["Simpler option", "When OpeningFit may simplify", opening.openingFitAlternative, "careful"] : null,
+  ].filter(Boolean);
+
+  if (!fitCards.length) return null;
+
+  return (
+    <section className="openingSeoFitGrid" aria-label={`${opening.name} player fit`}>
+      {fitCards.map(([eyebrow, title, text, tone]) => (
+        <SeoVisualCard key={eyebrow} eyebrow={eyebrow} title={title} text={text} tone={tone} />
+      ))}
+    </section>
+  );
+}
+
+function OpeningRelatedSeoLinks({ opening }) {
+  const relatedOpenings = (opening.relatedOpenings || [])
+    .map((slug) => getOpeningSeoPage(slug))
+    .filter(Boolean)
+    .slice(0, 4);
+
+  return (
+    <section className="seoRelatedPanel" aria-label="Related chess opening guides">
+      <div>
+        <p className="seoEyebrow">Related</p>
+        <h2>Keep exploring openings that fit your games</h2>
+      </div>
+      <div className="seoRelatedColumns">
+        <nav aria-label="Related opening pages">
+          <strong>Opening pages</strong>
+          {(relatedOpenings.length ? relatedOpenings : openingSeoPages.filter((item) => item.slug !== opening.slug).slice(0, 3)).map((item) => (
+            <a key={item.slug} href={getOpeningPublicHref(item)}>
+              {item.name}
+            </a>
+          ))}
+        </nav>
+        <nav aria-label="Related guide pages">
+          <strong>Guide pages</strong>
+          {OPENING_RELATED_GUIDES.map(([label, href]) => (
+            <a key={href} href={href}>
+              {label}
+            </a>
+          ))}
+        </nav>
+      </div>
     </section>
   );
 }
@@ -105,9 +273,10 @@ export function OpeningHubPage({ ThemeToggle, Analytics }) {
           <section className="seoHero openingSeoHero">
             <div>
               <p className="seoEyebrow">Opening guides</p>
-              <h1>Opening guides for real games</h1>
+              <h1>Chess Openings That Fit Your Playing Style</h1>
               <p>
-                Learn the plan, the style fit, and the common traps before adding an opening to your repertoire.
+                Browse practical chess openings by role and style, then analyse your own Chess.com or Lichess games
+                to see which choices actually fit.
               </p>
               <div className="seoHeroActions">
                 <a className="seoPrimaryCta" href="/#app-dashboard">Analyze my games</a>
@@ -126,9 +295,27 @@ export function OpeningHubPage({ ThemeToggle, Analytics }) {
               <a href="/#app-dashboard">Analysis page</a>
               <a href="/best-chess-openings-for-aggressive-players">Aggressive style</a>
               <a href="/best-chess-openings-for-positional-players">Positional style</a>
-              <a href="/best-chess-openings-for-beginners">Beginner style</a>
+              <a href="/guides/best-chess-openings-for-beginners">Beginner style</a>
               <a href="/best-chess-openings-for-tactical-players">Tactical style</a>
+              <a href="/guides">Chess opening guides</a>
             </nav>
+          </section>
+
+          <section className="openingHubCategoryGrid" aria-label="Chess opening categories">
+            {OPENING_HUB_GROUPS.map((group) => (
+              <article className="openingSeoCard" key={group.title}>
+                <span>Opening category</span>
+                <h2>{group.title}</h2>
+                <p>{group.text}</p>
+                <nav>
+                  {group.links.map(([label, href]) => (
+                    <a key={href} href={href}>
+                      {label}
+                    </a>
+                  ))}
+                </nav>
+              </article>
+            ))}
           </section>
 
           <section className="openingSeoCardGrid" aria-label="Opening guide pages">
@@ -137,9 +324,19 @@ export function OpeningHubPage({ ThemeToggle, Analytics }) {
                 <span>{OPENING_STYLE_TAGS[opening.slug] || "Opening guide"}</span>
                 <h2>{opening.name}</h2>
                 <p>{getOpeningHubDescription(opening)}</p>
-                <a href={`/openings/${opening.slug}`}>Read guide</a>
+                <a href={getOpeningPublicHref(opening)}>Read guide</a>
               </article>
             ))}
+          </section>
+
+          <section className="seoBottomCta seoAnalysisCtaCard">
+            <p className="seoEyebrow">Personal opening fit</p>
+            <h2>Find the openings that fit your own games</h2>
+            <p>
+              Opening guides help you choose candidates. OpeningFit checks your real Chess.com or Lichess results
+              and shows what to keep, improve, or avoid.
+            </p>
+            <a className="seoPrimaryCta" href="/#app-dashboard">Analyse my games</a>
           </section>
         </main>
       </div>
@@ -200,18 +397,17 @@ export default function OpeningLandingPage({ opening, ThemeToggle, Analytics }) 
           <section className="seoHero openingSeoHero">
             <div>
               <p className="seoEyebrow">Chess opening guide</p>
-              <h1>{opening.name}</h1>
+              <h1>{opening.h1 || opening.name}</h1>
               <p>{opening.intro}</p>
               <div className="seoHeroActions">
                 <a className="seoPrimaryCta" href="/#app-dashboard">Analyze my games</a>
                 <a className="seoSecondaryCta" href="/openings">Browse openings</a>
               </div>
             </div>
-            <div className="openingMoveCard" aria-label={`${opening.name} sample move order`}>
-              <span>Sample move order</span>
-              <strong>{opening.sampleMoves.join(" ")}</strong>
-            </div>
+            <OpeningFitProfileCard opening={opening} />
           </section>
+
+          <OpeningFitNotes opening={opening} />
 
           <section className="openingSeoTwoColumn">
             <article>
@@ -235,17 +431,17 @@ export default function OpeningLandingPage({ opening, ThemeToggle, Analytics }) 
             </article>
           </section>
 
-          <section className="seoMiniReport openingMistakesSection">
-            <div>
-              <p className="seoEyebrow">Common mistakes</p>
-              <h2>What to watch before you play it</h2>
-            </div>
+          <SeoVisualCard
+            eyebrow="Common mistakes"
+            title="What to watch before you play it"
+            tone="mistakes"
+          >
             <OpeningList items={opening.commonMistakes} />
-          </section>
+          </SeoVisualCard>
 
-          <RelatedOpeningLinks opening={opening} />
+          <OpeningRelatedSeoLinks opening={opening} />
 
-          <section className="seoBottomCta">
+          <section className="seoBottomCta seoAnalysisCtaCard">
             <h2>Does {opening.name} fit your games?</h2>
             <p>{opening.callToActionText}</p>
             <a className="seoPrimaryCta" href="/#app-dashboard">Analyze games with OpeningFit</a>
@@ -257,23 +453,51 @@ export default function OpeningLandingPage({ opening, ThemeToggle, Analytics }) 
   );
 }
 
-export function getOpeningPageJsonLd(opening) {
-  const url = `${SITE_URL}/openings/${opening.slug}`;
+export function getOpeningPageJsonLd(opening, pageUrl = "") {
+  const url = pageUrl || `${SITE_URL}${getOpeningPublicHref(opening)}`;
 
   return {
     "@context": "https://schema.org",
-    "@type": "Article",
-    "@id": `${url}#article`,
-    headline: opening.seoTitle,
-    name: opening.name,
-    description: opening.seoDescription,
-    url,
-    mainEntityOfPage: url,
-    publisher: {
-      "@type": "Organization",
-      name: "OpeningFit",
-      url: SITE_URL,
-    },
-    about: opening.name,
+    "@graph": [
+      {
+        "@type": "Article",
+        "@id": `${url}#article`,
+        headline: opening.h1 || opening.seoTitle,
+        name: opening.name,
+        description: opening.seoDescription,
+        url,
+        mainEntityOfPage: url,
+        publisher: {
+          "@type": "Organization",
+          name: "OpeningFit",
+          url: SITE_URL,
+        },
+        about: opening.name,
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${url}#breadcrumb`,
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "OpeningFit",
+            item: `${SITE_URL}/`,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Chess Openings",
+            item: `${SITE_URL}/openings`,
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: opening.name,
+            item: url,
+          },
+        ],
+      },
+    ],
   };
 }

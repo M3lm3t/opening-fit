@@ -29586,6 +29586,57 @@ textarea,
   font-size: 0.92rem;
 }
 
+.popularOpeningGuides {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.popularOpeningGuidesHeader h2 {
+  margin: 0;
+  max-width: 680px;
+  color: var(--text);
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  letter-spacing: 0;
+}
+
+.popularOpeningGuidesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.popularOpeningGuidesGrid a {
+  display: grid;
+  gap: 6px;
+  min-height: 112px;
+  align-content: start;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 13px;
+  color: inherit;
+  background: rgba(15, 23, 42, 0.5);
+  text-decoration: none;
+}
+
+[data-theme="light"] .popularOpeningGuidesGrid a {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.popularOpeningGuidesGrid strong {
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.popularOpeningGuidesGrid span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 760px) {
   [data-theme] .compactImportHero {
     margin: 12px auto;
@@ -29632,6 +29683,14 @@ textarea,
 
   .seoRouteGrid {
     grid-template-columns: 1fr;
+  }
+
+  .popularOpeningGuidesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .popularOpeningGuidesGrid a {
+    min-height: auto;
   }
 
   .compactSeoFooter nav {

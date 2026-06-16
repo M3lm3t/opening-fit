@@ -1,24 +1,25 @@
 import { useEffect, useState } from "react";
 import "./SeoLandingPage.css";
 
-export const SITE_URL = "https://openingfit.com";
+export const SITE_URL = "https://www.openingfit.com";
 export const DEFAULT_SHARE_IMAGE = `${SITE_URL}/og-image.png`;
 export const ORGANIZATION_NAME = "OpeningFit";
 
 export const HOME_SEO = {
-  title: "Find Chess Openings That Match Your Playing Style | OpeningFit",
+  title: "Find the Best Chess Opening for Your Playing Style | OpeningFit",
   description:
-    "Analyze your Chess.com and Lichess games to discover chess openings that fit your playing style, results, and weaknesses.",
+    "Analyse your Chess.com or Lichess games and discover which chess openings suit your rating, results and playing style. Build a simple opening repertoire for White and Black.",
   path: "/",
-  h1: "Find Chess Openings That Match Your Playing Style",
+  h1: "Find the chess openings that fit your playing style",
 };
 
 export const SEO_LINKS = [
   ["Opening guides", "/openings"],
-  ["Aggressive openings", "/best-chess-openings-for-aggressive-players"],
-  ["Beginner openings", "/best-chess-openings-for-beginners"],
+  ["Chess guides", "/guides"],
+  ["Which opening?", "/guides/which-chess-opening-should-i-play"],
+  ["Beginner openings", "/guides/best-chess-openings-for-beginners"],
+  ["1000 rated openings", "/guides/best-chess-openings-for-1000-rated-players"],
   ["Repertoire builder", "/chess-opening-repertoire-builder"],
-  ["Which opening?", "/which-chess-opening-should-i-play"],
   ["Chess.com analysis", "/chess-com-opening-analysis"],
   ["Lichess analysis", "/lichess-opening-analysis"],
   ["Sample report", "/openingfit-sample-report"],
@@ -499,7 +500,48 @@ export function getSeoJsonLd(page) {
         "@id": `${SITE_URL}/#software`,
       },
     },
+    {
+      "@type": "BreadcrumbList",
+      "@id": `${page.url}#breadcrumb`,
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "OpeningFit",
+          item: `${SITE_URL}/`,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: page.path?.startsWith("/guides") ? "Chess Opening Guides" : page.h1 || page.title,
+          item: page.path?.startsWith("/guides") ? `${SITE_URL}/guides` : page.url,
+        },
+        ...(page.path?.startsWith("/guides/") ? [
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: page.h1 || page.title,
+            item: page.url,
+          },
+        ] : []),
+      ],
+    },
   ];
+
+  if (page.path?.startsWith("/guides/")) {
+    graph.push({
+      "@type": "Article",
+      "@id": `${page.url}#article`,
+      headline: page.h1 || page.title,
+      name: page.title,
+      url: page.url,
+      description: page.description,
+      mainEntityOfPage: page.url,
+      publisher: {
+        "@id": `${SITE_URL}/#organization`,
+      },
+    });
+  }
 
   if (Array.isArray(page.faq) && page.faq.length) {
     graph.push({

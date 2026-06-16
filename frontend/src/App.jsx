@@ -93,11 +93,17 @@ import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
 import ReportCommandBar from "./components/ReportCommandBar";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
-import OpeningLandingPage, {
+import {
   OpeningHubPage,
   OpeningNotFoundPage,
   getOpeningPageJsonLd,
 } from "./components/OpeningLandingPage.jsx";
+import {
+  GuideNotFoundPage,
+  GuidesHubPage,
+  OpeningSeoPage,
+  SeoGuidePage,
+} from "./components/SeoGuidePages.jsx";
 import SeoLandingPage, {
   DEFAULT_SHARE_IMAGE,
   SEO_LINKS,
@@ -110,6 +116,10 @@ import {
   getOpeningSeoPage,
   getOpeningSeoSlugFromPath,
 } from "./data/openingSeoPages.js";
+import {
+  getGuideSeoPageFromPath,
+  guideHubPage,
+} from "./content/seoPages.js";
 import {
   AlertTriangle,
   ArrowRight,
@@ -9837,6 +9847,35 @@ function CompactSeoFooter() {
   );
 }
 
+function PopularChessOpeningGuides() {
+  const popularLinks = [
+    { label: "Which Chess Opening Should I Play?", href: "/guides/which-chess-opening-should-i-play", text: "Choose by rating, style, confidence, and real results." },
+    { label: "Best Chess Openings for Beginners", href: "/guides/best-chess-openings-for-beginners", text: "Simple White and Black openings with clear plans." },
+    { label: "Best Chess Openings for 1000 Rated Players", href: "/guides/best-chess-openings-for-1000-rated-players", text: "Reduce early blunders with familiar structures." },
+    { label: "Best Chess Openings for 1200 Rated Players", href: "/guides/best-chess-openings-for-1200-rated-players", text: "Start choosing openings by style and evidence." },
+    { label: "Vienna Game Guide", href: "/openings/vienna-game", text: "An attacking 1.e4 option with early initiative." },
+    { label: "Caro-Kann Defense Guide", href: "/openings/caro-kann-defense", text: "A solid Black defense against 1.e4." },
+    { label: "Scandinavian Defense Guide", href: "/openings/scandinavian-defense", text: "A direct defense with clear central contact." },
+  ];
+
+  return (
+    <section className="popularOpeningGuides" aria-label="Popular chess opening guides">
+      <div className="popularOpeningGuidesHeader">
+        <p className="eyebrow">Popular chess opening guides</p>
+        <h2>Learn the opening, then test it on your games.</h2>
+      </div>
+      <div className="popularOpeningGuidesGrid">
+        {popularLinks.map((link) => (
+          <a key={link.href} href={link.href}>
+            <strong>{link.label}</strong>
+            <span>{link.text}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function LandingSampleResultPreview({ onOpeningClick }) {
   const rows = [
     {
@@ -10328,7 +10367,7 @@ function LandingSection({ onOpeningClick }) {
               <span>Chess.com and Lichess</span>
             </div>
 
-            <h1>Find openings that fit your games.</h1>
+            <h1>Find the chess openings that fit your playing style.</h1>
 
             <p className="landingSubtext">
               Import a username. Get a clear keep, train, and try-next plan.
@@ -14023,14 +14062,44 @@ function App() {
   const openingSlug = getOpeningSeoSlugFromPath(currentPath);
   const openingSeoPage = openingSlug ? getOpeningSeoPage(openingSlug) : null;
   const isOpeningHub = currentPath === "/openings";
+  const isGuidesHub = currentPath === "/guides";
+  const guideSeoPage = getGuideSeoPageFromPath(currentPath);
+  const isUnknownGuidePath = /^\/guides\/[^/]+$/.test(currentPath) && !guideSeoPage;
   const isUnknownOpeningPath = Boolean(openingSlug && !openingSeoPage);
   const seoPage = SEO_PAGES[currentPath] || null;
   const seoData = useMemo(() => {
+    if (isGuidesHub) {
+      return {
+        title: guideHubPage.title,
+        description: guideHubPage.metaDescription,
+        path: "/guides",
+        url: `${SITE_URL}/guides`,
+      };
+    }
+
+    if (guideSeoPage) {
+      return {
+        title: guideSeoPage.title,
+        description: guideSeoPage.metaDescription,
+        path: `/guides/${guideSeoPage.slug}`,
+        url: `${SITE_URL}/guides/${guideSeoPage.slug}`,
+      };
+    }
+
+    if (isUnknownGuidePath) {
+      return {
+        title: "Opening guide not found | OpeningFit",
+        description: "This OpeningFit chess opening guide has not been published yet.",
+        path: currentPath,
+        url: `${SITE_URL}/guides`,
+      };
+    }
+
     if (isOpeningHub) {
       return {
-        title: "Chess Opening Guides | OpeningFit",
+        title: "Chess Openings by Playing Style | OpeningFit",
         description:
-          "Explore chess opening guides and discover which openings fit your playing style, from the London System and Caro-Kann to the King's Indian Defence.",
+          "Browse chess openings by playing style, rating, and role, then use OpeningFit to see which openings fit your real games.",
         path: "/openings",
         url: `${SITE_URL}/openings`,
       };
@@ -14040,8 +14109,8 @@ function App() {
       return {
         title: openingSeoPage.seoTitle,
         description: openingSeoPage.seoDescription,
-        path: `/openings/${openingSeoPage.slug}`,
-        url: `${SITE_URL}/openings/${openingSeoPage.slug}`,
+        path: currentPath,
+        url: `${SITE_URL}${currentPath}`,
       };
     }
 
@@ -14055,9 +14124,16 @@ function App() {
     }
 
     return getSeoData(currentPath);
-  }, [currentPath, isOpeningHub, isUnknownOpeningPath, openingSeoPage]);
-  const shouldNoindex = isPrivateSeoPath(currentPath) || isUnknownOpeningPath || (currentPath === "/" && hasReport);
-  const canonicalUrl = isUnknownOpeningPath ? `${SITE_URL}/openings` : shouldNoindex ? `${SITE_URL}/` : seoData.url;
+  }, [currentPath, guideSeoPage, isGuidesHub, isOpeningHub, isUnknownGuidePath, isUnknownOpeningPath, openingSeoPage]);
+  const shouldNoindex = isPrivateSeoPath(currentPath) || isUnknownGuidePath || isUnknownOpeningPath || (currentPath === "/" && hasReport);
+  const canonicalUrl =
+    isUnknownGuidePath
+      ? `${SITE_URL}/guides`
+      : isUnknownOpeningPath
+        ? `${SITE_URL}/openings`
+        : shouldNoindex
+          ? `${SITE_URL}/`
+          : seoData.url;
 
   useEffect(() => {
     document.title = seoData.title;
@@ -14084,7 +14160,7 @@ function App() {
     });
     setMetaAttribute('meta[property="og:type"]', {
       property: "og:type",
-      content: openingSeoPage ? "article" : "website",
+      content: openingSeoPage || guideSeoPage ? "article" : "website",
     });
     setMetaAttribute('meta[property="og:site_name"]', {
       property: "og:site_name",
@@ -14122,7 +14198,7 @@ function App() {
     const existingJsonLd = document.getElementById("seo-route-jsonld");
     if (existingJsonLd) existingJsonLd.remove();
 
-    const jsonLd = openingSeoPage ? getOpeningPageJsonLd(openingSeoPage) : getSeoJsonLd(seoData);
+    const jsonLd = openingSeoPage ? getOpeningPageJsonLd(openingSeoPage, seoData.url) : getSeoJsonLd(seoData);
     if (jsonLd && !shouldNoindex) {
       const script = document.createElement("script");
       script.id = "seo-route-jsonld";
@@ -14130,7 +14206,7 @@ function App() {
       script.textContent = JSON.stringify(jsonLd);
       document.head.appendChild(script);
     }
-  }, [canonicalUrl, currentPath, openingSeoPage, seoData, shouldNoindex]);
+  }, [canonicalUrl, currentPath, guideSeoPage, openingSeoPage, seoData, shouldNoindex]);
 
   useEffect(() => {
     const openAccountPage = () => {
@@ -14156,12 +14232,24 @@ function App() {
     };
   }, []);
 
+  if (isGuidesHub) {
+    return <GuidesHubPage ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+  }
+
+  if (guideSeoPage) {
+    return <SeoGuidePage page={guideSeoPage} ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+  }
+
+  if (isUnknownGuidePath) {
+    return <GuideNotFoundPage ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+  }
+
   if (isOpeningHub) {
     return <OpeningHubPage ThemeToggle={ThemeToggle} Analytics={Analytics} />;
   }
 
   if (openingSeoPage) {
-    return <OpeningLandingPage opening={openingSeoPage} ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+    return <OpeningSeoPage opening={openingSeoPage} ThemeToggle={ThemeToggle} Analytics={Analytics} />;
   }
 
   if (isUnknownOpeningPath) {
@@ -14282,7 +14370,7 @@ function App() {
             <div className="heroTop">
               <div className="heroTitleWrap">
                 <p className="eyebrow">Chess opening analysis app</p>
-                <h1>Find openings that fit your games.</h1>
+                <h1>Find the chess openings that fit your playing style.</h1>
                 <p className="subtext">
                   Import a username. See what to keep, what to repair, and which line to train next.
                 </p>
@@ -14484,6 +14572,8 @@ function App() {
                 View sample report
               </button>
             </div>
+
+            <PopularChessOpeningGuides />
 
             {apiStatus === "offline" ? (
               <div className="statusMessage productStatus productStatusInfo">
