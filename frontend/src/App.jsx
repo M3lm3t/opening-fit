@@ -6386,23 +6386,153 @@ function getProfileStyleLabel(data, fitData) {
   );
 }
 
-function getFirstOpeningName(items) {
-  const list = Array.isArray(items) ? items : [];
-  const found = list.find((item) => getOpeningName(item) && !String(getOpeningName(item)).toLowerCase().includes("unknown"));
-  return found ? getOpeningContextTitle(found) : "";
+function getProfileOpeningCandidates(data, fitData) {
+  const recommendations = data?.opening_recommendations || data?.openingRecommendations || {};
+  return uniqueOpeningsByNameAndContext([
+    fitData?.bestOpening,
+    fitData?.weakestOpening,
+    ...(Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : []),
+    ...(Array.isArray(data?.best_openings) ? data.best_openings : []),
+    ...(Array.isArray(data?.bestOpenings) ? data.bestOpenings : []),
+    ...(Array.isArray(data?.top_openings) ? data.top_openings : []),
+    ...(Array.isArray(data?.topOpenings) ? data.topOpenings : []),
+    ...(Array.isArray(data?.weak_openings) ? data.weak_openings : []),
+    ...(Array.isArray(data?.weakOpenings) ? data.weakOpenings : []),
+    ...(Array.isArray(data?.preferred_white) ? normalizeRecommendationSection(data.preferred_white, "played_as_white") : []),
+    ...(Array.isArray(data?.preferredWhite) ? normalizeRecommendationSection(data.preferredWhite, "played_as_white") : []),
+    ...(Array.isArray(data?.preferred_black) ? normalizeRecommendationSection(data.preferred_black, "black_vs_e4") : []),
+    ...(Array.isArray(data?.preferredBlack) ? normalizeRecommendationSection(data.preferredBlack, "black_vs_e4") : []),
+    ...(Array.isArray(recommendations.white_repertoire) ? normalizeRecommendationSection(recommendations.white_repertoire, "played_as_white") : []),
+    ...(Array.isArray(recommendations.whiteDetailed) ? normalizeRecommendationSection(recommendations.whiteDetailed, "played_as_white") : []),
+    ...(Array.isArray(recommendations.black_vs_e4) ? normalizeRecommendationSection(recommendations.black_vs_e4, "black_vs_e4") : []),
+    ...(Array.isArray(recommendations.blackVsE4Detailed) ? normalizeRecommendationSection(recommendations.blackVsE4Detailed, "black_vs_e4") : []),
+    ...(Array.isArray(recommendations.black_vs_d4) ? normalizeRecommendationSection(recommendations.black_vs_d4, "black_vs_d4") : []),
+    ...(Array.isArray(recommendations.blackVsD4Detailed) ? normalizeRecommendationSection(recommendations.blackVsD4Detailed, "black_vs_d4") : []),
+    ...(Array.isArray(recommendations.black_vs_other) ? normalizeRecommendationSection(recommendations.black_vs_other, "black_vs_other") : []),
+    ...(Array.isArray(recommendations.blackVsOtherDetailed) ? normalizeRecommendationSection(recommendations.blackVsOtherDetailed, "black_vs_other") : []),
+  ].filter(Boolean)).filter((opening) => !isUnknownOpeningName(getOpeningName(opening)));
+}
+
+function isReliableProfileOpening(opening) {
+  return Boolean(opening && canTreatAsRepertoireOpening(opening) && getOpeningGames(opening) >= 10);
+}
+
+function verdictLooksLike(opening, data, words = []) {
+  const verdict = String(openingVerdictLabel(opening, data, opening?.fitVerdict || opening?.verdict)).toLowerCase();
+  const raw = String(opening?.fitCategory || opening?.fitVerdict || opening?.verdict || "").toLowerCase();
+  return words.some((word) => verdict.includes(word) || raw.includes(word));
+}
+
+function getPreferredOpening(data, fitData, side) {
+  const context = side === "white" ? "played_as_white" : null;
+  const candidates = getProfileOpeningCandidates(data, fitData)
+    .filter((opening) => {
+      const itemCtx = itemContext(opening, "unknown_mixed");
+      if (side === "white") return itemCtx === context;
+      return BLACK_REPERTOIRE_CONTEXTS.has(itemCtx);
+    })
+    .sort((a, b) => {
+      const gamesDelta = getOpeningGames(b) - getOpeningGames(a);
+      if (gamesDelta) return gamesDelta;
+      return getWinRate(b) - getWinRate(a);
+    });
+
+  return candidates[0] || null;
+}
+
+function getStrongestOpening(data, fitData) {
+  const candidates = getProfileOpeningCandidates(data, fitData)
+    .filter((opening) => {
+      if (!isReliableProfileOpening(opening)) return false;
+      return getWinRate(opening) >= 55 || verdictLooksLike(opening, data, ["keep", "main", "reliable"]);
+    })
+    .sort((a, b) => {
+      const scoreDelta = getWinRate(b) - getWinRate(a);
+      if (scoreDelta) return scoreDelta;
+      const confidenceDelta = confidencePriority(b) - confidencePriority(a);
+      if (confidenceDelta) return confidenceDelta;
+      return getOpeningGames(b) - getOpeningGames(a);
+    });
+
+  return candidates[0] || null;
+}
+
+function getNeedsWorkOpening(data, fitData, usedOpenings = []) {
+  const candidates = getProfileOpeningCandidates(data, fitData)
+    .filter((opening) => {
+      if (!isReliableProfileOpening(opening)) return false;
+      return getWinRate(opening) < 55 || verdictLooksLike(opening, data, ["improve", "avoid", "review", "unstable"]);
+    })
+    .sort((a, b) => {
+      const scoreDelta = getWinRate(a) - getWinRate(b);
+      if (scoreDelta) return scoreDelta;
+      const gamesDelta = getOpeningGames(b) - getOpeningGames(a);
+      if (gamesDelta) return gamesDelta;
+      return confidencePriority(b) - confidencePriority(a);
+    });
+
+  return pickDistinctOpening(candidates, usedOpenings) || null;
+}
+
+function avoidDuplicateProfileInsights({ strongest, needsWork, candidates }) {
+  if (!strongest || !needsWork || !isSameOpeningContext(strongest, needsWork)) {
+    return { strongest, needsWork, needsWorkFallback: "" };
+  }
+
+  const replacement = pickDistinctOpening(
+    candidates
+      .filter((opening) => isReliableProfileOpening(opening))
+      .sort((a, b) => {
+        const scoreDelta = getWinRate(a) - getWinRate(b);
+        if (scoreDelta) return scoreDelta;
+        return getOpeningGames(b) - getOpeningGames(a);
+      }),
+    [strongest]
+  );
+
+  if (replacement) return { strongest, needsWork: replacement, needsWorkFallback: "" };
+
+  const lowerVolume = candidates.some(
+    (opening) =>
+      opening &&
+      !isSameOpeningContext(opening, strongest) &&
+      canTreatAsRepertoireOpening(opening) &&
+      getOpeningGames(opening) > 0 &&
+      getOpeningGames(opening) < 10
+  );
+
+  return {
+    strongest,
+    needsWork: null,
+    needsWorkFallback: lowerVolume ? "Review your lower-volume openings" : "No clear weak opening yet",
+  };
 }
 
 function getProfileOpeningFacts(data, fitData) {
-  const preferredWhite = getFirstOpeningName(data?.preferred_white || data?.preferredWhite);
-  const preferredBlack = getFirstOpeningName(data?.preferred_black || data?.preferredBlack);
-  const strongest = fitData?.bestOpening ? getOpeningContextTitle(fitData.bestOpening) : getFirstOpeningName(data?.best_openings || data?.bestOpenings);
-  const needsWork = fitData?.weakestOpening ? getOpeningContextTitle(fitData.weakestOpening) : "";
+  const candidates = getProfileOpeningCandidates(data, fitData);
+  const preferredWhite = getPreferredOpening(data, fitData, "white");
+  const preferredBlack = getPreferredOpening(data, fitData, "black");
+  const strongestCandidate =
+    getStrongestOpening(data, fitData) ||
+    (isReliableProfileOpening(fitData?.bestOpening) ? fitData.bestOpening : null);
+  const needsWorkCandidate =
+    getNeedsWorkOpening(data, fitData, strongestCandidate ? [strongestCandidate] : []) ||
+    (isReliableProfileOpening(fitData?.weakestOpening) && !isSameOpeningContext(fitData.weakestOpening, strongestCandidate)
+      ? fitData.weakestOpening
+      : null);
+  const deduped = avoidDuplicateProfileInsights({
+    strongest: strongestCandidate,
+    needsWork: needsWorkCandidate,
+    candidates,
+  });
 
   return {
-    preferredWhite: preferredWhite || "Not enough White games yet",
-    preferredBlack: preferredBlack || "Not enough Black games yet",
-    strongest: strongest || "No clear strongest opening yet",
-    needsWork: needsWork || "No clear repair area yet",
+    preferredWhite: preferredWhite ? getOpeningContextTitle(preferredWhite) : "Not enough White games yet",
+    preferredBlack: preferredBlack ? getOpeningContextTitle(preferredBlack) : "Not enough Black games yet",
+    strongest: deduped.strongest ? getOpeningContextTitle(deduped.strongest) : "No clear strongest opening yet",
+    needsWork: deduped.needsWork
+      ? getOpeningContextTitle(deduped.needsWork)
+      : deduped.needsWorkFallback || "Needs more games to identify",
   };
 }
 
