@@ -23,6 +23,12 @@ SLOT_DEFINITIONS = {
 RISK_SCORE = {"low": 1, "medium": 2, "high": 3}
 THEORY_SCORE = {"low": 1, "medium": 2, "high": 3}
 DIFFICULTY_SCORE = {"easy": 1, "medium": 2, "hard": 3}
+CONFIDENCE_LABELS = {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "none": "None",
+}
 
 
 def clamp_score(value: float) -> int:
@@ -292,47 +298,31 @@ def confidence_details_for_recommendation(
     currently_played: bool,
     current_games: int,
 ) -> Dict[str, Any]:
-    sample_size = int(style_fingerprint.get("sample_size") or style_fingerprint.get("sampleSize") or 0)
-    base = str(style_fingerprint.get("confidence") or "low")
-
-    if currently_played and current_games < 5:
-        label = "Too little data"
-        reason = (
-            f"You have only reached this opening {current_games} time"
-            f"{'' if current_games == 1 else 's'}, so OpeningFit cannot judge it properly yet."
-        )
-        tier = "too_little_data"
-    elif currently_played and current_games >= 10 and fit_score >= 70:
-        label = "High confidence"
-        reason = "You have played it regularly, the fit score is strong, and the result pattern is stable enough to trust."
+    if current_games >= 10:
         tier = "high"
-    elif sample_size >= 12 and base in {"medium", "high"} and fit_score >= 72:
-        label = "High confidence"
-        reason = "Your imported games give a stable style fingerprint and this opening matches it strongly."
-        tier = "high"
-    elif currently_played and current_games >= 5 and fit_score >= 58:
-        label = "Medium confidence"
-        reason = "You have a usable sample and the fit is positive, but more games would make the verdict sharper."
+        reason = f"{current_games} games gives OpeningFit a reliable opening-specific sample."
+    elif current_games >= 4:
         tier = "medium"
-    elif sample_size >= 5 and fit_score >= 58:
-        label = "Medium confidence"
-        reason = "This matches your style profile, but it is mostly a suggestion rather than a proven result from your own games."
-        tier = "medium"
-    else:
-        label = "Low confidence"
-        reason = "The style signal is still modest, so treat this as a candidate to test rather than a firm recommendation."
+        reason = f"{current_games} games is enough for an early read, but not a final verdict."
+    elif current_games >= 1:
         tier = "low"
+        reason = (
+            f"{current_games} game{'' if current_games == 1 else 's'} is too small for a hard recommendation."
+        )
+    else:
+        tier = "none"
+        reason = "No games found for this opening, so this is not backed by opening-specific results."
 
     return {
         "tier": tier,
-        "label": label,
+        "label": CONFIDENCE_LABELS[tier],
         "reason": reason,
     }
 
 
 def upgrade_type(stats: Optional[Dict[str, Any]]) -> str:
     if not stats:
-        return "experiment"
+        return "new_recommendation"
 
     games = int(stats.get("games", 0) or 0)
     score = score_for_opening_stats(stats)
@@ -343,6 +333,88 @@ def upgrade_type(stats: Optional[Dict[str, Any]]) -> str:
     if score >= 40:
         return "fix"
     return "replace"
+
+
+def recommendation_verdict(
+    item: OpeningCatalogItem,
+    stats: Optional[Dict[str, Any]],
+    fit_score: int,
+    upgrade: str,
+    confidence_tier: str,
+) -> Dict[str, str]:
+    games = int(stats.get("games", 0) or 0) if stats else 0
+    score = score_for_opening_stats(stats) if stats else None
+    high_load = learning_cost(item) == "high" or risk_level(item) == "high" or item.get("theory_load") == "high"
+
+    if 0 < games <= 3:
+        return {
+            "label": "Too little data",
+            "reason_label": "Too little data",
+            "short_reason": "The game sample is too small for a reliable verdict.",
+            "next_action": "Play 4-6 more games before changing your repertoire.",
+        }
+
+    if upgrade == "replace" or (score is not None and games >= 4 and score < 40):
+        return {
+            "label": "Avoid for now",
+            "reason_label": "Poor results",
+            "short_reason": "Your results are below the level needed for a main opening.",
+            "next_action": "Review the first recurring mistake before trusting this line again.",
+        }
+
+    if high_load and upgrade in {"experiment", "new_recommendation"}:
+        return {
+            "label": "Avoid for now",
+            "reason_label": "Repertoire overload",
+            "short_reason": "The learning load is too high to add casually right now.",
+            "next_action": "Stabilise a simpler core opening first.",
+        }
+
+    if fit_score < 45:
+        return {
+            "label": "Avoid for now",
+            "reason_label": "Style mismatch",
+            "short_reason": "The fit score is weak for your current profile.",
+            "next_action": "Prioritise openings with clearer overlap before testing this.",
+        }
+
+    if upgrade == "fix":
+        return {
+            "label": "Improve",
+            "reason_label": "Needs repair",
+            "short_reason": "The opening is playable, but the result pattern needs work.",
+            "next_action": "Train one repeated branch before adding new theory.",
+        }
+
+    if upgrade == "keep":
+        if confidence_tier == "high" and fit_score >= 65:
+            return {
+                "label": "Keep",
+                "reason_label": "Strong fit",
+                "short_reason": "Results, fit, and sample size all support keeping it.",
+                "next_action": "Keep it in the repertoire and polish the common replies.",
+            }
+        return {
+            "label": "Keep",
+            "reason_label": "Not urgent",
+            "short_reason": "This looks serviceable, but it is not the biggest repair area.",
+            "next_action": "Maintain it while fixing weaker repeat positions first.",
+        }
+
+    if games == 0:
+        return {
+            "label": "Try next",
+            "reason_label": "Too little data",
+            "short_reason": "This is a style/catalog suggestion, not proven by your games yet.",
+            "next_action": "Test it in a small batch before making it a main opening.",
+        }
+
+    return {
+        "label": "Try next",
+        "reason_label": "Strong fit",
+        "short_reason": "The style fit is positive enough to test next.",
+        "next_action": "Try a narrow starter line and review after 4-6 games.",
+    }
 
 
 def reason_for_item(item: OpeningCatalogItem, traits: Dict[str, Any], upgrade: str) -> str:
@@ -369,9 +441,10 @@ def reason_for_item(item: OpeningCatalogItem, traits: Dict[str, Any], upgrade: s
         "fix": "This is close to your style but needs cleaner execution:",
         "replace": "This appears risky for your current results:",
         "experiment": "This is a low-sample style experiment because your games point toward",
+        "new_recommendation": "This is a low-sample style experiment because your games point toward",
     }.get(upgrade, "This opening matches")
 
-    if upgrade == "experiment":
+    if upgrade in {"experiment", "new_recommendation"}:
         return f"{prefix} {', '.join(reasons[:2])}."
     return f"{prefix} it matches {', '.join(reasons[:2])}."
 
@@ -417,6 +490,7 @@ def build_recommendation(
         currently_played,
         current_games,
     )
+    verdict = recommendation_verdict(item, stats, fit_score, upgrade, confidence["tier"])
 
     return {
         "name": item["name"],
@@ -429,6 +503,18 @@ def build_recommendation(
         "confidenceLabel": confidence["label"],
         "confidence_reason": confidence["reason"],
         "confidenceReason": confidence["reason"],
+        "games": current_games,
+        "games_played": current_games,
+        "gamesPlayed": current_games,
+        "recommendation_label": verdict["label"],
+        "recommendationLabel": verdict["label"],
+        "label": verdict["label"],
+        "reason_label": verdict["reason_label"],
+        "reasonLabel": verdict["reason_label"],
+        "short_reason": verdict["short_reason"],
+        "shortReason": verdict["short_reason"],
+        "next_action": verdict["next_action"],
+        "nextAction": verdict["next_action"],
         "reason": reason_for_item(item, traits, upgrade),
         "plan_clarity_status": stats.get("planClarityStatus") if stats else None,
         "planClarityStatus": stats.get("planClarityStatus") if stats else None,
@@ -497,6 +583,14 @@ def balanced_top_recommendations(recommendations: List[Dict[str, Any]], limit: i
         non_gambit = next((item for item in ranked if not is_gambit(item)), None)
         if non_gambit:
             selected[-1] = non_gambit
+
+    played = [item for item in ranked if item.get("currently_played")]
+    if played and selected and not any(item.get("currently_played") for item in selected):
+        replacement_index = next(
+            (index for index in range(len(selected) - 1, -1, -1) if not selected[index].get("currently_played")),
+            len(selected) - 1,
+        )
+        selected[replacement_index] = played[0]
 
     deduped = []
     seen = set()

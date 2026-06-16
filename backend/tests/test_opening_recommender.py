@@ -67,10 +67,13 @@ def test_existing_opening_samples_drive_upgrade_type_without_tiny_sample_overcla
 
     assert italian["currently_played"] is True
     assert italian["upgrade_type"] == "experiment"
-    assert italian["confidence"] == "Too little data"
-    assert "cannot judge" in italian["confidence_reason"]
+    assert italian["confidence"] == "Low"
+    assert italian["recommendation_label"] == "Too little data"
+    assert italian["reason_label"] == "Too little data"
+    assert "too small" in italian["confidence_reason"]
     assert caro["upgrade_type"] == "keep"
-    assert caro["confidence"] in {"Medium confidence", "Low confidence"}
+    assert caro["confidence"] == "Medium"
+    assert caro["recommendation_label"] == "Keep"
     assert french["upgrade_type"] == "replace"
 
 
@@ -84,6 +87,11 @@ def test_output_contains_required_fields_and_slot_groups():
         "fit_score",
         "confidence",
         "confidence_reason",
+        "games",
+        "recommendation_label",
+        "reason_label",
+        "short_reason",
+        "next_action",
         "reason",
         "evidence",
         "learning_cost",

@@ -47,6 +47,16 @@ function getBestLineIndex(lines = [], focusLine = "") {
   return exactIndex >= 0 ? exactIndex : 0;
 }
 
+function hasMatchingLine(lines = [], focusLine = "") {
+  const query = normaliseLineSearch(focusLine);
+  if (!query) return true;
+
+  return lines.some((line) => {
+    const haystack = normaliseLineSearch([line.name, line.moves?.join(" "), line.idea].filter(Boolean).join(" "));
+    return haystack.includes(query) || query.includes(normaliseLineSearch(line.name));
+  });
+}
+
 function formatMoveNumber(index) {
   const moveNumber = Math.floor(index / 2) + 1;
   return index % 2 === 0 ? `${moveNumber}.` : `${moveNumber}...`;
@@ -97,6 +107,27 @@ function inferPracticeSide(pack, line) {
   }
 
   return "white";
+}
+
+function inferPracticeSideFromOpening(opening) {
+  const text = [
+    opening?.practiceSide,
+    opening?.side,
+    opening?.colour,
+    opening?.color,
+    opening?.slotKey,
+    opening?.slotLabel,
+    opening?.context,
+    opening?.contextLabel,
+    opening?.repertoireContext,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (text.includes("black")) return "black";
+  if (text.includes("white")) return "white";
+  return null;
 }
 
 function userColorForPracticeSide(practiceSide) {
@@ -274,7 +305,15 @@ export default function OpeningPracticeLinesPanel({
 
   const selectedLine = pack?.lines?.[selectedLineIndex];
   const moves = useMemo(() => selectedLine?.moves || [], [selectedLine]);
-  const practiceSide = useMemo(() => inferPracticeSide(pack, selectedLine), [pack, selectedLine]);
+  const exactFocusLineFound = useMemo(
+    () => hasMatchingLine(pack?.lines || [], focusLine),
+    [focusLine, pack]
+  );
+  const requestedPracticeSide = useMemo(() => inferPracticeSideFromOpening(opening), [opening]);
+  const practiceSide = useMemo(() => {
+    if (requestedPracticeSide && activeOpeningName === openingName) return requestedPracticeSide;
+    return inferPracticeSide(pack, selectedLine);
+  }, [activeOpeningName, openingName, pack, requestedPracticeSide, selectedLine]);
   const userColor = userColorForPracticeSide(practiceSide);
   const expectedMove = moves[moveIndex];
   const isComplete = Boolean(pack) && moveIndex >= moves.length;
@@ -427,8 +466,8 @@ export default function OpeningPracticeLinesPanel({
           <h3>No exact pack for {openingName} yet</h3>
           <p>
             {focusLine
-              ? `Target weak line: ${focusLine}. Pick a working practice pack below while this exact variation is added.`
-              : "Pick a working practice pack below. These boards are live now and cover common structures while this specific opening is added."}
+              ? `Practice mode is ready for this opening, but no exact move line was found yet. Target line: ${focusLine}.`
+              : "Practice mode is ready for this opening, but no exact move line was found yet."}
           </p>
 
           <div className="supportedOpeningGrid">
@@ -715,6 +754,16 @@ export default function OpeningPracticeLinesPanel({
               {pack.opening.eco ? `${pack.opening.eco} · ` : ""}
               {pack.opening.color} · {pack.opening.difficulty} · {completedLineCount}/{pack.lines.length} lines complete
               {focusLine ? ` · focus: ${focusLine}` : ""}
+            </p>
+          ) : null}
+          <p className="practiceSideInstruction">
+            {practiceSide === "black"
+              ? "You play Black. The board is flipped and White will move first."
+              : "You play White. Follow your recommended opening moves."}
+          </p>
+          {!exactFocusLineFound ? (
+            <p className="practiceMissingLineNotice">
+              Practice mode is ready for this opening, but no exact move line was found yet.
             </p>
           ) : null}
         </div>

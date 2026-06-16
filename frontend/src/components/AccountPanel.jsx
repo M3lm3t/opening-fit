@@ -543,11 +543,11 @@ export default function AccountPanel({ variant = "floating",
           <div className="accountPanelHeader">
             <div>
               <span className="accountEyebrow">Account security</span>
-              <h3>{user ? "Login and connected accounts" : "Create a secure account"}</h3>
+              <h3>{user ? "Account details" : "Create a secure account"}</h3>
               {isScreen ? (
                 <p>
                   {user
-                    ? "Manage how you sign in and which chess usernames are attached to this profile."
+                    ? "Manage sign-in, chess usernames, sync, and account actions."
                     : "Sign in to keep saved reports and chess account details attached to your OpeningFit account."}
                 </p>
               ) : null}
@@ -738,7 +738,7 @@ export default function AccountPanel({ variant = "floating",
             <div className="accountProfileStack">
               <div className="premiumStatusCard">
                 <span>Current access</span>
-                <strong>{hasPremiumAccess ? "Founder Pass active" : "Free plan"}</strong>
+                <strong>{hasPremiumAccess ? "Founder Pass active" : "Free account"}</strong>
                 <small>
                   {hasPremiumAccess
                     ? "Founder Pass access is attached to this account."
@@ -762,12 +762,12 @@ export default function AccountPanel({ variant = "floating",
                     : saving
                       ? "Saving..."
                       : syncStatus === "error"
-                        ? "Save failed — retry"
+                        ? "Save failed - retry"
                         : "Cloud sync active"}
                 </strong>
                 <small>
                   Logged in as {user.email || displayName}. Last saved: {formattedLastSaved}
-                  {syncError ? ` · ${syncError}` : ""}
+                  {syncError ? ` - ${syncError}` : ""}
                 </small>
                 {syncStatus === "error" ? (
                   <button
@@ -894,7 +894,7 @@ export default function AccountPanel({ variant = "floating",
                 </button>
 
                 <button type="button" className="signOutBtn" onClick={signOut}>
-                  Log out
+                  Sign out
                 </button>
               </div>
             </div>

@@ -33,6 +33,7 @@ import WeeklyOpeningReport, { buildWeeklyOpeningSnapshot } from "./components/We
 import OpeningGamificationProgress from "./components/OpeningGamificationProgress";
 import TodayTrainingCard from "./components/TodayTrainingCard";
 import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
+import OpeningFitVerdict from "./components/OpeningFitVerdict";
 import RecommendedOpeningFit from "./components/RecommendedOpeningFit";
 import OpeningInsights from "./components/OpeningInsights";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./components/OpeningEvidence";
@@ -98,6 +99,10 @@ import {
   OpeningNotFoundPage,
   getOpeningPageJsonLd,
 } from "./components/OpeningLandingPage.jsx";
+import ChessOpeningSeoPage, {
+  ChessOpeningNotFoundPage,
+  getChessOpeningPageJsonLd,
+} from "./components/ChessOpeningSeoPage.jsx";
 import {
   GuideNotFoundPage,
   GuidesHubPage,
@@ -116,6 +121,10 @@ import {
   getOpeningSeoPage,
   getOpeningSeoSlugFromPath,
 } from "./data/openingSeoPages.js";
+import {
+  getChessOpeningSeoPage,
+  getChessOpeningSeoSlugFromPath,
+} from "./data/chessOpeningSeoPages.js";
 import {
   getGuideSeoPageFromPath,
   guideHubPage,
@@ -276,7 +285,7 @@ function buildImportOutcome(report, platformLabel) {
     return {
       tone: "warning",
       title: "No recent public games found",
-      message: `We reached ${platformName}, but did not find recent public games to analyse. Check the username, privacy settings, and selected platform, then try again.`,
+      message: "We found the player, but not enough recent games to build a confident report.",
       meta: `${platformName} import`,
     };
   }
@@ -2773,8 +2782,8 @@ function OpeningFitScoreList({ fitData, onPractice }) {
     <section className="card openingFitScoreCard">
       <div className="sectionHeaderSimple">
         <div>
-          <p className="eyebrow">Opening Fit Scores</p>
-          <h2>Opening verdicts</h2>
+          <p className="eyebrow">Repertoire</p>
+          <h2>Your repertoire</h2>
           <p className="muted">
             {publicMode
               ? "Recent online samples only."
@@ -4354,7 +4363,7 @@ function EvidenceTableSection({ data, fitData, isPremium = false, onPractice }) 
     <section className="evidenceTableSection finalReportBlock" id="evidence-table">
       <div className="commandPanelHeader">
         <p className="eyebrow">Evidence table</p>
-        <h2>Opening evidence behind the verdict</h2>
+        <h2>Recent games and data</h2>
         <p>Opening, colour/context, games, score, confidence, and verdict in one scannable table.</p>
       </div>
 
@@ -5417,6 +5426,18 @@ function ReportOpeningFilters({ filters, onFiltersChange, data }) {
   );
 }
 
+function ReportSectionGroup({ id, eyebrow, title, children }) {
+  return (
+    <section className="reportSectionGroup" id={id} aria-labelledby={`${id}-title`}>
+      <div className="reportSectionGroupHeader">
+        {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
+        <h2 id={`${id}-title`}>{title}</h2>
+      </div>
+      <div className="reportSectionGroupBody">{children}</div>
+    </section>
+  );
+}
+
 function FinalReportFlow({
   data,
   fitData,
@@ -5463,99 +5484,111 @@ function FinalReportFlow({
         onUpgrade={() => onNavigate?.("premium")}
       />
 
-      <OpeningInsights data={data} onPractice={onPractice} />
+      <ReportSectionGroup id="report-verdict" eyebrow="Verdict" title="Your verdict">
+        <CurrentReportSummary
+          data={data}
+          fitData={fitData}
+          onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
+          reportMode={reportMode}
+          onReportModeChange={setReportMode}
+        />
+        <OpeningFitVerdict data={data} fitData={fitData} onPractice={onPractice} />
+        <NextBestTrainingActionCard
+          data={data}
+          fitData={fitData}
+          onStartTraining={() => {
+            onNavigate?.({
+              view: "train",
+              path: "/train",
+              target: "today-training",
+              fallbackIds: ["training-plan", "opening-practice"],
+            });
+          }}
+        />
+      </ReportSectionGroup>
 
       {showFullReport ? (
         <>
-          <CurrentReportSummary
-            data={data}
-            fitData={fitData}
-            onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
-            reportMode={reportMode}
-            onReportModeChange={setReportMode}
-          />
+          <ReportSectionGroup id="report-repertoire" eyebrow="Repertoire" title="Your repertoire">
+            <OpeningFitScoreList fitData={fitData} onPractice={onPractice} />
+            <RecommendedOpeningFit data={data} onPractice={onPractice} />
+            <FullReportHighlights data={data} fitData={fitData} onPractice={onPractice} />
+            <RepertoireCommandPanel data={data} onPractice={onPractice} />
+            <RepertoireMap data={data} />
+          </ReportSectionGroup>
 
-          <NextBestTrainingActionCard
-            data={data}
-            fitData={fitData}
-            onStartTraining={() => {
-              onNavigate?.({
-                view: "train",
-                path: "/train",
-                target: "today-training",
-                fallbackIds: ["training-plan", "opening-practice"],
-              });
-            }}
-          />
+          <ReportSectionGroup id="report-fixes" eyebrow="Weaknesses" title="What to fix">
+            <OpeningInsights data={data} onPractice={onPractice} />
+            <OpeningHealthScore data={data} fitData={fitData} history={reportHistory} />
+            <WeakSpotsCommandPanel
+              data={data}
+              fitData={fitData}
+              onPractice={onPractice}
+              onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
+            />
+            <InterestingThinDataSection data={data} fitData={fitData} />
+          </ReportSectionGroup>
 
-          <OpeningFitScoreList fitData={fitData} onPractice={onPractice} />
-          <RecommendedOpeningFit data={data} />
-          <OpeningHealthScore data={data} fitData={fitData} history={reportHistory} />
-          <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
-          <MobileReportQuickGuide
-            data={data}
-            fitData={fitData}
-            onPractice={onPractice}
-            onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
-          />
-          <AnalysisNextStepsPanel
-            data={data}
-            fitData={fitData}
-            onPractice={onPractice}
-            onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
-          />
-          <WeakSpotsCommandPanel
-            data={data}
-            fitData={fitData}
-            onPractice={onPractice}
-            onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
-          />
-          <ReportTrainingPreview
-            data={data}
-            fitData={fitData}
-            studyTarget={studyTarget}
-            recentGames={recentGames}
-            onPractice={onPractice}
-            onNavigate={onNavigate}
-          />
-          <FullReportHighlights data={data} fitData={fitData} onPractice={onPractice} />
-          <RepertoireCommandPanel data={data} onPractice={onPractice} />
-          <RepertoireMap data={data} />
-          <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
-          <InterestingThinDataSection data={data} fitData={fitData} />
-          <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
-          <ImportQualitySummary data={data} />
-          <WeeklyOpeningReport
-            data={data}
-            savedHistory={
-              openingFitUserState
-                .flatMap((row) => row?.coach_progress?.weeklyOpeningSnapshots || [])
-                .filter(Boolean)
-            }
-          />
-          <OpeningGamificationProgress
-            data={data}
-            fitData={fitData}
-            savedProgress={
-              openingFitUserState
-                .map((row) => row?.coach_progress?.openingGamification || null)
-                .filter(Boolean)[0] || null
-            }
-          />
-          <ComeBackAfterPlayingPrompt
-            data={data}
-            fitData={fitData}
-            onAnalyse={() => onNavigate?.("analyse") || onViewChange?.("analyse")}
-          />
+          <ReportSectionGroup id="report-training-plan" eyebrow="Training" title="Training plan">
+            <MobileReportQuickGuide
+              data={data}
+              fitData={fitData}
+              onPractice={onPractice}
+              onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
+            />
+            <AnalysisNextStepsPanel
+              data={data}
+              fitData={fitData}
+              onPractice={onPractice}
+              onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
+            />
+            <ReportTrainingPreview
+              data={data}
+              fitData={fitData}
+              studyTarget={studyTarget}
+              recentGames={recentGames}
+              onPractice={onPractice}
+              onNavigate={onNavigate}
+            />
+            <WeeklyOpeningReport
+              data={data}
+              savedHistory={
+                openingFitUserState
+                  .flatMap((row) => row?.coach_progress?.weeklyOpeningSnapshots || [])
+                  .filter(Boolean)
+              }
+            />
+            <OpeningGamificationProgress
+              data={data}
+              fitData={fitData}
+              savedProgress={
+                openingFitUserState
+                  .map((row) => row?.coach_progress?.openingGamification || null)
+                  .filter(Boolean)[0] || null
+              }
+            />
+            <ComeBackAfterPlayingPrompt
+              data={data}
+              fitData={fitData}
+              onAnalyse={() => onNavigate?.("analyse") || onViewChange?.("analyse")}
+            />
+          </ReportSectionGroup>
+
+          <ReportSectionGroup id="report-recent-games" eyebrow="Games/Data" title="Recent games">
+            <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
+            <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
+            <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
+            <ImportQualitySummary data={data} />
+          </ReportSectionGroup>
         </>
       ) : null}
 
       {showOpeningTable ? (
-        <>
+        <ReportSectionGroup id="report-recent-games" eyebrow="Games/Data" title="Recent games">
           <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
           <OpeningFitScoreList fitData={fitData} onPractice={onPractice} />
           <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
-        </>
+        </ReportSectionGroup>
       ) : null}
 
       <ReportExportAndHistory
@@ -5577,15 +5610,15 @@ function NextBestTrainingActionCard({ data, fitData, onStartTraining }) {
   return (
     <section className="nextBestTrainingAction" aria-label="Your next best training action">
       <div>
-        <p className="eyebrow">Your Next Best Action</p>
-        <h2>We found the best thing for you to train next.</h2>
+        <p className="eyebrow">Primary next action</p>
+        <h2>{action.opening ? "Start today's opening practice" : "Review your recommended repertoire"}</h2>
         <p>
           <strong>{action.opening}</strong>
           {action.variation ? ` · ${action.variation}` : ""}. {action.reason}. {action.why}
         </p>
       </div>
       <button type="button" onClick={() => onStartTraining?.(action)}>
-        Start Training
+        {action.opening ? "Start today's opening practice" : "Review your recommended repertoire"}
       </button>
     </section>
   );
@@ -5606,7 +5639,7 @@ function ReportTrainingPreview({ data, fitData, studyTarget, recentGames = [], o
     <section className="reportTrainingPreview" id="report-training-preview" aria-label="Training and replay preview">
       <div className="commandPanelHeader">
         <p className="eyebrow">Train next</p>
-        <h2>Turn the report into one study session</h2>
+        <h2>Training plan</h2>
         <p>Practice the main target first. Replay and raw game details are available after the advice.</p>
       </div>
 
@@ -5731,7 +5764,7 @@ function FullReportHighlights({ data, fitData, onPractice }) {
     <section className="fullReportHighlights finalReportBlock" id="full-report-highlights">
       <div className="commandPanelHeader">
         <p className="eyebrow">Opening verdicts</p>
-        <h2>Keep, improve, and avoid decisions</h2>
+        <h2>Your repertoire</h2>
         <p>The clearest keep, improve, and avoid verdicts.</p>
       </div>
 
@@ -6001,17 +6034,19 @@ function CurrentReportSummary({
           <p>{nextBestMove}</p>
         </div>
 
-        <div className="nextBestMoveActions">
-          <button type="button" className="primaryBtn" onClick={() => chooseReportMode("table")}>
-            View evidence
-          </button>
-          <button type="button" className="secondaryBtn" onClick={() => onViewChange?.("training")}>
-            Start training
-          </button>
-          <button type="button" className="secondaryBtn" onClick={() => chooseReportMode("full")}>
-            Compare options
-          </button>
-        </div>
+        {reportMode !== "summary" ? (
+          <div className="nextBestMoveActions">
+            <button type="button" className="primaryBtn" onClick={() => chooseReportMode("table")}>
+              View evidence
+            </button>
+            <button type="button" className="secondaryBtn" onClick={() => onViewChange?.("training")}>
+              Start today's opening practice
+            </button>
+            <button type="button" className="secondaryBtn" onClick={() => chooseReportMode("full")}>
+              Review your recommended repertoire
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <ol className="commandCentreActions" aria-label="Top three actions">
@@ -6606,9 +6641,8 @@ function buildPlayerSummary(data, fitData) {
 
 function getProfilePlanLabel({ isPremium, isPremiumPreview, accountUser }) {
   if (isPremium) return "Founder Pass active";
-  if (isPremiumPreview) return "Premium preview";
-  if (accountUser) return "Free plan";
-  return "Local profile";
+  if (isPremiumPreview) return "Premium active";
+  return accountUser ? "Free account" : "Free account";
 }
 
 function buildProfileInsights(data, fitData) {
@@ -6709,21 +6743,32 @@ function ProfileSummaryCard({
   onAnalyse,
   onOpenReport,
 }) {
+  const hasReport = Boolean(data);
   const playerIdentity = getPlayerIdentity(data, username);
-  const platformLabel = getProfilePlatformLabel(data, platform);
+  const platformLabel = hasReport || username ? getProfilePlatformLabel(data, platform) : "No saved report yet";
   const planLabel = getProfilePlanLabel({ isPremium, isPremiumPreview, accountUser });
   const analysedAt = getProfileImportDate(data);
   const games = getProfileGameCount(data);
-  const score = fitData?.overallScore ?? data?.openingFitScore ?? data?.opening_fit_score ?? null;
-  const platformUsername = formatProfileUsername(playerIdentity.username);
+  const facts = getProfileOpeningFacts(data, fitData);
+  const rating = hasReport ? getProfileRating(data) : 0;
+  const displayName = hasReport ? playerIdentity.displayName || "Name not available" : "Name not available";
+  const platformUsername =
+    hasReport || username ? formatProfileUsername(playerIdentity.username) || "No saved report yet" : "No saved report yet";
+  const styleLabel = hasReport ? getProfileStyleLabel(data, fitData) : "Analyse a username to build your profile";
+  const mainWhite = hasReport ? facts.preferredWhite : "No saved report yet";
+  const mainBlack = hasReport ? facts.preferredBlack : "No saved report yet";
+  const lastAnalysed = hasReport ? formatProfileDate(analysedAt) : "No saved report yet";
+  const gamesLabel = hasReport ? `${games || "No"} games analysed` : "Analyse a username to build your profile";
 
   return (
-    <section className="profileHeroDashboard">
+    <section className="profileHeroDashboard profileChessIdentityHero">
       <div className="profileHeroCopy">
-        <p className="eyebrow">Profile</p>
-        <h1>Your OpeningFit Profile</h1>
+        <p className="eyebrow">Chess identity</p>
+        <h1>{displayName}</h1>
         <p>
-          A practical snapshot of what OpeningFit knows about your chess, what you have saved, and what to do next.
+          {hasReport
+            ? "Your saved chess profile: style, repertoire anchors, and latest report status."
+            : "Analyse a username to build your profile."}
         </p>
         <div className="profileHeroActions">
           <button type="button" className="primaryBtn" onClick={onAnalyse}>
@@ -6739,24 +6784,53 @@ function ProfileSummaryCard({
 
       <div className="profileHeroMetaGrid">
         <article>
-          <span>{platformLabel} username</span>
-          <PlayerIdentity identity={playerIdentity} platformLabel={platformLabel} />
-          {platformUsername ? <small className="profilePlatformUsername">{platformUsername}</small> : null}
+          <span>Username / gamertag</span>
+          {hasReport ? (
+            <>
+              <PlayerIdentity identity={playerIdentity} platformLabel={platformLabel} />
+              <small className="profilePlatformUsername">{platformUsername}</small>
+            </>
+          ) : (
+            <>
+              <strong>{platformUsername}</strong>
+              <small>Analyse a username to build your profile</small>
+            </>
+          )}
         </article>
         <article>
-          <span>Last analysed</span>
-          <strong>{formatProfileDate(analysedAt)}</strong>
-          <small>{games || "No"} games analysed</small>
+          <span>Platform</span>
+          <strong>{platformLabel}</strong>
+          <small>{hasReport ? "Imported account" : "No saved report yet"}</small>
         </article>
         <article>
-          <span>Plan</span>
+          <span>Rating</span>
+          <strong>{rating ? rating : hasReport ? "Not available" : "No saved report yet"}</strong>
+          <small>{hasReport ? "Latest detected rating" : "Analyse a username to build your profile"}</small>
+        </article>
+        <article>
+          <span>Main playing style</span>
+          <strong>{styleLabel}</strong>
+          <small>{hasReport ? "Based on recent games" : "No saved report yet"}</small>
+        </article>
+        <article>
+          <span>Main White opening</span>
+          <strong>{mainWhite}</strong>
+          <small>{hasReport ? "Most useful White signal" : "No saved report yet"}</small>
+        </article>
+        <article>
+          <span>Main Black opening</span>
+          <strong>{mainBlack}</strong>
+          <small>{hasReport ? "Most useful Black signal" : "No saved report yet"}</small>
+        </article>
+        <article>
+          <span>Premium status</span>
           <strong>{planLabel}</strong>
           <small>{accountUser?.email ? "Signed in" : "Browser profile"}</small>
         </article>
         <article>
-          <span>Opening Fit</span>
-          <strong>{score !== null && score !== undefined ? `${Math.round(Number(score)) || score}/100` : "Pending"}</strong>
-          <small>{getProfileStyleLabel(data, fitData)}</small>
+          <span>Last analysed</span>
+          <strong>{lastAnalysed}</strong>
+          <small>{gamesLabel}</small>
         </article>
       </div>
     </section>
@@ -7669,53 +7743,44 @@ function OpeningFitProfileDashboard({
     accountUser?.user_metadata?.chess_username ||
     accountUser?.user_metadata?.preferred_username ||
     "";
-  const connectedPlatform = getProfilePlatformLabel({ platform }, platform);
-  const connectedHandle = formatProfileUsername(connectedUsername);
   const currentPath = getCurrentPath();
   const shouldOpenAccountDetails = currentPath === "/login" || currentPath === "/account";
 
   if (!data) {
     return (
       <div className="profileDashboard profileDashboardNoReport">
-      <section className="profileNoReportState">
-        <p className="eyebrow">Profile</p>
-        <h1>{connectedUsername ? `${connectedUsername}'s opening profile` : "Let's build your opening profile."}</h1>
-        <p>
-          {connectedUsername
-            ? `Connected to ${connectedPlatform}. Analyse recent games to load the full profile.`
-            : "We'll study your games and suggest openings that match your style."}
-        </p>
-        {connectedUsername ? (
-          <div className="profileNoReportIdentity">
-            <span>{connectedPlatform} username</span>
-            <strong>{connectedHandle || connectedUsername}</strong>
-          </div>
-        ) : null}
-        <button className="primaryBtn" type="button" onClick={onAnalyse}>
-          Analyse Username
-        </button>
-      </section>
-
-        <ProfileDisclosure eyebrow="Saved reports" title="Report history">
-          <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
-        </ProfileDisclosure>
+        <ProfileSummaryCard
+          data={null}
+          fitData={fitData}
+          accountUser={accountUser}
+          username={connectedUsername}
+          platform={platform}
+          isPremium={isPremium}
+          isPremiumPreview={isPremiumPreview}
+          onAnalyse={onAnalyse}
+          onOpenReport={onOpenReport}
+        />
 
         <details className="profileSecondaryDetails" open={shouldOpenAccountDetails || undefined}>
           <summary>
-            <span>Account and membership</span>
-            <strong>{accountUser?.email ? "Signed in" : "Login, sync, and Founder Pass"}</strong>
+            <span>Account and settings</span>
+            <strong>{accountUser?.email ? "Signed in" : "Login, sync, saved reports, and Founder Pass"}</strong>
           </summary>
-          <div className="profileDashboardGrid profileAccountPremiumGrid">
-            <section className="profileDashboardCard profileAccountCard" id="profile-account">
-              <span className="profileLoginAnchor" id="login" aria-hidden="true" />
-              <div className="profileCardHeader">
-                <p className="eyebrow">Account security</p>
-                <h2>Account settings</h2>
-              </div>
-              <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
-            </section>
+          <div className="profileDashboardSecondaryStack">
+            <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
 
-            <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
+            <div className="profileDashboardGrid profileAccountPremiumGrid">
+              <section className="profileDashboardCard profileAccountCard" id="profile-account">
+                <span className="profileLoginAnchor" id="login" aria-hidden="true" />
+                <div className="profileCardHeader">
+                  <p className="eyebrow">Account security</p>
+                  <h2>Settings and sync</h2>
+                </div>
+                <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
+              </section>
+
+              <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
+            </div>
           </div>
         </details>
 
@@ -7772,10 +7837,6 @@ function OpeningFitProfileDashboard({
         onOpenReport={onOpenReport}
       />
 
-      <ProfileDisclosure eyebrow="Saved reports" title="Report history">
-        <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
-      </ProfileDisclosure>
-
       <div className="profileDashboardGrid profileDashboardSingleGrid">
         <ChessProfileCard data={data} fitData={fitData} />
       </div>
@@ -7825,10 +7886,12 @@ function OpeningFitProfileDashboard({
 
       <details className="profileSecondaryDetails" open={shouldOpenAccountDetails || undefined}>
         <summary>
-          <span>More profile settings</span>
-          <strong>Account, membership, and milestones</strong>
+          <span>Account and settings</span>
+          <strong>Sync, saved reports, settings, and membership</strong>
         </summary>
         <div className="profileDashboardSecondaryStack">
+          <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
+
           <ProfileAchievementsCard data={data} fitData={fitData} isPremium={isPremium} />
 
           <div className="profileDashboardGrid profileAccountPremiumGrid">
@@ -7836,7 +7899,7 @@ function OpeningFitProfileDashboard({
               <span className="profileLoginAnchor" id="login" aria-hidden="true" />
               <div className="profileCardHeader">
                 <p className="eyebrow">Account security</p>
-                <h2>Account settings</h2>
+                <h2>Settings and sync</h2>
               </div>
               <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
             </section>
@@ -8274,7 +8337,7 @@ function RepertoireCommandPanel({ data, onPractice }) {
     <section className="commandPanel" id="recommended-repertoire">
       <div className="commandPanelHeader">
         <p className="eyebrow">Recommended repertoire</p>
-        <h2>What to play by colour</h2>
+        <h2>Your repertoire</h2>
         <p>Only roles with useful evidence are expanded. Empty roles stay out of the way until your games create a signal.</p>
       </div>
 
@@ -8738,7 +8801,7 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
     <section className="commandPanel weakLinesSection" id="weak-lines">
       <div className="commandPanelHeader">
         <p className="eyebrow">Weak lines</p>
-        <h2>Specific variations causing trouble</h2>
+        <h2>What to fix</h2>
         <p>
           Repeated variations worth reviewing before blaming the whole opening.
         </p>
@@ -9574,10 +9637,10 @@ function AccountSyncStatusBar({
       detail = "Saving...";
       tone = "saving";
     } else if (syncStatus === "error") {
-      detail = syncError || "Save failed — retry";
+      detail = syncError || "Save failed - retry";
       tone = "error";
     } else {
-      detail = savedTime ? `Cloud sync active · Saved ${savedTime}` : "Cloud sync active · Saved";
+      detail = savedTime ? `Cloud sync active - Saved ${savedTime}` : "Cloud sync active - Saved";
       tone = "synced";
     }
   }
@@ -9662,7 +9725,7 @@ function AccountSyncStatusBar({
         <dl className="accountSyncMeta">
           <div>
             <dt>Access</dt>
-            <dd>{hasPremiumAccess ? "Founder Pass active" : "Free plan"}</dd>
+            <dd>{hasPremiumAccess ? "Founder Pass active" : "Free account"}</dd>
           </div>
           <div>
             <dt>Cloud save</dt>
@@ -12481,8 +12544,30 @@ function App() {
     const lower = String(errorText).toLowerCase();
     const platformLabel = platforms[selectedPlatformKey]?.label || "the selected platform";
 
+    if (
+      lower.includes("failed to fetch") ||
+      lower.includes("networkerror") ||
+      lower.includes("connection refused") ||
+      lower.includes("could not connect") ||
+      lower.includes("load failed") ||
+      lower.includes("500") ||
+      lower.includes("502") ||
+      lower.includes("503") ||
+      lower.includes("504")
+    ) {
+      return "We could not reach the import server right now. Please try again in a minute.";
+    }
+
+    if (lower.includes("no games") || lower.includes("not enough games")) {
+      return "We found the player, but not enough recent games to build a confident report.";
+    }
+
+    if (lower.includes("not found") || lower.includes("could not find") || lower.includes("404")) {
+      return "Please check the username and platform.";
+    }
+
     if (lower.includes("timeout") || lower.includes("too long")) {
-      return "The import took too long. Please try fewer months or try again.";
+      return "We could not reach the import server right now. Please try again in a minute.";
     }
 
     if (lower.includes("abort") || lower.includes("cancel")) {
@@ -13005,10 +13090,10 @@ function App() {
     handleAppNavigate({ ...route, target: targetId });
   };
 
-  const startOpeningPractice = (openingName) => {
-    if (!openingName) return;
+  const startOpeningPractice = (openingTarget) => {
+    if (!openingTarget) return;
 
-    setPracticeOpening(openingName);
+    setPracticeOpening(openingTarget);
     scrollToId("opening-practice");
   };
 
@@ -13091,9 +13176,7 @@ function App() {
     };
 
     setLoading(true);
-    setLoadingStep(
-      `Finding your recent ${platforms[selectedPlatformKey]?.label || "chess"} games...`
-    );
+    setLoadingStep("Finding your games...");
     setError("");
     setImportStatus({
       tone: "info",
@@ -13139,11 +13222,7 @@ function App() {
         hasPremiumAccess: isPremium,
       });
 
-      setLoadingStep(
-        isPremium
-          ? `Fetching up to 12 months of ${selectedPlatform.label} games...`
-          : `Fetching your recent ${selectedPlatform.label} games...`
-      );
+      setLoadingStep("Finding your games...");
 
       const importResult = await importGamesFromApi({
         platform: selectedPlatform.apiPath,
@@ -13168,10 +13247,10 @@ function App() {
       });
 
       try {
-      setLoadingStep("Detecting openings...");
+      setLoadingStep("Grouping your openings...");
       await new Promise((resolve) => setTimeout(resolve, 250));
 
-      setLoadingStep("Building style profile...");
+      setLoadingStep("Checking what fits your results...");
       await new Promise((resolve) => setTimeout(resolve, 250));
 
       const normalizedImportData = normaliseData(json);
@@ -13200,7 +13279,7 @@ function App() {
         return;
       }
 
-      setLoadingStep("Comparing openings...");
+      setLoadingStep("Building your report...");
       await new Promise((resolve) => setTimeout(resolve, 180));
       const reportRetentionKey = buildReportRetentionKey(cleanData, {
         username: cleanUsername,
@@ -13250,7 +13329,7 @@ function App() {
         { dedupeKey: importSessionKey }
       );
 
-      setLoadingStep("Preparing results...");
+      setLoadingStep("Building your report...");
 
       rememberLandingSeen({ keepPublicLanding: false });
       setActiveView("report");
@@ -14059,12 +14138,15 @@ function App() {
   }, [hasReport]);
 
   const currentPath = getCurrentPath();
+  const chessOpeningSlug = getChessOpeningSeoSlugFromPath(currentPath);
+  const chessOpeningSeoPage = chessOpeningSlug ? getChessOpeningSeoPage(chessOpeningSlug) : null;
   const openingSlug = getOpeningSeoSlugFromPath(currentPath);
   const openingSeoPage = openingSlug ? getOpeningSeoPage(openingSlug) : null;
   const isOpeningHub = currentPath === "/openings";
   const isGuidesHub = currentPath === "/guides";
   const guideSeoPage = getGuideSeoPageFromPath(currentPath);
   const isUnknownGuidePath = /^\/guides\/[^/]+$/.test(currentPath) && !guideSeoPage;
+  const isUnknownChessOpeningPath = Boolean(chessOpeningSlug && !chessOpeningSeoPage);
   const isUnknownOpeningPath = Boolean(openingSlug && !openingSeoPage);
   const seoPage = SEO_PAGES[currentPath] || null;
   const seoData = useMemo(() => {
@@ -14092,6 +14174,24 @@ function App() {
         description: "This OpeningFit chess opening guide has not been published yet.",
         path: currentPath,
         url: `${SITE_URL}/guides`,
+      };
+    }
+
+    if (chessOpeningSeoPage) {
+      return {
+        title: `${chessOpeningSeoPage.name}: does it fit your chess style? | OpeningFit`,
+        description: chessOpeningSeoPage.description,
+        path: currentPath,
+        url: `${SITE_URL}${currentPath}`,
+      };
+    }
+
+    if (isUnknownChessOpeningPath) {
+      return {
+        title: "Opening guide not found | OpeningFit",
+        description: "This OpeningFit chess opening guide has not been published yet.",
+        path: currentPath,
+        url: `${SITE_URL}/chess-openings/vienna-game`,
       };
     }
 
@@ -14124,16 +14224,33 @@ function App() {
     }
 
     return getSeoData(currentPath);
-  }, [currentPath, guideSeoPage, isGuidesHub, isOpeningHub, isUnknownGuidePath, isUnknownOpeningPath, openingSeoPage]);
-  const shouldNoindex = isPrivateSeoPath(currentPath) || isUnknownGuidePath || isUnknownOpeningPath || (currentPath === "/" && hasReport);
+  }, [
+    chessOpeningSeoPage,
+    currentPath,
+    guideSeoPage,
+    isGuidesHub,
+    isOpeningHub,
+    isUnknownChessOpeningPath,
+    isUnknownGuidePath,
+    isUnknownOpeningPath,
+    openingSeoPage,
+  ]);
+  const shouldNoindex =
+    isPrivateSeoPath(currentPath) ||
+    isUnknownGuidePath ||
+    isUnknownChessOpeningPath ||
+    isUnknownOpeningPath ||
+    (currentPath === "/" && hasReport);
   const canonicalUrl =
     isUnknownGuidePath
       ? `${SITE_URL}/guides`
-      : isUnknownOpeningPath
-        ? `${SITE_URL}/openings`
-        : shouldNoindex
-          ? `${SITE_URL}/`
-          : seoData.url;
+      : isUnknownChessOpeningPath
+        ? `${SITE_URL}/chess-openings/vienna-game`
+        : isUnknownOpeningPath
+          ? `${SITE_URL}/openings`
+          : shouldNoindex
+            ? `${SITE_URL}/`
+            : seoData.url;
 
   useEffect(() => {
     document.title = seoData.title;
@@ -14160,7 +14277,7 @@ function App() {
     });
     setMetaAttribute('meta[property="og:type"]', {
       property: "og:type",
-      content: openingSeoPage || guideSeoPage ? "article" : "website",
+      content: chessOpeningSeoPage || openingSeoPage || guideSeoPage ? "article" : "website",
     });
     setMetaAttribute('meta[property="og:site_name"]', {
       property: "og:site_name",
@@ -14198,7 +14315,11 @@ function App() {
     const existingJsonLd = document.getElementById("seo-route-jsonld");
     if (existingJsonLd) existingJsonLd.remove();
 
-    const jsonLd = openingSeoPage ? getOpeningPageJsonLd(openingSeoPage, seoData.url) : getSeoJsonLd(seoData);
+    const jsonLd = chessOpeningSeoPage
+      ? getChessOpeningPageJsonLd(chessOpeningSeoPage, seoData.url)
+      : openingSeoPage
+        ? getOpeningPageJsonLd(openingSeoPage, seoData.url)
+        : getSeoJsonLd(seoData);
     if (jsonLd && !shouldNoindex) {
       const script = document.createElement("script");
       script.id = "seo-route-jsonld";
@@ -14206,7 +14327,7 @@ function App() {
       script.textContent = JSON.stringify(jsonLd);
       document.head.appendChild(script);
     }
-  }, [canonicalUrl, currentPath, guideSeoPage, openingSeoPage, seoData, shouldNoindex]);
+  }, [canonicalUrl, chessOpeningSeoPage, currentPath, guideSeoPage, openingSeoPage, seoData, shouldNoindex]);
 
   useEffect(() => {
     const openAccountPage = () => {
@@ -14242,6 +14363,14 @@ function App() {
 
   if (isUnknownGuidePath) {
     return <GuideNotFoundPage ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+  }
+
+  if (chessOpeningSeoPage) {
+    return <ChessOpeningSeoPage opening={chessOpeningSeoPage} ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+  }
+
+  if (isUnknownChessOpeningPath) {
+    return <ChessOpeningNotFoundPage ThemeToggle={ThemeToggle} Analytics={Analytics} />;
   }
 
   if (isOpeningHub) {
@@ -14499,8 +14628,14 @@ function App() {
                   }
                 />
                 <small className="heroUsernameHelp">
-                  Enter a public username. OpeningFit reads recent games and returns one opening-focused next step.
+                  Enter a public Chess.com or Lichess username. OpeningFit analyses your recent games and builds an opening report.
                 </small>
+                <div className="usernameTrustStrip" aria-label="Username import trust notes">
+                  <span>No password needed</span>
+                  <span>Uses public Chess.com/Lichess games</span>
+                  <span>No account required for your first report</span>
+                  <span>Works best with recent rapid or blitz games</span>
+                </div>
               </label>
 
               <div className="appActionButtons">

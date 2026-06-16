@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import InfoHint from "./InfoHint";
 import { OPENING_COPY, getOpeningRecommendationReason } from "./openingCopy";
+import RecommendationReasonHint, { recommendationReasonDetails } from "./RecommendationReasonHint";
 import "./RecommendedOpeningFit.css";
 
 const TRAIT_CONFIG = [
@@ -56,10 +57,38 @@ function openingName(item) {
   return item?.name || item?.opening || "Recommended opening";
 }
 
+function displayValue(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== "") ?? null;
+}
+
 function titleCase(value) {
   return String(value || "")
     .replace(/_/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function confidenceFromGames(games) {
+  if (games >= 10) return "High";
+  if (games >= 4) return "Medium";
+  if (games >= 1) return "Low";
+  return "None";
+}
+
+function fallbackVerdictLabel(tone, item, games) {
+  const upgrade = String(item.upgrade_type || item.upgradeType || "").toLowerCase();
+  if (games > 0 && games <= 3) return "Too little data";
+  if (tone === "delay" || upgrade === "replace" || upgrade === "avoid") return "Avoid for now";
+  if (tone === "try" || upgrade === "new_recommendation" || upgrade === "experiment") return "Try next";
+  if (upgrade === "fix") return "Improve";
+  return "Keep";
+}
+
+function fallbackReasonLabel(verdictLabel) {
+  if (verdictLabel === "Too little data") return "Too little data";
+  if (verdictLabel === "Avoid for now") return "Not urgent";
+  if (verdictLabel === "Improve") return "Needs repair";
+  if (verdictLabel === "Try next") return "Too little data";
+  return "Strong fit";
 }
 
 function getStyleFingerprint(data) {
@@ -98,20 +127,27 @@ function getRecommendedGroups(data) {
 function getAllRecommendations(data) {
   const groups = getRecommendedGroups(data);
   const modern = [
-    ...groups.white.map((item) => ({ ...item, slotLabel: "White repertoire" })),
-    ...groups.blackVsE4.map((item) => ({ ...item, slotLabel: "Black vs 1.e4" })),
-    ...groups.blackVsD4.map((item) => ({ ...item, slotLabel: "Black vs 1.d4" })),
+    ...groups.white.map((item) => ({ ...item, slotLabel: "White repertoire", slotKey: "white" })),
+    ...groups.blackVsE4.map((item) => ({ ...item, slotLabel: "Black vs 1.e4", slotKey: "black_vs_e4" })),
+    ...groups.blackVsD4.map((item) => ({ ...item, slotLabel: "Black vs 1.d4", slotKey: "black_vs_d4" })),
   ];
   if (modern.length) return modern;
 
   const legacy = data?.opening_recommendations || data?.openingRecommendations || {};
   return [
-    ...asArray(legacy.white_repertoire || legacy.whiteDetailed).map((item) => ({ ...item, slotLabel: "White repertoire", currently_played: true, upgrade_type: "fix" })),
-    ...asArray(legacy.black_vs_e4 || legacy.blackVsE4Detailed).map((item) => ({ ...item, slotLabel: "Black vs 1.e4", upgrade_type: "experiment" })),
-    ...asArray(legacy.black_vs_d4 || legacy.blackVsD4Detailed).map((item) => ({ ...item, slotLabel: "Black vs 1.d4", upgrade_type: "experiment" })),
+    ...asArray(legacy.white_repertoire || legacy.whiteDetailed).map((item) => ({ ...item, slotLabel: "White repertoire", slotKey: "white", currently_played: true, upgrade_type: "fix" })),
+    ...asArray(legacy.black_vs_e4 || legacy.blackVsE4Detailed).map((item) => ({ ...item, slotLabel: "Black vs 1.e4", slotKey: "black_vs_e4", upgrade_type: "experiment" })),
+    ...asArray(legacy.black_vs_d4 || legacy.blackVsD4Detailed).map((item) => ({ ...item, slotLabel: "Black vs 1.d4", slotKey: "black_vs_d4", upgrade_type: "experiment" })),
+    ...asArray(legacy.black_vs_other || legacy.blackVsOtherDetailed || legacy.blackVsD4Other).map((item) => ({
+      ...item,
+      slotLabel: "Black vs 1.d4 / 1.c4 / 1.Nf3",
+      slotKey: "black_vs_d4_other",
+      upgrade_type: "experiment",
+    })),
     ...asArray(legacy.experimental_rare || legacy.experimentalRare).map((item) => ({
       ...item,
       slotLabel: item.contextLabel || "Experimental line",
+      slotKey: "other",
       upgrade_type: "replace",
       risk_level: "high",
       learning_cost: "medium",
@@ -126,7 +162,21 @@ function getBestExistingFallback(data) {
     .map((item) => ({
       name: openingName(item),
       fit_score: item.fitScore || item.openingFitScore || item.score || item.winRate || item.win_rate || 60,
-      confidence: item.confidence || "medium",
+      games: item.games ?? item.games_played ?? item.gamesPlayed ?? item.count ?? 0,
+      confidence:
+        item.confidence ||
+        confidenceFromGames(item.games ?? item.games_played ?? item.gamesPlayed ?? item.count ?? 0),
+      confidence_level: item.confidence_level || item.confidenceLevel || "medium",
+      recommendation_label: item.recommendation_label || item.recommendationLabel || "Improve",
+      reason_label: item.reason_label || item.reasonLabel || "Needs repair",
+      short_reason:
+        item.short_reason ||
+        item.shortReason ||
+        "You already have practical experience here, but the next gain is a cleaner plan.",
+      next_action:
+        item.next_action ||
+        item.nextAction ||
+        "Review the first recurring position where your plan becomes unclear.",
       learning_cost: "medium",
       risk_level: "medium",
       reason: "You already have practical experience here. The next gain is a cleaner plan, not a full repertoire reset.",
@@ -136,35 +186,111 @@ function getBestExistingFallback(data) {
     }));
 }
 
-function chooseRecommendations(data) {
-  const all = getAllRecommendations(data);
-  const isCurrentlyPlayed = (item) =>
-    item.currently_played || item.currentlyPlayed || item.upgrade_type === "keep" || item.upgradeType === "keep";
-  const isDelayCandidate = (item) => {
-    const risk = String(item.risk_level || item.riskLevel || "").toLowerCase();
-    const learning = String(item.learning_cost || item.learningCost || "").toLowerCase();
-    const theory = String(item.theory_load || item.theoryLoad || "").toLowerCase();
-    const upgrade = String(item.upgrade_type || item.upgradeType || "").toLowerCase();
-    return upgrade === "replace" || upgrade === "avoid" || risk === "high" || learning === "high" || theory === "high";
-  };
-  const existing = all
-    .filter(isCurrentlyPlayed)
-    .sort((a, b) => clamp(b.fit_score ?? b.fitScore) - clamp(a.fit_score ?? a.fitScore));
-  const newIdeas = all
-    .filter((item) => {
-      const upgrade = String(item.upgrade_type || item.upgradeType || item.recommendationType || "").toLowerCase();
-      return ["experiment", "experimental", "new_recommendation", "style fit"].includes(upgrade) && !isDelayCandidate(item);
-    })
-    .sort((a, b) => clamp(b.fit_score ?? b.fitScore) - clamp(a.fit_score ?? a.fitScore));
-  const delay = all
-    .filter((item) => isDelayCandidate(item) && !isCurrentlyPlayed(item))
-    .sort((a, b) => clamp(b.fit_score ?? b.fitScore) - clamp(a.fit_score ?? a.fitScore));
+function toneForRecommendation(item) {
+  const label = String(item.recommendation_label || item.recommendationLabel || item.label || "").toLowerCase();
+  const upgrade = String(item.upgrade_type || item.upgradeType || "").toLowerCase();
+  const risk = String(item.risk_level || item.riskLevel || "").toLowerCase();
+  const learning = String(item.learning_cost || item.learningCost || "").toLowerCase();
+  const theory = String(item.theory_load || item.theoryLoad || "").toLowerCase();
 
-  return {
-    existing: (existing.length ? existing : getBestExistingFallback(data)).slice(0, 2),
-    newIdeas: newIdeas.slice(0, 3),
-    delay: delay.slice(0, 2),
+  if (label.includes("avoid") || upgrade === "replace" || upgrade === "avoid" || risk === "high" || learning === "high" || theory === "high") {
+    return "delay";
+  }
+  if (label.includes("try") || upgrade === "experiment" || upgrade === "new_recommendation" || upgrade === "experimental") {
+    return "try";
+  }
+  return "keep";
+}
+
+function slotText(item) {
+  return [
+    item.slotKey,
+    item.slotLabel,
+    item.contextLabel,
+    item.context,
+    item.repertoireContext,
+    item.colour,
+    item.color,
+    item.against,
+    item.side,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function sectionKeyForRecommendation(item) {
+  const text = slotText(item);
+
+  if (text.includes("white")) return "white";
+  if (text.includes("black") && (text.includes("1.e4") || text.includes("e4"))) return "blackVsE4";
+  if (
+    text.includes("black") &&
+    (text.includes("1.d4") ||
+      text.includes("d4") ||
+      text.includes("1.c4") ||
+      text.includes("c4") ||
+      text.includes("1.nf3") ||
+      text.includes("nf3") ||
+      text.includes("other"))
+  ) {
+    return "blackVsD4Other";
+  }
+  if (text.includes("black")) return "blackOther";
+  return "other";
+}
+
+function buildRepertoireSections(data) {
+  const all = getAllRecommendations(data);
+  const source = all.length
+    ? all
+    : getBestExistingFallback(data).map((item) => ({ ...item, slotKey: "other", slotLabel: "Other / unclear" }));
+  const sections = {
+    white: [],
+    blackVsE4: [],
+    blackVsD4Other: [],
+    blackOther: [],
+    other: [],
   };
+
+  source.forEach((item) => {
+    const sectionKey = sectionKeyForRecommendation(item);
+    sections[sectionKey].push({
+      ...item,
+      displayTone: toneForRecommendation(item),
+    });
+  });
+
+  return [
+    {
+      key: "white",
+      eyebrow: "White openings",
+      title: "Your White repertoire",
+      copy: "Start here when you want one clear plan with the White pieces.",
+      items: sections.white,
+    },
+    {
+      key: "blackVsE4",
+      eyebrow: "Black openings",
+      title: "Black vs 1.e4",
+      copy: "Use this as your main answer to White's most direct first move.",
+      items: sections.blackVsE4,
+    },
+    {
+      key: "blackVsD4Other",
+      eyebrow: "Black openings",
+      title: "Black vs 1.d4 / 1.c4 / 1.Nf3",
+      copy: "Keep this part narrow so queen-pawn and flank games do not sprawl.",
+      items: [...sections.blackVsD4Other, ...sections.blackOther],
+    },
+    {
+      key: "other",
+      eyebrow: "Other openings",
+      title: "Other / unclear",
+      copy: "These need more context before OpeningFit can place them cleanly.",
+      items: sections.other,
+    },
+  ].filter((section) => section.items.length);
 }
 
 function traitValue(traits, key, invert = false) {
@@ -258,24 +384,40 @@ function firstLines(name) {
   ];
 }
 
-function RecommendationCard({ item, label, tone, traits, playerProfile, alternatives }) {
+function RecommendationCard({ item, label, tone, traits, playerProfile, alternatives, onPractice }) {
   const name = openingName(item);
   const fit = clamp(item.fit_score ?? item.fitScore ?? item.score ?? 60);
-  const confidence = titleCase(item.confidence || "medium");
-  const learning = titleCase(item.learning_cost || item.learningCost || "medium");
-  const risk = titleCase(item.risk_level || item.riskLevel || "medium");
   const priorityReason =
     tone === "delay"
       ? getOpeningRecommendationReason(item, item, playerProfile, { alternatives })
       : null;
-  const why = priorityReason?.reason || coachReason(item, traits);
+  const games = Number(displayValue(item.games, item.games_played, item.gamesPlayed, item.count, 0)) || 0;
+  const confidence = titleCase(displayValue(item.confidence, item.confidence_label, item.confidenceLabel, confidenceFromGames(games)));
+  const verdictLabel = displayValue(
+    item.recommendation_label,
+    item.recommendationLabel,
+    fallbackVerdictLabel(tone, item, games)
+  );
+  const reasonLabel = displayValue(item.reason_label, item.reasonLabel, fallbackReasonLabel(verdictLabel));
+  const shortReason = displayValue(item.short_reason, item.shortReason, item.confidence_reason, item.confidenceReason, coachReason(item, traits));
+  const nextAction = displayValue(item.next_action, item.nextAction, priorityReason?.action, "Review one narrow starter line before changing your repertoire.");
+  const mappedReason = recommendationReasonDetails({ ...item, activeOpenings: alternatives }, verdictLabel);
+  const useMappedReason =
+    tone === "delay" ||
+    verdictLabel === "Avoid for now" ||
+    ["Poor results", "Too little data", "Style mismatch", "Repertoire overload", "Needs repair", "Not urgent"].includes(reasonLabel);
+  const displayReasonLabel = useMappedReason ? mappedReason.title : reasonLabel;
+  const displayReason = useMappedReason ? mappedReason.message : shortReason;
+  const displayAction = useMappedReason ? mappedReason.nextStep : nextAction;
+  const learning = titleCase(item.learning_cost || item.learningCost || "medium");
+  const risk = titleCase(item.risk_level || item.riskLevel || "medium");
   const lines = firstLines(name);
 
   return (
     <article className={`recommendedOpeningCard ${tone}`}>
       <div className="recommendedOpeningCardHeader">
         <div>
-          <span>{label}</span>
+          <span>{item.slotLabel || label}</span>
           <h3>{name}</h3>
         </div>
         <strong>
@@ -289,17 +431,38 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
         </strong>
       </div>
 
+      <div className="recommendedOpeningVerdict">
+        <strong>{verdictLabel}</strong>
+        <span>{displayReasonLabel}</span>
+      </div>
+
       <div className="recommendedOpeningMetrics" aria-label={`${name} recommendation metrics`}>
         <span>Confidence: {confidence}</span>
+        <span>Games: {games}</span>
         <span>Learning: {learning}</span>
         <span>Risk: {risk}</span>
       </div>
 
       <div className="recommendedOpeningWhy">
-        <h4>{priorityReason ? priorityReason.label : "Why it fits"}</h4>
-        <p>{why}</p>
-        {priorityReason ? <small>{priorityReason.action}</small> : null}
+        <h4>
+          {displayReasonLabel}
+          {useMappedReason ? (
+            <RecommendationReasonHint item={{ ...item, activeOpenings: alternatives }} label={verdictLabel} />
+          ) : null}
+        </h4>
+        <p>{displayReason}</p>
+        <small>{displayAction}</small>
       </div>
+
+      {onPractice ? (
+        <button
+          className="recommendedOpeningPracticeBtn"
+          type="button"
+          onClick={() => onPractice(item)}
+        >
+          Practise this opening
+        </button>
+      ) : null}
 
       <div className="recommendedOpeningDetailGrid">
         <div>
@@ -323,14 +486,13 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
   );
 }
 
-export default function RecommendedOpeningFit({ data }) {
+export default function RecommendedOpeningFit({ data, onPractice }) {
   const fingerprint = getStyleFingerprint(data);
   const traits = fingerprint.traits || {};
-  const recommendations = useMemo(() => chooseRecommendations(data || {}), [data]);
+  const sections = useMemo(() => buildRepertoireSections(data || {}), [data]);
   const playerProfile = data?.styleProfile || data?.style_profile || fingerprint;
-  const alternatives = [...recommendations.existing, ...recommendations.newIdeas];
-  const hasAny =
-    recommendations.existing.length || recommendations.newIdeas.length || recommendations.delay.length;
+  const alternatives = sections.flatMap((section) => section.items);
+  const hasAny = sections.length;
 
   if (!data || !hasAny) return null;
 
@@ -368,67 +530,31 @@ export default function RecommendedOpeningFit({ data }) {
         })}
       </div>
 
-      {recommendations.existing.length ? (
-        <div className="recommendedOpeningGroup">
+      {sections.map((section) => (
+        <div className="recommendedOpeningGroup" key={section.key}>
           <div className="recommendedOpeningGroupHeader">
-            <span>Current strengths</span>
-            <h3>Keep the openings with the clearest evidence.</h3>
+            <div>
+              <span>{section.eyebrow}</span>
+              <h3>{section.title}</h3>
+            </div>
+            <p>{section.copy}</p>
           </div>
           <div className="recommendedOpeningCardGrid">
-            {recommendations.existing.map((item) => (
+            {section.items.map((item, index) => (
               <RecommendationCard
-                key={`existing-${openingName(item)}`}
+                key={`${section.key}-${openingName(item)}-${index}`}
                 item={item}
-                label={`Keep improving${item.slotLabel ? `: ${item.slotLabel}` : ""}`}
-                tone="keep"
-                traits={traits}
-              />
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {recommendations.newIdeas.length ? (
-        <div className="recommendedOpeningGroup">
-          <div className="recommendedOpeningGroupHeader">
-            <span>Try next</span>
-            <h3>Only add these if they solve a real repertoire gap.</h3>
-          </div>
-          <div className="recommendedOpeningCardGrid">
-            {recommendations.newIdeas.map((item) => (
-              <RecommendationCard
-                key={`new-${openingName(item)}`}
-                item={item}
-                label={`Try next${item.slotLabel ? `: ${item.slotLabel}` : ""}`}
-                tone="try"
-                traits={traits}
-              />
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {recommendations.delay.length ? (
-        <div className="recommendedOpeningGroup">
-          <div className="recommendedOpeningGroupHeader">
-            <span>Side options</span>
-            <h3>Keep these outside the main repertoire for now.</h3>
-          </div>
-          <div className="recommendedOpeningCardGrid">
-            {recommendations.delay.map((item) => (
-              <RecommendationCard
-                key={`delay-${openingName(item)}`}
-                item={item}
-                label={`Delay for now${item.slotLabel ? `: ${item.slotLabel}` : ""}`}
-                tone="delay"
+                label={section.title}
+                tone={item.displayTone}
                 traits={traits}
                 playerProfile={playerProfile}
                 alternatives={alternatives}
+                onPractice={onPractice}
               />
             ))}
           </div>
         </div>
-      ) : null}
+      ))}
     </section>
   );
 }

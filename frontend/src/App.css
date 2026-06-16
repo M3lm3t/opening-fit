@@ -4119,6 +4119,21 @@ th {
   text-transform: capitalize;
 }
 
+.practiceSideInstruction {
+  margin: 0.45rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.practiceMissingLineNotice {
+  margin: 0.45rem 0 0;
+  color: var(--accent-gold);
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
 .practiceCloseButton {
   width: 38px;
   height: 38px;
@@ -34115,6 +34130,35 @@ body,
   gap: 7px;
 }
 
+.usernameTrustStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.usernameTrustStrip span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.08);
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.page.light .usernameTrustStrip span,
+[data-theme="light"] .usernameTrustStrip span {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #475569;
+}
+
 .analyseImportHero .input,
 .analyseImportHero .monthSelect {
   min-height: 54px;
@@ -41087,6 +41131,32 @@ body,
   gap: clamp(12px, 1.8vw, 18px) !important;
 }
 
+.reportSectionGroup {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.reportSectionGroupHeader {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.reportSectionGroupHeader h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.reportSectionGroupBody {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
 .reportCommandBar {
   position: relative !important;
   top: auto !important;
@@ -46174,6 +46244,15 @@ a,
   gap: 10px !important;
 }
 
+.profileChessIdentityHero .profileHeroMetaGrid article {
+  min-height: 96px;
+}
+
+.profileChessIdentityHero .profileHeroMetaGrid strong,
+.profileChessIdentityHero .profileHeroMetaGrid small {
+  overflow-wrap: anywhere;
+}
+
 .profileHeroMetaGrid article,
 .latestReportMeta > div,
 .chessProfileGrid article,
@@ -46420,6 +46499,16 @@ a,
   }
 
   .profileHeroActions button {
+    width: 100%;
+  }
+
+  .usernameTrustStrip {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .usernameTrustStrip span {
+    justify-content: center;
     width: 100%;
   }
 

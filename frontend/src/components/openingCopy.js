@@ -225,10 +225,10 @@ export function getOpeningRecommendationReason(opening = {}, stats = {}, playerP
 
   if (games > 0 && games < 5) {
     return {
-      label: "Not enough evidence yet",
-      reason: "You have only played this a few times, so it is too early to know whether it suits you.",
-      action: "Play 5-10 more games before making it part of your main repertoire.",
-      category: "low_sample_size",
+      label: "Low sample",
+      reason: "You have not played this enough for a confident recommendation yet.",
+      action: "Play a few more games before changing your repertoire.",
+      category: "low_sample",
     };
   }
 
@@ -243,10 +243,10 @@ export function getOpeningRecommendationReason(opening = {}, stats = {}, playerP
 
   if (hasEarlyLossSignal(opening, stats)) {
     return {
-      label: "Early positions are costing you",
-      reason: "This opening seems to be giving opponents easy chances before you reach a comfortable middlegame.",
-      action: "Study one simple setup instead of memorising lots of lines.",
-      category: "early_losses",
+      label: "Needs repair",
+      reason: "This may still be playable, but one or two recurring mistakes need fixing first.",
+      action: "Study one simple setup and the first repeated mistake.",
+      category: "needs_repair",
     };
   }
 
@@ -257,26 +257,26 @@ export function getOpeningRecommendationReason(opening = {}, stats = {}, playerP
       (lossRate !== null && lossRate >= 55 && score < 45))
   ) {
     return {
-      label: "Results are below your usual level",
-      reason: "You are scoring worse here than in your stronger openings, so it should not be a main focus yet.",
+      label: "Poor results",
+      reason: "Your results in this opening are currently weaker than your other options.",
       action: "Review the first 6-8 moves and check where your positions start going wrong.",
-      category: "below_average",
+      category: "poor_results",
     };
   }
 
   if (activeCount >= 4 && context.allowRepertoireLoadReason !== false) {
     return {
-      label: "Too much to learn right now",
-      reason: "This may be playable, but adding another opening now could spread your study time too thin.",
+      label: "Repertoire overload",
+      reason: "You may be spreading your opening study across too many lines.",
       action: "Focus on your strongest White and Black choices first.",
-      category: "too_many_openings",
+      category: "repertoire_overload",
     };
   }
 
   if (getStyleConflict(opening, playerProfile)) {
     return {
-      label: "May not match your current style",
-      reason: `${playableOpeningPrefix(opening, "May not match your current style")}your results suggest you do better in positions with a different type of middlegame.`,
+      label: "Style mismatch",
+      reason: `${playableOpeningPrefix(opening, "May not match your current style")}the positions from this opening may not match where your recent results are strongest.`,
       action: "Keep this as a side option, but prioritise openings that fit your current strengths.",
       category: "style_mismatch",
     };
@@ -284,18 +284,18 @@ export function getOpeningRecommendationReason(opening = {}, stats = {}, playerP
 
   if (isTheoryHeavy(opening)) {
     return {
-      label: "High effort for your current results",
-      reason: `${playableOpeningPrefix(opening, "High effort for your current results")}it usually needs more preparation than your current results justify.`,
+      label: "Repertoire overload",
+      reason: `${playableOpeningPrefix(opening, "High effort for your current results")}you may be spreading your opening study across too many lines.`,
       action: "Use a simpler setup first, then return to this later.",
-      category: "theory_heavy",
+      category: "repertoire_overload",
     };
   }
 
   return {
-    label: "Not a priority yet",
-    reason: "OpeningFit does not have enough positive evidence to recommend this as a main opening right now.",
+    label: "Not urgent",
+    reason: "This is not a priority compared with openings you play more often.",
     action: "Focus first on the openings where your results and positions look strongest.",
-    category: "fallback",
+    category: "not_urgent",
   };
 }
 

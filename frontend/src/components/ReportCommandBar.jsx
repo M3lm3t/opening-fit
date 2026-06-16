@@ -81,22 +81,22 @@ export default function ReportCommandBar({
   const focusOpening = findFocusOpening(data);
 
   const views = [
-    { key: "overview", label: "Overview", mode: "summary", activeViews: ["overview", "report"] },
+    { key: "verdict", label: "Verdict", mode: "summary", target: "report-verdict", activeViews: ["overview", "report", "verdict"] },
     {
-      key: "recommendations",
-      label: "Recommendations",
+      key: "repertoire",
+      label: "Repertoire",
       mode: "full",
-      activeViews: ["recommendations", "repertoire", "openings", "weakspots", "verdicts"],
+      target: "report-repertoire",
+      activeViews: ["recommendations", "repertoire", "openings"],
     },
-    { key: "training", label: "Training", activeViews: ["train", "training"] },
-    { key: "games", label: "Games", activeViews: ["games"] },
-    { key: "data", label: "Data", activeViews: ["data"] },
-    { key: "interactive", label: "Interactive", activeViews: ["interactive", "practice"] },
+    { key: "weakspots", label: "What to fix", mode: "full", target: "report-fixes", activeViews: ["weakspots", "verdicts"] },
+    { key: "training", label: "Training", mode: "full", target: "report-training-plan", activeViews: ["train", "training"] },
+    { key: "games", label: "Games/Data", mode: "table", target: "report-recent-games", activeViews: ["games", "data"] },
   ];
 
   const jumpToView = (view) => {
     if (view.mode) onReportModeChange?.(view.mode);
-    onNavigate?.(view.key);
+    onNavigate?.({ path: "/report", target: view.target || view.key, reportMode: view.mode });
   };
 
   const handleUpgrade = () => {
@@ -123,11 +123,11 @@ export default function ReportCommandBar({
       </div>
 
       <div className="reportCommandBar__next">
-        <span>Next best action</span>
+        <span>Primary next action</span>
         <strong>
           {focusOpening?.name
-            ? `Fix ${focusOpening.name} first`
-            : "Open your training plan"}
+            ? `Start today's opening practice`
+            : "Review your recommended repertoire"}
         </strong>
       </div>
 
@@ -139,7 +139,8 @@ export default function ReportCommandBar({
             className={
               activeView === view.key ||
               view.activeViews?.includes(activeView) ||
-              (view.mode && reportMode === view.mode)
+              (view.mode === "summary" && reportMode === "summary") ||
+              (view.mode === "table" && reportMode === "table")
                 ? "is-active"
                 : ""
             }
