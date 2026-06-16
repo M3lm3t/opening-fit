@@ -303,7 +303,7 @@ export default function OpeningDiagnosisPanel({ data, onViewChange }) {
           const verdict = getVerdict(opening, data, index);
 
           return (
-            <article className={`diagnosisCard ${verdict.tone}`} key={opening.name}>
+            <article className={`diagnosisCard ${verdict.tone}`} key={`${opening.name}-${opening.context || opening.side || index}`}>
               <div className="diagnosisCardTop">
                 <span>{verdict.label}</span>
                 <strong>{opening.winRate}%</strong>

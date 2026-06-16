@@ -41,8 +41,8 @@ export default function OpeningGamificationProgress({
       </div>
 
       <div className="openingXpGrid">
-        {topOpenings.map((opening) => (
-          <article className="openingXpCard" key={opening.name}>
+        {topOpenings.map((opening, index) => (
+          <article className="openingXpCard" key={`${opening.name}-${opening.context || opening.side || index}`}>
             <div className="openingXpTop">
               <div>
                 <strong>{opening.name}</strong>

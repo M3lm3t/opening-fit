@@ -220,6 +220,20 @@ function isDemoAnalysis(report) {
   return source === "demo" || username === "demoplayer" || report === DEMO_REPORT;
 }
 
+function hasImportedReportPayload(report) {
+  return Boolean(
+    report &&
+      (
+        report.username ||
+        report.player ||
+        getImportedGameCount(report) ||
+        report.top_openings?.length ||
+        report.opening_stats?.length ||
+        report.openings?.length
+      )
+  );
+}
+
 function getImportedGameCount(report) {
   return safeNumber(
     report?.gamesImported ??
@@ -5311,8 +5325,8 @@ function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
       {status ? <p className="analysisNextStepsStatus">{status}</p> : null}
 
       <div className="analysisNextOpeningGrid">
-        {(openings.length ? openings : [normaliseNextStepOpening({ name: "Italian Game" }, data, fitData)]).map((opening) => (
-          <article className="analysisNextOpeningCard" key={opening.name}>
+        {(openings.length ? openings : [normaliseNextStepOpening({ name: "Italian Game" }, data, fitData)]).map((opening, index) => (
+          <article className="analysisNextOpeningCard" key={`${opening.name}-${opening.context || opening.side || index}`}>
             <div className="analysisNextOpeningTop">
               <span>{coachConfidenceLabel(opening.confidence)} {confidenceStars(opening.confidence)}</span>
               <strong>{opening.name}</strong>
@@ -5496,12 +5510,23 @@ function FinalReportFlow({
         <NextBestTrainingActionCard
           data={data}
           fitData={fitData}
-          onStartTraining={() => {
+          onStartTraining={(action) => {
+            if (action?.opening) {
+              onNavigate?.({
+                view: "train",
+                path: "/train",
+                target: "today-training",
+                fallbackIds: ["training-plan", "opening-practice"],
+              });
+              return;
+            }
+
+            setReportMode("full");
             onNavigate?.({
-              view: "train",
-              path: "/train",
-              target: "today-training",
-              fallbackIds: ["training-plan", "opening-practice"],
+              view: "report",
+              path: "/report",
+              target: "report-repertoire",
+              reportMode: "full",
             });
           }}
         />
@@ -5639,7 +5664,7 @@ function ReportTrainingPreview({ data, fitData, studyTarget, recentGames = [], o
     <section className="reportTrainingPreview" id="report-training-preview" aria-label="Training and replay preview">
       <div className="commandPanelHeader">
         <p className="eyebrow">Train next</p>
-        <h2>Training plan</h2>
+        <h2>Practice and replay</h2>
         <p>Practice the main target first. Replay and raw game details are available after the advice.</p>
       </div>
 
@@ -8048,8 +8073,8 @@ function StyleBasedStarterRecommendations({ data, fitData, onPractice }) {
               <span>
                 {(styleRec.futureUpgradeOpenings || styleRec.future_upgrade_openings)
                   .slice(0, 5)
-                  .map((item) => (
-                    <span key={item.name}>
+                  .map((item, index) => (
+                    <span key={`${item.name}-${item.context || item.side || index}`}>
                       {item.name}
                       <RecommendationReasonHint item={item} label="Lower priority" />
                     </span>
@@ -12192,8 +12217,13 @@ function App() {
   }, [supabaseUser]);
 
   const loadDemoReport = () => {
-    if (!data || isDemoAnalysis(data)) {
+    if (!hasImportedReportPayload(data) || isDemoAnalysis(data)) {
       setData(DEMO_REPORT);
+      setTimeout(() => {
+        setData((current) =>
+          !hasImportedReportPayload(current) || isDemoAnalysis(current) ? DEMO_REPORT : current
+        );
+      }, 250);
       setImportStatus({
         tone: "info",
         title: "Sample report loaded",
@@ -14180,7 +14210,7 @@ function App() {
     if (chessOpeningSeoPage) {
       return {
         title: `${chessOpeningSeoPage.name}: does it fit your chess style? | OpeningFit`,
-        description: chessOpeningSeoPage.description,
+        description: chessOpeningSeoPage.shortDescription || chessOpeningSeoPage.description,
         path: currentPath,
         url: `${SITE_URL}${currentPath}`,
       };
@@ -14701,7 +14731,11 @@ function App() {
               <button
                 className="inlineSampleButton"
                 type="button"
-                onClick={loadDemoReport}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  loadDemoReport();
+                }}
                 disabled={loading}
               >
                 View sample report
@@ -15124,10 +15158,10 @@ function App() {
                       <h3>White-side opening evidence</h3>
 
                       <div className="openingExplainGrid">
-                        {whiteDetailedRecommendations.map((opening) => (
+                        {whiteDetailedRecommendations.map((opening, index) => (
                           <article
                             className="openingExplainCard"
-                            key={opening.name}
+                            key={`${opening.name}-white-${opening.context || index}`}
                           >
                             <h4>{getOpeningContextTitle(opening, opening.name)}</h4>
                             <OpeningEvidenceBlock
@@ -15174,10 +15208,10 @@ function App() {
                       <h3>Black-side opening evidence</h3>
 
                       <div className="openingExplainGrid">
-                        {blackDetailedRecommendations.map((opening) => (
+                        {blackDetailedRecommendations.map((opening, index) => (
                           <article
                             className="openingExplainCard"
-                            key={opening.name}
+                            key={`${opening.name}-black-${opening.context || index}`}
                           >
                             <h4>{getOpeningContextTitle(opening, opening.name)}</h4>
                             <OpeningEvidenceBlock

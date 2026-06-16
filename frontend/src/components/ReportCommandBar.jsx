@@ -70,8 +70,6 @@ export default function ReportCommandBar({
   reportMode,
   onReportModeChange,
   onNavigate,
-  isPremium,
-  onUpgrade,
 }) {
   if (!data) return null;
 
@@ -89,7 +87,7 @@ export default function ReportCommandBar({
       target: "report-repertoire",
       activeViews: ["recommendations", "repertoire", "openings"],
     },
-    { key: "weakspots", label: "What to fix", mode: "full", target: "report-fixes", activeViews: ["weakspots", "verdicts"] },
+    { key: "weakspots", label: "Weaknesses", mode: "full", target: "report-fixes", activeViews: ["weakspots", "verdicts"] },
     { key: "training", label: "Training", mode: "full", target: "report-training-plan", activeViews: ["train", "training"] },
     { key: "games", label: "Games/Data", mode: "table", target: "report-recent-games", activeViews: ["games", "data"] },
   ];
@@ -97,16 +95,6 @@ export default function ReportCommandBar({
   const jumpToView = (view) => {
     if (view.mode) onReportModeChange?.(view.mode);
     onNavigate?.({ path: "/report", target: view.target || view.key, reportMode: view.mode });
-  };
-
-  const handleUpgrade = () => {
-    if (typeof onUpgrade === "function") {
-      onUpgrade();
-      return;
-    }
-
-    const el = document.getElementById("premium");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -150,16 +138,6 @@ export default function ReportCommandBar({
           </button>
         ))}
       </nav>
-
-      {!isPremium ? (
-        <button
-          type="button"
-          className="reportCommandBar__upgrade"
-          onClick={handleUpgrade}
-        >
-          Unlock full report
-        </button>
-      ) : null}
     </section>
   );
 }

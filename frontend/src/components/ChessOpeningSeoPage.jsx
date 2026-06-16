@@ -54,7 +54,7 @@ export function getChessOpeningPageJsonLd(opening, pageUrl) {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: `${opening.name}: does it fit your chess style?`,
-    description: opening.description,
+    description: opening.shortDescription || opening.description,
     url: pageUrl || `${SITE_URL}/chess-openings/${opening.slug}`,
     publisher: {
       "@type": "Organization",
@@ -122,7 +122,7 @@ export default function ChessOpeningSeoPage({ opening, ThemeToggle, Analytics })
           <div>
             <p className="seoEyebrow">Chess opening fit</p>
             <h1>{opening.name}: does it fit your chess style?</h1>
-            <p>{opening.description}</p>
+            <p>{opening.shortDescription || opening.description}</p>
             <div className="seoHeroActions">
               <a className="seoPrimaryCta" href="/#app-dashboard">
                 {opening.callToAction}

@@ -367,8 +367,8 @@ export default function OpeningFitRetentionCommandCenter({ data, username, onPra
       </div>
 
       <div className="ofMasteryGrid">
-        {masteredOpenings.map((opening) => (
-          <article className="ofMasteryCard" key={opening.name}>
+        {masteredOpenings.map((opening, index) => (
+          <article className="ofMasteryCard" key={`${opening.name}-${opening.context || opening.side || index}`}>
             <div className="ofMasteryTopline">
               <div>
                 <h4>{opening.name}</h4>

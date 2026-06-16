@@ -2,6 +2,8 @@ export const chessOpeningSeoPages = [
   {
     slug: "vienna-game",
     name: "Vienna Game",
+    shortDescription:
+      "An active 1.e4 opening for players who want quick development and attacking chances.",
     description:
       "The Vienna Game is a 1.e4 opening for players who want active pieces, quick kingside chances, and clear attacking plans without memorising a huge Sicilian-sized tree.",
     whoItSuits: [
@@ -20,6 +22,8 @@ export const chessOpeningSeoPages = [
   {
     slug: "scandinavian-defense",
     name: "Scandinavian Defense",
+    shortDescription:
+      "A practical Black response to 1.e4 with an early central challenge and simple plans.",
     description:
       "The Scandinavian Defense gives Black a practical answer to 1.e4 with an early central challenge and straightforward development plans.",
     whoItSuits: [
@@ -38,6 +42,8 @@ export const chessOpeningSeoPages = [
   {
     slug: "caro-kann-defense",
     name: "Caro-Kann Defense",
+    shortDescription:
+      "A solid 1.e4 defense for players who value structure, reliability, and clean development.",
     description:
       "The Caro-Kann Defense is a solid answer to 1.e4 for players who value structure, clean development, and reliable middlegames.",
     whoItSuits: [
@@ -56,6 +62,8 @@ export const chessOpeningSeoPages = [
   {
     slug: "london-system",
     name: "London System",
+    shortDescription:
+      "A repeatable White setup for players who want clear development and low early risk.",
     description:
       "The London System is a White opening built around stable piece placement, low early risk, and repeatable plans against many Black setups.",
     whoItSuits: [
@@ -74,6 +82,8 @@ export const chessOpeningSeoPages = [
   {
     slug: "sicilian-defense",
     name: "Sicilian Defense",
+    shortDescription:
+      "An ambitious Black defense for players who enjoy imbalance, counterplay, and tactics.",
     description:
       "The Sicilian Defense is an ambitious answer to 1.e4 for Black players who want imbalanced positions, counterplay, and tactical chances.",
     whoItSuits: [

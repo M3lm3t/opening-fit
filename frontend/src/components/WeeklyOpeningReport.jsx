@@ -630,8 +630,8 @@ export default function WeeklyOpeningReport({ data, savedHistory = [] }) {
             <strong>{topMastery[0] ? `${topMastery[0].name} ${topMastery[0].mastery}%` : "Baseline"}</strong>
           </div>
           <div className="weeklyMasteryList">
-            {topMastery.map((item) => (
-              <div key={item.name}>
+            {topMastery.map((item, index) => (
+              <div key={`${item.name}-${item.context || item.side || index}`}>
                 <div>
                   <strong>{item.name}</strong>
                   <span>{masteryLevel(item.mastery)}</span>
@@ -647,8 +647,8 @@ export default function WeeklyOpeningReport({ data, savedHistory = [] }) {
             <span>Opening confidence meters</span>
             <strong>{weekly.repertoireConfidence}% repertoire confidence</strong>
           </div>
-          {confidenceOpenings.map((item) => (
-            <Meter key={item.name} value={item.confidence} label={`${item.name} · ${confidenceLabel(item.confidence)}`} />
+          {confidenceOpenings.map((item, index) => (
+            <Meter key={`${item.name}-${item.context || item.side || index}`} value={item.confidence} label={`${item.name} · ${confidenceLabel(item.confidence)}`} />
           ))}
         </article>
       </div>
@@ -665,8 +665,8 @@ export default function WeeklyOpeningReport({ data, savedHistory = [] }) {
 
         {weekly.weaknessUpdates.length ? (
           <div className="weeklyEvolutionList">
-            {weekly.weaknessUpdates.map((item) => (
-              <article key={item.name}>
+            {weekly.weaknessUpdates.map((item, index) => (
+              <article key={`${item.name}-${item.context || item.side || index}`}>
                 <span>Repair signal</span>
                 <strong>{item.name}</strong>
                 <p>{item.text}</p>
@@ -692,8 +692,8 @@ export default function WeeklyOpeningReport({ data, savedHistory = [] }) {
 
         {evolution.length ? (
           <div className="weeklyEvolutionList">
-            {evolution.map((item) => (
-              <article key={item.name}>
+            {evolution.map((item, index) => (
+              <article key={`${item.name}-${item.context || item.side || index}`}>
                 <span>{item.type === "new" ? "New pattern" : item.type === "improved" ? "Improved" : "Needs attention"}</span>
                 <strong>{item.name}</strong>
                 <p>

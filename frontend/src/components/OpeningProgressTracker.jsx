@@ -384,10 +384,10 @@ export default function OpeningProgressTracker({ data, user = null, compact = fa
         </div>
       ) : (
         <div className="openingProgressChanges">
-          {(compact ? openingChanges.slice(0, 3) : openingChanges).map((item) => (
+          {(compact ? openingChanges.slice(0, 3) : openingChanges).map((item, index) => (
             <article
               className={`openingProgressChange openingProgressChange--${item.type}`}
-              key={item.name}
+              key={`${item.name}-${item.context || item.side || index}`}
             >
               <div>
                 <span>

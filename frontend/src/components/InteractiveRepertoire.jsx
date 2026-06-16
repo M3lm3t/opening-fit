@@ -381,10 +381,10 @@ export default function InteractiveRepertoire({ data, onPractice }) {
           </div>
 
           <div className="openingTileList">
-            {visibleOpenings.slice(0, 10).map((opening) => (
+            {visibleOpenings.slice(0, 10).map((opening, index) => (
               <button
                 className="openingTile"
-                key={opening.name}
+                key={`${opening.name}-${opening.context || opening.side || index}`}
                 type="button"
                 onClick={() => setSelectedOpening(opening)}
               >

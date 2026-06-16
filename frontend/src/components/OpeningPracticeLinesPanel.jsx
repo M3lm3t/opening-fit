@@ -882,7 +882,7 @@ export default function OpeningPracticeLinesPanel({
       <div className="practiceLineChoices">
         {pack.lines.map((line, index) => (
           <button
-            key={line.name}
+            key={`${line.name}-${line.moves?.join("-") || index}`}
             type="button"
             className={`practiceLineChoice ${selectedLineIndex === index ? "active" : ""}`}
             onClick={() => chooseLine(index)}
