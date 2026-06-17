@@ -129,3 +129,29 @@ def test_opening_decay_uses_dates_without_creating_noise():
     assert by_name["Vienna Game"]["daysSincePlayed"] is not None
     assert by_name["Italian Game"]["decayRisk"] == "none"
     assert metrics["oneThingToFix"]["reasonCode"] == "opening_decay"
+
+
+def test_opening_mastery_confidence_uses_sample_size_and_recency():
+    metrics = build_retention_metrics(
+        best_openings=[
+            {"name": "Sicilian Defense", "games": 35, "wins": 18, "draws": 5, "losses": 12},
+            {"name": "London System", "games": 14, "wins": 7, "draws": 3, "losses": 4},
+            {"name": "Vienna Game", "games": 4, "wins": 2, "draws": 0, "losses": 2},
+            {"name": "Caro-Kann Defense", "games": 32, "wins": 16, "draws": 8, "losses": 8},
+        ],
+        recent_games=[
+            {
+                "opening": "Caro-Kann Defense",
+                "result": "win",
+                "end_time": "2026-04-01T12:00:00+00:00",
+            }
+        ],
+    )
+
+    by_name = {item["opening"]: item for item in metrics["openingMastery"]}
+
+    assert by_name["Sicilian Defense"]["confidence"] == "High"
+    assert by_name["London System"]["confidence"] == "Medium"
+    assert by_name["Vienna Game"]["confidence"] == "Low"
+    assert by_name["Caro-Kann Defense"]["confidence"] == "Medium"
+    assert "based on 32 games" in by_name["Caro-Kann Defense"]["confidenceText"]

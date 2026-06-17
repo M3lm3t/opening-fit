@@ -179,6 +179,42 @@ def _decay_label(days: Optional[int]) -> str:
     return "high"
 
 
+def _confidence_from_games(games: int) -> str:
+    if games >= 30:
+        return "High"
+    if games >= 10:
+        return "Medium"
+    return "Low"
+
+
+def _reduce_confidence(label: str) -> str:
+    if label == "High":
+        return "Medium"
+    if label == "Medium":
+        return "Low"
+    return "Low"
+
+
+def _opening_confidence(games: int, decay_risk: str = "none") -> Dict[str, Any]:
+    label = _confidence_from_games(games)
+    if decay_risk in {"medium", "high"}:
+        label = _reduce_confidence(label)
+
+    text = f"{label} confidence - based on {games} game{'s' if games != 1 else ''}"
+    if decay_risk in {"medium", "high"} and games >= 10:
+        text += "; older data lowers this by one level"
+
+    return {
+        "confidence": label,
+        "confidenceLevel": label,
+        "confidence_level": label,
+        "confidenceText": text,
+        "confidence_text": text,
+        "confidenceGames": games,
+        "confidence_games": games,
+    }
+
+
 def _decay_for_opening(name: str, games: int, recent_games: List[Dict[str, Any]], now: Optional[datetime] = None) -> Dict[str, Any]:
     if games < 4:
         return {
@@ -248,6 +284,7 @@ def build_opening_mastery(
         training_completed = _training_count(name, training_items or [])
         training_bonus = min(8, training_completed * 2)
         decay = _decay_for_opening(name, games, recent_games or [])
+        confidence = _opening_confidence(games, decay.get("decayRisk", "none"))
         mastery_score = _score(
             win_rate * 0.34
             + (100 - loss_rate) * 0.18
@@ -277,6 +314,7 @@ def build_opening_mastery(
                 "trainingCompletedCount": training_completed,
                 "training_completed_count": training_completed,
                 **decay,
+                **confidence,
                 "masteryScore": mastery_score,
                 "mastery_score": mastery_score,
                 "masteryLevel": max(1, min(10, math.ceil(mastery_score / 10))),
@@ -340,9 +378,18 @@ def build_one_thing_to_fix(opening_mastery: List[Dict[str, Any]], problem_lines:
         opening = str(weakest_line.get("opening") or weakest_line.get("name") or "your weakest line")
         variation = str(weakest_line.get("variation") or weakest_line.get("line") or weakest_line.get("moveLine") or "")
         issue = str(weakest_line.get("flagReason") or "This line is producing too many losses.")
+        matching_mastery = next((item for item in opening_mastery if _opening_key(item.get("opening", "")) == _opening_key(opening)), None)
+        confidence = matching_mastery or _opening_confidence(_games(weakest_line))
         return {
             "opening": opening,
             "variation": variation,
+            "confidence": confidence.get("confidence", "Low"),
+            "confidenceLevel": confidence.get("confidenceLevel", "Low"),
+            "confidence_level": confidence.get("confidence_level", "Low"),
+            "confidenceText": confidence.get("confidenceText", "Low confidence - based on 0 games"),
+            "confidence_text": confidence.get("confidence_text", "Low confidence - based on 0 games"),
+            "confidenceGames": confidence.get("confidenceGames", _games(weakest_line)),
+            "confidence_games": confidence.get("confidence_games", _games(weakest_line)),
             "exactIssue": issue,
             "exact_issue": issue,
             "whyItMatters": "Repeated losses in one line are usually easier to fix than changing the whole repertoire.",
@@ -372,6 +419,13 @@ def build_one_thing_to_fix(opening_mastery: List[Dict[str, Any]], problem_lines:
         return {
             "opening": opening,
             "variation": stale.get("variation", ""),
+            "confidence": stale.get("confidence", "Low"),
+            "confidenceLevel": stale.get("confidenceLevel", "Low"),
+            "confidence_level": stale.get("confidence_level", "Low"),
+            "confidenceText": stale.get("confidenceText", "Low confidence - based on 0 games"),
+            "confidence_text": stale.get("confidence_text", "Low confidence - based on 0 games"),
+            "confidenceGames": stale.get("confidenceGames", stale.get("gamesPlayed", 0)),
+            "confidence_games": stale.get("confidence_games", stale.get("gamesPlayed", 0)),
             "exactIssue": issue,
             "exact_issue": issue,
             "whyItMatters": "A short refresh keeps familiar opening plans easy to recall without creating fake urgency.",
@@ -392,6 +446,13 @@ def build_one_thing_to_fix(opening_mastery: List[Dict[str, Any]], problem_lines:
     return {
         "opening": opening,
         "variation": weak_mastery.get("variation", "") if weak_mastery else "",
+        "confidence": weak_mastery.get("confidence", "Low") if weak_mastery else "Low",
+        "confidenceLevel": weak_mastery.get("confidenceLevel", "Low") if weak_mastery else "Low",
+        "confidence_level": weak_mastery.get("confidence_level", "Low") if weak_mastery else "Low",
+        "confidenceText": weak_mastery.get("confidenceText", "Low confidence - based on 0 games") if weak_mastery else "Low confidence - based on 0 games",
+        "confidence_text": weak_mastery.get("confidence_text", "Low confidence - based on 0 games") if weak_mastery else "Low confidence - based on 0 games",
+        "confidenceGames": weak_mastery.get("confidenceGames", weak_mastery.get("gamesPlayed", 0)) if weak_mastery else 0,
+        "confidence_games": weak_mastery.get("confidence_games", weak_mastery.get("games_played", 0)) if weak_mastery else 0,
         "exactIssue": issue,
         "exact_issue": issue,
         "whyItMatters": "Improving the lowest mastery area gives the next report the clearest signal.",

@@ -1,0 +1,579 @@
+.finalReportFlow,
+.profileDashboard,
+.dashboardHome,
+.dashboardView {
+  gap: 12px !important;
+}
+
+.finalReportFlow {
+  max-width: min(1320px, calc(100vw - 28px)) !important;
+}
+
+.reportSectionGroup,
+.commandPanel,
+.reportTrainingPreview,
+.repertoireMapSection,
+.profileHeroDashboard,
+.profileDashboardCard,
+.dashboardHeroTile,
+.dashboardTile,
+.dashboardActionStrip,
+.dashboardCard {
+  padding: clamp(12px, 1.8vw, 18px) !important;
+}
+
+.reportSectionGroupBody,
+.reportTrainingPreviewGrid,
+.profileDashboardGrid,
+.profileHeroMetaGrid,
+.dashboardTileGrid,
+.dashboardInsightGrid,
+.repertoireMapGrid,
+.openingJourney {
+  gap: 10px !important;
+}
+
+.openingJourney,
+.openingJourneyScore,
+.openingJourneyHealth,
+.openingJourneyWeakLine,
+.openingJourneyStory,
+.openingJourneyIdentity,
+.openingJourneyCoach,
+.openingJourneyMilestones,
+.openingJourneyFix,
+.openingJourneyMastery article {
+  padding: clamp(11px, 1.6vw, 16px) !important;
+}
+
+.openingJourneyScore strong,
+.openingJourneyHealth strong {
+  font-size: clamp(1.85rem, 4vw, 2.5rem) !important;
+}
+
+.reportSectionGroupHeader,
+.commandPanelHeader,
+.profileCardHeader,
+.profileHubSectionHeader,
+.profileSectionHeader {
+  margin-bottom: 10px !important;
+  gap: 5px !important;
+}
+
+.reportSectionGroupHeader h2,
+.commandPanelHeader h2,
+.profileCardHeader h2,
+.profileHubSectionHeader h2,
+.dashboardTile h3,
+.dashboardCard h2 {
+  line-height: 1.1 !important;
+}
+
+.reportSectionGroupHeader p,
+.commandPanelHeader p:not(.eyebrow),
+.profileCardHeader p,
+.profileHubSectionHeader p,
+.dashboardTile p,
+.dashboardCard p {
+  line-height: 1.38 !important;
+}
+
+/* Card audit pass: keep summary cards that add context, hide repeated mini summaries. */
+.currentReportSummaryCard .dashboardInsightGrid,
+.currentReportSummaryCard .reportCoachCardGrid,
+.currentReportSummaryCard .keepImproveAvoidSummary {
+  display: none !important;
+}
+
+.currentReportSummaryCard .commandCentreHero,
+.currentReportSummaryCard .reportDashboardStats,
+.currentReportSummaryCard .nextBestMoveCard {
+  margin-bottom: 10px !important;
+}
+
+.currentReportSummaryCard .commandCentreOpeningGrid,
+.currentReportSummaryCard .commandCentreActions {
+  margin-top: 10px !important;
+}
+
+.currentReportSummaryCard .reportDashboardStats {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.currentReportSummaryCard .reportDashboardStat,
+.currentReportSummaryCard .nextBestMoveCard,
+.historySnapshotGrid .currentReportCard,
+.historyItem,
+.practiceComingSoon,
+.weakestLineTrainingSet {
+  padding: 10px !important;
+}
+
+.currentReportSummaryCard .reportOpeningChipRail {
+  gap: 6px !important;
+  margin: 8px 0 !important;
+}
+
+.currentReportSummaryCard .reportOpeningChip {
+  padding: 7px 9px !important;
+}
+
+.historySnapshotGrid {
+  gap: 8px !important;
+}
+
+.historyComparisonTable,
+.historyList {
+  margin-top: 10px !important;
+}
+
+.practiceLinesHeader,
+.reportHistoryHeader {
+  gap: 8px !important;
+  margin-bottom: 10px !important;
+}
+
+.postAnalysisFlow,
+.analysisNextStepsPanel,
+.analysisTrustSignalsPanel,
+.importSummaryCard,
+.biggestInsightCard,
+.openingMethodCard {
+  padding: clamp(11px, 1.8vw, 16px) !important;
+}
+
+.postAnalysisCard,
+.analysisNextOpeningCard,
+.premiumRecommendationCard,
+.fitMiniCard {
+  padding: 10px !important;
+}
+
+.postAnalysisCard dl,
+.analysisNextOpeningGrid,
+.analysisTrustSignalGrid {
+  gap: 8px !important;
+}
+
+@media (min-width: 900px) {
+  #report-verdict .reportSectionGroupBody {
+    display: grid !important;
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+    align-items: start;
+  }
+
+  #report-verdict .reportSectionGroupBody > .currentReportSummary,
+  #report-verdict .reportSectionGroupBody > .currentReportSummaryCard,
+  #report-verdict .reportSectionGroupBody > .whatChangedSinceLastAnalysis,
+  #report-verdict .reportSectionGroupBody > .openingJourney,
+  #report-verdict .reportSectionGroupBody > .openingFitVerdict {
+    grid-column: 1 / -1;
+  }
+
+  .reportTrainingPreviewGrid,
+  .dashboardTileGrid,
+  .dashboardInsightGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .profileHeroDashboard {
+    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr) !important;
+  }
+
+  .profileHeroMetaGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .profileDashboardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .repertoireMapGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .openingJourney {
+    display: grid !important;
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  }
+
+  .openingJourneyHeader,
+  .openingJourneyGrid,
+  .openingJourneyMastery {
+    grid-column: 1 / -1 !important;
+  }
+
+  .openingJourneyGrid {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1.4fr) !important;
+  }
+
+  .openingJourneyStory,
+  .openingJourneyIdentity,
+  .openingJourneyWeakLine,
+  .openingJourneyCoach,
+  .openingJourneyFix {
+    grid-column: span 6 !important;
+  }
+
+  .openingJourneyMilestones {
+    grid-column: 1 / -1 !important;
+  }
+
+  .openingJourneyMilestones ul {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .historySnapshotGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .practiceComingSoon {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.8fr) !important;
+    align-items: start;
+    gap: 10px !important;
+  }
+
+  .practiceComingSoon > h3,
+  .practiceComingSoon > p {
+    grid-column: 1;
+  }
+
+  .practiceComingSoon .weakestLineTrainingSet,
+  .practiceComingSoon .supportedOpeningGrid {
+    grid-column: 2;
+  }
+
+  .postAnalysisFlow .postAnalysisGrid,
+  .analysisNextOpeningGrid,
+  .analysisTrustSignalGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .finalReportFlow,
+  .profileDashboard,
+  .dashboardHome,
+  .dashboardView {
+    gap: 10px !important;
+  }
+
+  .reportSectionGroup,
+  .commandPanel,
+  .reportTrainingPreview,
+  .repertoireMapSection,
+  .profileHeroDashboard,
+  .profileDashboardCard,
+  .dashboardHeroTile,
+  .dashboardTile,
+  .dashboardActionStrip,
+  .dashboardCard {
+    padding: 11px !important;
+  }
+
+  .profileHeroMetaGrid,
+  .dashboardTileGrid,
+  .dashboardInsightGrid,
+  .reportTrainingPreviewGrid {
+    gap: 8px !important;
+  }
+
+  .openingJourney,
+  .openingJourneyMastery {
+    gap: 8px !important;
+  }
+
+  .openingJourney,
+  .openingJourneyScore,
+  .openingJourneyHealth,
+  .openingJourneyWeakLine,
+  .openingJourneyStory,
+  .openingJourneyIdentity,
+  .openingJourneyCoach,
+  .openingJourneyMilestones,
+  .openingJourneyFix,
+  .openingJourneyMastery article {
+    padding: 10px !important;
+  }
+
+  .currentReportSummaryCard .reportDashboardStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .currentReportSummaryCard .commandCentreOpeningGrid {
+    display: none !important;
+  }
+}
+
+/* Mobile-first polish pass: make phone/tablet layouts feel intentional, not squeezed. */
+@media (max-width: 899px) {
+  .appShell,
+  .finalReportFlow,
+  .profileDashboard,
+  .dashboardHome,
+  .dashboardView,
+  .reportSectionGroup,
+  .commandPanel,
+  .currentReportSummaryCard,
+  .openingJourney,
+  .reportTrainingPreview,
+  .reportHistoryVault,
+  .profileHeroDashboard,
+  .profileDashboardCard {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+  }
+
+  .commandCentreHero,
+  .nextBestMoveCard,
+  .openingJourneyHeader,
+  .openingJourneyCoach,
+  .openingJourneyFix,
+  .reportHistoryHeader,
+  .practiceLinesHeader,
+  .profileHeroDashboard,
+  .profileCardHeaderSplit,
+  .dashboardActionStrip {
+    grid-template-columns: 1fr !important;
+    align-items: start !important;
+  }
+
+  .commandCentreScore,
+  .nextBestMoveActions,
+  .historyActions,
+  .profileHeroActions,
+  .dashboardActionButtons,
+  .weakLineTrainingActions,
+  .todayTrainingActions {
+    width: 100% !important;
+  }
+
+  .primaryBtn,
+  .secondaryBtn,
+  .secondaryButton,
+  .ghostButton,
+  .saveReportButton,
+  .clearHistoryButton,
+  .dangerHistoryButton,
+  .openingJourney button,
+  .reportTrainingPreview button,
+  .reportHistoryVault button,
+  .analysisNextStepsPanel button,
+  .postAnalysisFlow button {
+    min-height: 42px !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+  }
+
+  .nextBestMoveActions,
+  .historyActions,
+  .profileHeroActions,
+  .dashboardActionButtons,
+  .weakLineTrainingActions,
+  .todayTrainingActions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 7px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .appShell,
+  .page .appShell,
+  .publicLandingPage .appShell,
+  .appReportPage .appShell,
+  .finalReportFlow {
+    width: calc(100vw - 14px) !important;
+    max-width: calc(100vw - 14px) !important;
+  }
+
+  .appPrimaryNav {
+    padding-inline: 7px !important;
+  }
+
+  .appPrimaryNavInner,
+  .appPrimaryMobilePanel,
+  .mobileBottomNav {
+    max-width: calc(100vw - 14px) !important;
+  }
+
+  .reportSectionGroup,
+  .commandPanel,
+  .currentReportSummaryCard,
+  .openingJourney,
+  .reportTrainingPreview,
+  .repertoireMapSection,
+  .profileHeroDashboard,
+  .profileDashboardCard,
+  .dashboardHeroTile,
+  .dashboardTile,
+  .dashboardActionStrip,
+  .dashboardCard,
+  .reportHistoryVault {
+    border-radius: 14px !important;
+    padding: 10px !important;
+  }
+
+  .commandCentreHero,
+  .reportDashboardStats,
+  .openingJourneyGrid,
+  .openingJourneyMastery,
+  .profileHeroMetaGrid,
+  .profileDashboardGrid,
+  .historySnapshotGrid,
+  .reportTrainingPreviewGrid,
+  .analysisNextOpeningGrid,
+  .analysisTrustSignalGrid,
+  .postAnalysisFlow .postAnalysisGrid,
+  .repertoireMapGrid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .currentReportSummaryCard .reportDashboardStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .currentReportSummaryCard .reportDashboardStat,
+  .openingJourneyScore,
+  .openingJourneyHealth,
+  .openingJourneyWeakLine,
+  .openingJourneyStory,
+  .openingJourneyIdentity,
+  .openingJourneyCoach,
+  .openingJourneyMilestones,
+  .openingJourneyFix,
+  .openingJourneyMastery article,
+  .historySnapshotGrid .currentReportCard,
+  .historyItem,
+  .practiceComingSoon,
+  .weakestLineTrainingSet {
+    border-radius: 12px !important;
+    padding: 9px !important;
+  }
+
+  .commandCentreHero h1,
+  .profileHeroCopy h1,
+  .profileNoReportState h1,
+  .reportSectionGroupHeader h2,
+  .commandPanelHeader h2,
+  .openingJourneyHeader h2,
+  .dashboardHeroTile h2 {
+    font-size: clamp(1.18rem, 7vw, 1.65rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  .openingJourneyScore strong,
+  .openingJourneyHealth strong,
+  .commandCentreScore strong,
+  .dashboardHeroScore strong {
+    font-size: clamp(1.65rem, 9vw, 2.15rem) !important;
+  }
+
+  .currentReportMetaInline,
+  .reportOpeningChipRail,
+  .openingJourneyMasteryStats,
+  .repertoireMapLegend,
+  .supportedOpeningGrid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    padding-bottom: 2px !important;
+    scrollbar-width: none;
+  }
+
+  .currentReportMetaInline::-webkit-scrollbar,
+  .reportOpeningChipRail::-webkit-scrollbar,
+  .openingJourneyMasteryStats::-webkit-scrollbar,
+  .repertoireMapLegend::-webkit-scrollbar,
+  .supportedOpeningGrid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .currentReportMetaInline > *,
+  .reportOpeningChip,
+  .openingJourneyMasteryStats > *,
+  .repertoireMapLegend > *,
+  .supportedOpeningGrid > * {
+    flex: 0 0 auto;
+  }
+
+  .historyComparisonTable,
+  .tableWrap,
+  .savedReportsList,
+  .historyList {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobileBottomNav {
+    left: 7px !important;
+    right: 7px !important;
+    bottom: max(7px, env(safe-area-inset-bottom)) !important;
+    min-height: 58px !important;
+    padding: 5px !important;
+    border-radius: 18px !important;
+  }
+
+  .mobileBottomNav button {
+    min-height: 46px !important;
+    border-radius: 13px !important;
+    font-size: 0.58rem !important;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 899px) {
+  .appShell,
+  .finalReportFlow,
+  .profileDashboard,
+  .dashboardHome,
+  .dashboardView {
+    max-width: min(760px, calc(100vw - 24px)) !important;
+  }
+
+  .reportDashboardStats,
+  .openingJourneyGrid,
+  .profileHeroMetaGrid,
+  .historySnapshotGrid,
+  .reportTrainingPreviewGrid,
+  .dashboardTileGrid,
+  .dashboardInsightGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .openingJourneyWeakLine,
+  .reportTrainingPreviewGrid article:first-child,
+  .dashboardActionStrip {
+    grid-column: 1 / -1 !important;
+  }
+
+  .profileHeroDashboard,
+  .profileDashboardGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .currentReportSummaryCard .reportDashboardStats,
+  .reportDashboardStats,
+  .openingJourneyGrid,
+  .profileHeroMetaGrid,
+  .historySnapshotGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .primaryBtn,
+  .secondaryBtn,
+  .secondaryButton,
+  .ghostButton,
+  .openingJourney button,
+  .reportTrainingPreview button,
+  .reportHistoryVault button {
+    min-height: 40px !important;
+    padding-inline: 10px !important;
+    font-size: 0.86rem !important;
+  }
+}

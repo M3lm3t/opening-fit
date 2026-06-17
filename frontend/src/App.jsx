@@ -35,6 +35,8 @@ import TodayTrainingCard from "./components/TodayTrainingCard";
 import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
 import OpeningFitVerdict from "./components/OpeningFitVerdict";
 import OpeningJourney from "./components/OpeningJourney";
+import WhatChangedSinceLastAnalysis from "./components/WhatChangedSinceLastAnalysis";
+import "./components/LayoutDensity.css";
 import WeeklyOpeningSummaryCompact from "./components/WeeklyOpeningSummary";
 import RecommendedOpeningFit from "./components/RecommendedOpeningFit";
 import OpeningInsights from "./components/OpeningInsights";
@@ -5513,6 +5515,11 @@ function FinalReportFlow({
           reportMode={reportMode}
           onReportModeChange={setReportMode}
         />
+        <WhatChangedSinceLastAnalysis
+          data={data}
+          fitData={fitData}
+          retentionSnapshots={retentionSnapshots}
+        />
         <OpeningJourney
           data={data}
           fitData={fitData}
@@ -5521,29 +5528,6 @@ function FinalReportFlow({
           onNavigate={onNavigate}
         />
         <OpeningFitVerdict data={data} fitData={fitData} onPractice={onPractice} />
-        <NextBestTrainingActionCard
-          data={data}
-          fitData={fitData}
-          onStartTraining={(action) => {
-            if (action?.opening) {
-              onNavigate?.({
-                view: "train",
-                path: "/train",
-                target: "today-training",
-                fallbackIds: ["training-plan", "opening-practice"],
-              });
-              return;
-            }
-
-            setReportMode("full");
-            onNavigate?.({
-              view: "report",
-              path: "/report",
-              target: "report-repertoire",
-              reportMode: "full",
-            });
-          }}
-        />
       </ReportSectionGroup>
 
       {showFullReport ? (
@@ -8514,26 +8498,105 @@ function repertoireMapStem(opening, section) {
   return inferBlackMapMove(opening, section.key);
 }
 
-function repertoireMapStatus(opening, bucketKey) {
+function repertoireMapDisplayTitle(section) {
+  if (section.key === "white_repertoire") return "White repertoire";
+  if (section.key === "black_vs_e4") return "Black vs e4";
+  if (section.key === "black_vs_d4") return "Black vs d4";
+  return "Other / unclear";
+}
+
+function repertoireMapMasteryRows(data = {}) {
+  const metrics = data?.retentionMetrics || data?.retention_metrics || {};
+  const rows =
+    data?.openingMastery ||
+    data?.opening_mastery ||
+    metrics.openingMastery ||
+    metrics.opening_mastery ||
+    [];
+  return Array.isArray(rows) ? rows : [];
+}
+
+function repertoireMapMasteryForOpening(data, opening) {
+  const openingKey = getOpeningName(opening).toLowerCase();
+  const row = repertoireMapMasteryRows(data).find((item) => {
+    const itemName = String(item?.opening || item?.name || "").toLowerCase();
+    return itemName && (openingKey.includes(itemName) || itemName.includes(openingKey));
+  });
+  if (!row) return null;
+
+  const score = safeNumber(row.masteryScore ?? row.mastery_score, null);
+  const level = safeNumber(row.masteryLevel ?? row.mastery_level, null);
+
+  return {
+    score: Number.isFinite(score) ? Math.round(score) : null,
+    level: Number.isFinite(level) ? Math.round(level) : null,
+    weakLineCount: safeNumber(row.weakLineCount ?? row.weak_line_count, 0),
+    decayRisk: String(row.decayRisk || row.decay_risk || "none").toLowerCase(),
+    confidence: row.confidence || row.confidenceLevel || row.confidence_level || "",
+    confidenceText: row.confidenceText || row.confidence_text || "",
+    confidenceGames: safeNumber(row.confidenceGames ?? row.confidence_games ?? row.gamesPlayed ?? row.games_played, null),
+  };
+}
+
+function repertoireMapScoreValue(data, opening) {
+  const mastery = repertoireMapMasteryForOpening(data, opening);
+  if (mastery?.score !== null && mastery?.score !== undefined) return mastery.score;
+  return getOpeningGames(opening) ? getWinRate(opening) : null;
+}
+
+function repertoireMapConfidenceLevel(opening) {
+  const confidence = String(getOpeningConfidence(opening) || "").toLowerCase();
+  if (confidence.includes("high")) return "high";
+  if (confidence.includes("low") || confidence.includes("too little")) return "low";
+  if (confidence.includes("none")) return "low";
+  return "medium";
+}
+
+function repertoireMapConfidenceText(data, opening) {
+  const mastery = repertoireMapMasteryForOpening(data, opening);
+  if (mastery?.confidenceText) return mastery.confidenceText;
+  if (mastery?.confidence) {
+    const games = mastery.confidenceGames ?? getOpeningGames(opening);
+    return `${mastery.confidence} confidence - based on ${games} game${games === 1 ? "" : "s"}`;
+  }
+
+  const games = getOpeningGames(opening);
+  const level = games >= 30 ? "High" : games >= 10 ? "Medium" : "Low";
+  return `${level} confidence - based on ${games} game${games === 1 ? "" : "s"}`;
+}
+
+function repertoireMapStatus(opening, bucketKey, data) {
   if (!opening) {
     return {
-      key: "grey",
-      label: "Not enough data",
-      legend: "not enough data",
+      key: "watch",
+      label: "watch",
+      legend: "watch",
     };
   }
 
-  if (bucketKey === "bestFit") {
-    return { key: "green", label: "Working", legend: "working" };
-  }
-  if (bucketKey === "risky") {
-    return { key: "red", label: "Costing points", legend: "costing points" };
-  }
-  if (bucketKey === "notEnoughData") {
-    return { key: "grey", label: "Not enough data", legend: "not enough data" };
+  const games = getOpeningGames(opening);
+  const score = repertoireMapScoreValue(data, opening);
+  const mastery = repertoireMapMasteryForOpening(data, opening);
+  const confidence = repertoireMapConfidenceLevel(opening);
+  const stale = ["medium", "high"].includes(mastery?.decayRisk);
+
+  if (games >= 4 && (bucketKey === "risky" || mastery?.weakLineCount > 0 || (score !== null && score !== undefined && score < 45))) {
+    return { key: "weak", label: "weak", legend: "weak" };
   }
 
-  return { key: "amber", label: "Unstable", legend: "unstable" };
+  if (confidence === "low" || stale || bucketKey === "notEnoughData" || games < 4) {
+    return { key: "watch", label: "watch", legend: "watch" };
+  }
+
+  if (games >= 10 && score >= 68 && confidence === "high") {
+    return { key: "strong", label: "strong", legend: "strong" };
+  }
+
+  if (games >= 4 && score >= 50) {
+    return { key: "stable", label: "stable", legend: "stable" };
+  }
+
+  return { key: "watch", label: "watch", legend: "watch" };
 }
 
 function repertoireMapRows(section) {
@@ -8547,13 +8610,58 @@ function repertoireMapRows(section) {
   return rows.slice(0, 4);
 }
 
-function repertoireMapScore(opening) {
+function repertoireMapUnknownRows(data, usedKeys = new Set()) {
+  const candidates = [
+    ...(Array.isArray(data?.top_openings) ? data.top_openings : []),
+    ...(Array.isArray(data?.topOpenings) ? data.topOpenings : []),
+    ...(Array.isArray(data?.opening_stats) ? data.opening_stats : []),
+    ...(Array.isArray(data?.openingStats) ? data.openingStats : []),
+    ...(Array.isArray(data?.best_openings) ? data.best_openings : []),
+    ...(Array.isArray(data?.bestOpenings) ? data.bestOpenings : []),
+  ];
+
+  return uniqueOpeningsByNameAndContext(candidates)
+    .filter((opening) => {
+      const key = getOpeningIdentityKey(opening);
+      if (!key || usedKeys.has(key)) return false;
+      const context = itemContext(opening, "unknown_mixed");
+      const side = String(getOpeningSide(opening)).toLowerCase();
+      return context === "unknown_mixed" || (!side.includes("white") && !side.includes("black"));
+    })
+    .slice(0, 4)
+    .map((opening) => ({ opening, bucketKey: "needsReview" }));
+}
+
+function repertoireMapMasteryText(data, opening) {
+  const mastery = repertoireMapMasteryForOpening(data, opening);
+  if (mastery?.level) return `Level ${mastery.level}/10`;
+  if (mastery?.score !== null && mastery?.score !== undefined) return `${mastery.score}%`;
   if (!opening || getOpeningGames(opening) === 0) return "Unavailable";
-  return `${getWinRate(opening)}%`;
+  return `${getWinRate(opening)}% score`;
 }
 
 function RepertoireMap({ data }) {
-  const sections = buildRepertoireReportSections(data);
+  const baseSections = buildRepertoireReportSections(data);
+  const usedKeys = new Set(
+    baseSections.flatMap((section) => repertoireMapRows(section).map(({ opening }) => getOpeningIdentityKey(opening)))
+  );
+  const sections = baseSections.map((section) => {
+    if (section.key !== "black_vs_other") return section;
+    const unknownRows = repertoireMapUnknownRows(data, usedKeys).map(({ opening }) => opening);
+    return {
+      ...section,
+      title: "Other / unclear",
+      empty: "No clean signal for other or unclear openings yet.",
+      buckets: {
+        ...section.buckets,
+        needsReview: uniqueOpeningsByNameAndContext([
+          ...(section.buckets.needsReview || []),
+          ...unknownRows,
+        ]),
+      },
+      totalItems: section.totalItems + unknownRows.length,
+    };
+  });
   const totalItems = sections.reduce((total, section) => total + section.totalItems, 0);
 
   return (
@@ -8563,7 +8671,7 @@ function RepertoireMap({ data }) {
           <p className="eyebrow">Repertoire map</p>
           <h2>Your current repertoire</h2>
           <p>
-            A visual map of what you are actually playing, split by repertoire role so White systems and Black defences stay separate.
+            A compact map of your openings, split by colour and first move when the report can detect it.
           </p>
           <span className="repertoireMapCount">
             {totalItems
@@ -8573,10 +8681,10 @@ function RepertoireMap({ data }) {
         </div>
 
         <div className="repertoireMapLegend" aria-label="Repertoire map legend">
-          <span><i className="mapDot mapDotGreen" />Working</span>
-          <span><i className="mapDot mapDotAmber" />Unstable</span>
-          <span><i className="mapDot mapDotRed" />Costing points</span>
-          <span><i className="mapDot mapDotGrey" />Not enough data</span>
+          <span><i className="mapDot mapDotStrong" />strong</span>
+          <span><i className="mapDot mapDotStable" />stable</span>
+          <span><i className="mapDot mapDotWatch" />watch</span>
+          <span><i className="mapDot mapDotWeak" />weak</span>
         </div>
       </div>
 
@@ -8587,19 +8695,14 @@ function RepertoireMap({ data }) {
           return (
             <article className="repertoireMapLane" key={section.key}>
               <div className="repertoireMapLaneHeader">
-                <span>{section.title}</span>
+                <span>{repertoireMapDisplayTitle(section)}</span>
                 <strong>{sectionHealth(section)}</strong>
               </div>
 
               <div className="repertoireMapTree">
                 {rows.length ? (
                   rows.map(({ opening, bucketKey }) => {
-                    const status = repertoireMapStatus(opening, bucketKey);
-                    const verdict = openingVerdictLabel(
-                      opening,
-                      data,
-                      opening.fitVerdict || opening.verdict
-                    );
+                    const status = repertoireMapStatus(opening, bucketKey, data);
 
                     return (
                       <div className={`repertoireMapNode mapStatus-${status.key}`} key={getOpeningIdentityKey(opening)}>
@@ -8622,16 +8725,16 @@ function RepertoireMap({ data }) {
                             <dd>{getOpeningGames(opening)}</dd>
                           </div>
                           <div>
-                            <dt>Score</dt>
-                            <dd>{repertoireMapScore(opening)}</dd>
+                            <dt>Mastery</dt>
+                            <dd>{repertoireMapMasteryText(data, opening)}</dd>
                           </div>
                           <div>
                             <dt>Confidence</dt>
-                            <dd>{getOpeningConfidence(opening)}</dd>
+                            <dd>{repertoireMapConfidenceText(data, opening)}</dd>
                           </div>
                           <div>
-                            <dt>Verdict</dt>
-                            <dd>{verdict}</dd>
+                            <dt>Status</dt>
+                            <dd>{status.label}</dd>
                           </div>
                         </dl>
                       </div>
@@ -8641,13 +8744,13 @@ function RepertoireMap({ data }) {
                   <div className="repertoireMapNode mapStatus-grey">
                     <div className="repertoireMapNodeTop">
                       <div className="repertoireMapPath">
-                        <span>{section.title}</span>
+                        <span>{repertoireMapDisplayTitle(section)}</span>
                         <b aria-hidden="true">&rarr;</b>
                         <strong>{section.empty}</strong>
                       </div>
                       <div className="repertoireMapStatus">
-                        <i className="mapDot mapDotGrey" />
-                        Not enough data
+                        <i className="mapDot mapDotWatch" />
+                        watch
                       </div>
                     </div>
                     <dl className="repertoireMapMeta">
@@ -8656,7 +8759,7 @@ function RepertoireMap({ data }) {
                         <dd>0</dd>
                       </div>
                       <div>
-                        <dt>Score</dt>
+                        <dt>Mastery</dt>
                         <dd>Unavailable</dd>
                       </div>
                       <div>
@@ -8664,8 +8767,8 @@ function RepertoireMap({ data }) {
                         <dd>No confidence yet</dd>
                       </div>
                       <div>
-                        <dt>Verdict</dt>
-                        <dd>Not enough data</dd>
+                        <dt>Status</dt>
+                        <dd>watch</dd>
                       </div>
                     </dl>
                   </div>

@@ -11,47 +11,6 @@
     rgba(15, 23, 42, 0.62);
 }
 
-.nextBestTrainingAction {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: center;
-  margin: 0 0 24px;
-  padding: clamp(14px, 2.2vw, 20px);
-  border: 1px solid rgba(45, 212, 191, 0.24);
-  border-radius: 18px;
-  background: rgba(15, 23, 42, 0.58);
-}
-
-.nextBestTrainingAction h2,
-.nextBestTrainingAction p {
-  margin: 0;
-}
-
-.nextBestTrainingAction h2 {
-  margin-top: 5px;
-  font-size: clamp(1.25rem, 2.2vw, 1.65rem);
-}
-
-.nextBestTrainingAction p {
-  margin-top: 6px;
-  color: var(--text-soft);
-  line-height: 1.5;
-}
-
-.nextBestTrainingAction button {
-  border: 0;
-  border-radius: 12px;
-  min-height: 42px;
-  padding: 0 14px;
-  background: #2dd4bf;
-  color: #042f2e;
-  font-weight: 950;
-  cursor: pointer;
-}
-
 .todayTrainingHeader {
   display: flex;
   justify-content: space-between;
@@ -171,14 +130,6 @@
   .todayTrainingCard {
     margin-top: 0;
     border-radius: 18px;
-  }
-
-  .nextBestTrainingAction {
-    grid-template-columns: 1fr;
-  }
-
-  .nextBestTrainingAction button {
-    width: 100%;
   }
 
   .todayTrainingHeader {
