@@ -102,13 +102,15 @@ function storageKey(data) {
   return `openingFit:weeklyOpeningReport:${getPlatform(data)}:${getUsername(data)}`;
 }
 
-function reportFingerprint(snapshot) {
+function reportFingerprint(snapshot = {}) {
+  const openings = Array.isArray(snapshot.openings) ? snapshot.openings : [];
+
   return [
     snapshot.username,
     snapshot.platform,
     snapshot.gamesImported,
     snapshot.rating || "no-rating",
-    ...snapshot.openings
+    ...openings
       .slice(0, 10)
       .map((item) => `${item.name}:${item.games}:${item.winRate}`),
   ].join("|");

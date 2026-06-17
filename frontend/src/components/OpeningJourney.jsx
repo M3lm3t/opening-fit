@@ -103,10 +103,12 @@ function getOneThingToFix(data = {}) {
 }
 
 function getSnapshotPayload(row = {}) {
-  return row.snapshot || row.summary || row.retention_snapshot || row.retentionSnapshot || row;
+  const source = row || {};
+  return source.snapshot || source.summary || source.retention_snapshot || source.retentionSnapshot || source;
 }
 
 function getSnapshotScore(row = {}) {
+  row = row || {};
   const payload = getSnapshotPayload(row);
   const value = row.opening_fit_score ?? payload.opening_fit_score ?? payload.openingFitScore;
   if (value === null || value === undefined || value === "") return null;

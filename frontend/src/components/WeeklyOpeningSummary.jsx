@@ -18,14 +18,17 @@ function scoreValue(value, fallback = null) {
 }
 
 function snapshotPayload(row = {}) {
-  return row.snapshot || row.summary || row;
+  const source = row || {};
+  return source.snapshot || source.summary || source;
 }
 
 function snapshotCreatedAt(row = {}) {
-  return row.created_at || row.createdAt || row.updated_at || row.updatedAt || "";
+  const source = row || {};
+  return source.created_at || source.createdAt || source.updated_at || source.updatedAt || "";
 }
 
 function getOpeningFitScore(row = {}) {
+  row = row || {};
   const payload = snapshotPayload(row);
   const direct =
     row.opening_fit_score ??
@@ -38,6 +41,7 @@ function getOpeningFitScore(row = {}) {
 }
 
 function getHealthScore(row = {}) {
+  row = row || {};
   const payload = snapshotPayload(row);
   const direct =
     row.repertoire_health_score ??
@@ -50,6 +54,7 @@ function getHealthScore(row = {}) {
 }
 
 function getMastery(row = {}) {
+  row = row || {};
   const payload = snapshotPayload(row);
   return asArray(
     row.top_opening_mastery ||
@@ -72,6 +77,7 @@ function masteryScore(item = {}) {
 }
 
 function getWeakestLine(row = {}) {
+  row = row || {};
   const payload = snapshotPayload(row);
   return row.weakest_line || row.weakestLine || payload.weakest_line || payload.weakestLine || null;
 }
@@ -84,6 +90,7 @@ function lineName(line) {
 }
 
 function getOneThingToFix(row = {}) {
+  row = row || {};
   const payload = snapshotPayload(row);
   return row.one_thing_to_fix || row.oneThingToFix || payload.one_thing_to_fix || payload.oneThingToFix || null;
 }

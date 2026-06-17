@@ -439,7 +439,7 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
           <strong>{previousReport ? safeDate(previousReport.createdAt) : "No previous report yet"}</strong>
           <small>
             {previousReport
-              ? `${previousReport.games || "Recent"} games · ${previousReport.analysisTimeFormatLabel} · Health ${previousReport.snapshot.healthScore ?? "—"}/100`
+              ? `${previousReport.games || "Recent"} games · ${previousReport.analysisTimeFormatLabel} · Health ${previousReport.snapshot?.healthScore ?? "—"}/100`
               : "Save this report, then re-import in a few weeks to compare."}
           </small>
         </article>
@@ -495,10 +495,10 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
                 <div>
                   <strong>{item.username}</strong>
                   <span>
-                    {item.games || "Recent"} games · {item.analysisTimeFormatLabel} · {item.topOpening} · Study: {item.snapshot.studyTarget || "—"}
+                    {item.games || "Recent"} games · {item.analysisTimeFormatLabel} · {item.topOpening} · Study: {item.snapshot?.studyTarget || "—"}
                   </span>
                   <small>
-                    {safeDate(item.createdAt)} · {item.platform} · {item.snapshot.importMonths || "Recent"} import
+                    {safeDate(item.createdAt)} · {item.platform} · {item.snapshot?.importMonths || "Recent"} import
                   </small>
                 </div>
 
