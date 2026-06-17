@@ -32084,10 +32084,14 @@ textarea {
 .themeToggle strong {
   width: 22px;
   height: 22px;
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
+  font-size: 0.92rem;
+  line-height: 1;
+  text-align: center;
 }
 
 .page.light .themeToggle,
@@ -44212,14 +44216,8 @@ textarea,
 }
 
 .reportDashboardStat::after {
-  content: "";
-  position: absolute;
-  right: -20px;
-  bottom: -28px;
-  width: 92px;
-  height: 92px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ds-primary-2) 12%, transparent);
+  content: none;
+  display: none;
 }
 
 .reportDashboardStat > * {
@@ -44585,7 +44583,6 @@ textarea,
   border-radius: 26px !important;
   border: 1px solid var(--ds-border) !important;
   background:
-    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--ds-primary-2) 12%, transparent), transparent 16rem),
     linear-gradient(145deg, color-mix(in srgb, var(--ds-text) 8%, transparent), color-mix(in srgb, var(--ds-text) 2%, transparent)),
     var(--ds-surface-muted) !important;
   box-shadow: var(--ds-shadow-soft) !important;
@@ -45747,7 +45744,6 @@ textarea,
 
 .openingRecommendationCard.status-keep {
   background:
-    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--ds-primary-2) 12%, transparent), transparent 16rem),
     linear-gradient(145deg, color-mix(in srgb, var(--ds-primary-2) 7%, transparent), color-mix(in srgb, var(--ds-text) 2%, transparent)),
     var(--ds-surface-muted) !important;
 }
@@ -45763,7 +45759,6 @@ textarea,
 [data-theme="light"] .openingRecommendationCard.status-keep {
   border-color: rgba(14, 116, 144, 0.2) !important;
   background:
-    radial-gradient(circle at 88% 12%, rgba(14, 165, 233, 0.08), transparent 15rem),
     linear-gradient(145deg, rgba(14, 165, 233, 0.06), rgba(255, 255, 255, 0.84)),
     #ffffff !important;
 }
