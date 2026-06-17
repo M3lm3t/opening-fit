@@ -580,7 +580,10 @@ export function AuthDataProvider({ children }) {
       setAuthLoading(true);
 
       try {
-        const { data, error: sessionError } = await supabase.auth.getSession();
+        const { data, error: sessionError } = await withRestoreTimeout(
+          supabase.auth.getSession(),
+          "auth session restore"
+        );
         if (cancelled) return;
         if (sessionError) {
           throw sessionError;
