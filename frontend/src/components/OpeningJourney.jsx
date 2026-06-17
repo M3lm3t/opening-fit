@@ -1,4 +1,10 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  WEAKEST_LINE_TRAINING_COMPLETED_EVENT,
+  buildWeakestLineTrainingTarget,
+  countWeakestLineCompletionsForOpening,
+  readWeakestLineTrainingEvents,
+} from "../services/weakestLineTraining";
 import "./OpeningJourney.css";
 
 function asArray(value) {
@@ -186,6 +192,19 @@ function fixText(fix) {
 }
 
 export default function OpeningJourney({ data, fitData, retentionSnapshots = [], onPractice, onNavigate }) {
+  const [weakestLineTrainingEvents, setWeakestLineTrainingEvents] = useState(() => readWeakestLineTrainingEvents());
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const handleCompletion = (event) => {
+      setWeakestLineTrainingEvents(event.detail?.events || readWeakestLineTrainingEvents());
+    };
+
+    window.addEventListener(WEAKEST_LINE_TRAINING_COMPLETED_EVENT, handleCompletion);
+    return () => window.removeEventListener(WEAKEST_LINE_TRAINING_COMPLETED_EVENT, handleCompletion);
+  }, []);
+
   const journey = useMemo(() => {
     if (!data) return null;
     const openingFitScore = getOpeningFitScore(data, fitData);
@@ -197,12 +216,24 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [],
       .map((item) => ({
         ...item,
         opening: item.opening || item.name || "Opening",
+        localWeakestLineTrainingCount: countWeakestLineCompletionsForOpening(item.opening || item.name || "", weakestLineTrainingEvents),
         masteryScore: clampPercent(item.masteryScore ?? item.mastery_score, 0),
         masteryLevel: Math.max(1, Math.min(10, Math.round(numberValue(item.masteryLevel ?? item.mastery_level, 1)))),
       }))
+      .map((item) => {
+        const boostedScore = Math.min(100, item.masteryScore + Math.min(8, item.localWeakestLineTrainingCount * 2));
+        const boostedLevel = Math.max(item.masteryLevel, Math.min(10, Math.ceil(boostedScore / 10)));
+        return {
+          ...item,
+          displayMasteryScore: boostedScore,
+          displayMasteryLevel: boostedLevel,
+          localTrainingAdded: item.localWeakestLineTrainingCount,
+        };
+      })
       .sort((a, b) => b.masteryScore - a.masteryScore)
       .slice(0, 3);
     const oneFix = getOneThingToFix(data);
+    const weakestTraining = buildWeakestLineTrainingTarget(data);
     return {
       openingFitScore,
       previousSnapshot,
@@ -211,9 +242,10 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [],
       healthScore,
       mastery,
       oneFix,
+      weakestTraining,
       fixOpening: oneFix?.opening || oneFix?.trainingTarget || oneFix?.training_target || "",
     };
-  }, [data, fitData, retentionSnapshots]);
+  }, [data, fitData, retentionSnapshots, weakestLineTrainingEvents]);
 
   if (!data || !journey) return null;
 
@@ -243,6 +275,13 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [],
         <article className="openingJourneyWeakLine">
           <span>Weakest Line Changed</span>
           <p>{weakestLineText(data)}</p>
+          {journey.weakestTraining.available ? (
+            <button type="button" onClick={() => onPractice?.(journey.weakestTraining.target)}>
+              Train my weakest line
+            </button>
+          ) : (
+            <small>{journey.weakestTraining.message}</small>
+          )}
         </article>
       </div>
 
@@ -275,11 +314,14 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [],
                 <h3>{item.opening}</h3>
               </div>
               <div className="openingJourneyMasteryStats">
-                <strong>Level {item.masteryLevel}/10</strong>
-                <em>{item.masteryScore}%</em>
+                <strong>Level {item.displayMasteryLevel}/10</strong>
+                <em>{item.displayMasteryScore}%</em>
               </div>
               <p>{trendLabel(item.recentTrend || item.recent_trend)}</p>
-              <small>{weaknessText(item)} - {decayText(item)}</small>
+              <small>
+                {weaknessText(item)} - {decayText(item)}
+                {item.localTrainingAdded ? ` - ${item.localTrainingAdded} weakest-line session${item.localTrainingAdded === 1 ? "" : "s"} saved` : ""}
+              </small>
             </article>
           ))}
         </div>
@@ -294,11 +336,12 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [],
         <button
           type="button"
           onClick={() => {
-            if (journey.fixOpening && onPractice) onPractice(journey.fixOpening);
+            if (journey.weakestTraining.available && onPractice) onPractice(journey.weakestTraining.target);
+            else if (journey.fixOpening && onPractice) onPractice(journey.fixOpening);
             else onNavigate?.({ view: "train", path: "/train", target: "training-plan" });
           }}
         >
-          Start training
+          Train my weakest line
         </button>
       </article>
     </section>

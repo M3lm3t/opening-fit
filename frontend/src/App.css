@@ -4134,6 +4134,50 @@ th {
   line-height: 1.4;
 }
 
+.weakestLineTrainingSet {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  margin-top: 10px;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.weakestLineTrainingSet span,
+.weakestLineTrainingSet small {
+  color: #bfdbfe;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.weakestLineTrainingSet strong {
+  color: #f8fafc;
+  overflow-wrap: anywhere;
+}
+
+.weakestLineTrainingSet p {
+  margin: 0;
+  color: #cbd5e1;
+}
+
+.page.light .weakestLineTrainingSet,
+[data-theme="light"] .weakestLineTrainingSet {
+  border-color: rgba(37, 99, 235, 0.16);
+  background: rgba(219, 234, 254, 0.62);
+}
+
+.page.light .weakestLineTrainingSet strong,
+[data-theme="light"] .weakestLineTrainingSet strong {
+  color: #0f172a;
+}
+
+.page.light .weakestLineTrainingSet p,
+[data-theme="light"] .weakestLineTrainingSet p {
+  color: #475569;
+}
+
 .practiceCloseButton {
   width: 38px;
   height: 38px;

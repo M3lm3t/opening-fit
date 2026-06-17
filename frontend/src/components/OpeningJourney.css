@@ -84,6 +84,7 @@
 .openingJourneyScore p,
 .openingJourneyHealth p,
 .openingJourneyWeakLine p,
+.openingJourneyWeakLine small,
 .openingJourneyIdentity p,
 .openingJourneyIdentity li,
 .openingJourneyIdentity small,
@@ -131,6 +132,18 @@
   background: rgba(34, 197, 94, 0.13);
   color: #bbf7d0;
   font-weight: 900;
+}
+
+.openingJourneyWeakLine button {
+  width: fit-content;
+  min-height: 38px;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  border-radius: 999px;
+  padding: 0 13px;
+  color: #dbeafe;
+  background: rgba(37, 99, 235, 0.16);
+  font-weight: 900;
+  cursor: pointer;
 }
 
 .openingJourneyMastery {
@@ -228,6 +241,7 @@
 .page.light .openingJourneyScore p,
 .page.light .openingJourneyHealth p,
 .page.light .openingJourneyWeakLine p,
+.page.light .openingJourneyWeakLine small,
 .page.light .openingJourneyIdentity p,
 .page.light .openingJourneyIdentity li,
 .page.light .openingJourneyIdentity small,
@@ -237,6 +251,7 @@
 [data-theme="light"] .openingJourneyScore p,
 [data-theme="light"] .openingJourneyHealth p,
 [data-theme="light"] .openingJourneyWeakLine p,
+[data-theme="light"] .openingJourneyWeakLine small,
 [data-theme="light"] .openingJourneyIdentity p,
 [data-theme="light"] .openingJourneyIdentity li,
 [data-theme="light"] .openingJourneyIdentity small,

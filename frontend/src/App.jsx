@@ -89,6 +89,10 @@ import { buildOpeningHealthSnapshot } from "./services/openingHealth";
 import { mergeWeakLines } from "./services/weakLineDetection";
 import { buildOpeningGamificationSnapshot } from "./services/openingGamification";
 import { buildTrainingRecommendations } from "./services/trainingRecommendations";
+import {
+  buildWeakestLineTrainingTarget,
+  buildWeakestLineTrainingTargetFromLine,
+} from "./services/weakestLineTraining";
 import { DEMO_REPORT } from "./demoReportData";
 import { buildApiUrl, logApiDiagnostic } from "./lib/apiBase";
 import { importGames as importGamesFromApi } from "./lib/importClient";
@@ -5662,7 +5666,9 @@ function NextBestTrainingActionCard({ data, fitData, onStartTraining }) {
 function ReportTrainingPreview({ data, fitData, studyTarget, recentGames = [], onPractice, onNavigate }) {
   if (!data) return null;
 
+  const weakestTraining = buildWeakestLineTrainingTarget(data);
   const targetName =
+    weakestTraining.target?.opening ||
     studyTarget?.name ||
     getOpeningName(fitData?.weakestOpening) ||
     getOpeningName(fitData?.bestOpening) ||
@@ -5682,10 +5688,20 @@ function ReportTrainingPreview({ data, fitData, studyTarget, recentGames = [], o
         <article>
           <span>Practice board</span>
           <strong>{targetName}</strong>
-          <p>{studyTarget?.goal || "Learn one clean line and the first middlegame plan."}</p>
-          <button type="button" className="primaryBtn" onClick={() => onPractice?.(targetName)}>
-            Practice target
-          </button>
+          <p>
+            {weakestTraining.available
+              ? weakestTraining.target.trainingSet?.shortExplanation
+              : studyTarget?.goal || weakestTraining.message || "Learn one clean line and the first middlegame plan."}
+          </p>
+          {weakestTraining.available ? (
+            <button type="button" className="primaryBtn" onClick={() => onPractice?.(weakestTraining.target)}>
+              Train my weakest line
+            </button>
+          ) : (
+            <button type="button" className="primaryBtn" onClick={() => onPractice?.(targetName)}>
+              Practice target
+            </button>
+          )}
         </article>
 
         <article>
@@ -8805,6 +8821,7 @@ function OpeningsCommandPanel({ data, onPractice }) {
 function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
   const { user, recordActivity } = useAuth();
   const weakLines = mergeWeakLines(data);
+  const weakestTraining = buildWeakestLineTrainingTarget(data);
   const [selectedLine, setSelectedLine] = useState(null);
   const weak = [...(fitData?.scoredOpenings || [])]
     .filter((item) => ["avoid", "review", "improve"].includes(item.fitCategory))
@@ -8834,7 +8851,8 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
       }
     }
 
-    onPractice?.(selectedLine.trainingTarget || selectedLine.opening);
+    const selectedTraining = buildWeakestLineTrainingTargetFromLine(selectedLine);
+    onPractice?.(selectedTraining.target || selectedLine.trainingTarget || selectedLine.opening);
   };
 
   return (
@@ -8842,10 +8860,17 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
       <div className="commandPanelHeader">
         <p className="eyebrow">Weak lines</p>
         <h2>What to fix</h2>
-        <p>
-          Repeated variations worth reviewing before blaming the whole opening.
-        </p>
-      </div>
+          <p>
+            Repeated variations worth reviewing before blaming the whole opening.
+          </p>
+          {weakestTraining.available ? (
+            <button type="button" className="primaryBtn" onClick={() => onPractice?.(weakestTraining.target)}>
+              Train my weakest line
+            </button>
+          ) : (
+            <small>{weakestTraining.message}</small>
+          )}
+        </div>
 
       {weakLines.length ? (
         <div className="weakLineGrid">
@@ -8926,7 +8951,7 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
 
           <div className="weakLineTrainingActions">
             <button type="button" onClick={trainSelectedLine}>
-              Open practice board
+              Train my weakest line
             </button>
             <button type="button" onClick={() => setSelectedLine(null)}>
               Close
@@ -13140,6 +13165,16 @@ function App() {
     if (!openingTarget) return;
 
     setPracticeOpening(openingTarget);
+    if (openingTarget?.source === "weakest-line" || openingTarget?.trainingSet?.source === "weakest-line") {
+      handleAppNavigate({
+        view: "train",
+        path: "/train",
+        target: "opening-practice",
+        fallbackIds: ["today-training", "training-plan"],
+      });
+      return;
+    }
+
     scrollToId("opening-practice");
   };
 

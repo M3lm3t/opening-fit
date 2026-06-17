@@ -1,6 +1,7 @@
 import { useState } from "react";
 import InfoHint from "./InfoHint";
 import { OPENING_COPY, getOpeningRecommendationReason, sampleSizeCopy, weakLineIssueCopy } from "./openingCopy";
+import { buildWeakestLineTrainingTargetFromLine } from "../services/weakestLineTraining";
 import "./OpeningInsights.css";
 
 const PATTERN_COPY = {
@@ -223,6 +224,7 @@ function WeakLineCard({ line, onPractice }) {
     line.fit_classification ||
     "needs_training_line";
   const canTrain = typeof onPractice === "function";
+  const training = buildWeakestLineTrainingTargetFromLine(line);
 
   return (
     <article className="openingInsightWeakLine">
@@ -241,8 +243,8 @@ function WeakLineCard({ line, onPractice }) {
         <b>{lossRate(line)}% loss</b>
       </div>
       <p>{PATTERN_COPY[likelyIssue] || weakLineIssueCopy(likelyIssue, gamesPlayed(line))}</p>
-      <button type="button" onClick={() => canTrain && onPractice(opening)}>
-        {canTrain ? "Train this line" : "Review this line"}
+      <button type="button" onClick={() => canTrain && onPractice(training.target || opening)}>
+        {canTrain ? "Train my weakest line" : "Review this line"}
       </button>
     </article>
   );

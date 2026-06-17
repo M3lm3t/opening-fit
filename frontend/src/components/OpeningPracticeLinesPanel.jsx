@@ -5,6 +5,11 @@ import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardT
 import { findOpeningPracticePack, openingPracticePacks } from "../data/openingPracticeLines";
 import { OPENINGS, normaliseOpeningKey, searchOpenings } from "../data/openings";
 import { fetchOpeningFitCloudState, saveOpeningFitCloudState } from "./openingFitCloudState";
+import { useAuth } from "../context/AuthDataProvider";
+import {
+  buildWeakestLineTrainingCompletionEvent,
+  saveWeakestLineTrainingEvent,
+} from "../services/weakestLineTraining";
 
 const TRAINING_PROGRESS_KEY = "openingFit:openingTrainingProgress";
 
@@ -214,6 +219,25 @@ function buildTrainingProgress(progress, pack, activeOpeningName, selectedLine) 
   };
 }
 
+function isWeakestLineTraining(opening) {
+  return opening?.source === "weakest-line" || opening?.trainingSet?.source === "weakest-line" || opening?.training_set?.source === "weakest-line";
+}
+
+function getMasteryRows(data = {}) {
+  const metrics = data.retentionMetrics || data.retention_metrics || {};
+  const rows = data.openingMastery || data.opening_mastery || metrics.openingMastery || metrics.opening_mastery;
+  return Array.isArray(rows) ? rows : [];
+}
+
+function masteryScoreForOpening(data = {}, openingName = "") {
+  const target = normaliseOpeningKey(openingName);
+  if (!target) return null;
+  const row = getMasteryRows(data).find((item) => normaliseOpeningKey(item?.opening || item?.name || "") === target);
+  const value = row?.masteryScore ?? row?.mastery_score;
+  const score = Number(value);
+  return Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : null;
+}
+
 function matchesFilter(opening, filter) {
   if (filter === "white") return opening.color === "white" || opening.color === "both";
   if (filter === "black") return opening.color === "black" || opening.color === "both";
@@ -285,7 +309,9 @@ export default function OpeningPracticeLinesPanel({
   heading = "",
   focusLine = "",
 }) {
+  const { recordActivity } = useAuth();
   const openingName = getOpeningName(opening);
+  const trainingSet = opening?.trainingSet || opening?.training_set || null;
   const { boardTheme, setBoardTheme } = useBoardTheme();
   const [activeOpeningName, setActiveOpeningName] = useState(openingName);
   const pack = useMemo(() => findOpeningPracticePack(activeOpeningName), [activeOpeningName]);
@@ -301,6 +327,7 @@ export default function OpeningPracticeLinesPanel({
   const [activeFilters, setActiveFilters] = useState([]);
   const [trainingProgress, setTrainingProgress] = useState(() => loadLocalTrainingProgress());
   const [progressStatus, setProgressStatus] = useState(user?.id ? "Syncing practice progress..." : "Progress saved on this device");
+  const [completionNotice, setCompletionNotice] = useState("");
   const feedbackTimerRef = useRef(null);
 
   const selectedLine = pack?.lines?.[selectedLineIndex];
@@ -469,6 +496,16 @@ export default function OpeningPracticeLinesPanel({
               ? `Practice mode is ready for this opening, but no exact move line was found yet. Target line: ${focusLine}.`
               : "Practice mode is ready for this opening, but no exact move line was found yet."}
           </p>
+          {trainingSet ? (
+            <div className="weakestLineTrainingSet">
+              <span>Weakest-line training set</span>
+              <strong>{trainingSet.lineName || trainingSet.line_name || trainingSet.variationName || trainingSet.variation_name || openingName}</strong>
+              <p>{trainingSet.shortExplanation || trainingSet.short_explanation}</p>
+              <small>
+                {trainingSet.side ? `${trainingSet.side} side` : "Side unknown"} · {trainingSet.difficulty || "easy"} · {trainingSet.source || "report"}
+              </small>
+            </div>
+          ) : null}
 
           <div className="supportedOpeningGrid">
             {suggestedPacks.map((suggestedPack) => {
@@ -510,7 +547,7 @@ export default function OpeningPracticeLinesPanel({
     }, 260);
   }
 
-  async function saveTrainingProgress(nextProgress) {
+  async function saveTrainingProgress(nextProgress, completionEvent = null) {
     setTrainingProgress(nextProgress);
     saveLocalTrainingProgress(nextProgress);
 
@@ -532,6 +569,9 @@ export default function OpeningPracticeLinesPanel({
         coach_progress: {
           ...coachProgress,
           openingTraining: nextProgress,
+          weakestLineTrainingHistory: completionEvent
+            ? [completionEvent, ...(coachProgress.weakestLineTrainingHistory || [])].slice(0, 25)
+            : coachProgress.weakestLineTrainingHistory,
         },
       });
 
@@ -541,7 +581,50 @@ export default function OpeningPracticeLinesPanel({
     }
   }
 
-  function markLineComplete() {
+  async function recordWeakestLineCompletion() {
+    if (!isWeakestLineTraining(opening)) return null;
+
+    const event = buildWeakestLineTrainingCompletionEvent(opening, selectedLine);
+    const beforeScore = masteryScoreForOpening(data, event.opening);
+    const afterScore = beforeScore === null ? null : Math.min(100, beforeScore + 2);
+    const eventWithUser = {
+      ...event,
+      ...(user?.id ? { user_id: user.id, profile_id: user.id } : {}),
+      mastery_before: beforeScore,
+      mastery_after: afterScore,
+    };
+
+    saveWeakestLineTrainingEvent(eventWithUser);
+
+    if (beforeScore !== null && afterScore !== beforeScore) {
+      setCompletionNotice(`Mastery updated: ${beforeScore} -> ${afterScore}`);
+    } else {
+      setCompletionNotice(user?.id ? "Good work - your weakest line has been added to your improvement history." : "Training complete. This line now has more preparation behind it.");
+    }
+
+    if (user?.id && recordActivity) {
+      try {
+        await recordActivity("weakest_line_training_completed", {
+          created_at: eventWithUser.created_at,
+          opening: eventWithUser.opening,
+          variation: eventWithUser.variation,
+          training_type: "weakest-line",
+          completed: true,
+          user_id: user.id,
+          profile_id: user.id,
+          points: 80,
+          dedupe_key: eventWithUser.key,
+        });
+      } catch (error) {
+        console.warn("OpeningFit could not save weakest-line completion activity.", error);
+        if (!completionNotice) setCompletionNotice("Training saved.");
+      }
+    }
+
+    return eventWithUser;
+  }
+
+  async function markLineComplete() {
     if (!pack || !selectedLine || isSelectedLineSaved) return;
     const nextProgress = buildTrainingProgress(
       trainingProgress,
@@ -549,7 +632,8 @@ export default function OpeningPracticeLinesPanel({
       activeOpeningName,
       selectedLine
     );
-    saveTrainingProgress(nextProgress);
+    const completionEvent = await recordWeakestLineCompletion();
+    saveTrainingProgress(nextProgress, completionEvent);
   }
 
   function toggleFilter(filter) {
@@ -766,6 +850,19 @@ export default function OpeningPracticeLinesPanel({
               Practice mode is ready for this opening, but no exact move line was found yet.
             </p>
           ) : null}
+          {trainingSet ? (
+            <div className="weakestLineTrainingSet">
+              <span>Weakest-line training set</span>
+              <strong>{trainingSet.lineName || trainingSet.line_name || selectedLine?.name || openingName}</strong>
+              <p>{trainingSet.shortExplanation || trainingSet.short_explanation}</p>
+              <small>
+                {trainingSet.recommendedCorrectContinuation || trainingSet.recommended_correct_continuation
+                  ? `Continue with ${trainingSet.recommendedCorrectContinuation || trainingSet.recommended_correct_continuation} · `
+                  : ""}
+                {trainingSet.difficulty || "easy"} · {trainingSet.source || "report"}
+              </small>
+            </div>
+          ) : null}
         </div>
 
         {onClose ? (
@@ -834,6 +931,7 @@ export default function OpeningPracticeLinesPanel({
           </div>
 
           {status ? <div className="practiceStatus">{status}</div> : null}
+          {completionNotice ? <div className="practiceStatus practiceCompletionNotice">{completionNotice}</div> : null}
 
           {pack.opening?.traps?.length ? (
             <div className="practiceTrapBox">
