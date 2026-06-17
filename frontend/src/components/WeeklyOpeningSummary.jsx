@@ -63,16 +63,18 @@ function getMastery(row = {}) {
       payload.topOpeningMastery ||
       payload.openingMastery ||
       payload.opening_mastery
-  );
+  ).filter(Boolean);
 }
 
 function masteryName(item = {}) {
+  item = item || {};
   const opening = item.opening || item.name || "Opening";
   const variation = item.variation || "";
   return variation && variation !== opening ? `${opening}: ${variation}` : opening;
 }
 
 function masteryScore(item = {}) {
+  item = item || {};
   return scoreValue(item.mastery_score ?? item.masteryScore, 0);
 }
 
@@ -113,8 +115,9 @@ function signedDelta(current, previous, suffix = "") {
 }
 
 function biggestMasteryMove(current = [], previous = [], direction = "gain") {
-  const previousByName = new Map(previous.map((item) => [masteryName(item).toLowerCase(), item]));
-  const moves = current
+  const previousByName = new Map(asArray(previous).filter(Boolean).map((item) => [masteryName(item).toLowerCase(), item]));
+  const moves = asArray(current)
+    .filter(Boolean)
     .map((item) => {
       const old = previousByName.get(masteryName(item).toLowerCase());
       if (!old) return null;

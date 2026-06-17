@@ -241,14 +241,17 @@ function confidenceWeight(level) {
 }
 
 function masteryScore(item = {}) {
+  item = item || {};
   return clampPercent(item.masteryScore ?? item.mastery_score, 0);
 }
 
 function masteryGames(item = {}) {
+  item = item || {};
   return numberValue(item.gamesPlayed ?? item.games_played ?? item.games, 0);
 }
 
 function weakLineCount(item = {}) {
+  item = item || {};
   return numberValue(item.weakLineCount ?? item.weak_line_count, 0);
 }
 
@@ -284,6 +287,7 @@ function sameOpeningName(a = "", b = "") {
 function buildRepertoireCoach(masteryItems = [], oneFix = null, weakestTraining = null) {
   const trainingTarget = weakestTraining?.target || null;
   const candidates = asArray(masteryItems)
+    .filter(Boolean)
     .map((item) => {
       const games = numberValue(item.gamesPlayed ?? item.games_played, 0);
       const level = confidenceLevel(item);
@@ -348,6 +352,7 @@ function buildRepertoireCoach(masteryItems = [], oneFix = null, weakestTraining 
 }
 
 function openingStoryName(item = {}) {
+  item = item || {};
   const name = item.opening || item.name || "";
   return name && name !== "Opening" && name !== "Unknown line" ? name : "";
 }
@@ -398,6 +403,7 @@ function lineKey(line) {
 }
 
 function sideValue(item = {}) {
+  item = item || {};
   return String(item.side || item.colour || item.color || item.playerSide || item.player_side || "").toLowerCase();
 }
 
@@ -435,12 +441,12 @@ function buildMilestones({ data, healthScore, masteryItems = [], previousSnapsho
   const entries = [...history, currentEntry];
 
   const findEarned = (predicate) => entries.find(predicate);
-  const currentWeakLines = asArray(masteryItems).reduce((total, item) => total + weakLineCount(item), 0);
+  const currentWeakLines = asArray(masteryItems).filter(Boolean).reduce((total, item) => total + weakLineCount(item), 0);
   const previousWeakest = getSnapshotWeakestLine(previousSnapshot);
   const previousWeakestKey = lineKey(previousWeakest);
   const fixedPreviousWeakest =
     previousWeakestKey &&
-    asArray(masteryItems).some(
+    asArray(masteryItems).filter(Boolean).some(
       (item) =>
         lineKey(item) === previousWeakestKey &&
         masteryGames(item) >= 10 &&
@@ -453,26 +459,26 @@ function buildMilestones({ data, healthScore, masteryItems = [], previousSnapsho
   const weeklyImproved =
     (Number.isFinite(previousScore) && currentEntry.score - previousScore >= 15) ||
     (Number.isFinite(previousHealth) && healthScore - previousHealth >= 5) ||
-    asArray(masteryItems).some((item) => /improv|up/i.test(trendLabel(item.recentTrend || item.recent_trend)));
+    asArray(masteryItems).filter(Boolean).some((item) => /improv|up/i.test(trendLabel(item.recentTrend || item.recent_trend)));
 
   const definitions = [
     {
       key: "stable-opening",
       title: "First Stable Opening",
       explanation: "One opening has enough games, no weak-line flag, and a useful mastery score.",
-      earnedEntry: findEarned((entry) => asArray(entry.masteryItems).some((item) => masteryGames(item) >= 10 && masteryScore(item) >= 60 && weakLineCount(item) === 0)),
+      earnedEntry: findEarned((entry) => asArray(entry.masteryItems).filter(Boolean).some((item) => masteryGames(item) >= 10 && masteryScore(item) >= 60 && weakLineCount(item) === 0)),
     },
     {
       key: "mastery-50",
       title: "First Mastery 50",
       explanation: "One opening reached 50% mastery.",
-      earnedEntry: findEarned((entry) => asArray(entry.masteryItems).some((item) => masteryScore(item) >= 50)),
+      earnedEntry: findEarned((entry) => asArray(entry.masteryItems).filter(Boolean).some((item) => masteryScore(item) >= 50)),
     },
     {
       key: "mastery-75",
       title: "First Mastery 75",
       explanation: "One opening reached 75% mastery.",
-      earnedEntry: findEarned((entry) => asArray(entry.masteryItems).some((item) => masteryScore(item) >= 75)),
+      earnedEntry: findEarned((entry) => asArray(entry.masteryItems).filter(Boolean).some((item) => masteryScore(item) >= 75)),
     },
     {
       key: "health-70",
@@ -502,7 +508,7 @@ function buildMilestones({ data, healthScore, masteryItems = [], previousSnapsho
       key: "hundred-games",
       title: "100 Games In One Opening",
       explanation: "One opening has reached 100 analysed games.",
-      earnedEntry: findEarned((entry) => asArray(entry.masteryItems).some((item) => masteryGames(item) >= 100)),
+      earnedEntry: findEarned((entry) => asArray(entry.masteryItems).filter(Boolean).some((item) => masteryGames(item) >= 100)),
     },
     {
       key: "balanced-repertoire",
@@ -552,6 +558,7 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [],
     const identity = getOpeningIdentity(data);
     const healthScore = clampPercent(health.score ?? health.repertoireHealthScore ?? health.repertoire_health_score, Math.round(openingFitScore.value / 10));
     const allMastery = getOpeningMastery(data)
+      .filter(Boolean)
       .map((item) => ({
         ...item,
         opening: item.opening || item.name || "Opening",

@@ -30,7 +30,7 @@ function getGamesImported(data, openings) {
     safeNumber(data?.games_imported, null) ??
     safeNumber(data?.totalGames, null) ??
     safeNumber(data?.total_games, null) ??
-    openings.reduce((sum, item) => sum + getOpeningGames(item), 0)
+    openings.filter(Boolean).reduce((sum, item) => sum + getOpeningGames(item), 0)
   );
 }
 
@@ -103,7 +103,7 @@ function storageKey(data) {
 }
 
 function reportFingerprint(snapshot = {}) {
-  const openings = Array.isArray(snapshot.openings) ? snapshot.openings : [];
+  const openings = Array.isArray(snapshot.openings) ? snapshot.openings.filter(Boolean) : [];
 
   return [
     snapshot.username,
@@ -164,8 +164,8 @@ function compareSnapshots(current, previous) {
     };
   }
 
-  const currentOpenings = Array.isArray(current.openings) ? current.openings : [];
-  const previousOpenings = Array.isArray(previous.openings) ? previous.openings : [];
+  const currentOpenings = Array.isArray(current.openings) ? current.openings.filter(Boolean) : [];
+  const previousOpenings = Array.isArray(previous.openings) ? previous.openings.filter(Boolean) : [];
   const previousMap = new Map(
     previousOpenings.map((item) => [String(item.name).toLowerCase(), item])
   );
@@ -317,7 +317,7 @@ function getRatingTrend(history, current, comparison) {
 
 function buildWeaknessUpdates(openings, comparison) {
   const declined = comparison.declinedOpenings || [];
-  const weak = [...openings]
+  const weak = [...openings.filter(Boolean)]
     .filter((item) => item.winRate < 50 || item.mastery < 55)
     .sort((a, b) => a.mastery - b.mastery);
 
@@ -369,7 +369,7 @@ function buildNextBestAction({ biggestWeakness, mostImproved, mostPlayed, compar
 
 function buildWeeklyReport(data, current, previous, history) {
   const comparison = compareSnapshots(current, previous);
-  const openings = Array.isArray(current?.openings) ? current.openings : [];
+  const openings = Array.isArray(current?.openings) ? current.openings.filter(Boolean) : [];
   const bestOpening = [...openings].sort((a, b) => b.mastery - a.mastery || b.winRate - a.winRate)[0] || null;
   const mostImproved =
     comparison.changes.find((item) => (item.masteryDelta ?? 0) > 0) ||
@@ -511,10 +511,10 @@ export default function WeeklyOpeningReport({ data, savedHistory = [] }) {
   const previousSnapshot =
     history.find((item) => item.id !== currentSnapshot.id) || null;
   const weekly = buildWeeklyReport(data, currentSnapshot, previousSnapshot, history);
-  const topMastery = [...currentSnapshot.openings]
+  const topMastery = [...currentSnapshot.openings.filter(Boolean)]
     .sort((a, b) => b.mastery - a.mastery)
     .slice(0, 4);
-  const confidenceOpenings = currentSnapshot.openings.slice(0, 4);
+  const confidenceOpenings = currentSnapshot.openings.filter(Boolean).slice(0, 4);
   const evolution = weekly.comparison.changes.slice(0, 4);
 
   return (

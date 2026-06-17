@@ -126,7 +126,7 @@ function extractOpenings(data) {
 
     if (Array.isArray(rec.white)) found.push(...rec.white.map((name) => ({ name })));
     if (Array.isArray(rec.black)) found.push(...rec.black.map((name) => ({ name })));
-    if (Array.isArray(rec.openings)) found.push(...rec.openings);
+    if (Array.isArray(rec.openings)) found.push(...rec.openings.filter(Boolean));
   }
 
   const normalised = found
@@ -188,7 +188,7 @@ function getTotalGames(data, openings) {
       data?.total_games ??
       data?.gameCount ??
       data?.games?.length ??
-      openings.reduce((sum, item) => sum + getGames(item), 0),
+      openings.filter(Boolean).reduce((sum, item) => sum + getGames(item), 0),
     0
   );
 }
@@ -213,14 +213,14 @@ function saveJson(key, value) {
 function getOpeningChange(current, previous) {
   if (!previous?.openings?.length) return null;
 
-  const previousOpenings = Array.isArray(previous.openings) ? previous.openings : [];
+  const previousOpenings = Array.isArray(previous.openings) ? previous.openings.filter(Boolean) : [];
   const previousByName = new Map(
     previousOpenings.map((opening) => [opening.name.toLowerCase(), opening])
   );
 
   let biggestImprovement = null;
 
-  current.forEach((opening) => {
+  current.filter(Boolean).forEach((opening) => {
     const previousOpening = previousByName.get(opening.name.toLowerCase());
     if (!previousOpening) return;
 
@@ -252,8 +252,9 @@ function getDefaultRepertoire() {
 }
 
 function getDefaultGoals(openings) {
-  const best = openings.find((opening) => opening.games > 0);
-  const weakest = [...openings]
+  const cleanOpenings = openings.filter(Boolean);
+  const best = cleanOpenings.find((opening) => opening.games > 0);
+  const weakest = [...cleanOpenings]
     .filter((opening) => opening.games > 0)
     .sort((a, b) => a.winRate - b.winRate)[0];
 

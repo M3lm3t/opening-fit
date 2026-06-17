@@ -154,8 +154,8 @@ function formatDate(value) {
 function compareSnapshots(current, previous) {
   if (!current || !previous) return null;
 
-  const currentOpenings = Array.isArray(current.openings) ? current.openings : [];
-  const previousOpenings = Array.isArray(previous.openings) ? previous.openings : [];
+  const currentOpenings = Array.isArray(current.openings) ? current.openings.filter(Boolean) : [];
+  const previousOpenings = Array.isArray(previous.openings) ? previous.openings.filter(Boolean) : [];
   const previousByName = new Map(
     previousOpenings.map((item) => [String(item.name).toLowerCase(), item])
   );
