@@ -34,11 +34,13 @@ function createdAt(row = {}) {
 }
 
 function retentionMetrics(source = {}) {
+  source = source || {};
   const body = payload(source);
   return body.retentionMetrics || body.retention_metrics || {};
 }
 
 function openingFitScore(source = {}, fitData = null) {
+  source = source || {};
   const body = payload(source);
   const metrics = retentionMetrics(source);
   const scoreObject =
@@ -65,6 +67,7 @@ function openingFitScore(source = {}, fitData = null) {
 }
 
 function repertoireHealthScore(source = {}) {
+  source = source || {};
   const body = payload(source);
   const metrics = retentionMetrics(source);
   const health =
@@ -86,6 +89,7 @@ function repertoireHealthScore(source = {}) {
 }
 
 function masteryRows(source = {}) {
+  source = source || {};
   const body = payload(source);
   const metrics = retentionMetrics(source);
   return asArray(
@@ -137,6 +141,7 @@ function masteryMove(current = [], previous = [], direction = "gain") {
 }
 
 function weakLine(source = {}) {
+  source = source || {};
   const body = payload(source);
   const metrics = retentionMetrics(source);
   const tracking =
@@ -166,6 +171,7 @@ function lineName(line) {
 }
 
 function weakLineRows(source = {}) {
+  source = source || {};
   const body = payload(source);
   const metrics = body.openingFitMetrics || body.opening_fit_metrics || {};
   return [

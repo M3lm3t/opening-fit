@@ -126,6 +126,7 @@ function formatEarnedDate(value) {
 }
 
 function getSnapshotHealthScore(row = {}) {
+  row = row || {};
   const payload = getSnapshotPayload(row);
   const value = row.repertoire_health_score ?? row.repertoireHealthScore ?? payload.repertoire_health_score ?? payload.repertoireHealthScore;
   if (value === null || value === undefined || value === "") return null;
@@ -133,6 +134,7 @@ function getSnapshotHealthScore(row = {}) {
 }
 
 function getSnapshotMastery(row = {}) {
+  row = row || {};
   const payload = getSnapshotPayload(row);
   const metrics = payload.retentionMetrics || payload.retention_metrics || {};
   return asArray(
@@ -148,6 +150,7 @@ function getSnapshotMastery(row = {}) {
 }
 
 function getSnapshotWeakestLine(row = {}) {
+  row = row || {};
   const payload = getSnapshotPayload(row);
   const metrics = payload.retentionMetrics || payload.retention_metrics || {};
   const tracking = payload.weakestLineTracking || payload.weakest_line_tracking || metrics.weakestLineTracking || metrics.weakest_line_tracking || {};
