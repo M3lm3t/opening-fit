@@ -154,11 +154,13 @@ function formatDate(value) {
 function compareSnapshots(current, previous) {
   if (!current || !previous) return null;
 
+  const currentOpenings = Array.isArray(current.openings) ? current.openings : [];
+  const previousOpenings = Array.isArray(previous.openings) ? previous.openings : [];
   const previousByName = new Map(
-    previous.openings.map((item) => [String(item.name).toLowerCase(), item])
+    previousOpenings.map((item) => [String(item.name).toLowerCase(), item])
   );
 
-  const changes = current.openings
+  const changes = currentOpenings
     .map((item) => {
       const old = previousByName.get(String(item.name).toLowerCase());
       if (!old) return null;
@@ -230,8 +232,8 @@ export default function ProgressTracker({ data }) {
     const isSameImport =
       latestForUser &&
       latestForUser.gamesImported === currentSnapshot.gamesImported &&
-      JSON.stringify(latestForUser.openings.slice(0, 8)) ===
-        JSON.stringify(currentSnapshot.openings.slice(0, 8));
+      JSON.stringify((latestForUser.openings || []).slice(0, 8)) ===
+        JSON.stringify((currentSnapshot.openings || []).slice(0, 8));
 
     if (isSameImport) {
       setSavedMessage("This import is already saved.");
@@ -308,7 +310,7 @@ export default function ProgressTracker({ data }) {
           {hasPrevious ? (
             <>
               <h3>{previousSnapshot.gamesImported || "Saved"} games</h3>
-              <p>{previousSnapshot.openings.length} openings tracked</p>
+              <p>{(previousSnapshot.openings || []).length} openings tracked</p>
               <small>{formatDate(previousSnapshot.createdAt)}</small>
             </>
           ) : (
@@ -389,7 +391,7 @@ export default function ProgressTracker({ data }) {
                 <div>
                   <strong>{formatDate(item.createdAt)}</strong>
                   <span>
-                    {item.gamesImported || "Imported"} games · {item.openings.length} openings
+                    {item.gamesImported || "Imported"} games · {(item.openings || []).length} openings
                   </span>
                 </div>
 

@@ -164,11 +164,13 @@ function compareSnapshots(current, previous) {
     };
   }
 
+  const currentOpenings = Array.isArray(current.openings) ? current.openings : [];
+  const previousOpenings = Array.isArray(previous.openings) ? previous.openings : [];
   const previousMap = new Map(
-    previous.openings.map((item) => [String(item.name).toLowerCase(), item])
+    previousOpenings.map((item) => [String(item.name).toLowerCase(), item])
   );
 
-  const changes = current.openings
+  const changes = currentOpenings
     .map((item) => {
       const old = previousMap.get(String(item.name).toLowerCase());
 
@@ -367,7 +369,7 @@ function buildNextBestAction({ biggestWeakness, mostImproved, mostPlayed, compar
 
 function buildWeeklyReport(data, current, previous, history) {
   const comparison = compareSnapshots(current, previous);
-  const openings = current.openings;
+  const openings = Array.isArray(current?.openings) ? current.openings : [];
   const bestOpening = [...openings].sort((a, b) => b.mastery - a.mastery || b.winRate - a.winRate)[0] || null;
   const mostImproved =
     comparison.changes.find((item) => (item.masteryDelta ?? 0) > 0) ||

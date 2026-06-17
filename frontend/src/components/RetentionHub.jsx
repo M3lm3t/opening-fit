@@ -213,8 +213,9 @@ function saveJson(key, value) {
 function getOpeningChange(current, previous) {
   if (!previous?.openings?.length) return null;
 
+  const previousOpenings = Array.isArray(previous.openings) ? previous.openings : [];
   const previousByName = new Map(
-    previous.openings.map((opening) => [opening.name.toLowerCase(), opening])
+    previousOpenings.map((opening) => [opening.name.toLowerCase(), opening])
   );
 
   let biggestImprovement = null;
