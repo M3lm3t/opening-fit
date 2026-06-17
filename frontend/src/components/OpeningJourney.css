@@ -1,0 +1,268 @@
+.openingJourney {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 22px;
+  padding: clamp(16px, 3vw, 24px);
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.9)),
+    rgba(15, 23, 42, 0.92);
+  box-shadow: 0 20px 48px rgba(2, 6, 23, 0.24);
+}
+
+.openingJourneyHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.openingJourneyHeader h2,
+.openingJourneyScore strong,
+.openingJourneyHealth strong,
+.openingJourneyFix strong,
+.openingJourneyMastery h3 {
+  margin: 0;
+  color: #f8fafc;
+  overflow-wrap: anywhere;
+}
+
+.openingJourneyHeader > span,
+.openingJourney article > span,
+.openingJourneyMastery span {
+  color: #93c5fd;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.openingJourneyHeader > span {
+  max-width: 100%;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(37, 99, 235, 0.14);
+  color: #bfdbfe;
+  text-transform: none;
+}
+
+.openingJourneyGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.openingJourneyScore,
+.openingJourneyHealth,
+.openingJourneyWeakLine,
+.openingJourneyIdentity,
+.openingJourneyMastery article,
+.openingJourneyFix {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.openingJourneyScore,
+.openingJourneyHealth,
+.openingJourneyWeakLine,
+.openingJourneyIdentity {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.openingJourneyScore strong,
+.openingJourneyHealth strong {
+  font-size: clamp(2rem, 10vw, 3.2rem);
+  line-height: 0.95;
+}
+
+.openingJourneyScore p,
+.openingJourneyHealth p,
+.openingJourneyWeakLine p,
+.openingJourneyIdentity p,
+.openingJourneyIdentity li,
+.openingJourneyIdentity small,
+.openingJourneyMastery p,
+.openingJourneyMastery small,
+.openingJourneyFix p {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.openingJourneyIdentity {
+  grid-template-columns: 1fr;
+}
+
+.openingJourneyIdentity strong {
+  display: block;
+  margin-top: 3px;
+  color: #f8fafc;
+  font-size: clamp(1.25rem, 4vw, 1.7rem);
+}
+
+.openingJourneyIdentity small {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: rgba(14, 165, 233, 0.14);
+  color: #bae6fd;
+  font-weight: 900;
+}
+
+.openingJourneyIdentity ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.openingJourneyHealth p {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(34, 197, 94, 0.13);
+  color: #bbf7d0;
+  font-weight: 900;
+}
+
+.openingJourneyMastery {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.openingJourneyMastery article {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.openingJourneyMasteryStats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.openingJourneyMasteryStats strong,
+.openingJourneyMasteryStats em {
+  border-radius: 999px;
+  padding: 6px 9px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.openingJourneyMasteryStats strong {
+  background: rgba(96, 165, 250, 0.14);
+  color: #bfdbfe;
+}
+
+.openingJourneyMasteryStats em {
+  background: rgba(34, 197, 94, 0.13);
+  color: #bbf7d0;
+}
+
+.openingJourneyFix {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.openingJourneyFix button {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.page.light .openingJourney,
+[data-theme="light"] .openingJourney {
+  border-color: rgba(37, 99, 235, 0.14);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.94));
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.1);
+}
+
+.page.light .openingJourneyScore,
+.page.light .openingJourneyHealth,
+.page.light .openingJourneyWeakLine,
+.page.light .openingJourneyIdentity,
+.page.light .openingJourneyMastery article,
+.page.light .openingJourneyFix,
+[data-theme="light"] .openingJourneyScore,
+[data-theme="light"] .openingJourneyHealth,
+[data-theme="light"] .openingJourneyWeakLine,
+[data-theme="light"] .openingJourneyIdentity,
+[data-theme="light"] .openingJourneyMastery article,
+[data-theme="light"] .openingJourneyFix {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.page.light .openingJourneyHeader h2,
+.page.light .openingJourneyScore strong,
+.page.light .openingJourneyHealth strong,
+.page.light .openingJourneyIdentity strong,
+.page.light .openingJourneyFix strong,
+.page.light .openingJourneyMastery h3,
+[data-theme="light"] .openingJourneyHeader h2,
+[data-theme="light"] .openingJourneyScore strong,
+[data-theme="light"] .openingJourneyHealth strong,
+[data-theme="light"] .openingJourneyIdentity strong,
+[data-theme="light"] .openingJourneyFix strong,
+[data-theme="light"] .openingJourneyMastery h3 {
+  color: #0f172a;
+}
+
+.page.light .openingJourneyScore p,
+.page.light .openingJourneyHealth p,
+.page.light .openingJourneyWeakLine p,
+.page.light .openingJourneyIdentity p,
+.page.light .openingJourneyIdentity li,
+.page.light .openingJourneyIdentity small,
+.page.light .openingJourneyMastery p,
+.page.light .openingJourneyMastery small,
+.page.light .openingJourneyFix p,
+[data-theme="light"] .openingJourneyScore p,
+[data-theme="light"] .openingJourneyHealth p,
+[data-theme="light"] .openingJourneyWeakLine p,
+[data-theme="light"] .openingJourneyIdentity p,
+[data-theme="light"] .openingJourneyIdentity li,
+[data-theme="light"] .openingJourneyIdentity small,
+[data-theme="light"] .openingJourneyMastery p,
+[data-theme="light"] .openingJourneyMastery small,
+[data-theme="light"] .openingJourneyFix p {
+  color: #475569;
+}
+
+@media (min-width: 760px) {
+  .openingJourneyGrid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.8fr) minmax(0, 1.1fr);
+  }
+
+  .openingJourneyMastery {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .openingJourneyFix {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .openingJourneyFix button {
+    width: auto;
+    min-width: 150px;
+    padding: 0 18px;
+  }
+}

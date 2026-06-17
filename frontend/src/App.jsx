@@ -34,6 +34,8 @@ import OpeningGamificationProgress from "./components/OpeningGamificationProgres
 import TodayTrainingCard from "./components/TodayTrainingCard";
 import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
 import OpeningFitVerdict from "./components/OpeningFitVerdict";
+import OpeningJourney from "./components/OpeningJourney";
+import WeeklyOpeningSummaryCompact from "./components/WeeklyOpeningSummary";
 import RecommendedOpeningFit from "./components/RecommendedOpeningFit";
 import OpeningInsights from "./components/OpeningInsights";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./components/OpeningEvidence";
@@ -5464,6 +5466,7 @@ function FinalReportFlow({
   isPremium = false,
   reportHistory = [],
   openingFitUserState = [],
+  retentionSnapshots = [],
   reportFilters,
   onReportFiltersChange,
 }) {
@@ -5505,6 +5508,13 @@ function FinalReportFlow({
           onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
           reportMode={reportMode}
           onReportModeChange={setReportMode}
+        />
+        <OpeningJourney
+          data={data}
+          fitData={fitData}
+          retentionSnapshots={retentionSnapshots}
+          onPractice={onPractice}
+          onNavigate={onNavigate}
         />
         <OpeningFitVerdict data={data} fitData={fitData} onPractice={onPractice} />
         <NextBestTrainingActionCard
@@ -7748,6 +7758,7 @@ function OpeningFitProfileDashboard({
   onUserChange,
   reportHistory,
   openingFitUserState,
+  retentionSnapshots = [],
   recommendationHistory,
   authLoading = false,
   profileLoading = false,
@@ -7785,6 +7796,8 @@ function OpeningFitProfileDashboard({
           onAnalyse={onAnalyse}
           onOpenReport={onOpenReport}
         />
+
+        <WeeklyOpeningSummaryCompact retentionSnapshots={retentionSnapshots} onAnalyse={onAnalyse} />
 
         <details className="profileSecondaryDetails" open={shouldOpenAccountDetails || undefined}>
           <summary>
@@ -7861,6 +7874,8 @@ function OpeningFitProfileDashboard({
         onAnalyse={onAnalyse}
         onOpenReport={onOpenReport}
       />
+
+      <WeeklyOpeningSummaryCompact retentionSnapshots={retentionSnapshots} onAnalyse={onAnalyse} />
 
       <div className="profileDashboardGrid profileDashboardSingleGrid">
         <ChessProfileCard data={data} fitData={fitData} />
@@ -12111,6 +12126,7 @@ function App() {
     saveAnalysedGames: saveCloudAnalysedGames,
     recordActivity: recordCloudActivity,
     reportHistory: cloudReportHistory,
+    retentionSnapshots,
     recommendationHistory,
     saveRecommendationHistory,
     openingFitUserState,
@@ -15013,6 +15029,7 @@ function App() {
                   isPremium={isPremium}
                   reportHistory={cloudReportHistory}
                   openingFitUserState={openingFitUserState}
+                  retentionSnapshots={retentionSnapshots}
                   reportFilters={reportFilters}
                   onReportFiltersChange={setReportFilters}
                 />
@@ -15871,6 +15888,7 @@ function App() {
                 onUserChange={setAccountUser}
                 reportHistory={cloudReportHistory}
                 openingFitUserState={openingFitUserState}
+                retentionSnapshots={retentionSnapshots}
                 recommendationHistory={recommendationHistory}
                 authLoading={authLoading}
                 profileLoading={profileLoading}

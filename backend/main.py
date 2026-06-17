@@ -11,6 +11,7 @@ from analysis.engine_analysis import (
 )
 from analysis.game_diagnostics import build_diagnostic_summary
 from analysis.opening_fit_metrics import build_opening_fit_metrics, merge_opening_fit_metrics
+from analysis.retention_metrics import build_retention_metrics
 from opening_detection import (
     detect_opening,
     detect_opening_from_pgn,
@@ -8142,6 +8143,16 @@ def import_chesscom_logic(username: str, months: int = 3):
     training_plan = next_training_actions
     if next_training_actions:
         recommended_action = next_training_actions[0]
+    previous_report = previous_saved_report(username, "chess.com")
+    retention_metrics = build_retention_metrics(
+        [*best_openings[:8], *((opening_fit_metrics or {}).get("variations") or [])[:8]],
+        problem_lines,
+        repertoire_coverage,
+        [*next_training_actions, *study_queue],
+        previous_report,
+        style_profile,
+        recent_games,
+    )
     recommendations = build_recommendations(
         preferred_white,
         preferred_black,
@@ -8274,6 +8285,24 @@ def import_chesscom_logic(username: str, months: int = 3):
         "recommendedAction": recommended_action,
         "training_plan": training_plan,
         "trainingPlan": training_plan,
+        "retention_metrics": retention_metrics,
+        "retentionMetrics": retention_metrics,
+        "openingfit_score": retention_metrics["opening_fit_score"],
+        "openingfitScore": retention_metrics["openingFitScore"],
+        "opening_fit_score_v2": retention_metrics["opening_fit_score"],
+        "openingFitScoreV2": retention_metrics["openingFitScore"],
+        "opening_identity": retention_metrics["opening_identity"],
+        "openingIdentity": retention_metrics["openingIdentity"],
+        "opening_identity_v2": retention_metrics["opening_identity"],
+        "openingIdentityV2": retention_metrics["openingIdentity"],
+        "opening_mastery": retention_metrics["opening_mastery"],
+        "openingMastery": retention_metrics["openingMastery"],
+        "weakest_line_tracking": retention_metrics["weakest_line_tracking"],
+        "weakestLineTracking": retention_metrics["weakestLineTracking"],
+        "one_thing_to_fix": retention_metrics["one_thing_to_fix"],
+        "oneThingToFix": retention_metrics["oneThingToFix"],
+        "repertoire_health": retention_metrics["repertoire_health"],
+        "repertoireHealth": retention_metrics["repertoireHealth"],
         "lastUpdated": now_iso(),
         "importedAt": now_iso(),
         **opening_fit_profile,
@@ -8283,7 +8312,7 @@ def import_chesscom_logic(username: str, months: int = 3):
 
     result["progress_comparison"] = build_report_progress_comparison(
         result,
-        previous_saved_report(username, "chess.com"),
+        previous_report,
     )
     result["progressComparison"] = result["progress_comparison"]
 
@@ -8723,6 +8752,16 @@ def build_lichess_analysis(
     training_plan = next_training_actions
     if next_training_actions:
         recommended_action = next_training_actions[0]
+    previous_report = previous_saved_report(username, "lichess")
+    retention_metrics = build_retention_metrics(
+        [*best_openings[:8], *((opening_fit_metrics or {}).get("variations") or [])[:8]],
+        problem_lines,
+        repertoire_coverage,
+        [*next_training_actions, *study_queue],
+        previous_report,
+        style_profile,
+        recent_games,
+    )
     recommendations = build_recommendations(
         preferred_white,
         preferred_black,
@@ -8868,6 +8907,24 @@ def build_lichess_analysis(
         "recommendedAction": recommended_action,
         "training_plan": training_plan,
         "trainingPlan": training_plan,
+        "retention_metrics": retention_metrics,
+        "retentionMetrics": retention_metrics,
+        "openingfit_score": retention_metrics["opening_fit_score"],
+        "openingfitScore": retention_metrics["openingFitScore"],
+        "opening_fit_score_v2": retention_metrics["opening_fit_score"],
+        "openingFitScoreV2": retention_metrics["openingFitScore"],
+        "opening_identity": retention_metrics["opening_identity"],
+        "openingIdentity": retention_metrics["openingIdentity"],
+        "opening_identity_v2": retention_metrics["opening_identity"],
+        "openingIdentityV2": retention_metrics["openingIdentity"],
+        "opening_mastery": retention_metrics["opening_mastery"],
+        "openingMastery": retention_metrics["openingMastery"],
+        "weakest_line_tracking": retention_metrics["weakest_line_tracking"],
+        "weakestLineTracking": retention_metrics["weakestLineTracking"],
+        "one_thing_to_fix": retention_metrics["one_thing_to_fix"],
+        "oneThingToFix": retention_metrics["oneThingToFix"],
+        "repertoire_health": retention_metrics["repertoire_health"],
+        "repertoireHealth": retention_metrics["repertoireHealth"],
         "lastUpdated": now_iso(),
         "importedAt": now_iso(),
         **opening_fit_profile,
@@ -8877,7 +8934,7 @@ def build_lichess_analysis(
 
     result["progress_comparison"] = build_report_progress_comparison(
         result,
-        previous_saved_report(username, "lichess"),
+        previous_report,
     )
     result["progressComparison"] = result["progress_comparison"]
 

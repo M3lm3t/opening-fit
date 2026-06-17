@@ -14,6 +14,7 @@ export const USER_DATA_TABLES = [
   "settings",
   "activity_history",
   "report_history",
+  "openingfit_retention_snapshots",
   "analysis_history",
   "analysed_games",
   "recommendation_history",
@@ -51,6 +52,7 @@ const RESTORE_TABLE_LIMITS = {
   user_settings: 5,
   activity_history: 50,
   report_history: 20,
+  openingfit_retention_snapshots: 30,
   analysis_history: 20,
   analysed_games: 50,
   recommendation_history: 50,
@@ -73,6 +75,7 @@ const RESTORE_TABLE_COLUMNS = {
   // PostgREST rejects the whole table query with a 400.
   openingfit_user_state: "*",
   report_history: "*",
+  openingfit_retention_snapshots: "*",
   analysis_history: "*",
   activity_history: "*",
   analysed_games: "*",
@@ -102,6 +105,7 @@ export function createDefaultUserData(profile = null) {
     settings: [],
     activity_history: [],
     report_history: [],
+    openingfit_retention_snapshots: [],
     analysed_games: [],
     recommendation_history: [],
     notification_preferences: [],
@@ -893,6 +897,202 @@ export async function saveRecommendationHistory(userId, snapshot = {}) {
   }
 
   logQuerySuccess("recommendation_history", "insert recommendation snapshot", {
+    userId,
+    rowId: data?.id,
+  });
+  return data;
+}
+
+function compactOpeningMastery(report = {}) {
+  const rows = report.openingMastery || report.opening_mastery || report.retentionMetrics?.openingMastery || [];
+  return (Array.isArray(rows) ? rows : [])
+    .slice(0, 5)
+    .map((item) => ({
+      opening: item.opening || item.name || "Unknown opening",
+      variation: item.variation || "",
+      games_played: Number(item.gamesPlayed ?? item.games_played ?? 0) || 0,
+      win_rate: Number(item.winRate ?? item.win_rate ?? 0) || 0,
+      loss_rate: Number(item.lossRate ?? item.loss_rate ?? 0) || 0,
+      weak_line_count: Number(item.weakLineCount ?? item.weak_line_count ?? 0) || 0,
+      mastery_score: Number(item.masteryScore ?? item.mastery_score ?? 0) || 0,
+      mastery_level: Number(item.masteryLevel ?? item.mastery_level ?? 1) || 1,
+      recent_trend: item.recentTrend || item.recent_trend || null,
+    }));
+}
+
+function compactSourceSummary(report = {}, summary = {}) {
+  const dateRange =
+    report.dateRange ||
+    report.date_range ||
+    report.sourceSummary?.dateRange ||
+    report.source_summary?.date_range ||
+    null;
+
+  return {
+    username: summary.username || report.username || report.playerName || report.player_name || "",
+    platform: summary.platform || report.platform || report.importPlatform || report.import_platform || "",
+    games_analysed:
+      Number(
+        summary.games ??
+          report.gamesAnalysed ??
+          report.gamesAnalyzed ??
+          report.gamesImported ??
+          report.games_imported ??
+          report.totalGames ??
+          report.total_games ??
+          0
+      ) || 0,
+    date_range: dateRange,
+    imported_at: summary.importedAt || summary.savedAt || report.importedAt || report.imported_at || report.lastUpdated || "",
+  };
+}
+
+function compactLine(line = null) {
+  if (!line || typeof line !== "object") return null;
+  return {
+    opening: line.opening || line.name || line.trainingTarget || "",
+    variation: line.variation || line.line || "",
+    move_line: line.moveLine || line.move_line || "",
+    games: Number(line.games ?? line.gamesPlayed ?? line.games_played ?? 0) || 0,
+    win_rate: Number(line.winRate ?? line.win_rate ?? 0) || 0,
+    loss_rate: Number(line.lossRate ?? line.loss_rate ?? 0) || 0,
+    reason: line.flagReason || line.reason || line.exactIssue || line.exact_issue || "",
+  };
+}
+
+function compactFix(fix = null) {
+  if (!fix || typeof fix !== "object") return null;
+  return {
+    opening: fix.opening || fix.name || fix.trainingTarget || "",
+    variation: fix.variation || "",
+    exact_issue: fix.exactIssue || fix.exact_issue || "",
+    why_it_matters: fix.whyItMatters || fix.why_it_matters || "",
+    suggested_training_action: fix.suggestedTrainingAction || fix.suggested_training_action || "",
+    short_display_text: fix.shortDisplayText || fix.short_display_text || "",
+    reason_code: fix.reasonCode || fix.reason_code || "",
+    decay_risk: fix.decayRisk || fix.decay_risk || "",
+  };
+}
+
+function compactIdentity(identity = null) {
+  if (!identity) return null;
+  if (typeof identity === "string") {
+    return { identity, confidence_percentage: null, reasons: [], suggested_opening_direction: "" };
+  }
+  if (typeof identity !== "object") return null;
+  return {
+    identity: identity.identity || identity.label || "",
+    confidence_percentage: Number(identity.confidencePercentage ?? identity.confidence_percentage ?? identity.confidence ?? 0) || 0,
+    reasons: Array.isArray(identity.reasons) ? identity.reasons.slice(0, 2) : [],
+    suggested_opening_direction: identity.suggestedOpeningDirection || identity.suggested_opening_direction || "",
+  };
+}
+
+function buildRetentionSnapshotPayload(userId, report = {}, summary = {}) {
+  const retentionMetrics = report.retentionMetrics || report.retention_metrics || {};
+  const scoreObject =
+    report.openingfitScore ||
+    report.openingfit_score ||
+    report.openingFitScoreV2 ||
+    report.opening_fit_score_v2 ||
+    retentionMetrics.openingFitScore ||
+    retentionMetrics.opening_fit_score ||
+    null;
+  const repertoireHealth = report.repertoireHealth || report.repertoire_health || retentionMetrics.repertoireHealth || {};
+  const weakestTracking = report.weakestLineTracking || report.weakest_line_tracking || retentionMetrics.weakestLineTracking || {};
+  const oneThingToFix = compactFix(report.oneThingToFix || report.one_thing_to_fix || retentionMetrics.oneThingToFix || null);
+  const sourceSummary = compactSourceSummary(report, summary);
+  const createdAt = summary.createdAt || summary.savedAt || report.importedAt || report.imported_at || report.lastUpdated || new Date().toISOString();
+  const openingFitScore =
+    Number(
+      scoreObject?.score ??
+        scoreObject?.scoreOutOf1000 ??
+        scoreObject?.score_out_of_1000 ??
+        report.openingFitScore ??
+        report.opening_fit_score ??
+        report.fitScore ??
+        report.fit_score ??
+        0
+    ) || null;
+  const repertoireHealthScore = Number(repertoireHealth.score ?? repertoireHealth.healthScore ?? 0) || null;
+  const topOpeningMastery = compactOpeningMastery(report);
+  const weakestLine = compactLine(
+    weakestTracking.currentWeakestLine ||
+    weakestTracking.current_weakest_line ||
+    report.currentWeakestLine ||
+    report.current_weakest_line ||
+    null
+  );
+  const openingIdentity = compactIdentity(
+    report.openingIdentityV2 ||
+    report.opening_identity_v2 ||
+    retentionMetrics.openingIdentity ||
+    retentionMetrics.opening_identity ||
+    report.repertoireIdentitySummary ||
+    report.repertoire_identity_summary ||
+    report.openingIdentity ||
+    report.opening_identity ||
+    null
+  );
+  const snapshotKey = [
+    String(sourceSummary.platform || "unknown").toLowerCase(),
+    String(sourceSummary.username || "unknown").toLowerCase(),
+    String(sourceSummary.imported_at || createdAt).slice(0, 19),
+    String(sourceSummary.games_analysed || 0),
+  ].join(":");
+  const compactSnapshot = {
+    opening_fit_score: openingFitScore,
+    repertoire_health_score: repertoireHealthScore,
+    top_opening_mastery: topOpeningMastery,
+    weakest_line: weakestLine,
+    one_thing_to_fix: oneThingToFix,
+    opening_identity: openingIdentity,
+    source_summary: sourceSummary,
+  };
+
+  return {
+    user_id: userId,
+    profile_id: summary.profileId || summary.profile_id || userId,
+    snapshot_key: snapshotKey,
+    created_at: createdAt,
+    opening_fit_score: openingFitScore,
+    repertoire_health_score: repertoireHealthScore,
+    top_opening_mastery: topOpeningMastery,
+    weakest_line: weakestLine,
+    one_thing_to_fix: oneThingToFix,
+    opening_identity: openingIdentity,
+    source_summary: sourceSummary,
+    snapshot: compactSnapshot,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export async function saveRetentionSnapshot(userId, report = {}, summary = {}) {
+  if (!userId || !report) return null;
+
+  const client = requireClient();
+  const payload = buildRetentionSnapshotPayload(userId, report, summary);
+  const { data, error, skipped } = await runSupabaseQuery(
+    client
+      .from("openingfit_retention_snapshots")
+      .upsert(payload, { onConflict: "user_id,snapshot_key" })
+      .select("*")
+      .single(),
+    {
+      required: false,
+      label: "openingfit_retention_snapshots upsert compact snapshot",
+    }
+  );
+
+  if (skipped || error) {
+    logSupabaseSyncWarning("openingfit_retention_snapshots", "save compact retention snapshot", error, {
+      userId,
+      snapshotKey: payload.snapshot_key,
+    });
+    return null;
+  }
+
+  logQuerySuccess("openingfit_retention_snapshots", "save compact retention snapshot", {
     userId,
     rowId: data?.id,
   });

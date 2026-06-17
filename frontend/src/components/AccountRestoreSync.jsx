@@ -77,6 +77,7 @@ export default function AccountRestoreSync({
     restoreInProgress,
     saveSettings,
     saveReport,
+    saveRetentionSnapshot,
     upsertUserData,
   } = useAuth();
   const restoredUserRef = useRef(null);
@@ -247,6 +248,22 @@ export default function AccountRestoreSync({
           },
         });
 
+        const retentionSnapshot = await saveRetentionSnapshot?.(reportForSave, {
+          username: importedUsername || "Unknown player",
+          platform: importedPlatform || "unknown",
+          games: data?.gamesImported || data?.games_imported || data?.total_games || data?.gamesAnalysed || 0,
+          savedAt: reportForSave.importedAt || reportForSave.imported_at || reportForSave.lastUpdated || new Date().toISOString(),
+          profileId: profile?.id || user.id,
+        });
+
+        if (!retentionSnapshot) {
+          window.dispatchEvent(
+            new CustomEvent("openingfit-toast", {
+              detail: "Report saved. Retention history will sync after the cloud table is ready.",
+            })
+          );
+        }
+
         if (migrationKey && shouldMarkMigrated && migratedLocalRef.current !== migrationKey) {
           await saveReport?.(reportForSave, {
             username: importedUsername || "Unknown player",
@@ -265,7 +282,7 @@ export default function AccountRestoreSync({
     }
 
     saveAccount();
-  }, [data, platform, profile?.id, profile?.last_report, profileLoaded, profileLoading, restoreError, restoreInProgress, saveReport, saveSettings, upsertUserData, user, username]);
+  }, [data, platform, profile?.id, profile?.last_report, profileLoaded, profileLoading, restoreError, restoreInProgress, saveReport, saveRetentionSnapshot, saveSettings, upsertUserData, user, username]);
 
   return null;
 }

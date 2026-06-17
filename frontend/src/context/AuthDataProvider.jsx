@@ -16,6 +16,7 @@ import {
   recordActivity,
   saveAnalysedGames,
   saveRecommendationHistory,
+  saveRetentionSnapshot,
   saveReport,
   saveSettings,
   uploadUserFile,
@@ -48,6 +49,7 @@ const EMPTY_RESTORED_COUNTS = {
   progress: 0,
   savedGames: 0,
   reports: 0,
+  retentionSnapshots: 0,
 };
 
 function withTimeout(promise, ms = RESTORE_TIMEOUT_MS, label = "Supabase request") {
@@ -137,6 +139,7 @@ function getRestoreCounts(snapshot = {}) {
     progress: progressRows,
     savedGames: countRows(snapshot.analysed_games),
     reports: reportRows,
+    retentionSnapshots: countRows(snapshot.openingfit_retention_snapshots),
   };
 }
 
@@ -156,7 +159,8 @@ function snapshotHasCloudBackup(snapshot = {}) {
     counts.history > 0 ||
     counts.progress > 0 ||
     counts.savedGames > 0 ||
-    counts.reports > 0
+    counts.reports > 0 ||
+    counts.retentionSnapshots > 0
   );
 }
 
@@ -780,6 +784,7 @@ export function AuthDataProvider({ children }) {
       reportHistory: userData?.report_history || [],
       analysedGames: userData?.analysed_games || [],
       recommendationHistory: userData?.recommendation_history || [],
+      retentionSnapshots: userData?.openingfit_retention_snapshots || [],
       notificationPreferences: userData?.notification_preferences || [],
       retentionProfile: userData?.user_profiles?.[0] || null,
       retentionActivity: userData?.user_activity_log || [],
@@ -834,6 +839,12 @@ export function AuthDataProvider({ children }) {
           () => saveRecommendationHistory(user?.id, snapshot),
           "Could not save opening recommendations."
         ),
+      saveRetentionSnapshot: (report, summary) =>
+        runSyncedMutation(
+          () => saveRetentionSnapshot(user?.id, report, summary),
+          "Could not save retention snapshot.",
+          { mode: "optional" }
+        ),
       recordActivity: (type, payload) =>
         runSyncedMutation(
           () => recordActivity(user?.id, type, payload),
@@ -887,6 +898,7 @@ export function AuthDataProvider({ children }) {
           reportHistory: userData?.report_history?.length || 0,
           openingFitUserState: userData?.openingfit_user_state?.length || 0,
           recommendationHistory: userData?.recommendation_history?.length || 0,
+          retentionSnapshots: userData?.openingfit_retention_snapshots?.length || 0,
           analysedGames: userData?.analysed_games?.length || 0,
           settings: userData?.settings?.length || 0,
           premiumEntitlements: userData?.premium_entitlements?.length || 0,
@@ -918,6 +930,7 @@ export function AuthDataProvider({ children }) {
             reportHistory: data?.report_history?.length || 0,
             openingFitUserState: data?.openingfit_user_state?.length || 0,
             recommendationHistory: data?.recommendation_history?.length || 0,
+            retentionSnapshots: data?.openingfit_retention_snapshots?.length || 0,
             analysedGames: data?.analysed_games?.length || 0,
             premiumEntitlements: data?.premium_entitlements?.length || 0,
           };
