@@ -1,5 +1,5 @@
-const CACHE_NAME = "opening-fit-v2";
-const APP_SHELL = ["/", "/site.webmanifest", "/icons/openingfit-icon.svg", "/favicon.svg"];
+const CACHE_NAME = "opening-fit-v3";
+const APP_SHELL = ["/site.webmanifest", "/icons/openingfit-icon.svg", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -33,6 +33,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const isNavigation =
+    event.request.mode === "navigate" ||
+    event.request.destination === "document" ||
+    event.request.headers.get("accept")?.includes("text/html");
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -48,6 +53,14 @@ self.addEventListener("fetch", (event) => {
 
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/")))
+      .catch(() =>
+        caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          if (isNavigation) {
+            return caches.match("/").then((fallback) => fallback || Response.error());
+          }
+          return Response.error();
+        })
+      )
   );
 });
