@@ -90,6 +90,24 @@ const RESTORE_TABLE_COLUMNS = {
 };
 const PROFILE_RESTORE_COLUMNS =
   "id,user_id,email,display_name,username,platform,chesscom_username,lichess_username,is_premium,last_report,created_at,updated_at";
+const RESTORE_PROFILE_TIMEOUT_MS = 6500;
+const RESTORE_TABLE_TIMEOUT_MS = 6500;
+
+function withUserDataTimeout(promise, ms, label) {
+  let timeoutId;
+
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      const error = new Error(`${label} timed out after ${ms}ms`);
+      error.name = "WorkspaceRestoreTimeout";
+      reject(error);
+    }, ms);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    clearTimeout(timeoutId);
+  });
+}
 
 export function createDefaultUserData(profile = null) {
   return {
@@ -498,7 +516,11 @@ export async function fetchAllUserData(user, options = {}) {
 
   let profile = null;
   try {
-    profile = await loadExistingProfile(user.id, PROFILE_RESTORE_COLUMNS);
+    profile = await withUserDataTimeout(
+      loadExistingProfile(user.id, PROFILE_RESTORE_COLUMNS),
+      RESTORE_PROFILE_TIMEOUT_MS,
+      "OpeningFit profile restore"
+    );
   } catch (profileError) {
     logQueryFailure("profiles", "select profile during full restore", profileError, {
       userId: user.id,
@@ -510,24 +532,48 @@ export async function fetchAllUserData(user, options = {}) {
   }
 
   const tableNames = USER_DATA_TABLES.filter((table) => table !== "profiles");
-  const tableErrors = [];
-  const results = await Promise.all(
+  const settledResults = await Promise.allSettled(
     tableNames.map(async (table) => {
       try {
-        return [table, await selectUserRows(table, user.id)];
+        const rows = await withUserDataTimeout(
+          selectUserRows(table, user.id),
+          RESTORE_TABLE_TIMEOUT_MS,
+          `OpeningFit ${table} restore`
+        );
+        return { table, rows, error: null };
       } catch (tableError) {
         logQueryFailure(table, "restore table during full restore", tableError, {
           userId: user.id,
         });
-        tableErrors.push({ table, error: tableError });
-        if (options.strict && REQUIRED_RESTORE_TABLES.has(table)) {
-          return [table, null];
-        }
         console.warn(`OpeningFit could not restore ${table}; using empty rows.`, tableError);
-        return [table, []];
+        return {
+          table,
+          rows: options.strict && REQUIRED_RESTORE_TABLES.has(table) ? null : [],
+          error: tableError,
+        };
       }
     })
   );
+
+  const tableErrors = [];
+  const results = settledResults.map((result, index) => {
+    const table = tableNames[index];
+    if (result.status === "rejected") {
+      const tableError = result.reason;
+      logQueryFailure(table, "restore table during full restore", tableError, {
+        userId: user.id,
+      });
+      console.warn(`OpeningFit could not restore ${table}; using empty rows.`, tableError);
+      tableErrors.push({ table, error: tableError });
+      return [table, options.strict && REQUIRED_RESTORE_TABLES.has(table) ? null : []];
+    }
+
+    if (result.value?.error) {
+      tableErrors.push({ table: result.value.table, error: result.value.error });
+    }
+
+    return [table, result.value?.rows || []];
+  });
 
   const requiredTableErrors = tableErrors.filter((item) => REQUIRED_RESTORE_TABLES.has(item.table));
 
@@ -549,6 +595,11 @@ export async function fetchAllUserData(user, options = {}) {
   return {
     ...restored,
     hasPremiumAccess: hasActivePremiumEntitlement(restored.premium_entitlements, profile),
+    restoreWarnings: tableErrors.map((item) => ({
+      table: item.table,
+      message: safeUserMessage(item.error, `Could not restore ${item.table}.`),
+      timedOut: item.error?.name === "WorkspaceRestoreTimeout",
+    })),
   };
 }
 

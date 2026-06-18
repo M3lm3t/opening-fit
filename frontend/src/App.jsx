@@ -8519,6 +8519,8 @@ function OpeningFitProfileDashboard({
   authLoading = false,
   profileLoading = false,
   authHydrated = true,
+  profileError = "",
+  restoreError = "",
   theme = "dark",
   onThemeToggle,
   activeView = "profile",
@@ -8541,9 +8543,17 @@ function OpeningFitProfileDashboard({
   const currentPath = getCurrentPath();
   const shouldOpenAccountDetails = currentPath === "/login" || currentPath === "/account";
   const showHistoryPage = activeView === "history";
+  const profileLoadMessage = profileError || restoreError || "";
 
   return (
     <div className={`profileDashboard profileDashboardSimple ${data ? "" : "profileDashboardNoReport"}`}>
+      {profileLoadMessage ? (
+        <div className="profileLoadNotice" role="status">
+          <strong>Profile loaded with limited cloud data</strong>
+          <span>{profileLoadMessage}</span>
+        </div>
+      ) : null}
+
       <div className="simpleProfileGrid">
         <ProfileAccountSimpleCard
           data={data}
@@ -12978,6 +12988,8 @@ function App() {
     syncStatus,
     lastSavedAt,
     syncError,
+    profileError,
+    restoreError,
     restoreInProgress,
     restoreCloudSnapshot,
     isSupabaseConfigured,
@@ -16795,6 +16807,8 @@ function App() {
                 authLoading={authLoading}
                 profileLoading={profileLoading}
                 authHydrated={authHydrated}
+                profileError={profileError}
+                restoreError={restoreError}
                 onCloudRestore={handleCloudRestore}
                 theme={theme}
                 onThemeToggle={() =>

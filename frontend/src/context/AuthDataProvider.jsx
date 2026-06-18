@@ -51,6 +51,33 @@ const EMPTY_RESTORED_COUNTS = {
   reports: 0,
   retentionSnapshots: 0,
 };
+const PROFILE_PARTIAL_RESTORE_MESSAGE =
+  "Some profile data could not be loaded. You can still use OpeningFit.";
+
+function mergePartialRestoreData(nextData, currentData) {
+  if (!nextData) return nextData;
+
+  const restoreWarnings = Array.isArray(nextData.restoreWarnings) ? nextData.restoreWarnings : [];
+  if (!restoreWarnings.length || !currentData) return nextData;
+
+  const merged = { ...nextData };
+  if (!merged.profile && currentData.profile) {
+    merged.profile = currentData.profile;
+  }
+
+  restoreWarnings.forEach((warning) => {
+    const table = warning?.table;
+    if (!table) return;
+
+    const currentRows = currentData?.[table];
+    const nextRows = merged?.[table];
+    if (Array.isArray(currentRows) && currentRows.length && (!Array.isArray(nextRows) || !nextRows.length)) {
+      merged[table] = currentRows;
+    }
+  });
+
+  return merged;
+}
 
 function withTimeout(promise, ms = RESTORE_TIMEOUT_MS, label = "Supabase request") {
   let timeoutId;
@@ -243,6 +270,7 @@ export function AuthDataProvider({ children }) {
   const [syncState, setSyncState] = useState({ status: "idle", lastSavedAt: "", error: "" });
   const debounceRef = useRef(null);
   const userRef = useRef(null);
+  const userDataRef = useRef(null);
   const restoreSeqRef = useRef(0);
   const restoreInFlightRef = useRef(false);
   const restoredUserIdRef = useRef(null);
@@ -251,6 +279,7 @@ export function AuthDataProvider({ children }) {
 
   const user = session?.user || null;
   userRef.current = user;
+  userDataRef.current = userData;
 
   const refreshUserData = useCallback(
     async (nextUser = userRef.current, options = {}) => {
@@ -287,15 +316,17 @@ export function AuthDataProvider({ children }) {
           "OpeningFit cloud restore"
         );
         if (applyState && restoreSeq === restoreSeqRef.current) {
-          setUserData(data || null);
-          hydrateLegacyStorage(data?.settings?.[0]?.preferences?.legacyStorage || {});
+          const restoreWarnings = Array.isArray(data?.restoreWarnings) ? data.restoreWarnings : [];
+          const nextUserData = mergePartialRestoreData(data, userDataRef.current);
+          setUserData(nextUserData || null);
+          hydrateLegacyStorage(nextUserData?.settings?.[0]?.preferences?.legacyStorage || {});
           setProfileLoaded(true);
-          setProfileError("");
+          setProfileError(restoreWarnings.length ? PROFILE_PARTIAL_RESTORE_MESSAGE : "");
           setCloudRestored(true);
           setSyncState((current) => ({
             ...current,
             status: "synced",
-            error: "",
+            error: restoreWarnings.length ? PROFILE_PARTIAL_RESTORE_MESSAGE : "",
             lastSavedAt: current.lastSavedAt || new Date().toISOString(),
           }));
           setHydrated(true);
@@ -322,15 +353,16 @@ export function AuthDataProvider({ children }) {
             is_premium: false,
           };
           const fallbackData = createDefaultUserData(fallbackProfile);
+          const message = PROFILE_PARTIAL_RESTORE_MESSAGE;
           setUserData(fallbackData);
           setError("");
-          setProfileError("");
-          setRestoreError("");
+          setProfileError(message);
+          setRestoreError(message);
           setRestoreTimedOut(refreshError?.name === "WorkspaceRestoreTimeout");
           setSyncState((current) => ({
             ...current,
             status: "idle",
-            error: "",
+            error: message,
           }));
           setHydrated(true);
           setProfileLoaded(true);
@@ -709,7 +741,7 @@ export function AuthDataProvider({ children }) {
   }, [refreshUserData, user?.id]);
 
   useEffect(() => {
-    if (!user?.id || !hydrated || restoreInProgress || profileLoading || !profileLoaded) {
+    if (!user?.id || !hydrated || restoreInProgress || profileLoading || !profileLoaded || restoreError) {
       return undefined;
     }
 
@@ -761,7 +793,7 @@ export function AuthDataProvider({ children }) {
       window.localStorage.setItem = originalSetItem;
       window.localStorage.removeItem = originalRemoveItem;
     };
-  }, [hydrated, profileLoaded, profileLoading, restoreInProgress, user?.id]);
+  }, [hydrated, profileLoaded, profileLoading, restoreError, restoreInProgress, user?.id]);
 
   const api = useMemo(
     () => ({
