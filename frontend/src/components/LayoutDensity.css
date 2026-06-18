@@ -167,7 +167,8 @@
   #report-verdict .reportSectionGroupBody > .whatChangedSinceLastAnalysis,
   #report-verdict .reportSectionGroupBody > .openingJourney,
   #report-verdict .reportSectionGroupBody > .openingFitVerdict,
-  #report-verdict .reportSectionGroupBody > .verdict-panel {
+  #report-verdict .reportSectionGroupBody > .verdict-panel,
+  #report-verdict .reportSectionGroupBody > .reportSecondaryDetails {
     grid-column: 1 / -1;
     width: 100%;
     min-width: 0;
@@ -176,7 +177,7 @@
   .reportTrainingPreviewGrid,
   .dashboardTileGrid,
   .dashboardInsightGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
   }
 
   .profileHeroDashboard {
@@ -184,11 +185,11 @@
   }
 
   .profileHeroMetaGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)) !important;
   }
 
   .profileDashboardGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
   }
 
   .repertoireMapGrid {
@@ -223,11 +224,11 @@
   }
 
   .openingJourneyMilestones ul {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
   }
 
   .historySnapshotGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
   }
 
   .practiceComingSoon {
@@ -250,7 +251,7 @@
   .postAnalysisFlow .postAnalysisGrid,
   .analysisNextOpeningGrid,
   .analysisTrustSignalGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
   }
 }
 
@@ -754,7 +755,7 @@
   .weeklyOpeningGrid,
   .weeklyOpeningLoopGrid {
     display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
     align-items: stretch !important;
   }
 
@@ -765,11 +766,11 @@
   .premiumStatsGrid,
   .premiumCommandStrip {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
   }
 
   .premiumStatsGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)) !important;
   }
 
   .premiumHero {
@@ -809,7 +810,7 @@
   }
 
   .returnDashboardActions {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)) !important;
   }
 }
 
@@ -831,7 +832,7 @@
   .premiumGrid,
   .premiumOpeningGrid,
   .premiumCardsGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
   }
 }
 
