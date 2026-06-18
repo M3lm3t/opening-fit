@@ -6,8 +6,9 @@ import {
 } from "./supabaseSyncDebug";
 
 export const USER_DATA_TABLES = [
-  // Keep full cloud restore focused on the tables OpeningFit actually needs.
-  // Restoring old/experimental tables makes startup slow and causes noisy 400s.
+  // Keep full cloud restore focused on the tables the app actually reads from
+  // AuthDataProvider. Old/experimental tables caused noisy Profile warnings
+  // when a live Supabase project had not applied every historical migration.
   "profiles",
   "premium_entitlements",
   "openingfit_user_state",
@@ -15,14 +16,8 @@ export const USER_DATA_TABLES = [
   "activity_history",
   "report_history",
   "openingfit_retention_snapshots",
-  "analysis_history",
   "analysed_games",
   "recommendation_history",
-  "saved_recommendations",
-  "opening_preferences",
-  "repertoire",
-  "saved_openings",
-  "chess_account_links",
   "notification_preferences",
 ];
 
@@ -156,6 +151,52 @@ function requireClient() {
   }
 
   return supabase;
+}
+
+function classifyRestoreError(error) {
+  const message = String(error?.message || error?.error_description || "");
+  const details = String(error?.details || "");
+  const hint = String(error?.hint || "");
+  const code = String(error?.code || "");
+  const combined = `${message} ${details} ${hint} ${code}`.toLowerCase();
+
+  if (error?.name === "WorkspaceRestoreTimeout" || /timeout|timed out/.test(combined)) {
+    return "timeout";
+  }
+
+  if (/relation .* does not exist|could not find the table|schema cache|42p01/.test(combined)) {
+    return "missing_table";
+  }
+
+  if (/row-level security|permission denied|insufficient privilege|42501/.test(combined)) {
+    return "rls_permission";
+  }
+
+  if (/column .* does not exist|could not find .* column|42703|pgrst204/.test(combined)) {
+    return "bad_column_or_query";
+  }
+
+  if (/jwt|session|auth|unauthorized|401|403/.test(combined)) {
+    return "auth_session";
+  }
+
+  if (/failed to fetch|network|load failed|fetcherror/.test(combined) || error?.name === "TypeError") {
+    return "network";
+  }
+
+  return "unknown";
+}
+
+function logRestoreWarning(table, error, details = {}) {
+  const failureType = classifyRestoreError(error);
+  console.warn("OpeningFit cloud restore table warning", {
+    table,
+    failureType,
+    timedOut: failureType === "timeout",
+    message: error?.message || String(error || ""),
+    code: error?.code,
+    details,
+  });
 }
 
 export function safeUserMessage(error, fallback = "OpeningFit could not reach Supabase. Please try again.") {
@@ -545,7 +586,7 @@ export async function fetchAllUserData(user, options = {}) {
         logQueryFailure(table, "restore table during full restore", tableError, {
           userId: user.id,
         });
-        console.warn(`OpeningFit could not restore ${table}; using empty rows.`, tableError);
+        logRestoreWarning(table, tableError, { userId: user.id });
         return {
           table,
           rows: options.strict && REQUIRED_RESTORE_TABLES.has(table) ? null : [],
@@ -563,7 +604,7 @@ export async function fetchAllUserData(user, options = {}) {
       logQueryFailure(table, "restore table during full restore", tableError, {
         userId: user.id,
       });
-      console.warn(`OpeningFit could not restore ${table}; using empty rows.`, tableError);
+      logRestoreWarning(table, tableError, { userId: user.id });
       tableErrors.push({ table, error: tableError });
       return [table, options.strict && REQUIRED_RESTORE_TABLES.has(table) ? null : []];
     }
@@ -598,7 +639,8 @@ export async function fetchAllUserData(user, options = {}) {
     restoreWarnings: tableErrors.map((item) => ({
       table: item.table,
       message: safeUserMessage(item.error, `Could not restore ${item.table}.`),
-      timedOut: item.error?.name === "WorkspaceRestoreTimeout",
+      failureType: classifyRestoreError(item.error),
+      timedOut: classifyRestoreError(item.error) === "timeout",
     })),
   };
 }

@@ -317,6 +317,16 @@ export function AuthDataProvider({ children }) {
         );
         if (applyState && restoreSeq === restoreSeqRef.current) {
           const restoreWarnings = Array.isArray(data?.restoreWarnings) ? data.restoreWarnings : [];
+          if (restoreWarnings.length) {
+            console.warn("OpeningFit cloud restore completed with table warnings", {
+              warnings: restoreWarnings.map((warning) => ({
+                table: warning.table,
+                failureType: warning.failureType || "unknown",
+                timedOut: Boolean(warning.timedOut),
+                message: warning.message,
+              })),
+            });
+          }
           const nextUserData = mergePartialRestoreData(data, userDataRef.current);
           setUserData(nextUserData || null);
           hydrateLegacyStorage(nextUserData?.settings?.[0]?.preferences?.legacyStorage || {});

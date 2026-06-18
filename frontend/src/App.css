@@ -48002,6 +48002,56 @@ a,
   overflow: hidden;
 }
 
+/* Report verdict cards must wrap before they become too narrow to read. */
+.reportCommandCenter,
+.openingReportShell,
+.openingFitVerdictCard,
+.openingReportGrid,
+.commandHeroGrid {
+  min-width: 0;
+}
+
+.reportCommandCenter .commandHeroGrid,
+.openingReportGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)) !important;
+  align-items: stretch;
+}
+
+.reportCommandCenter .commandHeroCard,
+.openingReportCard {
+  min-width: 0;
+  overflow: visible;
+}
+
+.reportCommandCenter .commandHeroCard strong,
+.reportCommandCenter .commandHeroCard p,
+.reportCommandCenter .commandHeroCard small,
+.openingReportCard h3,
+.openingReportCard p,
+.openingReportCard strong,
+.openingReportCard small,
+.openingReportStats strong,
+.openingReportNextSteps strong,
+.openingReportNextSteps span {
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  hyphens: manual;
+}
+
+.openingReportStats,
+.openingReportNextSteps {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)) !important;
+}
+
+@media (max-width: 640px) {
+  .reportCommandCenter .commandHeroGrid,
+  .openingReportGrid,
+  .openingReportStats,
+  .openingReportNextSteps {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 @media (min-width: 900px) {
   .profileDashboard {
     grid-template-columns: repeat(2, minmax(0, 1fr));
