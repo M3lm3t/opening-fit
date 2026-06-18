@@ -244,7 +244,7 @@ function WeakLineCard({ line, onPractice }) {
       </div>
       <p>{PATTERN_COPY[likelyIssue] || weakLineIssueCopy(likelyIssue, gamesPlayed(line))}</p>
       <button type="button" onClick={() => canTrain && onPractice(training.target || opening)}>
-        {canTrain ? "Train my weakest line" : "Review this line"}
+        {canTrain ? "Train This Line" : "Review this line"}
       </button>
     </article>
   );

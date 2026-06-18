@@ -1,0 +1,146 @@
+.dailyMissionCard {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: clamp(13px, 2vw, 18px);
+  border: 1px solid rgba(45, 212, 191, 0.2);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.dailyMissionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dailyMissionHeader h2,
+.dailyMissionHeader p,
+.dailyMissionAction p {
+  margin: 0;
+}
+
+.dailyMissionHeader h2 {
+  margin-top: 4px;
+  color: var(--text);
+  font-size: clamp(1.05rem, 1.7vw, 1.35rem);
+  line-height: 1.15;
+}
+
+.dailyMissionHeader > span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: rgba(45, 212, 191, 0.12);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.dailyMissionChecklist {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dailyMissionChecklist label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 8px;
+  align-items: start;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(2, 6, 23, 0.18);
+}
+
+.dailyMissionChecklist input {
+  grid-row: span 2;
+  margin-top: 2px;
+  accent-color: #2dd4bf;
+}
+
+.dailyMissionChecklist span {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.dailyMissionChecklist small {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.dailyMissionChecklist .isDone {
+  border-color: rgba(45, 212, 191, 0.26);
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.dailyMissionAction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dailyMissionAction p {
+  color: var(--text-soft);
+  line-height: 1.45;
+}
+
+.dailyMissionAction button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: 40px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 16px;
+  background: #2dd4bf;
+  color: #042f2e;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+[data-theme="light"] .dailyMissionCard,
+.page.light .dailyMissionCard {
+  border-color: rgba(13, 148, 136, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+[data-theme="light"] .dailyMissionChecklist label,
+.page.light .dailyMissionChecklist label {
+  border-color: rgba(15, 23, 42, 0.1);
+  background: rgba(248, 250, 252, 0.86);
+}
+
+@media (max-width: 760px) {
+  .dailyMissionCard {
+    border-radius: 14px;
+    padding: 13px;
+  }
+
+  .dailyMissionHeader,
+  .dailyMissionAction {
+    display: grid;
+    gap: 10px;
+  }
+
+  .dailyMissionHeader > span {
+    width: fit-content;
+  }
+
+  .dailyMissionChecklist {
+    grid-template-columns: 1fr;
+  }
+
+  .dailyMissionAction button {
+    width: 100%;
+  }
+}

@@ -31,10 +31,14 @@ import OpeningCoachPlan from "./components/OpeningCoachPlan";
 import OpeningProgressTracker from "./components/OpeningProgressTracker";
 import WeeklyOpeningReport, { buildWeeklyOpeningSnapshot } from "./components/WeeklyOpeningReport";
 import OpeningGamificationProgress from "./components/OpeningGamificationProgress";
+import ContinueTrainingCard from "./components/ContinueTrainingCard";
+import DailyMissionCard from "./components/DailyMissionCard";
+import ResumeTrainingPrompt from "./components/ResumeTrainingPrompt";
 import TodayTrainingCard from "./components/TodayTrainingCard";
 import OpeningFitRepertoirePlan from "./components/OpeningFitRepertoirePlan";
 import OpeningFitVerdict from "./components/OpeningFitVerdict";
 import OpeningJourney from "./components/OpeningJourney";
+import OneThingToFixCard from "./components/OneThingToFixCard";
 import WhatChangedSinceLastAnalysis from "./components/WhatChangedSinceLastAnalysis";
 import "./components/LayoutDensity.css";
 import WeeklyOpeningSummaryCompact from "./components/WeeklyOpeningSummary";
@@ -4299,8 +4303,8 @@ function StudyThisNextCard({ target, onPractice, onViewChange }) {
       </div>
 
       <div className="studyThisNextActions">
-        <button type="button" onClick={() => onPractice?.(target.name)}>
-          Practise target
+        <button type="button" onClick={() => onPractice?.(target.opening || target.name)}>
+          Train This Line
         </button>
         <button type="button" onClick={() => onViewChange?.("train")}>
           Open study plan
@@ -4358,9 +4362,9 @@ function TopActionsSection({ data, fitData, onPractice }) {
         <button
           className="secondaryBtn"
           type="button"
-          onClick={() => onPractice?.(getOpeningName(fitData.bestOpening))}
+          onClick={() => onPractice?.(fitData.bestOpening)}
         >
-          Practise strongest opening
+          Train This Line
         </button>
       ) : null}
     </section>
@@ -4417,7 +4421,7 @@ function EvidenceTableSection({ data, fitData, isPremium = false, onPractice }) 
                       <button
                         className="tableOpeningBtn"
                         type="button"
-                        onClick={() => onPractice?.(getOpeningName(opening))}
+                        onClick={() => onPractice?.(opening)}
                       >
                         {getOpeningName(opening)}
                       </button>
@@ -4953,8 +4957,8 @@ function PostAnalysisActionFlow({ data, fitData, onPractice, onViewChange }) {
       action: strength
         ? `Keep ${strengthName} in your repertoire and review the first plan after move 6.`
         : "Pick one starter opening, play it for a week, and return with fresh games.",
-      cta: "Train Opening",
-      onClick: () => (strength ? onPractice?.(strengthName) : onViewChange?.("train")),
+      cta: "Train This Line",
+      onClick: () => (strength ? onPractice?.(strength) : onViewChange?.("train")),
     },
     {
       key: "weakness",
@@ -4972,8 +4976,8 @@ function PostAnalysisActionFlow({ data, fitData, onPractice, onViewChange }) {
       action: weakness
         ? `Repair ${weaknessName} by learning the first 6 moves and one simple middlegame plan.`
         : "Avoid spreading your study across too many openings until one pattern repeats.",
-      cta: "Repair Opening",
-      onClick: () => (weakness ? onPractice?.(weaknessName) : onViewChange?.("train")),
+      cta: "Train This Line",
+      onClick: () => (weakness ? onPractice?.(weakness) : onViewChange?.("train")),
     },
     {
       key: "action",
@@ -5138,9 +5142,9 @@ function MobileReportQuickGuide({ data, fitData, onPractice, onViewChange }) {
       fallback: "No clear strength yet",
       score: keepOpening ? getWinRate(keepOpening) : null,
       reason: keepOpening ? "Strong results" : "Analyse more games",
-      cta: "Train",
+      cta: "Train This Line",
       target: "mobile-report-strengths",
-      onClick: () => (keepOpening ? onPractice?.(getOpeningName(keepOpening)) : onViewChange?.("train")),
+      onClick: () => (keepOpening ? onPractice?.(keepOpening) : onViewChange?.("train")),
     },
     {
       key: "improve",
@@ -5149,9 +5153,9 @@ function MobileReportQuickGuide({ data, fitData, onPractice, onViewChange }) {
       fallback: "Repair target pending",
       score: improveOpening ? getWinRate(improveOpening) : null,
       reason: improveOpening ? "Repeated early losses" : "We need a few more games",
-      cta: "Repair",
+      cta: "Train This Line",
       target: "mobile-report-weaknesses",
-      onClick: () => (improveOpening ? onPractice?.(getOpeningName(improveOpening)) : onViewChange?.("train")),
+      onClick: () => (improveOpening ? onPractice?.(improveOpening) : onViewChange?.("train")),
     },
     {
       key: "replace",
@@ -5285,8 +5289,8 @@ function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
           </div>
 
           <div className="premiumRecommendationActions">
-            <button type="button" className="primaryBtn" onClick={() => onPractice?.(featuredOpening.name)}>
-              Train Opening
+            <button type="button" className="primaryBtn" onClick={() => onPractice?.(featuredOpening)}>
+              Train This Line
             </button>
             <button type="button" className="secondaryButton" onClick={() => onViewChange?.("train")}>
               Learn More
@@ -5313,7 +5317,7 @@ function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
           Save this recommendation
         </button>
         <button type="button" className="secondaryButton" onClick={() => onPractice?.(primaryOpening)}>
-          Learn this opening
+          Train This Line
         </button>
         <button
           type="button"
@@ -5515,6 +5519,7 @@ function FinalReportFlow({
           reportMode={reportMode}
           onReportModeChange={setReportMode}
         />
+        <OneThingToFixCard data={data} fitData={fitData} onPractice={onPractice} />
         <WhatChangedSinceLastAnalysis
           data={data}
           fitData={fitData}
@@ -5679,11 +5684,11 @@ function ReportTrainingPreview({ data, fitData, studyTarget, recentGames = [], o
           </p>
           {weakestTraining.available ? (
             <button type="button" className="primaryBtn" onClick={() => onPractice?.(weakestTraining.target)}>
-              Train my weakest line
+              Train This Line
             </button>
           ) : (
             <button type="button" className="primaryBtn" onClick={() => onPractice?.(targetName)}>
-              Practice target
+              Train This Line
             </button>
           )}
         </article>
@@ -5763,7 +5768,7 @@ function FullReportHighlights({ data, fitData, onPractice }) {
         type="button"
         className="fullReportOpeningRow"
         disabled={!canPractice}
-        onClick={() => canPractice && onPractice?.(getOpeningName(opening))}
+        onClick={() => canPractice && onPractice?.(opening)}
       >
         <div>
           <strong>{getOpeningContextTitle(opening)}</strong>
@@ -6767,6 +6772,45 @@ function readLocalProfileHistory() {
   });
 }
 
+function getProfileProgressSummary(data, openingFitUserState = [], savedProgress = null) {
+  const rows = Array.isArray(openingFitUserState) ? openingFitUserState : [];
+  const openingTrainingRows = rows
+    .map((row) => row?.coach_progress?.openingTraining || row?.coach_progress?.opening_training || null)
+    .filter(Boolean);
+  const trainedOpenings = new Set();
+  openingTrainingRows.forEach((progress) => {
+    Object.values(progress?.progressByOpening || progress?.progress_by_opening || {}).forEach((item) => {
+      const name = item?.openingName || item?.opening_name || item?.openingId || item?.opening_id;
+      if (name) trainedOpenings.add(String(name));
+    });
+  });
+
+  const metrics = data?.retentionMetrics || data?.retention_metrics || {};
+  const masteryRows =
+    data?.openingMastery ||
+    data?.opening_mastery ||
+    metrics.openingMastery ||
+    metrics.opening_mastery ||
+    [];
+  const masteredFromReport = Array.isArray(masteryRows)
+    ? masteryRows.filter((item) => Number(item?.masteryScore ?? item?.mastery_score ?? item?.mastery ?? 0) >= 75).length
+    : 0;
+  const trainedFromXp = Array.isArray(savedProgress?.openingXp) ? savedProgress.openingXp.length : 0;
+  const masteredFromXp = Array.isArray(savedProgress?.openingXp)
+    ? savedProgress.openingXp.filter((item) => Number(item?.score ?? item?.mastery ?? item?.masteryScore ?? 0) >= 75).length
+    : 0;
+  const streakValues = Object.values(savedProgress?.streaks || {})
+    .map((streak) => Number(streak?.current || 0))
+    .filter((value) => Number.isFinite(value));
+  const bestStreak = streakValues.length ? Math.max(...streakValues) : 0;
+
+  return {
+    streak: bestStreak,
+    trainedOpenings: Math.max(trainedOpenings.size, trainedFromXp),
+    masteredOpenings: Math.max(masteredFromReport, masteredFromXp),
+  };
+}
+
 function ProfileSummaryCard({
   data,
   fitData,
@@ -6775,6 +6819,8 @@ function ProfileSummaryCard({
   platform,
   isPremium,
   isPremiumPreview,
+  openingFitUserState = [],
+  savedOpeningGamificationProgress = null,
   onAnalyse,
   onOpenReport,
 }) {
@@ -6784,16 +6830,13 @@ function ProfileSummaryCard({
   const planLabel = getProfilePlanLabel({ isPremium, isPremiumPreview, accountUser });
   const analysedAt = getProfileImportDate(data);
   const games = getProfileGameCount(data);
-  const facts = getProfileOpeningFacts(data, fitData);
-  const rating = hasReport ? getProfileRating(data) : 0;
   const displayName = hasReport ? playerIdentity.displayName || "Name not available" : "Name not available";
-  const platformUsername =
+  const formattedUsername =
     hasReport || username ? formatProfileUsername(playerIdentity.username) || "No saved report yet" : "No saved report yet";
   const styleLabel = hasReport ? getProfileStyleLabel(data, fitData) : "Analyse a username to build your profile";
-  const mainWhite = hasReport ? facts.preferredWhite : "No saved report yet";
-  const mainBlack = hasReport ? facts.preferredBlack : "No saved report yet";
   const lastAnalysed = hasReport ? formatProfileDate(analysedAt) : "No saved report yet";
-  const gamesLabel = hasReport ? `${games || "No"} games analysed` : "Analyse a username to build your profile";
+  const contact = accountUser?.email || formattedUsername;
+  const progress = getProfileProgressSummary(data, openingFitUserState, savedOpeningGamificationProgress);
 
   return (
     <section className="profileHeroDashboard profileChessIdentityHero">
@@ -6805,6 +6848,20 @@ function ProfileSummaryCard({
             ? "Your saved chess profile: style, repertoire anchors, and latest report status."
             : "Analyse a username to build your profile."}
         </p>
+        <div className="profileHeroIdentityInline">
+          {hasReport ? (
+            <PlayerIdentity identity={playerIdentity} platformLabel={platformLabel} />
+          ) : (
+            <strong>{contact || "No account connected"}</strong>
+          )}
+          <small>
+            {hasReport
+              ? `${platformLabel} - ${styleLabel} - ${lastAnalysed}`
+              : accountUser?.email
+                ? accountUser.email
+                : "Analyse a username to build your profile"}
+          </small>
+        </div>
         <div className="profileHeroActions">
           <button type="button" className="primaryBtn" onClick={onAnalyse}>
             Analyse new games
@@ -6817,55 +6874,73 @@ function ProfileSummaryCard({
         </div>
       </div>
 
-      <div className="profileHeroMetaGrid">
+      <div className="profileStatusStrip" aria-label="Account status summary">
         <article>
-          <span>Username / gamertag</span>
-          {hasReport ? (
-            <>
-              <PlayerIdentity identity={playerIdentity} platformLabel={platformLabel} />
-              <small className="profilePlatformUsername">{platformUsername}</small>
-            </>
-          ) : (
-            <>
-              <strong>{platformUsername}</strong>
-              <small>Analyse a username to build your profile</small>
-            </>
-          )}
+          <span>Account</span>
+          <strong>{contact || "Not signed in"}</strong>
         </article>
         <article>
-          <span>Platform</span>
-          <strong>{platformLabel}</strong>
-          <small>{hasReport ? "Imported account" : "No saved report yet"}</small>
-        </article>
-        <article>
-          <span>Rating</span>
-          <strong>{rating ? rating : hasReport ? "Not available" : "No saved report yet"}</strong>
-          <small>{hasReport ? "Latest detected rating" : "Analyse a username to build your profile"}</small>
-        </article>
-        <article>
-          <span>Main playing style</span>
-          <strong>{styleLabel}</strong>
-          <small>{hasReport ? "Based on recent games" : "No saved report yet"}</small>
-        </article>
-        <article>
-          <span>Main White opening</span>
-          <strong>{mainWhite}</strong>
-          <small>{hasReport ? "Most useful White signal" : "No saved report yet"}</small>
-        </article>
-        <article>
-          <span>Main Black opening</span>
-          <strong>{mainBlack}</strong>
-          <small>{hasReport ? "Most useful Black signal" : "No saved report yet"}</small>
-        </article>
-        <article>
-          <span>Premium status</span>
+          <span>Plan</span>
           <strong>{planLabel}</strong>
-          <small>{accountUser?.email ? "Signed in" : "Browser profile"}</small>
+        </article>
+        <article>
+          <span>Streak</span>
+          <strong>{progress.streak ? `${progress.streak} day${progress.streak === 1 ? "" : "s"}` : "No streak yet"}</strong>
+        </article>
+        <article>
+          <span>Trained</span>
+          <strong>{progress.trainedOpenings ? `${progress.trainedOpenings} openings` : "No training yet"}</strong>
+        </article>
+        <article>
+          <span>Mastered</span>
+          <strong>{progress.masteredOpenings ? `${progress.masteredOpenings} openings` : "No mastery yet"}</strong>
+        </article>
+        <article>
+          <span>Games</span>
+          <strong>{hasReport ? games || 0 : "No report yet"}</strong>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function ProfileKeyStatsCard({
+  data,
+  accountUser,
+  reportHistory = [],
+  recommendationHistory = [],
+  retentionSnapshots = [],
+}) {
+  const savedReports = accountUser?.id
+    ? (Array.isArray(reportHistory) ? reportHistory.length : 0)
+    : readLocalProfileHistory().length;
+  const savedSnapshots = Array.isArray(retentionSnapshots) ? retentionSnapshots.length : 0;
+  const recommendationSnapshots = Array.isArray(recommendationHistory) ? recommendationHistory.length : 0;
+  const games = getProfileGameCount(data);
+  const lastAnalysed = data ? formatProfileDate(getProfileImportDate(data)) : "No saved report yet";
+
+  return (
+    <section className="profileDashboardCard profileKeyStatsCard" aria-label="Profile key stats">
+      <div className="profileCardHeader">
+        <p className="eyebrow">Key stats</p>
+        <h2>Your OpeningFit activity</h2>
+      </div>
+      <div className="profileKeyStatsGrid">
+        <article>
+          <span>Saved reports</span>
+          <strong>{savedReports || 0}</strong>
+        </article>
+        <article>
+          <span>Games analysed</span>
+          <strong>{games || 0}</strong>
         </article>
         <article>
           <span>Last analysed</span>
           <strong>{lastAnalysed}</strong>
-          <small>{gamesLabel}</small>
+        </article>
+        <article>
+          <span>History snapshots</span>
+          <strong>{savedSnapshots + recommendationSnapshots}</strong>
         </article>
       </div>
     </section>
@@ -7793,37 +7868,34 @@ function OpeningFitProfileDashboard({
           platform={platform}
           isPremium={isPremium}
           isPremiumPreview={isPremiumPreview}
+          openingFitUserState={openingFitUserState}
+          savedOpeningGamificationProgress={savedOpeningGamificationProgress}
           onAnalyse={onAnalyse}
           onOpenReport={onOpenReport}
         />
 
-        <WeeklyOpeningSummaryCompact retentionSnapshots={retentionSnapshots} onAnalyse={onAnalyse} />
-
         <details className="profileSecondaryDetails" open={shouldOpenAccountDetails || undefined}>
           <summary>
-            <span>Account and settings</span>
-            <strong>{accountUser?.email ? "Signed in" : "Login, sync, saved reports, and Founder Pass"}</strong>
+            <span>Account</span>
+            <strong>{accountUser?.email ? "Signed in" : "Login and sync"}</strong>
           </summary>
           <div className="profileDashboardSecondaryStack">
-            <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
-
-            <div className="profileDashboardGrid profileAccountPremiumGrid">
-              <section className="profileDashboardCard profileAccountCard" id="profile-account">
-                <span className="profileLoginAnchor" id="login" aria-hidden="true" />
-                <div className="profileCardHeader">
-                  <p className="eyebrow">Account security</p>
-                  <h2>Settings and sync</h2>
-                </div>
-                <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
-              </section>
-
-              <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
-            </div>
+            <section className="profileDashboardCard profileAccountCard" id="profile-account">
+              <span className="profileLoginAnchor" id="login" aria-hidden="true" />
+              <div className="profileCardHeader">
+                <p className="eyebrow">Account security</p>
+                <h2>Settings and sync</h2>
+              </div>
+              <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
+            </section>
           </div>
         </details>
 
-        {hasStoredProgress ? (
-          <ProfileDisclosure eyebrow="Opening progress" title="Saved repertoire progress">
+        <ProfileDisclosure eyebrow="History / Saved data" title="Reports, progress, and history">
+          <WeeklyOpeningSummaryCompact retentionSnapshots={retentionSnapshots} onAnalyse={onAnalyse} />
+          <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
+
+          {hasStoredProgress ? (
             <OpeningFitProgressCard
               data={null}
               fitData={fitData}
@@ -7833,30 +7905,32 @@ function OpeningFitProfileDashboard({
               onAnalyse={onAnalyse}
               onOpenReport={onOpenReport}
             />
-          </ProfileDisclosure>
-        ) : null}
+          ) : null}
 
-        {savedOpeningGamificationProgress ? (
-          <ProfileDisclosure eyebrow="Opening XP" title="XP, streaks, and badges">
+          {savedOpeningGamificationProgress ? (
             <OpeningGamificationProgress
               data={null}
               fitData={fitData}
               savedProgress={savedOpeningGamificationProgress}
             />
-          </ProfileDisclosure>
-        ) : null}
+          ) : null}
 
-        <RecommendationHistorySection
-          data={null}
-          fitData={fitData}
-          accountUser={accountUser}
-          recommendationHistory={recommendationHistory}
-          authLoading={authLoading}
-          profileLoading={profileLoading}
-          authHydrated={authHydrated}
-          onAnalyse={onAnalyse}
-          onViewRepertoire={onOpenReport}
-        />
+          <RecommendationHistorySection
+            data={null}
+            fitData={fitData}
+            accountUser={accountUser}
+            recommendationHistory={recommendationHistory}
+            authLoading={authLoading}
+            profileLoading={profileLoading}
+            authHydrated={authHydrated}
+            onAnalyse={onAnalyse}
+            onViewRepertoire={onOpenReport}
+          />
+        </ProfileDisclosure>
+
+        <ProfileDisclosure eyebrow="Subscription" title={isPremium ? "Founder Pass active" : "Founder Pass"}>
+          <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
+        </ProfileDisclosure>
       </div>
     );
   }
@@ -7871,17 +7945,18 @@ function OpeningFitProfileDashboard({
         platform={platform}
         isPremium={isPremium}
         isPremiumPreview={isPremiumPreview}
+        openingFitUserState={openingFitUserState}
+        savedOpeningGamificationProgress={savedOpeningGamificationProgress}
         onAnalyse={onAnalyse}
         onOpenReport={onOpenReport}
       />
 
-      <WeeklyOpeningSummaryCompact retentionSnapshots={retentionSnapshots} onAnalyse={onAnalyse} />
-
-      <div className="profileDashboardGrid profileDashboardSingleGrid">
+      <ProfileDisclosure eyebrow="Preferences" title="Opening identity and player summary">
         <ChessProfileCard data={data} fitData={fitData} />
-      </div>
+      </ProfileDisclosure>
 
-      <ProfileDisclosure eyebrow="Latest report" title="Most recent import">
+      <ProfileDisclosure eyebrow="History / Saved data" title="Reports, progress, and saved data">
+        <WeeklyOpeningSummaryCompact retentionSnapshots={retentionSnapshots} onAnalyse={onAnalyse} />
         <LatestReportCard
           data={data}
           fitData={fitData}
@@ -7889,10 +7964,9 @@ function OpeningFitProfileDashboard({
           platform={platform}
           onOpenReport={onOpenReport}
         />
-      </ProfileDisclosure>
+        <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
 
-      {accountUser?.id ? (
-        <ProfileDisclosure eyebrow="Opening progress" title="Saved repertoire progress">
+        {accountUser?.id ? (
           <OpeningFitProgressCard
             data={data}
             fitData={fitData}
@@ -7902,16 +7976,14 @@ function OpeningFitProfileDashboard({
             onAnalyse={onAnalyse}
             onOpenReport={onOpenReport}
           />
-        </ProfileDisclosure>
-      ) : null}
+        ) : null}
 
-      <ProfileDisclosure eyebrow="Opening XP" title="XP, streaks, and badges">
         <OpeningGamificationProgress
           data={data}
           fitData={fitData}
           savedProgress={savedOpeningGamificationProgress}
         />
-      </ProfileDisclosure>
+
       <RecommendationHistorySection
         data={data}
         fitData={fitData}
@@ -7923,31 +7995,29 @@ function OpeningFitProfileDashboard({
         onAnalyse={onAnalyse}
         onViewRepertoire={onOpenReport}
       />
+        <ProfileAchievementsCard data={data} fitData={fitData} isPremium={isPremium} />
+      </ProfileDisclosure>
 
       <details className="profileSecondaryDetails" open={shouldOpenAccountDetails || undefined}>
         <summary>
-          <span>Account and settings</span>
-          <strong>Sync, saved reports, settings, and membership</strong>
+          <span>Account</span>
+          <strong>Login, sync, and account settings</strong>
         </summary>
         <div className="profileDashboardSecondaryStack">
-          <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
-
-          <ProfileAchievementsCard data={data} fitData={fitData} isPremium={isPremium} />
-
-          <div className="profileDashboardGrid profileAccountPremiumGrid">
-            <section className="profileDashboardCard profileAccountCard" id="profile-account">
-              <span className="profileLoginAnchor" id="login" aria-hidden="true" />
-              <div className="profileCardHeader">
-                <p className="eyebrow">Account security</p>
-                <h2>Settings and sync</h2>
-              </div>
-              <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
-            </section>
-
-            <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
-          </div>
+          <section className="profileDashboardCard profileAccountCard" id="profile-account">
+            <span className="profileLoginAnchor" id="login" aria-hidden="true" />
+            <div className="profileCardHeader">
+              <p className="eyebrow">Account security</p>
+              <h2>Settings and sync</h2>
+            </div>
+            <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
+          </section>
         </div>
       </details>
+
+      <ProfileDisclosure eyebrow="Subscription" title={isPremium ? "Founder Pass active" : "Founder Pass"}>
+        <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
+      </ProfileDisclosure>
     </div>
   );
 }
@@ -8072,8 +8142,8 @@ function StyleBasedStarterRecommendations({ data, fitData, onPractice }) {
                           <RecommendationReasonHint item={item} label="Lower priority" />
                         </em>
                       ) : null}
-                      <button type="button" onClick={() => onPractice?.(item.name)}>
-                        Practise this line
+                      <button type="button" onClick={() => onPractice?.(item)}>
+                        Train This Line
                       </button>
                     </div>
                   ))}
@@ -8408,7 +8478,7 @@ function RepertoireCommandPanel({ data, onPractice }) {
                     <button
                       type="button"
                       className="commandMiniOpening"
-                      onClick={() => onPractice?.(first.name)}
+                      onClick={() => onPractice?.(first)}
                     >
                       <strong>{first.name}</strong>
                       <span>{confidenceRowText(first)}</span>
@@ -8882,8 +8952,8 @@ function RepertoireRoleCard({ section, data, onPractice }) {
           <FitReasonList opening={opening} compact />
 
           {canPractice ? (
-            <button type="button" className="secondaryBtn rolePracticeBtn" onClick={() => onPractice?.(getOpeningName(opening))}>
-              Practise this role
+            <button type="button" className="secondaryBtn rolePracticeBtn" onClick={() => onPractice?.(opening)}>
+              Train This Line
             </button>
           ) : null}
         </>
@@ -8935,18 +9005,18 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
       return (a.fitScore || 100) - (b.fitScore || 100);
     });
   const focus = weak[0];
-  const trainSelectedLine = async () => {
-    if (!selectedLine) return;
+  const trainWeakLine = async (line) => {
+    if (!line) return;
 
     if (user?.id && recordActivity) {
       try {
         await recordActivity("weak_line_training_started", {
-          opening: selectedLine.opening,
-          variation: selectedLine.variation || selectedLine.line,
-          move_line: selectedLine.moveLine,
-          games: selectedLine.games,
-          win_rate: selectedLine.winRate,
-          loss_rate: selectedLine.lossRate,
+          opening: line.opening,
+          variation: line.variation || line.line,
+          move_line: line.moveLine,
+          games: line.games,
+          win_rate: line.winRate,
+          loss_rate: line.lossRate,
           points: 40,
         });
       } catch (error) {
@@ -8954,8 +9024,12 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
       }
     }
 
-    const selectedTraining = buildWeakestLineTrainingTargetFromLine(selectedLine);
-    onPractice?.(selectedTraining.target || selectedLine.trainingTarget || selectedLine.opening);
+    const selectedTraining = buildWeakestLineTrainingTargetFromLine(line);
+    onPractice?.(selectedTraining.target || line.trainingTarget || line);
+  };
+
+  const trainSelectedLine = () => {
+    trainWeakLine(selectedLine);
   };
 
   return (
@@ -8968,7 +9042,7 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
           </p>
           {weakestTraining.available ? (
             <button type="button" className="primaryBtn" onClick={() => onPractice?.(weakestTraining.target)}>
-              Train my weakest line
+              Train This Line
             </button>
           ) : (
             <small>{weakestTraining.message}</small>
@@ -9007,8 +9081,8 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
 
               <p>{line.flagReason}</p>
 
-              <button type="button" onClick={() => setSelectedLine(line)}>
-                Train this line
+              <button type="button" onClick={() => trainWeakLine(line)}>
+                Train This Line
               </button>
             </article>
           ))}
@@ -9054,7 +9128,7 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
 
           <div className="weakLineTrainingActions">
             <button type="button" onClick={trainSelectedLine}>
-              Train my weakest line
+              Train This Line
             </button>
             <button type="button" onClick={() => setSelectedLine(null)}>
               Close
@@ -9071,8 +9145,8 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
             <p>{focus.fitExplanation}</p>
             <FitReasonList opening={focus} compact />
           </div>
-          <button type="button" onClick={() => onPractice?.(getOpeningName(focus)) || onViewChange?.("train")}>
-            Train opening
+          <button type="button" onClick={() => onPractice?.(focus) || onViewChange?.("train")}>
+            Train This Line
           </button>
         </article>
       ) : (
@@ -9085,7 +9159,7 @@ function WeakSpotsCommandPanel({ data, fitData, onPractice, onViewChange }) {
             className={`commandOpeningRow confidence-${getOpeningSignal(item).className || "medium"}`}
             type="button"
             key={`${getOpeningName(item)}-${index}`}
-            onClick={() => onPractice?.(getOpeningName(item))}
+            onClick={() => onPractice?.(item)}
           >
             <div>
               <strong>{getOpeningContextTitle(item)}</strong>
@@ -9251,8 +9325,8 @@ function SevenDayOpeningFitPlan({ data, fitData, recentGames = [], onPractice })
 
       <div className="sevenDayActions">
         {target ? (
-          <button type="button" onClick={() => onPractice?.(targetName)}>
-            Practise {targetName}
+          <button type="button" onClick={() => onPractice?.(target)}>
+            Train This Line
           </button>
         ) : null}
         <small>
@@ -9539,9 +9613,10 @@ function AppPrimaryNav({
   const profileLabel = accountUser ? "Profile" : "Log in";
   const items = hasReport
     ? [
-        { key: "report", label: "Report" },
-        { key: "recommendations", label: "Repertoire" },
+        { key: "analyse", label: "Analyze" },
         { key: "training", label: "Train" },
+        { key: "report", label: "Report / Progress" },
+        { key: "history", label: "History" },
         accountUser
           ? { key: "account", label: "Profile" }
           : { key: "login", label: "Log in", path: "/login", target: "login", action: onLogin },
@@ -9549,20 +9624,22 @@ function AppPrimaryNav({
       ]
     : accountUser
       ? [
-          { key: "analyse", label: "Home" },
-          { key: "report", label: "Report" },
+          { key: "analyse", label: "Analyze" },
           { key: "training", label: "Train" },
+          { key: "report", label: "Report / Progress" },
+          { key: "history", label: "History" },
           { key: "account", label: "Profile" },
           { key: "pricing", label: "Premium", path: "/premium", target: "premium", action: onPricing },
         ]
       : [
-          { key: "analyse", label: "Home" },
-          { key: "example", label: "Sample Report", path: "/report", target: "app-results", action: onExampleReport },
+          { key: "analyse", label: "Analyze" },
           { key: "training", label: "Train" },
+          { key: "example", label: "Report / Progress", path: "/report", target: "app-results", action: onExampleReport },
+          { key: "history", label: "History" },
           { key: "pricing", label: "Premium", path: "/premium", target: "premium", action: onPricing },
           { key: "login", label: "Login", path: "/login", target: "login", action: onLogin },
         ];
-  const brandAction = hasReport ? { key: "report", label: "Report" } : { key: "analyse", label: "Home" };
+  const brandAction = hasReport ? { key: "report", label: "Report / Progress" } : { key: "analyse", label: "Analyze" };
   const primaryAction = accountUser
     ? { key: "analyse", label: "Analyse New Games" }
     : { key: "analyse", label: "Get Started" };
@@ -9575,7 +9652,7 @@ function AppPrimaryNav({
 
     const activeViewsByKey = {
       analyse: ["analyse", "home", "import"],
-      report: ["report", "overview"],
+      report: ["report", "overview", "recommendations", "repertoire", "openings", "weakspots", "verdicts", "progress"],
       recommendations: ["recommendations", "repertoire", "openings", "weakspots", "verdicts"],
       example: ["report", "overview", "recommendations", "repertoire", "openings", "weakspots", "verdicts"],
       training: ["train", "training", "interactive", "practice"],
@@ -13268,17 +13345,12 @@ function App() {
     if (!openingTarget) return;
 
     setPracticeOpening(openingTarget);
-    if (openingTarget?.source === "weakest-line" || openingTarget?.trainingSet?.source === "weakest-line") {
-      handleAppNavigate({
-        view: "train",
-        path: "/train",
-        target: "opening-practice",
-        fallbackIds: ["today-training", "training-plan"],
-      });
-      return;
-    }
-
-    scrollToId("opening-practice");
+    handleAppNavigate({
+      view: "train",
+      path: "/train",
+      target: "opening-practice",
+      fallbackIds: ["today-training", "training-plan"],
+    });
   };
 
   const practiceOpeningName = practiceOpening ? getOpeningName(practiceOpening) : "";
@@ -14302,7 +14374,7 @@ function App() {
 
   const goToReturnUserStudyPlan = () => {
     loadLatestCloudReport();
-    handleAppNavigate({ view: "train", path: "/train", target: "study-planner" });
+    handleAppNavigate({ view: "train", path: "/train", target: "opening-practice" });
   };
 
   const goToReturnUserProfileSection = (targetId = "profile") => {
@@ -14679,6 +14751,8 @@ function App() {
         <main className="container appShell" id="app-dashboard">
           {activeAppSection === "analyse" ? (
           <>
+          <ResumeTrainingPrompt data={reportData || data} onResume={startOpeningPractice} />
+
           <header className="hero heroCard compactImportHero analyseImportHero" aria-busy={loading}>
             <div className="heroTop">
               <div className="heroTitleWrap">
@@ -14962,14 +15036,20 @@ function App() {
 
           {activeAppSection === "train" && !reportData && !loading ? (
             <>
-              <TodayTrainingCard
-                data={null}
-                fitData={fitData}
-                onAnalyse={() => handleAppNavigate("analyse")}
-                onStartTraining={(recommendation) => startOpeningPractice(recommendation?.trainingTarget || recommendation?.opening)}
-              />
-
               <div id="opening-practice">
+                <ContinueTrainingCard
+                  data={null}
+                  fitData={fitData}
+                  onAnalyse={() => handleAppNavigate("analyse")}
+                  onStartTraining={(recommendation) => startOpeningPractice(recommendation)}
+                />
+
+                <DailyMissionCard
+                  data={null}
+                  fitData={fitData}
+                  onStartTraining={(recommendation) => startOpeningPractice(recommendation)}
+                />
+
                 <OpeningPracticeLinesPanel
                   opening="Italian Game"
                   user={supabaseUser || accountUser}
@@ -14979,6 +15059,13 @@ function App() {
                   heading="Practice your recommended line"
                 />
               </div>
+
+              <TodayTrainingCard
+                data={null}
+                fitData={fitData}
+                onAnalyse={() => handleAppNavigate("analyse")}
+                onStartTraining={(recommendation) => startOpeningPractice(recommendation?.trainingTarget || recommendation?.opening)}
+              />
 
               <section className="card appEmptySection productEmptyState" id="training-plan">
                 <span className="productStateIcon"><BookOpenCheck size={22} /></span>
@@ -15153,24 +15240,30 @@ function App() {
           )}
 
           {reportData && ["report", "train"].includes(activeAppSection) && (
-            <div id="app-results">
+            <div
+              id="app-results"
+              className={activeAppSection === "train" ? "appResultsShell appResultsShellTrain" : "appResultsShell"}
+            >
               {activeAppSection === "report" ? (
-                <FinalReportFlow
-                  data={reportData}
-                  fitData={fitData}
-                  activeView={activeView}
-                  onPractice={startOpeningPractice}
-                  onViewChange={setActiveView}
-                  onNavigate={handleAppNavigate}
-                  onLoadReport={setData}
-                  recentGames={filteredRecentGames}
-                  isPremium={isPremium}
-                  reportHistory={cloudReportHistory}
-                  openingFitUserState={openingFitUserState}
-                  retentionSnapshots={retentionSnapshots}
-                  reportFilters={reportFilters}
-                  onReportFiltersChange={setReportFilters}
-                />
+                <>
+                  <ResumeTrainingPrompt data={reportData} onResume={startOpeningPractice} />
+                  <FinalReportFlow
+                    data={reportData}
+                    fitData={fitData}
+                    activeView={activeView}
+                    onPractice={startOpeningPractice}
+                    onViewChange={setActiveView}
+                    onNavigate={handleAppNavigate}
+                    onLoadReport={setData}
+                    recentGames={filteredRecentGames}
+                    isPremium={isPremium}
+                    reportHistory={cloudReportHistory}
+                    openingFitUserState={openingFitUserState}
+                    retentionSnapshots={retentionSnapshots}
+                    reportFilters={reportFilters}
+                    onReportFiltersChange={setReportFilters}
+                  />
+                </>
               ) : null}
 
               {false && activeView === "recommendations" ? (
@@ -15621,14 +15714,20 @@ function App() {
 
               {activeAppSection === "train" ? (
                 <>
-                  <TodayTrainingCard
-                    data={reportData}
-                    fitData={fitData}
-                    onAnalyse={() => handleAppNavigate("analyse")}
-                    onStartTraining={(recommendation) => startOpeningPractice(recommendation?.trainingTarget || recommendation?.opening)}
-                  />
-
                   <div id="opening-practice">
+                    <ContinueTrainingCard
+                      data={reportData}
+                      fitData={fitData}
+                      onAnalyse={() => handleAppNavigate("analyse")}
+                      onStartTraining={(recommendation) => startOpeningPractice(recommendation)}
+                    />
+
+                    <DailyMissionCard
+                      data={reportData}
+                      fitData={fitData}
+                      onStartTraining={(recommendation) => startOpeningPractice(recommendation)}
+                    />
+
                     <OpeningPracticeLinesPanel
                       opening={practiceOpening || featuredTrainOpening}
                       focusLine={practiceLineFocus}
@@ -15640,6 +15739,13 @@ function App() {
                       heading={practiceOpening ? "Practice this line" : "Practice your recommended line"}
                     />
                   </div>
+
+                  <TodayTrainingCard
+                    data={reportData}
+                    fitData={fitData}
+                    onAnalyse={() => handleAppNavigate("analyse")}
+                    onStartTraining={(recommendation) => startOpeningPractice(recommendation?.trainingTarget || recommendation?.opening)}
+                  />
 
                   <OpeningFitRetentionCommandCenter
                     data={reportData}
@@ -16008,6 +16114,7 @@ function App() {
 
           {activeAppSection === "profile" && activeView !== "feedback" ? (
             <section className="profileSection" id="profile">
+              <ResumeTrainingPrompt data={reportData || data} onResume={startOpeningPractice} />
               <OpeningFitProfileDashboard
                 data={reportData}
                 fitData={fitData}

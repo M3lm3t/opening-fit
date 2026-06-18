@@ -1,11 +1,10 @@
-import { BarChart3, Dumbbell, History, Home, User } from "lucide-react";
+import { Activity, Dumbbell, Search, User } from "lucide-react";
 import { getAppSection } from "../appNavigation";
 
 export default function MobileBottomNav({ activeView, hasReport = false, onNavigate }) {
   const activeSection = getAppSection(activeView);
   const items = [
-    { key: "analyse", label: "Home", Icon: Home, activeSections: ["analyse"] },
-    { key: "report", label: "Report", Icon: BarChart3, needsReport: true, activeSections: ["report"] },
+    { key: "analyse", label: "Analyze", Icon: Search, activeSections: ["analyse"] },
     {
       key: "training",
       label: "Train",
@@ -13,14 +12,30 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
       needsReport: true,
       activeViews: ["train", "training", "interactive", "practice"],
     },
-    { key: "history", label: "History", Icon: History, activeViews: ["history"] },
-    { key: "profile", label: "Profile", Icon: User, activeViews: ["profile", "account", "login", "progress"] },
+    {
+      key: "progress",
+      label: "Progress",
+      Icon: Activity,
+      needsReport: true,
+      activeSections: ["report"],
+      activeViews: ["report", "recommendations", "repertoire", "openings", "weakspots", "verdicts", "progress"],
+    },
+    { key: "profile", label: "Profile", Icon: User, activeViews: ["profile", "account", "login"] },
   ];
 
   function handleClick(event, item) {
     event.preventDefault();
     event.stopPropagation();
-    onNavigate?.(item.needsReport && !hasReport ? "analyse" : item.key);
+    const target = item.needsReport && !hasReport ? "analyse" : item.key;
+    if (target === "training") {
+      onNavigate?.({ view: "train", path: "/train", target: "opening-practice" });
+      return;
+    }
+    if (target === "progress") {
+      onNavigate?.({ view: "report", path: "/report", target: "app-results" });
+      return;
+    }
+    onNavigate?.(target);
   }
 
   return (

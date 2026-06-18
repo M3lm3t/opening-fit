@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 import { buildTrainingRecommendations } from "../services/trainingRecommendations";
+import { buildWeakestLineTrainingTarget } from "../services/weakestLineTraining";
 import "./TodayTrainingCard.css";
 
 const LOCAL_KEY = "openingFit:trainingProgress";
@@ -27,6 +28,63 @@ function recommendationKey(item) {
   return [item.opening, item.variation, item.moveLine].filter(Boolean).join("::");
 }
 
+function safeNumber(value, fallback = null) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const parsed = Number(String(value).replace("%", ""));
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function openingName(item = {}) {
+  return item.opening || item.name || item.openingName || item.opening_name || item.trainingTarget || "";
+}
+
+function lineName(item = {}) {
+  return item.variation || item.line || item.lineName || item.line_name || item.moveLine || item.move_line || "";
+}
+
+function buildTodayFocus(data, plan) {
+  if (!data) return null;
+
+  const weakestTraining = buildWeakestLineTrainingTarget(data);
+  if (weakestTraining.available && weakestTraining.target) {
+    const target = weakestTraining.target;
+    const games = safeNumber(target.games ?? target.gamesPlayed ?? target.games_played, null);
+    const winRate = safeNumber(target.winRate ?? target.win_rate, null);
+    const lossRate = safeNumber(target.lossRate ?? target.loss_rate, null);
+    const trainingSet = target.trainingSet || target.training_set || {};
+
+    return {
+      type: "weakest-line",
+      opening: openingName(target),
+      variation: lineName(target),
+      moveLine: target.moveLine || target.move_line || trainingSet.startingMoveSequence || trainingSet.starting_move_sequence || "",
+      games,
+      winRate,
+      lossRate,
+      reason: "You are losing this line more than your average.",
+      why:
+        trainingSet.shortExplanation ||
+        trainingSet.short_explanation ||
+        target.flagReason ||
+        "It is the clearest line to repair before adding more opening study.",
+      estimatedTime: "3-5 minutes",
+      trainingTarget: target,
+    };
+  }
+
+  if (plan.primary) {
+    return {
+      ...plan.primary,
+      reason:
+        plan.primary.type === "fallback-opening"
+          ? "This is the best available training target from your current report."
+          : plan.primary.reason,
+    };
+  }
+
+  return null;
+}
+
 export default function TodayTrainingCard({
   data,
   fitData,
@@ -35,7 +93,7 @@ export default function TodayTrainingCard({
 }) {
   const { user, openingFitUserState, recordActivity, upsertUserData } = useAuth();
   const plan = useMemo(() => buildTrainingRecommendations(data, fitData), [data, fitData]);
-  const primary = plan.primary;
+  const primary = useMemo(() => buildTodayFocus(data, plan), [data, plan]);
   const cloudState = useMemo(() => {
     if (!user?.id) return null;
     const platform = String(data?.platform || data?.importPlatform || data?.import_platform || "").toLowerCase();
@@ -77,6 +135,9 @@ export default function TodayTrainingCard({
       lastState: state,
       lastSavedAt: payload.saved_at,
       opening: primary?.opening || "",
+      variation: primary?.variation || "",
+      move_line: primary?.moveLine || "",
+      saved_at: payload.saved_at,
     });
 
     if (user?.id && recordActivity) {
@@ -121,7 +182,7 @@ export default function TodayTrainingCard({
 
     try {
       await saveProgress("started");
-      setStatus(user?.id ? "Training started · Progress saved to cloud" : "Training started · Progress saved locally");
+      setStatus(user?.id ? "Training started - progress saved to cloud" : "Training started - progress saved locally");
     } catch (error) {
       console.warn("OpeningFit could not save training start.", error);
       setStatus("Training started");
@@ -135,7 +196,7 @@ export default function TodayTrainingCard({
 
     try {
       await saveProgress("completed");
-      setStatus(user?.id ? "Line reviewed · Progress saved to cloud" : "Line reviewed · Progress saved locally");
+      setStatus(user?.id ? "Line reviewed - progress saved to cloud" : "Line reviewed - progress saved locally");
     } catch (error) {
       console.warn("OpeningFit could not save training completion.", error);
       setStatus("Line reviewed");
@@ -147,9 +208,9 @@ export default function TodayTrainingCard({
       <section className="todayTrainingCard" id="today-training">
         <div className="todayTrainingHeader">
           <div>
-            <p className="eyebrow">Today&apos;s Training</p>
-            <h2>Import your games to unlock personalised training</h2>
-            <p>OpeningFit will turn your recent openings into one focused training task.</p>
+            <p className="eyebrow">Today&apos;s Focus</p>
+            <h2>Analyse your games to get a personal training target.</h2>
+            <p>OpeningFit will turn your recent openings into one focused line to work on next.</p>
           </div>
           <span className="todayTrainingTime">3-5 min</span>
         </div>
@@ -167,7 +228,7 @@ export default function TodayTrainingCard({
       <section className="todayTrainingCard" id="today-training">
         <div className="todayTrainingHeader">
           <div>
-            <p className="eyebrow">Today&apos;s Training</p>
+            <p className="eyebrow">Today&apos;s Focus</p>
             <h2>Build your first training plan</h2>
             <p>OpeningFit needs a few repeated openings or lines before it can pick a precise daily task.</p>
           </div>
@@ -187,17 +248,19 @@ export default function TodayTrainingCard({
     <section className="todayTrainingCard" id="today-training">
       <div className="todayTrainingHeader">
         <div>
-          <p className="eyebrow">Today&apos;s Training</p>
-          <h2>{plan.message}</h2>
-          <p>Based on your recent games, this is the best thing to work on next.</p>
+          <p className="eyebrow">Today&apos;s Focus</p>
+          <h2>{primary.opening || "Your next opening target"}</h2>
+          <p>Start with the line most likely to make your next opening session useful.</p>
         </div>
         <span className="todayTrainingTime">Estimated time: {primary.estimatedTime}</span>
       </div>
 
       <div className="todayTrainingPrimary">
         <div>
-          <h3>{primary.opening}</h3>
-          {primary.variation ? <p className="todayTrainingLine">{primary.variation}</p> : null}
+          <h3>{primary.variation && primary.variation !== primary.opening ? primary.variation : primary.opening}</h3>
+          {primary.variation && primary.variation !== primary.opening ? (
+            <p className="todayTrainingLine">{primary.opening}</p>
+          ) : null}
           {primary.moveLine ? <p className="todayTrainingLine">{primary.moveLine}</p> : null}
         </div>
 
@@ -208,15 +271,15 @@ export default function TodayTrainingCard({
         </div>
 
         <p className="todayTrainingReason">
-          <strong>Why this?</strong> {primary.reason}. {primary.why}
+          <strong>Why this?</strong> {primary.reason} {primary.why}
         </p>
 
         <div className="todayTrainingActions">
           <button type="button" onClick={start}>
-            Start Training
+            Train this line
           </button>
           <button type="button" onClick={complete}>
-            Mark Line Reviewed
+            Mark line reviewed
           </button>
         </div>
 

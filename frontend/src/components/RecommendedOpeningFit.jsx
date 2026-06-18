@@ -460,7 +460,7 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
           type="button"
           onClick={() => onPractice(item)}
         >
-          Practise this opening
+          Train This Line
         </button>
       ) : null}
 

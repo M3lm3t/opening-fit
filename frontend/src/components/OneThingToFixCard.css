@@ -1,0 +1,111 @@
+.oneThingToFixCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: clamp(14px, 2vw, 18px);
+  border: 1px solid color-mix(in srgb, var(--ds-premium, #f3c969) 32%, var(--ds-border, rgba(148, 163, 184, 0.22)));
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--ds-premium, #f3c969) 8%, transparent), color-mix(in srgb, var(--ds-text, #f8fafc) 3%, transparent)),
+    var(--ds-surface-muted, rgba(15, 23, 42, 0.72));
+  box-shadow: var(--ds-shadow-soft, 0 18px 44px rgba(2, 6, 23, 0.2));
+}
+
+.oneThingToFixCopy {
+  min-width: 0;
+}
+
+.oneThingToFixCopy h2,
+.oneThingToFixCopy h3,
+.oneThingToFixCopy p {
+  margin: 0;
+}
+
+.oneThingToFixCopy h2 {
+  margin-top: 4px;
+  color: var(--ds-text, #f8fafc);
+  font-size: clamp(1.1rem, 1.8vw, 1.42rem);
+  line-height: 1.15;
+}
+
+.oneThingToFixCopy h3 {
+  margin-top: 6px;
+  color: var(--ds-text, #f8fafc);
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  overflow-wrap: anywhere;
+}
+
+.oneThingToFixCopy p:not(.eyebrow) {
+  margin-top: 6px;
+  color: var(--ds-text-soft, #cbd5e1);
+  line-height: 1.45;
+}
+
+.oneThingToFixAction {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  min-width: min(240px, 32vw);
+}
+
+.oneThingToFixAction span {
+  color: var(--ds-muted, #94a3b8);
+  font-size: 0.86rem;
+  font-weight: 850;
+  text-align: right;
+}
+
+.oneThingToFixAction button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 16px;
+  color: #042f2e;
+  background: var(--ds-primary-2, #2dd4bf);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+[data-theme="light"] .oneThingToFixCard,
+.page.light .oneThingToFixCard {
+  background:
+    linear-gradient(145deg, rgba(245, 158, 11, 0.08), rgba(255, 255, 255, 0.88)),
+    #ffffff;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .oneThingToFixCopy h2,
+[data-theme="light"] .oneThingToFixCopy h3,
+.page.light .oneThingToFixCopy h2,
+.page.light .oneThingToFixCopy h3 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .oneThingToFixCopy p:not(.eyebrow),
+[data-theme="light"] .oneThingToFixAction span,
+.page.light .oneThingToFixCopy p:not(.eyebrow),
+.page.light .oneThingToFixAction span {
+  color: #475569;
+}
+
+@media (max-width: 720px) {
+  .oneThingToFixCard {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    border-radius: 16px;
+  }
+
+  .oneThingToFixAction {
+    min-width: 0;
+    justify-items: stretch;
+  }
+
+  .oneThingToFixAction span {
+    text-align: left;
+  }
+
+  .oneThingToFixAction button {
+    width: 100%;
+  }
+}

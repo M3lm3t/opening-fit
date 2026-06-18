@@ -167,7 +167,7 @@ export default function OpeningFitVerdict({ data, fitData, onPractice }) {
             <strong>{card.action}</strong>
             {onPractice ? (
               <button type="button" onClick={() => onPractice(card.item)}>
-                Practise this opening
+                Train This Line
               </button>
             ) : null}
           </article>

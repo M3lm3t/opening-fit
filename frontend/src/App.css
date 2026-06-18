@@ -40488,7 +40488,7 @@ svg {
     bottom: max(8px, env(safe-area-inset-bottom)) !important;
     z-index: 460 !important;
     display: grid !important;
-    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     gap: 4px !important;
     width: auto !important;
     height: auto !important;
@@ -46256,7 +46256,7 @@ a,
 }
 
 .profileHeroDashboard {
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) !important;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr) !important;
   gap: 14px !important;
   padding: 16px !important;
 }
@@ -46276,6 +46276,59 @@ a,
 .profileCardHeader p {
   font-size: 0.94rem;
   line-height: 1.42 !important;
+}
+
+.profileHeroIdentityInline {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 2px;
+}
+
+.profileHeroIdentityInline > strong {
+  color: var(--ds-text, #f8fafc);
+  font-size: 0.98rem;
+  overflow-wrap: anywhere;
+}
+
+.profileHeroIdentityInline > small {
+  color: var(--ds-muted, #94a3b8);
+  font-size: 0.84rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.profileStatusStrip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  align-self: stretch;
+}
+
+.profileStatusStrip article {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--of-border-subtle, rgba(148, 163, 184, 0.16));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ds-surface-muted, rgba(15, 23, 42, 0.72)) 82%, transparent);
+}
+
+.profileStatusStrip span {
+  display: block;
+  color: var(--ds-muted, #94a3b8);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.profileStatusStrip strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--ds-text, #f8fafc);
+  font-size: clamp(0.92rem, 1.5vw, 1.08rem);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .profileHeroMetaGrid {
@@ -46491,6 +46544,19 @@ a,
   color: #0f172a;
 }
 
+.page.light .profileHeroIdentityInline > strong,
+.page.light .profileStatusStrip strong,
+[data-theme="light"] .profileHeroIdentityInline > strong,
+[data-theme="light"] .profileStatusStrip strong {
+  color: #0f172a;
+}
+
+.page.light .profileStatusStrip article,
+[data-theme="light"] .profileStatusStrip article {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
 .page.light .profileSecondaryDetails > summary strong,
 [data-theme="light"] .profileSecondaryDetails > summary strong {
   color: #0f172a;
@@ -46500,6 +46566,10 @@ a,
   .profileHeroDashboard,
   .profileHeroMetaGrid {
     grid-template-columns: 1fr !important;
+  }
+
+  .profileStatusStrip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .profileHeroMetaGrid {
@@ -46529,6 +46599,14 @@ a,
   .profileDashboardCard,
   .profileNoReportState {
     padding: 12px !important;
+  }
+
+  .profileStatusStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profileStatusStrip article {
+    padding: 9px;
   }
 
   .profileHeroActions {
@@ -46656,5 +46734,397 @@ a,
 @media (min-width: 761px) {
   .mobileBottomNav {
     display: none !important;
+  }
+}
+
+/* Keep mobile content clear of the app chrome. */
+@media (max-width: 760px) {
+  body,
+  .page,
+  .appReportPage {
+    padding-bottom: calc(108px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .appShell,
+  .page .appShell,
+  .publicLandingPage .appShell,
+  .appReportPage .appShell {
+    padding-top: 10px !important;
+    padding-bottom: calc(124px + env(safe-area-inset-bottom)) !important;
+  }
+
+  #app-dashboard,
+  #app-results,
+  #today-training,
+  #opening-practice,
+  #profile,
+  #report-history,
+  #recommendation-history {
+    scroll-margin-top: 82px;
+    scroll-margin-bottom: 112px;
+  }
+}
+
+@media (max-width: 380px) {
+  .mobileBottomNav {
+    left: max(6px, env(safe-area-inset-left)) !important;
+    right: max(6px, env(safe-area-inset-right)) !important;
+    gap: 3px !important;
+  }
+
+  .mobileBottomNav button {
+    font-size: 0.62rem !important;
+  }
+}
+
+/* Cleaner profile layout */
+.profileKeyStatsCard {
+  display: grid;
+  gap: 12px;
+}
+
+.profileKeyStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profileKeyStatsGrid article {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.22);
+}
+
+.profileKeyStatsGrid span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.profileKeyStatsGrid strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--text);
+  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+  overflow-wrap: anywhere;
+}
+
+.page.light .profileKeyStatsGrid article,
+[data-theme="light"] .profileKeyStatsGrid article {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.profileDisclosureBody {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.profileDisclosureBody > .profileDashboardCard,
+.profileDisclosureBody > .profileFounderCard,
+.profileDisclosureBody > .weeklyOpeningSummary,
+.profileDisclosureBody > .weeklyOpeningSummaryCompact {
+  margin: 0;
+}
+
+.profileSecondaryDetails > summary {
+  cursor: pointer;
+}
+
+@media (min-width: 900px) {
+  .profileDashboard > .profileHeroDashboard,
+  .profileDashboard > .profileKeyStatsCard {
+    grid-column: 1 / -1;
+  }
+
+  .profileDashboard {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  .profileKeyStatsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .profileKeyStatsGrid article {
+    padding: 10px;
+  }
+
+  .profileDisclosureBody {
+    gap: 10px;
+  }
+}
+
+/* Desktop training layout: main work area left, today's focus right. */
+@media (min-width: 1000px) {
+  .appResultsShellTrain {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    align-items: start;
+    gap: 16px;
+  }
+
+  .appResultsShellTrain > .todayTrainingCard {
+    grid-column: 2;
+    grid-row: 1 / span 6;
+    position: sticky;
+    top: calc(84px + env(safe-area-inset-top));
+    max-width: 360px;
+    margin: 0;
+  }
+
+  .appResultsShellTrain > :not(.todayTrainingCard) {
+    grid-column: 1;
+    min-width: 0;
+  }
+
+  .appResultsShellTrain #opening-practice {
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 999px) {
+  .appResultsShellTrain {
+    display: block;
+  }
+}
+
+/* Final low-risk visual polish for the current app surfaces. */
+.appResultsShell,
+.profileDashboard,
+.appShell {
+  min-width: 0;
+}
+
+@media (min-width: 1000px) {
+  .appShell,
+  .page .appShell,
+  .publicLandingPage .appShell,
+  .appReportPage .appShell {
+    max-width: min(1180px, calc(100vw - 40px));
+    gap: 16px;
+  }
+
+  .appResultsShell:not(.appResultsShellTrain) {
+    max-width: 1080px;
+    margin-inline: auto;
+  }
+
+  .appResultsShellTrain {
+    max-width: 1160px;
+    margin-inline: auto;
+  }
+}
+
+.appResultsShell > .oneThingToFixCard,
+.appResultsShell > .openingJourney,
+.appResultsShell > .whatChangedCard,
+.appResultsShell > .reportTrainingPreview,
+.profileDashboard > .profileDashboardCard,
+.profileDashboard > .profileSecondaryDetails {
+  width: 100%;
+}
+
+.oneThingToFixAction button,
+.todayTrainingActions button,
+.openingJourneyFix button,
+.openingJourneyWeakLine button,
+.profileDashboardCard button,
+.profileSecondaryDetails button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.profileSecondaryDetails {
+  border-radius: 16px;
+}
+
+.profileSecondaryDetails > summary {
+  min-height: 54px;
+  padding: 13px 15px;
+}
+
+.profileSecondaryDetails > summary strong {
+  line-height: 1.2;
+}
+
+.profileDisclosureBody,
+.profileDashboardSecondaryStack {
+  gap: 10px;
+}
+
+.profileDashboardCard {
+  overflow: hidden;
+}
+
+@media (min-width: 900px) {
+  .profileDashboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .profileDashboard > .profileDisclosure {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .appShell,
+  .page .appShell,
+  .publicLandingPage .appShell,
+  .appReportPage .appShell {
+    width: min(100%, 100vw);
+    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right)) !important;
+    gap: 12px;
+  }
+
+  .appResultsShell {
+    display: grid;
+    gap: 12px;
+  }
+
+  .mobileBottomNav {
+    max-width: calc(100vw - 16px);
+  }
+
+  .mobileBottomNav button {
+    min-width: 0;
+    min-height: 52px;
+    padding: 6px 4px !important;
+  }
+
+  .profileSecondaryDetails > summary {
+    min-height: 50px;
+    padding: 12px 13px;
+  }
+}
+
+/* Final navigation cleanup: desktop tabs, mobile bottom app nav. */
+.appPrimaryNavInner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.appPrimaryTabs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.appPrimaryTab {
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .appPrimaryNav {
+    position: sticky;
+    top: 0;
+    z-index: 520;
+    padding: max(6px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 6px max(10px, env(safe-area-inset-left)) !important;
+  }
+
+  .appPrimaryNavInner {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 52px !important;
+    padding: 6px 8px !important;
+    border-radius: 16px !important;
+  }
+
+  .appPrimaryBrand {
+    min-width: 0;
+  }
+
+  .appPrimaryBrand span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .appPrimaryTabs,
+  .appPrimaryGetStarted {
+    display: none !important;
+  }
+
+  .appPrimaryMenuToggle {
+    display: inline-grid !important;
+    place-items: center !important;
+    position: static !important;
+    width: 42px !important;
+    height: 42px !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  .appPrimaryMobilePanel {
+    position: absolute !important;
+    top: calc(100% + 6px) !important;
+    left: max(10px, env(safe-area-inset-left)) !important;
+    right: max(10px, env(safe-area-inset-right)) !important;
+    width: auto !important;
+    max-height: min(70vh, 520px);
+    overflow: auto;
+    z-index: 540 !important;
+  }
+
+  body,
+  .page,
+  .appReportPage {
+    padding-bottom: calc(108px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .appShell,
+  .page .appShell,
+  .publicLandingPage .appShell,
+  .appReportPage .appShell {
+    padding-top: 8px !important;
+    padding-bottom: calc(124px + env(safe-area-inset-bottom)) !important;
+  }
+
+  #app-dashboard,
+  #app-results,
+  #opening-practice,
+  #today-training,
+  #profile,
+  #report-history,
+  #recommendation-history,
+  #openingfit-progress {
+    scroll-margin-top: 78px;
+    scroll-margin-bottom: 120px;
+  }
+}
+
+@media (min-width: 901px) {
+  .appPrimaryMenuToggle,
+  .appPrimaryMobilePanel {
+    display: none !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .mobileBottomNav {
+    z-index: 560 !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .mobileBottomNav button {
+    min-height: 52px !important;
+    border-radius: 13px !important;
   }
 }

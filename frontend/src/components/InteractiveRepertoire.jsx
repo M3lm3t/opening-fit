@@ -621,8 +621,8 @@ export default function InteractiveRepertoire({ data, onPractice }) {
             </div>
 
             <div className="detailsActionGrid">
-              <TileButton onClick={() => onPractice(selectedOpening.name)}>
-                Practise this opening
+              <TileButton onClick={() => onPractice(selectedOpening)}>
+                Train This Line
               </TileButton>
 
               <TileButton

@@ -740,7 +740,7 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [],
         </div>
         {journey.repertoireCoach?.trainingTarget ? (
           <button type="button" onClick={() => onPractice?.(journey.repertoireCoach.trainingTarget)}>
-            Train my weakest line
+            Train This Line
           </button>
         ) : null}
       </article>
@@ -761,7 +761,7 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [],
               else onNavigate?.({ view: "train", path: "/train", target: "training-plan" });
             }}
           >
-            Train my weakest line
+            Train This Line
           </button>
         </article>
       ) : null}
