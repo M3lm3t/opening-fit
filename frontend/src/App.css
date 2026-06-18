@@ -48215,3 +48215,636 @@ a,
     max-width: min(100%, calc(100vw - 20px), 440px) !important;
   }
 }
+
+/* Canonical mobile bottom navigation safe area.
+   Keep this last so it replaces older one-off mobile padding and bottom offsets. */
+:root {
+  --mobile-bottom-nav-height: 72px;
+  --mobile-bottom-nav-gap: 16px;
+}
+
+.mobileBottomNav {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  body,
+  .page,
+  .appReportPage {
+    padding-bottom: 0 !important;
+  }
+
+  .appShell,
+  .page .appShell,
+  .publicLandingPage .appShell,
+  .appReportPage .appShell,
+  .container.appShell {
+    padding-bottom: calc(
+      var(--mobile-bottom-nav-height) +
+      env(safe-area-inset-bottom) +
+      var(--mobile-bottom-nav-gap)
+    ) !important;
+  }
+
+  #app-dashboard,
+  #app-results,
+  #opening-practice,
+  #today-training,
+  #training-plan,
+  #profile,
+  #report-history,
+  #recommendation-history,
+  #openingfit-progress {
+    scroll-margin-bottom: calc(
+      var(--mobile-bottom-nav-height) +
+      env(safe-area-inset-bottom) +
+      var(--mobile-bottom-nav-gap)
+    ) !important;
+  }
+
+  .mobileBottomNav {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 640 !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom)) !important;
+    min-height: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom)) !important;
+    margin: 0 !important;
+    padding: 7px max(8px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(8px, env(safe-area-inset-left)) !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    border-top: 1px solid rgba(148, 163, 184, 0.18) !important;
+    background:
+      linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.98)),
+      #020617 !important;
+    box-shadow: 0 -14px 34px rgba(2, 6, 23, 0.28) !important;
+    backdrop-filter: blur(18px) !important;
+  }
+
+  .mobileBottomNav button {
+    min-width: 0 !important;
+    min-height: 50px !important;
+    height: auto !important;
+    padding: 5px 2px !important;
+    border-radius: 12px !important;
+    font-size: clamp(0.58rem, 2.4vw, 0.7rem) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+
+  .mobileBottomNav button span {
+    width: 22px !important;
+    height: 22px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .mobileBottomNav .mobileBottomNavActive,
+  .mobileBottomNav button[aria-current="page"] {
+    background: rgba(45, 212, 191, 0.16) !important;
+    color: #ccfbf1 !important;
+    border-color: rgba(45, 212, 191, 0.34) !important;
+  }
+
+  .appPrimaryMobilePanel,
+  .appPrimaryMobilePanelOpen {
+    z-index: 760 !important;
+  }
+
+  .accountSyncDetails,
+  .landingOverlay,
+  .openingModalOverlay,
+  .openingDetailsOverlay,
+  .importLoadingOverlay {
+    z-index: 1000 !important;
+  }
+
+  .page.light .mobileBottomNav,
+  [data-theme="light"] .mobileBottomNav {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.98)),
+      #ffffff !important;
+    border-top-color: rgba(15, 23, 42, 0.12) !important;
+    box-shadow: 0 -14px 34px rgba(15, 23, 42, 0.14) !important;
+  }
+
+  .page.light .mobileBottomNav .mobileBottomNavActive,
+  .page.light .mobileBottomNav button[aria-current="page"],
+  [data-theme="light"] .mobileBottomNav .mobileBottomNavActive,
+  [data-theme="light"] .mobileBottomNav button[aria-current="page"] {
+    color: #0f766e !important;
+    background: rgba(13, 148, 136, 0.12) !important;
+    border-color: rgba(13, 148, 136, 0.24) !important;
+  }
+}
+
+@media (min-width: 761px) {
+  .mobileBottomNav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 380px) {
+  :root {
+    --mobile-bottom-nav-height: 68px;
+    --mobile-bottom-nav-gap: 14px;
+  }
+
+  .mobileBottomNav {
+    gap: 2px !important;
+    padding-inline: max(5px, env(safe-area-inset-left)) max(5px, env(safe-area-inset-right)) !important;
+  }
+
+  .mobileBottomNav button {
+    min-height: 48px !important;
+    font-size: 0.56rem !important;
+    letter-spacing: 0 !important;
+  }
+
+  .mobileBottomNav button span {
+    width: 20px !important;
+    height: 20px !important;
+  }
+}
+
+/* ==================================================
+   Canonical OpeningFit theme tokens
+   Source of truth: document.documentElement[data-theme].
+   This layer intentionally comes last to tame legacy hardcoded colour stacks.
+================================================== */
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #040711;
+  --color-bg-soft: #08111f;
+  --color-surface: rgba(12, 20, 32, 0.88);
+  --color-surface-raised: rgba(17, 28, 43, 0.96);
+  --color-text: #f8fafc;
+  --color-text-muted: #a8b6c7;
+  --color-border: rgba(203, 213, 225, 0.16);
+  --color-border-strong: rgba(203, 213, 225, 0.28);
+  --color-primary: #14b8a6;
+  --color-primary-hover: #2dd4bf;
+  --color-primary-soft: rgba(20, 184, 166, 0.16);
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-shadow: 0 18px 48px rgba(2, 6, 23, 0.32);
+  --color-overlay: rgba(2, 6, 23, 0.78);
+  --input-bg: rgba(2, 6, 23, 0.54);
+  --input-text: #f8fafc;
+  --input-border: rgba(203, 213, 225, 0.22);
+  --nav-bg: rgba(5, 10, 20, 0.92);
+  --nav-text: #cbd5e1;
+  --nav-active-bg: rgba(20, 184, 166, 0.16);
+  --nav-active-text: #ccfbf1;
+  --card-bg: rgba(12, 20, 32, 0.88);
+  --card-border: rgba(203, 213, 225, 0.16);
+  --tooltip-bg: #f8fafc;
+  --tooltip-text: #0f172a;
+
+  --bg: var(--color-bg);
+  --page-bg: var(--color-bg);
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
+  --card: var(--card-bg);
+  --text: var(--color-text);
+  --text-soft: var(--color-text-muted);
+  --muted: var(--color-text-muted);
+  --muted-foreground: var(--color-text-muted);
+  --border: var(--color-border);
+  --border-soft: var(--color-border);
+  --primary: var(--color-primary);
+  --button-bg: var(--color-primary);
+  --button-bg-hover: var(--color-primary-hover);
+  --shadow: rgba(2, 6, 23, 0.32);
+  --app-bg-start: var(--color-bg);
+  --app-bg-mid: var(--color-bg-soft);
+  --app-bg-end: #020617;
+  --app-surface: var(--color-surface);
+  --app-surface-strong: var(--color-surface-raised);
+  --app-surface-soft: rgba(255, 255, 255, 0.06);
+  --app-border: var(--color-border);
+  --app-border-strong: var(--color-border-strong);
+  --app-text: var(--color-text);
+  --app-text-soft: var(--color-text-muted);
+  --app-muted: var(--color-text-muted);
+  --app-blue: #38bdf8;
+  --app-green: var(--color-success);
+  --app-gold: var(--color-warning);
+  --app-red: var(--color-danger);
+  --app-shadow: var(--color-shadow);
+  --app-shadow-soft: 0 12px 30px rgba(2, 6, 23, 0.24);
+  --of-ink: var(--color-text);
+  --of-copy: var(--color-text-muted);
+  --of-muted: var(--color-text-muted);
+  --of-panel: var(--color-surface);
+  --of-panel-strong: var(--color-surface-raised);
+  --of-panel-soft: rgba(255, 255, 255, 0.06);
+  --of-border: var(--color-border);
+  --of-border-strong: var(--color-border-strong);
+  --of-cyan: #38bdf8;
+  --of-green: var(--color-success);
+  --of-gold: var(--color-warning);
+  --of-red: var(--color-danger);
+  --of-shadow: var(--color-shadow);
+  --of-shadow-soft: 0 12px 30px rgba(2, 6, 23, 0.24);
+  --ds-surface: var(--color-surface);
+  --ds-surface-muted: rgba(15, 23, 42, 0.72);
+  --ds-surface-strong: var(--color-surface-raised);
+  --ds-text: var(--color-text);
+  --ds-muted: var(--color-text-muted);
+  --ds-border: var(--color-border);
+  --ds-primary-2: var(--color-primary);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #f7fafc;
+  --color-bg-soft: #edf5f2;
+  --color-surface: rgba(255, 255, 255, 0.92);
+  --color-surface-raised: #ffffff;
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-border: rgba(15, 23, 42, 0.12);
+  --color-border-strong: rgba(15, 23, 42, 0.22);
+  --color-primary: #0f766e;
+  --color-primary-hover: #0d9488;
+  --color-primary-soft: rgba(13, 148, 136, 0.12);
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-danger: #dc2626;
+  --color-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+  --color-overlay: rgba(15, 23, 42, 0.42);
+  --input-bg: #ffffff;
+  --input-text: #0f172a;
+  --input-border: rgba(15, 23, 42, 0.18);
+  --nav-bg: rgba(255, 255, 255, 0.94);
+  --nav-text: #475569;
+  --nav-active-bg: rgba(13, 148, 136, 0.12);
+  --nav-active-text: #0f766e;
+  --card-bg: rgba(255, 255, 255, 0.94);
+  --card-border: rgba(15, 23, 42, 0.1);
+  --tooltip-bg: #0f172a;
+  --tooltip-text: #f8fafc;
+
+  --app-bg-start: #f8fafc;
+  --app-bg-mid: #edf5f2;
+  --app-bg-end: #ffffff;
+  --app-surface-soft: rgba(15, 23, 42, 0.045);
+  --of-panel-soft: rgba(15, 23, 42, 0.045);
+  --ds-surface-muted: #f8fafc;
+  --shadow: rgba(15, 23, 42, 0.12);
+}
+
+html,
+body,
+#root,
+.page {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent 32rem),
+    linear-gradient(180deg, var(--color-bg), var(--color-bg-soft) 52%, var(--color-bg)) !important;
+  color: var(--color-text-muted);
+}
+
+.page {
+  color: var(--color-text-muted);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+strong,
+.statValue,
+.reportDashboardStat strong,
+.currentReportSummaryMain h1 {
+  color: var(--color-text);
+}
+
+p,
+li,
+td,
+small,
+.subtext,
+.helper,
+.muted,
+.smallText {
+  color: var(--color-text-muted);
+}
+
+.card,
+.heroCard,
+.panel,
+.profileDashboardCard,
+.simpleProfileCard,
+.profileSecondaryDetails,
+.currentReportSummaryCard,
+.reportOverviewIdentity,
+.reportOverviewPanel,
+.reportSecondaryDetails,
+.reportHistoryVault,
+.historyWhatChanged,
+.todayTrainingCard,
+.continueTrainingCard,
+.dailyMissionCard,
+.openingJourney,
+.repertoireMapSection,
+.reportTrainingPreview,
+.nextBestTrainingAction,
+.premiumCard,
+.premiumPanel,
+.premiumPriceCard,
+.premiumDashboard,
+.premiumTrustStrip,
+.premiumStandalonePage,
+.premiumNoReportCard,
+.appEmptySection,
+.productEmptyState,
+.loadingCard,
+.errorBox,
+.importStatusBox,
+.cloudSaveStatusPill,
+.emptyState,
+.emptyHistoryState,
+.accountPanel,
+.accountPanelShell,
+.profileFounderCard,
+.founderPassOutcomePanel,
+.openingFitRetentionSection,
+.openingFitReportOverview > section {
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--color-text) 5%, transparent), transparent),
+    var(--card-bg) !important;
+  border-color: var(--card-border) !important;
+  color: var(--color-text-muted) !important;
+  box-shadow: var(--color-shadow) !important;
+}
+
+.card h1,
+.card h2,
+.card h3,
+.heroCard h1,
+.heroCard h2,
+.heroCard h3,
+.profileDashboardCard h2,
+.simpleProfileCard h2,
+.currentReportSummaryCard h1,
+.currentReportSummaryCard h2,
+.reportOverviewPanel h3,
+.reportOverviewMiniCard strong,
+.todayTrainingCard h2,
+.continueTrainingCard h2,
+.openingJourney h2,
+.premiumCard h2,
+.premiumPanel h2,
+.emptyState h3,
+.emptyHistoryState strong,
+.errorBox strong,
+.importStatusBox strong {
+  color: var(--color-text) !important;
+}
+
+.card p,
+.heroCard p,
+.profileDashboardCard p,
+.simpleProfileCard p,
+.currentReportSummaryCard p,
+.reportOverviewPanel p,
+.reportOverviewMiniCard p,
+.todayTrainingCard p,
+.continueTrainingCard p,
+.openingJourney p,
+.premiumCard p,
+.premiumPanel p,
+.emptyState p,
+.emptyHistoryState span,
+.errorBox p,
+.importStatusBox p {
+  color: var(--color-text-muted) !important;
+}
+
+input,
+select,
+textarea,
+.input,
+.monthSelect,
+.landingUsernameInput,
+.landingPlatformSelect,
+.reportOpeningSearch input {
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  border-color: var(--input-border) !important;
+  box-shadow: none;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in srgb, var(--input-text) 48%, transparent) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 34%, transparent) !important;
+  outline-offset: 2px;
+}
+
+.primaryBtn,
+.secondaryBtn.primaryBtn,
+.landingPrimaryBtn,
+.seoPrimaryCta,
+.saveReportButton,
+.premiumCheckoutBtn,
+.founderPassCta,
+.primaryPracticeControl,
+button[type="submit"] {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 54%, var(--color-border)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--color-primary) 26%, transparent) !important;
+}
+
+.secondaryButton,
+.secondaryBtn,
+.ghostButton,
+.inlineSampleButton,
+.clearHistoryButton,
+.dangerHistoryButton,
+.reportCommandButton,
+.appPrimaryMobileTheme,
+.practiceControls button,
+.boardThemeToggle button {
+  background: color-mix(in srgb, var(--color-surface-raised) 82%, transparent) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+button:disabled,
+.secondaryButton:disabled,
+.primaryBtn:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.eyebrow,
+.landingPill,
+.landingEyebrow,
+.premiumLabel,
+.sectionBadge,
+.chip,
+.premiumBadge,
+.reportEyebrow,
+.seoEyebrow {
+  background: var(--color-primary-soft) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border)) !important;
+  color: color-mix(in srgb, var(--color-primary-hover) 72%, var(--color-text)) !important;
+}
+
+.appPrimaryNav {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 94%, transparent), color-mix(in srgb, var(--color-bg) 65%, transparent) 76%, transparent) !important;
+}
+
+.appPrimaryNavInner,
+.appPrimaryMobilePanel,
+.accountSyncStatusBar,
+.accountSyncDetails {
+  background: var(--nav-bg) !important;
+  border-color: var(--color-border) !important;
+  color: var(--nav-text) !important;
+  box-shadow: var(--color-shadow) !important;
+}
+
+.appPrimaryTab,
+.appPrimaryMobileLink,
+.accountSyncChip,
+.accountSyncDetails small,
+.accountSyncMeta dd {
+  color: var(--nav-text) !important;
+}
+
+.appPrimaryTabActive,
+.appPrimaryMobileLinkActive,
+.appPrimaryGetStarted,
+.accountSyncPlan {
+  background: var(--nav-active-bg) !important;
+  color: var(--nav-active-text) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 28%, var(--color-border)) !important;
+}
+
+@media (max-width: 760px) {
+  .mobileBottomNav {
+    background: var(--nav-bg) !important;
+    border-top-color: var(--color-border) !important;
+    box-shadow: 0 -14px 34px color-mix(in srgb, var(--color-bg) 38%, transparent) !important;
+  }
+
+  .mobileBottomNav button {
+    background: transparent !important;
+    color: var(--nav-text) !important;
+    border-color: transparent !important;
+  }
+
+  .mobileBottomNav .mobileBottomNavActive,
+  .mobileBottomNav button[aria-current="page"] {
+    background: var(--nav-active-bg) !important;
+    color: var(--nav-active-text) !important;
+    border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border)) !important;
+  }
+}
+
+.landingOverlay,
+.openingModalOverlay,
+.openingDetailsOverlay,
+.importLoadingOverlay {
+  background: var(--color-overlay) !important;
+}
+
+.modalCard,
+.landingModalPremium,
+.openingDetailsModal,
+.importLoadingCard,
+.appPrimaryMobilePanel {
+  background: var(--color-surface-raised) !important;
+  border-color: var(--color-border-strong) !important;
+  color: var(--color-text) !important;
+  box-shadow: var(--color-shadow) !important;
+}
+
+.tooltip,
+[role="tooltip"],
+.reasonTooltip,
+.recommendationReasonHint {
+  background: var(--tooltip-bg) !important;
+  color: var(--tooltip-text) !important;
+  border-color: color-mix(in srgb, var(--tooltip-text) 16%, transparent) !important;
+}
+
+.successMessage,
+.importStatusBox--success,
+.cloudSaveStatusPill {
+  border-color: color-mix(in srgb, var(--color-success) 34%, var(--color-border)) !important;
+  background: color-mix(in srgb, var(--color-success) 12%, var(--card-bg)) !important;
+}
+
+.productStatusInfo,
+.importStatusBox--info {
+  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-border)) !important;
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--card-bg)) !important;
+}
+
+.historyLoginNote,
+.importStatusBox--warning {
+  border-color: color-mix(in srgb, var(--color-warning) 36%, var(--color-border)) !important;
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--card-bg)) !important;
+  color: color-mix(in srgb, var(--color-warning) 78%, var(--color-text)) !important;
+}
+
+.errorBox,
+.importStatusBox--error,
+.cloudSaveWarningBox {
+  border-color: color-mix(in srgb, var(--color-danger) 38%, var(--color-border)) !important;
+  background: color-mix(in srgb, var(--color-danger) 11%, var(--card-bg)) !important;
+}
+
+table,
+.tableWrap,
+.historyComparisonTable,
+.historyList,
+.savedReportsList {
+  border-color: var(--color-border) !important;
+}
+
+th {
+  color: var(--color-text-muted) !important;
+}
+
+td {
+  color: var(--color-text-muted) !important;
+  border-color: var(--color-border) !important;
+}
+
+hr,
+.divider {
+  border-color: var(--color-border) !important;
+}
+
+.practiceBoardWrap,
+.boardThemeControls {
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--color-text) 5%, transparent), transparent),
+    color-mix(in srgb, var(--color-surface-raised) 86%, transparent) !important;
+  border-color: var(--color-border) !important;
+}

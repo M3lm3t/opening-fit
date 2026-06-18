@@ -13040,7 +13040,10 @@ function App() {
     setIsPremiumPreview(false);
   };
 
-  const [theme, setTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem("openingFit:theme");
+    return savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
+  });
   const [username, setUsername] = useState("");
   const [accountUser, setAccountUser] = useState(null);
   const [platform, setPlatform] = useState("chesscom");
@@ -13280,10 +13283,16 @@ function App() {
 
 
   useEffect(() => {
-    localStorage.setItem("openingFit:theme", theme);
-    document.documentElement.setAttribute("data-theme", theme);
+    const nextTheme = theme === "light" ? "light" : "dark";
+    if (nextTheme !== theme) {
+      setTheme(nextTheme);
+      return;
+    }
+
+    localStorage.setItem("openingFit:theme", nextTheme);
+    document.documentElement.dataset.theme = nextTheme;
     document.body.classList.remove("light", "dark");
-    document.body.classList.add(theme);
+    document.body.classList.add(nextTheme);
   }, [theme]);
 
   useEffect(() => {
