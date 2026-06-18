@@ -6,8 +6,8 @@ export default function PremiumTrustStrip() {
         <h3>Founder Pass funds the deeper report layer.</h3>
         <p>
           Opening Fit stays useful for free. Founder Pass supports development and
-          unlocks deeper history, saved reports, fuller opening tables, and future
-          premium tools.
+          adds saved report history, weak-line tracking, progress comparisons, and
+          a clearer repertoire plan.
         </p>
       </div>
 
@@ -17,23 +17,23 @@ export default function PremiumTrustStrip() {
 
         <div className="premiumRoadmapList">
           <div>
-            <strong>Saved repertoire</strong>
+            <strong>Save every report</strong>
             <small>Live</small>
           </div>
 
           <div>
-            <strong>Deeper study plan</strong>
+            <strong>Weak-line tracking</strong>
             <small>Live</small>
           </div>
 
           <div>
-            <strong>Monthly progress tracking</strong>
-            <small>Next</small>
+            <strong>Progress comparisons</strong>
+            <small>Live</small>
           </div>
 
           <div>
-            <strong>Stripe checkout</strong>
-            <small>After feedback</small>
+            <strong>Weekly review email</strong>
+            <small>Coming soon</small>
           </div>
         </div>
       </div>

@@ -120,7 +120,7 @@ function OpeningTopNav({ ThemeToggle, seoTheme, setSeoTheme }) {
       </a>
       <div>
         <a href="/openings">Openings</a>
-        <a href="/#app-dashboard">Analyze games</a>
+        <a href="/#app-dashboard">Analyse your games</a>
         <a href="/openingfit-sample-report">Sample report</a>
       </div>
       {ThemeToggle ? (
@@ -279,7 +279,7 @@ export function OpeningHubPage({ ThemeToggle, Analytics }) {
                 to see which choices actually fit.
               </p>
               <div className="seoHeroActions">
-                <a className="seoPrimaryCta" href="/#app-dashboard">Analyze my games</a>
+                <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
                 <a className="seoSecondaryCta" href="/">OpeningFit home</a>
               </div>
             </div>
@@ -336,7 +336,7 @@ export function OpeningHubPage({ ThemeToggle, Analytics }) {
               Opening guides help you choose candidates. OpeningFit checks your real Chess.com or Lichess results
               and shows what to keep, improve, or avoid.
             </p>
-            <a className="seoPrimaryCta" href="/#app-dashboard">Analyse my games</a>
+            <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
           </section>
         </main>
       </div>
@@ -368,7 +368,7 @@ export function OpeningNotFoundPage({ slug, ThemeToggle, Analytics }) {
             </p>
             <div className="seoHeroActions">
               <a className="seoPrimaryCta" href="/openings">Browse openings</a>
-              <a className="seoSecondaryCta" href="/#app-dashboard">Analyze games</a>
+              <a className="seoSecondaryCta" href="/#app-dashboard">Analyse your games</a>
             </div>
           </section>
         </main>
@@ -400,7 +400,7 @@ export default function OpeningLandingPage({ opening, ThemeToggle, Analytics }) 
               <h1>{opening.h1 || opening.name}</h1>
               <p>{opening.intro}</p>
               <div className="seoHeroActions">
-                <a className="seoPrimaryCta" href="/#app-dashboard">Analyze my games</a>
+                <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
                 <a className="seoSecondaryCta" href="/openings">Browse openings</a>
               </div>
             </div>
@@ -444,7 +444,7 @@ export default function OpeningLandingPage({ opening, ThemeToggle, Analytics }) 
           <section className="seoBottomCta seoAnalysisCtaCard">
             <h2>Does {opening.name} fit your games?</h2>
             <p>{opening.callToActionText}</p>
-            <a className="seoPrimaryCta" href="/#app-dashboard">Analyze games with OpeningFit</a>
+            <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
           </section>
         </main>
       </div>

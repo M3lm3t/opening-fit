@@ -475,8 +475,8 @@ export default function OpeningFitRetentionCommandCenter({ data, username, onPra
           <span>Style similarity, opening overlap, aggression score, and repertoire readiness.</span>
         </div>
         <div>
-          <strong>AI coach direction</strong>
-          <span>Choose a tactical, positional, aggressive, or minimalist coach voice.</span>
+          <strong>Opening coach</strong>
+          <span>Choose a tactical, positional, aggressive, or simple study focus.</span>
         </div>
       </div>
     </section>

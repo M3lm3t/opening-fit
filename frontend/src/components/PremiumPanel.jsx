@@ -120,11 +120,11 @@ export default function PremiumPanel({
   onFounderPass,
 }) {
   const founderValueBullets = [
-    "Save reports",
-    "Track progress",
-    "Deeper opening insights",
-    "More history",
-    "Premium training plan",
+    "Save every report",
+    "Compare progress over time",
+    "Track weak lines",
+    "Get a personal repertoire plan",
+    "Review weekly improvement",
   ];
   const founderTrustItems = [
     "Built for club players",
@@ -169,12 +169,12 @@ export default function PremiumPanel({
         <div className="premiumUpgradeCopy">
           <div className="premiumUpgradeEyebrow">Founder Pass</div>
 
-          <h2>Turn OpeningFit into your personal chess dashboard.</h2>
+          <h2>Turn one report into a repertoire improvement loop.</h2>
 
           <p>
-            Founder Pass adds the premium workflow around your report: saved
-            progress, deeper opening history, clearer repertoire decisions, and
-            a training plan you can return to after every import.
+            Founder Pass helps you see which openings are improving, track weak
+            lines over time, save every report, and turn your analysis into a
+            personal repertoire plan.
           </p>
 
           <div className="premiumHeroBullets">
@@ -197,8 +197,8 @@ export default function PremiumPanel({
 
           <div className="premiumPriceMiniStats">
             <span>Saved reports</span>
-            <span>Progress tools</span>
-            <span>Deeper history</span>
+            <span>Progress comparisons</span>
+            <span>Weak-line tracking</span>
           </div>
 
           <button
@@ -219,10 +219,10 @@ export default function PremiumPanel({
 
           <small>
             {isPremium
-              ? "Depth tools are unlocked for this report."
+              ? "Saved reports, progress comparisons, and deeper repertoire tools are active."
               : isPremiumPreview
               ? "Preview mode shows what Founder Pass adds. Real paid features stay locked until Stripe confirms access."
-              : "Free gives the useful verdict. Founder Pass adds history, filtering, exports, and repertoire workflow."}
+              : "Free gives the useful verdict. Founder Pass adds saved comparisons, weak-line tracking, and repertoire planning."}
           </small>
         </div>
       </div>
@@ -248,28 +248,28 @@ export default function PremiumPanel({
         <LockedPreview
           isPremium={isPremium}
           isPreview={isPremiumPreview}
-          title="Deeper history"
-          text="Import up to 12 months so one recent streak does not distort the whole repertoire decision."
+          title="Progress over time"
+          text="Save reports and compare whether your openings, weak lines, and repertoire score are improving."
         />
 
         <LockedPreview
           isPremium={isPremium}
           isPreview={isPremiumPreview}
-          title="Full filters and table"
-          text="Use the full opening table and advanced filters to compare side, sample size, score, and confidence."
+          title="Deeper opening analysis"
+          text="Use the full opening table to compare side, sample size, score, confidence, and recommendation labels."
         />
 
         <LockedPreview
           isPremium={isPremium}
           isPreview={isPremiumPreview}
-          title="Saved progress"
-          text="Save reports, compare imports, and track whether your opening decisions are actually improving."
+          title="Weak line tracking"
+          text="See repeated weak lines and turn them into focused training targets when the data is available."
         />
 
         <LockedPreview
           isPremium={isPremium}
           isPreview={isPremiumPreview}
-          title="Full repertoire tools"
+          title="Personal repertoire plan"
           text={`Turn signals like ${bestOpening} and ${weakOpening} into an exportable study plan and clearer repertoire map.`}
         />
       </div>
@@ -278,7 +278,7 @@ export default function PremiumPanel({
         <div className="premiumComparisonHeader">
           <div>
             <span>Free vs Founder Pass</span>
-            <h3>Free gives the wow moment. Founder Pass adds depth and workflow.</h3>
+            <h3>Free gives the first verdict. Founder Pass tracks whether the plan is working.</h3>
           </div>
         </div>
 
@@ -289,25 +289,26 @@ export default function PremiumPanel({
             <div>Premium</div>
           </div>
 
-          <FeatureRow label="Basic import" free="Included" premium="12 months" />
-          <FeatureRow label="Main verdict" free="Included" premium="Deeper context" />
+          <FeatureRow label="Basic import" free="Included" premium="Longer report history" />
+          <FeatureRow label="Main verdict" free="Included" premium="Deeper opening context" />
           <FeatureRow label="Top 3 actions" free="Included" premium="Full study plan" />
-          <FeatureRow label="Opening recommendations" free="A few" premium="Full repertoire tools" />
-          <FeatureRow label="Repertoire map" free="Basic map" premium="Full map and builder tools" />
+          <FeatureRow label="Opening recommendations" free="A few" premium="Personal repertoire plan" />
+          <FeatureRow label="Repertoire map" free="Basic map" premium="White, Black vs e4, and Black vs d4 review" />
           <FeatureRow label="Opening table" free="Limited" premium="Full table" />
-          <FeatureRow label="Filters" free="Basic" premium="Advanced" />
-          <FeatureRow label="Progress tracking" free="Preview" premium="Saved history" />
+          <FeatureRow label="Weak line tracking" free="Preview" premium="Saved weak-line history" />
+          <FeatureRow label="Progress tracking" free="Preview" premium="Saved report comparisons" />
           <FeatureRow label="Exportable study plan" free="Not included" premium="Included" />
-          <FeatureRow label="Later premium tools" free="Not included" premium="Stockfish, line mistakes, drills, PDF" />
+          <FeatureRow label="Weekly review email" free="Not included" premium="Coming soon" />
+          <FeatureRow label="Engine-assisted diagnosis" free="Not included" premium="Coming soon" />
         </div>
       </div>
 
       <div className="premiumFinalCta">
         <div>
-          <h3>Founder Pass turns a useful snapshot into a long-term repertoire workflow.</h3>
+          <h3>Founder Pass turns a useful snapshot into progress you can compare.</h3>
           <p>
-            Keep using the free verdict. Upgrade when you want deeper history,
-            better filters, saved progress, and exportable study plans.
+            Keep using the free verdict. Upgrade when you want saved reports,
+            weak-line tracking, progress comparisons, and a personal repertoire plan.
           </p>
         </div>
 

@@ -4,11 +4,11 @@ import "./FounderPassLoginUpgrade.css";
 
 export default function FounderPassLoginUpgrade({ accountUser }) {
   const valueBullets = [
-    "Save reports",
-    "Track progress",
-    "Deeper opening insights",
-    "More history",
-    "Premium training plan",
+    "Save every report",
+    "Compare progress over time",
+    "Track weak lines",
+    "Personal repertoire plan",
+    "Weekly review tracking",
   ];
   const trustItems = [
     "Built for club players",
@@ -164,13 +164,12 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
           <strong>£8 early lifetime access</strong>
         </div>
 
-        <h2>Unlock the Founder Pass dashboard.</h2>
+        <h2>Save reports and track your opening progress.</h2>
 
         <p>
-          The free report stays useful. Founder Pass adds the serious app layer:
-          saved reports, progress tracking, deeper opening insights, more
-          history, and a premium training plan. Login first so your access can
-          be linked to your account.
+          The free report stays useful. Founder Pass adds saved report history,
+          progress comparisons, weak-line tracking, and a personal repertoire
+          plan. Login first so your access can be linked to your account.
         </p>
 
         <div className="founderPassUpgradeValue" aria-label="Founder Pass value">
@@ -210,9 +209,8 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
         </div>
 
         <p className="founderPassUpgradeNote">
-          Opening Fit is still improving. Founder Pass helps fund development and
-          includes later premium tools like engine diagnosis, line mistakes, PDF
-          export, and practice drills as they are added.
+          Opening Fit is still improving. Founder Pass helps fund development.
+          Coming soon: engine-assisted diagnosis, PDF export, and deeper drills.
         </p>
 
         {status ? <p className="founderPassUpgradeNote">{status}</p> : null}

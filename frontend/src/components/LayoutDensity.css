@@ -577,3 +577,335 @@
     font-size: 0.86rem !important;
   }
 }
+
+/* Site-wide density pass: keep cards readable while reducing full-width scroll. */
+.appShell,
+.dashboardView,
+.dashboardHome,
+.finalReportFlow,
+.profileDashboard,
+.premiumDashboard,
+.reportHistoryVault {
+  gap: 12px !important;
+}
+
+.commandPanel,
+.dashboardHeroTile,
+.dashboardTile,
+.dashboardCard,
+.reportSectionGroup,
+.currentReportSummaryCard,
+.openingFitReportOverview,
+.reportOverviewIdentity,
+.reportOverviewPanel,
+.reportOverviewMiniCard,
+.reportSecondaryDetails,
+.returnUserDashboard,
+.returnDashboardHero,
+.returnDashboardTileFocus,
+.returnDashboardTileWeapon,
+.returnDashboardTileProgress,
+.returnDashboardTileAction,
+.todayTrainingCard,
+.continueTrainingCard,
+.dailyMissionCard,
+.profileHeroDashboard,
+.profileDashboardCard,
+.historyProgressCard,
+.historyItem,
+.historySnapshotGrid .currentReportCard,
+.weeklyOpeningReport,
+.weeklyOpeningCard,
+.premiumDashboard,
+.premiumPanel,
+.premiumStatTile,
+.premiumOpeningMiniCard,
+.premiumListItem,
+.premiumLineItem {
+  padding: clamp(10px, 1.45vw, 16px) !important;
+  border-radius: 14px !important;
+}
+
+.reportSectionGroupBody,
+.reportOverviewGrid,
+.reportOverviewList,
+.reportOverviewActionGrid,
+.reportOverviewRepertoireGrid,
+.returnDashboardGrid,
+.returnDashboardActions,
+.todayTrainingSupport,
+.dailyMissionChecklist,
+.historySnapshotGrid,
+.weeklyOpeningGrid,
+.weeklyOpeningLoopGrid,
+.premiumStatsGrid,
+.premiumGrid,
+.premiumOpeningGrid,
+.premiumList,
+.premiumValueGrid,
+.premiumCardsGrid {
+  gap: 10px !important;
+}
+
+.commandPanelHeader,
+.reportOverviewPanelHeader,
+.reportHistoryHeader,
+.todayTrainingHeader,
+.dailyMissionHeader,
+.premiumPanelHeader,
+.profileCardHeader,
+.profileHubSectionHeader {
+  margin-bottom: 8px !important;
+  gap: 8px !important;
+}
+
+.commandPanelHeader h2,
+.reportOverviewIdentity h2,
+.reportOverviewPanelHeader h3,
+.todayTrainingHeader h2,
+.continueTrainingCopy h2,
+.dailyMissionHeader h2,
+.premiumHero h2,
+.dashboardHeroTile h2,
+.profileHeroCopy h1 {
+  line-height: 1.08 !important;
+}
+
+.commandPanelHeader p:not(.eyebrow),
+.reportOverviewMiniCard p,
+.reportOverviewEmpty,
+.todayTrainingHeader p,
+.todayTrainingReason,
+.continueTrainingAction p,
+.dailyMissionAction p,
+.premiumHero p,
+.premiumPanelText,
+.dashboardTile p,
+.profileDashboardCard p,
+.historyItem p {
+  line-height: 1.36 !important;
+}
+
+.reportOverviewMiniCard p,
+.todayTrainingReason,
+.todayTrainingSavePrompt,
+.continueTrainingAction p,
+.dailyMissionAction p,
+.premiumPanelText,
+.historyItem p {
+  margin-bottom: 0 !important;
+}
+
+.todayTrainingCard,
+.continueTrainingCard,
+.dailyMissionCard {
+  margin-bottom: 10px !important;
+}
+
+.todayTrainingPrimary,
+.dailyMissionChecklist label,
+.premiumPriceCard,
+.premiumStatTile {
+  padding: 10px !important;
+  border-radius: 12px !important;
+}
+
+.todayTrainingStats,
+.reportOpeningChipRail,
+.repertoireMapLegend,
+.premiumCommandStrip {
+  gap: 7px !important;
+}
+
+.todayTrainingStats span,
+.dailyMissionHeader > span,
+.continueTrainingCopy span,
+.premiumEyebrow,
+.premiumBadge,
+.premiumStatus {
+  padding: 5px 8px !important;
+}
+
+.primaryBtn,
+.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.todayTrainingActions button,
+.dailyMissionAction button,
+.continueTrainingAction button,
+.premiumCheckoutButton,
+.premiumActionBtn,
+.premiumUnlockBtn {
+  min-height: 40px !important;
+  border-radius: 12px !important;
+}
+
+@media (min-width: 1000px) {
+  .dashboardTileGrid,
+  .dashboardInsightGrid,
+  .reportOverviewGrid--two,
+  .reportOverviewGrid--train,
+  .returnDashboardGrid,
+  .profileDashboardGrid,
+  .historySnapshotGrid,
+  .weeklyOpeningGrid,
+  .weeklyOpeningLoopGrid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: stretch !important;
+  }
+
+  .reportOverviewActionGrid,
+  .reportOverviewRepertoireGrid,
+  .todayTrainingSupport,
+  .dailyMissionChecklist,
+  .premiumStatsGrid,
+  .premiumCommandStrip {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .premiumStatsGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .premiumHero {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.36fr) !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .todayTrainingCard {
+    grid-template-columns: minmax(0, 0.95fr) minmax(280px, 1.05fr) !important;
+    align-items: start !important;
+  }
+
+  .todayTrainingHeader,
+  .todayTrainingReason,
+  .todayTrainingActions,
+  .todayTrainingStatus,
+  .todayTrainingSavePrompt {
+    grid-column: 1 !important;
+  }
+
+  .todayTrainingPrimary,
+  .todayTrainingSupport {
+    grid-column: 2 !important;
+  }
+
+  .continueTrainingCard,
+  .dailyMissionCard {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.7fr) !important;
+    align-items: center !important;
+  }
+
+  .dailyMissionChecklist {
+    grid-column: 1 / -1 !important;
+  }
+
+  .returnDashboardActions {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .finalReportFlow,
+  .dashboardView,
+  .dashboardHome,
+  .profileDashboard,
+  .premiumDashboard,
+  .reportHistoryVault {
+    max-width: min(1280px, calc(100vw - 48px)) !important;
+  }
+
+  .reportOverviewGrid--train {
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr) !important;
+  }
+
+  .profileDashboardGrid,
+  .premiumGrid,
+  .premiumOpeningGrid,
+  .premiumCardsGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .commandPanel,
+  .dashboardHeroTile,
+  .dashboardTile,
+  .dashboardCard,
+  .reportSectionGroup,
+  .currentReportSummaryCard,
+  .openingFitReportOverview,
+  .reportOverviewIdentity,
+  .reportOverviewPanel,
+  .reportOverviewMiniCard,
+  .reportSecondaryDetails,
+  .returnUserDashboard,
+  .returnDashboardHero,
+  .returnDashboardTileFocus,
+  .returnDashboardTileWeapon,
+  .returnDashboardTileProgress,
+  .returnDashboardTileAction,
+  .todayTrainingCard,
+  .continueTrainingCard,
+  .dailyMissionCard,
+  .profileHeroDashboard,
+  .profileDashboardCard,
+  .historyProgressCard,
+  .historyItem,
+  .historySnapshotGrid .currentReportCard,
+  .weeklyOpeningReport,
+  .weeklyOpeningCard,
+  .premiumDashboard,
+  .premiumPanel,
+  .premiumStatTile,
+  .premiumOpeningMiniCard,
+  .premiumListItem,
+  .premiumLineItem {
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .reportOverviewGrid,
+  .reportOverviewActionGrid,
+  .reportOverviewRepertoireGrid,
+  .returnDashboardGrid,
+  .returnDashboardActions,
+  .todayTrainingSupport,
+  .dailyMissionChecklist,
+  .premiumStatsGrid,
+  .premiumCommandStrip,
+  .premiumGrid,
+  .premiumOpeningGrid,
+  .premiumList,
+  .premiumValueGrid,
+  .premiumCardsGrid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .premiumHero,
+  .dailyMissionHeader,
+  .dailyMissionAction,
+  .todayTrainingHeader {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .premiumDashboard {
+    width: calc(100vw - 16px) !important;
+    margin: 8px auto 74px !important;
+  }
+
+  .premiumPriceCard,
+  .premiumStatTile,
+  .todayTrainingPrimary,
+  .dailyMissionChecklist label {
+    padding: 9px !important;
+  }
+}

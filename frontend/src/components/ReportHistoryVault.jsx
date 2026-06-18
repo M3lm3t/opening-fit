@@ -252,6 +252,195 @@ function compareSnapshots(previous, current) {
   });
 }
 
+function safeNumber(value, fallback = null) {
+  const number = Number(String(value ?? "").replace("%", ""));
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function snapshotFromHistoryItem(item) {
+  if (!item) return null;
+  const snapshot = item.snapshot || {};
+  const data = item.data || {};
+  const topOpenings = Array.isArray(snapshot.topOpenings) && snapshot.topOpenings.length
+    ? snapshot.topOpenings
+    : getTopOpenings(data);
+  const healthScore =
+    snapshot.healthScore ??
+    data?.openingFitScore ??
+    data?.opening_fit_score ??
+    data?.retentionMetrics?.repertoireHealth?.score ??
+    data?.retention_metrics?.repertoire_health?.score ??
+    null;
+
+  return {
+    ...snapshot,
+    reportDate: snapshot.reportDate || item.createdAt,
+    username: snapshot.username || item.username,
+    platform: snapshot.platform || item.platform,
+    games: safeNumber(snapshot.games ?? item.games ?? getGameCount(data), 0),
+    topOpening: snapshot.topOpening || item.topOpening || topOpenings[0]?.name || "No clear top opening yet",
+    topOpenings,
+    studyTarget: snapshot.studyTarget || inferStudyTarget(data, topOpenings),
+    healthScore,
+    weakLines:
+      snapshot.weakLines ||
+      snapshot.weak_lines ||
+      data?.weakLines ||
+      data?.weak_lines ||
+      data?.retentionMetrics?.weakLines ||
+      data?.retention_metrics?.weak_lines ||
+      [],
+    trainingCompleted:
+      safeNumber(snapshot.trainingCompleted ?? snapshot.training_completed ?? data?.trainingCompleted ?? data?.training_completed, null),
+  };
+}
+
+function strongestOpening(snapshot) {
+  const top = Array.isArray(snapshot?.topOpenings) ? snapshot.topOpenings : [];
+  return top
+    .filter((item) => item?.name)
+    .sort((a, b) => {
+      const scoreDelta = (safeNumber(b.score, -1) ?? -1) - (safeNumber(a.score, -1) ?? -1);
+      if (scoreDelta) return scoreDelta;
+      return (safeNumber(b.games, 0) ?? 0) - (safeNumber(a.games, 0) ?? 0);
+    })[0]?.name || snapshot?.topOpening || "Not available yet";
+}
+
+function weakestOpening(snapshot) {
+  const weakLines = Array.isArray(snapshot?.weakLines) ? snapshot.weakLines : [];
+  const line = weakLines.find(Boolean);
+  if (line) return line.line || line.variation || line.opening || line.name || "Weak line tracked";
+
+  const top = Array.isArray(snapshot?.topOpenings) ? snapshot.topOpenings : [];
+  const weakest = top
+    .filter((item) => item?.name && safeNumber(item.score, null) !== null)
+    .sort((a, b) => safeNumber(a.score, 100) - safeNumber(b.score, 100))[0];
+  return weakest?.name || snapshot?.studyTarget || "Not available yet";
+}
+
+function signedDelta(delta, suffix = "") {
+  if (delta === null || delta === undefined || !Number.isFinite(delta)) return "Not available yet";
+  if (delta === 0) return `No change${suffix}`;
+  return `${delta > 0 ? "+" : ""}${delta}${suffix}`;
+}
+
+function buildWhatChanged(previous, current) {
+  if (!previous || !current) return null;
+
+  const previousSnapshot = snapshotFromHistoryItem(previous) || previous;
+  const currentSnapshot = snapshotFromHistoryItem(current) || current;
+  const previousBest = strongestOpening(previousSnapshot);
+  const currentBest = strongestOpening(currentSnapshot);
+  const previousWeak = weakestOpening(previousSnapshot);
+  const currentWeak = weakestOpening(currentSnapshot);
+  const previousScore = safeNumber(previousSnapshot.healthScore, null);
+  const currentScore = safeNumber(currentSnapshot.healthScore, null);
+  const previousGames = safeNumber(previousSnapshot.games, 0) ?? 0;
+  const currentGames = safeNumber(currentSnapshot.games, 0) ?? 0;
+  const previousTraining = safeNumber(previousSnapshot.trainingCompleted, null);
+  const currentTraining = safeNumber(currentSnapshot.trainingCompleted, null);
+  const scoreDelta = previousScore !== null && currentScore !== null ? Math.round(currentScore - previousScore) : null;
+  const gamesDelta = Math.round(currentGames - previousGames);
+  const trainingDelta = previousTraining !== null && currentTraining !== null ? Math.round(currentTraining - previousTraining) : null;
+  const weakestChanged = previousWeak !== currentWeak && ![previousWeak, currentWeak].includes("Not available yet");
+
+  return {
+    cards: [
+      {
+        label: "Best opening",
+        value: currentBest,
+        detail: previousBest === currentBest ? "Still your best current signal." : `Changed from ${previousBest}.`,
+      },
+      {
+        label: "Weakest line",
+        value: currentWeak,
+        detail: previousWeak === currentWeak ? "Still the main line to review." : `Changed from ${previousWeak}.`,
+      },
+      {
+        label: "Repertoire score",
+        value: currentScore === null ? "Not available yet" : `${currentScore}`,
+        detail: scoreDelta === null ? "No comparable score in the older report." : `${signedDelta(scoreDelta)} since previous report.`,
+      },
+      {
+        label: "Games analysed",
+        value: `${currentGames || 0}`,
+        detail: `${signedDelta(gamesDelta)} games since previous report.`,
+      },
+      {
+        label: "Training / weakness",
+        value: trainingDelta !== null ? signedDelta(trainingDelta, " sessions") : weakestChanged ? "Weakness changed" : "Not available yet",
+        detail:
+          trainingDelta !== null
+            ? "Training completion data was found in saved history."
+            : weakestChanged
+              ? "Your main repair target moved, which can mean the old one improved or a new one appeared."
+              : "Older reports did not include training progress.",
+      },
+    ],
+  };
+}
+
+function WhatChangedPanel({ comparison }) {
+  if (!comparison?.cards?.length) return null;
+
+  return (
+    <section className="historyWhatChanged" aria-label="What changed between reports">
+      <div className="historyWhatChangedHeader">
+        <p className="eyebrow">What changed?</p>
+        <h3>Progress since the previous report</h3>
+      </div>
+      <div className="historyWhatChangedGrid">
+        {comparison.cards.map((card) => (
+          <article key={card.label}>
+            <span>{card.label}</span>
+            <strong>{card.value}</strong>
+            <p>{card.detail}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function HistoryReportList({ history = [], onLoadReport, onDeleteReport, onStatus }) {
+  const loadReport = (item) => {
+    if (typeof onLoadReport === "function" && item?.data) {
+      onLoadReport(item.data);
+      onStatus?.(`Loaded ${item.username}'s saved report.`);
+      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  return (
+    <div className="historyList">
+      {history.map((item) => (
+        <article className="historyItem" key={item.id}>
+          <div>
+            <strong>{item.username}</strong>
+            <span>
+              {item.games || "Recent"} games · {item.analysisTimeFormatLabel} · {item.topOpening} · Study: {item.snapshot?.studyTarget || "Not available yet"}
+            </span>
+            <small>
+              {safeDate(item.createdAt)} · {item.platform} · {item.snapshot?.importMonths || "Recent"} import
+            </small>
+          </div>
+
+          <div className="historyActions">
+            <button type="button" onClick={() => loadReport(item)} disabled={!item.data}>
+              Reopen
+            </button>
+            {onDeleteReport ? (
+              <button type="button" className="dangerHistoryButton" onClick={() => onDeleteReport(item.id)}>
+                Delete
+              </button>
+            ) : null}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
 export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
   const {
     user,
@@ -311,6 +500,31 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
     () => compareSnapshots(previousReport?.snapshot, currentSnapshot),
     [currentSnapshot, previousReport]
   );
+  const sortedHistory = useMemo(
+    () =>
+      [...history]
+        .filter(Boolean)
+        .sort((a, b) => Date.parse(b.createdAt || b.snapshot?.reportDate || "") - Date.parse(a.createdAt || a.snapshot?.reportDate || "")),
+    [history]
+  );
+  const newestSaved = sortedHistory[0] || null;
+  const previousSaved = sortedHistory[1] || null;
+  const activeComparison = useMemo(() => {
+    if (currentSnapshot && previousReport) {
+      return buildWhatChanged(previousReport, {
+        snapshot: currentSnapshot,
+        createdAt: currentSnapshot.reportDate,
+        username: currentSnapshot.username,
+        platform: currentSnapshot.platform,
+        games: currentSnapshot.games,
+        topOpening: currentSnapshot.topOpening,
+        data,
+      });
+    }
+    if (newestSaved && previousSaved) return buildWhatChanged(previousSaved, newestSaved);
+    return null;
+  }, [currentSnapshot, data, newestSaved, previousReport, previousSaved]);
+  const hasSavedHistory = sortedHistory.length > 0;
 
   if (!data || !currentSnapshot) {
     return (
@@ -319,20 +533,31 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
           <div>
             <p className="eyebrow">Report history</p>
             <h2>Track your opening profile over time</h2>
-            <p>Import games to create your first report, then save snapshots here for comparison.</p>
+            <p>Compare saved reports to see whether your openings are getting stronger or just changing shape.</p>
           </div>
         </div>
 
         {!user?.id ? (
           <div className="historyLoginNote">
-            Login to keep report history across devices. Local history is available in this browser.
+            <span>Login to keep report history across devices. Local history is available in this browser.</span>
+            <a className="historyLoginLink" href="/login">Login</a>
           </div>
         ) : null}
 
-        <div className="emptyHistoryState">
-          <strong>No active report yet</strong>
-          <span>Analyse a Chess.com or Lichess username first, then return here to save and compare reports.</span>
-        </div>
+        {activeComparison ? (
+          <WhatChangedPanel comparison={activeComparison} />
+        ) : (
+          <div className="emptyHistoryState">
+            <strong>Analyse more games to track your progress over time.</strong>
+            <span>{hasSavedHistory ? "Save or import one more report to unlock a comparison." : "No saved reports yet. Analyse your games to create one."}</span>
+          </div>
+        )}
+
+        {hasSavedHistory ? (
+          <HistoryReportList history={sortedHistory} onLoadReport={onLoadReport} onStatus={setStatus} />
+        ) : null}
+
+        {status ? <p className="historyStatus">{status}</p> : null}
       </section>
     );
   }
@@ -360,7 +585,7 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
         await refreshUserData(user);
         setStatus("Report saved to your account.");
       } catch (error) {
-        setStatus(error.message || "Could not save report.");
+        setStatus(`${error.message || "Could not save report."} Try again or continue locally.`);
       }
       return;
     }
@@ -388,7 +613,7 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
         await refreshUserData(user);
         setStatus("Saved report removed.");
       } catch (error) {
-        setStatus(error.message || "Could not remove report.");
+        setStatus(`${error.message || "Could not remove report."} Try again in a moment.`);
       }
       return;
     }
@@ -429,7 +654,8 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
 
       {!user?.id ? (
         <div className="historyLoginNote">
-          Login to keep report history across devices. Local history is available in this browser.
+          <span>Login to keep report history across devices. Local history is available in this browser.</span>
+          <a className="historyLoginLink" href="/login">Login</a>
         </div>
       ) : null}
 
@@ -480,12 +706,21 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
         </div>
       ) : null}
 
+      {activeComparison ? (
+        <WhatChangedPanel comparison={activeComparison} />
+      ) : (
+        <div className="emptyHistoryState emptyHistoryStateCompact">
+          <strong>Analyse more games to track your progress over time.</strong>
+          <span>Save another report to compare best openings, weak lines, games analysed, and score movement.</span>
+        </div>
+      )}
+
       {status ? <p className="historyStatus">{status}</p> : null}
 
       {user?.id && profileLoading ? (
         <div className="emptyHistoryState">
-          <strong>Loading saved cloud history</strong>
-          <span>OpeningFit is restoring your account reports before showing this list.</span>
+          <strong>Looking for your saved reports...</strong>
+          <span>OpeningFit is restoring your account reports before showing this list. You can continue locally if this takes a moment.</span>
         </div>
       ) : history.length > 0 ? (
         <>
@@ -520,10 +755,9 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
         </>
       ) : (
         <div className="emptyHistoryState">
-          <strong>No saved reports yet</strong>
+          <strong>No saved reports yet.</strong>
           <span>
-            Save this report after importing games. After your next import, OpeningFit will show
-            what improved, what stayed weak, and what to study next.
+            Analyse your games to create one. After your next saved report, OpeningFit will show what changed.
           </span>
         </div>
       )}

@@ -43,7 +43,7 @@ function buildRecommendedTarget(data, fitData) {
   if (weakest.available && weakest.target) {
     return {
       source: "recommended",
-      buttonLabel: "Start Training",
+      buttonLabel: "Train this line",
       opening: getOpeningName(weakest.target),
       line: getLineName(weakest.target),
       moveLine:
@@ -62,7 +62,7 @@ function buildRecommendedTarget(data, fitData) {
 
   return {
     source: "recommended",
-    buttonLabel: "Start Training",
+    buttonLabel: "Train this line",
     opening: getOpeningName(plan.primary),
     line: getLineName(plan.primary),
     moveLine: plan.primary.moveLine || "",
@@ -152,11 +152,15 @@ export default function ContinueTrainingCard({ data, fitData, onAnalyse, onStart
       buildRecommendedTarget(data, fitData) ||
       {
         source: "starter",
-        buttonLabel: "Start Training",
+        buttonLabel: data ? "Train this line" : "Start starter line",
         opening: "Practice starter line",
-        line: "Analyse your games when you are ready for a personal target.",
+        line: data
+          ? "No saved training session yet."
+          : "Analyse your games to unlock a personal training target.",
         moveLine: "",
-        note: "No saved training yet.",
+        note: data
+          ? "No saved training yet."
+          : "Starter practice is available now. Your personal target appears after analysis.",
         target: "Italian Game",
       }
     );

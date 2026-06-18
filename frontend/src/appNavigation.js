@@ -45,8 +45,8 @@ export const APP_NAV_ROUTES = {
   history: {
     view: "history",
     path: "/account",
-    target: "recommendation-history",
-    fallbackIds: ["report-history", "profile"],
+    target: "report-history",
+    fallbackIds: ["recommendation-history", "profile"],
   },
   progress: { view: "progress", path: "/account", target: "openingfit-progress" },
   premium: { view: "premium", path: "/premium", target: "premium", fallbackIds: ["profile"] },

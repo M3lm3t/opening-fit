@@ -379,8 +379,8 @@ export default function IntelligentCoachInsights({ data }) {
     <section className="aiCoachShell" aria-labelledby="ai-coach-title">
       <div className="aiCoachHeader">
         <div>
-          <div className="aiCoachEyebrow">AI chess coach</div>
-          <h2 id="ai-coach-title">What Should You Study Next?</h2>
+          <div className="aiCoachEyebrow">Opening coach</div>
+          <h2 id="ai-coach-title">What to study next</h2>
           <p>{coach.summary}</p>
         </div>
 
@@ -402,7 +402,7 @@ export default function IntelligentCoachInsights({ data }) {
             <p>{item.coach_note || item.coachNote}</p>
             <div className="coachActionBox">{item.action}</div>
             <div className="coachImpactLabel">
-              Studying this line may improve your {String(item.title || "").toLowerCase().includes("black") ? "black" : "opening"} win rate by {item.estimated_impact || item.estimatedImpact || "3-6%"}
+              Study this line because it appears in your recent opening results.
             </div>
           </article>
         ))}

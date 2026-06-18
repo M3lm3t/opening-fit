@@ -293,15 +293,15 @@ export function NextBestActions({ data, onViewChange }) {
     {
       label: "Step 1",
       title: `Review ${weakestName}`,
-      text: "This is the first place to look for free rating gains. Check whether you are losing early, drifting into bad structures, or simply playing unfamiliar positions.",
-      button: "Open training",
+      text: "Start here if this line is costing you games. Look for the first repeated mistake.",
+      button: "Train this line",
       view: "training",
       target: "next-actions",
     },
     {
       label: "Step 2",
       title: `Keep building around ${strongestName}`,
-      text: "Do not abandon what is working. Your best openings should become the spine of your repertoire before adding new theory.",
+      text: "Keep what is working. Make your best openings the base of your repertoire.",
       button: "View repertoire",
       view: "repertoire",
       target: "repertoire-map",
@@ -309,8 +309,8 @@ export function NextBestActions({ data, onViewChange }) {
     {
       label: "Step 3",
       title: `Simplify ${mostPlayedName}`,
-      text: "Your most played opening needs a clear plan: main idea, common pawn breaks, typical piece setup, and one fallback line.",
-      button: "Check progress",
+      text: "Give your most played opening one clear plan and one fallback line.",
+      button: "See progress",
       view: "upgrade",
       target: "report-history",
     },
@@ -334,11 +334,8 @@ export function NextBestActions({ data, onViewChange }) {
       <div className="nextBestHeader">
         <div>
           <p className="eyebrow">Next best actions</p>
-          <h2>What you should do next</h2>
-          <p>
-            A serious chess tool should not just show numbers. It should turn your games
-            into a small, clear training plan.
-          </p>
+          <h2>Train what costs you games</h2>
+          <p>Turn your recent games into one clear training plan.</p>
         </div>
       </div>
 

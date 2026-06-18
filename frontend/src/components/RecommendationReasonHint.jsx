@@ -190,7 +190,7 @@ export function recommendationReasonDetails(item = {}, label = "") {
   const message = text(item.recommendationReason || item.recommendation_reason) || fallback.message;
   const tooltip =
     text(item.recommendationTooltip || item.recommendation_tooltip) ||
-    "OpeningFit is explaining the study priority from your current sample, not judging the opening in general.";
+    "This is based on your current game sample, not a verdict on the opening itself.";
   const nextStep = text(
     item.recommendationReasonNextStep ||
       item.recommendation_reason_next_step ||
@@ -217,7 +217,7 @@ export default function RecommendationReasonHint({ item, label = "", className =
   return (
     <InfoHint label={`Why this recommendation for ${reason.label}`} className={className}>
       <span className="recommendationReasonHint">
-        <strong>Why this recommendation?</strong>
+        <strong>Why this?</strong>
         <span>{reason.title}</span>
         <em>{reason.tooltip}</em>
         <span>{reason.message}</span>

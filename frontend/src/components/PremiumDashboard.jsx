@@ -215,7 +215,7 @@ function LockedOverlay({ title = "Founder Pass unlock", children, onUnlock, acti
     <div className="premiumLockedOverlay">
       <div className="premiumLockIcon">🔒</div>
       <strong>{title}</strong>
-      <p>{children || "Unlock the full repertoire audit to make better opening decisions."}</p>
+      <p>{children || "Save this analysis, compare progress, and turn weak lines into a clearer repertoire plan."}</p>
       <button className="premiumUnlockBtn" type="button" onClick={onUnlock}>
         {actionLabel}
       </button>
@@ -417,7 +417,7 @@ export default function PremiumDashboard({
 
   const runStockfish = async () => {
     if (!premiumActive) {
-      setStockfishError("Engine review is part of the full repertoire audit. Pricing or preview it first.");
+      setStockfishError("Engine-assisted diagnosis is coming soon and only runs when backend support is available.");
       return;
     }
 
@@ -463,8 +463,8 @@ export default function PremiumDashboard({
           <span className="premiumEyebrow">
             {isPremium ? "Founder Pass active" : isPremiumPreview ? "Audit preview" : "Founder Pass"}
           </span>
-          <h2>Deeper history, sharper study plans</h2>
-          <p>Unlock longer imports, saved history, filters, progress tracking, and exportable plans.</p>
+          <h2>See which openings are improving.</h2>
+          <p>Save reports, compare progress, track weak lines, and build a personal repertoire plan.</p>
         </div>
 
         <div className="premiumPriceCard">
@@ -472,8 +472,8 @@ export default function PremiumDashboard({
           <strong>£8 one-time</strong>
           <small>
             {isPremium
-              ? "Depth tools unlocked."
-              : "Upgrade for deeper history and saved progress."}
+              ? "Saved reports and progress tracking are active."
+              : "Upgrade to save reports and compare progress."}
           </small>
 
           {!isPremium ? (
@@ -618,8 +618,8 @@ export default function PremiumDashboard({
         <div className="premiumPanel">
           <div className="premiumPanelHeader">
             <div>
-              <span className="premiumEyebrow">Weak-line finder</span>
-              <h3>Lines costing you points</h3>
+              <span className="premiumEyebrow">Weak-line tracking</span>
+              <h3>Lines to repair over time</h3>
             </div>
             <span className="premiumBadge">Pro</span>
           </div>
@@ -641,8 +641,8 @@ export default function PremiumDashboard({
             </div>
 
             {!premiumActive ? (
-              <LockedOverlay title="Weak-line finder" onUnlock={unlockAction}>
-                Find repeated opening lines where your score drops and turn them into training targets.
+              <LockedOverlay title="Weak-line tracking" onUnlock={unlockAction}>
+                Track repeated opening lines where your score drops and turn them into training targets.
               </LockedOverlay>
             ) : null}
           </div>
@@ -651,8 +651,8 @@ export default function PremiumDashboard({
         <div className="premiumPanel premiumWide">
           <div className="premiumPanelHeader">
             <div>
-              <span className="premiumEyebrow">Later premium roadmap</span>
-              <h3>Stockfish-assisted opening diagnosis</h3>
+              <span className="premiumEyebrow">Coming soon</span>
+              <h3>Engine-assisted opening diagnosis</h3>
             </div>
             <button className="premiumActionBtn" onClick={runStockfish} disabled={stockfishLoading}>
               {stockfishLoading ? "Analysing..." : "Analyse latest game"}
@@ -661,7 +661,7 @@ export default function PremiumDashboard({
 
           <div className={`premiumLockedArea ${!premiumActive ? "isLocked" : ""}`}>
             <p className="premiumPanelText">
-              Engine-assisted review for clearer opening diagnosis.
+              Coming soon: engine-assisted review for clearer opening diagnosis when backend support is available.
             </p>
 
             {stockfishError ? <div className="premiumError">{stockfishError}</div> : null}
@@ -712,8 +712,8 @@ export default function PremiumDashboard({
             ) : null}
 
             {!premiumActive ? (
-              <LockedOverlay title="Later premium tool" onUnlock={unlockAction}>
-                Founder Pass includes early access to deeper tools as they are added. Engine analysis activates only when Stockfish is available on the backend.
+              <LockedOverlay title="Coming soon" onUnlock={unlockAction}>
+                Founder Pass includes early access as deeper diagnosis tools are added.
               </LockedOverlay>
             ) : null}
           </div>
@@ -722,8 +722,8 @@ export default function PremiumDashboard({
         <div className="premiumPanel">
           <div className="premiumPanelHeader">
             <div>
-              <span className="premiumEyebrow">Practice Pro</span>
-              <h3>Training plan</h3>
+              <span className="premiumEyebrow">Personal opening coach</span>
+              <h3>Weekly repertoire plan</h3>
             </div>
           </div>
 
@@ -744,8 +744,8 @@ export default function PremiumDashboard({
             </div>
 
             {!premiumActive ? (
-              <LockedOverlay title="Practice Pro" onUnlock={unlockAction}>
-                Turn your weak openings into focused drills and track what you have learned.
+              <LockedOverlay title="Weekly repertoire plan" onUnlock={unlockAction}>
+                Get a focused weekly plan built from your strengths, weak lines, and repertoire roles.
               </LockedOverlay>
             ) : null}
           </div>
@@ -755,13 +755,13 @@ export default function PremiumDashboard({
           <div className="premiumPanelHeader">
             <div>
               <span className="premiumEyebrow">Reports</span>
-              <h3>Exportable opening report</h3>
+              <h3>Saved opening report</h3>
             </div>
           </div>
 
           <div className={`premiumLockedArea ${!premiumActive ? "isLocked" : ""}`}>
             <div className="premiumChecklist">
-              <span>Markdown premium report</span>
+              <span>Save every report and compare progress</span>
               <span>Repertoire summary and repair list</span>
               <span>Shareable weekly improvement plan</span>
               <button type="button" className="premiumActionBtn" onClick={downloadPremiumReport}>
@@ -771,7 +771,7 @@ export default function PremiumDashboard({
 
             {!premiumActive ? (
               <LockedOverlay title="Export reports" onUnlock={unlockAction}>
-                Generate a clean opening report you can save, share, or use as your monthly training plan.
+                Generate a clean report you can save, compare, or use as your weekly training plan.
               </LockedOverlay>
             ) : null}
           </div>

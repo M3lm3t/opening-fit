@@ -692,7 +692,7 @@ export default function SeoLandingPage({ page, ThemeToggle, Analytics }) {
               <h1>{page.h1}</h1>
               <p>{page.intro}</p>
               <div className="seoHeroActions">
-                <a className="seoPrimaryCta" href="/#app-dashboard">Start a free opening report</a>
+                <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
                 <a className="seoSecondaryCta" href="/openingfit-sample-report">View sample report</a>
               </div>
             </div>
@@ -765,7 +765,7 @@ export default function SeoLandingPage({ page, ThemeToggle, Analytics }) {
           <section className="seoBottomCta">
             <h2>Ready to analyse your openings?</h2>
             <p>Import your games and turn your opening history into a cleaner, personalised repertoire plan.</p>
-            <a className="seoPrimaryCta" href="/#app-dashboard">Go to the import flow</a>
+            <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
           </section>
         </main>
       </div>

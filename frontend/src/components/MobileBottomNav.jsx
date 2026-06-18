@@ -1,22 +1,21 @@
-import { Activity, Dumbbell, Search, User } from "lucide-react";
+import { ChartNoAxesCombined, Dumbbell, Home, Search, User } from "lucide-react";
 import { getAppSection } from "../appNavigation";
 
 export default function MobileBottomNav({ activeView, hasReport = false, onNavigate }) {
   const activeSection = getAppSection(activeView);
   const items = [
-    { key: "analyse", label: "Analyze", Icon: Search, activeSections: ["analyse"] },
+    { key: "home", label: "Home", Icon: Home, activeViews: ["home"], activePaths: ["/"] },
+    { key: "analyse", label: "Analyse", Icon: Search, activeViews: ["analyse", "import"] },
     {
       key: "training",
       label: "Train",
       Icon: Dumbbell,
-      needsReport: true,
       activeViews: ["train", "training", "interactive", "practice"],
     },
     {
-      key: "progress",
-      label: "Progress",
-      Icon: Activity,
-      needsReport: true,
+      key: "report",
+      label: "Report",
+      Icon: ChartNoAxesCombined,
       activeSections: ["report"],
       activeViews: ["report", "recommendations", "repertoire", "openings", "weakspots", "verdicts", "progress"],
     },
@@ -31,8 +30,12 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
       onNavigate?.({ view: "train", path: "/train", target: "opening-practice" });
       return;
     }
-    if (target === "progress") {
+    if (target === "report") {
       onNavigate?.({ view: "report", path: "/report", target: "app-results" });
+      return;
+    }
+    if (target === "home") {
+      onNavigate?.({ view: "home", path: "/", target: "app-dashboard" });
       return;
     }
     onNavigate?.(target);
@@ -47,9 +50,9 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
         const isActive =
           activeView === item.key ||
           item.activeViews?.includes(activeView) ||
-          (item.key !== "profile" && item.activeSections?.includes(activeSection)) ||
+          (item.key !== "home" && item.key !== "profile" && item.activeSections?.includes(activeSection)) ||
           (item.key === "profile" && !isPremiumPath && item.activeSections?.includes(activeSection)) ||
-          item.activePaths?.includes(currentPath) ||
+          (item.key === "home" && activeView === "home" && item.activePaths?.includes(currentPath)) ||
           (!item.activeViews && !item.activeSections && activeSection === getAppSection(item.key));
 
         return (

@@ -114,8 +114,8 @@ export default function ReportCommandBar({
         <span>Primary next action</span>
         <strong>
           {focusOpening?.name
-            ? `Start today's opening practice`
-            : "Review your recommended repertoire"}
+            ? "Train this line"
+            : "Review repertoire"}
         </strong>
       </div>
 

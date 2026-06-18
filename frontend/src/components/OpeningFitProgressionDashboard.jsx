@@ -160,12 +160,9 @@ export default function OpeningFitProgressionDashboard({ data, username }) {
     <section className="ofProgressDashboard" aria-labelledby="of-progression-title">
       <div className="ofProgressHeader">
         <div>
-          <p className="ofProgressEyebrow">Progression dashboard</p>
-          <h2 id="of-progression-title">Your chess identity is becoming trackable.</h2>
-          <p>
-            This turns each import into an evolving profile: readiness, consistency, recent achievements,
-            shareable identity, and one coach-guided next step.
-          </p>
+          <p className="ofProgressEyebrow">Progress</p>
+          <h2 id="of-progression-title">Track how your openings are changing.</h2>
+          <p>Each import shows your repertoire health, weak lines, and next training focus.</p>
         </div>
         <div className="ofReadinessDial">
           <span>Readiness</span>
@@ -178,17 +175,17 @@ export default function OpeningFitProgressionDashboard({ data, username }) {
         <article>
           <span>Current repertoire</span>
           <strong>{dashboard.openings.length} tracked openings</strong>
-          <p>{player} has {dashboard.totalGames} mapped games feeding the next training loop.</p>
+          <p>{player} has {dashboard.totalGames} games feeding this opening profile.</p>
         </article>
         <article>
           <span>Strongest opening</span>
           <strong>{dashboard.strongest?.name}</strong>
-          <p>{dashboard.strongest?.winRate}% performance. Keep this sharp with a light weekly review.</p>
+          <p>{dashboard.strongest?.winRate}% score. Keep this opening sharp with a light review.</p>
         </article>
         <article>
           <span>Weakest opening</span>
           <strong>{dashboard.weakest?.name}</strong>
-          <p>{dashboard.weakest?.winRate}% performance. This becomes the next repair target.</p>
+          <p>{dashboard.weakest?.winRate}% score. This is the next line to repair.</p>
         </article>
         <article>
           <span>Training consistency</span>
@@ -287,7 +284,7 @@ export default function OpeningFitProgressionDashboard({ data, username }) {
 
       <article className="ofProgressCoachPanel">
         <div>
-          <p className="ofProgressEyebrow">AI coach direction</p>
+          <p className="ofProgressEyebrow">Opening coach</p>
           <h3>{selectedCoach.label}</h3>
           <p>{selectedCoach.text} Today it would focus on {dashboard.weakest?.name} and keep the session under 2 minutes.</p>
         </div>

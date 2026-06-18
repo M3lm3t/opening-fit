@@ -44,12 +44,11 @@ export default function FounderPassOutcomePanel({
     <section className="founderOutcome" id="founder-pass-outcome">
       <div className="founderOutcome__copy">
         <p className="founderOutcome__eyebrow">Founder Pass</p>
-        <h2>Upgrade when you want to go deeper.</h2>
+        <h2>Upgrade when you want to track progress.</h2>
         <p>
           Your free report already gives the headline verdict, top actions, and
-          a useful opening snapshot. Founder Pass adds the deeper workflow:
-          longer history, better filters, saved progress, and exportable study
-          plans.
+          a useful opening snapshot. Founder Pass adds saved reports, weak-line
+          tracking, progress comparisons, and exportable study plans.
         </p>
 
         <div className="founderOutcome__trust">
@@ -70,22 +69,20 @@ export default function FounderPassOutcomePanel({
 
         <ul>
           <li>
-            <strong>Full repertoire tools</strong>
-            <span>Repertoire map, full opening table, and advanced filters.</span>
+            <strong>Personal repertoire plan</strong>
+            <span>Repertoire map, full opening table, and colour-split recommendations.</span>
           </li>
           <li>
-            <strong>12 months of games</strong>
-            <span>
-              Analyse a bigger sample instead of only your most recent results.
-            </span>
+            <strong>Weak-line tracking</strong>
+            <span>See repeated opening lines that need repair over time.</span>
           </li>
           <li>
             <strong>Saved progress</strong>
-            <span>Save reports and compare whether your repertoire is improving.</span>
+            <span>Save every report and compare whether your repertoire is improving.</span>
           </li>
           <li>
-            <strong>Later premium tools</strong>
-            <span>Stockfish diagnosis, line mistakes, custom repertoire builder, PDF export, and drills.</span>
+            <strong>Coming soon</strong>
+            <span>Weekly review email, engine-assisted diagnosis, PDF export, and deeper drills.</span>
           </li>
         </ul>
 
@@ -105,7 +102,7 @@ export default function FounderPassOutcomePanel({
           {totalGames
             ? `Your current report is based on ${totalGames} imported games.`
             : "Your current report is based on your imported games."}{" "}
-          Founder Pass turns the snapshot into a deeper repertoire workflow.
+          Founder Pass turns the snapshot into progress you can compare.
         </p>
       </div>
     </section>

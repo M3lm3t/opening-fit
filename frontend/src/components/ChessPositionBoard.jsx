@@ -271,8 +271,6 @@ export default function ChessPositionBoard({
                 draggable={false}
                 onPointerUp={(event) => handleSquarePointerUp(event, squareName)}
                 onClick={() => handleSquareClick(squareName)}
-                onDragStart={(event) => handleDragStart(event, squareName, piece)}
-                onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
                 onDrop={(event) => handleDrop(event, squareName)}
                 aria-label={squareName}

@@ -6,7 +6,7 @@ export const BOARD_THEMES = {
     label: "Classic green",
     statusLabel: "Classic green",
     light: "#eeeed2",
-    dark: "#769656",
+    dark: "#779954",
   },
   lichess: {
     label: "Lichess brown",
@@ -17,12 +17,12 @@ export const BOARD_THEMES = {
   blue: {
     label: "Blue",
     light: "#dee3e6",
-    dark: "#8ca2ad",
+    dark: "#7d9db3",
   },
   grey: {
     label: "Grey",
     light: "#d8d9dc",
-    dark: "#8c9299",
+    dark: "#8d949e",
   },
   highContrast: {
     label: "High Contrast",

@@ -162,12 +162,12 @@ export default function ImportLoadingOverlay({
         </div>
 
         {showWakeupMessage ? (
-          <p className="importLoadingWakeup">Still working. The first analysis can take longer while OpeningFit reads the full game sample.</p>
+          <p className="importLoadingWakeup">Still working. This can take a little longer for large imports while OpeningFit reads the full game sample.</p>
         ) : null}
 
         <footer className="importLoadingFooter">
           <span>{loadingStep || progressStages[activeStageIndex].detail}</span>
-          <small>Please keep this tab open</small>
+          <small>Please keep this tab open. Large game imports can take a moment.</small>
         </footer>
       </div>
     </div>

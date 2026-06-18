@@ -42,7 +42,7 @@ export function SeoAnalysisCta({ title = "Find the openings that fit your own ga
         improve, and study-next opening report.
       </p>
       <div className="seoHeroActions">
-        <a className="seoPrimaryCta" href="/#app-dashboard">Analyse my games</a>
+        <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
         <a className="seoSecondaryCta" href="/openingfit-sample-report">View sample report</a>
       </div>
     </section>
@@ -137,7 +137,7 @@ export function SeoGuidePage({ page, ThemeToggle, Analytics }) {
           <h1>{page.h1}</h1>
           <p>{page.intro}</p>
           <div className="seoHeroActions">
-            <a className="seoPrimaryCta" href="/#app-dashboard">Analyse my games</a>
+            <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
             <a className="seoSecondaryCta" href="/guides">Browse guides</a>
           </div>
         </div>
@@ -173,7 +173,7 @@ export function GuidesHubPage({ ThemeToggle, Analytics }) {
             which openings actually fit.
           </p>
           <div className="seoHeroActions">
-            <a className="seoPrimaryCta" href="/#app-dashboard">Analyse my games</a>
+            <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
             <a className="seoSecondaryCta" href="/openings">Browse openings</a>
           </div>
         </div>
