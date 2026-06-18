@@ -166,8 +166,11 @@
   #report-verdict .reportSectionGroupBody > .currentReportSummaryCard,
   #report-verdict .reportSectionGroupBody > .whatChangedSinceLastAnalysis,
   #report-verdict .reportSectionGroupBody > .openingJourney,
-  #report-verdict .reportSectionGroupBody > .openingFitVerdict {
+  #report-verdict .reportSectionGroupBody > .openingFitVerdict,
+  #report-verdict .reportSectionGroupBody > .verdict-panel {
     grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
   }
 
   .reportTrainingPreviewGrid,
