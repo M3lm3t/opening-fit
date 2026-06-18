@@ -5810,6 +5810,30 @@ function FinalReportFlow({
     return () => window.removeEventListener("openingfit:set-report-mode", handleReportMode);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || !import.meta.env?.DEV) return undefined;
+
+    const checkVerdictCardWidths = () => {
+      if (window.innerWidth < 900) return;
+      const cards = document.querySelectorAll(
+        "#report-verdict .reportOverviewIdentity, #report-verdict .retentionScoreCard, #report-verdict .retentionMainCard, #report-verdict .retentionSnapshotGrid article"
+      );
+      cards.forEach((card) => {
+        const width = Math.round(card.getBoundingClientRect().width);
+        if (width > 0 && width < 240) {
+          console.warn("OpeningFit report verdict card is too narrow", {
+            className: card.className,
+            width,
+          });
+        }
+      });
+    };
+
+    window.requestAnimationFrame(checkVerdictCardWidths);
+    window.addEventListener("resize", checkVerdictCardWidths);
+    return () => window.removeEventListener("resize", checkVerdictCardWidths);
+  }, [activeView, data, fitData, reportMode]);
+
   return (
     <div className="finalReportFlow">
       <ReportCommandBar
@@ -5823,22 +5847,24 @@ function FinalReportFlow({
       />
 
       <ReportSectionGroup id="report-verdict" eyebrow="Verdict" title="Your verdict">
-        <OpeningFitReportOverview
-          data={data}
-          fitData={fitData}
-          studyTarget={studyTarget}
-          onPractice={onPractice}
-          onNavigate={onNavigate}
-        />
-        <OpeningFitRetentionSection
-          data={data}
-          fitData={fitData}
-          reportHistory={reportHistory}
-          openingFitUserState={openingFitUserState}
-          onAnalyse={() => onNavigate?.("analyse") || onViewChange?.("analyse")}
-          onTrain={onPractice}
-          compact
-        />
+        <div className="reportVerdictSummaryGrid">
+          <OpeningFitReportOverview
+            data={data}
+            fitData={fitData}
+            studyTarget={studyTarget}
+            onPractice={onPractice}
+            onNavigate={onNavigate}
+          />
+          <OpeningFitRetentionSection
+            data={data}
+            fitData={fitData}
+            reportHistory={reportHistory}
+            openingFitUserState={openingFitUserState}
+            onAnalyse={() => onNavigate?.("analyse") || onViewChange?.("analyse")}
+            onTrain={onPractice}
+            compact
+          />
+        </div>
 
         <details className="reportSecondaryDetails">
           <summary>

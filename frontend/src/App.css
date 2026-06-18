@@ -48002,6 +48002,64 @@ a,
   overflow: hidden;
 }
 
+/* Exact /report verdict summary layout: identity + score/focus/history cards. */
+.reportVerdictSummaryGrid {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  width: 100%;
+}
+
+.reportVerdictSummaryGrid > * {
+  min-width: 0;
+  width: 100%;
+}
+
+.reportVerdictSummaryGrid .openingFitRetentionSection {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
+  align-items: stretch;
+}
+
+.reportVerdictSummaryGrid .retentionScoreCard,
+.reportVerdictSummaryGrid .retentionMainCard,
+.reportVerdictSummaryGrid .retentionSnapshotGrid article,
+.reportVerdictSummaryGrid .reportOverviewIdentity,
+.reportVerdictSummaryGrid .reportOverviewPanel,
+.reportVerdictSummaryGrid .reportOverviewMiniCard {
+  min-width: 0;
+  width: 100%;
+}
+
+.reportVerdictSummaryGrid .retentionSnapshotGrid,
+.reportVerdictSummaryGrid .reportOverviewActionGrid,
+.reportVerdictSummaryGrid .reportOverviewRepertoireGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)) !important;
+}
+
+.reportVerdictSummaryGrid h2,
+.reportVerdictSummaryGrid h3,
+.reportVerdictSummaryGrid strong,
+.reportVerdictSummaryGrid p,
+.reportVerdictSummaryGrid span,
+.reportVerdictSummaryGrid small,
+.reportVerdictSummaryGrid em {
+  white-space: normal;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+}
+
+@media (max-width: 760px) {
+  .reportVerdictSummaryGrid .openingFitRetentionSection,
+  .reportVerdictSummaryGrid .retentionSnapshotGrid,
+  .reportVerdictSummaryGrid .reportOverviewIdentity,
+  .reportVerdictSummaryGrid .reportOverviewGrid--two,
+  .reportVerdictSummaryGrid .reportOverviewGrid--train,
+  .reportVerdictSummaryGrid .reportOverviewActionGrid,
+  .reportVerdictSummaryGrid .reportOverviewRepertoireGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* Report verdict cards must wrap before they become too narrow to read. */
 .reportCommandCenter,
 .openingReportShell,
