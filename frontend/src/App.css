@@ -48002,61 +48002,118 @@ a,
   overflow: hidden;
 }
 
-/* Exact /report verdict summary layout: identity + score/focus/history cards. */
-.reportVerdictSummaryGrid {
+/* Dedicated Verdict tab layout. This avoids the older nested overview/retention grids. */
+.verdict-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+.verdict-card-grid {
   display: grid;
-  gap: 14px;
-  min-width: 0;
-  width: 100%;
-}
-
-.reportVerdictSummaryGrid > * {
-  min-width: 0;
-  width: 100%;
-}
-
-.reportVerdictSummaryGrid .openingFitRetentionSection {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 1rem;
   align-items: stretch;
-}
-
-.reportVerdictSummaryGrid .retentionScoreCard,
-.reportVerdictSummaryGrid .retentionMainCard,
-.reportVerdictSummaryGrid .retentionSnapshotGrid article,
-.reportVerdictSummaryGrid .reportOverviewIdentity,
-.reportVerdictSummaryGrid .reportOverviewPanel,
-.reportVerdictSummaryGrid .reportOverviewMiniCard {
-  min-width: 0;
   width: 100%;
+  min-width: 0;
 }
 
-.reportVerdictSummaryGrid .retentionSnapshotGrid,
-.reportVerdictSummaryGrid .reportOverviewActionGrid,
-.reportVerdictSummaryGrid .reportOverviewRepertoireGrid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)) !important;
+.verdict-summary-card {
+  box-sizing: border-box;
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 1rem;
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--color-text) 5%, transparent), transparent),
+    var(--card-bg);
+  color: var(--color-text-muted);
+  box-shadow: var(--color-shadow);
 }
 
-.reportVerdictSummaryGrid h2,
-.reportVerdictSummaryGrid h3,
-.reportVerdictSummaryGrid strong,
-.reportVerdictSummaryGrid p,
-.reportVerdictSummaryGrid span,
-.reportVerdictSummaryGrid small,
-.reportVerdictSummaryGrid em {
+.verdict-summary-card h2,
+.verdict-summary-card h3,
+.verdict-summary-card p,
+.verdict-summary-card span,
+.verdict-summary-card strong,
+.verdict-summary-card small,
+.verdict-summary-card dt,
+.verdict-summary-card dd {
+  max-width: 100%;
   white-space: normal;
-  word-break: normal !important;
-  overflow-wrap: break-word !important;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
-@media (max-width: 760px) {
-  .reportVerdictSummaryGrid .openingFitRetentionSection,
-  .reportVerdictSummaryGrid .retentionSnapshotGrid,
-  .reportVerdictSummaryGrid .reportOverviewIdentity,
-  .reportVerdictSummaryGrid .reportOverviewGrid--two,
-  .reportVerdictSummaryGrid .reportOverviewGrid--train,
-  .reportVerdictSummaryGrid .reportOverviewActionGrid,
-  .reportVerdictSummaryGrid .reportOverviewRepertoireGrid {
-    grid-template-columns: 1fr !important;
+.verdict-summary-card h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(1.18rem, 2vw, 1.6rem);
+  line-height: 1.12;
+}
+
+.verdict-summary-card p,
+.verdict-summary-card span {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.verdict-summary-card--score strong {
+  color: var(--color-text);
+  font-size: clamp(2.6rem, 6vw, 4rem);
+  line-height: 0.95;
+}
+
+.verdict-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.verdict-card-actions button {
+  min-height: 40px;
+}
+
+.verdict-snapshot-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.verdict-snapshot-list div {
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-bg-soft) 74%, transparent);
+}
+
+.verdict-snapshot-list dt {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.verdict-snapshot-list dd {
+  margin: 0.25rem 0 0;
+  color: var(--color-text);
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+@media (max-width: 390px) {
+  .verdict-card-grid,
+  .verdict-snapshot-list {
+    grid-template-columns: 1fr;
   }
 }
 

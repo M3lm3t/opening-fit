@@ -5816,7 +5816,7 @@ function FinalReportFlow({
     const checkVerdictCardWidths = () => {
       if (window.innerWidth < 900) return;
       const cards = document.querySelectorAll(
-        "#report-verdict .reportOverviewIdentity, #report-verdict .retentionScoreCard, #report-verdict .retentionMainCard, #report-verdict .retentionSnapshotGrid article"
+        "#report-verdict .verdict-summary-card"
       );
       cards.forEach((card) => {
         const width = Math.round(card.getBoundingClientRect().width);
@@ -5847,24 +5847,15 @@ function FinalReportFlow({
       />
 
       <ReportSectionGroup id="report-verdict" eyebrow="Verdict" title="Your verdict">
-        <div className="reportVerdictSummaryGrid">
-          <OpeningFitReportOverview
-            data={data}
-            fitData={fitData}
-            studyTarget={studyTarget}
-            onPractice={onPractice}
-            onNavigate={onNavigate}
-          />
-          <OpeningFitRetentionSection
-            data={data}
-            fitData={fitData}
-            reportHistory={reportHistory}
-            openingFitUserState={openingFitUserState}
-            onAnalyse={() => onNavigate?.("analyse") || onViewChange?.("analyse")}
-            onTrain={onPractice}
-            compact
-          />
-        </div>
+        <OpeningFitVerdictPanel
+          data={data}
+          fitData={fitData}
+          reportHistory={reportHistory}
+          openingFitUserState={openingFitUserState}
+          studyTarget={studyTarget}
+          onAnalyse={() => onNavigate?.("analyse") || onViewChange?.("analyse")}
+          onTrain={onPractice}
+        />
 
         <details className="reportSecondaryDetails">
           <summary>
@@ -8127,6 +8118,103 @@ function OpeningFitRetentionSection({
         <article>
           <span>Biggest weakness</span>
           <strong>{weaknessName}</strong>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function OpeningFitVerdictPanel({
+  data,
+  fitData,
+  reportHistory = [],
+  openingFitUserState = [],
+  studyTarget,
+  onAnalyse,
+  onTrain,
+}) {
+  const latestReport = getLatestCloudReport(reportHistory);
+  const progress = getReturnDashboardProgress({ data, fitData, reportHistory, openingFitUserState });
+  const sourceData = data || latestReport?.report || null;
+  const { strength, weakness } = getDashboardOpeningSignals(sourceData, fitData, latestReport);
+  const score = calculateRetentionScore({ data: sourceData, fitData, progress, latestReport, openingFitUserState });
+  const identity = sourceData?.openingIdentity || sourceData?.opening_identity || sourceData?.retentionMetrics?.openingIdentity || {};
+  const styleProfile = sourceData?.styleProfile || sourceData?.style_profile || {};
+  const identityLabel = simpleStyleLabel(
+    identity.label ||
+      identity.name ||
+      styleProfile.primaryStyle ||
+      styleProfile.primary_style ||
+      styleProfile.label ||
+      styleProfile.primary ||
+      styleProfile.summary
+  );
+  const identityReasons = [
+    ...(Array.isArray(identity.reasons) ? identity.reasons : []),
+    styleProfile.summary,
+    strength ? `Best current signal: ${getOpeningContextTitle(strength)}.` : null,
+    weakness ? `Main repair target: ${getOpeningContextTitle(weakness)}.` : null,
+  ].filter(Boolean);
+  const games = getProfileGameCount(sourceData) || progress?.gamesAnalysed || latestReport?.summary?.games || 0;
+  const weeklyFocus = buildWeeklyFocus({ strength, weakness, data: sourceData, progress });
+  const trainingTarget = weakness || studyTarget?.opening || studyTarget || null;
+
+  return (
+    <section className="verdict-panel" aria-label="Verdict summary">
+      <div className="verdict-card-grid">
+        <article className="verdict-summary-card verdict-summary-card--identity">
+          <p className="eyebrow">Opening Identity</p>
+          <h2>{identityLabel} opening profile</h2>
+          <p>
+            {identityReasons[0] ||
+              "OpeningFit needs a few more repeated games before it can describe your opening style clearly."}
+          </p>
+          <span>{identityReasons[1] || "Keep the next import focused on recent rapid or blitz games."}</span>
+        </article>
+
+        <article className="verdict-summary-card verdict-summary-card--score">
+          <p className="eyebrow">OpeningFit Score</p>
+          <strong>{score === null ? "--" : score}</strong>
+          <span>{score === null ? "Not enough data yet" : "out of 100"}</span>
+          <p>Scores, journeys, and previous-analysis changes are kept below for review.</p>
+        </article>
+
+        <article className="verdict-summary-card verdict-summary-card--focus">
+          <p className="eyebrow">Weekly Focus</p>
+          <h2>{weeklyFocus}</h2>
+          <p>{games ? "Come back after 10 more games to see what changed." : "Analyse recent games to start tracking progress."}</p>
+          <div className="verdict-card-actions">
+            {trainingTarget ? (
+              <button type="button" className="primaryBtn" onClick={() => onTrain?.(trainingTarget)}>
+                Train this week
+              </button>
+            ) : null}
+            <button type="button" className={trainingTarget ? "secondaryButton" : "primaryBtn"} onClick={onAnalyse}>
+              Analyse new games
+            </button>
+          </div>
+        </article>
+
+        <article className="verdict-summary-card verdict-summary-card--snapshot">
+          <p className="eyebrow">Progress Snapshot</p>
+          <dl className="verdict-snapshot-list">
+            <div>
+              <dt>Last analysed</dt>
+              <dd>{getRetentionLastAnalysed(sourceData, progress, latestReport)}</dd>
+            </div>
+            <div>
+              <dt>Games analysed</dt>
+              <dd>{games || "Not available yet"}</dd>
+            </div>
+            <div>
+              <dt>Biggest strength</dt>
+              <dd>{strength ? getOpeningName(strength) : "Not available yet"}</dd>
+            </div>
+            <div>
+              <dt>Biggest weakness</dt>
+              <dd>{weakness ? getOpeningName(weakness) : "Not available yet"}</dd>
+            </div>
+          </dl>
         </article>
       </div>
     </section>
