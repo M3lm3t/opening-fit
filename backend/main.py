@@ -11329,7 +11329,10 @@ async def delete_account(user_id: str, request: Request):
     supabase_admin = get_supabase_admin_client()
 
     supabase_admin.table("profiles").delete().eq("user_id", user_id).execute()
-    supabase_admin.table("user_profiles").delete().eq("id", user_id).execute()
+    # Deprecated legacy retention tables such as public.user_profiles are no
+    # longer queried by the app. Keep account deletion focused on current
+    # profile/auth data; legacy table cleanup should happen through a separate
+    # audited archive/drop plan.
     supabase_admin.auth.admin.delete_user(user_id)
 
     return {"ok": True}

@@ -37,6 +37,8 @@ const DEFAULT_RESTORE_LIMIT = 50;
 const RESTORE_TABLE_LIMITS = {
   premium_entitlements: 10,
   openingfit_user_state: 20,
+  // Deprecated legacy wardrobe/app tables. Kept out of USER_DATA_TABLES so
+  // missing remote tables cannot create Profile restore warnings.
   onboarding_answers: 20,
   measurements: 20,
   outfits: 20,
@@ -57,6 +59,9 @@ const RESTORE_TABLE_LIMITS = {
   saved_openings: 50,
   chess_account_links: 10,
   notification_preferences: 10,
+  // Deprecated experimental retention tables. Current OpeningFit progress
+  // uses openingfit_retention_snapshots, activity_history, report_history,
+  // and openingfit_user_state instead.
   user_profiles: 5,
   user_activity_log: 50,
   user_streaks: 5,
@@ -130,6 +135,8 @@ export function createDefaultUserData(profile = null) {
     profile,
     premium_entitlements: [],
     openingfit_user_state: [],
+    // Deprecated legacy tables are defaulted for old UI compatibility only.
+    // They are intentionally not included in USER_DATA_TABLES/cloud restore.
     onboarding_answers: [],
     measurements: [],
     outfits: [],
@@ -1380,7 +1387,10 @@ export async function uploadUserFile(userId, file, pathPrefix = "uploads") {
 
   if (signedError) throw signedError;
 
-  const [row] = await upsertUserRow("uploads", userId, {
+  // Deprecated public.uploads metadata rows are no longer written. The storage
+  // object itself is enough for this legacy helper, and avoiding the table
+  // prevents missing legacy upload metadata tables from affecting cloud flows.
+  return {
     bucket: USER_FILE_BUCKET,
     path,
     url: signedData?.signedUrl || null,
@@ -1389,7 +1399,5 @@ export async function uploadUserFile(userId, file, pathPrefix = "uploads") {
       type: file.type,
       size: file.size,
     },
-  });
-
-  return row;
+  };
 }
