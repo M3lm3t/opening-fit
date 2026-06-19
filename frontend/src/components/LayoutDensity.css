@@ -192,6 +192,38 @@
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
   }
 
+  .profileDashboard.profileDashboardSimple {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: start !important;
+  }
+
+  .profileDashboard.profileDashboardSimple > .profileLoadNotice,
+  .profileDashboard.profileDashboardSimple > .simpleProfileGrid,
+  .profileDashboard.profileDashboardSimple > .simpleProfilePrimaryActions,
+  .profileDashboard.profileDashboardSimple > .reportHistoryVault,
+  .profileDashboard.profileDashboardSimple > .profileSecondaryDetails {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileGrid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)) !important;
+    align-items: stretch !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileCard,
+  .profileDashboard.profileDashboardSimple .simpleProfileNestedDetails,
+  .profileDashboard.profileDashboardSimple .accountPanel,
+  .profileDashboard.profileDashboardSimple .accountPanelShell,
+  .profileDashboard.profileDashboardSimple .accountPanel--screen {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
   .repertoireMapGrid {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
