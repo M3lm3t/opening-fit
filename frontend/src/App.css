@@ -49153,3 +49153,223 @@ hr,
     color-mix(in srgb, var(--color-surface-raised) 86%, transparent) !important;
   border-color: var(--color-border) !important;
 }
+
+/* Canonical mobile alignment.
+   This is intentionally last: older page-specific mobile rules used mixed
+   calc(100vw - npx), negative margins, and local padding. Keep mobile pages on
+   one centered visual grid while leaving desktop untouched. */
+@media (max-width: 760px) {
+  :root {
+    --of-mobile-gutter: max(12px, env(safe-area-inset-left));
+    --of-mobile-gutter-right: max(12px, env(safe-area-inset-right));
+    --of-mobile-container: min(100%, calc(100vw - var(--of-mobile-gutter) - var(--of-mobile-gutter-right)));
+  }
+
+  html,
+  body,
+  #root,
+  .page {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: clip !important;
+  }
+
+  body,
+  .page,
+  .appReportPage {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .page {
+    display: block !important;
+  }
+
+  .appShell,
+  .page .appShell,
+  .publicLandingPage .appShell,
+  .appReportPage .appShell,
+  .container.appShell {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: var(--of-mobile-gutter) !important;
+    padding-right: var(--of-mobile-gutter-right) !important;
+    box-sizing: border-box !important;
+    align-items: stretch !important;
+    padding-bottom: calc(
+      var(--mobile-bottom-nav-height) +
+      env(safe-area-inset-bottom) +
+      var(--mobile-bottom-nav-gap) +
+      10px
+    ) !important;
+  }
+
+  .appShell > *,
+  .appResultsShell,
+  .container,
+  .landingWrap,
+  .publicLandingPage .landingWrap,
+  .fullReportShell,
+  .openingFitPlanShell,
+  .openingReportShell,
+  .reportSnapshotShell,
+  .coachPlanShell,
+  .progressTrackerShell,
+  .evidenceDiagnosisShell,
+  .premiumDashboardShell,
+  .trustUpgradeShell,
+  .founderPassShell,
+  .premiumUpgradeShell,
+  .loginScreenSection,
+  .profileSection,
+  .profileDashboard,
+  .simpleProfileGrid,
+  .profileSecondaryDetails,
+  .historyPage,
+  .appTabsCard,
+  .compactReportNav,
+  .reportCommandBar,
+  .appPrimaryNavInner,
+  .appPrimaryMobilePanel {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .container,
+  .landingWrap,
+  .publicLandingPage .landingWrap,
+  .fullReportShell,
+  .openingFitPlanShell,
+  .openingReportShell,
+  .reportSnapshotShell,
+  .coachPlanShell,
+  .progressTrackerShell,
+  .evidenceDiagnosisShell,
+  .premiumDashboardShell,
+  .trustUpgradeShell,
+  .founderPassShell,
+  .premiumUpgradeShell,
+  .loginScreenSection,
+  .profileSection,
+  .profileDashboard,
+  .simpleProfileGrid,
+  .profileSecondaryDetails,
+  .historyPage,
+  .appTabsCard,
+  .compactReportNav,
+  .reportCommandBar {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .card,
+  .panel,
+  .heroCard,
+  .feedbackCard,
+  .quickNavCard,
+  .premiumCard,
+  .smallCard,
+  .statCard,
+  .collapsibleCard,
+  .landingHero,
+  .landingContentSection,
+  .landingStorySection,
+  .landingFinalCTA,
+  .landingPreviewCard,
+  .landingInfoCard,
+  .landingFeatureCard,
+  .landingStepCard,
+  .landingPriceCard,
+  .aboutCard,
+  .ratingGuideCard,
+  .listItem,
+  .gamePickerButton,
+  .trainingPlanItem,
+  .lockedFeature,
+  .openingExplainCard,
+  .fitMiniCard,
+  .openingReportCard,
+  .reportSnapshotCard,
+  .coachPlanCard,
+  .progressCard,
+  .evidenceDiagnosisCard,
+  .premiumDashboardCard,
+  .openingHealthCard,
+  .accountPanel,
+  .accountPanelShell,
+  .simpleProfileCard,
+  .todayTrainingCard,
+  .oneThingToFixCard,
+  .openingJourney,
+  .whatChangedCard,
+  .reportTrainingPreview,
+  .openingPracticePanel,
+  .openingPracticeBoardShell,
+  .practiceBoardWrap,
+  .tableWrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .appPrimaryNav {
+    padding-left: var(--of-mobile-gutter) !important;
+    padding-right: var(--of-mobile-gutter-right) !important;
+    box-sizing: border-box !important;
+  }
+
+  .appPrimaryNavInner {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .appPrimaryMobilePanel {
+    left: var(--of-mobile-gutter) !important;
+    right: var(--of-mobile-gutter-right) !important;
+    width: auto !important;
+    max-width: none !important;
+    transform: none !important;
+  }
+
+  .mobileBottomNav {
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    padding-left: var(--of-mobile-gutter) !important;
+    padding-right: var(--of-mobile-gutter-right) !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    box-sizing: border-box !important;
+  }
+
+  .replayBoardBox,
+  .practiceBoardBox,
+  .practiceBoardWrap,
+  .opening-board-shell,
+  .practice-board-shell,
+  .game-replay-board-shell,
+  .boardThemeControls,
+  .boardThemeToggle {
+    width: 100% !important;
+    max-width: min(100%, 440px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+@media (max-width: 380px) {
+  :root {
+    --of-mobile-gutter: max(10px, env(safe-area-inset-left));
+    --of-mobile-gutter-right: max(10px, env(safe-area-inset-right));
+  }
+}
