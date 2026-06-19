@@ -88,6 +88,27 @@ const PROFILE_RESTORE_COLUMNS =
 const RESTORE_PROFILE_TIMEOUT_MS = 6500;
 const RESTORE_TABLE_TIMEOUT_MS = 6500;
 
+function isRequiredRestoreTable(table) {
+  return REQUIRED_RESTORE_TABLES.has(table);
+}
+
+function getRestoreQueryDetails(table, userId, options = {}) {
+  const limit = options.limit ?? RESTORE_TABLE_LIMITS[table] ?? DEFAULT_RESTORE_LIMIT;
+  const columns = options.columns || RESTORE_TABLE_COLUMNS[table] || "*";
+  const required = isRequiredRestoreTable(table);
+
+  return {
+    userId,
+    selectedColumns: columns,
+    filterColumn: "user_id",
+    filter: "user_id.eq.<current-user>",
+    limit,
+    required,
+    optional: !required,
+    emptyRowsAllowed: true,
+  };
+}
+
 function withUserDataTimeout(promise, ms, label) {
   let timeoutId;
 
@@ -189,12 +210,26 @@ function classifyRestoreError(error) {
 
 function logRestoreWarning(table, error, details = {}) {
   const failureType = classifyRestoreError(error);
+  const required = details.required ?? isRequiredRestoreTable(table);
   console.warn("OpeningFit cloud restore table warning", {
     table,
     failureType,
     timedOut: failureType === "timeout",
     message: error?.message || String(error || ""),
     code: error?.code,
+    supabaseDetails: error?.details,
+    hint: error?.hint,
+    status: error?.status,
+    required,
+    optional: !required,
+    userVisible: required,
+    emptyRowsAllowed: details.emptyRowsAllowed ?? true,
+    query: {
+      selectedColumns: details.selectedColumns || RESTORE_TABLE_COLUMNS[table] || "*",
+      filterColumn: details.filterColumn || "user_id",
+      filter: details.filter || "user_id.eq.<current-user>",
+      limit: details.limit ?? RESTORE_TABLE_LIMITS[table] ?? DEFAULT_RESTORE_LIMIT,
+    },
     details,
   });
 }
@@ -530,8 +565,8 @@ export async function upsertUserProfile(user, patch = {}) {
 
 async function selectUserRows(table, userId, options = {}) {
   const client = requireClient();
-  const limit = options.limit ?? RESTORE_TABLE_LIMITS[table] ?? DEFAULT_RESTORE_LIMIT;
-  const columns = options.columns || RESTORE_TABLE_COLUMNS[table] || "*";
+  const queryDetails = getRestoreQueryDetails(table, userId, options);
+  const { limit, selectedColumns: columns } = queryDetails;
 
   const result = await client
     .from(table)
@@ -541,14 +576,13 @@ async function selectUserRows(table, userId, options = {}) {
 
   if (!result.error) {
     logQuerySuccess(table, "select rows by user_id", {
-      userId,
-      limit,
+      ...queryDetails,
       count: result.data?.length || 0,
     });
     return result.data || [];
   }
 
-  logQueryFailure(table, "select rows by user_id", result.error, { userId, limit });
+  logQueryFailure(table, "select rows by user_id", result.error, queryDetails);
   throw result.error;
 }
 
@@ -583,13 +617,14 @@ export async function fetchAllUserData(user, options = {}) {
         );
         return { table, rows, error: null };
       } catch (tableError) {
+        const queryDetails = getRestoreQueryDetails(table, user.id);
         logQueryFailure(table, "restore table during full restore", tableError, {
-          userId: user.id,
+          ...queryDetails,
         });
-        logRestoreWarning(table, tableError, { userId: user.id });
+        logRestoreWarning(table, tableError, queryDetails);
         return {
           table,
-          rows: options.strict && REQUIRED_RESTORE_TABLES.has(table) ? null : [],
+          rows: options.strict && isRequiredRestoreTable(table) ? null : [],
           error: tableError,
         };
       }
@@ -601,16 +636,19 @@ export async function fetchAllUserData(user, options = {}) {
     const table = tableNames[index];
     if (result.status === "rejected") {
       const tableError = result.reason;
-      logQueryFailure(table, "restore table during full restore", tableError, {
-        userId: user.id,
-      });
-      logRestoreWarning(table, tableError, { userId: user.id });
-      tableErrors.push({ table, error: tableError });
-      return [table, options.strict && REQUIRED_RESTORE_TABLES.has(table) ? null : []];
+      const queryDetails = getRestoreQueryDetails(table, user.id);
+      logQueryFailure(table, "restore table during full restore", tableError, queryDetails);
+      logRestoreWarning(table, tableError, queryDetails);
+      tableErrors.push({ table, error: tableError, required: isRequiredRestoreTable(table) });
+      return [table, options.strict && isRequiredRestoreTable(table) ? null : []];
     }
 
     if (result.value?.error) {
-      tableErrors.push({ table: result.value.table, error: result.value.error });
+      tableErrors.push({
+        table: result.value.table,
+        error: result.value.error,
+        required: isRequiredRestoreTable(result.value.table),
+      });
     }
 
     return [table, result.value?.rows || []];
@@ -636,12 +674,25 @@ export async function fetchAllUserData(user, options = {}) {
   return {
     ...restored,
     hasPremiumAccess: hasActivePremiumEntitlement(restored.premium_entitlements, profile),
-    restoreWarnings: tableErrors.map((item) => ({
-      table: item.table,
-      message: safeUserMessage(item.error, `Could not restore ${item.table}.`),
-      failureType: classifyRestoreError(item.error),
-      timedOut: classifyRestoreError(item.error) === "timeout",
-    })),
+    restoreWarnings: tableErrors.map((item) => {
+      const failureType = classifyRestoreError(item.error);
+      const required = item.required ?? isRequiredRestoreTable(item.table);
+      return {
+        table: item.table,
+        message: safeUserMessage(item.error, `Could not restore ${item.table}.`),
+        failureType,
+        timedOut: failureType === "timeout",
+        code: item.error?.code,
+        supabaseDetails: item.error?.details,
+        hint: item.error?.hint,
+        status: item.error?.status,
+        required,
+        optional: !required,
+        userVisible: required,
+        emptyRowsAllowed: true,
+        query: getRestoreQueryDetails(item.table, user.id),
+      };
+    }),
   };
 }
 

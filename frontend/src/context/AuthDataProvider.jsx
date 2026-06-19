@@ -79,6 +79,10 @@ function mergePartialRestoreData(nextData, currentData) {
   return merged;
 }
 
+function getUserVisibleRestoreWarnings(restoreWarnings = []) {
+  return restoreWarnings.filter((warning) => warning?.userVisible !== false && warning?.required !== false);
+}
+
 function withTimeout(promise, ms = RESTORE_TIMEOUT_MS, label = "Supabase request") {
   let timeoutId;
 
@@ -317,26 +321,35 @@ export function AuthDataProvider({ children }) {
         );
         if (applyState && restoreSeq === restoreSeqRef.current) {
           const restoreWarnings = Array.isArray(data?.restoreWarnings) ? data.restoreWarnings : [];
+          const userVisibleRestoreWarnings = getUserVisibleRestoreWarnings(restoreWarnings);
           if (restoreWarnings.length) {
             console.warn("OpeningFit cloud restore completed with table warnings", {
               warnings: restoreWarnings.map((warning) => ({
                 table: warning.table,
                 failureType: warning.failureType || "unknown",
                 timedOut: Boolean(warning.timedOut),
+                required: Boolean(warning.required),
+                optional: Boolean(warning.optional),
+                userVisible: warning.userVisible !== false,
+                code: warning.code,
+                supabaseDetails: warning.supabaseDetails,
+                hint: warning.hint,
+                query: warning.query,
                 message: warning.message,
               })),
+              profileNoticeShown: userVisibleRestoreWarnings.length > 0,
             });
           }
           const nextUserData = mergePartialRestoreData(data, userDataRef.current);
           setUserData(nextUserData || null);
           hydrateLegacyStorage(nextUserData?.settings?.[0]?.preferences?.legacyStorage || {});
           setProfileLoaded(true);
-          setProfileError(restoreWarnings.length ? PROFILE_PARTIAL_RESTORE_MESSAGE : "");
+          setProfileError(userVisibleRestoreWarnings.length ? PROFILE_PARTIAL_RESTORE_MESSAGE : "");
           setCloudRestored(true);
           setSyncState((current) => ({
             ...current,
             status: "synced",
-            error: restoreWarnings.length ? PROFILE_PARTIAL_RESTORE_MESSAGE : "",
+            error: userVisibleRestoreWarnings.length ? PROFILE_PARTIAL_RESTORE_MESSAGE : "",
             lastSavedAt: current.lastSavedAt || new Date().toISOString(),
           }));
           setHydrated(true);
