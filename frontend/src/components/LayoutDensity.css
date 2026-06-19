@@ -973,6 +973,223 @@
   }
 }
 
+/* Desktop density correction: make wide screens more useful than mobile without
+   changing the mobile stack. */
+@media (min-width: 1024px) {
+  .appShell,
+  .page .appShell,
+  .appReportPage .appShell,
+  .container.appShell {
+    width: min(100%, calc(100vw - 48px)) !important;
+    max-width: min(1500px, calc(100vw - 48px)) !important;
+    gap: 12px !important;
+  }
+
+  .appResultsShell:not(.appResultsShellTrain),
+  .finalReportFlow,
+  .profileDashboard.profileDashboardSimple {
+    width: 100% !important;
+    max-width: min(1420px, calc(100vw - 48px)) !important;
+  }
+
+  .reportSectionGroup,
+  .currentReportSummaryCard,
+  .todayTrainingCard,
+  .continueTrainingCard,
+  .dailyMissionCard,
+  .simpleProfileCard,
+  .profileSecondaryDetails {
+    padding: 12px !important;
+  }
+
+  .finalReportFlow,
+  .reportSectionGroupBody,
+  .profileDashboard.profileDashboardSimple,
+  .profileDashboard.profileDashboardSimple .simpleProfileGrid,
+  .profileDashboard.profileDashboardSimple .simpleProfileSideColumn,
+  .appResultsShellTrain,
+  #opening-practice {
+    gap: 12px !important;
+  }
+
+  #report-verdict .reportSectionGroupBody {
+    display: block !important;
+  }
+
+  #report-verdict .verdict-card-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+
+  #report-verdict .verdict-summary-card {
+    min-width: 0 !important;
+    padding: 12px !important;
+  }
+
+  #report-verdict .verdict-summary-card--snapshot {
+    grid-column: 1 / -1 !important;
+  }
+
+  #report-verdict .verdict-summary-card--snapshot .verdict-snapshot-list {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    margin: 0 !important;
+  }
+
+  #report-verdict .verdict-summary-card--snapshot .verdict-snapshot-list > div {
+    min-width: 0 !important;
+    padding: 10px !important;
+  }
+
+  .reportSecondaryDetails {
+    margin-top: 10px !important;
+  }
+
+  .appResultsShellTrain {
+    max-width: min(1500px, calc(100vw - 48px)) !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px) !important;
+    align-items: start !important;
+    margin-inline: auto !important;
+  }
+
+  .appResultsShellTrain > #opening-practice {
+    grid-column: 1 !important;
+    grid-row: 1 / span 2 !important;
+    display: grid !important;
+    align-items: start !important;
+  }
+
+  .appResultsShellTrain > .todayTrainingCard {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    position: sticky !important;
+    top: 86px !important;
+    margin: 0 !important;
+    align-self: start !important;
+  }
+
+  .appResultsShellTrain > :not(#opening-practice):not(.todayTrainingCard) {
+    grid-column: 1 / -1 !important;
+  }
+
+  #opening-practice .trainPracticePanel {
+    order: -1 !important;
+    margin: 0 !important;
+    padding: 12px !important;
+  }
+
+  #opening-practice .continueTrainingCard,
+  #opening-practice .dailyMissionCard {
+    margin: 0 !important;
+  }
+
+  #opening-practice .practiceLinesHeader {
+    margin-bottom: 8px !important;
+  }
+
+  #opening-practice .practiceBoardLayout {
+    grid-template-columns: minmax(400px, 500px) minmax(300px, 1fr) !important;
+    gap: 12px !important;
+    margin-bottom: 10px !important;
+  }
+
+  #opening-practice .practiceBoardWrap {
+    width: min(100%, 500px) !important;
+    max-width: 500px !important;
+    padding: 8px !important;
+  }
+
+  #opening-practice .practiceTrainerBox {
+    gap: 10px !important;
+    padding: 11px !important;
+  }
+
+  #opening-practice .practiceLineChoices {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  #opening-practice .practiceMoveList {
+    gap: 6px !important;
+  }
+
+  #opening-practice .practiceMoveExplanationList {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  #opening-practice .practiceMoveExplanationItem,
+  #opening-practice .practiceProgressBox,
+  #opening-practice .practiceTrapBox,
+  #opening-practice .practiceStatus {
+    padding: 9px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple {
+    width: 100% !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileGrid {
+    grid-template-columns: minmax(320px, 380px) minmax(0, 1fr) !important;
+    align-items: start !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileSideColumn {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    align-items: start !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileCard--subscription {
+    grid-column: auto !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileCard {
+    padding: 12px !important;
+    gap: 8px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileStatGrid,
+  .profileDashboard.profileDashboardSimple .simpleProfilePreferenceGrid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileStatGrid article,
+  .profileDashboard.profileDashboardSimple .simpleProfilePreferenceGrid article,
+  .profileDashboard.profileDashboardSimple .simpleProfilePreferenceGrid > * {
+    min-height: 0 !important;
+    padding: 8px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .accountPanel--screen,
+  .profileDashboard.profileDashboardSimple .accountPanel--screen .accountAuthStack,
+  .profileDashboard.profileDashboardSimple .accountPanel--screen .accountProfileStack {
+    padding: 10px !important;
+    gap: 9px !important;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1180px) {
+  .appResultsShellTrain {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px) !important;
+  }
+
+  #opening-practice .practiceBoardLayout,
+  .profileDashboard.profileDashboardSimple .simpleProfileSideColumn {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileCard--subscription {
+    grid-column: 1 / -1 !important;
+  }
+}
+
 @media (min-width: 1200px) {
   .finalReportFlow,
   .dashboardView,
@@ -980,7 +1197,7 @@
   .profileDashboard,
   .premiumDashboard,
   .reportHistoryVault {
-    max-width: min(1280px, calc(100vw - 48px)) !important;
+    max-width: min(1420px, calc(100vw - 48px)) !important;
   }
 
   .reportOverviewGrid--train {
