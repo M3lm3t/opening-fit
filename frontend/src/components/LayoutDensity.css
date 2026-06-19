@@ -226,17 +226,35 @@
 
   .profileDashboard.profileDashboardSimple .simpleProfileCard,
   .profileDashboard.profileDashboardSimple .simpleProfileNestedDetails {
-    overflow: visible !important;
+    overflow: clip !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .accountPanel--screen {
+    box-sizing: border-box !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding: clamp(16px, 2vw, 22px) !important;
+    overflow: clip !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileCardHeader {
+    justify-items: start !important;
+    align-items: start !important;
   }
 
   .profileDashboard.profileDashboardSimple .simpleProfileCard .eyebrow {
     display: inline-flex !important;
     width: fit-content !important;
+    min-width: 0 !important;
     max-width: 100% !important;
+    min-height: 0 !important;
     height: auto !important;
+    margin: 0 !important;
+    padding: 6px 10px !important;
     white-space: normal !important;
     word-break: normal !important;
     overflow-wrap: normal !important;
+    justify-self: start !important;
+    align-self: start !important;
   }
 
   .profileDashboard.profileDashboardSimple .simpleProfileStatGrid,
@@ -855,6 +873,10 @@
     align-items: start !important;
   }
 
+  .appResultsShellTrain > .todayTrainingCard {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
   .todayTrainingHeader,
   .todayTrainingReason,
   .todayTrainingActions,
@@ -866,6 +888,16 @@
   .todayTrainingPrimary,
   .todayTrainingSupport {
     grid-column: 2 !important;
+  }
+
+  .appResultsShellTrain > .todayTrainingCard .todayTrainingHeader,
+  .appResultsShellTrain > .todayTrainingCard .todayTrainingReason,
+  .appResultsShellTrain > .todayTrainingCard .todayTrainingActions,
+  .appResultsShellTrain > .todayTrainingCard .todayTrainingStatus,
+  .appResultsShellTrain > .todayTrainingCard .todayTrainingSavePrompt,
+  .appResultsShellTrain > .todayTrainingCard .todayTrainingPrimary,
+  .appResultsShellTrain > .todayTrainingCard .todayTrainingSupport {
+    grid-column: 1 !important;
   }
 
   .continueTrainingCard,
