@@ -727,6 +727,33 @@
   }
 }
 
+/* Defensive mobile repair: keep the closed report detail summary readable. */
+@media (max-width: 760px) {
+  .reportSecondaryDetails > summary {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    gap: 8px !important;
+    align-items: center !important;
+  }
+
+  .reportSecondaryDetails > summary span,
+  .reportSecondaryDetails > summary strong {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .reportSecondaryDetails > summary span {
+    grid-column: 1 !important;
+  }
+
+  .reportSecondaryDetails > summary strong {
+    grid-column: 1 !important;
+  }
+}
+
 /* Site-wide density pass: keep cards readable while reducing full-width scroll. */
 .appShell,
 .dashboardView,
@@ -1024,8 +1051,41 @@
   }
 
   #report-verdict .verdict-summary-card {
+    display: grid !important;
+    align-content: start !important;
     min-width: 0 !important;
-    padding: 12px !important;
+    min-height: 0 !important;
+    padding: 11px !important;
+    gap: 8px !important;
+  }
+
+  #report-verdict .verdict-summary-card h2 {
+    max-width: 16ch !important;
+    font-size: clamp(1.45rem, 2vw, 2rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  #report-verdict .verdict-summary-card p,
+  #report-verdict .verdict-summary-card span {
+    max-width: 48ch !important;
+    line-height: 1.35 !important;
+  }
+
+  #report-verdict .verdict-summary-card--score strong {
+    font-size: clamp(2.2rem, 4vw, 3.25rem) !important;
+    line-height: 0.95 !important;
+  }
+
+  #report-verdict .verdict-card-actions {
+    align-self: end !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  #report-verdict .verdict-card-actions button {
+    min-height: 36px !important;
+    padding: 8px 12px !important;
   }
 
   #report-verdict .verdict-summary-card--snapshot {
@@ -1041,11 +1101,28 @@
 
   #report-verdict .verdict-summary-card--snapshot .verdict-snapshot-list > div {
     min-width: 0 !important;
-    padding: 10px !important;
+    padding: 9px !important;
   }
 
   .reportSecondaryDetails {
     margin-top: 10px !important;
+  }
+
+  .reportSecondaryDetails > summary,
+  .profileSecondaryDetails > summary {
+    min-height: 44px !important;
+    padding: 10px 12px !important;
+  }
+
+  .reportSecondaryDetails > summary span,
+  .profileSecondaryDetails > summary span {
+    font-size: 0.68rem !important;
+  }
+
+  .reportSecondaryDetails > summary strong,
+  .profileSecondaryDetails > summary strong {
+    max-width: 46ch !important;
+    font-size: 0.95rem !important;
   }
 
   .appResultsShellTrain {
@@ -1108,6 +1185,18 @@
     padding: 11px !important;
   }
 
+  #opening-practice .practiceTrainerBox h3 {
+    font-size: 1rem !important;
+    line-height: 1.15 !important;
+  }
+
+  #opening-practice .practiceTrainerBox p,
+  #opening-practice .practiceIdeaList,
+  #opening-practice .practiceMoveWhy p,
+  #opening-practice .practiceTrapBox p {
+    line-height: 1.32 !important;
+  }
+
   #opening-practice .practiceLineChoices {
     display: grid !important;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)) !important;
@@ -1129,6 +1218,29 @@
   #opening-practice .practiceTrapBox,
   #opening-practice .practiceStatus {
     padding: 9px !important;
+  }
+
+  #opening-practice .practiceMoveExplanationItem {
+    display: grid !important;
+    gap: 4px !important;
+  }
+
+  #opening-practice .practiceMoveExplanationItem p {
+    margin: 0 !important;
+    line-height: 1.3 !important;
+  }
+
+  .todayTrainingCard,
+  .continueTrainingCard,
+  .dailyMissionCard {
+    gap: 10px !important;
+  }
+
+  .todayTrainingReason,
+  .todayTrainingSupport,
+  .continueTrainingAction p,
+  .dailyMissionAction p {
+    line-height: 1.32 !important;
   }
 
   .profileDashboard.profileDashboardSimple {
@@ -1154,6 +1266,17 @@
     gap: 8px !important;
   }
 
+  .profileDashboard.profileDashboardSimple .simpleProfileCardHeader h2,
+  .profileDashboard.profileDashboardSimple .simpleProfileCard > h2 {
+    font-size: clamp(1.45rem, 2vw, 2rem) !important;
+    line-height: 1.05 !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileCard p,
+  .profileDashboard.profileDashboardSimple .simpleProfileCard small {
+    line-height: 1.32 !important;
+  }
+
   .profileDashboard.profileDashboardSimple .simpleProfileStatGrid,
   .profileDashboard.profileDashboardSimple .simpleProfilePreferenceGrid {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)) !important;
@@ -1172,6 +1295,101 @@
   .profileDashboard.profileDashboardSimple .accountPanel--screen .accountProfileStack {
     padding: 10px !important;
     gap: 9px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfilePrimaryActions {
+    width: fit-content !important;
+    max-width: 100% !important;
+  }
+
+  .exportHistoryShell {
+    align-items: start !important;
+    gap: 12px !important;
+    margin-top: 14px !important;
+    padding: 12px !important;
+  }
+
+  .exportHistoryIntro,
+  .currentReportSummary,
+  .savedReportsPanel {
+    align-self: start !important;
+    min-height: 0 !important;
+    padding: 12px !important;
+    border-radius: 16px !important;
+  }
+
+  .exportHistoryIntro > span,
+  .currentReportSummary > span,
+  .savedReportsHeader span {
+    margin-bottom: 7px !important;
+    padding: 5px 8px !important;
+    font-size: 0.66rem !important;
+  }
+
+  .exportHistoryIntro h2 {
+    max-width: 16ch !important;
+    font-size: clamp(1.45rem, 2vw, 2rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  .exportHistoryIntro p,
+  .exportHistoryIntro small,
+  .currentReportSummary p,
+  .emptySavedReports {
+    line-height: 1.34 !important;
+  }
+
+  .exportHistoryActions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .exportHistoryActions button {
+    min-height: 36px !important;
+    padding: 8px 10px !important;
+  }
+
+  .savedReportsPanel {
+    display: grid !important;
+    gap: 10px !important;
+  }
+
+  .siteFooter {
+    max-width: min(1280px, calc(100vw - 48px)) !important;
+    margin-top: 22px !important;
+    padding-top: 14px !important;
+    gap: 12px !important;
+  }
+
+  .appStoreReadinessFooter {
+    max-width: min(1180px, calc(100vw - 48px)) !important;
+    margin-top: 18px !important;
+    padding-top: 12px !important;
+    gap: 10px !important;
+  }
+
+  .appLegalPanel {
+    padding: 12px !important;
+    gap: 8px !important;
+    border-radius: 14px !important;
+  }
+
+  .appLegalPanel span {
+    margin-bottom: 0 !important;
+    font-size: 0.66rem !important;
+  }
+
+  .siteFooter h2,
+  .siteFooter h3,
+  .appLegalPanel h2 {
+    font-size: clamp(1.15rem, 1.7vw, 1.6rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  .siteFooter p,
+  .appLegalPanel p {
+    line-height: 1.35 !important;
   }
 }
 
