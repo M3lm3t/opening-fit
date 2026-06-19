@@ -47665,6 +47665,12 @@ a,
   min-width: 0;
 }
 
+.simpleProfileSideColumn {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
 .simpleProfileCard {
   display: grid;
   gap: 12px;

@@ -8501,7 +8501,7 @@ function ProfileAccountSimpleCard({
   const email = accountUser?.email || "Not signed in";
 
   return (
-    <SimpleProfileCard eyebrow="Account" title="Account">
+    <SimpleProfileCard eyebrow="Account" title="Account" className="simpleProfileCard--account">
       <span className="profileLoginAnchor" id="profile-account" aria-hidden="true" />
       <span className="profileLoginAnchor" id="login" aria-hidden="true" />
       <div className="simpleAccountRow">
@@ -8537,7 +8537,7 @@ function ProfileStatsSimpleCard({
   const lastAnalysed = data ? formatProfileDate(getProfileImportDate(data)) : "Not available yet";
 
   return (
-    <SimpleProfileCard eyebrow="Stats" title="Stats">
+    <SimpleProfileCard eyebrow="Stats" title="Stats" className="simpleProfileCard--stats">
       <div className="simpleProfileStatGrid">
         <article>
           <span>Total games analysed</span>
@@ -8565,6 +8565,7 @@ function ProfilePreferencesSimpleCard({ theme, onThemeToggle }) {
     <SimpleProfileCard
       eyebrow="Preferences"
       title="Preferences"
+      className="simpleProfileCard--preferences"
       actions={
         onThemeToggle ? (
           <button type="button" className="secondaryButton" onClick={onThemeToggle}>
@@ -8597,6 +8598,7 @@ function ProfileSubscriptionSimpleCard({ isPremium, isPremiumPreview, accountUse
     <SimpleProfileCard
       eyebrow="Subscription"
       title="Subscription"
+      className="simpleProfileCard--subscription"
       actions={
         <button type="button" className={isPremium ? "secondaryButton" : "primaryBtn"} onClick={onFounderPass}>
           {isPremium ? "Manage access" : "Upgrade"}
@@ -8678,19 +8680,21 @@ function OpeningFitProfileDashboard({
           onCloudRestore={onCloudRestore}
           defaultOpen={shouldOpenAccountDetails}
         />
-        <ProfileStatsSimpleCard
-          data={data}
-          accountUser={accountUser}
-          reportHistory={reportHistory}
-          openingFitUserState={openingFitUserState}
-        />
-        <ProfilePreferencesSimpleCard theme={theme} onThemeToggle={onThemeToggle} />
-        <ProfileSubscriptionSimpleCard
-          isPremium={isPremium}
-          isPremiumPreview={isPremiumPreview}
-          accountUser={accountUser}
-          onFounderPass={onFounderPass}
-        />
+        <div className="simpleProfileSideColumn">
+          <ProfileStatsSimpleCard
+            data={data}
+            accountUser={accountUser}
+            reportHistory={reportHistory}
+            openingFitUserState={openingFitUserState}
+          />
+          <ProfilePreferencesSimpleCard theme={theme} onThemeToggle={onThemeToggle} />
+          <ProfileSubscriptionSimpleCard
+            isPremium={isPremium}
+            isPremiumPreview={isPremiumPreview}
+            accountUser={accountUser}
+            onFounderPass={onFounderPass}
+          />
+        </div>
       </div>
 
       <div className="simpleProfilePrimaryActions">

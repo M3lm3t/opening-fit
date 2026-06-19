@@ -210,8 +210,21 @@
 
   .profileDashboard.profileDashboardSimple .simpleProfileGrid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)) !important;
-    align-items: stretch !important;
+    grid-template-columns: minmax(320px, 400px) minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 12px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileSideColumn {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(min(100%, 280px), 1fr)) !important;
+    align-items: start !important;
+    gap: 12px !important;
+    min-width: 0 !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileCard--subscription {
+    grid-column: 1 / -1 !important;
   }
 
   .profileDashboard.profileDashboardSimple .simpleProfileCard,
@@ -229,16 +242,36 @@
     overflow: clip !important;
   }
 
-  .profileDashboard.profileDashboardSimple .accountPanel--screen {
-    box-sizing: border-box !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    padding: clamp(16px, 2vw, 22px) !important;
-    overflow: clip !important;
+  .profileDashboard.profileDashboardSimple .simpleProfileCard {
+    align-content: start !important;
+    align-self: start !important;
+    gap: 9px !important;
+    padding: 13px !important;
   }
 
   .profileDashboard.profileDashboardSimple .simpleProfileCardHeader {
-    justify-items: start !important;
-    align-items: start !important;
+    gap: 5px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .accountPanel--screen {
+    box-sizing: border-box !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+    padding: 14px !important;
+    overflow: clip !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .accountPanel--screen .accountAuthStack,
+  .profileDashboard.profileDashboardSimple .accountPanel--screen .accountProfileStack {
+    padding: 12px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .accountPanel--screen .accountPanelHeader {
+    gap: 8px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .accountPanel--screen .accountPanelHeader p {
+    line-height: 1.35 !important;
   }
 
   .profileDashboard.profileDashboardSimple .simpleProfileCard .eyebrow {
@@ -260,7 +293,32 @@
   .profileDashboard.profileDashboardSimple .simpleProfileStatGrid,
   .profileDashboard.profileDashboardSimple .simpleProfileStatGridCompact,
   .profileDashboard.profileDashboardSimple .simpleProfilePreferenceGrid {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileStatGrid article {
+    min-height: 0 !important;
+    padding: 8px 10px !important;
+    gap: 4px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileStatGrid span {
+    font-size: 0.68rem !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileSubscription {
+    gap: 5px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileActions,
+  .profileDashboard.profileDashboardSimple .simpleProfilePrimaryActions {
+    gap: 7px !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileActions button,
+  .profileDashboard.profileDashboardSimple .simpleProfilePrimaryActions button {
+    min-height: 36px !important;
   }
 
   .profileDashboard.profileDashboardSimple p,
