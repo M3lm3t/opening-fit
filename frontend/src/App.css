@@ -49373,3 +49373,42 @@ hr,
     --of-mobile-gutter-right: max(10px, env(safe-area-inset-right));
   }
 }
+
+/* Report-only mobile centering.
+   The report shell sits inside the shared appShell gutter, so it should not
+   add its own horizontal inset before the tabs/cards render. */
+@media (max-width: 760px) {
+  .appReportPage #app-results.appResultsShell {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .appReportPage #app-results.appResultsShell > *,
+  .appReportPage #app-results.appResultsShell .finalReportFlow,
+  .appReportPage #app-results.appResultsShell .appTabsCard,
+  .appReportPage #app-results.appResultsShell .compactReportNav,
+  .appReportPage #app-results.appResultsShell .reportCommandBar,
+  .appReportPage #app-results.appResultsShell .reportSectionGroup,
+  .appReportPage #app-results.appResultsShell .verdict-panel,
+  .appReportPage #app-results.appResultsShell .currentReportSummaryCard,
+  .appReportPage #app-results.appResultsShell .openingJourney,
+  .appReportPage #app-results.appResultsShell .whatChangedCard,
+  .appReportPage #app-results.appResultsShell .oneThingToFixCard,
+  .appReportPage #app-results.appResultsShell .reportTrainingPreview {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .appReportPage #app-results.appResultsShell,
+  .appReportPage #app-results.appResultsShell .finalReportFlow {
+    gap: 12px;
+  }
+}
