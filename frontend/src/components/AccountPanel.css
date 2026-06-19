@@ -1498,6 +1498,44 @@
   font-size: clamp(1.2rem, 2.2vw, 1.55rem);
 }
 
+.profileDashboard.profileDashboardSimple .accountPanelShell--screen,
+.profileDashboard.profileDashboardSimple .accountPanel--screen,
+.profileDashboard.profileDashboardSimple .simpleProfileNestedDetails {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.profileDashboard.profileDashboardSimple .accountPanel--screen {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.profileDashboard.profileDashboardSimple .accountPanel--screen .accountPanelHeader h3 {
+  max-width: 100%;
+  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  line-height: 1.08;
+}
+
+.profileDashboard.profileDashboardSimple .accountPanel--screen .accountEyebrow {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.profileDashboard.profileDashboardSimple .accountPanel--screen p,
+.profileDashboard.profileDashboardSimple .accountPanel--screen span,
+.profileDashboard.profileDashboardSimple .accountPanel--screen strong,
+.profileDashboard.profileDashboardSimple .accountPanel--screen small,
+.profileDashboard.profileDashboardSimple .accountPanel--screen button,
+.profileDashboard.profileDashboardSimple .accountPanel--screen input {
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
 .profileAccountCard .accountAuthStack,
 .profileAccountCard .accountProfileStack {
   padding: 0;

@@ -224,6 +224,37 @@
     min-width: 0 !important;
   }
 
+  .profileDashboard.profileDashboardSimple .simpleProfileCard,
+  .profileDashboard.profileDashboardSimple .simpleProfileNestedDetails {
+    overflow: visible !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileCard .eyebrow {
+    display: inline-flex !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    height: auto !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+
+  .profileDashboard.profileDashboardSimple .simpleProfileStatGrid,
+  .profileDashboard.profileDashboardSimple .simpleProfileStatGridCompact,
+  .profileDashboard.profileDashboardSimple .simpleProfilePreferenceGrid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)) !important;
+  }
+
+  .profileDashboard.profileDashboardSimple p,
+  .profileDashboard.profileDashboardSimple span,
+  .profileDashboard.profileDashboardSimple strong,
+  .profileDashboard.profileDashboardSimple small,
+  .profileDashboard.profileDashboardSimple button,
+  .profileDashboard.profileDashboardSimple input {
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+  }
+
   .repertoireMapGrid {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
