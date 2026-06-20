@@ -176,7 +176,8 @@ export function buildWeakLines(data = {}, options = {}) {
         losses: line.losses,
         context: lineKey(line.moves),
         contextLabel: "Repeated variation",
-        trainingTarget: line.opening,
+        colour: line.samples.find((sample) => sample?.colour || sample?.color)?.colour || line.samples.find((sample) => sample?.colour || sample?.color)?.color || "unknown",
+        color: line.samples.find((sample) => sample?.colour || sample?.color)?.colour || line.samples.find((sample) => sample?.colour || sample?.color)?.color || "unknown",
         commonContinuations: buildContinuations(line.samples),
         flagReason:
           lossRate >= 55
@@ -187,6 +188,24 @@ export function buildWeakLines(data = {}, options = {}) {
           pgnPrefix: moveLine,
           depth: null,
           evaluation: null,
+        },
+        trainingTarget: {
+          opening: line.opening,
+          name: line.opening,
+          variation: line.variation || moveLine,
+          line: line.variation || moveLine,
+          moveLine,
+          moves: line.moves,
+          colour: line.samples.find((sample) => sample?.colour || sample?.color)?.colour || line.samples.find((sample) => sample?.colour || sample?.color)?.color || "unknown",
+          color: line.samples.find((sample) => sample?.colour || sample?.color)?.colour || line.samples.find((sample) => sample?.colour || sample?.color)?.color || "unknown",
+          reason: lossRate >= 55
+            ? "This repeated variation is producing too many losses."
+            : "This line is scoring below your broader opening results.",
+          flagReason: lossRate >= 55
+            ? "This repeated variation is producing too many losses."
+            : "This line is scoring below your broader opening results.",
+          weakLine: true,
+          source: "weakest-line",
         },
       };
     })

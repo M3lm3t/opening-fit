@@ -74,6 +74,7 @@ function buildFallbackFromRecommendation(data, fitData) {
 
   return {
     source: "training-recommendation",
+    type: primary.type || "opening",
     opening: primary.opening,
     variation: primary.variation || primary.moveLine || "",
     summary: lineSummary(primary),
@@ -98,6 +99,7 @@ function buildOneThing(data, fitData) {
       summary: lineSummary(weakLine),
       explanation: explanationFor(weakLine, "weak-line"),
       target: training.target || weakLine,
+      type: "weak-line",
     };
   }
 
@@ -111,6 +113,7 @@ function buildOneThing(data, fitData) {
       summary: lineSummary(oneFix),
       explanation: explanationFor(oneFix),
       target: training.target || oneFix,
+      type: variationName(oneFix) ? "weak-line" : "opening",
     };
   }
 
@@ -124,6 +127,7 @@ function buildOneThing(data, fitData) {
       summary: lineSummary(currentWeakest),
       explanation: explanationFor(currentWeakest),
       target: training.target || currentWeakest,
+      type: "weak-line",
     };
   }
 
@@ -135,6 +139,7 @@ export default function OneThingToFixCard({ data, fitData, onPractice }) {
   if (!data || !fix?.opening) return null;
 
   const title = fix.variation && fix.variation !== fix.opening ? `${fix.opening}: ${fix.variation}` : fix.opening;
+  const ctaLabel = fix.type === "weak-line" ? "Train this line" : "Review this opening";
 
   return (
     <section className="oneThingToFixCard" aria-labelledby="one-thing-to-fix-title">
@@ -149,7 +154,7 @@ export default function OneThingToFixCard({ data, fitData, onPractice }) {
         <span>{fix.summary}</span>
         {onPractice ? (
           <button type="button" onClick={() => onPractice(fix.target)}>
-            Train This Line
+            {ctaLabel}
           </button>
         ) : null}
       </div>

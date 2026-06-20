@@ -1299,6 +1299,22 @@ function pgnHeaderValue(pgnText, headerName) {
   return String(pgnText || "").match(pattern)?.[1] || "";
 }
 
+function normalizePgnDateValue(value) {
+  const clean = String(value || "").trim();
+  if (!clean || clean.includes("?")) return "";
+  return clean.replace(/\./g, "-");
+}
+
+function playedDateFromPgn(pgnText) {
+  const utcDate = normalizePgnDateValue(pgnHeaderValue(pgnText, "UTCDate"));
+  const utcTime = String(pgnHeaderValue(pgnText, "UTCTime") || "").trim();
+  const date = utcDate || normalizePgnDateValue(pgnHeaderValue(pgnText, "Date"));
+
+  if (!date) return "";
+  if (utcTime && !utcTime.includes("?")) return `${date}T${utcTime}Z`;
+  return date;
+}
+
 function normalizeSavedTimeControl(game = {}) {
   const candidates = [
     game.time_control_normalized,
@@ -1349,20 +1365,35 @@ function normalizeSavedGameMetadata(game = {}) {
     game.timeClass ||
     game.speed ||
     game.perf ||
-    "";
+    "unknown";
+  const pgnPlayedAt = playedDateFromPgn(game.pgn || game.PGN || game.rawPgn || "");
   const timestamp = normalizeSavedTimestamp(
     game.end_time ||
       game.endTime ||
       game.played_at ||
       game.playedAt ||
+      game.played_date ||
+      game.playedDate ||
       game.date ||
+      pgnPlayedAt ||
       game.createdAt ||
       game.created_at
   );
   const playedAt =
     game.played_at ||
     game.playedAt ||
+    game.played_date ||
+    game.playedDate ||
+    pgnPlayedAt ||
     (timestamp ? new Date(timestamp).toISOString() : "");
+  const colour = String(game.colour || game.color || game.player_color || game.playerColour || "").toLowerCase();
+  const context = String(game.context || game.repertoireContext || game.repertoire_context || "").toLowerCase();
+  const normalizedColour =
+    colour.includes("white") || context === "played_as_white"
+      ? "white"
+      : colour.includes("black") || context.startsWith("black")
+        ? "black"
+        : "unknown";
 
   return {
     ...game,
@@ -1374,6 +1405,10 @@ function normalizeSavedGameMetadata(game = {}) {
     timeControlRaw: rawTimeControl,
     played_at: playedAt,
     playedAt,
+    played_date: playedAt,
+    playedDate: playedAt,
+    colour: normalizedColour,
+    color: normalizedColour,
   };
 }
 
@@ -1420,7 +1455,9 @@ export async function saveAnalysedGames(userId, report = {}, summary = {}) {
       analysis: {
         opening: normalizedGame.opening || normalizedGame.eco || normalizedGame.detected_opening || null,
         result: normalizedGame.result || normalizedGame.user_result || null,
-        colour: normalizedGame.colour || normalizedGame.color || null,
+        colour: normalizedGame.colour || normalizedGame.color || "unknown",
+        color: normalizedGame.colour || normalizedGame.color || "unknown",
+        time_control_raw: normalizedGame.time_control_raw || normalizedGame.timeControlRaw || "unknown",
         time_control: normalizedGame.time_class || "unknown",
         played_at: normalizedGame.played_at || null,
         saved_from_report: true,

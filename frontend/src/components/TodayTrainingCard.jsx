@@ -191,6 +191,9 @@ export default function TodayTrainingCard({
     onStartTraining?.(primary);
   };
 
+  const primaryIsWeakLine = primary?.type === "weak-line" || primary?.type === "weakest-line";
+  const ctaLabel = primaryIsWeakLine ? "Train this line" : "Review this opening";
+
   const complete = async () => {
     if (!primary) return;
 
@@ -276,27 +279,16 @@ export default function TodayTrainingCard({
 
         <div className="todayTrainingActions">
           <button type="button" onClick={start}>
-            Train this line
+            {ctaLabel}
           </button>
           <button type="button" onClick={complete}>
-            Mark line reviewed
+            Mark reviewed
           </button>
         </div>
 
         {status ? <p className="todayTrainingStatus">{status}</p> : null}
         {!user?.id ? <p className="todayTrainingSavePrompt">Log in to save your training progress across devices.</p> : null}
       </div>
-
-      {plan.recommendations.length > 1 ? (
-        <div className="todayTrainingSupport">
-          {plan.recommendations.slice(1, 3).map((item) => (
-            <article key={recommendationKey(item)}>
-              <strong>{item.opening}</strong>
-              <span>{item.reason}</span>
-            </article>
-          ))}
-        </div>
-      ) : null}
     </section>
   );
 }

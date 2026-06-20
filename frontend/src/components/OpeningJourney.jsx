@@ -536,7 +536,7 @@ function buildMilestones({ data, healthScore, masteryItems = [], previousSnapsho
   return [...earned, ...unearned].slice(0, 3);
 }
 
-export default function OpeningJourney({ data, fitData, retentionSnapshots = [], onPractice, onNavigate }) {
+export default function OpeningJourney({ data, fitData, retentionSnapshots = [] }) {
   const [weakestLineTrainingEvents, setWeakestLineTrainingEvents] = useState(() => readWeakestLineTrainingEvents());
 
   useEffect(() => {
@@ -638,7 +638,7 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [],
         <article className="openingJourneyWeakLine">
           <span>Weakest Line Changed</span>
           <p>{weakestLineText(data)}</p>
-          <small>{journey.weakestTraining.available ? "Use the action below to train this line." : journey.weakestTraining.message}</small>
+          <small>{journey.weakestTraining.available ? "The primary action card handles this line." : journey.weakestTraining.message}</small>
         </article>
       </div>
 
@@ -738,11 +738,6 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [],
             <p>Analyse more games to unlock a reliable repertoire coach recommendation.</p>
           )}
         </div>
-        {journey.repertoireCoach?.trainingTarget ? (
-          <button type="button" onClick={() => onPractice?.(journey.repertoireCoach.trainingTarget)}>
-            Train This Line
-          </button>
-        ) : null}
       </article>
 
       {!journey.repertoireCoach ? (
@@ -753,16 +748,6 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [],
             {journey.oneFix ? <small>{confidenceText(journey.oneFix)}</small> : null}
             <p>{journey.oneFix?.whyItMatters || journey.oneFix?.why_it_matters || "Fix one repeated opening problem before adding more theory."}</p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (journey.weakestTraining.available && onPractice) onPractice(journey.weakestTraining.target);
-              else if (journey.fixOpening && onPractice) onPractice(journey.fixOpening);
-              else onNavigate?.({ view: "train", path: "/train", target: "training-plan" });
-            }}
-          >
-            Train This Line
-          </button>
         </article>
       ) : null}
     </section>

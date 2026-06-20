@@ -74,6 +74,86 @@ function cleanSan(value) {
     .trim();
 }
 
+function stripMoveNumbers(value) {
+  return String(value || "")
+    .replace(/\{[^}]*\}/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\d+\.(\.\.)?/g, " ")
+    .replace(/\b(1-0|0-1|1\/2-1\/2|\*)\b/g, " ");
+}
+
+function splitMoveText(value) {
+  return stripMoveNumbers(value)
+    .split(/\s+/)
+    .map((move) => move.trim())
+    .filter((move) => move && !move.startsWith("$"));
+}
+
+function normaliseMoveToken(token, game) {
+  const clean = String(token || "").trim();
+  if (!clean) return null;
+
+  if (/^[a-h][1-8][a-h][1-8][qrbn]?$/i.test(clean)) {
+    const move = game.move({
+      from: clean.slice(0, 2).toLowerCase(),
+      to: clean.slice(2, 4).toLowerCase(),
+      promotion: clean[4]?.toLowerCase() || "q",
+    });
+    return move?.san || null;
+  }
+
+  const move = game.move(clean);
+  return move?.san || null;
+}
+
+function parseExactMoveSequence(opening = {}, trainingSet = null) {
+  const rawMoves = [
+    ...(Array.isArray(opening.moves) ? opening.moves : []),
+    ...(Array.isArray(opening.sanMoves) ? opening.sanMoves : []),
+    ...(Array.isArray(opening.san_moves) ? opening.san_moves : []),
+    ...(Array.isArray(opening.uciMoves) ? opening.uciMoves : []),
+    ...(Array.isArray(opening.uci_moves) ? opening.uci_moves : []),
+  ].filter(Boolean);
+  const rawText = [
+    trainingSet?.startingMoveSequence,
+    trainingSet?.starting_move_sequence,
+    opening.moveLine,
+    opening.move_line,
+    opening.lineMoves,
+    opening.line_moves,
+    opening.movesText,
+    opening.moves_text,
+  ].filter(Boolean).join(" ");
+  const tokens = rawMoves.length ? rawMoves.map(String) : splitMoveText(rawText);
+  const game = new Chess();
+  const moves = [];
+
+  for (const token of tokens) {
+    try {
+      const san = normaliseMoveToken(token, game);
+      if (!san) break;
+      moves.push(san);
+    } catch {
+      break;
+    }
+  }
+
+  return moves;
+}
+
+function exactLineName(opening = {}, trainingSet = null, fallbackName = "") {
+  return (
+    trainingSet?.lineName ||
+    trainingSet?.line_name ||
+    trainingSet?.variationName ||
+    trainingSet?.variation_name ||
+    opening.variation ||
+    opening.line ||
+    fallbackName ||
+    "Exact weak line"
+  );
+}
+
 function buildGameToMove(moves, moveCount) {
   const game = new Chess();
 
@@ -314,7 +394,64 @@ export default function OpeningPracticeLinesPanel({
   const trainingSet = opening?.trainingSet || opening?.training_set || null;
   const { boardTheme, setBoardTheme } = useBoardTheme();
   const [activeOpeningName, setActiveOpeningName] = useState(openingName);
-  const pack = useMemo(() => findOpeningPracticePack(activeOpeningName), [activeOpeningName]);
+  const basePack = useMemo(() => findOpeningPracticePack(activeOpeningName), [activeOpeningName]);
+  const exactMoves = useMemo(() => parseExactMoveSequence(opening, trainingSet), [opening, trainingSet]);
+  const exactPracticePack = useMemo(() => {
+    if (activeOpeningName !== openingName || exactMoves.length < 2) return null;
+
+    const lineName = exactLineName(opening, trainingSet, focusLine);
+    return {
+      key: `exact-${normaliseOpeningKey(openingName)}-${normaliseOpeningKey(lineName)}`,
+      opening: {
+        id: `exact-${normaliseOpeningKey(openingName)}`,
+        name: openingName,
+        color: inferPracticeSideFromOpening(opening) || basePack?.opening?.color || "white",
+        difficulty: trainingSet?.difficulty || basePack?.opening?.difficulty || "custom",
+        ideas: [
+          trainingSet?.shortExplanation ||
+            trainingSet?.short_explanation ||
+            opening.selectedReason ||
+            opening.selected_reason ||
+            opening.reason ||
+            opening.flagReason ||
+            "This is the exact weak line selected from your report.",
+        ].filter(Boolean),
+        traps: [],
+      },
+      practiceSide: inferPracticeSideFromOpening(opening) || basePack?.practiceSide,
+      lines: [
+        {
+          name: lineName,
+          moves: exactMoves,
+          idea:
+            trainingSet?.shortExplanation ||
+            trainingSet?.short_explanation ||
+            opening.selectedReason ||
+            opening.selected_reason ||
+            opening.reason ||
+            opening.flagReason ||
+            "This exact move sequence came from your weak-line data.",
+          finishIdea:
+            trainingSet?.recommendedCorrectContinuation ||
+            trainingSet?.recommended_correct_continuation ||
+            "You reached the saved weak-line position. Review the plan from here.",
+          side: inferPracticeSideFromOpening(opening) || undefined,
+          practiceSide: inferPracticeSideFromOpening(opening) || undefined,
+          source: "exact-weak-line",
+        },
+      ],
+    };
+  }, [activeOpeningName, basePack, exactMoves, focusLine, opening, openingName, trainingSet]);
+  const pack = exactPracticePack || basePack;
+  const usingExactWeakLine = Boolean(exactPracticePack);
+  const fallbackExplanation = useMemo(() => {
+    if (!trainingSet && !focusLine && !opening?.weakLine) return "";
+    if (usingExactWeakLine) return "";
+    if (!exactMoves.length) {
+      return "Exact moves were not saved for this weak line, so OpeningFit loaded the closest available opening practice instead.";
+    }
+    return "The saved weak-line moves could not be played legally from the starting position, so OpeningFit loaded the closest available opening practice instead.";
+  }, [exactMoves.length, focusLine, opening?.weakLine, trainingSet, usingExactWeakLine]);
 
   const [selectedLineIndex, setSelectedLineIndex] = useState(0);
   const [moveIndex, setMoveIndex] = useState(0);
@@ -333,8 +470,8 @@ export default function OpeningPracticeLinesPanel({
   const selectedLine = pack?.lines?.[selectedLineIndex];
   const moves = useMemo(() => selectedLine?.moves || [], [selectedLine]);
   const exactFocusLineFound = useMemo(
-    () => hasMatchingLine(pack?.lines || [], focusLine),
-    [focusLine, pack]
+    () => usingExactWeakLine || hasMatchingLine(pack?.lines || [], focusLine),
+    [focusLine, pack, usingExactWeakLine]
   );
   const requestedPracticeSide = useMemo(() => inferPracticeSideFromOpening(opening), [opening]);
   const practiceSide = useMemo(() => {
@@ -845,7 +982,16 @@ export default function OpeningPracticeLinesPanel({
               ? "You play Black. The board is flipped and White will move first."
               : "You play White. Follow your recommended opening moves."}
           </p>
-          {!exactFocusLineFound ? (
+          {usingExactWeakLine ? (
+            <p className="practiceExactLineNotice">
+              Loaded the exact weak-line move sequence from your report.
+            </p>
+          ) : null}
+          {fallbackExplanation ? (
+            <p className="practiceMissingLineNotice">
+              {fallbackExplanation}
+            </p>
+          ) : !exactFocusLineFound ? (
             <p className="practiceMissingLineNotice">
               Practice mode is ready for this opening, but no exact move line was found yet.
             </p>

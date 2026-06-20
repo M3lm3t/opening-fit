@@ -40,6 +40,14 @@ function moveLine(item) {
   return "";
 }
 
+function moveArray(item) {
+  if (!item || typeof item === "string") return [];
+  const direct = item.moves || item.sanMoves || item.san_moves || item.uciMoves || item.uci_moves || item.lineMoves || item.line_moves;
+  if (Array.isArray(direct)) return direct.map((move) => String(move || "").trim()).filter(Boolean);
+  if (typeof direct === "string") return direct.split(/\s+/).map((move) => move.trim()).filter(Boolean);
+  return [];
+}
+
 function inferSide(item = {}) {
   const text = [
     item.side,
@@ -133,6 +141,7 @@ export function buildWeakestLineTrainingTargetFromLine(line = {}) {
 
   const variation = lineName(sourceLine);
   const moveSequence = moveLine(sourceLine);
+  const moves = moveArray(sourceLine);
   const matchingLine = findMatchingPracticeLine(opening, variation || moveSequence, moveSequence);
   const recommendedContinuation =
     sourceLine.recommendedCorrectContinuation ||
@@ -179,10 +188,19 @@ export function buildWeakestLineTrainingTargetFromLine(line = {}) {
       variation,
       line: variation || sourceLine.line || moveSequence,
       moveLine: moveSequence,
+      move_line: moveSequence,
+      moves,
       side,
+      colour: sourceLine.colour || sourceLine.color || side || "unknown",
+      color: sourceLine.color || sourceLine.colour || side || "unknown",
       practiceSide: side || undefined,
       trainingTarget: opening,
       trainingSet,
+      selectedReason: explanation,
+      selected_reason: explanation,
+      reason: sourceLine.reason || explanation,
+      flagReason: sourceLine.flagReason || explanation,
+      weakLine: true,
       source: "weakest-line",
     },
   };

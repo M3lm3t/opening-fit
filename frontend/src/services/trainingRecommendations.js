@@ -97,7 +97,7 @@ function asRecommendationFromWeakLine(line) {
     reason: "Low win rate across enough games",
     why: line.flagReason || "This is your most common weak line.",
     estimatedTime: "3-5 minutes",
-    trainingTarget: line.trainingTarget || line.opening,
+    trainingTarget: line.trainingTarget || line,
     rankScore: 500 + line.games * 4 + Math.max(0, 55 - line.winRate) * 5 + line.lossRate,
   };
 }

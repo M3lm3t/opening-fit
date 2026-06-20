@@ -233,7 +233,7 @@ function scoreMetrics(masteredOpenings) {
   ];
 }
 
-export default function OpeningFitRetentionCommandCenter({ data, username, onPractice }) {
+export default function OpeningFitRetentionCommandCenter({ data, username }) {
   const playerName = getPlayerName(data, username);
   const storageKey = `${STORAGE_PREFIX}:${playerName}`;
   const today = todayKey();
@@ -314,8 +314,8 @@ export default function OpeningFitRetentionCommandCenter({ data, username, onPra
               <span>{strongestOpening?.name}: recall the first 6 moves and one plan.</span>
             </div>
             <div>
-              <strong>Weakest-line training</strong>
-              <span>{weakestOpening?.name}: repair {weakestOpening?.weakVariation}.</span>
+              <strong>Memory check</strong>
+              <span>{weakestOpening?.name}: note {weakestOpening?.weakVariation} for the primary action card.</span>
             </div>
             <div>
               <strong>Spaced review queue</strong>
@@ -404,11 +404,6 @@ export default function OpeningFitRetentionCommandCenter({ data, username, onPra
             <p>
               Weak against {opening.weakVariation}. {opening.decay ? `Sharpness dropped ${opening.decay}%.` : "Sharpness stable."}
             </p>
-            {onPractice ? (
-              <button className="ofRetentionSecondaryBtn" type="button" onClick={() => onPractice(opening.name)}>
-                Train this opening
-              </button>
-            ) : null}
           </article>
         ))}
       </div>
@@ -430,6 +425,7 @@ export default function OpeningFitRetentionCommandCenter({ data, username, onPra
           </ul>
         </article>
 
+        {false ? (
         <article className="ofRetentionPanel">
           <div className="ofRetentionPanelHeader">
             <div>
@@ -453,6 +449,7 @@ export default function OpeningFitRetentionCommandCenter({ data, username, onPra
             </div>
           </div>
         </article>
+        ) : null}
       </div>
 
       <div className="ofScoreStrip">

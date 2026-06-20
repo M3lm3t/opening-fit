@@ -4581,6 +4581,8 @@ def normalise_filter_time_control(value: Any) -> str:
         return "unknown"
     if "daily" in text or "correspondence" in text:
         return "daily"
+    if "/" in text:
+        return "daily"
     if "standard" in text or "classical" in text:
         return "classical"
     if "ultrabullet" in text or "ultra bullet" in text or "bullet" in text:
@@ -7912,6 +7914,11 @@ def import_chesscom_logic(username: str, months: int = 3):
         repertoire_context = opening_context_for_game(colour, first_white_move)
         time_control_raw = game.get("time_control") or game.get("timeControl") or game.get("time_class")
         time_control_normalized = normalise_filter_time_control(game.get("time_class") or time_control_raw)
+        played_at = (
+            datetime.fromtimestamp(game.get("end_time"), timezone.utc).isoformat()
+            if game.get("end_time")
+            else None
+        )
 
         opening_counter[opening] += 1
 
@@ -7962,6 +7969,10 @@ def import_chesscom_logic(username: str, months: int = 3):
                 "repertoireContext": repertoire_context,
                 "end_time": game.get("end_time"),
                 "endTime": game.get("end_time"),
+                "played_at": played_at,
+                "playedAt": played_at,
+                "played_date": played_at,
+                "playedDate": played_at,
                 "pgn": pgn,
                 "moves": moves,
                 "move_count": move_count,
@@ -7994,6 +8005,10 @@ def import_chesscom_logic(username: str, months: int = 3):
                 "repertoireContext": repertoire_context,
                 "end_time": game.get("end_time"),
                 "endTime": game.get("end_time"),
+                "played_at": played_at,
+                "playedAt": played_at,
+                "played_date": played_at,
+                "playedDate": played_at,
                 "move_count": move_count,
                 "moveCount": move_count,
                 "loss_timing": loss_timing,
@@ -8500,6 +8515,12 @@ def build_lichess_analysis(
         loss_timing = classify_loss_timing(result, moves=moves)
         time_control_raw = lichess_time_control_raw(game)
         time_control_normalized = lichess_time_class(game)
+        played_at_ms = game.get("lastMoveAt") or game.get("createdAt")
+        played_at = (
+            datetime.fromtimestamp(float(played_at_ms) / 1000, timezone.utc).isoformat()
+            if played_at_ms
+            else None
+        )
 
         pgn_moves = []
         for index in range(0, len(moves), 2):
@@ -8570,6 +8591,10 @@ def build_lichess_analysis(
                 "repertoireContext": repertoire_context,
                 "end_time": game.get("lastMoveAt") or game.get("createdAt"),
                 "endTime": game.get("lastMoveAt") or game.get("createdAt"),
+                "played_at": played_at,
+                "playedAt": played_at,
+                "played_date": played_at,
+                "playedDate": played_at,
                 "pgn": simple_pgn,
                 "moves": moves,
                 "movesText": moves_text,
@@ -8603,6 +8628,10 @@ def build_lichess_analysis(
                 "repertoireContext": repertoire_context,
                 "end_time": game.get("lastMoveAt") or game.get("createdAt"),
                 "endTime": game.get("lastMoveAt") or game.get("createdAt"),
+                "played_at": played_at,
+                "playedAt": played_at,
+                "played_date": played_at,
+                "playedDate": played_at,
                 "move_count": move_count,
                 "moveCount": move_count,
                 "loss_timing": loss_timing,
