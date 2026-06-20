@@ -20516,6 +20516,7 @@ html {
 }
 
 .reportFilterControls > div > span,
+.reportFilterControls > label > span,
 .reportOpeningSearch > span {
   display: block;
   margin-bottom: 6px;
@@ -20526,7 +20527,7 @@ html {
 }
 
 .reportOpeningFilters .reportFilterControls {
-  grid-template-columns: minmax(220px, 1.25fr) minmax(220px, 1fr) minmax(220px, 1fr);
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
 }
 
 .reportOpeningSearch {
@@ -20534,8 +20535,62 @@ html {
   min-width: 0;
 }
 
-.reportOpeningSearch .input {
+.reportOpeningSearch .input,
+.reportFilterSelect {
   min-height: 42px;
+}
+
+.performanceByTimeControlCard {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(248, 214, 109, 0.18);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.performanceByTimeControlCard > span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.performanceByTimeControlCard > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr));
+  gap: 8px;
+}
+
+.performanceByTimeControlCard article {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 9px;
+  padding: 8px;
+  background: rgba(15, 23, 42, 0.24);
+}
+
+.performanceByTimeControlCard strong,
+.performanceByTimeControlCard em {
+  color: var(--text);
+  font-style: normal;
+}
+
+.performanceByTimeControlCard small {
+  color: var(--muted);
+}
+
+.light .performanceByTimeControlCard,
+[data-theme="light"] .performanceByTimeControlCard {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.light .performanceByTimeControlCard article,
+[data-theme="light"] .performanceByTimeControlCard article {
+  background: rgba(255, 255, 255, 0.74);
 }
 
 .segmentedControl {

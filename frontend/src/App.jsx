@@ -169,6 +169,7 @@ const PLATFORM_KEY = "openingFit:lastPlatform";
 const IMPORT_MONTHS_KEY = "openingFit:lastImportMonths";
 const OPENING_SAMPLE_PERCENT_KEY = "openingFit:openingSamplePercent";
 const ANALYSIS_TIME_FORMAT_KEY = "openingFit:lastAnalysisTimeFormat";
+const REPORT_FILTERS_KEY = "openingFit:reportFilters";
 const AUTH_RETURN_PATH_KEY = "openingFit:authReturnPath";
 const SUPPORT_EMAIL = "m3lm3t@gmail.com";
 
@@ -3203,14 +3204,12 @@ const formatImportRange = (data) => {
 };
 
 const TIME_CONTROL_FILTERS = [
+  { key: "all", label: "All Games" },
   { key: "bullet", label: "Bullet" },
   { key: "blitz", label: "Blitz" },
   { key: "rapid", label: "Rapid" },
   { key: "classical", label: "Classical" },
-  { key: "daily", label: "Daily / Correspondence" },
-  { key: "custom", label: "All Time Controls" },
-  { key: "serious", label: "Rapid + Blitz" },
-  { key: "all", label: "All Time Controls" },
+  { key: "daily", label: "Daily" },
 ];
 
 const ANALYSIS_TIME_FORMAT_OPTIONS = [
@@ -3234,33 +3233,59 @@ function getAnalysisTimeFormatLabel(value) {
   );
 }
 
-function getReportTimeControlFilter(value) {
-  const key = normalizeAnalysisTimeFormat(value);
-  return key === "custom" ? "all" : key;
-}
-
 const DATE_RANGE_FILTERS = [
   { key: "30", label: "Last 30 days", days: 30 },
   { key: "90", label: "Last 90 days", days: 90 },
   { key: "180", label: "Last 6 months", days: 180 },
   { key: "365", label: "Last 12 months", days: 365 },
+  { key: "all", label: "All Time", days: null },
 ];
 
+const COLOUR_FILTERS = [
+  { key: "all", label: "All" },
+  { key: "white", label: "White" },
+  { key: "black", label: "Black" },
+];
+
+const DEFAULT_REPORT_FILTERS = {
+  timeControl: "all",
+  dateRange: "all",
+  colour: "all",
+  openingQuery: "",
+};
+
+function normalizeReportFilters(filters = {}) {
+  const timeControl = TIME_CONTROL_FILTERS.some((item) => item.key === filters.timeControl)
+    ? filters.timeControl
+    : DEFAULT_REPORT_FILTERS.timeControl;
+  const dateRange = DATE_RANGE_FILTERS.some((item) => item.key === filters.dateRange)
+    ? filters.dateRange
+    : DEFAULT_REPORT_FILTERS.dateRange;
+  const colour = COLOUR_FILTERS.some((item) => item.key === (filters.colour || filters.color))
+    ? filters.colour || filters.color
+    : DEFAULT_REPORT_FILTERS.colour;
+
+  return {
+    timeControl,
+    dateRange,
+    colour,
+    openingQuery: typeof filters.openingQuery === "string" ? filters.openingQuery : "",
+  };
+}
+
+function loadStoredReportFilters() {
+  if (typeof window === "undefined") return DEFAULT_REPORT_FILTERS;
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(REPORT_FILTERS_KEY) || "null");
+    return normalizeReportFilters(parsed || DEFAULT_REPORT_FILTERS);
+  } catch {
+    return DEFAULT_REPORT_FILTERS;
+  }
+}
+
 function getGameTimeControl(game) {
-  const explicit = String(
-    game?.time_class ||
-      game?.timeClass ||
-      game?.speed ||
-      game?.perf ||
-      game?.perfType ||
-      ""
-  ).toLowerCase();
-
-  if (explicit.includes("correspondence") || explicit.includes("daily")) return "daily";
-  if (explicit.includes("standard")) return "classical";
-  if (["bullet", "blitz", "rapid", "classical", "daily"].includes(explicit)) return explicit;
-
-  return detectTimeControlFromPgn(game?.pgn || game?.PGN || game?.rawPgn || "")?.key || explicit;
+  return normalizeTimeControl(game);
 }
 
 function getPgnHeaderValue(pgnText, headerName) {
@@ -3292,6 +3317,37 @@ function classifyTimeControlValue(value) {
   if (estimatedSeconds < 600) return "blitz";
   if (estimatedSeconds < 1800) return "rapid";
   return "classical";
+}
+
+function normalizeTimeControl(gameOrValue) {
+  if (!gameOrValue || typeof gameOrValue !== "object") {
+    return classifyTimeControlValue(gameOrValue) || "unknown";
+  }
+
+  const game = gameOrValue;
+  const candidates = [
+    game.time_control_normalized,
+    game.timeControlNormalized,
+    game.time_class,
+    game.timeClass,
+    game.time_control_class,
+    game.timeControlClass,
+    game.speed,
+    game.perf,
+    game.perfType,
+    game.time_control,
+    game.timeControl,
+    game.time_control_raw,
+    game.timeControlRaw,
+    game.rawTimeControl,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = classifyTimeControlValue(candidate);
+    if (normalized) return normalized;
+  }
+
+  return detectTimeControlFromPgn(game.pgn || game.PGN || game.rawPgn || "")?.key || "unknown";
 }
 
 function detectTimeControlFromPgn(pgnText) {
@@ -3536,10 +3592,10 @@ function buildFrontendStyleBasedRecommendations(data) {
 
 function gamePassesReportFilters(game, filters) {
   const timeClass = getGameTimeControl(game);
-  const timeFilter = filters?.timeControl || "serious";
+  const timeFilter = filters?.timeControl || "all";
 
-  if (timeFilter === "serious" && !["rapid", "blitz"].includes(timeClass)) return false;
-  if (timeFilter !== "all" && timeFilter !== "serious" && timeClass !== timeFilter) return false;
+  if (timeFilter !== "all" && timeClass !== timeFilter) return false;
+  if (!gamePassesColourFilter(game, filters)) return false;
   if (!lineMatchesOpeningFilter(game, filters)) return false;
 
   const days = DATE_RANGE_FILTERS.find((item) => item.key === filters?.dateRange)?.days;
@@ -3555,6 +3611,72 @@ function gamePassesReportFilters(game, filters) {
 
   if (!timestamp) return true;
   return timestamp >= Date.now() - days * 24 * 60 * 60 * 1000;
+}
+
+function gamePassesColourFilter(game, filters) {
+  const colourFilter = filters?.colour || filters?.color || "all";
+  if (colourFilter === "all") return true;
+
+  const context = itemContext(game, "unknown_mixed");
+  const side = String(
+    game?.colour ||
+      game?.color ||
+      game?.player_color ||
+      game?.playerColour ||
+      getOpeningSide(game)
+  ).toLowerCase();
+
+  if (colourFilter === "white") {
+    return context === "played_as_white" || side.includes("white");
+  }
+
+  if (colourFilter === "black") {
+    return context.startsWith("black") || side.includes("black");
+  }
+
+  return true;
+}
+
+function normalizeGameMetadata(game) {
+  if (!game || typeof game !== "object") return game;
+
+  const normalizedTimeControl = normalizeTimeControl(game);
+  const rawTimeControl =
+    game.time_control_raw ||
+    game.timeControlRaw ||
+    game.rawTimeControl ||
+    game.time_control ||
+    game.timeControl ||
+    game.time_class ||
+    game.timeClass ||
+    game.speed ||
+    game.perf ||
+    "";
+  const timestamp = normaliseTimestamp(
+    game.end_time ||
+      game.endTime ||
+      game.played_at ||
+      game.playedAt ||
+      game.date ||
+      game.createdAt ||
+      game.created_at
+  );
+  const playedAt =
+    game.played_at ||
+    game.playedAt ||
+    (timestamp ? new Date(timestamp).toISOString() : "");
+
+  return {
+    ...game,
+    time_class: normalizedTimeControl,
+    timeClass: normalizedTimeControl,
+    time_control_normalized: normalizedTimeControl,
+    timeControlNormalized: normalizedTimeControl,
+    time_control_raw: rawTimeControl,
+    timeControlRaw: rawTimeControl,
+    played_at: playedAt,
+    playedAt,
+  };
 }
 
 function gameResultStats(result) {
@@ -3673,11 +3795,132 @@ function findWeakLinesFromGames(filteredGames, openings) {
     .slice(0, 12);
 }
 
+function buildPerformanceByTimeControl(games, filters) {
+  if (!Array.isArray(games) || !games.length) return [];
+
+  const rows = new Map();
+  games.forEach((game) => {
+    if (!gamePassesColourFilter(game, filters)) return;
+    if (!lineMatchesOpeningFilter(game, filters)) return;
+
+    const days = DATE_RANGE_FILTERS.find((item) => item.key === filters?.dateRange)?.days;
+    if (days) {
+      const timestamp = normaliseTimestamp(
+        game?.end_time ||
+          game?.endTime ||
+          game?.played_at ||
+          game?.playedAt ||
+          game?.date
+      );
+      if (timestamp && timestamp < Date.now() - days * 24 * 60 * 60 * 1000) return;
+    }
+
+    const key = getGameTimeControl(game) || "unknown";
+    if (!rows.has(key)) {
+      rows.set(key, {
+        key,
+        format: TIME_CONTROL_FILTERS.find((item) => item.key === key)?.label || reportTitleCase(key || "Unknown"),
+        games: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+      });
+    }
+
+    const row = rows.get(key);
+    const resultStats = gameResultStats(game?.result);
+    row.games += 1;
+    row.wins += resultStats.wins;
+    row.draws += resultStats.draws;
+    row.losses += resultStats.losses;
+  });
+
+  return Array.from(rows.values())
+    .map((row) => ({
+      ...row,
+      winRate: row.games ? Math.round(((row.wins + row.draws * 0.5) / row.games) * 100) : 0,
+      win_rate: row.games ? Math.round(((row.wins + row.draws * 0.5) / row.games) * 100) : 0,
+    }))
+    .sort((a, b) => b.games - a.games);
+}
+
+function buildFilteredOpeningFitScore(openings, weakLines) {
+  const rows = Array.isArray(openings) ? openings.filter((item) => getOpeningGames(item) > 0) : [];
+  if (!rows.length) return null;
+
+  const totalGames = rows.reduce((sum, item) => sum + getOpeningGames(item), 0);
+  const weightedScore = rows.reduce((sum, item) => sum + getWinRate(item) * getOpeningGames(item), 0) / Math.max(1, totalGames);
+  const sampleBonus = Math.min(15, Math.round(Math.log10(Math.max(1, totalGames)) * 8));
+  const weakPenalty = Math.min(18, (weakLines?.length || 0) * 4);
+
+  return Math.max(0, Math.min(100, Math.round(weightedScore * 0.82 + sampleBonus - weakPenalty)));
+}
+
+function buildFilteredOpeningIdentity(openings, weakLines, filters) {
+  const rows = Array.isArray(openings) ? openings.filter((item) => getOpeningGames(item) > 0) : [];
+  const strongest = [...rows].sort((a, b) => getWinRate(b) - getWinRate(a) || getOpeningGames(b) - getOpeningGames(a))[0];
+  const mostPlayed = [...rows].sort((a, b) => getOpeningGames(b) - getOpeningGames(a))[0];
+  const weakest = weakLines?.[0] || [...rows].sort((a, b) => getWinRate(a) - getWinRate(b))[0];
+  const avgWinRate = rows.length
+    ? Math.round(rows.reduce((sum, item) => sum + getWinRate(item), 0) / rows.length)
+    : null;
+  const label =
+    avgWinRate === null
+      ? "Developing"
+      : weakLines?.length >= 3
+        ? "Tactical Explorer"
+        : avgWinRate >= 58
+          ? "Solid Builder"
+          : avgWinRate <= 45
+            ? "Repair Mode"
+            : "Balanced Repertoire";
+
+  return {
+    label,
+    confidence: rows.length >= 4 ? 75 : rows.length >= 2 ? 55 : 35,
+    reasons: [
+      strongest ? `Best filtered signal: ${getOpeningContextTitle(strongest)}.` : null,
+      weakest ? `Main filtered repair target: ${getOpeningContextTitle(weakest)}.` : null,
+      filters?.timeControl && filters.timeControl !== "all"
+        ? `This identity only uses ${TIME_CONTROL_FILTERS.find((item) => item.key === filters.timeControl)?.label || filters.timeControl} games.`
+        : null,
+    ].filter(Boolean),
+    suggestedOpeningDirection: mostPlayed
+      ? `Use ${getOpeningName(mostPlayed)} as the reference point for this filtered report.`
+      : "Analyse more games to build a clearer opening identity.",
+  };
+}
+
+function buildFilteredTrainingPlan(weakLines, openings) {
+  const weakTargets = Array.isArray(weakLines) ? weakLines : [];
+  const fallback = Array.isArray(openings)
+    ? [...openings].sort((a, b) => getWinRate(a) - getWinRate(b) || getOpeningGames(b) - getOpeningGames(a)).slice(0, 3)
+    : [];
+
+  return (weakTargets.length ? weakTargets : fallback).slice(0, 3).map((item, index) => ({
+    id: `filtered-training-${index + 1}`,
+    title: index === 0 ? "Train this filtered weakness" : "Review this filtered line",
+    opening: getOpeningName(item),
+    variation: item?.variation || item?.line || "",
+    games: getOpeningGames(item),
+    winRate: getWinRate(item),
+    reason: item?.flagReason || `${getOpeningContextTitle(item)} is one of the weakest filtered results.`,
+    action: "Train this line",
+    trainingTarget: item?.trainingTarget || item,
+    source: "filtered-report",
+  }));
+}
+
 function aggregateFilteredOpeningGames(data, filters) {
   const allGames = [
     ...(Array.isArray(data?.opening_games) ? data.opening_games : []),
     ...(Array.isArray(data?.openingGames) ? data.openingGames : []),
-  ];
+    ...(Array.isArray(data?.recent_games) ? data.recent_games : []),
+    ...(Array.isArray(data?.recentGames) ? data.recentGames : []),
+    ...(Array.isArray(data?.games) ? data.games : []),
+    ...(Array.isArray(data?.saved_games) ? data.saved_games : []),
+    ...(Array.isArray(data?.savedGames) ? data.savedGames : []),
+  ].map(normalizeGameMetadata);
   const uniqueGames = [];
   const seen = new Set();
 
@@ -3747,6 +3990,7 @@ function aggregateFilteredOpeningGames(data, filters) {
   const preferredWhite = byGames.filter((item) => item.context === "played_as_white");
   const preferredBlack = byGames.filter((item) => item.context.startsWith("black"));
   const weakLines = findWeakLinesFromGames(filteredGames, byGames);
+  const performanceByTimeControl = buildPerformanceByTimeControl(uniqueGames, filters);
 
   return {
     topOpenings: byGames,
@@ -3755,6 +3999,7 @@ function aggregateFilteredOpeningGames(data, filters) {
     preferredBlack,
     weakLines,
     filteredGames,
+    performanceByTimeControl,
     totalGames: filteredGames.length,
     sourceGames: uniqueGames.length,
   };
@@ -3764,17 +4009,35 @@ function applyReportFilters(data, filters) {
   if (!data) return null;
 
   const aggregate = aggregateFilteredOpeningGames(data, filters);
-  const timeLabel = TIME_CONTROL_FILTERS.find((item) => item.key === filters.timeControl)?.label || "Rapid + Blitz";
-  const dateLabel = DATE_RANGE_FILTERS.find((item) => item.key === filters.dateRange)?.label || "Last 90 days";
+  const timeLabel = TIME_CONTROL_FILTERS.find((item) => item.key === filters.timeControl)?.label || "All Games";
+  const dateLabel = DATE_RANGE_FILTERS.find((item) => item.key === filters.dateRange)?.label || "All Time";
+  const colourLabel = COLOUR_FILTERS.find((item) => item.key === (filters.colour || "all"))?.label || "All";
   const openingLabel = filters.openingQuery ? `, ${filters.openingQuery}` : "";
+  const filterSummary = `${timeLabel}, ${dateLabel}, ${colourLabel}${openingLabel}`;
 
   if (!aggregate) {
     return {
       ...data,
-      reportFilters: { ...filters, timeLabel, dateLabel, limited: true },
-      filterSummary: `${timeLabel}, ${dateLabel}${openingLabel}`,
+      reportFilters: { ...filters, timeLabel, dateLabel, colourLabel, limited: true },
+      filterSummary,
     };
   }
+
+  const openingFitScore = buildFilteredOpeningFitScore(aggregate.topOpenings, aggregate.weakLines);
+  const openingIdentity = buildFilteredOpeningIdentity(aggregate.topOpenings, aggregate.weakLines, filters);
+  const trainingPlan = buildFilteredTrainingPlan(aggregate.weakLines, aggregate.topOpenings);
+  const weakestLine = aggregate.weakLines?.[0] || null;
+  const oneThingToFix = weakestLine
+    ? {
+        opening: weakestLine.opening,
+        variation: weakestLine.variation || weakestLine.line,
+        exactIssue: weakestLine.flagReason,
+        whyItMatters: "This line is underperforming inside the current filtered game set.",
+        suggestedTrainingAction: "Train this line from the filtered report.",
+        displayText: `Train ${weakestLine.variation || weakestLine.line || weakestLine.opening}`,
+        trainingTarget: weakestLine.trainingTarget,
+      }
+    : data?.retentionMetrics?.oneThingToFix || data?.oneThingToFix || null;
 
   return {
     ...data,
@@ -3788,6 +4051,32 @@ function applyReportFilters(data, filters) {
     preferredBlack: aggregate.preferredBlack,
     weak_lines: aggregate.weakLines,
     weakLines: aggregate.weakLines,
+    recent_games: aggregate.filteredGames,
+    recentGames: aggregate.filteredGames,
+    training_plan: trainingPlan.length ? trainingPlan : data.training_plan,
+    trainingPlan: trainingPlan.length ? trainingPlan : data.trainingPlan,
+    performanceByTimeControl: aggregate.performanceByTimeControl,
+    performance_by_time_control: aggregate.performanceByTimeControl,
+    timeControlPerformance: aggregate.performanceByTimeControl,
+    openingFitScore,
+    opening_fit_score: openingFitScore,
+    openingIdentity,
+    opening_identity: openingIdentity,
+    oneThingToFix,
+    one_thing_to_fix: oneThingToFix,
+    weakestLine,
+    weakest_line: weakestLine,
+    retentionMetrics: {
+      ...(data.retentionMetrics || data.retention_metrics || {}),
+      openingFitScore,
+      opening_fit_score: openingFitScore,
+      openingIdentity,
+      opening_identity: openingIdentity,
+      weakestLine,
+      weakest_line: weakestLine,
+      oneThingToFix,
+      one_thing_to_fix: oneThingToFix,
+    },
     total_games: aggregate.totalGames,
     totalGames: aggregate.totalGames,
     gamesImported: aggregate.totalGames,
@@ -3804,13 +4093,14 @@ function applyReportFilters(data, filters) {
             },
           ]
         : [],
-    filterSummary: `${timeLabel}, ${dateLabel}${openingLabel}`,
+    filterSummary,
     timeRange: dateLabel,
     dateRange: dateLabel,
     reportFilters: {
       ...filters,
       timeLabel,
       dateLabel,
+      colourLabel,
       limited: false,
       sourceGames: aggregate.sourceGames,
     },
@@ -5385,12 +5675,57 @@ function ReportOpeningFilters({ filters, onFiltersChange, data }) {
       <div className="reportFiltersHeader">
         <div>
           <p className="eyebrow">Report filters</p>
-          <h2>Focus by opening or variation</h2>
+          <h2>Filter this report</h2>
         </div>
         <span>{data?.filterSummary || "Current report"}</span>
       </div>
 
       <div className="reportFilterControls">
+        <label>
+          <span>Time control</span>
+          <select
+            className="input reportFilterSelect"
+            value={activeFilters.timeControl || "all"}
+            onChange={(event) => updateFilter("timeControl", event.target.value)}
+          >
+            {TIME_CONTROL_FILTERS.map((item) => (
+              <option key={item.key} value={item.key}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span>Time range</span>
+          <select
+            className="input reportFilterSelect"
+            value={activeFilters.dateRange || "all"}
+            onChange={(event) => updateFilter("dateRange", event.target.value)}
+          >
+            {DATE_RANGE_FILTERS.map((item) => (
+              <option key={item.key} value={item.key}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span>Colour</span>
+          <select
+            className="input reportFilterSelect"
+            value={activeFilters.colour || "all"}
+            onChange={(event) => updateFilter("colour", event.target.value)}
+          >
+            {COLOUR_FILTERS.map((item) => (
+              <option key={item.key} value={item.key}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <label className="reportOpeningSearch">
           <span>Opening / variation</span>
           <input
@@ -5401,44 +5736,27 @@ function ReportOpeningFilters({ filters, onFiltersChange, data }) {
             placeholder="Italian, Caro-Kann Advance, 1.e4 c6..."
           />
         </label>
-
-        <div>
-          <span>Time control</span>
-          <div className="segmentedControl compactSegmentedControl">
-            {TIME_CONTROL_FILTERS.filter((item) => ["serious", "blitz", "rapid", "all"].includes(item.key)).map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={activeFilters.timeControl === item.key ? "active" : ""}
-                onClick={() => updateFilter("timeControl", item.key)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <span>Date range</span>
-          <div className="segmentedControl compactSegmentedControl">
-            {DATE_RANGE_FILTERS.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={activeFilters.dateRange === item.key ? "active" : ""}
-                onClick={() => updateFilter("dateRange", item.key)}
-              >
-                {item.label.replace("Last ", "")}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
+
+      {data?.performanceByTimeControl?.length ? (
+        <div className="performanceByTimeControlCard" aria-label="Performance by time control">
+          <span>Performance by time control</span>
+          <div>
+            {data.performanceByTimeControl.slice(0, 5).map((item) => (
+              <article key={item.key || item.format}>
+                <strong>{item.format}</strong>
+                <small>{item.games} games</small>
+                <em>{item.winRate ?? item.win_rate ?? 0}%</em>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <p>
         {hasOpeningQuery
-          ? "Only games matching that opening, variation, or move line are included in the report below."
-          : "Isolate one opening family or variation."}
+          ? "Only matching games are included below."
+          : "Filters recalculate the report from available game data."}
         {hasOpeningQuery ? (
           <button className="inlineFilterClear" type="button" onClick={clearOpeningQuery}>
             Clear opening filter
@@ -5846,6 +6164,8 @@ function FinalReportFlow({
         onUpgrade={() => onNavigate?.("premium")}
       />
 
+      <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
+
       <ReportSectionGroup id="report-verdict" eyebrow="Verdict" title="Your verdict">
         <OpeningFitVerdictPanel
           data={data}
@@ -5956,7 +6276,6 @@ function FinalReportFlow({
           </ReportSectionGroup>
 
           <ReportSectionGroup id="report-recent-games" eyebrow="Games/Data" title="Recent games">
-            <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
             <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
             <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
             <ImportQualitySummary data={data} />
@@ -5966,7 +6285,6 @@ function FinalReportFlow({
 
       {showOpeningTable ? (
         <ReportSectionGroup id="report-recent-games" eyebrow="Games/Data" title="Recent games">
-          <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
           <OpeningFitScoreList fitData={fitData} onPractice={onPractice} />
           <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
         </ReportSectionGroup>
@@ -7809,28 +8127,56 @@ function getLatestCloudReport(reportHistory = []) {
     )[0] || null;
 }
 
+function getCloudSavedGames(snapshot = {}) {
+  return (Array.isArray(snapshot.analysed_games) ? snapshot.analysed_games : [])
+    .map((row) => row?.game || row?.analysis || null)
+    .filter((game) => game && typeof game === "object")
+    .map(normalizeGameMetadata);
+}
+
+function hydrateReportWithCloudGames(report, snapshot = {}) {
+  if (!report || typeof report !== "object") return report;
+
+  const cloudGames = getCloudSavedGames(snapshot);
+  if (!cloudGames.length) return report;
+
+  const existingSavedGames = Array.isArray(report.saved_games)
+    ? report.saved_games
+    : Array.isArray(report.savedGames)
+      ? report.savedGames
+      : [];
+  const savedGames = [...existingSavedGames.map(normalizeGameMetadata), ...cloudGames];
+
+  return {
+    ...report,
+    saved_games: savedGames,
+    savedGames,
+  };
+}
+
 function getRestoredCloudReport(snapshot = {}) {
   const workspaceReport =
     (snapshot.openingfit_user_state || []).find((row) => row?.last_report)?.last_report ||
     null;
   if (workspaceReport && typeof workspaceReport === "object") {
+    const report = hydrateReportWithCloudGames(workspaceReport, snapshot);
     return {
-      report: workspaceReport,
+      report,
       username:
         snapshot.openingfit_user_state?.find((row) => row?.last_report)?.username ||
-        workspaceReport.username ||
-        workspaceReport.playerName ||
+        report.username ||
+        report.playerName ||
         "",
       platform:
         snapshot.openingfit_user_state?.find((row) => row?.last_report)?.platform ||
-        workspaceReport.platform ||
-        workspaceReport.importPlatform ||
+        report.platform ||
+        report.importPlatform ||
         "",
     };
   }
 
   if (snapshot.profile?.last_report && typeof snapshot.profile.last_report === "object") {
-    const report = snapshot.profile.last_report;
+    const report = hydrateReportWithCloudGames(snapshot.profile.last_report, snapshot);
     return {
       report,
       username: snapshot.profile.username || report.username || report.playerName || "",
@@ -7840,10 +8186,11 @@ function getRestoredCloudReport(snapshot = {}) {
 
   const latestReport = getLatestCloudReport(snapshot.report_history || []);
   if (latestReport?.report && typeof latestReport.report === "object") {
+    const report = hydrateReportWithCloudGames(latestReport.report, snapshot);
     return {
-      report: latestReport.report,
-      username: latestReport.username || latestReport.summary?.username || latestReport.report.username || "",
-      platform: latestReport.platform || latestReport.summary?.platform || latestReport.report.platform || "",
+      report,
+      username: latestReport.username || latestReport.summary?.username || report.username || "",
+      platform: latestReport.platform || latestReport.summary?.platform || report.platform || "",
     };
   }
 
@@ -13181,13 +13528,7 @@ function App() {
   const [analysisTimeFormat, setAnalysisTimeFormat] = useState(() =>
     normalizeAnalysisTimeFormat(localStorage.getItem(ANALYSIS_TIME_FORMAT_KEY) || "custom")
   );
-  const [reportFilters, setReportFilters] = useState(() => ({
-    timeControl: getReportTimeControlFilter(
-      localStorage.getItem(ANALYSIS_TIME_FORMAT_KEY) || "custom"
-    ),
-    dateRange: "90",
-    openingQuery: "",
-  }));
+  const [reportFilters, setReportFilters] = useState(loadStoredReportFilters);
   const [openingSamplePercent, setOpeningSamplePercent] = useState(() =>
     clampOpeningSamplePercent(localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY) ?? 2)
   );
@@ -13525,11 +13866,11 @@ function App() {
   useEffect(() => {
     const normalized = normalizeAnalysisTimeFormat(analysisTimeFormat);
     localStorage.setItem(ANALYSIS_TIME_FORMAT_KEY, normalized);
-    setReportFilters((current) => ({
-      ...current,
-      timeControl: getReportTimeControlFilter(normalized),
-    }));
   }, [analysisTimeFormat]);
+
+  useEffect(() => {
+    localStorage.setItem(REPORT_FILTERS_KEY, JSON.stringify(normalizeReportFilters(reportFilters)));
+  }, [reportFilters]);
 
   useEffect(() => {
     const handleEscape = (event) => {
@@ -13707,6 +14048,26 @@ function App() {
       detectReportTimeFormat(incoming);
     const weakLines = mergeWeakLines(incoming);
     const recommendedAction = buildSingleRecommendedAction(incoming);
+    const recentGameSource = Array.isArray(incoming.recent_games)
+      ? incoming.recent_games
+      : Array.isArray(incoming.recentGames)
+        ? incoming.recentGames
+        : [];
+    const openingGameSource = Array.isArray(incoming.opening_games)
+      ? incoming.opening_games
+      : Array.isArray(incoming.openingGames)
+        ? incoming.openingGames
+        : [];
+    const savedGameSource = Array.isArray(incoming.saved_games)
+      ? incoming.saved_games
+      : Array.isArray(incoming.savedGames)
+        ? incoming.savedGames
+        : [];
+    const gamesSource = Array.isArray(incoming.games) ? incoming.games : [];
+    const recentGames = recentGameSource.map(normalizeGameMetadata);
+    const openingGames = openingGameSource.map(normalizeGameMetadata);
+    const savedGames = savedGameSource.map(normalizeGameMetadata);
+    const games = gamesSource.map(normalizeGameMetadata);
 
     return {
       ...incoming,
@@ -13770,10 +14131,13 @@ function App() {
       best_openings: incoming.best_openings ?? incoming.bestOpenings ?? [],
       preferred_white: incoming.preferred_white ?? incoming.preferredWhite ?? [],
       preferred_black: incoming.preferred_black ?? incoming.preferredBlack ?? [],
-      recent_games: incoming.recent_games ?? incoming.recentGames ?? [],
-      recentGames: incoming.recentGames ?? incoming.recent_games ?? [],
-      opening_games: incoming.opening_games ?? incoming.openingGames ?? [],
-      openingGames: incoming.openingGames ?? incoming.opening_games ?? [],
+      recent_games: recentGames,
+      recentGames,
+      opening_games: openingGames,
+      openingGames,
+      saved_games: savedGames,
+      savedGames,
+      games: Array.isArray(incoming.games) ? games : incoming.games,
       weak_lines: weakLines,
       weakLines,
       style_profile: incoming.style_profile ?? incoming.styleProfile ?? {},
@@ -14663,7 +15027,7 @@ function App() {
 
   useEffect(() => {
     setSelectedGameIndex(0);
-  }, [reportFilters.timeControl, reportFilters.dateRange, reportFilters.openingQuery]);
+  }, [reportFilters.timeControl, reportFilters.dateRange, reportFilters.colour, reportFilters.openingQuery]);
 
   const filteredTopOpenings = useMemo(() => {
     return filterOpeningsBySamplePercent(
@@ -16501,6 +16865,8 @@ function App() {
 
               {activeAppSection === "train" ? (
                 <>
+                  <ReportOpeningFilters filters={reportFilters} onFiltersChange={setReportFilters} data={reportData} />
+
                   <div id="opening-practice">
                     <ContinueTrainingCard
                       data={reportData}

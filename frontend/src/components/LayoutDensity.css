@@ -1017,6 +1017,19 @@
   .profileDashboard.profileDashboardSimple {
     width: 100% !important;
     max-width: min(1420px, calc(100vw - 48px)) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .reportCommandBar,
+  .exportHistoryShell,
+  .appStoreReadinessFooter,
+  .siteFooter {
+    width: 100% !important;
+    max-width: min(1420px, calc(100vw - 48px)) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
   }
 
   .reportSectionGroup,
@@ -1145,6 +1158,8 @@
     grid-row: 1 !important;
     position: sticky !important;
     top: 86px !important;
+    width: 100% !important;
+    max-width: none !important;
     margin: 0 !important;
     align-self: start !important;
   }
@@ -1356,14 +1371,12 @@
   }
 
   .siteFooter {
-    max-width: min(1280px, calc(100vw - 48px)) !important;
     margin-top: 22px !important;
     padding-top: 14px !important;
     gap: 12px !important;
   }
 
   .appStoreReadinessFooter {
-    max-width: min(1180px, calc(100vw - 48px)) !important;
     margin-top: 18px !important;
     padding-top: 12px !important;
     gap: 10px !important;

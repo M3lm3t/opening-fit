@@ -4575,15 +4575,47 @@ def cap_confidence_for_import_quality(openings: List[Dict[str, Any]], import_qua
     return adjusted
 
 
-def normalise_time_control_group(value: Any) -> str:
+def normalise_filter_time_control(value: Any) -> str:
     text = str(value or "unknown").strip().lower()
-    if text in {"bullet"}:
+    if not text or text in {"?", "-", "unknown", "none"}:
+        return "unknown"
+    if "daily" in text or "correspondence" in text:
+        return "daily"
+    if "standard" in text or "classical" in text:
+        return "classical"
+    if "ultrabullet" in text or "ultra bullet" in text or "bullet" in text:
         return "bullet"
-    if text in {"blitz"}:
+    if "blitz" in text:
         return "blitz"
-    if text in {"rapid"}:
+    if "rapid" in text:
         return "rapid"
-    if text in {"daily", "classical", "correspondence"}:
+
+    first_part = text.split(":")[0]
+    base_raw, _, increment_raw = first_part.partition("+")
+    try:
+        base_seconds = float(base_raw)
+        increment_seconds = float(increment_raw or 0)
+    except (TypeError, ValueError):
+        return "unknown"
+
+    if base_seconds >= 86400:
+        return "daily"
+
+    estimated_seconds = base_seconds + increment_seconds * 40
+    if estimated_seconds < 180:
+        return "bullet"
+    if estimated_seconds < 600:
+        return "blitz"
+    if estimated_seconds < 1800:
+        return "rapid"
+    return "classical"
+
+
+def normalise_time_control_group(value: Any) -> str:
+    normalised = normalise_filter_time_control(value)
+    if normalised in {"bullet", "blitz", "rapid"}:
+        return normalised
+    if normalised in {"daily", "classical"}:
         return "daily/classical"
     return "unknown"
 
@@ -7878,6 +7910,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         loss_timing = classify_loss_timing(result, moves=moves)
         first_white_move = extract_first_white_move_from_text(pgn)
         repertoire_context = opening_context_for_game(colour, first_white_move)
+        time_control_raw = game.get("time_control") or game.get("timeControl") or game.get("time_class")
+        time_control_normalized = normalise_filter_time_control(game.get("time_class") or time_control_raw)
 
         opening_counter[opening] += 1
 
@@ -7908,8 +7942,12 @@ def import_chesscom_logic(username: str, months: int = 3):
         recent_games.append(
             {
                 "url": game.get("url"),
-                "time_class": game.get("time_class"),
-                "timeClass": game.get("time_class"),
+                "time_class": time_control_normalized,
+                "timeClass": time_control_normalized,
+                "time_control_raw": time_control_raw,
+                "timeControlRaw": time_control_raw,
+                "time_control_normalized": time_control_normalized,
+                "timeControlNormalized": time_control_normalized,
                 "rated": game.get("rated"),
                 "user_rating": user_rating,
                 "userRating": user_rating,
@@ -7939,8 +7977,12 @@ def import_chesscom_logic(username: str, months: int = 3):
         opening_game_samples.append(
             {
                 "url": game.get("url"),
-                "time_class": game.get("time_class"),
-                "timeClass": game.get("time_class"),
+                "time_class": time_control_normalized,
+                "timeClass": time_control_normalized,
+                "time_control_raw": time_control_raw,
+                "timeControlRaw": time_control_raw,
+                "time_control_normalized": time_control_normalized,
+                "timeControlNormalized": time_control_normalized,
                 "rated": game.get("rated"),
                 "colour": colour,
                 "color": colour,
@@ -8398,8 +8440,12 @@ def get_lichess_opening_name(game: Dict[str, Any]) -> str:
     return normalize_opening_name(opening_from_move_sequence(moves))
 
 
-def lichess_time_class(game: Dict[str, Any]) -> str:
+def lichess_time_control_raw(game: Dict[str, Any]) -> str:
     return game.get("speed") or game.get("perf") or "unknown"
+
+
+def lichess_time_class(game: Dict[str, Any]) -> str:
+    return normalise_filter_time_control(lichess_time_control_raw(game))
 
 
 def build_lichess_analysis(
@@ -8452,6 +8498,8 @@ def build_lichess_analysis(
         first_white_move = moves[0] if moves else ""
         repertoire_context = opening_context_for_game(colour, first_white_move)
         loss_timing = classify_loss_timing(result, moves=moves)
+        time_control_raw = lichess_time_control_raw(game)
+        time_control_normalized = lichess_time_class(game)
 
         pgn_moves = []
         for index in range(0, len(moves), 2):
@@ -8468,6 +8516,7 @@ def build_lichess_analysis(
             f'[White "{white_name}"]',
             f'[Black "{black_name}"]',
             f'[Opening "{opening}"]',
+            f'[TimeControl "{time_control_raw}"]',
             "",
             " ".join(pgn_moves),
         ]).strip()
@@ -8501,8 +8550,12 @@ def build_lichess_analysis(
         recent_games.append(
             {
                 "url": f"https://lichess.org/{game.get('id')}" if game.get("id") else "",
-                "time_class": lichess_time_class(game),
-                "timeClass": lichess_time_class(game),
+                "time_class": time_control_normalized,
+                "timeClass": time_control_normalized,
+                "time_control_raw": time_control_raw,
+                "timeControlRaw": time_control_raw,
+                "time_control_normalized": time_control_normalized,
+                "timeControlNormalized": time_control_normalized,
                 "rated": game.get("rated"),
                 "user_rating": user_rating,
                 "userRating": user_rating,
@@ -8533,8 +8586,12 @@ def build_lichess_analysis(
         opening_game_samples.append(
             {
                 "url": f"https://lichess.org/{game.get('id')}" if game.get("id") else "",
-                "time_class": lichess_time_class(game),
-                "timeClass": lichess_time_class(game),
+                "time_class": time_control_normalized,
+                "timeClass": time_control_normalized,
+                "time_control_raw": time_control_raw,
+                "timeControlRaw": time_control_raw,
+                "time_control_normalized": time_control_normalized,
+                "timeControlNormalized": time_control_normalized,
                 "rated": game.get("rated"),
                 "colour": colour,
                 "color": colour,

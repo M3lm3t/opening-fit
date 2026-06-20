@@ -1269,6 +1269,114 @@ function stableGameId(game, index) {
   return String(game?.game_id || game?.gameId || game?.id || game?.url || `game-${index}-${hash}`);
 }
 
+function classifySavedTimeControl(value) {
+  const clean = String(value || "").trim().toLowerCase();
+
+  if (!clean || clean === "?" || clean === "-") return null;
+  if (clean.includes("daily") || clean.includes("correspondence")) return "daily";
+  if (clean.includes("classical") || clean.includes("standard")) return "classical";
+  if (clean.includes("rapid")) return "rapid";
+  if (clean.includes("blitz")) return "blitz";
+  if (clean.includes("bullet")) return "bullet";
+  if (clean.includes("/")) return "daily";
+
+  const [baseRaw, incrementRaw] = (clean.split(":")[0] || clean).split("+");
+  const baseSeconds = Number(baseRaw);
+  const incrementSeconds = Number(incrementRaw || 0);
+
+  if (!Number.isFinite(baseSeconds)) return null;
+  if (baseSeconds >= 86400) return "daily";
+
+  const estimatedSeconds = baseSeconds + incrementSeconds * 40;
+  if (estimatedSeconds < 180) return "bullet";
+  if (estimatedSeconds < 600) return "blitz";
+  if (estimatedSeconds < 1800) return "rapid";
+  return "classical";
+}
+
+function pgnHeaderValue(pgnText, headerName) {
+  const pattern = new RegExp(`\\[${headerName}\\s+"([^"]+)"\\]`, "i");
+  return String(pgnText || "").match(pattern)?.[1] || "";
+}
+
+function normalizeSavedTimeControl(game = {}) {
+  const candidates = [
+    game.time_control_normalized,
+    game.timeControlNormalized,
+    game.time_class,
+    game.timeClass,
+    game.time_control_class,
+    game.timeControlClass,
+    game.speed,
+    game.perf,
+    game.perfType,
+    game.time_control,
+    game.timeControl,
+    game.time_control_raw,
+    game.timeControlRaw,
+    game.rawTimeControl,
+    pgnHeaderValue(game.pgn || game.PGN || game.rawPgn || "", "TimeControl"),
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = classifySavedTimeControl(candidate);
+    if (normalized) return normalized;
+  }
+
+  return "unknown";
+}
+
+function normalizeSavedTimestamp(value) {
+  if (!value) return null;
+  if (typeof value === "number") return value > 100000000000 ? value : value * 1000;
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) return numeric > 100000000000 ? numeric : numeric * 1000;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeSavedGameMetadata(game = {}) {
+  if (!game || typeof game !== "object") return game;
+
+  const timeControl = normalizeSavedTimeControl(game);
+  const rawTimeControl =
+    game.time_control_raw ||
+    game.timeControlRaw ||
+    game.rawTimeControl ||
+    game.time_control ||
+    game.timeControl ||
+    game.time_class ||
+    game.timeClass ||
+    game.speed ||
+    game.perf ||
+    "";
+  const timestamp = normalizeSavedTimestamp(
+    game.end_time ||
+      game.endTime ||
+      game.played_at ||
+      game.playedAt ||
+      game.date ||
+      game.createdAt ||
+      game.created_at
+  );
+  const playedAt =
+    game.played_at ||
+    game.playedAt ||
+    (timestamp ? new Date(timestamp).toISOString() : "");
+
+  return {
+    ...game,
+    time_class: timeControl,
+    timeClass: timeControl,
+    time_control_normalized: timeControl,
+    timeControlNormalized: timeControl,
+    time_control_raw: rawTimeControl,
+    timeControlRaw: rawTimeControl,
+    played_at: playedAt,
+    playedAt,
+  };
+}
+
 function extractAnalysedGames(report = {}) {
   const candidates = [
     report.analysed_games,
@@ -1300,20 +1408,26 @@ export async function saveAnalysedGames(userId, report = {}, summary = {}) {
     report.player_name ||
     "Unknown player";
   const now = new Date().toISOString();
-  const rows = games.map((game, index) => ({
-    user_id: userId,
-    platform,
-    username,
-    game_id: stableGameId(game, index),
-    game,
-    analysis: {
-      opening: game.opening || game.eco || game.detected_opening || null,
-      result: game.result || game.user_result || null,
-      colour: game.colour || game.color || null,
-      saved_from_report: true,
-    },
-    updated_at: now,
-  }));
+  const rows = games.map((game, index) => {
+    const normalizedGame = normalizeSavedGameMetadata(game);
+
+    return {
+      user_id: userId,
+      platform,
+      username,
+      game_id: stableGameId(normalizedGame, index),
+      game: normalizedGame,
+      analysis: {
+        opening: normalizedGame.opening || normalizedGame.eco || normalizedGame.detected_opening || null,
+        result: normalizedGame.result || normalizedGame.user_result || null,
+        colour: normalizedGame.colour || normalizedGame.color || null,
+        time_control: normalizedGame.time_class || "unknown",
+        played_at: normalizedGame.played_at || null,
+        saved_from_report: true,
+      },
+      updated_at: now,
+    };
+  });
 
   const { data, error } = await client
     .from("analysed_games")
