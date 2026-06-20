@@ -19088,6 +19088,10 @@ html {
 .reportFilters {
   display: grid;
   gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   margin: 1rem 0;
   padding: clamp(14px, 2vw, 18px);
   border: 1px solid rgba(248, 214, 109, 0.22);
@@ -19102,9 +19106,14 @@ html {
 
 .reportFiltersHeader {
   display: flex;
+  min-width: 0;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.reportFiltersHeader > div {
+  min-width: 0;
 }
 
 .reportFiltersHeader h2 {
@@ -19113,13 +19122,17 @@ html {
 }
 
 .reportFiltersHeader > span {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid rgba(248, 214, 109, 0.3);
   border-radius: 999px;
   padding: 6px 10px;
   color: #f8d66d;
   font-size: 0.78rem;
   font-weight: 900;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .light .reportFiltersHeader > span,
@@ -19131,6 +19144,12 @@ html {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
+  min-width: 0;
+}
+
+.reportFilterControls > label,
+.reportFilterControls > div {
+  min-width: 0;
 }
 
 .reportFilterControls > div > span,
@@ -19155,6 +19174,10 @@ html {
 
 .reportOpeningSearch .input,
 .reportFilterSelect {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   min-height: 42px;
 }
 
@@ -19648,6 +19671,25 @@ html {
   .studyThisNextMain {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .reportOpeningFilters .reportFilterControls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reportFiltersHeader > span {
+    width: 100%;
+    border-radius: 8px;
+    text-align: left;
+  }
+
+  .reportOpeningFilters .performanceByTimeControlCard > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inlineFilterClear {
+    display: block;
+    margin: 8px 0 0;
   }
 
   .importQualityBadge {
