@@ -1268,7 +1268,7 @@
   }
 
   .profileDashboard.profileDashboardSimple .simpleProfileSideColumn {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     align-items: start !important;
   }
 
@@ -1413,11 +1413,11 @@
 
   #opening-practice .practiceBoardLayout,
   .profileDashboard.profileDashboardSimple .simpleProfileSideColumn {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 
   .profileDashboard.profileDashboardSimple .simpleProfileCard--subscription {
-    grid-column: 1 / -1 !important;
+    grid-column: auto !important;
   }
 }
 

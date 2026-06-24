@@ -148,6 +148,7 @@ import {
   Layers3,
   ListChecks,
   LockKeyhole,
+  Menu,
   MessageSquareText,
   Search,
   ShieldCheck,
@@ -11138,7 +11139,7 @@ function AppPrimaryNav({
           aria-label={mobileMenuOpen ? "Close OpeningFit menu" : "Open OpeningFit menu"}
           onClick={() => setMobileMenuOpen((open) => !open)}
         >
-          <span aria-hidden="true">{mobileMenuOpen ? "×" : "☰"}</span>
+          <span aria-hidden="true">{mobileMenuOpen ? <X size={20} strokeWidth={2.4} /> : <Menu size={20} strokeWidth={2.4} />}</span>
         </button>
       </div>
 
@@ -13343,6 +13344,7 @@ export default function App() {
   const [data, setData] = useState(null);
   const [activeView, setActiveView] = useState(getInitialAppView);
   const importAbortRef = useRef(null);
+  const reportRedirectKeyRef = useRef("");
   const parsedPgnMovesCacheRef = useRef(new Map());
 
   useEffect(() => {
@@ -14203,14 +14205,6 @@ export default function App() {
     }
   };
 
-  const scrollToId = (id) => {
-    setTimeout(() => {
-      scrollToAppTarget(id);
-    }, 80);
-  };
-
-  const scrollToResults = () => scrollToId("app-results");
-
   const toggleSection = (key) => {
     setOpenSections((prev) => ({
       ...prev,
@@ -14313,6 +14307,20 @@ export default function App() {
     });
   };
 
+  const redirectToReportAfterSuccessfulImport = (redirectKey) => {
+    if (!redirectKey || reportRedirectKeyRef.current === redirectKey) return;
+    reportRedirectKeyRef.current = redirectKey;
+    setActiveView("report");
+    if (typeof window !== "undefined" && window.location.pathname !== "/report") {
+      window.history.pushState({}, "", "/report");
+    }
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        scrollToAppTarget("app-results", { behavior: "auto" });
+      });
+    }
+  };
+
   const importGames = async (usernameOverride, platformOverride) => {
     if (loading) return;
 
@@ -14345,6 +14353,7 @@ export default function App() {
       status: null,
       responseText: "",
     };
+    let successfulReportRedirectKey = "";
 
     setLoading(true);
     setLoadingStep("Finding your games...");
@@ -14463,6 +14472,7 @@ export default function App() {
       setUsername(importedUsername);
       setImportStatus(importOutcome);
       saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
+      successfulReportRedirectKey = importSessionKey;
 
       logRetentionEvent(
         "data_imported",
@@ -14503,10 +14513,6 @@ export default function App() {
       setLoadingStep("Building your report...");
 
       rememberLandingSeen({ keepPublicLanding: false });
-      setActiveView("report");
-      if (window.location.pathname !== "/report") {
-        window.history.pushState({}, "", "/report");
-      }
 
       setSavedProfileMessage(
         `${importOutcome.title}. Saved ${supabaseUser?.id ? "to your account" : "locally"} so you can load it next time.`
@@ -14521,8 +14527,6 @@ export default function App() {
         analysisTimeFormat: cleanData.analysisTimeFormat,
         detectedTimeFormat: cleanData.detectedTimeFormat,
       });
-
-      scrollToResults();
 
       if (supabaseUser?.id) {
         setCloudSaveStatus("saving");
@@ -14687,6 +14691,9 @@ export default function App() {
       }
       setLoading(false);
       setLoadingStep("");
+      if (successfulReportRedirectKey) {
+        redirectToReportAfterSuccessfulImport(successfulReportRedirectKey);
+      }
     }
   };
 

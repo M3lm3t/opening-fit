@@ -48694,3 +48694,28 @@ hr,
     gap: 12px;
   }
 }
+
+/* UI-only market readiness guardrail: keep the account screen as one primary
+   account panel with a readable supporting column across desktop widths. */
+.profileDashboard.profileDashboardSimple .simpleProfileGrid,
+.profileDashboardSimple .simpleProfileGrid {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.42fr) !important;
+  align-items: start !important;
+}
+
+.profileDashboard.profileDashboardSimple .simpleProfileSideColumn,
+.profileDashboardSimple .simpleProfileSideColumn {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.profileDashboard.profileDashboardSimple .simpleProfileCard,
+.profileDashboardSimple .simpleProfileCard {
+  width: 100% !important;
+}
+
+@media (max-width: 1023px) {
+  .profileDashboard.profileDashboardSimple .simpleProfileGrid,
+  .profileDashboardSimple .simpleProfileGrid {
+    grid-template-columns: 1fr !important;
+  }
+}

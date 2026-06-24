@@ -8,10 +8,16 @@ const HOST = "127.0.0.1";
 const BASE_URL = `http://${HOST}:${PORT}`;
 const SCREENSHOT_DIR = path.resolve("test-screenshots");
 
-const routes = ["/account", "/login", "/report", "/train", "/history"];
+const routes = ["/", "/login", "/report", "/train", "/account", "/premium"];
 const viewports = [
-  { name: "desktop", width: 1366, height: 768 },
-  { name: "mobile", width: 390, height: 844 },
+  { name: "mobile-xs", width: 320, height: 740 },
+  { name: "mobile", width: 375, height: 812 },
+  { name: "mobile-lg", width: 430, height: 932 },
+  { name: "tablet", width: 768, height: 1024 },
+  { name: "tablet-lg", width: 834, height: 1112 },
+  { name: "desktop", width: 1024, height: 768 },
+  { name: "desktop-lg", width: 1280, height: 800 },
+  { name: "desktop-xl", width: 1440, height: 900 },
 ];
 
 async function startVite() {
@@ -185,6 +191,71 @@ async function assertAccountLayout(page) {
   }
 }
 
+async function assertRouteLayout(page, route) {
+  const failures = [];
+  const viewport = page.viewportSize();
+
+  const pageMetrics = await page.evaluate(() => {
+    const documentElement = document.documentElement;
+    const body = document.body;
+    return {
+      scrollWidth: Math.max(documentElement.scrollWidth, body?.scrollWidth || 0),
+      clientWidth: documentElement.clientWidth,
+      bodyScrollWidth: body?.scrollWidth || 0,
+    };
+  });
+
+  if (pageMetrics.scrollWidth > pageMetrics.clientWidth + 2) {
+    failures.push(
+      `Horizontal overflow on ${route}: scrollWidth ${pageMetrics.scrollWidth}, clientWidth ${pageMetrics.clientWidth}.`
+    );
+  }
+
+  if (viewport?.width <= 767) {
+    const bottomNav = page.locator(".mobileBottomNav").first();
+    if (await bottomNav.isVisible().catch(() => false)) {
+      const navBox = await getBox(bottomNav);
+      if (!navBox) {
+        failures.push("Mobile bottom navigation is not measurable.");
+      } else {
+        if (navBox.width > viewport.width + 2) {
+          failures.push(`Mobile bottom navigation is wider than the viewport (${Math.round(navBox.width)}px).`);
+        }
+        if (navBox.height < 60) {
+          failures.push(`Mobile bottom navigation is too short for touch targets (${Math.round(navBox.height)}px).`);
+        }
+      }
+    }
+  }
+
+  const clippedText = await page.locator("h1,h2,h3,p,a,button,label,strong,span").evaluateAll((nodes) => {
+    const results = [];
+    for (const node of nodes) {
+      const rect = node.getBoundingClientRect();
+      const text = (node.textContent || "").replace(/\s+/g, " ").trim();
+      if (!text || rect.width <= 0 || rect.height <= 0) continue;
+      const style = window.getComputedStyle(node);
+      if (
+        style.overflow === "hidden" &&
+        node.scrollWidth > node.clientWidth + 4 &&
+        text.length > 10 &&
+        !["SPAN", "SVG"].includes(node.tagName)
+      ) {
+        results.push(`${text.slice(0, 64)} (${Math.round(rect.width)}px wide)`);
+      }
+    }
+    return results.slice(0, 5);
+  });
+
+  if (clippedText.length) {
+    failures.push(`Potential clipped text on ${route}: ${clippedText.join("; ")}`);
+  }
+
+  if (failures.length) {
+    throw new Error(failures.join("\n"));
+  }
+}
+
 async function main() {
   await mkdir(SCREENSHOT_DIR, { recursive: true });
   const server = await startVite();
@@ -207,6 +278,8 @@ async function main() {
         const filepath = path.join(SCREENSHOT_DIR, filename);
         await page.screenshot({ path: filepath, fullPage: true });
         screenshots.push(filepath);
+
+        await assertRouteLayout(page, route);
 
         if (route === "/account") {
           await assertAccountLayout(page);

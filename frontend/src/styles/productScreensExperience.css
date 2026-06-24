@@ -417,13 +417,14 @@
 
 .simpleProfileGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.12fr) minmax(280px, 0.68fr);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.42fr);
   gap: 16px;
   align-items: start;
 }
 
 .simpleProfileSideColumn {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   min-width: 0;
 }
@@ -444,6 +445,11 @@
 .simpleProfileCard,
 .accountPanel--screen {
   padding: clamp(14px, 2vw, 20px);
+  overflow-wrap: anywhere;
+}
+
+.simpleProfileCard {
+  width: 100%;
 }
 
 .profileDashboardSimple h1,
@@ -488,6 +494,17 @@
   align-items: center;
   padding: 14px 16px;
   cursor: pointer;
+}
+
+.profileSecondaryDetails > summary > * {
+  min-width: 0;
+}
+
+.profileSecondaryDetails > summary strong {
+  flex: 1 1 220px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .profileSecondaryDetails[open] > summary {
@@ -851,6 +868,10 @@
     max-width: min(100%, 540px);
   }
 
+  .simpleProfileCard {
+    max-width: 100%;
+  }
+
   .premiumCommandStrip,
   .premiumStatsGrid {
     display: grid;
@@ -918,8 +939,9 @@
 
   .practiceBoardWrap,
   .practice-board-shell {
-    width: min(100%, calc(100vw - (var(--of-page-gutter) * 2) - 28px));
-    max-width: min(100%, calc(100vh - 245px));
+    width: min(100%, calc(100vw - 24px));
+    max-width: min(100%, calc(100svh - 245px), 560px);
+    min-height: 0;
   }
 
   .practiceControls {

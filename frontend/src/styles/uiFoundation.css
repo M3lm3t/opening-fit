@@ -131,6 +131,24 @@ body,
   max-width: 100%;
 }
 
+html {
+  scroll-padding-top: calc(var(--of-shell-top-height, 64px) + 14px);
+}
+
+body,
+#root,
+.page {
+  overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+  body,
+  #root,
+  .page {
+    overflow-x: hidden;
+  }
+}
+
 body,
 .page {
   background:
@@ -157,6 +175,24 @@ body.light,
   max-width: 100%;
   margin-inline: auto;
   min-width: 0;
+}
+
+.appShell > *,
+.appResultsShell > *,
+.appResultsShellTrain > *,
+.profileSection > *,
+.premiumStandalonePage > *,
+.seoPageShell > * {
+  min-width: 0;
+}
+
+.appShell,
+.appResultsShell,
+.appResultsShellTrain,
+.profileSection,
+.premiumStandalonePage,
+.seoPageShell {
+  overflow-wrap: anywhere;
 }
 
 .of-page-container {
@@ -633,12 +669,23 @@ body.light,
   min-width: 0;
 }
 
+.of-board-frame > *,
+.practiceBoardWrap > *,
+.replayBoardBox > * {
+  max-width: 100%;
+}
+
 .of-mobile-bottom-nav,
 .mobileBottomNav {
   min-height: 64px;
 }
 
 @media (max-width: 767px) {
+  html {
+    scroll-padding-top: calc(var(--of-shell-top-height, 64px) + 10px);
+    scroll-padding-bottom: var(--of-mobile-nav-clearance);
+  }
+
   body,
   .page,
   .appReportPage {
@@ -661,6 +708,13 @@ body.light,
   .of-page-header__actions > *,
   .of-section-header__actions > * {
     flex: 1 1 100%;
+  }
+
+  .of-tab-navigation,
+  .reportCommandBar__tabs {
+    margin-inline: calc(var(--of-page-gutter) * -1);
+    padding-inline: var(--of-page-gutter);
+    scroll-padding-inline: var(--of-page-gutter);
   }
 }
 
