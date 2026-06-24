@@ -831,7 +831,8 @@
 
 @media (min-width: 1024px) {
   .appResultsShellTrain {
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.34fr);
+    max-width: min(1320px, calc(100vw - 48px));
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
   }
 
@@ -839,17 +840,17 @@
   .appResultsShellTrain > .reportOpeningFilters,
   .appResultsShellTrain > #training-plan,
   .appResultsShellTrain > #game-replay {
-    grid-column: 1;
+    grid-column: 1 / -1;
   }
 
   .appResultsShellTrain > .todayTrainingCard,
   .appResultsShellTrain > :not(#opening-practice):not(.reportOpeningFilters):not(#training-plan):not(#game-replay) {
-    grid-column: 2;
+    grid-column: 1 / -1;
   }
 
   .appResultsShellTrain > .todayTrainingCard {
-    position: sticky;
-    top: calc(var(--app-primary-nav-height, 72px) + 16px);
+    position: static;
+    max-width: none;
   }
 }
 
