@@ -38,6 +38,30 @@ function enoughSample(item) {
   return games === null || games >= 2;
 }
 
+function hasExactMoves(item = {}) {
+  const target = item.trainingTarget || item.training_target || {};
+  const moves =
+    item.moves ||
+    item.sanMoves ||
+    item.san_moves ||
+    item.uciMoves ||
+    item.uci_moves ||
+    target.moves ||
+    target.sanMoves ||
+    target.san_moves ||
+    target.uciMoves ||
+    target.uci_moves;
+  const moveLine =
+    item.moveLine ||
+    item.move_line ||
+    item.linePgn ||
+    item.line_pgn ||
+    target.moveLine ||
+    target.move_line;
+
+  return (Array.isArray(moves) && moves.length > 0) || Boolean(String(moveLine || "").trim());
+}
+
 function lineSummary(item = {}) {
   const games = safeNumber(item.games ?? item.gamesPlayed ?? item.games_played, null);
   const winRate = safeNumber(item.winRate ?? item.win_rate, null);
@@ -84,11 +108,25 @@ function buildFallbackFromRecommendation(data, fitData) {
 }
 
 function buildOneThing(data, fitData) {
-  if (!data) return null;
+  if (!data) {
+    return {
+      source: "import-more",
+      type: "import-more",
+      opening: "Import more games",
+      variation: "",
+      summary: "OpeningFit needs more recent games",
+      explanation: "Import more games so the report can find a reliable opening identity and exact weak line.",
+      target: null,
+    };
+  }
 
   const repeatedWeakLines = mergeWeakLines(data, { minGames: 2 }).filter(enoughSample);
-  const oneGameWeakLine = mergeWeakLines(data, { minGames: 1 }).find(Boolean);
-  const weakLine = repeatedWeakLines[0] || oneGameWeakLine || null;
+  const oneGameWeakLines = mergeWeakLines(data, { minGames: 1 }).filter(Boolean);
+  const exactWeakLine =
+    repeatedWeakLines.find(hasExactMoves) ||
+    oneGameWeakLines.find(hasExactMoves) ||
+    null;
+  const weakLine = exactWeakLine || repeatedWeakLines[0] || oneGameWeakLines[0] || null;
 
   if (weakLine) {
     const training = buildWeakestLineTrainingTargetFromLine(weakLine);
@@ -131,15 +169,37 @@ function buildOneThing(data, fitData) {
     };
   }
 
-  return buildFallbackFromRecommendation(data, fitData);
+  return (
+    buildFallbackFromRecommendation(data, fitData) || {
+      source: "import-more",
+      type: "import-more",
+      opening: "Import more games",
+      variation: "",
+      summary: "No reliable weak opening yet",
+      explanation: "OpeningFit needs a few more games before it can recommend a specific line with confidence.",
+      target: null,
+    }
+  );
 }
 
-export default function OneThingToFixCard({ data, fitData, onPractice }) {
+export default function OneThingToFixCard({ data, fitData, onPractice, onImportMore }) {
   const fix = buildOneThing(data, fitData);
   if (!data || !fix?.opening) return null;
 
   const title = fix.variation && fix.variation !== fix.opening ? `${fix.opening}: ${fix.variation}` : fix.opening;
-  const ctaLabel = fix.type === "weak-line" ? "Train this line" : "Review this opening";
+  const ctaLabel =
+    fix.type === "import-more"
+      ? "Import more games"
+      : fix.type === "weak-line"
+        ? "Train this line"
+        : "Review this opening";
+  const handleAction = () => {
+    if (fix.type === "import-more") {
+      onImportMore?.();
+      return;
+    }
+    onPractice?.(fix.target);
+  };
 
   return (
     <section className="oneThingToFixCard" aria-labelledby="one-thing-to-fix-title">
@@ -152,8 +212,8 @@ export default function OneThingToFixCard({ data, fitData, onPractice }) {
 
       <div className="oneThingToFixAction">
         <span>{fix.summary}</span>
-        {onPractice ? (
-          <button type="button" onClick={() => onPractice(fix.target)}>
+        {onPractice || onImportMore ? (
+          <button type="button" onClick={handleAction}>
             {ctaLabel}
           </button>
         ) : null}

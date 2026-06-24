@@ -1,3 +1,5 @@
+import { TabNavigation } from "./ui/UiPrimitives.jsx";
+
 function getUsername(data) {
   return (
     data?.username ||
@@ -96,6 +98,14 @@ export default function ReportCommandBar({
     if (view.mode) onReportModeChange?.(view.mode);
     onNavigate?.({ path: "/report", target: view.target || view.key, reportMode: view.mode });
   };
+  const tabItems = views.map((view) => ({
+    ...view,
+    active:
+      activeView === view.key ||
+      view.activeViews?.includes(activeView) ||
+      (view.mode === "summary" && reportMode === "summary") ||
+      (view.mode === "table" && reportMode === "table"),
+  }));
 
   return (
     <section className="reportCommandBar" aria-label="Report command bar">
@@ -119,25 +129,12 @@ export default function ReportCommandBar({
         </strong>
       </div>
 
-      <nav className="reportCommandBar__tabs" aria-label="Report sections">
-        {views.map((view) => (
-          <button
-            key={view.key}
-            type="button"
-            className={
-              activeView === view.key ||
-              view.activeViews?.includes(activeView) ||
-              (view.mode === "summary" && reportMode === "summary") ||
-              (view.mode === "table" && reportMode === "table")
-                ? "is-active"
-                : ""
-            }
-            onClick={() => jumpToView(view)}
-          >
-            {view.label}
-          </button>
-        ))}
-      </nav>
+      <TabNavigation
+        className="reportCommandBar__tabs"
+        ariaLabel="Report sections"
+        items={tabItems}
+        onSelect={jumpToView}
+      />
     </section>
   );
 }

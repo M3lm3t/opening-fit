@@ -153,6 +153,9 @@ import {
   Target,
 } from "lucide-react";
 import "./ThemePolish.css";
+import "./styles/appShellExperience.css";
+import "./styles/reportExperience.css";
+import "./styles/productScreensExperience.css";
 
 const STORAGE_KEY = "openingFit:lastAnalysis";
 const USERNAME_KEY = "openingFit:lastUsername";
@@ -2748,6 +2751,65 @@ function FitReasonList({ opening, compact = false }) {
   );
 }
 
+function getSupportiveOpeningContext(opening, status) {
+  const games = getOpeningGames(opening);
+  const winRate = getWinRate(opening);
+  const confidence = getOpeningConfidence(opening);
+  const lowerStatus = String(status || "").toLowerCase();
+  const reasonText = [
+    opening?.recommendationReason,
+    opening?.recommendation_reason,
+    opening?.fitConfidenceReason,
+    opening?.fitExplanation,
+    opening?.fitReasonBullets?.[0],
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (lowerStatus.includes("avoid")) {
+    if (games > 0 && games < 8) {
+      return "Pause this as a main study choice until there are more repeated games behind it.";
+    }
+
+    if (reasonText.includes("overload") || reasonText.includes("too many")) {
+      return "Pause this for now so your repertoire does not spread across too many unrelated lines.";
+    }
+
+    if (reasonText.includes("style")) {
+      return "This may not match your current style signals as well as the higher-priority options.";
+    }
+
+    if (winRate && winRate < 45) {
+      return "Treat it as a repair target first because recent results are below your stronger openings.";
+    }
+
+    if (String(confidence).toLowerCase().includes("low")) {
+      return "This is not a verdict on the opening itself; OpeningFit needs clearer evidence before recommending it.";
+    }
+
+    return "Pause it as a priority for now because another opening gives you a clearer next improvement step.";
+  }
+
+  if (lowerStatus.includes("improve") || lowerStatus.includes("review")) {
+    if (games > 0 && games < 8) {
+      return "Useful signal, but the sample is still small. Review one game before making it a major project.";
+    }
+
+    return "Keep it in the repertoire, but fix one repeated branch before adding new theory.";
+  }
+
+  if (lowerStatus.includes("not enough")) {
+    return "There is not enough repeated data yet, so use this as a watch item rather than a training priority.";
+  }
+
+  if (lowerStatus.includes("keep")) {
+    return "Keep this as a stable anchor and compare weaker lines against it.";
+  }
+
+  return "Use this as context for your next training choice.";
+}
+
 function OpeningFitScoreList({ fitData, onPractice }) {
   if (!fitData || !fitData.scoredOpenings?.length) return null;
   const publicMode = fitData.reportMode !== "normal_user";
@@ -2780,6 +2842,7 @@ function OpeningFitScoreList({ fitData, onPractice }) {
             opening.fitConfidenceReason ||
             opening.fitExplanation ||
             getOpeningConfidenceReason(opening);
+          const supportiveContext = getSupportiveOpeningContext(opening, status);
 
           return (
             <button
@@ -2835,7 +2898,7 @@ function OpeningFitScoreList({ fitData, onPractice }) {
               </div>
 
               <p className="fitOpeningReason openingCoachSummary">
-                {opening.fitDisplayVerdict || confidenceVerdictLabel(opening, {}, opening.fitVerdict)}. {coachText}
+                {opening.fitDisplayVerdict || confidenceVerdictLabel(opening, {}, opening.fitVerdict)}. {supportiveContext} {coachText}
               </p>
 
               <FitReasonList opening={opening} />
@@ -4715,8 +4778,8 @@ function EvidenceTableSection({ data, fitData, isPremium = false, onPractice }) 
   return (
     <section className="evidenceTableSection finalReportBlock" id="evidence-table">
       <div className="commandPanelHeader">
-        <p className="eyebrow">Evidence table</p>
-        <h2>Recent games and data</h2>
+        <p className="eyebrow">Opening statistics</p>
+        <h2>Opening table</h2>
         <p>Opening, colour/context, games, score, confidence, and verdict in one scannable table.</p>
       </div>
 
@@ -5804,6 +5867,82 @@ function ReportOpeningFilters({ filters, onFiltersChange, data }) {
   );
 }
 
+function getWeakLineMoves(line = {}) {
+  const target = line.trainingTarget || line.training_target || {};
+  const moves =
+    line.moves ||
+    line.sanMoves ||
+    line.san_moves ||
+    line.uciMoves ||
+    line.uci_moves ||
+    target.moves ||
+    target.sanMoves ||
+    target.san_moves ||
+    target.uciMoves ||
+    target.uci_moves;
+  const moveLine =
+    line.moveLine ||
+    line.move_line ||
+    line.linePgn ||
+    line.line_pgn ||
+    target.moveLine ||
+    target.move_line ||
+    "";
+
+  if (Array.isArray(moves) && moves.length) return moves.join(" ");
+  return String(moveLine || "").trim();
+}
+
+function WeakLineSpotlightCard({ data, onPractice }) {
+  const weakLines = mergeWeakLines(data, { minGames: 1 }).filter(Boolean);
+  const line = weakLines.find((item) => getWeakLineMoves(item)) || weakLines[0] || null;
+
+  if (!data) return null;
+
+  if (!line) {
+    return (
+      <article className="weakLineSpotlightCard reportPriorityCard">
+        <p className="eyebrow">Weak Line Spotlight</p>
+        <h2>No exact weak line yet</h2>
+        <p>Import more recent games to let OpeningFit find the repeated branch that needs work.</p>
+      </article>
+    );
+  }
+
+  const training = buildWeakestLineTrainingTargetFromLine(line);
+  const title = getOpeningName(line) || line.opening || "Weak line";
+  const variation = line.variation || line.line || line.lineName || line.line_name || "";
+  const moves = getWeakLineMoves(line);
+  const games = line.games || line.gamesPlayed || line.games_played || 0;
+  const reason =
+    line.flagReason ||
+    line.reason ||
+    line.why ||
+    line.exactIssue ||
+    "This is the clearest repeated line underperforming in your current report.";
+
+  return (
+    <article className="weakLineSpotlightCard reportPriorityCard">
+      <div>
+        <p className="eyebrow">Weak Line Spotlight</p>
+        <h2>{variation && variation !== title ? `${title}: ${variation}` : title}</h2>
+        <p>{reason}</p>
+      </div>
+
+      {moves ? <code>{moves}</code> : <span>Exact moves are not available for this line yet.</span>}
+
+      <div className="weakLineSpotlightMeta">
+        <small>{games ? `${games} game${Number(games) === 1 ? "" : "s"}` : "Current report signal"}</small>
+        {onPractice ? (
+          <button type="button" onClick={() => onPractice(training.target || line)}>
+            Train this line
+          </button>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
 function ReportSectionGroup({ id, eyebrow, title, children }) {
   return (
     <section className="reportSectionGroup" id={id} aria-labelledby={`${id}-title`}>
@@ -6201,17 +6340,49 @@ function FinalReportFlow({
         onUpgrade={() => onNavigate?.("premium")}
       />
 
-      <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
-
       <ReportSectionGroup id="report-verdict" eyebrow="Verdict" title="Your verdict">
-        <OpeningFitVerdictPanel
+        <CurrentReportSummary
           data={data}
           fitData={fitData}
-          reportHistory={reportHistory}
-          openingFitUserState={openingFitUserState}
+          onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
+          reportMode={reportMode}
+          onReportModeChange={setReportMode}
         />
 
-        <OneThingToFixCard data={data} fitData={fitData} onPractice={onPractice} />
+        <div className="reportPriorityGrid">
+          <OpeningFitVerdictPanel
+            data={data}
+            fitData={fitData}
+            reportHistory={reportHistory}
+            openingFitUserState={openingFitUserState}
+          />
+
+          <OneThingToFixCard
+            data={data}
+            fitData={fitData}
+            onPractice={onPractice}
+            onImportMore={() => onNavigate?.("analyse") || onViewChange?.("analyse")}
+          />
+
+          <WeakLineSpotlightCard data={data} onPractice={onPractice} />
+        </div>
+
+        <ReportTrainingPreview
+          data={data}
+          fitData={fitData}
+          studyTarget={studyTarget}
+          recentGames={recentGames}
+          onPractice={onPractice}
+          onNavigate={onNavigate}
+        />
+
+        <details className="reportSupportingDataDetails" open={showOpeningTable}>
+          <summary>
+            <span>Supporting data</span>
+            <strong>Opening breakdown, confidence, and verdict table</strong>
+          </summary>
+          <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
+        </details>
 
         <details className="reportSecondaryDetails">
           <summary>
@@ -6219,13 +6390,6 @@ function FinalReportFlow({
             <strong>Scores, journey, and previous-analysis changes</strong>
           </summary>
           <div className="reportSecondaryDetailsBody">
-            <CurrentReportSummary
-              data={data}
-              fitData={fitData}
-              onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
-              reportMode={reportMode}
-              onReportModeChange={setReportMode}
-            />
             <WhatChangedSinceLastAnalysis
               data={data}
               fitData={fitData}
@@ -6242,6 +6406,8 @@ function FinalReportFlow({
           </div>
         </details>
       </ReportSectionGroup>
+
+      <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
 
       {showFullReport ? (
         <>
@@ -6278,14 +6444,6 @@ function FinalReportFlow({
               onPractice={onPractice}
               onViewChange={(view) => onNavigate?.(view) || onViewChange?.(view)}
             />
-            <ReportTrainingPreview
-              data={data}
-              fitData={fitData}
-              studyTarget={studyTarget}
-              recentGames={recentGames}
-              onPractice={onPractice}
-              onNavigate={onNavigate}
-            />
             <WeeklyOpeningReport
               data={data}
               savedHistory={
@@ -6311,7 +6469,6 @@ function FinalReportFlow({
           </ReportSectionGroup>
 
           <ReportSectionGroup id="report-recent-games" eyebrow="Games/Data" title="Recent games">
-            <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
             <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
             <ImportQualitySummary data={data} />
           </ReportSectionGroup>
@@ -6321,7 +6478,6 @@ function FinalReportFlow({
       {showOpeningTable ? (
         <ReportSectionGroup id="report-recent-games" eyebrow="Games/Data" title="Recent games">
           <OpeningFitScoreList fitData={fitData} onPractice={onPractice} />
-          <EvidenceTableSection data={data} fitData={fitData} isPremium={isPremium} onPractice={onPractice} />
         </ReportSectionGroup>
       ) : null}
 
@@ -8535,7 +8691,6 @@ function OpeningFitVerdictPanel({
     weakness ? `Main repair target: ${getOpeningContextTitle(weakness)}.` : null,
   ].filter(Boolean);
   const games = getProfileGameCount(sourceData) || progress?.gamesAnalysed || latestReport?.summary?.games || 0;
-  const weeklyFocus = buildWeeklyFocus({ strength, weakness, data: sourceData, progress });
 
   return (
     <section className="verdict-panel" aria-label="Verdict summary">
@@ -8555,12 +8710,6 @@ function OpeningFitVerdictPanel({
           <strong>{score === null ? "--" : score}</strong>
           <span>{score === null ? "Not enough data yet" : "out of 100"}</span>
           <p>Scores, journeys, and previous-analysis changes are kept below for review.</p>
-        </article>
-
-        <article className="verdict-summary-card verdict-summary-card--focus">
-          <p className="eyebrow">Weekly Focus</p>
-          <h2>{weeklyFocus}</h2>
-          <p>{games ? "Use the primary action card below, then come back after 10 more games." : "Analyse recent games to start tracking progress."}</p>
         </article>
 
         <article className="verdict-summary-card verdict-summary-card--snapshot">
@@ -10656,44 +10805,27 @@ function AppPrimaryNav({
   onNavigate,
   onExampleReport,
   onLogin,
-  onPricing,
   theme,
   onThemeToggle,
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const profileLabel = accountUser ? "Profile" : "Log in";
-  const items = hasReport
-    ? [
-        { key: "analyse", label: "Analyse" },
-        { key: "training", label: "Train" },
-        { key: "report", label: "Report / Progress" },
-        { key: "history", label: "History" },
-        accountUser
-          ? { key: "account", label: "Profile" }
-          : { key: "login", label: "Log in", path: "/login", target: "login", action: onLogin },
-        { key: "pricing", label: "Premium", path: "/premium", target: "premium", action: onPricing },
-      ]
-    : accountUser
-      ? [
-          { key: "analyse", label: "Analyse" },
-          { key: "training", label: "Train" },
-          { key: "report", label: "Report / Progress" },
-          { key: "history", label: "History" },
-          { key: "account", label: "Profile" },
-          { key: "pricing", label: "Premium", path: "/premium", target: "premium", action: onPricing },
-        ]
-      : [
-          { key: "analyse", label: "Analyse" },
-          { key: "training", label: "Train" },
-          { key: "example", label: "Report / Progress", path: "/report", target: "app-results", action: onExampleReport },
-          { key: "history", label: "History" },
-          { key: "pricing", label: "Premium", path: "/premium", target: "premium", action: onPricing },
-          { key: "login", label: "Login", path: "/login", target: "login", action: onLogin },
-        ];
+  const items = [
+    { key: "analyse", label: "Analyse" },
+    hasReport
+      ? { key: "report", label: "Report" }
+      : { key: "example", label: "Sample report", path: "/report", target: "app-results", action: onExampleReport },
+    { key: "training", label: "Train" },
+    { key: "openingsHub", label: "Openings", path: "/openings", native: true },
+    { key: "premium", label: "Premium", path: "/premium", target: "premium" },
+  ];
+  const accountAction = accountUser
+    ? { key: "account", label: "Profile", path: "/account" }
+    : { key: "login", label: "Log in", path: "/login", target: "login", action: onLogin };
   const brandAction = hasReport ? { key: "report", label: "Report / Progress" } : { key: "analyse", label: "Analyse" };
   const primaryAction = accountUser
-    ? { key: "analyse", label: "Analyse your games" }
-    : { key: "analyse", label: "Analyse your games" };
+    ? { key: "analyse", label: "New analysis" }
+    : { key: "analyse", label: "Analyse games" };
   const mobileMenuId = "openingfit-mobile-menu";
   const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
 
@@ -10710,13 +10842,15 @@ function AppPrimaryNav({
       games: ["games", "data"],
       history: ["history"],
       account: ["profile", "account", "progress"],
+      premium: ["premium", "upgrade"],
       pricing: ["premium", "upgrade"],
       login: ["login", "profile", "account", "progress"],
     };
 
+    if (item.key === "openingsHub" && currentPath === "/openings") return true;
     if (activeViewsByKey[item.key]?.includes(activeView)) return true;
     if (item.key === "account" && isPremiumPath) return false;
-    if (item.key === "pricing" && isPremiumPath && ["premium", "upgrade"].includes(activeView)) return true;
+    if ((item.key === "premium" || item.key === "pricing") && isPremiumPath && ["premium", "upgrade"].includes(activeView)) return true;
     if (item.key === "login" && currentPath === "/login") return true;
     if (item.key === "account" && currentPath === "/account" && !["history"].includes(activeView)) return true;
 
@@ -10724,6 +10858,11 @@ function AppPrimaryNav({
   };
 
   const navigate = (event, item) => {
+    if (item.native) {
+      setMobileMenuOpen(false);
+      return;
+    }
+
     event.preventDefault();
     setMobileMenuOpen(false);
 
@@ -10777,6 +10916,15 @@ function AppPrimaryNav({
           {primaryAction.label}
         </a>
 
+        <a
+          className="appPrimaryAccount"
+          href={accountAction.path || "/account"}
+          onClick={(event) => navigate(event, accountAction)}
+        >
+          <span aria-hidden="true">{accountUser ? "OF" : "IN"}</span>
+          {accountAction.label}
+        </a>
+
         <button
           className="appPrimaryMenuToggle"
           type="button"
@@ -10800,7 +10948,7 @@ function AppPrimaryNav({
         </div>
 
         <div className="appPrimaryMobileLinks">
-          {[primaryAction, ...items].map((item) => {
+          {[...items, accountAction].map((item) => {
             const isActive = isPrimaryNavItemActive(item);
             return (
               <a
@@ -10825,6 +10973,9 @@ function AppPrimaryNav({
           <a href="/login" onClick={(event) => navigate(event, { key: "login", action: onLogin })}>
             {profileLabel}
           </a>
+          {hasReport ? (
+            <a href="/account" onClick={(event) => navigate(event, { key: "history" })}>History</a>
+          ) : null}
           <a href="#privacy" onClick={() => setMobileMenuOpen(false)}>Privacy</a>
           <a href="#terms" onClick={() => setMobileMenuOpen(false)}>Terms</a>
           <a href={`mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`}>Support</a>
@@ -10844,7 +10995,7 @@ function AppStoreReadinessFooter({ onAccount }) {
         </div>
         <p>
           OpeningFit analyses public Chess.com or Lichess games you choose to import. If you create an account,
-          saved reports, profile settings, and purchase access can sync through Supabase.
+          saved reports, profile settings, and purchase access can sync securely across devices.
         </p>
       </section>
 
@@ -10914,7 +11065,7 @@ function AccountSyncStatusBar({
   } else if (authLoading || !authHydrated) {
     label = "Checking account...";
     identity = "Checking";
-    detail = "OpeningFit is checking your Supabase session.";
+    detail = "OpeningFit is checking your account session.";
     tone = "loading";
     action = "Account";
   } else if (profileLoading || (user?.id && !profileLoaded)) {
@@ -13059,19 +13210,6 @@ export default function App() {
     }, 120);
   };
 
-  const openPricingPage = (event) => {
-    event?.preventDefault?.();
-    setActiveView("profile");
-
-    if (window.location.pathname !== "/premium") {
-      window.history.pushState({}, "", "/premium");
-    }
-
-    setTimeout(() => {
-      scrollToAppTarget("premium", { fallbackIds: ["profile"] });
-    }, 100);
-  };
-
   const openLoginPage = useCallback((event) => {
     event?.preventDefault?.();
     const currentPath = `${window.location.pathname || "/"}${window.location.search || ""}${window.location.hash || ""}`;
@@ -13108,7 +13246,7 @@ export default function App() {
     } catch (retryError) {
       console.warn("OpeningFit Supabase retry failed", retryError);
       setCloudSaveStatus("failed");
-      setCloudSaveWarning(retryError?.message || "Could not restore Supabase sync.");
+      setCloudSaveWarning(retryError?.message || "Could not restore account sync.");
     }
   };
 
@@ -15092,7 +15230,6 @@ export default function App() {
           onNavigate={handleAppNavigate}
           onExampleReport={loadDemoReport}
           onLogin={openLoginPage}
-          onPricing={openPricingPage}
           theme={theme}
           onThemeToggle={() =>
             setTheme((current) => (current === "dark" ? "light" : "dark"))

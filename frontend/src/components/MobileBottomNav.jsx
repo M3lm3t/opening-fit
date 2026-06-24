@@ -42,7 +42,7 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
   }
 
   return (
-    <nav className="mobileBottomNav" aria-label="Mobile app navigation">
+    <nav className="mobileBottomNav of-mobile-bottom-nav" aria-label="Mobile app navigation">
       {items.map((item) => {
         const isReportPrompt = item.needsReport && !hasReport;
         const currentPath = typeof window !== "undefined" ? window.location.pathname : "";

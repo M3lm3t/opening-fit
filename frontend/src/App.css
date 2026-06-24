@@ -46771,6 +46771,132 @@ a,
 }
 
 /* Dedicated Verdict tab layout. This avoids the older nested overview/retention grids. */
+.reportPriorityGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.reportPriorityGrid > .verdict-panel,
+.reportPriorityGrid .verdict-card-grid {
+  display: contents;
+}
+
+.reportPriorityGrid .verdict-summary-card,
+.reportPriorityGrid .oneThingToFixCard,
+.reportPriorityGrid .weakLineSpotlightCard {
+  min-height: 100%;
+}
+
+.reportPriorityGrid .verdict-summary-card--identity {
+  order: 1;
+}
+
+.reportPriorityGrid .verdict-summary-card--score {
+  order: 2;
+}
+
+.reportPriorityGrid .oneThingToFixCard {
+  order: 3;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+}
+
+.reportPriorityGrid .oneThingToFixAction {
+  min-width: 0;
+  justify-items: stretch;
+}
+
+.reportPriorityGrid .oneThingToFixAction span {
+  text-align: left;
+}
+
+.reportPriorityGrid .oneThingToFixAction button {
+  width: 100%;
+}
+
+.reportPriorityGrid .weakLineSpotlightCard {
+  order: 4;
+  grid-column: span 2;
+}
+
+.reportPriorityGrid .verdict-summary-card--snapshot {
+  order: 5;
+}
+
+.weakLineSpotlightCard {
+  box-sizing: border-box;
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--danger, #ef4444) 7%, transparent), transparent),
+    var(--card-bg);
+  color: var(--color-text-muted);
+  box-shadow: var(--color-shadow);
+}
+
+.weakLineSpotlightCard h2,
+.weakLineSpotlightCard p {
+  margin: 0;
+}
+
+.weakLineSpotlightCard h2 {
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: clamp(1.18rem, 2vw, 1.45rem);
+  line-height: 1.15;
+}
+
+.weakLineSpotlightCard p {
+  line-height: 1.45;
+}
+
+.weakLineSpotlightCard code {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: 10px;
+  padding: 0.7rem;
+  background: color-mix(in srgb, var(--color-surface-raised) 70%, transparent);
+  color: var(--color-text);
+  font: 850 0.9rem/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  white-space: nowrap;
+}
+
+.weakLineSpotlightMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.weakLineSpotlightMeta small {
+  color: var(--color-text-muted);
+  font-weight: 850;
+}
+
+.weakLineSpotlightMeta button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 16px;
+  background: var(--ds-primary-2, #2dd4bf);
+  color: #042f2e;
+  font-weight: 950;
+  cursor: pointer;
+}
+
 .verdict-panel {
   width: 100%;
   min-width: 0;
@@ -46833,7 +46959,7 @@ a,
 
 .verdict-summary-card--score strong {
   color: var(--color-text);
-  font-size: clamp(2.6rem, 6vw, 4rem);
+  font-size: clamp(3rem, 6vw, 4.35rem);
   line-height: 0.95;
 }
 
@@ -46879,6 +47005,10 @@ a,
 }
 
 @media (min-width: 900px) {
+  .reportPriorityGrid .verdict-summary-card--snapshot {
+    grid-column: auto;
+  }
+
   .verdict-summary-card--snapshot {
     grid-column: 1 / -1;
     padding: 0.85rem;
@@ -46896,6 +47026,57 @@ a,
   .verdict-summary-card--snapshot .verdict-snapshot-list div {
     padding: 0.55rem 0.65rem;
     min-height: 0;
+  }
+}
+
+@media (max-width: 899px) {
+  .reportPriorityGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .reportPriorityGrid .verdict-summary-card--score {
+    order: 1;
+    min-height: 150px;
+  }
+
+  .reportPriorityGrid .oneThingToFixCard {
+    order: 2;
+  }
+
+  .reportPriorityGrid .verdict-summary-card--identity {
+    order: 3;
+  }
+
+  .reportPriorityGrid .weakLineSpotlightCard {
+    order: 4;
+    grid-column: auto;
+  }
+
+  .reportPriorityGrid .verdict-summary-card--snapshot {
+    order: 5;
+  }
+
+  .reportPriorityGrid .verdict-summary-card,
+  .reportPriorityGrid .oneThingToFixCard,
+  .reportPriorityGrid .weakLineSpotlightCard {
+    padding: 0.9rem;
+    border-radius: 14px;
+  }
+
+  .reportPriorityGrid .verdict-summary-card--identity p,
+  .reportPriorityGrid .verdict-summary-card--identity span,
+  .weakLineSpotlightCard p,
+  .reportPriorityGrid .verdict-summary-card--snapshot .verdict-snapshot-list div:nth-child(n + 3) {
+    display: none;
+  }
+
+  .weakLineSpotlightMeta {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .weakLineSpotlightMeta button {
+    width: 100%;
   }
 }
 

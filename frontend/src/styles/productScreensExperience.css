@@ -1,0 +1,1042 @@
+.appResultsShellTrain,
+.profileSection,
+.premiumStandalonePage,
+.seoPageShell {
+  min-width: 0;
+}
+
+.appResultsShellTrain *,
+.profileSection *,
+.premiumStandalonePage *,
+.seoPageShell * {
+  box-sizing: border-box;
+}
+
+.appResultsShellTrain {
+  width: min(100%, var(--of-shell-max, 1180px));
+  margin-inline: auto;
+  display: grid;
+  gap: clamp(16px, 2.4vw, 24px);
+}
+
+.appResultsShellTrain > * {
+  order: 10;
+}
+
+.appResultsShellTrain > #opening-practice {
+  order: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+}
+
+.appResultsShellTrain .reportOpeningFilters {
+  order: 2;
+  margin: 0;
+}
+
+.appResultsShellTrain > .todayTrainingCard {
+  order: 3;
+}
+
+#opening-practice .practiceLinesPanel {
+  order: -1;
+}
+
+.practiceLinesPanel {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  gap: clamp(12px, 2vw, 18px);
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-lg);
+  padding: clamp(14px, 2vw, 20px);
+  background: var(--of-color-surface);
+  box-shadow: var(--of-shadow-sm);
+  overflow: hidden;
+}
+
+.practiceLinesHeader {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.practiceLinesHeader h2 {
+  margin: 0;
+  color: var(--of-color-text);
+  font-size: clamp(1.32rem, 2.1vw, 2rem);
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.practiceOpeningMeta,
+.practiceSideInstruction,
+.practiceMissingLineNotice,
+.practiceExactLineNotice {
+  margin: 8px 0 0;
+  color: var(--of-color-text-soft);
+  line-height: 1.45;
+}
+
+.practiceExactLineNotice,
+.practiceMissingLineNotice,
+.weakestLineTrainingSet {
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-md);
+  padding: 10px 12px;
+  background: var(--of-color-surface-muted);
+}
+
+.practiceExactLineNotice {
+  border-color: color-mix(in srgb, var(--of-color-success) 36%, var(--of-color-border));
+}
+
+.practiceMissingLineNotice {
+  border-color: color-mix(in srgb, var(--of-color-warning) 42%, var(--of-color-border));
+}
+
+.weakestLineTrainingSet {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.weakestLineTrainingSet span,
+.practiceMoveWhy span,
+.practiceMovePrompt span,
+.practiceProgressTop span {
+  color: var(--of-color-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.weakestLineTrainingSet strong,
+.practiceTrainerBox h3,
+.practiceMovePrompt strong,
+.practiceProgressTop strong {
+  color: var(--of-color-text);
+}
+
+.weakestLineTrainingSet p,
+.weakestLineTrainingSet small {
+  margin: 0;
+  color: var(--of-color-text-soft);
+  line-height: 1.4;
+}
+
+.practiceCloseButton {
+  min-width: var(--of-touch-target);
+  min-height: var(--of-touch-target);
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-md);
+  background: var(--of-color-surface-muted);
+  color: var(--of-color-text);
+}
+
+.practiceBoardLayout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.98fr) minmax(300px, 0.72fr);
+  gap: clamp(14px, 2vw, 20px);
+  align-items: start;
+  min-width: 0;
+}
+
+.practiceBoardColumn,
+.practiceTrainerBox {
+  min-width: 0;
+}
+
+.boardThemeControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.practiceBoardWrap,
+.practice-board-shell {
+  width: min(100%, 560px);
+  max-width: min(100%, calc(100vh - 220px));
+  min-width: 0;
+  margin-inline: auto;
+  aspect-ratio: 1;
+  border-radius: var(--of-radius-md);
+  overflow: hidden;
+}
+
+.practiceTrainerBox {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-lg);
+  padding: clamp(12px, 1.7vw, 16px);
+  background: var(--of-color-surface-elevated);
+}
+
+.practiceTrainerBox h3 {
+  margin: 4px 0 6px;
+  font-size: clamp(1.08rem, 1.6vw, 1.35rem);
+  line-height: 1.15;
+}
+
+.practiceTrainerBox p,
+.practiceIdeaList,
+.practiceTrapBox p,
+.practiceMoveWhy p,
+.practiceMovePrompt small {
+  color: var(--of-color-text-soft);
+  line-height: 1.45;
+}
+
+.practiceIdeaList {
+  margin: 10px 0 0;
+  padding-left: 1.1rem;
+}
+
+.practiceMoveWhy,
+.practiceMovePrompt,
+.practiceTrapBox,
+.practiceStatus,
+.practiceProgressBox {
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-md);
+  padding: 11px 12px;
+  background: var(--of-color-surface-muted);
+}
+
+.practiceMovePrompt {
+  border-color: color-mix(in srgb, var(--of-color-primary) 38%, var(--of-color-border));
+  background: color-mix(in srgb, var(--of-color-primary) 12%, var(--of-color-surface));
+}
+
+.practiceMovePrompt strong {
+  display: block;
+  margin-top: 5px;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  line-height: 1;
+}
+
+.practiceStatus {
+  border-color: color-mix(in srgb, var(--of-color-info) 34%, var(--of-color-border));
+  color: var(--of-color-text-soft);
+}
+
+.practiceCompletionNotice {
+  border-color: color-mix(in srgb, var(--of-color-success) 42%, var(--of-color-border));
+}
+
+.practiceTrapBox {
+  border-color: color-mix(in srgb, var(--of-color-warning) 42%, var(--of-color-border));
+}
+
+.practiceControls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.practiceControls button,
+.practiceLineChoice,
+.practiceMoveChip,
+.practiceFilterRow button,
+.practiceOpeningGrid button {
+  min-height: var(--of-touch-target);
+  min-width: 0;
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-md);
+  padding: 0.62rem 0.78rem;
+  background: var(--of-color-surface-muted);
+  color: var(--of-color-text);
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.practiceControls .primaryPracticeControl {
+  grid-column: span 2;
+  border-color: color-mix(in srgb, var(--of-color-success) 42%, transparent);
+  background: linear-gradient(135deg, var(--of-color-accent), var(--of-color-primary));
+  color: #03111f;
+}
+
+.practiceControls .nextLineControl {
+  border-color: color-mix(in srgb, var(--of-color-primary) 46%, var(--of-color-border));
+}
+
+.practiceLineChoices,
+.practiceMoveList,
+.practiceFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.practiceLineChoice {
+  flex: 1 1 180px;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.practiceLineChoice.active,
+.practiceMoveChip.current,
+.practiceFilterRow button.active,
+.practiceOpeningGrid button.active {
+  border-color: color-mix(in srgb, var(--of-color-primary) 54%, transparent);
+  background: color-mix(in srgb, var(--of-color-primary) 16%, var(--of-color-surface));
+}
+
+.practiceMoveChip.done {
+  border-color: color-mix(in srgb, var(--of-color-success) 42%, var(--of-color-border));
+}
+
+.practiceProgressTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.practiceProgressTrack {
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--of-radius-pill);
+  background: var(--of-color-surface-muted);
+}
+
+.practiceProgressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--of-color-accent), var(--of-color-primary));
+}
+
+.practiceMoveExplanationList,
+.practiceOpeningBrowser {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.practiceMoveExplanationItem {
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-md);
+  padding: 10px 12px;
+  background: var(--of-color-surface-muted);
+}
+
+.practiceMoveExplanationItem.current {
+  border-color: color-mix(in srgb, var(--of-color-primary) 46%, transparent);
+}
+
+.practiceMoveExplanationItem.done {
+  opacity: 0.78;
+}
+
+.practiceSearchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.practiceSearchRow label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: var(--of-color-text);
+  font-weight: 900;
+}
+
+.practiceSearchRow input {
+  min-height: var(--of-input-height);
+  border-radius: var(--of-radius-md);
+}
+
+.practiceOpeningGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 10px;
+}
+
+.practiceOpeningGrid button {
+  display: grid;
+  gap: 5px;
+  text-align: left;
+}
+
+.analysisGrid.boardSection {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.7fr) minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.movesPanel,
+.boardMeta,
+.gamePickerButton,
+.replayEmptyState {
+  min-width: 0;
+}
+
+.gamePickerList {
+  display: grid;
+  gap: 8px;
+}
+
+.gamePickerButton {
+  width: 100%;
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-md);
+  padding: 10px 12px;
+  background: var(--of-color-surface-muted);
+  color: var(--of-color-text);
+  text-align: left;
+}
+
+.gamePickerButtonActive {
+  border-color: color-mix(in srgb, var(--of-color-primary) 52%, transparent);
+}
+
+.profileSection {
+  width: min(100%, var(--of-shell-max, 1180px));
+  margin-inline: auto;
+}
+
+.profileDashboardSimple {
+  display: grid;
+  gap: clamp(16px, 2.4vw, 24px);
+}
+
+.simpleProfileGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(280px, 0.68fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.simpleProfileSideColumn {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.simpleProfileCard,
+.profileSecondaryDetails,
+.profileLoadNotice,
+.accountPanel--screen,
+.premiumStatusCard {
+  min-width: 0;
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-lg);
+  background: var(--of-color-surface);
+  color: var(--of-color-text-soft);
+  box-shadow: var(--of-shadow-sm);
+}
+
+.simpleProfileCard,
+.accountPanel--screen {
+  padding: clamp(14px, 2vw, 20px);
+}
+
+.profileDashboardSimple h1,
+.profileDashboardSimple h2,
+.profileDashboardSimple h3,
+.accountPanel--screen h3 {
+  color: var(--of-color-text);
+  letter-spacing: 0;
+}
+
+.profileDashboardSimple p,
+.profileDashboardSimple small,
+.accountPanel--screen p,
+.accountNotice,
+.accountStatus {
+  color: var(--of-color-text-soft);
+  line-height: 1.45;
+}
+
+.simpleProfilePrimaryActions,
+.accountActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.simpleProfilePrimaryActions button,
+.accountActions button {
+  min-height: var(--of-control-height);
+}
+
+.profileSecondaryDetails {
+  overflow: hidden;
+}
+
+.profileSecondaryDetails > summary {
+  min-height: 56px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+
+.profileSecondaryDetails[open] > summary {
+  border-bottom: 1px solid var(--of-color-border);
+}
+
+.profileDisclosureBody {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.accountPanelShell--screen {
+  position: static;
+  width: 100%;
+}
+
+.accountPanel--screen {
+  position: static;
+  width: 100%;
+  display: grid;
+  gap: 16px;
+  background: var(--of-color-surface);
+  backdrop-filter: none;
+}
+
+.accountProfileStack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.accountProfileStack .accountLabel,
+.accountDangerZone,
+.accountPremiumBox,
+.accountActions,
+.accountLegalLinks,
+.accountStatus {
+  grid-column: 1 / -1;
+}
+
+.accountLabel {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: var(--of-color-text);
+  font-weight: 900;
+}
+
+.accountLabel input {
+  min-height: var(--of-input-height);
+  border-radius: var(--of-radius-md);
+}
+
+.premiumStandalonePage {
+  width: min(100%, var(--of-shell-max, 1180px));
+  margin-inline: auto;
+  display: grid;
+  gap: clamp(16px, 2.6vw, 26px);
+}
+
+.premiumUpgradeShell,
+.premiumDashboard,
+.premiumNoReportCard,
+.profileFounderCard {
+  width: 100%;
+  margin: 0;
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-lg);
+  background: var(--of-color-surface);
+  color: var(--of-color-text-soft);
+  box-shadow: var(--of-shadow-sm);
+}
+
+.premiumUpgradeShell,
+.premiumDashboard,
+.profileFounderCard {
+  padding: clamp(16px, 2.4vw, 24px);
+}
+
+.premiumUpgradeHero,
+.premiumHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.42fr);
+  gap: clamp(16px, 2.4vw, 24px);
+  align-items: start;
+}
+
+.premiumUpgradeCopy h2,
+.premiumHero h2,
+.premiumComparisonHeader h3,
+.premiumFinalCta h3 {
+  margin: 0;
+  color: var(--of-color-text);
+  font-size: clamp(1.55rem, 2.7vw, 2.45rem);
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.premiumUpgradeCopy p,
+.premiumHero p,
+.premiumFinalCta p {
+  max-width: 760px;
+  color: var(--of-color-text-soft);
+  line-height: 1.55;
+}
+
+.premiumHeroBullets,
+.premiumUpgradeTrust,
+.premiumPriceMiniStats,
+.premiumInsightStrip,
+.premiumCommandStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.premiumHeroBullets span,
+.premiumUpgradeTrust span,
+.premiumPriceMiniStats span,
+.premiumInsightStrip > div {
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-md);
+  padding: 8px 10px;
+  background: var(--of-color-surface-muted);
+}
+
+.premiumPriceCard {
+  min-width: 0;
+  border-radius: var(--of-radius-lg);
+  background: color-mix(in srgb, var(--of-color-warning) 10%, var(--of-color-surface));
+}
+
+.premiumCheckoutBtn,
+.premiumDemoBtn,
+.premiumResetBtn,
+.premiumCheckoutButton,
+.premiumFinalCta button {
+  min-height: var(--of-control-height);
+  width: 100%;
+  border-radius: var(--of-radius-md);
+}
+
+.premiumCheckoutBtn,
+.premiumCheckoutButton {
+  background: linear-gradient(135deg, var(--of-color-accent), var(--of-color-primary));
+  color: #03111f;
+}
+
+.premiumPreviewGrid,
+.premiumStatsGrid,
+.premiumGrid,
+.premiumOpeningGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.premiumPreviewCard,
+.premiumStatTile,
+.premiumPanel,
+.premiumOpeningMiniCard,
+.premiumComparisonCard,
+.premiumFinalCta {
+  min-width: 0;
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-md);
+  background: var(--of-color-surface-muted);
+  box-shadow: none;
+}
+
+.premiumComparisonCard,
+.premiumFinalCta {
+  padding: clamp(14px, 2vw, 18px);
+}
+
+.premiumCompareTable {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.premiumCompareHead,
+.premiumCompareRow {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(110px, 0.48fr) minmax(130px, 0.62fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.premiumCompareHead > div,
+.premiumCompareRow > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.seoPageShell {
+  width: min(var(--of-shell-max-wide, 1280px), calc(100vw - (var(--of-page-gutter) * 2)));
+  display: grid;
+  gap: clamp(18px, 3vw, 30px);
+}
+
+.seoTopNav a,
+.seoTopNav button,
+.seoBrandLink,
+.seoInternalLinks nav a {
+  min-height: var(--of-touch-target);
+  display: inline-flex;
+  align-items: center;
+}
+
+.seoHero.openingSeoHero {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  padding: clamp(22px, 4vw, 44px);
+  border-radius: var(--of-radius-lg);
+}
+
+.openingSeoPage .seoHero.openingSeoHero {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.48fr);
+}
+
+.seoHero.openingSeoHero h1 {
+  max-width: 920px;
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.openingHubCategoryGrid,
+.openingSeoCardGrid,
+.openingSeoTwoColumn {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.openingSeoCard {
+  min-width: 0;
+  border-radius: var(--of-radius-lg);
+}
+
+.openingSeoCard nav,
+.seoInternalLinks nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.openingSeoCard a,
+.seoInternalLinks a,
+.seoHeroActions a,
+.seoBottomCta a {
+  min-height: var(--of-control-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.productEmptyState,
+.appEmptySection.productEmptyState,
+.loadingCard,
+.errorBox,
+.importStatusBox,
+.cloudSaveStatusPill,
+.lockedPremiumCard,
+.accountNotice,
+.accountStatus {
+  min-width: 0;
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-lg);
+  background: var(--of-color-surface);
+  color: var(--of-color-text-soft);
+  box-shadow: var(--of-shadow-sm);
+}
+
+.productEmptyState,
+.appEmptySection.productEmptyState,
+.loadingCard,
+.errorBox {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: clamp(14px, 2vw, 18px);
+}
+
+.productEmptyState h2,
+.loadingCard h3,
+.errorBox strong {
+  margin: 0;
+  color: var(--of-color-text);
+  letter-spacing: 0;
+}
+
+.productEmptyState p,
+.loadingCard p,
+.errorBox p {
+  color: var(--of-color-text-soft);
+  line-height: 1.45;
+}
+
+.productStateIcon,
+.productFeedbackIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--of-radius-md);
+  background: color-mix(in srgb, var(--of-color-primary) 16%, transparent);
+  color: var(--of-color-text);
+}
+
+.errorBox {
+  border-color: color-mix(in srgb, var(--of-color-error) 38%, var(--of-color-border));
+}
+
+.loadingCard {
+  border-color: color-mix(in srgb, var(--of-color-info) 38%, var(--of-color-border));
+}
+
+@media (min-width: 1024px) {
+  .appResultsShellTrain {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.34fr);
+    align-items: start;
+  }
+
+  .appResultsShellTrain > #opening-practice,
+  .appResultsShellTrain > .reportOpeningFilters,
+  .appResultsShellTrain > #training-plan,
+  .appResultsShellTrain > #game-replay {
+    grid-column: 1;
+  }
+
+  .appResultsShellTrain > .todayTrainingCard,
+  .appResultsShellTrain > :not(#opening-practice):not(.reportOpeningFilters):not(#training-plan):not(#game-replay) {
+    grid-column: 2;
+  }
+
+  .appResultsShellTrain > .todayTrainingCard {
+    position: sticky;
+    top: calc(var(--app-primary-nav-height, 72px) + 16px);
+  }
+}
+
+@media (max-width: 1023px) {
+  .practiceBoardLayout,
+  .simpleProfileGrid,
+  .premiumUpgradeHero,
+  .premiumHero,
+  .openingSeoPage .seoHero.openingSeoHero,
+  .analysisGrid.boardSection {
+    grid-template-columns: 1fr;
+  }
+
+  .practiceBoardWrap,
+  .practice-board-shell {
+    max-width: min(100%, 540px);
+  }
+
+  .premiumCommandStrip,
+  .premiumStatsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1199px) {
+  #opening-practice .practiceBoardLayout,
+  .practiceBoardLayout {
+    grid-template-columns: 1fr !important;
+  }
+
+  #opening-practice .practiceBoardWrap,
+  .practiceBoardWrap,
+  .practice-board-shell {
+    width: min(100%, 560px) !important;
+    max-width: min(100%, 560px) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  body,
+  .page,
+  .appShell,
+  .publicLandingPage,
+  .premiumStandalonePage,
+  .profileSection,
+  .appResultsShell,
+  .appResultsShellTrain {
+    padding-bottom: var(--of-mobile-nav-clearance) !important;
+  }
+
+  .appStoreReadinessFooter {
+    margin-bottom: var(--of-mobile-nav-clearance);
+  }
+
+  .appResultsShellTrain,
+  .profileDashboardSimple,
+  .premiumStandalonePage,
+  .seoPageShell {
+    gap: 14px;
+  }
+
+  .practiceLinesPanel,
+  .accountPanel--screen,
+  .premiumUpgradeShell,
+  .premiumDashboard,
+  .profileFounderCard,
+  .productEmptyState,
+  .appEmptySection.productEmptyState,
+  .loadingCard,
+  .errorBox {
+    border-radius: var(--of-radius-md);
+    padding: 13px;
+  }
+
+  .practiceLinesHeader {
+    display: grid;
+  }
+
+  .practiceBoardColumn {
+    display: grid;
+  }
+
+  .practiceBoardWrap,
+  .practice-board-shell {
+    width: min(100%, calc(100vw - (var(--of-page-gutter) * 2) - 28px));
+    max-width: min(100%, calc(100vh - 245px));
+  }
+
+  .practiceControls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .practiceControls .primaryPracticeControl,
+  .practiceControls .nextLineControl {
+    grid-column: span 1;
+  }
+
+  .practiceSearchRow,
+  .accountProfileStack,
+  .premiumCompareHead,
+  .premiumCompareRow,
+  .productEmptyState,
+  .appEmptySection.productEmptyState,
+  .loadingCard,
+  .errorBox {
+    grid-template-columns: 1fr;
+  }
+
+  .premiumCompareHead {
+    display: none;
+  }
+
+  .premiumCompareRow {
+    border: 1px solid var(--of-color-border);
+    border-radius: var(--of-radius-md);
+    padding: 10px;
+    background: var(--of-color-surface-muted);
+  }
+
+  .premiumCompareRow > div:nth-child(2)::before {
+    content: "Free: ";
+    color: var(--of-color-muted);
+    font-weight: 900;
+  }
+
+  .premiumCompareRow > div:nth-child(3)::before {
+    content: "Premium: ";
+    color: var(--of-color-muted);
+    font-weight: 900;
+  }
+
+  .premiumCommandStrip,
+  .premiumStatsGrid,
+  .premiumInsightStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .simpleProfilePrimaryActions button,
+  .accountActions button,
+  .premiumCommandStrip button,
+  .premiumCheckoutBtn,
+  .premiumDemoBtn,
+  .premiumResetBtn,
+  .productStateAction button,
+  .errorBox button {
+    width: 100%;
+  }
+
+  .seoHero.openingSeoHero h1 {
+    font-size: clamp(2rem, 11vw, 3rem);
+  }
+
+  .premiumStandalonePage .premiumUpgradeShell,
+  .premiumStandalonePage .profileFounderCard {
+    margin-top: 0;
+  }
+
+  .premiumStandalonePage .premiumUpgradeHero,
+  .premiumStandalonePage .profileFounderCard {
+    gap: 10px;
+  }
+
+  .premiumStandalonePage .premiumHeroBullets,
+  .premiumStandalonePage .premiumUpgradeTrust,
+  .premiumStandalonePage .profileFounderValue,
+  .premiumStandalonePage .profileFounderTrust {
+    display: none !important;
+  }
+
+  .premiumStandalonePage .premiumPriceCard,
+  .premiumStandalonePage .profileFounderOffer {
+    padding: 12px;
+  }
+
+  .premiumStandalonePage .premiumPrice,
+  .premiumStandalonePage .profileFounderOffer strong {
+    font-size: clamp(2rem, 13vw, 3rem);
+    line-height: 1;
+  }
+
+  .premiumStandalonePage .premiumNoReportCard {
+    gap: 8px;
+  }
+
+  .premiumStandalonePage .premiumNoReportCard > p:not(.eyebrow) {
+    display: none;
+  }
+}
+
+@media (max-width: 374px) {
+  .practiceControls {
+    grid-template-columns: 1fr;
+  }
+
+  .practiceLineChoice,
+  .practiceMoveChip,
+  .practiceFilterRow button,
+  .practiceOpeningGrid button {
+    width: 100%;
+  }
+
+  .seoHeroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}

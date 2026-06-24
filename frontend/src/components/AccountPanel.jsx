@@ -168,7 +168,7 @@ export default function AccountPanel({ variant = "floating",
   const signInWithGoogle = async () => {
     if (!supabase) {
       console.error("OpeningFit signup failed: Supabase client is not configured.");
-      setStatus("Supabase is not configured. Add your environment variables first.");
+      setStatus("Secure sign-in is not connected in this environment.");
       return;
     }
 
@@ -187,7 +187,7 @@ export default function AccountPanel({ variant = "floating",
             },
           },
         }),
-        "Supabase Google sign-in is not responding. Please try email login or try again shortly."
+        "Google sign-in is taking too long. Please try email login or try again shortly."
       );
 
       if (error) {
@@ -201,7 +201,7 @@ export default function AccountPanel({ variant = "floating",
         return;
       }
 
-      setStatus("Supabase did not return a Google sign-in URL. Please try email login.");
+      setStatus("Google sign-in could not open. Please try email login.");
 
       if (import.meta.env.DEV) {
         console.info("OpeningFit Google signup/sign-in started", {
@@ -220,7 +220,7 @@ export default function AccountPanel({ variant = "floating",
   const sendMagicLink = async () => {
     if (!supabase) {
       console.error("OpeningFit email signup failed: Supabase client is not configured.");
-      setStatus("Supabase is not configured. Add your environment variables first.");
+      setStatus("Secure sign-in is not connected in this environment.");
       return;
     }
 
@@ -272,7 +272,7 @@ export default function AccountPanel({ variant = "floating",
 
     if (!supabase) {
       console.error("OpeningFit email auth failed: Supabase client is not configured.");
-      setStatus("Supabase is not configured. Add your environment variables first.");
+      setStatus("Secure sign-in is not connected in this environment.");
       return;
     }
 
@@ -367,7 +367,7 @@ export default function AccountPanel({ variant = "floating",
         email: cleanEmail,
         error,
       });
-      setStatus(error?.message || "Supabase could not complete that request.");
+      setStatus(error?.message || "We could not complete that account request. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -562,8 +562,7 @@ export default function AccountPanel({ variant = "floating",
 
           {!isSupabaseConfigured ? (
             <div className="accountNotice">
-              Supabase is not configured yet. Add your VITE_SUPABASE_URL and
-              VITE_SUPABASE_ANON_KEY values to <code>frontend/.env.local</code>.
+              Secure sign-in is not connected in this environment. You can still analyse games locally.
             </div>
           ) : null}
 
@@ -598,8 +597,7 @@ export default function AccountPanel({ variant = "floating",
               </button>
 
               <p className="accountBetaNote">
-                Beta note: Google may show our Supabase auth provider during sign-in.
-                This is the secure login service OpeningFit uses while in beta.
+                Beta note: Google may show OpeningFit's secure auth provider during sign-in.
               </p>
 
               <div className="accountDivider">
@@ -755,7 +753,7 @@ export default function AccountPanel({ variant = "floating",
               </div>
 
               <div className="premiumStatusCard accountLoginStatusCard">
-                <span>Supabase sync</span>
+                <span>Account sync</span>
                 <strong>
                   {profileLoading || !profileLoaded
                     ? "Restoring..."
@@ -774,21 +772,21 @@ export default function AccountPanel({ variant = "floating",
                     className="accountInlineRetry"
                     type="button"
                     onClick={async () => {
-                      setStatus("Retrying Supabase profile load...");
+                      setStatus("Retrying account sync...");
                       try {
                         const currentUser = await getCurrentUser();
                         if (!currentUser?.id) {
-                          setStatus("Supabase session is no longer active. Please log in again.");
+                          setStatus("Your session is no longer active. Please log in again.");
                           return;
                         }
 
                         const existingProfile = await getUserProfile(currentUser.id);
                         if (!existingProfile) await upsertUserProfile(currentUser);
                         await refreshUserData(currentUser);
-                        setStatus("Supabase sync restored.");
+                        setStatus("Account sync restored.");
                       } catch (retryError) {
-                        console.error("OpeningFit Supabase retry failed", retryError);
-                        setStatus(retryError?.message || "Supabase retry failed.");
+                        console.error("OpeningFit account sync retry failed", retryError);
+                        setStatus(retryError?.message || "Sync retry failed.");
                       }
                     }}
                   >
