@@ -8,6 +8,7 @@ import "./components/OpeningFitPolish.css";
 import "./components/WeakLineDetection.css";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
+import { createPortal } from "react-dom";
 import "./App.css";
 import OpeningReportSummary from "./components/OpeningReportSummary";
 import RepertoireStudyPlan from "./components/RepertoireStudyPlan";
@@ -2142,6 +2143,7 @@ function getOpeningFitScoreReason(opening) {
 function OpeningScoreInfoButton({ opening = null, className = "" }) {
   const [isOpen, setIsOpen] = useState(false);
   const popoverId = useId();
+  const mobilePopoverId = useId();
   const evidenceLabel = opening ? getOpeningScoreEvidenceLabel(opening) : "";
 
   useEffect(() => {
@@ -2159,6 +2161,31 @@ function OpeningScoreInfoButton({ opening = null, className = "" }) {
     event.stopPropagation();
   };
 
+  const popoverContent = (
+    <>
+      <span className="openingScorePopoverHeader">
+        <strong>How this opening score works</strong>
+        <button type="button" aria-label="Close score explanation" onClick={() => setIsOpen(false)}>
+          <X size={15} aria-hidden="true" />
+        </button>
+      </span>
+      <span className="openingScorePopoverBody">
+        This is a fit score, not just a win-rate score. It estimates how well this opening currently suits your games.
+      </span>
+      <span className="openingScoreFactorList">
+        <span>Results in this opening</span>
+        <span>How often you use it</span>
+        <span>Confidence and consistency across games</span>
+        <span>Recurring early mistakes or difficult positions</span>
+        <span>Fit with your observed style and plans</span>
+      </span>
+      <span className="openingScorePopoverBody">
+        A low score does not mean this is a bad opening. It usually means you need more games, a clearer plan, or practice in a specific variation.
+      </span>
+      {evidenceLabel ? <span className="openingScoreEvidenceNote">{evidenceLabel}</span> : null}
+    </>
+  );
+
   return (
     <span className={`openingScoreInfoWrap ${className}`} onClick={stopCardClick}>
       <button
@@ -2166,7 +2193,7 @@ function OpeningScoreInfoButton({ opening = null, className = "" }) {
         className="openingScoreInfoButton"
         aria-label="How this opening score works"
         aria-expanded={isOpen}
-        aria-controls={popoverId}
+        aria-controls={`${popoverId} ${mobilePopoverId}`}
         onClick={() => setIsOpen((current) => !current)}
       >
         <Info size={15} aria-hidden="true" />
@@ -2180,28 +2207,31 @@ function OpeningScoreInfoButton({ opening = null, className = "" }) {
           aria-modal="false"
           aria-label="How this opening score works"
         >
-          <span className="openingScorePopoverHeader">
-            <strong>How this opening score works</strong>
-            <button type="button" aria-label="Close score explanation" onClick={() => setIsOpen(false)}>
-              <X size={15} aria-hidden="true" />
-            </button>
-          </span>
-          <span className="openingScorePopoverBody">
-            This is a fit score, not just a win-rate score. It estimates how well this opening currently suits your games.
-          </span>
-          <span className="openingScoreFactorList">
-            <span>Results in this opening</span>
-            <span>How often you use it</span>
-            <span>Confidence and consistency across games</span>
-            <span>Recurring early mistakes or difficult positions</span>
-            <span>Fit with your observed style and plans</span>
-          </span>
-          <span className="openingScorePopoverBody">
-            A low score does not mean this is a bad opening. It usually means you need more games, a clearer plan, or practice in a specific variation.
-          </span>
-          {evidenceLabel ? <span className="openingScoreEvidenceNote">{evidenceLabel}</span> : null}
+          {popoverContent}
         </span>
       ) : null}
+      {isOpen && typeof document !== "undefined"
+        ? createPortal(
+            <span className="openingScoreMobileLayer" onClick={stopCardClick}>
+              <button
+                type="button"
+                className="openingScoreMobileBackdrop"
+                aria-label="Close score explanation"
+                onClick={() => setIsOpen(false)}
+              />
+              <span
+                className="openingScorePopover openingScorePopoverMobileSheet"
+                id={mobilePopoverId}
+                role="dialog"
+                aria-modal="true"
+                aria-label="How this opening score works"
+              >
+                {popoverContent}
+              </span>
+            </span>,
+            document.body
+          )
+        : null}
     </span>
   );
 }
