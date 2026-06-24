@@ -4189,6 +4189,78 @@ th {
   color: var(--text-soft);
 }
 
+.variationOverviewBox {
+  display: grid;
+  gap: 0.8rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.58);
+  border-radius: 18px;
+  padding: 1rem;
+  margin-top: 0.85rem;
+}
+
+.variationOverviewHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.variationOverviewHeader h3 {
+  margin: 0.15rem 0 0;
+}
+
+.variationOverviewHeader > span {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  border-radius: 999px;
+  color: var(--text-soft);
+  background: rgba(96, 165, 250, 0.08);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.variationOverviewBox > p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.45;
+}
+
+.variationOverviewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.variationOverviewGrid article {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.8rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 15px;
+  background: rgba(2, 6, 23, 0.32);
+}
+
+.variationOverviewGrid span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.variationOverviewGrid strong {
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.variationOverviewGrid small {
+  color: var(--text-soft);
+  line-height: 1.35;
+}
+
 .openingPremiumPreview ul {
   margin: 0.5rem 0 0;
   padding-left: 1.15rem;
@@ -4210,6 +4282,15 @@ th {
 
   .openingModalStats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .variationOverviewHeader,
+  .variationOverviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .variationOverviewHeader {
+    display: grid;
   }
 
   .openingModal {
@@ -4536,6 +4617,83 @@ th {
   color: var(--text-soft);
 }
 
+.lineSideBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.65rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.09);
+}
+
+.lineSideBadge span {
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.lineSideBadge small {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.positionPlanPanel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.34);
+}
+
+.positionPlanHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.positionPlanHeader span,
+.positionPlanGrid article span,
+.moveIdeaTag {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.positionPlanHeader strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.positionPlanGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.positionPlanGrid article {
+  min-width: 0;
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.positionPlanGrid article p {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
 .practiceIdeaList {
   display: grid;
   gap: 0.35rem;
@@ -4598,15 +4756,45 @@ th {
   border-color: rgba(34, 197, 94, 0.35);
 }
 
+.practiceMoveExplanationItem.critical {
+  border-color: rgba(250, 204, 21, 0.5);
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.moveIdeaTag {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 0.4rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.5);
+}
+
 .practiceMoveExplanationItem strong {
   display: block;
   margin-bottom: 0.4rem;
 }
 
-.practiceMoveExplanationItem p {
+.practiceMoveExplanationItem p,
+.practiceMoveExplanationItem details {
   margin: 0;
   color: var(--text-soft);
   line-height: 1.45;
+}
+
+.practiceMoveExplanationItem summary {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+
+.practiceMoveExplanationItem details p {
+  margin-top: 0.35rem;
 }
 
 @media (min-width: 900px) {
@@ -4688,6 +4876,14 @@ th {
     line-height: 1.35;
   }
 
+  #opening-practice .positionPlanPanel {
+    padding: 0.7rem;
+  }
+
+  #opening-practice .positionPlanGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   #opening-practice .practiceBoardLayout {
     gap: 0.75rem;
     margin-bottom: 0.6rem;
@@ -4727,6 +4923,29 @@ th {
   border-color: rgba(96, 165, 250, 0.55);
   background: rgba(96, 165, 250, 0.12);
   color: #bfdbfe;
+}
+
+.practiceMoveChip.critical {
+  border-color: rgba(250, 204, 21, 0.55);
+  background: rgba(250, 204, 21, 0.12);
+  color: #fde68a;
+}
+
+.practiceMoveChip small {
+  margin-left: 0.35rem;
+  color: inherit;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+@media (max-width: 720px) {
+  .positionPlanGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .positionPlanHeader {
+    display: grid;
+  }
 }
 
 .practiceControls {
@@ -44006,6 +44225,186 @@ textarea,
   line-height: 1;
 }
 
+.fitScoreCircleWithInfo,
+.openingScoreEyebrow,
+.openingFitScorePill {
+  position: relative;
+}
+
+.fitScoreCircleWithInfo {
+  isolation: isolate;
+}
+
+.openingFitScorePill small,
+.openingScoreEvidenceLabel {
+  color: var(--ds-muted);
+  font-size: 0.66rem;
+  font-weight: 850;
+}
+
+.openingScoreInfoWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 8;
+}
+
+.openingScoreInfoButton {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--ds-primary) 35%, var(--ds-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ds-bg-1) 84%, transparent);
+  color: var(--ds-text);
+  cursor: pointer;
+}
+
+.openingScoreInfoButton:hover,
+.openingScoreInfoButton:focus-visible {
+  border-color: color-mix(in srgb, var(--ds-primary) 62%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-primary) 12%, var(--ds-bg-1));
+  outline: 2px solid color-mix(in srgb, var(--ds-primary) 34%, transparent);
+  outline-offset: 2px;
+}
+
+.openingScoreInfoButton--circle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.openingScorePopover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(320px, calc(100vw - 32px));
+  max-height: min(440px, calc(100vh - 80px));
+  overflow: auto;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: 16px;
+  background: var(--ds-bg-1);
+  color: var(--ds-text);
+  box-shadow: var(--ds-shadow-lg);
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+  z-index: 40;
+}
+
+.openingScorePopoverHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.openingScorePopoverHeader strong {
+  color: var(--ds-text) !important;
+  font-size: 0.95rem !important;
+  line-height: 1.25;
+}
+
+.openingScorePopoverHeader button {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ds-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ds-text) 5%, transparent);
+  color: var(--ds-text);
+  cursor: pointer;
+}
+
+.openingScorePopoverBody,
+.openingScoreFactorList span,
+.openingScoreEvidenceNote {
+  color: var(--ds-text-soft);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.openingScoreFactorList {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+}
+
+.openingScoreFactorList span {
+  position: relative;
+  padding-left: 14px;
+}
+
+.openingScoreFactorList span::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--ds-primary);
+}
+
+.openingScoreEvidenceNote {
+  width: fit-content;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--ds-warning) 42%, var(--ds-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ds-warning) 12%, transparent);
+  color: color-mix(in srgb, var(--ds-warning) 72%, var(--ds-text));
+  font-weight: 850;
+}
+
+.openingScoreReason {
+  margin: 6px 0 0;
+  color: var(--ds-text-soft);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.openingRecommendationCard[role="button"] {
+  cursor: pointer;
+}
+
+.openingRecommendationCard[role="button"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ds-primary) 58%, transparent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .openingScorePopover {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: calc(var(--mobile-nav-height, 72px) + 12px);
+    left: 12px;
+    width: auto;
+    max-height: min(72vh, 460px);
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .openingScoreInfoButton {
+    width: 36px;
+    height: 36px;
+  }
+
+  .openingRecommendationMetrics {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 .openingRecommendationMetrics {
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   gap: 9px !important;
@@ -44029,6 +44428,12 @@ textarea,
   font-size: 0.95rem !important;
 }
 
+@media (max-width: 640px) {
+  .openingRecommendationMetrics {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 .openingScoreBars {
   gap: 7px !important;
 }
@@ -44049,6 +44454,35 @@ textarea,
   background: color-mix(in srgb, var(--ds-bg-1) 48%, transparent);
   color: var(--ds-text-soft) !important;
   line-height: 1.45;
+}
+
+.variationStatusInline {
+  display: grid;
+  gap: 0.3rem;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--ds-warning) 32%, var(--ds-border));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ds-warning) 9%, transparent);
+}
+
+.variationStatusInline span {
+  color: var(--ds-text);
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.variationStatusInline p {
+  margin: 0;
+  color: var(--ds-text-soft);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.trainingTargetMeta {
+  margin-top: 0.5rem !important;
+  color: var(--ds-muted) !important;
+  font-size: 0.82rem;
+  font-weight: 850;
 }
 
 .openingRecommendationCard .fitReasonList {

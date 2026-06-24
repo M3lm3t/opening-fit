@@ -6,7 +6,7 @@ import OpeningFitImportDoctor from "./components/OpeningFitImportDoctor.jsx";
 import OpeningFitPolishToast from "./components/OpeningFitPolishToast.jsx";
 import "./components/OpeningFitPolish.css";
 import "./components/WeakLineDetection.css";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
 import OpeningReportSummary from "./components/OpeningReportSummary";
@@ -84,6 +84,7 @@ import AccountRestoreSync from "./components/AccountRestoreSync";
 import { buildReportRetentionKey, logRetentionEvent } from "./services/retentionEvents";
 import { buildOpeningHealthSnapshot } from "./services/openingHealth";
 import { mergeWeakLines } from "./services/weakLineDetection";
+import { buildOpeningVariationOverview } from "./services/variationOverview";
 import { buildOpeningGamificationSnapshot } from "./services/openingGamification";
 import { buildTrainingRecommendations } from "./services/trainingRecommendations";
 import {
@@ -143,6 +144,7 @@ import {
   Database,
   Gamepad2,
   History,
+  Info,
   Layers3,
   ListChecks,
   LockKeyhole,
@@ -151,6 +153,7 @@ import {
   ShieldCheck,
   Sparkles,
   Target,
+  X,
 } from "lucide-react";
 import "./ThemePolish.css";
 import "./styles/appShellExperience.css";
@@ -163,6 +166,7 @@ const PLATFORM_KEY = "openingFit:lastPlatform";
 const IMPORT_MONTHS_KEY = "openingFit:lastImportMonths";
 const OPENING_SAMPLE_PERCENT_KEY = "openingFit:openingSamplePercent";
 const ANALYSIS_TIME_FORMAT_KEY = "openingFit:lastAnalysisTimeFormat";
+const OPENING_SCORE_LIMITED_EVIDENCE_GAMES = 10;
 const REPORT_FILTERS_KEY = "openingFit:reportFilters";
 const AUTH_RETURN_PATH_KEY = "openingFit:authReturnPath";
 const SUPPORT_EMAIL = "m3lm3t@gmail.com";
@@ -2067,6 +2071,140 @@ function getOpeningConfidenceReason(opening) {
   return "Game count unavailable.";
 }
 
+function getOpeningScoreEvidenceLabel(opening) {
+  const games = getOpeningGames(opening);
+  if (games <= 0) return "Limited evidence";
+  if (games < OPENING_SCORE_LIMITED_EVIDENCE_GAMES) return "Early estimate";
+  return "";
+}
+
+function getOpeningFitScoreReason(opening) {
+  if (!opening || typeof opening === "string") {
+    return "OpeningFit needs more repeated games before it can explain this score clearly.";
+  }
+
+  const games = getOpeningGames(opening);
+  const winRate = getWinRate(opening);
+  const losses = getOpeningLosses(opening);
+  const lossRate = games ? Math.round((losses / games) * 100) : null;
+  const confidence = getOpeningConfidence(opening);
+  const reasonText = [
+    opening.fitConfidenceReason,
+    opening.fitExplanation,
+    opening.fitReasonBullets?.join(" "),
+    opening.evidenceBullets?.join(" "),
+    opening.evidence?.join(" "),
+    opening.lossTimingNote,
+    opening.loss_timing_note,
+    opening.moveOrderNote,
+    opening.move_order_note,
+    opening.planClarityNote,
+    opening.plan_clarity_note,
+    opening.fixabilityExplanation,
+    opening.fixability_explanation,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (games > 0 && games < OPENING_SCORE_LIMITED_EVIDENCE_GAMES && winRate >= 55) {
+    return "Strong results, but too few games for high confidence.";
+  }
+
+  if (games > 0 && games < OPENING_SCORE_LIMITED_EVIDENCE_GAMES) {
+    return "Early estimate from a small sample. Use it as a watch signal, not a verdict.";
+  }
+
+  if (/opening|early|move.?order|mistake|loss/.test(reasonText) && lossRate !== null && lossRate >= 40) {
+    return "The score is lower mainly because of recurring early difficulty, not because the opening is bad.";
+  }
+
+  if (/variation|line|branch/.test(reasonText) && lossRate !== null && lossRate >= 35) {
+    return "Your results drop most often after entering a specific variation.";
+  }
+
+  if (games >= OPENING_SCORE_LIMITED_EVIDENCE_GAMES && winRate >= 55 && /plan|familiar|consistent|stable|clarity/.test(reasonText)) {
+    return "You play this regularly and usually reach familiar positions.";
+  }
+
+  if (games >= OPENING_SCORE_LIMITED_EVIDENCE_GAMES && winRate >= 55) {
+    return "Good results across a useful sample make this a reliable current signal.";
+  }
+
+  if (games >= OPENING_SCORE_LIMITED_EVIDENCE_GAMES && winRate < 45) {
+    return "Less reliable in your recent games; worth revisiting after strengthening the repeated line.";
+  }
+
+  return `${confidence}. OpeningFit is weighing results, sample size, consistency, and fit with your current games.`;
+}
+
+function OpeningScoreInfoButton({ opening = null, className = "" }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const popoverId = useId();
+  const evidenceLabel = opening ? getOpeningScoreEvidenceLabel(opening) : "";
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isOpen]);
+
+  const stopCardClick = (event) => {
+    event.stopPropagation();
+  };
+
+  return (
+    <span className={`openingScoreInfoWrap ${className}`} onClick={stopCardClick}>
+      <button
+        type="button"
+        className="openingScoreInfoButton"
+        aria-label="How this opening score works"
+        aria-expanded={isOpen}
+        aria-controls={popoverId}
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        <Info size={15} aria-hidden="true" />
+      </button>
+
+      {isOpen ? (
+        <span
+          className="openingScorePopover"
+          id={popoverId}
+          role="dialog"
+          aria-modal="false"
+          aria-label="How this opening score works"
+        >
+          <span className="openingScorePopoverHeader">
+            <strong>How this opening score works</strong>
+            <button type="button" aria-label="Close score explanation" onClick={() => setIsOpen(false)}>
+              <X size={15} aria-hidden="true" />
+            </button>
+          </span>
+          <span className="openingScorePopoverBody">
+            This is a fit score, not just a win-rate score. It estimates how well this opening currently suits your games.
+          </span>
+          <span className="openingScoreFactorList">
+            <span>Results in this opening</span>
+            <span>How often you use it</span>
+            <span>Confidence and consistency across games</span>
+            <span>Recurring early mistakes or difficult positions</span>
+            <span>Fit with your observed style and plans</span>
+          </span>
+          <span className="openingScorePopoverBody">
+            A low score does not mean this is a bad opening. It usually means you need more games, a clearer plan, or practice in a specific variation.
+          </span>
+          {evidenceLabel ? <span className="openingScoreEvidenceNote">{evidenceLabel}</span> : null}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 function baseConfidenceVerdict(opening, data, fallback = "") {
   const games = getOpeningGames(opening);
   const signal = getOpeningSignal(opening);
@@ -2477,7 +2615,19 @@ function buildOpeningFitData(data) {
       const rank =
         volumeRank.get(`${getOpeningName(opening).toLowerCase()}::${context.type}::${context.detail}`) ??
         99;
-      const smartVerdict = getSmartOpeningVerdict(opening, data, rank);
+      const baseSmartVerdict = getSmartOpeningVerdict(opening, data, rank);
+      const variationOverview = buildOpeningVariationOverview(data, opening);
+      const smartVerdict =
+        variationOverview.status === "generally_solid_branch_weakness" && baseSmartVerdict.category !== "keep"
+          ? {
+              ...baseSmartVerdict,
+              label: "Generally solid",
+              category: "review",
+              tone: "warning",
+              severity: "warning",
+              message: variationOverview.summary,
+            }
+          : baseSmartVerdict;
       const signal = getOpeningSignal(opening);
       const fitReasonBullets = getOpeningFitReasonBullets(opening, data, smartVerdict, playerStyle);
       const fitScore =
@@ -2487,8 +2637,14 @@ function buildOpeningFitData(data) {
               smartVerdict.label === "Reliable choice"
             ? Math.max(score, signal.tier === "strong" ? 78 : 68)
             : smartVerdict.category === "review"
-              ? Math.max(score, 58)
+              ? variationOverview.status === "generally_solid_branch_weakness"
+                ? Math.max(score, 56)
+                : Math.max(score, 58)
               : score;
+      const variationReason =
+        variationOverview.status === "needs_more_evidence"
+          ? null
+          : variationOverview.displayStatus;
 
       return {
         ...opening,
@@ -2500,10 +2656,14 @@ function buildOpeningFitData(data) {
         fitSeverity: smartVerdict.severity,
         fitConfidence: signal.badge,
         fitConfidenceReason: getOpeningConfidenceReason(opening),
-        fitReasonBullets,
+        fitReasonBullets: variationReason
+          ? [variationReason, ...fitReasonBullets.filter((item) => item !== variationReason)].slice(0, 4)
+          : fitReasonBullets,
         fitSignalTier: signal.tier,
         fitSignalExplanation: signal.explanation,
         fitSampleTier: getOpeningSampleTier(getOpeningGames(opening)),
+        variationOverview,
+        variationStatus: variationOverview.displayStatus,
         fitExplanation: getOpeningExplanation(
           opening,
           data,
@@ -2665,7 +2825,8 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
           {publicMode ? <p className="muted">{PUBLIC_ACCOUNT_CAUTION_COPY}</p> : null}
         </div>
 
-        <div className="fitScoreCircle">
+        <div className="fitScoreCircle fitScoreCircleWithInfo">
+          <OpeningScoreInfoButton className="openingScoreInfoButton--circle" />
           <strong>{overallScore}</strong>
           <span>/100</span>
         </div>
@@ -2837,20 +2998,35 @@ function OpeningFitScoreList({ fitData, onPractice }) {
           const games = getOpeningGames(opening);
           const winRate = getWinRate(opening);
           const fitScore = safeNumber(opening.fitScore ?? opening.openingFitScore ?? winRate, 0);
+          const evidenceLabel = getOpeningScoreEvidenceLabel(opening);
+          const scoreReason = getOpeningFitScoreReason(opening);
+          const variationOverview = opening.variationOverview;
           const coachText =
             opening.fitReasonBullets?.[0] ||
             opening.fitConfidenceReason ||
             opening.fitExplanation ||
             getOpeningConfidenceReason(opening);
           const supportiveContext = getSupportiveOpeningContext(opening, status);
+          const practiceOpening = () => {
+            if (canPractice) onPractice(name);
+          };
+          const handleRowKeyDown = (event) => {
+            if (!canPractice) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              practiceOpening();
+            }
+          };
 
           return (
-            <button
+            <article
               className={`fitOpeningRow openingRecommendationCard status-${status.toLowerCase().replace(/\s+/g, "-")}`}
               key={`${name}-${index}`}
-              type="button"
+              role={canPractice ? "button" : undefined}
+              tabIndex={canPractice ? 0 : undefined}
               aria-disabled={!canPractice}
-              onClick={() => canPractice && onPractice(name)}
+              onClick={practiceOpening}
+              onKeyDown={handleRowKeyDown}
             >
               <div className="openingRecommendationTop">
                 <div className="openingRecommendationTitleBlock">
@@ -2869,7 +3045,9 @@ function OpeningFitScoreList({ fitData, onPractice }) {
                 </div>
                 <div className="openingFitScorePill">
                   <span>{fitScore ? "Fit" : "Confidence"}</span>
+                  <OpeningScoreInfoButton opening={opening} />
                   <strong>{fitScore || getOpeningConfidence(opening)}</strong>
+                  {evidenceLabel ? <small>{evidenceLabel}</small> : null}
                 </div>
               </div>
 
@@ -2877,6 +3055,8 @@ function OpeningFitScoreList({ fitData, onPractice }) {
                 <div>
                   <span>Fit score</span>
                   <strong>{fitScore || "—"}{fitScore ? "/100" : ""}</strong>
+                  {evidenceLabel ? <small className="openingScoreEvidenceLabel">{evidenceLabel}</small> : null}
+                  <p className="openingScoreReason">{scoreReason}</p>
                 </div>
                 <div>
                   <span>Win rate</span>
@@ -2901,13 +3081,20 @@ function OpeningFitScoreList({ fitData, onPractice }) {
                 {opening.fitDisplayVerdict || confidenceVerdictLabel(opening, {}, opening.fitVerdict)}. {supportiveContext} {coachText}
               </p>
 
+              {variationOverview?.displayStatus ? (
+                <div className="variationStatusInline">
+                  <span>{variationOverview.displayStatus}</span>
+                  {variationOverview.summary ? <p>{variationOverview.summary}</p> : null}
+                </div>
+              ) : null}
+
               <FitReasonList opening={opening} />
 
               <div className="openingRecommendationAction">
                 <span>{getOpeningConfidence(opening)}</span>
                 <strong>{action}</strong>
               </div>
-            </button>
+            </article>
           );
         })}
       </div>
@@ -6517,8 +6704,11 @@ function NextBestTrainingActionCard({ data, fitData, onStartTraining }) {
 function ReportTrainingPreview({ data, fitData, studyTarget, recentGames = [], onPractice, onNavigate }) {
   if (!data) return null;
 
+  const plan = buildTrainingRecommendations(data, fitData);
+  const primaryTarget = plan.primary;
   const weakestTraining = buildWeakestLineTrainingTarget(data);
   const targetName =
+    primaryTarget?.opening ||
     weakestTraining.target?.opening ||
     studyTarget?.name ||
     getOpeningName(fitData?.weakestOpening) ||
@@ -6538,13 +6728,28 @@ function ReportTrainingPreview({ data, fitData, studyTarget, recentGames = [], o
       <div className="reportTrainingPreviewGrid">
         <article>
           <span>Practice board</span>
-          <strong>{targetName}</strong>
+          <strong>
+            {primaryTarget?.sideLabel ? `${primaryTarget.sideLabel}: ` : ""}
+            {targetName}
+            {primaryTarget?.variation ? `, ${primaryTarget.variation}` : ""}
+          </strong>
           <p>
-            {weakestTraining.available
+            {primaryTarget
+              ? `${primaryTarget.reason} ${primaryTarget.why}`
+              : weakestTraining.available
               ? weakestTraining.target.trainingSet?.shortExplanation
               : studyTarget?.goal || weakestTraining.message || "Learn one clean line and the first middlegame plan."}
           </p>
-          {weakestTraining.available ? (
+          {primaryTarget ? (
+            <>
+              <p className="trainingTargetMeta">
+                {primaryTarget.confidence || "Limited evidence"} · exact point {primaryTarget.startLabel || "from the saved sequence"}
+              </p>
+              <button type="button" className="primaryBtn" onClick={() => onPractice?.(primaryTarget.trainingTarget || primaryTarget)}>
+                Train targeted line
+              </button>
+            </>
+          ) : weakestTraining.available ? (
             <button type="button" className="primaryBtn" onClick={() => onPractice?.(weakestTraining.target)}>
               Train This Line
             </button>
@@ -8706,7 +8911,7 @@ function OpeningFitVerdictPanel({
         </article>
 
         <article className="verdict-summary-card verdict-summary-card--score">
-          <p className="eyebrow">OpeningFit Score</p>
+          <p className="eyebrow openingScoreEyebrow">OpeningFit Score <OpeningScoreInfoButton /></p>
           <strong>{score === null ? "--" : score}</strong>
           <span>{score === null ? "Not enough data yet" : "out of 100"}</span>
           <p>Scores, journeys, and previous-analysis changes are kept below for review.</p>

@@ -35,7 +35,7 @@ function getWeakestTracking(data = {}) {
 
 function enoughSample(item) {
   const games = safeNumber(item?.games ?? item?.gamesPlayed ?? item?.games_played, null);
-  return games === null || games >= 2;
+  return games === null || games >= 3;
 }
 
 function hasExactMoves(item = {}) {
@@ -121,12 +121,10 @@ function buildOneThing(data, fitData) {
   }
 
   const repeatedWeakLines = mergeWeakLines(data, { minGames: 2 }).filter(enoughSample);
-  const oneGameWeakLines = mergeWeakLines(data, { minGames: 1 }).filter(Boolean);
   const exactWeakLine =
     repeatedWeakLines.find(hasExactMoves) ||
-    oneGameWeakLines.find(hasExactMoves) ||
     null;
-  const weakLine = exactWeakLine || repeatedWeakLines[0] || oneGameWeakLines[0] || null;
+  const weakLine = exactWeakLine || repeatedWeakLines[0] || null;
 
   if (weakLine) {
     const training = buildWeakestLineTrainingTargetFromLine(weakLine);

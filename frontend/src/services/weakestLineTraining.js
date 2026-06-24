@@ -89,16 +89,22 @@ function getOneThingToFix(data = {}) {
   return data.oneThingToFix || data.one_thing_to_fix || metrics.oneThingToFix || metrics.one_thing_to_fix || null;
 }
 
+function hasRepeatableLineEvidence(line = {}) {
+  const games = numberValue(line.games ?? line.gamesPlayed ?? line.games_played ?? line.confidenceGames ?? line.confidence_games, 0);
+  if (!games) return true;
+  return games >= 3;
+}
+
 function firstValidLine(data = {}) {
-  const merged = mergeWeakLines(data, { minGames: 1 }).find((line) => openingName(line));
+  const merged = mergeWeakLines(data, { minGames: 3 }).find((line) => openingName(line) && hasRepeatableLineEvidence(line));
   if (merged) return merged;
 
   const tracking = getWeakestTracking(data);
   const current = tracking.currentWeakestLine || tracking.current_weakest_line;
-  if (openingName(current)) return current;
+  if (openingName(current) && hasRepeatableLineEvidence(current)) return current;
 
   const fix = getOneThingToFix(data);
-  if (openingName(fix)) return fix;
+  if (openingName(fix) && hasRepeatableLineEvidence(fix)) return fix;
 
   return null;
 }

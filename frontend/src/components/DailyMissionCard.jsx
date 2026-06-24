@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useAuth } from "../context/AuthDataProvider";
+import { buildTrainingRecommendations } from "../services/trainingRecommendations";
 import { buildWeakestLineTrainingTarget } from "../services/weakestLineTraining";
 import "./DailyMissionCard.css";
 
@@ -54,8 +55,9 @@ function buildMission(data, fitData, openingFitUserState) {
   const cloudProgress = latestCloudProgress(openingFitUserState, data);
   const localToday = readLocalJson(TODAY_TRAINING_KEY);
   const reviewedToday = Math.max(completedLinesToday(localProgress), completedLinesToday(cloudProgress || {}));
+  const plan = buildTrainingRecommendations(data, fitData);
   const weakest = buildWeakestLineTrainingTarget(data || {});
-  const target = weakest.available ? weakest.target : null;
+  const target = plan.primary?.trainingTarget || (weakest.available ? weakest.target : null);
   const activeToday = localToday?.lastState === "started" && isToday(localToday?.saved_at || localToday?.lastSavedAt);
   const realProgress = reviewedToday > 0 || activeToday;
 
@@ -66,7 +68,7 @@ function buildMission(data, fitData, openingFitUserState) {
     target: target || "Italian Game",
     targetLabel: targetName(target),
     note: target
-      ? `Start with ${targetName(target)}.`
+      ? `${plan.primary?.sideLabel || "Train targeted line"}: ${targetName(target)}. ${plan.primary?.confidence || "Limited evidence"}.`
       : data
         ? "No repeated weak line is ready yet, so use the trainer to keep the habit alive."
         : "No report yet. Start with a simple trainer line.",
@@ -94,8 +96,8 @@ export default function DailyMissionCard({ data, fitData, onStartTraining }) {
       <div className="dailyMissionChecklist">
         <label className={mission.reviewedToday >= 3 ? "isDone" : ""}>
           <input type="checkbox" checked={mission.reviewedToday >= 3} readOnly />
-          <span>Review 3 weak lines</span>
-          <small>{mission.realProgress ? `${reviewedProgress} completed today` : "Checklist target"}</small>
+          <span>Review the targeted line</span>
+          <small>{mission.realProgress ? `${reviewedProgress} completed today` : "One focused target"}</small>
         </label>
         <label>
           <input type="checkbox" readOnly />

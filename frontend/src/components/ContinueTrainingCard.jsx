@@ -39,35 +39,36 @@ function getLineName(item = {}) {
 function buildRecommendedTarget(data, fitData) {
   if (!data) return null;
 
-  const weakest = buildWeakestLineTrainingTarget(data);
-  if (weakest.available && weakest.target) {
+  const plan = buildTrainingRecommendations(data, fitData);
+  if (plan.primary) {
     return {
       source: "recommended",
-      buttonLabel: "Train this line",
-      opening: getOpeningName(weakest.target),
-      line: getLineName(weakest.target),
-      moveLine:
-        weakest.target.moveLine ||
-        weakest.target.move_line ||
-        weakest.target.trainingSet?.startingMoveSequence ||
-        weakest.target.training_set?.starting_move_sequence ||
-        "",
-      note: "Recommended from your weakest line.",
-      target: weakest.target,
+      buttonLabel: "Train targeted line",
+      opening: getOpeningName(plan.primary),
+      line: `${plan.primary.sideLabel || ""}${plan.primary.variation ? `: ${plan.primary.variation}` : ""}`.trim(),
+      moveLine: plan.primary.startLabel || plan.primary.moveLine || "",
+      progressText: plan.primary.confidence || "",
+      note: plan.primary.why || "Recommended from your current training plan.",
+      target: plan.primary.trainingTarget || plan.primary,
     };
   }
 
-  const plan = buildTrainingRecommendations(data, fitData);
-  if (!plan.primary) return null;
+  const weakest = buildWeakestLineTrainingTarget(data);
+  if (!weakest.available || !weakest.target) return null;
 
   return {
     source: "recommended",
     buttonLabel: "Train this line",
-    opening: getOpeningName(plan.primary),
-    line: getLineName(plan.primary),
-    moveLine: plan.primary.moveLine || "",
-    note: "Recommended from your current training plan.",
-    target: plan.primary.trainingTarget || plan.primary.opening || plan.primary,
+    opening: getOpeningName(weakest.target),
+    line: getLineName(weakest.target),
+    moveLine:
+      weakest.target.moveLine ||
+      weakest.target.move_line ||
+      weakest.target.trainingSet?.startingMoveSequence ||
+      weakest.target.training_set?.starting_move_sequence ||
+      "",
+    note: "Recommended from your weakest repeated line.",
+    target: weakest.target,
   };
 }
 

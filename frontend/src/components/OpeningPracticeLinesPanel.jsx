@@ -379,6 +379,68 @@ function explainMove(line, moves, index) {
   return "This is the main-line move because it supports the opening plan. Check the centre, development, and king safety before moving on.";
 }
 
+function sideLabel(side) {
+  return side === "black" ? "Black" : "White";
+}
+
+function firstMoveForSide(moves = [], side = "white") {
+  const parity = side === "black" ? 1 : 0;
+  return moves.find((_, index) => index % 2 === parity) || "";
+}
+
+function moveRoleLabel(line, moves, index) {
+  const explanation = explainMove(line, moves, index).toLowerCase();
+  const move = String(moves[index] || "");
+
+  if (line?.moveLabels?.[index]) return line.moveLabels[index];
+  if (explanation.includes("castle") || move.includes("O-O")) return "Key idea";
+  if (explanation.includes("capture") || explanation.includes("resolves central tension")) return "Decision point";
+  if (explanation.includes("centre") || explanation.includes("central") || explanation.includes("pawn break")) return "Key idea";
+  if (explanation.includes("queen") || explanation.includes("target")) return "Decision point";
+  if (explanation.includes("develop")) return "Key idea";
+  return "Why this move?";
+}
+
+function buildLinePlan({ line, pack, moves, practiceSide, focusLine, trainingSet, usingExactWeakLine }) {
+  const userSide = sideLabel(practiceSide);
+  const opponentSide = practiceSide === "black" ? "White" : "Black";
+  const userFirstMove = firstMoveForSide(moves, practiceSide);
+  const opponentFirstMove = firstMoveForSide(moves, practiceSide === "black" ? "white" : "black");
+  const openingIdeas = Array.isArray(pack?.opening?.ideas) ? pack.opening.ideas.filter(Boolean) : [];
+  const trap = Array.isArray(pack?.opening?.traps) ? pack.opening.traps[0] : null;
+  const lineIdea = line?.idea || trainingSet?.shortExplanation || trainingSet?.short_explanation || "";
+  const weakLineReason =
+    trainingSet?.shortExplanation ||
+    trainingSet?.short_explanation ||
+    line?.flagReason ||
+    line?.reason ||
+    "";
+
+  return {
+    whitePlan:
+      practiceSide === "white"
+        ? lineIdea || openingIdeas[0] || `Use ${userFirstMove || "the first moves"} to develop, fight for the centre, and reach a familiar setup.`
+        : `Expect White to use ${opponentFirstMove || "the first moves"} to claim space, develop quickly, and ask Black to solve the centre.`,
+    blackPlan:
+      practiceSide === "black"
+        ? lineIdea || openingIdeas[0] || `Use ${userFirstMove || "your first moves"} to challenge White's centre, complete development, and reach a playable structure.`
+        : `Black is trying to challenge the centre, develop safely, and avoid giving White an easy attack.`,
+    whyItMatters:
+      weakLineReason ||
+      (usingExactWeakLine || focusLine
+        ? "This is where your games most often move away from your intended setup."
+        : "This line gives you a repeatable plan before the middlegame starts."),
+    turningPoint:
+      trap?.warning ||
+      line?.finishIdea ||
+      trainingSet?.recommendedCorrectContinuation ||
+      trainingSet?.recommended_correct_continuation ||
+      `The key decision is when ${userSide} chooses whether to keep developing or change the centre.`,
+    userSide,
+    opponentSide,
+  };
+}
+
 export default function OpeningPracticeLinesPanel({
   opening,
   onClose,
@@ -493,6 +555,17 @@ export default function OpeningPracticeLinesPanel({
         : selectedLine?.finishIdea || "You reached the target position. Review the plan, not just the move order.",
     [isComplete, moveIndex, moves, selectedLine]
   );
+  const linePlan = useMemo(
+    () => buildLinePlan({ line: selectedLine, pack, moves, practiceSide, focusLine, trainingSet, usingExactWeakLine }),
+    [focusLine, moves, pack, practiceSide, selectedLine, trainingSet, usingExactWeakLine]
+  );
+  const criticalMoveIndex = useMemo(() => {
+    if (!moves.length) return -1;
+    const explicit = Number(selectedLine?.criticalMoveIndex ?? selectedLine?.critical_move_index);
+    if (Number.isFinite(explicit) && explicit >= 0 && explicit < moves.length) return explicit;
+    if (usingExactWeakLine) return Math.max(0, moves.length - 1);
+    return Math.min(moves.length - 1, Math.max(2, Math.floor(moves.length * 0.6)));
+  }, [moves.length, selectedLine, usingExactWeakLine]);
   const activeOpeningId = pack ? getOpeningId(pack, activeOpeningName) : normaliseOpeningKey(activeOpeningName);
   const currentLineKey = selectedLine ? lineKey(activeOpeningId, selectedLine.name) : null;
   const completedLineCount = Object.values(trainingProgress.completedLines || {}).filter(
@@ -733,11 +806,14 @@ export default function OpeningPracticeLinesPanel({
 
     saveWeakestLineTrainingEvent(eventWithUser);
 
-    if (beforeScore !== null && afterScore !== beforeScore) {
-      setCompletionNotice(`Mastery updated: ${beforeScore} -> ${afterScore}`);
-    } else {
-      setCompletionNotice(user?.id ? "Good work - your weakest line has been added to your improvement history." : "Training complete. This line now has more preparation behind it.");
-    }
+    const trainingSet = opening?.trainingSet || opening?.training_set || {};
+    const startPoint = opening?.moveLine || opening?.move_line || trainingSet.startingMoveSequence || trainingSet.starting_move_sequence || selectedLine?.moves?.join(" ") || selectedLine?.name || "this key position";
+    const nextFocus =
+      trainingSet.recommendedCorrectContinuation ||
+      trainingSet.recommended_correct_continuation ||
+      selectedLine?.finishIdea ||
+      "repeat the plan once more before judging the results";
+    setCompletionNotice(`You practised the key position after ${startPoint}. Next time, focus on ${nextFocus}.`);
 
     if (user?.id && recordActivity) {
       try {
@@ -1042,6 +1118,10 @@ export default function OpeningPracticeLinesPanel({
             <p className="eyebrow">Current line</p>
             <h3>{selectedLine.name}</h3>
             <p>{selectedLine.idea}</p>
+            <div className="lineSideBadge" aria-label={`You are practising as ${linePlan.userSide}`}>
+              <span>You play {linePlan.userSide}</span>
+              <small>{linePlan.opponentSide} replies are included</small>
+            </div>
             {pack.opening?.ideas?.length ? (
               <ul className="practiceIdeaList">
                 {pack.opening.ideas.slice(0, 3).map((idea) => (
@@ -1049,6 +1129,31 @@ export default function OpeningPracticeLinesPanel({
                 ))}
               </ul>
             ) : null}
+          </div>
+
+          <div className="positionPlanPanel" aria-label="Plan of the position">
+            <div className="positionPlanHeader">
+              <span>Plan of the position</span>
+              <strong>{selectedLine.name}</strong>
+            </div>
+            <div className="positionPlanGrid">
+              <article>
+                <span>White's plan</span>
+                <p>{linePlan.whitePlan}</p>
+              </article>
+              <article>
+                <span>Black's plan</span>
+                <p>{linePlan.blackPlan}</p>
+              </article>
+              <article>
+                <span>Why this line matters</span>
+                <p>{linePlan.whyItMatters}</p>
+              </article>
+              <article>
+                <span>Critical decision</span>
+                <p>{linePlan.turningPoint}</p>
+              </article>
+            </div>
           </div>
 
           <div className="practiceMoveWhy">
@@ -1161,11 +1266,13 @@ export default function OpeningPracticeLinesPanel({
             type="button"
             className={`practiceMoveChip ${index < moveIndex ? "done" : ""} ${
               index === moveIndex ? "current" : ""
-            }`}
+            } ${index === criticalMoveIndex ? "critical" : ""}`}
             onClick={() => jumpToMove(index)}
+            aria-label={`${formatMoveNumber(index)} ${move}. ${index === criticalMoveIndex ? "Critical decision point. " : ""}${moveRoleLabel(selectedLine, moves, index)}`}
           >
             <span>{formatMoveNumber(index)}</span>
             {index < moveIndex || index === moveIndex || showHint ? move : "?"}
+            {index === criticalMoveIndex ? <small>Decision</small> : null}
           </button>
         ))}
       </div>
@@ -1176,12 +1283,18 @@ export default function OpeningPracticeLinesPanel({
             key={`${selectedLine.name}-${move}-${index}`}
             className={`practiceMoveExplanationItem ${
               index === moveIndex && !isComplete ? "current" : ""
-            } ${index < moveIndex ? "done" : ""}`}
+            } ${index < moveIndex ? "done" : ""} ${index === criticalMoveIndex ? "critical" : ""}`}
           >
+            <span className="moveIdeaTag">
+              {index === criticalMoveIndex ? "Decision point" : moveRoleLabel(selectedLine, moves, index)}
+            </span>
             <strong>
               {formatMoveNumber(index)} {move}
             </strong>
-            <p>{explainMove(selectedLine, moves, index)}</p>
+            <details>
+              <summary>Why this move?</summary>
+              <p>{explainMove(selectedLine, moves, index)}</p>
+            </details>
           </article>
         ))}
       </div>

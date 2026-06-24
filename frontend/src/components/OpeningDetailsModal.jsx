@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 import { sampleSizeCopy } from "./openingCopy";
+import { buildOpeningVariationOverview } from "../services/variationOverview";
 
-export default function OpeningDetailsModal({ opening, onClose, onReview, onPracticeLines }) {
+export default function OpeningDetailsModal({ opening, data = null, onClose, onReview, onPracticeLines }) {
   useEffect(() => {
     if (!opening) return undefined;
 
@@ -51,6 +52,14 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
     opening.verdict_reason ||
     opening.confidenceReason ||
     opening.confidence_reason;
+  const variationOverview =
+    opening.variationOverview ||
+    opening.variation_overview ||
+    buildOpeningVariationOverview(data || {}, opening);
+  const mainLine = variationOverview.mainLine;
+  const strongerBranches = variationOverview.strongBranches || [];
+  const weakerBranches = variationOverview.weakBranches || [];
+  const earlyBranches = variationOverview.earlyBranches || [];
 
   const verdict =
     signal.tier === "none"
@@ -148,6 +157,59 @@ export default function OpeningDetailsModal({ opening, onClose, onReview, onPrac
           <h3>What this means</h3>
           <p>{verdictReason || opening.fitExplanation || getMeaning()}</p>
           <p>{comparisonText}</p>
+        </div>
+
+        <div className="variationOverviewBox">
+          <div className="variationOverviewHeader">
+            <div>
+              <p className="eyebrow">Variation overview</p>
+              <h3>{variationOverview.displayStatus}</h3>
+            </div>
+            <span>{variationOverview.totalGames || games} relevant games</span>
+          </div>
+          <p>{variationOverview.summary}</p>
+
+          <div className="variationOverviewGrid">
+            <article>
+              <span>Main line / familiar variation</span>
+              <strong>{mainLine?.name || "Not enough repeated data"}</strong>
+              <small>{mainLine ? `${mainLine.games} games · ${mainLine.score}% score` : "OpeningFit needs more games in one branch."}</small>
+            </article>
+
+            <article>
+              <span>Stronger branches</span>
+              <strong>{strongerBranches[0]?.name || "No clear stronger branch yet"}</strong>
+              <small>{strongerBranches[0] ? `${strongerBranches[0].games} games · ${strongerBranches[0].score}% score` : "This may need a larger sample."}</small>
+            </article>
+
+            <article>
+              <span>Weaker branches</span>
+              <strong>{weakerBranches[0]?.name || earlyBranches[0]?.name || "No repeated weak branch yet"}</strong>
+              <small>
+                {weakerBranches[0]
+                  ? `${weakerBranches[0].games} games · ${weakerBranches[0].lossRate}% loss rate`
+                  : earlyBranches[0]
+                    ? `Early signal from ${earlyBranches[0].games} game${earlyBranches[0].games === 1 ? "" : "s"}`
+                    : "Do not judge a variation from one isolated game."}
+              </small>
+            </article>
+
+            <article>
+              <span>Outcome trend</span>
+              <strong>
+                {weakerBranches[0]
+                  ? "Branch-specific issue"
+                  : strongerBranches[0]
+                    ? "Stable in the repeated lines"
+                    : "Needs more evidence"}
+              </strong>
+              <small>
+                {weakerBranches[0]
+                  ? "Review this branch before blaming the whole opening."
+                  : "Keep collecting games before making a firm call."}
+              </small>
+            </article>
+          </div>
         </div>
 
         <div className="openingModalActions">

@@ -45,6 +45,16 @@ function lineName(item = {}) {
 function buildTodayFocus(data, plan) {
   if (!data) return null;
 
+  if (plan.primary) {
+    return {
+      ...plan.primary,
+      reason: plan.primary.reason || "Why this was picked:",
+      why:
+        plan.primary.why ||
+        "This is the most specific training target OpeningFit can support from the current evidence.",
+    };
+  }
+
   const weakestTraining = buildWeakestLineTrainingTarget(data);
   if (weakestTraining.available && weakestTraining.target) {
     const target = weakestTraining.target;
@@ -61,7 +71,13 @@ function buildTodayFocus(data, plan) {
       games,
       winRate,
       lossRate,
-      reason: "You are losing this line more than your average.",
+      practiceSide: target.practiceSide || target.side || trainingSet.side || "",
+      sideLabel: (target.practiceSide || target.side || trainingSet.side) === "black" ? "Train as Black" : "Train as White",
+      startLabel: target.moveLine || target.move_line || trainingSet.startingMoveSequence || trainingSet.starting_move_sequence
+        ? `after ${target.moveLine || target.move_line || trainingSet.startingMoveSequence || trainingSet.starting_move_sequence}`
+        : "from the saved weak-line sequence",
+      confidence: games >= 6 && lossRate >= 50 ? "High confidence" : games >= 3 ? "Developing pattern" : "Limited evidence",
+      reason: "Why this was picked:",
       why:
         trainingSet.shortExplanation ||
         trainingSet.short_explanation ||
@@ -69,16 +85,6 @@ function buildTodayFocus(data, plan) {
         "It is the clearest line to repair before adding more opening study.",
       estimatedTime: "3-5 minutes",
       trainingTarget: target,
-    };
-  }
-
-  if (plan.primary) {
-    return {
-      ...plan.primary,
-      reason:
-        plan.primary.type === "fallback-opening"
-          ? "This is the best available training target from your current report."
-          : plan.primary.reason,
     };
   }
 
@@ -259,12 +265,18 @@ export default function TodayTrainingCard({
       </div>
 
       <div className="todayTrainingPrimary">
+        <div className="todayTrainingTargetHeader">
+          <span>{primary.sideLabel || (primary.practiceSide === "black" ? "Train as Black" : "Train as White")}</span>
+          <small>{primary.confidence || "Limited evidence"}</small>
+        </div>
         <div>
           <h3>{primary.variation && primary.variation !== primary.opening ? primary.variation : primary.opening}</h3>
           {primary.variation && primary.variation !== primary.opening ? (
             <p className="todayTrainingLine">{primary.opening}</p>
           ) : null}
-          {primary.moveLine ? <p className="todayTrainingLine">{primary.moveLine}</p> : null}
+          <p className="todayTrainingLine">
+            Exact practice point: {primary.startLabel || (primary.moveLine ? `after ${primary.moveLine}` : "from the saved starting sequence")}
+          </p>
         </div>
 
         <div className="todayTrainingStats">
@@ -274,7 +286,7 @@ export default function TodayTrainingCard({
         </div>
 
         <p className="todayTrainingReason">
-          <strong>Why this?</strong> {primary.reason} {primary.why}
+          <strong>{primary.reason || "Why this was picked:"}</strong> {primary.why}
         </p>
 
         <div className="todayTrainingActions">
