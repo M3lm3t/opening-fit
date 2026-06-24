@@ -44278,13 +44278,8 @@ textarea,
 }
 
 .openingScorePopover {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
-  width: min(480px, calc(100vw - 48px));
-  min-width: min(460px, calc(100vw - 48px));
+  position: fixed;
+  width: min(560px, calc(100vw - 32px));
   max-height: min(560px, calc(100vh - 96px));
   overflow: auto;
   display: grid;
@@ -44299,10 +44294,14 @@ textarea,
   text-align: left;
   text-transform: none;
   letter-spacing: 0;
-  z-index: 40;
+  z-index: 10021;
 }
 
-.openingScoreMobileLayer {
+.openingScoreLayer {
+  display: none;
+}
+
+.openingScoreBackdrop {
   display: none;
 }
 
@@ -44391,11 +44390,11 @@ textarea,
 }
 
 @media (max-width: 640px) {
-  .openingScoreInfoWrap > .openingScorePopover {
+  .openingScorePopoverPortal {
     display: none;
   }
 
-  .openingScoreMobileLayer {
+  .openingScoreLayer {
     position: fixed;
     inset: 0;
     z-index: 10020;
@@ -44403,7 +44402,8 @@ textarea,
     pointer-events: none;
   }
 
-  .openingScoreMobileBackdrop {
+  .openingScoreBackdrop {
+    display: block;
     position: absolute;
     inset: 0;
     width: 100%;
@@ -44492,6 +44492,24 @@ textarea,
 @media (max-width: 640px) {
   .openingRecommendationMetrics {
     grid-template-columns: 1fr !important;
+  }
+}
+
+@media (min-width: 641px) {
+  .openingScoreLayer {
+    position: fixed;
+    inset: 0;
+    z-index: 10020;
+    display: block;
+    pointer-events: none;
+  }
+
+  .openingScorePopoverPortal {
+    pointer-events: auto;
+  }
+
+  .openingScorePopoverMobileSheet {
+    display: none;
   }
 }
 

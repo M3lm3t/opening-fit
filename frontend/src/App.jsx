@@ -2142,9 +2142,27 @@ function getOpeningFitScoreReason(opening) {
 
 function OpeningScoreInfoButton({ opening = null, className = "" }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [popoverPosition, setPopoverPosition] = useState({ left: 16, top: 16, width: 520 });
   const popoverId = useId();
   const mobilePopoverId = useId();
+  const buttonRef = useRef(null);
   const evidenceLabel = opening ? getOpeningScoreEvidenceLabel(opening) : "";
+
+  const updatePopoverPosition = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const edge = 16;
+    const width = Math.min(560, window.innerWidth - edge * 2);
+    const left = Math.min(
+      Math.max(rect.left + rect.width / 2 - width / 2, edge),
+      window.innerWidth - width - edge
+    );
+    const top = Math.min(Math.max(rect.bottom + 10, edge), Math.max(edge, window.innerHeight - 540));
+
+    setPopoverPosition({ left, top, width });
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -2153,9 +2171,16 @@ function OpeningScoreInfoButton({ opening = null, className = "" }) {
       if (event.key === "Escape") setIsOpen(false);
     };
 
+    updatePopoverPosition();
     window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [isOpen]);
+    window.addEventListener("resize", updatePopoverPosition);
+    window.addEventListener("scroll", updatePopoverPosition, true);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("resize", updatePopoverPosition);
+      window.removeEventListener("scroll", updatePopoverPosition, true);
+    };
+  }, [isOpen, updatePopoverPosition]);
 
   const stopCardClick = (event) => {
     event.stopPropagation();
@@ -2189,6 +2214,7 @@ function OpeningScoreInfoButton({ opening = null, className = "" }) {
   return (
     <span className={`openingScoreInfoWrap ${className}`} onClick={stopCardClick}>
       <button
+        ref={buttonRef}
         type="button"
         className="openingScoreInfoButton"
         aria-label="How this opening score works"
@@ -2199,26 +2225,29 @@ function OpeningScoreInfoButton({ opening = null, className = "" }) {
         <Info size={15} aria-hidden="true" />
       </button>
 
-      {isOpen ? (
-        <span
-          className="openingScorePopover"
-          id={popoverId}
-          role="dialog"
-          aria-modal="false"
-          aria-label="How this opening score works"
-        >
-          {popoverContent}
-        </span>
-      ) : null}
       {isOpen && typeof document !== "undefined"
         ? createPortal(
-            <span className="openingScoreMobileLayer" onClick={stopCardClick}>
+            <span className="openingScoreLayer" onClick={stopCardClick}>
               <button
                 type="button"
-                className="openingScoreMobileBackdrop"
+                className="openingScoreBackdrop"
                 aria-label="Close score explanation"
                 onClick={() => setIsOpen(false)}
               />
+              <span
+                className="openingScorePopover openingScorePopoverPortal"
+                id={popoverId}
+                role="dialog"
+                aria-modal="false"
+                aria-label="How this opening score works"
+                style={{
+                  left: `${popoverPosition.left}px`,
+                  top: `${popoverPosition.top}px`,
+                  width: `${popoverPosition.width}px`,
+                }}
+              >
+                {popoverContent}
+              </span>
               <span
                 className="openingScorePopover openingScorePopoverMobileSheet"
                 id={mobilePopoverId}
