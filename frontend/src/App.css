@@ -48798,3 +48798,166 @@ hr,
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Final button contrast repair: keep report/action buttons readable after legacy overrides. */
+.page.light .primaryBtn,
+.page.light button.primaryBtn,
+[data-theme="light"] .primaryBtn,
+[data-theme="light"] button.primaryBtn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  border-color: #1d4ed8 !important;
+  color: #ffffff !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.page.light .secondaryBtn,
+.page.light .secondaryButton,
+.page.light button.secondaryBtn,
+.page.light button.secondaryButton,
+[data-theme="light"] .secondaryBtn,
+[data-theme="light"] .secondaryButton,
+[data-theme="light"] button.secondaryBtn,
+[data-theme="light"] button.secondaryButton {
+  background: #f8fafc !important;
+  border-color: rgba(37, 99, 235, 0.42) !important;
+  color: #1e3a8a !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.page.light .currentReportSummaryActions .secondaryBtn,
+.page.light .currentReportSummaryActions button.secondaryBtn,
+[data-theme="light"] .currentReportSummaryActions .secondaryBtn,
+[data-theme="light"] .currentReportSummaryActions button.secondaryBtn {
+  background: #eff6ff !important;
+  border-color: rgba(37, 99, 235, 0.52) !important;
+  color: #1d4ed8 !important;
+}
+
+.page.light .secondaryBtn:hover,
+.page.light .secondaryButton:hover,
+.page.light button.secondaryBtn:hover,
+.page.light button.secondaryButton:hover,
+[data-theme="light"] .secondaryBtn:hover,
+[data-theme="light"] .secondaryButton:hover,
+[data-theme="light"] button.secondaryBtn:hover,
+[data-theme="light"] button.secondaryButton:hover {
+  background: #dbeafe !important;
+  border-color: rgba(29, 78, 216, 0.66) !important;
+  color: #1e40af !important;
+}
+
+.page.dark .primaryBtn,
+.page.dark button.primaryBtn,
+[data-theme="dark"] .primaryBtn,
+[data-theme="dark"] button.primaryBtn {
+  background: linear-gradient(135deg, #2dd4bf, #38bdf8) !important;
+  border-color: rgba(94, 234, 212, 0.72) !important;
+  color: #03111f !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.page.dark .secondaryBtn,
+.page.dark .secondaryButton,
+.page.dark button.secondaryBtn,
+.page.dark button.secondaryButton,
+[data-theme="dark"] .secondaryBtn,
+[data-theme="dark"] .secondaryButton,
+[data-theme="dark"] button.secondaryBtn,
+[data-theme="dark"] button.secondaryButton {
+  background: rgba(15, 23, 42, 0.92) !important;
+  border-color: rgba(148, 163, 184, 0.44) !important;
+  color: #e2e8f0 !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.page.dark .secondaryBtn:hover,
+.page.dark .secondaryButton:hover,
+.page.dark button.secondaryBtn:hover,
+.page.dark button.secondaryButton:hover,
+[data-theme="dark"] .secondaryBtn:hover,
+[data-theme="dark"] .secondaryButton:hover,
+[data-theme="dark"] button.secondaryBtn:hover,
+[data-theme="dark"] button.secondaryButton:hover {
+  background: rgba(30, 41, 59, 0.98) !important;
+  border-color: rgba(125, 211, 252, 0.58) !important;
+  color: #ffffff !important;
+}
+
+.page.light button:disabled,
+.page.light .primaryBtn:disabled,
+.page.light .secondaryBtn:disabled,
+.page.light .secondaryButton:disabled,
+[data-theme="light"] button:disabled,
+[data-theme="light"] .primaryBtn:disabled,
+[data-theme="light"] .secondaryBtn:disabled,
+[data-theme="light"] .secondaryButton:disabled {
+  background: #e2e8f0 !important;
+  border-color: rgba(71, 85, 105, 0.3) !important;
+  color: #475569 !important;
+  opacity: 0.82 !important;
+}
+
+.page.dark button:disabled,
+.page.dark .primaryBtn:disabled,
+.page.dark .secondaryBtn:disabled,
+.page.dark .secondaryButton:disabled,
+[data-theme="dark"] button:disabled,
+[data-theme="dark"] .primaryBtn:disabled,
+[data-theme="dark"] .secondaryBtn:disabled,
+[data-theme="dark"] .secondaryButton:disabled {
+  background: rgba(30, 41, 59, 0.78) !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+  color: #cbd5e1 !important;
+  opacity: 0.78 !important;
+}
+
+:root[data-theme="light"] .primaryBtn,
+:root[data-theme="light"] button.primaryBtn,
+.light .primaryBtn,
+.light button.primaryBtn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  border-color: #1d4ed8 !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+:root[data-theme="light"] .secondaryBtn,
+:root[data-theme="light"] .secondaryButton,
+:root[data-theme="light"] button.secondaryBtn,
+:root[data-theme="light"] button.secondaryButton,
+.light .secondaryBtn,
+.light .secondaryButton,
+.light button.secondaryBtn,
+.light button.secondaryButton {
+  background: #f8fafc !important;
+  border-color: rgba(37, 99, 235, 0.42) !important;
+  color: #1e3a8a !important;
+  opacity: 1 !important;
+}
+
+:root[data-theme="light"] .currentReportSummaryActions .secondaryBtn,
+:root[data-theme="light"] .currentReportSummaryActions button.secondaryBtn,
+.light .currentReportSummaryActions .secondaryBtn,
+.light .currentReportSummaryActions button.secondaryBtn {
+  background: #eff6ff !important;
+  border-color: rgba(37, 99, 235, 0.52) !important;
+  color: #1d4ed8 !important;
+}
+
+:root[data-theme="light"] button:disabled,
+:root[data-theme="light"] .primaryBtn:disabled,
+:root[data-theme="light"] .secondaryBtn:disabled,
+:root[data-theme="light"] .secondaryButton:disabled,
+.light button:disabled,
+.light .primaryBtn:disabled,
+.light .secondaryBtn:disabled,
+.light .secondaryButton:disabled {
+  background: #e2e8f0 !important;
+  border-color: rgba(71, 85, 105, 0.3) !important;
+  color: #475569 !important;
+  opacity: 0.82 !important;
+}
