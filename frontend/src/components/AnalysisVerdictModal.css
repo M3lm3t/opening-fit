@@ -1,0 +1,276 @@
+.analysisVerdictOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.analysisVerdictModal {
+  width: min(620px, 100%);
+  max-height: min(720px, 92vh);
+  overflow: auto;
+  padding: clamp(18px, 3vw, 24px);
+  border: 1px solid var(--of-color-border, rgba(148, 163, 184, 0.24));
+  border-radius: 8px;
+  background: var(--of-color-surface, #111827);
+  color: var(--of-color-text, #f8fafc);
+  box-shadow: var(--of-shadow-lg, 0 28px 90px rgba(0, 0, 0, 0.48));
+  animation: analysisVerdictIn 140ms ease-out;
+}
+
+.analysisVerdictHandle {
+  display: none;
+}
+
+.analysisVerdictHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.analysisVerdictHeader h2 {
+  margin: 0;
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  line-height: 1.06;
+  letter-spacing: 0;
+}
+
+.analysisVerdictHeader p {
+  margin: 7px 0 0;
+  color: var(--of-color-text-soft, rgba(226, 232, 240, 0.76));
+  line-height: 1.45;
+}
+
+.analysisVerdictClose {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--of-color-border, rgba(148, 163, 184, 0.28));
+  border-radius: 999px;
+  background: var(--of-color-surface-muted, rgba(15, 23, 42, 0.8));
+  color: var(--of-color-text, #f8fafc);
+  font-size: 1.55rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.analysisVerdictScoreRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--of-color-primary, #2dd4bf) 32%, var(--of-color-border, rgba(148, 163, 184, 0.24)));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--of-color-primary, #2dd4bf) 12%, transparent);
+}
+
+.analysisVerdictScoreRow span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--of-color-text-soft, rgba(226, 232, 240, 0.76));
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.analysisVerdictScoreLabel {
+  position: relative;
+  min-width: 0;
+}
+
+.analysisVerdictScoreInfo {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 10px);
+  z-index: 2;
+  width: min(360px, calc(100vw - 48px));
+  padding: 13px;
+  border: 1px solid var(--of-color-border, rgba(148, 163, 184, 0.28));
+  border-radius: 8px;
+  background: var(--of-color-surface, #111827);
+  color: var(--of-color-text, #f8fafc);
+  box-shadow: var(--of-shadow-lg, 0 18px 50px rgba(0, 0, 0, 0.36));
+}
+
+.analysisVerdictScoreInfo strong {
+  display: block;
+  margin: 0 0 7px;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.analysisVerdictScoreInfo p,
+.analysisVerdictScoreInfo li {
+  color: var(--of-color-text-soft, rgba(226, 232, 240, 0.78));
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.analysisVerdictScoreInfo p {
+  margin: 0;
+}
+
+.analysisVerdictScoreInfo p + p {
+  margin-top: 8px;
+}
+
+.analysisVerdictScoreInfo ul {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+  padding-left: 18px;
+}
+
+.analysisVerdictScoreRow strong {
+  font-size: clamp(1.7rem, 5vw, 2.6rem);
+  line-height: 1;
+}
+
+.analysisVerdictScoreRow em {
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: var(--of-color-surface-muted, rgba(15, 23, 42, 0.66));
+  color: var(--of-color-text, #f8fafc);
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.analysisVerdictInfo {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--of-color-border, rgba(148, 163, 184, 0.3));
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.analysisVerdictInfo:hover,
+.analysisVerdictInfo:focus-visible,
+.analysisVerdictInfo[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--of-color-primary, #2dd4bf) 60%, var(--of-color-border, rgba(148, 163, 184, 0.3)));
+  background: color-mix(in srgb, var(--of-color-primary, #2dd4bf) 16%, transparent);
+}
+
+.analysisVerdictInsights {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.analysisVerdictInsights article {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--of-color-border, rgba(148, 163, 184, 0.2));
+  border-radius: 8px;
+  background: var(--of-color-surface-elevated, rgba(255, 255, 255, 0.055));
+}
+
+.analysisVerdictInsights span {
+  display: block;
+  color: var(--of-color-muted, rgba(226, 232, 240, 0.64));
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.analysisVerdictInsights p {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 7px 0 0;
+  color: var(--of-color-text, #f8fafc);
+  line-height: 1.38;
+}
+
+.analysisVerdictActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.analysisVerdictActions button {
+  flex: 1 1 180px;
+  min-height: 44px;
+}
+
+@keyframes analysisVerdictIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 760px) {
+  .analysisVerdictOverlay {
+    align-items: end;
+    padding: 12px 12px calc(var(--of-mobile-nav-clearance, 72px) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .analysisVerdictModal {
+    max-height: min(78vh, 680px);
+    border-radius: 18px 18px 8px 8px;
+    padding: 10px 14px 14px;
+  }
+
+  .analysisVerdictHandle {
+    width: 42px;
+    height: 4px;
+    display: block;
+    margin: 0 auto 12px;
+    border-radius: 999px;
+    background: var(--of-color-border, rgba(148, 163, 184, 0.38));
+  }
+
+  .analysisVerdictScoreRow,
+  .analysisVerdictInsights {
+    grid-template-columns: 1fr;
+  }
+
+  .analysisVerdictScoreRow {
+    gap: 8px;
+  }
+
+  .analysisVerdictScoreRow em {
+    width: fit-content;
+  }
+
+  .analysisVerdictScoreInfo {
+    position: static;
+    width: 100%;
+    margin-top: 10px;
+    box-shadow: none;
+    background: var(--of-color-surface-muted, rgba(15, 23, 42, 0.52));
+  }
+
+  .analysisVerdictInsights p {
+    -webkit-line-clamp: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analysisVerdictModal {
+    animation: none;
+  }
+}

@@ -33,6 +33,7 @@ import DailyMissionCard from "./components/DailyMissionCard";
 import ResumeTrainingPrompt from "./components/ResumeTrainingPrompt";
 import TodayTrainingCard from "./components/TodayTrainingCard";
 import OpeningFitVerdict from "./components/OpeningFitVerdict";
+import AnalysisVerdictModal from "./components/AnalysisVerdictModal";
 import OpeningJourney from "./components/OpeningJourney";
 import OneThingToFixCard from "./components/OneThingToFixCard";
 import WhatChangedSinceLastAnalysis from "./components/WhatChangedSinceLastAnalysis";
@@ -171,6 +172,7 @@ const ANALYSIS_TIME_FORMAT_KEY = "openingFit:lastAnalysisTimeFormat";
 const OPENING_SCORE_LIMITED_EVIDENCE_GAMES = 10;
 const REPORT_FILTERS_KEY = "openingFit:reportFilters";
 const AUTH_RETURN_PATH_KEY = "openingFit:authReturnPath";
+const ANALYSIS_VERDICT_DISMISSED_KEY = "openingFit:analysisVerdictDismissed";
 const SUPPORT_EMAIL = "m3lm3t@gmail.com";
 
 const platforms = {
@@ -185,6 +187,26 @@ const platforms = {
     usernamePlaceholder: "Lichess username",
   },
 };
+
+function readDismissedAnalysisVerdicts() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ANALYSIS_VERDICT_DISMISSED_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function hasDismissedAnalysisVerdict(analysisId) {
+  if (!analysisId) return true;
+  return readDismissedAnalysisVerdicts().includes(analysisId);
+}
+
+function rememberDismissedAnalysisVerdict(analysisId) {
+  if (!analysisId) return;
+  const next = [analysisId, ...readDismissedAnalysisVerdicts().filter((item) => item !== analysisId)].slice(0, 30);
+  localStorage.setItem(ANALYSIS_VERDICT_DISMISSED_KEY, JSON.stringify(next));
+}
 
 function ChessLoadingMark() {
   return (
@@ -13401,6 +13423,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [importStatus, setImportStatus] = useState(null);
   const [data, setData] = useState(null);
+  const [analysisVerdictId, setAnalysisVerdictId] = useState("");
   const [activeView, setActiveView] = useState(getInitialAppView);
   const importAbortRef = useRef(null);
   const reportRedirectKeyRef = useRef("");
@@ -13411,6 +13434,7 @@ export default function App() {
   }, [supabaseUser]);
 
   const loadDemoReport = () => {
+    setAnalysisVerdictId("");
     if (!hasImportedReportPayload(data) || isDemoAnalysis(data)) {
       setData(DEMO_REPORT);
       setTimeout(() => {
@@ -13585,6 +13609,7 @@ export default function App() {
 
     if (previousUserId && previousUserId !== currentUserId) {
       setData(null);
+      setAnalysisVerdictId("");
       setSelectedGameIndex(0);
       setPracticeOpening(null);
       setSavedProfileMessage("");
@@ -14358,6 +14383,7 @@ export default function App() {
     setLoading(false);
     setLoadingStep("");
     setError("");
+    setAnalysisVerdictId("");
     setImportStatus({
       tone: "info",
       title: "Import cancelled",
@@ -14428,6 +14454,7 @@ export default function App() {
     setSavedProfileMessage("");
     setSelectedGameIndex(0);
     setPracticeOpening(null);
+    setAnalysisVerdictId("");
     setOpenSections(closedSections);
 
     try {
@@ -14528,6 +14555,7 @@ export default function App() {
       const userReportRetentionKey = `${supabaseUser?.id || "guest"}:${reportRetentionKey}`;
 
       setData(cleanData);
+      setAnalysisVerdictId(hasDismissedAnalysisVerdict(reportRetentionKey) ? "" : reportRetentionKey);
       setUsername(importedUsername);
       setImportStatus(importOutcome);
       saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
@@ -14896,6 +14924,16 @@ export default function App() {
     filteredPreferredWhite,
     filteredPreferredBlack,
   ]);
+
+  const analysisVerdictScore =
+    fitData?.overallScore ??
+    reportData?.openingFitScore ??
+    reportData?.opening_fit_score ??
+    null;
+  const analysisVerdictTrainingTarget =
+    fitData?.weakestOpening ||
+    fitData?.bestOpening ||
+    null;
 
   const personalTrainingPlan = useMemo(() => {
     const plan = [];
@@ -15982,6 +16020,34 @@ export default function App() {
               />
             </div>
           )}
+
+          {analysisVerdictId && reportData && !loading ? (
+            <AnalysisVerdictModal
+              data={reportData}
+              fitData={fitData}
+              openingScore={analysisVerdictScore}
+              analysisId={analysisVerdictId}
+              trainingTarget={analysisVerdictTrainingTarget}
+              onDismiss={() => {
+                rememberDismissedAnalysisVerdict(analysisVerdictId);
+                setAnalysisVerdictId("");
+              }}
+              onViewReport={() => {
+                rememberDismissedAnalysisVerdict(analysisVerdictId);
+                setAnalysisVerdictId("");
+                handleAppNavigate({
+                  view: "report",
+                  path: "/report",
+                  target: "app-results",
+                });
+              }}
+              onStartTraining={(target) => {
+                rememberDismissedAnalysisVerdict(analysisVerdictId);
+                setAnalysisVerdictId("");
+                startOpeningPractice(target);
+              }}
+            />
+          ) : null}
 
           {importStatus || (reportData && cloudSaveStatus && !cloudSaveWarning) ? (
             <div className="postImportStatusStack" aria-label="Import status">
