@@ -12,6 +12,7 @@
 .founderPassUpgradePanel {
   position: relative;
   width: min(520px, 100%);
+  max-width: calc(100vw - 28px);
   border-radius: 28px;
   padding: 24px;
   color: #f8fafc;
@@ -27,6 +28,8 @@
   position: absolute;
   top: 14px;
   right: 14px;
+  left: auto;
+  z-index: 4;
   width: 36px;
   height: 36px;
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -43,7 +46,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  margin-right: 42px;
+  min-width: 0;
+  margin-right: 54px;
   margin-bottom: 16px;
 }
 
@@ -60,8 +64,10 @@
 }
 
 .founderPassUpgradeHeader strong {
+  min-width: 0;
   font-size: 1.8rem;
-  letter-spacing: -0.06em;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .founderPassUpgradePanel h2 {
@@ -241,13 +247,14 @@
 
 .founderPassUpgradeHeader strong {
   font-size: clamp(1.35rem, 4vw, 1.7rem);
-  white-space: nowrap;
+  white-space: normal;
   padding-right: 8px;
 }
 
 .founderPassUpgradeClose {
   top: 16px;
   right: 16px;
+  left: auto;
   width: 34px;
   height: 34px;
   font-size: 1.2rem;
@@ -329,7 +336,7 @@
   .founderPassUpgradeHeader {
     grid-template-columns: 1fr;
     gap: 8px;
-    margin-right: 48px;
+    margin-right: 52px;
   }
 
   .founderPassUpgradeHeader strong {
@@ -359,6 +366,13 @@
   line-height: 1 !important;
   font-family: inherit;
   font-weight: 800;
+  font-size: 0 !important;
+}
+
+.founderPassUpgradeClose::before {
+  content: "\00d7";
+  font-size: 1.35rem;
+  line-height: 1;
 }
 
 .founderPassUpgradeClose svg,
