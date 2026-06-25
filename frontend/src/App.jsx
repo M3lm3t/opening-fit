@@ -14403,7 +14403,6 @@ export default function App() {
         report,
         username: briefingUsername,
         platform: briefingPlatform,
-        trainingTarget: analysisVerdictTrainingTarget,
       });
       if (!storageKey || !reportKey) return;
 
@@ -14427,7 +14426,7 @@ export default function App() {
         restoredAt: new Date().toISOString(),
       });
     },
-    [analysisVerdictTrainingTarget, buildReturningBriefingIdentity, getReturningBriefingStorageKey, supabaseUser?.id]
+    [buildReturningBriefingIdentity, getReturningBriefingStorageKey, supabaseUser?.id]
   );
 
   const dismissReturningUserBriefing = useCallback(() => {
