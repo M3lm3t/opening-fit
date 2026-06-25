@@ -579,6 +579,7 @@ async function selectUserRows(table, userId, options = {}) {
     .from(table)
     .select(columns)
     .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
     .limit(limit);
 
   if (!result.error) {

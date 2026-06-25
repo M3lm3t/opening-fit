@@ -607,14 +607,19 @@ export function AuthDataProvider({ children }) {
       return result;
     } catch (mutationError) {
       const message = mutationError?.message || fallbackMessage;
-      setSyncState((current) => ({ ...current, status: "error", error: message }));
       if (mode === "optional") {
         console.warn("OpeningFit optional Supabase sync failed", {
           message,
           error: mutationError,
         });
+        setSyncState((current) => ({
+          ...current,
+          status: current.status === "saving" ? "synced" : current.status,
+          error: current.error || "",
+        }));
         return null;
       }
+      setSyncState((current) => ({ ...current, status: "error", error: message }));
       throw mutationError;
     }
   }, []);

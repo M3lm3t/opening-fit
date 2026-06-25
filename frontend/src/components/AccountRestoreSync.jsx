@@ -57,6 +57,60 @@ function readLocalReport() {
   }
 }
 
+function hasReportPayload(report) {
+  return Boolean(report && typeof report === "object" && Object.keys(report).length);
+}
+
+function rowTimestamp(row = {}, report = null) {
+  const raw =
+    row.updated_at ||
+    row.created_at ||
+    row.summary?.reportDate ||
+    row.summary?.savedAt ||
+    report?.lastUpdated ||
+    report?.last_updated ||
+    report?.importedAt ||
+    report?.imported_at ||
+    "";
+  const parsed = Date.parse(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function latestByTimestamp(items = []) {
+  return [...items].filter(Boolean).sort((a, b) => b.timestamp - a.timestamp)[0] || null;
+}
+
+function getLatestRestorableReport({ openingFitUserState = [], profile = null, reportHistory = [] }) {
+  const workspaceCandidates = (Array.isArray(openingFitUserState) ? openingFitUserState : [])
+    .filter((row) => hasReportPayload(row?.last_report))
+    .map((row) => ({
+      report: row.last_report,
+      username: row.username,
+      platform: row.platform,
+      timestamp: rowTimestamp(row, row.last_report),
+    }));
+
+  const profileCandidate = hasReportPayload(profile?.last_report)
+    ? [{
+        report: profile.last_report,
+        username: profile.username,
+        platform: profile.platform,
+        timestamp: rowTimestamp(profile, profile.last_report),
+      }]
+    : [];
+
+  const historyCandidates = (Array.isArray(reportHistory) ? reportHistory : [])
+    .filter((row) => hasReportPayload(row?.report))
+    .map((row) => ({
+      report: row.report,
+      username: row.username || row.summary?.username,
+      platform: row.platform || row.summary?.platform,
+      timestamp: rowTimestamp(row, row.report),
+    }));
+
+  return latestByTimestamp([...workspaceCandidates, ...profileCandidate, ...historyCandidates]);
+}
+
 export default function AccountRestoreSync({
   user,
   username,
@@ -65,6 +119,7 @@ export default function AccountRestoreSync({
   setPlatform,
   data,
   setData,
+  onRestoredReport,
 }) {
   const {
     loading,
@@ -90,19 +145,15 @@ export default function AccountRestoreSync({
     if (restoreError) return;
     if (restoredUserRef.current === user.id) return;
 
-    const primaryWorkspace = openingFitUserState?.[0] || null;
-    const latestReport =
-      primaryWorkspace?.last_report ||
-      profile?.last_report ||
-      reportHistory?.[0]?.report ||
-      null;
+    const latestCloudReport = getLatestRestorableReport({ openingFitUserState, profile, reportHistory });
+    const latestReport = latestCloudReport?.report || null;
     const localReport = readLocalReport();
     const restoredUsername =
-      getImportedAccountUsername(latestReport, primaryWorkspace?.username || profile?.username) ||
+      getImportedAccountUsername(latestReport, latestCloudReport?.username || profile?.username) ||
       getImportedAccountUsername(localReport?.report, localReport?.username) ||
       "";
     const restoredPlatform =
-      getImportedAccountPlatform(latestReport, primaryWorkspace?.platform || profile?.platform) ||
+      getImportedAccountPlatform(latestReport, latestCloudReport?.platform || profile?.platform) ||
       getImportedAccountPlatform(localReport?.report, localReport?.platform) ||
       "";
 
@@ -119,10 +170,22 @@ export default function AccountRestoreSync({
         ...latestReport,
         ...(restoredUsername ? { username: restoredUsername } : {}),
       });
+      onRestoredReport?.({
+        report: latestReport,
+        username: restoredUsername,
+        platform: restoredPlatform,
+        source: "cloud",
+      });
     } else if (localReport?.report && typeof setData === "function") {
       setData({
         ...localReport.report,
         ...(restoredUsername ? { username: restoredUsername } : {}),
+      });
+      onRestoredReport?.({
+        report: localReport.report,
+        username: restoredUsername,
+        platform: restoredPlatform,
+        source: "local",
       });
     }
 
@@ -140,6 +203,7 @@ export default function AccountRestoreSync({
     setUsername,
     setPlatform,
     setData,
+    onRestoredReport,
   ]);
 
   useEffect(() => {

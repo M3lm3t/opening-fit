@@ -14659,6 +14659,11 @@ export default function App() {
           const cloudSyncFailures = cloudSyncResults.filter(
             (result) => result.status === "rejected" || result.value?.ok === false
           );
+          const reportSaveFailed = cloudSyncFailures.some(
+            (result) =>
+              result.status === "rejected" ||
+              result.value?.label === "report history"
+          );
           const cloudSyncSuccesses = cloudSyncResults.filter(
             (result) => result.status === "fulfilled" && result.value?.ok
           );
@@ -14667,13 +14672,13 @@ export default function App() {
             await runOptionalCloudSyncStep("refresh user data", () => refreshUserData?.(supabaseUser));
           }
 
-          if (!cloudSyncFailures.length) {
+          if (!reportSaveFailed) {
             setCloudSaveStatus("saved");
             setCloudSaveWarning("");
           } else {
             setCloudSaveStatus("failed");
             setCloudSaveWarning(
-              "Analysis complete, but cloud sync is temporarily unavailable. Your report is kept locally."
+              "Analysis complete, but the report could not be saved to your account. Your report is kept locally."
             );
           }
         })();
@@ -15602,6 +15607,22 @@ export default function App() {
           setPlatform={setPlatform}
           data={data}
           setData={setData}
+          onRestoredReport={({ username: restoredUsername, platform: restoredPlatform }) => {
+            setShowPublicLanding(false);
+            setImportStatus({
+              tone: "success",
+              title: "Account restored",
+              message: restoredUsername
+                ? `Loaded your saved OpeningFit report for ${restoredUsername}.`
+                : "Loaded your saved OpeningFit report.",
+              meta: restoredPlatform || null,
+            });
+
+            if (getCurrentPath() === "/") {
+              setActiveView("report");
+              window.history.replaceState({}, "", "/report");
+            }
+          }}
         />
 
         {loading ? (
