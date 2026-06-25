@@ -1,0 +1,280 @@
+.returningUserBriefingOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1035;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(2, 6, 23, 0.7);
+  backdrop-filter: blur(10px);
+}
+
+.returningUserBriefing {
+  width: min(640px, 100%);
+  max-height: min(720px, 92vh);
+  overflow: auto;
+  padding: clamp(18px, 3vw, 24px);
+  border: 1px solid var(--border-strong, rgba(148, 163, 184, 0.3));
+  border-radius: 8px;
+  background: var(--popover, rgba(15, 23, 42, 0.98));
+  color: var(--popover-foreground, #f8fafc);
+  box-shadow: var(--shadow-lg, 0 24px 70px rgba(0, 0, 0, 0.34));
+  animation: returningUserBriefingIn 140ms ease-out;
+}
+
+.returningUserBriefingHandle {
+  display: none;
+}
+
+.returningUserBriefingHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  gap: 16px;
+  align-items: start;
+}
+
+.returningUserBriefingHeader h2 {
+  margin: 0;
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  line-height: 1.06;
+  letter-spacing: 0;
+}
+
+.returningUserBriefingHeader p {
+  margin: 7px 0 0;
+  color: var(--text-soft, #cbd5e1);
+  line-height: 1.45;
+}
+
+.returningUserBriefingClose {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border-strong, rgba(148, 163, 184, 0.3));
+  border-radius: 999px;
+  background: var(--secondary, rgba(30, 41, 59, 0.92));
+  color: var(--secondary-foreground, #f8fafc);
+  cursor: pointer;
+}
+
+.returningUserBriefingScore {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--primary, #2563eb) 34%, var(--border, rgba(148, 163, 184, 0.18)));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary, #2563eb) 12%, transparent);
+}
+
+.returningUserBriefingScoreLabel span {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--text-soft, #cbd5e1);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.returningUserBriefingScore > strong {
+  color: var(--foreground, #f8fafc);
+  font-size: clamp(1.7rem, 5vw, 2.45rem);
+  line-height: 1;
+}
+
+.returningUserBriefingScore em {
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: var(--secondary, rgba(30, 41, 59, 0.92));
+  color: var(--secondary-foreground, #f8fafc);
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.returningUserBriefingInfo {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(125, 211, 252, 0.56);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.16);
+  color: #e0f2fe;
+  font-size: 0.78rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.returningUserBriefingInfo:hover,
+.returningUserBriefingInfo:focus-visible,
+.returningUserBriefingInfo[aria-expanded="true"] {
+  border-color: rgba(45, 212, 191, 0.8);
+  background: rgba(45, 212, 191, 0.24);
+  color: #f8fafc;
+}
+
+.returningUserBriefingScoreInfo {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 2px;
+  padding: 14px 15px;
+  border: 1px solid rgba(125, 211, 252, 0.32);
+  border-radius: 8px;
+  background: #0b1220 !important;
+  color: #f8fafc !important;
+}
+
+.returningUserBriefingScoreInfo strong {
+  display: block;
+  margin: 0 0 7px;
+  color: #ffffff !important;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.returningUserBriefingScoreInfo p,
+.returningUserBriefingScoreInfo li {
+  color: #dbeafe !important;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.returningUserBriefingScoreInfo p {
+  margin: 0;
+}
+
+.returningUserBriefingScoreInfo ul {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+  padding-left: 18px;
+}
+
+.returningUserBriefingSummary {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.returningUserBriefingSummary article {
+  padding: 13px;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.18));
+  border-radius: 8px;
+  background: var(--card-bg-soft, rgba(15, 23, 42, 0.62));
+}
+
+.returningUserBriefingSummary span {
+  display: block;
+  color: var(--muted-foreground, #94a3b8);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.returningUserBriefingSummary p {
+  margin: 6px 0 0;
+  color: var(--foreground, #f8fafc);
+  line-height: 1.38;
+}
+
+.returningUserBriefingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.returningUserBriefingActions button {
+  flex: 1 1 170px;
+  min-width: 0;
+  min-height: 44px;
+}
+
+.returningUserBriefingTextAction {
+  border: 0;
+  background: transparent;
+  color: var(--text-soft, #cbd5e1);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+[data-theme="light"] .returningUserBriefingScoreInfo,
+.light .returningUserBriefingScoreInfo {
+  border-color: rgba(37, 99, 235, 0.24);
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .returningUserBriefingScoreInfo strong,
+.light .returningUserBriefingScoreInfo strong {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .returningUserBriefingScoreInfo p,
+[data-theme="light"] .returningUserBriefingScoreInfo li,
+.light .returningUserBriefingScoreInfo p,
+.light .returningUserBriefingScoreInfo li {
+  color: #334155 !important;
+}
+
+@keyframes returningUserBriefingIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 760px) {
+  .returningUserBriefingOverlay {
+    align-items: end;
+    padding: 12px 12px calc(var(--of-mobile-nav-clearance, 72px) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .returningUserBriefing {
+    max-height: min(78vh, 680px);
+    border-radius: 18px 18px 8px 8px;
+    padding: 10px 14px 14px;
+  }
+
+  .returningUserBriefingHandle {
+    width: 42px;
+    height: 4px;
+    display: block;
+    margin: 0 auto 12px;
+    border-radius: 999px;
+    background: var(--border-strong, rgba(148, 163, 184, 0.3));
+  }
+
+  .returningUserBriefingScore {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .returningUserBriefingScore em {
+    width: fit-content;
+  }
+
+  .returningUserBriefingActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .returningUserBriefingActions button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .returningUserBriefing {
+    animation: none;
+  }
+}

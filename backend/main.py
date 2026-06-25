@@ -722,6 +722,86 @@ def api_health():
     }
 
 
+GAMES_ANALYSED_COUNT_CACHE: Dict[str, Any] = {
+    "expires_at": datetime.fromtimestamp(0, tz=timezone.utc),
+    "payload": None,
+}
+
+
+def public_historical_games_analysed_baseline() -> int:
+    # Only set this when it represents verified historic QA, demo, or live analyses.
+    raw_value = os.getenv("PUBLIC_HISTORICAL_GAMES_ANALYSED_BASELINE", "0").strip()
+
+    try:
+        return max(0, int(raw_value))
+    except (TypeError, ValueError):
+        return 0
+
+
+@app.get("/api/public/games-analysed-count")
+def public_games_analysed_count():
+    now = datetime.now(timezone.utc)
+    cached_payload = GAMES_ANALYSED_COUNT_CACHE.get("payload")
+
+    if cached_payload and now < GAMES_ANALYSED_COUNT_CACHE["expires_at"]:
+        return JSONResponse(
+            content=cached_payload,
+            headers={"Cache-Control": "public, max-age=300, s-maxage=300"},
+        )
+
+    baseline = public_historical_games_analysed_baseline()
+
+    if supabase is None:
+        payload = {
+            "ok": False,
+            "count": baseline,
+            "live_count": 0,
+            "baseline": baseline,
+            "source": "baseline_only",
+        }
+        return JSONResponse(
+            content=payload,
+            headers={"Cache-Control": "public, max-age=60, s-maxage=60"},
+        )
+
+    try:
+        response = (
+            supabase.table("analysed_games")
+            .select("id", count="exact")
+            .limit(0)
+            .execute()
+        )
+        live_count = int(getattr(response, "count", 0) or 0)
+    except Exception as exc:
+        log_supabase_diagnostic("public games analysed count failed", error=exc)
+        payload = {
+            "ok": False,
+            "count": baseline,
+            "live_count": 0,
+            "baseline": baseline,
+            "source": "baseline_only",
+        }
+        return JSONResponse(
+            content=payload,
+            headers={"Cache-Control": "public, max-age=60, s-maxage=60"},
+        )
+
+    payload = {
+        "ok": True,
+        "count": baseline + live_count,
+        "live_count": live_count,
+        "baseline": baseline,
+        "source": "analysed_games_count",
+    }
+    GAMES_ANALYSED_COUNT_CACHE["payload"] = payload
+    GAMES_ANALYSED_COUNT_CACHE["expires_at"] = now + timedelta(minutes=5)
+
+    return JSONResponse(
+        content=payload,
+        headers={"Cache-Control": "public, max-age=300, s-maxage=300"},
+    )
+
+
 def check_external_reachable(url: str, headers: Optional[Dict[str, str]] = None) -> bool:
     try:
         response = requests.get(url, headers=headers or {}, timeout=10)

@@ -34,6 +34,8 @@ import ResumeTrainingPrompt from "./components/ResumeTrainingPrompt";
 import TodayTrainingCard from "./components/TodayTrainingCard";
 import OpeningFitVerdict from "./components/OpeningFitVerdict";
 import AnalysisVerdictModal from "./components/AnalysisVerdictModal";
+import ReturningUserBriefing from "./components/ReturningUserBriefing";
+import GameAnalysisCount from "./components/GameAnalysisCount.jsx";
 import OpeningJourney from "./components/OpeningJourney";
 import OneThingToFixCard from "./components/OneThingToFixCard";
 import WhatChangedSinceLastAnalysis from "./components/WhatChangedSinceLastAnalysis";
@@ -12151,6 +12153,8 @@ function LandingSection({ onOpeningClick }) {
               No PGN upload · Public games only · Confidence labels
             </p>
 
+            <GameAnalysisCount className="landingGamesAnalysedCount" />
+
             <div className="landingHeroMiniHow" aria-label="How Opening Fit works">
               {heroSteps.map((step, index) => (
                 <div className="landingHeroMiniStep" key={step.title}>
@@ -13318,6 +13322,7 @@ function OpeningFitReportHero({ data }) {
 export default function App() {
   const {
     user: supabaseUser,
+    profile: supabaseProfile,
     loading: authLoading,
     hydrated: authHydrated,
     hasPremiumAccess,
@@ -13333,6 +13338,8 @@ export default function App() {
     upsertUserData: upsertCloudUserData,
     refreshUserData,
     profileLoading,
+    cloudRestoreLoading,
+    cloudRestored,
     profileLoaded,
     syncStatus,
     lastSavedAt,
@@ -13559,6 +13566,7 @@ export default function App() {
   const [, setLocalSavedAt] = useState("");
   const [cloudSaveWarning, setCloudSaveWarning] = useState("");
   const [cloudSaveStatus, setCloudSaveStatus] = useState("");
+  const [returningUserBriefing, setReturningUserBriefing] = useState(null);
   const previousAuthUserIdRef = useRef(undefined);
   const shouldShowLandingIntro = () => {
     if (isPrivateSeoPath(getCurrentPath())) return false;
@@ -13616,6 +13624,7 @@ export default function App() {
       setError("");
       setCloudSaveWarning("");
       setCloudSaveStatus("");
+      setReturningUserBriefing(null);
     }
 
     previousAuthUserIdRef.current = currentUserId;
@@ -14346,6 +14355,96 @@ export default function App() {
     });
   };
 
+  const getReturningBriefingStorageKey = useCallback(() => {
+    return supabaseUser?.id ? `openingfit:returning-briefing:v2:${supabaseUser.id}` : "";
+  }, [supabaseUser?.id]);
+
+  const buildReturningBriefingIdentity = useCallback(
+    ({ report, username: briefingUsername, platform: briefingPlatform, trainingTarget }) => {
+      if (!supabaseUser?.id || !report) return "";
+      const reportStamp =
+        report.lastUpdated ||
+        report.last_updated ||
+        report.importedAt ||
+        report.imported_at ||
+        report.savedAt ||
+        "";
+      const games =
+        report.gamesImported ||
+        report.games_imported ||
+        report.gamesAnalysed ||
+        report.games_analyzed ||
+        report.totalGames ||
+        report.total_games ||
+        "";
+      const trainingKey =
+        trainingTarget?.opening ||
+        trainingTarget?.name ||
+        trainingTarget?.openingName ||
+        trainingTarget?.moveLine ||
+        trainingTarget?.move_line ||
+        "";
+      return [
+        String(briefingPlatform || report.platform || report.importPlatform || "unknown").toLowerCase(),
+        String(briefingUsername || report.username || report.playerName || "unknown").toLowerCase(),
+        String(reportStamp).slice(0, 19),
+        String(games),
+        String(trainingKey).toLowerCase(),
+      ].join(":");
+    },
+    [supabaseUser?.id]
+  );
+
+  const queueReturningUserBriefing = useCallback(
+    ({ report, username: briefingUsername, platform: briefingPlatform, source }) => {
+      if (!["cloud", "analysis"].includes(source) || !report || !supabaseUser?.id) return;
+      const storageKey = getReturningBriefingStorageKey();
+      const reportKey = buildReturningBriefingIdentity({
+        report,
+        username: briefingUsername,
+        platform: briefingPlatform,
+        trainingTarget: analysisVerdictTrainingTarget,
+      });
+      if (!storageKey || !reportKey) return;
+
+      let previous = {};
+      try {
+        previous = JSON.parse(localStorage.getItem(storageKey) || "{}") || {};
+      } catch {
+        previous = {};
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const changedReportOrRecommendation = previous.reportKey && previous.reportKey !== reportKey;
+      if (!changedReportOrRecommendation && previous.dismissedDay === today) return;
+
+      setReturningUserBriefing({
+        storageKey,
+        reportKey,
+        report,
+        username: briefingUsername,
+        platform: briefingPlatform,
+        restoredAt: new Date().toISOString(),
+      });
+    },
+    [analysisVerdictTrainingTarget, buildReturningBriefingIdentity, getReturningBriefingStorageKey, supabaseUser?.id]
+  );
+
+  const dismissReturningUserBriefing = useCallback(() => {
+    if (returningUserBriefing?.storageKey) {
+      const now = new Date();
+      localStorage.setItem(
+        returningUserBriefing.storageKey,
+        JSON.stringify({
+          dismissedAt: now.toISOString(),
+          dismissedDay: now.toISOString().slice(0, 10),
+          reportKey: returningUserBriefing.reportKey,
+        })
+      );
+    }
+    setReturningUserBriefing(null);
+  }, [returningUserBriefing?.reportKey, returningUserBriefing?.storageKey]);
+
   const practiceOpeningName = practiceOpening ? getOpeningName(practiceOpening) : "";
   const practiceLineFocus = practiceOpening
     ? getOpeningVariationName(practiceOpening) || getOpeningMoveLine(practiceOpening) || practiceOpening?.line || ""
@@ -14451,6 +14550,7 @@ export default function App() {
     });
     setCloudSaveWarning("");
     setCloudSaveStatus("");
+    setReturningUserBriefing(null);
     setSavedProfileMessage("");
     setSelectedGameIndex(0);
     setPracticeOpening(null);
@@ -14553,9 +14653,10 @@ export default function App() {
         games: cleanData.gamesImported ?? cleanData.total_games,
       });
       const userReportRetentionKey = `${supabaseUser?.id || "guest"}:${reportRetentionKey}`;
+      const shouldShowAnalysisVerdict = !hasDismissedAnalysisVerdict(reportRetentionKey);
 
       setData(cleanData);
-      setAnalysisVerdictId(hasDismissedAnalysisVerdict(reportRetentionKey) ? "" : reportRetentionKey);
+      setAnalysisVerdictId(shouldShowAnalysisVerdict ? reportRetentionKey : "");
       setUsername(importedUsername);
       setImportStatus(importOutcome);
       saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
@@ -14675,6 +14776,14 @@ export default function App() {
           if (!reportSaveFailed) {
             setCloudSaveStatus("saved");
             setCloudSaveWarning("");
+            if (!shouldShowAnalysisVerdict) {
+              queueReturningUserBriefing({
+                report: cleanData,
+                username: importedUsername,
+                platform: selectedPlatformKey,
+                source: "analysis",
+              });
+            }
           } else {
             setCloudSaveStatus("failed");
             setCloudSaveWarning(
@@ -14935,6 +15044,15 @@ export default function App() {
     reportData?.openingFitScore ??
     reportData?.opening_fit_score ??
     null;
+  const openingScoreStatus =
+    reportData?.openingFitScoreBand ||
+    reportData?.opening_fit_score_band ||
+    reportData?.openingFitScoreStatus ||
+    reportData?.opening_fit_score_status ||
+    fitData?.scoreBand ||
+    fitData?.status ||
+    fitData?.label ||
+    "";
   const analysisVerdictTrainingTarget =
     fitData?.weakestOpening ||
     fitData?.bestOpening ||
@@ -15607,7 +15725,7 @@ export default function App() {
           setPlatform={setPlatform}
           data={data}
           setData={setData}
-          onRestoredReport={({ username: restoredUsername, platform: restoredPlatform }) => {
+          onRestoredReport={({ report, username: restoredUsername, platform: restoredPlatform, source }) => {
             setShowPublicLanding(false);
             setImportStatus({
               tone: "success",
@@ -15616,6 +15734,12 @@ export default function App() {
                 ? `Loaded your saved OpeningFit report for ${restoredUsername}.`
                 : "Loaded your saved OpeningFit report.",
               meta: restoredPlatform || null,
+            });
+            queueReturningUserBriefing({
+              report,
+              username: restoredUsername,
+              platform: restoredPlatform,
+              source,
             });
 
             if (getCurrentPath() === "/") {
@@ -16041,6 +16165,47 @@ export default function App() {
               />
             </div>
           )}
+
+          <ReturningUserBriefing
+            open={Boolean(
+              returningUserBriefing &&
+                !analysisVerdictId &&
+                !loading &&
+                reportData &&
+                profileLoaded &&
+                cloudRestored &&
+                !profileLoading &&
+                !cloudRestoreLoading &&
+                !restoreInProgress &&
+                !restoreError &&
+                !profileError
+            )}
+            report={returningUserBriefing?.report}
+            displayName={
+              supabaseProfile?.display_name ||
+              supabaseProfile?.username ||
+              returningUserBriefing?.username ||
+              username
+            }
+            openingScore={analysisVerdictScore}
+            scoreStatus={openingScoreStatus}
+            reportHistory={cloudReportHistory}
+            openingFitUserState={openingFitUserState}
+            trainingTarget={analysisVerdictTrainingTarget}
+            onClose={dismissReturningUserBriefing}
+            onViewReport={() => {
+              dismissReturningUserBriefing();
+              handleAppNavigate({
+                view: "report",
+                path: "/report",
+                target: "app-results",
+              });
+            }}
+            onContinueTraining={(target) => {
+              dismissReturningUserBriefing();
+              startOpeningPractice(target);
+            }}
+          />
 
           {analysisVerdictId && reportData && !loading ? (
             <AnalysisVerdictModal
