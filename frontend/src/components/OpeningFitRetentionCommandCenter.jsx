@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { recordRetentionMetric } from "../services/retentionMetrics";
+import OpeningScoreInfo from "./OpeningScoreInfo";
 import "./OpeningFitRetentionCommandCenter.css";
 
 const STORAGE_PREFIX = "openingFit:retentionCommandCenter";
@@ -255,6 +256,7 @@ export default function OpeningFitRetentionCommandCenter({ data, username }) {
   const strongestOpening = [...masteredOpenings].sort((a, b) => b.mastery - a.mastery)[0];
   const metrics = scoreMetrics(masteredOpenings);
   const openingFitScore = Math.round(metrics.reduce((sum, item) => sum + item.value, 0) / metrics.length);
+  const totalGames = masteredOpenings.reduce((sum, opening) => sum + safeNumber(opening?.games, 0), 0);
   const identity = getIdentity(data || {}, masteredOpenings);
   const streakDays = completedToday ? 4 : 3;
 
@@ -290,7 +292,19 @@ export default function OpeningFitRetentionCommandCenter({ data, username }) {
         </div>
         <div className="ofRetentionScoreCard" aria-label={`OpeningFit score ${openingFitScore}`}>
           <div className="ofLevelBurst" aria-hidden="true">Level up</div>
-          <span>OpeningFit Score</span>
+          <span>
+            OpeningFit Score{" "}
+            <OpeningScoreInfo
+              opening={{
+                name: "OpeningFit Score",
+                games: totalGames,
+                fitScore: openingFitScore,
+                confidence: totalGames >= 10 ? "Useful confidence" : "Limited confidence",
+                nextAction: `Train ${weakestOpening?.name || "the weakest repeated line"} before the next import.`,
+              }}
+              score={openingFitScore}
+            />
+          </span>
           <strong>{openingFitScore}</strong>
           <small>{identity.title}</small>
         </div>

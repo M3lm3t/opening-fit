@@ -1,5 +1,6 @@
 import { getPlayerLevelText } from "./playerLevelLogic";
 import { getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
+import OpeningScoreInfo from "./OpeningScoreInfo";
 
 function getArray(...values) {
   for (const value of values) {
@@ -248,7 +249,21 @@ export default function OpeningFitReportHero({ data, username, onJump }) {
         </div>
 
         <div className="ofScoreCard">
-          <span>OpeningFit Score</span>
+          <span>
+            OpeningFit Score{" "}
+            <OpeningScoreInfo
+              opening={{
+                name: "OpeningFit Score",
+                games: report.games,
+                fitScore: scoreText,
+                confidence: report.games >= 10 ? "Useful confidence" : "Limited confidence",
+                nextAction: report.improve
+                  ? `Review ${getName(report.improve)} before changing the whole repertoire.`
+                  : "Import more repeated games before making a hard repertoire decision.",
+              }}
+              score={scoreText}
+            />
+          </span>
           <strong>{scoreText}</strong>
           <small>Results, sample size, consistency.</small>
         </div>

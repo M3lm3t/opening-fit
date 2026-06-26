@@ -6,11 +6,11 @@ import OpeningFitImportDoctor from "./components/OpeningFitImportDoctor.jsx";
 import OpeningFitPolishToast from "./components/OpeningFitPolishToast.jsx";
 import "./components/OpeningFitPolish.css";
 import "./components/WeakLineDetection.css";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
-import { createPortal } from "react-dom";
 import "./App.css";
 import OpeningReportSummary from "./components/OpeningReportSummary";
+import OpeningScoreInfo from "./components/OpeningScoreInfo";
 import RepertoireStudyPlan from "./components/RepertoireStudyPlan";
 import PremiumDashboard from "./components/PremiumDashboard";
 import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
@@ -21,6 +21,9 @@ import { findOpeningPracticePack } from "./data/openingPracticeLines";
 import PremiumPanel from "./components/PremiumPanel";
 import ResultsCommandCenter from "./components/ResultsCommandCenter";
 import OpeningHealthScore from "./components/OpeningHealthScore";
+import OpeningHealthTrends from "./components/OpeningHealthTrends";
+import RecurringOpeningHabits from "./components/RecurringOpeningHabits";
+import WeeklyOpeningSessionCard from "./components/WeeklyOpeningSessionCard";
 import ProgressTracker from "./components/ProgressTracker";
 import ShareReport from "./components/ShareReport";
 import ReportSnapshot from "./components/ReportSnapshot";
@@ -148,7 +151,6 @@ import {
   Database,
   Gamepad2,
   History,
-  Info,
   Layers3,
   ListChecks,
   LockKeyhole,
@@ -2164,128 +2166,15 @@ function getOpeningFitScoreReason(opening) {
   return `${confidence}. OpeningFit is weighing results, sample size, consistency, and fit with your current games.`;
 }
 
-function OpeningScoreInfoButton({ opening = null, className = "" }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [popoverPosition, setPopoverPosition] = useState({ left: 16, top: 16, width: 520 });
-  const popoverId = useId();
-  const mobilePopoverId = useId();
-  const buttonRef = useRef(null);
-  const evidenceLabel = opening ? getOpeningScoreEvidenceLabel(opening) : "";
-
-  const updatePopoverPosition = useCallback(() => {
-    if (typeof window === "undefined") return;
-    const rect = buttonRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const edge = 16;
-    const width = Math.min(560, window.innerWidth - edge * 2);
-    const left = Math.min(
-      Math.max(rect.left + rect.width / 2 - width / 2, edge),
-      window.innerWidth - width - edge
-    );
-    const top = Math.min(Math.max(rect.bottom + 10, edge), Math.max(edge, window.innerHeight - 540));
-
-    setPopoverPosition({ left, top, width });
-  }, []);
-
-  useEffect(() => {
-    if (!isOpen) return undefined;
-
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") setIsOpen(false);
-    };
-
-    updatePopoverPosition();
-    window.addEventListener("keydown", closeOnEscape);
-    window.addEventListener("resize", updatePopoverPosition);
-    window.addEventListener("scroll", updatePopoverPosition, true);
-    return () => {
-      window.removeEventListener("keydown", closeOnEscape);
-      window.removeEventListener("resize", updatePopoverPosition);
-      window.removeEventListener("scroll", updatePopoverPosition, true);
-    };
-  }, [isOpen, updatePopoverPosition]);
-
-  const stopCardClick = (event) => {
-    event.stopPropagation();
-  };
-
-  const popoverContent = (
-    <>
-      <span className="openingScorePopoverHeader">
-        <strong>How this opening score works</strong>
-        <button type="button" aria-label="Close score explanation" onClick={() => setIsOpen(false)}>
-          <X size={15} aria-hidden="true" />
-        </button>
-      </span>
-      <span className="openingScorePopoverBody">
-        This is a fit score, not just a win-rate score. It estimates how well this opening currently suits your games.
-      </span>
-      <span className="openingScoreFactorList">
-        <span>Results in this opening</span>
-        <span>How often you use it</span>
-        <span>Confidence and consistency across games</span>
-        <span>Recurring early mistakes or difficult positions</span>
-        <span>Fit with your observed style and plans</span>
-      </span>
-      <span className="openingScorePopoverBody">
-        A low score does not mean this is a bad opening. It usually means you need more games, a clearer plan, or practice in a specific variation.
-      </span>
-      {evidenceLabel ? <span className="openingScoreEvidenceNote">{evidenceLabel}</span> : null}
-    </>
-  );
-
+function OpeningScoreInfoButton({ opening = null, score = null, nextStep = "", className = "" }) {
   return (
-    <span className={`openingScoreInfoWrap ${className}`} onClick={stopCardClick}>
-      <button
-        ref={buttonRef}
-        type="button"
-        className="openingScoreInfoButton"
-        aria-label="How this opening score works"
-        aria-expanded={isOpen}
-        aria-controls={`${popoverId} ${mobilePopoverId}`}
-        onClick={() => setIsOpen((current) => !current)}
-      >
-        <Info size={15} aria-hidden="true" />
-      </button>
-
-      {isOpen && typeof document !== "undefined"
-        ? createPortal(
-            <span className="openingScoreLayer" onClick={stopCardClick}>
-              <button
-                type="button"
-                className="openingScoreBackdrop"
-                aria-label="Close score explanation"
-                onClick={() => setIsOpen(false)}
-              />
-              <span
-                className="openingScorePopover openingScorePopoverPortal"
-                id={popoverId}
-                role="dialog"
-                aria-modal="false"
-                aria-label="How this opening score works"
-                style={{
-                  left: `${popoverPosition.left}px`,
-                  top: `${popoverPosition.top}px`,
-                  width: `${popoverPosition.width}px`,
-                }}
-              >
-                {popoverContent}
-              </span>
-              <span
-                className="openingScorePopover openingScorePopoverMobileSheet"
-                id={mobilePopoverId}
-                role="dialog"
-                aria-modal="true"
-                aria-label="How this opening score works"
-              >
-                {popoverContent}
-              </span>
-            </span>,
-            document.body
-          )
-        : null}
-    </span>
+    <OpeningScoreInfo
+      opening={opening || {}}
+      score={score}
+      nextStep={nextStep}
+      className={className}
+      label="How this opening score works"
+    />
   );
 }
 
@@ -2885,6 +2774,13 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
   const publicMode = fitData.reportMode !== "normal_user";
   const bestCanBeRepertoire = canTreatAsRepertoireOpening(bestOpening);
   const recommendedAction = fitData.recommendedAction || buildSingleRecommendedAction(fitData);
+  const overallScoreInfo = {
+    name: "OpeningFit Score",
+    games: scoredOpenings.reduce((total, opening) => total + getOpeningGames(opening), 0),
+    fitScore: overallScore,
+    confidence: scoredOpenings.length ? "Report-level estimate" : "Limited confidence",
+    nextAction: recommendedAction,
+  };
 
   const keepCount = scoredOpenings.filter(
     (opening) => opening.fitCategory === "keep"
@@ -2910,7 +2806,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
         </div>
 
         <div className="fitScoreCircle fitScoreCircleWithInfo">
-          <OpeningScoreInfoButton className="openingScoreInfoButton--circle" />
+          <OpeningScoreInfoButton opening={overallScoreInfo} score={overallScore} className="openingScoreInfoButton--circle" />
           <strong>{overallScore}</strong>
           <span>/100</span>
         </div>
@@ -6647,6 +6543,18 @@ function FinalReportFlow({
           onNavigate={onNavigate}
         />
 
+        <WeeklyOpeningSessionCard
+          data={data}
+          fitData={fitData}
+          onPractice={onPractice}
+          onReview={(route) => onNavigate?.(route || "weakspots")}
+          onFullPlan={() => onNavigate?.("training")}
+        />
+
+        <RecurringOpeningHabits data={data} />
+
+        {reportHistory.length ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
+
         <details className="reportSupportingDataDetails" open={showOpeningTable}>
           <summary>
             <span>Supporting data</span>
@@ -6691,7 +6599,7 @@ function FinalReportFlow({
           </ReportSectionGroup>
 
           <ReportSectionGroup id="report-fixes" eyebrow="Weaknesses" title="What to fix">
-            <OpeningInsights data={data} onPractice={onPractice} />
+            <OpeningInsights data={data} onPractice={onPractice} onReview={() => onNavigate?.("games")} />
             <OpeningHealthScore data={data} fitData={fitData} history={reportHistory} />
             <WeakSpotsCommandPanel
               data={data}
@@ -7192,7 +7100,19 @@ function CurrentReportSummary({
         </div>
 
         <div className="commandCentreScore" aria-label="Opening Fit Score">
-          <span>Opening Fit Score</span>
+          <span>
+            Opening Fit Score{" "}
+            <OpeningScoreInfoButton
+              opening={{
+                name: "Opening Fit Score",
+                games: scoredOpenings.reduce((total, opening) => total + getOpeningGames(opening), 0),
+                fitScore: score,
+                confidence: score ? "Report-level estimate" : "Not enough data",
+                nextAction: "Open the training plan and review the lowest-scoring repeated line first.",
+              }}
+              score={score}
+            />
+          </span>
           <strong>{score || "—"}</strong>
           <small>{score ? "/100" : "score pending"}</small>
           <em>{profile.shortLabel || profile.label || "Overall verdict"}</em>
@@ -8908,7 +8828,19 @@ function OpeningFitRetentionSection({
   return (
     <section className={`openingFitRetentionSection ${compact ? "openingFitRetentionSectionCompact" : ""}`} aria-label="OpeningFit retention dashboard">
       <div className="retentionScoreCard">
-        <span>OpeningFit Score</span>
+        <span>
+          OpeningFit Score{" "}
+          <OpeningScoreInfoButton
+            opening={{
+              name: "OpeningFit Score",
+              games,
+              fitScore: score,
+              confidence: score === null ? "Not enough data" : "Report-level estimate",
+              nextAction: "Play a few more games, then reanalyse to see whether the same weakness repeats.",
+            }}
+            score={score}
+          />
+        </span>
         <strong>{score === null ? "—" : score}</strong>
         <small>{score === null ? "Not enough data yet" : "out of 100"}</small>
       </div>
@@ -8995,7 +8927,22 @@ function OpeningFitVerdictPanel({
         </article>
 
         <article className="verdict-summary-card verdict-summary-card--score">
-          <p className="eyebrow openingScoreEyebrow">OpeningFit Score <OpeningScoreInfoButton /></p>
+          <p className="eyebrow openingScoreEyebrow">
+            OpeningFit Score{" "}
+            <OpeningScoreInfoButton
+              opening={{
+                name: "OpeningFit Score",
+                games: (Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : []).reduce(
+                  (total, opening) => total + getOpeningGames(opening),
+                  0
+                ),
+                fitScore: score,
+                confidence: score === null ? "Not enough data" : "Report-level estimate",
+                nextAction: "Use the score to pick one opening to keep and one repeated line to repair next.",
+              }}
+              score={score}
+            />
+          </p>
           <strong>{score === null ? "--" : score}</strong>
           <span>{score === null ? "Not enough data yet" : "out of 100"}</span>
           <p>Scores, journeys, and previous-analysis changes are kept below for review.</p>
@@ -9117,7 +9064,19 @@ function ReturnUserDashboard({
           </p>
         </div>
         <div className="returnDashboardScore" aria-label={`Current repertoire score ${score ?? confidence}`}>
-          <span>OpeningFit Score</span>
+          <span>
+            OpeningFit Score{" "}
+            <OpeningScoreInfoButton
+              opening={{
+                name: "OpeningFit Score",
+                games: getProfileGameCount(data) || 0,
+                fitScore: score,
+                confidence: score !== null && score !== undefined ? "Saved progress estimate" : "Not enough data",
+                nextAction: "Continue from the saved training target, then compare the next report.",
+              }}
+              score={score}
+            />
+          </span>
           <strong>{score !== null && score !== undefined ? score : "—"}</strong>
           <small>{scoreDeltaLabel}</small>
         </div>
@@ -9430,6 +9389,9 @@ function OpeningFitProfileDashboard({
   isPremiumPreview,
   onAnalyse,
   onOpenReport,
+  onPractice,
+  onReviewSession,
+  onSeeSessionPlan,
   onLoadReport,
   onFounderPass,
   onCloudRestore,
@@ -9513,6 +9475,17 @@ function OpeningFitProfileDashboard({
           </button>
         ) : null}
       </div>
+
+      <WeeklyOpeningSessionCard
+        data={data}
+        fitData={fitData}
+        onPractice={onPractice}
+        onReview={(route) => onReviewSession?.(route)}
+        onFullPlan={onSeeSessionPlan}
+        showEmptyState
+      />
+
+      {accountUser?.id ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
 
       {showHistoryPage ? (
         <ReportHistoryVault data={data} fitData={fitData} onLoadReport={onLoadReport} />
@@ -16557,6 +16530,9 @@ export default function App() {
                 isPremiumPreview={isPremiumPreview}
                 onAnalyse={() => handleAppNavigate("analyse")}
                 onOpenReport={() => handleAppNavigate("report")}
+                onPractice={startOpeningPractice}
+                onReviewSession={(route) => handleAppNavigate(route || "weakspots")}
+                onSeeSessionPlan={() => handleAppNavigate("training")}
                 onLoadReport={(report) => {
                   setData(report);
                   handleAppNavigate("report");

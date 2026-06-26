@@ -20,7 +20,8 @@
 .openingInsightBlockHeader h3,
 .openingInsightMiniCard h4,
 .openingInsightWeakLine h3,
-.openingInsightRecommendation h3 {
+.openingInsightRecommendation h3,
+.commonOpponentResponseCard h3 {
   margin: 4px 0 8px;
   letter-spacing: 0;
   line-height: 1.18;
@@ -40,7 +41,8 @@
 .openingInsightPhase,
 .openingInsightMiniCard,
 .openingInsightWeakLine,
-.openingInsightRecommendation {
+.openingInsightRecommendation,
+.commonOpponentResponseCard {
   min-width: 0;
   padding: 14px;
   border: 1px solid rgba(148, 163, 184, 0.22);
@@ -141,7 +143,8 @@
 
 .openingInsightMiniCard p,
 .openingInsightWeakLine p,
-.openingInsightRecommendation p {
+.openingInsightRecommendation p,
+.commonOpponentResponseCard p {
   margin: 0;
   color: rgba(248, 250, 252, 0.9);
   line-height: 1.45;
@@ -186,7 +189,8 @@
   border-color: rgba(251, 146, 60, 0.4);
 }
 
-.openingInsightWeakLine button {
+.openingInsightWeakLine button,
+.commonOpponentResponseCard button {
   margin-top: 12px;
   padding: 9px 12px;
   border: 0;
@@ -241,6 +245,15 @@
   border-color: rgba(251, 146, 60, 0.38);
 }
 
+.commonOpponentResponseCard {
+  margin-top: 18px;
+  border-color: rgba(125, 211, 252, 0.34);
+}
+
+.commonOpponentResponseCard h3 {
+  font-size: 1rem;
+}
+
 .page.light .openingInsights,
 [data-theme="light"] .openingInsights {
   border-color: rgba(15, 23, 42, 0.12);
@@ -278,6 +291,8 @@
 [data-theme="light"] .openingInsightWeakLine,
 .page.light .openingInsightRecommendation,
 [data-theme="light"] .openingInsightRecommendation,
+.page.light .commonOpponentResponseCard,
+[data-theme="light"] .commonOpponentResponseCard,
 .page.light .openingInsightTags span,
 [data-theme="light"] .openingInsightTags span {
   border-color: rgba(15, 23, 42, 0.12);
@@ -310,6 +325,8 @@
 [data-theme="light"] .openingInsightWeakLine p,
 .page.light .openingInsightRecommendation p,
 [data-theme="light"] .openingInsightRecommendation p,
+.page.light .commonOpponentResponseCard p,
+[data-theme="light"] .commonOpponentResponseCard p,
 .page.light .openingInsightTags span,
 [data-theme="light"] .openingInsightTags span {
   color: rgba(15, 23, 42, 0.82);

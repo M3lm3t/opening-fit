@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import InfoHint from "./InfoHint";
 import { OPENING_COPY, getOpeningRecommendationReason } from "./openingCopy";
+import OpeningRecommendationVerdict from "./OpeningRecommendationVerdict";
+import OpeningScoreInfo from "./OpeningScoreInfo";
 import RecommendationReasonHint, { recommendationReasonDetails } from "./RecommendationReasonHint";
 import "./RecommendedOpeningFit.css";
 
@@ -356,16 +358,6 @@ function watchOut(item) {
   return ["Review your first uncomfortable position after move 8 and keep the study version narrow."];
 }
 
-function fitScoreTooltip({ name, fit, confidence, learning, risk, tone }) {
-  const action =
-    tone === "delay"
-      ? "Use this to decide whether the line should stay outside your main repertoire for now."
-      : tone === "existing"
-        ? "Use this to decide whether an opening you already play should stay in the repertoire."
-        : "Use this to decide whether this is worth a small trial before committing it to your repertoire.";
-  return `${name} scores ${fit}/100 for your current game sample. Confidence is ${confidence}, learning cost is ${learning}, and risk is ${risk}. ${action}`;
-}
-
 function styleFingerprintTooltip(fingerprint) {
   const traits = fingerprint.traits || {};
   const sample = fingerprint.sampleSize || fingerprint.sample_size || "your current";
@@ -423,9 +415,18 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
         <strong>
           <span>
             Fit score
-            <InfoHint label={`Why ${name} has this fit score`}>
-              {fitScoreTooltip({ name, fit, confidence, learning, risk, tone })}
-            </InfoHint>
+            <OpeningScoreInfo
+              opening={{
+                ...item,
+                name,
+                games,
+                fitScore: fit,
+                confidence,
+                nextAction: displayAction,
+              }}
+              score={fit}
+              label={`Why ${name} has this fit score`}
+            />
           </span>
           {fit}
         </strong>
@@ -442,6 +443,17 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
         <span>Learning: {learning}</span>
         <span>Risk: {risk}</span>
       </div>
+
+      <OpeningRecommendationVerdict
+        item={{
+          ...item,
+          name,
+          games,
+          fitScore: fit,
+          confidence,
+        }}
+        alternatives={alternatives}
+      />
 
       <div className="recommendedOpeningWhy">
         <h4>

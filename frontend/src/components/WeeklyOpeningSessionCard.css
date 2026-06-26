@@ -1,0 +1,173 @@
+.weeklyOpeningSessionCard {
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.92)),
+    #111827;
+  color: #f8fafc;
+}
+
+.weeklyOpeningSessionHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.weeklyOpeningSessionHeader h2 {
+  margin: 3px 0 0;
+  font-size: 1.15rem;
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+.weeklyOpeningSessionHeader > span {
+  flex: 0 1 auto;
+  max-width: 42%;
+  padding: 5px 8px;
+  border: 1px solid rgba(125, 211, 252, 0.26);
+  border-radius: 999px;
+  color: #bae6fd;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.weeklyOpeningSessionRationale,
+.weeklyOpeningSessionCardEmpty p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.82);
+  line-height: 1.48;
+}
+
+.weeklyOpeningSessionActions {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.weeklyOpeningSessionActions button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.weeklyOpeningSessionActions button:hover,
+.weeklyOpeningSessionActions button:focus-visible {
+  border-color: rgba(125, 211, 252, 0.44);
+  background: rgba(14, 116, 144, 0.2);
+}
+
+.weeklyOpeningSessionActions strong {
+  min-width: 0;
+  font-size: 0.9rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.weeklyOpeningSessionActions span {
+  color: #fef3c7;
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.weeklyOpeningSessionActions small {
+  grid-column: 1 / -1;
+  color: rgba(226, 232, 240, 0.7);
+  line-height: 1.35;
+}
+
+.weeklyOpeningSessionFooter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.weeklyOpeningSessionFooter button {
+  min-height: 38px;
+}
+
+.weeklyOpeningSessionCardEmpty small {
+  display: block;
+  margin-top: 6px;
+  color: rgba(226, 232, 240, 0.68);
+  line-height: 1.4;
+}
+
+.page.light .weeklyOpeningSessionCard,
+[data-theme="light"] .weeklyOpeningSessionCard {
+  border-color: rgba(15, 23, 42, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.98)),
+    #ffffff;
+  color: #0f172a;
+}
+
+.page.light .weeklyOpeningSessionHeader > span,
+[data-theme="light"] .weeklyOpeningSessionHeader > span {
+  border-color: rgba(14, 116, 144, 0.18);
+  color: #075985;
+}
+
+.page.light .weeklyOpeningSessionRationale,
+[data-theme="light"] .weeklyOpeningSessionRationale,
+.page.light .weeklyOpeningSessionCardEmpty p,
+[data-theme="light"] .weeklyOpeningSessionCardEmpty p {
+  color: rgba(15, 23, 42, 0.72);
+}
+
+.page.light .weeklyOpeningSessionActions button,
+[data-theme="light"] .weeklyOpeningSessionActions button {
+  border-color: rgba(15, 23, 42, 0.1);
+  background: rgba(248, 250, 252, 0.88);
+}
+
+.page.light .weeklyOpeningSessionActions button:hover,
+.page.light .weeklyOpeningSessionActions button:focus-visible,
+[data-theme="light"] .weeklyOpeningSessionActions button:hover,
+[data-theme="light"] .weeklyOpeningSessionActions button:focus-visible {
+  border-color: rgba(14, 116, 144, 0.28);
+  background: rgba(224, 242, 254, 0.8);
+}
+
+.page.light .weeklyOpeningSessionActions span,
+[data-theme="light"] .weeklyOpeningSessionActions span {
+  color: #854d0e;
+}
+
+.page.light .weeklyOpeningSessionActions small,
+.page.light .weeklyOpeningSessionCardEmpty small,
+[data-theme="light"] .weeklyOpeningSessionActions small,
+[data-theme="light"] .weeklyOpeningSessionCardEmpty small {
+  color: rgba(15, 23, 42, 0.62);
+}
+
+@media (max-width: 640px) {
+  .weeklyOpeningSessionHeader {
+    display: block;
+  }
+
+  .weeklyOpeningSessionHeader > span {
+    display: inline-flex;
+    max-width: 100%;
+    margin-top: 8px;
+    text-align: left;
+  }
+
+  .weeklyOpeningSessionFooter {
+    display: grid;
+  }
+}

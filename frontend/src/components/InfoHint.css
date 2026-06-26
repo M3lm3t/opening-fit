@@ -71,6 +71,49 @@
   font-size: 0.76rem;
 }
 
+.openingScoreInfoHint {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.openingScoreInfoHint.openingScoreInfoButton--circle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.openingScoreInfoHint.openingScoreInfoButton--circle .infoHintButton {
+  width: 32px;
+  height: 32px;
+}
+
+.openingScoreInfoContent {
+  display: grid;
+  gap: 0.65rem;
+  max-width: min(72vw, 34rem);
+  line-height: 1.45;
+}
+
+.openingScoreInfoContent strong {
+  color: rgba(248, 250, 252, 0.96);
+  font-size: 0.86rem;
+}
+
+.openingScoreInfoContent span,
+.openingScoreInfoContent small {
+  display: block;
+}
+
+.openingScoreInfoContent b {
+  color: rgba(248, 250, 252, 0.96);
+  font-weight: 750;
+}
+
+.openingScoreInfoContent small {
+  color: rgba(226, 232, 240, 0.84);
+  font-size: 0.76rem;
+}
+
 .page.light .infoHintButton,
 [data-theme="light"] .infoHintButton {
   border-color: rgba(15, 23, 42, 0.16);
@@ -94,4 +137,22 @@
 .page.light .recommendationReasonHint small,
 [data-theme="light"] .recommendationReasonHint small {
   color: rgba(51, 65, 85, 0.8);
+}
+
+.page.light .openingScoreInfoContent strong,
+.page.light .openingScoreInfoContent b,
+[data-theme="light"] .openingScoreInfoContent strong,
+[data-theme="light"] .openingScoreInfoContent b {
+  color: rgba(15, 23, 42, 0.94);
+}
+
+.page.light .openingScoreInfoContent small,
+[data-theme="light"] .openingScoreInfoContent small {
+  color: rgba(51, 65, 85, 0.8);
+}
+
+@media (max-width: 640px) {
+  .openingScoreInfoContent {
+    max-width: calc(100vw - 3rem);
+  }
 }

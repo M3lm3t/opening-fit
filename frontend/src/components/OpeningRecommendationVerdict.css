@@ -1,0 +1,143 @@
+.openingRecommendationVerdict {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.38);
+}
+
+.openingRecommendationVerdictTopline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.openingRecommendationVerdictBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.openingRecommendationVerdict--keep {
+  border-left-color: #22c55e;
+}
+
+.openingRecommendationVerdict--keep .openingRecommendationVerdictBadge {
+  color: #bbf7d0;
+}
+
+.openingRecommendationVerdict--repair {
+  border-left-color: #f59e0b;
+}
+
+.openingRecommendationVerdict--repair .openingRecommendationVerdictBadge {
+  color: #fde68a;
+}
+
+.openingRecommendationVerdict--replace {
+  border-left-color: #38bdf8;
+}
+
+.openingRecommendationVerdict--replace .openingRecommendationVerdictBadge {
+  color: #bae6fd;
+}
+
+.openingRecommendationVerdict--watch {
+  border-left-color: #94a3b8;
+}
+
+.openingRecommendationVerdict--watch .openingRecommendationVerdictBadge {
+  color: #e2e8f0;
+}
+
+.openingRecommendationVerdict p {
+  margin: 0;
+  color: rgba(248, 250, 252, 0.9);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.openingRecommendationVerdict small {
+  display: block;
+  margin-top: 6px;
+  color: rgba(226, 232, 240, 0.74);
+  line-height: 1.4;
+}
+
+.openingRecommendationVerdict .infoHintButton {
+  width: 18px;
+  height: 18px;
+  font-size: 0.68rem;
+}
+
+.page.light .openingRecommendationVerdict,
+[data-theme="light"] .openingRecommendationVerdict {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(248, 250, 252, 0.86);
+}
+
+.page.light .openingRecommendationVerdict--keep,
+[data-theme="light"] .openingRecommendationVerdict--keep {
+  border-left-color: #15803d;
+}
+
+.page.light .openingRecommendationVerdict--repair,
+[data-theme="light"] .openingRecommendationVerdict--repair {
+  border-left-color: #b45309;
+}
+
+.page.light .openingRecommendationVerdict--replace,
+[data-theme="light"] .openingRecommendationVerdict--replace {
+  border-left-color: #0369a1;
+}
+
+.page.light .openingRecommendationVerdict--watch,
+[data-theme="light"] .openingRecommendationVerdict--watch {
+  border-left-color: #64748b;
+}
+
+.page.light .openingRecommendationVerdict--keep .openingRecommendationVerdictBadge,
+[data-theme="light"] .openingRecommendationVerdict--keep .openingRecommendationVerdictBadge {
+  color: #166534;
+}
+
+.page.light .openingRecommendationVerdict--repair .openingRecommendationVerdictBadge,
+[data-theme="light"] .openingRecommendationVerdict--repair .openingRecommendationVerdictBadge {
+  color: #92400e;
+}
+
+.page.light .openingRecommendationVerdict--replace .openingRecommendationVerdictBadge,
+[data-theme="light"] .openingRecommendationVerdict--replace .openingRecommendationVerdictBadge {
+  color: #075985;
+}
+
+.page.light .openingRecommendationVerdict--watch .openingRecommendationVerdictBadge,
+[data-theme="light"] .openingRecommendationVerdict--watch .openingRecommendationVerdictBadge {
+  color: #334155;
+}
+
+.page.light .openingRecommendationVerdict p,
+[data-theme="light"] .openingRecommendationVerdict p {
+  color: rgba(15, 23, 42, 0.84);
+}
+
+.page.light .openingRecommendationVerdict small,
+[data-theme="light"] .openingRecommendationVerdict small {
+  color: rgba(15, 23, 42, 0.64);
+}
+
+@media (max-width: 520px) {
+  .openingRecommendationVerdict {
+    padding: 9px 10px;
+  }
+}

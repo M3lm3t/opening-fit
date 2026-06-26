@@ -1,0 +1,177 @@
+.recurringOpeningHabits {
+  border: 1px solid var(--card-border, rgba(148, 163, 184, 0.18));
+  border-radius: 8px;
+  background: var(--card-bg, rgba(15, 23, 42, 0.72));
+  padding: 1rem;
+}
+
+.recurringOpeningHabitsHeader {
+  display: grid;
+  gap: 0.2rem;
+  margin-bottom: 0.9rem;
+}
+
+.recurringOpeningHabitsHeader h2 {
+  margin: 0;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  letter-spacing: 0;
+}
+
+.recurringOpeningHabitsHeader p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted, rgba(226, 232, 240, 0.72));
+  font-size: 0.9rem;
+}
+
+.recurringOpeningHabitsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.recurringOpeningHabitCard {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  padding: 0.85rem;
+  background: rgba(15, 23, 42, 0.38);
+}
+
+.recurringOpeningHabitTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.recurringOpeningHabitTop > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+}
+
+.recurringOpeningHabitCard--costly .recurringOpeningHabitTop > span {
+  background: rgba(248, 113, 113, 0.14);
+  color: #fca5a5;
+}
+
+.recurringOpeningHabitCard--strong .recurringOpeningHabitTop > span {
+  background: rgba(34, 197, 94, 0.14);
+  color: #86efac;
+}
+
+.recurringOpeningHabitCard--focus .recurringOpeningHabitTop > span {
+  background: rgba(56, 189, 248, 0.14);
+  color: #7dd3fc;
+}
+
+.recurringOpeningHabitTop p {
+  margin: 0 0 0.16rem;
+  color: var(--muted, rgba(226, 232, 240, 0.7));
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.recurringOpeningHabitTop h3 {
+  margin: 0;
+  color: var(--text, #f8fafc);
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.recurringOpeningHabitCard > strong {
+  color: rgba(186, 230, 253, 0.92);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.recurringOpeningHabitCard > p,
+.recurringOpeningHabitCard > small,
+.recurringOpeningHabitCard details span {
+  margin: 0;
+  color: var(--muted, rgba(226, 232, 240, 0.76));
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.recurringOpeningHabitCard > small {
+  color: rgba(248, 250, 252, 0.9);
+  font-weight: 750;
+}
+
+.recurringOpeningHabitCard details {
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  padding-top: 0.55rem;
+}
+
+.recurringOpeningHabitCard summary {
+  cursor: pointer;
+  color: var(--muted, rgba(226, 232, 240, 0.72));
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.recurringOpeningHabitsEmpty {
+  display: grid;
+  gap: 0.35rem;
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  padding: 0.9rem;
+  color: var(--muted, rgba(226, 232, 240, 0.76));
+}
+
+.recurringOpeningHabitsEmpty strong {
+  color: var(--text, #f8fafc);
+}
+
+[data-theme="light"] .recurringOpeningHabits,
+.page.light .recurringOpeningHabits {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="light"] .recurringOpeningHabitCard,
+.page.light .recurringOpeningHabitCard {
+  background: rgba(248, 250, 252, 0.92);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+[data-theme="light"] .recurringOpeningHabitTop h3,
+[data-theme="light"] .recurringOpeningHabitCard > small,
+[data-theme="light"] .recurringOpeningHabitsEmpty strong,
+.page.light .recurringOpeningHabitTop h3,
+.page.light .recurringOpeningHabitCard > small,
+.page.light .recurringOpeningHabitsEmpty strong {
+  color: #0f172a;
+}
+
+[data-theme="light"] .recurringOpeningHabitsHeader p:not(.eyebrow),
+[data-theme="light"] .recurringOpeningHabitTop p,
+[data-theme="light"] .recurringOpeningHabitCard > p,
+[data-theme="light"] .recurringOpeningHabitCard details span,
+[data-theme="light"] .recurringOpeningHabitCard summary,
+[data-theme="light"] .recurringOpeningHabitsEmpty,
+.page.light .recurringOpeningHabitsHeader p:not(.eyebrow),
+.page.light .recurringOpeningHabitTop p,
+.page.light .recurringOpeningHabitCard > p,
+.page.light .recurringOpeningHabitCard details span,
+.page.light .recurringOpeningHabitCard summary,
+.page.light .recurringOpeningHabitsEmpty {
+  color: rgba(51, 65, 85, 0.78);
+}
+
+@media (max-width: 640px) {
+  .recurringOpeningHabits {
+    padding: 0.85rem;
+  }
+
+  .recurringOpeningHabitsGrid {
+    grid-template-columns: 1fr;
+  }
+}

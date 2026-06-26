@@ -6,6 +6,7 @@ import {
   isMasterLevel,
 } from "./playerLevelLogic";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
+import OpeningScoreInfo from "./OpeningScoreInfo";
 import { getOpeningRecommendationReason } from "./openingCopy";
 
 function normaliseOpeningName(opening) {
@@ -1116,7 +1117,25 @@ function ReportCard({ title, opening, fallbackTitle, fallbackText, type, data })
 
             <div>
               <strong>{winRate}%</strong>
-              <small>score</small>
+              <small>
+                score{" "}
+                <OpeningScoreInfo
+                  opening={{
+                    ...opening.raw,
+                    name,
+                    games,
+                    winRate,
+                    fitScore: opening.raw?.fitScore || opening.raw?.fit_score || winRate,
+                    confidence: confidenceLabel,
+                    nextAction:
+                      winRate < 45
+                        ? `Review your last 3 ${name} losses before changing the whole opening.`
+                        : `Keep tracking ${name} and review the next recurring branch.`,
+                  }}
+                  score={opening.raw?.fitScore || opening.raw?.fit_score || winRate}
+                  label={`Why ${name} has this score`}
+                />
+              </small>
             </div>
 
             <div>

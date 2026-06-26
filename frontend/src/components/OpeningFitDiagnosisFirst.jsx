@@ -1,3 +1,5 @@
+import OpeningScoreInfo from "./OpeningScoreInfo";
+
 function getOpeningName(opening) {
   return (
     opening?.name ||
@@ -181,7 +183,19 @@ export default function OpeningFitDiagnosisFirst({
         </div>
 
         <div className="diagnosisFirst__scoreCard" aria-label="Opening Fit Score">
-          <span>Opening Fit Score</span>
+          <span>
+            Opening Fit Score{" "}
+            <OpeningScoreInfo
+              opening={{
+                name: "Opening Fit Score",
+                games: totalGames,
+                fitScore,
+                confidence: totalGames >= 10 ? "Useful confidence" : "Limited confidence",
+                nextAction: `Review 3 losses in ${getOpeningName(fix)} and find the first uncomfortable position.`,
+              }}
+              score={fitScore}
+            />
+          </span>
           <strong>{fitScore}</strong>
           <em>/100</em>
         </div>

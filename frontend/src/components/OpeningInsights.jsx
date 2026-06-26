@@ -1,6 +1,7 @@
 import { useState } from "react";
 import InfoHint from "./InfoHint";
 import { OPENING_COPY, getOpeningRecommendationReason, sampleSizeCopy, weakLineIssueCopy } from "./openingCopy";
+import { buildCommonOpponentResponseRecommendation } from "../services/commonOpponentResponses";
 import { buildWeakestLineTrainingTargetFromLine } from "../services/weakestLineTraining";
 import "./OpeningInsights.css";
 
@@ -289,6 +290,56 @@ function CompactOpeningCard({ opening }) {
   );
 }
 
+function CommonOpponentResponseCard({ data, onPractice, onReview }) {
+  const result = buildCommonOpponentResponseRecommendation(data);
+  const response = result.recommendation;
+  if (!response) return null;
+
+  const resultCopy =
+    response.score !== null && response.lossRate !== null
+      ? response.isWeak
+        ? `Your score is ${response.score}% here, with a ${response.lossRate}% loss rate.`
+        : `Your score is ${response.score}% in this response.`
+      : "Performance is not shown because too many game results are missing.";
+  const actionCopy = response.practiceTarget
+    ? "Practise the next key sequence from the saved moves."
+    : "Review the matching games before drilling a line.";
+
+  return (
+    <article className="commonOpponentResponseCard">
+      <div className="openingInsightCardTitle">
+        <span>Common opponent response</span>
+        <InfoHint label="How this response was found">
+          OpeningFit grouped analysed games with parseable early moves for the same opening and colour. It only shows this card when the response repeats often enough.
+        </InfoHint>
+      </div>
+      <h3>
+        Against your {response.opening}, opponents most often choose {response.responseLabel}.
+      </h3>
+      <div className="openingInsightMeta">
+        <b>{response.games} games</b>
+        <b>{response.frequencyPct}% of this opening sample</b>
+        {response.score !== null ? <b>{response.score}% score</b> : null}
+      </div>
+      <p>
+        {resultCopy} {actionCopy}
+      </p>
+      <button
+        type="button"
+        onClick={() => {
+          if (response.practiceTarget && onPractice) {
+            onPractice(response.practiceTarget);
+          } else {
+            onReview?.();
+          }
+        }}
+      >
+        {response.practiceTarget ? "Practise This Response" : "Review Matching Games"}
+      </button>
+    </article>
+  );
+}
+
 function recommendationItems(recommendations) {
   const delayItems = asArray(recommendations.delayOrAvoid || recommendations.delay_or_avoid);
   const keep = recommendations.safeWhite || recommendations.safe_white;
@@ -307,7 +358,7 @@ function recommendationItems(recommendations) {
   ].filter((entry) => entry.item);
 }
 
-export default function OpeningInsights({ data, onPractice }) {
+export default function OpeningInsights({ data, onPractice, onReview }) {
   const [showAllWeakLines, setShowAllWeakLines] = useState(false);
   if (!data) return null;
 
@@ -408,6 +459,8 @@ export default function OpeningInsights({ data, onPractice }) {
       ) : (
         <p className="openingInsightQuietNote">Opening cards will appear once there is enough recent game evidence.</p>
       )}
+
+      <CommonOpponentResponseCard data={data} onPractice={onPractice} onReview={onReview} />
 
       {weakLines.length ? (
         <div className="openingInsightBlock">
