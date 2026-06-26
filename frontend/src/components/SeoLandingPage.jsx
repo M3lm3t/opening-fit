@@ -654,7 +654,7 @@ function StyleOpeningLinks({ page }) {
   );
 }
 
-export default function SeoLandingPage({ page, ThemeToggle, Analytics }) {
+export default function SeoLandingPage({ page, ThemeToggle, Analytics, AppTopNav = null }) {
   const [seoTheme, setSeoTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
 
   useEffect(() => {
@@ -667,7 +667,7 @@ export default function SeoLandingPage({ page, ThemeToggle, Analytics }) {
   return (
     <>
       <div className={`page ${seoTheme} publicLandingPage seoPage`} data-theme={seoTheme}>
-        {ThemeToggle ? (
+        {ThemeToggle && !AppTopNav ? (
           <ThemeToggle
             theme={seoTheme}
             onToggle={() => setSeoTheme((current) => (current === "dark" ? "light" : "dark"))}
@@ -675,16 +675,20 @@ export default function SeoLandingPage({ page, ThemeToggle, Analytics }) {
         ) : null}
 
         <main className="seoPageShell">
-          <nav className="seoTopNav" aria-label="OpeningFit navigation">
-            <a className="seoBrandLink" href="/">
-              <span>OF</span>
-              OpeningFit
-            </a>
-            <div>
-              <a href="/">Import games</a>
-              <a href="/openingfit-sample-report">Sample report</a>
-            </div>
-          </nav>
+          {AppTopNav ? (
+            <AppTopNav />
+          ) : (
+            <nav className="seoTopNav" aria-label="OpeningFit navigation">
+              <a className="seoBrandLink" href="/">
+                <span>OF</span>
+                OpeningFit
+              </a>
+              <div>
+                <a href="/">Import games</a>
+                <a href="/openingfit-sample-report">Sample report</a>
+              </div>
+            </nav>
+          )}
 
           <section className="seoHero">
             <div>

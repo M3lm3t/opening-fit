@@ -105,7 +105,7 @@ function SeoRelatedLinks({ page }) {
   );
 }
 
-export function SeoPageLayout({ children, ThemeToggle, Analytics }) {
+export function SeoPageLayout({ children, ThemeToggle, Analytics, AppTopNav = null }) {
   const [seoTheme, setSeoTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
 
   useEffect(() => {
@@ -119,7 +119,7 @@ export function SeoPageLayout({ children, ThemeToggle, Analytics }) {
     <>
       <div className={`page ${seoTheme} publicLandingPage seoPage`} data-theme={seoTheme}>
         <main className="seoPageShell">
-          <SeoTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />
+          {AppTopNav ? <AppTopNav /> : <SeoTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />}
           {children}
         </main>
       </div>
@@ -128,9 +128,9 @@ export function SeoPageLayout({ children, ThemeToggle, Analytics }) {
   );
 }
 
-export function SeoGuidePage({ page, ThemeToggle, Analytics }) {
+export function SeoGuidePage({ page, ThemeToggle, Analytics, AppTopNav = null }) {
   return (
-    <SeoPageLayout ThemeToggle={ThemeToggle} Analytics={Analytics}>
+    <SeoPageLayout ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={AppTopNav}>
       <section className="seoHero seoGuideHero">
         <div>
           <p className="seoEyebrow">Chess opening guide</p>
@@ -161,9 +161,9 @@ export function SeoGuidePage({ page, ThemeToggle, Analytics }) {
   );
 }
 
-export function GuidesHubPage({ ThemeToggle, Analytics }) {
+export function GuidesHubPage({ ThemeToggle, Analytics, AppTopNav = null }) {
   return (
-    <SeoPageLayout ThemeToggle={ThemeToggle} Analytics={Analytics}>
+    <SeoPageLayout ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={AppTopNav}>
       <section className="seoHero seoGuideHero">
         <div>
           <p className="seoEyebrow">OpeningFit guides</p>
@@ -209,9 +209,9 @@ export function GuidesHubPage({ ThemeToggle, Analytics }) {
   );
 }
 
-export function GuideNotFoundPage({ ThemeToggle, Analytics }) {
+export function GuideNotFoundPage({ ThemeToggle, Analytics, AppTopNav = null }) {
   return (
-    <SeoPageLayout ThemeToggle={ThemeToggle} Analytics={Analytics}>
+    <SeoPageLayout ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={AppTopNav}>
       <section className="seoBottomCta openingNotFound">
         <p className="seoEyebrow">Guide not found</p>
         <h1>No chess opening guide found</h1>

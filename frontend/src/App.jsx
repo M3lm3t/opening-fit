@@ -11109,7 +11109,12 @@ function AppPrimaryNav({
       login: ["login", "profile", "account", "progress"],
     };
 
-    if (item.key === "openingsHub" && currentPath === "/openings") return true;
+    if (
+      item.key === "openingsHub" &&
+      (currentPath === "/openings" || currentPath.startsWith("/openings/") || currentPath.startsWith("/chess-openings/"))
+    ) {
+      return true;
+    }
     if (activeViewsByKey[item.key]?.includes(activeView)) return true;
     if (item.key === "account" && isPremiumPath) return false;
     if ((item.key === "premium" || item.key === "pricing") && isPremiumPath && ["premium", "upgrade"].includes(activeView)) return true;
@@ -15579,40 +15584,55 @@ export default function App() {
     };
   }, []);
 
+  const PublicAppTopNav = () => (
+    <AppPrimaryNav
+      activeView={activeView}
+      accountUser={accountUser}
+      hasReport={Boolean(reportData)}
+      onNavigate={handleAppNavigate}
+      onExampleReport={loadDemoReport}
+      onLogin={openLoginPage}
+      theme={theme}
+      onThemeToggle={() =>
+        setTheme((current) => (current === "dark" ? "light" : "dark"))
+      }
+    />
+  );
+
   if (isGuidesHub) {
-    return <GuidesHubPage ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+    return <GuidesHubPage ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={PublicAppTopNav} />;
   }
 
   if (guideSeoPage) {
-    return <SeoGuidePage page={guideSeoPage} ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+    return <SeoGuidePage page={guideSeoPage} ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={PublicAppTopNav} />;
   }
 
   if (isUnknownGuidePath) {
-    return <GuideNotFoundPage ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+    return <GuideNotFoundPage ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={PublicAppTopNav} />;
   }
 
   if (chessOpeningSeoPage) {
-    return <ChessOpeningSeoPage opening={chessOpeningSeoPage} ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+    return <ChessOpeningSeoPage opening={chessOpeningSeoPage} ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={PublicAppTopNav} />;
   }
 
   if (isUnknownChessOpeningPath) {
-    return <ChessOpeningNotFoundPage ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+    return <ChessOpeningNotFoundPage ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={PublicAppTopNav} />;
   }
 
   if (isOpeningHub) {
-    return <OpeningHubPage ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+    return <OpeningHubPage ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={PublicAppTopNav} />;
   }
 
   if (openingSeoPage) {
-    return <OpeningSeoPage opening={openingSeoPage} ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+    return <OpeningSeoPage opening={openingSeoPage} ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={PublicAppTopNav} />;
   }
 
   if (isUnknownOpeningPath) {
-    return <OpeningNotFoundPage slug={openingSlug} ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+    return <OpeningNotFoundPage slug={openingSlug} ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={PublicAppTopNav} />;
   }
 
   if (seoPage) {
-    return <SeoLandingPage page={seoData} ThemeToggle={ThemeToggle} Analytics={Analytics} />;
+    return <SeoLandingPage page={seoData} ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={PublicAppTopNav} />;
   }
 
 

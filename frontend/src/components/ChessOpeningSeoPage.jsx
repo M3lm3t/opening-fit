@@ -65,13 +65,13 @@ export function getChessOpeningPageJsonLd(opening, pageUrl) {
   };
 }
 
-export function ChessOpeningNotFoundPage({ ThemeToggle, Analytics }) {
+export function ChessOpeningNotFoundPage({ ThemeToggle, Analytics, AppTopNav = null }) {
   const fallback = chessOpeningSeoPages[0];
 
   return (
     <div className="seoPage" data-theme="dark">
       <div className="seoPageShell">
-        <ChessOpeningTopNav ThemeToggle={ThemeToggle} seoTheme="dark" setSeoTheme={() => {}} />
+        {AppTopNav ? <AppTopNav /> : <ChessOpeningTopNav ThemeToggle={ThemeToggle} seoTheme="dark" setSeoTheme={() => {}} />}
         <section className="seoHero">
           <div>
             <p className="seoEyebrow">Opening guide</p>
@@ -93,7 +93,7 @@ export function ChessOpeningNotFoundPage({ ThemeToggle, Analytics }) {
   );
 }
 
-export default function ChessOpeningSeoPage({ opening, ThemeToggle, Analytics }) {
+export default function ChessOpeningSeoPage({ opening, ThemeToggle, Analytics, AppTopNav = null }) {
   const [seoTheme, setSeoTheme] = useState(() => {
     try {
       return localStorage.getItem("openingFit:theme") || "dark";
@@ -116,7 +116,7 @@ export default function ChessOpeningSeoPage({ opening, ThemeToggle, Analytics })
   return (
     <div className="seoPage" data-theme={seoTheme}>
       <div className="seoPageShell">
-        <ChessOpeningTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />
+        {AppTopNav ? <AppTopNav /> : <ChessOpeningTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />}
 
         <section className="seoHero">
           <div>
