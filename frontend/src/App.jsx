@@ -9,6 +9,7 @@ import "./components/WeakLineDetection.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
+import "./components/ProductAppShell.css";
 import OpeningReportSummary from "./components/OpeningReportSummary";
 import OpeningScoreInfo from "./components/OpeningScoreInfo";
 import RepertoireStudyPlan from "./components/RepertoireStudyPlan";

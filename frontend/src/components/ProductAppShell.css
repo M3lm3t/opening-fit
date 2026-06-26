@@ -1,0 +1,508 @@
+/* Product app shell polish: presentation only. */
+:root {
+  --of-shell-bg: #08111f;
+  --of-shell-bg-soft: #0d1726;
+  --of-shell-panel: rgba(15, 23, 42, 0.92);
+  --of-shell-panel-strong: rgba(17, 24, 39, 0.98);
+  --of-shell-border: rgba(148, 163, 184, 0.18);
+  --of-shell-border-strong: rgba(125, 211, 252, 0.3);
+  --of-shell-text: #f8fafc;
+  --of-shell-muted: rgba(226, 232, 240, 0.72);
+  --of-shell-accent: #38bdf8;
+  --of-shell-accent-strong: #0ea5e9;
+  --of-shell-radius: 14px;
+  --of-shell-radius-sm: 10px;
+  --of-shell-shadow: 0 18px 48px rgba(2, 6, 23, 0.28);
+  --of-shell-max: 1220px;
+  --of-shell-rail: 212px;
+  --of-shell-gutter: clamp(14px, 2.2vw, 28px);
+}
+
+:root[data-theme="light"],
+.page.light,
+[data-theme="light"] {
+  --of-shell-bg: #eef3f8;
+  --of-shell-bg-soft: #f8fafc;
+  --of-shell-panel: rgba(255, 255, 255, 0.94);
+  --of-shell-panel-strong: #ffffff;
+  --of-shell-border: rgba(15, 23, 42, 0.12);
+  --of-shell-border-strong: rgba(14, 116, 144, 0.2);
+  --of-shell-text: #0f172a;
+  --of-shell-muted: rgba(15, 23, 42, 0.66);
+  --of-shell-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+}
+
+.appReportPage {
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(56, 189, 248, 0.06), transparent 260px),
+    var(--of-shell-bg);
+  color: var(--of-shell-text);
+}
+
+.appReportPage .appPrimaryNav {
+  z-index: 80;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+@media (min-width: 1180px) {
+  .appReportPage .appPrimaryNav {
+    position: fixed;
+    inset: 16px auto 16px 16px;
+    width: var(--of-shell-rail);
+    padding: 0;
+    border: 1px solid var(--of-shell-border);
+    border-radius: 18px;
+    background: var(--of-shell-panel-strong);
+    box-shadow: var(--of-shell-shadow);
+    backdrop-filter: blur(18px);
+  }
+
+  .appReportPage .appPrimaryNavInner {
+    min-height: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto auto auto;
+    align-items: start;
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .appReportPage .appPrimaryBrand {
+    width: 100%;
+    padding: 9px 8px 14px;
+    border-bottom: 1px solid var(--of-shell-border);
+  }
+
+  .appReportPage .appPrimaryTabs {
+    display: grid;
+    width: 100%;
+    gap: 6px;
+    align-content: start;
+  }
+
+  .appReportPage .appPrimaryTab,
+  .appReportPage .appPrimaryGetStarted,
+  .appReportPage .appPrimaryAccount {
+    width: 100%;
+    min-height: 42px;
+    justify-content: flex-start;
+    border-radius: 11px;
+  }
+
+  .appReportPage .appPrimaryGetStarted {
+    margin-top: auto;
+    justify-content: center;
+    border-color: var(--of-shell-border-strong);
+  }
+
+  .appReportPage .appPrimaryAccount {
+    border-top: 1px solid var(--of-shell-border);
+    padding-top: 12px;
+  }
+
+  .appReportPage .appPrimaryAccount::after {
+    content: "Premium-ready workspace";
+    display: block;
+    margin-left: 8px;
+    color: var(--of-shell-muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+
+  .appReportPage .appPrimaryMenuToggle,
+  .appReportPage .appPrimaryMobilePanel {
+    display: none;
+  }
+
+  .appReportPage .accountSyncStatusBar,
+  .appReportPage .accountSyncBanner {
+    margin-left: calc(var(--of-shell-rail) + 30px);
+    width: min(calc(100% - var(--of-shell-rail) - 62px), var(--of-shell-max));
+  }
+
+  .appReportPage .appShell,
+  .appReportPage .container.appShell,
+  .appReportPage .page .appShell {
+    margin-left: calc(var(--of-shell-rail) + 34px);
+    width: min(calc(100% - var(--of-shell-rail) - 72px), var(--of-shell-max));
+  }
+}
+
+.appReportPage .appShell,
+.appReportPage .container.appShell {
+  max-width: var(--of-shell-max);
+  padding: var(--of-shell-gutter);
+  border: 1px solid var(--of-shell-border);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 180px),
+    var(--of-shell-bg-soft);
+  box-shadow: var(--of-shell-shadow);
+}
+
+.appReportPage .appShell > *,
+.appReportPage .finalReportFlow > *,
+.appReportPage .profileDashboard > *,
+.appReportPage .appResultsShell > * {
+  animation: ofModuleIn 220ms ease both;
+}
+
+.appReportPage .hero,
+.appReportPage .card,
+.appReportPage .reportSectionGroup,
+.appReportPage .currentReportSummaryCard,
+.appReportPage .profileDashboardCard,
+.appReportPage .simpleProfileCard,
+.appReportPage .openingInsights,
+.appReportPage .recommendedOpeningFit,
+.appReportPage .recurringOpeningHabits,
+.appReportPage .openingHealthTrends,
+.appReportPage .weeklyOpeningSessionCard,
+.appReportPage .todayTrainingCard,
+.appReportPage .dailyMissionCard,
+.appReportPage .continueTrainingCard,
+.appReportPage .openingFitRetentionSection,
+.appReportPage .returnUserDashboard,
+.appReportPage .loadingCard,
+.appReportPage .productEmptyState {
+  border-color: var(--of-shell-border);
+  border-radius: var(--of-shell-radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    var(--of-shell-panel);
+  box-shadow: 0 12px 34px rgba(2, 6, 23, 0.18);
+}
+
+.appReportPage .currentReportSummaryCard,
+.appReportPage .reportCommandBar,
+.appReportPage .practiceLinesPanel {
+  border-color: var(--of-shell-border-strong);
+}
+
+.appReportPage .hero.compactImportHero,
+.appReportPage .analyseImportHero {
+  padding: clamp(18px, 3vw, 30px);
+}
+
+.appReportPage .hero h1,
+.appReportPage .currentReportSummaryMain h1,
+.appReportPage .profileHeroDashboard h1 {
+  letter-spacing: 0;
+}
+
+.appReportPage .currentReportSummaryCard {
+  display: grid;
+  gap: 18px;
+  overflow: hidden;
+}
+
+.appReportPage .commandCentreScore,
+.appReportPage .fitScoreCircle,
+.appReportPage .verdict-summary-card--score {
+  box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.2);
+}
+
+.appReportPage .currentReportSummaryGrid,
+.appReportPage .reportDashboardStats,
+.appReportPage .profileKeyStatsGrid,
+.appReportPage .simpleProfileStatGrid,
+.appReportPage .openingInsightSummaryGrid {
+  gap: 10px;
+}
+
+.appReportPage .currentReportSummaryGrid div,
+.appReportPage .reportDashboardStat,
+.appReportPage .profileKeyStatsGrid article,
+.appReportPage .simpleProfileStatGrid article,
+.appReportPage .openingInsightSummaryGrid article,
+.appReportPage .styleTraitBar,
+.appReportPage .recommendedOpeningMetrics span,
+.appReportPage .openingInsightMeta b {
+  border: 1px solid var(--of-shell-border);
+  border-radius: var(--of-shell-radius-sm);
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.page.light.appReportPage .currentReportSummaryGrid div,
+[data-theme="light"] .appReportPage .currentReportSummaryGrid div,
+.page.light.appReportPage .reportDashboardStat,
+.page.light.appReportPage .profileKeyStatsGrid article,
+.page.light.appReportPage .simpleProfileStatGrid article,
+.page.light.appReportPage .openingInsightSummaryGrid article,
+.page.light.appReportPage .styleTraitBar,
+.page.light.appReportPage .recommendedOpeningMetrics span,
+.page.light.appReportPage .openingInsightMeta b {
+  background: rgba(248, 250, 252, 0.9);
+}
+
+.appReportPage .primaryBtn,
+.appReportPage .secondaryBtn,
+.appReportPage .secondaryButton,
+.appReportPage button {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.appReportPage .primaryBtn:active,
+.appReportPage .secondaryBtn:active,
+.appReportPage .secondaryButton:active,
+.appReportPage button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.appReportPage .reportCommandBar {
+  position: sticky;
+  top: 10px;
+  z-index: 35;
+  border-radius: 16px;
+  backdrop-filter: blur(18px);
+}
+
+.appReportPage .reportCommandBar__tabs,
+.appReportPage .reportCommandBarActions {
+  scrollbar-width: thin;
+}
+
+.appReportPage .reportCommandBar__tabs button,
+.appReportPage .reportCommandBar__upgrade,
+.appReportPage .platformButton,
+.appReportPage .analysisTimeFormatButton {
+  border-radius: 999px;
+}
+
+.appReportPage .profileDashboard.profileDashboardSimple,
+.appReportPage .appResultsShell,
+.appReportPage .finalReportFlow {
+  width: 100%;
+  max-width: var(--of-shell-max);
+}
+
+.appReportPage .profileDashboard.profileDashboardSimple .simpleProfileGrid {
+  align-items: start;
+}
+
+.appReportPage .profileSecondaryDetails,
+.appReportPage .profileAdvancedDetails,
+.appReportPage .reportSupportingDataDetails,
+.appReportPage .reportSecondaryDetails {
+  border: 1px solid var(--of-shell-border);
+  border-radius: var(--of-shell-radius);
+  background: var(--of-shell-panel);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.14);
+  overflow: clip;
+}
+
+.appReportPage details > summary {
+  min-height: 46px;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.appReportPage details > summary:hover {
+  background: rgba(125, 211, 252, 0.07);
+}
+
+.appReportPage details[open] > summary {
+  border-bottom: 1px solid var(--of-shell-border);
+}
+
+.appReportPage .appResultsShellTrain {
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(14, 165, 233, 0.08), transparent 220px),
+    rgba(2, 6, 23, 0.28);
+}
+
+.appReportPage .practiceLinesPanel {
+  overflow: hidden;
+}
+
+.appReportPage .practiceLinesHeader,
+.appReportPage .practiceTrainerBox,
+.appReportPage .positionPlanPanel,
+.appReportPage .practiceControls,
+.appReportPage .practiceProgressBox,
+.appReportPage .practiceLineChoices {
+  border-radius: var(--of-shell-radius-sm);
+}
+
+.appReportPage .practiceBoardLayout {
+  align-items: start;
+}
+
+.appReportPage .practiceBoardWrap {
+  border-radius: 16px;
+  box-shadow: 0 20px 54px rgba(2, 6, 23, 0.28);
+}
+
+.appReportPage .loadingCard {
+  position: relative;
+  overflow: hidden;
+}
+
+.appReportPage .loadingCard::before,
+.appReportPage .productEmptyState::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  transform: translateX(-100%);
+  animation: ofSkeletonSweep 1.8s ease-in-out infinite;
+}
+
+@media (max-width: 1179px) {
+  .appReportPage .appPrimaryNav {
+    position: sticky;
+    top: 0;
+    border-radius: 0 0 18px 18px;
+    border-inline: 0;
+    border-top: 0;
+    background: var(--of-shell-panel-strong);
+    box-shadow: 0 12px 34px rgba(2, 6, 23, 0.18);
+    backdrop-filter: blur(18px);
+  }
+
+  .appReportPage .appPrimaryNavInner {
+    min-height: 58px;
+  }
+
+  .appReportPage .appShell,
+  .appReportPage .container.appShell {
+    width: min(100% - 22px, var(--of-shell-max));
+    margin-top: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  .appReportPage {
+    background: var(--of-shell-bg);
+  }
+
+  .appReportPage .appPrimaryNavInner {
+    padding-inline: 10px;
+  }
+
+  .appReportPage .appPrimaryBrand span {
+    max-width: 112px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .appReportPage .appPrimaryTabs,
+  .appReportPage .appPrimaryGetStarted,
+  .appReportPage .appPrimaryAccount {
+    display: none;
+  }
+
+  .appReportPage .appShell,
+  .appReportPage .container.appShell {
+    width: min(100% - 12px, var(--of-shell-max));
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .appReportPage .hero,
+  .appReportPage .card,
+  .appReportPage .reportSectionGroup,
+  .appReportPage .currentReportSummaryCard,
+  .appReportPage .profileDashboardCard,
+  .appReportPage .simpleProfileCard,
+  .appReportPage .openingInsights,
+  .appReportPage .recommendedOpeningFit,
+  .appReportPage .recurringOpeningHabits,
+  .appReportPage .openingHealthTrends,
+  .appReportPage .weeklyOpeningSessionCard,
+  .appReportPage .practiceLinesPanel {
+    border-radius: 12px;
+  }
+
+  .appReportPage .currentReportSummaryGrid,
+  .appReportPage .reportDashboardStats,
+  .appReportPage .profileKeyStatsGrid,
+  .appReportPage .simpleProfileStatGrid,
+  .appReportPage .openingInsightSummaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .appReportPage .reportCommandBar {
+    top: 0;
+    border-radius: 12px;
+  }
+
+  .appReportPage .reportCommandBar__tabs {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .appReportPage .reportCommandBar__tabs button {
+    min-width: max-content;
+    min-height: 38px;
+  }
+
+  .appReportPage .practiceBoardLayout,
+  .appReportPage .analysisGrid.boardSection {
+    gap: 10px;
+  }
+
+  .appReportPage .practiceControls button,
+  .appReportPage .weeklyOpeningSessionActions button,
+  .appReportPage .gamePickerButton {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 360px) {
+  .appReportPage .appShell,
+  .appReportPage .container.appShell {
+    width: 100%;
+    border-inline: 0;
+    border-radius: 0;
+  }
+
+  .appReportPage .currentReportSummaryGrid,
+  .appReportPage .reportDashboardStats,
+  .appReportPage .profileKeyStatsGrid,
+  .appReportPage .simpleProfileStatGrid,
+  .appReportPage .openingInsightSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes ofModuleIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ofSkeletonSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  55%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .appReportPage *,
+  .appReportPage *::before,
+  .appReportPage *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
