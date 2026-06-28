@@ -895,3 +895,94 @@ textarea:focus-visible {
   width: 100%;
   text-align: center;
 }
+
+/* Dark mode button contrast pass: keep neutral controls inked instead of pale grey. */
+.page.dark.appReportPage .secondaryBtn,
+.page.dark.appReportPage .secondaryButton,
+.page.dark.appReportPage .ghostButton,
+.page.dark.appReportPage .inlineSampleButton,
+.page.dark.appReportPage .platformButton:not(.platformButtonActive),
+.page.dark.appReportPage .analysisTimeFormatButton:not(.analysisTimeFormatButtonActive),
+.page.dark.appReportPage .appTabButton:not(.appTabButtonActive),
+.page.dark.appReportPage .reportCommandBar__tabs button:not(.is-active),
+.page.dark.appReportPage .practiceControls button:not(.primaryPracticeControl),
+.page.dark.appReportPage .practiceFilterRow button:not(.active),
+.page.dark.appReportPage .practiceOpeningGrid button:not(.active),
+.page.dark.appReportPage .gamePickerButton:not(.gamePickerButtonActive),
+.page.dark.appReportPage .weeklyOpeningSessionActions button,
+.page.dark.appReportPage .currentReportSummaryActions button:not(.primaryBtn),
+.page.dark.appReportPage .nextBestMoveActions button:not(.primaryBtn),
+.page.dark.appReportPage .reportTrainingPreviewGrid button:not(.primaryBtn),
+.page.dark.appReportPage .simpleProfilePrimaryActions button:not(.primaryBtn),
+.page.dark.appReportPage .accountActions button:not(.primaryBtn),
+.page.dark.appReportPage .premiumCommandStrip button:not(.premiumCheckoutButton),
+.page.dark.appReportPage .productStateAction button,
+[data-theme="dark"] .appReportPage .secondaryBtn,
+[data-theme="dark"] .appReportPage .secondaryButton,
+[data-theme="dark"] .appReportPage .ghostButton,
+[data-theme="dark"] .appReportPage .inlineSampleButton,
+[data-theme="dark"] .appReportPage .platformButton:not(.platformButtonActive),
+[data-theme="dark"] .appReportPage .analysisTimeFormatButton:not(.analysisTimeFormatButtonActive),
+[data-theme="dark"] .appReportPage .appTabButton:not(.appTabButtonActive),
+[data-theme="dark"] .appReportPage .reportCommandBar__tabs button:not(.is-active),
+[data-theme="dark"] .appReportPage .practiceControls button:not(.primaryPracticeControl),
+[data-theme="dark"] .appReportPage .practiceFilterRow button:not(.active),
+[data-theme="dark"] .appReportPage .practiceOpeningGrid button:not(.active),
+[data-theme="dark"] .appReportPage .gamePickerButton:not(.gamePickerButtonActive),
+[data-theme="dark"] .appReportPage .weeklyOpeningSessionActions button,
+[data-theme="dark"] .appReportPage .currentReportSummaryActions button:not(.primaryBtn),
+[data-theme="dark"] .appReportPage .nextBestMoveActions button:not(.primaryBtn),
+[data-theme="dark"] .appReportPage .reportTrainingPreviewGrid button:not(.primaryBtn),
+[data-theme="dark"] .appReportPage .simpleProfilePrimaryActions button:not(.primaryBtn),
+[data-theme="dark"] .appReportPage .accountActions button:not(.primaryBtn),
+[data-theme="dark"] .appReportPage .premiumCommandStrip button:not(.premiumCheckoutButton),
+[data-theme="dark"] .appReportPage .productStateAction button {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.84)) !important;
+  color: rgba(248, 250, 252, 0.94) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055), 0 8px 20px rgba(2, 6, 23, 0.16);
+}
+
+.page.dark.appReportPage .secondaryBtn:hover,
+.page.dark.appReportPage .secondaryButton:hover,
+.page.dark.appReportPage .ghostButton:hover,
+.page.dark.appReportPage .inlineSampleButton:hover,
+.page.dark.appReportPage .platformButton:not(.platformButtonActive):hover,
+.page.dark.appReportPage .analysisTimeFormatButton:not(.analysisTimeFormatButtonActive):hover,
+.page.dark.appReportPage .appTabButton:not(.appTabButtonActive):hover,
+.page.dark.appReportPage .reportCommandBar__tabs button:not(.is-active):hover,
+.page.dark.appReportPage .practiceControls button:not(.primaryPracticeControl):hover,
+.page.dark.appReportPage .practiceFilterRow button:not(.active):hover,
+.page.dark.appReportPage .practiceOpeningGrid button:not(.active):hover,
+.page.dark.appReportPage .gamePickerButton:not(.gamePickerButtonActive):hover,
+[data-theme="dark"] .appReportPage .secondaryBtn:hover,
+[data-theme="dark"] .appReportPage .secondaryButton:hover,
+[data-theme="dark"] .appReportPage .ghostButton:hover,
+[data-theme="dark"] .appReportPage .inlineSampleButton:hover,
+[data-theme="dark"] .appReportPage .platformButton:not(.platformButtonActive):hover,
+[data-theme="dark"] .appReportPage .analysisTimeFormatButton:not(.analysisTimeFormatButtonActive):hover,
+[data-theme="dark"] .appReportPage .appTabButton:not(.appTabButtonActive):hover,
+[data-theme="dark"] .appReportPage .reportCommandBar__tabs button:not(.is-active):hover,
+[data-theme="dark"] .appReportPage .practiceControls button:not(.primaryPracticeControl):hover,
+[data-theme="dark"] .appReportPage .practiceFilterRow button:not(.active):hover,
+[data-theme="dark"] .appReportPage .practiceOpeningGrid button:not(.active):hover,
+[data-theme="dark"] .appReportPage .gamePickerButton:not(.gamePickerButtonActive):hover {
+  border-color: rgba(73, 168, 255, 0.34) !important;
+  background: linear-gradient(180deg, rgba(20, 31, 45, 0.96), rgba(8, 18, 31, 0.9)) !important;
+  color: #ffffff !important;
+}
+
+.page.dark.appReportPage button:disabled,
+.page.dark.appReportPage button[aria-disabled="true"],
+[data-theme="dark"] .appReportPage button:disabled,
+[data-theme="dark"] .appReportPage button[aria-disabled="true"] {
+  border-color: rgba(100, 116, 139, 0.2) !important;
+  background: rgba(15, 23, 42, 0.66) !important;
+  color: rgba(203, 213, 225, 0.62) !important;
+  opacity: 1 !important;
+}
+
+.page.dark.appReportPage button *,
+[data-theme="dark"] .appReportPage button * {
+  color: inherit;
+}
