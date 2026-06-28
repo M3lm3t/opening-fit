@@ -6,15 +6,22 @@
 }
 
 .infoHintButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
   width: 24px;
   height: 24px;
+  padding: 0;
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 999px;
+  appearance: none;
   background: rgba(15, 23, 42, 0.72);
   color: rgba(248, 250, 252, 0.92);
   font-size: 0.78rem;
   font-weight: 800;
   line-height: 1;
+  text-align: center;
   cursor: help;
 }
 
@@ -37,7 +44,7 @@
   font-weight: 600;
   letter-spacing: 0;
   line-height: 1.45;
-  text-align: left;
+  text-align: center;
   white-space: normal;
   text-transform: none;
 }
@@ -48,7 +55,9 @@
 
 .recommendationReasonHint {
   display: grid;
+  justify-items: center;
   gap: 6px;
+  text-align: center;
 }
 
 .recommendationReasonHint strong {
@@ -59,6 +68,7 @@
 .recommendationReasonHint small,
 .recommendationReasonHint em {
   display: block;
+  width: 100%;
 }
 
 .recommendationReasonHint em {
@@ -89,9 +99,11 @@
 
 .openingScoreInfoContent {
   display: grid;
+  justify-items: center;
   gap: 0.65rem;
   max-width: min(72vw, 34rem);
   line-height: 1.45;
+  text-align: center;
 }
 
 .openingScoreInfoContent strong {
@@ -102,6 +114,7 @@
 .openingScoreInfoContent span,
 .openingScoreInfoContent small {
   display: block;
+  width: 100%;
 }
 
 .openingScoreInfoContent b {
