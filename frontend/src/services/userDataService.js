@@ -27,11 +27,6 @@ const DEBUG_CLOUD_RESTORE =
   import.meta.env?.VITE_DEBUG_CLOUD_RESTORE === "true";
 const REQUIRED_RESTORE_TABLES = new Set([
   "profiles",
-  "premium_entitlements",
-  "openingfit_user_state",
-  "settings",
-  "report_history",
-  "analysed_games",
 ]);
 const DEFAULT_RESTORE_LIMIT = 50;
 const RESTORE_TABLE_LIMITS = {
@@ -90,8 +85,8 @@ const RESTORE_TABLE_COLUMNS = {
 };
 const PROFILE_RESTORE_COLUMNS =
   "id,user_id,email,display_name,username,platform,chesscom_username,lichess_username,is_premium,last_report,created_at,updated_at";
-const RESTORE_PROFILE_TIMEOUT_MS = 6500;
-const RESTORE_TABLE_TIMEOUT_MS = 6500;
+const RESTORE_PROFILE_TIMEOUT_MS = 5000;
+const RESTORE_TABLE_TIMEOUT_MS = 3500;
 
 function isRequiredRestoreTable(table) {
   return REQUIRED_RESTORE_TABLES.has(table);

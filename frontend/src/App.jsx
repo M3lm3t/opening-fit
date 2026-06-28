@@ -485,6 +485,49 @@ function extractOpeningMovesFromPgn(pgnText) {
     .slice(0, 10);
 }
 
+function parseMovesFromText(value) {
+  if (Array.isArray(value)) {
+    return value.map((move) => String(move || "").trim()).filter(Boolean);
+  }
+
+  return String(value || "")
+    .replace(/\{[^}]*\}/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\d+\.(\.\.)?/g, " ")
+    .replace(/\$\d+/g, " ")
+    .replace(/\b(1-0|0-1|1\/2-1\/2|\*)\b/g, " ")
+    .split(/\s+/)
+    .map((move) => move.trim())
+    .filter(Boolean);
+}
+
+function getGameMoveHistory(game = {}) {
+  const directMoves =
+    game.moves ||
+    game.sanMoves ||
+    game.san_moves ||
+    game.moveHistory ||
+    game.move_history;
+  const parsedDirect = parseMovesFromText(directMoves);
+  if (parsedDirect.length) return parsedDirect;
+
+  const movesText =
+    game.movesText ||
+    game.moves_text ||
+    game.moveText ||
+    game.move_text ||
+    game.lineMoves ||
+    game.line_moves;
+  const parsedText = parseMovesFromText(movesText);
+  if (parsedText.length) return parsedText;
+
+  const pgnMoves = getMovesFromPgn(game.pgn || game.PGN || game.rawPgn || game.raw_pgn || "");
+  if (pgnMoves.length) return pgnMoves;
+
+  return parseMovesFromText(game.pgn || game.PGN || game.rawPgn || game.raw_pgn || "");
+}
+
 function getOpeningMoveLine(item) {
   if (!item || typeof item === "string") return "";
 
@@ -3882,6 +3925,7 @@ function normalizeGameMetadata(game) {
   game = unwrapPersistedGameRow(game);
   if (!game || typeof game !== "object") return game;
 
+  const moves = getGameMoveHistory(game);
   const normalizedTimeControl = normalizeTimeControl(game);
   const rawTimeControl =
     game.time_control_raw ||
@@ -3924,6 +3968,11 @@ function normalizeGameMetadata(game) {
     timeControlNormalized: normalizedTimeControl,
     time_control_raw: rawTimeControl,
     timeControlRaw: rawTimeControl,
+    moves,
+    move_count: safeNumber(game.move_count ?? game.moveCount, Math.ceil(moves.length / 2)),
+    moveCount: safeNumber(game.moveCount ?? game.move_count, Math.ceil(moves.length / 2)),
+    movesText: game.movesText || game.moves_text || moves.join(" "),
+    moves_text: game.moves_text || game.movesText || moves.join(" "),
     played_at: playedAt,
     playedAt,
     played_date: playedAt,

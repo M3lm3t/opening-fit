@@ -272,12 +272,26 @@
 }
 
 .practiceLineChoices,
-.practiceMoveList,
-.practiceFilterRow {
+.practiceMoveList {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
+}
+
+.practiceFilterRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.practiceFilterRow button {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .practiceLineChoice {
@@ -368,8 +382,17 @@
 
 .practiceOpeningGrid button {
   display: grid;
+  align-content: center;
+  justify-items: center;
   gap: 5px;
-  text-align: left;
+  min-height: 104px;
+  text-align: center;
+}
+
+.practiceOpeningGrid button span,
+.practiceOpeningGrid button strong,
+.practiceOpeningGrid button small {
+  width: 100%;
 }
 
 .analysisGrid.boardSection {
