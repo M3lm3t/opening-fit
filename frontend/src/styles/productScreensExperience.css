@@ -395,6 +395,57 @@
   width: 100%;
 }
 
+.practiceOpeningBrowser .practiceFilterRow {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 136px), 1fr));
+}
+
+.practiceOpeningBrowser .practiceFilterRow button {
+  min-height: 42px;
+  text-align: center;
+}
+
+.practiceOpeningBrowser .practiceOpeningGrid {
+  align-items: stretch;
+  justify-items: stretch;
+}
+
+.practiceOpeningBrowser .practiceOpeningGrid button {
+  width: 100%;
+  grid-template-rows: auto minmax(2.35em, 1fr) auto;
+  place-items: center;
+  align-content: center;
+  justify-items: center;
+  min-height: 116px;
+  padding: 0.82rem 0.72rem;
+  text-align: center !important;
+}
+
+.practiceOpeningBrowser .practiceOpeningGrid button span,
+.practiceOpeningBrowser .practiceOpeningGrid button strong,
+.practiceOpeningBrowser .practiceOpeningGrid button small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  margin: 0 auto;
+  overflow-wrap: anywhere;
+  text-align: center !important;
+}
+
+.practiceOpeningBrowser .practiceOpeningGrid button span {
+  min-height: 1.45rem;
+}
+
+.practiceOpeningBrowser .practiceOpeningGrid button strong {
+  min-height: 2.35em;
+  line-height: 1.18;
+}
+
+.practiceOpeningBrowser .practiceOpeningGrid button small {
+  min-height: 2.35em;
+  line-height: 1.2;
+}
+
 .analysisGrid.boardSection {
   display: grid;
   grid-template-columns: minmax(240px, 0.7fr) minmax(0, 1fr);
@@ -1072,6 +1123,14 @@
 @media (max-width: 374px) {
   .practiceControls {
     grid-template-columns: 1fr;
+  }
+
+  .practiceOpeningBrowser .practiceOpeningGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .practiceOpeningBrowser .practiceOpeningGrid button {
+    min-height: 102px;
   }
 
   .practiceLineChoice,
