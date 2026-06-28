@@ -19,6 +19,7 @@ import AccountPanel from "./components/AccountPanel";
 import GameReplayBoard from "./components/GameReplayBoard";
 import OpeningPracticeLinesPanel from "./components/OpeningPracticeLinesPanel";
 import { findOpeningPracticePack } from "./data/openingPracticeLines";
+import { normaliseOpeningKey } from "./data/openings";
 import PremiumPanel from "./components/PremiumPanel";
 import ResultsCommandCenter from "./components/ResultsCommandCenter";
 import OpeningHealthScore from "./components/OpeningHealthScore";
@@ -6552,7 +6553,7 @@ function FinalReportFlow({
           onFullPlan={() => onNavigate?.("training")}
         />
 
-        <RecurringOpeningHabits data={data} />
+        <RecurringOpeningHabits data={data} onNavigate={onNavigate} onPractice={onPractice} />
 
         {reportHistory.length ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
 
@@ -13535,6 +13536,7 @@ export default function App() {
 
   const [showUnknownOpenings] = useState(false);
   const [selectedGameIndex, setSelectedGameIndex] = useState(0);
+  const [replayOpeningFilter, setReplayOpeningFilter] = useState("");
   const [practiceOpening, setPracticeOpening] = useState(null);
   const [openSections, setOpenSections] = useState(closedSections);
   const [, setSavedProfileMessage] = useState("");
@@ -13598,6 +13600,7 @@ export default function App() {
       setData(null);
       setAnalysisVerdictId("");
       setSelectedGameIndex(0);
+      setReplayOpeningFilter("");
       setPracticeOpening(null);
       setSavedProfileMessage("");
       setError("");
@@ -14316,6 +14319,10 @@ export default function App() {
       typeof routeOrKey === "string"
         ? sectionRouteMap[routeOrKey] || routeOrKey
         : routeOrKey;
+    if (requested && typeof requested === "object" && "replayOpening" in requested) {
+      setReplayOpeningFilter(requested.replayOpening || "");
+      setSelectedGameIndex(0);
+    }
     navigateApp(requested, {
       ...options,
       setView: setActiveView,
@@ -14996,10 +15003,17 @@ export default function App() {
   }, [filterUnknownOpenings, reportData, openingSamplePercent]);
 
   const filteredRecentGames = useMemo(() => {
-    return filterUnknownOpenings(
+    const replayOpeningKey = normaliseOpeningKey(replayOpeningFilter);
+    const baseGames = filterUnknownOpenings(
       (reportData?.recent_games || []).filter((game) => gamePassesReportFilters(game, reportFilters))
     );
-  }, [filterUnknownOpenings, reportData, reportFilters]);
+    if (!replayOpeningKey) return baseGames;
+
+    return baseGames.filter((game) => {
+      const gameOpeningKey = normaliseOpeningKey(game?.opening || game?.name || game?.openingName || game?.opening_name || "");
+      return gameOpeningKey && (gameOpeningKey.includes(replayOpeningKey) || replayOpeningKey.includes(gameOpeningKey));
+    });
+  }, [filterUnknownOpenings, reportData, reportFilters, replayOpeningFilter]);
 
   const fitData = useMemo(() => {
     return buildOpeningFitData({
@@ -16444,11 +16458,23 @@ export default function App() {
                   title="Game Replay"
                   isOpen={openSections.replay}
                   onToggle={() => toggleSection("replay")}
-                  badge={selectedGame ? selectedGame.opening : null}
+                  badge={replayOpeningFilter || (selectedGame ? selectedGame.opening : null)}
                 >
                   <div className="analysisGrid boardSection">
                     <div className="movesPanel">
-                      <h3>Recent Games</h3>
+                      <h3>{replayOpeningFilter ? `${replayOpeningFilter} games` : "Recent Games"}</h3>
+                      {replayOpeningFilter ? (
+                        <button
+                          type="button"
+                          className="secondaryButton"
+                          onClick={() => {
+                            setReplayOpeningFilter("");
+                            setSelectedGameIndex(0);
+                          }}
+                        >
+                          Show all recent games
+                        </button>
+                      ) : null}
 
                       <div className="gamePickerList">
                         {filteredRecentGames.length ? (

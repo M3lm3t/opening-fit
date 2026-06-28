@@ -112,8 +112,8 @@ function totalAnalysedGames(data = {}, openings = []) {
   );
 }
 
-function makeCard({ slot, category, openingKey = "", title, evidence, action, howFound, rank }) {
-  return { slot, category, openingKey, title, evidence, action, howFound, rank };
+function makeCard({ slot, category, openingKey = "", title, openingName = "", source = null, evidence, action, howFound, rank }) {
+  return { slot, category, openingKey, title, openingName: openingName || title, source, evidence, action, howFound, rank };
 }
 
 function weakLineHabit(data = {}) {
@@ -130,7 +130,9 @@ function weakLineHabit(data = {}) {
     slot: "Most costly habit",
     category: "repeated issue in a specific opening",
     openingKey: normaliseOpeningKey(name),
+    openingName: name,
     title: variation && variation !== name ? `${name}: ${variation}` : name,
+    source: line,
     evidence: `Across ${games} repeated ${name} game${games === 1 ? "" : "s"}, this branch has a ${lossRate ?? "high"}% loss rate.`,
     action: "Review this branch first before judging the whole opening.",
     howFound: "Found from saved weak-line or variation data already present in this report.",
@@ -147,7 +149,9 @@ function costlyOpeningHabit(openings = []) {
           slot: "Most costly habit",
           category: "frequent early losses in a known opening",
           openingKey: opening.key,
+          openingName: opening.name,
           title: opening.name,
+          source: opening,
           evidence: `Across ${opening.games} ${opening.name} games, ${opening.earlyLossRate}% ended badly early.`,
           action: "Replay the first 10 moves of recent losses and look for the first repeated uncomfortable position.",
           howFound: "Used opening-level early loss rate and game count from the report.",
@@ -159,7 +163,9 @@ function costlyOpeningHabit(openings = []) {
           slot: "Most costly habit",
           category: "low consistency in an opening",
           openingKey: opening.key,
+          openingName: opening.name,
           title: opening.name,
+          source: opening,
           evidence: `Across ${opening.games} ${opening.name} games, plan clarity is ${opening.planClarityScore}/100.`,
           action: "Choose one simple setup and avoid adding new branches until it feels familiar.",
           howFound: "Used the report's plan clarity score for this opening.",
@@ -171,7 +177,9 @@ function costlyOpeningHabit(openings = []) {
           slot: "Most costly habit",
           category: "repeated issue in a specific opening",
           openingKey: opening.key,
+          openingName: opening.name,
           title: opening.name,
+          source: opening,
           evidence: `Across ${opening.games} ${opening.name} games, the loss rate is ${opening.lossRate}%.`,
           action: "Treat this as a review target, not a reason to abandon the opening immediately.",
           howFound: "Used opening-level loss rate and sample size from the report.",
@@ -202,7 +210,9 @@ function strongestHabit(openings = []) {
         slot: "Strongest habit",
         category: "an opening with strong, consistent results",
         openingKey: opening.key,
+        openingName: opening.name,
         title: opening.name,
+        source: opening,
         evidence: `Across ${opening.games} ${opening.name} games, this scores ${opening.winRate}% with ${
           opening.planClarityScore !== null ? `${opening.planClarityScore}/100 plan clarity` : "a low loss-rate signal"
         }.`,
@@ -225,7 +235,9 @@ function focusHabit(openings = [], data = {}) {
       slot: "One focus for next games",
       category: "over-reliance on a single opening",
       openingKey: top.key,
+      openingName: top.name,
       title: top.name,
+      source: top,
       evidence: `${top.name} appears in ${topShare}% of the analysed opening sample (${top.games} of ${totalGames || top.games} games).`,
       action: "Keep it, but make sure your Black and alternate White responses also get a few recent games.",
       howFound: "Compared the most-played opening's game count with the total analysed opening sample.",

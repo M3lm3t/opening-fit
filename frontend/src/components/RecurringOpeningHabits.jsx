@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { AlertTriangle, CheckCircle2, Target } from "lucide-react";
 import { buildRecurringOpeningHabits } from "../services/openingHabits";
+import { buildWeakestLineTrainingTargetFromLine } from "../services/weakestLineTraining";
 import "./RecurringOpeningHabits.css";
 
 const ICONS = {
@@ -15,8 +16,27 @@ function toneFor(slot) {
   return "focus";
 }
 
-export default function RecurringOpeningHabits({ data }) {
+function practiceTargetFor(card) {
+  const source = card.source || {};
+  const weakLineTraining = buildWeakestLineTrainingTargetFromLine(source);
+  if (weakLineTraining.available && weakLineTraining.target) return weakLineTraining.target;
+
+  return {
+    ...source,
+    name: card.openingName || card.title,
+    opening: card.openingName || card.title,
+    openingName: card.openingName || card.title,
+    opening_name: card.openingName || card.title,
+    trainingTarget: card.openingName || card.title,
+    selectedReason: card.action,
+    selected_reason: card.action,
+    source: "recurring-opening-habit",
+  };
+}
+
+export default function RecurringOpeningHabits({ data, onNavigate, onPractice }) {
   const habits = useMemo(() => buildRecurringOpeningHabits(data || {}), [data]);
+  const canAct = typeof onNavigate === "function" || typeof onPractice === "function";
 
   return (
     <section className="recurringOpeningHabits" aria-labelledby="recurring-opening-habits-title">
@@ -47,6 +67,32 @@ export default function RecurringOpeningHabits({ data }) {
                 <strong>{card.category}</strong>
                 <p>{card.evidence}</p>
                 <small>{card.action}</small>
+                {canAct ? (
+                  <div className="recurringOpeningHabitActions">
+                    <button
+                      type="button"
+                      className="secondaryButton"
+                      onClick={() =>
+                        onNavigate?.({
+                          view: "data",
+                          path: "/train",
+                          target: "game-replay",
+                          replayOpening: card.openingName || card.title,
+                          fallbackIds: ["report-recent-games", "app-results"],
+                        })
+                      }
+                    >
+                      See referenced games
+                    </button>
+                    <button
+                      type="button"
+                      className="primaryBtn"
+                      onClick={() => onPractice?.(practiceTargetFor(card))}
+                    >
+                      Practice this
+                    </button>
+                  </div>
+                ) : null}
                 <details>
                   <summary>How we found this</summary>
                   <span>{card.howFound}</span>

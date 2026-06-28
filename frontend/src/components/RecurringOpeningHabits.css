@@ -105,6 +105,22 @@
   font-weight: 750;
 }
 
+.recurringOpeningHabitActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.recurringOpeningHabitActions button {
+  width: 100%;
+  min-height: 38px;
+  justify-content: center;
+  padding-inline: 0.7rem;
+  text-align: center;
+  font-size: 0.78rem;
+  line-height: 1.15;
+}
+
 .recurringOpeningHabitCard details {
   border-top: 1px solid rgba(148, 163, 184, 0.16);
   padding-top: 0.55rem;
@@ -172,6 +188,10 @@
   }
 
   .recurringOpeningHabitsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .recurringOpeningHabitActions {
     grid-template-columns: 1fr;
   }
 }
