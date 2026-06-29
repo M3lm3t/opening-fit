@@ -92,6 +92,55 @@
   font-weight: 800;
 }
 
+.openingFitVerdictWhy {
+  margin-top: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.34);
+  overflow: hidden;
+}
+
+.openingFitVerdictWhy summary {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 9px 11px;
+  color: #e0f2fe;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+  list-style: none;
+}
+
+.openingFitVerdictWhy summary::-webkit-details-marker {
+  display: none;
+}
+
+.openingFitVerdictWhy summary::after {
+  content: "+";
+  margin-left: auto;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.openingFitVerdictWhy[open] summary::after {
+  content: "-";
+}
+
+.openingFitVerdictWhy div {
+  display: grid;
+  gap: 8px;
+  padding: 0 11px 11px;
+}
+
+.openingFitVerdictWhy p {
+  color: rgba(248, 250, 252, 0.84);
+  font-size: 0.82rem;
+}
+
+.openingFitVerdictWhy b {
+  color: #f8fafc;
+}
+
 .openingFitVerdictItem button {
   width: 100%;
   margin-top: 12px;
@@ -145,6 +194,24 @@
 .page.light .openingFitVerdictItem strong,
 [data-theme="light"] .openingFitVerdictItem strong {
   color: #854d0e;
+}
+
+.page.light .openingFitVerdictWhy,
+[data-theme="light"] .openingFitVerdictWhy {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(241, 245, 249, 0.78);
+}
+
+.page.light .openingFitVerdictWhy summary,
+[data-theme="light"] .openingFitVerdictWhy summary,
+.page.light .openingFitVerdictWhy b,
+[data-theme="light"] .openingFitVerdictWhy b {
+  color: #0f172a;
+}
+
+.page.light .openingFitVerdictWhy p,
+[data-theme="light"] .openingFitVerdictWhy p {
+  color: rgba(15, 23, 42, 0.76);
 }
 
 .page.light .openingFitVerdictItem button,

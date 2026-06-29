@@ -1,0 +1,200 @@
+.openingCoachSummary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: 18px;
+  padding: clamp(18px, 2.4vw, 26px);
+  border: 1px solid var(--card-border, rgba(148, 163, 184, 0.22));
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--color-primary, #38bdf8) 8%, transparent), transparent),
+    var(--card-bg, rgba(15, 23, 42, 0.94));
+  color: var(--color-text, #f8fafc);
+  box-shadow: var(--color-shadow, 0 18px 50px rgba(2, 6, 23, 0.32));
+}
+
+.openingCoachSummaryMain,
+.openingCoachSummarySide {
+  min-width: 0;
+}
+
+.openingCoachSummary h2 {
+  max-width: 760px;
+  margin: 4px 0 9px;
+  color: var(--color-text, #f8fafc);
+  font-size: clamp(1.45rem, 2.7vw, 2.35rem);
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.openingCoachSummary p {
+  max-width: 740px;
+  margin: 0;
+  color: var(--color-text-muted, rgba(226, 232, 240, 0.78));
+  line-height: 1.5;
+}
+
+.openingCoachTiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.openingCoachTile {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--color-border, #334155) 82%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface-raised, #111827) 78%, transparent);
+}
+
+.openingCoachTile span,
+.openingCoachEvidence summary span {
+  color: var(--color-text-muted, rgba(226, 232, 240, 0.72));
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.openingCoachTile strong {
+  color: var(--color-text, #f8fafc);
+  font-size: 0.98rem;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+
+.openingCoachTile small {
+  color: var(--color-text-muted, rgba(226, 232, 240, 0.7));
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.openingCoachSummarySide {
+  display: grid;
+  align-content: space-between;
+  gap: 14px;
+}
+
+.openingCoachEvidence {
+  border: 1px solid color-mix(in srgb, var(--color-border, #334155) 82%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface-raised, #111827) 78%, transparent);
+  overflow: hidden;
+}
+
+.openingCoachEvidence summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.openingCoachEvidence summary::-webkit-details-marker {
+  display: none;
+}
+
+.openingCoachEvidence summary::after {
+  content: "+";
+  margin-left: auto;
+  color: var(--color-text, #f8fafc);
+  font-weight: 900;
+}
+
+.openingCoachEvidence[open] summary::after {
+  content: "-";
+}
+
+.openingCoachEvidence div {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+  color: var(--color-text-muted, rgba(226, 232, 240, 0.78));
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.openingCoachEvidence ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.openingCoachEvidence strong {
+  color: var(--color-text, #f8fafc);
+}
+
+.openingCoachActions {
+  display: grid;
+  gap: 10px;
+}
+
+.openingCoachActions button {
+  min-height: 46px;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .openingCoachSummary,
+  .openingCoachTile,
+  .openingCoachEvidence {
+    transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+  }
+}
+
+@media (max-width: 900px) {
+  .openingCoachSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .openingCoachSummarySide {
+    align-content: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .openingCoachSummary {
+    gap: 14px;
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .openingCoachSummary h2 {
+    font-size: 1.42rem;
+    line-height: 1.12;
+  }
+
+  .openingCoachSummaryMain > p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .openingCoachTiles {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .openingCoachTile {
+    padding: 11px 12px;
+  }
+
+  .openingCoachEvidence div {
+    font-size: 0.86rem;
+  }
+}
+
+.page.light .openingCoachSummary,
+[data-theme="light"] .openingCoachSummary {
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--color-primary, #0284c7) 7%, transparent), transparent),
+    var(--card-bg, #ffffff);
+  color: var(--color-text, #0f172a);
+}

@@ -9,7 +9,6 @@ import "./components/WeakLineDetection.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
-import "./components/ProductAppShell.css";
 import OpeningReportSummary from "./components/OpeningReportSummary";
 import OpeningScoreInfo from "./components/OpeningScoreInfo";
 import RepertoireStudyPlan from "./components/RepertoireStudyPlan";
@@ -38,6 +37,7 @@ import DailyMissionCard from "./components/DailyMissionCard";
 import ResumeTrainingPrompt from "./components/ResumeTrainingPrompt";
 import TodayTrainingCard from "./components/TodayTrainingCard";
 import OpeningFitVerdict from "./components/OpeningFitVerdict";
+import OpeningCoachSummary from "./components/OpeningCoachSummary";
 import AnalysisVerdictModal from "./components/AnalysisVerdictModal";
 import ReturningUserBriefing from "./components/ReturningUserBriefing";
 import GameAnalysisCount from "./components/GameAnalysisCount.jsx";
@@ -168,6 +168,7 @@ import "./ThemePolish.css";
 import "./styles/appShellExperience.css";
 import "./styles/reportExperience.css";
 import "./styles/productScreensExperience.css";
+import "./components/ProductAppShell.css";
 
 const STORAGE_KEY = "openingFit:lastAnalysis";
 const USERNAME_KEY = "openingFit:lastUsername";
@@ -2211,6 +2212,75 @@ function getOpeningFitScoreReason(opening) {
   return `${confidence}. OpeningFit is weighing results, sample size, consistency, and fit with your current games.`;
 }
 
+function getOpeningCoachInsights(data) {
+  const insights = data?.openingCoachInsights || data?.opening_coach_insights;
+  return insights && typeof insights === "object" ? insights : null;
+}
+
+function getOpeningCoachDiagnostics(data) {
+  const insights = getOpeningCoachInsights(data);
+  return Array.isArray(insights?.openingDiagnostics) ? insights.openingDiagnostics : [];
+}
+
+function normaliseCoachOpeningName(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function findOpeningCoachDiagnostic(data, opening) {
+  const name = normaliseCoachOpeningName(getOpeningName(opening));
+  if (!name) return null;
+  return (
+    getOpeningCoachDiagnostics(data).find(
+      (item) => normaliseCoachOpeningName(item?.openingName || item?.name) === name
+    ) || null
+  );
+}
+
+function coachInsightConfidenceLabel(diagnostic, opening) {
+  const direct = diagnostic?.confidence || opening?.confidenceLabel || opening?.confidence_label || opening?.confidence;
+  if (!direct) return getOpeningConfidence(opening);
+  return String(direct).replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function coachIssueLabel(issueType) {
+  if (issueType === "opening") return "Opening issue";
+  if (issueType === "transition") return "Transition issue";
+  if (issueType === "middlegame") return "Later-game issue";
+  if (issueType === "mixed") return "Mixed issue";
+  if (issueType === "insufficient_data") return "Still gathering evidence";
+  return "Report signal";
+}
+
+function coachVerdictLabel(status, diagnostic = null) {
+  const verdict = String(diagnostic?.verdict || status || "").toLowerCase();
+  if (verdict.includes("avoid") || verdict.includes("park")) return "Park for now";
+  if (verdict.includes("keep")) return "Keep";
+  if (verdict.includes("improve") || verdict.includes("repair")) return "Improve";
+  if (verdict.includes("watch") || verdict.includes("not enough")) return "Watch";
+  return status || "Review";
+}
+
+function coachWhyText(opening, data, status, diagnostic = null) {
+  if (diagnostic?.explanation) return diagnostic.explanation;
+  const supportive = getSupportiveOpeningContext(opening, status);
+  const reason = getOpeningFitScoreReason(opening);
+  return `${supportive} ${reason}`;
+}
+
+function coachNextAction(opening, status, diagnostic = null) {
+  return (
+    diagnostic?.recommendation ||
+    diagnostic?.recurringIssue?.practicePrompt ||
+    opening?.suggestedTrainingAction ||
+    opening?.suggested_training_action ||
+    getOpeningCardAction(opening) ||
+    getSupportiveOpeningContext(opening, status)
+  );
+}
+
 function OpeningScoreInfoButton({ opening = null, score = null, nextStep = "", className = "" }) {
   return (
     <OpeningScoreInfo
@@ -2996,7 +3066,7 @@ function getSupportiveOpeningContext(opening, status) {
   return "Use this as context for your next training choice.";
 }
 
-function OpeningFitScoreList({ fitData, onPractice }) {
+function OpeningFitScoreList({ data, fitData, onPractice }) {
   if (!fitData || !fitData.scoredOpenings?.length) return null;
   const publicMode = fitData.reportMode !== "normal_user";
 
@@ -3019,6 +3089,17 @@ function OpeningFitScoreList({ fitData, onPractice }) {
           const name = getOpeningName(opening);
           const canPractice = canTreatAsRepertoireOpening(opening);
           const status = getOpeningStatusLabel(opening);
+          const coachDiagnostic = findOpeningCoachDiagnostic(data, opening);
+          const displayStatus = coachVerdictLabel(status, coachDiagnostic);
+          const coachOpening = coachDiagnostic
+            ? {
+                ...opening,
+                confidence: coachInsightConfidenceLabel(coachDiagnostic, opening),
+                fitScoreBreakdown: coachDiagnostic.scoreBreakdown,
+                evidenceBullets: coachDiagnostic.evidence,
+                nextAction: coachNextAction(opening, status, coachDiagnostic),
+              }
+            : opening;
           const action = getOpeningCardAction(opening);
           const games = getOpeningGames(opening);
           const winRate = getWinRate(opening);
@@ -3062,7 +3143,10 @@ function OpeningFitScoreList({ fitData, onPractice }) {
                     <div className="openingRecommendationBadges">
                       <span className="openingSideBadge">{getOpeningSideLabel(opening)}</span>
                       <span className={`openingStatusBadge openingStatusBadge-${status.toLowerCase().replace(/\s+/g, "-")}`}>
-                        {status}
+                        {displayStatus}
+                      </span>
+                      <span className="openingCoachConfidenceBadge">
+                        {coachInsightConfidenceLabel(coachDiagnostic, opening)} confidence
                       </span>
                     </div>
                     <strong>{getOpeningContextTitle(opening, name)}</strong>
@@ -3070,7 +3154,7 @@ function OpeningFitScoreList({ fitData, onPractice }) {
                 </div>
                 <div className="openingFitScorePill">
                   <span>{fitScore ? "Fit" : "Confidence"}</span>
-                  <OpeningScoreInfoButton opening={opening} />
+                  <OpeningScoreInfoButton opening={coachOpening} />
                   <strong>{fitScore || getOpeningConfidence(opening)}</strong>
                   {evidenceLabel ? <small>{evidenceLabel}</small> : null}
                 </div>
@@ -3103,8 +3187,38 @@ function OpeningFitScoreList({ fitData, onPractice }) {
               </div>
 
               <p className="fitOpeningReason openingCoachSummary">
-                {opening.fitDisplayVerdict || confidenceVerdictLabel(opening, {}, opening.fitVerdict)}. {supportiveContext} {coachText}
+                {displayStatus}. {supportiveContext} {coachText}
               </p>
+
+              <details
+                className="openingCoachWhyDetails"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <summary aria-label={`Why ${name} is labelled ${displayStatus}`}>
+                  <span>Why?</span>
+                  <strong>{coachIssueLabel(coachDiagnostic?.issueType)}</strong>
+                </summary>
+                <div className="openingCoachWhyBody">
+                  <dl>
+                    <div>
+                      <dt>Games analysed</dt>
+                      <dd>{coachDiagnostic?.games || games || "Not enough opening-specific games"}</dd>
+                    </div>
+                    <div>
+                      <dt>Issue type</dt>
+                      <dd>{coachIssueLabel(coachDiagnostic?.issueType)}</dd>
+                    </div>
+                    <div>
+                      <dt>Why this verdict</dt>
+                      <dd>{coachWhyText(opening, data, status, coachDiagnostic)}</dd>
+                    </div>
+                    <div>
+                      <dt>Next action</dt>
+                      <dd>{coachNextAction(opening, status, coachDiagnostic)}</dd>
+                    </div>
+                  </dl>
+                </div>
+              </details>
 
               {variationOverview?.displayStatus ? (
                 <div className="variationStatusInline">
@@ -6502,6 +6616,7 @@ function FinalReportFlow({
   retentionSnapshots = [],
   reportFilters,
   onReportFiltersChange,
+  onAnalytics,
 }) {
   const studyTarget = buildStudyThisNextTarget(fitData);
   const [reportMode, setReportMode] = useState("summary");
@@ -6546,6 +6661,17 @@ function FinalReportFlow({
     return () => window.removeEventListener("resize", checkVerdictCardWidths);
   }, [activeView, data, fitData, reportMode]);
 
+  const openOpeningBreakdown = useCallback(() => {
+    setReportMode("table");
+    if (typeof window === "undefined") return;
+    window.setTimeout(() => {
+      document.getElementById("evidence-table")?.scrollIntoView({
+        behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth",
+        block: "start",
+      });
+    }, 60);
+  }, []);
+
   return (
     <div className="finalReportFlow">
       <ReportCommandBar
@@ -6566,6 +6692,27 @@ function FinalReportFlow({
           reportMode={reportMode}
           onReportModeChange={setReportMode}
         />
+
+        <OpeningCoachSummary
+          data={data}
+          onStartPractice={onPractice}
+          onOpenBreakdown={openOpeningBreakdown}
+          onAnalytics={onAnalytics}
+        />
+
+        <DailyMissionCard
+          data={data}
+          fitData={fitData}
+          onStartTraining={(recommendation) => {
+            onAnalytics?.("coach_mission_started", {
+              opening: getOpeningName(recommendation),
+              source: "report_mission",
+            });
+            onPractice?.(recommendation);
+          }}
+        />
+
+        <MissionImprovementCard data={data} reportHistory={reportHistory} />
 
         <div className="reportPriorityGrid">
           <OpeningFitVerdictPanel
@@ -6642,10 +6789,16 @@ function FinalReportFlow({
       {showFullReport ? (
         <>
           <ReportSectionGroup id="report-repertoire" eyebrow="Repertoire" title="Your repertoire">
-            <OpeningFitScoreList fitData={fitData} onPractice={onPractice} />
+            <OpeningFitScoreList data={data} fitData={fitData} onPractice={onPractice} />
             <RecommendedOpeningFit data={data} onPractice={onPractice} />
             <FullReportHighlights data={data} fitData={fitData} onPractice={onPractice} />
             <RepertoireCommandPanel data={data} onPractice={onPractice} />
+            <FocusedRepertoireSection
+              data={data}
+              onPractice={onPractice}
+              onViewEvidence={openOpeningBreakdown}
+              onAnalytics={onAnalytics}
+            />
             <RepertoireMap data={data} />
           </ReportSectionGroup>
 
@@ -6707,7 +6860,7 @@ function FinalReportFlow({
 
       {showOpeningTable ? (
         <ReportSectionGroup id="report-recent-games" eyebrow="Games/Data" title="Recent games">
-          <OpeningFitScoreList fitData={fitData} onPractice={onPractice} />
+          <OpeningFitScoreList data={data} fitData={fitData} onPractice={onPractice} />
         </ReportSectionGroup>
       ) : null}
 
@@ -9459,6 +9612,7 @@ function OpeningFitProfileDashboard({
   theme = "dark",
   onThemeToggle,
   activeView = "profile",
+  onAnalytics,
 }) {
   const hasStoredProgress =
     accountUser?.id &&
@@ -9535,6 +9689,20 @@ function OpeningFitProfileDashboard({
         onFullPlan={onSeeSessionPlan}
         showEmptyState
       />
+
+      {data ? (
+        <DailyMissionCard
+          data={data}
+          fitData={fitData}
+          onStartTraining={(recommendation) => {
+            onAnalytics?.("coach_mission_started", {
+              opening: getOpeningName(recommendation),
+              source: "profile_mission",
+            });
+            onPractice?.(recommendation);
+          }}
+        />
+      ) : null}
 
       {accountUser?.id ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
 
@@ -10073,6 +10241,539 @@ function RepertoireCommandPanel({ data, onPractice }) {
             </article>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+function getFocusedRepertoirePlan(data) {
+  const sections = buildRepertoireReportSections(data);
+  const coachPlan = getOpeningCoachInsights(data)?.repertoireRecommendation || {};
+  const maintenance = data?.repertoireMaintenanceCost || data?.repertoire_maintenance_cost || {};
+  const pickFromSection = (key, limit) => {
+    const section = sections.find((item) => item.key === key);
+    const candidates = uniqueOpeningsByNameAndContext([
+      ...(section?.buckets?.bestFit || []),
+      ...(section?.buckets?.needsReview || []),
+      ...(section?.buckets?.risky || []),
+      ...(section?.buckets?.notEnoughData || []),
+    ])
+      .filter((opening) => opening && getOpeningName(opening) && !isUnknownOpeningName(getOpeningName(opening)))
+      .sort((a, b) => {
+        const verdictDelta = confidencePriority(b) - confidencePriority(a);
+        if (verdictDelta) return verdictDelta;
+        const gamesDelta = getOpeningGames(b) - getOpeningGames(a);
+        if (gamesDelta) return gamesDelta;
+        return getWinRate(b) - getWinRate(a);
+      });
+
+    return candidates.slice(0, limit);
+  };
+  const row = (slot, question, opening, sectionKey) => ({
+    slot,
+    question,
+    opening,
+    sectionKey,
+    name: opening ? getOpeningName(opening) : "",
+    verdict: opening ? coachVerdictLabel(getOpeningStatusLabel(opening, data), findOpeningCoachDiagnostic(data, opening)) : "Not enough data",
+    score: opening ? safeNumber(opening.fitScore ?? opening.openingFitScore ?? getWinRate(opening), null) : null,
+    games: opening ? getOpeningGames(opening) : 0,
+    reason: opening
+      ? findOpeningCoachDiagnostic(data, opening)?.recommendation ||
+        opening?.recommendationCopy ||
+        opening?.recommendationReason ||
+        roleOpeningExplanation(opening, sections.find((section) => section.key === sectionKey) || { empty: "" })
+      : "No reliable recommendation yet. Keep importing games in this role.",
+  });
+
+  const white = pickFromSection("white_repertoire", 2);
+  const e4 = pickFromSection("black_vs_e4", 1);
+  const d4 = pickFromSection("black_vs_d4", 1);
+  const later = uniqueOpeningsByNameAndContext([
+    ...(sections.flatMap((section) => section.buckets.notEnoughData || [])),
+    ...(sections.flatMap((section) => section.buckets.risky || [])),
+  ])
+    .filter((opening) => getOpeningGames(opening) > 0)
+    .slice(0, 2);
+  const tooManySystems =
+    String(maintenance.category || "").toLowerCase().includes("high") ||
+    safeNumber(maintenance.familyCount ?? maintenance.family_count, 0) > 3;
+  const focusOpening =
+    getOpeningCoachInsights(data)?.focusMission?.openingName ||
+    getOpeningCoachInsights(data)?.repertoireRecommendation?.focus ||
+    white[0]?.name ||
+    e4[0]?.name ||
+    d4[0]?.name ||
+    "";
+  const coachWhite = Array.isArray(coachPlan.white) ? coachPlan.white.map((item) => getOpeningName(item)).filter(Boolean) : [];
+  const coachE4 = Array.isArray(coachPlan.blackVsE4) ? coachPlan.blackVsE4.map((item) => getOpeningName(item)).filter(Boolean) : [];
+  const coachD4 = Array.isArray(coachPlan.blackVsD4) ? coachPlan.blackVsD4.map((item) => getOpeningName(item)).filter(Boolean) : [];
+  const byName = (name, fallbackItems) =>
+    fallbackItems.find((opening) => normaliseCoachOpeningName(getOpeningName(opening)) === normaliseCoachOpeningName(name)) || fallbackItems[0] || null;
+  const coachFallback = (name, context) =>
+    name
+      ? normalizeRecommendationItem(
+          {
+            name,
+            context,
+            games: 0,
+            recommendationCopy: "Recommended by the current coach insight object, but the detailed game sample is still thin.",
+          },
+          context
+        )
+      : null;
+
+  return {
+    rows: [
+      ...white.map((opening, index) => row(index === 0 ? "White" : "White backup", "What should I play as White?", opening, "white_repertoire")),
+      row("Vs 1.e4", "What should I play against 1.e4?", byName(coachE4[0], e4) || coachFallback(coachE4[0], "black_vs_e4"), "black_vs_e4"),
+      row("Vs 1.d4", "What should I play against 1.d4?", byName(coachD4[0], d4) || coachFallback(coachD4[0], "black_vs_d4"), "black_vs_d4"),
+    ].filter((item) => item.opening),
+    later: later.map((opening) => row("Later", "Not now", opening, itemContext(opening))),
+    focusBanner: tooManySystems
+      ? maintenance.advice ||
+        "You do not need another opening yet. Your fastest improvement is making your current repertoire more reliable."
+      : focusOpening
+        ? `Before learning something new, make ${focusOpening} more reliable.`
+        : "Before learning something new, build a clearer sample in your current openings.",
+    coachRationale: coachPlan.rationale || "",
+    hasCoachPlan: Boolean(coachWhite.length || coachE4.length || coachD4.length),
+  };
+}
+
+function movesForReportGame(game = {}) {
+  const raw = game.moves;
+  if (Array.isArray(raw)) return raw.map((move) => String(move).trim()).filter(Boolean);
+  const text = String(game.movesText || game.moves_text || game.moves || game.pgn || "").trim();
+  if (!text) return [];
+  return text
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\{[^}]*\}/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .split(/\s+/)
+    .filter((token) => token && !/^\d+\.(\.\.)?$/.test(token) && !["1-0", "0-1", "1/2-1/2", "*"].includes(token));
+}
+
+function resultScoreForGame(game = {}) {
+  const result = String(game.result || "").toLowerCase();
+  if (result.includes("win")) return 1;
+  if (result.includes("draw")) return 0.5;
+  if (result.includes("loss")) return 0;
+  return null;
+}
+
+function allReportGames(data = {}) {
+  const games = [
+    ...(Array.isArray(data.recentGames) ? data.recentGames : []),
+    ...(Array.isArray(data.recent_games) ? data.recent_games : []),
+    ...(Array.isArray(data.openingGames) ? data.openingGames : []),
+    ...(Array.isArray(data.opening_games) ? data.opening_games : []),
+  ].filter(Boolean);
+  const seen = new Set();
+  return games.filter((game, index) => {
+    const key = game.url || game.gameUrl || game.id || `${getOpeningName(game)}-${movesForReportGame(game).slice(0, 8).join(" ")}-${index}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function opponentReplyForGame(game = {}) {
+  const moves = movesForReportGame(game);
+  const colour = String(game.colour || game.color || getOpeningSide(game)).toLowerCase();
+  if (moves.length < 2 && colour.includes("white")) return null;
+  if (!moves.length) return null;
+
+  if (colour.includes("white")) {
+    return {
+      reply: moves[1],
+      branch: moves.slice(0, Math.min(8, moves.length)).join(" "),
+      confidence: moves.length >= 4 ? "usable" : "thin",
+    };
+  }
+
+  if (colour.includes("black")) {
+    return {
+      reply: moves[0],
+      branch: moves.slice(0, Math.min(8, moves.length)).join(" "),
+      confidence: moves.length >= 4 ? "usable" : "thin",
+    };
+  }
+
+  return null;
+}
+
+function buildOpponentResponsePrep(data = {}) {
+  const grouped = new Map();
+  allReportGames(data).forEach((game) => {
+    const name = getOpeningName(game);
+    if (!name || isUnknownOpeningName(name)) return;
+    const replyInfo = opponentReplyForGame(game);
+    if (!replyInfo || replyInfo.confidence !== "usable") return;
+    const key = `${normaliseCoachOpeningName(name)}::${replyInfo.reply}`;
+    const score = resultScoreForGame(game);
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        openingName: name,
+        reply: replyInfo.reply,
+        branch: replyInfo.branch,
+        games: 0,
+        scoreSum: 0,
+        scoredGames: 0,
+      });
+    }
+    const row = grouped.get(key);
+    row.games += 1;
+    if (score !== null) {
+      row.scoreSum += score;
+      row.scoredGames += 1;
+    }
+  });
+
+  const byOpening = new Map();
+  Array.from(grouped.values())
+    .filter((row) => row.games >= 2)
+    .forEach((row) => {
+      const score = row.scoredGames ? Math.round((row.scoreSum / row.scoredGames) * 100) : null;
+      const next = { ...row, score };
+      const key = normaliseCoachOpeningName(row.openingName);
+      byOpening.set(key, [...(byOpening.get(key) || []), next]);
+    });
+
+  return Array.from(byOpening.values())
+    .map((branches) => {
+      const sorted = [...branches].sort((a, b) => b.games - a.games || (a.score ?? 100) - (b.score ?? 100));
+      const hardest = branches
+        .filter((branch) => branch.games >= 3 && branch.score !== null)
+        .sort((a, b) => a.score - b.score || b.games - a.games)[0];
+      const common = sorted[0];
+      return {
+        ...common,
+        isHardest: Boolean(hardest && hardest.reply === common.reply),
+        hardestReply: hardest?.reply || "",
+        recommendation: hardest && hardest.reply === common.reply
+          ? `Practise the first 8 moves against ${common.reply}; this is both common and your hardest response.`
+          : `Practise the first 8 moves against ${common.reply} so this common branch feels routine.`,
+      };
+    })
+    .filter((row) => row.games >= 2)
+    .sort((a, b) => b.games - a.games)
+    .slice(0, 4);
+}
+
+function FocusedRepertoireSection({ data, onPractice, onViewEvidence, onAnalytics }) {
+  const plan = getFocusedRepertoirePlan(data || {});
+  const responses = buildOpponentResponsePrep(data || {});
+
+  useEffect(() => {
+    if (plan.rows.length || responses.length) {
+      onAnalytics?.("coach_repertoire_opened", {
+        rows: plan.rows.length,
+        opponentResponses: responses.length,
+      });
+    }
+  }, [onAnalytics, plan.rows.length, responses.length]);
+
+  if (!plan.rows.length && !responses.length) return null;
+
+  const practiceTarget = (row) => ({
+    ...(row.opening || {}),
+    name: row.name,
+    opening: row.name,
+    openingName: row.name,
+    selectedReason: row.reason,
+    source: "focused-repertoire",
+  });
+  const responsePracticeTarget = (row) => ({
+    name: row.openingName,
+    opening: row.openingName,
+    openingName: row.openingName,
+    opponentReply: row.reply,
+    moveLine: row.branch,
+    selectedReason: row.recommendation,
+    source: "opponent-response-prep",
+  });
+
+  return (
+    <section className="focusedRepertoireSection" id="focused-repertoire" aria-labelledby="focused-repertoire-title">
+      <div className="focusedRepertoireHeader">
+        <div>
+          <p className="eyebrow">Focused repertoire</p>
+          <h2 id="focused-repertoire-title">Your focused repertoire</h2>
+          <p>One practical answer for each main role, using the recommendations already present in this report.</p>
+        </div>
+      </div>
+
+      <div className="focusedRepertoireBanner">
+        <strong>Focus before learning something new</strong>
+        <span>{plan.focusBanner}</span>
+        {plan.coachRationale ? <small>{plan.coachRationale}</small> : null}
+      </div>
+
+      <div className="focusedRepertoireGrid">
+        {plan.rows.map((row) => (
+          <article className="focusedRepertoireCard" key={`${row.slot}-${row.name}`}>
+            <span>{row.slot}</span>
+            <h3>{row.name}</h3>
+            <p>{row.question}</p>
+            <dl>
+              <div>
+                <dt>Verdict</dt>
+                <dd>{row.verdict}</dd>
+              </div>
+              <div>
+                <dt>Fit</dt>
+                <dd>{row.score !== null && row.score !== undefined ? `${Math.round(row.score)}/100` : "Pending"}</dd>
+              </div>
+              <div>
+                <dt>Sample</dt>
+                <dd>{row.games} game{row.games === 1 ? "" : "s"}</dd>
+              </div>
+            </dl>
+            <p>{row.reason}</p>
+            <div className="focusedRepertoireActions">
+              <button
+                type="button"
+                className="primaryBtn"
+                onClick={() => {
+                  onAnalytics?.("coach_practice_started", {
+                    opening: row.name,
+                    source: "focused_repertoire",
+                    slot: row.slot,
+                  });
+                  onPractice?.(practiceTarget(row));
+                }}
+              >
+                Practise
+              </button>
+              <button
+                type="button"
+                className="secondaryBtn"
+                onClick={() => {
+                  onAnalytics?.("coach_diagnostic_opened", {
+                    opening: row.name,
+                    source: "focused_repertoire",
+                    slot: row.slot,
+                  });
+                  onViewEvidence?.(row.opening);
+                }}
+              >
+                View evidence
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {plan.later.length ? (
+        <details className="focusedRepertoireLater">
+          <summary>Later / not now</summary>
+          <div>
+            {plan.later.map((row) => (
+              <span key={`${row.name}-${row.sectionKey}`}>{row.name}: {row.reason}</span>
+            ))}
+          </div>
+        </details>
+      ) : null}
+
+      {responses.length ? (
+        <div className="opponentResponsePrep">
+          <div className="opponentResponsePrepHeader">
+            <p className="eyebrow">Opponent response prep</p>
+            <h3>What opponents actually play against you</h3>
+            <p>Only repeated replies with usable move data are shown.</p>
+          </div>
+          <div className="opponentResponseGrid">
+            {responses.map((row) => (
+              <article className="opponentResponseCard" key={`${row.openingName}-${row.reply}`}>
+                <span>{row.openingName}</span>
+                <h4>Most common reply: {row.reply}</h4>
+                <p>{row.score !== null ? `${row.score}% result in this branch` : "Result is not calculable yet"} across {row.games} games.</p>
+                {row.isHardest ? <strong>Hardest response in this sample</strong> : null}
+                <small>{row.recommendation}</small>
+                <code>{row.branch}</code>
+                <button
+                  type="button"
+                  className="secondaryBtn"
+                  onClick={() => {
+                    onAnalytics?.("coach_practice_started", {
+                      opening: row.openingName,
+                      reply: row.reply,
+                      source: "opponent_response",
+                    });
+                    onPractice?.(responsePracticeTarget(row));
+                  }}
+                >
+                  Practise this response
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function reportFromHistoryItem(item = {}) {
+  return item.report || item.analysis || item.last_report || item.data || item.snapshot?.report || item.snapshot || item;
+}
+
+function reportDateValue(report = {}) {
+  return new Date(
+    report.importedAt ||
+      report.imported_at ||
+      report.lastUpdated ||
+      report.last_updated ||
+      report.savedAt ||
+      report.createdAt ||
+      0
+  ).getTime() || 0;
+}
+
+function previousReportForComparison(current, reportHistory = []) {
+  const currentStamp = reportDateValue(current);
+  return (Array.isArray(reportHistory) ? reportHistory : [])
+    .map(reportFromHistoryItem)
+    .filter((report) => report && report !== current)
+    .sort((a, b) => reportDateValue(b) - reportDateValue(a))
+    .find((report) => !currentStamp || reportDateValue(report) < currentStamp || reportDateValue(report) !== currentStamp) || null;
+}
+
+function focusedMissionOpening(data = {}) {
+  const mission = getOpeningCoachInsights(data)?.focusMission || {};
+  return mission.openingName || mission.opening_name || mission.opening || getOpeningCoachInsights(data)?.biggestLeak?.openingName || "";
+}
+
+function openingGamesFromReport(data = {}, openingName = "") {
+  const key = normaliseCoachOpeningName(openingName);
+  if (!key) return [];
+  const games = [
+    ...(Array.isArray(data.recentGames) ? data.recentGames : []),
+    ...(Array.isArray(data.recent_games) ? data.recent_games : []),
+    ...(Array.isArray(data.openingGames) ? data.openingGames : []),
+    ...(Array.isArray(data.opening_games) ? data.opening_games : []),
+  ];
+  return games.filter((game) => normaliseCoachOpeningName(getOpeningName(game)) === key);
+}
+
+function resultScoreForReportGame(game = {}) {
+  const result = String(game.result || "").toLowerCase();
+  if (result.includes("win")) return 1;
+  if (result.includes("draw")) return 0.5;
+  if (result.includes("loss")) return 0;
+  return null;
+}
+
+function earlyIssueCountForOpening(data = {}, openingName = "") {
+  return openingGamesFromReport(data, openingName).filter((game) => {
+    const result = String(game.result || "").toLowerCase();
+    const moveCount = safeNumber(game.moveCount ?? game.move_count, null);
+    const lossTiming = game.lossTiming || game.loss_timing || {};
+    const bucket = String(lossTiming.bucket || lossTiming.phase || "").toLowerCase();
+    return (
+      bucket === "opening" ||
+      bucket === "early" ||
+      (result.includes("loss") && Number.isFinite(moveCount) && moveCount <= 12)
+    );
+  }).length;
+}
+
+function openingComparisonStats(data = {}, openingName = "") {
+  const games = openingGamesFromReport(data, openingName);
+  const scored = games.map(resultScoreForReportGame).filter((score) => score !== null);
+  const direct = findOpeningCoachDiagnostic(data, { name: openingName });
+  const winRate = direct?.winRate ?? (scored.length ? Math.round((scored.reduce((sum, score) => sum + score, 0) / scored.length) * 100) : null);
+  return {
+    games: direct?.games || games.length || 0,
+    winRate,
+    earlyIssues: earlyIssueCountForOpening(data, openingName),
+  };
+}
+
+function buildMissionImprovementComparison(data, reportHistory = []) {
+  const openingName = focusedMissionOpening(data);
+  const localHistory =
+    typeof window !== "undefined"
+      ? [
+          ...readLocalJson("openingFit:reportHistory", []),
+          ...readLocalJson("openingFit:reportHistory:v1", []),
+        ]
+      : [];
+  const previous = previousReportForComparison(data, [
+    ...(Array.isArray(reportHistory) ? reportHistory : []),
+    ...(Array.isArray(localHistory) ? localHistory : []),
+  ]);
+  if (!openingName || !previous) return null;
+
+  const current = openingComparisonStats(data, openingName);
+  const before = openingComparisonStats(previous, openingName);
+  if ((current.games || 0) + (before.games || 0) < 5) return null;
+
+  const metrics = [];
+  if (current.winRate !== null && before.winRate !== null && before.games >= 2 && current.games >= 2) {
+    const delta = Math.round(current.winRate - before.winRate);
+    metrics.push({
+      label: "Opening result trend",
+      value: delta === 0 ? "No clear change" : `${delta > 0 ? "+" : ""}${delta} pts`,
+      copy:
+        Math.abs(delta) < 5
+          ? "More data needed before calling this a result trend."
+          : delta > 0
+            ? "Early signs of improvement in the focused opening."
+            : "This pattern is still appearing in results.",
+    });
+  }
+
+  metrics.push({
+    label: "Focused games",
+    value: `${current.games} game${current.games === 1 ? "" : "s"}`,
+    copy:
+      current.games > before.games
+        ? "Your focused opening has more analysed games than last report."
+        : "More data needed to make this comparison stronger.",
+  });
+
+  if (before.earlyIssues >= 1 || current.earlyIssues >= 1) {
+    const delta = current.earlyIssues - before.earlyIssues;
+    metrics.push({
+      label: "Early recurring issue",
+      value: `${current.earlyIssues} seen`,
+      copy:
+        delta < 0
+          ? "Since your last report, this issue appeared in fewer analysed games."
+          : delta === 0
+            ? "This pattern is still appearing."
+            : "This issue appeared in more analysed games; keep the mission narrow.",
+    });
+  }
+
+  if (!metrics.length) return null;
+  return {
+    openingName,
+    metrics: metrics.slice(0, 3),
+  };
+}
+
+function MissionImprovementCard({ data, reportHistory = [] }) {
+  const comparison = buildMissionImprovementComparison(data, reportHistory);
+  if (!comparison) return null;
+
+  return (
+    <section className="missionImprovementCard" aria-label="Since your last report">
+      <div>
+        <p className="eyebrow">Since your last report</p>
+        <h2>{comparison.openingName}</h2>
+        <p>Conservative comparison from saved reports. This does not claim the drills caused the change.</p>
+      </div>
+      <div className="missionImprovementGrid">
+        {comparison.metrics.map((metric) => (
+          <article key={metric.label}>
+            <span>{metric.label}</span>
+            <strong>{metric.value}</strong>
+            <p>{metric.copy}</p>
+          </article>
+        ))}
       </div>
     </section>
   );
@@ -16385,6 +17086,7 @@ export default function App() {
                     retentionSnapshots={retentionSnapshots}
                     reportFilters={reportFilters}
                     onReportFiltersChange={setReportFilters}
+                    onAnalytics={trackEvent}
                   />
                 </>
               ) : null}
@@ -16404,7 +17106,13 @@ export default function App() {
                     <DailyMissionCard
                       data={reportData}
                       fitData={fitData}
-                      onStartTraining={(recommendation) => startOpeningPractice(recommendation)}
+                      onStartTraining={(recommendation) => {
+                        trackEvent("coach_mission_started", {
+                          opening: getOpeningName(recommendation),
+                          source: "train_mission",
+                        });
+                        startOpeningPractice(recommendation);
+                      }}
                     />
 
                     <OpeningPracticeLinesPanel
@@ -16650,6 +17358,7 @@ export default function App() {
                   setTheme((current) => (current === "dark" ? "light" : "dark"))
                 }
                 activeView={activeView}
+                onAnalytics={trackEvent}
               />
             </section>
           ) : null}

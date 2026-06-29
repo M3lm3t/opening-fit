@@ -11,6 +11,7 @@ from analysis.engine_analysis import (
 )
 from analysis.game_diagnostics import build_diagnostic_summary
 from analysis.opening_fit_metrics import build_opening_fit_metrics, merge_opening_fit_metrics
+from analysis.opening_coach_insights import build_opening_coach_insights
 from analysis.retention_metrics import build_retention_metrics
 from opening_detection import (
     detect_opening,
@@ -8451,6 +8452,10 @@ def import_chesscom_logic(username: str, months: int = 3):
         **premium_data,
     }
 
+    opening_coach_insights = build_opening_coach_insights(result)
+    result["opening_coach_insights"] = opening_coach_insights
+    result["openingCoachInsights"] = opening_coach_insights
+
     result["progress_comparison"] = build_report_progress_comparison(
         result,
         previous_report,
@@ -9105,6 +9110,10 @@ def build_lichess_analysis(
         **report_mode_data,
         **premium_data,
     }
+
+    opening_coach_insights = build_opening_coach_insights(result)
+    result["opening_coach_insights"] = opening_coach_insights
+    result["openingCoachInsights"] = opening_coach_insights
 
     result["progress_comparison"] = build_report_progress_comparison(
         result,

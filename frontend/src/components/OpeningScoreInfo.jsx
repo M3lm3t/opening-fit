@@ -66,6 +66,23 @@ function bestNextStep(opening = {}, fallback = "") {
   );
 }
 
+function breakdownSummary(breakdown = {}) {
+  const pieces = [
+    numberValue(breakdown.results ?? breakdown.resultScore ?? breakdown.result_score, null) !== null
+      ? `results ${numberValue(breakdown.results ?? breakdown.resultScore ?? breakdown.result_score)}/100`
+      : "",
+    numberValue(breakdown.consistency, null) !== null
+      ? `consistency ${numberValue(breakdown.consistency)}/100`
+      : "",
+    numberValue(breakdown.openingPhaseReliability ?? breakdown.opening_phase_reliability, null) !== null
+      ? `opening reliability ${numberValue(breakdown.openingPhaseReliability ?? breakdown.opening_phase_reliability)}/100`
+      : "",
+  ].filter(Boolean);
+
+  if (pieces.length) return pieces.join(", ");
+  return text(breakdown.explanation || "");
+}
+
 function styleFitText(opening = {}) {
   const breakdown = opening.fitScoreBreakdown || opening.fit_score_breakdown || {};
   const styleValue = numberValue(
@@ -133,7 +150,7 @@ export function buildOpeningScoreExplanation({ opening = {}, score, nextStep = "
   const components = asArray(opening.fitReasonBullets || opening.fit_reason_bullets || opening.evidenceBullets || opening.evidence_bullets);
   const componentSummary = components.length
     ? components.slice(0, 2).join(" ")
-    : text(breakdown.resultComponent || breakdown.result_component || breakdown.performance || "");
+    : breakdownSummary(breakdown) || text(breakdown.resultComponent || breakdown.result_component || breakdown.performance || "");
 
   return {
     title: `Why this score?`,
@@ -147,6 +164,9 @@ export function buildOpeningScoreExplanation({ opening = {}, score, nextStep = "
     styleFit,
     componentSummary,
     nextStep: bestNextStep(opening, nextStep),
+    improve:
+      text(opening.scoreImprovementPath || opening.score_improvement_path) ||
+      "It improves when you repeat the line enough to show a pattern, reach comfortable positions more often, and reduce the same early or transition problems.",
   };
 }
 
@@ -158,12 +178,14 @@ export default function OpeningScoreInfo({ opening = {}, score, nextStep = "", l
     <InfoHint label={`${label} for ${name}`} className={`openingScoreInfoHint ${className}`.trim()}>
       <span className="openingScoreInfoContent">
         <strong>{explanation.title}</strong>
+        <span><b>What it means...</b> OpeningScore estimates how reliable this opening is for you right now. It is a training priority score, not a judgement of your chess ability.</span>
         <span><b>This score is based on...</b> {explanation.basedOn}</span>
         {explanation.componentSummary ? <span><b>Score details found:</b> {explanation.componentSummary}</span> : null}
         <span><b>Your strongest signal...</b> {explanation.strongest}</span>
         <span><b>What is holding it back...</b> {explanation.holdingBack}</span>
         {explanation.styleFit ? <span><b>Style fit...</b> {explanation.styleFit}</span> : null}
         <span><b>Confidence in this score...</b> {explanation.confidence}</span>
+        <span><b>How it improves...</b> {explanation.improve}</span>
         <small><b>Best next step...</b> {explanation.nextStep}</small>
       </span>
     </InfoHint>

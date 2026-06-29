@@ -28,6 +28,12 @@
   line-height: 1.15;
 }
 
+.dailyMissionHeader p:not(.eyebrow) {
+  margin-top: 6px;
+  color: var(--text-soft);
+  line-height: 1.42;
+}
+
 .dailyMissionHeader > span {
   flex: 0 0 auto;
   border-radius: 999px;

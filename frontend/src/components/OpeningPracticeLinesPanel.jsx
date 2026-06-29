@@ -572,6 +572,7 @@ export default function OpeningPracticeLinesPanel({
     (item) => item?.openingId === activeOpeningId
   ).length;
   const isSelectedLineSaved = Boolean(currentLineKey && trainingProgress.completedLines?.[currentLineKey]);
+  const nextCompletedLineCount = Math.min(pack?.lines?.length || 0, completedLineCount + (isSelectedLineSaved ? 0 : 1));
   const filteredOpenings = useMemo(() => {
     const searched = searchOpenings(openingSearch, OPENINGS).filter(
       (item) => item.appearsInTraining !== false
@@ -846,6 +847,13 @@ export default function OpeningPracticeLinesPanel({
       selectedLine
     );
     const completionEvent = await recordWeakestLineCompletion();
+    const targetDrills = Number(opening?.targetDrills || opening?.target_drills || opening?.trainingTarget?.targetDrills || 3) || 3;
+    const completedForMission = Math.min(targetDrills, nextCompletedLineCount);
+    if (!completionEvent) {
+      setCompletionNotice(
+        `Nice - you completed ${completedForMission} of ${targetDrills} drills. Next: play a rapid game and revisit this position.`
+      );
+    }
     saveTrainingProgress(nextProgress, completionEvent);
   }
 
