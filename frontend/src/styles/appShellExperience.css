@@ -874,3 +874,120 @@
     display: none !important;
   }
 }
+
+/* Final desktop shell rescue: prevent legacy fixed side-rail rules from
+   collapsing the report navigation into a narrow overlapping column. */
+@media (min-width: 1180px) {
+  .page.appReportPage,
+  .appReportPage {
+    --of-report-shell-width: min(1220px, calc(100vw - 64px));
+    display: block !important;
+    padding-inline: 0 !important;
+  }
+
+  .page.appReportPage .appPrimaryNav,
+  .appReportPage .appPrimaryNav {
+    position: sticky !important;
+    inset: auto !important;
+    top: 10px !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: var(--of-report-shell-width) !important;
+    max-width: var(--of-report-shell-width) !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 10px auto 0 !important;
+    padding: 0 !important;
+    border-radius: 18px !important;
+    overflow: visible !important;
+  }
+
+  .page.appReportPage .appPrimaryNavInner,
+  .appReportPage .appPrimaryNavInner {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 58px !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto auto !important;
+    grid-template-rows: 1fr !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 8px 10px !important;
+    overflow: visible !important;
+  }
+
+  .page.appReportPage .appPrimaryBrand,
+  .appReportPage .appPrimaryBrand {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    padding: 0 10px 0 4px !important;
+    border: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .page.appReportPage .appPrimaryBrand span,
+  .appReportPage .appPrimaryBrand span {
+    display: inline !important;
+    max-width: 180px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .page.appReportPage .appPrimaryTabs,
+  .appReportPage .appPrimaryTabs {
+    display: flex !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    justify-self: center !important;
+    align-content: center !important;
+    align-items: center !important;
+    gap: 4px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+  }
+
+  .page.appReportPage .appPrimaryTab,
+  .appReportPage .appPrimaryTab,
+  .page.appReportPage .appPrimaryGetStarted,
+  .appReportPage .appPrimaryGetStarted,
+  .page.appReportPage .appPrimaryAccount,
+  .appReportPage .appPrimaryAccount {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 40px !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+  }
+
+  .page.appReportPage .appPrimaryMenuToggle,
+  .appReportPage .appPrimaryMenuToggle,
+  .page.appReportPage .appPrimaryMobilePanel,
+  .appReportPage .appPrimaryMobilePanel {
+    display: none !important;
+  }
+
+  .page.appReportPage .accountSyncStatusBar,
+  .appReportPage .accountSyncStatusBar,
+  .page.appReportPage .accountSyncBanner,
+  .appReportPage .accountSyncBanner,
+  .page.appReportPage .container.appShell,
+  .appReportPage .container.appShell,
+  .page.appReportPage .appShell,
+  .appReportPage .appShell {
+    width: var(--of-report-shell-width) !important;
+    max-width: var(--of-report-shell-width) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .page.appReportPage .container.appShell,
+  .appReportPage .container.appShell,
+  .page.appReportPage .appShell,
+  .appReportPage .appShell {
+    margin-top: 16px !important;
+  }
+}

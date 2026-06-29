@@ -508,3 +508,266 @@
     min-height: 34px;
   }
 }
+
+/* Professional Founder Pass modal finish */
+.founderPassUpgradeBackdrop {
+  padding: clamp(14px, 3vw, 28px);
+  background:
+    radial-gradient(circle at 22% 18%, rgba(73, 168, 255, 0.12), transparent 28%),
+    rgba(2, 6, 23, 0.76);
+}
+
+.founderPassUpgradePanel {
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(88vh, 760px);
+  padding: clamp(24px, 3vw, 32px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+  border-radius: 22px;
+  border-color: rgba(251, 191, 36, 0.28);
+  background:
+    radial-gradient(circle at 16% 10%, rgba(251, 191, 36, 0.16), transparent 30%),
+    radial-gradient(circle at 88% 12%, rgba(45, 212, 191, 0.12), transparent 28%),
+    linear-gradient(155deg, rgba(15, 23, 42, 0.98), rgba(3, 7, 18, 0.99));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.045),
+    0 30px 90px rgba(2, 6, 23, 0.58);
+}
+
+.founderPassUpgradePanel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.founderPassUpgradePanel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.founderPassUpgradePanel::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.48);
+  background-clip: content-box;
+}
+
+.founderPassUpgradePanel::before {
+  opacity: 0.08;
+  background-size: 28px 28px;
+}
+
+.founderPassUpgradeClose {
+  top: 18px;
+  right: 18px;
+  width: 36px;
+  height: 36px;
+  border-color: rgba(226, 232, 240, 0.14);
+  background: rgba(15, 23, 42, 0.82);
+  color: #f8fafc;
+  box-shadow: 0 10px 22px rgba(2, 6, 23, 0.28);
+}
+
+.founderPassUpgradeClose:hover,
+.founderPassUpgradeClose:focus-visible {
+  border-color: rgba(251, 191, 36, 0.34);
+  background: rgba(30, 41, 59, 0.94);
+}
+
+.founderPassUpgradeHeader {
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-content: start;
+  align-items: center;
+  gap: 12px;
+  margin: 0 54px 18px 0;
+}
+
+.founderPassUpgradeHeader span {
+  padding: 7px 10px;
+  border-radius: 14px;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  line-height: 1.05;
+}
+
+.founderPassUpgradeHeader strong {
+  padding: 0;
+  color: #fde68a;
+  font-size: clamp(1.15rem, 3vw, 1.55rem);
+  line-height: 1.1;
+}
+
+.founderPassUpgradePanel h2 {
+  max-width: 560px;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.03;
+  letter-spacing: 0;
+}
+
+.founderPassUpgradePanel > p {
+  max-width: 600px;
+  margin-top: 14px;
+  color: rgba(226, 232, 240, 0.88);
+  font-size: 0.98rem;
+  line-height: 1.58;
+}
+
+.founderPassUpgradeValue {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.founderPassUpgradeValue span {
+  min-height: 42px;
+  justify-content: center;
+  padding: 9px 11px;
+  border-color: rgba(251, 191, 36, 0.22);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.64);
+  color: rgba(248, 250, 252, 0.94);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.founderPassUpgradeValue span::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 999px;
+  background: #44d682;
+  box-shadow: 0 0 0 3px rgba(68, 214, 130, 0.12);
+}
+
+.founderPassUpgradeSteps {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.founderPassUpgradeSteps div {
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-content: start;
+  min-height: 118px;
+  padding: 14px;
+  border-color: rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.founderPassUpgradeSteps span {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  font-size: 0.92rem;
+}
+
+.founderPassUpgradeSteps strong {
+  font-size: 0.94rem;
+  line-height: 1.22;
+}
+
+.founderPassUpgradeSteps p {
+  grid-column: 2;
+  margin-top: 5px;
+  color: rgba(203, 213, 225, 0.82);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.founderPassUpgradeTrust {
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.founderPassUpgradeTrust span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.09);
+  font-size: 0.72rem;
+}
+
+.founderPassUpgradeNote {
+  max-width: 620px;
+  color: rgba(203, 213, 225, 0.78);
+}
+
+.founderPassUpgradePrimary,
+.founderPassUpgradeSecondary {
+  min-height: 48px;
+  border-radius: 14px;
+}
+
+.founderPassUpgradePrimary {
+  margin-top: 16px;
+}
+
+.premiumActionMicrocopy {
+  display: block;
+  margin-top: 8px;
+  color: rgba(203, 213, 225, 0.74);
+  text-align: center;
+}
+
+.founderPassUpgradeSecondary {
+  margin-top: 10px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+[data-theme="light"] .founderPassUpgradePanel,
+.light .founderPassUpgradePanel {
+  border-color: rgba(180, 83, 9, 0.2);
+  background:
+    radial-gradient(circle at 14% 8%, rgba(253, 230, 138, 0.58), transparent 28%),
+    radial-gradient(circle at 88% 12%, rgba(204, 251, 241, 0.62), transparent 30%),
+    linear-gradient(155deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.99));
+}
+
+[data-theme="light"] .founderPassUpgradeValue span,
+.light .founderPassUpgradeValue span,
+[data-theme="light"] .founderPassUpgradeSteps div,
+.light .founderPassUpgradeSteps div {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+[data-theme="light"] .premiumActionMicrocopy,
+.light .premiumActionMicrocopy {
+  color: #64748b;
+}
+
+@media (max-width: 720px) {
+  .founderPassUpgradePanel {
+    width: min(560px, calc(100vw - 24px));
+  }
+
+  .founderPassUpgradeValue,
+  .founderPassUpgradeSteps {
+    grid-template-columns: 1fr;
+  }
+
+  .founderPassUpgradeSteps div {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .founderPassUpgradeBackdrop {
+    padding: 10px;
+  }
+
+  .founderPassUpgradePanel {
+    max-height: 90vh;
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .founderPassUpgradeHeader {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-right: 46px;
+  }
+
+  .founderPassUpgradePanel h2 {
+    font-size: 1.9rem;
+  }
+}
