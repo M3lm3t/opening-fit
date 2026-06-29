@@ -771,3 +771,53 @@
     font-size: 1.9rem;
   }
 }
+
+/* Header alignment refinement */
+.founderPassUpgradePanel {
+  padding-top: clamp(30px, 3.2vw, 38px);
+}
+
+.founderPassUpgradeClose {
+  top: 16px !important;
+  right: 16px !important;
+  left: auto !important;
+  z-index: 5;
+}
+
+.founderPassUpgradeHeader {
+  width: fit-content;
+  max-width: calc(100% - 56px);
+  margin: 0 auto 20px;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  text-align: center;
+}
+
+.founderPassUpgradePanel h2,
+.founderPassUpgradePanel > p {
+  margin-inline: auto;
+  text-align: center;
+}
+
+.founderPassUpgradeValue {
+  max-width: 604px;
+  margin-inline: auto;
+}
+
+@media (max-width: 560px) {
+  .founderPassUpgradePanel {
+    padding-top: 54px;
+  }
+
+  .founderPassUpgradeClose {
+    top: 14px !important;
+    right: 14px !important;
+  }
+
+  .founderPassUpgradeHeader {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: 1fr;
+    margin-bottom: 16px;
+  }
+}

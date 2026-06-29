@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import "./InfoHint.css";
 
 const TOOLTIP_WIDTH = 280;
+const TOOLTIP_MAX_HEIGHT = 360;
 const EDGE_GAP = 12;
 
 let activeInfoHint = null;
@@ -71,7 +72,11 @@ export default function InfoHint({ label, children, className = "" }) {
     if (!rect) return;
 
     const width = Math.min(TOOLTIP_WIDTH, window.innerWidth - EDGE_GAP * 2);
-    const bubbleHeight = bubbleRef.current?.offsetHeight || 96;
+    const bubbleHeight = Math.min(
+      bubbleRef.current?.offsetHeight || 96,
+      TOOLTIP_MAX_HEIGHT,
+      window.innerHeight - EDGE_GAP * 2
+    );
     const left = clamp(
       rect.left + rect.width / 2 - width / 2,
       EDGE_GAP,
