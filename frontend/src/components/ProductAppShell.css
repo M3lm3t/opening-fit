@@ -14,7 +14,6 @@
   --of-shell-radius-sm: 10px;
   --of-shell-shadow: 0 18px 48px rgba(2, 6, 23, 0.28);
   --of-shell-max: 1220px;
-  --of-shell-rail: 212px;
   --of-shell-gutter: clamp(14px, 2.2vw, 28px);
 }
 
@@ -23,7 +22,7 @@
 [data-theme="light"] {
   --of-shell-bg: #eef3f8;
   --of-shell-bg-soft: #f8fafc;
-  --of-shell-panel: rgba(255, 255, 255, 0.94);
+  --of-shell-panel: rgba(255, 255, 255, 0.96);
   --of-shell-panel-strong: #ffffff;
   --of-shell-border: rgba(15, 23, 42, 0.12);
   --of-shell-border-strong: rgba(14, 116, 144, 0.2);
@@ -47,9 +46,10 @@
 
 @media (min-width: 1180px) {
   .appReportPage .appPrimaryNav {
-    position: fixed;
-    inset: 16px auto 16px 16px;
-    width: var(--of-shell-rail);
+    position: sticky;
+    top: 10px;
+    width: min(calc(100% - 32px), var(--of-shell-max));
+    margin: 10px auto 0;
     padding: 0;
     border: 1px solid var(--of-shell-border);
     border-radius: 18px;
@@ -59,56 +59,52 @@
   }
 
   .appReportPage .appPrimaryNavInner {
-    min-height: 100%;
+    min-height: 58px;
     display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto auto auto;
-    align-items: start;
-    gap: 14px;
-    padding: 14px;
+    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
   }
 
   .appReportPage .appPrimaryBrand {
-    width: 100%;
-    padding: 9px 8px 14px;
-    border-bottom: 1px solid var(--of-shell-border);
+    width: auto;
+    padding: 0;
+    border-bottom: 0;
   }
 
   .appReportPage .appPrimaryTabs {
-    display: grid;
+    display: flex;
     width: 100%;
     gap: 6px;
-    align-content: start;
+    justify-content: center;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
   .appReportPage .appPrimaryTab,
   .appReportPage .appPrimaryGetStarted,
   .appReportPage .appPrimaryAccount {
-    width: 100%;
+    width: auto;
     min-height: 42px;
-    justify-content: flex-start;
+    justify-content: center;
     border-radius: 11px;
+    white-space: nowrap;
   }
 
   .appReportPage .appPrimaryGetStarted {
-    margin-top: auto;
+    margin-top: 0;
     justify-content: center;
     border-color: var(--of-shell-border-strong);
   }
 
   .appReportPage .appPrimaryAccount {
-    border-top: 1px solid var(--of-shell-border);
-    padding-top: 12px;
+    border-top: 0;
+    padding-top: 0;
   }
 
   .appReportPage .appPrimaryAccount::after {
-    content: "Premium-ready workspace";
-    display: block;
-    margin-left: 8px;
-    color: var(--of-shell-muted);
-    font-size: 0.68rem;
-    font-weight: 800;
-    line-height: 1.1;
+    content: none;
   }
 
   .appReportPage .appPrimaryMenuToggle,
@@ -118,21 +114,22 @@
 
   .appReportPage .accountSyncStatusBar,
   .appReportPage .accountSyncBanner {
-    margin-left: calc(var(--of-shell-rail) + 30px);
-    width: min(calc(100% - var(--of-shell-rail) - 62px), var(--of-shell-max));
+    width: min(calc(100% - 32px), var(--of-shell-max));
+    margin: 12px auto 0;
   }
 
   .appReportPage .appShell,
   .appReportPage .container.appShell,
   .appReportPage .page .appShell {
-    margin-left: calc(var(--of-shell-rail) + 34px);
-    width: min(calc(100% - var(--of-shell-rail) - 72px), var(--of-shell-max));
+    width: min(calc(100% - 32px), var(--of-shell-max));
+    margin: 16px auto 0;
   }
 }
 
 .appReportPage .appShell,
 .appReportPage .container.appShell {
   max-width: var(--of-shell-max);
+  min-height: auto;
   padding: var(--of-shell-gutter);
   border: 1px solid var(--of-shell-border);
   border-radius: 22px;
@@ -246,6 +243,145 @@
     box-shadow 140ms ease,
     border-color 140ms ease,
     background 140ms ease;
+}
+
+.page.light.appReportPage .secondaryBtn,
+.page.light.appReportPage .secondaryButton,
+.page.light.appReportPage button:not(.primaryBtn):not(.appPrimaryGetStarted):not(.platformButtonActive),
+[data-theme="light"] .appReportPage .secondaryBtn,
+[data-theme="light"] .appReportPage .secondaryButton,
+[data-theme="light"] .appReportPage button:not(.primaryBtn):not(.appPrimaryGetStarted):not(.platformButtonActive) {
+  color: #0f172a !important;
+}
+
+.page.light.appReportPage .primaryBtn,
+.page.light.appReportPage .appPrimaryGetStarted,
+.page.light.appReportPage .platformButtonActive,
+[data-theme="light"] .appReportPage .primaryBtn,
+[data-theme="light"] .appReportPage .appPrimaryGetStarted,
+[data-theme="light"] .appReportPage .platformButtonActive {
+  color: #03111f !important;
+}
+
+.page.light.appReportPage .primaryBtn *,
+.page.light.appReportPage .secondaryBtn *,
+.page.light.appReportPage .secondaryButton *,
+.page.light.appReportPage button *,
+[data-theme="light"] .appReportPage .primaryBtn *,
+[data-theme="light"] .appReportPage .secondaryBtn *,
+[data-theme="light"] .appReportPage .secondaryButton *,
+[data-theme="light"] .appReportPage button * {
+  color: inherit !important;
+}
+
+.page.light.appReportPage .secondaryBtn:hover,
+.page.light.appReportPage .secondaryButton:hover,
+.page.light.appReportPage button:not(.primaryBtn):not(.appPrimaryGetStarted):not(.platformButtonActive):hover,
+[data-theme="light"] .appReportPage .secondaryBtn:hover,
+[data-theme="light"] .appReportPage .secondaryButton:hover,
+[data-theme="light"] .appReportPage button:not(.primaryBtn):not(.appPrimaryGetStarted):not(.platformButtonActive):hover {
+  color: #020617 !important;
+}
+
+.page.light.appReportPage button:disabled,
+.page.light.appReportPage button[aria-disabled="true"],
+.page.light.appReportPage .secondaryBtn[aria-disabled="true"],
+.page.light.appReportPage .secondaryButton[aria-disabled="true"],
+[data-theme="light"] .appReportPage button:disabled,
+[data-theme="light"] .appReportPage button[aria-disabled="true"],
+[data-theme="light"] .appReportPage .secondaryBtn[aria-disabled="true"],
+[data-theme="light"] .appReportPage .secondaryButton[aria-disabled="true"] {
+  border-color: rgba(100, 116, 139, 0.28) !important;
+  background: #eef2f7 !important;
+  color: #475569 !important;
+  opacity: 1 !important;
+}
+
+.page.light.appReportPage button:disabled *,
+.page.light.appReportPage button[aria-disabled="true"] *,
+.page.light.appReportPage .secondaryBtn[aria-disabled="true"] *,
+.page.light.appReportPage .secondaryButton[aria-disabled="true"] *,
+[data-theme="light"] .appReportPage button:disabled *,
+[data-theme="light"] .appReportPage button[aria-disabled="true"] *,
+[data-theme="light"] .appReportPage .secondaryBtn[aria-disabled="true"] *,
+[data-theme="light"] .appReportPage .secondaryButton[aria-disabled="true"] * {
+  color: inherit !important;
+}
+
+.page.light.appReportPage .simpleProfileCard h1,
+.page.light.appReportPage .simpleProfileCard h2,
+.page.light.appReportPage .simpleProfileCard h3,
+.page.light.appReportPage .profileDashboardCard h1,
+.page.light.appReportPage .profileDashboardCard h2,
+.page.light.appReportPage .profileDashboardCard h3,
+[data-theme="light"] .appReportPage .simpleProfileCard h1,
+[data-theme="light"] .appReportPage .simpleProfileCard h2,
+[data-theme="light"] .appReportPage .simpleProfileCard h3,
+[data-theme="light"] .appReportPage .profileDashboardCard h1,
+[data-theme="light"] .appReportPage .profileDashboardCard h2,
+[data-theme="light"] .appReportPage .profileDashboardCard h3 {
+  background: transparent;
+}
+
+.page.light.appReportPage .infoHintButton,
+[data-theme="light"] .appReportPage .infoHintButton {
+  border-color: rgba(14, 116, 144, 0.34);
+  background: #e0f7fb;
+  color: #063344;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72), 0 3px 10px rgba(15, 23, 42, 0.1);
+}
+
+.page.light.appReportPage .infoHintButton:hover,
+.page.light.appReportPage .infoHintButton:focus-visible,
+[data-theme="light"] .appReportPage .infoHintButton:hover,
+[data-theme="light"] .appReportPage .infoHintButton:focus-visible {
+  border-color: rgba(8, 145, 178, 0.62);
+  background: #cffafe;
+}
+
+.page.light.appReportPage .infoHintBubble,
+[data-theme="light"] .appReportPage .infoHintBubble {
+  border-color: rgba(15, 23, 42, 0.22);
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2);
+}
+
+[data-theme="dark"] .infoHintBubble,
+.page.dark .infoHintBubble {
+  max-height: min(360px, calc(100vh - 24px));
+  overflow: auto;
+  border-color: rgba(125, 211, 252, 0.28) !important;
+  background: #0f172a !important;
+  color: rgba(248, 250, 252, 0.96) !important;
+  box-shadow: 0 18px 44px rgba(2, 6, 23, 0.44) !important;
+}
+
+[data-theme="light"] .infoHintBubble,
+.page.light .infoHintBubble {
+  max-height: min(360px, calc(100vh - 24px));
+  overflow: auto;
+  border-color: rgba(15, 23, 42, 0.22) !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2) !important;
+}
+
+[data-theme="dark"] .infoHintBubble strong,
+[data-theme="dark"] .infoHintBubble b {
+  color: rgba(248, 250, 252, 0.98) !important;
+}
+
+[data-theme="dark"] .infoHintBubble small,
+[data-theme="dark"] .infoHintBubble span {
+  color: rgba(226, 232, 240, 0.88) !important;
+}
+
+[data-theme="light"] .infoHintBubble strong,
+[data-theme="light"] .infoHintBubble b,
+[data-theme="light"] .infoHintBubble span,
+[data-theme="light"] .infoHintBubble small {
+  color: #0f172a !important;
 }
 
 .appReportPage .primaryBtn:active,
@@ -372,6 +508,13 @@
     min-height: 58px;
   }
 
+  .appReportPage .accountSyncStatusBar,
+  .appReportPage .accountSyncBanner {
+    width: min(calc(100% - 22px), var(--of-shell-max));
+    margin: 8px auto 0;
+    border-radius: 14px;
+  }
+
   .appReportPage .appShell,
   .appReportPage .container.appShell {
     width: min(100% - 22px, var(--of-shell-max));
@@ -382,6 +525,7 @@
 @media (max-width: 760px) {
   .appReportPage {
     background: var(--of-shell-bg);
+    padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px));
   }
 
   .appReportPage .appPrimaryNavInner {

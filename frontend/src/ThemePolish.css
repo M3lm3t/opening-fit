@@ -986,3 +986,253 @@ textarea:focus-visible {
 [data-theme="dark"] .appReportPage button * {
   color: inherit;
 }
+
+/* Semantic colour system compatibility pass. Keep this restrained and token-driven. */
+:root {
+  --ds-bg-0: var(--color-bg-base, #030814);
+  --ds-bg-1: #07111f;
+  --ds-bg-2: #0b1524;
+  --ds-surface: var(--color-bg-elevated, rgba(12, 20, 32, 0.94));
+  --ds-surface-strong: color-mix(in srgb, var(--color-bg-elevated, #0c1420) 90%, white 8%);
+  --ds-surface-muted: var(--color-bg-subtle, rgba(148, 163, 184, 0.09));
+  --ds-border: var(--color-border-subtle, rgba(180, 205, 232, 0.17));
+  --ds-border-strong: var(--color-border-strong, rgba(180, 205, 232, 0.32));
+  --ds-muted: var(--color-text-muted, #91a4bb);
+}
+
+:root[data-theme="light"],
+.page.light,
+body.light {
+  --ds-bg-0: var(--color-bg-base, #f7fafc);
+  --ds-bg-1: #eef3f8;
+  --ds-bg-2: #ffffff;
+  --ds-surface: var(--color-bg-elevated, #ffffff);
+  --ds-surface-strong: #ffffff;
+  --ds-surface-muted: var(--color-bg-subtle, #eef3f8);
+  --ds-border: var(--color-border-subtle, rgba(30, 41, 59, 0.14));
+  --ds-border-strong: var(--color-border-strong, rgba(30, 41, 59, 0.24));
+  --ds-muted: var(--color-text-muted, #64748b);
+}
+
+.card,
+.panel,
+.reportCommandBar,
+.analysisVerdictModal,
+.returningUserBriefing,
+.openingCoachSummary,
+.openingFitVerdict,
+.openingRecommendationVerdict,
+.dailyMissionCard,
+.weeklyOpeningSessionCard,
+.todayTrainingCard,
+.continueTrainingCard,
+.openingHealthScore,
+.profileDashboardCard,
+.premiumPanel,
+.accountPanel {
+  border-color: var(--color-border-subtle, var(--ds-border)) !important;
+  background-color: var(--color-bg-elevated, var(--ds-surface)) !important;
+}
+
+.card:hover,
+.openingCoachSummary:hover,
+.openingFitVerdictItem:hover,
+.openingRecommendationVerdict:hover,
+.dailyMissionCard:hover {
+  border-color: color-mix(in srgb, var(--color-accent, #2dd4bf) 26%, var(--color-border-strong, var(--ds-border-strong))) !important;
+}
+
+.primaryBtn,
+button.primaryBtn,
+.appPrimaryGetStarted,
+.reportCommandBar__upgrade:not(.premiumCheckoutButton) {
+  border-color: var(--color-accent-border, rgba(45, 212, 191, 0.42)) !important;
+  background: linear-gradient(135deg, var(--color-accent, #2dd4bf), var(--color-accent-hover, #38e3cf)) !important;
+  color: #03111f !important;
+}
+
+.primaryBtn:hover,
+button.primaryBtn:hover,
+.appPrimaryGetStarted:hover {
+  border-color: var(--color-accent-border, rgba(45, 212, 191, 0.52)) !important;
+  background: linear-gradient(135deg, var(--color-accent-hover, #38e3cf), var(--color-accent, #2dd4bf)) !important;
+}
+
+.secondaryBtn,
+button.secondaryBtn,
+.secondaryButton,
+.ghostButton,
+.inlineSampleButton,
+.platformButton:not(.platformButtonActive),
+.analysisTimeFormatButton:not(.analysisTimeFormatButtonActive),
+.appTabButton:not(.appTabButtonActive),
+.reportCommandBar__tabs button:not(.is-active) {
+  border-color: var(--color-border-strong, var(--ds-border-strong)) !important;
+  background: var(--color-bg-subtle, var(--ds-surface-muted)) !important;
+  color: var(--color-text-primary, #f8fafc) !important;
+}
+
+.secondaryBtn:hover,
+button.secondaryBtn:hover,
+.secondaryButton:hover,
+.ghostButton:hover,
+.inlineSampleButton:hover,
+.platformButton:not(.platformButtonActive):hover,
+.analysisTimeFormatButton:not(.analysisTimeFormatButtonActive):hover,
+.appTabButton:not(.appTabButtonActive):hover,
+.reportCommandBar__tabs button:not(.is-active):hover {
+  border-color: var(--color-accent-border, rgba(45, 212, 191, 0.42)) !important;
+  background: color-mix(in srgb, var(--color-accent, #2dd4bf) 10%, var(--color-bg-subtle, rgba(148, 163, 184, 0.09))) !important;
+}
+
+.platformButtonActive,
+.analysisTimeFormatButtonActive,
+.appTabButtonActive,
+.reportCommandBar__tabs button.is-active,
+.reportCommandBar__tabActive,
+.mobileBottomNav button.is-active,
+.mobileBottomNav button[aria-current="page"] {
+  border-color: var(--color-accent-border, rgba(45, 212, 191, 0.42)) !important;
+  background: var(--color-accent-soft, rgba(45, 212, 191, 0.14)) !important;
+  color: var(--color-accent-hover, #38e3cf) !important;
+}
+
+.input,
+input,
+select,
+textarea {
+  border-color: var(--color-border-strong, var(--ds-border-strong)) !important;
+  background: color-mix(in srgb, var(--color-bg-elevated, #0c1420) 86%, var(--color-bg-subtle, rgba(148, 163, 184, 0.09))) !important;
+  color: var(--color-text-primary, #f8fafc) !important;
+}
+
+.input:focus,
+.input:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: var(--color-accent-border, rgba(45, 212, 191, 0.42)) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent, #2dd4bf) 18%, transparent) !important;
+}
+
+.verdict.keep,
+.reportVerdictKeep,
+.verdictPill.keep,
+.openingVerdictKeep,
+.fingerprintKeep {
+  border-color: color-mix(in srgb, var(--color-success, #3dd68c) 42%, var(--color-border-subtle, transparent)) !important;
+  background: var(--color-success-soft, rgba(61, 214, 140, 0.13)) !important;
+  color: var(--color-success, #3dd68c) !important;
+}
+
+.verdict.improve,
+.reportVerdictImprove,
+.verdictPill.improve,
+.openingVerdictImprove {
+  border-color: color-mix(in srgb, var(--color-warning, #f4bf5f) 42%, var(--color-border-subtle, transparent)) !important;
+  background: var(--color-warning-soft, rgba(244, 191, 95, 0.14)) !important;
+  color: var(--color-warning, #f4bf5f) !important;
+}
+
+.verdict.avoid,
+.reportVerdictAvoid,
+.verdictPill.avoid,
+.openingVerdictAvoid {
+  border-color: color-mix(in srgb, var(--color-danger, #fb7185) 40%, var(--color-border-subtle, transparent)) !important;
+  background: var(--color-danger-soft, rgba(251, 113, 133, 0.12)) !important;
+  color: var(--color-danger, #fb7185) !important;
+}
+
+.verdict.test,
+.statusPill,
+.badge,
+.pill {
+  border-color: color-mix(in srgb, var(--color-neutral, #9fb0c7) 38%, var(--color-border-subtle, transparent)) !important;
+  background: var(--color-neutral-soft, rgba(159, 176, 199, 0.13)) !important;
+  color: var(--color-text-secondary, #c8d6e5) !important;
+}
+
+.openingRecommendationVerdict--keep {
+  border-left-color: var(--color-success, #3dd68c) !important;
+  background: color-mix(in srgb, var(--color-success-soft, rgba(61, 214, 140, 0.13)) 72%, var(--color-bg-elevated, transparent)) !important;
+}
+
+.openingRecommendationVerdict--repair {
+  border-left-color: var(--color-warning, #f4bf5f) !important;
+  background: color-mix(in srgb, var(--color-warning-soft, rgba(244, 191, 95, 0.14)) 72%, var(--color-bg-elevated, transparent)) !important;
+}
+
+.openingRecommendationVerdict--replace {
+  border-left-color: var(--color-danger, #fb7185) !important;
+  background: color-mix(in srgb, var(--color-danger-soft, rgba(251, 113, 133, 0.12)) 72%, var(--color-bg-elevated, transparent)) !important;
+}
+
+.openingRecommendationVerdict--watch {
+  border-left-color: var(--color-neutral, #9fb0c7) !important;
+  background: color-mix(in srgb, var(--color-neutral-soft, rgba(159, 176, 199, 0.13)) 72%, var(--color-bg-elevated, transparent)) !important;
+}
+
+.repertoirePlanCard-white,
+.analysisVerdictInsight--white,
+.focusedRepertoireCard:has([class*="white" i]) {
+  border-top-color: var(--color-white-side, #dce6f0) !important;
+}
+
+.repertoirePlanCard-black,
+.analysisVerdictInsight--black,
+.focusedRepertoireCard:has([class*="black" i]) {
+  border-top-color: var(--color-black-side, #8b9cf6) !important;
+}
+
+.analysisVerdictInsight--white i {
+  border-color: color-mix(in srgb, var(--color-white-side, #dce6f0) 48%, transparent) !important;
+  background: var(--color-white-side-soft, rgba(220, 230, 240, 0.12)) !important;
+}
+
+.analysisVerdictInsight--black i {
+  border-color: color-mix(in srgb, var(--color-black-side, #8b9cf6) 48%, transparent) !important;
+  background: var(--color-black-side-soft, rgba(139, 156, 246, 0.14)) !important;
+}
+
+.dailyMissionCard,
+.openingCoachSummary,
+.missionImprovementCard,
+.progressTrackerCard,
+.openingGamificationCard {
+  border-color: var(--color-accent-border, rgba(45, 212, 191, 0.42)) !important;
+  background:
+    linear-gradient(180deg, var(--color-accent-soft, rgba(45, 212, 191, 0.14)), transparent 78%),
+    var(--color-bg-elevated, var(--ds-surface)) !important;
+}
+
+.dailyMissionChecklist .isDone,
+.progressBarComplete,
+.openingGamificationProgressDone {
+  border-color: color-mix(in srgb, var(--color-success, #3dd68c) 36%, var(--color-border-subtle, transparent)) !important;
+  background: var(--color-success-soft, rgba(61, 214, 140, 0.13)) !important;
+}
+
+.fitScoreCircle,
+.commandCentreScore,
+.openingHealthScoreValue,
+.analysisVerdictScoreRow,
+.weeklyOpeningScore {
+  border-color: var(--color-accent-border, rgba(45, 212, 191, 0.42)) !important;
+  background: var(--color-accent-soft, rgba(45, 212, 191, 0.14)) !important;
+}
+
+.page.light .secondaryBtn,
+.page.light button.secondaryBtn,
+[data-theme="light"] .secondaryBtn,
+[data-theme="light"] button.secondaryBtn,
+.page.light .reportCommandBar__tabs button:not(.is-active),
+[data-theme="light"] .reportCommandBar__tabs button:not(.is-active) {
+  color: var(--color-text-primary, #0f172a) !important;
+}
+
+.page.light .verdict.test,
+.page.light .openingRecommendationVerdict--watch,
+[data-theme="light"] .verdict.test,
+[data-theme="light"] .openingRecommendationVerdict--watch {
+  color: var(--color-neutral, #64748b) !important;
+}

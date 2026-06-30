@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import OpeningScoreExplanation from "./OpeningScoreExplanation";
 import "./AnalysisVerdictModal.css";
 
 function asArray(value) {
@@ -32,8 +31,58 @@ function openingScore(item) {
   return Math.max(0, Math.min(100, Math.round(number <= 1 ? number * 100 : number)));
 }
 
-function openingContext(item) {
-  return cleanText(item?.contextLabel || item?.context_label || item?.role || item?.side || item?.colour || item?.color);
+function openingGames(item) {
+  const number = Number(item?.games ?? item?.gamesPlayed ?? item?.games_played ?? item?.sampleSize ?? item?.sample_size);
+  return Number.isFinite(number) ? Math.max(0, Math.round(number)) : 0;
+}
+
+function openingVerdict(item) {
+  return cleanText(item?.fitVerdict || item?.fit_verdict || item?.verdict || item?.recommendation || item?.status);
+}
+
+function openingSide(item) {
+  const text = cleanText(
+    [
+      item?.context,
+      item?.contextKey,
+      item?.context_key,
+      item?.role,
+      item?.side,
+      item?.colour,
+      item?.color,
+      item?.player_color,
+      item?.player_colour,
+    ].join(" ")
+  ).toLowerCase();
+  if (text.includes("white") || text.includes("played_as_white") || text.includes("white_repertoire")) return "white";
+  if (text.includes("black") || text.includes("black_vs") || text.includes("vs 1.")) return "black";
+  return "";
+}
+
+function blackContext(item) {
+  const text = cleanText(
+    [
+      item?.context,
+      item?.contextKey,
+      item?.context_key,
+      item?.role,
+      item?.side,
+      item?.colour,
+      item?.color,
+      item?.firstMove,
+      item?.first_move,
+      item?.opponentFirstMove,
+      item?.opponent_first_move,
+    ].join(" ")
+  ).toLowerCase();
+  if (text.includes("black_vs_e4") || text.includes("vs 1.e4") || text.includes("vs e4") || text === "e4") return "vs 1.e4";
+  if (text.includes("black_vs_d4") || text.includes("vs 1.d4") || text.includes("vs d4") || text === "d4") return "vs 1.d4";
+  if (text.includes("black_vs_other")) return "vs other first moves";
+  return "";
+}
+
+function withContext(items, context) {
+  return asArray(items).map((item) => (item && typeof item === "object" ? { ...item, context } : item));
 }
 
 function isUsableOpening(item) {
@@ -52,13 +101,17 @@ function candidateRecommendations(data = {}) {
     ...asArray(data.coachInsights?.recommendations),
     ...asArray(data.coach_insights?.recommendations),
     ...asArray(data.recommendations),
+    ...asArray(legacy.white),
     ...asArray(legacy.white_repertoire),
     ...asArray(legacy.whiteDetailed),
     ...asArray(legacy.black_vs_e4),
+    ...asArray(legacy.blackVsE4),
     ...asArray(legacy.blackVsE4Detailed),
     ...asArray(legacy.black_vs_d4),
+    ...asArray(legacy.blackVsD4),
     ...asArray(legacy.blackVsD4Detailed),
     ...asArray(legacy.black_vs_other),
+    ...asArray(legacy.blackVsOther),
     ...asArray(legacy.blackVsOtherDetailed),
     ...asArray(grouped.white),
     ...asArray(grouped.black_vs_e4 || grouped.blackVsE4),
@@ -66,96 +119,183 @@ function candidateRecommendations(data = {}) {
   ];
 }
 
-function insightFromText(title, text) {
-  const value = cleanText(text);
-  return value ? { title, text: value } : null;
+function keepRecommendations(items) {
+  return asArray(items).filter((item) => /keep|weapon|reliable|core|main/i.test(openingVerdict(item)));
 }
 
-function insightForStrength(data = {}, fitData = {}) {
-  const direct =
-    insightFromText("Your biggest strength", data.coachInsights?.strength || data.coach_insights?.strength) ||
-    insightFromText("Your biggest strength", data.diagnosis?.strength || data.openingDiagnosis?.strength);
-  if (direct) return direct;
+function reviewRecommendations(items) {
+  return asArray(items).filter((item) => /improve|avoid|park|repair|review|weak|lower/i.test(openingVerdict(item)));
+}
 
-  const best = firstUsable(fitData.bestOpening, data.best_openings?.[0], data.bestOpenings?.[0], data.top_openings?.[0]);
-  if (best) {
-    const name = openingName(best);
-    const score = openingScore(best);
-    const context = openingContext(best);
+function strongestOpening(items) {
+  return asArray(items)
+    .filter(isUsableOpening)
+    .sort((a, b) => {
+      const scoreDelta = (openingScore(b) ?? -1) - (openingScore(a) ?? -1);
+      if (scoreDelta) return scoreDelta;
+      return openingGames(b) - openingGames(a);
+    })[0] || null;
+}
+
+function whiteRecommendationCandidates(data = {}) {
+  const legacy = data.opening_recommendations || data.openingRecommendations || {};
+  return [
+    ...withContext(data.preferred_white || data.preferredWhite, "white_repertoire"),
+    ...withContext(legacy.white || legacy.white_repertoire || legacy.whiteDetailed, "white_repertoire"),
+    ...asArray(data.best_openings || data.bestOpenings).filter((item) => openingSide(item) === "white"),
+    ...asArray(data.top_openings || data.topOpenings).filter((item) => openingSide(item) === "white"),
+  ];
+}
+
+function blackRecommendationCandidates(data = {}) {
+  const legacy = data.opening_recommendations || data.openingRecommendations || {};
+  return [
+    ...withContext(data.preferred_black || data.preferredBlack, "black_vs_e4"),
+    ...withContext(legacy.black_vs_e4 || legacy.blackVsE4 || legacy.blackVsE4Detailed, "black_vs_e4"),
+    ...withContext(legacy.black_vs_d4 || legacy.blackVsD4 || legacy.blackVsD4Detailed, "black_vs_d4"),
+    ...withContext(legacy.black_vs_other || legacy.blackVsOther || legacy.blackVsOtherDetailed, "black_vs_other"),
+    ...asArray(data.best_openings || data.bestOpenings).filter((item) => openingSide(item) === "black"),
+    ...asArray(data.top_openings || data.topOpenings).filter((item) => openingSide(item) === "black"),
+  ];
+}
+
+function fallbackKeepCandidate(data = {}, side) {
+  const candidates = keepRecommendations(candidateRecommendations(data));
+  return strongestOpening(
+    candidates.filter((item) => {
+      const detected = openingSide(item);
+      if (side === "white") return detected === "white" || !detected;
+      return detected === "black";
+    })
+  );
+}
+
+function cardSupport(item, side) {
+  const games = openingGames(item);
+  const score = openingScore(item);
+  const reason = cleanText(item?.reason || item?.recommendationReason || item?.recommendation_reason || item?.summary);
+  if (reason) return reason;
+  if (games >= 10) return `Strong results across ${games} analysed games.`;
+  if (score !== null && score >= 70) return side === "white" ? "Your most reliable White weapon so far." : "Your clearest Black opening to build around.";
+  if (games >= 3) return side === "white" ? "You get playable positions here more consistently." : "A practical system you already know well.";
+  return side === "white" ? "Your most reliable White weapon so far." : "Keep this as your main response for now.";
+}
+
+function buildWhiteCard(data = {}, fitData = {}) {
+  const pick =
+    firstUsable(data.preferred_white, data.preferredWhite) ||
+    strongestOpening(asArray(data.best_openings || data.bestOpenings).filter((item) => openingSide(item) === "white")) ||
+    strongestOpening(whiteRecommendationCandidates(data)) ||
+    fallbackKeepCandidate(data, "white") ||
+    (openingSide(fitData.bestOpening) === "white" ? fitData.bestOpening : null);
+
+  if (!pick) {
     return {
-      title: "Your biggest strength",
-      text: `${name}${context ? ` ${context}` : ""}${score !== null ? ` is your strongest signal at ${score}/100.` : " is your strongest opening signal."}`,
+      key: "white",
+      label: "Best as White",
+      title: "White repertoire still forming",
+      text: "With more games, we'll identify your best White system.",
+      indicator: "W",
+      target: null,
     };
   }
 
-  const style = cleanText(data.styleProfile?.summary || data.style_profile?.summary || data.styleProfile?.label || data.style_profile?.label);
-  return insightFromText("Your biggest strength", style ? `Your style profile points to ${style}.` : "");
+  return {
+    key: "white",
+    label: "Best as White",
+    title: openingName(pick),
+    text: cardSupport(pick, "white"),
+    indicator: "W",
+    target: pick,
+  };
 }
 
-function insightForOpportunity(data = {}, fitData = {}) {
-  const direct =
-    insightFromText("Main opportunity", data.coachInsights?.opportunity || data.coach_insights?.opportunity) ||
-    insightFromText("Main opportunity", data.diagnosis?.opportunity || data.openingDiagnosis?.opportunity);
-  if (direct) return direct;
+function buildBlackCard(data = {}, fitData = {}) {
+  const pick =
+    firstUsable(data.preferred_black, data.preferredBlack) ||
+    strongestOpening(asArray(data.best_openings || data.bestOpenings).filter((item) => openingSide(item) === "black")) ||
+    strongestOpening(blackRecommendationCandidates(data)) ||
+    fallbackKeepCandidate(data, "black") ||
+    (openingSide(fitData.bestOpening) === "black" ? fitData.bestOpening : null);
+
+  if (!pick) {
+    return {
+      key: "black",
+      label: "Best as Black",
+      title: "Black repertoire still forming",
+      text: "Play a few more games as Black to get a clearer recommendation.",
+      indicator: "B",
+      target: null,
+    };
+  }
+
+  const context = blackContext(pick);
+  const name = openingName(pick);
+  return {
+    key: "black",
+    label: "Best as Black",
+    title: context && !name.toLowerCase().includes(context) ? `${name} ${context}` : name,
+    text: cardSupport(pick, "black"),
+    indicator: "B",
+    target: pick,
+  };
+}
+
+function cleanFocusTitle(value) {
+  const text = cleanText(value);
+  if (!text) return "";
+  return text.length > 72 ? `${text.slice(0, 69).trim()}...` : text;
+}
+
+function buildFocusCard(data = {}, fitData = {}, trainingTarget = null) {
+  const plan = asArray(data.training_plan || data.trainingPlan)[0];
+  if (plan) {
+    const title = typeof plan === "string" ? plan : cleanText(plan.title || plan.action || plan.opening);
+    const detail = typeof plan === "string" ? "" : cleanText(plan.text || plan.description || plan.detail || plan.reason);
+    return {
+      key: "focus",
+      label: "This week's focus",
+      title: cleanFocusTitle(title) || "Build consistency with your current main openings.",
+      text: detail || "A small improvement here will affect the most games.",
+      indicator: "!",
+      target: typeof plan === "object" ? (plan.trainingTarget || plan.opening || trainingTarget) : trainingTarget,
+    };
+  }
 
   const weakLine = firstUsable(data.weak_lines, data.weakLines);
   if (weakLine) {
     const name = openingName(weakLine);
-    const moveLine = cleanText(weakLine.moveLine || weakLine.move_line || weakLine.line || weakLine.variation);
     return {
-      title: "Main opportunity",
-      text: moveLine ? `Review ${name}: ${moveLine}.` : `Review the repeated line in ${name}.`,
+      key: "focus",
+      label: "This week's focus",
+      title: `Practise ${name}`,
+      text: "This repeated line is the clearest place to sharpen first.",
+      indicator: "!",
+      target: weakLine,
     };
   }
 
-  const weakest = firstUsable(fitData.weakestOpening);
-  if (weakest) {
-    const name = openingName(weakest);
-    const score = openingScore(weakest);
+  const priority = firstUsable(reviewRecommendations(candidateRecommendations(data)), fitData.weakestOpening, trainingTarget);
+  if (priority) {
+    const name = openingName(priority);
     return {
-      title: "Main opportunity",
-      text: `Clean up ${name}${score !== null ? ` (${score}/100)` : ""} before adding more theory.`,
+      key: "focus",
+      label: "This week's focus",
+      title: name ? `Practise ${name}` : "Build consistency with your current main openings.",
+      text: "This is the area costing you the most early-game points.",
+      indicator: "!",
+      target: priority,
     };
   }
 
-  const rec = firstUsable(candidateRecommendations(data));
-  if (rec) {
-    const name = openingName(rec);
-    const reason = cleanText(rec.recommendationReason || rec.recommendation_reason || rec.reason);
-    return {
-      title: "Main opportunity",
-      text: reason || `Compare the recommendation for ${name} against your current repertoire.`,
-    };
-  }
-
-  return null;
-}
-
-function insightForNextStep(data = {}, fitData = {}) {
-  const direct =
-    insightFromText("Best next step", data.coachInsights?.nextStep || data.coach_insights?.next_step) ||
-    insightFromText("Best next step", data.recommendedAction || data.recommended_action);
-  if (direct) return direct;
-
-  const plan = asArray(data.training_plan || data.trainingPlan)[0];
-  if (plan) {
-    const title = cleanText(plan.title || plan.action);
-    const text = cleanText(plan.text || plan.description || plan.detail);
-    return {
-      title: "Best next step",
-      text: title && text ? `${title}: ${text}` : title || text,
-    };
-  }
-
-  const target = firstUsable(fitData.weakestOpening, fitData.bestOpening);
-  if (target) {
-    return {
-      title: "Best next step",
-      text: `Start one focused training session on ${openingName(target)}.`,
-    };
-  }
-
-  return null;
+  return {
+    key: "focus",
+    label: "This week's focus",
+    title: "Build consistency with your current main openings.",
+    text: "Play a few more games in the same systems so the next report can judge them fairly.",
+    indicator: "!",
+    target: trainingTarget || null,
+  };
 }
 
 function scoreStatus(data = {}, fitData = {}) {
@@ -172,6 +312,15 @@ function scoreStatus(data = {}, fitData = {}) {
   );
 }
 
+function dynamicScoreStatus(data = {}, fitData = {}, whiteCard, blackCard, openingScore) {
+  const games = gameCount(data);
+  if (games > 0 && games < 5) return "Still early data, but a useful direction is emerging.";
+  if (whiteCard?.target && !blackCard?.target) return "Your White is ahead of your Black repertoire.";
+  const score = Number(openingScore ?? fitData?.overallScore ?? data?.openingFitScore ?? data?.opening_fit_score);
+  if (Number.isFinite(score) && score >= 70) return "Solid foundation - one key area to sharpen.";
+  return "Clear progress path: simplify, then strengthen.";
+}
+
 function gameCount(data = {}) {
   return (
     Number(
@@ -184,15 +333,6 @@ function gameCount(data = {}) {
         0
     ) || 0
   );
-}
-
-function fallbackInsights(data = {}) {
-  const games = gameCount(data);
-  return {
-    strength: `OpeningFit found ${games || "your"} usable game${games === 1 ? "" : "s"} for this report.`,
-    opportunity: "Use the full opening table to compare results by colour before changing repertoire.",
-    next: "Open the report verdicts and pick one repeated line to review first.",
-  };
 }
 
 export default function AnalysisVerdictModal({
@@ -211,15 +351,14 @@ export default function AnalysisVerdictModal({
   const previousFocusRef = useRef(null);
 
   const insights = useMemo(() => {
-    const fallback = fallbackInsights(data);
-    return [
-      insightForStrength(data, fitData) || { title: "Your biggest strength", text: fallback.strength },
-      insightForOpportunity(data, fitData) || { title: "Main opportunity", text: fallback.opportunity },
-      insightForNextStep(data, fitData) || { title: "Best next step", text: fallback.next },
-    ];
-  }, [data, fitData]);
-  const status = scoreStatus(data, fitData);
-  const hasTrainingAction = Boolean(trainingTarget && onStartTraining);
+    const whiteCard = buildWhiteCard(data, fitData);
+    const blackCard = buildBlackCard(data, fitData);
+    const focusCard = buildFocusCard(data, fitData, trainingTarget);
+    return [whiteCard, blackCard, focusCard];
+  }, [data, fitData, trainingTarget]);
+  const focusTarget = insights[2]?.target || trainingTarget || insights[0]?.target || insights[1]?.target || null;
+  const status = scoreStatus(data, fitData) || dynamicScoreStatus(data, fitData, insights[0], insights[1], openingScore);
+  const hasTrainingAction = Boolean(onStartTraining || onViewReport);
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -309,7 +448,7 @@ export default function AnalysisVerdictModal({
         <div className="analysisVerdictScoreRow">
           <div className="analysisVerdictScoreLabel" ref={scoreInfoRef}>
             <span>
-              Opening Score
+              OpeningScore
               <button
                 className="analysisVerdictInfo"
                 type="button"
@@ -335,15 +474,24 @@ export default function AnalysisVerdictModal({
               role="tooltip"
               onPointerDown={(event) => event.stopPropagation()}
             >
-              <OpeningScoreExplanation />
+              <strong>What your OpeningScore means</strong>
+              <p>
+                OpeningScore reflects how reliable your current repertoire is based on your results,
+                consistency, sample size and how comfortable you appear to be in the opening phase.
+                It is a training guide, not a judgement of your chess ability.
+              </p>
             </div>
           ) : null}
         </div>
 
         <div className="analysisVerdictInsights">
           {insights.map((insight) => (
-            <article key={insight.title}>
-              <span>{insight.title}</span>
+            <article className={`analysisVerdictInsight analysisVerdictInsight--${insight.key}`} key={insight.label}>
+              <span>
+                <i aria-hidden="true">{insight.indicator}</i>
+                {insight.label}
+              </span>
+              <h3>{insight.title}</h3>
               <p>{insight.text}</p>
             </article>
           ))}
@@ -354,8 +502,18 @@ export default function AnalysisVerdictModal({
             View full report
           </button>
           {hasTrainingAction ? (
-            <button className="secondaryBtn" type="button" onClick={() => onStartTraining(trainingTarget)}>
-              Start next training step
+            <button
+              className="secondaryBtn"
+              type="button"
+              onClick={() => {
+                if (focusTarget && onStartTraining) {
+                  onStartTraining(focusTarget);
+                  return;
+                }
+                onViewReport?.();
+              }}
+            >
+              Start this week's focus
             </button>
           ) : null}
         </div>
