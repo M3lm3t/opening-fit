@@ -535,6 +535,20 @@
   color: #0f172a;
 }
 
+.accountStatusLink {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  color: #7dd3fc;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.page.light .accountStatusLink,
+.light .accountStatusLink {
+  color: #075985;
+}
+
 .premiumStatusCard {
   display: grid;
   gap: 4px;

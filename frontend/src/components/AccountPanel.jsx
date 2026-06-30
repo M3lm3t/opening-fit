@@ -22,9 +22,23 @@ const AUTH_REQUEST_TIMEOUT_MS = 12000;
 const SUPPORT_EMAIL = "m3lm3t@gmail.com";
 const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`;
 const DELETE_REQUEST_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20account%20deletion%20request`;
+const PRODUCTION_AUTH_ORIGIN = "https://www.openingfit.com";
+const GOOGLE_PROVIDER_UNAVAILABLE_MESSAGE =
+  "Google sign-in is taking too long at the auth provider. Email login and login links are still available.";
 
 function getStableAuthRedirectTo() {
-  return `${window.location.origin}/account`;
+  if (typeof window === "undefined") return `${PRODUCTION_AUTH_ORIGIN}/account`;
+
+  const { hostname, origin } = window.location;
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+  const authOrigin =
+    isLocalhost || hostname.endsWith(".localhost")
+      ? origin
+      : hostname === "www.openingfit.com" || hostname === "openingfit.com" || hostname.endsWith(".vercel.app")
+        ? PRODUCTION_AUTH_ORIGIN
+        : origin;
+
+  return `${authOrigin}/account`;
 }
 
 function withAuthTimeout(request, message = "Supabase auth is taking too long. Please try again shortly.") {
@@ -124,6 +138,7 @@ export default function AccountPanel({ variant = "floating",
   const [confirmPassword, setConfirmPassword] = useState("");
   const [authMode, setAuthMode] = useState("login");
   const [status, setStatus] = useState("");
+  const [googleRedirectUrl, setGoogleRedirectUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -173,6 +188,7 @@ export default function AccountPanel({ variant = "floating",
     }
 
     setStatus("Opening secure Google sign-in...");
+    setGoogleRedirectUrl("");
     setOauthLoading(true);
 
     try {
@@ -197,7 +213,17 @@ export default function AccountPanel({ variant = "floating",
       }
 
       if (data?.url) {
-        window.location.assign(data.url);
+        const googleWindow = window.open(data.url, "_blank", "noopener,noreferrer");
+
+        if (googleWindow) {
+          setGoogleRedirectUrl("");
+          setStatus(
+            "Google sign-in opened in a new tab. If it times out, use email login or send yourself a login link below."
+          );
+        } else {
+          setGoogleRedirectUrl(data.url);
+          setStatus("Your browser blocked the Google sign-in tab. Use the secure link below or try email login.");
+        }
         return;
       }
 
@@ -211,7 +237,7 @@ export default function AccountPanel({ variant = "floating",
       }
     } catch (error) {
       console.error("OpeningFit Google signup/sign-in crashed", error);
-      setStatus(error?.message || "Could not start Google sign-in.");
+      setStatus(error?.message || GOOGLE_PROVIDER_UNAVAILABLE_MESSAGE);
     } finally {
       setOauthLoading(false);
     }
@@ -256,7 +282,7 @@ export default function AccountPanel({ variant = "floating",
             hasSession: Boolean(data?.session),
           });
         }
-      setStatus("Check your email for your login link.");
+        setStatus("Check your email for your login link.");
       }
     } catch (error) {
       console.error("OpeningFit email magic-link signup crashed", {
@@ -611,6 +637,7 @@ export default function AccountPanel({ variant = "floating",
                   onClick={() => {
                     setAuthMode("login");
                     setStatus("");
+                    setGoogleRedirectUrl("");
                   }}
                 >
                   Log in
@@ -621,6 +648,7 @@ export default function AccountPanel({ variant = "floating",
                   onClick={() => {
                     setAuthMode("signup");
                     setStatus("");
+                    setGoogleRedirectUrl("");
                   }}
                 >
                   Create account
@@ -727,6 +755,11 @@ export default function AccountPanel({ variant = "floating",
               {status ? (
                 <div className="accountStatus accountAuthStatus" role="status" aria-live="polite">
                   {status}
+                  {googleRedirectUrl ? (
+                    <a className="accountStatusLink" href={googleRedirectUrl} target="_blank" rel="noreferrer">
+                      Open Google sign-in
+                    </a>
+                  ) : null}
                 </div>
               ) : null}
             </form>

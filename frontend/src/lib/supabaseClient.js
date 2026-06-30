@@ -158,19 +158,15 @@ export async function diagnoseSupabase() {
   if (!debugSupabase || !supabase) return null;
 
   const { data: sessionData } = await supabase.auth.getSession();
-  console.info("Supabase session diagnostic", {
+  const result = {
+    ok: true,
     hasSession: Boolean(sessionData?.session),
     userId: sessionData?.session?.user?.id || null,
-  });
+  };
 
-  const result = await supabase
-    .from("settings")
-    .select("user_id")
-    .limit(1);
-
-  console.info("Supabase REST diagnostic", {
-    ok: !result.error,
-    error: result.error,
+  console.info("Supabase session diagnostic", {
+    hasSession: result.hasSession,
+    userId: result.userId,
   });
 
   return result;
