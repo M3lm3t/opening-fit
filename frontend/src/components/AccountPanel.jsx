@@ -23,7 +23,7 @@ const SUPPORT_EMAIL = "m3lm3t@gmail.com";
 const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`;
 const DELETE_REQUEST_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20account%20deletion%20request`;
 const PRODUCTION_AUTH_ORIGIN = "https://www.openingfit.com";
-const GOOGLE_SIGN_IN_ENABLED = false;
+const GOOGLE_SIGN_IN_ENABLED = true;
 const GOOGLE_PROVIDER_UNAVAILABLE_MESSAGE =
   "Google sign-in is taking too long at the auth provider. Email login and login links are still available.";
 
