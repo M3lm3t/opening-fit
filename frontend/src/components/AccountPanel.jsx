@@ -23,6 +23,7 @@ const SUPPORT_EMAIL = "m3lm3t@gmail.com";
 const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`;
 const DELETE_REQUEST_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20account%20deletion%20request`;
 const PRODUCTION_AUTH_ORIGIN = "https://www.openingfit.com";
+const GOOGLE_SIGN_IN_ENABLED = false;
 const GOOGLE_PROVIDER_UNAVAILABLE_MESSAGE =
   "Google sign-in is taking too long at the auth provider. Email login and login links are still available.";
 
@@ -606,29 +607,36 @@ export default function AccountPanel({ variant = "floating",
               <div className="accountAuthIntro">
                 <span>Free account</span>
                 <strong>{accountLoading ? "Checking your session..." : "Save reports across devices"}</strong>
-                <p>
-                  Use Google for the fastest sign-in, or create an email account with a password.
-                </p>
+                <p>Log in with your email and password, or send yourself a secure login link.</p>
               </div>
 
               {!isScreen ? <PreLoginCuriosityHooks /> : null}
 
-              <button
-                className="googleSignInBtn"
-                type="button"
-                onClick={signInWithGoogle}
-                disabled={authBusy}
-              >
-                Continue with Google
-              </button>
+              {GOOGLE_SIGN_IN_ENABLED ? (
+                <>
+                  <button
+                    className="googleSignInBtn"
+                    type="button"
+                    onClick={signInWithGoogle}
+                    disabled={authBusy}
+                  >
+                    Continue with Google
+                  </button>
 
-              <p className="accountBetaNote">
-                Beta note: Google may show OpeningFit's secure auth provider during sign-in.
-              </p>
+                  <p className="accountBetaNote">
+                    Beta note: Google may show OpeningFit's secure auth provider during sign-in.
+                  </p>
 
-              <div className="accountDivider">
-                <span>or</span>
-              </div>
+                  <div className="accountDivider">
+                    <span>or</span>
+                  </div>
+                </>
+              ) : (
+                <div className="accountNotice accountProviderNotice" role="status">
+                  Google sign-in is temporarily unavailable while the auth provider is timing out. Use email login
+                  or send a login link below.
+                </div>
+              )}
 
               <div className="accountAuthMode" role="tablist" aria-label="Account mode">
                 <button
@@ -737,6 +745,7 @@ export default function AccountPanel({ variant = "floating",
                   onClick={() => {
                     setAuthMode(authMode === "signup" ? "login" : "signup");
                     setStatus("");
+                    setGoogleRedirectUrl("");
                   }}
                 >
                   {authMode === "signup" ? "Log in" : "Create one"}
