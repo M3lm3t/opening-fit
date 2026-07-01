@@ -592,11 +592,13 @@ async function selectUserRows(table, userId, options = {}) {
 export async function fetchAllUserData(user, options = {}) {
   if (!user?.id) return createDefaultUserData();
 
+  const profileTimeout = options.profileTimeoutMs ?? RESTORE_PROFILE_TIMEOUT_MS;
+  const tableTimeout = options.tableTimeoutMs ?? RESTORE_TABLE_TIMEOUT_MS;
   let profile = null;
   try {
     profile = await withUserDataTimeout(
       loadExistingProfile(user.id, PROFILE_RESTORE_COLUMNS),
-      RESTORE_PROFILE_TIMEOUT_MS,
+      profileTimeout,
       "OpeningFit profile restore"
     );
   } catch (profileError) {
@@ -615,7 +617,7 @@ export async function fetchAllUserData(user, options = {}) {
       try {
         const rows = await withUserDataTimeout(
           selectUserRows(table, user.id),
-          RESTORE_TABLE_TIMEOUT_MS,
+          tableTimeout,
           `OpeningFit ${table} restore`
         );
         return { table, rows, error: null };

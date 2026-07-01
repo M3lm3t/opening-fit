@@ -40,6 +40,8 @@ const DANGEROUS_LEGACY_KEY_PATTERNS = [
   /unlock/i,
 ];
 const RESTORE_TIMEOUT_MS = 15000;
+const AUTO_PROFILE_RESTORE_TIMEOUT_MS = 2500;
+const AUTO_TABLE_RESTORE_TIMEOUT_MS = 1800;
 const DEBUG_CLOUD_RESTORE =
   typeof import.meta !== "undefined" &&
   import.meta.env?.VITE_DEBUG_CLOUD_RESTORE === "true";
@@ -255,6 +257,31 @@ function getSessionRestoreKey(nextSession) {
   return `${userId}:${nextSession?.access_token || ""}`;
 }
 
+function createFallbackProfileForUser(nextUser) {
+  if (!nextUser?.id) return null;
+
+  const emailName = nextUser.email?.split("@")?.[0] || "";
+  const displayName =
+    nextUser.user_metadata?.full_name ||
+    nextUser.user_metadata?.name ||
+    nextUser.user_metadata?.display_name ||
+    emailName ||
+    "OpeningFit user";
+
+  return {
+    id: nextUser.id,
+    user_id: nextUser.id,
+    email: nextUser.email || "",
+    username:
+      nextUser.user_metadata?.username ||
+      nextUser.user_metadata?.preferred_username ||
+      emailName ||
+      "OpeningFit user",
+    display_name: displayName,
+    is_premium: false,
+  };
+}
+
 export function AuthDataProvider({ children }) {
   const [session, setSession] = useState(null);
   const [userData, setUserData] = useState(null);
@@ -308,15 +335,26 @@ export function AuthDataProvider({ children }) {
       if (applyState) {
         setProfileLoading(true);
         setCloudRestoreLoading(true);
-        setProfileLoaded(false);
         setProfileError("");
+
+        if (!userDataRef.current) {
+          const fallbackProfile = createFallbackProfileForUser(nextUser);
+          setUserData(createDefaultUserData(fallbackProfile));
+          setProfileLoaded(true);
+          setHydrated(true);
+        } else {
+          setProfileLoaded(false);
+        }
       }
 
       try {
         console.info("[OpeningFit restore] cloud restore start", nextUser.id);
         debugCloudRestore("loading user data", { userId: nextUser.id, applyState });
         const data = await withRestoreTimeout(
-          fetchAllUserData(nextUser),
+          fetchAllUserData(nextUser, {
+            profileTimeoutMs: AUTO_PROFILE_RESTORE_TIMEOUT_MS,
+            tableTimeoutMs: AUTO_TABLE_RESTORE_TIMEOUT_MS,
+          }),
           "OpeningFit cloud restore"
         );
         if (applyState && restoreSeq === restoreSeqRef.current) {
@@ -359,22 +397,7 @@ export function AuthDataProvider({ children }) {
       } catch (refreshError) {
         console.warn("[OpeningFit restore] failed; continuing with default workspace.", refreshError);
         if (applyState && restoreSeq === restoreSeqRef.current) {
-          const fallbackProfile = {
-            id: nextUser.id,
-            user_id: nextUser.id,
-            email: nextUser.email || "",
-            username:
-              nextUser.user_metadata?.username ||
-              nextUser.user_metadata?.name ||
-              nextUser.email?.split("@")?.[0] ||
-              "OpeningFit user",
-            display_name:
-              nextUser.user_metadata?.full_name ||
-              nextUser.user_metadata?.name ||
-              nextUser.email?.split("@")?.[0] ||
-              "OpeningFit user",
-            is_premium: false,
-          };
+          const fallbackProfile = createFallbackProfileForUser(nextUser);
           const fallbackData = createDefaultUserData(fallbackProfile);
           const message = PROFILE_PARTIAL_RESTORE_MESSAGE;
           setUserData(fallbackData);
@@ -1054,7 +1077,7 @@ export function AuthDataProvider({ children }) {
         <div className="restoreNotice restoreNoticeLoading" role="status">
           Checking OpeningFit account...
         </div>
-      ) : cloudRestoreLoading ? (
+      ) : cloudRestoreLoading && !userData ? (
         <div className="restoreNotice restoreNoticeLoading" role="status">
           Restoring saved OpeningFit workspace...
         </div>
