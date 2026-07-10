@@ -35,7 +35,7 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
       return;
     }
     if (target === "home") {
-      onNavigate?.({ view: "home", path: "/", target: "app-dashboard" });
+      onNavigate?.({ view: "dashboard", path: "/dashboard", target: "coach-dashboard", fallbackIds: ["app-dashboard"] });
       return;
     }
     onNavigate?.(target);
@@ -52,7 +52,7 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
           item.activeViews?.includes(activeView) ||
           (item.key !== "home" && item.key !== "profile" && item.activeSections?.includes(activeSection)) ||
           (item.key === "profile" && !isPremiumPath && item.activeSections?.includes(activeSection)) ||
-          (item.key === "home" && activeView === "home" && item.activePaths?.includes(currentPath)) ||
+          (item.key === "home" && ["home", "dashboard"].includes(activeView) && item.activePaths?.includes(currentPath)) ||
           (!item.activeViews && !item.activeSections && activeSection === getAppSection(item.key));
 
         return (

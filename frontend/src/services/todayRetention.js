@@ -119,10 +119,12 @@ function openingScore(opening) {
 }
 
 function getReportPayload(row = {}) {
+  row = row || {};
   return row.report || row.analysis || row.last_report || row.data || row.snapshot?.report || row.snapshot || row;
 }
 
 function getReportDate(row = {}) {
+  row = row || {};
   const report = getReportPayload(row);
   const raw =
     row.created_at ||
@@ -141,6 +143,7 @@ function getReportDate(row = {}) {
 }
 
 function reportScore(row = {}) {
+  row = row || {};
   const report = getReportPayload(row);
   const summary = row.summary || row.snapshot || {};
   return numberValue(
@@ -330,6 +333,7 @@ export function buildStreak(activity = [], date = new Date()) {
 }
 
 export function buildTodayHeader({ profile = null, data = {}, reportHistory = [], activity = [], date = new Date() } = {}) {
+  data = data || {};
   const displayName =
     profile?.display_name ||
     profile?.username ||
@@ -404,6 +408,7 @@ function ratingFromPlatformRatings(ratings = {}) {
 }
 
 function detectImportedRating(data = {}, profile = null) {
+  data = data || {};
   const playerProfile = data.playerProfile || data.player_profile || profile?.playerProfile || profile?.player_profile || profile || {};
   const platformRatings =
     data.platformRatings ||
@@ -463,6 +468,7 @@ function detectImportedRating(data = {}, profile = null) {
 }
 
 export function buildRatingGoalModel({ profile = null, settings = null, activity = [], data = {} } = {}) {
+  data = data || {};
   const preferences = settings?.preferences || {};
   const goal =
     preferences.ratingGoal ||

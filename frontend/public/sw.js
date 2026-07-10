@@ -1,4 +1,4 @@
-const CACHE_NAME = "opening-fit-v3";
+const CACHE_NAME = "opening-fit-v4";
 const APP_SHELL = ["/site.webmanifest", "/icons/openingfit-icon.svg", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -42,6 +42,10 @@ self.addEventListener("fetch", (event) => {
     fetch(event.request)
       .then((response) => {
         if (!response || response.status !== 200 || response.type === "opaque") {
+          return response;
+        }
+
+        if (isNavigation) {
           return response;
         }
 

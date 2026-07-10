@@ -16,9 +16,12 @@
 }
 
 .openingScoreBreakdownHeader,
-.openingScoreSectionHeader,
-.monthlyRecapCard {
+.openingScoreSectionHeader {
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.monthlyRecapCard {
+  grid-template-columns: minmax(220px, 0.55fr) minmax(0, 1.45fr);
 }
 
 .openingScoreBreakdownHeader,
@@ -180,6 +183,10 @@
 
 .monthlyRecapCard {
   display: grid;
+}
+
+.monthlyRecapCard > div {
+  min-width: 0;
 }
 
 .monthlyRecapCard dl {

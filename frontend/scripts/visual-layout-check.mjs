@@ -8,7 +8,7 @@ const HOST = "127.0.0.1";
 const BASE_URL = `http://${HOST}:${PORT}`;
 const SCREENSHOT_DIR = path.resolve("test-screenshots");
 
-const routes = ["/", "/login", "/report", "/train", "/account", "/premium"];
+const routes = ["/", "/login", "/dashboard", "/report", "/repertoire", "/train", "/account", "/journey", "/premium"];
 const viewports = [
   { name: "mobile-xs", width: 320, height: 740 },
   { name: "mobile", width: 375, height: 812 },
@@ -54,6 +54,10 @@ async function waitForServer(timeoutMs = 30000) {
 function boxesOverlap(a, b) {
   if (!a || !b) return false;
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+function isIgnorableConsoleError(text = "") {
+  return /^Failed to load resource: net::ERR_(NETWORK_ACCESS_DENIED|CONNECTION_REFUSED)/.test(text);
 }
 
 async function getBox(locator) {
@@ -266,6 +270,14 @@ async function main() {
     await waitForServer();
     browser = await chromium.launch();
     const page = await browser.newPage();
+    const consoleErrors = [];
+
+    page.on("console", (message) => {
+      if (message.type() !== "error") return;
+      const text = message.text();
+      if (isIgnorableConsoleError(text)) return;
+      consoleErrors.push(text);
+    });
 
     for (const viewport of viewports) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
@@ -285,6 +297,10 @@ async function main() {
           await assertAccountLayout(page);
         }
       }
+    }
+
+    if (consoleErrors.length) {
+      throw new Error(`Browser console errors detected:\n${consoleErrors.slice(0, 12).join("\n")}`);
     }
   } finally {
     await browser?.close();

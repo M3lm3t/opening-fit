@@ -130,6 +130,7 @@ function collectOpenings(data = {}, fitData = null) {
 }
 
 function getReportGames(data = {}) {
+  data = data || {};
   return [
     ...asArray(data.recent_games),
     ...asArray(data.recentGames),
@@ -201,19 +202,23 @@ function getScoreTrend(reportHistory = [], currentScore = null) {
 }
 
 function getCoachInsights(data = {}) {
+  data = data || {};
   return data.openingCoachInsights || data.opening_coach_insights || {};
 }
 
 function getFocusMission(data = {}) {
+  data = data || {};
   const insights = getCoachInsights(data);
   return insights.focusMission || insights.focus_mission || {};
 }
 
 function getTrainingPlan(data = {}) {
+  data = data || {};
   return asArray(data.training_plan).length ? asArray(data.training_plan) : asArray(data.trainingPlan);
 }
 
 function getRecommendationBuckets(data = {}) {
+  data = data || {};
   const recs = data.opening_recommendations || data.openingRecommendations || data.recommendedOpenings || {};
   const sections = asArray(recs.sections).flatMap((section) => asArray(section.items));
   return [
@@ -269,6 +274,7 @@ function buildRepertoireFocus(openings = [], data = {}) {
 }
 
 function buildDashboardModel({ data = {}, fitData = null, reportHistory = [], openingFitUserState = [] }) {
+  data = data || {};
   const openings = collectOpenings(data, fitData);
   const gameCount = getGameCount(data, openings);
   const score = getHealthScore(data, fitData);
