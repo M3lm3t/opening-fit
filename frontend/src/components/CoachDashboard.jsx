@@ -91,6 +91,7 @@ function isKnownOpening(opening) {
 }
 
 function collectOpenings(data = {}, fitData = null) {
+  data = data || {};
   const sources = [
     ...(asArray(data.best_openings).map((item) => ({ ...item, sourcePriority: 2 }))),
     ...(asArray(data.bestOpenings).map((item) => ({ ...item, sourcePriority: 2 }))),

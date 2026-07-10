@@ -194,6 +194,7 @@ function openingFromLineName(value = "") {
 }
 
 function currentEvidenceForFixedLine(data = {}, fixedLineName = "") {
+  data = data || {};
   const openingKey = normaliseKey(openingFromLineName(fixedLineName));
   if (!openingKey) return null;
 

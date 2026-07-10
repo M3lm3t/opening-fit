@@ -55,6 +55,7 @@ function firstNamed(...groups) {
 }
 
 function getActionText(report = {}, trainingTarget = null) {
+  report = report || {};
   const direct = cleanText(
     report.coachInsights?.nextStep ||
       report.coach_insights?.next_step ||
@@ -81,6 +82,7 @@ function getActionText(report = {}, trainingTarget = null) {
 }
 
 function getContinueFrom(report = {}, openingFitUserState = [], trainingTarget = null) {
+  report = report || {};
   const state = asArray(openingFitUserState).find((row) => row?.coach_progress || row?.last_report) || null;
   const latestTraining =
     asArray(state?.coach_progress?.weakestLineTrainingHistory || state?.coach_progress?.weakest_line_training_history)[0] ||

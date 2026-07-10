@@ -35,10 +35,12 @@ function reportScore(row = {}) {
 }
 
 function gameCount(report = {}) {
+  report = report || {};
   return numberValue(report.gamesImported ?? report.games_imported ?? report.gamesAnalysed ?? report.gamesAnalyzed ?? report.totalGames ?? report.total_games, 0);
 }
 
 function collectOpenings(report = {}) {
+  report = report || {};
   return [
     ...asArray(report.best_openings),
     ...asArray(report.bestOpenings),

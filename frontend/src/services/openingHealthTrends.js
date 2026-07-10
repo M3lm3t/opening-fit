@@ -78,6 +78,8 @@ function extractSummary(row = {}) {
 }
 
 function collectOpeningsFromReport(report = {}, summary = {}) {
+  report = report || {};
+  summary = summary || {};
   const metrics = report.retentionMetrics || report.retention_metrics || {};
   const openingFitMetrics = report.openingFitMetrics || report.opening_fit_metrics || {};
   const sources = [

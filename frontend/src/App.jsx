@@ -10709,6 +10709,7 @@ function focusedMissionOpening(data = {}) {
 }
 
 function openingGamesFromReport(data = {}, openingName = "") {
+  data = data || {};
   const key = normaliseCoachOpeningName(openingName);
   if (!key) return [];
   const games = [
@@ -10721,6 +10722,7 @@ function openingGamesFromReport(data = {}, openingName = "") {
 }
 
 function openingStatCandidatesFromReport(data = {}) {
+  data = data || {};
   return [
     ...(Array.isArray(data.best_openings) ? data.best_openings : []),
     ...(Array.isArray(data.bestOpenings) ? data.bestOpenings : []),

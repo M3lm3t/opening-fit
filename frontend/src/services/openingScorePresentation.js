@@ -98,6 +98,7 @@ function trendFor(delta, historyCount) {
 }
 
 function collectOpenings(data = {}) {
+  data = data || {};
   return [
     ...asArray(data.best_openings),
     ...asArray(data.bestOpenings),

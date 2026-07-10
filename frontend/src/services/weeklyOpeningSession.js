@@ -63,6 +63,8 @@ function collectRecommendations(data = {}) {
 }
 
 function collectOpeningRows(data = {}, fitData = {}) {
+  data = data || {};
+  fitData = fitData || {};
   return [
     ...collectRecommendations(data),
     ...asArray(fitData.scoredOpenings),
@@ -74,6 +76,7 @@ function collectOpeningRows(data = {}, fitData = {}) {
 }
 
 function collectWeakLines(data = {}) {
+  data = data || {};
   return [
     ...asArray(data.weakLines),
     ...asArray(data.weak_lines),

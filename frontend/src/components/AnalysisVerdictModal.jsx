@@ -95,6 +95,7 @@ function firstUsable(...items) {
 }
 
 function candidateRecommendations(data = {}) {
+  data = data || {};
   const legacy = data.opening_recommendations || data.openingRecommendations || {};
   const grouped = data.recommended_openings || data.recommendedOpeningsByStyle || {};
   return [
@@ -138,6 +139,7 @@ function strongestOpening(items) {
 }
 
 function whiteRecommendationCandidates(data = {}) {
+  data = data || {};
   const legacy = data.opening_recommendations || data.openingRecommendations || {};
   return [
     ...withContext(data.preferred_white || data.preferredWhite, "white_repertoire"),
@@ -148,6 +150,7 @@ function whiteRecommendationCandidates(data = {}) {
 }
 
 function blackRecommendationCandidates(data = {}) {
+  data = data || {};
   const legacy = data.opening_recommendations || data.openingRecommendations || {};
   return [
     ...withContext(data.preferred_black || data.preferredBlack, "black_vs_e4"),
@@ -160,6 +163,7 @@ function blackRecommendationCandidates(data = {}) {
 }
 
 function fallbackKeepCandidate(data = {}, side) {
+  data = data || {};
   const candidates = keepRecommendations(candidateRecommendations(data));
   return strongestOpening(
     candidates.filter((item) => {
@@ -182,6 +186,8 @@ function cardSupport(item, side) {
 }
 
 function buildWhiteCard(data = {}, fitData = {}) {
+  data = data || {};
+  fitData = fitData || {};
   const pick =
     firstUsable(data.preferred_white, data.preferredWhite) ||
     strongestOpening(asArray(data.best_openings || data.bestOpenings).filter((item) => openingSide(item) === "white")) ||
@@ -211,6 +217,8 @@ function buildWhiteCard(data = {}, fitData = {}) {
 }
 
 function buildBlackCard(data = {}, fitData = {}) {
+  data = data || {};
+  fitData = fitData || {};
   const pick =
     firstUsable(data.preferred_black, data.preferredBlack) ||
     strongestOpening(asArray(data.best_openings || data.bestOpenings).filter((item) => openingSide(item) === "black")) ||
@@ -248,6 +256,8 @@ function cleanFocusTitle(value) {
 }
 
 function buildFocusCard(data = {}, fitData = {}, trainingTarget = null) {
+  data = data || {};
+  fitData = fitData || {};
   const plan = asArray(data.training_plan || data.trainingPlan)[0];
   if (plan) {
     const title = typeof plan === "string" ? plan : cleanText(plan.title || plan.action || plan.opening);

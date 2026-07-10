@@ -159,6 +159,7 @@ function reportScore(row = {}) {
 }
 
 function getGameCount(data = {}) {
+  data = data || {};
   return numberValue(
     data.gamesImported ??
       data.games_imported ??
@@ -172,6 +173,7 @@ function getGameCount(data = {}) {
 }
 
 function collectOpenings(data = {}) {
+  data = data || {};
   return [
     ...asArray(data.best_openings),
     ...asArray(data.bestOpenings),

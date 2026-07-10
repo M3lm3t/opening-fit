@@ -134,6 +134,7 @@ function getWeakLineCandidates(data = {}) {
 }
 
 function getTrainingCandidates(data = {}) {
+  data = data || {};
   return [
     ...asArray(data.training_plan),
     ...asArray(data.trainingPlan),
@@ -143,6 +144,7 @@ function getTrainingCandidates(data = {}) {
 }
 
 function allOpenings(data = {}) {
+  data = data || {};
   return [
     ...asArray(data.best_openings),
     ...asArray(data.bestOpenings),

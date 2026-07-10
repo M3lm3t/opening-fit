@@ -46,6 +46,7 @@ function isUnknown(name) {
 }
 
 function collectOpenings(data = {}, fitData = null) {
+  data = data || {};
   const source = [
     ...(Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : []),
     ...(Array.isArray(data.best_openings) ? data.best_openings : []),

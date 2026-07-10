@@ -52,6 +52,7 @@ function lossRateFor(item = {}) {
 }
 
 function collectOpenings(data = {}) {
+  data = data || {};
   const metrics = data.openingFitMetrics || data.opening_fit_metrics || {};
   const retention = data.retentionMetrics || data.retention_metrics || {};
   const sources = [

@@ -217,6 +217,7 @@ function uniqueOpenings(openings) {
 }
 
 export function buildRepertoireMap(data = {}) {
+  data = data || {};
   const recs = data.opening_recommendations || data.openingRecommendations || data.recommendedOpenings || {};
   const recommendedGroups = data.recommendedOpeningsByStyle || data.recommended_openings || {};
   const white = [

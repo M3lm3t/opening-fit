@@ -115,6 +115,7 @@ function inferPracticeSide(item = {}) {
 }
 
 function collectOpenings(data = {}, fitData = null) {
+  data = data || {};
   const source = [
     ...asArray(fitData?.scoredOpenings),
     ...asArray(data.best_openings),
