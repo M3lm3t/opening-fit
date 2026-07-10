@@ -32,6 +32,56 @@ function daysBetween(a, b) {
   return Math.round((second.setHours(0, 0, 0, 0) - first.setHours(0, 0, 0, 0)) / 86400000);
 }
 
+function formatAnalysisDate(timestamp, date = new Date()) {
+  if (!timestamp) return "No saved analysis date";
+  const analysed = new Date(timestamp);
+  if (!Number.isFinite(analysed.getTime())) return "No saved analysis date";
+  const todayKey = localDateKey(date);
+  const analysedKey = localDateKey(analysed);
+  const gap = daysBetween(analysedKey, todayKey);
+  const time = analysed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (gap === 0) return `Today at ${time}`;
+  if (gap === 1) return `Yesterday at ${time}`;
+  if (gap !== null && gap < 7) return `${gap} days ago`;
+  return analysed.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
+}
+
+function buildAnalysisFreshness(data = {}, date = new Date()) {
+  const timestamp = getReportDate(data);
+  if (!timestamp) {
+    return {
+      label: "No saved analysis date",
+      detail: "Run an analysis so OpeningFit can track freshness.",
+      tone: "missing",
+      stale: true,
+    };
+  }
+
+  const analysed = new Date(timestamp);
+  const gap = daysBetween(localDateKey(analysed), localDateKey(date));
+  const daysOld = gap ?? 0;
+  let detail = "Up to date";
+  let tone = "fresh";
+
+  if (daysOld > 21) {
+    detail = "Refresh recommended";
+    tone = "stale";
+  } else if (daysOld > 7) {
+    detail = "Getting old";
+    tone = "aging";
+  } else if (daysOld > 1) {
+    detail = "Recent";
+    tone = "recent";
+  }
+
+  return {
+    label: formatAnalysisDate(timestamp, date),
+    detail,
+    tone,
+    stale: tone === "stale" || tone === "aging",
+  };
+}
+
 function openingName(opening, fallback = "") {
   if (typeof opening === "string") return opening;
   return (
@@ -294,12 +344,14 @@ export function buildTodayHeader({ profile = null, data = {}, reportHistory = []
   const scoreDelta = score !== null && previousScore !== null ? score - previousScore : null;
   const streak = buildStreak(activity, date);
   const hasReport = getGameCount(data) > 0 || collectOpenings(data).length > 0;
+  const analysisFreshness = buildAnalysisFreshness(data, date);
 
   return {
     greeting: displayName ? `Good ${greetingPart(date)}, ${displayName}` : hasReport ? "Welcome back" : "Let's build your opening plan.",
     score,
     scoreDelta,
     streak,
+    analysisFreshness,
     primaryCta: hasReport ? "Continue today's training" : "Analyse my games",
     summary: hasReport
       ? scoreDelta === null

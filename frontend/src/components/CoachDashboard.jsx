@@ -357,13 +357,23 @@ function trendLabel(trend) {
   return String(trend);
 }
 
-function TodayHeader({ header, xp, onPrimary }) {
+function TodayHeader({ header, xp, onPrimary, onAnalyse }) {
   return (
     <section className="coachVerdictCard todayHeaderCard" aria-label="Today overview">
       <div className="coachVerdictContent">
         <span className="coachEyebrow">Today</span>
         <h1>{header.greeting}</h1>
         <p>{header.summary}</p>
+        <div className={`analysisFreshnessBadge ${header.analysisFreshness?.tone || "missing"}`}>
+          <div>
+            <span>Last analysed</span>
+            <strong>{header.analysisFreshness?.label || "No saved analysis date"}</strong>
+            <small>{header.analysisFreshness?.detail || "Refresh when you want OpeningFit to compare new games."}</small>
+          </div>
+          <button type="button" className="secondaryBtn" onClick={onAnalyse}>
+            Refresh analysis
+          </button>
+        </div>
         <button type="button" className="primaryBtn coachPrimaryCta" onClick={onPrimary}>
           {header.primaryCta}
         </button>
@@ -862,7 +872,12 @@ export default function CoachDashboard({
 
   return (
     <section className="coachDashboard" id="coach-dashboard" aria-label="OpeningFit Today">
-      <TodayHeader header={{ ...todayHeader, streak }} xp={xp} onPrimary={() => handleTaskAction(todayTasks.find((task) => !task.completed) || todayTasks[0])} />
+      <TodayHeader
+        header={{ ...todayHeader, streak }}
+        xp={xp}
+        onPrimary={() => handleTaskAction(todayTasks.find((task) => !task.completed) || todayTasks[0])}
+        onAnalyse={onAnalyse}
+      />
       <div className="coachDashboardLayout">
         <div className="coachDashboardMain">
           <TodayTrainingPlan

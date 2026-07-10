@@ -68,6 +68,64 @@
   margin-top: 4px;
 }
 
+.analysisFreshnessBadge {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: min(100%, 680px);
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(8, 47, 73, 0.24);
+}
+
+.analysisFreshnessBadge div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.analysisFreshnessBadge span {
+  color: #7dd3fc;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.analysisFreshnessBadge strong {
+  color: #f8fafc;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.analysisFreshnessBadge small {
+  color: rgba(226, 232, 240, 0.72);
+  font-weight: 800;
+}
+
+.analysisFreshnessBadge button {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.analysisFreshnessBadge.fresh {
+  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(20, 83, 45, 0.18);
+}
+
+.analysisFreshnessBadge.aging {
+  border-color: rgba(250, 204, 21, 0.3);
+  background: rgba(113, 63, 18, 0.2);
+}
+
+.analysisFreshnessBadge.stale,
+.analysisFreshnessBadge.missing {
+  border-color: rgba(251, 113, 133, 0.28);
+  background: rgba(76, 29, 49, 0.2);
+}
+
 .coachScorePanel {
   display: grid;
   align-content: center;
@@ -494,6 +552,42 @@
   color: #475569;
 }
 
+.page.light .analysisFreshnessBadge,
+[data-theme="light"] .analysisFreshnessBadge {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+.page.light .analysisFreshnessBadge.fresh,
+[data-theme="light"] .analysisFreshnessBadge.fresh {
+  background: #f0fdf4;
+  border-color: rgba(22, 163, 74, 0.2);
+}
+
+.page.light .analysisFreshnessBadge.aging,
+[data-theme="light"] .analysisFreshnessBadge.aging {
+  background: #fffbeb;
+  border-color: rgba(217, 119, 6, 0.22);
+}
+
+.page.light .analysisFreshnessBadge.stale,
+.page.light .analysisFreshnessBadge.missing,
+[data-theme="light"] .analysisFreshnessBadge.stale,
+[data-theme="light"] .analysisFreshnessBadge.missing {
+  background: #fff1f2;
+  border-color: rgba(225, 29, 72, 0.2);
+}
+
+.page.light .analysisFreshnessBadge strong,
+[data-theme="light"] .analysisFreshnessBadge strong {
+  color: #0f172a;
+}
+
+.page.light .analysisFreshnessBadge small,
+[data-theme="light"] .analysisFreshnessBadge small {
+  color: #64748b;
+}
+
 .page.light .coachScorePanel,
 [data-theme="light"] .coachScorePanel {
   background: #ecfeff;
@@ -648,6 +742,14 @@
 
   .coachCardActions button,
   .coachDashboardFooterActions button {
+    width: 100%;
+  }
+
+  .analysisFreshnessBadge {
+    grid-template-columns: 1fr;
+  }
+
+  .analysisFreshnessBadge button {
     width: 100%;
   }
 
