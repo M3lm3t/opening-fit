@@ -37,6 +37,7 @@ function firstReportOpening(data, keys) {
 }
 
 function buildFallbackInsights(data = {}) {
+  data = data || {};
   const best = firstReportOpening(data, ["bestOpenings", "best_openings", "topOpenings", "top_openings"]);
   const games = numberValue(data.gamesAnalysed ?? data.gamesAnalyzed ?? data.gamesImported ?? data.totalGames, 0);
   const bestName = openingName(best, "Your main opening");

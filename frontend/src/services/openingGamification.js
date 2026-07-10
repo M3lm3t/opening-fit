@@ -77,6 +77,7 @@ function collectOpenings(data = {}, fitData = null) {
 }
 
 function totalGames(data = {}, openings = []) {
+  data = data || {};
   return (
     safeNumber(
       data.gamesImported ??

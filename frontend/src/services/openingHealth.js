@@ -144,6 +144,7 @@ function bucketScore(items, fallback) {
 }
 
 function getGameCount(data = {}, openings = []) {
+  data = data || {};
   return (
     Number(
       data.gamesAnalysed ??

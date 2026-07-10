@@ -139,6 +139,7 @@ function getReportGames(data = {}) {
 }
 
 function getGameCount(data = {}, openings = []) {
+  data = data || {};
   return (
     numberValue(
       data.gamesImported ??
@@ -154,6 +155,7 @@ function getGameCount(data = {}, openings = []) {
 }
 
 function getHealthScore(data = {}, fitData = null) {
+  data = data || {};
   return numberValue(
     data.openingFitScore ??
       data.opening_fit_score ??

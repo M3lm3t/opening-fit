@@ -152,6 +152,7 @@ function collectOpenings(data = {}, fitData = null) {
 }
 
 function totalGames(data = {}) {
+  data = data || {};
   return safeNumber(
     data.gamesImported ??
       data.games_imported ??

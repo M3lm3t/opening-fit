@@ -332,6 +332,7 @@ function dynamicScoreStatus(data = {}, fitData = {}, whiteCard, blackCard, openi
 }
 
 function gameCount(data = {}) {
+  data = data || {};
   return (
     Number(
       data.gamesAnalysed ??

@@ -575,7 +575,7 @@ export default function RecommendedOpeningFit({ data, onPractice }) {
         </div>
         <div className="recommendedOpeningFitBadge">
           <span>Sample</span>
-          <strong>{fingerprint.sampleSize || fingerprint.sample_size || data.gamesImported || data.totalGames || "New"}</strong>
+          <strong>{fingerprint.sampleSize || fingerprint.sample_size || data?.gamesImported || data?.totalGames || "New"}</strong>
         </div>
       </div>
 

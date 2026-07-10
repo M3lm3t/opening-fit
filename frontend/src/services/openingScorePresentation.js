@@ -61,6 +61,7 @@ function scoreFromReport(report = {}) {
 }
 
 function gameCount(data = {}) {
+  data = data || {};
   return numberValue(
     data.gamesImported ??
       data.games_imported ??
