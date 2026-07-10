@@ -50,6 +50,7 @@ export const APP_NAV_ROUTES = {
     fallbackIds: ["recommendation-history", "profile"],
   },
   progress: { view: "progress", path: "/account", target: "openingfit-progress" },
+  journey: { view: "journey", path: "/journey", target: "journey-page", fallbackIds: ["app-dashboard"] },
   premium: { view: "premium", path: "/premium", target: "premium", fallbackIds: ["profile"] },
   feedback: { view: "feedback", path: "/", target: "feedback" },
 };
@@ -79,6 +80,7 @@ export function getAppSection(view) {
     login: "profile",
     history: "profile",
     progress: "profile",
+    journey: "journey",
     premium: "premium",
     upgrade: "premium",
     feedback: "feedback",

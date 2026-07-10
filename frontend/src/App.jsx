@@ -114,6 +114,7 @@ import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
 import ReportCommandBar from "./components/ReportCommandBar";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
+import RetentionJourneyPage from "./components/RetentionJourneyPage.jsx";
 import {
   OpeningHubPage,
   OpeningNotFoundPage,
@@ -11922,6 +11923,7 @@ function AppPrimaryNav({
       : { key: "example", label: "Sample report", path: "/report", target: "app-results", action: onExampleReport },
     hasReport ? { key: "repertoire", label: "My Repertoire", path: "/repertoire", target: "my-repertoire" } : null,
     { key: "training", label: "Train" },
+    accountUser && hasReport ? { key: "journey", label: "Journey", path: "/journey", target: "journey-page" } : null,
     { key: "openingsHub", label: "Openings", path: "/openings", native: true },
     { key: "premium", label: "Premium", path: "/premium", target: "premium" },
   ].filter(Boolean);
@@ -11952,6 +11954,7 @@ function AppPrimaryNav({
       recommendations: ["recommendations", "openings", "weakspots", "verdicts"],
       example: ["report", "overview", "recommendations", "openings", "weakspots", "verdicts"],
       training: ["train", "training", "interactive", "practice"],
+      journey: ["journey"],
       games: ["games", "data"],
       history: ["history"],
       account: ["profile", "account", "progress"],
@@ -12375,7 +12378,7 @@ function getCurrentPath() {
 }
 
 function isPrivateSeoPath(path) {
-  return ["/account", "/profile", "/login", "/dashboard", "/report", "/repertoire", "/train", "/premium", "/upgrade"].includes(path);
+  return ["/account", "/profile", "/login", "/dashboard", "/report", "/repertoire", "/journey", "/train", "/premium", "/upgrade"].includes(path);
 }
 
 function getInitialAppView() {
@@ -12386,6 +12389,7 @@ function getInitialAppView() {
   if (path === "/train") return "train";
   if (path === "/report") return "report";
   if (path === "/repertoire") return "repertoire";
+  if (path === "/journey") return "journey";
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
     if (saved?.analysis) return "report";
@@ -15143,6 +15147,7 @@ export default function App() {
 
   const sectionRouteMap = {
     "dashboard": { view: "dashboard", path: "/dashboard", target: "coach-dashboard" },
+    "journey": { view: "journey", path: "/journey", target: "journey-page" },
     "feedback": { view: "feedback", target: "feedback" },
     "premium": { view: "upgrade", target: "premium" },
     "premium-offer": { view: "upgrade", target: "premium" },
@@ -16684,6 +16689,7 @@ export default function App() {
               onTraining={() => handleAppNavigate("training")}
               onRecommendations={() => handleAppNavigate("repertoire")}
               onProgress={() => goToReturnUserProfileSection("openingfit-progress")}
+              onJourney={() => handleAppNavigate("journey")}
               onScoreAction={(route) => handleAppNavigate(route)}
             />
           ) : null}
@@ -16992,6 +16998,18 @@ export default function App() {
               onAnalyse={() => handleAppNavigate("analyse")}
               onPractice={startOpeningPractice}
               onReport={() => handleAppNavigate("report")}
+            />
+          ) : null}
+
+          {activeAppSection === "journey" && !loading ? (
+            <RetentionJourneyPage
+              data={reportData}
+              reportHistory={effectiveReportHistory}
+              activityHistory={activityHistory}
+              settings={userSettings}
+              onRecordActivity={recordCloudActivity}
+              onSaveSettings={saveCloudSettings}
+              onNavigate={handleAppNavigate}
             />
           ) : null}
 

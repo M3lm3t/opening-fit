@@ -729,6 +729,7 @@ export default function CoachDashboard({
   onTraining,
   onRecommendations,
   onProgress,
+  onJourney,
   onScoreAction,
 }) {
   const openings = collectOpenings(data || {}, fitData);
@@ -908,6 +909,7 @@ export default function CoachDashboard({
       <div className="coachDashboardFooterActions" aria-label="Dashboard secondary actions">
         <button type="button" className="secondaryBtn" onClick={onReport}>Open full report</button>
         <button type="button" className="secondaryBtn" onClick={onTraining}>Training plan</button>
+        {onJourney ? <button type="button" className="secondaryBtn" onClick={onJourney}>Journey</button> : null}
         <button type="button" className="secondaryBtn" onClick={onAnalyse}>Refresh analysis</button>
       </div>
       <SessionSummary
