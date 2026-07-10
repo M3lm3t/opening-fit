@@ -4384,6 +4384,58 @@ th {
   line-height: 1.4;
 }
 
+.mistakePracticeSessionHeader {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  border-radius: 12px;
+  background: rgba(8, 47, 73, 0.26);
+}
+
+.mistakePracticeSessionHeader > span,
+.mistakePracticeSessionHeader dt {
+  color: #7dd3fc;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.mistakePracticeSessionHeader strong {
+  color: #f8fafc;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.mistakePracticeSessionHeader dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.mistakePracticeSessionHeader dl div {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(2, 6, 23, 0.22);
+}
+
+.mistakePracticeSessionHeader dd {
+  margin: 3px 0 0;
+  color: rgba(248, 250, 252, 0.9);
+  font-weight: 800;
+}
+
+.mistakePracticeSessionHeader p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.82);
+  line-height: 1.45;
+}
+
 .weakestLineTrainingSet {
   display: grid;
   gap: 5px;
@@ -4426,6 +4478,42 @@ th {
 .page.light .weakestLineTrainingSet p,
 [data-theme="light"] .weakestLineTrainingSet p {
   color: #475569;
+}
+
+.page.light .mistakePracticeSessionHeader,
+[data-theme="light"] .mistakePracticeSessionHeader {
+  background: #ecfeff;
+  border-color: rgba(8, 145, 178, 0.22);
+}
+
+.page.light .mistakePracticeSessionHeader strong,
+.page.light .mistakePracticeSessionHeader dd,
+[data-theme="light"] .mistakePracticeSessionHeader strong,
+[data-theme="light"] .mistakePracticeSessionHeader dd {
+  color: #0f172a;
+}
+
+.page.light .mistakePracticeSessionHeader p,
+[data-theme="light"] .mistakePracticeSessionHeader p {
+  color: #475569;
+}
+
+.page.light .mistakePracticeSessionHeader dl div,
+[data-theme="light"] .mistakePracticeSessionHeader dl div {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+@media (max-width: 720px) {
+  .mistakePracticeSessionHeader dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .mistakePracticeSessionHeader dl {
+    grid-template-columns: 1fr;
+  }
 }
 
 .practiceCloseButton {

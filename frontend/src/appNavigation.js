@@ -1,4 +1,6 @@
 export const APP_NAV_ROUTES = {
+  today: { view: "dashboard", path: "/dashboard", target: "coach-dashboard", fallbackIds: ["app-dashboard"] },
+  dashboard: { view: "dashboard", path: "/dashboard", target: "coach-dashboard", fallbackIds: ["app-dashboard"] },
   home: { view: "analyse", path: "/", target: "app-dashboard", fallbackIds: ["import"] },
   analyse: { view: "analyse", path: "/", target: "import" },
   import: { view: "analyse", path: "/", target: "import" },
@@ -12,11 +14,10 @@ export const APP_NAV_ROUTES = {
     reportMode: "full",
   },
   repertoire: {
-    view: "recommendations",
-    path: "/report",
-    target: "recommended-repertoire",
-    fallbackIds: ["repertoire-map", "openingfit-verdict", "app-results"],
-    reportMode: "full",
+    view: "repertoire",
+    path: "/repertoire",
+    target: "my-repertoire",
+    fallbackIds: ["app-dashboard"],
   },
   openings: {
     view: "report",
@@ -56,12 +57,13 @@ export const APP_NAV_ROUTES = {
 export function getAppSection(view) {
   const aliases = {
     import: "analyse",
+    dashboard: "analyse",
     home: "analyse",
     analyse: "analyse",
     analyze: "analyse",
     overview: "report",
     report: "report",
-    repertoire: "report",
+    repertoire: "repertoire",
     openings: "report",
     weakspots: "report",
     recommendations: "report",

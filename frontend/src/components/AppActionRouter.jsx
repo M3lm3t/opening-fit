@@ -212,6 +212,8 @@ export default function AppActionRouter({ onViewChange }) {
       "get started": { view: "analyse", target: "import", path: "/" },
 
       "report": { view: "report", target: "app-results", path: "/report" },
+      "dashboard": { view: "dashboard", target: "coach-dashboard", path: "/dashboard" },
+      "coach dashboard": { view: "dashboard", target: "coach-dashboard", path: "/dashboard" },
       "go to report": { view: "report", target: "app-results", path: "/report" },
       "view report": { view: "report", target: "app-results", path: "/report" },
       "view example report": { view: "report", target: "app-results", path: "/report" },
@@ -224,9 +226,10 @@ export default function AppActionRouter({ onViewChange }) {
       "see what we learned": { view: "report", target: "evidence-table", path: "/report" },
       "evidence table": { view: "report", target: "evidence-table", path: "/report" },
 
-      "repertoire": { view: "report", target: "recommended-repertoire", path: "/report" },
-      "view repertoire": { view: "report", target: "recommended-repertoire", path: "/report" },
-      "view my repertoire": { view: "report", target: "recommended-repertoire", path: "/report" },
+      "repertoire": { view: "repertoire", target: "my-repertoire", path: "/repertoire" },
+      "my repertoire": { view: "repertoire", target: "my-repertoire", path: "/repertoire" },
+      "view repertoire": { view: "repertoire", target: "my-repertoire", path: "/repertoire" },
+      "view my repertoire": { view: "repertoire", target: "my-repertoire", path: "/repertoire" },
       "view recommendations": { view: "report", target: "recommended-repertoire", path: "/report" },
       "recommendations": { view: "report", target: "recommended-repertoire", path: "/report" },
       "opening suggestions": { view: "report", target: "recommended-repertoire", path: "/report" },

@@ -1,0 +1,613 @@
+.coachDashboard,
+.emptyCoachDashboard {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  margin: 0 0 18px;
+}
+
+.coachVerdictCard,
+.emptyCoachDashboard,
+.coachDashboardCard {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(11, 18, 32, 0.94)),
+    var(--card-bg, #111827);
+  color: var(--color-text, #f8fafc);
+  box-shadow: 0 22px 60px rgba(2, 6, 23, 0.24);
+}
+
+.coachVerdictCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
+  gap: 18px;
+  align-items: stretch;
+  padding: clamp(20px, 3vw, 32px);
+  border-radius: 24px;
+}
+
+.coachVerdictContent {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.coachEyebrow,
+.coachDashboardCard > span,
+.emptyCoachDashboard > span,
+.coachCardHeader span {
+  color: #7dd3fc;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.coachVerdictContent h1,
+.emptyCoachDashboard h1 {
+  max-width: 880px;
+  margin: 0;
+  color: #f8fafc;
+  font-size: clamp(2rem, 4vw, 4.1rem);
+  line-height: 1.02;
+}
+
+.coachVerdictContent p,
+.emptyCoachDashboard p,
+.coachDashboardCard p {
+  max-width: 760px;
+  margin: 0;
+  color: rgba(226, 232, 240, 0.78);
+  line-height: 1.55;
+}
+
+.coachPrimaryCta {
+  min-height: 48px;
+  margin-top: 4px;
+}
+
+.coachScorePanel {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  border-radius: 20px;
+  padding: 18px;
+  background: rgba(8, 47, 73, 0.34);
+  text-align: center;
+}
+
+.coachScorePanel span,
+.coachScorePanel small {
+  color: rgba(226, 232, 240, 0.76);
+  font-weight: 800;
+}
+
+.coachScorePanel > strong {
+  color: #67e8f9;
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  line-height: 0.96;
+}
+
+.coachScorePanel > strong.todayStreakNumber {
+  color: #facc15;
+}
+
+.coachTrendLine {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.56);
+}
+
+.coachTrendLine b {
+  color: #e2e8f0;
+}
+
+.coachTrendLine b.isPositive {
+  color: #86efac;
+}
+
+.coachTrendLine b.isNegative {
+  color: #fca5a5;
+}
+
+.coachDashboardLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.coachDashboardMain,
+.coachDashboardSide {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.coachDashboardSide .openingMilestones,
+.coachDashboardSide .openingScoreBreakdown,
+.coachDashboardSide .monthlyRecapCard {
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.coachDashboardSide .openingMilestoneGrid,
+.coachDashboardSide .openingScoreFactorGrid,
+.coachDashboardSide .monthlyRecapCard dl {
+  grid-template-columns: 1fr;
+}
+
+.coachDashboardSide .openingScoreSectionHeader {
+  grid-template-columns: 1fr;
+}
+
+.coachDashboardCard,
+.emptyCoachDashboard {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.todayOpeningTask {
+  padding: clamp(18px, 2.4vw, 26px);
+}
+
+.todayOpeningTask h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: clamp(1.45rem, 2.6vw, 2.3rem);
+  line-height: 1.08;
+}
+
+.todayTaskList,
+.whatChangedList,
+.recentActivityList {
+  display: grid;
+  gap: 10px;
+}
+
+.todayTaskRow {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.todayTaskRow.isComplete {
+  border-color: rgba(74, 222, 128, 0.34);
+  background: rgba(20, 83, 45, 0.2);
+}
+
+.todayTaskIndex {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(14, 165, 233, 0.18);
+  color: #bae6fd;
+  font-weight: 950;
+}
+
+.todayTaskRow h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.todayTaskRow p,
+.whatChangedRow p,
+.recentActivityList p {
+  margin: 2px 0 0;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.92rem;
+  line-height: 1.42;
+}
+
+.todayTaskRow small {
+  display: inline-block;
+  margin-top: 6px;
+  color: rgba(226, 232, 240, 0.62);
+  font-weight: 800;
+}
+
+.todayTaskActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.todayTaskActions button,
+.ratingGoalEditor button {
+  min-height: 44px;
+}
+
+.todayTaskDone {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: rgba(34, 197, 94, 0.18);
+  color: #bbf7d0;
+  font-weight: 900;
+}
+
+.todayProgressTrack {
+  position: relative;
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.todayProgressTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22c55e, #38bdf8);
+}
+
+.ratingGoalEditor {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.34);
+}
+
+.ratingGoalEditor label {
+  display: grid;
+  gap: 6px;
+  color: rgba(226, 232, 240, 0.78);
+  font-weight: 850;
+}
+
+.ratingGoalEditor input {
+  min-height: 44px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 12px;
+  padding: 0 12px;
+  background: rgba(15, 23, 42, 0.8);
+  color: #f8fafc;
+  font: inherit;
+}
+
+.whatChangedRow,
+.recentActivityList article {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  padding: 11px;
+  background: rgba(15, 23, 42, 0.38);
+}
+
+.recentActivityList article {
+  grid-template-columns: 1fr;
+}
+
+.whatChangedRow > span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+  color: #e2e8f0;
+  font-weight: 950;
+}
+
+.whatChangedRow.positive > span {
+  background: rgba(34, 197, 94, 0.18);
+  color: #bbf7d0;
+}
+
+.whatChangedRow.negative > span {
+  background: rgba(248, 113, 113, 0.18);
+  color: #fecaca;
+}
+
+.whatChangedRow strong,
+.recentActivityList strong {
+  color: #f8fafc;
+}
+
+.coachMiniCard h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.15rem;
+}
+
+.coachCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coachCardHeader strong {
+  color: #f8fafc;
+  white-space: nowrap;
+}
+
+.coachCardActions,
+.coachDashboardFooterActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.coachDashboardCard button,
+.emptyCoachDashboard button,
+.coachDashboardFooterActions button {
+  min-height: 44px;
+}
+
+.coachMiniCard > button {
+  justify-self: start;
+  border: 1px solid rgba(125, 211, 252, 0.26);
+  border-radius: 999px;
+  padding: 9px 13px;
+  background: rgba(14, 165, 233, 0.12);
+  color: #e0f2fe;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.weeklyProgressCard {
+  background:
+    linear-gradient(135deg, rgba(22, 78, 99, 0.28), rgba(15, 23, 42, 0.92)),
+    var(--card-bg, #111827);
+}
+
+.coachProgressGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.coachProgressGrid div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.coachProgressGrid strong {
+  color: #f8fafc;
+  font-size: 1.2rem;
+}
+
+.coachProgressGrid span {
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.coachDashboardFooterActions {
+  justify-content: flex-end;
+}
+
+.emptyCoachDashboard {
+  padding: clamp(22px, 4vw, 38px);
+}
+
+.page.light .coachVerdictCard,
+.page.light .emptyCoachDashboard,
+.page.light .coachDashboardCard,
+[data-theme="light"] .coachVerdictCard,
+[data-theme="light"] .emptyCoachDashboard,
+[data-theme="light"] .coachDashboardCard {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.1);
+}
+
+.page.light .coachVerdictContent h1,
+.page.light .emptyCoachDashboard h1,
+.page.light .todayOpeningTask h2,
+.page.light .coachMiniCard h3,
+[data-theme="light"] .coachVerdictContent h1,
+[data-theme="light"] .emptyCoachDashboard h1,
+[data-theme="light"] .todayOpeningTask h2,
+[data-theme="light"] .coachMiniCard h3 {
+  color: #0f172a;
+}
+
+.page.light .coachVerdictContent p,
+.page.light .emptyCoachDashboard p,
+.page.light .coachDashboardCard p,
+[data-theme="light"] .coachVerdictContent p,
+[data-theme="light"] .emptyCoachDashboard p,
+[data-theme="light"] .coachDashboardCard p {
+  color: #475569;
+}
+
+.page.light .coachScorePanel,
+[data-theme="light"] .coachScorePanel {
+  background: #ecfeff;
+  border-color: rgba(8, 145, 178, 0.24);
+}
+
+.page.light .coachScorePanel > strong,
+[data-theme="light"] .coachScorePanel > strong {
+  color: #0e7490;
+}
+
+.page.light .coachScorePanel span,
+.page.light .coachScorePanel small,
+[data-theme="light"] .coachScorePanel span,
+[data-theme="light"] .coachScorePanel small {
+  color: #475569;
+}
+
+.page.light .coachTrendLine,
+[data-theme="light"] .coachTrendLine {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.page.light .coachTrendLine b,
+[data-theme="light"] .coachTrendLine b {
+  color: #0f172a;
+}
+
+.page.light .coachMiniCard > button,
+[data-theme="light"] .coachMiniCard > button {
+  color: #075985;
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.page.light .coachProgressGrid div,
+[data-theme="light"] .coachProgressGrid div {
+  background: #f8fafc;
+}
+
+.page.light .coachProgressGrid strong,
+[data-theme="light"] .coachProgressGrid strong {
+  color: #0f172a;
+}
+
+.page.light .coachProgressGrid span,
+[data-theme="light"] .coachProgressGrid span {
+  color: #64748b;
+}
+
+.page.light .todayTaskRow,
+.page.light .whatChangedRow,
+.page.light .recentActivityList article,
+[data-theme="light"] .todayTaskRow,
+[data-theme="light"] .whatChangedRow,
+[data-theme="light"] .recentActivityList article {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+.page.light .todayTaskRow h3,
+.page.light .whatChangedRow strong,
+.page.light .recentActivityList strong,
+[data-theme="light"] .todayTaskRow h3,
+[data-theme="light"] .whatChangedRow strong,
+[data-theme="light"] .recentActivityList strong {
+  color: #0f172a;
+}
+
+.page.light .todayTaskRow p,
+.page.light .whatChangedRow p,
+.page.light .recentActivityList p,
+[data-theme="light"] .todayTaskRow p,
+[data-theme="light"] .whatChangedRow p,
+[data-theme="light"] .recentActivityList p {
+  color: #475569;
+}
+
+.page.light .ratingGoalEditor,
+[data-theme="light"] .ratingGoalEditor {
+  background: #f8fafc;
+}
+
+.page.light .ratingGoalEditor label,
+[data-theme="light"] .ratingGoalEditor label {
+  color: #334155;
+}
+
+.page.light .ratingGoalEditor input,
+[data-theme="light"] .ratingGoalEditor input {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+@media (max-width: 900px) {
+  .coachVerdictCard,
+  .coachDashboardLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .coachScorePanel {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .coachProgressGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coachDashboardFooterActions {
+    justify-content: flex-start;
+  }
+
+  .todayTaskRow {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .todayTaskActions {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+
+  .todayTaskActions button,
+  .todayTaskDone {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 620px) {
+  .coachDashboard,
+  .emptyCoachDashboard {
+    gap: 12px;
+  }
+
+  .coachVerdictCard,
+  .coachDashboardCard,
+  .emptyCoachDashboard {
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .coachVerdictContent h1,
+  .emptyCoachDashboard h1 {
+    font-size: 2rem;
+  }
+
+  .coachCardActions,
+  .coachDashboardFooterActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .coachCardActions button,
+  .coachDashboardFooterActions button {
+    width: 100%;
+  }
+
+  .coachProgressGrid {
+    grid-template-columns: 1fr;
+  }
+}

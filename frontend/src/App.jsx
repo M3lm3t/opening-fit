@@ -56,7 +56,14 @@ import { syncPremiumCheckoutSession } from "./accountApi";
 import { Analytics } from "@vercel/analytics/react";
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
 import OpeningSnapshot from "./components/OpeningSnapshot";
-import DashboardHome from "./components/DashboardHome";
+import CoachDashboard from "./components/CoachDashboard";
+import MyRepertoire from "./components/MyRepertoire";
+import {
+  MonthlyRecapCard,
+  OpeningMilestones,
+  OpeningProgressTimeline,
+  OpeningScoreBreakdown,
+} from "./components/OpeningScoreProgress";
 import DailyOpeningHabit from "./components/DailyOpeningHabit";
 import { useAuth } from "./context/AuthDataProvider";
 import { getAppSection, navigateApp, scrollToAppTarget } from "./appNavigation";
@@ -6805,6 +6812,13 @@ function FinalReportFlow({
           <ReportSectionGroup id="report-fixes" eyebrow="Weaknesses" title="What to fix">
             <OpeningInsights data={data} onPractice={onPractice} onReview={() => onNavigate?.("games")} />
             <OpeningHealthScore data={data} fitData={fitData} history={reportHistory} />
+            <OpeningScoreBreakdown
+              data={data}
+              fitData={fitData}
+              reportHistory={reportHistory}
+              openingFitUserState={openingFitUserState}
+              onAction={(route) => onNavigate?.(route)}
+            />
             <WeakSpotsCommandPanel
               data={data}
               fitData={fitData}
@@ -9706,6 +9720,31 @@ function OpeningFitProfileDashboard({
 
       {accountUser?.id ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
 
+      <OpeningProgressTimeline
+        data={data}
+        fitData={fitData}
+        reportHistory={reportHistory}
+        openingFitUserState={openingFitUserState}
+        onAction={(route) => {
+          if (route === "analyse") onAnalyse?.();
+          else if (route === "report") onOpenReport?.();
+        }}
+      />
+
+      <OpeningMilestones
+        data={data}
+        fitData={fitData}
+        reportHistory={reportHistory}
+        openingFitUserState={openingFitUserState}
+      />
+
+      <MonthlyRecapCard
+        data={data}
+        fitData={fitData}
+        reportHistory={reportHistory}
+        openingFitUserState={openingFitUserState}
+      />
+
       {showHistoryPage ? (
         <ReportHistoryVault data={data} fitData={fitData} onLoadReport={onLoadReport} />
       ) : null}
@@ -10619,7 +10658,7 @@ function reportFromHistoryItem(item = {}) {
   return item.report || item.analysis || item.last_report || item.data || item.snapshot?.report || item.snapshot || item;
 }
 
-function reportDateValue(report = {}) {
+function reportDateValue(report = {}, historyItem = null) {
   return new Date(
     report.importedAt ||
       report.imported_at ||
@@ -10627,6 +10666,14 @@ function reportDateValue(report = {}) {
       report.last_updated ||
       report.savedAt ||
       report.createdAt ||
+      report.created_at ||
+      historyItem?.summary?.reportDate ||
+      historyItem?.summary?.createdAt ||
+      historyItem?.summary?.created_at ||
+      historyItem?.createdAt ||
+      historyItem?.created_at ||
+      historyItem?.updatedAt ||
+      historyItem?.updated_at ||
       0
   ).getTime() || 0;
 }
@@ -10634,15 +10681,30 @@ function reportDateValue(report = {}) {
 function previousReportForComparison(current, reportHistory = []) {
   const currentStamp = reportDateValue(current);
   return (Array.isArray(reportHistory) ? reportHistory : [])
-    .map(reportFromHistoryItem)
-    .filter((report) => report && report !== current)
-    .sort((a, b) => reportDateValue(b) - reportDateValue(a))
-    .find((report) => !currentStamp || reportDateValue(report) < currentStamp || reportDateValue(report) !== currentStamp) || null;
+    .map((item) => ({
+      item,
+      report: reportFromHistoryItem(item),
+      stamp: reportDateValue(reportFromHistoryItem(item), item),
+    }))
+    .filter(({ report }) => report && report !== current)
+    .sort((a, b) => b.stamp - a.stamp)
+    .find(({ stamp }) => !currentStamp || stamp < currentStamp || stamp !== currentStamp)?.report || null;
 }
 
 function focusedMissionOpening(data = {}) {
   const mission = getOpeningCoachInsights(data)?.focusMission || {};
-  return mission.openingName || mission.opening_name || mission.opening || getOpeningCoachInsights(data)?.biggestLeak?.openingName || "";
+  const direct =
+    mission.openingName ||
+    mission.opening_name ||
+    mission.opening ||
+    getOpeningCoachInsights(data)?.biggestLeak?.openingName;
+  if (direct) return direct;
+
+  const candidates = openingStatCandidatesFromReport(data)
+    .filter((item) => !isUnknownOpeningName(getOpeningName(item)))
+    .sort((a, b) => getOpeningGames(b) - getOpeningGames(a));
+
+  return getOpeningName(candidates[0]) || "";
 }
 
 function openingGamesFromReport(data = {}, openingName = "") {
@@ -10655,6 +10717,31 @@ function openingGamesFromReport(data = {}, openingName = "") {
     ...(Array.isArray(data.opening_games) ? data.opening_games : []),
   ];
   return games.filter((game) => normaliseCoachOpeningName(getOpeningName(game)) === key);
+}
+
+function openingStatCandidatesFromReport(data = {}) {
+  return [
+    ...(Array.isArray(data.best_openings) ? data.best_openings : []),
+    ...(Array.isArray(data.bestOpenings) ? data.bestOpenings : []),
+    ...(Array.isArray(data.top_openings) ? data.top_openings : []),
+    ...(Array.isArray(data.topOpenings) ? data.topOpenings : []),
+    ...(Array.isArray(data.opening_stats) ? data.opening_stats : []),
+    ...(Array.isArray(data.openingStats) ? data.openingStats : []),
+    ...(Array.isArray(data.preferred_white) ? data.preferred_white : []),
+    ...(Array.isArray(data.preferredWhite) ? data.preferredWhite : []),
+    ...(Array.isArray(data.preferred_black) ? data.preferred_black : []),
+    ...(Array.isArray(data.preferredBlack) ? data.preferredBlack : []),
+  ].filter(Boolean);
+}
+
+function findOpeningStatInReport(data = {}, openingName = "") {
+  const key = normaliseCoachOpeningName(openingName);
+  if (!key) return null;
+  return (
+    openingStatCandidatesFromReport(data).find(
+      (item) => normaliseCoachOpeningName(getOpeningName(item)) === key
+    ) || null
+  );
 }
 
 function resultScoreForReportGame(game = {}) {
@@ -10683,10 +10770,11 @@ function openingComparisonStats(data = {}, openingName = "") {
   const games = openingGamesFromReport(data, openingName);
   const scored = games.map(resultScoreForReportGame).filter((score) => score !== null);
   const direct = findOpeningCoachDiagnostic(data, { name: openingName });
+  const stat = findOpeningStatInReport(data, openingName);
   const winRate = direct?.winRate ?? (scored.length ? Math.round((scored.reduce((sum, score) => sum + score, 0) / scored.length) * 100) : null);
   return {
-    games: direct?.games || games.length || 0,
-    winRate,
+    games: safeNumber(direct?.games ?? stat?.games ?? stat?.count ?? stat?.total ?? games.length, 0),
+    winRate: winRate ?? (stat ? getWinRate(stat) : null),
     earlyIssues: earlyIssueCountForOpening(data, openingName),
   };
 }
@@ -11825,18 +11913,27 @@ function AppPrimaryNav({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const profileLabel = accountUser ? "Profile" : "Log in";
   const items = [
-    { key: "analyse", label: "Analyse" },
+    accountUser && hasReport
+      ? { key: "dashboard", label: "Dashboard", path: "/dashboard", target: "coach-dashboard" }
+      : { key: "analyse", label: "Analyse" },
+    accountUser && hasReport ? { key: "analyse", label: "Analyse" } : null,
     hasReport
       ? { key: "report", label: "Report" }
       : { key: "example", label: "Sample report", path: "/report", target: "app-results", action: onExampleReport },
+    hasReport ? { key: "repertoire", label: "My Repertoire", path: "/repertoire", target: "my-repertoire" } : null,
     { key: "training", label: "Train" },
     { key: "openingsHub", label: "Openings", path: "/openings", native: true },
     { key: "premium", label: "Premium", path: "/premium", target: "premium" },
-  ];
+  ].filter(Boolean);
   const accountAction = accountUser
     ? { key: "account", label: "Profile", path: "/account" }
     : { key: "login", label: "Log in", path: "/login", target: "login", action: onLogin };
-  const brandAction = hasReport ? { key: "report", label: "Report / Progress" } : { key: "analyse", label: "Analyse" };
+  const brandAction =
+    accountUser && hasReport
+      ? { key: "dashboard", label: "Dashboard" }
+      : hasReport
+        ? { key: "report", label: "Report / Progress" }
+        : { key: "analyse", label: "Analyse" };
   const primaryAction = accountUser
     ? { key: "analyse", label: "New analysis" }
     : { key: "analyse", label: "Analyse games" };
@@ -11849,9 +11946,11 @@ function AppPrimaryNav({
 
     const activeViewsByKey = {
       analyse: ["analyse", "home", "import"],
-      report: ["report", "overview", "recommendations", "repertoire", "openings", "weakspots", "verdicts", "progress"],
-      recommendations: ["recommendations", "repertoire", "openings", "weakspots", "verdicts"],
-      example: ["report", "overview", "recommendations", "repertoire", "openings", "weakspots", "verdicts"],
+      dashboard: ["dashboard"],
+      report: ["report", "overview", "recommendations", "openings", "weakspots", "verdicts", "progress"],
+      repertoire: ["repertoire"],
+      recommendations: ["recommendations", "openings", "weakspots", "verdicts"],
+      example: ["report", "overview", "recommendations", "openings", "weakspots", "verdicts"],
       training: ["train", "training", "interactive", "practice"],
       games: ["games", "data"],
       history: ["history"],
@@ -12276,15 +12375,17 @@ function getCurrentPath() {
 }
 
 function isPrivateSeoPath(path) {
-  return ["/account", "/profile", "/login", "/report", "/train", "/premium", "/upgrade"].includes(path);
+  return ["/account", "/profile", "/login", "/dashboard", "/report", "/repertoire", "/train", "/premium", "/upgrade"].includes(path);
 }
 
 function getInitialAppView() {
   const path = getCurrentPath();
+  if (path === "/dashboard") return "dashboard";
   if (path === "/account" || path === "/profile" || path === "/login") return "profile";
   if (path === "/upgrade" || path === "/premium") return "upgrade";
   if (path === "/train") return "train";
   if (path === "/report") return "report";
+  if (path === "/repertoire") return "repertoire";
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
     if (saved?.analysis) return "report";
@@ -14059,6 +14160,9 @@ export default function App() {
     saveReport: saveCloudReport,
     saveAnalysedGames: saveCloudAnalysedGames,
     recordActivity: recordCloudActivity,
+    saveSettings: saveCloudSettings,
+    history: activityHistory,
+    settings: userSettings,
     reportHistory: cloudReportHistory,
     analysedGames: cloudAnalysedGames,
     retentionSnapshots,
@@ -15038,6 +15142,7 @@ export default function App() {
   };
 
   const sectionRouteMap = {
+    "dashboard": { view: "dashboard", path: "/dashboard", target: "coach-dashboard" },
     "feedback": { view: "feedback", target: "feedback" },
     "premium": { view: "upgrade", target: "premium" },
     "premium-offer": { view: "upgrade", target: "premium" },
@@ -15055,7 +15160,7 @@ export default function App() {
     "section-recommendations": { view: "report", target: "repertoire-map", reportMode: "full" },
     "recommended-repertoire": { view: "report", target: "repertoire-map", reportMode: "full" },
     "repertoire-plan": { view: "report", target: "repertoire-map", reportMode: "full" },
-    "my-repertoire": { view: "report", target: "repertoire-map", reportMode: "full" },
+    "my-repertoire": { view: "repertoire", path: "/repertoire", target: "my-repertoire" },
     "progress-tracker": { view: "profile", target: "profile" },
     "share-report": { view: "profile", target: "report-history" },
     "report-history": { view: "profile", target: "report-history" },
@@ -16086,7 +16191,47 @@ export default function App() {
       )
   );
   const activeAppSection = getAppSection(activeView);
+  const showCoachDashboard =
+    activeView === "dashboard" || Boolean((supabaseUser || accountUser) && reportData && activeAppSection === "analyse");
+  const showAnalyseImportFlow = !showCoachDashboard || !reportData;
   const currentAnalysisPlatformLabel = platforms[platform]?.label || "your chess platform";
+  const effectiveReportHistory = useMemo(() => {
+    const history = Array.isArray(cloudReportHistory) ? cloudReportHistory : [];
+    if (!data || isDemoAnalysis(data)) return history;
+
+    const currentStamp = reportDateValue(data);
+    const alreadyPresent = history.some((item) => {
+      const report = reportFromHistoryItem(item);
+      if (report === data) return true;
+      const samePlayer =
+        String(getImportedAccountUsername(report, "")).toLowerCase() ===
+          String(getImportedAccountUsername(data, "")).toLowerCase() &&
+        String(getImportedAccountPlatform(report, "")).toLowerCase() ===
+          String(getImportedAccountPlatform(data, "")).toLowerCase();
+      const sameStamp = currentStamp && reportDateValue(report, item) === currentStamp;
+      const sameGames = getImportedGameCount(report) === getImportedGameCount(data);
+      return samePlayer && sameStamp && sameGames;
+    });
+
+    if (alreadyPresent) return history;
+
+    return [
+      {
+        id: "current-analysis-preview",
+        createdAt:
+          data.importedAt ||
+          data.imported_at ||
+          data.lastUpdated ||
+          data.last_updated ||
+          new Date().toISOString(),
+        username: getImportedAccountUsername(data, username),
+        platform: getImportedAccountPlatform(data, platform),
+        report: data,
+        summary: buildReportHistorySummary(data, fitData),
+      },
+      ...history,
+    ];
+  }, [cloudReportHistory, data, fitData, platform, username]);
   const latestCloudReport = getLatestCloudReport(cloudReportHistory);
 
   const loadLatestCloudReport = () => {
@@ -16104,7 +16249,7 @@ export default function App() {
 
   const goToReturnUserRepertoire = () => {
     loadLatestCloudReport();
-    handleAppNavigate("recommendations");
+    handleAppNavigate("repertoire");
   };
 
   const goToReturnUserWeaknesses = () => {
@@ -16500,8 +16645,8 @@ export default function App() {
             });
 
             if (getCurrentPath() === "/") {
-              setActiveView("report");
-              window.history.replaceState({}, "", "/report");
+              setActiveView("dashboard");
+              window.history.replaceState({}, "", "/dashboard");
             }
           }}
         />
@@ -16520,6 +16665,30 @@ export default function App() {
 
         <main className="container appShell" id="app-dashboard">
           {activeAppSection === "analyse" ? (
+          <>
+          {showCoachDashboard ? (
+            <CoachDashboard
+              data={data || reportData}
+              fitData={fitData}
+              user={supabaseUser || accountUser}
+              profile={supabaseProfile}
+              settings={userSettings}
+              reportHistory={effectiveReportHistory}
+              openingFitUserState={openingFitUserState}
+              activityHistory={activityHistory}
+              onRecordActivity={recordCloudActivity}
+              onSaveSettings={saveCloudSettings}
+              onAnalyse={() => handleAppNavigate("analyse")}
+              onPractice={startOpeningPractice}
+              onReport={() => handleAppNavigate("report")}
+              onTraining={() => handleAppNavigate("training")}
+              onRecommendations={() => handleAppNavigate("repertoire")}
+              onProgress={() => goToReturnUserProfileSection("openingfit-progress")}
+              onScoreAction={(route) => handleAppNavigate(route)}
+            />
+          ) : null}
+
+          {showAnalyseImportFlow ? (
           <>
           <ResumeTrainingPrompt data={reportData || data} onResume={startOpeningPractice} />
 
@@ -16751,6 +16920,8 @@ export default function App() {
             ) : null}
 
           </header>
+          </>
+          ) : null}
           {error ? (
             <div className="errorBox analyseErrorBox" role="alert">
               <span className="productFeedbackIcon" aria-hidden="true"><AlertTriangle size={19} /></span>
@@ -16769,13 +16940,14 @@ export default function App() {
               </button>
             </div>
           ) : null}
-          <HomepageVisualStory />
+          {showAnalyseImportFlow ? <HomepageVisualStory /> : null}
+          {showAnalyseImportFlow ? (
           <div className="preAnalysisSupport">
             <ReturnUserDashboard
               user={supabaseUser || accountUser}
               data={reportData}
               fitData={fitData}
-              reportHistory={cloudReportHistory}
+              reportHistory={effectiveReportHistory}
               openingFitUserState={openingFitUserState}
               onAnalyse={goToAnalyseImport}
               onViewRepertoire={goToReturnUserRepertoire}
@@ -16788,13 +16960,14 @@ export default function App() {
             <OpeningFitRetentionSection
               data={reportData}
               fitData={fitData}
-              reportHistory={cloudReportHistory}
+              reportHistory={effectiveReportHistory}
               openingFitUserState={openingFitUserState}
               onAnalyse={goToAnalyseImport}
               onTrain={startOpeningPractice}
               compact
             />
           </div>
+          ) : null}
           </>
           ) : null}
 
@@ -16811,6 +16984,15 @@ export default function App() {
               <div className="productStateAction"><button className="primaryBtn" type="button" onClick={() => handleAppNavigate("analyse")}>Analyse your games</button>
               <small>Uses public Chess.com or Lichess games.</small></div>
             </section>
+          ) : null}
+
+          {activeAppSection === "repertoire" && !loading ? (
+            <MyRepertoire
+              data={reportData}
+              onAnalyse={() => handleAppNavigate("analyse")}
+              onPractice={startOpeningPractice}
+              onReport={() => handleAppNavigate("report")}
+            />
           ) : null}
 
           {activeAppSection === "train" && !reportData && !loading ? (
@@ -16946,7 +17128,7 @@ export default function App() {
             }
             openingScore={analysisVerdictScore}
             scoreStatus={openingScoreStatus}
-            reportHistory={cloudReportHistory}
+            reportHistory={effectiveReportHistory}
             openingFitUserState={openingFitUserState}
             trainingTarget={analysisVerdictTrainingTarget}
             onClose={dismissReturningUserBriefing}
@@ -17081,7 +17263,7 @@ export default function App() {
                     onLoadReport={setData}
                     recentGames={filteredRecentGames}
                     isPremium={isPremium}
-                    reportHistory={cloudReportHistory}
+                    reportHistory={effectiveReportHistory}
                     openingFitUserState={openingFitUserState}
                     retentionSnapshots={retentionSnapshots}
                     reportFilters={reportFilters}
@@ -17343,7 +17525,7 @@ export default function App() {
                 }}
                 onFounderPass={handleFounderPassClick}
                 onUserChange={setAccountUser}
-                reportHistory={cloudReportHistory}
+                reportHistory={effectiveReportHistory}
                 openingFitUserState={openingFitUserState}
                 retentionSnapshots={retentionSnapshots}
                 recommendationHistory={recommendationHistory}

@@ -1,0 +1,306 @@
+.openingScoreBreakdown,
+.openingProgressTimeline,
+.openingMilestones,
+.monthlyRecapCard {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  padding: 18px;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(11, 18, 32, 0.94)),
+    var(--card-bg, #111827);
+  color: #f8fafc;
+  box-shadow: 0 18px 48px rgba(2, 6, 23, 0.18);
+}
+
+.openingScoreBreakdownHeader,
+.openingScoreSectionHeader,
+.monthlyRecapCard {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.openingScoreBreakdownHeader,
+.openingScoreSectionHeader {
+  display: grid;
+  align-items: start;
+  gap: 14px;
+}
+
+.openingScoreTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.openingScoreBreakdown h2,
+.openingProgressTimeline h2,
+.openingMilestones h2,
+.monthlyRecapCard h2 {
+  margin: 3px 0 0;
+  color: #f8fafc;
+  font-size: clamp(1.35rem, 2.4vw, 2.1rem);
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.openingScoreBreakdown p,
+.openingProgressTimeline p,
+.openingMilestones p,
+.monthlyRecapCard p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.78);
+  line-height: 1.5;
+}
+
+.openingScoreTrendBadge {
+  display: grid;
+  justify-items: center;
+  min-width: 110px;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(8, 47, 73, 0.32);
+}
+
+.openingScoreTrendBadge span,
+.openingScoreFactor span,
+.openingMilestoneGrid span,
+.monthlyRecapCard dt {
+  color: #7dd3fc;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.openingScoreTrendBadge strong {
+  color: #67e8f9;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.openingScoreFactorGrid,
+.openingMilestoneGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.openingScoreFactor,
+.openingMilestoneGrid article {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-left: 3px solid rgba(125, 211, 252, 0.72);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.openingScoreFactor strong,
+.openingMilestoneGrid strong,
+.monthlyRecapCard dd {
+  color: #f8fafc;
+  font-weight: 900;
+}
+
+.openingScoreFactor button,
+.openingScoreSectionHeader button {
+  justify-self: start;
+  min-height: 38px;
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(14, 165, 233, 0.12);
+  color: #e0f2fe;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.openingProgressEmpty {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.openingProgressEmpty strong {
+  color: #f8fafc;
+}
+
+.openingProgressEmpty span {
+  color: rgba(226, 232, 240, 0.74);
+}
+
+.openingProgressTimelineList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.openingProgressTimelineItem {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.openingProgressTimelineItem time {
+  border-radius: 999px;
+  padding: 6px 8px;
+  background: rgba(14, 165, 233, 0.12);
+  color: #bae6fd;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.openingProgressTimelineItem div {
+  border-left: 2px solid rgba(125, 211, 252, 0.42);
+  padding-left: 12px;
+}
+
+.openingProgressTimelineItem strong {
+  display: block;
+  color: #f8fafc;
+  margin-bottom: 3px;
+}
+
+.openingMilestoneDone {
+  border-left-color: #22c55e;
+}
+
+.monthlyRecapCard {
+  display: grid;
+}
+
+.monthlyRecapCard dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.monthlyRecapCard dl div {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.monthlyRecapCard dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.page.light .openingScoreBreakdown,
+.page.light .openingProgressTimeline,
+.page.light .openingMilestones,
+.page.light .monthlyRecapCard,
+[data-theme="light"] .openingScoreBreakdown,
+[data-theme="light"] .openingProgressTimeline,
+[data-theme="light"] .openingMilestones,
+[data-theme="light"] .monthlyRecapCard {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #0f172a;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.1);
+}
+
+.page.light .openingScoreBreakdown h2,
+.page.light .openingProgressTimeline h2,
+.page.light .openingMilestones h2,
+.page.light .monthlyRecapCard h2,
+.page.light .openingScoreFactor strong,
+.page.light .openingMilestoneGrid strong,
+.page.light .monthlyRecapCard dd,
+.page.light .openingProgressTimelineItem strong,
+.page.light .openingProgressEmpty strong,
+[data-theme="light"] .openingScoreBreakdown h2,
+[data-theme="light"] .openingProgressTimeline h2,
+[data-theme="light"] .openingMilestones h2,
+[data-theme="light"] .monthlyRecapCard h2,
+[data-theme="light"] .openingScoreFactor strong,
+[data-theme="light"] .openingMilestoneGrid strong,
+[data-theme="light"] .monthlyRecapCard dd,
+[data-theme="light"] .openingProgressTimelineItem strong,
+[data-theme="light"] .openingProgressEmpty strong {
+  color: #0f172a;
+}
+
+.page.light .openingScoreBreakdown p,
+.page.light .openingProgressTimeline p,
+.page.light .openingMilestones p,
+.page.light .monthlyRecapCard p,
+.page.light .openingProgressEmpty span,
+[data-theme="light"] .openingScoreBreakdown p,
+[data-theme="light"] .openingProgressTimeline p,
+[data-theme="light"] .openingMilestones p,
+[data-theme="light"] .monthlyRecapCard p,
+[data-theme="light"] .openingProgressEmpty span {
+  color: #475569;
+}
+
+.page.light .openingScoreTrendBadge,
+.page.light .openingScoreFactor,
+.page.light .openingMilestoneGrid article,
+.page.light .openingProgressEmpty,
+.page.light .monthlyRecapCard dl div,
+[data-theme="light"] .openingScoreTrendBadge,
+[data-theme="light"] .openingScoreFactor,
+[data-theme="light"] .openingMilestoneGrid article,
+[data-theme="light"] .openingProgressEmpty,
+[data-theme="light"] .monthlyRecapCard dl div {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+@media (max-width: 980px) {
+  .openingScoreFactorGrid,
+  .openingMilestoneGrid,
+  .monthlyRecapCard dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .openingScoreBreakdown,
+  .openingProgressTimeline,
+  .openingMilestones,
+  .monthlyRecapCard {
+    border-radius: 16px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .openingScoreBreakdownHeader,
+  .openingScoreSectionHeader,
+  .monthlyRecapCard {
+    grid-template-columns: 1fr;
+  }
+
+  .openingScoreTrendBadge {
+    justify-items: start;
+  }
+
+  .openingScoreFactorGrid,
+  .openingMilestoneGrid,
+  .monthlyRecapCard dl,
+  .openingProgressTimelineItem {
+    grid-template-columns: 1fr;
+  }
+
+  .openingProgressTimelineItem time {
+    justify-self: start;
+  }
+}

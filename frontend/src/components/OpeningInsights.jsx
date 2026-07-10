@@ -354,7 +354,7 @@ function recommendationItems(recommendations) {
   return [
     { key: "try", title: "Try next", item: tryNext, tone: "try" },
     { key: "keep", title: "Keep improving", item: keep, tone: "keep" },
-    { key: "delay", title: "Delay for now", item: delayItems[0], tone: "delay" },
+    { key: "delay", title: "Pause for now", item: delayItems[0], tone: "delay" },
   ].filter((entry) => entry.item);
 }
 

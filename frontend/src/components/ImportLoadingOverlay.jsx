@@ -56,7 +56,7 @@ export default function ImportLoadingOverlay({
     },
     {
       title: "Building recommendations",
-      detail: "Choosing what to keep, repair, try, or delay.",
+      detail: "Choosing what to keep, repair, try, or pause for now.",
       icon: Lightbulb,
     },
     {

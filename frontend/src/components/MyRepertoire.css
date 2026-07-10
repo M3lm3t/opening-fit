@@ -1,0 +1,391 @@
+.myRepertoire,
+.myRepertoireEmpty {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  margin: 0 0 18px;
+}
+
+.myRepertoireHero,
+.myRepertoireSection,
+.myRepertoireGaps,
+.myRepertoireEmpty {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(11, 18, 32, 0.94)),
+    var(--card-bg, #111827);
+  color: var(--color-text, #f8fafc);
+  box-shadow: 0 22px 60px rgba(2, 6, 23, 0.22);
+}
+
+.myRepertoireHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  gap: 18px;
+  align-items: stretch;
+  padding: clamp(20px, 3vw, 30px);
+}
+
+.myRepertoireHero span,
+.myRepertoireActionCard span,
+.myRepertoireSectionHeader span,
+.myRepertoireGaps span,
+.myRepertoireEmpty > span {
+  color: #7dd3fc;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.myRepertoireHero h1,
+.myRepertoireEmpty h1 {
+  margin: 6px 0 10px;
+  color: #f8fafc;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.myRepertoireHero p,
+.myRepertoireEmpty p,
+.myRepertoireRow p,
+.myRepertoireMissing p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.78);
+  line-height: 1.55;
+}
+
+.myRepertoireActionCard {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  border-radius: 16px;
+  background: rgba(8, 47, 73, 0.34);
+}
+
+.myRepertoireActionCard strong {
+  color: #f8fafc;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+
+.myRepertoireActionCard button,
+.myRepertoireRow button,
+.myRepertoireMissing button,
+.myRepertoireEmpty button {
+  min-height: 42px;
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  border-radius: 999px;
+  padding: 9px 13px;
+  background: rgba(14, 165, 233, 0.12);
+  color: #e0f2fe;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.myRepertoireActionCard button:hover,
+.myRepertoireActionCard button:focus-visible,
+.myRepertoireRow button:hover,
+.myRepertoireRow button:focus-visible,
+.myRepertoireMissing button:hover,
+.myRepertoireMissing button:focus-visible {
+  background: rgba(14, 165, 233, 0.22);
+}
+
+.myRepertoireGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.myRepertoireSection {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.myRepertoireSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.myRepertoireSectionHeader h2,
+.myRepertoireGaps h2 {
+  margin: 4px 0 0;
+  color: #f8fafc;
+  font-size: 1.15rem;
+  letter-spacing: 0;
+}
+
+.myRepertoireSectionHeader strong {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: rgba(15, 23, 42, 0.6);
+  color: rgba(226, 232, 240, 0.86);
+  font-size: 0.78rem;
+}
+
+.myRepertoireRows {
+  display: grid;
+  gap: 10px;
+}
+
+.myRepertoireRow,
+.myRepertoireMissing {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-left: 3px solid rgba(148, 163, 184, 0.66);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.44);
+}
+
+.myRepertoireRow--strong {
+  border-left-color: #22c55e;
+}
+
+.myRepertoireRow--stable {
+  border-left-color: #38bdf8;
+}
+
+.myRepertoireRow--developing,
+.myRepertoireRow--thin {
+  border-left-color: #f59e0b;
+}
+
+.myRepertoireRow--weak,
+.myRepertoireRow--overloaded {
+  border-left-color: #fb7185;
+}
+
+.myRepertoireRow--missing {
+  border-left-color: #94a3b8;
+}
+
+.myRepertoireRowMain {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.myRepertoireRowMain h3 {
+  margin: 0 0 4px;
+  color: #f8fafc;
+  font-size: 1rem;
+  line-height: 1.2;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.myRepertoireStatus {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: rgba(148, 163, 184, 0.16);
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.myRepertoireStatus--strong {
+  background: rgba(34, 197, 94, 0.14);
+  color: #bbf7d0;
+}
+
+.myRepertoireStatus--stable {
+  background: rgba(56, 189, 248, 0.14);
+  color: #bae6fd;
+}
+
+.myRepertoireStatus--developing,
+.myRepertoireStatus--thin {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fde68a;
+}
+
+.myRepertoireStatus--weak,
+.myRepertoireStatus--overloaded {
+  background: rgba(251, 113, 133, 0.14);
+  color: #fecdd3;
+}
+
+.myRepertoireRowMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.myRepertoireRowMeta span {
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: rgba(2, 6, 23, 0.32);
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.myRepertoireRow button,
+.myRepertoireMissing button {
+  justify-self: start;
+}
+
+.myRepertoireMissing strong {
+  color: #f8fafc;
+}
+
+.myRepertoireGaps {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px;
+}
+
+.myRepertoireGaps ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.myRepertoireGaps li {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.42);
+  color: rgba(226, 232, 240, 0.82);
+  line-height: 1.4;
+}
+
+.myRepertoireEmpty {
+  padding: clamp(22px, 4vw, 36px);
+}
+
+.myRepertoireEmpty div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.page.light .myRepertoireHero,
+.page.light .myRepertoireSection,
+.page.light .myRepertoireGaps,
+.page.light .myRepertoireEmpty,
+[data-theme="light"] .myRepertoireHero,
+[data-theme="light"] .myRepertoireSection,
+[data-theme="light"] .myRepertoireGaps,
+[data-theme="light"] .myRepertoireEmpty {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.1);
+}
+
+.page.light .myRepertoireHero h1,
+.page.light .myRepertoireEmpty h1,
+.page.light .myRepertoireSectionHeader h2,
+.page.light .myRepertoireGaps h2,
+.page.light .myRepertoireRowMain h3,
+.page.light .myRepertoireActionCard strong,
+.page.light .myRepertoireMissing strong,
+[data-theme="light"] .myRepertoireHero h1,
+[data-theme="light"] .myRepertoireEmpty h1,
+[data-theme="light"] .myRepertoireSectionHeader h2,
+[data-theme="light"] .myRepertoireGaps h2,
+[data-theme="light"] .myRepertoireRowMain h3,
+[data-theme="light"] .myRepertoireActionCard strong,
+[data-theme="light"] .myRepertoireMissing strong {
+  color: #0f172a;
+}
+
+.page.light .myRepertoireHero p,
+.page.light .myRepertoireEmpty p,
+.page.light .myRepertoireRow p,
+.page.light .myRepertoireMissing p,
+[data-theme="light"] .myRepertoireHero p,
+[data-theme="light"] .myRepertoireEmpty p,
+[data-theme="light"] .myRepertoireRow p,
+[data-theme="light"] .myRepertoireMissing p {
+  color: #475569;
+}
+
+.page.light .myRepertoireActionCard,
+[data-theme="light"] .myRepertoireActionCard {
+  background: #ecfeff;
+  border-color: rgba(8, 145, 178, 0.24);
+}
+
+.page.light .myRepertoireRow,
+.page.light .myRepertoireMissing,
+.page.light .myRepertoireGaps li,
+[data-theme="light"] .myRepertoireRow,
+[data-theme="light"] .myRepertoireMissing,
+[data-theme="light"] .myRepertoireGaps li {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #475569;
+}
+
+.page.light .myRepertoireSectionHeader strong,
+.page.light .myRepertoireRowMeta span,
+[data-theme="light"] .myRepertoireSectionHeader strong,
+[data-theme="light"] .myRepertoireRowMeta span {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.page.light .myRepertoireActionCard button,
+.page.light .myRepertoireRow button,
+.page.light .myRepertoireMissing button,
+.page.light .myRepertoireEmpty button,
+[data-theme="light"] .myRepertoireActionCard button,
+[data-theme="light"] .myRepertoireRow button,
+[data-theme="light"] .myRepertoireMissing button,
+[data-theme="light"] .myRepertoireEmpty button {
+  background: rgba(14, 116, 144, 0.08);
+  border-color: rgba(14, 116, 144, 0.18);
+  color: #075985;
+}
+
+@media (max-width: 980px) {
+  .myRepertoireHero,
+  .myRepertoireGrid,
+  .myRepertoireGaps {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .myRepertoireHero,
+  .myRepertoireSection,
+  .myRepertoireGaps,
+  .myRepertoireEmpty {
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .myRepertoireRowMain {
+    display: grid;
+  }
+
+  .myRepertoireRow button,
+  .myRepertoireMissing button,
+  .myRepertoireActionCard button,
+  .myRepertoireEmpty button {
+    width: 100%;
+  }
+}

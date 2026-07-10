@@ -4,7 +4,7 @@ import { getAppSection } from "../appNavigation";
 export default function MobileBottomNav({ activeView, hasReport = false, onNavigate }) {
   const activeSection = getAppSection(activeView);
   const items = [
-    { key: "home", label: "Home", Icon: Home, activeViews: ["home"], activePaths: ["/"] },
+    { key: "home", label: "Today", Icon: Home, activeViews: ["home", "dashboard"], activePaths: ["/", "/dashboard"] },
     { key: "analyse", label: "Analyse", Icon: Search, activeViews: ["analyse", "import"] },
     {
       key: "training",
@@ -16,7 +16,7 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
       key: "report",
       label: "Report",
       Icon: ChartNoAxesCombined,
-      activeSections: ["report"],
+      activeSections: ["report", "repertoire"],
       activeViews: ["report", "recommendations", "repertoire", "openings", "weakspots", "verdicts", "progress"],
     },
     { key: "profile", label: "Profile", Icon: User, activeViews: ["profile", "account", "login"] },

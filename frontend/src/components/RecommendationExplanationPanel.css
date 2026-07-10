@@ -1,0 +1,212 @@
+.recommendationExplanationPanel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-left: 3px solid rgba(125, 211, 252, 0.72);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.48);
+  color: #f8fafc;
+}
+
+.recommendationExplanationPanel--compact {
+  padding: 12px;
+}
+
+.recommendationExplanationPanel--positive {
+  border-left-color: #22c55e;
+}
+
+.recommendationExplanationPanel--repair {
+  border-left-color: #38bdf8;
+}
+
+.recommendationExplanationPanel--pause {
+  border-left-color: #f59e0b;
+}
+
+.recommendationExplanationPanel--explore {
+  border-left-color: #a78bfa;
+}
+
+.recommendationExplanationPanel--neutral {
+  border-left-color: #94a3b8;
+}
+
+.recommendationExplanationPanel__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.recommendationExplanationPanel__header div {
+  min-width: 0;
+}
+
+.recommendationExplanationPanel__header span,
+.recommendationExplanationPanel__next span {
+  display: block;
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.recommendationExplanationPanel__header h4 {
+  margin: 3px 0 0;
+  color: #f8fafc;
+  font-size: 1rem;
+  line-height: 1.25;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.recommendationExplanationPanel > p,
+.recommendationExplanationPanel__details p {
+  margin: 0;
+  color: rgba(248, 250, 252, 0.88);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.recommendationExplanationPanel__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recommendationExplanationPanel__chips span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 5px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.32);
+  color: rgba(226, 232, 240, 0.84);
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.recommendationExplanationPanel__chips b {
+  color: rgba(248, 250, 252, 0.96);
+}
+
+.recommendationExplanationPanel__details {
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  padding-top: 9px;
+}
+
+.recommendationExplanationPanel__details summary {
+  color: #bfdbfe;
+  cursor: pointer;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.recommendationExplanationPanel__details p {
+  margin-top: 8px;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.recommendationExplanationPanel__next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.recommendationExplanationPanel__next button,
+.recommendationExplanationPanel__next strong {
+  min-height: 38px;
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(14, 116, 144, 0.2);
+  color: #e0f2fe;
+  font-size: 0.84rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.recommendationExplanationPanel__next button {
+  cursor: pointer;
+}
+
+.recommendationExplanationPanel__next button:hover,
+.recommendationExplanationPanel__next button:focus-visible {
+  background: rgba(14, 116, 144, 0.32);
+}
+
+.page.light .recommendationExplanationPanel,
+[data-theme="light"] .recommendationExplanationPanel {
+  background: rgba(248, 250, 252, 0.86);
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #0f172a;
+}
+
+.page.light .recommendationExplanationPanel__header h4,
+[data-theme="light"] .recommendationExplanationPanel__header h4,
+.page.light .recommendationExplanationPanel__chips b,
+[data-theme="light"] .recommendationExplanationPanel__chips b {
+  color: #0f172a;
+}
+
+.page.light .recommendationExplanationPanel__header span,
+[data-theme="light"] .recommendationExplanationPanel__header span,
+.page.light .recommendationExplanationPanel__next span,
+[data-theme="light"] .recommendationExplanationPanel__next span,
+.page.light .recommendationExplanationPanel > p,
+[data-theme="light"] .recommendationExplanationPanel > p {
+  color: rgba(15, 23, 42, 0.72);
+}
+
+.page.light .recommendationExplanationPanel__chips span,
+[data-theme="light"] .recommendationExplanationPanel__chips span {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: rgba(15, 23, 42, 0.68);
+}
+
+.page.light .recommendationExplanationPanel__details,
+[data-theme="light"] .recommendationExplanationPanel__details {
+  border-top-color: rgba(15, 23, 42, 0.12);
+}
+
+.page.light .recommendationExplanationPanel__details summary,
+[data-theme="light"] .recommendationExplanationPanel__details summary {
+  color: #075985;
+}
+
+.page.light .recommendationExplanationPanel__details p,
+[data-theme="light"] .recommendationExplanationPanel__details p {
+  color: rgba(15, 23, 42, 0.64);
+}
+
+.page.light .recommendationExplanationPanel__next button,
+.page.light .recommendationExplanationPanel__next strong,
+[data-theme="light"] .recommendationExplanationPanel__next button,
+[data-theme="light"] .recommendationExplanationPanel__next strong {
+  background: rgba(14, 116, 144, 0.08);
+  border-color: rgba(14, 116, 144, 0.18);
+  color: #075985;
+}
+
+@media (max-width: 620px) {
+  .recommendationExplanationPanel__next {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .recommendationExplanationPanel__next button,
+  .recommendationExplanationPanel__next strong {
+    width: 100%;
+    text-align: center;
+  }
+}

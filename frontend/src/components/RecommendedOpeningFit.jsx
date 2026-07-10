@@ -3,6 +3,7 @@ import InfoHint from "./InfoHint";
 import { OPENING_COPY, getOpeningRecommendationReason } from "./openingCopy";
 import OpeningRecommendationVerdict from "./OpeningRecommendationVerdict";
 import OpeningScoreInfo from "./OpeningScoreInfo";
+import RecommendationExplanationPanel from "./RecommendationExplanationPanel";
 import RecommendationReasonHint, { recommendationReasonDetails } from "./RecommendationReasonHint";
 import "./RecommendedOpeningFit.css";
 
@@ -376,7 +377,7 @@ function firstLines(name) {
   ];
 }
 
-function RecommendationCard({ item, label, tone, traits, playerProfile, alternatives, onPractice }) {
+function RecommendationCard({ item, label, tone, traits, playerProfile, alternatives, report, onPractice }) {
   const name = openingName(item);
   const fit = clamp(item.fit_score ?? item.fitScore ?? item.score ?? 60);
   const priorityReason =
@@ -465,6 +466,27 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
         <p>{displayReason}</p>
         <small>{displayAction}</small>
       </div>
+
+      <RecommendationExplanationPanel
+        compact
+        recommendation={{
+          ...item,
+          name,
+          games,
+          fitScore: fit,
+          confidence,
+          verdict: verdictLabel,
+          reason_label: reasonLabel,
+          short_reason: shortReason,
+          next_action: displayAction,
+          activeOpenings: alternatives,
+        }}
+        report={report}
+        alternatives={alternatives}
+        category={verdictLabel}
+        onAction={onPractice ? () => onPractice(item) : undefined}
+        onPracticeTarget={onPractice}
+      />
 
       {onPractice ? (
         <button
@@ -561,6 +583,7 @@ export default function RecommendedOpeningFit({ data, onPractice }) {
                 traits={traits}
                 playerProfile={playerProfile}
                 alternatives={alternatives}
+                report={data}
                 onPractice={onPractice}
               />
             ))}

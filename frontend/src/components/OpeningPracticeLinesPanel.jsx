@@ -340,7 +340,7 @@ function explainMove(line, moves, index) {
     const san = move?.san || moves[index];
 
     if (index === 0 && san === "e4") {
-      return "Best practical first move for many open games: it claims central space, opens the bishop and queen, and asks Black to solve the centre immediately.";
+      return "A strong practical first move for many open games: it claims central space, opens the bishop and queen, and asks Black to solve the centre immediately.";
     }
     if (index === 0 && san === "d4") {
       return "Takes central space with a protected pawn and usually leads to stable structures where your pieces can develop naturally.";
@@ -536,6 +536,7 @@ export default function OpeningPracticeLinesPanel({
     [focusLine, pack, usingExactWeakLine]
   );
   const requestedPracticeSide = useMemo(() => inferPracticeSideFromOpening(opening), [opening]);
+  const mistakePracticeMeta = opening?.practiceMeta || opening?.practice_meta || null;
   const practiceSide = useMemo(() => {
     if (requestedPracticeSide && activeOpeningName === openingName) return requestedPracticeSide;
     return inferPracticeSide(pack, selectedLine);
@@ -1051,7 +1052,7 @@ export default function OpeningPracticeLinesPanel({
     >
       <div className="practiceLinesHeader">
         <div>
-          <p className="eyebrow">{featured ? "Train your next move" : "Practice pack"}</p>
+          <p className="eyebrow">{featured ? "What am I training?" : "Practice pack"}</p>
           <h2>{featured ? heading || "Practice this line" : pack.opening?.name || activeOpeningName}</h2>
           {pack.opening ? (
             <p className="practiceOpeningMeta">
@@ -1066,6 +1067,31 @@ export default function OpeningPracticeLinesPanel({
               ? "You play Black. The board is flipped and White will move first."
               : "You play White. Follow your recommended opening moves."}
           </p>
+          {mistakePracticeMeta ? (
+            <div className="mistakePracticeSessionHeader">
+              <span>Real-mistake practice</span>
+              <strong>{mistakePracticeMeta.title || `Practice ${openingName}`}</strong>
+              <dl>
+                <div>
+                  <dt>Opening</dt>
+                  <dd>{openingName}</dd>
+                </div>
+                <div>
+                  <dt>Side</dt>
+                  <dd>{practiceSide === "black" ? "Black" : "White"}</dd>
+                </div>
+                <div>
+                  <dt>Skill</dt>
+                  <dd>{mistakePracticeMeta.skill || "move order"}</dd>
+                </div>
+                <div>
+                  <dt>Practice type</dt>
+                  <dd>{mistakePracticeMeta.hasExactMoves ? "line from report data" : "safe opening fallback"}</dd>
+                </div>
+              </dl>
+              <p>{mistakePracticeMeta.explanation}</p>
+            </div>
+          ) : null}
           {usingExactWeakLine ? (
             <p className="practiceExactLineNotice">
               Loaded the exact weak-line move sequence from your report.
