@@ -60,6 +60,20 @@ function activityType(item = {}) {
   return String(item.type || item.action_type || item.activity_type || "").toLowerCase();
 }
 
+function isMeaningfulActivity(item = {}) {
+  return new Set([
+    "today_task_completed",
+    "today_plan_completed",
+    "training_completed",
+    "weakest_line_training_completed",
+    "game_review_completed",
+    "report_imported",
+    "achievement_unlocked",
+    "weekly_recap_seen",
+    "rating_goal_updated",
+  ]).has(activityType(item));
+}
+
 function activityOpening(item = {}) {
   return item.payload?.opening || item.payload?.opening_name || item.payload?.task_opening || "";
 }
@@ -261,7 +275,7 @@ export function buildProgressCharts({ reportHistory = [], activity = [] } = {}) 
     .map((row) => ({ date: reportDate(row), value: reportScore(row) }))
     .filter((point) => point.date && point.value !== null)
     .sort((a, b) => a.date - b.date);
-  const activityByWeek = asArray(activity).reduce((map, item) => {
+  const activityByWeek = asArray(activity).filter(isMeaningfulActivity).reduce((map, item) => {
     const key = weekKey(item.created_at || item.createdAt || item.updated_at || item.updatedAt || new Date());
     if (!key) return map;
     map.set(key, (map.get(key) || 0) + 1);

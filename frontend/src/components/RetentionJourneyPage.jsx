@@ -53,15 +53,24 @@ function MiniLineChart({ points, label }) {
 }
 
 function BarChart({ bars }) {
-  if (!bars.length) return <div className="journeyChartEmpty">Activity appears here after meaningful actions.</div>;
+  if (!bars.length) return <div className="journeyChartEmpty">Complete a task, review a game, or save a report to start this chart.</div>;
   const max = Math.max(...bars.map((bar) => bar.value), 1);
+  const total = bars.reduce((sum, bar) => sum + bar.value, 0);
   return (
-    <div className="journeyBarChart" role="img" aria-label="Meaningful activity by week">
-      {bars.map((bar) => (
-        <span key={bar.label} title={`${bar.label}: ${bar.value}`}>
-          <i style={{ height: `${Math.max(8, (bar.value / max) * 100)}%` }} />
-        </span>
-      ))}
+    <div className="journeyActivityChart" role="img" aria-label={`Weekly training activity, ${total} meaningful actions shown`}>
+      <div className="journeyActivitySummary">
+        <span>{total}</span>
+        <small>meaningful action{total === 1 ? "" : "s"} across {bars.length} week{bars.length === 1 ? "" : "s"}</small>
+      </div>
+      <div className="journeyBarChart">
+        {bars.map((bar) => (
+          <span key={bar.label} title={`${bar.label}: ${bar.value} meaningful action${bar.value === 1 ? "" : "s"}`}>
+            <i style={{ height: `${Math.max(10, (bar.value / max) * 100)}%` }} />
+            <b>{bar.value}</b>
+            <em>{bar.label.slice(5)}</em>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -247,9 +256,9 @@ export default function RetentionJourneyPage({
             <p>{charts.scorePoints.length ? `${charts.scorePoints.length} saved score point${charts.scorePoints.length === 1 ? "" : "s"}.` : "Save more reports to see a trend."}</p>
           </article>
           <article>
-            <strong>Meaningful activity by week</strong>
+            <strong>Weekly training activity</strong>
             <BarChart bars={charts.activityBars} />
-            <p>Counts meaningful actions only, not page views.</p>
+            <p>Shows completed tasks, practice, reviewed games, saved reports, goals, achievements and recap check-ins.</p>
           </article>
         </div>
       </section>
@@ -321,6 +330,7 @@ export default function RetentionJourneyPage({
                 defaultChecked={settings?.preferences?.retentionNotifications?.[key] !== false}
                 onChange={(event) => savePreference(key, event.target.checked)}
               />
+              <span className="settingsSwitch" aria-hidden="true" />
               <span>{label}</span>
             </label>
           ))}

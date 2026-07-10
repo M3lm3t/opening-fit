@@ -169,29 +169,84 @@
   color: #38bdf8;
 }
 
-.journeyBarChart {
+.journeyActivityChart {
+  display: grid;
+  gap: 12px;
+}
+
+.journeyActivitySummary {
   display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(125, 211, 252, 0.16);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(8, 47, 73, 0.2);
+}
+
+.journeyActivitySummary span {
+  color: #67e8f9;
+  font-size: 1.65rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.journeyActivitySummary small {
+  color: rgba(226, 232, 240, 0.72);
+  font-weight: 800;
+  text-align: right;
+}
+
+.journeyBarChart {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
   align-items: end;
-  gap: 6px;
-  height: 80px;
-  padding-top: 8px;
+  gap: 8px;
+  min-height: 116px;
+  padding: 4px 0 0;
 }
 
 .journeyBarChart span {
-  display: flex;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
   align-items: end;
-  flex: 1;
-  min-width: 8px;
-  height: 100%;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.15);
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 116px;
 }
 
 .journeyBarChart i {
   display: block;
-  width: 100%;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #38bdf8, #22c55e);
+  width: min(100%, 30px);
+  min-height: 10px;
+  border-radius: 8px 8px 4px 4px;
+  background: linear-gradient(180deg, #67e8f9, #22c55e);
+  box-shadow: 0 8px 18px rgba(34, 197, 94, 0.14);
+}
+
+.journeyBarChart b,
+.journeyBarChart em {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.journeyBarChart b {
+  color: #f8fafc;
+  font-size: 0.82rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.journeyBarChart em {
+  color: rgba(226, 232, 240, 0.58);
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 850;
 }
 
 .journeyChartEmpty {
@@ -243,16 +298,73 @@
 }
 
 .settingsToggleGrid label {
-  display: flex;
-  gap: 10px;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
   align-items: center;
-  min-height: 44px;
+  min-height: 58px;
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 12px;
-  padding: 10px;
+  padding: 12px 14px;
   background: rgba(15, 23, 42, 0.36);
   color: rgba(226, 232, 240, 0.78);
   font-weight: 850;
+  cursor: pointer;
+}
+
+.settingsToggleGrid input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settingsSwitch {
+  position: relative;
+  display: inline-flex;
+  width: 44px;
+  height: 26px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(2, 6, 23, 0.18);
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.settingsSwitch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #94a3b8;
+  box-shadow: 0 4px 10px rgba(2, 6, 23, 0.26);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.settingsToggleGrid input:checked + .settingsSwitch {
+  border-color: rgba(45, 212, 191, 0.6);
+  background: rgba(20, 184, 166, 0.24);
+}
+
+.settingsToggleGrid input:checked + .settingsSwitch::after {
+  transform: translateX(18px);
+  background: #67e8f9;
+}
+
+.settingsToggleGrid input:focus-visible + .settingsSwitch {
+  outline: 3px solid rgba(56, 189, 248, 0.35);
+  outline-offset: 3px;
+}
+
+.settingsToggleGrid label > span:last-child {
+  min-width: 0;
+  color: rgba(226, 232, 240, 0.82);
+  line-height: 1.25;
 }
 
 .journeyNotice {
@@ -317,6 +429,56 @@
   color: #475569;
 }
 
+.page.light .settingsSwitch,
+[data-theme="light"] .settingsSwitch {
+  background: #e2e8f0;
+  border-color: rgba(15, 23, 42, 0.14);
+}
+
+.page.light .settingsSwitch::after,
+[data-theme="light"] .settingsSwitch::after {
+  background: #64748b;
+}
+
+.page.light .settingsToggleGrid input:checked + .settingsSwitch,
+[data-theme="light"] .settingsToggleGrid input:checked + .settingsSwitch {
+  background: #cffafe;
+  border-color: rgba(14, 165, 233, 0.32);
+}
+
+.page.light .settingsToggleGrid input:checked + .settingsSwitch::after,
+[data-theme="light"] .settingsToggleGrid input:checked + .settingsSwitch::after {
+  background: #0891b2;
+}
+
+.page.light .settingsToggleGrid label > span:last-child,
+[data-theme="light"] .settingsToggleGrid label > span:last-child {
+  color: #334155;
+}
+
+.page.light .journeyActivitySummary,
+[data-theme="light"] .journeyActivitySummary {
+  background: #eef9ff;
+  border-color: rgba(14, 165, 233, 0.18);
+}
+
+.page.light .journeyActivitySummary span,
+[data-theme="light"] .journeyActivitySummary span {
+  color: #0369a1;
+}
+
+.page.light .journeyActivitySummary small,
+[data-theme="light"] .journeyActivitySummary small,
+.page.light .journeyBarChart em,
+[data-theme="light"] .journeyBarChart em {
+  color: #64748b;
+}
+
+.page.light .journeyBarChart b,
+[data-theme="light"] .journeyBarChart b {
+  color: #0f172a;
+}
+
 @media (max-width: 920px) {
   .journeyHero,
   .journeyMiniGrid,
@@ -352,5 +514,17 @@
 
   .journeyFooterActions {
     display: grid;
+  }
+
+  .journeyActivitySummary {
+    display: grid;
+  }
+
+  .journeyActivitySummary small {
+    text-align: left;
+  }
+
+  .journeyBarChart {
+    grid-template-columns: repeat(auto-fit, minmax(36px, 1fr));
   }
 }
