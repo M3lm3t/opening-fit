@@ -14272,6 +14272,7 @@ export default function App() {
   const [data, setData] = useState(null);
   const [analysisVerdictId, setAnalysisVerdictId] = useState("");
   const [activeView, setActiveView] = useState(getInitialAppView);
+  const [forceAnalyseImportFlow, setForceAnalyseImportFlow] = useState(false);
   const importAbortRef = useRef(null);
   const reportRedirectKeyRef = useRef("");
   const parsedPgnMovesCacheRef = useRef(new Map());
@@ -15181,6 +15182,8 @@ export default function App() {
       typeof routeOrKey === "string"
         ? sectionRouteMap[routeOrKey] || routeOrKey
         : routeOrKey;
+    const requestedView = typeof requested === "string" ? requested : requested?.view;
+    setForceAnalyseImportFlow(requestedView === "analyse");
     if (requested && typeof requested === "object" && "replayOpening" in requested) {
       setReplayOpeningFilter(requested.replayOpening || "");
       setSelectedGameIndex(0);
@@ -15740,6 +15743,7 @@ export default function App() {
       setLoading(false);
       setLoadingStep("");
       if (successfulReportRedirectKey) {
+        setForceAnalyseImportFlow(false);
         redirectToReportAfterSuccessfulImport(successfulReportRedirectKey);
       }
     }
@@ -16199,8 +16203,9 @@ export default function App() {
   );
   const activeAppSection = getAppSection(activeView);
   const showCoachDashboard =
-    activeView === "dashboard" || Boolean((supabaseUser || accountUser) && reportData && activeAppSection === "analyse");
-  const showAnalyseImportFlow = !showCoachDashboard || !reportData;
+    !forceAnalyseImportFlow &&
+    (activeView === "dashboard" || Boolean((supabaseUser || accountUser) && reportData && activeAppSection === "analyse"));
+  const showAnalyseImportFlow = forceAnalyseImportFlow || !showCoachDashboard || !reportData;
   const currentAnalysisPlatformLabel = platforms[platform]?.label || "your chess platform";
   const effectiveReportHistory = useMemo(() => {
     const history = Array.isArray(cloudReportHistory) ? cloudReportHistory : [];
@@ -16685,7 +16690,7 @@ export default function App() {
               activityHistory={activityHistory}
               onRecordActivity={recordCloudActivity}
               onSaveSettings={saveCloudSettings}
-              onAnalyse={() => handleAppNavigate("analyse")}
+              onAnalyse={goToAnalyseImport}
               onPractice={startOpeningPractice}
               onReport={() => handleAppNavigate("report")}
               onTraining={() => handleAppNavigate("training")}
