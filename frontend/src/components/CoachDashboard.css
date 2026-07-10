@@ -151,6 +151,50 @@
   grid-template-columns: 1fr;
 }
 
+.coachDashboardSide .coachVerdictCard {
+  grid-template-columns: 1fr;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.coachDashboardSide .coachVerdictContent {
+  align-content: start;
+  gap: 10px;
+}
+
+.coachDashboardSide .coachVerdictContent h1 {
+  max-width: none;
+  font-size: clamp(1.65rem, 2.1vw, 2.35rem);
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.coachDashboardSide .coachVerdictContent p {
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.coachDashboardSide .coachPrimaryCta {
+  width: 100%;
+}
+
+.coachDashboardSide .coachScorePanel {
+  justify-items: start;
+  text-align: left;
+  padding: 14px;
+}
+
+.coachDashboardSide .coachScorePanel > strong {
+  font-size: clamp(2.8rem, 4.6vw, 4rem);
+}
+
+.coachDashboardSide .coachTrendLine {
+  width: 100%;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
 .coachDashboardCard,
 .emptyCoachDashboard {
   display: grid;
