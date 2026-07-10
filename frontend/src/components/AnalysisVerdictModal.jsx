@@ -447,26 +447,25 @@ export default function AnalysisVerdictModal({
 
         <div className="analysisVerdictScoreRow">
           <div className="analysisVerdictScoreLabel" ref={scoreInfoRef}>
-            <span>
-              OpeningScore
-              <button
-                className="analysisVerdictInfo"
-                type="button"
-                aria-label="About Opening Score"
-                aria-controls="analysis-verdict-score-info"
-                aria-expanded={showScoreInfo}
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setShowScoreInfo((current) => !current);
-                }}
-              >
-                i
-              </button>
-            </span>
+            <span>OpeningScore</span>
           </div>
           <strong>{openingScore ?? "—"}{openingScore !== null && openingScore !== undefined ? "/100" : ""}</strong>
           {status ? <em>{status}</em> : null}
+          <button
+            className="analysisVerdictInfo"
+            type="button"
+            aria-label="About Opening Score"
+            aria-controls="analysis-verdict-score-info"
+            aria-expanded={showScoreInfo}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowScoreInfo((current) => !current);
+            }}
+          >
+            <span aria-hidden="true">i</span>
+            Score details
+          </button>
           {showScoreInfo ? (
             <div
               className="analysisVerdictScoreInfo"
