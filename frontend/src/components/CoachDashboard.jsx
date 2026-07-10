@@ -12,6 +12,9 @@ import {
   buildWhatChanged,
   localDateKey,
 } from "../services/todayRetention";
+import { buildXpProgress, xpForEvent } from "../services/xpProgress";
+import NextBestAction from "./NextBestAction";
+import SessionSummary from "./SessionSummary";
 import "./CoachDashboard.css";
 
 function asArray(value) {
@@ -354,7 +357,7 @@ function trendLabel(trend) {
   return String(trend);
 }
 
-function TodayHeader({ header, onPrimary }) {
+function TodayHeader({ header, xp, onPrimary }) {
   return (
     <section className="coachVerdictCard todayHeaderCard" aria-label="Today overview">
       <div className="coachVerdictContent">
@@ -375,6 +378,11 @@ function TodayHeader({ header, onPrimary }) {
             {header.score ?? "-"}{header.scoreDelta !== null && header.scoreDelta !== undefined ? ` (${header.scoreDelta >= 0 ? "+" : ""}${header.scoreDelta})` : ""}
           </b>
         </div>
+        <div className="coachTrendLine">
+          <span>Level {xp.level}</span>
+          <b>{xp.currentLevelXp}/{xp.nextLevelXp} XP</b>
+        </div>
+        <small>Levels reflect OpeningFit activity, not chess rating.</small>
       </div>
     </section>
   );
@@ -729,6 +737,7 @@ export default function CoachDashboard({
   const insufficient = Boolean(data) && gameCount > 0 && gameCount < 5;
   const model = buildDashboardModel({ data, fitData, reportHistory, openingFitUserState });
   const [optimisticActivity, setOptimisticActivity] = useState([]);
+  const [sessionSummary, setSessionSummary] = useState(null);
   const activity = useMemo(
     () => [...optimisticActivity, ...asArray(activityHistory), ...asArray(openingFitUserState)],
     [activityHistory, openingFitUserState, optimisticActivity]
@@ -743,6 +752,7 @@ export default function CoachDashboard({
   const ratingGoal = buildRatingGoalModel({ profile, settings, activity, data });
   const changes = buildWhatChanged({ data, reportHistory });
   const recentActivity = buildRecentActivity(activity);
+  const xp = buildXpProgress(activity);
 
   if (!data || partial || insufficient) {
     return (
@@ -793,12 +803,36 @@ export default function CoachDashboard({
         dedupe_key: `today_task_completed:${localDateKey()}:${task.id}`,
       },
     };
+    const nextCompleted = todayTasks.filter((item) => item.completed || item.id === task.id).length;
+    const willCompletePlan = nextCompleted >= todayTasks.length;
+    const bonusEvent = willCompletePlan
+      ? {
+          id: `optimistic:today-plan:${localDateKey()}`,
+          type: "today_plan_completed",
+          created_at: new Date().toISOString(),
+          points: xpForEvent("today_plan_completed"),
+          payload: {
+            training_date: localDateKey(),
+            tasks_completed: todayTasks.length,
+            points: xpForEvent("today_plan_completed"),
+            dedupe_key: `today_plan_completed:${localDateKey()}`,
+          },
+        }
+      : null;
     setOptimisticActivity((items) => [event, ...items.filter((item) => item.payload?.task_id !== task.id)]);
     try {
       await onRecordActivity?.("today_task_completed", {
         ...event.payload,
-        points: 0,
+        points: xpForEvent("today_task_completed"),
       });
+      if (bonusEvent) {
+        setOptimisticActivity((items) => [bonusEvent, ...items.filter((item) => item.payload?.dedupe_key !== bonusEvent.payload.dedupe_key)]);
+        await onRecordActivity?.("today_plan_completed", bonusEvent.payload);
+        setSessionSummary({
+          title: "Today's progress",
+          lines: [`${todayTasks.length} tasks completed`, "Daily streak maintained", `${xpForEvent("today_plan_completed")} bonus XP earned`],
+        });
+      }
     } catch (error) {
       console.warn("OpeningFit could not save daily task completion.", error);
     }
@@ -823,7 +857,7 @@ export default function CoachDashboard({
 
   return (
     <section className="coachDashboard" id="coach-dashboard" aria-label="OpeningFit Today">
-      <TodayHeader header={{ ...todayHeader, streak }} onPrimary={() => handleTaskAction(todayTasks.find((task) => !task.completed) || todayTasks[0])} />
+      <TodayHeader header={{ ...todayHeader, streak }} xp={xp} onPrimary={() => handleTaskAction(todayTasks.find((task) => !task.completed) || todayTasks[0])} />
       <div className="coachDashboardLayout">
         <div className="coachDashboardMain">
           <TodayTrainingPlan
@@ -836,6 +870,18 @@ export default function CoachDashboard({
           <DailyProgressCard progress={dailyProgress} />
           <WhatChangedCard changes={changes} />
           <WeeklyProgressCard progress={model.progress} onProgress={onProgress} />
+          <NextBestAction
+            title={dailyProgress.complete ? "Come back tomorrow for a fresh plan" : "Complete today's next useful action"}
+            detail={dailyProgress.complete ? "Your daily plan is done. Review the report if you want more context." : "The next action updates as tasks are completed."}
+            primary={{
+              label: dailyProgress.complete ? "Open full report" : (todayTasks.find((task) => !task.completed)?.cta || "Continue"),
+              onClick: dailyProgress.complete ? onReport : () => handleTaskAction(todayTasks.find((task) => !task.completed) || todayTasks[0]),
+            }}
+            secondary={[
+              { label: "Practise", onClick: () => startTask() },
+              { label: "Refresh analysis", onClick: onAnalyse },
+            ]}
+          />
         </div>
         <div className="coachDashboardSide">
           <RatingGoalCard goal={ratingGoal} onSaveGoal={saveRatingGoal} onProgress={onProgress} />
@@ -864,6 +910,11 @@ export default function CoachDashboard({
         <button type="button" className="secondaryBtn" onClick={onTraining}>Training plan</button>
         <button type="button" className="secondaryBtn" onClick={onAnalyse}>Refresh analysis</button>
       </div>
+      <SessionSummary
+        summary={sessionSummary}
+        onDismiss={() => setSessionSummary(null)}
+        onToday={() => setSessionSummary(null)}
+      />
     </section>
   );
 }

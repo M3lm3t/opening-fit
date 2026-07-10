@@ -1,0 +1,58 @@
+.nextBestAction {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(8, 47, 73, 0.22);
+}
+
+.nextBestAction h3 {
+  margin: 0;
+  color: #f8fafc;
+}
+
+.nextBestAction p:not(.eyebrow) {
+  margin: 4px 0 0;
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.nextBestActionButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.nextBestActionButtons button {
+  min-height: 44px;
+}
+
+.page.light .nextBestAction,
+[data-theme="light"] .nextBestAction {
+  background: #ecfeff;
+  border-color: rgba(8, 145, 178, 0.2);
+}
+
+.page.light .nextBestAction h3,
+[data-theme="light"] .nextBestAction h3 {
+  color: #0f172a;
+}
+
+.page.light .nextBestAction p:not(.eyebrow),
+[data-theme="light"] .nextBestAction p:not(.eyebrow) {
+  color: #475569;
+}
+
+@media (max-width: 720px) {
+  .nextBestAction {
+    display: grid;
+  }
+
+  .nextBestActionButtons {
+    display: grid;
+    justify-content: stretch;
+  }
+}

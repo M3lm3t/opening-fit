@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import InfoHint from "./InfoHint";
 import { OPENING_COPY, getOpeningRecommendationReason } from "./openingCopy";
 import OpeningRecommendationVerdict from "./OpeningRecommendationVerdict";
 import OpeningScoreInfo from "./OpeningScoreInfo";
 import RecommendationExplanationPanel from "./RecommendationExplanationPanel";
 import RecommendationReasonHint, { recommendationReasonDetails } from "./RecommendationReasonHint";
+import OpeningDetailPanel from "./OpeningDetailPanel";
 import "./RecommendedOpeningFit.css";
 
 const TRAIT_CONFIG = [
@@ -378,6 +379,7 @@ function firstLines(name) {
 }
 
 function RecommendationCard({ item, label, tone, traits, playerProfile, alternatives, report, onPractice }) {
+  const [showDetail, setShowDetail] = useState(false);
   const name = openingName(item);
   const fit = clamp(item.fit_score ?? item.fitScore ?? item.score ?? 60);
   const priorityReason =
@@ -488,14 +490,42 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
         onPracticeTarget={onPractice}
       />
 
-      {onPractice ? (
+      <div className="recommendedOpeningActionRow">
+        {onPractice ? (
+          <button
+            className="recommendedOpeningPracticeBtn"
+            type="button"
+            onClick={() => onPractice(item)}
+          >
+            Train This Line
+          </button>
+        ) : null}
         <button
-          className="recommendedOpeningPracticeBtn"
+          className="secondaryBtn recommendedOpeningEvidenceBtn"
           type="button"
-          onClick={() => onPractice(item)}
+          onClick={() => setShowDetail((value) => !value)}
+          aria-expanded={showDetail}
         >
-          Train This Line
+          {showDetail ? "Hide evidence" : "View evidence"}
         </button>
+      </div>
+
+      {showDetail ? (
+        <OpeningDetailPanel
+          opening={{
+            ...item,
+            name,
+            games,
+            fitScore: fit,
+            confidence,
+            verdict: verdictLabel,
+            short_reason: displayReason,
+          }}
+          report={report}
+          category={verdictLabel}
+          onPractice={onPractice}
+          onReturn={() => setShowDetail(false)}
+        />
       ) : null}
 
       <div className="recommendedOpeningDetailGrid">

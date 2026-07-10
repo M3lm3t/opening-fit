@@ -1,0 +1,190 @@
+.openingDetailPanel {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.openingDetailHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 14px;
+}
+
+.openingDetailHeader h3,
+.openingDetailHeader h4 {
+  margin: 0;
+  color: #f8fafc;
+}
+
+.openingDetailHeader p {
+  margin: 4px 0 0;
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.openingDetailStats,
+.openingEvidenceGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.openingEvidenceGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.openingDetailStats span,
+.openingEvidenceGrid article {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(2, 6, 23, 0.26);
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.openingDetailStats strong,
+.openingEvidenceGrid strong {
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.openingReasonDetails {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(2, 6, 23, 0.22);
+}
+
+.openingReasonDetails summary {
+  cursor: pointer;
+  color: #bae6fd;
+  font-weight: 900;
+}
+
+.openingReasonDetails p {
+  margin: 8px 0 0;
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.gameReviewMission {
+  display: grid;
+  gap: 12px;
+}
+
+.missionGameTabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.missionGameTabs button {
+  min-width: 150px;
+  min-height: 44px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #f8fafc;
+  text-align: left;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.missionGameTabs button span {
+  display: block;
+  margin-top: 2px;
+  color: rgba(226, 232, 240, 0.64);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.missionGameTabs button.isActive {
+  border-color: rgba(34, 211, 238, 0.48);
+  background: rgba(14, 165, 233, 0.18);
+}
+
+.openingDetailActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.openingDetailActions button {
+  min-height: 44px;
+}
+
+.openingDetailStatus {
+  margin: 0;
+  color: #bbf7d0;
+  font-weight: 850;
+}
+
+.page.light .openingDetailPanel,
+[data-theme="light"] .openingDetailPanel {
+  background: #f8fafc;
+  border-color: rgba(8, 145, 178, 0.2);
+}
+
+.page.light .openingDetailHeader h3,
+.page.light .openingDetailHeader h4,
+.page.light .openingDetailStats strong,
+.page.light .openingEvidenceGrid strong,
+[data-theme="light"] .openingDetailHeader h3,
+[data-theme="light"] .openingDetailHeader h4,
+[data-theme="light"] .openingDetailStats strong,
+[data-theme="light"] .openingEvidenceGrid strong {
+  color: #0f172a;
+}
+
+.page.light .openingDetailHeader p,
+.page.light .openingReasonDetails p,
+[data-theme="light"] .openingDetailHeader p,
+[data-theme="light"] .openingReasonDetails p {
+  color: #475569;
+}
+
+.page.light .openingDetailStats span,
+.page.light .openingEvidenceGrid article,
+.page.light .openingReasonDetails,
+[data-theme="light"] .openingDetailStats span,
+[data-theme="light"] .openingEvidenceGrid article,
+[data-theme="light"] .openingReasonDetails {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #64748b;
+}
+
+@media (max-width: 760px) {
+  .openingDetailHeader {
+    display: grid;
+  }
+
+  .openingDetailStats,
+  .openingEvidenceGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .openingDetailActions {
+    display: grid;
+  }
+
+  .openingDetailActions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .openingDetailStats,
+  .openingEvidenceGrid {
+    grid-template-columns: 1fr;
+  }
+}

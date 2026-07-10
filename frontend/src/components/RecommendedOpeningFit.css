@@ -469,3 +469,23 @@
     text-align: left;
   }
 }
+.recommendedOpeningActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.recommendedOpeningEvidenceBtn {
+  min-height: 44px;
+}
+
+@media (max-width: 620px) {
+  .recommendedOpeningActionRow {
+    display: grid;
+  }
+
+  .recommendedOpeningActionRow button {
+    width: 100%;
+  }
+}
