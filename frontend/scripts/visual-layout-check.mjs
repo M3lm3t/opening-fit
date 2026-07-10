@@ -10,14 +10,17 @@ const SCREENSHOT_DIR = path.resolve("test-screenshots");
 
 const routes = ["/", "/login", "/dashboard", "/report", "/repertoire", "/train", "/account", "/journey", "/premium"];
 const viewports = [
-  { name: "mobile-xs", width: 320, height: 740 },
-  { name: "mobile", width: 375, height: 812 },
-  { name: "mobile-lg", width: 430, height: 932 },
+  { name: "phone-compact", width: 320, height: 568 },
+  { name: "phone", width: 360, height: 800 },
+  { name: "phone-plus", width: 390, height: 844 },
+  { name: "phone-tall", width: 412, height: 915 },
   { name: "tablet", width: 768, height: 1024 },
-  { name: "tablet-lg", width: 834, height: 1112 },
+  { name: "tablet-lg", width: 820, height: 1180 },
   { name: "desktop", width: 1024, height: 768 },
-  { name: "desktop-lg", width: 1280, height: 800 },
+  { name: "laptop", width: 1280, height: 800 },
+  { name: "laptop-wide", width: 1366, height: 768 },
   { name: "desktop-xl", width: 1440, height: 900 },
+  { name: "desktop-1080p", width: 1920, height: 1080 },
 ];
 
 async function startVite() {
