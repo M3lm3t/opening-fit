@@ -494,14 +494,18 @@ function RatingGoalCard({ goal, onSaveGoal, onProgress }) {
       {goal.hasGoal ? (
         <>
           <p>
-            Current {goal.current ?? "-"} to target {goal.target}. Keep the work opening-focused; no Elo gain is promised from one task.
+            Current {goal.current ?? "-"}{goal.ratingSourceLabel ? ` from ${goal.ratingSourceLabel}` : ""} to target {goal.target}. Keep the work opening-focused; no Elo gain is promised from one task.
           </p>
           <div className="todayProgressTrack" aria-hidden="true">
             <span style={{ width: `${goal.progress}%` }} />
           </div>
         </>
       ) : (
-        <p>Set your next rating goal. OpeningFit will shape your training around it.</p>
+        <p>
+          {goal.hasImportedRating
+            ? `Detected ${goal.current} from ${goal.ratingSourceLabel || "your latest import"}. Set a target and OpeningFit will shape your training around it.`
+            : "Set your next rating goal. OpeningFit will shape your training around it."}
+        </p>
       )}
       <div className="coachCardActions">
         <button type="button" className="secondaryBtn" onClick={() => setOpen(true)}>

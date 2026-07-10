@@ -318,6 +318,96 @@ function greetingPart(date = new Date()) {
   return "evening";
 }
 
+function firstRatingValue(...values) {
+  for (const value of values) {
+    const rating = numberValue(value, null);
+    if (rating !== null && rating >= 100 && rating <= 4000) return rating;
+  }
+  return null;
+}
+
+function timeControlLabel(value) {
+  const label = String(value || "").replace(/_/g, " ").trim();
+  if (!label) return "";
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function platformLabel(value) {
+  const label = String(value || "").toLowerCase();
+  if (label.includes("lichess")) return "Lichess";
+  if (label.includes("chess")) return "Chess.com";
+  return "";
+}
+
+function ratingFromPlatformRatings(ratings = {}) {
+  const source = ratings && typeof ratings === "object" ? ratings : {};
+  for (const control of ["rapid", "blitz", "classical", "daily", "bullet"]) {
+    const entry = source[control];
+    const rating = firstRatingValue(entry?.rating, entry);
+    if (rating !== null) return { rating, timeControl: control };
+  }
+  return { rating: null, timeControl: "" };
+}
+
+function detectImportedRating(data = {}, profile = null) {
+  const playerProfile = data.playerProfile || data.player_profile || profile?.playerProfile || profile?.player_profile || profile || {};
+  const platformRatings =
+    data.platformRatings ||
+    data.platform_ratings ||
+    playerProfile.platformRatings ||
+    playerProfile.platform_ratings ||
+    {};
+  const platformPick = ratingFromPlatformRatings(platformRatings);
+  const rating = firstRatingValue(
+    data.currentRating,
+    data.current_rating,
+    data.rating,
+    data.rapidRating,
+    data.rapid_rating,
+    data.blitzRating,
+    data.blitz_rating,
+    data.classicalRating,
+    data.classical_rating,
+    data.dailyRating,
+    data.daily_rating,
+    data.bulletRating,
+    data.bullet_rating,
+    data.chesscomRating,
+    data.chesscom_rating,
+    data.lichessRating,
+    data.lichess_rating,
+    playerProfile.currentRating,
+    playerProfile.current_rating,
+    playerProfile.rating,
+    playerProfile.rapidRating,
+    playerProfile.rapid_rating,
+    playerProfile.blitzRating,
+    playerProfile.blitz_rating,
+    playerProfile.classicalRating,
+    playerProfile.classical_rating,
+    playerProfile.dailyRating,
+    playerProfile.daily_rating,
+    playerProfile.bulletRating,
+    playerProfile.bullet_rating,
+    platformPick.rating
+  );
+  const source = platformLabel(data.ratingSource || data.rating_source || playerProfile.ratingSource || playerProfile.rating_source || data.platform || data.importPlatform);
+  const timeControl = timeControlLabel(
+    data.ratingTimeControl ||
+      data.rating_time_control ||
+      playerProfile.ratingTimeControl ||
+      playerProfile.rating_time_control ||
+      platformPick.timeControl
+  );
+
+  return {
+    rating,
+    source,
+    timeControl,
+    label: rating !== null ? [source, timeControl].filter(Boolean).join(" ") || "Imported rating" : "",
+  };
+}
+
 export function buildRatingGoalModel({ profile = null, settings = null, activity = [], data = {} } = {}) {
   const preferences = settings?.preferences || {};
   const goal =
@@ -327,12 +417,11 @@ export function buildRatingGoalModel({ profile = null, settings = null, activity
     profile?.ratingGoal ||
     asArray(activity).find((item) => item.type === "rating_goal_updated")?.payload ||
     null;
-  const current = numberValue(
-    goal?.currentRating ?? goal?.current_rating ?? data.currentRating ?? data.current_rating ?? data.rating,
-    null
-  );
+  const detected = detectImportedRating(data, profile);
+  const savedCurrent = firstRatingValue(goal?.currentRating, goal?.current_rating);
+  const current = detected.rating ?? savedCurrent;
   const target = numberValue(goal?.targetRating ?? goal?.target_rating ?? goal?.target_value, null);
-  const start = numberValue(goal?.startRating ?? goal?.start_rating ?? goal?.rating_goal_start ?? current, current);
+  const start = numberValue(goal?.startRating ?? goal?.start_rating ?? goal?.rating_goal_start ?? savedCurrent ?? current, current);
   const progress =
     current !== null && target !== null && start !== null && target !== start
       ? Math.max(0, Math.min(100, Math.round(((current - start) / (target - start)) * 100)))
@@ -344,6 +433,9 @@ export function buildRatingGoalModel({ profile = null, settings = null, activity
     target,
     start,
     progress,
+    detectedRating: detected.rating,
+    ratingSourceLabel: detected.label,
+    hasImportedRating: detected.rating !== null,
   };
 }
 

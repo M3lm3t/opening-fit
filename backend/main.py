@@ -1296,6 +1296,25 @@ def validate_player(username: str) -> Dict[str, Any]:
     return safe_get(url)
 
 
+def fetch_chesscom_stats(username: str) -> Dict[str, Any]:
+    url = f"https://api.chess.com/pub/player/{username.lower()}/stats"
+    try:
+        response = requests.get(url, headers=CHESSCOM_HEADERS, timeout=20)
+    except requests.RequestException as exc:
+        logger.warning("chesscom_stats_fetch_failed username=%s error=%s", username, exc)
+        return {}
+
+    if response.status_code != 200:
+        logger.info("chesscom_stats_unavailable username=%s status=%s", username, response.status_code)
+        return {}
+
+    try:
+        return response.json()
+    except ValueError:
+        logger.warning("chesscom_stats_invalid_json username=%s", username)
+        return {}
+
+
 def clean_display_name(value: Any) -> str:
     if not isinstance(value, str):
         return ""
@@ -2190,6 +2209,146 @@ def numeric_rating(value: Any) -> Optional[int]:
     except (TypeError, ValueError):
         return None
     return rating if rating > 0 else None
+
+
+def rating_entry(rating: Any, games: Any = None, provisional: Any = None) -> Optional[Dict[str, Any]]:
+    value = numeric_rating(rating)
+    if value is None:
+        return None
+
+    entry: Dict[str, Any] = {"rating": value}
+    games_value = numeric_rating(games)
+    if games_value is not None:
+        entry["games"] = games_value
+    if provisional is not None:
+        entry["provisional"] = bool(provisional)
+    return entry
+
+
+def extract_chesscom_platform_ratings(stats: Any) -> Dict[str, Dict[str, Any]]:
+    raw = stats if isinstance(stats, dict) else {}
+    mapping = {
+        "rapid": "chess_rapid",
+        "blitz": "chess_blitz",
+        "bullet": "chess_bullet",
+        "daily": "chess_daily",
+    }
+    ratings: Dict[str, Dict[str, Any]] = {}
+
+    for label, key in mapping.items():
+        section = raw.get(key) if isinstance(raw.get(key), dict) else {}
+        last = section.get("last") if isinstance(section.get("last"), dict) else {}
+        record = section.get("record") if isinstance(section.get("record"), dict) else {}
+        games_played = None
+        if record:
+            games_played = sum(
+                int(record.get(result, 0) or 0)
+                for result in ("win", "loss", "draw", "time_per_move")
+                if isinstance(record.get(result, 0), (int, float))
+            )
+        entry = rating_entry(last.get("rating"), games_played)
+        if entry:
+            ratings[label] = entry
+
+    return ratings
+
+
+def extract_lichess_platform_ratings(profile: Any) -> Dict[str, Dict[str, Any]]:
+    raw = profile if isinstance(profile, dict) else {}
+    perfs = raw.get("perfs") if isinstance(raw.get("perfs"), dict) else {}
+    ratings: Dict[str, Dict[str, Any]] = {}
+
+    for label in ("rapid", "blitz", "bullet", "classical"):
+        perf = perfs.get(label) if isinstance(perfs.get(label), dict) else {}
+        entry = rating_entry(perf.get("rating"), perf.get("games"), perf.get("prov"))
+        if entry:
+            ratings[label] = entry
+
+    return ratings
+
+
+def build_rating_context(platform: str, platform_ratings: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    ratings = platform_ratings if isinstance(platform_ratings, dict) else {}
+    priority = ("rapid", "blitz", "classical", "daily", "bullet")
+    selected_control = next((control for control in priority if ratings.get(control)), None)
+    selected_rating = ratings.get(selected_control, {}).get("rating") if selected_control else None
+
+    context: Dict[str, Any] = {
+        "platform_ratings": ratings,
+        "platformRatings": ratings,
+    }
+
+    for control, entry in ratings.items():
+        rating = entry.get("rating") if isinstance(entry, dict) else None
+        if rating is None:
+            continue
+        camel = f"{control}Rating"
+        snake = f"{control}_rating"
+        context[camel] = rating
+        context[snake] = rating
+
+    if selected_rating is not None:
+        context.update(
+            {
+                "rating": selected_rating,
+                "current_rating": selected_rating,
+                "currentRating": selected_rating,
+                "rating_source": platform,
+                "ratingSource": platform,
+                "rating_time_control": selected_control,
+                "ratingTimeControl": selected_control,
+            }
+        )
+        if platform == "chess.com":
+            context["chesscom_rating"] = selected_rating
+            context["chesscomRating"] = selected_rating
+        elif platform == "lichess":
+            context["lichess_rating"] = selected_rating
+            context["lichessRating"] = selected_rating
+
+    return context
+
+
+RATING_CONTEXT_KEYS = (
+    "rating",
+    "current_rating",
+    "currentRating",
+    "rating_source",
+    "ratingSource",
+    "rating_time_control",
+    "ratingTimeControl",
+    "platform_ratings",
+    "platformRatings",
+    "rapidRating",
+    "rapid_rating",
+    "blitzRating",
+    "blitz_rating",
+    "bulletRating",
+    "bullet_rating",
+    "classicalRating",
+    "classical_rating",
+    "dailyRating",
+    "daily_rating",
+    "chesscomRating",
+    "chesscom_rating",
+    "lichessRating",
+    "lichess_rating",
+)
+
+
+def attach_rating_context(profile: Dict[str, Any], rating_context: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(profile, dict) or not isinstance(rating_context, dict):
+        return profile
+    for key in RATING_CONTEXT_KEYS:
+        if key in rating_context:
+            profile[key] = rating_context[key]
+    return profile
+
+
+def rating_context_from_profile(profile: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(profile, dict):
+        return {}
+    return {key: profile[key] for key in RATING_CONTEXT_KEYS if key in profile}
 
 
 def chesscom_user_and_opponent_rating(game: Dict[str, Any], username: str) -> Tuple[Optional[int], Optional[int]]:
@@ -7835,6 +7994,7 @@ def build_not_enough_games_import_result(
         "playerUrl": player_profile.get("profileUrl") or player_url,
         "platform": platform,
         "importPlatform": platform,
+        **rating_context_from_profile(player_profile),
         "total_games": 0,
         "totalGames": 0,
         "gamesImported": 0,
@@ -7905,6 +8065,10 @@ def import_chesscom_logic(username: str, months: int = 3):
 
     player = validate_player(username)
     player_profile = normalize_player_profile("chess.com", player, username)
+    player_stats = fetch_chesscom_stats(player_profile.get("username") or username)
+    rating_context = build_rating_context("chess.com", extract_chesscom_platform_ratings(player_stats))
+    attach_rating_context(player_profile, rating_context)
+    current_rating = rating_context.get("currentRating")
     archives = fetch_archives(username)
     selected_archives = archives[-months:] if len(archives) >= months else archives
 
@@ -8187,6 +8351,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     best_openings = build_opening_scores(context_opening_results)
     best_openings = merge_opening_fit_metrics(best_openings, opening_fit_metrics)
     report_mode_data = detect_report_mode(
+        rating=current_rating,
         title=player.get("title"),
         total_games=len(analysed_games),
         player_level=player.get("title"),
@@ -8195,13 +8360,13 @@ def import_chesscom_logic(username: str, months: int = 3):
     report_mode = report_mode_data["report_mode"]
     best_openings = adapt_openings_for_report_mode(best_openings, report_mode)
     top_openings = adapt_openings_for_report_mode(top_openings, report_mode)
-    best_openings = sort_openings_for_recommendation(apply_opening_risk_profiles(best_openings, None))
-    top_openings = sort_openings_for_recommendation(apply_opening_risk_profiles(top_openings, None))
-    opening_recommendations = build_colour_aware_recommendations(context_opening_results, rating=None)
+    best_openings = sort_openings_for_recommendation(apply_opening_risk_profiles(best_openings, current_rating))
+    top_openings = sort_openings_for_recommendation(apply_opening_risk_profiles(top_openings, current_rating))
+    opening_recommendations = build_colour_aware_recommendations(context_opening_results, rating=current_rating)
     problem_lines = build_problem_lines(recent_games)
     engine_opening_validation = validate_problem_lines_with_stockfish(problem_lines)
-    best_openings = sort_openings_for_recommendation(apply_opening_fixability_scores(best_openings, problem_lines, None))
-    top_openings = sort_openings_for_recommendation(apply_opening_fixability_scores(top_openings, problem_lines, None))
+    best_openings = sort_openings_for_recommendation(apply_opening_fixability_scores(best_openings, problem_lines, current_rating))
+    top_openings = sort_openings_for_recommendation(apply_opening_fixability_scores(top_openings, problem_lines, current_rating))
     import_quality = build_game_import_quality(recent_games, skipped_reason_counts, len(all_games))
     best_openings = sort_openings_for_recommendation(cap_confidence_for_import_quality(best_openings, import_quality))
     top_openings = sort_openings_for_recommendation(cap_confidence_for_import_quality(top_openings, import_quality))
@@ -8209,9 +8374,9 @@ def import_chesscom_logic(username: str, months: int = 3):
     opponent_response_report = build_opponent_response_report(recent_games)
     repertoire_coverage = build_repertoire_coverage(best_openings)
     repertoire_coherence = build_repertoire_coherence(best_openings)
-    repertoire_maintenance_cost = build_repertoire_maintenance_cost(best_openings, repertoire_coverage, None)
-    rating_band_benchmark = build_rating_band_benchmark(None, best_openings, repertoire_coverage, repertoire_coherence)
-    style_opening_match = infer_style_opening_match(recent_games, best_openings, None)
+    repertoire_maintenance_cost = build_repertoire_maintenance_cost(best_openings, repertoire_coverage, current_rating)
+    rating_band_benchmark = build_rating_band_benchmark(current_rating, best_openings, repertoire_coverage, repertoire_coherence)
+    style_opening_match = infer_style_opening_match(recent_games, best_openings, current_rating)
     plan_clarity_report = build_plan_clarity_report(best_openings)
     recent_opening_trend_report = build_recent_opening_trend_report(recent_games, best_openings)
     best_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(best_openings, recent_opening_trend_report))
@@ -8225,14 +8390,14 @@ def import_chesscom_logic(username: str, months: int = 3):
         repertoire_coverage,
         len(analysed_games),
     )
-    do_not_study_yet = build_do_not_study_yet(best_openings, opening_roi, repertoire_coverage, None)
+    do_not_study_yet = build_do_not_study_yet(best_openings, opening_roi, repertoire_coverage, current_rating)
     time_control_opening_report = build_time_control_opening_report(recent_games, best_openings)
     repertoire_identity_summary = build_repertoire_identity_summary(best_openings, style_profile, repertoire_coherence)
     recommended_repertoire_plan = build_recommended_repertoire_plan(
         best_openings,
         repertoire_coverage,
         style_profile,
-        None,
+        current_rating,
         style_opening_match,
     )
     opening_fit_profile = build_opening_fit_profile(
@@ -8259,7 +8424,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         best_openings,
         repertoire_coverage,
         problem_lines,
-        None,
+        current_rating,
         repertoire_coherence,
     )
     study_queue = build_study_queue(
@@ -8279,7 +8444,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         plan_clarity_report,
         opening_roi,
         len(analysed_games),
-        None,
+        current_rating,
     )
     next_training_actions = connect_main_leak_to_training_actions(main_opening_leak, next_training_actions)
     training_plan = next_training_actions
@@ -8311,7 +8476,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     recommended_openings = build_style_opening_recommendations(
         style_fingerprint,
         current_opening_stats=best_openings,
-        player_rating=None,
+        player_rating=current_rating,
         colour_needs=["white", "black_vs_e4", "black_vs_d4"],
         existing_openings=list(opening_counter.keys()),
     )
@@ -8332,6 +8497,7 @@ def import_chesscom_logic(username: str, months: int = 3):
         "playerUrl": player_profile.get("profileUrl") or player.get("url"),
         "platform": "chess.com",
         "importPlatform": "chess.com",
+        **rating_context,
         "title": player.get("title"),
         "chessTitle": player.get("title"),
         "chess_title": player.get("title"),
@@ -8817,7 +8983,19 @@ def build_lichess_analysis(
     opening_fit_metrics = build_opening_fit_metrics(recent_games)
     top_openings = merge_opening_fit_metrics(top_openings, opening_fit_metrics)
     best_openings = merge_opening_fit_metrics(best_openings, opening_fit_metrics)
-    current_rating = max(player_ratings) if player_ratings else None
+    rating_context = rating_context_from_profile(player_profile)
+    profile_current_rating = numeric_rating(rating_context.get("currentRating") or rating_context.get("current_rating"))
+    current_rating = profile_current_rating or (max(player_ratings) if player_ratings else None)
+    if current_rating is not None and "currentRating" not in rating_context:
+        rating_context.update(
+            {
+                "rating": current_rating,
+                "current_rating": current_rating,
+                "currentRating": current_rating,
+                "rating_source": "lichess",
+                "ratingSource": "lichess",
+            }
+        )
 
     if current_rating is None:
         player_level = "Unknown"
@@ -8977,6 +9155,7 @@ def build_lichess_analysis(
         "playerUrl": player_profile.get("profileUrl") or f"https://lichess.org/@/{username}",
         "platform": "lichess",
         "importPlatform": "lichess",
+        **rating_context,
         "rating": current_rating,
         "lichess_rating": current_rating,
         "lichessRating": current_rating,
@@ -9203,6 +9382,8 @@ def import_lichess_logic(username: str, months: int = 3):
         )
 
     player_profile = normalize_player_profile("lichess", user_profile, username)
+    rating_context = build_rating_context("lichess", extract_lichess_platform_ratings(user_profile))
+    attach_rating_context(player_profile, rating_context)
     resolved_username = player_profile.get("username") or username
 
     max_games = 300 if months >= 12 else 100
