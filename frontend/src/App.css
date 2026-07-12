@@ -1994,8 +1994,6 @@ th {
 
 .chess-board .white,
 .chessboard .white,
-.react-chessboard .white,
-.react-chessboard .square-light,
 .square-light {
   background: var(--board-light-square, #EEEED2) !important;
   background-color: var(--board-light-square, #EEEED2) !important;
@@ -2003,8 +2001,6 @@ th {
 
 .chess-board .black,
 .chessboard .black,
-.react-chessboard .black,
-.react-chessboard .square-dark,
 .square-dark {
   background: var(--board-dark-square, #779954) !important;
   background-color: var(--board-dark-square, #779954) !important;
@@ -2200,7 +2196,6 @@ th {
 .chessBoardSquareButton:hover,
 .chessBoardSquareButton:focus,
 .chessBoardSquareButton:active,
-.react-chessboard [class*="square"],
 [data-boardid] [class*="square"] {
   border-radius: 0 !important;
   transform: none !important;
@@ -2222,7 +2217,6 @@ th {
 
 .cleanReplayPieceImage,
 .chess-piece,
-.react-chessboard img,
 [data-boardid] img {
   width: 100% !important;
   height: 100% !important;
@@ -3128,7 +3122,6 @@ th {
     min-width: 0;
   }
 
-  .react-chessboard,
   [data-boardid],
   [class*="chessboard"] {
     max-width: 100% !important;
@@ -48306,7 +48299,6 @@ a,
 .cleanReplaySquare,
 .cleanReplaySquare *,
 .chessBoardSquareButton,
-.react-chessboard [class*="square"],
 [data-boardid] [class*="square"] {
   border-radius: 0 !important;
 }
@@ -48324,7 +48316,6 @@ a,
 
 .cleanReplayPieceImage,
 .chess-piece,
-.react-chessboard img,
 [data-boardid] img {
   width: 100% !important;
   height: 100% !important;

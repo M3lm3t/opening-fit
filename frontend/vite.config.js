@@ -11,9 +11,7 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
           if (id.includes("@supabase")) return "vendor-supabase";
-          if (id.includes("react-chessboard")) return "vendor-chessboard";
           if (id.includes("chess.js")) return "vendor-chess-core";
-          if (id.includes("jspdf") || id.includes("qrcode")) return "vendor-export";
           if (id.includes("lucide-react")) return "vendor-icons";
           return "vendor-react";
         },
