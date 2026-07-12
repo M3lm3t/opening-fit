@@ -1,198 +1,83 @@
-import { useMemo } from "react";
-import {
-  buildRepertoireMap,
-  getRepertoireGames,
-  getRepertoireOpeningName,
-  getRepertoireScore,
-  getRepertoireStatus,
-} from "../services/repertoireStatus";
-import MistakeBasedPractice from "./MistakeBasedPractice";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "../context/AuthDataProvider";
+import { REPERTOIRE_PENDING_KEY, REPERTOIRE_STATUSES, REPERTOIRE_STORAGE_KEY, applyRepertoireAction, buildSuggestedWorkspace, reconcileWorkspace, workspaceSummary, workspaceWarnings } from "../lib/repertoireWorkspace";
+import { analysisConfidence, fitBand, performanceSummary } from "../lib/fitTrustModel";
+import { trackProductEvent } from "../lib/productAnalytics";
 import "./MyRepertoire.css";
 
-function RepertoireEmptyState({ hasData, onAnalyse, onReport }) {
+const sections = [["white", "White"], ["blackE4", "Black versus 1.e4"], ["blackD4", "Black versus 1.d4"], ["other", "Other"]];
+const readLocal = () => { try { return JSON.parse(localStorage.getItem(REPERTOIRE_STORAGE_KEY) || "null"); } catch { return null; } };
+
+function OpeningDetail({ item, onChange, onDelete, onPractice }) {
+  const confidence = analysisConfidence(item.opening || item);
+  const weakestLine = item.opening?.weakestLine || item.opening?.weakest_line || item.opening?.variation || item.opening?.line;
+  const training = item.opening?.trainingProgress ?? item.opening?.training_progress;
+  const guide = item.opening?.guideUrl || item.opening?.guide_url;
+  const games = item.opening?.representativeGames || item.opening?.representative_games || item.opening?.exampleGames || item.opening?.example_games;
   return (
-    <section className="myRepertoireEmpty" id="my-repertoire">
-      <span>My Repertoire</span>
-      <h1>{hasData ? "Your repertoire map is still building." : "Map your repertoire from one analysis."}</h1>
-      <p>
-        {hasData
-          ? "We need more classified games before we can map your repertoire with confidence. Detected openings will stay low-confidence until they repeat."
-          : "Import recent games and OpeningFit will show what you currently play as White and Black."}
-      </p>
-      <div>
-        <button className="primaryBtn" type="button" onClick={onAnalyse}>
-          Analyse games
-        </button>
-        {hasData ? (
-          <button className="secondaryBtn" type="button" onClick={onReport}>
-            Open report
-          </button>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
-function statusMeta(status) {
-  const copy = {
-    Strong: "Good opening",
-    Stable: "Reliable enough",
-    Developing: "Underdeveloped",
-    Weak: "Needs repair",
-    "Too little data": "Insufficient evidence",
-    Missing: "Coverage gap",
-    Overloaded: "Repertoire overload",
-  };
-  return copy[status] || "Opening signal";
-}
-
-function RepertoireOpeningRow({ opening, data, sectionCount, onPractice, onReport }) {
-  const status = getRepertoireStatus(opening, { sectionCount });
-  const name = getRepertoireOpeningName(opening);
-  const games = getRepertoireGames(opening);
-  const score = getRepertoireScore(opening);
-  const canPractice = ["Strong", "Stable", "Developing", "Weak"].includes(status.status);
-  const action = () => {
-    if (canPractice && onPractice) {
-      onPractice(opening);
-      return;
-    }
-    onReport?.();
-  };
-
-  return (
-    <article className={`myRepertoireRow myRepertoireRow--${status.tone}`}>
-      <div className="myRepertoireRowMain">
-        <div>
-          <h3>{name}</h3>
-          <p>{status.explanation}</p>
-        </div>
-        <span className={`myRepertoireStatus myRepertoireStatus--${status.tone}`}>
-          {status.status}
-        </span>
-      </div>
-      <div className="myRepertoireRowMeta">
-        <span>{games ? `${games} game${games === 1 ? "" : "s"}` : "Games unavailable"}</span>
-        <span>{score !== null ? `${score}/100` : statusMeta(status.status)}</span>
-      </div>
-      <button type="button" onClick={action}>
-        {status.actionLabel}
-      </button>
-      <MistakeBasedPractice
-        data={data}
-        opening={opening}
-        compact
-        showEmpty={false}
-        onStart={onPractice}
-      />
+    <article className="workspaceOpening">
+      <header><div><span>{item.role}</span><h3>{item.name}</h3></div><strong>{item.status}</strong></header>
+      <p>{item.source === "manual" ? "Included because you selected it manually." : "Included from the latest report evidence."}</p>
+      <dl>
+        <div><dt>Fit</dt><dd>{item.fit !== null && item.fit !== undefined ? `${fitBand(item.fit, confidence)} · ${item.fit}/100` : "Unavailable"}</dd></div>
+        <div><dt>Confidence</dt><dd>{confidence.label}</dd></div>
+        <div><dt>Performance</dt><dd>{performanceSummary(item.opening || item)}</dd></div>
+        <div><dt>Games</dt><dd>{item.games || 0}</dd></div>
+        {weakestLine ? <div><dt>Weakest line</dt><dd>{weakestLine}</dd></div> : null}
+        {training !== undefined ? <div><dt>Training</dt><dd>{training}</dd></div> : null}
+        {guide ? <div><dt>Guide</dt><dd><a href={guide}>Opening guide</a></dd></div> : null}
+        {Array.isArray(games) && games.length ? <div><dt>Representative games</dt><dd>{games.slice(0, 3).map((game, index) => <span key={game.id || game.url || index}>{game.url ? <a href={game.url}>Game {index + 1}</a> : `Game ${index + 1}`}{index < Math.min(2, games.length - 1) ? ", " : ""}</span>)}</dd></div> : null}
+      </dl>
+      <label>Status<select value={item.status} onChange={(event) => onChange({ status: event.target.value })}>{REPERTOIRE_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
+      <label>Role<select value={item.role} onChange={(event) => onChange({ role: event.target.value })}><option>Main</option><option>Backup</option><option>Branch</option><option>Alternative</option></select></label>
+      <label className="workspaceLock"><input type="checkbox" checked={Boolean(item.locked)} onChange={(event) => onChange({ locked: event.target.checked })} /> Lock this choice</label>
+      <label>Notes<textarea value={item.notes || ""} onChange={(event) => onChange({ notes: event.target.value })} placeholder="Plans, move orders, or reminders" /></label>
+      <div className="workspaceOpeningActions"><button type="button" onClick={() => onPractice(item.opening || item)}>Start training</button><button type="button" onClick={onDelete}>Remove</button></div>
     </article>
   );
 }
 
-function RepertoireSection({ title, subtitle, openings, emptyText, data, onPractice, onReport }) {
-  return (
-    <section className="myRepertoireSection">
-      <div className="myRepertoireSectionHeader">
-        <div>
-          <span>{subtitle}</span>
-          <h2>{title}</h2>
-        </div>
-        <strong>{openings.length || "No clear plan"}</strong>
-      </div>
-      {openings.length ? (
-        <div className="myRepertoireRows">
-          {openings.map((opening, index) => (
-            <RepertoireOpeningRow
-              key={`${title}-${getRepertoireOpeningName(opening)}-${index}`}
-              opening={opening}
-              data={data}
-              sectionCount={openings.length}
-              onPractice={onPractice}
-              onReport={onReport}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="myRepertoireMissing">
-          <strong>Missing</strong>
-          <p>{emptyText}</p>
-          <button type="button" onClick={onReport}>Explore alternatives</button>
-        </div>
-      )}
-    </section>
-  );
-}
-
 export default function MyRepertoire({ data, onAnalyse, onPractice, onReport }) {
-  const model = useMemo(() => buildRepertoireMap(data || {}), [data]);
-  const hasReport = Boolean(data);
+  const { user, openingFitUserState = [], upsertUserData } = useAuth();
+  const suggested = useMemo(() => buildSuggestedWorkspace(data || {}), [data]);
+  const platform = data?.platform || data?.importPlatform || "unknown";
+  const username = data?.username || data?.playerName || "guest";
+  const cloudRow = openingFitUserState.find((row) => String(row.platform).toLowerCase() === String(platform).toLowerCase() && String(row.username).toLowerCase() === String(username).toLowerCase()) || openingFitUserState[0];
+  const cloudWorkspace = cloudRow?.coach_progress?.repertoireWorkspace;
+  const [workspace, setWorkspace] = useState(() => reconcileWorkspace(suggested, cloudWorkspace || readLocal() || {}));
+  const [message, setMessage] = useState("");
 
-  if (!hasReport || !model.totalOpenings) {
-    return (
-      <RepertoireEmptyState
-        hasData={hasReport}
-        onAnalyse={onAnalyse}
-        onReport={onReport}
-      />
-    );
-  }
+  const persist = useCallback(async (next) => {
+    const clean = { ...next, undo: undefined };
+    localStorage.setItem(REPERTOIRE_STORAGE_KEY, JSON.stringify(clean));
+    setWorkspace(next);
+    if (!user?.id || !upsertUserData) { setMessage("Saved on this device. Sign in when you want to sync it."); return; }
+    const saved = await upsertUserData("openingfit_user_state", { ...(cloudRow?.id ? { id: cloudRow.id } : {}), platform, username, last_report: cloudRow?.last_report || data || null, coach_progress: { ...(cloudRow?.coach_progress || {}), repertoireWorkspace: clean } }, { onConflict: "user_id,platform,username", required: false });
+    setMessage(saved ? "Repertoire synced to your account." : "Saved on this device; cloud sync is unavailable.");
+  }, [cloudRow, data, platform, upsertUserData, user?.id, username]);
+  useEffect(() => setWorkspace(reconcileWorkspace(suggested, cloudWorkspace || readLocal() || {})), [suggested, cloudWorkspace]);
+  useEffect(() => {
+    try {
+      const pending = JSON.parse(localStorage.getItem(REPERTOIRE_PENDING_KEY) || "null");
+      if (!pending) return;
+      localStorage.removeItem(REPERTOIRE_PENDING_KEY);
+      void persist(applyRepertoireAction(reconcileWorkspace(suggested, cloudWorkspace || readLocal() || {}), pending));
+    } catch { /* Ignore malformed legacy local state. */ }
+  }, [cloudWorkspace, persist, suggested]);
+  const summary = useMemo(() => workspaceSummary(workspace), [workspace]);
+  const warnings = useMemo(() => workspaceWarnings(workspace), [workspace]);
+  const act = (action) => { const item = workspace.items.find((row) => row.id === action.id) || action.item; const event = action.type === "add" ? "opening_added" : action.type === "replace" ? "opening_replaced" : action.type === "update" && action.changes?.locked ? "opening_locked" : null; if (event) void trackProductEvent(event, { authenticated: Boolean(user?.id), source: "repertoire_workspace", openingCategory: item?.section || "other" }); return persist(applyRepertoireAction(workspace, action)); };
+  const undo = () => workspace.undo && persist(workspace.undo);
 
+  if (!data && !workspace.items.length) return <section className="myRepertoireEmpty"><h1>Build your repertoire from one analysis.</h1><p>Your report will become a manageable White and Black workspace.</p><button className="primaryBtn" type="button" onClick={onAnalyse}>Analyse games</button></section>;
   return (
-    <section className="myRepertoire" id="my-repertoire" aria-labelledby="my-repertoire-title">
-      <header className="myRepertoireHero">
-        <div>
-          <span>What am I building?</span>
-          <h1 id="my-repertoire-title">{model.focusLabel}</h1>
-          <p>{model.overview}</p>
-        </div>
-        <div className="myRepertoireActionCard">
-          <span>Your next repertoire decision</span>
-          <strong>{model.action}</strong>
-          <button type="button" onClick={onReport}>Review the evidence</button>
-        </div>
-      </header>
-
-      <div className="myRepertoireGrid">
-        <RepertoireSection
-          title="White"
-          subtitle="What you play with White"
-          openings={model.sections.white}
-          data={data}
-          emptyText="No clear White repertoire has been detected. This may simply mean the current report does not classify the side confidently."
-          onPractice={onPractice}
-          onReport={onReport}
-        />
-        <RepertoireSection
-          title="Black vs 1.e4"
-          subtitle="Main defences"
-          openings={model.sections.blackE4}
-          data={data}
-          emptyText="No clear defence against 1.e4 has been detected yet."
-          onPractice={onPractice}
-          onReport={onReport}
-        />
-        <RepertoireSection
-          title="Black vs 1.d4 / other"
-          subtitle="Queen-pawn and flank coverage"
-          openings={model.sections.blackD4}
-          data={data}
-          emptyText="No clear plan against 1.d4 or other main first moves has been detected yet."
-          onPractice={onPractice}
-          onReport={onReport}
-        />
-      </div>
-
-      <section className="myRepertoireGaps" aria-labelledby="coverage-gaps-title">
-        <div>
-          <span>Coverage gaps</span>
-          <h2 id="coverage-gaps-title">What needs clarity next</h2>
-        </div>
-        <ul>
-          {model.gaps.map((gap) => (
-            <li key={gap}>{gap}</li>
-          ))}
-        </ul>
-      </section>
+    <section className="myRepertoire repertoireWorkspace" id="my-repertoire" aria-labelledby="my-repertoire-title">
+      <header className="myRepertoireHero"><div><span>Repertoire workspace</span><h1 id="my-repertoire-title">Your practical opening plan</h1><p>Manual and locked choices take priority when a new report arrives.</p></div><div className="myRepertoireActionCard"><span>Next action</span><strong>{summary.nextAction}</strong><button type="button" onClick={onReport}>Review evidence</button></div></header>
+      <dl className="workspaceSummary"><div><dt>Coverage</dt><dd>{summary.coverage}</dd></div><div><dt>Active</dt><dd>{summary.active}</dd></div><div><dt>Learning</dt><dd>{summary.learning}</dd></div><div><dt>Repair</dt><dd>{summary.repair}</dd></div></dl>
+      {warnings.length ? <aside className="workspaceWarnings" aria-label="Advisory repertoire warnings"><strong>Worth checking</strong><ul>{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></aside> : null}
+      {message ? <p role="status" className="repertoireSaveStatus">{message}</p> : null}
+      {workspace.undo ? <button type="button" className="secondaryBtn" onClick={undo}>Undo last change</button> : null}
+      <div className="workspaceSections">{sections.map(([key, label]) => { const rows = workspace.items.filter((item) => item.section === key); return <details key={key} open={key !== "other" || Boolean(rows.length)}><summary><span>{label}</span><strong>{rows.length} opening{rows.length === 1 ? "" : "s"}</strong></summary>{rows.length ? <div>{rows.map((item) => <OpeningDetail key={item.id} item={item} onPractice={onPractice} onChange={(changes) => act({ type: "update", id: item.id, changes })} onDelete={() => act({ type: "delete", id: item.id })} />)}</div> : <p>No dependable choice is selected here.</p>}<button type="button" onClick={() => act({ type: "reset_section", section: key })}>Reset this category</button></details>; })}</div>
     </section>
   );
 }

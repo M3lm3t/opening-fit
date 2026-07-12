@@ -602,6 +602,183 @@
   }
 }
 
+.importRecoveryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.importRecoveryActions button {
+  min-height: 40px;
+  border: 1px solid var(--of-color-border-strong);
+  border-radius: var(--of-radius-sm);
+  padding: 7px 11px;
+  background: var(--of-color-surface-muted);
+  color: var(--of-color-text);
+  font-weight: 850;
+}
+
+@media (max-width: 560px) {
+  .importRecoveryActions { display: grid; grid-template-columns: 1fr; }
+  .importRecoveryActions button { width: 100%; }
+}
+
+/* Decision-first report */
+.decisionReportFlow { display: grid; gap: var(--of-section-gap); }
+.decisionReportHeader,
+.coachDecisionVerdict,
+.reportDecisionSection,
+.compactOpeningHealth,
+.costlyIssuesSection,
+.decisionRepertoireMap,
+.finiteTrainingSession {
+  min-width: 0;
+  border: 1px solid var(--of-shell-border);
+  border-radius: var(--of-radius-lg);
+  padding: clamp(16px, 2.5vw, 24px);
+  background: var(--of-shell-panel);
+}
+.decisionReportHeader { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+.decisionReportHeader h1 { margin: 6px 0 10px; color: var(--of-color-text); font-size: clamp(1.35rem, 3vw, 2rem); overflow-wrap: anywhere; }
+.decisionReportMeta { display: flex; flex-wrap: wrap; gap: 7px; }
+.decisionReportMeta span,
+.reportDecisionEvidence span { border: 1px solid var(--of-color-border); border-radius: 999px; padding: 5px 9px; background: var(--of-color-surface-muted); color: var(--of-color-text-soft); font-size: 0.78rem; font-weight: 800; }
+.coachDecisionVerdict { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr); gap: 22px; border-left: 4px solid var(--of-color-info); }
+.coachDecisionVerdict h2,
+.reportDecisionSection h2,
+.compactOpeningHealth h2,
+.costlyIssuesSection h2,
+.decisionRepertoireMap h2,
+.finiteTrainingSession h2 { margin: 7px 0; color: var(--of-color-text); font-size: clamp(1.3rem, 2.5vw, 1.8rem); }
+.coachDecisionVerdict p { margin: 0; color: var(--of-color-text-soft); line-height: 1.55; }
+.coachDecisionVerdict dl,
+.compactOpeningHealth dl { display: grid; gap: 8px; margin: 0; }
+.coachDecisionVerdict dl div,
+.compactOpeningHealth dl div { display: grid; gap: 2px; padding: 9px 11px; border-left: 3px solid var(--of-color-info); background: var(--of-color-surface-muted); }
+.coachDecisionVerdict dt,
+.compactOpeningHealth dt,
+.reportDecisionCard dt,
+.decisionRepertoireMap dt { color: var(--of-color-muted); font-size: 0.72rem; font-weight: 900; text-transform: uppercase; }
+.coachDecisionVerdict dd,
+.compactOpeningHealth dd,
+.reportDecisionCard dd,
+.decisionRepertoireMap dd { margin: 0; color: var(--of-color-text); font-weight: 850; }
+.reportDecisionSection > header,
+.compactOpeningHealth > header,
+.costlyIssuesSection > header,
+.decisionRepertoireMap > header { margin-bottom: 16px; }
+.reportDecisionGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.reportDecisionCard { display: grid; align-content: start; gap: 9px; min-width: 0; border: 1px solid var(--of-color-border); border-top: 4px solid var(--of-color-neutral); border-radius: var(--of-radius-lg); padding: 16px; background: var(--of-color-surface-muted); }
+.reportDecisionCard--keep { border-top-color: var(--of-color-success); }
+.reportDecisionCard--repair { border-top-color: var(--of-color-warning); }
+.reportDecisionCard--reduce { border-top-color: var(--of-color-error); }
+.reportDecisionLabel { color: var(--of-color-muted); font-size: 0.72rem; font-weight: 950; text-transform: uppercase; letter-spacing: 0.06em; }
+.reportDecisionCard h3 { margin: 0; color: var(--of-color-text); font-size: 1.12rem; overflow-wrap: anywhere; }
+.reportDecisionCard > strong { color: var(--of-color-text-soft); font-size: 0.82rem; }
+.reportDecisionCard > p { margin: 0; color: var(--of-color-text-soft); line-height: 1.48; }
+.reportDecisionEvidence,
+.reportDecisionActions { display: flex; flex-wrap: wrap; gap: 6px; }
+.reportDecisionPerformance { font-size: .88rem; color: var(--of-color-text-soft); }
+.fitMetricDefinitions { margin-top: 1rem; border-top: 1px solid var(--of-color-border); padding-top: .75rem; }
+.fitMetricDefinitions summary { cursor: pointer; font-weight: 800; }
+.fitMetricDefinitions dl { display: grid; gap: .65rem; margin-top: .75rem; }
+.fitMetricDefinitions dl div { display: grid; grid-template-columns: minmax(7rem, .35fr) 1fr; gap: .75rem; }
+.fitMetricDefinitions dt { font-weight: 800; }
+.fitMetricDefinitions dd { margin: 0; color: var(--of-color-text-soft); }
+.recommendationFeedback { border: 0; border-top: 1px solid var(--of-color-border); padding: .75rem 0 0; margin: .8rem 0 0; min-width: 0; }
+.recommendationFeedback legend { font-size: .78rem; font-weight: 800; padding: 0; }
+.recommendationFeedback > div { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+.recommendationFeedback button { min-height: 36px; border: 1px solid var(--of-color-border); border-radius: 999px; background: transparent; color: inherit; padding: .35rem .65rem; cursor: pointer; }
+.recommendationFeedback button:focus-visible { outline: 3px solid var(--of-color-info); outline-offset: 2px; }
+.recommendationFeedback small { display: block; min-height: 1.2em; margin-top: .4rem; }
+.trainingSessionQueue { border: 1px solid var(--of-color-border); border-radius: var(--of-radius-lg); background: var(--of-color-surface); padding: 1rem; margin-bottom: 1rem; }
+.trainingSessionQueue > header { display: flex; justify-content: space-between; gap: 1rem; align-items: start; }
+.trainingSessionQueue h2, .trainingSessionQueue h3 { margin: 0; }
+.trainingSessionQueue ol { list-style: none; display: grid; gap: .6rem; padding: 0; }
+.trainingSessionQueue li { display: grid; grid-template-columns: 32px 1fr auto; gap: .75rem; align-items: center; border: 1px solid var(--of-color-border); border-radius: var(--of-radius-md); padding: .75rem; opacity: .7; }
+.trainingSessionQueue li.isCurrent { border-color: var(--of-color-info); opacity: 1; }
+.trainingSessionQueue li.isComplete { opacity: .6; }
+.trainingSessionQueue li > span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--of-color-surface-muted); font-weight: 800; }
+.trainingSessionQueue li p { margin: .2rem 0 0; color: var(--of-color-text-soft); }
+.trainingSessionQueue button, .trainingCompletion a { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.trainingCompletion > div { display: flex; flex-wrap: wrap; gap: .5rem; }
+.publicTrustPage { min-height: 100vh; background: var(--of-color-bg); color: var(--of-color-text); }
+.publicTrustContent { width: min(860px, calc(100% - 32px)); margin: 0 auto; padding: clamp(48px, 8vw, 96px) 0; }
+.publicTrustContent h1 { max-width: 18ch; font-size: clamp(2rem, 6vw, 4rem); line-height: 1.05; }
+.publicTrustContent h2 { margin-top: 2rem; }
+.publicTrustContent p, .publicTrustContent li { color: var(--of-color-text-soft); line-height: 1.7; }
+.publicTrustContent article { border-top: 1px solid var(--of-color-border); padding: 1rem 0; }
+.publicTrustPage > footer, .feedbackSupportLinks { display: flex; flex-wrap: wrap; gap: .8rem 1.2rem; }
+.publicTrustPage > footer { width: min(860px, calc(100% - 32px)); margin: 0 auto; border-top: 1px solid var(--of-color-border); padding: 24px 0 48px; }
+.feedbackSupportLinks { margin-top: 1rem; }
+@media (max-width: 560px) { .trainingSessionQueue li { grid-template-columns: 32px 1fr; } .trainingSessionQueue li button { grid-column: 1 / -1; width: 100%; } }
+.reportDecisionActions button,
+.costlyIssuesSection button,
+.decisionRepertoireMap button { min-height: 40px; border: 1px solid var(--of-color-border-strong); border-radius: var(--of-radius-sm); padding: 7px 10px; background: var(--of-color-surface); color: var(--of-color-text); font-weight: 850; }
+.reportDecisionCard details { margin-top: 3px; border-top: 1px solid var(--of-color-border); padding-top: 8px; }
+.reportDecisionCard summary { min-height: 40px; display: flex; align-items: center; cursor: pointer; color: var(--of-color-text); font-weight: 850; }
+.reportDecisionCard details dl { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 8px 0 0; }
+.reportDecisionCard details dl div { display: grid; gap: 2px; }
+.compactOpeningHealthGrid { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.compactOpeningHealthScore { display: grid; place-items: center; align-content: center; border: 1px solid var(--of-color-border-strong); border-radius: var(--of-radius-lg); background: var(--of-color-surface-muted); }
+.compactOpeningHealthScore span,
+.compactOpeningHealthScore small { color: var(--of-color-muted); font-weight: 850; }
+.compactOpeningHealthScore strong { color: var(--of-color-text); font-size: clamp(2rem, 5vw, 3rem); line-height: 1; }
+.compactOpeningHealth dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.costlyIssuesSection ol { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.costlyIssuesSection li { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--of-color-border); }
+.costlyIssuesSection li > span { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--of-color-warning) 16%, transparent); color: var(--of-color-warning); font-weight: 950; }
+.costlyIssuesSection h3 { margin: 0; color: var(--of-color-text); font-size: 1rem; }
+.costlyIssuesSection p { margin: 4px 0; color: var(--of-color-text-soft); }
+.costlyIssuesSection small { color: var(--of-color-muted); }
+.costlyIssuesSection li > div:last-child { display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+.decisionRepertoireMap > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.decisionRepertoireMap article { display: grid; gap: 8px; padding: 15px; border: 1px solid var(--of-color-border); border-radius: var(--of-radius-md); background: var(--of-color-surface-muted); }
+.decisionRepertoireMap article > span { color: var(--of-color-muted); font-size: 0.76rem; font-weight: 900; text-transform: uppercase; }
+.decisionRepertoireMap h3 { margin: 0; color: var(--of-color-text); }
+.decisionRepertoireMap dl { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 0; }
+.decisionRepertoireMap dl div { display: grid; gap: 2px; }
+.decisionRepertoireMap p { margin: 0; color: var(--of-color-text-soft); line-height: 1.45; }
+.decisionRepertoireMap article > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.finiteTrainingSession { display: grid; grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr) auto; gap: 18px; align-items: center; border-color: color-mix(in srgb, var(--of-color-info) 42%, var(--of-shell-border)); }
+.finiteTrainingSession p { margin: 0; color: var(--of-color-text-soft); line-height: 1.45; }
+.finiteTrainingSession ol { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.finiteTrainingSession li { display: grid; gap: 3px; padding: 9px 11px; border-left: 3px solid var(--of-color-info); background: var(--of-color-surface-muted); }
+.finiteTrainingSession li span { color: var(--of-color-muted); font-size: 0.7rem; font-weight: 900; text-transform: uppercase; }
+.finiteTrainingSession li strong { color: var(--of-color-text); font-size: 0.86rem; }
+
+@media (max-width: 900px) {
+  .reportDecisionGrid { grid-template-columns: 1fr; }
+  .finiteTrainingSession { grid-template-columns: 1fr; }
+  .coachDecisionVerdict { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .decisionReportFlow > .coachDecisionVerdict { order: 1; }
+  .decisionReportFlow > .finiteTrainingSession { order: 2; }
+  .decisionReportFlow > .reportDecisionSection { order: 3; }
+  .decisionReportFlow > .compactOpeningHealth { order: 4; }
+  .decisionReportFlow > .decisionRepertoireMap { order: 5; }
+  .decisionReportFlow > .costlyIssuesSection { order: 6; }
+  .decisionReportFlow > .reportSupportingDataDetails { order: 7; }
+  .decisionReportFlow > .reportSecondaryDetails { order: 8; }
+  .decisionReportFlow > .decisionReportHeader { order: 0; }
+  .decisionReportFlow > .reportCommandBar { order: -1; }
+  .decisionReportFlow > *:not(.reportCommandBar):not(.decisionReportHeader):not(.coachDecisionVerdict):not(.finiteTrainingSession):not(.reportDecisionSection):not(.compactOpeningHealth):not(.decisionRepertoireMap):not(.costlyIssuesSection):not(.reportSupportingDataDetails):not(.reportSecondaryDetails) { order: 9; }
+  .decisionReportHeader { grid-template-columns: 1fr; }
+  .decisionReportHeader .secondaryBtn { width: 100%; }
+  .compactOpeningHealthGrid,
+  .compactOpeningHealth dl,
+  .decisionRepertoireMap > div,
+  .finiteTrainingSession ol { grid-template-columns: 1fr; }
+  .compactOpeningHealthScore { min-height: 120px; }
+  .costlyIssuesSection li { grid-template-columns: 32px minmax(0, 1fr); align-items: start; }
+  .costlyIssuesSection li > div:last-child { grid-column: 1 / -1; justify-content: stretch; }
+  .costlyIssuesSection li > div:last-child button { flex: 1; }
+  .reportDecisionCard details dl { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 360px) {
   .appReportPage .appShell,
   .appReportPage .container.appShell {
@@ -648,5 +825,268 @@
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+/* Simplified public homepage */
+.publicLandingPage .analyseImportHero {
+  display: grid;
+  gap: clamp(18px, 3vw, 30px);
+}
+
+.publicLandingPage .analyseImportHero .heroTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.75fr);
+  align-items: start;
+  gap: clamp(18px, 3vw, 34px);
+}
+
+.publicLandingPage .homepageSamplePreview {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: clamp(16px, 2.4vw, 24px);
+}
+
+.homepageSampleRows { display: grid; gap: 9px; }
+.homepageSampleRow {
+  display: grid;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid var(--of-color-border);
+  border-left-width: 4px;
+  border-radius: var(--of-radius-md);
+  background: var(--of-color-surface-muted);
+}
+.homepageSampleRow span { color: var(--of-color-muted); font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; }
+.homepageSampleRow strong { color: var(--of-color-text); font-size: 0.96rem; }
+.homepageSampleRow--keep { border-left-color: var(--of-color-success); }
+.homepageSampleRow--repair { border-left-color: var(--of-color-warning); }
+.homepageSampleRow--action { border-left-color: var(--of-color-info); }
+.homepageSampleDisclaimer { color: var(--of-color-muted); line-height: 1.4; }
+
+.publicLandingPage .heroImportFlow {
+  position: relative;
+  z-index: 2;
+}
+.publicLandingPage .analysisSettingsIntro {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--of-color-text-soft);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.homepageOutcomeStory {
+  display: grid;
+  gap: clamp(18px, 3vw, 30px);
+  margin-top: clamp(18px, 3vw, 30px);
+}
+.homepageOutcomeStory > section,
+.homepageFooter {
+  border: 1px solid var(--of-color-border);
+  border-radius: var(--of-radius-xl);
+  padding: clamp(18px, 3vw, 30px);
+  background: var(--of-color-surface);
+  box-shadow: var(--of-shadow-sm);
+}
+.homepageProofSection,
+.homepageSampleCta,
+.homepageFounderSection,
+.homepageGuidesLink {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+.homepageProofSection h2,
+.homepageHowSection h2,
+.homepageOutcomesSection h2,
+.homepageSampleCta h2,
+.homepageFounderSection h2 { margin: 8px 0; color: var(--of-color-text); font-size: clamp(1.45rem, 3vw, 2.2rem); line-height: 1.08; }
+.homepageProofSection p,
+.homepageSampleCta p,
+.homepageFounderSection p { margin: 0; max-width: 66ch; color: var(--of-color-text-soft); line-height: 1.55; }
+.homepageStepGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+.homepageStep { position: relative; display: grid; align-content: start; gap: 10px; min-width: 0; padding: 18px; border-top: 3px solid var(--of-color-info); background: var(--of-color-surface-muted); border-radius: var(--of-radius-lg); }
+.homepageStepNumber { position: absolute; top: 12px; right: 12px; color: var(--of-color-muted); font-weight: 950; }
+.homepageStep svg { color: var(--of-color-info); }
+.homepageStep h3,
+.homepageOutcome h3 { margin: 0; color: var(--of-color-text); font-size: 1rem; }
+.homepageStep p,
+.homepageOutcome p { margin: 0; color: var(--of-color-text-soft); line-height: 1.48; }
+.homepageOutcomeList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 20px; }
+.homepageOutcome { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; padding: 14px 0; border-bottom: 1px solid var(--of-color-border); }
+.homepageOutcome > span { width: 36px; height: 36px; display: grid; place-items: center; border-radius: var(--of-radius-md); color: var(--of-color-info); background: color-mix(in srgb, var(--of-color-info) 14%, transparent); }
+.homepageOutcome--success > span { color: var(--of-color-success); background: color-mix(in srgb, var(--of-color-success) 14%, transparent); }
+.homepageOutcome--warning > span { color: var(--of-color-warning); background: color-mix(in srgb, var(--of-color-warning) 14%, transparent); }
+.homepageOutcome div { display: grid; gap: 4px; }
+.homepageFounderSection > a,
+.homepageGuidesLink > a { min-height: var(--of-control-height); display: inline-flex; align-items: center; justify-content: center; padding: 0 16px; border: 1px solid var(--of-color-border-strong); border-radius: var(--of-radius-md); color: var(--of-color-text); text-decoration: none; font-weight: 900; }
+.homepageGuidesLink div { display: grid; gap: 4px; }
+.homepageGuidesLink span { color: var(--of-color-text-soft); }
+
+.homepageFooter { display: grid; gap: 22px; margin-top: clamp(20px, 4vw, 42px); }
+.homepageFooterBrand { display: flex; gap: 12px; align-items: center; }
+.homepageFooterBrand img { width: 38px; height: 38px; }
+.homepageFooterBrand div { display: grid; gap: 2px; }
+.homepageFooterBrand strong { color: var(--of-color-text); }
+.homepageFooterBrand span,
+.homepageFooterLegal span { color: var(--of-color-text-soft); }
+.homepageFooter nav { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.homepageFooter nav a,
+.homepageFooter nav button { min-height: 44px; display: inline-flex; align-items: center; border: 0; padding: 0; background: transparent; color: var(--of-color-text); text-decoration: none; font-weight: 800; }
+.homepageFooterLegal { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding-top: 18px; border-top: 1px solid var(--of-color-border); }
+.homepageFooterLegal section { display: grid; gap: 5px; }
+
+@media (max-width: 760px) {
+  .fitMetricDefinitions dl div { grid-template-columns: 1fr; gap: .15rem; }
+  .recommendationFeedback button { min-height: 44px; }
+  .publicLandingPage .analyseImportHero .heroTop,
+  .homepageProofSection,
+  .homepageSampleCta,
+  .homepageFounderSection,
+  .homepageGuidesLink { grid-template-columns: 1fr; }
+  .homepageStepGrid,
+  .homepageOutcomeList,
+  .homepageFooterLegal { grid-template-columns: 1fr; }
+  .homepageStep { padding: 15px; }
+  .homepageOutcomeStory > section,
+  .homepageFooter { padding: 16px; border-radius: var(--of-radius-lg); }
+  .publicLandingPage .heroImportFlow { scroll-margin-bottom: 45vh; }
+  .publicLandingPage .heroUsernameField input { min-height: 50px; font-size: 16px; }
+  .publicLandingPage .appActionButtons .primaryBtn { min-height: 52px; width: 100%; }
+  .publicLandingPage .usernameTrustStrip { display: grid; grid-template-columns: 1fr 1fr; }
+  .publicLandingPage .homepageSamplePreview { order: 3; }
+}
+
+@media (max-width: 380px) {
+  .publicLandingPage .usernameTrustStrip { grid-template-columns: 1fr; }
+  .homepageSampleRow { padding: 10px 11px; }
+}
+
+@media (max-width: 760px) {
+  .publicLandingPage .homepageSamplePreview,
+  .publicLandingPage #about.homepageFounderSection {
+    display: grid !important;
+    visibility: visible !important;
+  }
+}
+
+/* Canonical shell/navigation layer. These rules intentionally follow legacy
+   screen polish so there is one final navigation treatment. */
+.appPrimaryNav--marketing .appPrimaryNavInner {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.appPrimaryNav--app .appPrimaryTabs,
+.appPrimaryNav--marketing .appPrimaryTabs {
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.appPrimaryNav .appPrimaryTab,
+.appPrimaryNav .appPrimaryAccount,
+.appPrimaryNav .appPrimaryGetStarted,
+.appPrimaryNav .appPrimaryMenuToggle {
+  min-height: var(--of-control-height, 44px);
+}
+
+.appPrimaryNav .appPrimaryTabActive {
+  box-shadow: inset 0 -2px 0 var(--of-color-primary);
+}
+
+/* Nested modules use quieter grouping so page sections remain the primary
+   visual hierarchy instead of every child reading as another floating card. */
+.appReportPage .reportSectionGroup .card,
+.appReportPage .profileDashboardCard .simpleProfileCard,
+.appReportPage .appResultsShellTrain .card,
+.appReportPage .of-surface .of-surface:not(.of-surface--raised):not(.of-surface--hero) {
+  border-color: color-mix(in srgb, var(--of-shell-border) 82%, transparent);
+  background: color-mix(in srgb, var(--of-shell-panel) 72%, transparent);
+  box-shadow: none;
+}
+
+.appReportPage .reportSectionGroup > header,
+.appReportPage .profileDashboardCard > header,
+.appReportPage .appResultsShellTrain > header {
+  padding-bottom: var(--of-space-3);
+  border-bottom: 1px solid var(--of-shell-border);
+}
+
+.mobileBottomNav { display: none; }
+
+@media (max-width: 767px) {
+  .publicLandingPage,
+  .publicLandingPage .appShell,
+  .appReportPage,
+  .appReportPage .appShell { padding-bottom: 0; }
+
+  .appReportPage:has(.mobileBottomNav) { padding-bottom: var(--of-mobile-nav-clearance); }
+  .appReportPage:has(.mobileBottomNav) .appShell { padding-bottom: calc(var(--of-mobile-nav-clearance) + var(--of-page-gap)); }
+
+  .mobileBottomNav {
+    position: fixed;
+    z-index: 70;
+    inset: auto max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    min-height: 68px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 6px;
+    border: 1px solid var(--of-shell-border);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--of-shell-panel-strong) 94%, transparent);
+    box-shadow: 0 18px 48px rgba(2, 6, 23, 0.34);
+    backdrop-filter: blur(20px);
+  }
+
+  .mobileBottomNav button {
+    min-width: 0;
+    min-height: 56px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 3px;
+    padding: 5px 2px;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    background: transparent;
+    color: var(--of-shell-muted);
+    font-size: 0.69rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .mobileBottomNav button span { width: auto; height: auto; display: grid; place-items: center; }
+  .mobileBottomNav .mobileBottomNavActive,
+  .mobileBottomNav button[aria-current="page"] {
+    border-color: color-mix(in srgb, var(--of-color-primary) 42%, transparent);
+    background: color-mix(in srgb, var(--of-color-primary) 16%, transparent);
+    color: var(--of-shell-text);
+  }
+  body:has([aria-modal="true"]) .mobileBottomNav { visibility: hidden; pointer-events: none; }
+}
+
+@media (min-width: 768px) and (max-width: 1179px) {
+  .appPrimaryNav--marketing .appPrimaryTabs,
+  .appPrimaryNav--app .appPrimaryTabs,
+  .appPrimaryNav .appPrimaryAccount,
+  .appPrimaryNav .appPrimaryGetStarted { display: none; }
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--of-color-primary) 82%, white);
+  outline-offset: 3px;
+  box-shadow: var(--of-focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within { scroll-behavior: auto; }
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

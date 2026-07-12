@@ -2,13 +2,15 @@ import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { createServer } from "vite";
+import { DEMO_REPORT } from "../src/demoReportData.js";
 
 const PORT = Number(process.env.OPENINGFIT_VISUAL_PORT || 4177);
 const HOST = "127.0.0.1";
 const BASE_URL = `http://${HOST}:${PORT}`;
+const FORCED_THEME = String(process.env.OPENINGFIT_VISUAL_THEME || "").trim();
 const SCREENSHOT_DIR = path.resolve("test-screenshots");
 
-const routes = ["/", "/login", "/dashboard", "/report", "/repertoire", "/train", "/account", "/journey", "/premium"];
+const routes = ["/", "/login", "/dashboard", "/report", "/repertoire", "/train", "/progress", "/account", "/journey", "/premium"];
 const viewports = [
   { name: "phone-compact", width: 320, height: 568 },
   { name: "phone", width: 360, height: 800 },
@@ -273,6 +275,11 @@ async function main() {
     await waitForServer();
     browser = await chromium.launch();
     const page = await browser.newPage();
+    if (FORCED_THEME === "light" || FORCED_THEME === "dark") {
+      await page.addInitScript((theme) => {
+        window.localStorage.setItem("openingFit:theme", theme);
+      }, FORCED_THEME);
+    }
     const consoleErrors = [];
 
     page.on("console", (message) => {
@@ -286,8 +293,22 @@ async function main() {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       for (const route of routes) {
         const url = `${BASE_URL}${route}`;
-        await page.goto(url, { waitUntil: "networkidle" });
-        await page.waitForTimeout(500);
+        // The app intentionally probes an external API during startup. Layout
+        // readiness depends on the rendered shell, not that network probe.
+        await page.goto(url, { waitUntil: "domcontentloaded" });
+        if (route === "/report") {
+          await page.evaluate((report) => {
+            window.localStorage.setItem("openingFit:lastAnalysis", JSON.stringify({
+              username: report.username || "DemoPlayer",
+              platform: report.platform || "demo",
+              savedAt: new Date().toISOString(),
+              analysis: report,
+            }));
+          }, DEMO_REPORT);
+          await page.reload({ waitUntil: "domcontentloaded" });
+        }
+        await page.locator(".page, .seoPageShell").first().waitFor({ state: "visible", timeout: 10000 });
+        await page.waitForTimeout(350);
         const routeName = route.replace(/^\//, "") || "home";
         const filename = `${routeName}-${viewport.name}-${viewport.width}x${viewport.height}.png`;
         const filepath = path.join(SCREENSHOT_DIR, filename);
@@ -295,6 +316,10 @@ async function main() {
         screenshots.push(filepath);
 
         await assertRouteLayout(page, route);
+
+        if (route === "/report") {
+          await page.evaluate(() => window.localStorage.removeItem("openingFit:lastAnalysis"));
+        }
 
         if (route === "/account") {
           await assertAccountLayout(page);

@@ -145,8 +145,17 @@ export function IconButton({ label, children, className = "", ...props }) {
 }
 
 export function StatusBadge({ children, tone = "neutral", className = "", ...props }) {
+  const toneLabels = {
+    success: "Strong",
+    warning: "Caution",
+    error: "Weakness",
+    info: "Action",
+    neutral: "Unavailable",
+  };
   return (
     <span className={cx("of-status-badge", `of-status-badge--${tone}`, className)} {...props}>
+      <span className="of-status-badge__marker" aria-hidden="true" />
+      <span className="sr-only">{toneLabels[tone] || toneLabels.neutral}: </span>
       {children}
     </span>
   );
@@ -184,6 +193,28 @@ export function LoadingState({ title = "Loading", children, className = "", ...p
         <strong>{title}</strong>
         {children ? <p>{children}</p> : null}
       </div>
+    </div>
+  );
+}
+
+export function PageState({
+  kind = "empty",
+  title,
+  children,
+  action,
+  icon,
+  className = "",
+  ...props
+}) {
+  const liveRole = kind === "error" ? "alert" : "status";
+  return (
+    <div className={cx("of-page-state", `of-page-state--${kind}`, className)} role={liveRole} {...props}>
+      {icon ? <span className="of-page-state__icon" aria-hidden="true">{icon}</span> : null}
+      <div className="of-page-state__copy">
+        {title ? <h2>{title}</h2> : null}
+        {children ? <p>{children}</p> : null}
+      </div>
+      {action ? <div className="of-page-state__action">{action}</div> : null}
     </div>
   );
 }

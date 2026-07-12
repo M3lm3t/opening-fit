@@ -10,6 +10,8 @@ import {
   buildWeakestLineTrainingCompletionEvent,
   saveWeakestLineTrainingEvent,
 } from "../services/weakestLineTraining";
+import { TRAINING_SESSION_KEY, TRAINING_TASK_COMPLETED_EVENT, trainingOutcome } from "../lib/trainingQueue";
+import { trackProductEvent } from "../lib/productAnalytics";
 
 const TRAINING_PROGRESS_KEY = "openingFit:openingTrainingProgress";
 
@@ -527,6 +529,8 @@ export default function OpeningPracticeLinesPanel({
   const [trainingProgress, setTrainingProgress] = useState(() => loadLocalTrainingProgress());
   const [progressStatus, setProgressStatus] = useState(user?.id ? "Syncing practice progress..." : "Progress saved on this device");
   const [completionNotice, setCompletionNotice] = useState("");
+  const [attempts, setAttempts] = useState(0);
+  const [revealed, setRevealed] = useState(false);
   const feedbackTimerRef = useRef(null);
 
   const selectedLine = pack?.lines?.[selectedLineIndex];
@@ -713,9 +717,11 @@ export default function OpeningPracticeLinesPanel({
               <span>Weakest-line training set</span>
               <strong>{trainingSet.lineName || trainingSet.line_name || trainingSet.variationName || trainingSet.variation_name || openingName}</strong>
               <p>{trainingSet.shortExplanation || trainingSet.short_explanation}</p>
+              {trainingSet.playedMove || trainingSet.played_move || opening?.playedMove || opening?.played_move ? <p><strong>Played:</strong> {trainingSet.playedMove || trainingSet.played_move || opening.playedMove || opening.played_move}</p> : null}
               <small>
                 {trainingSet.side ? `${trainingSet.side} side` : "Side unknown"} · {trainingSet.difficulty || "easy"} · {trainingSet.source || "report"}
               </small>
+              {trainingSet.gameUrl || trainingSet.game_url || opening?.gameUrl || opening?.game_url || opening?.url ? <a href={trainingSet.gameUrl || trainingSet.game_url || opening.gameUrl || opening.game_url || opening.url} target="_blank" rel="noreferrer">Open the original game</a> : null}
             </div>
           ) : null}
 
@@ -747,6 +753,7 @@ export default function OpeningPracticeLinesPanel({
     setShowHint(false);
     setSelectedSquare(null);
     setFeedbackSquare(null);
+    setRevealed(false);
   }
 
   function showIllegalFeedback(squareName, message) {
@@ -856,6 +863,10 @@ export default function OpeningPracticeLinesPanel({
       );
     }
     saveTrainingProgress(nextProgress, completionEvent);
+    window.dispatchEvent(new CustomEvent(TRAINING_TASK_COMPLETED_EVENT, { detail: { opening: activeOpeningName, line: selectedLine.name, result: trainingOutcome({ attempts: Math.max(1, attempts), revealed }) } }));
+    const result = trainingOutcome({ attempts: Math.max(1, attempts), revealed });
+    void trackProductEvent(result === "repeated_failure" ? "training_task_failed" : "training_task_completed", { authenticated: Boolean(user?.id), resultCategory: result, source: "practice_board", openingCategory: practiceSide });
+    try { localStorage.removeItem(TRAINING_SESSION_KEY); } catch { /* Session completion still works without storage. */ }
   }
 
   function toggleFilter(filter) {
@@ -876,6 +887,8 @@ export default function OpeningPracticeLinesPanel({
     setShowHint(false);
     setSelectedSquare(null);
     setFeedbackSquare(null);
+    setAttempts(0);
+    setRevealed(false);
   }
 
   function playExpectedMove() {
@@ -884,6 +897,8 @@ export default function OpeningPracticeLinesPanel({
     const game = buildGameToMove(moves, moveIndex);
 
     try {
+      setRevealed(true);
+      void trackProductEvent("training_answer_revealed", { authenticated: Boolean(user?.id), source: "practice_board", openingCategory: practiceSide }, { onceKey: currentLineKey || selectedLine?.name });
       const move = game.move(expectedMove);
       let nextIndex = moveIndex + 1;
       while (moves[nextIndex] && game.turn() !== userColor) {
@@ -977,8 +992,12 @@ export default function OpeningPracticeLinesPanel({
         attemptedMove.from === expectedMoveObject.from &&
         attemptedMove.to === expectedMoveObject.to &&
         cleanSan(attemptedMove.san) === cleanSan(expectedMoveObject.san);
+      const supportedAlternatives = selectedLine?.acceptedMoves?.[moveIndex] || selectedLine?.accepted_moves?.[moveIndex] || [];
+      const acceptedAlternative = (Array.isArray(supportedAlternatives) ? supportedAlternatives : [supportedAlternatives]).some((move) => cleanSan(move) === cleanSan(attemptedMove.san));
 
-      if (!sameMove) {
+      if (!sameMove && !acceptedAlternative) {
+        void trackProductEvent("training_task_failed", { authenticated: Boolean(user?.id), resultCategory: "wrong_move", source: "practice_board", openingCategory: practiceSide }, { onceKey: `${currentLineKey || selectedLine?.name}:wrong` });
+        setAttempts((value) => value + 1);
         showIllegalFeedback(
           targetSquare,
           `Not quite — try the repertoire move here. Hint: ${formatMoveNumber(moveIndex)} ${expectedMove}. ${moveExplanation}`
@@ -997,7 +1016,7 @@ export default function OpeningPracticeLinesPanel({
 
       setFen(gameBeforeMove.fen());
       setMoveIndex(nextIndex);
-      setStatus(`Correct. ${explainMove(selectedLine, moves, moveIndex)}`);
+      setStatus(`${acceptedAlternative ? "Supported alternative." : "Correct."} ${explainMove(selectedLine, moves, moveIndex)}`);
       setShowHint(false);
       setSelectedSquare(null);
       setFeedbackSquare(null);

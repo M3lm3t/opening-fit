@@ -11,7 +11,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>
       <AuthDataProvider>
-        <App />
+        <React.Suspense fallback={<main className="routeLoadingFallback" role="status" aria-live="polite"><div aria-hidden="true" /><p>Loading OpeningFit…</p></main>}>
+          <App />
+        </React.Suspense>
       </AuthDataProvider>
       <Analytics />
     </ErrorBoundary>

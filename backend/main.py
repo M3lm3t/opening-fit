@@ -240,11 +240,30 @@ class FeedbackRequest(BaseModel):
     contact: Optional[str] = None
     username: Optional[str] = None
     platform: Optional[str] = None
+    category: Optional[str] = None
+    route: Optional[str] = None
+    report_identifier: Optional[str] = None
 
 
 class AnalyticsEventRequest(BaseModel):
     event: str
     data: Optional[Dict[str, Any]] = None
+
+
+PRODUCT_ANALYTICS_EVENTS = {
+    "homepage_viewed", "platform_selected", "username_started", "username_submitted", "account_lookup_succeeded", "account_lookup_failed", "analysis_started", "analysis_failed", "analysis_completed", "report_viewed", "coach_verdict_viewed", "recommendation_expanded", "evidence_viewed", "supporting_game_opened", "fit_explanation_opened", "repertoire_viewed", "opening_added", "opening_replaced", "opening_locked", "recommendation_dismissed", "training_started", "training_task_completed", "training_task_failed", "training_answer_revealed", "training_session_completed", "returning_dashboard_viewed", "new_games_detected", "reanalysis_started", "report_comparison_viewed", "resolved_issue_viewed", "account_created", "sign_in_completed", "premium_page_viewed", "checkout_started", "checkout_cancelled", "checkout_completed", "entitlement_confirmed", "entitlement_delayed", "recommendation_feedback_submitted", "general_feedback_submitted", "import_problem_reported",
+}
+SAFE_ANALYTICS_KEYS = {"platform", "route", "authenticated", "deviceCategory", "resultCategory", "errorCategory", "source", "access", "stage", "attempts", "feedback", "decision", "confidence", "games", "openingCategory", "hasSessionContext", "newGames", "reportCount"}
+
+
+def sanitize_analytics_data(data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    clean = {}
+    for key, value in (data or {}).items():
+        if key not in SAFE_ANALYTICS_KEYS or re.search(r"token|password|secret|email|pgn|payment|card|stripe|session|user.?id|username", key, re.I):
+            continue
+        if isinstance(value, (str, int, float, bool)):
+            clean[key] = value[:100] if isinstance(value, str) else value
+    return clean
 
 
 def now_iso():
@@ -335,6 +354,21 @@ def load_user_profile(username: str, platform: Optional[str] = None):
             return None
 
     return None
+
+
+def delete_cached_user_profiles(usernames: List[str]) -> int:
+    removed = 0
+    safe_names = {safe_username(value) for value in usernames if safe_username(value)}
+    if not safe_names:
+        return 0
+    for path in PROFILES_DIR.glob("*.json"):
+        if any(path.stem == name or path.stem.endswith(f"_{name}") for name in safe_names):
+            try:
+                path.unlink()
+                removed += 1
+            except FileNotFoundError:
+                pass
+    return removed
 
 
 def previous_saved_report(username: str, platform: str) -> Optional[Dict[str, Any]]:
@@ -668,9 +702,14 @@ def save_feedback(
     contact: Optional[str] = None,
     username: Optional[str] = None,
     platform: Optional[str] = None,
+    category: Optional[str] = None,
+    route: Optional[str] = None,
+    report_identifier: Optional[str] = None,
 ):
+    context = [f"Type: {category.strip()}" if category else "", f"Route: {route.strip()[:200]}" if route else "", f"Report: {report_identifier.strip()[:120]}" if report_identifier else ""]
+    stored_message = "\n".join([item for item in context if item] + [message.strip()])
     item = {
-        "message": message.strip(),
+        "message": stored_message,
         "contact": contact.strip() if contact else None,
         "username": username.strip() if username else None,
         "platform": platform.strip() if platform else None,
@@ -8055,11 +8094,10 @@ def import_chesscom_logic(username: str, months: int = 3):
         months = 12
 
     log_analytics_event(
-        "import_started",
+        "analysis_started",
         {
-            "username": username,
             "platform": "chess.com",
-            "months": months,
+            "source": "backend_import",
         },
     )
 
@@ -8631,11 +8669,11 @@ def import_chesscom_logic(username: str, months: int = 3):
     profile = save_user_profile(username, result)
 
     log_analytics_event(
-        "games_imported",
+        "analysis_completed",
         {
-            "username": username,
             "platform": "chess.com",
-            "gamesImported": len(analysed_games),
+            "games": len(analysed_games),
+            "source": "backend_import",
             "gamesFound": len(all_games),
             "skippedGames": len(all_games) - len(analysed_games),
             "monthsChecked": len(selected_archives),
@@ -9303,11 +9341,11 @@ def build_lichess_analysis(
     profile = save_user_profile(username, result)
 
     log_analytics_event(
-        "games_imported",
+        "analysis_completed",
         {
-            "username": username,
             "platform": "lichess",
-            "gamesImported": len(games),
+            "games": len(games),
+            "source": "backend_import",
             "gamesFound": games_found,
             "skippedGames": max(0, games_found - len(games)),
             "monthsChecked": months,
@@ -9337,11 +9375,10 @@ def import_lichess_logic(username: str, months: int = 3):
         months = 12
 
     log_analytics_event(
-        "import_started",
+        "analysis_started",
         {
-            "username": username,
             "platform": "lichess",
-            "months": months,
+            "source": "backend_import",
         },
     )
 
@@ -9579,10 +9616,10 @@ def get_saved_profile(username: str, platform: Optional[str] = None):
         )
 
     log_analytics_event(
-        "saved_profile_loaded",
+        "returning_dashboard_viewed",
         {
-            "username": username,
             "platform": profile.get("platform"),
+            "source": "saved_profile",
         },
     )
 
@@ -9599,14 +9636,17 @@ def submit_feedback(request: FeedbackRequest):
         contact=request.contact,
         username=request.username,
         platform=request.platform,
+        category=request.category,
+        route=request.route,
+        report_identifier=request.report_identifier,
     )
 
     log_analytics_event(
-        "feedback_submitted",
+        "import_problem_reported" if request.category == "Broken game import" else "general_feedback_submitted",
         {
-            "username": request.username,
             "platform": request.platform,
-            "hasContact": bool(request.contact),
+            "resultCategory": request.category or "General product feedback",
+            "source": "feedback_endpoint",
         },
     )
 
@@ -9622,7 +9662,10 @@ def analytics_event(request: AnalyticsEventRequest):
     if not request.event.strip():
         raise HTTPException(status_code=400, detail="Event name cannot be empty.")
 
-    log_analytics_event(request.event.strip(), request.data or {})
+    event = request.event.strip()
+    if event not in PRODUCT_ANALYTICS_EVENTS:
+        raise HTTPException(status_code=400, detail="Unknown analytics event.")
+    log_analytics_event(event, sanitize_analytics_data(request.data))
 
     return {"status": "ok"}
 
@@ -9925,7 +9968,7 @@ def demo_profile():
         **premium_data,
     }
 
-    log_analytics_event("demo_loaded", {"username": "DemoPlayer"})
+    log_analytics_event("report_viewed", {"source": "sample_report"})
 
     return demo_data
 
@@ -11691,7 +11734,16 @@ async def delete_account(user_id: str, request: Request):
 
     require_matching_auth_user(request, user_id)
     supabase_admin = get_supabase_admin_client()
-
+    usernames = []
+    try:
+        profile_result = supabase_admin.table("profiles").select("username,chesscom_username,lichess_username,last_report").eq("user_id", user_id).limit(1).execute()
+        profile = profile_result.data[0] if profile_result.data else {}
+        usernames.extend([profile.get("username"), profile.get("chesscom_username"), profile.get("lichess_username")])
+        last_report = profile.get("last_report") if isinstance(profile.get("last_report"), dict) else {}
+        usernames.extend([last_report.get("username"), last_report.get("playerName"), last_report.get("player_name")])
+    except Exception as exc:
+        log_supabase_diagnostic("account deletion profile lookup failed", user_id=user_id, error=exc)
+    delete_cached_user_profiles([value for value in usernames if value])
     supabase_admin.table("profiles").delete().eq("user_id", user_id).execute()
     # Deprecated legacy retention tables such as public.user_profiles are no
     # longer queried by the app. Keep account deletion focused on current
@@ -11699,7 +11751,7 @@ async def delete_account(user_id: str, request: Request):
     # audited archive/drop plan.
     supabase_admin.auth.admin.delete_user(user_id)
 
-    return {"ok": True}
+    return {"ok": True, "deleted": True}
 # =========================================================
 # End account sync + Stripe premium support
 # =========================================================

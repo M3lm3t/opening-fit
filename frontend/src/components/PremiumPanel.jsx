@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
+import { PREMIUM_DISPLAY_PRICE, premiumFeatureStructure } from "../lib/premiumExperience";
 
 function getOpeningName(item) {
   return (
@@ -158,7 +159,7 @@ export default function PremiumPanel({
     };
   }, [data]);
 
-  if (!data) return null;
+  const featureStructure = premiumFeatureStructure();
 
   const bestOpening = openingContextTitle(premiumInsights.best, "your strongest side-specific opening");
   const weakOpening = openingContextTitle(premiumInsights.weak, "your weakest side-specific opening area");
@@ -192,8 +193,8 @@ export default function PremiumPanel({
 
         <div className="premiumPriceCard">
           <div className="premiumPriceTag">One-time Founder Pass</div>
-          <div className="premiumPrice">£8</div>
-          <p>Pay once. Keep early access.</p>
+          <div className="premiumPrice">{PREMIUM_DISPLAY_PRICE}</div>
+          <p>One-time early-supporter purchase for the currently listed features.</p>
 
           <div className="premiumPriceMiniStats">
             <span>Saved reports</span>
@@ -206,16 +207,11 @@ export default function PremiumPanel({
             className="premiumCheckoutBtn"
             onClick={onFounderPass}
           >
-            Get Founder Pass for £8
+            Get Founder Pass for {PREMIUM_DISPLAY_PRICE}
           </button>
 
-          <button type="button" className="premiumDemoBtn" onClick={onUnlockDemo}>
-            Preview deeper report
-          </button>
-
-          <button type="button" className="premiumResetBtn" onClick={onResetDemo}>
-            Exit Preview
-          </button>
+          {import.meta.env.DEV ? <button type="button" className="premiumDemoBtn" onClick={onUnlockDemo}>Preview deeper report</button> : null}
+          {import.meta.env.DEV ? <button type="button" className="premiumResetBtn" onClick={onResetDemo}>Exit Preview</button> : null}
 
           <small>
             {isPremium
@@ -224,6 +220,8 @@ export default function PremiumPanel({
               ? "Preview mode shows what Founder Pass adds. Real paid features stay locked until Stripe confirms access."
               : "Free gives the useful verdict. Founder Pass adds saved comparisons, weak-line tracking, and repertoire planning."}
           </small>
+          <p>Requires an OpeningFit account. Stripe processes payment securely; OpeningFit does not receive your card details. Access is verified after you return.</p>
+          <p>Questions or refund requests: <a href="mailto:support@openingfit.com">support@openingfit.com</a>.</p>
         </div>
       </div>
 
@@ -289,17 +287,7 @@ export default function PremiumPanel({
             <div>Premium</div>
           </div>
 
-          <FeatureRow label="Basic import" free="Included" premium="Longer report history" />
-          <FeatureRow label="Main verdict" free="Included" premium="Deeper opening context" />
-          <FeatureRow label="Top 3 actions" free="Included" premium="Full study plan" />
-          <FeatureRow label="Opening recommendations" free="A few" premium="Personal repertoire plan" />
-          <FeatureRow label="Repertoire map" free="Basic map" premium="White, Black vs e4, and Black vs d4 review" />
-          <FeatureRow label="Opening table" free="Limited" premium="Full table" />
-          <FeatureRow label="Weak line tracking" free="Preview" premium="Saved weak-line history" />
-          <FeatureRow label="Progress tracking" free="Preview" premium="Saved report comparisons" />
-          <FeatureRow label="Exportable study plan" free="Not included" premium="Included" />
-          <FeatureRow label="Weekly review email" free="Not included" premium="Coming soon" />
-          <FeatureRow label="Engine-assisted diagnosis" free="Not included" premium="Coming soon" />
+          {featureStructure.premium.map((feature, index) => <FeatureRow key={feature} label={feature} free={featureStructure.free[index] || "Limited"} premium="Included" />)}
         </div>
       </div>
 
@@ -312,9 +300,7 @@ export default function PremiumPanel({
           </p>
         </div>
 
-        <button type="button" onClick={onUnlockDemo}>
-          Preview deeper report
-        </button>
+        {import.meta.env.DEV ? <button type="button" onClick={onUnlockDemo}>Preview deeper report</button> : null}
       </div>
     </section>
   );

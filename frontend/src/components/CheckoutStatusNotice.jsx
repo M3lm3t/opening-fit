@@ -1,107 +1,27 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { confirmEntitlementWithRetry } from "../lib/premiumExperience";
 import "./CheckoutStatusNotice.css";
 
-export default function CheckoutStatusNotice({ onRestoreAccess, onClose }) {
+export default function CheckoutStatusNotice({ onRestoreAccess, onClose, onAnalytics }) {
   const [status, setStatus] = useState(null);
-  const [checkoutSessionId, setCheckoutSessionId] = useState("");
-  const restoredAfterSuccessRef = useRef(false);
-
+  const [sessionId, setSessionId] = useState("");
+  const [entitlement, setEntitlement] = useState("idle");
+  const started = useRef(false);
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const checkout = params.get("checkout");
-    const payment = params.get("payment");
-    const stripeSuccess = params.get("success");
-    const stripeCancelled = params.get("cancelled");
-    const sessionId = params.get("session_id");
-
-    if (checkout === "success" || payment === "success" || stripeSuccess === "true" || sessionId) {
-      setStatus("success");
-      setCheckoutSessionId(sessionId || "");
-      return;
-    }
-
-    if (checkout === "cancelled" || payment === "cancelled" || stripeCancelled === "true") {
-      setStatus("cancelled");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (status !== "success" || restoredAfterSuccessRef.current) return;
-
-    restoredAfterSuccessRef.current = true;
-    onRestoreAccess?.(checkoutSessionId);
-  }, [checkoutSessionId, onRestoreAccess, status]);
-
-  const clearCheckoutUrl = () => {
-    const cleanUrl = `${window.location.origin}${window.location.pathname}${window.location.hash || ""}`;
-    window.history.replaceState({}, "", cleanUrl);
-  };
-
-  const closeNotice = () => {
-    clearCheckoutUrl();
-    setStatus(null);
-    if (onClose) onClose();
-  };
-
+    const params = new URLSearchParams(window.location.search); const checkout = params.get("checkout"); const id = params.get("session_id") || "";
+    if (checkout === "success" || params.get("payment") === "success" || params.get("success") === "true" || id) { setStatus("success"); setSessionId(id); }
+    else if (checkout === "cancelled" || params.get("payment") === "cancelled" || params.get("cancelled") === "true") { setStatus("cancelled"); void onAnalytics?.("checkout_cancelled", {}); }
+  }, [onAnalytics]);
+  const verify = useCallback(async () => {
+    setEntitlement("processing");
+    const result = await confirmEntitlementWithRetry(() => onRestoreAccess?.(sessionId), { delay: (ms) => new Promise((resolve) => window.setTimeout(resolve, ms)) });
+    setEntitlement(result.confirmed ? "confirmed" : "delayed");
+    void onAnalytics?.(result.confirmed ? "premium_entitlement_confirmed" : "premium_entitlement_delayed", { attempts: result.attempts });
+  }, [onAnalytics, onRestoreAccess, sessionId]);
+  useEffect(() => { if (status !== "success" || started.current) return; started.current = true; void onAnalytics?.("checkout_completed", { hasSessionContext: Boolean(sessionId) }); void verify(); }, [onAnalytics, sessionId, status, verify]);
+  const close = () => { window.history.replaceState({}, "", `${window.location.origin}${window.location.pathname}${window.location.hash || ""}`); setStatus(null); onClose?.(); };
   if (!status) return null;
-
-  const isSuccess = status === "success";
-
-  return (
-    <div className="checkoutNoticeBackdrop">
-      <section className={`checkoutNotice checkoutNotice--${status}`}>
-        <button
-          className="checkoutNoticeClose"
-          type="button"
-          onClick={closeNotice}
-          aria-label="Close checkout message"
-        >
-          ×
-        </button>
-
-        <div className="checkoutNoticeIcon">
-          {isSuccess ? "✓" : "↩"}
-        </div>
-
-        <p className="checkoutNoticeEyebrow">
-          {isSuccess ? "Founder Pass" : "Checkout cancelled"}
-        </p>
-
-        <h2>
-          {isSuccess
-            ? "Thanks for supporting OpeningFit."
-            : "No worries — your free report is still available."}
-        </h2>
-
-        <p>
-          {isSuccess
-            ? "Your payment was completed through Stripe. If premium does not appear instantly, use restore access from your login menu."
-            : "You can keep using the free report and come back to the Founder Pass later."}
-        </p>
-
-        <div className="checkoutNoticeActions">
-          {isSuccess ? (
-            <button
-              className="checkoutNoticePrimary"
-              type="button"
-              onClick={() => {
-                if (onRestoreAccess) onRestoreAccess(checkoutSessionId);
-                closeNotice();
-              }}
-            >
-              Restore / check access
-            </button>
-          ) : null}
-
-          <button
-            className={isSuccess ? "checkoutNoticeSecondary" : "checkoutNoticePrimary"}
-            type="button"
-            onClick={closeNotice}
-          >
-            Continue to OpeningFit
-          </button>
-        </div>
-      </section>
-    </div>
-  );
+  const success = status === "success";
+  const message = entitlement === "confirmed" ? "Founder Pass is confirmed on this account." : entitlement === "delayed" ? "Payment was received, but access is still processing. Do not purchase again. Retry below or contact support@openingfit.com." : "Stripe completed payment. OpeningFit is confirming access now; this can take a moment.";
+  return <div className="checkoutNoticeBackdrop"><section className={`checkoutNotice checkoutNotice--${status}`} role="dialog" aria-modal="true" aria-labelledby="checkout-status-title"><button className="checkoutNoticeClose" type="button" onClick={close} aria-label="Close checkout message">×</button><div className="checkoutNoticeIcon">{success ? "✓" : "↩"}</div><p className="checkoutNoticeEyebrow">{success ? "Founder Pass" : "Checkout cancelled"}</p><h2 id="checkout-status-title">{success ? "Thanks for supporting OpeningFit." : "No payment was taken."}</h2><p>{success ? message : "Your free report remains available. You can return to pricing whenever it is useful."}</p><div className="checkoutNoticeActions">{success && entitlement !== "confirmed" ? <button className="checkoutNoticePrimary" type="button" onClick={verify} disabled={entitlement === "processing"}>{entitlement === "processing" ? "Checking access…" : "Retry access check"}</button> : null}<button className={success ? "checkoutNoticeSecondary" : "checkoutNoticePrimary"} type="button" onClick={close}>Continue to OpeningFit</button></div></section></div>;
 }

@@ -63,6 +63,13 @@ export default function GameReplayBoard({
   const flipBoard = () => {
     setOrientation((prev) => (prev === "white" ? "black" : "white"));
   };
+  const lastMove = moveIndex > 0 ? moves[moveIndex - 1] : "None";
+  const handleReplayKeys = (event) => {
+    if (event.key === "ArrowLeft") { event.preventDefault(); goBack(); }
+    if (event.key === "ArrowRight") { event.preventDefault(); goForward(); }
+    if (event.key === "Home") { event.preventDefault(); goStart(); }
+    if (event.key === "End") { event.preventDefault(); goEnd(); }
+  };
 
   if (!game) {
     return (
@@ -73,7 +80,7 @@ export default function GameReplayBoard({
   }
 
   return (
-    <section className="replayCard card">
+    <section className="replayCard card" onKeyDown={handleReplayKeys}>
       <div className="replayHeader">
         <div>
           <h3 className="replayTitle">{title}</h3>
@@ -111,6 +118,7 @@ export default function GameReplayBoard({
               type="button"
               onClick={goStart}
               disabled={!canGoBack}
+              aria-label="Go to start of game"
             >
               ⏮
             </button>
@@ -120,6 +128,7 @@ export default function GameReplayBoard({
               type="button"
               onClick={goBack}
               disabled={!canGoBack}
+              aria-label="Previous move"
             >
               ◀
             </button>
@@ -129,6 +138,7 @@ export default function GameReplayBoard({
               type="button"
               onClick={goForward}
               disabled={!canGoForward}
+              aria-label="Next move"
             >
               ▶
             </button>
@@ -138,13 +148,14 @@ export default function GameReplayBoard({
               type="button"
               onClick={goEnd}
               disabled={!canGoForward}
+              aria-label="Go to end of game"
             >
               ⏭
             </button>
           </div>
 
-          <div className="replayStatus">
-            Move {moveIndex} of {moves.length}
+          <div className="replayStatus" role="status" aria-live="polite">
+            Move {moveIndex} of {moves.length}. {chess.turn() === "w" ? "White" : "Black"} to move. Last move: {lastMove}.
           </div>
         </div>
 

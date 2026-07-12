@@ -1,4 +1,4 @@
-import { mergeWeakLines } from "./weakLineDetection";
+import { mergeWeakLines } from "./weakLineDetection.js";
 
 export const TRAINING_TARGET_THRESHOLDS = {
   weakLineMinGames: 3,

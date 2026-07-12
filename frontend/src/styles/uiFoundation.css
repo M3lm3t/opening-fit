@@ -16,7 +16,7 @@
   --of-color-success: var(--color-success, #3dd68c);
   --of-color-warning: var(--color-warning, #f4bf5f);
   --of-color-error: var(--color-danger, #fb7185);
-  --of-color-info: var(--color-accent, #2dd4bf);
+  --of-color-info: #60a5fa;
   --of-color-neutral: var(--color-neutral, #9fb0c7);
   --of-color-white-side: var(--color-white-side, #dce6f0);
   --of-color-black-side: var(--color-black-side, #8b9cf6);
@@ -71,7 +71,7 @@
   --app-text: var(--of-color-text);
   --app-text-soft: var(--of-color-text-soft);
   --app-muted: var(--of-color-muted);
-  --app-blue: var(--of-color-primary);
+  --app-blue: var(--of-color-info);
   --app-green: var(--of-color-accent);
   --app-gold: var(--of-color-warning);
   --app-red: var(--of-color-error);
@@ -108,7 +108,7 @@ body.light,
   --of-color-success: var(--color-success, #15803d);
   --of-color-warning: var(--color-warning, #b7791f);
   --of-color-error: var(--color-danger, #be123c);
-  --of-color-info: var(--color-accent, #0f9f9a);
+  --of-color-info: #2563eb;
   --of-color-neutral: var(--color-neutral, #64748b);
   --of-color-white-side: var(--color-white-side, #6b7280);
   --of-color-black-side: var(--color-black-side, #4f46e5);
@@ -479,6 +479,18 @@ body.light,
   line-height: 1.2;
 }
 
+.of-status-badge__marker {
+  width: 0.48rem;
+  height: 0.48rem;
+  flex: 0 0 auto;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.of-status-badge--neutral .of-status-badge__marker { background: transparent; }
+
 .of-status-badge--success {
   border-color: color-mix(in srgb, var(--of-color-success) 42%, transparent);
   background: color-mix(in srgb, var(--of-color-success) 14%, transparent);
@@ -535,6 +547,45 @@ body.light,
   border-radius: var(--of-radius-lg);
   background: var(--of-color-surface-muted);
   color: var(--of-color-text-soft);
+}
+
+.of-page-state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--of-space-4);
+  align-items: center;
+  min-width: 0;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid var(--of-color-border);
+  border-left: 4px solid var(--of-color-neutral);
+  border-radius: var(--of-radius-lg);
+  background: var(--of-color-surface-muted);
+}
+
+.of-page-state--loading,
+.of-page-state--offline,
+.of-page-state--signed-out,
+.of-page-state--locked { border-left-color: var(--of-color-info); }
+.of-page-state--insufficient { border-left-color: var(--of-color-warning); }
+.of-page-state--error { border-left-color: var(--of-color-error); }
+.of-page-state__icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--of-radius-md);
+  background: color-mix(in srgb, var(--of-color-info) 14%, transparent);
+  color: var(--of-color-text);
+}
+.of-page-state__copy h2,
+.of-page-state__copy p { margin: 0; }
+.of-page-state__copy h2 { color: var(--of-color-text); font-size: clamp(1.1rem, 2vw, 1.35rem); }
+.of-page-state__copy p { margin-top: var(--of-space-1); color: var(--of-color-text-soft); line-height: 1.5; }
+
+@media (max-width: 640px) {
+  .of-page-state { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+  .of-page-state__action { grid-column: 1 / -1; width: 100%; }
+  .of-page-state__action > * { width: 100%; }
 }
 
 .of-empty-state--compact {
@@ -781,3 +832,7 @@ body.light,
     transition: none;
   }
 }
+ .routeLoadingFallback { min-height: 100svh; display: grid; place-content: center; gap: 12px; padding: 24px; text-align: center; background: var(--of-color-bg, #07111f); color: var(--of-color-text, #f8fafc); }
+ .routeLoadingFallback > div { width: min(360px, 80vw); height: 12px; border-radius: 999px; background: linear-gradient(90deg, rgba(148,163,184,.15), rgba(148,163,184,.4), rgba(148,163,184,.15)); background-size: 200% 100%; animation: route-loading 1.2s linear infinite; }
+ @keyframes route-loading { to { background-position: -200% 0; } }
+ @media (prefers-reduced-motion: reduce) { .routeLoadingFallback > div { animation: none; } }

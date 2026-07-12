@@ -1,4 +1,4 @@
-const CACHE_NAME = "opening-fit-v4";
+const CACHE_NAME = "opening-fit-v5";
 const APP_SHELL = ["/site.webmanifest", "/icons/openingfit-icon.svg", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -37,6 +37,21 @@ self.addEventListener("fetch", (event) => {
     event.request.mode === "navigate" ||
     event.request.destination === "document" ||
     event.request.headers.get("accept")?.includes("text/html");
+  const isPublicContent = /^\/(guides|openings|chess-openings|about|how-it-works|privacy|terms|changelog)(\/|$)/.test(requestUrl.pathname);
+  const isStaticAsset = ["script", "style", "image", "font"].includes(event.request.destination);
+
+  if (isStaticAsset) {
+    event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => { if (response?.ok) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone())); return response; })));
+    return;
+  }
+
+  if (isNavigation && isPublicContent) {
+    event.respondWith(caches.match(event.request).then((cached) => {
+      const update = fetch(event.request).then((response) => { if (response?.ok) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone())); return response; });
+      return cached || update;
+    }));
+    return;
+  }
 
   event.respondWith(
     fetch(event.request)

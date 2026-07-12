@@ -1,32 +1,31 @@
-import { ChartNoAxesCombined, Dumbbell, Home, Search, User } from "lucide-react";
+import { BookOpenCheck, ChartNoAxesCombined, Dumbbell, TrendingUp } from "lucide-react";
 import { getAppSection } from "../appNavigation";
 
 export default function MobileBottomNav({ activeView, hasReport = false, onNavigate }) {
   const activeSection = getAppSection(activeView);
   const items = [
-    { key: "home", label: "Today", Icon: Home, activeViews: ["home", "dashboard"], activePaths: ["/", "/dashboard"] },
-    { key: "analyse", label: "Analyse", Icon: Search, activeViews: ["analyse", "import"] },
-    {
-      key: "training",
-      label: "Train",
-      Icon: Dumbbell,
-      activeViews: ["train", "training", "interactive", "practice"],
-    },
     {
       key: "report",
       label: "Report",
       Icon: ChartNoAxesCombined,
-      activeSections: ["report", "repertoire"],
-      activeViews: ["report", "recommendations", "repertoire", "openings", "weakspots", "verdicts", "progress"],
+      needsReport: true,
+      activeViews: ["report", "recommendations", "openings", "weakspots", "verdicts"],
     },
-    { key: "profile", label: "Profile", Icon: User, activeViews: ["profile", "account", "login"] },
+    { key: "repertoire", label: "Repertoire", Icon: BookOpenCheck, needsReport: true, activeViews: ["repertoire"] },
+    {
+      key: "train",
+      label: "Train",
+      Icon: Dumbbell,
+      activeViews: ["train", "training", "interactive", "practice"],
+    },
+    { key: "progress", label: "Progress", Icon: TrendingUp, activeViews: ["progress"] },
   ];
 
   function handleClick(event, item) {
     event.preventDefault();
     event.stopPropagation();
     const target = item.needsReport && !hasReport ? "analyse" : item.key;
-    if (target === "training") {
+    if (target === "train") {
       onNavigate?.({ view: "train", path: "/train", target: "opening-practice" });
       return;
     }
@@ -34,8 +33,12 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
       onNavigate?.({ view: "report", path: "/report", target: "app-results" });
       return;
     }
-    if (target === "home") {
-      onNavigate?.({ view: "dashboard", path: "/dashboard", target: "coach-dashboard", fallbackIds: ["app-dashboard"] });
+    if (target === "repertoire") {
+      onNavigate?.({ view: "repertoire", path: "/repertoire", target: "my-repertoire", fallbackIds: ["app-dashboard"] });
+      return;
+    }
+    if (target === "progress") {
+      onNavigate?.({ view: "progress", path: "/progress", target: "openingfit-progress", fallbackIds: ["profile"] });
       return;
     }
     onNavigate?.(target);
@@ -45,14 +48,10 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
     <nav className="mobileBottomNav of-mobile-bottom-nav" aria-label="Mobile app navigation">
       {items.map((item) => {
         const isReportPrompt = item.needsReport && !hasReport;
-        const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
-        const isPremiumPath = currentPath === "/premium" || currentPath === "/upgrade";
         const isActive =
           activeView === item.key ||
           item.activeViews?.includes(activeView) ||
-          (item.key !== "home" && item.key !== "profile" && item.activeSections?.includes(activeSection)) ||
-          (item.key === "profile" && !isPremiumPath && item.activeSections?.includes(activeSection)) ||
-          (item.key === "home" && ["home", "dashboard"].includes(activeView) && item.activePaths?.includes(currentPath)) ||
+          item.activeSections?.includes(activeSection) ||
           (!item.activeViews && !item.activeSections && activeSection === getAppSection(item.key));
 
         return (

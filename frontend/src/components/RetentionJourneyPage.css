@@ -528,3 +528,12 @@
     grid-template-columns: repeat(auto-fit, minmax(36px, 1fr));
   }
 }
+.progressNotices { display: grid; gap: .5rem; }
+.progressNotices article { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--of-color-border); padding: .55rem 0; }
+.progressNotices article:last-child { border-bottom: 0; }
+.progressNotices p { margin: 0; }
+.progressReportHistory { list-style: none; display: grid; gap: .5rem; margin: 0; padding: 0; }
+.progressReportHistory li { display: grid; grid-template-columns: minmax(8rem, .5fr) 1fr auto; gap: .75rem; align-items: center; border-bottom: 1px solid var(--of-color-border); padding: .65rem 0; }
+.progressReportHistory time, .progressReportHistory span { color: var(--of-color-text-soft); }
+@media (max-width: 620px) { .progressNotices article { align-items: flex-start; flex-direction: column; } .progressReportHistory li { grid-template-columns: 1fr; gap: .2rem; } .progressExperience .journeyMetricRow { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 380px) { .progressExperience .journeyMetricRow { grid-template-columns: 1fr; } }

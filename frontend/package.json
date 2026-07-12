@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint src",
+    "test": "node --test src/lib/*.test.js",
     "layout:check": "node scripts/visual-layout-check.mjs",
     "preview": "vite preview"
   },

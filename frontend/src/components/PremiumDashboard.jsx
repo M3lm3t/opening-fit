@@ -336,7 +336,7 @@ export default function PremiumDashboard({
   const stockfishEngine = stockfishResult?.stockfishEngine || stockfishResult?.suggestion?.stockfishEngine;
 
   const togglePremiumDemo = () => {
-    if (isPremium) return;
+    if (isPremium || !import.meta.env.DEV) return;
     setIsPremiumPreview((value) => !value);
   };
 
@@ -482,9 +482,9 @@ export default function PremiumDashboard({
                 Pricing
               </button>
               <small className="premiumActionMicrocopy">One-time Founder Pass. No subscription.</small>
-              <button className="premiumDemoToggle" type="button" onClick={togglePremiumDemo}>
+              {import.meta.env.DEV ? <button className="premiumDemoToggle" type="button" onClick={togglePremiumDemo}>
                 {isPremiumPreview ? "Preview on" : "Preview premium"}
-              </button>
+              </button> : null}
             </>
           ) : null}
         </div>

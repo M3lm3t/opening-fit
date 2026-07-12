@@ -1,18 +1,38 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 import { sampleSizeCopy } from "./openingCopy";
 import { buildOpeningVariationOverview } from "../services/variationOverview";
 
 export default function OpeningDetailsModal({ opening, data = null, onClose, onReview, onPracticeLines }) {
+  const dialogRef = useRef(null);
+  const previousFocusRef = useRef(null);
   useEffect(() => {
     if (!opening) return undefined;
 
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    window.setTimeout(() => dialogRef.current?.querySelector("button, [href]")?.focus?.(), 0);
+
     const handleEscape = (event) => {
       if (event.key === "Escape") onClose?.();
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll("a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex='-1'])"));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
 
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
+    window.addEventListener("keydown", handleEscape, true);
+    return () => {
+      window.removeEventListener("keydown", handleEscape, true);
+      previousFocusRef.current?.focus?.();
+    };
   }, [opening, onClose]);
 
   if (!opening) return null;
@@ -109,15 +129,15 @@ export default function OpeningDetailsModal({ opening, data = null, onClose, onR
   const verdictClass = String(verdict).replace(/\s+/g, "");
 
   return (
-    <div className="openingModalOverlay" onClick={onClose}>
-      <div className="openingModal" onClick={(event) => event.stopPropagation()}>
+    <div className="openingModalOverlay" role="presentation" onClick={onClose}>
+      <div className="openingModal" role="dialog" aria-modal="true" aria-labelledby="opening-details-title" ref={dialogRef} onClick={(event) => event.stopPropagation()}>
         <div className="openingModalHeader">
           <div>
             <p className="eyebrow">Opening details</p>
-            <h2>{name}</h2>
+            <h2 id="opening-details-title">{name}</h2>
           </div>
 
-          <button className="modalCloseButton" type="button" onClick={onClose}>
+          <button className="modalCloseButton" type="button" onClick={onClose} aria-label="Close opening details">
             ×
           </button>
         </div>

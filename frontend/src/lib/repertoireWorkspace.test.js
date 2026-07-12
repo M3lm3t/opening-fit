@@ -1,0 +1,11 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { applyRepertoireAction, reconcileWorkspace, workspaceSummary } from "./repertoireWorkspace.js";
+
+const base = { version: 1, dismissed: [], items: [{ id: "white:italian", section: "white", sectionLabel: "White", name: "Italian", role: "Main", status: "Keep", locked: false, source: "analysis" }] };
+test("adds a recommendation without duplicates", () => { const a = applyRepertoireAction(base, { type: "add", item: { section: "blackE4", name: "Caro-Kann" } }); const b = applyRepertoireAction(a, { type: "add", item: { section: "blackE4", name: "Caro-Kann" } }); assert.equal(b.items.length, 2); });
+test("replace pauses an unlocked main opening", () => { const next = applyRepertoireAction(base, { type: "replace", item: { section: "white", name: "Vienna" } }); assert.equal(next.items.find((item) => item.name === "Italian").status, "Paused"); assert.equal(next.items.find((item) => item.name === "Vienna").role, "Main"); });
+test("locked opening survives reanalysis and replacement", () => { const locked = { ...base.items[0], locked: true, notes: "My choice", source: "manual" }; const reconciled = reconcileWorkspace({ ...base, items: [{ ...base.items[0], fit: 20 }] }, { ...base, items: [locked] }); assert.equal(reconciled.items[0].locked, true); assert.equal(applyRepertoireAction(reconciled, { type: "replace", item: { section: "white", name: "Vienna" } }).items.find((i) => i.name === "Italian").status, "Keep"); });
+test("sync conflict preserves manual fields but refreshes evidence", () => { const result = reconcileWorkspace({ ...base, items: [{ ...base.items[0], fit: 71, games: 12 }] }, { ...base, items: [{ ...base.items[0], status: "Current", notes: "Locked plan", source: "manual" }] }); assert.equal(result.items[0].status, "Current"); assert.equal(result.items[0].fit, 71); });
+test("delete supports undo snapshot and does not touch report data", () => { const result = applyRepertoireAction(base, { type: "delete", id: "white:italian" }); assert.equal(result.items.length, 0); assert.equal(result.undo.items.length, 1); });
+test("missing and unusual categories remain safe", () => assert.match(workspaceSummary({ items: [{ section: "other", status: "Current" }] }).coverage, /0 of 3/));

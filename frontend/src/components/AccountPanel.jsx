@@ -11,6 +11,7 @@ import "./AccountPanel.css";
 import { startPremiumCheckout, deleteOpeningFitAccount } from "../accountApi";
 import { useAuth } from "../context/AuthDataProvider";
 import { logRetentionEvent } from "../services/retentionEvents";
+import { trackProductEvent } from "../lib/productAnalytics";
 
 const EMPTY_PROFILE = {
   chesscom_username: "",
@@ -384,9 +385,11 @@ export default function AccountPanel({ variant = "floating",
         );
         setPassword("");
         setConfirmPassword("");
+        void trackProductEvent("account_created", { authenticated: true, source: "email_account" });
       } else {
         setStatus("Logged in. Your saved OpeningFit data is loaded.");
         setPassword("");
+        void trackProductEvent("sign_in_completed", { authenticated: true, source: "email_account" });
       }
     } catch (error) {
       console.error("OpeningFit email auth failed", {
@@ -476,7 +479,7 @@ export default function AccountPanel({ variant = "floating",
     }
 
     const confirmed = window.confirm(
-      "Delete your Opening Fit account and saved cloud data? This cannot be undone."
+      "Permanently delete your OpeningFit profile, saved reports, analysed games, repertoire, training and progress data? Stripe may retain transaction records required for accounting. This cannot be undone."
     );
 
     if (!confirmed) return;
@@ -485,9 +488,10 @@ export default function AccountPanel({ variant = "floating",
       setStatus("Deleting account...");
       await deleteOpeningFitAccount(user.id);
       await supabase.auth.signOut();
+      Object.keys(localStorage).filter((key) => key.startsWith("openingFit:") || key.startsWith("openingfit:")).forEach((key) => localStorage.removeItem(key));
       setProfile(EMPTY_PROFILE);
       setStatus("Account deleted.");
-      window.location.reload();
+      window.setTimeout(() => window.location.reload(), 900);
     } catch (error) {
       console.error("Delete account failed", error);
       setStatus(error?.message || "Could not delete account.");
@@ -497,7 +501,7 @@ export default function AccountPanel({ variant = "floating",
   function handleRequestDeleteAccount(event) {
     event?.preventDefault?.();
     window.location.href = `${DELETE_REQUEST_MAILTO}&body=${encodeURIComponent(
-      `Please delete my OpeningFit account and saved cloud data.\n\nAccount email: ${user?.email || ""}\nUser id: ${user?.id || ""}`
+      `Please delete my OpeningFit account and saved cloud data.\n\nAccount email: ${user?.email || ""}`
     )}`;
   }
 
@@ -894,7 +898,7 @@ export default function AccountPanel({ variant = "floating",
 
               <div className="accountDangerZone">
                 <strong>Delete account</strong>
-                <p>You can delete your account and saved cloud data at any time. This action cannot be undone.</p>
+                <p>Deletes your profile, reports, analysed games, repertoire, training and progress data. Stripe may retain transaction records required for accounting. Confirmation is required.</p>
                 <button
                   className="accountDangerButton"
                   type="button"

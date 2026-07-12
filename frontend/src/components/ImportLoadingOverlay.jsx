@@ -9,6 +9,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { IMPORT_STAGES, IMPORT_STAGE_DETAILS } from "../lib/importJourney";
 
 function ChessAnalysisLoader() {
   return (
@@ -17,7 +18,7 @@ function ChessAnalysisLoader() {
         {Array.from({ length: 16 }).map((_, index) => (
           <span key={index} />
         ))}
-        <img src="/icons/openingfit-icon.svg" alt="" />
+        <img src="/icons/openingfit-icon.svg" alt="" width="40" height="40" />
       </div>
       <div className="importLoadingMoveLine">
         <span>1. e4</span>
@@ -33,67 +34,47 @@ export default function ImportLoadingOverlay({
   username = "",
   mode = "import",
   loadingStep = "",
-  elapsedSeconds = 0,
+  stage = IMPORT_STAGES.FETCHING,
   showWakeupMessage = false,
   onCancel,
 }) {
   const isAnalysis = mode === "analysis";
   const progressStages = [
     {
-      title: "Finding games",
-      detail: `Checking recent public games on ${platform}.`,
+      key: IMPORT_STAGES.FETCHING,
+      title: "Finding recent games",
+      detail: `Requesting available public games from ${platform}.`,
       icon: Search,
     },
     {
-      title: "Reading openings",
-      detail: "Grouping opening families, move orders, and transpositions.",
+      key: IMPORT_STAGES.FILTERING,
+      title: "Checking eligible time controls",
+      detail: "Separating games that can support this report.",
+      icon: ListChecks,
+    },
+    {
+      key: IMPORT_STAGES.IDENTIFYING,
+      title: "Identifying recurring opening positions",
+      detail: "Grouping repeated openings and move orders.",
       icon: BookOpen,
     },
     {
-      title: "Measuring results",
-      detail: "Comparing score, sample size, early losses, and plan clarity.",
+      key: IMPORT_STAGES.RECOMMENDING,
+      title: "Comparing results",
+      detail: "Preparing evidence-based repertoire recommendations.",
       icon: BarChart3,
     },
     {
-      title: "Building recommendations",
-      detail: "Choosing what to keep, repair, try, or pause for now.",
+      key: IMPORT_STAGES.SAVING,
+      title: "Saving report",
+      detail: "Keeping the completed report available on this device.",
       icon: Lightbulb,
     },
-    {
-      title: "Creating training plan",
-      detail: "Turning the report into the first line to train.",
-      icon: ListChecks,
-    },
   ];
-  const stepText = String(loadingStep || "").toLowerCase();
-  const activeStageIndex = Math.min(
-    progressStages.length - 1,
-    Math.max(
-      0,
-      stepText.includes("detect")
-        ? 1
-        : stepText.includes("style") || stepText.includes("compar") || stepText.includes("fit")
-          ? 2
-          : stepText.includes("generat") || stepText.includes("recommend")
-            ? 3
-            : stepText.includes("prepar")
-              ? 4
-              : Math.floor((Number(elapsedSeconds) || 0) / 8)
-    )
-  );
-  const friendlyMessages = [
-    "Starting with the positions you actually reach.",
-    "Looking for opening patterns and transpositions that repeat.",
-    "Separating strong signals from small or noisy samples.",
-    "Turning the evidence into clear repertoire choices.",
-    "Finishing with a line you can train next session.",
-  ];
+  const activeStageIndex = Math.max(0, progressStages.findIndex((item) => item.key === stage));
+  const activeStage = progressStages[activeStageIndex] || progressStages[0];
   const platformLabel =
     typeof platform === "string" && platform.length ? platform : "your chess platform";
-  const progressPercent = Math.max(
-    12,
-    Math.min(94, ((activeStageIndex + 0.55) / progressStages.length) * 100)
-  );
 
   return (
     <div
@@ -120,10 +101,7 @@ export default function ImportLoadingOverlay({
         <div className="importLoadingProgressWrap">
           <div className="importLoadingProgressLabel">
             <span>{platformLabel}{username ? ` / ${username}` : ""}</span>
-            <strong>{Math.round(progressPercent)}%</strong>
-          </div>
-          <div className="importLoadingProgress" aria-label="Analysis progress estimate">
-            <span style={{ width: `${progressPercent}%` }} />
+            <strong>{IMPORT_STAGE_DETAILS[stage]?.title || activeStage.title}</strong>
           </div>
         </div>
 
@@ -132,8 +110,8 @@ export default function ImportLoadingOverlay({
             <div className="importLoadingActiveMessage">
               <ChessAnalysisLoader />
               <span><Search size={14} /> Analysing games</span>
-              <strong>{progressStages[activeStageIndex].title}</strong>
-              <p>{friendlyMessages[activeStageIndex]}</p>
+              <strong>{activeStage.title}</strong>
+              <p>{IMPORT_STAGE_DETAILS[stage]?.detail || activeStage.detail}</p>
             </div>
 
             <div className="importLoadingSteps">
@@ -162,12 +140,12 @@ export default function ImportLoadingOverlay({
         </div>
 
         {showWakeupMessage ? (
-          <p className="importLoadingWakeup">Still working. This can take a little longer for large imports while OpeningFit reads the full game sample.</p>
+          <p className="importLoadingWakeup">{platformLabel} or the analysis service is responding slowly. OpeningFit is still waiting safely; you can cancel without removing your previous report.</p>
         ) : null}
 
         <footer className="importLoadingFooter">
-          <span>{loadingStep || progressStages[activeStageIndex].detail}</span>
-          <small>Please keep this tab open. Large game imports can take a moment.</small>
+          <span>{loadingStep || activeStage.detail}</span>
+          <small>If you refresh, this request cannot resume because the backend does not expose import job IDs.</small>
         </footer>
       </div>
     </div>

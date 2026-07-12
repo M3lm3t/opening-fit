@@ -389,3 +389,31 @@
     width: 100%;
   }
 }
+.workspaceSummary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+.workspaceSummary > div, .workspaceWarnings { border: 1px solid var(--of-color-border); border-radius: var(--of-radius-md); padding: .85rem; background: var(--of-color-surface-muted); }
+.workspaceSummary dt { color: var(--of-color-text-soft); font-size: .78rem; }
+.workspaceSummary dd { margin: .2rem 0 0; font-weight: 800; }
+.workspaceWarnings { margin-top: 1rem; }
+.workspaceWarnings ul { margin: .5rem 0 0; padding-left: 1.2rem; }
+.workspaceSections { display: grid; gap: 1rem; margin-top: 1rem; }
+.workspaceSections > details { border: 1px solid var(--of-color-border); border-radius: var(--of-radius-lg); padding: .9rem; background: var(--of-color-surface); }
+.workspaceSections > details > summary { display: flex; justify-content: space-between; gap: 1rem; min-height: 44px; align-items: center; cursor: pointer; font-weight: 850; }
+.workspaceSections > details > div { display: grid; gap: .75rem; margin: .75rem 0; }
+.workspaceOpening { display: grid; gap: .7rem; border-top: 1px solid var(--of-color-border); padding-top: .9rem; }
+.workspaceOpening header { display: flex; justify-content: space-between; gap: 1rem; }
+.workspaceOpening header h3 { margin: .15rem 0 0; }
+.workspaceOpening header span, .workspaceOpening p { color: var(--of-color-text-soft); }
+.workspaceOpening > p { margin: 0; }
+.workspaceOpening dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; margin: 0; }
+.workspaceOpening dl div { min-width: 0; }
+.workspaceOpening dt { font-size: .74rem; color: var(--of-color-text-soft); }
+.workspaceOpening dd { margin: .12rem 0 0; overflow-wrap: anywhere; }
+.workspaceOpening label { display: grid; gap: .3rem; font-weight: 700; }
+.workspaceOpening select, .workspaceOpening textarea { width: 100%; min-height: 44px; border: 1px solid var(--of-color-border); border-radius: var(--of-radius-sm); background: var(--of-color-surface); color: var(--of-color-text); padding: .55rem; }
+.workspaceOpening textarea { min-height: 74px; resize: vertical; }
+.workspaceOpening .workspaceLock { display: flex; align-items: center; gap: .55rem; }
+.workspaceLock input { width: 20px; height: 20px; }
+.workspaceOpeningActions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.workspaceOpeningActions button, .workspaceSections > details > button { min-height: 44px; }
+@media (max-width: 720px) { .workspaceSummary { grid-template-columns: 1fr 1fr; } .workspaceOpening dl { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 380px) { .workspaceSummary, .workspaceOpening dl { grid-template-columns: 1fr; } }

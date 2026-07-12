@@ -1,5 +1,7 @@
 import { supabase } from "./lib/supabaseClient";
 import { buildApiUrl, getApiBaseUrl } from "./lib/apiBase";
+import { canStartCheckout } from "./lib/premiumExperience";
+import { trackProductEvent } from "./lib/productAnalytics";
 
 async function readJsonOrText(response) {
   const contentType = response.headers.get("content-type") || "";
@@ -106,7 +108,7 @@ export async function loadAccountProfile(userId) {
 }
 
 export async function startPremiumCheckout(user) {
-  if (!user?.id) {
+  if (!canStartCheckout(user)) {
     throw new Error("Please sign in or create an account before upgrading.");
   }
 
@@ -160,6 +162,7 @@ export async function startPremiumCheckout(user) {
       hasUrl: true,
     });
   }
+  void trackProductEvent("checkout_started", { source: "account_checkout", authenticated: true });
   window.location.href = data.url;
 
   return data;

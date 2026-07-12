@@ -45,6 +45,8 @@ function ChessPiece({ piece, className = "" }) {
   );
 }
 
+const PIECE_NAMES = { k: "king", q: "queen", r: "rook", b: "bishop", n: "knight", p: "pawn" };
+
 function getBoard(chess, orientation) {
   const board = chess.board();
 
@@ -127,6 +129,12 @@ export default function ChessPositionBoard({
   const pointerHandledRef = useRef(false);
   const draggingRef = useRef(false);
   const dragImageRef = useRef(null);
+  const positionSummary = useMemo(() => {
+    const pieces = chess.board().flat().filter(Boolean);
+    const white = pieces.filter((piece) => piece.color === "w").length;
+    const black = pieces.length - white;
+    return `${orientation === "black" ? "Black" : "White"} perspective. ${chess.turn() === "w" ? "White" : "Black"} to move${chess.inCheck() ? " and in check" : ""}. ${white} White pieces and ${black} Black pieces remain.`;
+  }, [chess, orientation]);
 
   const activateSquare = (squareName) => {
     if (!interactive || typeof onSquareClick !== "function") return;
@@ -206,6 +214,8 @@ export default function ChessPositionBoard({
       className={`cleanReplayBoard chessPositionBoard opening-board-shell ${className}`}
       style={boardThemeVars}
       data-board-theme={boardTheme}
+      role={interactive ? "group" : "img"}
+      aria-label={positionSummary}
     >
       {board.map((rank, rowIndex) =>
         rank.map((piece, colIndex) => {
@@ -273,7 +283,7 @@ export default function ChessPositionBoard({
                 onClick={() => handleSquareClick(squareName)}
                 onDragOver={handleDragOver}
                 onDrop={(event) => handleDrop(event, squareName)}
-                aria-label={squareName}
+                aria-label={piece ? `${piece.color === "w" ? "White" : "Black"} ${PIECE_NAMES[piece.type]} on ${squareName}` : `Empty square ${squareName}`}
               >
                 {content}
               </button>

@@ -1,0 +1,10 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { TRUST_ROUTES, accountDeletionCopy, accountDeletionResult, supportPath, validateFeedback } from "./trustExperience.js";
+test("valid general feedback captures safe context", () => assert.equal(validateFeedback({ category: "General product feedback", message: "Useful report", route: "/report", platform: "lichess" }).valid, true));
+test("invalid feedback is rejected", () => { assert.equal(validateFeedback({ category: "Feature suggestion", message: "" }).valid, false); assert.equal(validateFeedback({ category: "Unknown", message: "Useful" }).valid, false); });
+test("anonymous and authenticated contact are optional", () => { assert.equal(validateFeedback({ category: "Broken game import", message: "Import stopped" }).value.contact, null); assert.equal(validateFeedback({ category: "Payment problem", message: "Access missing", contact: "user@example.com" }).value.contact, "user@example.com"); });
+test("account deletion requires authentication and explicit warning", () => { assert.equal(accountDeletionCopy(false).allowed, false); assert.match(accountDeletionCopy(true).warning, /cannot be undone/i); });
+test("account deletion success and failure remain distinct", () => { assert.equal(accountDeletionResult().complete, true); assert.equal(accountDeletionResult(new Error("failed")).complete, false); });
+test("payment and import support paths are explicit", () => { assert.match(supportPath("payment"), /Missing%20premium/); assert.match(supportPath("import"), /Broken%20game/); });
+test("privacy and terms have direct public routes", () => { assert.ok(TRUST_ROUTES.includes("/privacy")); assert.ok(TRUST_ROUTES.includes("/terms")); });
