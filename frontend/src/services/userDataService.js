@@ -979,8 +979,8 @@ export async function saveRecommendationHistory(userId, snapshot = {}) {
   if (!userId || !snapshot) return null;
 
   const client = requireClient();
-  const progress = snapshot.progress || {};
-  const analysisDate = snapshot.analysisDate || snapshot.analysis_date || new Date().toISOString();
+  const progress = snapshot?.progress || {};
+  const analysisDate = snapshot?.analysisDate || snapshot?.analysis_date || new Date().toISOString();
   const timeControlFilter =
     snapshot.timeControlFilter || snapshot.time_control_filter || snapshot.analysisTimeFormat || "custom";
   const snapshotKey = String(
@@ -1004,7 +1004,7 @@ export async function saveRecommendationHistory(userId, snapshot = {}) {
     detected_openings: snapshot.detectedOpenings || snapshot.detected_openings || [],
     recommended_openings: snapshot.recommendedOpenings || snapshot.recommended_openings || [],
     confidence_score:
-      snapshot.confidenceScore ?? snapshot.confidence_score ?? snapshot.repertoireConfidenceScore ?? null,
+    snapshot?.confidenceScore ?? snapshot?.confidence_score ?? snapshot?.repertoireConfidenceScore ?? null,
     style_profile: snapshot.styleProfile || snapshot.style_profile || null,
     time_control_filter: timeControlFilter,
     analysis_version: snapshot.analysisVersion || snapshot.analysis_version || "retention-history-v1",

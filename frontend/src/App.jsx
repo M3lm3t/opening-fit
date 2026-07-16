@@ -6,7 +6,7 @@ import OpeningFitImportDoctor from "./components/OpeningFitImportDoctor.jsx";
 import OpeningFitPolishToast from "./components/OpeningFitPolishToast.jsx";
 import "./components/OpeningFitPolish.css";
 import "./components/WeakLineDetection.css";
-import { createElement, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Component, createElement, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
 import OpeningScoreInfo from "./components/OpeningScoreInfo";
@@ -5396,13 +5396,13 @@ function buildRecommendationHistorySnapshot(data, fitData) {
 
   return {
     userId: null,
-    analysisDate: progress.lastAnalysisDate || new Date().toISOString(),
-    gamesAnalysed: progress.gamesAnalysed || 0,
+    analysisDate: progress?.lastAnalysisDate || new Date().toISOString(),
+    gamesAnalysed: progress?.gamesAnalysed || 0,
     detectedOpenings,
     recommendedOpenings,
-    confidenceScore: progress.repertoireConfidenceScore,
+    confidenceScore: progress?.repertoireConfidenceScore ?? null,
     styleProfile: data?.styleProfile || data?.style_profile || null,
-    styleProfileSummary: progress.styleProfileSummary,
+    styleProfileSummary: progress?.styleProfileSummary || "Developing style profile",
     timeControlFilter:
       data?.analysisTimeFormat ||
       data?.analysis_time_format ||
@@ -5414,8 +5414,8 @@ function buildRecommendationHistorySnapshot(data, fitData) {
       data?.analysis_version ||
       data?.version ||
       "retention-history-v1",
-    currentRecommendation: recommendedOpenings[0]?.name || progress.mainOpeningRecommendation,
-    recommendationConfidence: progress.recommendationConfidence,
+    currentRecommendation: recommendedOpenings[0]?.name || progress?.mainOpeningRecommendation || "No clear recommendation yet",
+    recommendationConfidence: progress?.recommendationConfidence || "Low Confidence",
     progress,
   };
 }
@@ -5460,13 +5460,15 @@ function getRecommendationHistoryChange(current, previous) {
     return `Current recommendation changed from ${previous.currentRecommendation} to ${current.currentRecommendation}.`;
   }
 
+  const currentScore = current?.confidenceScore ?? null;
+  const previousScore = previous?.confidenceScore ?? null;
   const confidenceDelta =
-    current.confidenceScore !== null && previous.confidenceScore !== null
-      ? current.confidenceScore - previous.confidenceScore
+    currentScore !== null && previousScore !== null
+      ? currentScore - previousScore
       : null;
 
   if (Number.isFinite(confidenceDelta) && confidenceDelta !== 0) {
-    return `${current.currentRecommendation} fit score ${confidenceDelta > 0 ? "increased" : "changed"} from ${previous.confidenceScore}% to ${current.confidenceScore}%.`;
+    return `${current.currentRecommendation} fit score ${confidenceDelta > 0 ? "increased" : "changed"} from ${previousScore}% to ${currentScore}%.`;
   }
 
   if (current.styleProfileSummary !== previous.styleProfileSummary) {
@@ -8505,7 +8507,7 @@ function RecommendationHistorySection({
     if (!current) return false;
     const sameDate = row.analysisDate && current.analysisDate && row.analysisDate === current.analysisDate;
     const sameRecommendation = row.currentRecommendation === current.currentRecommendation;
-    const sameScore = row.confidenceScore === current.confidenceScore;
+    const sameScore = row?.confidenceScore === current?.confidenceScore;
     return !(sameDate && sameRecommendation && sameScore);
   }) || null;
 
@@ -8524,9 +8526,11 @@ function RecommendationHistorySection({
     );
   }
 
+  const currentConfidenceScore = current?.confidenceScore ?? null;
+  const previousConfidenceScore = previous?.confidenceScore ?? null;
   const confidenceChange =
-    current.confidenceScore !== null && previous?.confidenceScore !== null
-      ? current.confidenceScore - previous.confidenceScore
+    currentConfidenceScore !== null && previousConfidenceScore !== null
+      ? currentConfidenceScore - previousConfidenceScore
       : null;
   const changeText = getRecommendationHistoryChange(current, previous);
   const detectedNames = (current.detectedOpenings || []).slice(0, 4).map((item) => item.name || item).filter(Boolean);
@@ -8555,15 +8559,15 @@ function RecommendationHistorySection({
           <span>Current recommendation</span>
           <strong>{current.currentRecommendation}</strong>
           <p>
-            {current.confidenceScore !== null ? `${current.confidenceScore}% confidence` : current.recommendationConfidence}
+            {currentConfidenceScore !== null ? `${currentConfidenceScore}% confidence` : current.recommendationConfidence}
           </p>
         </article>
         <article>
           <span>Previous recommendation</span>
           <strong>{previous?.currentRecommendation || "No previous snapshot yet"}</strong>
           <p>
-            {previous?.confidenceScore !== null && previous?.confidenceScore !== undefined
-              ? `${previous.confidenceScore}% confidence`
+            {previousConfidenceScore !== null
+              ? `${previousConfidenceScore}% confidence`
               : "Analyse again after more games."}
           </p>
         </article>
@@ -9562,6 +9566,7 @@ function OpeningFitProfileDashboard({
         ) : null}
       </div>
 
+      <ProfileInsightsBoundary>
       <WeeklyOpeningSessionCard
         data={data}
         fitData={fitData}
@@ -9674,6 +9679,7 @@ function OpeningFitProfileDashboard({
           <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
         </div>
       </details>
+      </ProfileInsightsBoundary>
     </div>
   );
 }
@@ -10150,6 +10156,36 @@ function RepertoireCommandPanel({ data, onPractice }) {
       </div>
     </section>
   );
+}
+
+class ProfileInsightsBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { failed: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error) {
+    console.warn("OpeningFit optional profile insights failed safely", {
+      name: error?.name,
+      message: error?.message,
+    });
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <section className="profileLoadNotice" role="status">
+          <strong>Some profile insights could not be displayed</strong>
+          <span>Your account controls and login remain available. Refresh after your next analysis to rebuild these insights.</span>
+        </section>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function DecisionReportHeader({ model, onReanalyse }) {
