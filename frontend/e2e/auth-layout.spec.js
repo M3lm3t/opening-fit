@@ -9,6 +9,8 @@ for (const viewport of [
   { name: "mobile", width: 390, height: 844 },
 ]) {
   test(`${viewport.name} login controls are clickable`, async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.setViewportSize(viewport);
     await page.goto(`${appUrl}/login`, { waitUntil: "domcontentloaded" });
 
@@ -18,6 +20,8 @@ for (const viewport of [
 
     await expect(submit).toBeVisible();
     await submit.click();
+    await expect(submit).toBeEnabled({ timeout: 15_000 });
     await expect(page.locator("body")).toBeVisible();
+    expect(pageErrors).toEqual([]);
   });
 }
