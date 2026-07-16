@@ -121,3 +121,36 @@ Use this checklist before shipping changes to auth, Supabase persistence, Stripe
 5. Confirm the app does not enter an infinite loading screen.
 6. Restore Supabase availability.
 7. Retry cloud restore and confirm profile, reports, games/history, settings, and premium status load again.
+
+### 14. Referral Checkout and Refunds
+
+Referral payments reuse the existing backend configuration; no referral-specific secret is required:
+
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRICE_ID`, `STRIPE_PREMIUM_PRICE_ID`, or `STRIPE_FOUNDER_PASS_PRICE_ID`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `FRONTEND_URL`, `SITE_URL`, or `CLIENT_URL` for checkout return URLs
+
+Apply `supabase/migrations/202607120001_referral_system.sql` before testing. Configure the existing Stripe webhook endpoint to deliver `checkout.session.completed` and the already handled `charge.refunded` / `refund.updated` events. Then verify:
+
+1. A registered referral adds only server-resolved attribution metadata to Checkout.
+2. Premium activates before the attribution changes to `converted`.
+3. Replaying the checkout webhook leaves the original commission unchanged.
+4. Fixed and percentage commission values are calculated from the database partner row and capped at the gross payment.
+5. A successful refund changes the attribution to `refunded` while preserving gross and commission audit values.
+6. Referral lookup/update failures are logged but do not roll back premium activation.
+7. More than 500 anonymous visit writes for one partner in ten minutes are rejected, while existing visitors remain deduplicated for 24 hours.
+8. Referral visit rows contain no user-agent string or IP address.
+
+### 15. Referral Admin Access
+
+The private `/admin/referrals` route is not linked from application navigation. Its backend endpoints fail closed unless at least one server-only allow-list is configured:
+
+- `OPENINGFIT_ADMIN_USER_IDS`: comma-separated Supabase Auth user UUIDs.
+- `OPENINGFIT_ADMIN_EMAILS`: comma-separated authenticated email addresses.
+
+Prefer immutable user IDs where possible. These variables belong on the backend only and must not use a `VITE_` prefix. Every referral-admin request still requires a valid Supabase bearer session, and the server verifies the session against the allow-list before using the existing `SUPABASE_SERVICE_ROLE_KEY` client.
+
+CSV exports use the same date, partner, and status filters currently applied to the dashboard.

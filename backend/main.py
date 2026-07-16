@@ -30,8 +30,11 @@ import shutil
 import logging
 import sys
 import traceback
+import csv
+import io
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from uuid import UUID
 from urllib.parse import urlparse
 
@@ -58,6 +61,15 @@ SECRET_LOG_KEYS = SECRET_QUERY_KEYS | {
     "stripe_secret_key",
     "stripe_webhook_secret",
     "supabase_service_role_key",
+    "user_id",
+    "resolved_user_id",
+    "metadata_user_id",
+    "client_reference_id",
+    "session_id",
+    "subscription_id",
+    "payment_intent_id",
+    "customer_id",
+    "referral_attribution_id",
 }
 
 
@@ -10681,6 +10693,15 @@ class AccountProfilePayload(BaseModel):
     lastReport: Optional[Dict[str, Any]] = None
 
 
+class ReferralPartnerCreatePayload(BaseModel):
+    name: str
+    code: str
+    email: Optional[str] = None
+    commissionType: str = "fixed"
+    commissionValue: float = 2.0
+    isActive: bool = True
+
+
 def get_supabase_admin_client():
     supabase_url = os.getenv("SUPABASE_URL", "").strip()
     service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
@@ -10733,6 +10754,30 @@ def require_matching_auth_user(request: Request, user_id: str):
     return auth_user
 
 
+def _admin_allow_list(env_name: str, *, lowercase: bool = False) -> set[str]:
+    values = {
+        item.strip()
+        for item in os.getenv(env_name, "").split(",")
+        if item.strip()
+    }
+    return {item.lower() for item in values} if lowercase else values
+
+
+def require_admin_user(request: Request):
+    auth_user = get_auth_user(request)
+    user_id = str(getattr(auth_user, "id", "") or "").strip()
+    email = str(getattr(auth_user, "email", "") or "").strip().lower()
+    allowed_ids = _admin_allow_list("OPENINGFIT_ADMIN_USER_IDS")
+    allowed_emails = _admin_allow_list("OPENINGFIT_ADMIN_EMAILS", lowercase=True)
+    if not allowed_ids and not allowed_emails:
+        log_payment_diagnostic("referral admin access denied", reason="allow_list_not_configured")
+        raise HTTPException(status_code=403, detail="Referral admin access is not configured.")
+    if user_id not in allowed_ids and email not in allowed_emails:
+        log_payment_diagnostic("referral admin access denied", has_user_id=bool(user_id), has_email=bool(email))
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    return auth_user
+
+
 def checkout_error_response(status_code: int, message: str, log_message: str, **details):
     code = details.pop("code", None)
     log_payment_diagnostic(log_message, status_code=status_code, code=code, **details)
@@ -10762,6 +10807,265 @@ def stripe_customer_email(obj: Any) -> Optional[str]:
         details_email = getattr(customer_details, "email", None)
 
     return details_email or stripe_value(obj, "customer_email")
+
+
+def get_registered_referral_checkout_metadata(supabase_admin, user_id: str) -> Dict[str, str]:
+    """Resolve checkout referral metadata from trusted service-role data only."""
+    try:
+        result = (
+            supabase_admin
+            .table("referral_attributions")
+            .select("id,referral_code,status")
+            .eq("referred_user_id", str(user_id))
+            .eq("status", "registered")
+            .limit(1)
+            .execute()
+        )
+    except Exception as exc:
+        log_payment_diagnostic(
+            "referral lookup failed",
+            stage="checkout",
+            has_user_id=bool(user_id),
+            error=exc,
+        )
+        return {}
+
+    rows = result.data or []
+    if not rows:
+        return {}
+
+    attribution = rows[0]
+    attribution_id = str(attribution.get("id") or "").strip()
+    referral_code = str(attribution.get("referral_code") or "").strip().lower()
+    if not attribution_id or not referral_code:
+        log_payment_diagnostic(
+            "referral lookup failed",
+            stage="checkout",
+            reason="incomplete_attribution",
+        )
+        return {}
+
+    log_payment_diagnostic(
+        "referral attached to checkout",
+        referral_code=referral_code,
+        has_user_id=True,
+    )
+    return {
+        "openingfit_referred_user_id": str(user_id),
+        "openingfit_referral_code": referral_code,
+        "openingfit_referral_attribution_id": attribution_id,
+    }
+
+
+def _money_amount(value: Any) -> Optional[Decimal]:
+    try:
+        if value is None:
+            return None
+        return Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+def _checkout_gross_amount(session: Any) -> Optional[Decimal]:
+    amount_minor = stripe_value(session, "amount_total")
+    try:
+        if amount_minor is None:
+            return None
+        return (Decimal(str(amount_minor)) / Decimal("100")).quantize(
+            Decimal("0.01"),
+            rounding=ROUND_HALF_UP,
+        )
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+def calculate_referral_commission(
+    gross_amount: Any,
+    commission_type: str,
+    commission_value: Any,
+) -> Decimal:
+    gross = max(_money_amount(gross_amount) or Decimal("0.00"), Decimal("0.00"))
+    value = max(_money_amount(commission_value) or Decimal("0.00"), Decimal("0.00"))
+    if str(commission_type or "").lower() == "percentage":
+        commission = gross * value / Decimal("100")
+    else:
+        commission = value
+    return min(commission, gross).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def convert_registered_referral_after_checkout(
+    supabase_admin,
+    session: Any,
+    user_id: Optional[str],
+) -> Dict[str, Any]:
+    """Convert one registered attribution after premium activation; never raises."""
+    metadata = stripe_metadata(session)
+    trusted_user_id = str(
+        user_id
+        or metadata.get("openingfit_referred_user_id")
+        or metadata.get("user_id")
+        or ""
+    ).strip()
+    attribution_id = str(metadata.get("openingfit_referral_attribution_id") or "").strip()
+
+    if not trusted_user_id and not attribution_id:
+        return {"status": "no_referral"}
+
+    try:
+        query = supabase_admin.table("referral_attributions").select(
+            "id,referral_partner_id,referral_code,referred_user_id,status,"
+            "stripe_checkout_session_id,stripe_payment_intent_id"
+        )
+        if trusted_user_id:
+            query = query.eq("referred_user_id", trusted_user_id)
+        if attribution_id:
+            query = query.eq("id", attribution_id)
+        result = query.limit(1).execute()
+        rows = result.data or []
+        if not rows:
+            log_payment_diagnostic(
+                "referral lookup failed",
+                stage="conversion",
+                reason="attribution_not_found",
+                has_user_id=bool(trusted_user_id),
+                has_attribution_id=bool(attribution_id),
+            )
+            return {"status": "not_found"}
+
+        attribution = rows[0]
+        current_status = str(attribution.get("status") or "").lower()
+        if current_status != "registered":
+            log_payment_diagnostic(
+                "duplicate webhook ignored",
+                operation="referral_conversion",
+                current_status=current_status,
+            )
+            return {"status": "duplicate", "current_status": current_status}
+
+        partner_result = (
+            supabase_admin
+            .table("referral_partners")
+            .select("commission_type,commission_value,is_active")
+            .eq("id", attribution.get("referral_partner_id"))
+            .limit(1)
+            .execute()
+        )
+        partners = partner_result.data or []
+        if not partners or not partners[0].get("is_active"):
+            log_payment_diagnostic(
+                "referral lookup failed",
+                stage="conversion",
+                reason="inactive_or_missing_partner",
+            )
+            return {"status": "inactive_partner"}
+
+        gross = _checkout_gross_amount(session)
+        if gross is None:
+            log_payment_diagnostic(
+                "referral lookup failed",
+                stage="conversion",
+                reason="missing_gross_amount",
+            )
+            return {"status": "missing_amount"}
+
+        partner = partners[0]
+        commission = calculate_referral_commission(
+            gross,
+            partner.get("commission_type"),
+            partner.get("commission_value"),
+        )
+        now = datetime.now(timezone.utc).isoformat()
+        update_payload = {
+            "status": "converted",
+            "stripe_checkout_session_id": stripe_value(session, "id"),
+            "stripe_payment_intent_id": stripe_value(session, "payment_intent"),
+            "gross_amount": float(gross),
+            "commission_amount": float(commission),
+            "currency": str(stripe_value(session, "currency", "gbp") or "gbp").lower(),
+            "converted_at": now,
+            "updated_at": now,
+        }
+        update_result = (
+            supabase_admin
+            .table("referral_attributions")
+            .update(update_payload)
+            .eq("id", attribution.get("id"))
+            .eq("status", "registered")
+            .execute()
+        )
+        if not (update_result.data or []):
+            log_payment_diagnostic(
+                "duplicate webhook ignored",
+                operation="referral_conversion",
+                current_status="changed_concurrently",
+            )
+            return {"status": "duplicate"}
+
+        log_payment_diagnostic(
+            "referral conversion confirmed",
+            referral_code=attribution.get("referral_code"),
+            commission_type=partner.get("commission_type"),
+            currency=update_payload["currency"],
+        )
+        return {
+            "status": "converted",
+            "gross_amount": float(gross),
+            "commission_amount": float(commission),
+        }
+    except Exception as exc:
+        log_payment_diagnostic(
+            "referral lookup failed",
+            stage="conversion_update",
+            error=exc,
+        )
+        return {"status": "failed"}
+
+
+def refund_converted_referral(supabase_admin, stripe_object: Any, user_id: Optional[str] = None) -> Dict[str, Any]:
+    """Mark a converted referral refunded while preserving financial audit fields."""
+    payment_intent_id = str(stripe_value(stripe_object, "payment_intent") or "").strip()
+    clean_user_id = str(user_id or "").strip()
+    if not payment_intent_id and not clean_user_id:
+        return {"status": "no_referral"}
+
+    try:
+        query = supabase_admin.table("referral_attributions").select("id,status")
+        if payment_intent_id:
+            query = query.eq("stripe_payment_intent_id", payment_intent_id)
+        elif clean_user_id:
+            query = query.eq("referred_user_id", clean_user_id)
+        result = query.limit(1).execute()
+        rows = result.data or []
+        if not rows:
+            log_payment_diagnostic("referral lookup failed", stage="refund", reason="attribution_not_found")
+            return {"status": "not_found"}
+
+        attribution = rows[0]
+        current_status = str(attribution.get("status") or "").lower()
+        if current_status == "refunded":
+            log_payment_diagnostic("duplicate webhook ignored", operation="referral_refund")
+            return {"status": "duplicate"}
+        if current_status != "converted":
+            return {"status": "not_convertible", "current_status": current_status}
+
+        now = datetime.now(timezone.utc).isoformat()
+        update_result = (
+            supabase_admin
+            .table("referral_attributions")
+            .update({"status": "refunded", "refunded_at": now, "updated_at": now})
+            .eq("id", attribution.get("id"))
+            .eq("status", "converted")
+            .execute()
+        )
+        if not (update_result.data or []):
+            log_payment_diagnostic("duplicate webhook ignored", operation="referral_refund")
+            return {"status": "duplicate"}
+
+        log_payment_diagnostic("referral refunded", operation="referral_refund")
+        return {"status": "refunded"}
+    except Exception as exc:
+        log_payment_diagnostic("referral lookup failed", stage="refund_update", error=exc)
+        return {"status": "failed"}
 
 
 def stripe_subscription_price_id(subscription: Any) -> Optional[str]:
@@ -11349,6 +11653,9 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
         "price_id": stripe_price_id,
         "product": product,
     }
+    checkout_metadata.update(
+        get_registered_referral_checkout_metadata(get_supabase_admin_client(), user_id)
+    )
 
     try:
         price = stripe.Price.retrieve(stripe_price_id)
@@ -11597,8 +11904,9 @@ async def stripe_webhook(request: Request):
             return {"received": True}
 
         try:
+            supabase_admin = get_supabase_admin_client()
             result = activate_premium_from_checkout_session(
-                get_supabase_admin_client(),
+                supabase_admin,
                 session,
                 source="stripe_checkout",
             )
@@ -11613,6 +11921,20 @@ async def stripe_webhook(request: Request):
                 subscription_id=stripe_value(session, "subscription"),
                 payment_intent_id=stripe_value(session, "payment_intent"),
             )
+            try:
+                convert_registered_referral_after_checkout(
+                    supabase_admin,
+                    session,
+                    result.get("user_id"),
+                )
+            except Exception as referral_exc:
+                # Premium activation has already succeeded. Referral bookkeeping
+                # must never turn a valid payment into an entitlement failure.
+                log_payment_diagnostic(
+                    "referral lookup failed",
+                    stage="post_entitlement_conversion",
+                    error=referral_exc,
+                )
         except Exception as exc:
             log_payment_diagnostic(
                 "Stripe checkout premium entitlement update failed",
@@ -11711,12 +12033,14 @@ async def stripe_webhook(request: Request):
                         "event_type": event_type,
                         "payment_intent_id": stripe_value(stripe_object, "payment_intent"),
                     })
+                    refund_converted_referral(supabase_admin, stripe_object, user_id)
                 else:
                     print("OpeningFit refund event could not be matched to a user", {
                         "event_type": event_type,
                         "customer_id": stripe_value(stripe_object, "customer"),
                         "payment_intent_id": stripe_value(stripe_object, "payment_intent"),
                     })
+                    refund_converted_referral(supabase_admin, stripe_object)
             except Exception as exc:
                 print("OpeningFit premium refund update failed:", {
                     "event_type": event_type,
@@ -11725,6 +12049,251 @@ async def stripe_webhook(request: Request):
                 raise HTTPException(status_code=500, detail="Premium refund update failed.")
 
     return {"received": True}
+
+
+def _mask_email(value: Any) -> Optional[str]:
+    email = str(value or "").strip().lower()
+    if "@" not in email:
+        return None
+    local, domain = email.split("@", 1)
+    if not local or not domain:
+        return None
+    visible = local[:1]
+    return f"{visible}{'*' * max(3, min(len(local) - 1, 8))}@{domain}"
+
+
+def _referral_filter_value(value: Any, pattern: str) -> Optional[str]:
+    clean = str(value or "").strip().lower()
+    return clean if clean and re.fullmatch(pattern, clean) else None
+
+
+def _apply_referral_filters(query, *, start: Optional[str], end: Optional[str], date_column: str):
+    if start:
+        query = query.gte(date_column, f"{start}T00:00:00+00:00")
+    if end:
+        query = query.lte(date_column, f"{end}T23:59:59.999999+00:00")
+    return query
+
+
+def _decimal_float(value: Any) -> float:
+    return float(_money_amount(value) or Decimal("0.00"))
+
+
+def build_referral_admin_report(
+    supabase_admin,
+    *,
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+    partner_id: Optional[str] = None,
+    status: Optional[str] = None,
+) -> Dict[str, Any]:
+    partners = (
+        supabase_admin
+        .table("referral_partners")
+        .select("id,name,code,email,commission_type,commission_value,is_active,created_at")
+        .order("created_at", desc=False)
+        .execute()
+    ).data or []
+
+    visits_query = supabase_admin.table("referral_visits").select(
+        "referral_partner_id,referral_code,visitor_id,landing_path,created_at"
+    )
+    attributions_query = supabase_admin.table("referral_attributions").select(
+        "referral_partner_id,referral_code,referred_user_id,status,gross_amount,commission_amount,"
+        "currency,registered_at,converted_at,refunded_at"
+    )
+    if partner_id:
+        visits_query = visits_query.eq("referral_partner_id", partner_id)
+        attributions_query = attributions_query.eq("referral_partner_id", partner_id)
+    if status:
+        attributions_query = attributions_query.eq("status", status)
+    visits_query = _apply_referral_filters(visits_query, start=start, end=end, date_column="created_at")
+    attributions_query = _apply_referral_filters(
+        attributions_query,
+        start=start,
+        end=end,
+        date_column="registered_at",
+    )
+    visits = visits_query.order("created_at", desc=True).execute().data or []
+    attributions = attributions_query.order("registered_at", desc=True).execute().data or []
+
+    referred_user_ids = sorted({str(row.get("referred_user_id")) for row in attributions if row.get("referred_user_id")})
+    emails_by_user: Dict[str, Optional[str]] = {}
+    if referred_user_ids:
+        profile_rows = (
+            supabase_admin
+            .table("profiles")
+            .select("user_id,email")
+            .in_("user_id", referred_user_ids)
+            .execute()
+        ).data or []
+        emails_by_user = {
+            str(row.get("user_id")): _mask_email(row.get("email"))
+            for row in profile_rows
+        }
+
+    partner_by_id = {str(row.get("id")): row for row in partners}
+    visits_by_partner = Counter(str(row.get("referral_partner_id")) for row in visits)
+    attrs_by_partner: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for row in attributions:
+        attrs_by_partner[str(row.get("referral_partner_id"))].append(row)
+
+    def is_sale(row):
+        return str(row.get("status")) in {"converted", "refunded"}
+
+    partner_rows = []
+    for partner in partners:
+        key = str(partner.get("id"))
+        rows = attrs_by_partner.get(key, [])
+        sales = [row for row in rows if is_sale(row)]
+        payable = [row for row in rows if str(row.get("status")) == "converted"]
+        registrations = len(rows)
+        partner_rows.append({
+            "id": key,
+            "name": partner.get("name"),
+            "code": partner.get("code"),
+            "isActive": bool(partner.get("is_active")),
+            "commissionType": partner.get("commission_type"),
+            "commissionValue": _decimal_float(partner.get("commission_value")),
+            "visits": visits_by_partner.get(key, 0),
+            "registrations": registrations,
+            "confirmedSales": len(sales),
+            "conversionRate": round((len(sales) / registrations * 100), 1) if registrations else 0.0,
+            "grossRevenue": round(sum(_decimal_float(row.get("gross_amount")) for row in sales), 2),
+            "commissionOwed": round(sum(_decimal_float(row.get("commission_amount")) for row in payable), 2),
+        })
+
+    sales = [row for row in attributions if is_sale(row)]
+    payable = [row for row in attributions if str(row.get("status")) == "converted"]
+    registrations = len(attributions)
+    visits_over_time = Counter(
+        (str(row.get("referral_partner_id")), str(row.get("created_at") or "")[:10])
+        for row in visits
+        if row.get("created_at")
+    )
+    safe_referrals = [{
+        "partnerName": partner_by_id.get(str(row.get("referral_partner_id")), {}).get("name") or "Unknown partner",
+        "referralCode": row.get("referral_code"),
+        "referredEmail": emails_by_user.get(str(row.get("referred_user_id"))),
+        "status": row.get("status"),
+        "registeredAt": row.get("registered_at"),
+        "convertedAt": row.get("converted_at"),
+        "refundedAt": row.get("refunded_at"),
+        "grossAmount": _decimal_float(row.get("gross_amount")),
+        "commissionAmount": _decimal_float(row.get("commission_amount")),
+        "currency": str(row.get("currency") or "gbp").lower(),
+    } for row in attributions]
+
+    return {
+        "summary": {
+            "totalVisits": len(visits),
+            "registrations": registrations,
+            "confirmedSales": len(sales),
+            "conversionRate": round((len(sales) / registrations * 100), 1) if registrations else 0.0,
+            "grossRevenue": round(sum(_decimal_float(row.get("gross_amount")) for row in sales), 2),
+            "outstandingCommission": round(sum(_decimal_float(row.get("commission_amount")) for row in payable), 2),
+            "refundedReferrals": sum(1 for row in attributions if str(row.get("status")) == "refunded"),
+        },
+        "partners": partner_rows,
+        "visitsOverTime": [
+            {"partnerId": key[0], "date": key[1], "visits": count}
+            for key, count in sorted(visits_over_time.items())
+        ],
+        "referrals": safe_referrals,
+    }
+
+
+@app.get("/api/admin/referrals")
+async def referral_admin_report(request: Request):
+    require_admin_user(request)
+    start = _referral_filter_value(request.query_params.get("start"), r"\d{4}-\d{2}-\d{2}")
+    end = _referral_filter_value(request.query_params.get("end"), r"\d{4}-\d{2}-\d{2}")
+    partner_id = _referral_filter_value(request.query_params.get("partner"), r"[a-f0-9-]{36}")
+    status = _referral_filter_value(request.query_params.get("status"), r"registered|converted|refunded|cancelled")
+    try:
+        return build_referral_admin_report(
+            get_supabase_admin_client(),
+            start=start,
+            end=end,
+            partner_id=partner_id,
+            status=status,
+        )
+    except Exception as exc:
+        log_payment_diagnostic("referral admin report failed", error=exc)
+        raise HTTPException(status_code=500, detail="Referral report could not be loaded.")
+
+
+@app.post("/api/admin/referrals/partners")
+async def create_referral_partner(payload: ReferralPartnerCreatePayload, request: Request):
+    require_admin_user(request)
+    name = str(payload.name or "").strip()
+    code = str(payload.code or "").strip().lower()
+    email = str(payload.email or "").strip().lower() or None
+    commission_type = str(payload.commissionType or "").strip().lower()
+    commission_value = _money_amount(payload.commissionValue)
+    if not name or len(name) > 120:
+        raise HTTPException(status_code=400, detail="Partner name is required and must be 120 characters or fewer.")
+    if not code or len(code) > 50 or not re.fullmatch(r"[a-z0-9_-]+", code):
+        raise HTTPException(status_code=400, detail="Use up to 50 lowercase letters, numbers, hyphens or underscores for the code.")
+    if email and (len(email) > 254 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email)):
+        raise HTTPException(status_code=400, detail="Enter a valid partner email address.")
+    if commission_type not in {"fixed", "percentage"}:
+        raise HTTPException(status_code=400, detail="Commission type must be fixed or percentage.")
+    if commission_value is None or commission_value < 0 or (commission_type == "percentage" and commission_value > 100):
+        raise HTTPException(status_code=400, detail="Enter a valid non-negative commission value.")
+
+    admin = get_supabase_admin_client()
+    existing = admin.table("referral_partners").select("id").eq("code", code).limit(1).execute().data or []
+    if existing:
+        raise HTTPException(status_code=409, detail="That referral code already exists.")
+    try:
+        result = admin.table("referral_partners").insert({
+            "name": name,
+            "code": code,
+            "email": email,
+            "commission_type": commission_type,
+            "commission_value": float(commission_value),
+            "is_active": bool(payload.isActive),
+        }).execute()
+    except Exception as exc:
+        if "duplicate" in str(exc).lower() or "unique" in str(exc).lower():
+            raise HTTPException(status_code=409, detail="That referral code already exists.")
+        log_payment_diagnostic("referral partner creation failed", error=exc)
+        raise HTTPException(status_code=500, detail="Referral partner could not be created.")
+    row = (result.data or [{}])[0]
+    return {"ok": True, "partner": {"name": row.get("name", name), "code": row.get("code", code)}}
+
+
+@app.get("/api/admin/referrals/export.csv")
+async def export_referral_admin_csv(request: Request):
+    require_admin_user(request)
+    start = _referral_filter_value(request.query_params.get("start"), r"\d{4}-\d{2}-\d{2}")
+    end = _referral_filter_value(request.query_params.get("end"), r"\d{4}-\d{2}-\d{2}")
+    partner_id = _referral_filter_value(request.query_params.get("partner"), r"[a-f0-9-]{36}")
+    status = _referral_filter_value(request.query_params.get("status"), r"registered|converted|refunded|cancelled")
+    report = build_referral_admin_report(
+        get_supabase_admin_client(),
+        start=start,
+        end=end,
+        partner_id=partner_id,
+        status=status,
+    )
+    output = io.StringIO()
+    writer = csv.writer(output, lineterminator="\n")
+    writer.writerow(["partner", "referral_code", "status", "registered_at", "converted_at", "refunded_at", "gross_amount", "commission_amount", "currency"])
+    for row in report["referrals"]:
+        if row.get("status") not in {"converted", "refunded"}:
+            continue
+        writer.writerow([
+            row.get("partnerName"), row.get("referralCode"), row.get("status"),
+            row.get("registeredAt"), row.get("convertedAt"), row.get("refundedAt"),
+            row.get("grossAmount"), row.get("commissionAmount"), row.get("currency"),
+        ])
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=openingfit-referrals.csv"},
+    )
 
 
 @app.delete("/api/account/{user_id}")

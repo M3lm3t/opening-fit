@@ -12,6 +12,7 @@ import { startPremiumCheckout, deleteOpeningFitAccount } from "../accountApi";
 import { useAuth } from "../context/AuthDataProvider";
 import { logRetentionEvent } from "../services/retentionEvents";
 import { trackProductEvent } from "../lib/productAnalytics";
+import ReferralCodeEntry from "./ReferralCodeEntry";
 
 const EMPTY_PROFILE = {
   chesscom_username: "",
@@ -730,6 +731,8 @@ export default function AccountPanel({ variant = "floating",
                   />
                 </label>
               ) : null}
+
+              {authMode === "signup" ? <ReferralCodeEntry /> : null}
 
               <button
                 className="emailSignInBtn"

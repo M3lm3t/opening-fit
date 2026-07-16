@@ -6,13 +6,18 @@ import "./index.css";
 import "./styles/uiFoundation.css";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthDataProvider } from "./context/AuthDataProvider";
+import ReferralCaptureNotice from "./components/ReferralCaptureNotice";
+
+const AdminReferralsPage = React.lazy(() => import("./components/AdminReferralsPage"));
+const isReferralAdminRoute = window.location.pathname === "/admin/referrals";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>
       <AuthDataProvider>
+        <ReferralCaptureNotice />
         <React.Suspense fallback={<main className="routeLoadingFallback" role="status" aria-live="polite"><div aria-hidden="true" /><p>Loading OpeningFit…</p></main>}>
-          <App />
+          {isReferralAdminRoute ? <AdminReferralsPage /> : <App />}
         </React.Suspense>
       </AuthDataProvider>
       <Analytics />

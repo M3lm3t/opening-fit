@@ -1,0 +1,33 @@
+.referralAdmin { padding-block: 28px 56px; }
+.referralAdminSummary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.referralAdminMetric { display: grid; gap: 5px; padding: 16px; }
+.referralAdminMetric span { color: var(--of-color-text-muted); font-size: .78rem; }
+.referralAdminMetric strong { font-size: 1.35rem; }
+.referralAdminFilters { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 12px; padding: 14px; margin-bottom: 16px; }
+.referralAdminLayout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.referralAdminPartners, .referralAdminCreate { padding: 18px; }
+.referralAdminPartners h2, .referralAdminCreate h2 { margin-top: 0; }
+.referralAdminTableWrap { overflow-x: auto; }
+.referralAdmin table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.referralAdmin th, .referralAdmin td { padding: 10px; border-bottom: 1px solid var(--of-color-border); text-align: left; white-space: nowrap; }
+.referralPartnerLink { display: grid; gap: 2px; border: 0; padding: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+.referralPartnerLink small { color: var(--of-color-text-muted); }
+.referralAdminCreate form { display: grid; gap: 12px; }
+.referralAdminFormRow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.referralAdminCheck { display: flex; gap: 8px; align-items: center; min-height: 44px; }
+.referralAdminNotice { margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--of-color-border); border-radius: 10px; background: var(--of-color-surface); }
+.referralAdminDrawer { position: fixed; inset: 0; z-index: 1300; display: flex; justify-content: flex-end; background: rgba(2,6,23,.56); }
+.referralAdminDrawerPanel { width: min(520px, 100%); height: 100%; overflow-y: auto; padding: 22px; background: var(--of-color-bg); box-shadow: -18px 0 48px rgba(2,6,23,.32); }
+.referralAdminDrawerPanel header { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
+.referralAdminDrawerPanel header span { color: var(--of-color-text-muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; }
+.referralAdminDrawerPanel header h2 { margin: 4px 0 0; }
+.referralAdminDrawerPanel header button { width: 44px; height: 44px; border: 0; background: transparent; color: inherit; font-size: 1.5rem; }
+.referralAdminUrl { overflow-wrap: anywhere; color: var(--of-color-text-muted); }
+.referralAdminDetailList { display: grid; gap: 8px; }
+.referralAdminDetailList article { padding: 12px; border: 1px solid var(--of-color-border); border-radius: 10px; }
+.referralAdminDetailList article > div { display: flex; justify-content: space-between; gap: 12px; }
+.referralAdminDetailList small { display: block; margin-top: 5px; color: var(--of-color-text-muted); }
+.referralAdminVisitList { display: grid; gap: 6px; }
+.referralAdminVisitList div { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--of-color-border); }
+@media (max-width: 900px) { .referralAdminLayout { grid-template-columns: 1fr; } .referralAdminFilters { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .referralAdmin { padding-top: 16px; } .referralAdminFilters { grid-template-columns: 1fr; } .referralAdminSummary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

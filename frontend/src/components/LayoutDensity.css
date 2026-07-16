@@ -258,7 +258,9 @@
     grid-template-columns: minmax(0, 1fr) !important;
     gap: 12px !important;
     padding: 14px !important;
-    overflow: clip !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overscroll-behavior: auto !important;
   }
 
   .profileDashboard.profileDashboardSimple .accountPanel--screen .accountAuthStack,

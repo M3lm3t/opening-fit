@@ -13,6 +13,8 @@ import {
   SUPABASE_AUTH_STORAGE_KEY,
   supabase,
 } from "../lib/supabaseClient";
+import { attachStoredReferralToAuthenticatedUser } from "../lib/referrals";
+import { logSupabaseSyncWarning } from "../services/supabaseSyncDebug";
 import {
   deleteUserRow,
   createDefaultUserData,
@@ -316,10 +318,36 @@ export function AuthDataProvider({ children }) {
   const restoredUserIdRef = useRef(null);
   const restoredSessionKeyRef = useRef("");
   const legacySyncSuspendedRef = useRef(false);
+  const referralAttachInFlightRef = useRef(null);
+  const referralAttachedUserRef = useRef(null);
 
   const user = session?.user || null;
   userRef.current = user;
   userDataRef.current = userData;
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !user?.id) {
+      referralAttachInFlightRef.current = null;
+      referralAttachedUserRef.current = null;
+      return;
+    }
+    if (referralAttachedUserRef.current === user.id || referralAttachInFlightRef.current === user.id) return;
+
+    referralAttachInFlightRef.current = user.id;
+    void attachStoredReferralToAuthenticatedUser({
+      rpc: supabase.rpc.bind(supabase),
+      onError: (referralError, stage) => logSupabaseSyncWarning(
+        "referral_attributions",
+        stage,
+        referralError,
+        { source: "post-auth" }
+      ),
+    }).then((result) => {
+      if (result.success) referralAttachedUserRef.current = user.id;
+    }).finally(() => {
+      if (referralAttachInFlightRef.current === user.id) referralAttachInFlightRef.current = null;
+    });
+  }, [user?.id]);
 
   const refreshUserData = useCallback(
     async (nextUser = userRef.current, options = {}) => {

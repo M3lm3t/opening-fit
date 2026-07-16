@@ -836,3 +836,32 @@ body.light,
  .routeLoadingFallback > div { width: min(360px, 80vw); height: 12px; border-radius: 999px; background: linear-gradient(90deg, rgba(148,163,184,.15), rgba(148,163,184,.4), rgba(148,163,184,.15)); background-size: 200% 100%; animation: route-loading 1.2s linear infinite; }
  @keyframes route-loading { to { background-position: -200% 0; } }
  @media (prefers-reduced-motion: reduce) { .routeLoadingFallback > div { animation: none; } }
+
+.referralAppliedNotice {
+  position: fixed;
+  z-index: 1200;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, calc(env(safe-area-inset-bottom) + 16px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border: 1px solid var(--ui-border, rgba(148, 163, 184, 0.26));
+  border-radius: 12px;
+  background: var(--ui-surface-raised, #111827);
+  color: var(--ui-text, #f8fafc);
+  box-shadow: var(--ui-shadow-md, 0 12px 28px rgba(2, 6, 23, 0.24));
+  font-size: 0.88rem;
+}
+
+.referralAppliedNotice button {
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px -8px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
