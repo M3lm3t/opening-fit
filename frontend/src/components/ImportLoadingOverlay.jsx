@@ -145,7 +145,7 @@ export default function ImportLoadingOverlay({
 
         <footer className="importLoadingFooter">
           <span>{loadingStep || activeStage.detail}</span>
-          <small>If you refresh, this request cannot resume because the backend does not expose import job IDs.</small>
+          <small>The analysis runs as a background job. You can safely cancel without replacing your last report.</small>
         </footer>
       </div>
     </div>

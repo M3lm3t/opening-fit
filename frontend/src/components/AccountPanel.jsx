@@ -44,13 +44,18 @@ function getStableAuthRedirectTo() {
   return `${authOrigin}/account`;
 }
 
-function withAuthTimeout(request, message = "Supabase auth is taking too long. Please try again shortly.") {
-  return Promise.race([
-    request,
-    new Promise((_, reject) => {
-      window.setTimeout(() => reject(new Error(message)), AUTH_REQUEST_TIMEOUT_MS);
-    }),
-  ]);
+async function withAuthTimeout(request, message = "Supabase auth is taking too long. Please try again shortly.") {
+  let timeoutId;
+  try {
+    return await Promise.race([
+      Promise.resolve(request),
+      new Promise((_, reject) => {
+        timeoutId = globalThis.setTimeout(() => reject(new Error(message)), AUTH_REQUEST_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
 }
 
 const PRE_LOGIN_TEASERS = [
@@ -447,11 +452,18 @@ export default function AccountPanel({ variant = "floating",
   const signOut = async () => {
     if (!signOutAccount) return;
     setSaving(true);
-    await signOutAccount();
-    setProfile(EMPTY_PROFILE);
-    setStatus("");
-    setIsOpen(false);
-    setSaving(false);
+    setStatus("Logging out...");
+    try {
+      await signOutAccount();
+      setProfile(EMPTY_PROFILE);
+      setStatus("");
+      setIsOpen(false);
+    } catch (error) {
+      console.warn("OpeningFit sign out cleanup failed", error);
+      setStatus("You were logged out on this device. Refresh if the account panel still appears signed in.");
+    } finally {
+      setSaving(false);
+    }
   };
 
 

@@ -32,10 +32,13 @@ import sys
 import traceback
 import csv
 import io
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from uuid import UUID
+from uuid import UUID, uuid4
 from urllib.parse import urlparse
 
 import requests
@@ -260,6 +263,12 @@ class FeedbackRequest(BaseModel):
 class AnalyticsEventRequest(BaseModel):
     event: str
     data: Optional[Dict[str, Any]] = None
+
+
+class AnalysisJobRequest(BaseModel):
+    platform: str
+    username: str
+    months: int = 3
 
 
 PRODUCT_ANALYTICS_EVENTS = {
@@ -9615,6 +9624,115 @@ def import_lichess(username: str, months: int = 3):
 @app.get("/api/import/lichess/{username}")
 def api_import_lichess(username: str, months: int = 3):
     return run_import_route("lichess", username, months)
+
+
+ANALYSIS_JOB_TTL_SECONDS = 60 * 60
+ANALYSIS_JOB_MAX_ACTIVE = 40
+analysis_job_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="openingfit-analysis")
+analysis_jobs: Dict[str, Dict[str, Any]] = {}
+analysis_job_keys: Dict[str, str] = {}
+analysis_jobs_lock = threading.Lock()
+
+
+def analysis_job_public(job: Dict[str, Any]) -> Dict[str, Any]:
+    payload = {
+        key: job[key]
+        for key in ("jobId", "status", "createdAt", "updatedAt", "platform", "username", "months")
+    }
+    if job.get("result") is not None:
+        payload["result"] = job["result"]
+    if job.get("error") is not None:
+        payload["error"] = job["error"]
+    return payload
+
+
+def prune_analysis_jobs(now_monotonic: Optional[float] = None) -> None:
+    cutoff = (time.monotonic() if now_monotonic is None else now_monotonic) - ANALYSIS_JOB_TTL_SECONDS
+    expired_ids = [
+        job_id for job_id, job in analysis_jobs.items()
+        if job["status"] in {"completed", "failed"} and job.get("finishedMonotonic", 0) < cutoff
+    ]
+    for job_id in expired_ids:
+        job = analysis_jobs.pop(job_id, None)
+        if job and analysis_job_keys.get(job["requestKey"]) == job_id:
+            analysis_job_keys.pop(job["requestKey"], None)
+
+
+def execute_analysis_job(job_id: str) -> None:
+    with analysis_jobs_lock:
+        job = analysis_jobs.get(job_id)
+        if not job:
+            return
+        job.update(status="running", updatedAt=now_iso())
+        platform, username, months = job["platform"], job["username"], job["months"]
+
+    try:
+        result = run_import_route(platform, username, months)
+        if isinstance(result, JSONResponse):
+            try:
+                error_payload = json.loads(result.body.decode("utf-8", errors="replace"))
+            except json.JSONDecodeError:
+                error_payload = {}
+            raise RuntimeError(error_payload.get("message") or "Analysis failed.")
+        with analysis_jobs_lock:
+            if job := analysis_jobs.get(job_id):
+                job.update(status="completed", result=result, updatedAt=now_iso(), finishedMonotonic=time.monotonic())
+    except HTTPException as exc:
+        with analysis_jobs_lock:
+            if job := analysis_jobs.get(job_id):
+                job.update(status="failed", error={"status": exc.status_code, "message": str(exc.detail)}, updatedAt=now_iso(), finishedMonotonic=time.monotonic())
+    except Exception as exc:
+        logger.exception("analysis_job_failed job_id=%s reason=%s", job_id, exc.__class__.__name__)
+        with analysis_jobs_lock:
+            if job := analysis_jobs.get(job_id):
+                job.update(status="failed", error={"status": 500, "message": "Could not analyse games for this user."}, updatedAt=now_iso(), finishedMonotonic=time.monotonic())
+
+
+@app.post("/api/analysis/jobs", status_code=202)
+def start_analysis_job(request: AnalysisJobRequest):
+    platform_key = request.platform.strip().lower()
+    platform = "chess.com" if platform_key in {"chess.com", "chesscom"} else platform_key
+    if platform not in {"chess.com", "lichess"}:
+        raise HTTPException(status_code=400, detail="Choose Chess.com or Lichess.")
+    username = request.username.strip()
+    if not username or len(username) > 80:
+        raise HTTPException(status_code=400, detail="Enter a valid chess username.")
+    months = max(1, min(int(request.months or 3), 12))
+    request_key = f"{platform}:{username.lower()}:{months}"
+
+    with analysis_jobs_lock:
+        prune_analysis_jobs()
+        existing_id = analysis_job_keys.get(request_key)
+        existing = analysis_jobs.get(existing_id) if existing_id else None
+        if existing and existing["status"] in {"queued", "running"}:
+            return {**analysis_job_public(existing), "deduplicated": True}
+        active_count = sum(1 for job in analysis_jobs.values() if job["status"] in {"queued", "running"})
+        if active_count >= ANALYSIS_JOB_MAX_ACTIVE:
+            raise HTTPException(status_code=503, detail="The analysis queue is busy. Please try again shortly.")
+
+        job_id = str(uuid4())
+        created_at = now_iso()
+        job = {
+            "jobId": job_id, "requestKey": request_key, "status": "queued",
+            "createdAt": created_at, "updatedAt": created_at, "platform": platform,
+            "username": username, "months": months, "result": None, "error": None,
+        }
+        analysis_jobs[job_id] = job
+        analysis_job_keys[request_key] = job_id
+        response = analysis_job_public(job)
+
+    analysis_job_executor.submit(execute_analysis_job, job_id)
+    return {**response, "deduplicated": False}
+
+
+@app.get("/api/analysis/jobs/{job_id}")
+def get_analysis_job(job_id: UUID):
+    with analysis_jobs_lock:
+        prune_analysis_jobs()
+        job = analysis_jobs.get(str(job_id))
+        if not job:
+            raise HTTPException(status_code=404, detail="Analysis job not found or expired.")
+        return analysis_job_public(job)
 
 
 @app.get("/api/profile/{username}")

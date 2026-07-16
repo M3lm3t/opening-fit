@@ -48,6 +48,80 @@
   gap: 12px;
 }
 
+.backgroundAnalysisNotice {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9998;
+  width: min(430px, calc(100vw - 28px));
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  border-radius: 14px;
+  padding: 13px 14px;
+  background: rgba(3, 10, 22, 0.96);
+  color: #f8fafc;
+  box-shadow: 0 18px 55px rgba(2, 6, 23, 0.42);
+  backdrop-filter: blur(12px);
+}
+
+.backgroundAnalysisNotice > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.backgroundAnalysisNotice strong {
+  font-size: 0.86rem;
+}
+
+.backgroundAnalysisNotice small {
+  color: #a5b4c7;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.backgroundAnalysisNotice button {
+  min-height: 34px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 9px;
+  padding: 6px 10px;
+  background: rgba(15, 23, 42, 0.8);
+  color: #cbd5e1;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.backgroundAnalysisPulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #38bdf8;
+  box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.5);
+  animation: backgroundAnalysisPulse 1.6s ease-out infinite;
+}
+
+@keyframes backgroundAnalysisPulse {
+  70% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+}
+
+:root[data-theme="light"] .backgroundAnalysisNotice,
+.page.light .backgroundAnalysisNotice {
+  border-color: rgba(14, 116, 144, 0.22);
+  background: rgba(255, 255, 255, 0.97);
+  color: #0f172a;
+}
+
+@media (max-width: 520px) {
+  .backgroundAnalysisNotice {
+    right: 14px;
+    bottom: 78px;
+  }
+}
+
 .importLoadingHeader,
 .importLoadingProgressLabel,
 .importLoadingFooter {

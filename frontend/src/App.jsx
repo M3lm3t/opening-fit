@@ -14619,7 +14619,9 @@ export default function App() {
       setImportStatus({
         tone: "warning",
         title: "Analysis was interrupted",
-        message: "The previous request could not resume after refresh because the analysis server does not provide a job ID. Your last completed report was not changed.",
+        message: interrupted.jobId
+          ? "The background job may still be running. Start the same refresh again to reconnect to it; your last completed report was not changed."
+          : "The previous request did not finish in this tab. Your last completed report was not changed.",
         meta: interrupted.platform === "lichess" ? "Lichess" : "Chess.com",
         category: "interrupted_refresh",
         canRetry: true,
@@ -15547,6 +15549,7 @@ export default function App() {
     const cleanUsername = String(usernameOverride ?? username).trim();
     const selectedPlatform = platforms[selectedPlatformKey] || platforms.chesscom;
     const validation = validateImportUsername(cleanUsername);
+    const hadPreviousReport = Boolean(data);
 
     setImportStage(IMPORT_STAGES.VALIDATING);
     if (!validation.ok) {
@@ -15605,18 +15608,22 @@ export default function App() {
     setError("");
     setImportStatus({
       tone: "info",
-      title: `Importing ${selectedPlatform.label} games`,
-      message: `Checking public games for ${cleanUsername}. This can take a little longer for large imports.`,
-      meta: "Import started",
+      title: hadPreviousReport ? "Refreshing report in the background" : `Importing ${selectedPlatform.label} games`,
+      message: hadPreviousReport
+        ? `You can keep using OpeningFit while new ${selectedPlatform.label} games for ${cleanUsername} are analysed.`
+        : `Checking public games for ${cleanUsername}. This can take a little longer for large imports.`,
+      meta: hadPreviousReport ? "Background analysis" : "Import started",
     });
     setCloudSaveWarning("");
     setCloudSaveStatus("");
     setReturningUserBriefing(null);
     setSavedProfileMessage("");
-    setSelectedGameIndex(0);
-    setPracticeOpening(null);
-    setAnalysisVerdictId("");
-    setOpenSections(closedSections);
+    if (!hadPreviousReport) {
+      setSelectedGameIndex(0);
+      setPracticeOpening(null);
+      setAnalysisVerdictId("");
+      setOpenSections(closedSections);
+    }
     try {
       sessionStorage.setItem(ACTIVE_IMPORT_KEY, JSON.stringify({
         requestKey,
@@ -15657,6 +15664,18 @@ export default function App() {
           username: cleanUsername,
           months: monthsToImport,
           controller: abortController,
+          onJobStarted: (job) => {
+            try {
+              const activeImport = JSON.parse(sessionStorage.getItem(ACTIVE_IMPORT_KEY) || "{}");
+              sessionStorage.setItem(ACTIVE_IMPORT_KEY, JSON.stringify({
+                ...activeImport,
+                jobId: job.jobId,
+                jobStatus: job.status,
+              }));
+            } catch {
+              // Background analysis continues if session storage is unavailable.
+            }
+          },
         }),
         {
           maxRetries: 2,
@@ -15767,7 +15786,7 @@ export default function App() {
           : importOutcome
       );
       saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
-      successfulReportRedirectKey = userReportRetentionKey;
+      successfulReportRedirectKey = hadPreviousReport ? "" : userReportRetentionKey;
       setImportStage(IMPORT_STAGES.COMPLETE);
 
       logRetentionEvent(
@@ -16956,7 +16975,16 @@ export default function App() {
           }}
         />
 
-        {loading ? (
+        {loading && data ? (
+          <aside className="backgroundAnalysisNotice" role="status" aria-live="polite">
+            <span className="backgroundAnalysisPulse" aria-hidden="true" />
+            <div>
+              <strong>Refreshing your report in the background</strong>
+              <small>{loadingStep || `Analysing ${currentAnalysisPlatformLabel} games`}. You can keep browsing.</small>
+            </div>
+            <button type="button" onClick={cancelImport}>Cancel</button>
+          </aside>
+        ) : loading ? (
           <ImportLoadingOverlay
             platform={currentAnalysisPlatformLabel}
             username={username}
