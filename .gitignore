@@ -62,3 +62,4 @@ rescue-before-nav-reset/
 *.njsproj
 *.sln
 *.sw?
+.vercel
