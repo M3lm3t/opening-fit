@@ -12149,6 +12149,13 @@ function AppPrimaryNav({
       </div>
 
       <div
+        className="appPrimaryMobileBackdrop"
+        hidden={!mobileMenuOpen}
+        aria-hidden="true"
+        onPointerDown={() => setMobileMenuOpen(false)}
+      />
+
+      <div
         className={`appPrimaryMobilePanel ${mobileMenuOpen ? "appPrimaryMobilePanelOpen" : ""}`}
         id={mobileMenuId}
         hidden={!mobileMenuOpen}

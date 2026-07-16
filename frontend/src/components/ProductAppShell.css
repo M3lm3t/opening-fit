@@ -17,6 +17,58 @@
   --of-shell-gutter: clamp(14px, 2.2vw, 28px);
 }
 
+/* Mobile burger menu: final solid themed surface over a separate dimming layer. */
+.appPrimaryMobileBackdrop {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .appPrimaryNav:has(.appPrimaryMobilePanelOpen) {
+    backdrop-filter: none !important;
+  }
+
+  .appPrimaryNavInner {
+    position: relative;
+    z-index: 770;
+  }
+
+  .appPrimaryMobileBackdrop:not([hidden]) {
+    position: fixed;
+    inset: 0;
+    z-index: 740;
+    display: block;
+    background: rgba(2, 6, 23, 0.66);
+  }
+
+  .appPrimaryMobilePanel,
+  .appPrimaryMobilePanelOpen {
+    z-index: 760 !important;
+    background: #0b1220 !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 28px 72px rgba(2, 6, 23, 0.62) !important;
+    backdrop-filter: none !important;
+  }
+
+  :root[data-theme="light"] .appPrimaryMobileBackdrop:not([hidden]),
+  .page.light .appPrimaryMobileBackdrop:not([hidden]),
+  [data-theme="light"] .appPrimaryMobileBackdrop:not([hidden]) {
+    background: rgba(15, 23, 42, 0.3);
+  }
+
+  :root[data-theme="light"] .appPrimaryMobilePanel,
+  :root[data-theme="light"] .appPrimaryMobilePanelOpen,
+  .page.light .appPrimaryMobilePanel,
+  .page.light .appPrimaryMobilePanelOpen,
+  [data-theme="light"] .appPrimaryMobilePanel,
+  [data-theme="light"] .appPrimaryMobilePanelOpen {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+    box-shadow: 0 28px 72px rgba(15, 23, 42, 0.24) !important;
+  }
+}
+
 :root[data-theme="light"],
 .page.light,
 [data-theme="light"] {
