@@ -119,7 +119,14 @@ export default function PremiumPanel({
   onUnlockDemo,
   onResetDemo,
   onFounderPass,
+  checkoutLoading = false,
+  checkoutError = "",
 }) {
+  const handleFounderPass = (event) => {
+    event.stopPropagation();
+    onFounderPass?.("premium_page");
+  };
+
   const founderValueBullets = [
     "Save every report",
     "Compare progress over time",
@@ -205,10 +212,18 @@ export default function PremiumPanel({
           <button
             type="button"
             className="premiumCheckoutBtn"
-            onClick={onFounderPass}
+            data-founder-pass-direct="true"
+            onClick={handleFounderPass}
+            disabled={isPremium || checkoutLoading}
           >
-            Get Founder Pass for {PREMIUM_DISPLAY_PRICE}
+            {isPremium
+              ? "Founder Pass active"
+              : checkoutLoading
+                ? "Opening secure checkout..."
+                : `Get Founder Pass for ${PREMIUM_DISPLAY_PRICE}`}
           </button>
+
+          {checkoutError ? <p className="premiumCheckoutError" role="alert">{checkoutError}</p> : null}
 
           {import.meta.env.DEV ? <button type="button" className="premiumDemoBtn" onClick={onUnlockDemo}>Preview deeper report</button> : null}
           {import.meta.env.DEV ? <button type="button" className="premiumResetBtn" onClick={onResetDemo}>Exit Preview</button> : null}
@@ -300,6 +315,9 @@ export default function PremiumPanel({
           </p>
         </div>
 
+        <button type="button" data-founder-pass-direct="true" onClick={handleFounderPass} disabled={isPremium || checkoutLoading}>
+          {isPremium ? "Founder Pass active" : checkoutLoading ? "Opening checkout..." : `Get Founder Pass - ${PREMIUM_DISPLAY_PRICE}`}
+        </button>
         {import.meta.env.DEV ? <button type="button" onClick={onUnlockDemo}>Preview deeper report</button> : null}
       </div>
     </section>

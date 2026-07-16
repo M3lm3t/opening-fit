@@ -289,6 +289,7 @@ export default function AppActionRouter({ onViewChange }) {
     const handleClick = (event) => {
       const button = event.target.closest("button, a");
       if (!button) return;
+      if (button.closest("[data-founder-pass-direct='true']")) return;
 
       const label =
         normalise(button.getAttribute("aria-label")) ||

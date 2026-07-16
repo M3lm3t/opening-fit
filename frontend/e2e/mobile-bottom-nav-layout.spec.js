@@ -14,7 +14,7 @@ for (const viewport of [
       const nav = document.createElement("nav");
       nav.className = "mobileBottomNav of-mobile-bottom-nav";
       nav.setAttribute("aria-label", "Mobile app navigation test");
-      ["Report", "Repertoire", "Train", "Progress"].forEach((label) => {
+      ["Report", "Repertoire", "Train", "Progress", "Premium"].forEach((label) => {
         const button = document.createElement("button");
         button.textContent = label;
         nav.appendChild(button);
@@ -27,6 +27,6 @@ for (const viewport of [
     const box = await nav.boundingBox();
     expect(box).not.toBeNull();
     expect(Math.abs((box.x + box.width / 2) - viewport.width / 2)).toBeLessThanOrEqual(1);
-    await expect(nav.locator("button")).toHaveCount(4);
+    await expect(nav.locator("button")).toHaveCount(5);
   });
 }

@@ -1,4 +1,4 @@
-import { BookOpenCheck, ChartNoAxesCombined, Dumbbell, TrendingUp } from "lucide-react";
+import { BookOpenCheck, ChartNoAxesCombined, Crown, Dumbbell, TrendingUp } from "lucide-react";
 import { getAppSection } from "../appNavigation";
 
 export default function MobileBottomNav({ activeView, hasReport = false, onNavigate }) {
@@ -19,6 +19,7 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
       activeViews: ["train", "training", "interactive", "practice"],
     },
     { key: "progress", label: "Progress", Icon: TrendingUp, activeViews: ["progress"] },
+    { key: "premium", label: "Premium", Icon: Crown, activeViews: ["premium", "upgrade"] },
   ];
 
   function handleClick(event, item) {
@@ -39,6 +40,10 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
     }
     if (target === "progress") {
       onNavigate?.({ view: "progress", path: "/progress", target: "openingfit-progress", fallbackIds: ["profile"] });
+      return;
+    }
+    if (target === "premium") {
+      onNavigate?.({ view: "premium", path: "/premium", target: "premium" });
       return;
     }
     onNavigate?.(target);

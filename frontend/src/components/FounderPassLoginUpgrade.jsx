@@ -29,6 +29,7 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
     const handleUnlockClick = (event) => {
       const trigger = event.target?.closest?.("button, a, [role='button']");
       if (!trigger) return;
+      if (trigger.closest("[data-founder-pass-direct='true']")) return;
       if (trigger.closest(".founderPassUpgradePanel")) return;
       if (trigger.closest(".accountPanel")) return;
 

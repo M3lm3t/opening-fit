@@ -48,7 +48,7 @@ import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeni
 import RecommendationReasonHint from "./components/RecommendationReasonHint";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
-import { syncPremiumCheckoutSession } from "./accountApi";
+import { startPremiumCheckout, syncPremiumCheckoutSession } from "./accountApi";
 const Analytics = null;
 import OpeningDetailsModal from "./components/OpeningDetailsModal";
 import OpeningSnapshot from "./components/OpeningSnapshot";
@@ -14438,6 +14438,8 @@ export default function App() {
 
   const isPremium = Boolean(hasPremiumAccess);
   const [isPremiumPreview, setIsPremiumPreview] = useState(false);
+  const [premiumCheckoutLoading, setPremiumCheckoutLoading] = useState(false);
+  const [premiumCheckoutError, setPremiumCheckoutError] = useState("");
 
   const unlockPremiumDemo = () => {
     setIsPremiumPreview(canUsePremiumPreview({ isDevelopment: import.meta.env.DEV, requested: true }));
@@ -14520,34 +14522,40 @@ export default function App() {
     }, 80);
   };
 
-  const handleFounderPassClick = (source = "pricing_page") => {
+  const handleFounderPassClick = async (source = "pricing_page") => {
     void trackEvent("premium_upgrade_prompt_selected", { source: typeof source === "string" ? source : "pricing_page" });
-    setActiveView("profile");
-    if (window.location.pathname !== "/account") {
-      window.history.pushState({}, "", "/account");
+    setPremiumCheckoutError("");
+
+    if (!supabaseUser?.id) {
+      try {
+        localStorage.setItem(AUTH_RETURN_PATH_KEY, "/premium");
+      } catch {
+        // Login still works if return-path storage is unavailable.
+      }
+      setImportStatus({
+        tone: "info",
+        title: "Log in to get Founder Pass",
+        message: "Create an account or log in first, then OpeningFit will return you to the secure purchase page.",
+        meta: "Founder Pass",
+      });
+      setActiveView("profile");
+      if (window.location.pathname !== "/login") {
+        window.history.pushState({}, "", "/login");
+      }
+      setTimeout(() => scrollToAppTarget("login", { fallbackIds: ["profile"] }), 120);
+      return;
     }
 
-    window.dispatchEvent(
-      new CustomEvent("openingfit:founder-pass-intent", {
-        detail: {
-          source: "trust-upgrade",
-          plan: "founder_pass",
-        },
-      })
-    );
-
-    setTimeout(() => {
-      const accountTarget =
-        document.getElementById("account") ||
-        document.getElementById("login") ||
-        document.querySelector(".accountPanel") ||
-        document.querySelector(".account-panel") ||
-        document.querySelector("[data-section='account']");
-
-      if (accountTarget) {
-        accountTarget.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }, 120);
+    if (isPremium || premiumCheckoutLoading) return;
+    try {
+      setPremiumCheckoutLoading(true);
+      await startPremiumCheckout(supabaseUser);
+    } catch (error) {
+      console.error("OpeningFit Founder Pass checkout failed", error);
+      setPremiumCheckoutError(error?.message || "We could not start secure checkout. Please try again.");
+    } finally {
+      setPremiumCheckoutLoading(false);
+    }
   };
 
   const openLoginPage = useCallback((event) => {
@@ -16943,13 +16951,11 @@ export default function App() {
           onSignOut={handleAccountSignOut}
         />
         <AppActionRouter onViewChange={setActiveView} />
-        {accountUser && !isPublicLanding ? (
-          <MobileBottomNav
-            activeView={activeView}
-            hasReport={Boolean(reportData)}
-            onNavigate={handleAppNavigate}
-          />
-        ) : null}
+        <MobileBottomNav
+          activeView={activeView}
+          hasReport={Boolean(reportData)}
+          onNavigate={handleAppNavigate}
+        />
 
         {data ? (
           <>
@@ -17390,12 +17396,14 @@ export default function App() {
                     onUnlockDemo={unlockPremiumDemo}
                     onResetDemo={resetPremiumDemo}
                     onFounderPass={handleFounderPassClick}
+                    checkoutLoading={premiumCheckoutLoading}
+                    checkoutError={premiumCheckoutError}
                   />
 
                 </>
               ) : (
                 <>
-                  <PremiumPanel data={{}} isPremium={isPremium} isPremiumPreview={false} onFounderPass={handleFounderPassClick} />
+                  <PremiumPanel data={{}} isPremium={isPremium} isPremiumPreview={false} onFounderPass={handleFounderPassClick} checkoutLoading={premiumCheckoutLoading} checkoutError={premiumCheckoutError} />
                   <FounderPassProfileCard isPremium={isPremium} onFounderPass={handleFounderPassClick} />
                   <section className="card premiumNoReportCard">
                     <p className="eyebrow">Founder Pass</p>

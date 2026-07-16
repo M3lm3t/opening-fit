@@ -1031,7 +1031,7 @@
     inset: auto max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
     min-height: 68px;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     padding: 6px;
     border: 1px solid var(--of-shell-border);
@@ -1087,7 +1087,7 @@
     margin-right: 0 !important;
     margin-left: 0 !important;
     transform: translateX(-50%) !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
     box-sizing: border-box !important;
   }
 }
