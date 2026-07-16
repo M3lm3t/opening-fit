@@ -1075,6 +1075,23 @@
   .appPrimaryNav .appPrimaryGetStarted { display: none; }
 }
 
+/* Final mobile-nav geometry: keep the floating menu centred even when older
+   app-shell rules constrain its width after setting left/right offsets. */
+@media (max-width: 767px) {
+  .mobileBottomNav,
+  nav.mobileBottomNav.of-mobile-bottom-nav {
+    left: 50% !important;
+    right: auto !important;
+    width: calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right)) !important;
+    max-width: 520px !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    transform: translateX(-50%) !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    box-sizing: border-box !important;
+  }
+}
+
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 3px solid color-mix(in srgb, var(--of-color-primary) 82%, white);
   outline-offset: 3px;
