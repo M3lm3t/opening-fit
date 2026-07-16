@@ -109,6 +109,10 @@ const authStorage = {
   },
 };
 
+export function clearStoredSupabaseSession() {
+  authStorage.removeItem(SUPABASE_AUTH_STORAGE_KEY);
+}
+
 if (exposedServiceRoleKey) {
   throw new Error(
     "OpeningFit security error: never expose VITE_SUPABASE_SERVICE_ROLE_KEY in the frontend."

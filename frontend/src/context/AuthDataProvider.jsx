@@ -7,7 +7,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
+import {
+  clearStoredSupabaseSession,
+  isSupabaseConfigured,
+  SUPABASE_AUTH_STORAGE_KEY,
+  supabase,
+} from "../lib/supabaseClient";
 import {
   deleteUserRow,
   createDefaultUserData,
@@ -121,7 +126,11 @@ function isPersistedLegacyKey(key) {
 
 function isSafeLegacySyncKey(key) {
   const value = String(key || "");
-  return isPersistedLegacyKey(value) && !DANGEROUS_LEGACY_KEY_PATTERNS.some((pattern) => pattern.test(value));
+  return (
+    value !== SUPABASE_AUTH_STORAGE_KEY &&
+    isPersistedLegacyKey(value) &&
+    !DANGEROUS_LEGACY_KEY_PATTERNS.some((pattern) => pattern.test(value))
+  );
 }
 
 function readLegacyStorageSnapshot() {
@@ -424,6 +433,45 @@ export function AuthDataProvider({ children }) {
     },
     []
   );
+
+  const signOut = useCallback(async () => {
+    if (!supabase) return;
+
+    // Clear the durable browser session and UI immediately. Supabase's default
+    // global sign-out waits for the auth server, which can otherwise leave the
+    // whole account surface stuck when that request is slow or unavailable.
+    clearStoredSupabaseSession();
+    restoreSeqRef.current += 1;
+    restoredUserIdRef.current = null;
+    restoredSessionKeyRef.current = "";
+    restoreInFlightRef.current = false;
+    clearLegacyStorage();
+    setSession(null);
+    setUserData(null);
+    setAuthLoading(false);
+    setProfileLoading(false);
+    setCloudRestoreLoading(false);
+    setCloudRestored(false);
+    setProfileLoaded(true);
+    setProfileError("");
+    setRestoreError("");
+    setRestoreTimedOut(false);
+    setHydrated(true);
+    setSyncState({ status: "logged-out", lastSavedAt: "", error: "" });
+
+    try {
+      const { error: signOutError } = await withTimeout(
+        supabase.auth.signOut({ scope: "local" }),
+        2500,
+        "local sign out"
+      );
+      if (signOutError) throw signOutError;
+    } catch (signOutError) {
+      // The local session is already gone, so a provider cleanup failure should
+      // not put the user back into a loading or error state.
+      console.warn("OpeningFit provider sign out cleanup failed", signOutError);
+    }
+  }, []);
 
   const retryRestore = useCallback(async () => {
     const nextUser = userRef.current;
@@ -901,6 +949,7 @@ export function AuthDataProvider({ children }) {
       refreshUserData,
       retryRestore,
       restoreCloudSnapshot,
+      signOut,
       upsertUserData: (table, row, options) =>
         runSyncedMutation(
           () => upsertUserRow(table, user?.id, row, options),
@@ -957,6 +1006,7 @@ export function AuthDataProvider({ children }) {
       syncState,
       retryRestore,
       restoreCloudSnapshot,
+      signOut,
       session,
       user,
       userData,

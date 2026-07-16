@@ -130,6 +130,7 @@ export default function AccountPanel({ variant = "floating",
     lastSavedAt,
     syncError,
     refreshUserData,
+    signOut: signOutAccount,
   } = useAuth();
   const [isOpen, setIsOpen] = useState(isScreen);
   const [profile, setProfile] = useState(EMPTY_PROFILE);
@@ -443,11 +444,13 @@ export default function AccountPanel({ variant = "floating",
   };
 
   const signOut = async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
+    if (!signOutAccount) return;
+    setSaving(true);
+    await signOutAccount();
     setProfile(EMPTY_PROFILE);
     setStatus("");
     setIsOpen(false);
+    setSaving(false);
   };
 
 
@@ -487,7 +490,7 @@ export default function AccountPanel({ variant = "floating",
     try {
       setStatus("Deleting account...");
       await deleteOpeningFitAccount(user.id);
-      await supabase.auth.signOut();
+      await signOutAccount?.();
       Object.keys(localStorage).filter((key) => key.startsWith("openingFit:") || key.startsWith("openingfit:")).forEach((key) => localStorage.removeItem(key));
       setProfile(EMPTY_PROFILE);
       setStatus("Account deleted.");

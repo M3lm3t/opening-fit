@@ -508,28 +508,28 @@ export async function signInWithEmailPassword({ email, password }) {
     throw new Error(safeUserMessage(error, "Could not log in to OpeningFit."));
   }
 
-  const confirmedUser = await getCurrentUser();
-  if (!confirmedUser?.id) {
-    throw new Error("Login started, but Supabase did not return a confirmed user.");
+  const authenticatedUser = data?.user || data?.session?.user || null;
+  if (!authenticatedUser?.id) {
+    throw new Error("Login succeeded, but Supabase did not return the account details.");
   }
 
-  let profileError = null;
-  try {
-    await ensureProfile(confirmedUser);
-  } catch (error) {
-    profileError = error;
-    logQueryFailure("profiles", "ensure profile after sign in", error, { userId: confirmedUser.id });
-  }
+  // Authentication is complete as soon as Supabase returns the session. Profile
+  // repair is best-effort and must not turn a successful login into a timeout.
+  void ensureProfile(authenticatedUser).catch((profileError) => {
+    logQueryFailure("profiles", "ensure profile after sign in", profileError, {
+      userId: authenticatedUser.id,
+    });
+  });
 
   logQuerySuccess("auth.users", "sign in with email/password", {
     email: cleanEmail,
-    userId: confirmedUser.id,
+    userId: authenticatedUser.id,
   });
 
   return {
     session: data?.session || null,
-    user: confirmedUser,
-    profileError,
+    user: authenticatedUser,
+    profileError: null,
   };
 }
 

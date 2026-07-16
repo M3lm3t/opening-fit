@@ -14352,7 +14352,7 @@ export default function App() {
     restoreInProgress,
     restoreCloudSnapshot,
     isSupabaseConfigured,
-    supabase: supabaseClient,
+    signOut: signOutAccount,
   } = useAuth();
 
   useEffect(() => {
@@ -14555,8 +14555,8 @@ export default function App() {
   };
 
   const handleAccountSignOut = async () => {
-    if (!supabaseClient) return;
-    await supabaseClient.auth.signOut();
+    if (!signOutAccount) return;
+    await signOutAccount();
     setAccountUser(null);
   };
 
