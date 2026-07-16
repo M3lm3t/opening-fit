@@ -8179,7 +8179,12 @@ def import_chesscom_logic(username: str, months: int = 3):
             archives_checked=archive_breakdown,
         )
 
-    analysed_games, skipped_reason_counts = split_usable_games(all_games, chesscom_skip_reason)
+    analysis_candidates = sorted(
+        all_games,
+        key=lambda game: game.get("end_time") or 0,
+        reverse=True,
+    )[:ANALYSIS_GAME_LIMIT]
+    analysed_games, skipped_reason_counts = split_usable_games(analysis_candidates, chesscom_skip_reason)
 
     if not analysed_games:
         return build_not_enough_games_import_result(
@@ -8687,6 +8692,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     )
     result["progressComparison"] = result["progress_comparison"]
 
+    result = compact_analysis_result(result)
     profile = save_user_profile(username, result)
 
     log_analytics_event(
@@ -9359,6 +9365,7 @@ def build_lichess_analysis(
     )
     result["progressComparison"] = result["progress_comparison"]
 
+    result = compact_analysis_result(result)
     profile = save_user_profile(username, result)
 
     log_analytics_event(
@@ -9628,10 +9635,66 @@ def api_import_lichess(username: str, months: int = 3):
 
 ANALYSIS_JOB_TTL_SECONDS = 60 * 60
 ANALYSIS_JOB_MAX_ACTIVE = 40
+ANALYSIS_GAME_LIMIT = 300
+ANALYSIS_EVIDENCE_GAME_LIMIT = 48
+ANALYSIS_VARIATION_LIMIT = 80
 analysis_job_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="openingfit-analysis")
 analysis_jobs: Dict[str, Dict[str, Any]] = {}
 analysis_job_keys: Dict[str, str] = {}
 analysis_jobs_lock = threading.Lock()
+
+
+def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Bound public report payloads without removing the evidence used by the UI."""
+    if not isinstance(result, dict):
+        return result
+
+    compact = dict(result)
+    has_game_evidence = "opening_games" in compact or "openingGames" in compact
+    game_source = compact.get("opening_games") or compact.get("openingGames") or []
+    if has_game_evidence and isinstance(game_source, list):
+        ranked_games = sorted(
+            (game for game in game_source if isinstance(game, dict)),
+            key=lambda game: game.get("end_time") or game.get("endTime") or 0,
+            reverse=True,
+        )[:ANALYSIS_EVIDENCE_GAME_LIMIT]
+        compact_games = []
+        for game in ranked_games:
+            compact_games.append({
+                key: game[key]
+                for key in (
+                    "url", "rated", "result", "opening", "name", "context", "contextLabel",
+                    "time_class", "colour", "end_time", "played_at", "pgn", "moves",
+                    "move_count", "loss_timing",
+                )
+                if key in game
+            })
+        compact["opening_games"] = compact_games
+        compact.pop("openingGames", None)
+
+    metrics = compact.get("opening_fit_metrics") or compact.get("openingFitMetrics")
+    if isinstance(metrics, dict):
+        compact_metrics = dict(metrics)
+        variations = compact_metrics.get("variations")
+        if isinstance(variations, list):
+            compact_metrics["variations"] = sorted(
+                variations,
+                key=lambda row: (row or {}).get("games", (row or {}).get("games_played", 0)),
+                reverse=True,
+            )[:ANALYSIS_VARIATION_LIMIT]
+        compact["opening_fit_metrics"] = compact_metrics
+        compact.pop("openingFitMetrics", None)
+
+    # The frontend normaliser restores these aliases. Sending each multi-hundred
+    # kilobyte object once avoids making mobile clients parse the same data 2-3 times.
+    for duplicate_key in (
+        "recentGames", "topOpenings", "bestOpenings", "openingRecommendations",
+        "recommendedOpenings", "styleBasedRecommendations", "premiumPreview",
+        "retentionMetrics", "openingCoachInsights",
+    ):
+        compact.pop(duplicate_key, None)
+
+    return compact
 
 
 def analysis_job_public(job: Dict[str, Any]) -> Dict[str, Any]:
@@ -9674,6 +9737,7 @@ def execute_analysis_job(job_id: str) -> None:
             except json.JSONDecodeError:
                 error_payload = {}
             raise RuntimeError(error_payload.get("message") or "Analysis failed.")
+        result = compact_analysis_result(result)
         with analysis_jobs_lock:
             if job := analysis_jobs.get(job_id):
                 job.update(status="completed", result=result, updatedAt=now_iso(), finishedMonotonic=time.monotonic())

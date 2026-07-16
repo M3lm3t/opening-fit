@@ -1,7 +1,7 @@
 import { buildApiUrl } from "./apiBase.js";
 
-const IMPORT_TIMEOUT_MS = 5 * 60 * 1000;
-const JOB_START_TIMEOUT_MS = 15000;
+const IMPORT_TIMEOUT_MS = 15 * 60 * 1000;
+const JOB_START_TIMEOUT_MS = 75000;
 const JOB_POLL_INTERVAL_MS = 1400;
 
 export class ImportClientError extends Error {

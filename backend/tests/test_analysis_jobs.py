@@ -64,3 +64,39 @@ def test_expired_analysis_job_is_removed(monkeypatch):
         main.get_analysis_job(main.UUID(started["jobId"]))
 
     assert error.value.status_code == 404
+
+
+def test_compact_analysis_result_bounds_evidence_and_removes_large_aliases():
+    games = [
+        {
+            "url": f"https://example.test/{index}",
+            "end_time": index,
+            "opening": "Test Opening",
+            "pgn": "1. e4 e5 " * 100,
+            "moves": ["e4", "e5"],
+            "movesText": "e4 e5",
+            "timeClass": "rapid",
+        }
+        for index in range(120)
+    ]
+    variations = [{"name": f"Line {index}", "games": index} for index in range(140)]
+    source = {
+        "opening_games": games,
+        "openingGames": games,
+        "opening_fit_metrics": {"variations": variations},
+        "openingFitMetrics": {"variations": variations},
+        "opening_recommendations": {"white": ["Italian Game"]},
+        "openingRecommendations": {"white": ["Italian Game"]},
+        "recommendedOpenings": {"white": ["Italian Game"]},
+    }
+
+    compact = main.compact_analysis_result(source)
+
+    assert len(compact["opening_games"]) == main.ANALYSIS_EVIDENCE_GAME_LIMIT
+    assert compact["opening_games"][0]["end_time"] == 119
+    assert "movesText" not in compact["opening_games"][0]
+    assert "openingGames" not in compact
+    assert len(compact["opening_fit_metrics"]["variations"]) == main.ANALYSIS_VARIATION_LIMIT
+    assert "openingFitMetrics" not in compact
+    assert "openingRecommendations" not in compact
+    assert "recommendedOpenings" not in compact
