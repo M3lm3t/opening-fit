@@ -12,6 +12,7 @@
     "lint": "eslint src",
     "test": "node --test src/lib/*.test.js src/services/*.test.js",
     "layout:check": "node scripts/visual-layout-check.mjs",
+    "contrast:check": "node scripts/colour-contrast-check.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

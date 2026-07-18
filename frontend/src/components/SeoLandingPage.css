@@ -330,6 +330,11 @@
   text-decoration: none;
 }
 
+[data-theme="light"] .seoGuideCard a,
+[data-theme="light"] .openingHubCategoryGrid a {
+  color: #1d4ed8;
+}
+
 .seoAnalysisCta .seoHeroActions {
   justify-content: center;
 }
@@ -709,6 +714,17 @@
   .seoTopNav > div {
     justify-content: flex-start;
   }
+}
+
+/* Light cards previously retained their dark-theme link chips. */
+[data-theme="light"] .openingSeoCard > a,
+[data-theme="light"] .openingSeoCard nav a {
+  color: #1d4ed8;
+}
+
+[data-theme="light"] .openingSeoCard nav a {
+  border-color: #cbd5e1;
+  background: #ffffff;
 }
 
 @media (max-width: 560px) {
