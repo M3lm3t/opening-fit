@@ -1,325 +1,85 @@
-import { useMemo } from "react";
-import { getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
-import { PREMIUM_DISPLAY_PRICE, premiumFeatureStructure } from "../lib/premiumExperience";
+import { useEffect, useMemo, useState } from "react";
+import { loadBillingConfiguration } from "../accountApi.js";
+import { annualEffectiveMonthly, DEFAULT_BILLING_CONFIGURATION, formatGbp, normaliseBillingConfiguration } from "../lib/premiumExperience.js";
+import { trackProductEvent } from "../lib/productAnalytics.js";
+import "./PremiumPanelSubscriptions.css";
 
-function getOpeningName(item) {
-  return (
-    item?.opening ||
-    item?.name ||
-    item?.ecoName ||
-    item?.opening_name ||
-    item?.label ||
-    "Unknown opening"
-  );
+const COMPARISON = [
+  ["Opening report", "One useful report", "Ongoing reports"],
+  ["OpeningFit Score and style", "Included", "Included"],
+  ["Keep recommendations", "One", "Full evidence"],
+  ["Repair recommendations", "One", "Full evidence"],
+  ["Report refresh", "Limited", "Automatic or on demand, with fair-use limits"],
+  ["Game history analysed", "Up to 3 months", "Up to 12 months"],
+  ["Repertoire", "Report preview", "Living saved repertoire"],
+  ["Weekly training", "One-task preview", "Personal plan from your games"],
+  ["Progress", "—", "Report comparison and training outcomes"],
+];
+
+const FAQ = [
+  ["Can I cancel?", "Yes. You can cancel through account settings, which opens Stripe’s secure subscription portal."],
+  ["What happens after cancellation?", "Recurring billing stops and paid access continues until the end of the period you already paid for. Your saved data is retained, but paid workspaces become unavailable after that date unless you resubscribe."],
+  ["Does this replace Chess.com analysis?", "No. OpeningFit is a focused opening-repertoire and training companion. It does not replace full-game engine analysis or Chess.com’s broader analysis tools."],
+  ["Which platforms are supported?", "OpeningFit currently analyses public Chess.com and Lichess games."],
+  ["What happens to lifetime access?", "Existing lifetime members keep lifetime access. A subscription launch does not convert or expire a lifetime entitlement."],
+  ["How many games are analysed?", "The number depends on your public game activity and supported time controls. Free analyses up to 3 months of history; Plus analyses up to 12 months, subject to sensible service limits."],
+  ["Is the Fit Score a chess rating?", "No. It is a personalised indicator combining supported opening results, familiarity, consistency and repertoire suitability. It is not an official chess rating."],
+];
+
+function BillingToggle({ value, onChange, monthlyAvailable, annualAvailable }) {
+  return <fieldset className="subscriptionBillingToggle"><legend>Billing interval</legend><label className={value === "monthly" ? "isSelected" : ""}><input type="radio" name="billing-interval" value="monthly" checked={value === "monthly"} disabled={!monthlyAvailable} onChange={() => onChange("monthly")} /><span>Monthly</span></label><label className={value === "annual" ? "isSelected" : ""}><input type="radio" name="billing-interval" value="annual" checked={value === "annual"} disabled={!annualAvailable} onChange={() => onChange("annual")} /><span>Annual</span><strong>Best value</strong></label></fieldset>;
 }
 
-function getGames(item) {
-  return Number(item?.games ?? item?.count ?? item?.total ?? 0);
-}
+export default function PremiumPanel({ isPremium, entitlement, authenticated = false, onFounderPass, checkoutLoading = false, checkoutError = "" }) {
+  const [interval, setInterval] = useState("annual");
+  const [configuration, setConfiguration] = useState(DEFAULT_BILLING_CONFIGURATION);
+  const [configurationState, setConfigurationState] = useState("loading");
 
-function getWinRate(item) {
-  const direct = item?.winRate ?? item?.win_rate ?? item?.score;
+  useEffect(() => {
+    void trackProductEvent("pricing_viewed", { source: "pricing_page", authenticated }, { onceKey: "subscription_pricing" });
+    let active = true;
+    loadBillingConfiguration().then((value) => { if (!active) return; const next = normaliseBillingConfiguration(value); setConfiguration(next); setInterval(next.annual.available ? "annual" : "monthly"); setConfigurationState("ready"); }).catch(() => { if (active) setConfigurationState("error"); });
+    return () => { active = false; };
+  }, [authenticated]);
 
-  if (typeof direct === "number") {
-    return direct > 1 ? Math.round(direct) : Math.round(direct * 100);
-  }
+  const effectiveMonthly = annualEffectiveMonthly(configuration);
+  const founding = configuration.foundingOffer.enabled;
+  const selected = configuration[interval];
+  const selectedAmount = interval === "annual" && founding ? configuration.foundingOffer.firstYearAmount : selected.amount;
+  const checkoutAvailable = configurationState === "ready" && selected.available;
+  const lifetime = entitlement?.accessType === "lifetime" && entitlement?.hasPremiumAccess;
+  const priceSummary = useMemo(() => interval === "monthly"
+    ? `${formatGbp(selectedAmount)} per month`
+    : founding ? `${formatGbp(selectedAmount)} for the first year` : `${formatGbp(selectedAmount)} per year`, [founding, interval, selectedAmount]);
 
-  const games = getGames(item);
-  const wins = Number(item?.wins ?? item?.w ?? 0);
-  const draws = Number(item?.draws ?? item?.d ?? 0);
-
-  if (!games) return 0;
-
-  return Math.round(((wins + draws * 0.5) / games) * 100);
-}
-
-function collectOpenings(data) {
-  const possible =
-    data?.openingStats ||
-    data?.openings ||
-    data?.topOpenings ||
-    data?.verdicts ||
-    data?.opening_win_rates ||
-    data?.openingWinRates ||
-    [];
-
-  if (Array.isArray(possible)) return possible;
-
-  if (possible && typeof possible === "object") {
-    return Object.entries(possible).map(([name, value]) => ({
-      name,
-      ...(typeof value === "object" ? value : { games: value }),
-    }));
-  }
-
-  return [];
-}
-
-function isUnknownOpening(name) {
-  const normalised = String(name || "").trim().toLowerCase();
-
-  return (
-    !normalised ||
-    normalised === "unknown" ||
-    normalised === "unknown opening" ||
-    normalised.includes("uncommon opening")
-  );
-}
-
-function canUseAsRepertoire(item) {
-  if (!item) return false;
-  const context = getOpeningContext(item);
-  const signal = getOpeningSignal(item);
-  return context.canRecommend && signal.canBePrimary;
-}
-
-function openingContextTitle(item, fallback = "your strongest side-specific opening") {
-  if (!item) return fallback;
-
-  const name = item.displayName || getOpeningName(item);
-  const context = getOpeningContext(item);
-
-  if (context.type === "white") return `${name} as White`;
-  if (context.type === "black") return `${name} as Black`;
-  if (context.type === "faced") return `${name} you faced`;
-  return `${name} (mixed signal)`;
-}
-
-function FeatureRow({ label, free, premium }) {
-  const freeLabel = free === true ? "Included" : free || "Limited";
-  const freeIncluded = !/not included/i.test(freeLabel);
-
-  return (
-    <div className="premiumCompareRow">
-      <div className="premiumCompareFeature">{label}</div>
-      <div className={freeIncluded ? "premiumCompareYes" : "premiumCompareNo"}>
-        {freeLabel}
-      </div>
-      <div className="premiumCompareYes">{premium}</div>
-    </div>
-  );
-}
-
-function LockedPreview({ title, text, isPremium, isPreview = false }) {
-  const visible = isPremium || isPreview;
-  return (
-    <div className={visible ? "premiumPreviewCard unlocked" : "premiumPreviewCard locked"}>
-      <div className="premiumPreviewIcon">{visible ? "✓" : "🔒"}</div>
-      <h3>{title}</h3>
-      <p>{text}</p>
-      {!visible ? <span>Founder Pass unlock</span> : <span>{isPremium ? "Unlocked" : "Preview"}</span>}
-    </div>
-  );
-}
-
-export default function PremiumPanel({
-  data,
-  isPremium,
-  isPremiumPreview = false,
-  onUnlockDemo,
-  onResetDemo,
-  onFounderPass,
-  checkoutLoading = false,
-  checkoutError = "",
-}) {
-  const handleFounderPass = (event) => {
-    event.stopPropagation();
-    onFounderPass?.("premium_page");
+  const changeInterval = (next) => {
+    setInterval(next);
+    void trackProductEvent("billing_interval_changed", { source: "pricing_page", authenticated, billingInterval: next });
   };
 
-  const founderValueBullets = [
-    "Save every report",
-    "Compare progress over time",
-    "Track weak lines",
-    "Get a personal repertoire plan",
-    "Review weekly improvement",
-  ];
-  const founderTrustItems = [
-    "Built for club players",
-    "One-time early supporter access",
-    "No theory overload",
-  ];
+  const checkout = () => onFounderPass?.("pricing_page", interval);
 
-  const premiumInsights = useMemo(() => {
-    const openings = collectOpenings(data)
-      .map((item) => ({
-        ...item,
-        displayName: getOpeningName(item),
-        games: getGames(item),
-        winRate: getWinRate(item),
-      }))
-      .filter((item) => !isUnknownOpening(item.displayName))
-      .sort((a, b) => {
-        if (b.games !== a.games) return b.games - a.games;
-        return b.winRate - a.winRate;
-      });
+  return <section className="premiumUpgradeShell subscriptionPricing" id="premium-offer" aria-labelledby="pricing-title">
+    <header className="subscriptionPricingHero"><span>OpeningFit Plus</span><h1 id="pricing-title">Keep improving after the first report.</h1><p>Maintain a living repertoire, train the recurring problems found in your games, and see what changes between reports.</p>{lifetime ? <strong className="subscriptionLifetimeNotice">Your lifetime access remains active.</strong> : null}</header>
 
-    const reliable = openings.filter((item) => item.games >= 2);
-    const repertoireReliable = reliable.filter(canUseAsRepertoire);
-    const strong = reliable.filter((item) => item.winRate >= 55).sort((a, b) => b.winRate - a.winRate);
-    const weak = reliable.filter((item) => item.winRate < 45).sort((a, b) => a.winRate - b.winRate);
+    <div className="subscriptionPlanGrid">
+      <article className="subscriptionPlanCard subscriptionPlanCard--free"><span>Free</span><h2>£0</h2><p>A useful starting report—not an empty teaser.</p><ul><li>Useful first report</li><li>Basic OpeningFit Score and style</li><li>One Keep recommendation</li><li>One Repair recommendation</li><li>Limited refreshes</li><li>Weekly training preview</li></ul><a className="secondaryBtn" href="/analyse">Analyse games</a></article>
 
-    return {
-      best: strong.find(canUseAsRepertoire) || repertoireReliable[0] || strong[0] || reliable[0] || openings[0],
-      weak: weak.find(canUseAsRepertoire) || repertoireReliable[1] || weak[0] || reliable[1] || openings[1],
-      totalOpenings: openings.length,
-    };
-  }, [data]);
+      <article className="subscriptionPlanCard subscriptionPlanCard--plus"><header><div><span>OpeningFit Plus</span><h2>{priceSummary}</h2></div>{interval === "annual" ? <strong>Best value</strong> : null}</header>
+        <BillingToggle value={interval} onChange={changeInterval} monthlyAvailable={configuration.monthly.available || configurationState !== "ready"} annualAvailable={configuration.annual.available || configurationState !== "ready"} />
+        {interval === "annual" ? <p className="subscriptionEffectivePrice">Standard annual price {formatGbp(configuration.annual.amount)} · equivalent to {formatGbp(effectiveMonthly)} per month.</p> : <p className="subscriptionEffectivePrice">Flexible monthly billing at {formatGbp(configuration.monthly.amount)} per month.</p>}
+        {interval === "annual" && founding ? <aside className="subscriptionFoundingOffer"><strong>Founding launch price</strong><p>{formatGbp(configuration.foundingOffer.firstYearAmount)} for the first year, then {formatGbp(configuration.foundingOffer.renewsAtAmount)} per year unless cancelled.</p></aside> : null}
+        <ul><li>Living White and Black repertoire</li><li>Weekly personalised training from your games</li><li>Own-game opening drills</li><li>Progress between reports</li><li>Evidence of whether trained weaknesses recur</li><li>Saved reports and full recommendation evidence</li></ul>
+        <button type="button" className="premiumCheckoutBtn" onClick={checkout} disabled={isPremium || checkoutLoading || !checkoutAvailable}>{isPremium ? lifetime ? "Lifetime access active" : "OpeningFit Plus active" : checkoutLoading ? "Opening secure checkout…" : configurationState === "loading" ? "Loading secure pricing…" : !checkoutAvailable ? "Checkout temporarily unavailable" : `Choose ${interval} billing`}</button>
+        {configurationState === "error" ? <p className="premiumCheckoutError" role="alert">Secure pricing could not be loaded. No checkout was started.</p> : null}{checkoutError ? <p className="premiumCheckoutError" role="alert">{checkoutError}</p> : null}
+        <small>Recurring billing. Cancel through account settings. Access continues until the end of the paid period after cancellation.</small>
+      </article>
+    </div>
 
-  const featureStructure = premiumFeatureStructure();
+    <section className="premiumComparisonCard" aria-labelledby="pricing-comparison-title"><header className="premiumComparisonHeader"><div><span>Concise comparison</span><h2 id="pricing-comparison-title">Free starts the loop. Plus keeps it living.</h2></div></header><div className="premiumCompareTable"><div className="premiumCompareHead"><div>Feature</div><div>Free</div><div>Plus</div></div>{COMPARISON.map(([feature, free, plus]) => <div className="premiumCompareRow" key={feature}><div className="premiumCompareFeature">{feature}</div><div>{free}</div><div className="premiumCompareYes">{plus}</div></div>)}</div></section>
 
-  const bestOpening = openingContextTitle(premiumInsights.best, "your strongest side-specific opening");
-  const weakOpening = openingContextTitle(premiumInsights.weak, "your weakest side-specific opening area");
+    <section className="subscriptionBillingNotes"><h2>Clear subscription terms</h2><ul><li>Monthly and annual plans renew automatically until cancelled.</li><li>Cancellation is available through OpeningFit account settings.</li><li>Paid access remains available until the current paid period ends.</li><li>Existing lifetime members retain lifetime access.</li><li>Stripe processes payment details securely; OpeningFit does not receive card details.</li></ul></section>
 
-  return (
-    <section className="premiumUpgradeShell" id="premium-offer">
-      <div className="premiumUpgradeHero">
-        <div className="premiumUpgradeCopy">
-          <div className="premiumUpgradeEyebrow">Founder Pass</div>
-
-          <h2>Turn one report into a repertoire improvement loop.</h2>
-
-          <p>
-            Founder Pass helps you see which openings are improving, track weak
-            lines over time, save every report, and turn your analysis into a
-            personal repertoire plan.
-          </p>
-
-          <div className="premiumHeroBullets">
-            {founderValueBullets.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
-
-          <div className="premiumUpgradeTrust" aria-label="Founder Pass principles">
-            {founderTrustItems.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
-        </div>
-
-        <div className="premiumPriceCard">
-          <div className="premiumPriceTag">One-time Founder Pass</div>
-          <div className="premiumPrice">{PREMIUM_DISPLAY_PRICE}</div>
-          <p>One-time early-supporter purchase for the currently listed features.</p>
-
-          <div className="premiumPriceMiniStats">
-            <span>Saved reports</span>
-            <span>Progress comparisons</span>
-            <span>Weak-line tracking</span>
-          </div>
-
-          <button
-            type="button"
-            className="premiumCheckoutBtn"
-            data-founder-pass-direct="true"
-            onClick={handleFounderPass}
-            disabled={isPremium || checkoutLoading}
-          >
-            {isPremium
-              ? "Founder Pass active"
-              : checkoutLoading
-                ? "Opening secure checkout..."
-                : `Get Founder Pass for ${PREMIUM_DISPLAY_PRICE}`}
-          </button>
-
-          {checkoutError ? <p className="premiumCheckoutError" role="alert">{checkoutError}</p> : null}
-
-          {import.meta.env.DEV ? <button type="button" className="premiumDemoBtn" onClick={onUnlockDemo}>Preview deeper report</button> : null}
-          {import.meta.env.DEV ? <button type="button" className="premiumResetBtn" onClick={onResetDemo}>Exit Preview</button> : null}
-
-          <small>
-            {isPremium
-              ? "Saved reports, progress comparisons, and deeper repertoire tools are active."
-              : isPremiumPreview
-              ? "Preview mode shows what Founder Pass adds. Real paid features stay locked until Stripe confirms access."
-              : "Free gives the useful verdict. Founder Pass adds saved comparisons, weak-line tracking, and repertoire planning."}
-          </small>
-          <p>Requires an OpeningFit account. Stripe processes payment securely; OpeningFit does not receive your card details. Access is verified after you return.</p>
-          <p>Questions or refund requests: <a href="mailto:support@openingfit.com">support@openingfit.com</a>.</p>
-        </div>
-      </div>
-
-      <div className="premiumInsightStrip">
-        <div>
-          <span>Best opening to build around</span>
-          <strong>{bestOpening}</strong>
-        </div>
-
-        <div>
-          <span>Biggest opening leak</span>
-          <strong>{weakOpening}</strong>
-        </div>
-
-        <div>
-          <span>Openings detected</span>
-          <strong>{premiumInsights.totalOpenings || "Analysing"}</strong>
-        </div>
-      </div>
-
-      <div className="premiumPreviewGrid">
-        <LockedPreview
-          isPremium={isPremium}
-          isPreview={isPremiumPreview}
-          title="Progress over time"
-          text="Save reports and compare whether your openings, weak lines, and repertoire score are improving."
-        />
-
-        <LockedPreview
-          isPremium={isPremium}
-          isPreview={isPremiumPreview}
-          title="Deeper opening analysis"
-          text="Use the full opening table to compare side, sample size, score, confidence, and recommendation labels."
-        />
-
-        <LockedPreview
-          isPremium={isPremium}
-          isPreview={isPremiumPreview}
-          title="Weak line tracking"
-          text="See repeated weak lines and turn them into focused training targets when the data is available."
-        />
-
-        <LockedPreview
-          isPremium={isPremium}
-          isPreview={isPremiumPreview}
-          title="Personal repertoire plan"
-          text={`Turn signals like ${bestOpening} and ${weakOpening} into an exportable study plan and clearer repertoire map.`}
-        />
-      </div>
-
-      <div className="premiumComparisonCard">
-        <div className="premiumComparisonHeader">
-          <div>
-            <span>Free vs Founder Pass</span>
-            <h3>Free gives the first verdict. Founder Pass tracks whether the plan is working.</h3>
-          </div>
-        </div>
-
-        <div className="premiumCompareTable">
-          <div className="premiumCompareHead">
-            <div>Feature</div>
-            <div>Free</div>
-            <div>Premium</div>
-          </div>
-
-          {featureStructure.premium.map((feature, index) => <FeatureRow key={feature} label={feature} free={featureStructure.free[index] || "Limited"} premium="Included" />)}
-        </div>
-      </div>
-
-      <div className="premiumFinalCta">
-        <div>
-          <h3>Founder Pass turns a useful snapshot into progress you can compare.</h3>
-          <p>
-            Keep using the free verdict. Upgrade when you want saved reports,
-            weak-line tracking, progress comparisons, and a personal repertoire plan.
-          </p>
-        </div>
-
-        <button type="button" data-founder-pass-direct="true" onClick={handleFounderPass} disabled={isPremium || checkoutLoading}>
-          {isPremium ? "Founder Pass active" : checkoutLoading ? "Opening checkout..." : `Get Founder Pass - ${PREMIUM_DISPLAY_PRICE}`}
-        </button>
-        {import.meta.env.DEV ? <button type="button" onClick={onUnlockDemo}>Preview deeper report</button> : null}
-      </div>
-    </section>
-  );
+    <section className="subscriptionFaq" aria-labelledby="subscription-faq-title"><span>FAQ</span><h2 id="subscription-faq-title">Before you subscribe</h2>{FAQ.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</section>
+  </section>;
 }

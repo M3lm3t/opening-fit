@@ -1,10 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").trim();
-const supabaseAnonKey = String(import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
-const exposedServiceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+const viteEnv = import.meta.env || {};
+const supabaseUrl = String(viteEnv.VITE_SUPABASE_URL || "").trim();
+const supabaseAnonKey = String(viteEnv.VITE_SUPABASE_ANON_KEY || "").trim();
+const exposedServiceRoleKey = viteEnv.VITE_SUPABASE_SERVICE_ROLE_KEY;
 const debugSupabase =
-  import.meta.env.DEV ||
+  viteEnv.DEV ||
   (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debugSupabase"));
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);

@@ -71,13 +71,13 @@ async function readJsonResponse(response, url) {
   }
 }
 
-async function legacyImport({ apiPath, cleanUsername, safeMonths, abortController }) {
+async function legacyImport({ apiPath, cleanUsername, safeMonths, abortController, accessToken = "" }) {
   const url = buildApiUrl(
     `/api/import/${apiPath}/${encodeURIComponent(cleanUsername)}?months=${safeMonths}`
   );
   let response;
   try {
-    response = await fetch(url, { signal: abortController.signal });
+    response = await fetch(url, { signal: abortController.signal, headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
   } catch (error) {
     if (error?.name === "AbortError") {
       throw new ImportClientError({
@@ -115,7 +115,7 @@ async function legacyImport({ apiPath, cleanUsername, safeMonths, abortControlle
   };
 }
 
-export async function importGames({ platform, username, months, controller, onJobStarted }) {
+export async function importGames({ platform, username, months, controller, onJobStarted, accessToken = "" }) {
   const apiPath = platformPath(platform);
   const cleanUsername = String(username || "").trim();
   const safeMonths = Number.isFinite(Number(months)) ? Number(months) : 3;
@@ -137,7 +137,7 @@ export async function importGames({ platform, username, months, controller, onJo
     try {
       startResponse = await fetch(startUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
         body: JSON.stringify({ platform: apiPath, username: cleanUsername, months: safeMonths }),
         signal: abortController.signal,
       });
@@ -146,7 +146,7 @@ export async function importGames({ platform, username, months, controller, onJo
     }
 
     if ([404, 405].includes(startResponse.status)) {
-      return await legacyImport({ apiPath, cleanUsername, safeMonths, abortController });
+      return await legacyImport({ apiPath, cleanUsername, safeMonths, abortController, accessToken });
     }
 
     const { json: started, responseText: startText } = await readJsonResponse(startResponse, startUrl);
@@ -167,7 +167,7 @@ export async function importGames({ platform, username, months, controller, onJo
     const statusUrl = buildApiUrl(`/api/analysis/jobs/${encodeURIComponent(started.jobId)}`);
     while (true) {
       if (abortController.signal.aborted) throw new DOMException("Import cancelled.", "AbortError");
-      const statusResponse = await fetch(statusUrl, { signal: abortController.signal });
+      const statusResponse = await fetch(statusUrl, { signal: abortController.signal, headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
       const { json: job, responseText } = await readJsonResponse(statusResponse, statusUrl);
       if (!statusResponse.ok) {
         throw new ImportClientError({ type: "http", status: statusResponse.status, message: backendMessageFromJson(job, "Could not check analysis progress."), responseText, url: statusUrl });

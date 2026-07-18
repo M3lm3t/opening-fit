@@ -1,0 +1,29 @@
+.thisWeekCompletionTasks {
+  display: grid;
+  grid-column: 2;
+  gap: 0.5rem;
+}
+
+.thisWeekCompletionTasks > h3 {
+  margin: 0;
+  color: var(--muted, #5d6677);
+  font-size: 0.88rem;
+}
+
+.thisWeekContinueBar strong {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .thisWeekCompletionTasks {
+    grid-column: 1;
+  }
+
+  .thisWeekTaskExplanation {
+    display: block;
+    overflow: visible;
+  }
+}

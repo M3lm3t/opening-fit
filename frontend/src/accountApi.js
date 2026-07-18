@@ -107,7 +107,14 @@ export async function loadAccountProfile(userId) {
   return response.json();
 }
 
-export async function startPremiumCheckout(user) {
+export async function loadBillingConfiguration() {
+  const response = await fetch(buildApiUrl("/api/billing/config"));
+  const data = await readJsonOrText(response);
+  if (!response.ok) throw new Error(friendlyApiError(data, "Pricing configuration could not be loaded."));
+  return data;
+}
+
+export async function startPremiumCheckout(user, billingInterval = "annual") {
   if (!canStartCheckout(user)) {
     throw new Error("Please sign in or create an account before upgrading.");
   }
@@ -120,6 +127,8 @@ export async function startPremiumCheckout(user) {
     });
   }
 
+  const interval = billingInterval === "monthly" ? "monthly" : "annual";
+  void trackProductEvent("checkout_started", { source: "pricing_page", authenticated: true, billingInterval: interval });
   let response;
   try {
     response = await fetch(buildApiUrl("/api/account/create-checkout-session"), {
@@ -128,6 +137,7 @@ export async function startPremiumCheckout(user) {
       body: JSON.stringify({
         userId: user.id,
         email: user.email,
+        billingInterval: interval,
       }),
     });
   } catch (error) {
@@ -138,6 +148,7 @@ export async function startPremiumCheckout(user) {
         message: error?.message,
       },
     });
+    void trackProductEvent("checkout_failed", { source: "pricing_page", authenticated: true, billingInterval: interval, errorCategory: "network" });
     throw new Error("Could not reach the payment server. Please check your connection and try again.");
   }
 
@@ -148,11 +159,13 @@ export async function startPremiumCheckout(user) {
       status: response.status,
       payload: safeDiagnosticPayload(data),
     });
+    void trackProductEvent("checkout_failed", { source: "pricing_page", authenticated: true, billingInterval: interval, errorCategory: `http_${response.status}` });
     throw new Error(friendlyApiError(data, "We could not start checkout. Please try again."));
   }
 
   if (!data?.url) {
     console.error("OpeningFit checkout endpoint returned no URL", safeDiagnosticPayload(data));
+    void trackProductEvent("checkout_failed", { source: "pricing_page", authenticated: true, billingInterval: interval, errorCategory: "missing_url" });
     throw new Error("We could not start checkout. Please try again.");
   }
 
@@ -162,7 +175,6 @@ export async function startPremiumCheckout(user) {
       hasUrl: true,
     });
   }
-  void trackProductEvent("checkout_started", { source: "account_checkout", authenticated: true });
   window.location.href = data.url;
 
   return data;
@@ -203,6 +215,24 @@ export async function syncPremiumCheckoutSession(user, sessionId) {
   }
 
   return data;
+}
+
+export async function createSubscriptionPortalSession(user) {
+  if (!user?.id) throw new Error("Please sign in before managing a subscription.");
+
+  const response = await fetch(buildApiUrl("/api/account/create-portal-session"), {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({ userId: user.id }),
+  });
+  const data = await readJsonOrText(response);
+  if (!response.ok) {
+    throw new Error(friendlyApiError(data, "We could not open subscription management. Please try again."));
+  }
+  if (!String(data?.url || "").startsWith("https://")) {
+    throw new Error("Stripe returned an invalid subscription management link.");
+  }
+  return data.url;
 }
 
 export async function deleteOpeningFitAccount(userId) {

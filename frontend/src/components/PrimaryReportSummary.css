@@ -1,0 +1,52 @@
+.primaryReportSummary { min-width: 0; display: grid; gap: 16px; }
+.primaryReportHero { min-width: 0; display: grid; grid-template-columns: minmax(210px, .72fr) minmax(0, 1.65fr); gap: 14px; }
+.primaryReportScore,
+.primaryReportVerdict,
+.primaryReportRepertoire,
+.primaryReportTraining,
+.primaryReportConfidence {
+  min-width: 0; padding: clamp(16px, 2.5vw, 24px); border: 1px solid var(--of-border, #d8dee8); border-radius: var(--of-radius-lg, 16px); background: var(--of-surface, #fff); overflow: hidden;
+}
+.primaryReportScore { display: grid; align-content: center; justify-items: center; text-align: center; background: color-mix(in srgb, var(--of-accent, #2563eb) 7%, var(--of-surface, #fff)); }
+.primaryReportScore span,
+.primaryReportVerdict > span,
+.primaryReportRepertoire header span,
+.primaryReportTraining span { color: var(--of-muted, #64748b); font-size: .74rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+.primaryReportScore strong { color: var(--of-text, #0f172a); font-size: clamp(3.2rem, 7vw, 5.8rem); line-height: .95; }
+.primaryReportScore small { color: var(--of-muted, #64748b); font-weight: 800; }
+.primaryReportScore em { margin-top: 7px; padding: 4px 8px; border-radius: 999px; background: var(--of-surface-muted, #f1f5f9); color: var(--of-muted, #64748b); font-size: .72rem; font-style: normal; font-weight: 900; }
+.primaryReportVerdict { display: grid; align-content: center; }
+.primaryReportVerdict h1 { margin: 4px 0 8px; font-size: clamp(1.55rem, 3vw, 2.35rem); }
+.primaryReportVerdict p { margin: 0; color: var(--of-text, #0f172a); font-size: clamp(1rem, 1.8vw, 1.16rem); line-height: 1.55; }
+.primaryReportVerdict small { margin-top: 11px; color: var(--of-muted, #64748b); }
+.primaryReportConfidence { padding-block: 13px; background: color-mix(in srgb, var(--of-warning, #d97706) 7%, var(--of-surface, #fff)); }
+.primaryReportConfidence p { margin: 4px 0 0; color: var(--of-muted, #64748b); line-height: 1.45; }
+.primaryReportComparison { min-width: 0; }
+.primaryReportRepertoire { display: grid; gap: 12px; }
+.primaryReportRepertoire > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.primaryReportRepertoire h2,
+.primaryReportTraining h2 { margin: 3px 0 0; font-size: clamp(1.15rem, 2vw, 1.4rem); }
+.primaryReportRepertoire > header > strong { color: var(--of-muted, #64748b); font-size: .78rem; }
+.primaryReportRepertoire > div { min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.primaryReportRepertoire article { min-width: 0; padding: 12px; border-radius: var(--of-radius-md, 12px); background: var(--of-surface-muted, #f8fafc); }
+.primaryReportRepertoire article.isIncomplete { border: 1px dashed var(--of-border, #cbd5e1); }
+.primaryReportRepertoire article span { color: var(--of-muted, #64748b); font-size: .78rem; font-weight: 800; }
+.primaryReportRepertoire article h3 { margin: 5px 0; font-size: 1rem; overflow-wrap: anywhere; }
+.primaryReportRepertoire article p { margin: 0; color: var(--of-muted, #64748b); font-size: .82rem; overflow-wrap: anywhere; }
+.primaryReportTraining { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; border-color: color-mix(in srgb, var(--of-accent, #2563eb) 28%, var(--of-border, #d8dee8)); }
+.primaryReportTraining p { margin: 6px 0 0; color: var(--of-muted, #64748b); line-height: 1.45; }
+.primaryReportTraining button { min-height: 48px; white-space: nowrap; }
+.primaryReportMore { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.primaryReportMore small { color: var(--of-muted, #64748b); }
+@media (max-width: 760px) {
+  .decisionReportFlow > .primaryReportSummary { order: -2 !important; }
+  .decisionReportFlow > .reportCommandBar { order: -1 !important; }
+  .decisionReportFlow > .reportFullDisclosure { order: 0 !important; }
+  .primaryReportHero,
+  .primaryReportRepertoire > div,
+  .primaryReportTraining { grid-template-columns: 1fr; }
+  .primaryReportScore { min-height: 190px; }
+  .primaryReportRepertoire > header { align-items: flex-start; }
+  .primaryReportTraining button,
+  .primaryReportMore button { width: 100%; }
+}

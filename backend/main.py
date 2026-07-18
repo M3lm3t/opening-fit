@@ -12,6 +12,7 @@ from analysis.engine_analysis import (
 from analysis.game_diagnostics import build_diagnostic_summary
 from analysis.opening_fit_metrics import build_opening_fit_metrics, merge_opening_fit_metrics
 from analysis.opening_coach_insights import build_opening_coach_insights
+from analysis.opening_training_opportunities import extract_opening_training_opportunities
 from analysis.retention_metrics import build_retention_metrics
 from opening_detection import (
     detect_opening,
@@ -48,13 +49,22 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import create_client, Client
+from feature_entitlements import can_use_feature, entitlement_has_paid_access, feature_limit
+from runtime_config import (
+    assert_valid_startup_configuration,
+    build_allowed_origins,
+    readiness_payload,
+    runtime_environment,
+    subscriptions_enabled,
+)
 
 
 load_dotenv(".env")
 load_dotenv(".env.local", override=False)
+assert_valid_startup_configuration()
 
 app = FastAPI(title="Opening Fit API")
-logger = logging.getLogger("openingfit.imports")
+logger = logging.getLogger("openingfit")
 
 
 SECRET_QUERY_KEYS = {"token", "key", "secret", "password", "authorization", "session", "access_token"}
@@ -63,17 +73,39 @@ SECRET_LOG_KEYS = SECRET_QUERY_KEYS | {
     "customer_email",
     "stripe_secret_key",
     "stripe_webhook_secret",
+    "stripe_webhook_signature",
     "supabase_service_role_key",
-    "user_id",
-    "resolved_user_id",
-    "metadata_user_id",
-    "client_reference_id",
-    "session_id",
-    "subscription_id",
-    "payment_intent_id",
-    "customer_id",
+    "request_headers",
     "referral_attribution_id",
 }
+SAFE_HASHED_IDENTIFIER_KEYS = {"user_id", "resolved_user_id", "metadata_user_id", "client_reference_id", "entitlement_id"}
+SAFE_SUFFIX_IDENTIFIER_KEYS = {
+    "session_id", "subscription_id", "payment_intent_id", "customer_id", "event_id",
+    "stripe_checkout_session_id", "stripe_subscription_id", "stripe_payment_intent_id",
+    "stripe_customer_id", "stripe_price_id",
+}
+
+
+def redact_sensitive_text(value: Any) -> str:
+    text = str(value or "")
+    patterns = (
+        r"sk_(?:live|test)_[A-Za-z0-9]+",
+        r"whsec_[A-Za-z0-9]+",
+        r"sb_secret_[A-Za-z0-9._-]+",
+        r"Bearer\s+[A-Za-z0-9._-]+",
+    )
+    for pattern in patterns:
+        text = re.sub(pattern, "[redacted]", text, flags=re.IGNORECASE)
+    return text
+
+
+def safe_identifier(value: Any, *, hashed: bool = False) -> Optional[str]:
+    clean = str(value or "").strip()
+    if not clean:
+        return None
+    if hashed:
+        return f"sha256:{hashlib.sha256(clean.encode('utf-8')).hexdigest()[:12]}"
+    return f"...{clean[-8:]}" if len(clean) > 8 else "[short-id]"
 
 
 def safe_query_params(request: Request) -> Dict[str, str]:
@@ -89,13 +121,18 @@ def safe_query_params(request: Request) -> Dict[str, str]:
 
 
 def safe_log_value(key: str, value: Any) -> Any:
-    if key and key.lower() in SECRET_LOG_KEYS:
+    normalized_key = key.lower() if key else ""
+    if normalized_key in SECRET_LOG_KEYS:
         return "[redacted]"
+    if normalized_key in SAFE_HASHED_IDENTIFIER_KEYS:
+        return safe_identifier(value, hashed=True)
+    if normalized_key in SAFE_SUFFIX_IDENTIFIER_KEYS:
+        return safe_identifier(value)
 
     if isinstance(value, BaseException):
         return {
             "type": value.__class__.__name__,
-            "message": str(value),
+            "message": redact_sensitive_text(value),
         }
 
     if isinstance(value, dict):
@@ -107,8 +144,9 @@ def safe_log_value(key: str, value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [safe_log_value(key, item) for item in value[:20]]
 
-    if isinstance(value, str) and len(value) > 500:
-        return f"{value[:500]}...[truncated]"
+    if isinstance(value, str):
+        clean = redact_sensitive_text(value)
+        return f"{clean[:500]}...[truncated]" if len(clean) > 500 else clean
 
     return value
 
@@ -118,11 +156,11 @@ def safe_log_details(details: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def log_payment_diagnostic(message: str, **details) -> None:
-    print("OpeningFit payment diagnostic:", message, safe_log_details(details))
+    logger.info("payment_operation message=%s details=%s", message, json.dumps(safe_log_details(details), default=str, sort_keys=True))
 
 
 def log_supabase_diagnostic(message: str, **details) -> None:
-    print("OpeningFit Supabase diagnostic:", message, safe_log_details(details))
+    logger.warning("supabase_operation message=%s details=%s", message, json.dumps(safe_log_details(details), default=str, sort_keys=True))
 
 
 @app.middleware("http")
@@ -138,7 +176,7 @@ async def log_unhandled_exceptions(request, call_next):
             request.headers.get("origin", ""),
             request.headers.get("user-agent", ""),
             exc.__class__.__name__,
-            str(exc),
+            redact_sensitive_text(exc),
             traceback.format_exc(),
         )
         return JSONResponse(
@@ -195,23 +233,7 @@ async def enrich_openingfit_analysis_payloads(request, call_next):
     )
 
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip()
-FRONTEND_URL_WWW = os.getenv("FRONTEND_URL_WWW", "").strip()
-
-allowed_origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
-    "https://openingfit.com",
-    "https://www.openingfit.com",
-]
-
-if FRONTEND_URL:
-    allowed_origins.append(FRONTEND_URL)
-
-if FRONTEND_URL_WWW:
-    allowed_origins.append(FRONTEND_URL_WWW)
+allowed_origins = build_allowed_origins()
 
 app.add_middleware(
     CORSMiddleware,
@@ -272,9 +294,11 @@ class AnalysisJobRequest(BaseModel):
 
 
 PRODUCT_ANALYTICS_EVENTS = {
-    "homepage_viewed", "platform_selected", "username_started", "username_submitted", "account_lookup_succeeded", "account_lookup_failed", "analysis_started", "analysis_failed", "analysis_completed", "report_viewed", "coach_verdict_viewed", "recommendation_expanded", "evidence_viewed", "supporting_game_opened", "fit_explanation_opened", "repertoire_viewed", "opening_added", "opening_replaced", "opening_locked", "recommendation_dismissed", "training_started", "training_task_completed", "training_task_failed", "training_answer_revealed", "training_session_completed", "returning_dashboard_viewed", "new_games_detected", "reanalysis_started", "report_comparison_viewed", "resolved_issue_viewed", "account_created", "sign_in_completed", "premium_page_viewed", "checkout_started", "checkout_cancelled", "checkout_completed", "entitlement_confirmed", "entitlement_delayed", "recommendation_feedback_submitted", "general_feedback_submitted", "import_problem_reported",
+    "weekly_recap_shown", "weekly_recap_opened", "weekly_recap_dismissed", "weekly_recap_action_clicked",
+    "onboarding_started", "onboarding_completed", "onboarding_skipped", "training_preference_updated",
+    "homepage_viewed", "platform_selected", "username_started", "username_submitted", "account_lookup_succeeded", "account_lookup_failed", "analysis_started", "analysis_failed", "analysis_completed", "report_viewed", "coach_verdict_viewed", "recommendation_expanded", "evidence_viewed", "supporting_game_opened", "fit_explanation_opened", "repertoire_viewed", "opening_added", "opening_replaced", "opening_locked", "recommendation_dismissed", "repertoire_created", "repertoire_change_accepted", "repertoire_change_rejected", "repertoire_training_opened", "training_started", "weekly_plan_started", "training_task_started", "training_task_completed", "weekly_plan_completed", "training_task_failed", "training_answer_revealed", "training_session_completed", "training_impact_viewed", "training_history_opened", "returning_dashboard_viewed", "new_games_detected", "reanalysis_started", "report_comparison_viewed", "report_history_opened", "resolved_issue_viewed", "account_created", "sign_in_completed", "premium_page_viewed", "pricing_viewed", "billing_interval_changed", "checkout_started", "checkout_failed", "checkout_cancelled", "checkout_completed", "entitlement_confirmed", "entitlement_delayed", "subscription_manage_clicked", "upgrade_clicked", "portal_open_failed", "recommendation_feedback_submitted", "general_feedback_submitted", "import_problem_reported",
 }
-SAFE_ANALYTICS_KEYS = {"platform", "route", "authenticated", "deviceCategory", "resultCategory", "errorCategory", "source", "access", "stage", "attempts", "feedback", "decision", "confidence", "games", "openingCategory", "hasSessionContext", "newGames", "reportCount"}
+SAFE_ANALYTICS_KEYS = {"platform", "route", "authenticated", "deviceCategory", "resultCategory", "errorCategory", "source", "access", "stage", "attempts", "feedback", "decision", "confidence", "games", "openingCategory", "hasSessionContext", "newGames", "reportCount", "billingInterval"}
 
 
 def sanitize_analytics_data(data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -737,7 +761,12 @@ def save_feedback(
     }
 
     if not supabase:
-        print("Supabase feedback insert failed: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
+        log_supabase_diagnostic(
+            "feedback insert unavailable",
+            operation="feedback_insert",
+            result="not_configured",
+            retryable=False,
+        )
         raise HTTPException(
             status_code=500,
             detail="Feedback storage is not configured.",
@@ -746,7 +775,13 @@ def save_feedback(
     try:
         supabase.table("feedback").insert(item).execute()
     except Exception as exc:
-        print("Supabase feedback insert failed:", exc)
+        log_supabase_diagnostic(
+            "feedback insert failed",
+            operation="feedback_insert",
+            result="failed",
+            retryable=True,
+            error=exc,
+        )
         raise HTTPException(
             status_code=500,
             detail="Could not save feedback.",
@@ -781,6 +816,12 @@ def api_health():
         "ok": True,
         "service": "openingfit-api",
     }
+
+
+@app.get("/api/readiness")
+def api_readiness():
+    payload = readiness_payload()
+    return JSONResponse(status_code=200 if payload["status"] == "ready" else 503, content=payload)
 
 
 GAMES_ANALYSED_COUNT_CACHE: Dict[str, Any] = {
@@ -874,7 +915,7 @@ def check_external_reachable(url: str, headers: Optional[Dict[str, str]] = None)
 def environment_label() -> str:
     if os.getenv("RENDER"):
         return "render"
-    return os.getenv("APP_ENV") or os.getenv("ENVIRONMENT") or "unknown"
+    return runtime_environment()
 
 
 @app.get("/api/diagnostics/import")
@@ -8547,6 +8588,7 @@ def import_chesscom_logic(username: str, months: int = 3):
     basic_opening_recommendations = build_basic_recommendation_summary(recommended_openings)
 
     premium_data = build_premium_data(best_openings, style_profile)
+    opening_training_opportunities = extract_opening_training_opportunities(recent_games, user_id=username, username=username)
     diagnostic_summary = build_diagnostic_summary(recent_games, username=username)
 
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
@@ -8595,6 +8637,8 @@ def import_chesscom_logic(username: str, months: int = 3):
         "styleFingerprint": style_fingerprint,
         "engine_summary": engine_summary,
         "engineSummary": engine_summary,
+        "opening_training_opportunities": opening_training_opportunities,
+        "openingTrainingOpportunities": opening_training_opportunities,
         "diagnostic_summary": diagnostic_summary,
         "diagnosticSummary": diagnostic_summary,
         "opening_fit_metrics": opening_fit_metrics,
@@ -9207,6 +9251,7 @@ def build_lichess_analysis(
     basic_opening_recommendations = build_basic_recommendation_summary(recommended_openings)
 
     premium_data = build_premium_data(best_openings, style_profile)
+    opening_training_opportunities = extract_opening_training_opportunities(recent_games, user_id=username, username=username)
     diagnostic_summary = build_diagnostic_summary(recent_games, username=username)
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
@@ -9268,6 +9313,8 @@ def build_lichess_analysis(
         "styleFingerprint": style_fingerprint,
         "engine_summary": engine_summary,
         "engineSummary": engine_summary,
+        "opening_training_opportunities": opening_training_opportunities,
+        "openingTrainingOpportunities": opening_training_opportunities,
         "diagnostic_summary": diagnostic_summary,
         "diagnosticSummary": diagnostic_summary,
         "opening_fit_metrics": opening_fit_metrics,
@@ -9613,24 +9660,84 @@ def run_import_route(platform: str, username: str, months: int):
         )
 
 
+def trusted_entitlement_for_request(request: Optional[Request], *, require_auth: bool = False) -> Optional[Dict[str, Any]]:
+    if request is None:
+        if require_auth:
+            raise HTTPException(status_code=401, detail="Sign in to use this feature.")
+        return None
+    auth_header = request.headers.get("authorization", "")
+    if not auth_header.lower().startswith("bearer "):
+        if require_auth:
+            raise HTTPException(status_code=401, detail="Sign in to use this feature.")
+        return None
+    auth_user = get_auth_user(request)
+    user_id = str(getattr(auth_user, "id", "") or "")
+    try:
+        result = (
+            get_supabase_admin_client()
+            .table("premium_entitlements")
+            .select("access_type,status,current_period_end,expires_at,is_grandfathered_lifetime,premium_since")
+            .eq("user_id", user_id)
+            .execute()
+        )
+    except Exception as exc:
+        log_supabase_diagnostic(
+            "premium entitlement resolution failed",
+            operation="entitlement_resolve",
+            result="failed",
+            retryable=True,
+            user_id=user_id,
+            error=exc,
+        )
+        raise
+    rows = result.data or []
+    entitlement = next((row for row in rows if str(row.get("access_type") or "").lower() == "lifetime"), rows[0] if rows else None)
+    log_payment_diagnostic(
+        "premium entitlement resolved",
+        operation="entitlement_resolve",
+        result="found" if entitlement else "not_found",
+        retryable=False,
+        user_id=user_id,
+        access_type=(entitlement or {}).get("access_type"),
+        status=(entitlement or {}).get("status"),
+    )
+    return entitlement
+
+
+def require_feature_access(request: Request, feature_name: str) -> Dict[str, Any]:
+    entitlement = trusted_entitlement_for_request(request, require_auth=True)
+    if not can_use_feature(entitlement, feature_name):
+        raise HTTPException(status_code=403, detail="Paid OpeningFit access is required for this feature.")
+    return entitlement
+
+
+def enforce_game_history_limit(request: Optional[Request], months: int) -> int:
+    entitlement = trusted_entitlement_for_request(request)
+    allowed = int(feature_limit(entitlement, "game_history", "months", 3))
+    requested = max(1, min(int(months or 3), 12))
+    if requested > allowed:
+        raise HTTPException(status_code=403, detail=f"This account can analyse up to {allowed} months of game history.")
+    return requested
+
+
 @app.get("/import/chesscom/{username}")
-def import_chesscom(username: str, months: int = 3):
-    return run_import_route("chess.com", username, months)
+def import_chesscom(username: str, request: Request, months: int = 3):
+    return run_import_route("chess.com", username, enforce_game_history_limit(request, months))
 
 
 @app.get("/api/import/chesscom/{username}")
-def api_import_chesscom(username: str, months: int = 3):
-    return run_import_route("chess.com", username, months)
+def api_import_chesscom(username: str, request: Request, months: int = 3):
+    return run_import_route("chess.com", username, enforce_game_history_limit(request, months))
 
 
 @app.get("/import/lichess/{username}")
-def import_lichess(username: str, months: int = 3):
-    return run_import_route("lichess", username, months)
+def import_lichess(username: str, request: Request, months: int = 3):
+    return run_import_route("lichess", username, enforce_game_history_limit(request, months))
 
 
 @app.get("/api/import/lichess/{username}")
-def api_import_lichess(username: str, months: int = 3):
-    return run_import_route("lichess", username, months)
+def api_import_lichess(username: str, request: Request, months: int = 3):
+    return run_import_route("lichess", username, enforce_game_history_limit(request, months))
 
 
 ANALYSIS_JOB_TTL_SECONDS = 60 * 60
@@ -9753,16 +9860,18 @@ def execute_analysis_job(job_id: str) -> None:
 
 
 @app.post("/api/analysis/jobs", status_code=202)
-def start_analysis_job(request: AnalysisJobRequest):
-    platform_key = request.platform.strip().lower()
+def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
+    platform_key = payload.platform.strip().lower()
     platform = "chess.com" if platform_key in {"chess.com", "chesscom"} else platform_key
     if platform not in {"chess.com", "lichess"}:
         raise HTTPException(status_code=400, detail="Choose Chess.com or Lichess.")
-    username = request.username.strip()
+    username = payload.username.strip()
     if not username or len(username) > 80:
         raise HTTPException(status_code=400, detail="Enter a valid chess username.")
-    months = max(1, min(int(request.months or 3), 12))
-    request_key = f"{platform}:{username.lower()}:{months}"
+    months = enforce_game_history_limit(request, payload.months)
+    entitlement = trusted_entitlement_for_request(request)
+    owner_user_id = str(getattr(get_auth_user(request), "id", "") or "") if request and request.headers.get("authorization", "").lower().startswith("bearer ") else ""
+    request_key = f"{owner_user_id or 'anonymous'}:{platform}:{username.lower()}:{months}"
 
     with analysis_jobs_lock:
         prune_analysis_jobs()
@@ -9770,6 +9879,12 @@ def start_analysis_job(request: AnalysisJobRequest):
         existing = analysis_jobs.get(existing_id) if existing_id else None
         if existing and existing["status"] in {"queued", "running"}:
             return {**analysis_job_public(existing), "deduplicated": True}
+        refresh_minutes = int(feature_limit(entitlement, "report_refresh", "minimum_minutes_between_refreshes", 60))
+        recently_finished = existing and existing.get("status") == "completed" and (
+            time.monotonic() - float(existing.get("finishedMonotonic") or 0)
+        ) < refresh_minutes * 60
+        if recently_finished:
+            return {**analysis_job_public(existing), "deduplicated": True, "refreshAfterMinutes": refresh_minutes}
         active_count = sum(1 for job in analysis_jobs.values() if job["status"] in {"queued", "running"})
         if active_count >= ANALYSIS_JOB_MAX_ACTIVE:
             raise HTTPException(status_code=503, detail="The analysis queue is busy. Please try again shortly.")
@@ -9780,6 +9895,7 @@ def start_analysis_job(request: AnalysisJobRequest):
             "jobId": job_id, "requestKey": request_key, "status": "queued",
             "createdAt": created_at, "updatedAt": created_at, "platform": platform,
             "username": username, "months": months, "result": None, "error": None,
+            "ownerUserId": owner_user_id, "paidAccess": entitlement_has_paid_access(entitlement),
         }
         analysis_jobs[job_id] = job
         analysis_job_keys[request_key] = job_id
@@ -9790,12 +9906,16 @@ def start_analysis_job(request: AnalysisJobRequest):
 
 
 @app.get("/api/analysis/jobs/{job_id}")
-def get_analysis_job(job_id: UUID):
+def get_analysis_job(job_id: UUID, request: Request = None):
     with analysis_jobs_lock:
         prune_analysis_jobs()
         job = analysis_jobs.get(str(job_id))
         if not job:
             raise HTTPException(status_code=404, detail="Analysis job not found or expired.")
+        if job.get("ownerUserId"):
+            auth_user = get_auth_user(request)
+            if str(getattr(auth_user, "id", "") or "") != job["ownerUserId"]:
+                raise HTTPException(status_code=403, detail="That analysis job belongs to another account.")
         return analysis_job_public(job)
 
 
@@ -10431,7 +10551,8 @@ def build_openingfit_suggestion(
 
 
 @app.get("/api/premium/stockfish-status")
-def premium_stockfish_status():
+def premium_stockfish_status(request: Request):
+    require_feature_access(request, "own_game_drills")
     if chess is None:
         return {
             "enabled": False,
@@ -10454,7 +10575,8 @@ def premium_stockfish_status():
 
 
 @app.post("/api/openingfit/analyse-position")
-def analyse_openingfit_position(payload: OpeningFitPositionRequest):
+def analyse_openingfit_position(payload: OpeningFitPositionRequest, request: Request):
+    require_feature_access(request, "own_game_drills")
     position = parse_position_for_openingfit(payload)
     opening_family = detect_opening_family_for_position(
         position["moves"],
@@ -10478,7 +10600,8 @@ def analyse_openingfit_position(payload: OpeningFitPositionRequest):
 
 
 @app.post("/api/premium/stockfish-game")
-def premium_stockfish_game(payload: PremiumStockfishRequest):
+def premium_stockfish_game(payload: PremiumStockfishRequest, request: Request):
+    require_feature_access(request, "own_game_drills")
     if chess is None:
         raise HTTPException(
             status_code=503,
@@ -11266,6 +11389,36 @@ def stripe_subscription_price_id(subscription: Any) -> Optional[str]:
     return None
 
 
+def stripe_timestamp_iso(value: Any) -> Optional[str]:
+    try:
+        if value is None:
+            return None
+        return datetime.fromtimestamp(float(value), tz=timezone.utc).isoformat()
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
+
+
+def subscription_access_type(stripe_object: Any) -> str:
+    metadata_type = str(stripe_metadata(stripe_object).get("access_type") or "").lower()
+    if metadata_type in {"monthly_subscription", "annual_subscription"}:
+        return metadata_type
+
+    items = stripe_value(stripe_object, "items")
+    item_data = stripe_value(items, "data", []) if items else []
+    if item_data:
+        price = stripe_value(item_data[0], "price")
+        recurring = stripe_value(price, "recurring")
+        interval = str(stripe_value(recurring, "interval", "") or "").lower()
+        if interval == "year":
+            return "annual_subscription"
+
+    return "monthly_subscription"
+
+
+def subscription_plan_interval(stripe_object: Any) -> str:
+    return "year" if subscription_access_type(stripe_object) == "annual_subscription" else "month"
+
+
 def normalize_base_url(value: Any) -> str:
     raw = str(value or "").strip().rstrip("/")
     if not raw:
@@ -11299,14 +11452,70 @@ def resolve_checkout_frontend_url(request: Request) -> str:
     return "https://openingfit.com"
 
 
-def upsert_premium_entitlement(supabase_admin, payload: Dict[str, Any]) -> None:
+def should_preserve_lifetime_entitlement(
+    existing: Optional[Dict[str, Any]],
+    incoming: Dict[str, Any],
+) -> bool:
+    if str((existing or {}).get("access_type") or "").lower() != "lifetime":
+        return False
+    source = str(incoming.get("source") or "").lower()
+    is_refund = source in {"stripe_charge.refunded", "stripe_refund.updated"}
+    return bool((existing or {}).get("is_grandfathered_lifetime")) or not is_refund
+
+
+def upsert_premium_entitlement(supabase_admin, payload: Dict[str, Any]) -> str:
     optional_stripe_columns = {
         "stripe_subscription_id",
         "stripe_payment_intent_id",
         "stripe_price_id",
         "checkout_mode",
+        "access_type",
+        "current_period_end",
+        "cancel_at_period_end",
+        "plan_interval",
+        "stripe_status",
+        "current_period_start",
+        "last_stripe_event_id",
+        "last_stripe_event_created_at",
     }
     active_payload = dict(payload)
+
+    is_protected_write = bool(
+        active_payload.get("stripe_subscription_id")
+        or active_payload.get("checkout_mode") == "subscription"
+        or str(active_payload.get("source") or "").lower() in {
+            "stripe_charge.refunded",
+            "stripe_refund.updated",
+        }
+    )
+    if is_protected_write and active_payload.get("user_id"):
+        try:
+            existing_result = (
+                supabase_admin
+                .table("premium_entitlements")
+                .select("access_type,is_grandfathered_lifetime")
+                .eq("user_id", active_payload["user_id"])
+                .limit(1)
+                .execute()
+            )
+            existing_rows = existing_result.data or []
+            if existing_rows and should_preserve_lifetime_entitlement(existing_rows[0], active_payload):
+                log_payment_diagnostic(
+                    "Stripe subscription event left lifetime entitlement unchanged",
+                    user_id=active_payload.get("user_id"),
+                    subscription_id=active_payload.get("stripe_subscription_id"),
+                    source=active_payload.get("source"),
+                )
+                return "preserved_lifetime"
+        except Exception as exc:
+            # The database trigger is the final lifetime guard. Older deployments
+            # may not have the new columns until the migration is applied.
+            log_supabase_diagnostic(
+                "lifetime entitlement preflight lookup failed",
+                table="premium_entitlements",
+                user_id=active_payload.get("user_id"),
+                error=exc,
+            )
 
     try:
         supabase_admin.table("premium_entitlements").upsert(
@@ -11344,6 +11553,18 @@ def upsert_premium_entitlement(supabase_admin, payload: Dict[str, Any]) -> None:
             active_payload,
             on_conflict="user_id",
         ).execute()
+    log_payment_diagnostic(
+        "premium entitlement upsert completed",
+        operation="entitlement_update",
+        result="updated",
+        retryable=False,
+        user_id=active_payload.get("user_id"),
+        subscription_id=active_payload.get("stripe_subscription_id"),
+        event_id=active_payload.get("last_stripe_event_id"),
+        status=active_payload.get("status"),
+        source=active_payload.get("source"),
+    )
+    return "upserted"
 
 
 def find_premium_user_id_for_stripe_object(supabase_admin, stripe_object: Any) -> Optional[str]:
@@ -11583,24 +11804,50 @@ def subscription_is_active(subscription_status: str, event_type: str = "") -> bo
 
 
 def entitlement_status_for_subscription(subscription_status: str, event_type: str = "") -> str:
-    if subscription_is_active(subscription_status, event_type):
+    if event_type == "customer.subscription.deleted" or subscription_status in {"canceled", "cancelled"}:
+        return "canceled"
+    if subscription_status == "trialing":
+        return "trialing"
+    if subscription_status == "active":
         return "active"
     if subscription_status in {"past_due", "unpaid"}:
         return "past_due"
-    if subscription_status in {"incomplete", "incomplete_expired"}:
+    if subscription_status == "incomplete":
         return "incomplete"
-    return "inactive"
+    return "expired"
+
+
+def subscription_grants_access(
+    status: str,
+    current_period_end: Optional[str],
+    now: Optional[datetime] = None,
+) -> bool:
+    if status in {"active", "trialing"}:
+        return True
+    if status not in {"canceled", "past_due"} or not current_period_end:
+        return False
+    try:
+        period_end = datetime.fromisoformat(current_period_end.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return period_end > (now or datetime.now(timezone.utc))
 
 
 def update_premium_from_subscription_event(
     supabase_admin,
     stripe_object: Any,
     event_type: str,
+    *,
+    event_id: Optional[str] = None,
+    event_created_at: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     subscription_status = str(stripe_value(stripe_object, "status", "") or "").lower()
-    is_active = subscription_is_active(subscription_status, event_type)
     status = entitlement_status_for_subscription(subscription_status, event_type)
     now = datetime.now(timezone.utc).isoformat()
+    current_period_end = stripe_timestamp_iso(stripe_value(stripe_object, "current_period_end"))
+    current_period_start = stripe_timestamp_iso(stripe_value(stripe_object, "current_period_start"))
+    cancel_at_period_end = bool(stripe_value(stripe_object, "cancel_at_period_end", False))
+    grants_access = subscription_grants_access(status, current_period_end)
     user_id = find_premium_user_id_for_stripe_object(supabase_admin, stripe_object)
 
     if not user_id:
@@ -11616,17 +11863,32 @@ def update_premium_from_subscription_event(
     payload = {
         "user_id": user_id,
         "status": status,
+        "access_type": subscription_access_type(stripe_object),
+        "plan_interval": subscription_plan_interval(stripe_object),
+        "stripe_status": subscription_status,
         "source": f"stripe_{event_type}",
         "stripe_customer_id": stripe_value(stripe_object, "customer"),
         "stripe_subscription_id": stripe_value(stripe_object, "id"),
         "stripe_price_id": stripe_subscription_price_id(stripe_object),
         "checkout_mode": "subscription",
-        "expires_at": None if is_active else now,
+        "current_period_end": current_period_end,
+        "current_period_start": current_period_start,
+        "cancel_at_period_end": cancel_at_period_end,
+        "last_stripe_event_id": event_id,
+        "last_stripe_event_created_at": event_created_at,
+        "expires_at": None if status in {"active", "trialing"} else current_period_end,
         "updated_at": now,
     }
+    if not event_id:
+        payload.pop("last_stripe_event_id", None)
+    if not event_created_at:
+        payload.pop("last_stripe_event_created_at", None)
 
-    upsert_premium_entitlement(supabase_admin, payload)
-    set_profile_premium_status(supabase_admin, user_id, is_active, now)
+    write_result = upsert_premium_entitlement(supabase_admin, payload)
+    if write_result != "preserved_lifetime":
+        set_profile_premium_status(supabase_admin, user_id, grants_access, now)
+    else:
+        grants_access = True
 
     log_payment_diagnostic(
         "Stripe subscription premium status updated",
@@ -11636,13 +11898,15 @@ def update_premium_from_subscription_event(
         customer_id=stripe_value(stripe_object, "customer"),
         status=status,
         subscription_status=subscription_status,
-        is_active=is_active,
+        is_active=grants_access,
     )
 
     return {
         "user_id": user_id,
         "status": status,
-        "is_active": is_active,
+        "is_active": grants_access,
+        "current_period_start": current_period_start,
+        "current_period_end": current_period_end,
         "updated_at": now,
     }
 
@@ -11662,21 +11926,58 @@ def activate_premium_from_checkout_session(supabase_admin, session: Any, source:
         )
 
     now = datetime.now(timezone.utc).isoformat()
+    checkout_mode = str(stripe_value(session, "mode", "") or "").lower()
+    access_type = str(metadata.get("access_type") or "").lower()
+    if access_type not in {"monthly_subscription", "annual_subscription", "lifetime"}:
+        access_type = "lifetime" if checkout_mode == "payment" else "monthly_subscription"
+    entitlement_status = "active"
+    current_period_end = None
+    cancel_at_period_end = False
+    subscription_id = stripe_value(session, "subscription")
+    if checkout_mode == "subscription" and subscription_id:
+        try:
+            subscription = stripe.Subscription.retrieve(
+                subscription_id,
+                expand=["items.data.price"],
+            )
+            entitlement_status = entitlement_status_for_subscription(
+                str(stripe_value(subscription, "status", "") or "").lower()
+            )
+            access_type = subscription_access_type(subscription)
+            current_period_end = stripe_timestamp_iso(
+                stripe_value(subscription, "current_period_end")
+            )
+            cancel_at_period_end = bool(
+                stripe_value(subscription, "cancel_at_period_end", False)
+            )
+        except Exception as exc:
+            # The checkout session was retrieved from Stripe and confirmed paid.
+            # A later subscription webhook will fill the lifecycle fields.
+            log_payment_diagnostic(
+                "Stripe checkout subscription detail lookup failed",
+                subscription_id=subscription_id,
+                session_id=stripe_value(session, "id"),
+                error=exc,
+            )
     if user_id:
         payload = {
             "user_id": str(user_id),
-            "status": "active",
+            "status": entitlement_status,
+            "access_type": access_type,
             "source": source,
-            "premium_since": now,
-            "expires_at": None,
+            "expires_at": None if entitlement_status in {"active", "trialing"} else current_period_end,
             "stripe_customer_id": stripe_value(session, "customer"),
             "stripe_checkout_session_id": stripe_value(session, "id"),
-            "stripe_subscription_id": stripe_value(session, "subscription"),
+            "stripe_subscription_id": subscription_id,
             "stripe_payment_intent_id": stripe_value(session, "payment_intent"),
             "stripe_price_id": metadata.get("price_id"),
-            "checkout_mode": stripe_value(session, "mode"),
+            "checkout_mode": checkout_mode,
+            "current_period_end": current_period_end,
+            "cancel_at_period_end": cancel_at_period_end,
             "updated_at": now,
         }
+        if entitlement_status in {"active", "trialing"}:
+            payload["premium_since"] = now
 
         upsert_premium_entitlement(supabase_admin, payload)
 
@@ -11704,7 +12005,10 @@ def activate_premium_from_checkout_session(supabase_admin, session: Any, source:
     return {
         "user_id": str(user_id) if user_id else profile_result.get("user_id"),
         "email": profile_result.get("email") or email,
-        "status": "active",
+        "status": entitlement_status,
+        "access_type": access_type,
+        "current_period_end": current_period_end,
+        "cancel_at_period_end": cancel_at_period_end,
         "updated_at": profile_result.get("updated_at") or now,
         "matched_by": profile_result.get("matched_by"),
         "updated_rows": profile_result.get("updated_rows"),
@@ -11759,10 +12063,17 @@ async def get_account_profile(user_id: str, request: Request):
             .execute()
         )
     except Exception as exc:
-        print("Supabase account profile lookup failed:", exc)
+        log_supabase_diagnostic(
+            "account profile lookup failed",
+            operation="account_profile_lookup",
+            result="failed",
+            retryable=True,
+            user_id=user_id,
+            error=exc,
+        )
         raise HTTPException(
             status_code=500,
-            detail=f"Supabase account profile lookup failed: {exc}",
+            detail="Supabase account profile lookup failed.",
         )
 
     return {
@@ -11771,21 +12082,64 @@ async def get_account_profile(user_id: str, request: Request):
     }
 
 
+def env_flag(name: str, default: bool = False) -> bool:
+    value = str(os.getenv(name, "")).strip().lower()
+    return default if not value else value in {"1", "true", "yes", "on"}
+
+
+def billing_configuration() -> Dict[str, Any]:
+    monthly_price_id = os.getenv("STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID", "").strip()
+    annual_price_id = os.getenv("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID", "").strip()
+    founding_coupon_id = os.getenv("STRIPE_OPENINGFIT_FOUNDING_ANNUAL_COUPON_ID", "").strip()
+    founding_enabled = env_flag("OPENINGFIT_FOUNDING_ANNUAL_OFFER_ENABLED") and bool(annual_price_id and founding_coupon_id)
+    monthly_amount = float(os.getenv("OPENINGFIT_PLUS_MONTHLY_PRICE_GBP", "4.99"))
+    annual_amount = float(os.getenv("OPENINGFIT_PLUS_ANNUAL_PRICE_GBP", "39.99"))
+    founding_amount = float(os.getenv("OPENINGFIT_FOUNDING_FIRST_YEAR_PRICE_GBP", "29.99"))
+    checkout_enabled = subscriptions_enabled()
+    return {
+        "monthly": {"available": checkout_enabled and bool(monthly_price_id), "amount": monthly_amount, "currency": "GBP"},
+        "annual": {"available": checkout_enabled and bool(annual_price_id), "amount": annual_amount, "currency": "GBP"},
+        "foundingOffer": {"enabled": checkout_enabled and founding_enabled, "firstYearAmount": founding_amount if checkout_enabled and founding_enabled else None, "renewsAtAmount": annual_amount if checkout_enabled and founding_enabled else None},
+        "subscriptionsEnabled": checkout_enabled,
+        "checkoutStatus": "available" if checkout_enabled else "temporarily_unavailable",
+        "lifetimeMembersRetainAccess": True,
+    }
+
+
+def checkout_price_configuration(interval: str) -> Dict[str, Any]:
+    normalized = str(interval or "annual").strip().lower()
+    if normalized not in {"monthly", "annual"}:
+        raise HTTPException(status_code=400, detail="Choose monthly or annual billing.")
+    env_name = "STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID" if normalized == "monthly" else "STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID"
+    price_id = os.getenv(env_name, "").strip()
+    if not price_id:
+        raise HTTPException(status_code=503, detail=f"{normalized.title()} billing is not configured.")
+    offer_enabled = normalized == "annual" and billing_configuration()["foundingOffer"]["enabled"]
+    return {"interval": normalized, "price_id": price_id, "coupon_id": os.getenv("STRIPE_OPENINGFIT_FOUNDING_ANNUAL_COUPON_ID", "").strip() if offer_enabled else "", "founding_offer": offer_enabled}
+
+
+@app.get("/api/billing/config")
+def get_billing_configuration():
+    return billing_configuration()
+
+
 @app.post("/api/account/create-checkout-session")
 async def create_checkout_session(payload: Dict[str, Any], request: Request):
+    if not subscriptions_enabled():
+        return checkout_error_response(
+            503,
+            "New subscriptions are temporarily unavailable. Existing paid access is unaffected.",
+            "subscription checkout disabled by launch control",
+            code="subscriptions_not_enabled",
+            retryable=False,
+        )
+
     stripe_secret_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
-    stripe_price_id = (
-        os.getenv("STRIPE_PRICE_ID", "").strip()
-        or os.getenv("STRIPE_PREMIUM_PRICE_ID", "").strip()
-        or os.getenv("STRIPE_FOUNDER_PASS_PRICE_ID", "").strip()
-    )
-    founder_price_id = os.getenv("STRIPE_FOUNDER_PASS_PRICE_ID", "").strip()
     frontend_url = resolve_checkout_frontend_url(request)
 
-    if not stripe_secret_key or not stripe_price_id:
+    if not stripe_secret_key:
         missing = [
             "STRIPE_SECRET_KEY" if not stripe_secret_key else None,
-            "STRIPE_PRICE_ID or STRIPE_PREMIUM_PRICE_ID" if not stripe_price_id else None,
         ]
         return checkout_error_response(
             500,
@@ -11828,12 +12182,14 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
 
     user_id = str(auth_user.id)
     email = getattr(auth_user, "email", None) or payload.get("email")
-    product = "founder_pass" if founder_price_id and stripe_price_id == founder_price_id else "premium"
+    product = "openingfit_plus"
     checkout_metadata = {
         "user_id": user_id,
         "email": email or "",
         "price_id": stripe_price_id,
         "product": product,
+        "billing_interval": checkout_config["interval"],
+        "founding_offer": "true" if checkout_config["founding_offer"] else "false",
     }
     checkout_metadata.update(
         get_registered_referral_checkout_metadata(get_supabase_admin_client(), user_id)
@@ -11841,7 +12197,19 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
 
     try:
         price = stripe.Price.retrieve(stripe_price_id)
-        checkout_mode = "subscription" if stripe_value(price, "recurring") else "payment"
+        if checkout_config["coupon_id"]:
+            founding_coupon = stripe.Coupon.retrieve(checkout_config["coupon_id"])
+            if str(stripe_value(founding_coupon, "duration", "") or "").lower() != "once":
+                raise ValueError("The founding annual coupon must have Stripe duration=once.")
+        recurring = stripe_value(price, "recurring")
+        if not recurring:
+            raise ValueError("OpeningFit Plus Price IDs must be recurring Stripe prices.")
+        interval = str(stripe_value(recurring, "interval", "") or "").lower()
+        expected_interval = "year" if checkout_config["interval"] == "annual" else "month"
+        if interval != expected_interval:
+            raise ValueError("The Stripe price interval does not match the selected billing interval.")
+        checkout_mode = "subscription"
+        checkout_metadata["access_type"] = "annual_subscription" if interval == "year" else "monthly_subscription"
         session_params = {
             "mode": checkout_mode,
             "line_items": [
@@ -11863,6 +12231,8 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
             session_params["subscription_data"] = {
                 "metadata": checkout_metadata,
             }
+            if checkout_config["coupon_id"]:
+                session_params["discounts"] = [{"coupon": checkout_config["coupon_id"]}]
         else:
             session_params["payment_intent_data"] = {
                 "metadata": checkout_metadata,
@@ -11889,14 +12259,18 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
             session_id=getattr(session, "id", None),
         )
 
-    print("OpeningFit checkout session created", {
-        "user_id": user_id,
-        "session_id": getattr(session, "id", None),
-        "mode": getattr(session, "mode", None),
-        "has_url": True,
-        "frontend_url_host": frontend_url,
-        "product": product,
-    })
+    log_payment_diagnostic(
+        "Stripe checkout session created",
+        operation="checkout_create",
+        result="created",
+        retryable=False,
+        user_id=user_id,
+        session_id=getattr(session, "id", None),
+        mode=getattr(session, "mode", None),
+        has_url=True,
+        frontend_url_host=urlparse(frontend_url).netloc,
+        product=product,
+    )
 
     return {"url": session.url}
 
@@ -12006,6 +12380,315 @@ async def sync_checkout_session(payload: Dict[str, Any], request: Request):
     }
 
 
+def stripe_customer_id_for_user(supabase_admin, user_id: str) -> Optional[str]:
+    result = (
+        supabase_admin
+        .table("premium_entitlements")
+        .select("stripe_customer_id")
+        .eq("user_id", user_id)
+        .limit(1)
+        .execute()
+    )
+    rows = result.data or []
+    customer_id = str((rows[0] if rows else {}).get("stripe_customer_id") or "").strip()
+    return customer_id if customer_id.startswith("cus_") else None
+
+
+@app.post("/api/account/create-portal-session")
+async def create_portal_session(payload: Dict[str, Any], request: Request):
+    stripe_secret_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
+    if not stripe_secret_key:
+        raise HTTPException(status_code=503, detail="Subscription management is temporarily unavailable.")
+
+    requested_user_id = str(payload.get("userId") or "").strip()
+    if not is_valid_uuid(requested_user_id):
+        raise HTTPException(status_code=400, detail="A valid account is required.")
+
+    auth_user = require_matching_auth_user(request, requested_user_id)
+    user_id = str(auth_user.id)
+    supabase_admin = get_supabase_admin_client()
+    customer_id = stripe_customer_id_for_user(supabase_admin, user_id)
+    if not customer_id:
+        raise HTTPException(status_code=404, detail="No Stripe subscription account is linked to this user.")
+
+    stripe.api_key = stripe_secret_key
+    configured_portal_return = normalize_base_url(os.getenv("STRIPE_CUSTOMER_PORTAL_RETURN_URL", ""))
+    return_url = configured_portal_return or f"{resolve_checkout_frontend_url(request)}/account"
+    try:
+        portal = stripe.billing_portal.Session.create(
+            customer=customer_id,
+            return_url=return_url,
+        )
+    except Exception as exc:
+        log_payment_diagnostic(
+            "Stripe customer portal session creation failed",
+            user_id=user_id,
+            customer_id=customer_id,
+            error=exc,
+        )
+        raise HTTPException(status_code=502, detail="Stripe subscription management could not be opened.")
+
+    portal_url = str(stripe_value(portal, "url") or "").strip()
+    if not portal_url.startswith("https://"):
+        raise HTTPException(status_code=502, detail="Stripe returned an invalid subscription management URL.")
+    log_payment_diagnostic(
+        "Stripe customer portal session created",
+        operation="portal_create",
+        result="created",
+        retryable=False,
+        user_id=user_id,
+        customer_id=customer_id,
+    )
+    return {"url": portal_url}
+
+
+def stripe_event_object_id(event: Dict[str, Any]) -> Optional[str]:
+    stripe_object = ((event.get("data") or {}).get("object") or {})
+    value = stripe_value(stripe_object, "id")
+    return str(value) if value else None
+
+
+def stripe_event_created_at(event: Dict[str, Any]) -> Optional[str]:
+    return stripe_timestamp_iso(event.get("created"))
+
+
+def is_unique_violation(error: Exception) -> bool:
+    code = str(getattr(error, "code", "") or "")
+    message = str(error).lower()
+    return code == "23505" or "duplicate key" in message or "unique constraint" in message
+
+
+def claim_stripe_webhook_event(supabase_admin, event: Dict[str, Any]) -> Dict[str, Any]:
+    event_id = str(event.get("id") or "").strip()
+    event_type = str(event.get("type") or "").strip()
+    if not event_id or not event_type:
+        raise ValueError("Stripe webhook event is missing its id or type.")
+
+    now = datetime.now(timezone.utc)
+    payload = {
+        "event_id": event_id,
+        "event_type": event_type,
+        "object_id": stripe_event_object_id(event),
+        "status": "processing",
+        "attempt_count": 1,
+        "updated_at": now.isoformat(),
+    }
+    try:
+        supabase_admin.table("stripe_webhook_events").insert(payload).execute()
+        return {"claimed": True, "duplicate": False, "event_id": event_id}
+    except Exception as exc:
+        if not is_unique_violation(exc):
+            raise
+
+    result = (
+        supabase_admin
+        .table("stripe_webhook_events")
+        .select("event_id,status,attempt_count,updated_at")
+        .eq("event_id", event_id)
+        .limit(1)
+        .execute()
+    )
+    rows = result.data or []
+    if not rows:
+        raise RuntimeError("Stripe event ledger conflict could not be resolved.")
+
+    existing = rows[0]
+    status = str(existing.get("status") or "").lower()
+    if status in {"processed", "ignored"}:
+        return {"claimed": False, "duplicate": True, "event_id": event_id, "status": status}
+
+    updated_at = None
+    try:
+        updated_at = datetime.fromisoformat(str(existing.get("updated_at") or "").replace("Z", "+00:00"))
+    except ValueError:
+        pass
+    stale_processing = status == "processing" and (
+        updated_at is None or updated_at <= now - timedelta(minutes=5)
+    )
+    if status != "failed" and not stale_processing:
+        raise RuntimeError("Stripe event is already being processed.")
+
+    retry_result = (
+        supabase_admin
+        .table("stripe_webhook_events")
+        .update({
+            "status": "processing",
+            "attempt_count": int(existing.get("attempt_count") or 1) + 1,
+            "last_error": None,
+            "processed_at": None,
+            "updated_at": now.isoformat(),
+        })
+        .eq("event_id", event_id)
+        .eq("status", status)
+        .execute()
+    )
+    if not (retry_result.data or []):
+        raise RuntimeError("Stripe event retry could not be claimed.")
+    return {"claimed": True, "duplicate": True, "event_id": event_id}
+
+
+def finish_stripe_webhook_event(
+    supabase_admin,
+    event_id: str,
+    status: str,
+    error: Optional[Exception] = None,
+) -> None:
+    now = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "status": status,
+        "updated_at": now,
+        "processed_at": now if status in {"processed", "ignored"} else None,
+        "last_error": error.__class__.__name__ if error else None,
+    }
+    result = (
+        supabase_admin
+        .table("stripe_webhook_events")
+        .update(payload)
+        .eq("event_id", event_id)
+        .eq("status", "processing")
+        .execute()
+    )
+    if not (result.data or []):
+        raise RuntimeError("Stripe event ledger could not be finalized.")
+
+
+def stripe_subscription_for_invoice(invoice: Any) -> Optional[Any]:
+    subscription = stripe_value(invoice, "subscription")
+    if not subscription:
+        parent = stripe_value(invoice, "parent")
+        subscription_details = stripe_value(parent, "subscription_details") if parent else None
+        subscription = stripe_value(subscription_details, "subscription") if subscription_details else None
+    if not subscription:
+        return None
+    if not isinstance(subscription, str):
+        return subscription
+    return stripe.Subscription.retrieve(subscription, expand=["items.data.price"])
+
+
+def process_stripe_webhook_event(event: Dict[str, Any], supabase_admin) -> str:
+    event_type = str(event.get("type") or "")
+    stripe_object = ((event.get("data") or {}).get("object") or {})
+    event_id = str(event.get("id") or "")
+    event_created_at = stripe_event_created_at(event)
+
+    if event_type == "checkout.session.completed":
+        metadata = stripe_metadata(stripe_object)
+        user_id = metadata.get("user_id") or stripe_value(stripe_object, "client_reference_id")
+        if not user_id:
+            log_payment_diagnostic(
+                "Stripe checkout completed without protected user metadata",
+                event_id=event_id,
+                session_id=stripe_value(stripe_object, "id"),
+            )
+            return "ignored"
+        if not checkout_session_is_paid(stripe_object):
+            log_payment_diagnostic(
+                "Stripe checkout completed but session is not paid",
+                event_id=event_id,
+                session_id=stripe_value(stripe_object, "id"),
+                status=stripe_value(stripe_object, "status"),
+                payment_status=stripe_value(stripe_object, "payment_status"),
+            )
+            return "ignored"
+
+        result = activate_premium_from_checkout_session(
+            supabase_admin,
+            stripe_object,
+            source="stripe_checkout",
+        )
+        log_payment_diagnostic(
+            "Stripe checkout premium entitlement activated",
+            event_id=event_id,
+            user_id=result.get("user_id"),
+            session_id=stripe_value(stripe_object, "id"),
+            subscription_id=stripe_value(stripe_object, "subscription"),
+        )
+        try:
+            convert_registered_referral_after_checkout(
+                supabase_admin,
+                stripe_object,
+                result.get("user_id"),
+            )
+        except Exception as referral_exc:
+            log_payment_diagnostic(
+                "referral lookup failed",
+                event_id=event_id,
+                stage="post_entitlement_conversion",
+                error=referral_exc,
+            )
+        return "processed"
+
+    if event_type in {
+        "customer.subscription.created",
+        "customer.subscription.updated",
+        "customer.subscription.deleted",
+    }:
+        result = update_premium_from_subscription_event(
+            supabase_admin,
+            stripe_object,
+            event_type,
+            event_id=event_id,
+            event_created_at=event_created_at,
+        )
+        return "processed" if result else "ignored"
+
+    if event_type in {"invoice.paid", "invoice.payment_failed"}:
+        subscription = stripe_subscription_for_invoice(stripe_object)
+        if subscription is None:
+            log_payment_diagnostic(
+                "Stripe invoice has no subscription and was deliberately ignored",
+                event_id=event_id,
+                invoice_id=stripe_value(stripe_object, "id"),
+                customer_id=stripe_value(stripe_object, "customer"),
+            )
+            return "ignored"
+        if event_type == "invoice.payment_failed":
+            subscription_status = str(stripe_value(subscription, "status", "") or "").lower()
+            if subscription_status in {"active", "trialing", ""}:
+                subscription = dict(subscription)
+                subscription["status"] = "past_due"
+        result = update_premium_from_subscription_event(
+            supabase_admin,
+            subscription,
+            event_type,
+            event_id=event_id,
+            event_created_at=event_created_at,
+        )
+        return "processed" if result else "ignored"
+
+    if event_type in {"charge.refunded", "refund.updated"}:
+        refund_status = str(stripe_value(stripe_object, "status", "") or "").lower()
+        should_deactivate = event_type == "charge.refunded" or refund_status in {"succeeded", "requires_action"}
+        if not should_deactivate:
+            return "ignored"
+        user_id = find_premium_user_id_for_stripe_object(supabase_admin, stripe_object)
+        if not user_id:
+            refund_converted_referral(supabase_admin, stripe_object)
+            return "ignored"
+        now = datetime.now(timezone.utc).isoformat()
+        write_result = upsert_premium_entitlement(
+            supabase_admin,
+            {
+                "user_id": user_id,
+                "status": "refunded",
+                "stripe_status": "refunded",
+                "source": f"stripe_{event_type}",
+                "stripe_customer_id": stripe_value(stripe_object, "customer"),
+                "stripe_payment_intent_id": stripe_value(stripe_object, "payment_intent"),
+                "last_stripe_event_id": event_id,
+                "last_stripe_event_created_at": event_created_at,
+                "expires_at": now,
+                "updated_at": now,
+            },
+        )
+        if write_result != "preserved_lifetime":
+            set_profile_premium_status(supabase_admin, user_id, False, now)
+        refund_converted_referral(supabase_admin, stripe_object, user_id)
+        return "processed"
+
+    return "ignored"
+
+
 @app.post("/api/stripe/webhook")
 async def stripe_webhook(request: Request):
     stripe_secret_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
@@ -12039,198 +12722,80 @@ async def stripe_webhook(request: Request):
             error=exc,
             has_signature_header=bool(sig_header),
         )
-        raise HTTPException(status_code=400, detail=f"Webhook error: {str(exc)}")
+        raise HTTPException(status_code=400, detail="Webhook signature verification failed.")
 
     log_payment_diagnostic(
         "Stripe webhook received",
+        operation="webhook_receive",
+        result="received",
+        retryable=False,
         event_id=event.get("id"),
         event_type=event.get("type"),
         livemode=event.get("livemode"),
     )
 
-    if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        metadata = stripe_metadata(session)
-        user_id = metadata.get("user_id") or stripe_value(session, "client_reference_id")
-        email = stripe_customer_email(session)
-
+    supabase_admin = get_supabase_admin_client()
+    try:
+        claim = claim_stripe_webhook_event(supabase_admin, event)
+    except Exception as exc:
         log_payment_diagnostic(
-            "Stripe checkout.session.completed resolving premium grant",
+            "Stripe webhook event claim failed",
+            operation="webhook_claim",
+            result="failed",
+            retryable=True,
+            event_id=event.get("id"),
             event_type=event.get("type"),
-            session_id=stripe_value(session, "id"),
-            resolved_user_id=user_id,
-            resolved_email=email,
-            metadata_user_id=metadata.get("user_id"),
-            client_reference_id=stripe_value(session, "client_reference_id"),
-            customer_id=stripe_value(session, "customer"),
-            product=metadata.get("product"),
+            error=exc,
         )
+        raise HTTPException(status_code=500, detail="Stripe event could not be safely claimed.")
 
-        if not user_id and not email:
-            log_payment_diagnostic(
-                "Stripe checkout completed without a user id or email",
-                session_id=stripe_value(session, "id"),
-            )
-            return {"received": True}
+    if not claim.get("claimed"):
+        log_payment_diagnostic(
+            "duplicate Stripe webhook event deliberately ignored",
+            operation="webhook_claim",
+            result="duplicate",
+            retryable=False,
+            event_id=event.get("id"),
+            event_type=event.get("type"),
+            previous_status=claim.get("status"),
+        )
+        return {"received": True, "duplicate": True}
 
-        if not checkout_session_is_paid(session):
-            log_payment_diagnostic(
-                "Stripe checkout completed but session is not paid",
-                user_id=user_id,
-                email=email,
-                session_id=stripe_value(session, "id"),
-                status=stripe_value(session, "status"),
-                payment_status=stripe_value(session, "payment_status"),
-                mode=stripe_value(session, "mode"),
-            )
-            return {"received": True}
-
+    try:
+        outcome = process_stripe_webhook_event(event, supabase_admin)
+        finish_stripe_webhook_event(supabase_admin, claim["event_id"], outcome)
+    except Exception as exc:
         try:
-            supabase_admin = get_supabase_admin_client()
-            result = activate_premium_from_checkout_session(
-                supabase_admin,
-                session,
-                source="stripe_checkout",
-            )
-
+            finish_stripe_webhook_event(supabase_admin, claim["event_id"], "failed", exc)
+        except Exception as ledger_exc:
             log_payment_diagnostic(
-                "Stripe checkout premium entitlement activated",
-                user_id=result["user_id"],
-                email=result.get("email"),
-                matched_by=result.get("matched_by"),
-                updated_rows=result.get("updated_rows"),
-                session_id=stripe_value(session, "id"),
-                subscription_id=stripe_value(session, "subscription"),
-                payment_intent_id=stripe_value(session, "payment_intent"),
+                "Stripe webhook event failure could not be recorded",
+                event_id=event.get("id"),
+                event_type=event.get("type"),
+                error=ledger_exc,
             )
-            try:
-                convert_registered_referral_after_checkout(
-                    supabase_admin,
-                    session,
-                    result.get("user_id"),
-                )
-            except Exception as referral_exc:
-                # Premium activation has already succeeded. Referral bookkeeping
-                # must never turn a valid payment into an entitlement failure.
-                log_payment_diagnostic(
-                    "referral lookup failed",
-                    stage="post_entitlement_conversion",
-                    error=referral_exc,
-                )
-        except Exception as exc:
-            log_payment_diagnostic(
-                "Stripe checkout premium entitlement update failed",
-                user_id=user_id,
-                email=email,
-                session_id=stripe_value(session, "id"),
-                error=exc,
-            )
-            raise HTTPException(status_code=500, detail="Premium entitlement update failed.")
-    elif event["type"] == "checkout.session.expired":
-        session = event["data"]["object"]
-        print("OpeningFit Stripe checkout expired", {
-            "session_id": stripe_value(session, "id"),
-            "user_id": stripe_value(session, "client_reference_id") or stripe_metadata(session).get("user_id"),
-        })
-    elif event["type"] in {
-        "customer.subscription.created",
-        "customer.subscription.updated",
-        "customer.subscription.deleted",
-    }:
-        stripe_object = event["data"]["object"]
-        event_type = event["type"]
-        try:
-            update_premium_from_subscription_event(
-                get_supabase_admin_client(),
-                stripe_object,
-                event_type,
-            )
-        except Exception as exc:
-            log_payment_diagnostic(
-                "Stripe subscription lifecycle update failed",
-                event_type=event_type,
-                subscription_id=stripe_value(stripe_object, "id"),
-                customer_id=stripe_value(stripe_object, "customer"),
-                error=exc,
-            )
-            raise HTTPException(status_code=500, detail="Premium lifecycle update failed.")
-    elif event["type"] == "invoice.payment_failed":
-        stripe_object = event["data"]["object"]
-        event_type = event["type"]
-        try:
-            supabase_admin = get_supabase_admin_client()
-            user_id = find_premium_user_id_for_stripe_object(supabase_admin, stripe_object)
-            if user_id:
-                now = datetime.now(timezone.utc).isoformat()
-                upsert_premium_entitlement(
-                    supabase_admin,
-                    {
-                        "user_id": user_id,
-                        "status": "past_due",
-                        "source": f"stripe_{event_type}",
-                        "stripe_customer_id": stripe_value(stripe_object, "customer"),
-                        "stripe_subscription_id": stripe_value(stripe_object, "subscription"),
-                        "expires_at": now,
-                        "updated_at": now,
-                    },
-                )
-                set_profile_premium_status(supabase_admin, user_id, False, now)
-        except Exception as exc:
-            log_payment_diagnostic(
-                "Stripe invoice payment failed update failed",
-                event_type=event_type,
-                subscription_id=stripe_value(stripe_object, "subscription"),
-                customer_id=stripe_value(stripe_object, "customer"),
-                error=exc,
-            )
-            raise HTTPException(status_code=500, detail="Premium payment failure update failed.")
-    elif event["type"] in {"charge.refunded", "refund.updated"}:
-        stripe_object = event["data"]["object"]
-        event_type = event["type"]
-        refund_status = str(stripe_value(stripe_object, "status", "") or "").lower()
-        should_deactivate = event_type == "charge.refunded" or refund_status in {"succeeded", "requires_action"}
+        log_payment_diagnostic(
+            "Stripe webhook event handling failed",
+            operation="webhook_process",
+            result="failed",
+            retryable=True,
+            event_id=event.get("id"),
+            event_type=event.get("type"),
+            object_id=stripe_event_object_id(event),
+            error=exc,
+        )
+        raise HTTPException(status_code=500, detail="Stripe event handling failed.")
 
-        if should_deactivate:
-            try:
-                supabase_admin = get_supabase_admin_client()
-                user_id = find_premium_user_id_for_stripe_object(supabase_admin, stripe_object)
-                now = datetime.now(timezone.utc).isoformat()
-
-                if user_id:
-                    upsert_premium_entitlement(
-                        supabase_admin,
-                        {
-                            "user_id": user_id,
-                            "status": "refunded",
-                            "source": f"stripe_{event_type}",
-                            "stripe_customer_id": stripe_value(stripe_object, "customer"),
-                            "stripe_payment_intent_id": stripe_value(stripe_object, "payment_intent"),
-                            "expires_at": now,
-                            "updated_at": now,
-                        },
-                    )
-                    set_profile_premium_status(supabase_admin, user_id, False, now)
-                    print("OpeningFit premium entitlement refunded", {
-                        "user_id": user_id,
-                        "event_type": event_type,
-                        "payment_intent_id": stripe_value(stripe_object, "payment_intent"),
-                    })
-                    refund_converted_referral(supabase_admin, stripe_object, user_id)
-                else:
-                    print("OpeningFit refund event could not be matched to a user", {
-                        "event_type": event_type,
-                        "customer_id": stripe_value(stripe_object, "customer"),
-                        "payment_intent_id": stripe_value(stripe_object, "payment_intent"),
-                    })
-                    refund_converted_referral(supabase_admin, stripe_object)
-            except Exception as exc:
-                print("OpeningFit premium refund update failed:", {
-                    "event_type": event_type,
-                    "error": str(exc),
-                })
-                raise HTTPException(status_code=500, detail="Premium refund update failed.")
-
-    return {"received": True}
+    log_payment_diagnostic(
+        "Stripe webhook event handling completed",
+        operation="webhook_process",
+        result=outcome,
+        retryable=False,
+        event_id=event.get("id"),
+        event_type=event.get("type"),
+        object_id=stripe_event_object_id(event),
+    )
+    return {"received": True, "status": outcome}
 
 
 def _mask_email(value: Any) -> Optional[str]:

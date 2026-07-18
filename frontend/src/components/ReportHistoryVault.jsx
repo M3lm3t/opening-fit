@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
+import { adaptReportHistoryRow } from "../lib/reportSnapshot";
 
 const HISTORY_KEY = "openingFit:reportHistory:v1";
 const TIME_FORMAT_LABELS = {
@@ -16,11 +17,9 @@ function timeFormatLabel(value) {
 }
 
 function safeDate(value) {
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return "Unknown date";
-  }
+  if (!value) return "Unknown date";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Unknown date" : date.toLocaleString();
 }
 
 function getUsername(data) {
@@ -194,12 +193,20 @@ function normalizeHistoryItem(item) {
   }
 
   const summary = item.summary || item.snapshot || {};
+  const normalized = adaptReportHistoryRow(item);
+  const normalizedOpenings = (normalized.opening_statistics || []).map((opening) => ({
+    name: opening.name,
+    games: opening.games || 0,
+    score: opening.win_rate ?? opening.score ?? null,
+    verdict: "Tracked",
+    confidence: opening.confidence?.label || "insufficient data",
+  }));
 
   return {
     id: item.id || `${summary.username || item.username}-${summary.platform || item.platform}-${item.created_at || item.createdAt}`,
-    createdAt: item.created_at || item.createdAt || summary.reportDate,
-    username: summary.username || item.username || "Unknown player",
-    platform: summary.platform || item.platform || "chess",
+    createdAt: normalized.generated_at || item.created_at || item.createdAt || summary.reportDate,
+    username: normalized.source_username || summary.username || item.username || "Unknown player",
+    platform: normalized.source_platform || summary.platform || item.platform || "chess",
     analysisTimeFormat: summary.analysisTimeFormat || item.analysisTimeFormat || "custom",
     analysisTimeFormatLabel:
       summary.analysisTimeFormatLabel ||
@@ -209,13 +216,14 @@ function normalizeHistoryItem(item) {
       summary.effectiveTimeFormatLabel ||
       item.effectiveTimeFormatLabel ||
       timeFormatLabel(summary.effectiveTimeFormat || item.effectiveTimeFormat),
-    games: summary.games || item.games || 0,
+    games: normalized.total_games_analysed ?? summary.games ?? item.games ?? 0,
     topOpening: summary.topOpening || item.topOpening || "No clear top opening yet",
     snapshot: {
       ...summary,
-      topOpenings: summary.topOpenings || [],
-      healthScore: summary.healthScore ?? null,
+      topOpenings: summary.topOpenings || normalizedOpenings,
+      healthScore: summary.healthScore ?? normalized.openingfit_score ?? null,
     },
+    normalizedSnapshot: normalized,
     data: item.report || item.data,
   };
 }
@@ -581,7 +589,11 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
       }
 
       try {
-        await saveReport(data, currentSnapshot);
+        const saved = await saveReport(data, currentSnapshot);
+        if (!saved) {
+          setStatus("Only a completed analysis created while signed in can be saved to account history.");
+          return;
+        }
         await refreshUserData(user);
         setStatus("Report saved to your account.");
       } catch (error) {

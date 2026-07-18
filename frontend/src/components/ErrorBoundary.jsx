@@ -1,4 +1,5 @@
 import { Component } from "react";
+import { supportMailto } from "../lib/supportConfig.js";
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -55,7 +56,7 @@ export default class ErrorBoundary extends Component {
               Reload Opening Fit
             </button>
 
-            <a href="mailto:m3lm3t@gmail.com?subject=Opening%20Fit%20bug%20report">
+            <a href={supportMailto("Opening Fit bug report")}>
               Report this bug
             </a>
           </div>

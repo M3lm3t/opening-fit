@@ -4,6 +4,15 @@ import {
   logSupabaseSyncSuccess,
   logSupabaseSyncWarning,
 } from "./supabaseSyncDebug";
+import { resolvePremiumEntitlement } from "../lib/premiumEntitlement";
+import {
+  analysisFingerprint,
+  buildReportSnapshot,
+  createSnapshotReportId,
+  isValidCompletedReport,
+  persistReportSnapshot,
+} from "../lib/reportSnapshot";
+import { completedTrainingFocuses, evaluateTrainingOutcomes } from "../lib/trainingOutcomes";
 
 export const USER_DATA_TABLES = [
   // Keep full cloud restore focused on the tables the app actually reads from
@@ -152,20 +161,6 @@ export function createDefaultUserData(profile = null) {
     user_achievements: [],
     weekly_reports: [],
   };
-}
-
-export function hasActivePremiumEntitlement(entitlements = [], profile = null) {
-  const now = Date.now();
-  const entitlementRows = entitlements || [];
-  const activeEntitlement = entitlementRows.find((entitlement) => {
-    if (String(entitlement?.status || "").toLowerCase() !== "active") return false;
-    if (!entitlement.expires_at) return true;
-
-    const expiresAt = Date.parse(entitlement.expires_at);
-    return Number.isFinite(expiresAt) && expiresAt > now;
-  });
-
-  return Boolean(activeEntitlement || profile?.is_premium);
 }
 
 function requireClient() {
@@ -676,9 +671,11 @@ export async function fetchAllUserData(user, options = {}) {
     ...Object.fromEntries(results),
   };
 
+  const entitlement = resolvePremiumEntitlement(restored.premium_entitlements);
   return {
     ...restored,
-    hasPremiumAccess: hasActivePremiumEntitlement(restored.premium_entitlements, profile),
+    entitlement,
+    hasPremiumAccess: entitlement.hasPremiumAccess,
     restoreWarnings: tableErrors.map((item) => {
       const failureType = classifyRestoreError(item.error);
       const required = item.required ?? isRequiredRestoreTable(item.table);
@@ -806,6 +803,34 @@ export async function saveAnalysisHistory(userId, report, summary = {}) {
   return saveReport(userId, report, summary);
 }
 
+function currentReportGames(report = {}) {
+  return [report.analysed_games, report.analyzed_games, report.analysedGames, report.analyzedGames, report.imported_games, report.importedGames, report.recent_games, report.recentGames, report.games]
+    .find((rows) => Array.isArray(rows) && rows.length) || [];
+}
+
+async function reportTrainingOutcomes(client, userId, report) {
+  if (Array.isArray(report.trainingOutcomes || report.training_outcomes)) {
+    return { outcomes: report.trainingOutcomes || report.training_outcomes, context: report.trainingOutcomeContext || report.training_outcome_context || {} };
+  }
+  try {
+    const { data, error } = await client.from("weekly_training_plans").select("*").eq("user_id", userId).eq("status", "completed").order("completed_at", { ascending: false }).limit(12);
+    if (error) return { outcomes: [], context: {} };
+    const focuses = completedTrainingFocuses(data || []);
+    return {
+      outcomes: evaluateTrainingOutcomes(focuses, currentReportGames(report)),
+      context: Object.fromEntries(focuses.map((focus) => [focus.trainingFocusId, {
+        openingId: focus.openingId,
+        openingName: focus.openingName || focus.opening || focus.openingId,
+        title: focus.title || "Completed training focus",
+        completedAt: focus.completedAt,
+      }])),
+    };
+  } catch {
+    // Older deployments may not have weekly plans yet; report saving must still work.
+    return { outcomes: [], context: {} };
+  }
+}
+
 export async function loadOpeningRecommendations(userId) {
   if (!userId) return [];
   return selectUserRows("recommendation_history", userId);
@@ -816,7 +841,7 @@ export async function saveOpeningRecommendations(userId, snapshot = {}) {
 }
 
 export async function saveReport(userId, report, summary = {}) {
-  if (!userId || !report) return null;
+  if (!isValidCompletedReport(report, summary, userId)) return null;
 
   const username =
     summary.username ||
@@ -825,28 +850,6 @@ export async function saveReport(userId, report, summary = {}) {
     report.player_name ||
     "Unknown player";
   const platform = summary.platform || report.platform || report.importPlatform || "unknown";
-  const games =
-    summary.games ||
-    report.gamesImported ||
-    report.games_imported ||
-    report.totalGames ||
-    report.total_games ||
-    "recent";
-  const importedAt =
-    summary.importedAt ||
-    summary.savedAt ||
-    report.importedAt ||
-    report.imported_at ||
-    report.lastUpdated ||
-    report.last_updated ||
-    "";
-  const months =
-    summary.months ||
-    report.monthsChecked ||
-    report.months_checked ||
-    report.importMonths ||
-    report.import_months ||
-    "recent";
   const analysisTimeFormat =
     summary.analysisTimeFormat ||
     summary.analysis_time_format ||
@@ -863,22 +866,27 @@ export async function saveReport(userId, report, summary = {}) {
     ...summary,
     ...(playerProfile ? { playerProfile, player_profile: playerProfile } : {}),
   };
-  const reportKey = [
-    String(platform).toLowerCase(),
-    String(username).toLowerCase(),
-    String(months),
-    String(analysisTimeFormat).toLowerCase(),
-    String(games),
-    String(importedAt).slice(0, 19),
-  ].join(":");
-
   const client = requireClient();
+  const measured = await reportTrainingOutcomes(client, userId, report);
+  const measuredReport = {
+    ...report,
+    trainingOutcomes: measured.outcomes,
+    training_outcomes: measured.outcomes,
+    trainingOutcomeContext: measured.context,
+    training_outcome_context: measured.context,
+  };
+  const reportId = createSnapshotReportId();
+  const snapshot = buildReportSnapshot({ report: measuredReport, summary: enrichedSummary, userId, reportId });
+  const fingerprint = analysisFingerprint(measuredReport, enrichedSummary);
+  const reportKey = snapshot.analysis_id ? `analysis:${snapshot.analysis_id}` : fingerprint;
+
   const basePayload = {
+    id: reportId,
     user_id: userId,
     username,
     platform,
     summary: enrichedSummary,
-    report,
+    report: measuredReport,
     report_key: reportKey,
     updated_at: new Date().toISOString(),
   };
@@ -909,65 +917,23 @@ export async function saveReport(userId, report, summary = {}) {
       report.styleBasedRecommendations ||
       report.style_based_recommendations ||
       null,
+    report_schema_version: snapshot.report_schema_version,
+    analysis_id: snapshot.analysis_id,
+    analysis_fingerprint: fingerprint,
+    snapshot,
+    generated_at: snapshot.generated_at,
+    source_platform: snapshot.source_platform,
+    source_username: snapshot.source_username,
   };
-
-  let activePayload = payload;
-  let { data, error } = await client.from("report_history").insert(payload).select("*").single();
-
-  if (
-    error &&
-    (
-      error.code === "PGRST204" ||
-      /analysis_time_format|effective_time_format|detected_time_format|style_profile|style_based_recommendations/i.test(error.message || "")
-    )
-  ) {
-    logQueryFailure("report_history", "insert report with time-format columns unavailable; retrying JSON-only save", error, {
-      userId,
-      reportKey,
-    });
-
-    const retry = await client.from("report_history").insert(basePayload).select("*").single();
-    activePayload = basePayload;
-    data = retry.data;
-    error = retry.error;
-  }
-
-  if (error) {
-    if (error.code === "23505") {
-      const { data: existing, error: existingError } = await client
-        .from("report_history")
-        .update({
-          ...activePayload,
-          user_id: userId,
-          report_key: reportKey,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", userId)
-        .eq("report_key", reportKey)
-        .select("*")
-        .maybeSingle();
-
-      if (existingError) {
-        logQueryFailure("report_history", "update existing report after dedupe collision", existingError, {
-          userId,
-          reportKey,
-        });
-        throw new Error(safeUserMessage(existingError, "Could not update saved report in Supabase."));
-      }
-
-      logQuerySuccess("report_history", "update existing report after dedupe collision", {
-        userId,
-        reportKey,
-        rowId: existing?.id,
-      });
-      return existing;
-    }
-
-    logQueryFailure("report_history", "insert report with dedupe key", error, { userId, reportKey });
+  let data;
+  try {
+    data = await persistReportSnapshot(client, payload, basePayload);
+  } catch (error) {
+    logQueryFailure("report_history", "insert versioned report snapshot", error, { userId, reportKey });
     throw new Error(safeUserMessage(error, "Could not save report to Supabase."));
   }
 
-  logQuerySuccess("report_history", "insert report with dedupe key", {
+  logQuerySuccess("report_history", "save immutable versioned report snapshot", {
     userId,
     reportKey,
     rowId: data?.id,

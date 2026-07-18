@@ -7,11 +7,30 @@ import { DEMO_REPORT } from "../src/demoReportData.js";
 const PORT = Number(process.env.OPENINGFIT_VISUAL_PORT || 4177);
 const HOST = "127.0.0.1";
 const BASE_URL = `http://${HOST}:${PORT}`;
+const TRAINING_OPPORTUNITY_FIXTURE = {
+  opportunityId: "visual-opportunity-1",
+  gameId: "visual-game-1",
+  openingId: "italian-game",
+  side: "white",
+  positionFen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  playedMove: "d4",
+  recommendedMove: "e4",
+  alternativeMoves: ["Nf3"],
+  issueType: "intended_repertoire_move_missed",
+  explanation: "Use the intended central move to reach the saved repertoire setup.",
+  evidence: "This position is backed by the saved opening report.",
+  confidence: 0.82,
+  recurrenceCount: 2,
+  source: "active_repertoire_line",
+};
 const FORCED_THEME = String(process.env.OPENINGFIT_VISUAL_THEME || "").trim();
 const SCREENSHOT_DIR = path.resolve("test-screenshots");
 
-const routes = ["/", "/login", "/dashboard", "/report", "/repertoire", "/train", "/progress", "/account", "/journey", "/premium"];
-const viewports = [
+const requestedRoutes = String(process.env.OPENINGFIT_VISUAL_ROUTES || "").split(",").map((route) => route.trim()).filter(Boolean);
+const requestedViewports = new Set(String(process.env.OPENINGFIT_VISUAL_VIEWPORTS || "").split(",").map((name) => name.trim()).filter(Boolean));
+const allRoutes = ["/", "/login", "/dashboard", "/report", "/repertoire", "/train", "/progress", "/account", "/journey", "/premium"];
+const routes = requestedRoutes.length ? allRoutes.filter((route) => requestedRoutes.includes(route)) : allRoutes;
+const allViewports = [
   { name: "phone-compact", width: 320, height: 568 },
   { name: "phone", width: 360, height: 800 },
   { name: "phone-plus", width: 390, height: 844 },
@@ -24,6 +43,7 @@ const viewports = [
   { name: "desktop-xl", width: 1440, height: 900 },
   { name: "desktop-1080p", width: 1920, height: 1080 },
 ];
+const viewports = requestedViewports.size ? allViewports.filter((viewport) => requestedViewports.has(viewport.name)) : allViewports;
 
 async function startVite() {
   const server = await createServer({
@@ -296,18 +316,26 @@ async function main() {
         // The app intentionally probes an external API during startup. Layout
         // readiness depends on the rendered shell, not that network probe.
         await page.goto(url, { waitUntil: "domcontentloaded" });
-        if (route === "/report") {
-          await page.evaluate((report) => {
+        if (route === "/report" || route === "/train") {
+          await page.evaluate(({ report, includeOpportunity, opportunity }) => {
+            const analysis = includeOpportunity ? { ...report, openingTrainingOpportunities: [opportunity], opening_training_opportunities: [opportunity] } : report;
             window.localStorage.setItem("openingFit:lastAnalysis", JSON.stringify({
               username: report.username || "DemoPlayer",
               platform: report.platform || "demo",
               savedAt: new Date().toISOString(),
-              analysis: report,
+              analysis,
             }));
-          }, DEMO_REPORT);
+          }, { report: DEMO_REPORT, includeOpportunity: route === "/train", opportunity: TRAINING_OPPORTUNITY_FIXTURE });
           await page.reload({ waitUntil: "domcontentloaded" });
         }
         await page.locator(".page, .seoPageShell").first().waitFor({ state: "visible", timeout: 10000 });
+        if (route === "/train") {
+          const opportunityButton = page.locator(".trainingSessionQueue li.isCurrent button").first();
+          if (await opportunityButton.isVisible().catch(() => false)) {
+            await opportunityButton.click();
+            await page.locator(".openingOpportunityDrill").first().waitFor({ state: "visible", timeout: 10000 });
+          }
+        }
         await page.waitForTimeout(350);
         const routeName = route.replace(/^\//, "") || "home";
         const filename = `${routeName}-${viewport.name}-${viewport.width}x${viewport.height}.png`;
@@ -317,7 +345,7 @@ async function main() {
 
         await assertRouteLayout(page, route);
 
-        if (route === "/report") {
+        if (route === "/report" || route === "/train") {
           await page.evaluate(() => window.localStorage.removeItem("openingFit:lastAnalysis"));
         }
 

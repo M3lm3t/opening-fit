@@ -8,11 +8,12 @@ import {
   upsertUserProfile,
 } from "../services/userDataService";
 import "./AccountPanel.css";
-import { startPremiumCheckout, deleteOpeningFitAccount } from "../accountApi";
+import { createSubscriptionPortalSession, deleteOpeningFitAccount } from "../accountApi";
 import { useAuth } from "../context/AuthDataProvider";
 import { logRetentionEvent } from "../services/retentionEvents";
 import { trackProductEvent } from "../lib/productAnalytics";
 import ReferralCodeEntry from "./ReferralCodeEntry";
+import { SUPPORT_EMAIL, supportMailto } from "../lib/supportConfig.js";
 
 const EMPTY_PROFILE = {
   chesscom_username: "",
@@ -21,9 +22,8 @@ const EMPTY_PROFILE = {
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 6;
 const AUTH_REQUEST_TIMEOUT_MS = 12000;
-const SUPPORT_EMAIL = "m3lm3t@gmail.com";
-const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`;
-const DELETE_REQUEST_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20account%20deletion%20request`;
+const SUPPORT_MAILTO = supportMailto("OpeningFit support");
+const DELETE_REQUEST_MAILTO = supportMailto("OpeningFit account deletion request");
 const PRODUCTION_AUTH_ORIGIN = "https://www.openingfit.com";
 const GOOGLE_SIGN_IN_ENABLED = true;
 const GOOGLE_PROVIDER_UNAVAILABLE_MESSAGE =
@@ -115,6 +115,85 @@ function PreLoginCuriosityHooks() {
   );
 }
 
+function entitlementDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(date);
+}
+
+function SubscriptionManagement({
+  entitlement,
+  loading,
+  checkoutLoading,
+  portalLoading,
+  portalError,
+  onUpgrade,
+  onManage,
+}) {
+  if (loading) {
+    return <section className="accountSubscriptionCard" aria-busy="true"><span>Subscription</span><strong>Loading your access...</strong><p>Checking the protected entitlement attached to this account.</p></section>;
+  }
+
+  const accessType = entitlement?.accessType || "free";
+  const status = entitlement?.status || "expired";
+  const periodDate = entitlementDate(entitlement?.currentPeriodEnd);
+  const isSubscriber = accessType === "monthly_subscription" || accessType === "annual_subscription";
+  const isLifetime = accessType === "lifetime";
+  const planName = accessType === "monthly_subscription"
+    ? "OpeningFit Monthly"
+    : accessType === "annual_subscription"
+      ? "OpeningFit Annual"
+      : isLifetime
+        ? "OpeningFit Lifetime"
+        : "OpeningFit Free";
+  const accessLabel = accessType.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
+  const statusLabel = accessType === "free"
+    ? "Not subscribed"
+    : status.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
+  const canManage = Boolean(
+    entitlement?.stripeCustomerId
+    && (isSubscriber || (isLifetime && entitlement?.stripeSubscriptionId))
+  );
+  const badgeLabel = entitlement?.hasPremiumAccess ? "Active" : accessType === "free" ? "Free" : "Inactive";
+
+  let dateMessage = "No renewal date applies to free access.";
+  if (isLifetime) dateMessage = "Lifetime access";
+  else if ((status === "past_due" || status === "incomplete") && entitlement?.hasPremiumAccess) {
+    dateMessage = periodDate ? `Payment needs attention. Access remains active until ${periodDate}.` : "Payment needs attention.";
+  } else if (status === "past_due" || status === "incomplete") {
+    dateMessage = "Payment needs attention";
+  } else if (periodDate && (entitlement?.cancelAtPeriodEnd || status === "canceled")) {
+    dateMessage = `Access remains active until ${periodDate}.`;
+  } else if (periodDate && isSubscriber) {
+    dateMessage = `Renews on ${periodDate}.`;
+  } else if (isSubscriber) {
+    dateMessage = "Stripe is still confirming the next billing date.";
+  }
+
+  return (
+    <section className="accountSubscriptionCard" aria-labelledby="account-subscription-title">
+      <div className="accountSubscriptionHeader">
+        <div><span>Subscription</span><strong id="account-subscription-title">{planName}</strong></div>
+        <em className={entitlement?.hasPremiumAccess ? "isActive" : ""}>{badgeLabel}</em>
+      </div>
+      <dl className="accountSubscriptionDetails">
+        <div><dt>Access type</dt><dd>{accessLabel}</dd></div>
+        <div><dt>Subscription status</dt><dd>{statusLabel}</dd></div>
+        <div><dt>Cancellation scheduled</dt><dd>{isSubscriber ? (entitlement?.cancelAtPeriodEnd ? "Yes" : "No") : "Not applicable"}</dd></div>
+        <div><dt>Renewal or access end</dt><dd>{isLifetime ? "Lifetime access" : periodDate || "Not available"}</dd></div>
+      </dl>
+      <p>{dateMessage}</p>
+      {portalError ? <p className="accountSubscriptionError" role="alert">{portalError}</p> : null}
+      <div className="accountSubscriptionActions">
+        {canManage ? <button type="button" onClick={onManage} disabled={portalLoading}>{portalLoading ? "Opening Stripe..." : "Manage subscription"}</button> : null}
+        {accessType === "free" ? <button type="button" onClick={onUpgrade} disabled={checkoutLoading}>{checkoutLoading ? "Opening checkout..." : "Upgrade OpeningFit"}</button> : null}
+      </div>
+      {isSubscriber && !canManage ? <small>No Stripe customer account is linked yet. Refresh after Stripe finishes synchronising.</small> : null}
+    </section>
+  );
+}
+
 export default function AccountPanel({ variant = "floating",
   onUserChange,
   onCloudRestore,
@@ -126,6 +205,7 @@ export default function AccountPanel({ variant = "floating",
     loading: accountLoading,
     error: accountError,
     hasPremiumAccess,
+    entitlement,
     profileLoading,
     profileLoaded,
     profileError,
@@ -151,6 +231,8 @@ export default function AccountPanel({ variant = "floating",
   const [saving, setSaving] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState("");
   const authBusy = saving || oauthLoading || accountLoading || !authHydrated;
 
   useEffect(() => {
@@ -476,15 +558,28 @@ export default function AccountPanel({ variant = "floating",
 
     if (checkoutLoading) return;
 
+    setCheckoutLoading(true);
+    setPortalError("");
+    setStatus("Opening monthly and annual plans...");
+    void trackProductEvent("upgrade_clicked", { authenticated: true, source: "account_subscription" });
+    window.location.assign("/premium");
+  }
+
+  async function handleManageSubscription() {
+    if (!user?.id || portalLoading) return;
+    setPortalLoading(true);
+    setPortalError("");
+    void trackProductEvent("subscription_manage_clicked", { authenticated: true, source: "account_subscription" });
     try {
-      setCheckoutLoading(true);
-      setStatus("Opening secure Stripe checkout...");
-      await startPremiumCheckout(user);
+      const portalUrl = await createSubscriptionPortalSession(user);
+      window.location.assign(portalUrl);
     } catch (error) {
-      console.error("Premium checkout failed", error);
-      setStatus(error?.message || "We could not start checkout. Please try again.");
+      console.error("OpeningFit subscription portal failed", error);
+      const message = error?.message || "We could not open subscription management. Please try again.";
+      setPortalError(message);
+      void trackProductEvent("portal_open_failed", { authenticated: true, source: "account_subscription", errorCategory: "portal_unavailable" });
     } finally {
-      setCheckoutLoading(false);
+      setPortalLoading(false);
     }
   }
 
@@ -798,15 +893,15 @@ export default function AccountPanel({ variant = "floating",
 
           {isSupabaseConfigured && user ? (
             <div className="accountProfileStack">
-              <div className="premiumStatusCard">
-                <span>Current access</span>
-                <strong>{hasPremiumAccess ? "Founder Pass active" : "Free account"}</strong>
-                <small>
-                  {hasPremiumAccess
-                    ? "Founder Pass access is attached to this account."
-                    : "You can upgrade from the Founder Pass card on this page."}
-                </small>
-              </div>
+              <SubscriptionManagement
+                entitlement={entitlement}
+                loading={profileLoading || !profileLoaded}
+                checkoutLoading={checkoutLoading}
+                portalLoading={portalLoading}
+                portalError={portalError}
+                onUpgrade={handlePremiumCheckout}
+                onManage={handleManageSubscription}
+              />
 
               <div className="premiumStatusCard accountLoginStatusCard">
                 <span>Email / login status</span>
@@ -891,11 +986,11 @@ export default function AccountPanel({ variant = "floating",
               {!isScreen ? (
                 <div className="accountPremiumBox">
                 <div>
-                  <strong>{hasPremiumAccess ? "Founder Pass active" : "OpeningFit Founder Pass"}</strong>
+                  <strong>{hasPremiumAccess ? "Paid access active" : "OpeningFit Plus"}</strong>
                   <p>
                     {hasPremiumAccess
-                      ? "Your account has Founder Pass access."
-                      : "Support early development and unlock deeper reports on this account."}
+                      ? "Your account has paid or preserved lifetime access."
+                      : "Choose monthly or annual access for ongoing repertoire and training tools."}
                   </p>
                 </div>
 

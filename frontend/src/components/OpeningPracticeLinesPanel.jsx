@@ -12,6 +12,7 @@ import {
 } from "../services/weakestLineTraining";
 import { TRAINING_SESSION_KEY, TRAINING_TASK_COMPLETED_EVENT, trainingOutcome } from "../lib/trainingQueue";
 import { trackProductEvent } from "../lib/productAnalytics";
+import OpeningOpportunityDrill from "./OpeningOpportunityDrill.jsx";
 
 const TRAINING_PROGRESS_KEY = "openingFit:openingTrainingProgress";
 
@@ -443,7 +444,7 @@ function buildLinePlan({ line, pack, moves, practiceSide, focusLine, trainingSet
   };
 }
 
-export default function OpeningPracticeLinesPanel({
+function StandardOpeningPracticeLinesPanel({
   opening,
   onClose,
   user = null,
@@ -1403,4 +1404,10 @@ export default function OpeningPracticeLinesPanel({
       ) : null}
     </section>
   );
+}
+
+export default function OpeningPracticeLinesPanel(props) {
+  const opportunity = props.opening?.opportunityId || props.opening?.opportunity_id ? props.opening : null;
+  if (opportunity) return <OpeningOpportunityDrill opportunity={opportunity} report={props.data} onClose={props.onClose} />;
+  return <StandardOpeningPracticeLinesPanel {...props} />;
 }

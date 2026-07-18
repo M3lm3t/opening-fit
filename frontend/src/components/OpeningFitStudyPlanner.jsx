@@ -326,8 +326,8 @@ export default function OpeningFitStudyPlanner({ data, username }) {
         <label>
           Opening
           <select value={openingName(selectedOpening)} onChange={(event) => setSelectedName(event.target.value)}>
-            {openings.map((opening) => (
-              <option key={openingName(opening)} value={openingName(opening)}>
+            {openings.map((opening, index) => (
+              <option key={`${openingName(opening)}-${index}`} value={openingName(opening)}>
                 {openingName(opening)} · {verdictFor(opening)}
               </option>
             ))}

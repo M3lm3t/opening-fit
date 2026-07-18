@@ -4,15 +4,16 @@ import { buildTrainingRecommendations } from "../services/trainingRecommendation
 export const TRAINING_SESSION_KEY = "openingFit:activeTrainingSession:v1";
 export const TRAINING_TASK_COMPLETED_EVENT = "openingfit:training-task-completed";
 const array = (value) => Array.isArray(value) ? value : [];
-const name = (item = {}) => item.opening || item.name || item.openingName || "Opening line";
+const name = (item = {}) => item.opening || item.name || item.openingName || item.openingId?.replaceAll("-", " ") || item.opening_id?.replaceAll("-", " ") || "Opening line";
 
 export function buildTrainingQueue(report = {}, repertoire = null, outcomes = []) {
+  const opportunities = array(report.openingTrainingOpportunities || report.opening_training_opportunities).slice(0, 3).map((row, index) => ({ id: `opportunity:${row.opportunityId || row.opportunity_id || index}`, priority: 1300 + Number(row.recurrenceCount || row.recurrence_count || 1) * 100 - index, type: row.recommendedMove || row.recommended_move ? "Opening position choice" : "Opening concept check", title: name(row), reason: row.explanation || "Review a supported opening decision from your analysed games.", target: row }));
   const recommendations = buildTrainingRecommendations(report);
   const weak = recommendations.recommendations.map((row, index) => ({ id: `weak:${name(row)}:${index}`, priority: 1000 - index * 50, type: row.type === "weak-line" ? "Repeated opening weakness" : "Low-confidence familiarity", title: name(row), reason: row.why, target: row.trainingTarget }));
   const mistakes = array(report.recentOpeningMistakes || report.recent_opening_mistakes || report.openingMistakes || report.opening_mistakes).slice(0, 2).map((row, index) => ({ id: `mistake:${row.gameId || row.game_id || index}`, priority: 900 - index, type: "Recent opening mistake", title: name(row), reason: row.explanation || row.reason || "Review the first move where the game left the intended repertoire.", target: row }));
   const selected = array(repertoire?.items).filter((item) => ["Learning", "Considering"].includes(item.status)).slice(0, 2).map((item, index) => ({ id: `repertoire:${item.id}`, priority: 700 - index, type: "New repertoire line", title: item.name, reason: "Build familiarity with a line you selected for your repertoire.", target: item.opening || item }));
   const failedIds = new Set(array(outcomes).filter((row) => row.result === "repeated_failure" || row.result === "revealed").map((row) => row.taskId));
-  return [...weak, ...mistakes, ...selected].map((task) => failedIds.has(task.id) ? { ...task, priority: task.priority + 200, type: "Repeat a failed line" } : task).sort((a, b) => b.priority - a.priority).filter((task, index, rows) => rows.findIndex((row) => row.id === task.id) === index).slice(0, 4);
+  return [...opportunities, ...weak, ...mistakes, ...selected].map((task) => failedIds.has(task.id) ? { ...task, priority: task.priority + 200, type: "Repeat a failed line" } : task).sort((a, b) => b.priority - a.priority).filter((task, index, rows) => rows.findIndex((row) => row.id === task.id) === index).slice(0, 4);
 }
 
 export function buildFiniteSession(queue = []) {

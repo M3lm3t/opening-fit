@@ -95,6 +95,7 @@ export default function ChessPositionBoard({
   position,
   orientation = "white",
   interactive = false,
+  draggableColor = null,
   selectedSquare = null,
   feedbackSquare = null,
   lastMoveSquares = [],
@@ -161,7 +162,7 @@ export default function ChessPositionBoard({
   };
 
   const handleDragStart = (event, squareName, piece) => {
-    if (!interactive || !piece) {
+    if (!interactive || !piece || (draggableColor && piece.color !== draggableColor)) {
       event.preventDefault();
       return;
     }
@@ -248,7 +249,7 @@ export default function ChessPositionBoard({
 
               {pieceKey ? (
                 <span
-                  draggable={interactive}
+                  draggable={interactive && (!draggableColor || piece.color === draggableColor)}
                   onDragStart={(event) => handleDragStart(event, squareName, piece)}
                   onDragEnd={handleDragEnd}
                   className={`cleanReplayPiece ${

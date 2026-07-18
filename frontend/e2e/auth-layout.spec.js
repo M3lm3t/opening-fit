@@ -1,8 +1,9 @@
 import { expect, test } from "playwright/test";
 
 const appUrl = process.env.OPENINGFIT_E2E_URL;
+const authEnabled = process.env.OPENINGFIT_E2E_AUTH === "true";
 
-test.skip(!appUrl, "Set OPENINGFIT_E2E_URL to a configured preview or production deployment.");
+test.skip(!appUrl || !authEnabled, "Set OPENINGFIT_E2E_URL and OPENINGFIT_E2E_AUTH=true for a Supabase-configured deployment.");
 
 for (const viewport of [
   { name: "desktop", width: 1280, height: 720 },

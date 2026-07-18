@@ -26,7 +26,7 @@ test("a refresh keeps an existing report usable", async ({ page }) => {
   });
   await page.goto(appUrl, { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/report/);
-  await page.getByText("Analyse", { exact: true }).first().click();
+  await page.getByRole("navigation", { name: "OpeningFit website" }).locator(".appPrimaryTabs").getByText("Analyse", { exact: true }).click();
   await page.getByLabel(/Chess\.com username/i).fill("ExamplePlayer");
   await page.getByRole("button", { name: "Get my opening report" }).click();
   await expect(page.getByText("Refreshing your report in the background")).toBeVisible();

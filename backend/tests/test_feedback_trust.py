@@ -52,3 +52,35 @@ def test_analytics_schema_rejects_sensitive_properties():
     clean = main.sanitize_analytics_data({"platform": "lichess", "route": "/report", "email": "private@example.com", "accessToken": "secret", "pgn": "1. e4", "games": 12})
     assert clean == {"platform": "lichess", "route": "/report", "games": 12}
     assert "analysis_completed" in main.PRODUCT_ANALYTICS_EVENTS
+    assert {
+        "repertoire_created",
+        "repertoire_change_accepted",
+        "repertoire_change_rejected",
+        "repertoire_training_opened",
+    }.issubset(main.PRODUCT_ANALYTICS_EVENTS)
+    assert {
+        "weekly_plan_started",
+        "training_task_started",
+        "weekly_plan_completed",
+        "training_impact_viewed",
+        "training_history_opened",
+        "subscription_manage_clicked",
+        "upgrade_clicked",
+        "portal_open_failed",
+    }.issubset(main.PRODUCT_ANALYTICS_EVENTS)
+
+
+def test_operational_log_details_redact_secrets_and_safely_reference_ids():
+    clean = main.safe_log_details({
+        "stripe_secret_key": "sk_live_never_log_this",
+        "authorization": "Bearer private-token",
+        "user_id": "00000000-0000-0000-0000-000000000123",
+        "subscription_id": "sub_1234567890abcdef",
+        "error": RuntimeError("request failed with whsec_neverlog"),
+    })
+    rendered = str(clean)
+    assert "sk_live_never_log_this" not in rendered
+    assert "private-token" not in rendered
+    assert "whsec_neverlog" not in rendered
+    assert clean["user_id"].startswith("sha256:")
+    assert clean["subscription_id"].startswith("...")

@@ -1,3 +1,5 @@
+import { supportMailto } from "../lib/supportConfig.js";
+
 function scrollToTarget(targetId) {
   const target = document.getElementById(targetId);
 
@@ -82,7 +84,7 @@ export default function ShipReadyPanel({ data, onViewChange }) {
           Save this report
         </button>
 
-        <a href="mailto:m3lm3t@gmail.com?subject=Opening%20Fit%20feedback">
+        <a href={supportMailto("Opening Fit feedback")}>
           Email bug report
         </a>
       </div>

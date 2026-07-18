@@ -19,7 +19,6 @@ import {
   deleteUserRow,
   createDefaultUserData,
   fetchAllUserData,
-  hasActivePremiumEntitlement,
   recordActivity,
   saveAnalysedGames,
   saveRecommendationHistory,
@@ -29,6 +28,7 @@ import {
   uploadUserFile,
   upsertUserRow,
 } from "../services/userDataService";
+import { resolvePremiumEntitlement } from "../lib/premiumEntitlement";
 
 const AuthDataContext = createContext(null);
 
@@ -923,17 +923,17 @@ export function AuthDataProvider({ children }) {
   }, [hydrated, profileLoaded, profileLoading, restoreError, restoreInProgress, user?.id]);
 
   const api = useMemo(
-    () => ({
+    () => {
+      const entitlement = userData?.entitlement || resolvePremiumEntitlement(userData?.premium_entitlements || []);
+      return ({
       isSupabaseConfigured,
       supabase,
       session,
       user,
       profile: userData?.profile || null,
       premiumEntitlements: userData?.premium_entitlements || [],
-      hasPremiumAccess: Boolean(
-        userData?.hasPremiumAccess ||
-          hasActivePremiumEntitlement(userData?.premium_entitlements || [], userData?.profile || null)
-      ),
+      entitlement,
+      hasPremiumAccess: entitlement.hasPremiumAccess,
       onboardingAnswers: userData?.onboarding_answers || [],
       measurements: userData?.measurements || [],
       outfits: userData?.outfits || [],
@@ -1014,7 +1014,8 @@ export function AuthDataProvider({ children }) {
           "Could not save activity."
         ),
       uploadUserFile: (file, pathPrefix) => uploadUserFile(user?.id, file, pathPrefix),
-    }),
+      });
+    },
     [
       authLoading,
       error,

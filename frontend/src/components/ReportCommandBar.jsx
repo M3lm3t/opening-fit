@@ -28,44 +28,6 @@ function getGames(data) {
   );
 }
 
-function getOpeningName(opening) {
-  return opening?.name || opening?.opening || opening?.eco || null;
-}
-
-function getOpenings(data) {
-  return [
-    ...(Array.isArray(data?.top_openings) ? data.top_openings : []),
-    ...(Array.isArray(data?.opening_stats) ? data.opening_stats : []),
-    ...(Array.isArray(data?.openings) ? data.openings : []),
-  ].filter(Boolean);
-}
-
-function getWinRate(opening) {
-  const raw = opening?.winRate ?? opening?.win_rate ?? opening?.score;
-  const n = Number(raw);
-
-  if (!Number.isFinite(n)) return null;
-
-  return n <= 1 ? Math.round(n * 100) : Math.round(n);
-}
-
-function findFocusOpening(data) {
-  const openings = getOpenings(data)
-    .map((opening) => ({
-      ...opening,
-      name: getOpeningName(opening),
-      games: Number(opening?.games ?? opening?.count ?? opening?.total ?? 0),
-      winRate: getWinRate(opening),
-    }))
-    .filter((opening) => opening.name && opening.games > 0);
-
-  const weak = openings
-    .filter((opening) => opening.games >= 3 && opening.winRate !== null)
-    .sort((a, b) => a.winRate - b.winRate)[0];
-
-  return weak || openings[0] || null;
-}
-
 export default function ReportCommandBar({
   data,
   activeView,
@@ -78,7 +40,6 @@ export default function ReportCommandBar({
   const username = getUsername(data);
   const platform = getPlatform(data);
   const games = getGames(data);
-  const focusOpening = findFocusOpening(data);
 
   const views = [
     { key: "verdict", label: "Verdict", mode: "summary", target: "report-verdict", activeViews: ["overview", "report", "verdict"] },
@@ -118,15 +79,6 @@ export default function ReportCommandBar({
             {games ? ` · ${games} games analysed` : ""}
           </p>
         </div>
-      </div>
-
-      <div className="reportCommandBar__next">
-        <span>Primary next action</span>
-        <strong>
-          {focusOpening?.name
-            ? "Train this line"
-            : "Review repertoire"}
-        </strong>
       </div>
 
       <TabNavigation

@@ -567,6 +567,131 @@
   gap: 4px;
 }
 
+.accountSubscriptionCard {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  border-radius: 16px;
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.accountSubscriptionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.accountSubscriptionHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.accountSubscriptionHeader span {
+  color: #7dd3fc;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.accountSubscriptionHeader em {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.14);
+  color: var(--ui-text-muted, #94a3b8);
+  font-size: 0.74rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.accountSubscriptionHeader em.isActive {
+  background: rgba(34, 197, 94, 0.14);
+  color: #86efac;
+}
+
+.accountSubscriptionDetails {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.accountSubscriptionDetails > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.accountSubscriptionDetails dt {
+  color: var(--ui-text-muted, #94a3b8);
+  font-size: 0.7rem;
+}
+
+.accountSubscriptionDetails dd {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+.accountSubscriptionCard p,
+.accountSubscriptionCard small {
+  margin: 0;
+}
+
+.accountSubscriptionError {
+  color: #fecaca;
+  font-weight: 750;
+}
+
+.accountSubscriptionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.accountSubscriptionActions button {
+  min-height: 42px;
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 12px;
+  padding: 9px 13px;
+  background: #22d3ee;
+  color: #082f49;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.accountSubscriptionActions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.page.light .accountSubscriptionCard,
+.light .accountSubscriptionCard {
+  background: rgba(14, 165, 233, 0.06);
+  border-color: rgba(14, 165, 233, 0.2);
+}
+
+.page.light .accountSubscriptionHeader span,
+.light .accountSubscriptionHeader span {
+  color: #0369a1;
+}
+
+.page.light .accountSubscriptionHeader em.isActive,
+.light .accountSubscriptionHeader em.isActive {
+  color: #166534;
+}
+
+.page.light .accountSubscriptionDetails > div,
+.light .accountSubscriptionDetails > div {
+  background: rgba(255, 255, 255, 0.72);
+}
+
 .accountInlineRetry {
   width: fit-content;
   margin-top: 5px;
@@ -1613,6 +1738,15 @@
 @media (max-width: 560px) {
   .profileAccountCard .accountActions {
     grid-template-columns: 1fr;
+  }
+
+  .accountSubscriptionDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .accountSubscriptionActions,
+  .accountSubscriptionActions button {
+    width: 100%;
   }
 }
 .accountAuthIntro {

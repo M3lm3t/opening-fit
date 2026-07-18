@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { startPremiumCheckout } from "../accountApi";
 import "./FounderPassLoginUpgrade.css";
 
 export default function FounderPassLoginUpgrade({ accountUser }) {
@@ -12,13 +11,13 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
   ];
   const trustItems = [
     "Built for club players",
-    "One-time early supporter access",
+    "Monthly or annual billing",
     "No theory overload",
   ];
 
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState("");
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const checkoutLoading = false;
 
   useEffect(() => {
     const handleFounderIntent = () => {
@@ -86,18 +85,8 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
 
   const continueToAccountPayment = async () => {
     if (accountUser?.id) {
-      if (checkoutLoading) return;
-
-      try {
-        setCheckoutLoading(true);
-        setStatus("Opening secure Stripe checkout...");
-        await startPremiumCheckout(accountUser);
-      } catch (error) {
-        console.error("Founder Pass checkout failed", error);
-        setStatus(error?.message || "We could not start checkout. Please try again.");
-      } finally {
-        setCheckoutLoading(false);
-      }
+      setOpen(false);
+      window.location.assign("/premium");
       return;
     }
 
@@ -161,14 +150,14 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
         </button>
 
         <div className="founderPassUpgradeHeader">
-          <span>Founder Pass</span>
-          <strong>£8 early lifetime access</strong>
+          <span>OpeningFit Plus</span>
+          <strong>Subscriptions from £4.99 per month</strong>
         </div>
 
         <h2>Save reports and track your opening progress.</h2>
 
         <p>
-          The free report stays useful. Founder Pass adds saved report history,
+          The free report stays useful. OpeningFit Plus adds saved report history,
           progress comparisons, weak-line tracking, and a personal repertoire
           plan. Login first so your access can be linked to your account.
         </p>
@@ -186,14 +175,14 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
             <p>
               {accountUser
                 ? "You are ready to continue to payment."
-                : "This keeps your Founder Pass linked to you."}
+                : "This keeps your subscription linked to you."}
             </p>
           </div>
 
           <div>
             <span>2</span>
             <strong>Secure Stripe checkout</strong>
-            <p>Pay once for early lifetime access.</p>
+            <p>Choose monthly or annual recurring billing.</p>
           </div>
 
           <div>
@@ -210,8 +199,7 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
         </div>
 
         <p className="founderPassUpgradeNote">
-          Opening Fit is still improving. Founder Pass helps fund development.
-          Coming soon: engine-assisted diagnosis, PDF export, and deeper drills.
+          OpeningFit Plus supports the living repertoire, weekly training, progress comparisons, and own-game drills already available in the product.
         </p>
 
         {status ? <p className="founderPassUpgradeNote">{status}</p> : null}
@@ -225,11 +213,11 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
           {checkoutLoading
             ? "Opening checkout..."
             : accountUser
-              ? "Continue to secure payment"
+              ? "View monthly and annual plans"
               : "Login to continue"}
         </button>
         <small className="premiumActionMicrocopy">
-          One-time payment. Access stays linked to your account.
+          Recurring billing. Cancel through account settings; access continues to the end of the paid period. Existing lifetime access remains lifetime.
         </small>
 
         <button
