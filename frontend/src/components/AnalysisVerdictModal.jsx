@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import "./AnalysisVerdictModal.css";
 
 function asArray(value) {
@@ -452,7 +453,7 @@ export default function AnalysisVerdictModal({
             <p id="analysis-verdict-subtitle">Here is the clearest next step from this analysis.</p>
           </div>
           <button className="analysisVerdictClose" type="button" onClick={onDismiss} aria-label="Close verdict">
-            ×
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
 

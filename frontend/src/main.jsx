@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/react";
 import App from "./App";
 import "./index.css";
 import "./styles/uiFoundation.css";
+import "./styles/iconControlAlignment.css";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthDataProvider } from "./context/AuthDataProvider";
 import ReferralCaptureNotice from "./components/ReferralCaptureNotice";

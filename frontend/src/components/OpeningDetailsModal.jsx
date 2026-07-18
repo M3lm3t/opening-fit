@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { X } from "lucide-react";
 import { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 import { sampleSizeCopy } from "./openingCopy";
 import { buildOpeningVariationOverview } from "../services/variationOverview";
@@ -138,7 +139,7 @@ export default function OpeningDetailsModal({ opening, data = null, onClose, onR
           </div>
 
           <button className="modalCloseButton" type="button" onClick={onClose} aria-label="Close opening details">
-            ×
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
 

@@ -1,0 +1,55 @@
+/*
+ * Compact controls must centre their visible icon independently of font
+ * metrics. Keep this final, shared rule narrow: text buttons retain their own
+ * spacing while close, navigation, and icon-only controls share one contract.
+ */
+:is(
+  .accountCloseBtn,
+  .analysisVerdictClose,
+  .checkoutNoticeClose,
+  .founderPassUpgradeClose,
+  .modalCloseButton,
+  .practiceCloseButton,
+  .returningUserBriefingClose,
+  .appPrimaryMenuToggle,
+  .replayControls .controlBtn,
+  .postReportOnboarding header > button,
+  .weeklyRecap header > button,
+  .referralAppliedNotice button,
+  .referralAdminDrawerPanel header > button,
+  .of-icon-button
+) {
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+}
+
+:is(
+  .accountCloseBtn,
+  .analysisVerdictClose,
+  .checkoutNoticeClose,
+  .founderPassUpgradeClose,
+  .modalCloseButton,
+  .practiceCloseButton,
+  .returningUserBriefingClose,
+  .appPrimaryMenuToggle,
+  .replayControls .controlBtn,
+  .postReportOnboarding header > button,
+  .weeklyRecap header > button,
+  .referralAppliedNotice button,
+  .referralAdminDrawerPanel header > button,
+  .of-icon-button
+) > svg,
+.appPrimaryMenuToggle > span > svg {
+  display: block !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+.appPrimaryMenuToggle > span {
+  display: grid !important;
+  place-items: center !important;
+  transform: none !important;
+}

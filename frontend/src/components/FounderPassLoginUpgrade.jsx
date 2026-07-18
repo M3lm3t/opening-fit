@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import "./FounderPassLoginUpgrade.css";
 
 export default function FounderPassLoginUpgrade({ accountUser }) {
@@ -146,7 +147,7 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
           onClick={() => setOpen(false)}
           aria-label="Close Founder Pass panel"
         >
-          ×
+          <X size={20} aria-hidden="true" />
         </button>
 
         <div className="founderPassUpgradeHeader">

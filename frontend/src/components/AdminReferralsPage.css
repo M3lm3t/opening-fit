@@ -21,7 +21,7 @@
 .referralAdminDrawerPanel header { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
 .referralAdminDrawerPanel header span { color: var(--of-color-text-muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; }
 .referralAdminDrawerPanel header h2 { margin: 4px 0 0; }
-.referralAdminDrawerPanel header button { width: 44px; height: 44px; border: 0; background: transparent; color: inherit; font-size: 1.5rem; }
+.referralAdminDrawerPanel header button { width: 44px; height: 44px; border: 0; background: transparent; color: inherit; cursor: pointer; }
 .referralAdminUrl { overflow-wrap: anywhere; color: var(--of-color-text-muted); }
 .referralAdminDetailList { display: grid; gap: 8px; }
 .referralAdminDetailList article { padding: 12px; border: 1px solid var(--of-color-border); border-radius: 10px; }

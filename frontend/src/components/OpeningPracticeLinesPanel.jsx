@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
+import { X } from "lucide-react";
 import ChessPositionBoard from "./ChessPositionBoard";
 import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes.jsx";
 import { findOpeningPracticePack, openingPracticePacks } from "../data/openingPracticeLines";
@@ -700,8 +701,8 @@ function StandardOpeningPracticeLinesPanel({
           </div>
 
           {onClose ? (
-            <button className="practiceCloseButton" type="button" onClick={onClose}>
-              ×
+            <button className="practiceCloseButton" type="button" onClick={onClose} aria-label="Close opening practice">
+              <X size={20} aria-hidden="true" />
             </button>
           ) : null}
         </div>
@@ -1142,8 +1143,8 @@ function StandardOpeningPracticeLinesPanel({
         </div>
 
         {onClose ? (
-          <button className="practiceCloseButton" type="button" onClick={onClose}>
-            ×
+          <button className="practiceCloseButton" type="button" onClick={onClose} aria-label="Close opening practice">
+            <X size={20} aria-hidden="true" />
           </button>
         ) : null}
       </div>

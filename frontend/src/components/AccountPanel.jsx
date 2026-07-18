@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { X } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 import {
   signInWithEmailPassword,
@@ -696,8 +697,8 @@ export default function AccountPanel({ variant = "floating",
             </div>
 
             {!isScreen ? (
-              <button className="accountCloseBtn" type="button" onClick={() => setIsOpen(false)}>
-                ×
+              <button className="accountCloseBtn" type="button" onClick={() => setIsOpen(false)} aria-label="Close account panel">
+                <X size={20} aria-hidden="true" />
               </button>
             ) : null}
           </div>

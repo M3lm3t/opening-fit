@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 import { captureReferralFromUrl, REFERRAL_CAPTURED_EVENT } from "../lib/referrals";
 import { logSupabaseSyncWarning } from "../services/supabaseSyncDebug";
@@ -35,7 +36,7 @@ export default function ReferralCaptureNotice() {
   return (
     <div className="referralAppliedNotice" role="status" aria-live="polite">
       <span>Referral applied from {partnerName}.</span>
-      <button type="button" onClick={() => setPartnerName("")} aria-label="Dismiss referral confirmation">×</button>
+      <button type="button" onClick={() => setPartnerName("")} aria-label="Dismiss referral confirmation"><X size={18} aria-hidden="true" /></button>
     </div>
   );
 }

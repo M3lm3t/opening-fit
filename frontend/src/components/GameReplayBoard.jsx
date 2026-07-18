@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Chess } from "chess.js";
+import { ChevronLeft, ChevronRight, SkipBack, SkipForward } from "lucide-react";
 import ChessPositionBoard from "./ChessPositionBoard";
 import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes.jsx";
 
@@ -120,7 +121,7 @@ export default function GameReplayBoard({
               disabled={!canGoBack}
               aria-label="Go to start of game"
             >
-              ⏮
+              <SkipBack size={18} aria-hidden="true" />
             </button>
 
             <button
@@ -130,7 +131,7 @@ export default function GameReplayBoard({
               disabled={!canGoBack}
               aria-label="Previous move"
             >
-              ◀
+              <ChevronLeft size={20} aria-hidden="true" />
             </button>
 
             <button
@@ -140,7 +141,7 @@ export default function GameReplayBoard({
               disabled={!canGoForward}
               aria-label="Next move"
             >
-              ▶
+              <ChevronRight size={20} aria-hidden="true" />
             </button>
 
             <button
@@ -150,7 +151,7 @@ export default function GameReplayBoard({
               disabled={!canGoForward}
               aria-label="Go to end of game"
             >
-              ⏭
+              <SkipForward size={18} aria-hidden="true" />
             </button>
           </div>
 

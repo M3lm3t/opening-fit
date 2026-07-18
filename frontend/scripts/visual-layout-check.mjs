@@ -24,6 +24,7 @@ const TRAINING_OPPORTUNITY_FIXTURE = {
   source: "active_repertoire_line",
 };
 const FORCED_THEME = String(process.env.OPENINGFIT_VISUAL_THEME || "").trim();
+const FORCED_QUERY = String(process.env.OPENINGFIT_VISUAL_QUERY || "").trim().replace(/^\?/, "");
 const SCREENSHOT_DIR = path.resolve("test-screenshots");
 
 const requestedRoutes = String(process.env.OPENINGFIT_VISUAL_ROUTES || "").split(",").map((route) => route.trim()).filter(Boolean);
@@ -96,6 +97,47 @@ async function getBox(locator) {
     width: box.width,
     height: box.height,
   };
+}
+
+async function assertIconControlAlignment(page, route) {
+  const failures = await page.locator("button").evaluateAll((buttons) => buttons.flatMap((button) => {
+    const buttonStyle = getComputedStyle(button);
+    const buttonRect = button.getBoundingClientRect();
+    if (buttonRect.width < 1 || buttonRect.height < 1 || buttonStyle.display === "none" || buttonStyle.visibility === "hidden") return [];
+
+    const directText = [...button.childNodes]
+      .filter((node) => node.nodeType === Node.TEXT_NODE)
+      .map((node) => node.textContent || "")
+      .join("")
+      .trim();
+    const graphics = [...button.querySelectorAll("svg")].filter((svg) => {
+      const rect = svg.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    });
+    if (directText || graphics.length !== 1) return [];
+
+    const otherVisibleElements = [...button.children].filter((child) => {
+      if (child === graphics[0] || child.contains(graphics[0])) return false;
+      const rect = child.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && getComputedStyle(child).display !== "none";
+    });
+    if (otherVisibleElements.length) return [];
+
+    const iconRect = graphics[0].getBoundingClientRect();
+    const horizontalDelta = Math.abs((buttonRect.left + buttonRect.width / 2) - (iconRect.left + iconRect.width / 2));
+    const verticalDelta = Math.abs((buttonRect.top + buttonRect.height / 2) - (iconRect.top + iconRect.height / 2));
+    if (horizontalDelta <= 1 && verticalDelta <= 1) return [];
+
+    return [{
+      label: button.getAttribute("aria-label") || button.className || "unlabelled icon button",
+      horizontalDelta: Number(horizontalDelta.toFixed(2)),
+      verticalDelta: Number(verticalDelta.toFixed(2)),
+    }];
+  }));
+
+  if (failures.length) {
+    throw new Error(`Icon controls are not centred on ${route}:\n${failures.map((failure) => `- ${failure.label}: x ${failure.horizontalDelta}px, y ${failure.verticalDelta}px`).join("\n")}`);
+  }
 }
 
 async function assertAccountLayout(page) {
@@ -312,7 +354,7 @@ async function main() {
     for (const viewport of viewports) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       for (const route of routes) {
-        const url = `${BASE_URL}${route}`;
+        const url = `${BASE_URL}${route}${FORCED_QUERY ? `?${FORCED_QUERY}` : ""}`;
         // The app intentionally probes an external API during startup. Layout
         // readiness depends on the rendered shell, not that network probe.
         await page.goto(url, { waitUntil: "domcontentloaded" });
@@ -344,6 +386,7 @@ async function main() {
         screenshots.push(filepath);
 
         await assertRouteLayout(page, route);
+        await assertIconControlAlignment(page, route);
 
         if (route === "/report" || route === "/train") {
           await page.evaluate(() => window.localStorage.removeItem("openingFit:lastAnalysis"));
