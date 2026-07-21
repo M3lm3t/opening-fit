@@ -1,0 +1,1 @@
+drop index public.weekly_training_plans_one_active_week_idx;

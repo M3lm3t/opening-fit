@@ -50,6 +50,34 @@ function Assert-SqlFailure {
   Write-Host "PASS expected failure: $ExpectedText"
 }
 
+function Invoke-Validator {
+  param(
+    [Parameter(Mandatory = $true)][string]$Database,
+    [Parameter(Mandatory = $true)][ValidateSet("baseline", "foundation", "entitlement", "final")][string]$Mode,
+    [Parameter(Mandatory = $true)][ValidateSet("PASS", "FAIL")][string]$ExpectedStatus,
+    [switch]$RequireExpectedNotYetPresent
+  )
+  $validatorPath = "/workspace/scripts/validate_production_subscription_schema.sql"
+  $summaryName = $Mode.ToUpperInvariant() + "_VALIDATION_" + $ExpectedStatus
+  $output = & docker exec -e "PGPASSWORD=$password" $container psql `
+    -v ON_ERROR_STOP=1 -A -t -F "|" -U postgres -d $Database `
+    -c "set openingfit.validation_mode = '$Mode'; set client_min_messages = warning" -f $validatorPath 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Validator crashed: $Database / $Mode $($output -join [Environment]::NewLine)"
+  }
+  $renderedOutput = $output -join [Environment]::NewLine
+  if ($renderedOutput -notmatch [regex]::Escape("$Mode|$summaryName|$ExpectedStatus|")) {
+    throw "Validator returned the wrong summary: $Database / $Mode / expected $summaryName $renderedOutput"
+  }
+  if ($RequireExpectedNotYetPresent -and $renderedOutput -notmatch "EXPECTED_NOT_YET_PRESENT") {
+    throw "Validator did not report expected later objects: $Database / $Mode"
+  }
+  if ($renderedOutput -match "SQLSTATE 42703|column .* does not exist") {
+    throw "Validator referenced an expected-later column statically: $Database / $Mode"
+  }
+  Write-Host "PASS validator $Mode -> $summaryName"
+}
+
 try {
   Write-Host "Starting isolated local Postgres container $container"
   & docker run --name $container -e "POSTGRES_PASSWORD=$password" -e "POSTGRES_DB=postgres" -v "$($repoRoot):/workspace:ro" -d $PostgresImage
@@ -78,9 +106,57 @@ try {
   Invoke-ContainerSql "openingfit_clean" "supabase/migrations/202607200003_production_coaching_and_entitlement_enforcement.sql"
 
   Invoke-ContainerSql "openingfit_clean" "supabase/tests/production_reconciliation_assertions.sql"
-  Invoke-ContainerSql "openingfit_clean" "scripts/validate_production_subscription_schema.sql"
+  Invoke-Validator "openingfit_clean" "final" "PASS"
   Invoke-ContainerSql "openingfit_clean" "scripts/preview_production_reconciliation_impact.sql"
   Write-Host "PASS clean upgrade, retry, preservation, authorization, and resolver tests"
+
+  # Exercise the exact audited production phase sequence. This fixture removes
+  # reconciliation-only columns before baseline validation.
+  New-FixtureDatabase "openingfit_validator_sequence"
+  Invoke-ContainerSql "openingfit_validator_sequence" "supabase/tests/production_reconciliation_validator_baseline_fixture.sql"
+  Invoke-ContainerSql "openingfit_validator_sequence" "scripts/preview_production_reconciliation_impact.sql"
+  Invoke-Validator "openingfit_validator_sequence" "baseline" "PASS" -RequireExpectedNotYetPresent
+  Invoke-ContainerSql "openingfit_validator_sequence" "supabase/migrations/202607200001_production_schema_reconciliation_foundation.sql"
+  Invoke-Validator "openingfit_validator_sequence" "foundation" "PASS" -RequireExpectedNotYetPresent
+  Invoke-ContainerSql "openingfit_validator_sequence" "supabase/migrations/202607200002_production_entitlement_preservation.sql"
+  Invoke-Validator "openingfit_validator_sequence" "entitlement" "PASS" -RequireExpectedNotYetPresent
+  Invoke-ContainerSql "openingfit_validator_sequence" "supabase/migrations/202607200003_production_coaching_and_entitlement_enforcement.sql"
+  Invoke-Validator "openingfit_validator_sequence" "final" "PASS"
+  Write-Host "PASS phase-aware validator sequence"
+
+  foreach ($missingObjectCase in @(
+    @{ Name = "baseline"; Mode = "baseline"; Through = 0; File = "validator_failure_missing_baseline_object.sql" },
+    @{ Name = "foundation"; Mode = "foundation"; Through = 1; File = "validator_failure_missing_foundation_object.sql" },
+    @{ Name = "entitlement"; Mode = "entitlement"; Through = 2; File = "validator_failure_missing_entitlement_object.sql" },
+    @{ Name = "final"; Mode = "final"; Through = 3; File = "validator_failure_missing_final_object.sql" }
+  )) {
+    $database = "openingfit_validator_missing_" + $missingObjectCase.Name
+    New-FixtureDatabase $database
+    Invoke-ContainerSql $database "supabase/tests/production_reconciliation_validator_baseline_fixture.sql"
+    if ($missingObjectCase.Through -ge 1) {
+      Invoke-ContainerSql $database "supabase/migrations/202607200001_production_schema_reconciliation_foundation.sql"
+    }
+    if ($missingObjectCase.Through -ge 2) {
+      Invoke-ContainerSql $database "supabase/migrations/202607200002_production_entitlement_preservation.sql"
+    }
+    if ($missingObjectCase.Through -ge 3) {
+      Invoke-ContainerSql $database "supabase/migrations/202607200003_production_coaching_and_entitlement_enforcement.sql"
+    }
+    Invoke-ContainerSql $database ("supabase/tests/" + $missingObjectCase.File)
+    Invoke-Validator $database $missingObjectCase.Mode "FAIL"
+  }
+
+  foreach ($dataViolation in @(
+    @{ Name = "duplicate"; File = "validator_failure_duplicate_entitlement.sql" },
+    @{ Name = "ambiguous"; File = "validator_failure_ambiguous_entitlement.sql" }
+  )) {
+    $database = "openingfit_validator_" + $dataViolation.Name
+    New-FixtureDatabase $database
+    Invoke-ContainerSql $database "supabase/tests/production_reconciliation_validator_baseline_fixture.sql"
+    Invoke-ContainerSql $database ("supabase/tests/" + $dataViolation.File)
+    Invoke-Validator $database "baseline" "FAIL"
+  }
+  Write-Host "PASS validator missing-object, duplicate, and ambiguity failures"
 
   New-FixtureDatabase "openingfit_duplicate_profiles"
   Invoke-ContainerSql "openingfit_duplicate_profiles" "supabase/tests/failure_foundation_duplicate_user_profiles.sql"

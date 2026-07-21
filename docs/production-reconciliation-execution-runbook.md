@@ -9,6 +9,40 @@ separate change after schema and data verification.
 
 ## Before execution
 
+The validator requires an explicit phase. Supabase's Management API does not
+interpret `psql` meta-commands, so use this helper to prepend the session setting
+to the validator in one SQL batch. The generated file is local and temporary;
+the validator creates only session-local `pg_temp` objects and performs no
+persistent database writes.
+
+```powershell
+function Invoke-OpeningFitReconciliationValidator {
+  param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('baseline', 'foundation', 'entitlement', 'final')]
+    [string]$Mode
+  )
+
+  $validatorSql = Get-Content -Raw scripts/validate_production_subscription_schema.sql
+  $batchSql = "set openingfit.validation_mode = '$Mode';`r`n$validatorSql"
+  $temporarySql = [IO.Path]::GetTempFileName()
+  try {
+    [IO.File]::WriteAllText(
+      $temporarySql,
+      $batchSql,
+      [Text.UTF8Encoding]::new($false)
+    )
+    npx.cmd supabase db query --linked --file $temporarySql --output-format json
+    if ($LASTEXITCODE -ne 0) {
+      throw "The $Mode validator query failed to execute."
+    }
+  }
+  finally {
+    Remove-Item -LiteralPath $temporarySql -ErrorAction SilentlyContinue
+  }
+}
+```
+
 1. Record the release commit and immutable file hashes:
 
    ```powershell
@@ -39,13 +73,15 @@ separate change after schema and data verification.
    entitlement; zero customer-only, Price-only, source-only, contradictory
    payment/lifetime, unclassified, or otherwise ambiguous rows; and no newly
    observed recurring evidence on either candidate. Stop on any difference.
-7. Run and preserve the current validator baseline. Pre-reconciliation missing
-   future objects are expected; unexpected failures or missing production-only
-   tables are not:
+7. Run and preserve the explicit baseline validator. Reconciliation-only
+   objects must be reported as `EXPECTED_NOT_YET_PRESENT`; all required
+   baseline checks and the summary must pass:
 
    ```powershell
-   npx.cmd supabase db query --linked --file scripts/validate_production_subscription_schema.sql
+   Invoke-OpeningFitReconciliationValidator -Mode baseline
    ```
+
+   The final row must be `BASELINE_VALIDATION_PASS`. Stop on any `FAIL` row.
 
 8. Capture the current schema and migration list without changing history:
 
@@ -89,9 +125,12 @@ npx.cmd supabase db query --linked --file supabase/migrations/202607200001_produ
 Post-migration-1 validation:
 
 - Re-run the preview and save the output.
-- Run the validator and review only foundation objects at this stage: Stripe
+- Run `Invoke-OpeningFitReconciliationValidator -Mode foundation`. The final
+  row must be `FOUNDATION_VALIDATION_PASS`. This mode requires Stripe
   payment/price/mode columns and indexes, profile guard trigger, retention and
   referral objects, profile uniqueness, and report snapshot columns/defaults.
+  Entitlement and final coaching objects remain
+  `EXPECTED_NOT_YET_PRESENT` rather than failures.
 - Confirm `report_history` row count is unchanged and `contact_messages`,
   `feedback`, and `user_states` still exist with unchanged aggregate counts.
 - Confirm a service-role profile premium update succeeds in a designated smoke
@@ -108,6 +147,9 @@ npx.cmd supabase db query --linked --file supabase/migrations/202607200002_produ
 Post-migration-2 validation:
 
 - Re-run the preview and full validator.
+- Run `Invoke-OpeningFitReconciliationValidator -Mode entitlement`. The final
+  row must be `ENTITLEMENT_VALIDATION_PASS`; final coaching objects may still
+  be `EXPECTED_NOT_YET_PRESENT`.
 - Confirm the legacy entitlement and profile-derived entitlement are lifetime,
   active, non-expiring, and grandfathered without printing identifiers.
 - Confirm zero null/duplicate owners, zero duplicate Stripe subscription IDs,
@@ -133,11 +175,12 @@ npx.cmd supabase db query --linked --file supabase/migrations/202607200003_produ
 Final validation:
 
 ```powershell
-npx.cmd supabase db query --linked --file scripts/validate_production_subscription_schema.sql
+Invoke-OpeningFitReconciliationValidator -Mode final
 npx.cmd supabase db query --linked --file scripts/preview_production_reconciliation_impact.sql
 ```
 
-All validator rows must pass and all duplicate/ambiguous counts must be zero.
+The final row must be `FINAL_VALIDATION_PASS`. Every final-phase validator row
+must pass and all duplicate/ambiguous counts must be zero.
 Record the before/after row counts. Do not run `migration repair` in this window.
 
 If the CLI query facility is unavailable, the reviewed alternative is the
@@ -150,7 +193,8 @@ complete result or screenshot. Never combine the three files into one query.
 
 ## After execution
 
-1. Run the final validator and preview again and archive their complete output.
+1. Run `Invoke-OpeningFitReconciliationValidator -Mode final` and the preview
+   again and archive their complete output.
 2. Capture a fresh schema dump and compare it with the approved reconciliation
    scope:
 

@@ -19,6 +19,16 @@ $$;
 
 create schema if not exists auth;
 
+create schema if not exists supabase_migrations;
+create table supabase_migrations.schema_migrations (
+  version text primary key
+);
+insert into supabase_migrations.schema_migrations (version) values
+  ('202605230001'), ('202605240001'), ('202605250001'),
+  ('202605250002'), ('202605270001'), ('202605310001'),
+  ('202605310002'), ('202605310003'), ('202606010001'),
+  ('202606010002');
+
 create or replace function auth.uid()
 returns uuid
 language sql
@@ -283,6 +293,28 @@ values ('00000000-0000-0000-0000-000000000001', 'fixture-recommendation', '{"pre
 
 insert into public.analysed_games (user_id, platform, username, game_id)
 values ('00000000-0000-0000-0000-000000000001', 'fixture', 'redacted', 'fixture-game');
+
+-- Meet the recorded production history floors so every validator phase can
+-- assert preservation, while retaining the focused rows above.
+insert into public.report_history (user_id, report_key, report)
+select
+  '00000000-0000-0000-0000-000000000001',
+  'floor-report-' || sequence_number,
+  '{}'::jsonb
+from generate_series(1, 40) sequence_number;
+
+insert into public.recommendation_history (user_id, snapshot_key, snapshot)
+select
+  '00000000-0000-0000-0000-000000000001',
+  'floor-recommendation-' || sequence_number,
+  '{}'::jsonb
+from generate_series(1, 55) sequence_number;
+
+insert into public.analysed_games (user_id, platform, username, game_id)
+select
+  '00000000-0000-0000-0000-000000000001',
+  'fixture', 'redacted', 'floor-game-' || sequence_number
+from generate_series(1, 141) sequence_number;
 
 insert into public.repertoire (user_id, repertoire)
 values (

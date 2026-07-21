@@ -52,6 +52,10 @@ supabase/.temp/
 *.bak
 rescue-before-nav-reset/
 
+# Local production schema audit evidence (never commit)
+/production_schema_*.sql
+/production-schema-*.sql
+
 # Editor/OS
 .vscode/*
 !.vscode/extensions.json

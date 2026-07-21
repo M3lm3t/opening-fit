@@ -1,0 +1,1 @@
+drop index public.profiles_stripe_customer_id_idx;

@@ -1,0 +1,1 @@
+drop trigger preserve_lifetime_premium_entitlement on public.premium_entitlements;
