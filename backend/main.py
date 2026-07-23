@@ -12180,6 +12180,18 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
             user_id=requested_user_id,
         )
 
+    try:
+        checkout_config = checkout_price_configuration(payload.get("billingInterval", "annual"))
+    except HTTPException as exc:
+        return checkout_error_response(
+            exc.status_code,
+            str(exc.detail),
+            "checkout price configuration failed",
+            code="checkout_price_unavailable",
+            billing_interval=payload.get("billingInterval"),
+        )
+
+    stripe_price_id = checkout_config["price_id"]
     user_id = str(auth_user.id)
     email = getattr(auth_user, "email", None) or payload.get("email")
     product = "openingfit_plus"
