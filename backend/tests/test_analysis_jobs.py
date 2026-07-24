@@ -37,15 +37,25 @@ def test_start_analysis_job_deduplicates_active_request(monkeypatch):
 def test_execute_analysis_job_publishes_completed_result(monkeypatch):
     monkeypatch.setattr(main.analysis_job_executor, "submit", lambda *_args: None)
     started = main.start_analysis_job(
-        main.AnalysisJobRequest(platform="lichess", username="ExamplePlayer", months=2)
+        main.AnalysisJobRequest(platform="lichess", username="ExamplePlayer", months=2, time_control="rapid")
     )
-    monkeypatch.setattr(main, "run_import_route", lambda *_args: {"gamesImported": 12})
+    called = []
+    monkeypatch.setattr(main, "run_import_route", lambda *args: called.append(args) or {"gamesImported": 12})
 
     main.execute_analysis_job(started["jobId"])
     completed = main.get_analysis_job(main.UUID(started["jobId"]))
 
     assert completed["status"] == "completed"
     assert completed["result"] == {"gamesImported": 12}
+    assert called == [("lichess", "ExamplePlayer", 2, "rapid")]
+
+
+def test_month_and_time_control_choices_are_part_of_the_job_identity(monkeypatch):
+    monkeypatch.setattr(main.analysis_job_executor, "submit", lambda *_args: None)
+    one_month = main.start_analysis_job(main.AnalysisJobRequest(platform="chesscom", username="Player", months=1, time_control="blitz"))
+    three_month = main.start_analysis_job(main.AnalysisJobRequest(platform="chesscom", username="Player", months=3, time_control="blitz"))
+    rapid = main.start_analysis_job(main.AnalysisJobRequest(platform="chesscom", username="Player", months=1, time_control="rapid"))
+    assert len({one_month["jobId"], three_month["jobId"], rapid["jobId"]}) == 3
 
 
 def test_expired_analysis_job_is_removed(monkeypatch):

@@ -2,6 +2,7 @@ import {
   getSmartLevelAwareRecommendation,
   getSmartPlayerLevelProfile,
 } from "./playerLevelLogic";
+import { buildReportGameCounts } from "../lib/reportGameCounts.js";
 
 function getPlayerName(data) {
   return (
@@ -15,15 +16,7 @@ function getPlayerName(data) {
 }
 
 function getGames(data) {
-  return (
-    data?.gamesImported ||
-    data?.games_imported ||
-    data?.totalGames ||
-    data?.total_games ||
-    data?.gameCount ||
-    data?.game_count ||
-    0
-  );
+  return buildReportGameCounts(data).analysedGames;
 }
 
 function openingName(opening) {
@@ -222,7 +215,7 @@ export default function CleanReportHeader({ data, fitData, onViewChange }) {
         <article>
           <span>Profile</span>
           <strong>{style}</strong>
-          <p>{games || "Recent"} games checked</p>
+          <p>{games || "Recent"} games analysed</p>
         </article>
 
         <article>

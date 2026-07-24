@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { buildReportGameCounts } from "../lib/reportGameCounts.js";
 
 function getOpeningName(item) {
   return (
@@ -75,14 +76,7 @@ function getUsername(data) {
 }
 
 function getGamesImported(data) {
-  return Number(
-    data?.gamesImported ||
-    data?.games_imported ||
-    data?.totalGames ||
-    data?.total_games ||
-    data?.games?.length ||
-    0
-  );
+  return buildReportGameCounts(data).analysedGames;
 }
 
 function inferStyle(openings) {

@@ -22,7 +22,7 @@ from opening_detection import (
     normalise_opening_name as detect_normalise_opening_name,
     pgn_tag_value,
 )
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, TypedDict
 import os
 from dotenv import load_dotenv
 import re
@@ -293,6 +293,7 @@ class AnalysisJobRequest(BaseModel):
     platform: str
     username: str
     months: int = 3
+    time_control: str = "custom"
 
 
 PRODUCT_ANALYTICS_EVENTS = {
@@ -300,7 +301,7 @@ PRODUCT_ANALYTICS_EVENTS = {
     "onboarding_started", "onboarding_completed", "onboarding_skipped", "training_preference_updated",
     "homepage_viewed", "platform_selected", "username_started", "username_submitted", "account_lookup_succeeded", "account_lookup_failed", "analysis_started", "analysis_failed", "analysis_completed", "report_viewed", "coach_verdict_viewed", "recommendation_expanded", "evidence_viewed", "supporting_game_opened", "fit_explanation_opened", "repertoire_viewed", "opening_added", "opening_replaced", "opening_locked", "recommendation_dismissed", "repertoire_created", "repertoire_change_accepted", "repertoire_change_rejected", "repertoire_training_opened", "training_started", "weekly_plan_started", "training_task_started", "training_task_completed", "weekly_plan_completed", "training_task_failed", "training_answer_revealed", "training_session_completed", "training_impact_viewed", "training_history_opened", "returning_dashboard_viewed", "new_games_detected", "reanalysis_started", "report_comparison_viewed", "report_history_opened", "resolved_issue_viewed", "account_created", "sign_in_completed", "premium_page_viewed", "pricing_viewed", "billing_interval_changed", "checkout_started", "checkout_failed", "checkout_cancelled", "checkout_completed", "entitlement_confirmed", "entitlement_delayed", "subscription_manage_clicked", "upgrade_clicked", "portal_open_failed", "recommendation_feedback_submitted", "general_feedback_submitted", "import_problem_reported",
 }
-SAFE_ANALYTICS_KEYS = {"platform", "route", "authenticated", "deviceCategory", "resultCategory", "errorCategory", "source", "access", "stage", "attempts", "feedback", "decision", "confidence", "games", "openingCategory", "hasSessionContext", "newGames", "reportCount", "billingInterval"}
+SAFE_ANALYTICS_KEYS = {"platform", "route", "authenticated", "deviceCategory", "resultCategory", "errorCategory", "source", "access", "stage", "attempts", "feedback", "decision", "confidence", "games", "fetchedGames", "dateRangeEligibleGames", "timeControlEligibleGames", "analysisCandidateGames", "analysedGames", "excludedGames", "openingCategory", "hasSessionContext", "newGames", "reportCount", "billingInterval"}
 
 
 def sanitize_analytics_data(data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -1668,7 +1669,43 @@ SKIPPED_REASON_LABELS = {
     "missingOpening": "Missing or invalid PGN/opening data",
     "outsideWindow": "Outside selected date range",
     "analysisLimit": "Outside the current analysis limit",
+    "duplicate": "Duplicate game record",
 }
+
+CANONICAL_EXCLUSION_REASON_LABELS = {
+    "outsideDateRange": "Outside the selected period",
+    "unsupportedTimeControl": "Did not match the selected time controls",
+    "unsupportedGameType": "Unsupported chess variant",
+    "incompleteGame": "Incomplete or abandoned game",
+    "duplicate": "Duplicate game record",
+    "analysisLimit": "Outside the current analysis limit",
+    "missingOpeningSignal": "Did not contain enough opening information",
+    "other": "Other",
+}
+
+
+class ReportExclusionReasons(TypedDict):
+    outsideDateRange: int
+    unsupportedTimeControl: int
+    unsupportedGameType: int
+    incompleteGame: int
+    duplicate: int
+    analysisLimit: int
+    missingOpeningSignal: int
+    other: int
+
+
+class ReportGameCounts(TypedDict):
+    fetchedGames: int
+    dateRangeEligibleGames: int
+    timeControlEligibleGames: int
+    analysisCandidateGames: int
+    analysedGames: int
+    usableOpeningSignals: int
+    excludedGames: int
+    exclusionReasons: ReportExclusionReasons
+    analysisLimit: Optional[int]
+    contractVersion: int
 
 
 def skipped_reason_items(reason_counts: Dict[str, int]) -> List[Dict[str, Any]]:
@@ -1683,31 +1720,122 @@ def skipped_reason_items(reason_counts: Dict[str, int]) -> List[Dict[str, Any]]:
     ]
 
 
+def canonical_exclusion_reasons(reason_counts: Optional[Dict[str, int]] = None) -> ReportExclusionReasons:
+    raw = reason_counts or {}
+    grouped: ReportExclusionReasons = {
+        "outsideDateRange": int(raw.get("outsideDateRange", raw.get("outsideWindow", 0)) or 0),
+        "unsupportedTimeControl": int(raw.get("unsupportedTimeControl", raw.get("bullet", 0)) or 0),
+        "unsupportedGameType": int(raw.get("unsupportedGameType", raw.get("variants", 0)) or 0),
+        "incompleteGame": sum(int(raw.get(key, 0) or 0) for key in ("incompleteGame", "abandoned", "earlyTimeout", "oneMoveResignation")),
+        "duplicate": int(raw.get("duplicate", 0) or 0),
+        "analysisLimit": int(raw.get("analysisLimit", 0) or 0),
+        "missingOpeningSignal": sum(int(raw.get(key, 0) or 0) for key in ("missingOpeningSignal", "veryShort", "tooFewLegalMoves", "missingOpening")),
+        "other": int(raw.get("other", 0) or 0),
+    }
+    return grouped
+
+
 def build_game_count_summary(
     imported: int,
     classified: int,
     reason_counts: Optional[Dict[str, int]] = None,
+    *,
+    date_range_eligible: Optional[int] = None,
+    time_control_eligible: Optional[int] = None,
+    analysis_candidates: Optional[int] = None,
+    analysis_limit: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Return the stable count contract used by report UI and analytics.
+    """Build the authoritative, reconciled import-to-report count contract.
 
-    Imported is what the platform returned in the requested window. Eligible is
-    what remains after date and supported-time-control filtering. Classified is
-    the subset with enough valid opening data to produce a report signal.
+    One analysed game produces at most one usable opening signal. Games rejected
+    by validation or the service limit are therefore excluded, not analysed.
+    Legacy aliases remain in the response but are derived only from this object.
     """
-    reasons = reason_counts or {}
-    imported_count = max(0, int(imported or 0))
-    classified_count = min(imported_count, max(0, int(classified or 0)))
-    filter_excluded = sum(int(reasons.get(key, 0) or 0) for key in ("bullet", "outsideWindow"))
-    eligible_count = max(classified_count, imported_count - filter_excluded)
-    excluded_count = max(0, imported_count - classified_count)
-    return {
-        "imported": imported_count,
-        "eligible": eligible_count,
-        "classified": classified_count,
-        "excluded": excluded_count,
-        "exclusionReasons": skipped_reason_items(reasons),
-        "exclusion_reasons": skipped_reason_items(reasons),
+    fetched = max(0, int(imported or 0))
+    analysed = min(fetched, max(0, int(classified or 0)))
+    reasons = canonical_exclusion_reasons(reason_counts)
+    excluded = fetched - analysed
+    reason_total = sum(reasons.values())
+    if reason_total < excluded:
+        reasons["other"] += excluded - reason_total
+    elif reason_total > excluded:
+        # Inputs should already be disjoint; keep the public invariant even when
+        # adapting older callers with overlapping reason categories.
+        overflow = reason_total - excluded
+        for key in (
+            "other", "missingOpeningSignal", "incompleteGame", "unsupportedGameType",
+            "duplicate", "analysisLimit", "unsupportedTimeControl", "outsideDateRange",
+        ):
+            reduction = min(reasons[key], overflow)
+            reasons[key] -= reduction
+            overflow -= reduction
+            if not overflow:
+                break
+
+    date_eligible = min(fetched, max(analysed, int(date_range_eligible if date_range_eligible is not None else fetched - reasons["outsideDateRange"])))
+    time_eligible = min(date_eligible, max(analysed, int(time_control_eligible if time_control_eligible is not None else date_eligible - reasons["unsupportedTimeControl"])))
+    candidates = min(time_eligible, max(analysed, int(analysis_candidates if analysis_candidates is not None else time_eligible - reasons["duplicate"] - reasons["analysisLimit"])))
+    canonical: ReportGameCounts = {
+        "fetchedGames": fetched,
+        "dateRangeEligibleGames": date_eligible,
+        "timeControlEligibleGames": time_eligible,
+        "analysisCandidateGames": candidates,
+        "analysedGames": analysed,
+        "usableOpeningSignals": analysed,
+        "excludedGames": excluded,
+        "exclusionReasons": reasons,
+        "analysisLimit": analysis_limit,
+        "contractVersion": 2,
     }
+    reason_rows = [
+        {"key": key, "label": CANONICAL_EXCLUSION_REASON_LABELS[key], "count": count}
+        for key, count in reasons.items() if count
+    ]
+    return {
+        **canonical,
+        # Backward-compatible aliases. These are never independently calculated.
+        "imported": fetched,
+        "eligible": time_eligible,
+        "classified": analysed,
+        "excluded": excluded,
+        "exclusion_reasons": reasons,
+        "exclusionReasonItems": reason_rows,
+    }
+
+
+def game_identity(game: Dict[str, Any], platform: str) -> str:
+    if platform == "lichess":
+        explicit = game.get("id") or game.get("gameId")
+        fallback = f"{game.get('createdAt')}:{game.get('lastMoveAt')}:{game.get('moves')}"
+    else:
+        explicit = game.get("uuid") or game.get("url")
+        fallback = f"{game.get('end_time')}:{game.get('pgn')}"
+    return str(explicit or hashlib.sha256(fallback.encode("utf-8", errors="ignore")).hexdigest())
+
+
+def deduplicate_games(games: List[Dict[str, Any]], platform: str) -> tuple[List[Dict[str, Any]], int]:
+    unique, seen = [], set()
+    for game in games:
+        identity = game_identity(game, platform)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        unique.append(game)
+    return unique, len(games) - len(unique)
+
+
+def filter_games_by_time_control(games: List[Dict[str, Any]], platform: str, selected: str) -> tuple[List[Dict[str, Any]], int]:
+    selected_key = str(selected or "custom").strip().lower()
+    if selected_key in {"", "all", "custom"}:
+        return list(games), 0
+    filtered = []
+    for game in games:
+        actual = lichess_time_class(game) if platform == "lichess" else normalise_filter_time_control(
+            game.get("time_class") or game.get("time_control") or game.get("timeControl")
+        )
+        if actual == selected_key:
+            filtered.append(game)
+    return filtered, len(games) - len(filtered)
 
 
 def chesscom_skip_reason(game: Dict[str, Any]) -> Optional[str]:
@@ -8254,7 +8382,7 @@ def build_not_enough_games_import_result(
     }
 
 
-def import_chesscom_logic(username: str, months: int = 3):
+def import_chesscom_logic(username: str, months: int = 3, time_control: str = "custom"):
     username = username.strip()
 
     if not username:
@@ -8331,8 +8459,12 @@ def import_chesscom_logic(username: str, months: int = 3):
             archives_checked=archive_breakdown,
         )
 
+    time_control_games, unsupported_time_control_count = filter_games_by_time_control(
+        all_games, "chess.com", time_control
+    )
+    unique_games, duplicate_count = deduplicate_games(time_control_games, "chess.com")
     analysis_candidates = sorted(
-        all_games,
+        unique_games,
         key=lambda game: game.get("end_time") or 0,
         reverse=True,
     )[:ANALYSIS_GAME_LIMIT]
@@ -8720,9 +8852,18 @@ def import_chesscom_logic(username: str, months: int = 3):
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
     count_reasons = dict(skipped_reason_counts)
-    if len(all_games) > len(analysis_candidates):
-        count_reasons["analysisLimit"] = len(all_games) - len(analysis_candidates)
-    game_counts = build_game_count_summary(len(all_games), len(analysed_games), count_reasons)
+    count_reasons["unsupportedTimeControl"] = unsupported_time_control_count
+    count_reasons["duplicate"] = duplicate_count
+    count_reasons["analysisLimit"] = max(0, len(unique_games) - len(analysis_candidates))
+    game_counts = build_game_count_summary(
+        len(all_games),
+        len(analysed_games),
+        count_reasons,
+        date_range_eligible=len(all_games),
+        time_control_eligible=len(time_control_games),
+        analysis_candidates=len(analysis_candidates),
+        analysis_limit=ANALYSIS_GAME_LIMIT,
+    )
     result = {
         "username": player_profile.get("username") or player.get("username", username),
         "display_name": player_profile.get("display_name"),
@@ -8739,10 +8880,10 @@ def import_chesscom_logic(username: str, months: int = 3):
         "chess_title": player.get("title"),
         "total_games": len(analysed_games),
         "totalGames": len(analysed_games),
-        "gamesImported": len(all_games),
-        "gamesFound": len(all_games),
-        "gamesAnalysed": len(analysed_games),
-        "gamesAnalyzed": len(analysed_games),
+        "gamesImported": game_counts["fetchedGames"],
+        "gamesFound": game_counts["fetchedGames"],
+        "gamesAnalysed": game_counts["analysedGames"],
+        "gamesAnalyzed": game_counts["analysedGames"],
         "gamesEligible": game_counts["eligible"],
         "games_eligible": game_counts["eligible"],
         "gamesClassified": game_counts["classified"],
@@ -8751,9 +8892,11 @@ def import_chesscom_logic(username: str, months: int = 3):
         "games_excluded": game_counts["excluded"],
         "gameCounts": game_counts,
         "game_counts": game_counts,
-        "skippedGames": len(all_games) - len(analysed_games),
-        "skipped_game_reasons": skipped_reason_counts,
-        "skippedGameReasons": skipped_reason_items(skipped_reason_counts),
+        "skippedGames": game_counts["excludedGames"],
+        "skipped_game_reasons": game_counts["exclusionReasons"],
+        "skippedGameReasons": game_counts["exclusionReasonItems"],
+        "analysisTimeControl": time_control,
+        "analysis_time_control": time_control,
         "months_checked": len(selected_archives),
         "monthsChecked": len(selected_archives),
         "archives_checked": archive_breakdown,
@@ -8885,11 +9028,14 @@ def import_chesscom_logic(username: str, months: int = 3):
         "analysis_completed",
         {
             "platform": "chess.com",
-            "games": len(analysed_games),
+            "games": game_counts["analysedGames"],
             "source": "backend_import",
-            "gamesFound": len(all_games),
-            "skippedGames": len(all_games) - len(analysed_games),
-            "monthsChecked": len(selected_archives),
+            "fetchedGames": game_counts["fetchedGames"],
+            "dateRangeEligibleGames": game_counts["dateRangeEligibleGames"],
+            "timeControlEligibleGames": game_counts["timeControlEligibleGames"],
+            "analysisCandidateGames": game_counts["analysisCandidateGames"],
+            "analysedGames": game_counts["analysedGames"],
+            "excludedGames": game_counts["excludedGames"],
         },
     )
 
@@ -8976,6 +9122,7 @@ def build_lichess_analysis(
     games_found: Optional[int] = None,
     skipped_reason_counts: Optional[Dict[str, int]] = None,
     player_profile: Optional[Dict[str, Any]] = None,
+    count_context: Optional[Dict[str, Any]] = None,
 ):
     games_found = games_found if games_found is not None else len(games)
     skipped_reason_counts = skipped_reason_counts or {key: 0 for key in SKIPPED_REASON_LABELS}
@@ -9418,7 +9565,16 @@ def build_lichess_analysis(
     diagnostic_summary = build_diagnostic_summary(recent_games, username=username)
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
-    game_counts = build_game_count_summary(games_found, len(games), skipped_reason_counts)
+    count_context = count_context or {}
+    game_counts = build_game_count_summary(
+        games_found,
+        len(games),
+        skipped_reason_counts,
+        date_range_eligible=count_context.get("dateRangeEligibleGames", games_found),
+        time_control_eligible=count_context.get("timeControlEligibleGames", games_found),
+        analysis_candidates=count_context.get("analysisCandidateGames", len(games)),
+        analysis_limit=ANALYSIS_GAME_LIMIT,
+    )
     result = {
         "username": player_profile.get("username") or username,
         "display_name": player_profile.get("display_name"),
@@ -9437,10 +9593,10 @@ def build_lichess_analysis(
         "playerLevel": player_level,
         "total_games": len(games),
         "totalGames": len(games),
-        "gamesImported": games_found,
-        "gamesFound": games_found,
-        "gamesAnalysed": len(games),
-        "gamesAnalyzed": len(games),
+        "gamesImported": game_counts["fetchedGames"],
+        "gamesFound": game_counts["fetchedGames"],
+        "gamesAnalysed": game_counts["analysedGames"],
+        "gamesAnalyzed": game_counts["analysedGames"],
         "gamesEligible": game_counts["eligible"],
         "games_eligible": game_counts["eligible"],
         "gamesClassified": game_counts["classified"],
@@ -9449,9 +9605,11 @@ def build_lichess_analysis(
         "games_excluded": game_counts["excluded"],
         "gameCounts": game_counts,
         "game_counts": game_counts,
-        "skippedGames": max(0, games_found - len(games)),
-        "skipped_game_reasons": skipped_reason_counts,
-        "skippedGameReasons": skipped_reason_items(skipped_reason_counts),
+        "skippedGames": game_counts["excludedGames"],
+        "skipped_game_reasons": game_counts["exclusionReasons"],
+        "skippedGameReasons": game_counts["exclusionReasonItems"],
+        "analysisTimeControl": count_context.get("timeControl", "custom"),
+        "analysis_time_control": count_context.get("timeControl", "custom"),
         "months_checked": months,
         "monthsChecked": months,
         "archives_checked": [
@@ -9595,11 +9753,14 @@ def build_lichess_analysis(
         "analysis_completed",
         {
             "platform": "lichess",
-            "games": len(games),
+            "games": game_counts["analysedGames"],
             "source": "backend_import",
-            "gamesFound": games_found,
-            "skippedGames": max(0, games_found - len(games)),
-            "monthsChecked": months,
+            "fetchedGames": game_counts["fetchedGames"],
+            "dateRangeEligibleGames": game_counts["dateRangeEligibleGames"],
+            "timeControlEligibleGames": game_counts["timeControlEligibleGames"],
+            "analysisCandidateGames": game_counts["analysisCandidateGames"],
+            "analysedGames": game_counts["analysedGames"],
+            "excludedGames": game_counts["excludedGames"],
         },
     )
 
@@ -9613,7 +9774,7 @@ def build_lichess_analysis(
     return result
 
 
-def import_lichess_logic(username: str, months: int = 3):
+def import_lichess_logic(username: str, months: int = 3, time_control: str = "custom"):
     username = username.strip()
 
     if not username:
@@ -9674,7 +9835,9 @@ def import_lichess_logic(username: str, months: int = 3):
     attach_rating_context(player_profile, rating_context)
     resolved_username = player_profile.get("username") or username
 
-    max_games = 300 if months >= 12 else 100
+    # Fetch up to the same documented service cap for every date range. A
+    # one-month import must not be silently reduced to 100 records.
+    max_games = ANALYSIS_GAME_LIMIT
     since_date = datetime.now(timezone.utc) - timedelta(days=months * 31)
     since_ms = int(since_date.timestamp() * 1000)
 
@@ -9688,7 +9851,7 @@ def import_lichess_logic(username: str, months: int = 3):
         "pgnInJson": "false",
         "clocks": "false",
         "evals": "false",
-        "perfType": "bullet,blitz,rapid,classical",
+        "perfType": "bullet,blitz,rapid,classical,correspondence",
         "sort": "dateDesc",
     }
 
@@ -9747,7 +9910,19 @@ def import_lichess_logic(username: str, months: int = 3):
             ],
         )
 
-    analysed_games, skipped_reason_counts = split_usable_games(games, lichess_skip_reason)
+    time_control_games, unsupported_time_control_count = filter_games_by_time_control(
+        games, "lichess", time_control
+    )
+    unique_games, duplicate_count = deduplicate_games(time_control_games, "lichess")
+    analysis_candidates = sorted(
+        unique_games,
+        key=lambda game: game.get("lastMoveAt") or game.get("createdAt") or 0,
+        reverse=True,
+    )[:ANALYSIS_GAME_LIMIT]
+    analysed_games, skipped_reason_counts = split_usable_games(analysis_candidates, lichess_skip_reason)
+    skipped_reason_counts["unsupportedTimeControl"] = unsupported_time_control_count
+    skipped_reason_counts["duplicate"] = duplicate_count
+    skipped_reason_counts["analysisLimit"] = max(0, len(unique_games) - len(analysis_candidates))
 
     if not analysed_games:
         return build_not_enough_games_import_result(
@@ -9778,10 +9953,16 @@ def import_lichess_logic(username: str, months: int = 3):
         games_found=len(games),
         skipped_reason_counts=skipped_reason_counts,
         player_profile=player_profile,
+        count_context={
+            "dateRangeEligibleGames": len(games),
+            "timeControlEligibleGames": len(time_control_games),
+            "analysisCandidateGames": len(analysis_candidates),
+            "timeControl": time_control,
+        },
     )
 
 
-def run_import_route(platform: str, username: str, months: int):
+def run_import_route(platform: str, username: str, months: int, time_control: str = "custom"):
     clean_username = username.strip()
     clean_months = max(1, min(int(months or 3), 12))
 
@@ -9794,9 +9975,9 @@ def run_import_route(platform: str, username: str, months: int):
 
     try:
         if platform == "chess.com":
-            result = import_chesscom_logic(clean_username, clean_months)
+            result = import_chesscom_logic(clean_username, clean_months, time_control)
         else:
-            result = import_lichess_logic(clean_username, clean_months)
+            result = import_lichess_logic(clean_username, clean_months, time_control)
 
         logger.info(
             "import_route_completed platform=%s username=%s months=%s games_imported=%s games_found=%s",
@@ -9914,23 +10095,23 @@ def enforce_game_history_limit(request: Optional[Request], months: int) -> int:
 
 
 @app.get("/import/chesscom/{username}")
-def import_chesscom(username: str, request: Request, months: int = 3):
-    return run_import_route("chess.com", username, enforce_game_history_limit(request, months))
+def import_chesscom(username: str, request: Request, months: int = 3, time_control: str = "custom"):
+    return run_import_route("chess.com", username, enforce_game_history_limit(request, months), time_control)
 
 
 @app.get("/api/import/chesscom/{username}")
-def api_import_chesscom(username: str, request: Request, months: int = 3):
-    return run_import_route("chess.com", username, enforce_game_history_limit(request, months))
+def api_import_chesscom(username: str, request: Request, months: int = 3, time_control: str = "custom"):
+    return run_import_route("chess.com", username, enforce_game_history_limit(request, months), time_control)
 
 
 @app.get("/import/lichess/{username}")
-def import_lichess(username: str, request: Request, months: int = 3):
-    return run_import_route("lichess", username, enforce_game_history_limit(request, months))
+def import_lichess(username: str, request: Request, months: int = 3, time_control: str = "custom"):
+    return run_import_route("lichess", username, enforce_game_history_limit(request, months), time_control)
 
 
 @app.get("/api/import/lichess/{username}")
-def api_import_lichess(username: str, request: Request, months: int = 3):
-    return run_import_route("lichess", username, enforce_game_history_limit(request, months))
+def api_import_lichess(username: str, request: Request, months: int = 3, time_control: str = "custom"):
+    return run_import_route("lichess", username, enforce_game_history_limit(request, months), time_control)
 
 
 ANALYSIS_JOB_TTL_SECONDS = 60 * 60
@@ -9953,11 +10134,26 @@ def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
     has_game_evidence = "opening_games" in compact or "openingGames" in compact
     game_source = compact.get("opening_games") or compact.get("openingGames") or []
     if has_game_evidence and isinstance(game_source, list):
-        ranked_games = sorted(
+        all_ranked_games = sorted(
             (game for game in game_source if isinstance(game, dict)),
             key=lambda game: game.get("end_time") or game.get("endTime") or 0,
             reverse=True,
-        )[:ANALYSIS_EVIDENCE_GAME_LIMIT]
+        )
+        # Keep lightweight metadata for every analysed game so filters and
+        # counts operate on the analysed set. Rich PGN evidence remains capped.
+        compact["analysis_game_index"] = [
+            {
+                key: game[key]
+                for key in (
+                    "url", "result", "opening", "name", "context", "contextLabel",
+                    "time_class", "timeClass", "colour", "color", "end_time", "endTime",
+                    "played_at", "playedAt", "repertoireContext", "role", "repertoireSlot",
+                )
+                if key in game
+            }
+            for game in all_ranked_games
+        ]
+        ranked_games = all_ranked_games[:ANALYSIS_EVIDENCE_GAME_LIMIT]
         compact_games = []
         for game in ranked_games:
             compact_games.append({
@@ -10000,7 +10196,8 @@ def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
 def analysis_job_public(job: Dict[str, Any]) -> Dict[str, Any]:
     payload = {
         key: job[key]
-        for key in ("jobId", "status", "createdAt", "updatedAt", "platform", "username", "months")
+        for key in ("jobId", "status", "createdAt", "updatedAt", "platform", "username", "months", "timeControl")
+        if key in job
     }
     if job.get("result") is not None:
         payload["result"] = job["result"]
@@ -10028,9 +10225,10 @@ def execute_analysis_job(job_id: str) -> None:
             return
         job.update(status="running", updatedAt=now_iso())
         platform, username, months = job["platform"], job["username"], job["months"]
+        time_control = job.get("timeControl", "custom")
 
     try:
-        result = run_import_route(platform, username, months)
+        result = run_import_route(platform, username, months, time_control)
         if isinstance(result, JSONResponse):
             try:
                 error_payload = json.loads(result.body.decode("utf-8", errors="replace"))
@@ -10062,9 +10260,12 @@ def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
     if not username or len(username) > 80:
         raise HTTPException(status_code=400, detail="Enter a valid chess username.")
     months = enforce_game_history_limit(request, payload.months)
+    time_control = str(payload.time_control or "custom").strip().lower()
+    if time_control not in {"custom", "all", "bullet", "blitz", "rapid", "classical", "daily"}:
+        raise HTTPException(status_code=400, detail="Choose a valid time control.")
     entitlement = trusted_entitlement_for_request(request)
     owner_user_id = str(getattr(get_auth_user(request), "id", "") or "") if request and request.headers.get("authorization", "").lower().startswith("bearer ") else ""
-    request_key = f"{owner_user_id or 'anonymous'}:{platform}:{username.lower()}:{months}"
+    request_key = f"{owner_user_id or 'anonymous'}:{platform}:{username.lower()}:{months}:{time_control}"
 
     with analysis_jobs_lock:
         prune_analysis_jobs()
@@ -10087,7 +10288,7 @@ def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
         job = {
             "jobId": job_id, "requestKey": request_key, "status": "queued",
             "createdAt": created_at, "updatedAt": created_at, "platform": platform,
-            "username": username, "months": months, "result": None, "error": None,
+            "username": username, "months": months, "timeControl": time_control, "result": None, "error": None,
             "ownerUserId": owner_user_id, "paidAccess": entitlement_has_paid_access(entitlement),
         }
         analysis_jobs[job_id] = job

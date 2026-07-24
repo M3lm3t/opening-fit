@@ -22,7 +22,7 @@ function getPlatform(data) {
 }
 
 function getGames(data) {
-  return buildReportGameCounts(data).classified;
+  return buildReportGameCounts(data).analysedGames;
 }
 
 export default function ReportCommandBar({
@@ -74,7 +74,7 @@ export default function ReportCommandBar({
           <strong>{username}</strong>
           <p>
             {sampleMode ? "Example data" : platform}
-            {games ? ` · ${games} usable opening signal${games === 1 ? "" : "s"}` : ""}
+            {games ? ` · ${games} game${games === 1 ? "" : "s"} analysed` : ""}
           </p>
         </div>
       </div>

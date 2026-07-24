@@ -31,7 +31,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Score pending" : "OpeningFit Score",
     verdict: oneSentence(model),
     confidence: text(model.health?.confidence) || "Insufficient data",
-    confidenceWarning: lowConfidence ? `This report has ${model.health?.games || 0} usable opening signal${Number(model.health?.games || 0) === 1 ? "" : "s"}, so recommendations are provisional. More eligible games will improve confidence.` : "",
+    confidenceWarning: lowConfidence ? `This report has ${model.health?.games || 0} game${Number(model.health?.games || 0) === 1 ? "" : "s"} with enough opening information, so recommendations are provisional. More analysed games will improve confidence.` : "",
     slots,
     incompleteRepertoire: slots.some((slot) => !slot.complete),
     problem: {
@@ -42,7 +42,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
         : Array.isArray(model.supportingEvidence) && model.supportingEvidence.length
           ? model.supportingEvidence.find((item) => text(item).toLowerCase().includes(text(problem?.opening).toLowerCase())) || model.supportingEvidence[0]
         : problem?.games
-          ? `${problem.games} usable opening signal${Number(problem.games) === 1 ? "" : "s"} support this decision.`
+          ? `${problem.games} analysed game${Number(problem.games) === 1 ? "" : "s"} support this decision.`
           : "No problem claim is made without sufficient evidence.",
     },
     training: {

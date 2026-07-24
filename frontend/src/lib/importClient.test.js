@@ -8,7 +8,7 @@ test("background analysis starts a job and returns its completed result", async 
   const originalFetch = globalThis.fetch;
   context.after(() => { globalThis.fetch = originalFetch; });
   globalThis.fetch = async (url, options = {}) => {
-    calls.push({ url: String(url), method: options.method || "GET" });
+    calls.push({ url: String(url), method: options.method || "GET", body: options.body });
     if (options.method === "POST") {
       return new Response(JSON.stringify({ jobId: "job-1", status: "queued" }), { status: 202 });
     }
@@ -20,12 +20,14 @@ test("background analysis starts a job and returns its completed result", async 
     platform: "chesscom",
     username: "ExamplePlayer",
     months: 3,
+    timeControl: "rapid",
     onJobStarted: (job) => { startedJob = job; },
   });
 
   assert.equal(startedJob.jobId, "job-1");
   assert.deepEqual(result.data, { gamesImported: 9 });
   assert.deepEqual(calls.map((call) => call.method), ["POST", "GET"]);
+  assert.equal(JSON.parse(calls[0].body).time_control, "rapid");
 });
 
 

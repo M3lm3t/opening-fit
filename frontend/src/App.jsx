@@ -294,8 +294,8 @@ function formatGameCount(count) {
 
 function buildImportOutcome(report, platformLabel) {
   const counts = buildReportGameCounts(report);
-  const gamesImported = counts.imported;
-  const openingSignals = counts.classified;
+  const gamesImported = counts.fetchedGames;
+  const openingSignals = counts.analysedGames;
   const platformName = platformLabel || "the selected platform";
   const countSentence = reportCountSentence(report);
 
@@ -312,8 +312,8 @@ function buildImportOutcome(report, platformLabel) {
     return {
       tone: "warning",
       title: "Games imported, but openings were too thin to classify",
-      message: `${countSentence} There is not enough usable opening evidence to build strong verdicts yet.`,
-      meta: `${counts.excluded} excluded`,
+      message: `${countSentence} There is not enough opening information to build strong verdicts yet.`,
+      meta: `${counts.excludedGames} not analysed`,
     };
   }
 
@@ -322,7 +322,7 @@ function buildImportOutcome(report, platformLabel) {
       tone: "warning",
       title: "Import complete with a light opening sample",
       message: `${countSentence} Your report is ready, but the opening sample is still small, so recommendations are starter signals.`,
-      meta: `${counts.excluded} excluded`,
+      meta: `${counts.excludedGames} not analysed`,
     };
   }
 
@@ -330,7 +330,7 @@ function buildImportOutcome(report, platformLabel) {
     tone: "success",
     title: `Imported ${formatGameCount(gamesImported)} from ${platformName}`,
     message: `${countSentence} Your OpeningFit report is ready with a verdict and one training focus.`,
-    meta: `${counts.excluded} excluded`,
+    meta: `${counts.excludedGames} not analysed`,
   };
 }
 
@@ -3210,6 +3210,7 @@ function numberOrNull(value) {
 }
 
 function getImportSummary(data) {
+  const counts = buildReportGameCounts(data);
   const archives = data?.archivesChecked || data?.archives_checked || [];
   const archiveGames = Array.isArray(archives)
     ? archives.reduce(
@@ -3219,24 +3220,9 @@ function getImportSummary(data) {
         0
       )
     : 0;
-  const gamesAnalysed =
-    numberOrNull(
-      data?.gamesAnalysed ??
-        data?.gamesAnalyzed ??
-        data?.games_analyzed ??
-        data?.gamesImported ??
-        data?.games_imported ??
-        data?.totalGames ??
-        data?.total_games
-    ) || 0;
-  const gamesFound =
-    numberOrNull(data?.gamesFound ?? data?.games_found) ||
-    archiveGames ||
-    gamesAnalysed ||
-    0;
-  const skipped =
-    numberOrNull(data?.skippedGames ?? data?.skipped_games) ??
-    Math.max(0, gamesFound - gamesAnalysed);
+  const gamesAnalysed = counts.analysedGames;
+  const gamesFound = counts.fetchedGames || archiveGames || gamesAnalysed;
+  const skipped = counts.excludedGames;
   const months =
     numberOrNull(
       data?.monthsChecked ??
@@ -3416,18 +3402,18 @@ const importQualityCopy = (usableGames) => {
   const games = Number(usableGames) || 0;
 
   if (games >= 100) {
-    return `${games} usable games found. Strong sample size for a reliable opening report.`;
+    return `${games} games had enough opening information to analyse. Strong sample size for a reliable opening report.`;
   }
 
   if (games >= 50) {
-    return `${games} usable games found. Enough data for a useful opening report.`;
+    return `${games} games had enough opening information to analyse. Enough data for a useful opening report.`;
   }
 
   if (games >= 15) {
-    return `Only ${games} usable games found. Treat this as a light snapshot, not a final repertoire recommendation.`;
+    return `Only ${games} games had enough opening information to analyse. Treat this as a light snapshot, not a final repertoire recommendation.`;
   }
 
-  return `Only ${games} usable game${games === 1 ? "" : "s"} found. Import more games before making repertoire decisions from this report.`;
+  return `Only ${games} game${games === 1 ? "" : "s"} had enough opening information to analyse. Import more games before making repertoire decisions from this report.`;
 };
 
 const monthYearFormatter = new Intl.DateTimeFormat(undefined, {
@@ -4292,6 +4278,8 @@ function buildFilteredTrainingPlan(weakLines, openings) {
 
 function aggregateFilteredOpeningGames(data, filters) {
   const allGames = [
+    ...(Array.isArray(data?.analysis_game_index) ? data.analysis_game_index : []),
+    ...(Array.isArray(data?.analysisGameIndex) ? data.analysisGameIndex : []),
     ...(Array.isArray(data?.opening_games) ? data.opening_games : []),
     ...(Array.isArray(data?.openingGames) ? data.openingGames : []),
     ...(Array.isArray(data?.recent_games) ? data.recent_games : []),
@@ -4433,18 +4421,10 @@ function applyReportFilters(data, filters) {
         trainingTarget: weakestLine.trainingTarget,
       }
     : data?.retentionMetrics?.oneThingToFix || data?.oneThingToFix || null;
-  const filterExcluded = Math.max(0, originalCounts.classified - aggregate.totalGames);
-  const exclusionReasons = [
-    ...originalCounts.exclusionReasons,
-    ...(filterExcluded ? [{ key: "reportFilters", label: "Outside the selected report filters", count: filterExcluded }] : []),
-  ];
-  const gameCounts = {
-    imported: originalCounts.imported,
-    eligible: aggregate.totalGames,
-    classified: aggregate.totalGames,
-    excluded: Math.max(0, originalCounts.imported - aggregate.totalGames),
-    exclusionReasons,
-  };
+  // Report exploration filters change the visible slice, not the completed
+  // import totals. Keeping the authoritative contract intact prevents the
+  // lightweight evidence payload from being misreported as an analysis cap.
+  const gameCounts = data.gameCounts || data.game_counts || originalCounts;
 
   return {
     ...data,
@@ -4484,30 +4464,21 @@ function applyReportFilters(data, filters) {
       oneThingToFix,
       one_thing_to_fix: oneThingToFix,
     },
-    total_games: aggregate.totalGames,
-    totalGames: aggregate.totalGames,
-    gamesImported: aggregate.totalGames,
-    gamesAnalysed: aggregate.totalGames,
-    gamesAnalyzed: aggregate.totalGames,
-    gamesEligible: gameCounts.eligible,
-    games_eligible: gameCounts.eligible,
-    gamesClassified: gameCounts.classified,
-    games_classified: gameCounts.classified,
-    gamesExcluded: gameCounts.excluded,
-    games_excluded: gameCounts.excluded,
+    filteredGames: aggregate.totalGames,
+    filtered_games: aggregate.totalGames,
+    gamesImported: originalCounts.fetchedGames,
+    gamesAnalysed: originalCounts.analysedGames,
+    gamesAnalyzed: originalCounts.analysedGames,
+    gamesEligible: originalCounts.timeControlEligibleGames ?? originalCounts.analysedGames,
+    games_eligible: originalCounts.timeControlEligibleGames ?? originalCounts.analysedGames,
+    gamesClassified: originalCounts.analysedGames,
+    games_classified: originalCounts.analysedGames,
+    gamesExcluded: originalCounts.excludedGames,
+    games_excluded: originalCounts.excludedGames,
     gameCounts,
     game_counts: gameCounts,
-    skippedGames: Math.max(0, aggregate.sourceGames - aggregate.totalGames),
-    skipped_games: Math.max(0, aggregate.sourceGames - aggregate.totalGames),
-    skippedGameReasons:
-      aggregate.sourceGames > aggregate.totalGames
-        ? [
-            {
-              label: "Excluded by report filters",
-              count: Math.max(0, aggregate.sourceGames - aggregate.totalGames),
-            },
-          ]
-        : [],
+    skippedGames: originalCounts.excludedGames,
+    skipped_games: originalCounts.excludedGames,
     filterSummary,
     timeRange: dateLabel,
     dateRange: dateLabel,
@@ -4523,6 +4494,7 @@ function applyReportFilters(data, filters) {
 }
 
 function buildReportHistorySummary(data, fitData = null) {
+  const reportCounts = buildReportGameCounts(data);
   const playerProfile = data?.playerProfile || data?.player_profile || null;
   const openings = Array.isArray(fitData?.scoredOpenings) && fitData.scoredOpenings.length
     ? fitData.scoredOpenings
@@ -4584,7 +4556,7 @@ function buildReportHistorySummary(data, fitData = null) {
       data?.styleBasedRecommendations ||
       data?.style_based_recommendations ||
       null,
-    games: data?.gamesAnalysed || data?.gamesAnalyzed || data?.gamesImported || data?.total_games || 0,
+    games: reportCounts.analysedGames,
     topOpening: topOpenings[0]?.name || "No clear top opening yet",
     topOpenings,
     verdicts: Object.fromEntries(topOpenings.map((item) => [item.name, item.verdict])),
@@ -13802,14 +13774,8 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
     data.requested_username ||
     "Opening Fit report";
 
-  const gamesImported =
-    data.gamesImported ||
-    data.games_imported ||
-    data.totalGames ||
-    data.total_games ||
-    data.gameCount ||
-    data.game_count ||
-    "Recent";
+  const reportCounts = buildReportGameCounts(data);
+  const gamesImported = reportCounts.analysedGames || "Recent";
 
   const styleLabel =
     data.styleLabel ||
@@ -13961,7 +13927,7 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
         <span>Current report</span>
         <strong>{playerName}</strong>
         <p>
-          {gamesImported} games reviewed · {styleLabel} · {reportDate}
+          {gamesImported} games analysed · {styleLabel} · {reportDate}
         </p>
       </div>
 
@@ -14292,14 +14258,7 @@ function OpeningFitReportHero({ data }) {
     data.requested_username ||
     "your games";
 
-  const gamesImported =
-    data.gamesImported ||
-    data.games_imported ||
-    data.totalGames ||
-    data.total_games ||
-    data.gameCount ||
-    data.game_count ||
-    openings.reduce((sum, item) => sum + item.games, 0);
+  const gamesImported = buildReportGameCounts(data).analysedGames || openings.reduce((sum, item) => sum + item.games, 0);
 
   const styleSummary =
     data.styleSummary ||
@@ -14379,7 +14338,7 @@ function OpeningFitReportHero({ data }) {
         <article className="reportMetricCard style">
           <span>Style read</span>
           <strong>{styleLabel}</strong>
-          <small>{gamesImported || "Recent"} games reviewed</small>
+          <small>{gamesImported || "Recent"} games analysed</small>
         </article>
 
         <article className="reportMetricCard plan">
@@ -15041,6 +15000,11 @@ export default function App() {
       : Array.isArray(incoming.openingGames)
         ? incoming.openingGames
         : [];
+    const analysisGameIndexSource = Array.isArray(incoming.analysis_game_index)
+      ? incoming.analysis_game_index
+      : Array.isArray(incoming.analysisGameIndex)
+        ? incoming.analysisGameIndex
+        : [];
     const savedGameSource = Array.isArray(incoming.saved_games)
       ? incoming.saved_games
       : Array.isArray(incoming.savedGames)
@@ -15049,6 +15013,7 @@ export default function App() {
     const gamesSource = Array.isArray(incoming.games) ? incoming.games : [];
     const recentGames = recentGameSource.map(normalizeGameMetadata);
     const openingGames = openingGameSource.map(normalizeGameMetadata);
+    const analysisGameIndex = analysisGameIndexSource.map(normalizeGameMetadata);
     const savedGames = savedGameSource.map(normalizeGameMetadata);
     const games = gamesSource.map(normalizeGameMetadata);
 
@@ -15118,6 +15083,8 @@ export default function App() {
       recentGames,
       opening_games: openingGames,
       openingGames,
+      analysis_game_index: analysisGameIndex,
+      analysisGameIndex,
       saved_games: savedGames,
       savedGames,
       games: Array.isArray(incoming.games) ? games : incoming.games,
@@ -15663,6 +15630,7 @@ export default function App() {
           platform: selectedPlatform.apiPath,
           username: cleanUsername,
           months: monthsToImport,
+          timeControl: normalizeAnalysisTimeFormat(analysisTimeFormat),
           controller: abortController,
           accessToken: authSession?.access_token || "",
           onJobStarted: (job) => {
@@ -15797,11 +15765,13 @@ export default function App() {
         platform: selectedPlatformKey,
         source: "analysis_form",
         refresh: hadPreviousReport,
-        games: completedCounts.classified,
-        gamesImported: completedCounts.imported,
-        gamesEligible: completedCounts.eligible,
-        gamesClassified: completedCounts.classified,
-        gamesExcluded: completedCounts.excluded,
+        games: completedCounts.analysedGames,
+        fetchedGames: completedCounts.fetchedGames,
+        dateRangeEligibleGames: completedCounts.dateRangeEligibleGames,
+        timeControlEligibleGames: completedCounts.timeControlEligibleGames,
+        analysisCandidateGames: completedCounts.analysisCandidateGames,
+        analysedGames: completedCounts.analysedGames,
+        excludedGames: completedCounts.excludedGames,
         analysisId: cleanData.analysisId,
       });
 
@@ -16503,7 +16473,7 @@ export default function App() {
       authenticated: Boolean(supabaseUser?.id),
       access: isPremium ? "premium" : "free",
       ...(sampleMode ? sampleAnalyticsContext(sampleEntrySourceRef.current || "sample_route") : { sample: false, reportKind: "user" }),
-      ...(reportData ? (() => { const counts = buildReportGameCounts(reportData); return { gamesImported: counts.imported, gamesEligible: counts.eligible, gamesClassified: counts.classified, gamesExcluded: counts.excluded }; })() : {}),
+      ...(reportData ? (() => { const counts = buildReportGameCounts(reportData); return { fetchedGames: counts.fetchedGames, dateRangeEligibleGames: counts.dateRangeEligibleGames, timeControlEligibleGames: counts.timeControlEligibleGames, analysisCandidateGames: counts.analysisCandidateGames, analysedGames: counts.analysedGames, excludedGames: counts.excludedGames }; })() : {}),
     };
     if (isPublicLanding) void trackProductEvent("homepage_viewed", { ...common, route: currentPath });
     if (activeAppSection === "report" && reportData) { const reportPlatform = sampleMode ? "example" : platform; void trackProductEvent("report_viewed", { ...common, platform: reportPlatform, source: sampleMode ? common.source : "navigation" }); void trackProductEvent("coach_verdict_viewed", { ...common, platform: reportPlatform, source: sampleMode ? "sample_report" : "report" }); sampleEntrySourceRef.current = ""; }

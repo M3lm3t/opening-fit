@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 import { adaptReportHistoryRow } from "../lib/reportSnapshot";
+import { buildReportGameCounts } from "../lib/reportGameCounts.js";
 
 const HISTORY_KEY = "openingFit:reportHistory:v1";
 const TIME_FORMAT_LABELS = {
@@ -39,16 +40,7 @@ function getPlatform(data) {
 }
 
 function getGameCount(data) {
-  return (
-    data?.gamesAnalysed ||
-    data?.gamesAnalyzed ||
-    data?.gamesImported ||
-    data?.games_imported ||
-    data?.totalGames ||
-    data?.total_games ||
-    data?.game_count ||
-    0
-  );
+  return buildReportGameCounts(data).analysedGames;
 }
 
 function getImportMonths(data) {

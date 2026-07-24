@@ -1,3 +1,5 @@
+import { buildReportGameCounts } from "./reportGameCounts.js";
+
 export const REPORT_SCHEMA_VERSION = 4;
 
 function first(value, ...fallbacks) {
@@ -274,6 +276,7 @@ export function buildReportSnapshot({
     report.repertoire_workspace,
   );
   const analysisId = stableAnalysisIdentity(report, summary);
+  const gameCounts = buildReportGameCounts(report);
 
   return {
     report_id: reportId,
@@ -285,6 +288,18 @@ export function buildReportSnapshot({
     analysis_id: analysisId,
     analysis_date_range: dateRange(report, summary),
     total_games_analysed: gameCount(report, summary),
+    game_counts: gameCounts.contractVersion >= 2 ? {
+      contractVersion: 2,
+      fetchedGames: gameCounts.fetchedGames,
+      dateRangeEligibleGames: gameCounts.dateRangeEligibleGames,
+      timeControlEligibleGames: gameCounts.timeControlEligibleGames,
+      analysisCandidateGames: gameCounts.analysisCandidateGames,
+      analysedGames: gameCounts.analysedGames,
+      usableOpeningSignals: gameCounts.usableOpeningSignals,
+      excludedGames: gameCounts.excludedGames,
+      analysisLimit: gameCounts.analysisLimit,
+      exclusionReasons: Object.fromEntries(gameCounts.exclusionReasons.filter((row) => row.count !== null).map((row) => [row.key, row.count])),
+    } : null,
     new_games_since_previous: numberOrNull(first(summary.newGamesSincePrevious, summary.new_games_since_previous, report.newEligibleGames, report.new_games_since_previous)),
     rating_context: ratingContext(report),
     time_controls_included: timeControls(report, summary),
@@ -333,6 +348,7 @@ export function adaptReportHistoryRow(row = {}) {
       source_username: rawSnapshot.source_username || null,
       analysis_date_range: rawSnapshot.analysis_date_range || { start: null, end: null, label: null },
       total_games_analysed: numberOrNull(rawSnapshot.total_games_analysed),
+      game_counts: rawSnapshot.game_counts || rawSnapshot.gameCounts || null,
       new_games_since_previous: numberOrNull(rawSnapshot.new_games_since_previous),
       rating_context: rawSnapshot.rating_context || null,
       time_controls_included: list(rawSnapshot.time_controls_included),

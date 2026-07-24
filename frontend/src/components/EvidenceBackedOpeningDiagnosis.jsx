@@ -288,7 +288,7 @@ function buildReason(item, average, verdict) {
   const record =
     wins || draws || losses
       ? `${wins} wins, ${draws} draws and ${losses} losses`
-      : `${games} games reviewed`;
+      : `${games} games in this opening sample`;
 
   if (["Recent strength", "Main weapon", "Reliable choice"].includes(verdict)) {
     return {

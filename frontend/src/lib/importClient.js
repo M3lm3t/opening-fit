@@ -71,9 +71,9 @@ async function readJsonResponse(response, url) {
   }
 }
 
-async function legacyImport({ apiPath, cleanUsername, safeMonths, abortController, accessToken = "" }) {
+async function legacyImport({ apiPath, cleanUsername, safeMonths, safeTimeControl, abortController, accessToken = "" }) {
   const url = buildApiUrl(
-    `/api/import/${apiPath}/${encodeURIComponent(cleanUsername)}?months=${safeMonths}`
+    `/api/import/${apiPath}/${encodeURIComponent(cleanUsername)}?months=${safeMonths}&time_control=${encodeURIComponent(safeTimeControl)}`
   );
   let response;
   try {
@@ -115,10 +115,11 @@ async function legacyImport({ apiPath, cleanUsername, safeMonths, abortControlle
   };
 }
 
-export async function importGames({ platform, username, months, controller, onJobStarted, accessToken = "" }) {
+export async function importGames({ platform, username, months, timeControl = "custom", controller, onJobStarted, accessToken = "" }) {
   const apiPath = platformPath(platform);
   const cleanUsername = String(username || "").trim();
   const safeMonths = Number.isFinite(Number(months)) ? Number(months) : 3;
+  const safeTimeControl = String(timeControl || "custom").trim().toLowerCase();
   const abortController = controller || new AbortController();
   const startUrl = buildApiUrl("/api/analysis/jobs");
   let timedOut = false;
@@ -138,7 +139,7 @@ export async function importGames({ platform, username, months, controller, onJo
       startResponse = await fetch(startUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
-        body: JSON.stringify({ platform: apiPath, username: cleanUsername, months: safeMonths }),
+        body: JSON.stringify({ platform: apiPath, username: cleanUsername, months: safeMonths, time_control: safeTimeControl }),
         signal: abortController.signal,
       });
     } finally {
@@ -146,7 +147,7 @@ export async function importGames({ platform, username, months, controller, onJo
     }
 
     if ([404, 405].includes(startResponse.status)) {
-      return await legacyImport({ apiPath, cleanUsername, safeMonths, abortController, accessToken });
+      return await legacyImport({ apiPath, cleanUsername, safeMonths, safeTimeControl, abortController, accessToken });
     }
 
     const { json: started, responseText: startText } = await readJsonResponse(startResponse, startUrl);
