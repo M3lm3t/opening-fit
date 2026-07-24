@@ -19,7 +19,7 @@ test("full Chess.com data produces ordered decisions", () => {
   assert.deepEqual(model.decisions.map((item) => item.type), ["keep", "repair", "reduce"]);
   assert.equal(model.header.platform, "Chess.com");
 });
-test("very small sample exposes low confidence", () => assert.match(buildReportDecisionModel({ gamesImported: 2 }).health.confidence, /Low/));
+test("very small report exposes its coverage without inflating recommendation confidence", () => assert.match(buildReportDecisionModel({ gamesImported: 2 }).health.confidence, /2 analysed games/));
 test("white-only data does not create inaccurate Black categories", () => assert.deepEqual(buildReportDecisionModel({ preferred_white: [{ name: "Vienna", openingRole: "played_as_white", repertoireSlot: "white", games: 5, score: 70 }] }).repertoire.map((row) => row.key), ["white"]));
 test("black-only data does not create a White category", () => assert.equal(buildReportDecisionModel({ preferred_black: [{ name: "Caro-Kann", openingRole: "played_as_black", repertoireSlot: "black_vs_e4", games: 5, score: 60 }] }).repertoire.some((row) => row.key === "white"), false));
 test("missing style and previous report remain safe", () => assert.equal(buildReportDecisionModel(full, {}, []).health.trend, null));

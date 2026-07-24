@@ -4,7 +4,7 @@ export const OPENINGFIT_SCORE_FORMULA = Object.freeze([
   { key: "stability", aliases: ["stability"], title: "Familiarity / stability", weight: 22, explanation: "How concentrated the sample is in repeated openings, including openings with at least five games." },
   { key: "whitePerformance", aliases: ["whitePerformance", "white_performance"], title: "White results", weight: 20, explanation: "The game-weighted result score from recognised White openings." },
   { key: "blackPerformance", aliases: ["blackPerformance", "black_performance"], title: "Black results", weight: 20, explanation: "The game-weighted result score from recognised Black openings." },
-  { key: "confidence", aliases: ["confidence", "sampleConfidence", "sample_confidence"], title: "Data confidence", weight: 18, explanation: "The number of classified games and repeated openings with at least five games." },
+  { key: "evidenceCoverage", aliases: ["evidenceCoverage", "evidence_coverage", "confidence", "sampleConfidence", "sample_confidence"], title: "Evidence coverage", weight: 18, explanation: "The number of classified games and repeated openings with at least five games. This is report coverage, not confidence in every recommendation." },
   { key: "weaknessControl", aliases: ["weaknessControl", "weakness_control"], title: "Weakness control", weight: 12, explanation: "A deduction for lower-scoring and rare or unclear opening samples." },
   { key: "recentConsistency", aliases: ["recentConsistency", "recent_consistency"], title: "Sample consistency proxy", weight: 8, explanation: "The current formula uses a coarse sample-size proxy: 58 below 20 games and 72 from 20 games onward." },
 ]);
@@ -23,10 +23,10 @@ function componentValue(source, component) {
   return integer(value);
 }
 
-function confidenceLabel(value, fallback = "") {
+function coverageLabel(value, fallback = "") {
   if (finite(value)) {
     const score = Number(value);
-    return score >= 75 ? "High confidence" : score >= 50 ? "Medium confidence" : "Low confidence";
+    return score >= 75 ? "Broad report coverage" : score >= 50 ? "Moderate report coverage" : "Limited report coverage";
   }
   const label = text(fallback);
   return label || "Insufficient data";
@@ -56,19 +56,22 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
     const value = componentValue(currentBreakdown, component);
     return value === null ? [] : [{ key: component.key, title: component.title, value, weight: component.weight, explanation: component.explanation }];
   });
-  const confidence = confidenceLabel(componentValue(currentBreakdown, OPENINGFIT_SCORE_FORMULA.find((item) => item.key === "confidence")), model.health?.confidence);
+  const coverage = coverageLabel(componentValue(currentBreakdown, OPENINGFIT_SCORE_FORMULA.find((item) => item.key === "evidenceCoverage")), model.health?.confidence);
   const provisional = games < OPENINGFIT_SCORE_MINIMUM_GAMES;
   return {
     currentScore,
     previousScore,
     games,
-    confidence,
+    confidence: coverage,
+    coverage,
     provisional,
-    statusLabel: provisional ? "Provisional score" : confidence,
+    statusLabel: provisional ? "Provisional score" : coverage,
     components,
     hasComponentData: components.length > 0,
     reasonForChange: reasonForChange(currentScore, previousScore, currentBreakdown, previousBreakdown),
-    meaning: "Your OpeningFit Score is a personalised indicator combining opening results, familiarity, consistency and repertoire suitability. It is not a chess rating.",
+    scale: { minimum: 0, maximum: 100 },
+    formulaVersion: report.openingFitScoreContract?.formulaVersion || report.opening_fit_score_contract?.formulaVersion || "openingfit_score_v1",
+    meaning: "Your OpeningFit Score measures how complete, consistent and successful your current opening repertoire appears in the games analysed. It is not your chess rating.",
     affects: components.length
       ? "The current calculation uses only the components shown below, with the displayed weights."
       : "This older report contains the final score and game sample, but not a compatible component breakdown.",

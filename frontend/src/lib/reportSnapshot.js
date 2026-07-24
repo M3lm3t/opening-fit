@@ -1,4 +1,5 @@
 import { buildReportGameCounts } from "./reportGameCounts.js";
+import { normaliseReportDecision } from "./recommendationEvidence.js";
 
 export const REPORT_SCHEMA_VERSION = 4;
 
@@ -322,7 +323,7 @@ export function buildReportSnapshot({
     training_outcomes: list(first(report.trainingOutcomes, report.training_outcomes)),
     training_outcome_context: first(report.trainingOutcomeContext, report.training_outcome_context) || {},
     active_repertoire: activeRepertoire && typeof activeRepertoire === "object" ? activeRepertoire : null,
-    report_decision: first(report.reportDecision, report.report_decision) || null,
+    report_decision: normaliseReportDecision(first(report.reportDecision, report.report_decision)) || null,
     analysis_metadata: {
       analysis_id: analysisId,
       analysis_version: cleanText(first(report.analysisVersion, report.analysis_version)),

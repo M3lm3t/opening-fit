@@ -51,7 +51,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import create_client, Client
-from feature_entitlements import can_use_feature, entitlement_has_paid_access, feature_limit, normalise_entitlement_record
+from feature_entitlements import FEATURE_ACCESS, can_use_feature, entitlement_has_paid_access, feature_limit, normalise_entitlement_record
 from runtime_config import (
     assert_valid_startup_configuration,
     build_allowed_origins,
@@ -3026,6 +3026,9 @@ def opening_item(
 
     if stats.get("games"):
         win_rate = round((stats.get("wins", 0) / stats["games"]) * 100, 1)
+        score_rate = round(((stats.get("wins", 0) + stats.get("draws", 0) * 0.5) / stats["games"]) * 100, 1)
+    else:
+        score_rate = None
 
     item = {
         "name": name,
@@ -3063,6 +3066,8 @@ def opening_item(
     if win_rate is not None:
         item["win_rate"] = win_rate
         item["winRate"] = win_rate
+        item["score_rate"] = score_rate
+        item["scoreRate"] = score_rate
 
     item.update(loss_timing_fields(item))
     item.update(opponent_rating_fields(item))
@@ -3086,7 +3091,7 @@ def opening_confidence_fields(opening: Dict[str, Any], total_games: int = 0) -> 
         "played_as_white", "black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other",
         "faced_as_white", "faced_as_black",
     }
-    score = opening.get("winRate", opening.get("win_rate"))
+    score = opening.get("scoreRate", opening.get("score_rate", opening.get("rawResultScore", opening.get("winRate", opening.get("win_rate")))))
     wins = int(opening.get("wins", 0) or 0)
     draws = int(opening.get("draws", 0) or 0)
     losses = int(opening.get("losses", 0) or 0)
@@ -3245,7 +3250,7 @@ def opening_evidence_bullets(opening: Dict[str, Any]) -> List[str]:
     ]
 
     if score is not None:
-        bullets.append(f"You scored {round(float(score), 1)}%.")
+        bullets.append(f"Your chess score was {round(float(score), 1)}% (a draw counts as half a point).")
 
     rating_note = opening.get("opponentRatingNote") or opening.get("opponent_rating_note")
     if rating_note:
@@ -3936,9 +3941,18 @@ def build_problem_lines(games: List[Dict[str, Any]], min_games: int = 3) -> List
                 "sample_pgn": str(game.get("pgn") or ""),
                 "sampleMoves": clean_moves_from_pgn(str(game.get("pgn") or ""))[:20],
                 "sample_moves": clean_moves_from_pgn(str(game.get("pgn") or ""))[:20],
+                "supportingGameIds": [],
+                "supporting_game_ids": [],
             },
         )
         row["games"] += 1
+        supporting_id = str(game.get("gameId") or game.get("game_id") or game.get("id") or game.get("url") or "")
+        if not supporting_id:
+            fingerprint = "|".join(str(game.get(key) or "") for key in ("opening", "context", "end_time", "pgn", "moves"))
+            supporting_id = f"game-{hashlib.sha256(fingerprint.encode('utf-8', errors='ignore')).hexdigest()[:16]}"
+        if supporting_id and supporting_id not in row["supportingGameIds"]:
+            row["supportingGameIds"].append(supporting_id)
+            row["supporting_game_ids"].append(supporting_id)
         result = str(game.get("result") or "").lower()
         if result == "win":
             row["wins"] += 1
@@ -5076,7 +5090,7 @@ def build_game_import_quality(
     elif category == "Usable data":
         summary = f"Usable data: {analysed} games analysed, enough for a practical but still cautious report."
     elif category == "Weak data":
-        summary = f"Weak data: only {analysed} games produced usable opening signals, so recommendations are lower confidence."
+        summary = f"Only {analysed} games contained enough opening information to analyse, so recommendations remain cautious."
     else:
         summary = f"Not enough data: only {analysed} usable game{'' if analysed == 1 else 's'} found."
 
@@ -7431,7 +7445,7 @@ def weighted_score(items: List[Dict[str, Any]]) -> Optional[float]:
         return None
 
     return round(
-        sum(float(item.get("winRate", item.get("win_rate", 0)) or 0) * int(item.get("games", 0) or 0) for item in items)
+        sum(float(item.get("scoreRate", item.get("score_rate", item.get("winRate", item.get("win_rate", 0)))) or 0) * int(item.get("games", 0) or 0) for item in items)
         / total_games,
         1,
     )
@@ -7457,7 +7471,7 @@ def build_opening_fit_profile(
     weak_items = [
         item
         for item in openings
-        if int(item.get("games", 0) or 0) >= 3 and float(item.get("winRate", item.get("win_rate", 50)) or 50) < 40
+        if int(item.get("games", 0) or 0) >= 5 and float(item.get("scoreRate", item.get("score_rate", item.get("winRate", item.get("win_rate", 50)))) or 50) < 40
     ]
 
     if not openings or total_opening_games <= 0:
@@ -7474,8 +7488,10 @@ def build_opening_fit_profile(
 
     top_three_games = sum(int(item.get("games", 0) or 0) for item in sorted(openings, key=lambda item: item.get("games", 0), reverse=True)[:3])
     stability_score = min(100, round((top_three_games / total_opening_games) * 70 + min(len([i for i in openings if i.get("games", 0) >= 5]), 3) * 10))
-    white_score = weighted_score(white_items) or weighted_score(openings) or 50
-    black_score = weighted_score(black_items) or weighted_score(openings) or 50
+    white_score = weighted_score(white_items)
+    black_score = weighted_score(black_items)
+    white_score = white_score if white_score is not None else 50
+    black_score = black_score if black_score is not None else 50
     confidence_score = min(100, round((min(total_games, 60) / 60) * 70 + min(len([i for i in openings if i.get("games", 0) >= 5]), 4) * 7.5))
     weakness_score = max(25, 100 - len(weak_items) * 18 - rare_count * 6)
     recent_consistency = 72 if total_games >= 20 else 58
@@ -7545,6 +7561,19 @@ def build_opening_fit_profile(
             "confidence": confidence_score,
             "weaknessControl": weakness_score,
             "recentConsistency": recent_consistency,
+        },
+        "openingFitScoreContract": {
+            "formulaVersion": "openingfit_score_v1",
+            "scale": {"minimum": 0, "maximum": 100},
+            "scoreRateDefinition": "wins plus half of draws, divided by opening-specific games",
+            "components": [
+                {"key": "stability", "weight": 22},
+                {"key": "whitePerformance", "weight": 20, "available": bool(white_items)},
+                {"key": "blackPerformance", "weight": 20, "available": bool(black_items)},
+                {"key": "confidence", "displayKey": "evidenceCoverage", "weight": 18},
+                {"key": "weaknessControl", "weight": 12},
+                {"key": "recentConsistency", "weight": 8},
+            ],
         },
     }
 
@@ -10119,6 +10148,23 @@ ANALYSIS_JOB_MAX_ACTIVE = 40
 ANALYSIS_GAME_LIMIT = 300
 ANALYSIS_EVIDENCE_GAME_LIMIT = 48
 ANALYSIS_VARIATION_LIMIT = 80
+
+
+@app.get("/api/public/analysis-contract")
+def public_analysis_contract():
+    """Expose only non-secret limits that are already enforced by the service."""
+    return {
+        "analysisGameLimit": ANALYSIS_GAME_LIMIT,
+        "freeHistoryMonths": int(feature_limit(None, "game_history", "months", 3)),
+        "plusHistoryMonths": 12,
+        "freeRefreshMinutes": int(feature_limit(None, "report_refresh", "minimum_minutes_between_refreshes", 60)),
+        "plusRefreshMinutes": 5,
+        "freeEvidenceGames": int(feature_limit(None, "game_history", "evidence_games", 8)),
+        "plusEvidenceGames": ANALYSIS_EVIDENCE_GAME_LIMIT,
+        "freeWeeklyTasks": int(feature_limit(None, "weekly_plan_preview", "tasks", 1)),
+        "plusWeeklyTasks": int(FEATURE_ACCESS["weekly_plan"]["limits"]["tasks"]),
+        "savedReportLimit": int(FEATURE_ACCESS["saved_report_history"]["limits"]["reports"]),
+    }
 analysis_job_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="openingfit-analysis")
 analysis_jobs: Dict[str, Dict[str, Any]] = {}
 analysis_job_keys: Dict[str, str] = {}

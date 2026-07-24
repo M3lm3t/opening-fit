@@ -16,6 +16,7 @@ export default function ReportGameCountSummary({ report }) {
         </dl>
         {!counts.breakdownAvailable ? <p>Detailed processing-stage counts were not stored with this older report.</p> : null}
         {counts.exclusionReasons.length ? <div className="reportGameExclusions"><strong>Why games were not analysed</strong><ul>{counts.exclusionReasons.map((reason) => <li key={`${reason.key}-${reason.label}`}>{reason.label}{reason.count === null ? "" : `: ${reason.count}`}</li>)}</ul></div> : null}
+        <p><a href="/how-it-works">How filtering, limits and opening signals work</a></p>
       </details>
     </section>
   );

@@ -8,11 +8,12 @@ test("high score with a tiny sample remains low confidence", () => {
   assert.equal(fitBand(92, confidence), "Excellent fit");
   assert.match(confidence.explanation, /too small/);
 });
-test("moderate score can have high confidence", () => {
+test("twelve opening-specific games have medium confidence", () => {
   const confidence = analysisConfidence({ games: 12 });
-  assert.equal(confidence.level, "high");
+  assert.equal(confidence.level, "medium");
   assert.equal(fitBand(58, confidence), "Mixed fit");
 });
+test("high confidence requires fifteen opening-specific games", () => assert.equal(analysisConfidence({ games: 15 }).level, "high"));
 test("zero games is insufficient evidence", () => assert.equal(analysisConfidence({ games: 0 }).label, "Insufficient evidence"));
 test("no-loss tiny sample is described as a watch signal", () => assert.match(evidenceBasedReason({ games: 2, wins: 2, losses: 0 }), /watch signal/));
 test("only genuine explanation inputs are exposed", () => assert.deepEqual(fitEvidence({ games: 4, planClarityScore: 61 }).map(([name]) => name), ["Performance", "Move-order consistency"]));

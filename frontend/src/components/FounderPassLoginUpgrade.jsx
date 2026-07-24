@@ -7,7 +7,7 @@ const DIALOG_ID = "openingfit-plus-upgrade";
 
 export default function FounderPassLoginUpgrade({ accountUser, isPremium = false }) {
   const valueBullets = [
-    "Save every report",
+    "Save up to 50 reports",
     "Compare progress over time",
     "Track weak lines",
     "Personal repertoire plan",

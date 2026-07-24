@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { buildReportGameCounts } from "../lib/reportGameCounts.js";
+import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
+import { formatChessScore, formatRecommendationConfidence, recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
 
 function getOpeningName(item) {
   return (
@@ -13,11 +15,11 @@ function getOpeningName(item) {
 }
 
 function getGames(item) {
-  return Number(item?.games ?? item?.count ?? item?.total ?? 0);
+  return Number(item?.sample?.games ?? item?.games ?? item?.count ?? item?.total ?? 0);
 }
 
 function getWinRate(item) {
-  const direct = item?.winRate ?? item?.win_rate ?? item?.score;
+  const direct = item?.sample?.scoreRate ?? item?.scoreRate ?? item?.score_rate ?? item?.winRate ?? item?.win_rate ?? item?.score;
 
   if (typeof direct === "number") {
     return direct > 1 ? Math.round(direct) : Math.round(direct * 100);
@@ -131,12 +133,12 @@ export default function ShareReport({ data }) {
         return b.winRate - a.winRate;
       });
 
-    const reliable = openings.filter((item) => item.games >= 2);
-    const strong = reliable.filter((item) => item.winRate >= 55).sort((a, b) => b.winRate - a.winRate);
-    const weak = reliable.filter((item) => item.winRate < 45).sort((a, b) => a.winRate - b.winRate);
-
-    const best = strong[0] || reliable[0] || openings[0];
-    const weakest = weak[0] || reliable[1] || openings[1] || best;
+    const decision = normaliseReportDecision(data.reportDecision || data.report_decision);
+    const card = (entry) => entry ? { name: entry.opening, games: entry.sample?.games ?? entry.games, winRate: entry.sample?.scoreRate ?? entry.scoreRate ?? entry.score } : null;
+    const best = card(decision?.establishedStrength);
+    const weakest = card(decision?.primaryProblem);
+    const nextAction = decision?.nextTrainingAction || { label: "Collect more games before changing your repertoire", reason: "No reliable opening weakness was found yet." };
+    const training = trainingActionCopy(nextAction, decision?.primaryProblem || decision?.establishedStrength);
 
     const username = getUsername(data);
     const gamesImported = getGamesImported(data);
@@ -148,14 +150,14 @@ Player: ${username}
 Games analysed: ${gamesImported || "Imported games"}
 Style: ${style}
 
-Best opening fit: ${best?.name || "Still analysing"}
-${best?.winRate ? `Score: ${best.winRate}%` : ""}${best?.games ? ` over ${best.games} games` : ""}
+Established strength: ${decision?.establishedStrength ? recommendationCopy(decision.establishedStrength, "keep") : "We do not have enough consistent results to name one yet."}
+${decision?.establishedStrength ? `${formatChessScore(decision.establishedStrength)} ${formatRecommendationConfidence(decision.establishedStrength)}` : ""}
 
-Opening to improve: ${weakest?.name || "Still analysing"}
-${weakest?.winRate ? `Score: ${weakest.winRate}%` : ""}${weakest?.games ? ` over ${weakest.games} games` : ""}
+Primary problem: ${recommendationCopy(decision?.primaryProblem, "repair")}
+${decision?.primaryProblem ? `${formatChessScore(decision.primaryProblem)} ${formatRecommendationConfidence(decision.primaryProblem)}` : ""}
 
-Next study focus:
-Build around ${best?.name || "your strongest opening"} and fix ${weakest?.name || "your weakest opening area"}.
+Next training action:
+${training.title}. ${training.explanation}
 
 Try it: https://www.openingfit.com`;
 
@@ -165,6 +167,8 @@ Try it: https://www.openingfit.com`;
       style,
       best,
       weakest,
+      nextAction,
+      training,
       text,
     };
   }, [data]);
@@ -243,8 +247,8 @@ Try it: https://www.openingfit.com`;
 
         <div className="shareReportResultGrid">
           <div className="shareReportResult best">
-            <span>Best opening fit</span>
-            <h3>{report.best?.name || "Still analysing"}</h3>
+            <span>Established strength</span>
+            <h3>{report.best?.name || "Not enough evidence yet"}</h3>
             <p>
               {report.best?.winRate ? `${report.best.winRate}% score` : "Best current result"}
               {report.best?.games ? ` · ${report.best.games} games` : ""}
@@ -252,8 +256,8 @@ Try it: https://www.openingfit.com`;
           </div>
 
           <div className="shareReportResult fix">
-            <span>Opening to improve</span>
-            <h3>{report.weakest?.name || "Still analysing"}</h3>
+            <span>Primary problem</span>
+            <h3>{report.weakest?.name || "No reliable opening weakness found yet"}</h3>
             <p>
               {report.weakest?.winRate ? `${report.weakest.winRate}% score` : "Needs review"}
               {report.weakest?.games ? ` · ${report.weakest.games} games` : ""}

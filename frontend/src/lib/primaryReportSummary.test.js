@@ -39,7 +39,7 @@ test("incomplete repertoire keeps all three required slots without invented open
   const view = buildPrimaryReportSummary({ ...completeModel, repertoire: completeModel.repertoire.slice(0, 1) });
   assert.equal(view.incompleteRepertoire, true);
   assert.deepEqual(view.slots.map((slot) => slot.label), ["White", "Black against 1.e4", "Black against 1.d4"]);
-  assert.equal(view.slots[1].opening, "Not enough evidence yet");
+  assert.equal(view.slots[1].opening, "No Black defence against 1.e4 has enough correctly attributed games yet.");
 });
 
 test("low data produces a calm prominent confidence warning", () => {

@@ -13,10 +13,11 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
   const hasFullRepertoire = isSampleReport(report) || canUseFeature(entitlement, OPENINGFIT_FEATURES.FULL_REPERTOIRE);
   return (
     <section className="primaryReportSummary" aria-labelledby="primary-report-title">
-      {isSampleReport(report) ? <p className="primaryReportSampleLabel">Sample report · Example data</p> : null}
+      {isSampleReport(report) ? <p className="primaryReportSampleLabel">Sample report · Example data · <a href="/how-it-works">How analysis works</a></p> : null}
       <div className="primaryReportHero">
         <div className="primaryReportScore" aria-label={view.scoreLabel}>
           <span>{view.scoreLabel}</span><strong>{view.score ?? "—"}</strong><small>{view.score === null ? "Not enough evidence" : "/100"}</small><em>{scoreView.statusLabel}</em>
+          <p>{scoreView.meaning}</p>
         </div>
         <div className="primaryReportVerdict">
           <span>Coach verdict</span><h1 id="primary-report-title">Your opening plan</h1><p>{view.verdict}</p>
@@ -30,7 +31,7 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
       {view.confidenceWarning ? <aside className="primaryReportConfidence" role="status"><strong>Confidence is still developing</strong><p>{view.confidenceWarning}</p></aside> : null}
       {hasFullRepertoire ? <section className="primaryReportRepertoire" id="report-repertoire" aria-labelledby="primary-repertoire-title">
         <header><div><span>Current repertoire</span><h2 id="primary-repertoire-title">Your three core slots</h2></div>{view.incompleteRepertoire ? <strong>Still building</strong> : <strong>Core slots covered</strong>}</header>
-        <div>{view.slots.map((slot) => <article key={slot.key} className={!slot.complete ? "isIncomplete" : ""}><span>{slot.label}</span><h3>{slot.opening}</h3><p>{slot.confidence}{slot.games === null ? "" : ` · ${slot.games} game${slot.games === 1 ? "" : "s"}`}</p></article>)}</div>
+        <div>{view.slots.map((slot) => <article key={slot.key} className={!slot.complete ? "isIncomplete" : ""}><span>{slot.label}</span><h3>{slot.opening}</h3><p>{slot.confidence}</p></article>)}</div>
       </section> : <FeatureAccessPreview feature={OPENINGFIT_FEATURES.FULL_REPERTOIRE} title="Build your complete repertoire" onUpgrade={onUpgrade}>
         {view.slots[0]?.complete ? <article><strong>{view.slots[0].label}: {view.slots[0].opening}</strong><small>Your report remains useful; paid access saves and maintains every White and Black slot.</small></article> : null}
       </FeatureAccessPreview>}

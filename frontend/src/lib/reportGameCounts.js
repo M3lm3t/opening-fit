@@ -133,7 +133,7 @@ export function countNoun(count, singular, plural = `${singular}s`) {
 
 export function reportCountSentence(report = {}) {
   const counts = buildReportGameCounts(report);
-  return `${countNoun(counts.fetchedGames, "public game")} found. ${countNoun(counts.analysedGames, "game")} with enough opening information analysed. ${countNoun(counts.excludedGames, "game")} not analysed.`;
+  return `${countNoun(counts.fetchedGames, "public game")} found. ${analysedGameSentence(counts.analysedGames)} ${countNoun(counts.excludedGames, "game")} not analysed.`;
 }
 
 export const REPORT_COUNT_DEFINITIONS = Object.freeze({
@@ -144,3 +144,4 @@ export const REPORT_COUNT_DEFINITIONS = Object.freeze({
   analysedGames: "Candidate games with enough valid opening information to contribute to this report.",
   excludedGames: "Fetched games not analysed; the available reasons reconcile to this total.",
 });
+import { analysedGameSentence } from "./reportCoachCopy.js";

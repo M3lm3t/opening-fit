@@ -17,6 +17,7 @@
 .primaryReportScore strong { color: var(--of-text, #0f172a); font-size: clamp(3.2rem, 7vw, 5.8rem); line-height: .95; }
 .primaryReportScore small { color: var(--of-muted, #64748b); font-weight: 800; }
 .primaryReportScore em { margin-top: 7px; padding: 4px 8px; border-radius: 999px; background: var(--of-surface-muted, #f1f5f9); color: var(--of-muted, #64748b); font-size: .72rem; font-style: normal; font-weight: 900; }
+.primaryReportScore p { max-width: 38ch; margin: 10px 0 0; color: var(--of-muted, #64748b); font-size: .78rem; line-height: 1.4; }
 [data-theme="light"] .primaryReportScore em { color: #52647a; }
 .primaryReportVerdict { display: grid; align-content: center; }
 .primaryReportVerdict h1 { margin: 4px 0 8px; font-size: clamp(1.55rem, 3vw, 2.35rem); }

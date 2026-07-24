@@ -72,7 +72,7 @@ function openingDetail(change) {
     title: `${change.opening} · ${change.side}`,
     text: previousScore === null || currentScore === null
       ? `${change.previousGames} games before · ${change.currentGames} games now`
-      : `${previousScore}% before · ${currentScore}% now · ${change.previousGames} vs ${change.currentGames} games`,
+      : `${previousScore}% chess score before · ${currentScore}% now · ${change.previousGames} vs ${change.currentGames} games`,
     status: change.status,
   });
 }

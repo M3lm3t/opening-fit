@@ -7,6 +7,7 @@ import {
   safeNumber,
 } from "./playerLevelLogic";
 import { openingPerspective } from "../lib/reportDecisionModel.js";
+import { REPORT_COACH_TEMPLATES, recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
 import "./WeeklyOpeningReport.css";
 
 const MAX_HISTORY = 16;
@@ -546,9 +547,9 @@ export default function WeeklyOpeningReport({ data, savedHistory = [], decisionM
       <div className="weeklyOpeningGrid">
         <article className="weeklyOpeningCard weeklyOpeningCard--positive weeklyProgressThisWeekCard">
           <span>Your Progress This Week</span>
-          <h3>{authoritativeAction?.label || weekly.nextBestAction}</h3>
+          <h3>{trainingActionCopy(authoritativeAction || { title: weekly.nextBestAction }, authoritativeProblem || authoritativeStrength).title}</h3>
           <p>
-            Established strength: {authoritativeStrength?.opening || "not enough evidence yet"}.
+            {authoritativeStrength ? recommendationCopy(authoritativeStrength, "keep") : REPORT_COACH_TEMPLATES.noStrength}
             {comparisonAllowed ? " Compared against a valid earlier report." : " This is a baseline; save another comparable report for deltas."}
           </p>
         </article>
@@ -557,9 +558,7 @@ export default function WeeklyOpeningReport({ data, savedHistory = [], decisionM
           <span>Best opening this week</span>
           <h3>{authoritativeStrength?.opening || "Not enough data"}</h3>
           <p>
-            {authoritativeStrength
-              ? `${authoritativeStrength.opening} is supported by ${authoritativeStrength.games} game${authoritativeStrength.games === 1 ? "" : "s"}.`
-              : "Import more games to identify a weekly strength."}
+            {authoritativeStrength ? recommendationCopy(authoritativeStrength, "keep") : REPORT_COACH_TEMPLATES.noStrength}
           </p>
         </article>
 
@@ -577,9 +576,7 @@ export default function WeeklyOpeningReport({ data, savedHistory = [], decisionM
           <span>Biggest weakness this week</span>
           <h3>{authoritativeProblem?.opening || "Not enough data"}</h3>
           <p>
-            {authoritativeProblem
-              ? `${authoritativeProblem.opening} is the authoritative supported repair target across ${authoritativeProblem.games} games.`
-              : "No repeated weakness has emerged yet."}
+            {authoritativeProblem ? recommendationCopy(authoritativeProblem, "repair") : REPORT_COACH_TEMPLATES.noWeakness}
           </p>
         </article>
 

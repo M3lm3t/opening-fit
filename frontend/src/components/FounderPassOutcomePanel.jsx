@@ -78,7 +78,7 @@ export default function FounderPassOutcomePanel({
           </li>
           <li>
             <strong>Saved progress</strong>
-            <span>Save every report and compare whether your repertoire is improving.</span>
+            <span>Save up to 50 reports and compare compatible reports over time.</span>
           </li>
           <li>
             <strong>Coming soon</strong>

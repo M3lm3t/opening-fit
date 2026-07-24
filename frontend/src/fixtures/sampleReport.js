@@ -24,7 +24,7 @@ const openings = [
     win_rate: 67,
     fitScore: 72,
     verdict: "Keep",
-    confidence: "High confidence",
+    confidence: "High confidence — based on 18 recent games.",
     perspective: perspective({ userColour: "white", openingSide: "white", role: "played_as_white", repertoireSlot: "white" }),
   },
   {
@@ -37,7 +37,7 @@ const openings = [
     win_rate: 59,
     fitScore: 64,
     verdict: "Keep",
-    confidence: "High confidence",
+    confidence: "High confidence — based on 16 recent games.",
     perspective: perspective({ userColour: "black", openingSide: "black", role: "played_as_black", repertoireSlot: "black_vs_e4" }),
   },
   {
@@ -50,7 +50,7 @@ const openings = [
     win_rate: 38,
     fitScore: 38,
     verdict: "Improve",
-    confidence: "Medium confidence",
+    confidence: "Medium confidence — based on 12 recent games.",
     perspective: perspective({ userColour: "black", openingSide: "black", role: "played_as_black", repertoireSlot: "black_vs_d4" }),
   },
   {
@@ -63,7 +63,7 @@ const openings = [
     win_rate: 50,
     fitScore: 51,
     verdict: "Prepare",
-    confidence: "Medium confidence",
+    confidence: "Medium confidence — based on 10 recent games.",
     perspective: perspective({ userColour: "white", openingSide: "black", role: "faced_as_white" }),
   },
   {
@@ -76,7 +76,7 @@ const openings = [
     win_rate: 56,
     fitScore: 58,
     verdict: "Watch",
-    confidence: "Medium confidence",
+    confidence: "Low confidence — based on 9 recent games.",
     perspective: perspective({ userColour: "white", openingSide: "white", role: "played_as_white", repertoireSlot: "white" }),
   },
   {
@@ -89,7 +89,7 @@ const openings = [
     win_rate: 50,
     fitScore: 50,
     verdict: "Prepare",
-    confidence: "Medium confidence",
+    confidence: "Low confidence — based on 7 recent games.",
     perspective: perspective({ userColour: "black", openingSide: "white", role: "faced_as_black" }),
   },
 ].map((opening) => ({
@@ -116,7 +116,7 @@ const establishedStrength = {
   userColour: "white",
   games: 18,
   score: 72,
-  confidence: "High confidence",
+  confidence: "High confidence — based on 18 recent games.",
   sampleSizeStatus: "sufficient",
   evidence: ["18 games", "67% score rate", "Reliable development and king safety"],
 };
@@ -131,7 +131,7 @@ const primaryProblem = {
   userColour: "black",
   games: 12,
   score: 38,
-  confidence: "Medium confidence",
+  confidence: "Medium confidence — based on 12 recent games.",
   sampleSizeStatus: "sufficient",
   evidence: ["12 games", "38% score rate", "Repeated difficulty completing development"],
 };
@@ -140,8 +140,10 @@ const nextTrainingAction = {
   type: "repair_repertoire",
   opening: "Queen's Gambit Declined",
   role: "played_as_black",
-  label: "Repair the Queen's Gambit Declined",
-  reason: "Review one dependable development plan against 1.d4; this is the best-supported weakness in the example repertoire.",
+  label: "Review your Queen's Gambit Declined development",
+  reason: "Review three recent losses as Black and mark the first move where you left a familiar development plan.",
+  exercise: "Replay those three games from the Black side and write down one safer development plan.",
+  completionTarget: { type: "reviewed_games", count: 3, label: "Finish three annotated reviews." },
 };
 
 export const SAMPLE_REPORT = Object.freeze({
@@ -196,7 +198,7 @@ export const SAMPLE_REPORT = Object.freeze({
   openingFitScore: 72,
   opening_fit_score: 72,
   openingFitScoreBand: "Developing repertoire",
-  summary: "Example data shows a dependable Vienna Game, a repair priority in the Queen's Gambit Declined, and separate preparation notes for openings the example player faces.",
+  summary: "Example data shows a reliable Vienna Game, one Queen's Gambit Declined problem to review, and separate preparation notes for openings the example player faces.",
   styleProfile: {
     primary: "Active, development-first play",
     summary: "The example player performs best with clear development and familiar pawn structures.",
@@ -241,8 +243,8 @@ export const SAMPLE_REPORT = Object.freeze({
     primaryProblem,
     nextTrainingAction,
     supportingEvidence: [
-      "Vienna Game: 18 games and a 72 fit score.",
-      "Queen's Gambit Declined: 12 games and a 38 fit score.",
+      "Vienna Game: 18 relevant games.",
+      "Queen's Gambit Declined: 12 relevant games with a 37.5% chess score.",
       "French Defence is faced as White and is opponent preparation, not owned repertoire.",
     ],
     confidence: { status: "sufficient", sampleSizeStatus: "sufficient", gamesAnalysed: 72, minimumOpeningGames: 3 },
@@ -254,8 +256,8 @@ export const SAMPLE_REPORT = Object.freeze({
     primaryProblem,
     nextTrainingAction,
     supportingEvidence: [
-      "Vienna Game: 18 games and a 72 fit score.",
-      "Queen's Gambit Declined: 12 games and a 38 fit score.",
+      "Vienna Game: 18 relevant games.",
+      "Queen's Gambit Declined: 12 relevant games with a 37.5% chess score.",
       "French Defence is faced as White and is opponent preparation, not owned repertoire.",
     ],
     confidence: { status: "sufficient", sampleSizeStatus: "sufficient", gamesAnalysed: 72, minimumOpeningGames: 3 },

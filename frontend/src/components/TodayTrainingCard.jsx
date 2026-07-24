@@ -77,7 +77,7 @@ function buildTodayFocus(data, plan) {
       startLabel: target.moveLine || target.move_line || trainingSet.startingMoveSequence || trainingSet.starting_move_sequence
         ? `after ${target.moveLine || target.move_line || trainingSet.startingMoveSequence || trainingSet.starting_move_sequence}`
         : "from the saved weak-line sequence",
-      confidence: games >= 6 && lossRate >= 50 ? "High confidence" : games >= 3 ? "Developing pattern" : "Limited evidence",
+      confidence: games >= 6 && lossRate >= 50 ? `High confidence — based on ${games} relevant games.` : games >= 3 ? `Developing pattern — based on ${games} relevant games.` : `Limited evidence — only ${games} relevant game${games === 1 ? "" : "s"} found.`,
       reason: "Why this was picked:",
       why:
         trainingSet.shortExplanation ||

@@ -11,7 +11,7 @@ export default function OpeningFitScoreDisclosure({ model, report, previousRepor
         <dl className="openingFitScoreFacts">
           <div><dt>Current score</dt><dd>{view.currentScore ?? "Unavailable"}{view.currentScore === null ? "" : " / 100"}</dd></div>
           <div><dt>Previous score</dt><dd>{view.previousScore === null ? "No previous score" : `${view.previousScore} / 100`}</dd></div>
-          <div><dt>Data confidence</dt><dd>{view.statusLabel}</dd></div>
+          <div><dt>Report coverage</dt><dd>{view.statusLabel}</dd></div>
           <div><dt>Games used</dt><dd>{view.games}</dd></div>
         </dl>
         <section><h3>Main reason for change</h3><p>{view.reasonForChange}</p></section>
@@ -22,6 +22,7 @@ export default function OpeningFitScoreDisclosure({ model, report, previousRepor
           <div><h3>Why it may change</h3><p>{view.whyChange}</p></div>
           <div><h3>Why sample size matters</h3><p>{view.smallSamples}</p></div>
         </section>
+        <p><a href="/how-it-works">Read the full analysis methodology and limitations</a></p>
       </div>
     </details>
   );

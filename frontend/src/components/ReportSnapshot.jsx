@@ -1,6 +1,8 @@
 import "./ReportSnapshot.css";
 import { getPlayerLevelText } from "./playerLevelLogic";
 import { getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
+import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
+import { formatRecommendationConfidence, recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
 
 function toNumber(value, fallback = 0) {
   const n = Number(value);
@@ -20,6 +22,9 @@ function getOpeningName(item, fallback = "Not enough data yet") {
 
 function getWinRate(item) {
   const raw =
+    item?.sample?.scoreRate ??
+    item?.scoreRate ??
+    item?.score_rate ??
     item?.winRate ??
     item?.win_rate ??
     item?.winrate ??
@@ -32,18 +37,7 @@ function getWinRate(item) {
 }
 
 function getGames(item) {
-  return toNumber(item?.games ?? item?.count ?? item?.total ?? item?.played, 0);
-}
-
-function sortByGamesAndWinRate(openings = []) {
-  return [...openings].sort((a, b) => {
-    const gameDiff = getGames(b) - getGames(a);
-    if (gameDiff !== 0) return gameDiff;
-
-    const aWin = getWinRate(a) ?? 0;
-    const bWin = getWinRate(b) ?? 0;
-    return bWin - aWin;
-  });
+  return toNumber(item?.sample?.games ?? item?.games ?? item?.count ?? item?.total ?? item?.played, 0);
 }
 
 function openingContextTitle(item, fallback = "Opening signal") {
@@ -113,14 +107,6 @@ function findWeakSpot(data) {
   })[0];
 }
 
-function findMainOpening(data) {
-  const openings = sortByGamesAndWinRate(
-    Array.isArray(data?.top_openings) ? data.top_openings : []
-  );
-
-  return openings[0] || null;
-}
-
 function getRecommendation(data) {
   const recommendations = Array.isArray(data?.recommendations)
     ? data.recommendations
@@ -140,27 +126,15 @@ function getRecommendation(data) {
   );
 }
 
-function formatMeta(item) {
-  if (!item) return "Import more games to sharpen this.";
-  const games = getGames(item);
-  const winRate = getWinRate(item);
-
-  const bits = [];
-  if (winRate !== null) bits.push(`${winRate}% score`);
-  if (games > 0) bits.push(`${games} game${games === 1 ? "" : "s"}`);
-
-  return bits.length ? bits.join(" · ") : "Pattern found in your games";
-}
-
 export default function ReportSnapshot({ data, onViewChange }) {
   if (!data) return null;
 
   const reportMode = data?.reportMode || data?.report_mode || "normal_user";
   const publicMode = reportMode !== "normal_user";
-  const bestFit = findBestFit(data);
-  const weakSpot = findWeakSpot(data);
-  const mainOpening = findMainOpening(data);
-  const recommendation = getRecommendation(data);
+  const decision = normaliseReportDecision(data.reportDecision || data.report_decision);
+  const bestFit = publicMode ? findBestFit(data) : decision?.establishedStrength || null;
+  const weakSpot = publicMode ? findWeakSpot(data) : decision?.primaryProblem || null;
+  const recommendation = publicMode ? getRecommendation(data) : decision?.nextTrainingAction?.label;
 
   const playerLevel = getPlayerLevelText(data, "");
   const rating = data?.rating || data?.chesscomRating || data?.lichessRating;
@@ -174,35 +148,35 @@ export default function ReportSnapshot({ data, onViewChange }) {
   const cards = [
     {
       eyebrow: publicMode ? "Recent strength" : "Best fit",
-      title: openingContextTitle(bestFit || mainOpening, "Your strongest opening"),
-      detail: formatMeta(bestFit || mainOpening),
+      title: openingContextTitle(bestFit, "No established strength yet"),
+      detail: bestFit ? formatRecommendationConfidence(bestFit) : "Not enough opening-specific evidence",
       note: publicMode
         ? "A higher-scoring recent online sample, not a judgement of full opening knowledge."
-        : canUseAsRepertoire(bestFit || mainOpening)
-          ? "Keep this only in the side/context shown here."
+        : canUseAsRepertoire(bestFit)
+          ? recommendationCopy(bestFit, "keep")
           : "This is not clean enough to treat as a repertoire recommendation yet.",
       action: "See recommendations",
       view: "repertoire",
     },
     {
       eyebrow: publicMode ? "Lower-scoring sample" : "Needs work",
-      title: openingContextTitle(weakSpot, publicMode ? "Recent underperformer" : "Your weakest recurring opening"),
-      detail: formatMeta(weakSpot),
+      title: openingContextTitle(weakSpot, publicMode ? "Recent underperformer" : "No reliable opening weakness found yet"),
+      detail: weakSpot ? formatRecommendationConfidence(weakSpot) : "No weakness claim is supported",
       note: publicMode
         ? "Compare by time control, opponent pool, and whether the games were experimental."
         : canUseAsRepertoire(weakSpot)
-          ? "Review this only in the side/context shown here."
+          ? recommendationCopy(weakSpot, "repair")
           : "Separate played and faced games before calling this a weakness.",
       action: "Open study plan",
       view: "training",
     },
     {
       eyebrow: "Next focus",
-      title: recommendation || "Review your most repeated opening mistakes",
+      title: trainingActionCopy(decision?.nextTrainingAction || { title: recommendation }, weakSpot || bestFit).title,
       detail: profileDetail || "Based on your imported games",
       note: publicMode
         ? "OpeningFit is analysing recent online results only."
-        : "One focused study session beats ten random opening videos.",
+        : trainingActionCopy(decision?.nextTrainingAction || { title: recommendation }, weakSpot || bestFit).explanation,
       action: publicMode ? "Review trends" : "Start training",
       view: "training",
     },

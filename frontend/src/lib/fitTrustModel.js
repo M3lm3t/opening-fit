@@ -6,9 +6,8 @@ function number(value) {
 
 export function analysisConfidence(item = {}) {
   const games = Math.max(0, Number(item.games ?? item.games_played ?? item.gamesPlayed ?? item.count ?? 0) || 0);
-  const supplied = String(item.confidence_level || item.confidenceLevel || item.confidence || "").toLowerCase();
   if (!games) return { level: "insufficient", label: "Insufficient evidence", games, explanation: "No opening-specific games are available." };
-  const level = supplied.includes("high") ? "high" : supplied.includes("medium") ? "medium" : supplied.includes("low") ? "low" : games >= 8 ? "high" : games >= 3 ? "medium" : "low";
+  const level = games >= 15 ? "high" : games >= 10 ? "medium" : "low";
   const label = level === "high" ? "High confidence" : level === "medium" ? "Medium confidence" : "Low confidence";
   const explanation = level === "high" ? `${games} games provides a repeated opening-specific sample.` : level === "medium" ? `${games} games supports an early pattern, not a final verdict.` : `${games} game${games === 1 ? "" : "s"} is too small for a hard repertoire decision.`;
   return { level, label, games, explanation };
@@ -27,9 +26,9 @@ export function performanceSummary(item = {}) {
   const wins = number(item.wins ?? item.w);
   const draws = number(item.draws ?? item.d);
   const losses = number(item.losses ?? item.l);
-  const rate = number(item.winRate ?? item.win_rate ?? item.scoreRate ?? item.score_rate);
+  const rate = number(item.scoreRate ?? item.score_rate ?? item.winRate ?? item.win_rate);
   if (wins !== null || losses !== null) return `${wins ?? 0} wins, ${draws ?? 0} draws, ${losses ?? 0} losses`;
-  if (rate !== null && games) return `${rate}% result across ${games} games`;
+  if (rate !== null && games) return `${rate}% chess score across ${games} games`;
   return games ? `${games} analysed games; result split unavailable` : "Performance unavailable";
 }
 

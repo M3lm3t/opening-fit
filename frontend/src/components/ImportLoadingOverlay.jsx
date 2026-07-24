@@ -9,7 +9,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { IMPORT_STAGES, IMPORT_STAGE_DETAILS } from "../lib/importJourney";
+import { analysisTimingStatus, IMPORT_STAGES, IMPORT_STAGE_DETAILS } from "../lib/importJourney";
 
 function ChessAnalysisLoader() {
   return (
@@ -36,6 +36,7 @@ export default function ImportLoadingOverlay({
   loadingStep = "",
   stage = IMPORT_STAGES.FETCHING,
   showWakeupMessage = false,
+  elapsedSeconds = 0,
   onCancel,
 }) {
   const isAnalysis = mode === "analysis";
@@ -75,6 +76,7 @@ export default function ImportLoadingOverlay({
   const activeStage = progressStages[activeStageIndex] || progressStages[0];
   const platformLabel =
     typeof platform === "string" && platform.length ? platform : "your chess platform";
+  const timing = analysisTimingStatus(elapsedSeconds);
 
   return (
     <div
@@ -139,13 +141,13 @@ export default function ImportLoadingOverlay({
           </div>
         </div>
 
-        {showWakeupMessage ? (
-          <p className="importLoadingWakeup">{platformLabel} or the analysis service is responding slowly. OpeningFit is still waiting safely; you can cancel without removing your previous report.</p>
+        {showWakeupMessage || timing.slow ? (
+          <p className="importLoadingWakeup">{timing.label} OpeningFit is still waiting safely; you can cancel without removing your previous report.</p>
         ) : null}
 
         <footer className="importLoadingFooter">
           <span>{loadingStep || activeStage.detail}</span>
-          <small>The analysis runs as a background job. You can safely cancel without replacing your last report.</small>
+          <small>{timing.label} You can safely cancel without replacing your last report.</small>
         </footer>
       </div>
     </div>

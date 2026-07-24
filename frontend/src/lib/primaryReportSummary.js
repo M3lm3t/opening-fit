@@ -1,3 +1,5 @@
+import { formatRecommendationConfidence, missingSlotCopy, recommendationCopy } from "./reportCoachCopy.js";
+
 const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
 function oneSentence(model = {}) {
@@ -16,8 +18,8 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     return {
       key,
       label,
-      opening: item?.opening || "Not enough evidence yet",
-      confidence: item?.confidence || "Insufficient data",
+      opening: item?.opening || missingSlotCopy(key),
+      confidence: item ? formatRecommendationConfidence({ games: item.games, confidence: item.confidence }) : "More correctly attributed games are needed.",
       games: Number.isFinite(Number(item?.games)) ? Math.max(0, Math.round(Number(item.games))) : null,
       complete: Boolean(item),
     };
@@ -35,8 +37,8 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     slots,
     incompleteRepertoire: slots.some((slot) => !slot.complete),
     problem: {
-      title: problem?.opening || "No sufficiently supported repertoire weakness",
-      reason: problem?.reason || problem?.objective || problem?.evidence?.[2] || model.nextTrainingAction?.reason || "The current evidence does not support naming a recurring repair target.",
+      title: problem?.opening || "No reliable opening weakness found yet",
+      reason: recommendationCopy(problem, "repair"),
       evidence: Array.isArray(problem?.evidence) && problem.evidence.length
         ? problem.evidence.slice(0, 2).join(" · ")
         : Array.isArray(model.supportingEvidence) && model.supportingEvidence.length
@@ -47,7 +49,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     },
     training: {
       title: training?.label || (training?.opening ? `Train ${training.opening}` : "Collect more games before changing your repertoire"),
-      reason: training?.objective || "Review one opening focus before your next games.",
+      reason: training?.objective || training?.reason || model.nextTrainingAction?.reason || "Review one opening focus before your next games.",
       source: training?.source || null,
       cta: completion > 0 && completion < 100 ? "Continue training" : "Start this week’s training",
     },

@@ -6,25 +6,14 @@ import {
 } from "./playerLevelLogic";
 import { getOpeningRecommendationReason } from "./openingCopy";
 import { openingPerspective } from "../lib/reportDecisionModel.js";
+import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
+import { formatChessScore, formatRecommendationConfidence } from "../lib/reportCoachCopy.js";
 
 export const CONFIDENCE_THRESHOLDS = {
-  highGames: 25,
+  highGames: 15,
   mediumGames: 10,
   lowGames: 5,
 };
-
-function normaliseConfidenceLabel(value) {
-  const text = String(value || "").trim();
-  const lower = text.toLowerCase();
-
-  if (lower.includes("too little") || lower.includes("insufficient") || lower.includes("no reliable")) {
-    return "Too little data";
-  }
-  if (lower.includes("high") || lower.includes("strong")) return "High confidence";
-  if (lower.includes("medium")) return "Medium confidence";
-  if (lower.includes("low") || lower.includes("thin")) return "Low confidence";
-  return text;
-}
 
 /* Legacy name-based ownership lists intentionally retired. New reports use openingPerspective.
 const BLACK_OPENING_NAME_PATTERNS = [
@@ -102,17 +91,18 @@ export function getEvidenceOpeningName(opening, fallback = "this opening") {
 
 export function getEvidenceGames(opening) {
   return numberValue(
-    opening?.games ?? opening?.count ?? opening?.total ?? opening?.played ?? opening?.sample,
+    opening?.sample?.games ?? opening?.games ?? opening?.count ?? opening?.total ?? opening?.played,
     0
   );
 }
 
 export function getEvidenceScore(opening) {
   const direct =
-    opening?.winRate ??
-    opening?.win_rate ??
+    opening?.sample?.scoreRate ??
     opening?.scoreRate ??
     opening?.score_rate ??
+    opening?.winRate ??
+    opening?.win_rate ??
     opening?.score ??
     opening?.percentage ??
     opening?.performance;
@@ -267,6 +257,7 @@ export function getConfidenceDetails(opening) {
   const games = getEvidenceGames(opening);
   const score = getEvidenceScore(opening);
   const context = getOpeningContext(opening);
+  const confidenceCopy = formatRecommendationConfidence({ ...opening, games });
 
   if (!context.canRecommend) {
     return {
@@ -301,38 +292,38 @@ export function getConfidenceDetails(opening) {
   if (games >= CONFIDENCE_THRESHOLDS.highGames) {
     return {
       tier: "high",
-      label: "High confidence",
-      badge: "High confidence",
+      label: confidenceCopy,
+      badge: confidenceCopy,
       className: "high",
       canBePrimary: true,
       canBeFirm: true,
-      evidenceLine: `High confidence: ${games} games, ${score}% score. This pattern repeats enough to trust.`,
-      explanation: "25+ games in this opening or family. Good enough for a repertoire decision.",
+      evidenceLine: `${confidenceCopy} ${score}% chess score. This pattern repeats enough to guide training.`,
+      explanation: "15+ reconciled opening-specific games. Good enough for a repertoire decision.",
     };
   }
 
   if (games >= CONFIDENCE_THRESHOLDS.mediumGames) {
     return {
       tier: "medium",
-      label: "Medium confidence",
-      badge: "Medium confidence",
+      label: confidenceCopy,
+      badge: confidenceCopy,
       className: "medium",
       canBePrimary: true,
       canBeFirm: false,
-      evidenceLine: `Medium confidence: ${games} games, ${score}% score. Useful, but confirm before a major change.`,
-      explanation: "10-24 games. Good for study order, not a full reset.",
+      evidenceLine: `${confidenceCopy} ${score}% chess score. Useful, but confirm before a major change.`,
+      explanation: "10-14 games. Good for study order, not a full reset.",
     };
   }
 
   if (games >= CONFIDENCE_THRESHOLDS.lowGames) {
     return {
       tier: "low",
-      label: "Low confidence",
-      badge: "Low confidence",
+      label: confidenceCopy,
+      badge: confidenceCopy,
       className: "low",
       canBePrimary: false,
       canBeFirm: false,
-      evidenceLine: `Low confidence: ${games} games, ${score}% score. Too early for a firm verdict.`,
+      evidenceLine: `${confidenceCopy} ${score}% chess score. Too early for a firm verdict.`,
       explanation: "5-9 games. Watch the line and collect more evidence before changing your repertoire.",
     };
   }
@@ -350,26 +341,12 @@ export function getConfidenceDetails(opening) {
 }
 
 export function getOpeningConfidence(opening) {
-  const explicit = textField(opening, [
-    "confidenceLabel",
-    "confidence_label",
-    "confidence",
-    "sampleConfidence",
-    "sample_confidence",
-  ]);
-
-  if (explicit) {
-    return normaliseConfidenceLabel(explicit);
-  }
-
   const games = getEvidenceGames(opening);
   const score = getEvidenceScore(opening);
 
   if (!games || score === null) return "Too little data";
-  if (games >= CONFIDENCE_THRESHOLDS.highGames) return "High confidence";
-  if (games >= CONFIDENCE_THRESHOLDS.mediumGames) return "Medium confidence";
-  if (games >= CONFIDENCE_THRESHOLDS.lowGames) return "Low confidence";
-  return "Too little data";
+  const level = games >= CONFIDENCE_THRESHOLDS.highGames ? "high" : games >= CONFIDENCE_THRESHOLDS.mediumGames ? "medium" : "low";
+  return formatRecommendationConfidence({ ...opening, games, confidence: { level } });
 }
 
 export function getOpeningSignal(opening) {
@@ -421,7 +398,7 @@ export function getOpeningSignal(opening) {
     return {
       tier: "strong",
       label: "Strong signal",
-      badge: "High confidence",
+      badge: confidence.badge,
       className: "high",
       canBePrimary: true,
       canBeFirm: true,
@@ -434,7 +411,7 @@ export function getOpeningSignal(opening) {
     return {
       tier: "medium",
       label: "Medium signal",
-      badge: "Medium confidence",
+      badge: confidence.badge,
       className: "medium",
       canBePrimary: true,
       canBeFirm: false,
@@ -446,8 +423,8 @@ export function getOpeningSignal(opening) {
   if (confidence.tier === "low") {
     return {
       tier: "low",
-      label: "Low confidence",
-      badge: "Low confidence",
+      label: confidence.label,
+      badge: confidence.badge,
       className: "low",
       canBePrimary: false,
       canBeFirm: false,
@@ -729,11 +706,15 @@ export function getEvidenceNextAction(opening, slot = "", data = null) {
 }
 
 export function getOpeningEvidence(opening, data, options = {}) {
-  const games = getEvidenceGames(opening);
-  const score = getEvidenceScore(opening);
-  const signal = getOpeningSignal(opening);
-  const baseline = baselineComparison(opening, data);
-  const baseVerdict = getEvidenceVerdict(opening, data);
+  const decision = normaliseReportDecision(data?.reportDecision || data?.report_decision);
+  const openingRole = openingPerspective(opening || {}).role;
+  const openingName = getEvidenceOpeningName(opening, "").toLowerCase();
+  const canonical = decision?.recommendations?.find((item) => item.opening.toLowerCase() === openingName && item.role === openingRole) || opening;
+  const games = getEvidenceGames(canonical);
+  const score = getEvidenceScore(canonical);
+  const signal = getOpeningSignal(canonical);
+  const baseline = baselineComparison(canonical, data);
+  const baseVerdict = getEvidenceVerdict(canonical, data);
   const verdict =
     baseVerdict === "Experiment"
       ? "Experiment"
@@ -742,18 +723,18 @@ export function getOpeningEvidence(opening, data, options = {}) {
     `Colour: ${getEvidenceColour(opening)}`,
     `Verdict: ${verdict}`,
     games ? `${games} game${games === 1 ? "" : "s"}` : "Game count unavailable",
-    score !== null ? `${score}% score` : "Score unavailable",
-    opening?.openingRiskProfile?.theoryLoad || opening?.opening_risk_profile?.theory_load
-      ? `Theory: ${opening.openingRiskProfile?.theoryLoad || opening.opening_risk_profile?.theory_load}`
+    score !== null ? formatChessScore(canonical) : "Score unavailable",
+    canonical?.openingRiskProfile?.theoryLoad || canonical?.opening_risk_profile?.theory_load
+      ? `Theory: ${canonical.openingRiskProfile?.theoryLoad || canonical.opening_risk_profile?.theory_load}`
       : "",
-    opening?.averageOpponentRating || opening?.average_opponent_rating
-      ? `Opp avg: ${opening.averageOpponentRating || opening.average_opponent_rating}`
+    canonical?.averageOpponentRating || canonical?.average_opponent_rating
+      ? `Opp avg: ${canonical.averageOpponentRating || canonical.average_opponent_rating}`
       : "",
-    opening?.planClarityStatus || opening?.plan_clarity_status
-      ? `Plan: ${opening.planClarityStatus || opening.plan_clarity_status}`
+    canonical?.planClarityStatus || canonical?.plan_clarity_status
+      ? `Plan: ${canonical.planClarityStatus || canonical.plan_clarity_status}`
       : "",
-    opening?.fixabilityCategory || opening?.fixability_category
-      ? `Fixability: ${opening.fixabilityCategory || opening.fixability_category}`
+    canonical?.fixabilityCategory || canonical?.fixability_category
+      ? `Fixability: ${canonical.fixabilityCategory || canonical.fixability_category}`
       : "",
     baseline,
     signal.badge,
@@ -762,11 +743,11 @@ export function getOpeningEvidence(opening, data, options = {}) {
   return {
     chips: [...new Set(chips)],
     verdict,
-    reason: getEvidenceReason(opening, data),
-    nextAction: getEvidenceNextAction(opening, options.slot || options.sectionKey || "", data),
+    reason: getEvidenceReason(canonical, data),
+    nextAction: canonical?.trainingAction?.explanation || getEvidenceNextAction(canonical, options.slot || options.sectionKey || "", data),
     why: signal.evidenceLine,
     signal,
-    context: getOpeningContext(opening),
+    context: getOpeningContext(canonical),
   };
 }
 

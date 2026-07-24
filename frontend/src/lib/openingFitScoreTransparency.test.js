@@ -5,14 +5,15 @@ import { buildOpeningFitScoreTransparency, OPENINGFIT_SCORE_FORMULA, OPENINGFIT_
 const breakdown = { stability: 78, whitePerformance: 64, blackPerformance: 58, confidence: 82, weaknessControl: 70, recentConsistency: 72 };
 const model = { header: { games: 30 }, health: { score: 68, confidence: "High confidence" } };
 
-test("high-confidence score exposes only real weighted formula inputs", () => {
+test("score exposes real weighted formula inputs and separate report coverage", () => {
   const view = buildOpeningFitScoreTransparency({ model, report: { openingFitScoreBreakdown: breakdown } });
   assert.equal(view.currentScore, 68);
-  assert.equal(view.confidence, "High confidence");
+  assert.equal(view.coverage, "Broad report coverage");
   assert.equal(view.provisional, false);
   assert.deepEqual(view.components.map((item) => item.key), OPENINGFIT_SCORE_FORMULA.map((item) => item.key));
   assert.equal(view.components.reduce((sum, item) => sum + item.weight, 0), 100);
-  assert.match(view.meaning, /not a chess rating/i);
+  assert.match(view.meaning, /not your chess rating/i);
+  assert.deepEqual(view.scale, { minimum: 0, maximum: 100 });
 });
 
 test("fewer than the minimum games visibly marks the score provisional", () => {

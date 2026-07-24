@@ -1,4 +1,6 @@
 import { analysisConfidence, evidenceBasedReason, fitBand, fitEvidence, performanceSummary } from "./fitTrustModel.js";
+import { normaliseReportDecision } from "./recommendationEvidence.js";
+import { coachVerdict, formatRecommendationConfidence, trainingActionCopy } from "./reportCoachCopy.js";
 
 function list(value) {
   if (!value) return [];
@@ -16,12 +18,12 @@ export function openingName(item) {
 }
 
 export function openingGames(item) {
-  const value = Number(item?.games ?? item?.count ?? item?.total ?? item?.sampleSize ?? item?.sample_size ?? 0);
+  const value = Number(item?.sample?.games ?? item?.games ?? item?.count ?? item?.total ?? item?.sampleSize ?? item?.sample_size ?? 0);
   return Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
 }
 
 export function openingScore(item) {
-  const raw = item?.fitScore ?? item?.fit_score ?? item?.winRate ?? item?.win_rate ?? item?.score;
+  const raw = item?.sample?.scoreRate ?? item?.scoreRate ?? item?.score_rate ?? item?.winRate ?? item?.win_rate ?? item?.fitScore ?? item?.fit_score ?? item?.score;
   if (raw === undefined || raw === null || raw === "") return null;
   const value = Number(String(raw).replace("%", ""));
   if (!Number.isFinite(value)) return null;
@@ -59,7 +61,8 @@ export function openingPerspective(item = {}) {
 }
 
 export function openingConfidence(item) {
-  return analysisConfidence(item).label;
+  const confidence = analysisConfidence(item);
+  return formatRecommendationConfidence({ ...item, confidence: { level: confidence.level } });
 }
 
 function verdict(item) {
@@ -67,7 +70,7 @@ function verdict(item) {
 }
 
 function reason(item) {
-  const provided = text(item?.recommendationReason || item?.recommendation_reason || item?.fitExplanation || item?.fit_explanation || item?.reason || item?.summary);
+  const provided = text(item?.trainingAction?.explanation || item?.recommendationReason || item?.recommendation_reason || item?.fitExplanation || item?.fit_explanation || item?.reason || item?.summary);
   if (provided) return provided;
   const games = openingGames(item);
   const score = openingScore(item);
@@ -109,15 +112,15 @@ export function collectReportOpenings(data = {}) {
 
 function decisionType(item) {
   if (!openingPerspective(item).repertoireOwned) return null;
-  if (openingGames(item) < 3) return null;
+  if (openingGames(item) < 5) return null;
   const label = verdict(item);
   if (/avoid|replace|reduce|drop|park|risky/.test(label)) return "reduce";
   if (/improve|repair|review|fix|weak|unstable/.test(label)) return "repair";
   if (/keep|reliable|strong|best|main weapon/.test(label)) return "keep";
   const games = openingGames(item);
   const score = openingScore(item);
-  if (games >= 3 && score !== null && score >= 60) return "keep";
-  if (games >= 3 && score !== null && score < 45) return "repair";
+  if (games >= 5 && score !== null && score >= 60) return "keep";
+  if (games >= 5 && score !== null && score < 45) return "repair";
   return null;
 }
 
@@ -233,19 +236,23 @@ function comparableHistory(data = {}, reportHistory = []) {
 function canonicalOpening(source, fallbackType) {
   if (!source?.opening) return null;
   const match = source.source || {};
+  const sample = source.sample || {};
+  const games = Number(sample.games ?? source.games ?? 0);
+  const score = sample.scoreRate ?? source.scoreRate ?? source.score ?? null;
+  const confidence = typeof source.confidence === "object" ? source.confidence : analysisConfidence({ games });
   return {
     type: fallbackType,
     opening: source.opening,
     context: source.roleLabel || source.role || "Ownership unresolved",
     contextKey: openingContext({ ...match, openingRole: source.role, repertoireSlot: source.repertoireSlot }).key,
-    reason: source.evidence?.[0] || `${source.games} game${source.games === 1 ? "" : "s"} support this decision.`,
-    confidence: source.confidence || "Insufficient data",
-    confidenceDetail: analysisConfidence({ games: source.games }),
-    games: Number(source.games || 0),
-    score: source.score ?? null,
-    fitLabel: source.sampleSizeStatus === "insufficient_data" ? "Insufficient data" : fitBand(source.score, analysisConfidence({ games: source.games })),
-    performance: performanceSummary({ games: source.games, fitScore: source.score }),
-    evidence: fitEvidence({ games: source.games, fitScore: source.score }),
+    reason: source.trainingAction?.explanation || source.evidence?.[0] || `${games} game${games === 1 ? "" : "s"} support this decision.`,
+    confidence: formatRecommendationConfidence(source),
+    confidenceDetail: { ...analysisConfidence({ games }), ...confidence, games },
+    games,
+    score,
+    fitLabel: source.sampleSizeStatus === "insufficient_data" ? "Insufficient data" : fitBand(score, analysisConfidence({ games })),
+    performance: performanceSummary({ games, wins: sample.wins, draws: sample.draws, losses: sample.losses, scoreRate: score }),
+    evidence: fitEvidence({ games, wins: sample.wins, draws: sample.draws, losses: sample.losses, scoreRate: score }),
     source: match,
     role: source.role,
     relationship: source.relationship,
@@ -254,7 +261,7 @@ function canonicalOpening(source, fallbackType) {
 }
 
 export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory = []) {
-  const serverDecision = data.reportDecision || data.report_decision || null;
+  const serverDecision = normaliseReportDecision(data.reportDecision || data.report_decision || null);
   const legacyDecisions = serverDecision ? [] : buildRepertoireDecisions(data);
   const sourceOpenings = collectReportOpenings(data);
   const sourceFor = (entry) => sourceOpenings.find((item) => openingName(item).toLowerCase() === text(entry?.opening).toLowerCase() && openingPerspective(item).role === entry?.role) || {};
@@ -270,7 +277,10 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
   const games = Number(data.gamesAnalysed ?? data.gamesAnalyzed ?? data.games_analyzed ?? data.gamesImported ?? data.total_games ?? 0) || 0;
   const score = Number(fitData?.overallScore ?? data.openingFitScore ?? data.opening_fit_score ?? data.repertoireHealth?.score ?? data.repertoire_health?.score);
   const scoreValue = Number.isFinite(score) ? Math.round(score) : null;
-  const confidence = text(data.confidenceLabel || data.confidence_label || data.reportConfidence || data.report_confidence) || analysisConfidence({ games }).label;
+  const coverage = serverDecision?.reportCoverage;
+  const confidence = coverage?.level
+    ? `${coverage.level[0].toUpperCase()}${coverage.level.slice(1)} report coverage`
+    : `${games} analysed game${games === 1 ? "" : "s"}`;
   const previousRow = comparableHistory(data, reportHistory);
   const previous = previousRow?.openingfit_score ?? previousRow?.normalized_snapshot?.openingfit_score ?? previousRow?.snapshot?.openingfit_score ?? previousRow?.summary?.openingFitProgress?.score ?? previousRow?.summary?.opening_fit_score ?? null;
   const comparisonAllowed = Boolean(serverDecision?.baseline?.comparisonClaimsAllowed || previousRow);
@@ -291,11 +301,9 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
   const period = text(data.analysisPeriod || data.analysis_period || data.importRangeLabel || data.import_range_label) || (data.monthsChecked ? `Last ${data.monthsChecked} month${Number(data.monthsChecked) === 1 ? "" : "s"}` : "Recent games");
   const date = data.importedAt || data.imported_at || data.lastUpdated || data.last_updated || null;
   const timeControl = text(data.effectiveTimeFormatLabel || data.effective_time_format_label || data.analysisTimeFormatLabel || data.analysis_time_format_label || data.detectedTimeFormat?.label || data.detected_time_format?.label);
-  const paragraph = nextTrainingAction.type === "prepare_against"
-    ? `You face the ${nextTrainingAction.opening} as ${nextTrainingAction.role === "faced_as_white" ? "White" : "Black"}; ${nextTrainingAction.label.toLowerCase()}.`
-    : keep || repair
-      ? `${keep ? `${keep.opening} is the clearest sufficiently supported area to keep` : "No established strength is supported yet"}; ${repair ? `${repair.opening} is the most important supported repair target.` : reduce ? `${reduce.opening} needs a reduce-or-replace decision.` : "no repeated repair target is clear yet."}`
-      : "The current game sample is too small or ownership is unresolved, so there is no confident repertoire verdict.";
+  const actionSource = sourceFor(nextTrainingAction);
+  const actionForCopy = nextTrainingAction?.sample ? nextTrainingAction : { ...nextTrainingAction, sample: { games: openingGames(actionSource) } };
+  const paragraph = coachVerdict({ strength: establishedStrength, problem: primaryProblem, action: actionForCopy });
   const baseline = serverDecision?.baseline || { status: comparisonAllowed ? "comparable_later_report" : "baseline", hasComparablePrevious: comparisonAllowed, comparisonClaimsAllowed: comparisonAllowed };
   const authoritative = {
     schemaVersion: serverDecision?.schemaVersion || 1,
@@ -303,16 +311,17 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
     primaryProblem: primaryProblem || (repair ? { opening: repair.opening, role: repair.role, games: repair.games, score: repair.score, repertoireOwned: true } : null),
     nextTrainingAction,
     supportingEvidence: serverDecision?.supportingEvidence || [nextTrainingAction.reason],
-    confidence: serverDecision?.confidence || { status: decisions.length ? "sufficient" : "insufficient_data", gamesAnalysed: games, minimumOpeningGames: 3 },
+    confidence: serverDecision?.confidence || { status: decisions.length ? "sufficient" : "insufficient_data", gamesAnalysed: games, minimumOpeningGames: 5 },
     baseline: { ...baseline, status: comparisonAllowed ? "comparable_later_report" : "baseline", hasComparablePrevious: comparisonAllowed, comparisonClaimsAllowed: comparisonAllowed },
   };
+  const repertoireSource = serverDecision?.recommendations?.length ? { best_openings: serverDecision.recommendations } : data;
   return {
     ...authoritative,
     authoritative,
     header: { displayName, username, platform, rating: Number.isFinite(rating) ? rating : null, games, period, date, timeControl },
     verdict: { paragraph, strongest, weakness: weakest, nextDecision: nextTrainingAction.label },
-    decisions, issues, repertoire: buildRepertoireMapModel(data),
+    decisions, issues, repertoire: buildRepertoireMapModel(repertoireSource),
     health: { score: scoreValue, confidence, games, strongest, weakest, trend },
-    training: { opening: nextTrainingAction.opening, line: text(next?.source?.variation || next?.source?.line || next?.source?.moveLine || next?.source?.move_line), objective: nextTrainingAction.reason, label: nextTrainingAction.label, type: nextTrainingAction.type, source: next?.source || null },
+    training: { opening: nextTrainingAction.opening, line: text(next?.source?.variation || next?.source?.line || next?.source?.moveLine || next?.source?.move_line), objective: trainingActionCopy(nextTrainingAction, primaryProblem || establishedStrength).explanation, label: trainingActionCopy(nextTrainingAction, primaryProblem || establishedStrength).title, type: nextTrainingAction.type, source: next?.source || primaryProblem || establishedStrength || null },
   };
 }

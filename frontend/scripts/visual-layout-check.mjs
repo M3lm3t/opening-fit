@@ -288,7 +288,7 @@ async function assertRouteLayout(page, route) {
     const sampleNotice = page.locator(".sampleReportNotice").first();
     if (!(await sampleNotice.isVisible().catch(() => false))) failures.push("Sample report notice is not visible.");
     const pageText = await page.locator("body").innerText();
-    for (const requiredText of ["Sample report", "Example data", "Analyse my games", "72 usable opening signals", "fictional player"]) {
+    for (const requiredText of ["Sample report", "Example data", "Analyse my games", "72 games contained enough opening information to analyse", "fictional player"]) {
       if (!pageText.includes(requiredText)) failures.push(`Sample report is missing required text: ${requiredText}.`);
     }
     const fullReportOpen = await page.locator("#full-report-details").getAttribute("open");

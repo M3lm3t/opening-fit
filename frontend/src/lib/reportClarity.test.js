@@ -32,7 +32,7 @@ test("excluded categories are concise and duplicate categories merge", () => {
 test("count sentence handles singular and plural grammar", () => {
   assert.equal(countNoun(1, "game"), "1 game");
   assert.equal(countNoun(2, "game"), "2 games");
-  assert.equal(reportCountSentence({ gameCounts: { contractVersion: 2, fetchedGames: 1, dateRangeEligibleGames: 1, timeControlEligibleGames: 1, analysisCandidateGames: 1, analysedGames: 1, usableOpeningSignals: 1, excludedGames: 0, exclusionReasons: {} } }), "1 public game found. 1 game with enough opening information analysed. 0 games not analysed.");
+  assert.equal(reportCountSentence({ gameCounts: { contractVersion: 2, fetchedGames: 1, dateRangeEligibleGames: 1, timeControlEligibleGames: 1, analysisCandidateGames: 1, analysedGames: 1, usableOpeningSignals: 1, excludedGames: 0, exclusionReasons: {} } }), "1 public game found. 1 game contained enough opening information to analyse. 0 games not analysed.");
 });
 
 test("melmet-shaped compact evidence never replaces canonical analysis totals", () => {
@@ -46,7 +46,7 @@ test("melmet-shaped compact evidence never replaces canonical analysis totals", 
     opening_games: Array.from({ length: 48 }, (_, index) => ({ url: `g-${index}` })),
   });
   assert.deepEqual([counts.fetchedGames, counts.analysedGames, counts.excludedGames], [307, 280, 27]);
-  assert.equal(reportCountSentence({ gameCounts: { ...counts, exclusionReasons: { analysisLimit: 7, missingOpeningSignal: 20 } } }), "307 public games found. 280 games with enough opening information analysed. 27 games not analysed.");
+  assert.equal(reportCountSentence({ gameCounts: { ...counts, exclusionReasons: { analysisLimit: 7, missingOpeningSignal: 20 } } }), "307 public games found. 280 games contained enough opening information to analyse. 27 games not analysed.");
 });
 
 test("legacy reports keep proven totals and mark stage breakdown unavailable", () => {

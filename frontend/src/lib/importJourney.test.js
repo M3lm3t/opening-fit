@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildImportRequestKey,
+  analysisTimingStatus,
   classifyImportFailure,
   runWithControlledRetry,
   validateImportUsername,
@@ -58,4 +59,17 @@ test("safe retry succeeds after a transient failure", async () => {
 test("previous report remains represented after import failure", () => {
   const result = classifyImportFailure({ error: { type: "network" }, hadPreviousReport: true });
   assert.match(result.lossMessage, /previous successful report/i);
+});
+
+test("error causes stay distinct and actionable", () => {
+  assert.equal(classifyImportFailure({ error: { status: 404, message: "not found" } }).category, "username_not_found");
+  assert.equal(classifyImportFailure({ error: { status: 403, message: "profile is private" } }).category, "private_profile");
+  assert.equal(classifyImportFailure({ error: { message: "no eligible games after unsupported time control filters" } }).category, "no_eligible_games");
+  assert.equal(classifyImportFailure({ error: { status: 403, message: "This account can analyse up to 3 months" } }).category, "account_limit");
+});
+
+test("loading timing identifies a genuinely slow upstream request", () => {
+  assert.equal(analysisTimingStatus(45).slow, false);
+  assert.equal(analysisTimingStatus(91).slow, true);
+  assert.match(analysisTimingStatus(91).label, /platform or analysis service/i);
 });

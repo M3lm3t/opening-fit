@@ -50,6 +50,12 @@ export function retryDelay(attempt) {
   return Math.min(2400, 400 * (2 ** Math.max(0, Number(attempt) || 0)));
 }
 
+export function analysisTimingStatus(elapsedSeconds = 0) {
+  const elapsed = Math.max(0, Number(elapsedSeconds) || 0);
+  if (elapsed >= 90) return { slow: true, label: "This is taking longer than the usual 15-second to 3-minute window. The chess platform or analysis service may be responding slowly." };
+  return { slow: false, label: "Most reports finish in about 15 seconds to 3 minutes; large public histories can take longer." };
+}
+
 export function classifyImportFailure({ error, platform = "chesscom", hadPreviousReport = false, reportCreated = false }) {
   const platformLabel = platform === "lichess" ? "Lichess" : "Chess.com";
   const status = Number(error?.status) || null;
@@ -69,10 +75,13 @@ export function classifyImportFailure({ error, platform = "chesscom", hadPreviou
   if (error?.type === "timeout") return { ...common, category: "request_timeout", title: `${platformLabel} import timed out`, message: "The request took too long, so OpeningFit stopped waiting. Try again, use a shorter period, or return later." };
   if (error?.type === "network") return { ...common, category: "backend_unavailable", title: "Analysis service unavailable", message: "OpeningFit could not reach the analysis service. Check your connection and retry." };
   if (error?.type === "empty" || error?.type === "parse") return { ...common, category: "invalid_api_response", title: "Invalid analysis response", message: "The analysis service returned an incomplete response. Retrying is appropriate." };
+  if (status === 403 && /up to .*months|paid|premium|access/.test(raw)) return { ...common, category: "account_limit", title: "This analysis range is not available", message: "Choose a history range included with this account, then try again.", canRetry: false };
+  if (/private|privacy|not public/.test(raw)) return { ...common, category: "private_profile", title: `${platformLabel} games are not public`, message: "OpeningFit can only analyse public games. Change the platform privacy setting or use another public account.", canRetry: false };
   if (status === 401 || status === 403) return { ...common, category: "platform_account_unavailable", title: `${platformLabel} account unavailable`, message: "The platform would not provide public account data. Check account visibility or try another platform." };
   if (status === 404 || /not found|could not find/.test(raw)) return { ...common, category: "username_not_found", title: "Username not found", message: `No public ${platformLabel} account matched that username. Check the spelling and platform.`, canRetry: false };
   if ([429, 502, 503, 504].includes(status)) return { ...common, category: "platform_temporarily_unavailable", title: `${platformLabel} is temporarily unavailable`, message: "The external platform is busy or unavailable. Wait briefly, then retry." };
   if (/no public games|no games/.test(raw)) return { ...common, category: "no_public_games", title: "No public games found", message: "The account exists, but no recent public games were available. Expand the period or switch platform.", canRetry: false };
+  if (/no eligible|filtered out|unsupported time control/.test(raw)) return { ...common, category: "no_eligible_games", title: "No games matched the report filters", message: "Public games were found, but none matched the selected date and time-control filters. Broaden the settings and try again.", canRetry: false };
   if (/too few|not enough|insufficient/.test(raw)) return { ...common, category: "too_few_games", title: "Too few eligible games", message: "There are not enough eligible games for a reliable report. Include more time controls or expand the period.", canRetry: false };
   if (error?.category === "authentication_expired") return { ...common, category: "authentication_expired", title: "Report complete—sign in again to save", message: "Your login expired during cloud save. The report remains available locally." };
   if (error?.category === "premium_entitlement_failure") return { ...common, category: "premium_entitlement_failure", title: "Report complete—premium access needs checking", message: "The report was created, but premium access could not be confirmed. Nothing was removed." };

@@ -37,7 +37,6 @@ import PostReportOnboarding, { TRAINING_PREFERENCES_EDIT_EVENT } from "./compone
 import WeeklyRecap from "./components/WeeklyRecap.jsx";
 import OpeningFitVerdict from "./components/OpeningFitVerdict";
 import OpeningCoachSummary from "./components/OpeningCoachSummary";
-import GameAnalysisCount from "./components/GameAnalysisCount.jsx";
 import OpeningJourney from "./components/OpeningJourney";
 import OneThingToFixCard from "./components/OneThingToFixCard";
 import WhatChangedSinceLastAnalysis from "./components/WhatChangedSinceLastAnalysis";
@@ -123,6 +122,7 @@ import {
   validateImportUsername,
 } from "./lib/importJourney";
 import { buildReportDecisionModel, openingPerspective } from "./lib/reportDecisionModel";
+import { buildFilteredReportDecision } from "./lib/recommendationEvidence.js";
 import { adaptReportHistoryRow, buildReportSnapshot } from "./lib/reportSnapshot.js";
 import { saveRecommendationFeedback } from "./lib/fitTrustModel";
 import { REPERTOIRE_PENDING_KEY } from "./lib/repertoireWorkspace";
@@ -142,6 +142,7 @@ import { selectPreviousReportSnapshot } from "./lib/reportComparisonPresentation
 import { primaryComparisonState } from "./lib/primaryReportSummary.js";
 import { buildReportGameCounts, reportCountSentence } from "./lib/reportGameCounts.js";
 import { accountExperienceState, subscriptionPresentation } from "./lib/accountExperience.js";
+import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT } from "./lib/productTransparency.js";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
 const AccountPanel = lazy(() => import("./components/AccountPanel"));
 const OpeningPracticeLinesPanel = lazy(() => import("./components/OpeningPracticeLinesPanel"));
@@ -321,7 +322,7 @@ function buildImportOutcome(report, platformLabel) {
     return {
       tone: "warning",
       title: "Import complete with a light opening sample",
-      message: `${countSentence} Your report is ready, but the opening sample is still small, so recommendations are starter signals.`,
+      message: `${countSentence} Your report is ready, but the opening sample is still small, so treat the recommendations as early guidance.`,
       meta: `${counts.excludedGames} not analysed`,
     };
   }
@@ -4096,6 +4097,7 @@ function findWeakLinesFromGames(filteredGames, openings) {
         wins: 0,
         draws: 0,
         losses: 0,
+        gameIds: [],
         context,
         contextLabel: contextLabel(context),
         sampleGames: [],
@@ -4108,6 +4110,8 @@ function findWeakLinesFromGames(filteredGames, openings) {
     stats.wins += resultStats.wins;
     stats.draws += resultStats.draws;
     stats.losses += resultStats.losses;
+    const supportingId = String(game?.gameId || game?.game_id || game?.id || game?.url || `${name}|${context}|${game?.end_time || game?.endTime || game?.played_at || game?.playedAt || game?.pgn || stats.games}`);
+    if (!stats.gameIds.includes(supportingId)) stats.gameIds.push(supportingId);
     if (stats.sampleGames.length < 3) stats.sampleGames.push(game?.url || game?.id || index);
   });
 
@@ -4318,6 +4322,11 @@ function aggregateFilteredOpeningGames(data, filters) {
     const key = `${name.toLowerCase()}::${context}`;
 
     if (!statsByContext.has(key)) {
+      const role = context === "played_as_white"
+        ? "played_as_white"
+        : context.startsWith("black_")
+          ? "played_as_black"
+          : context;
       statsByContext.set(key, {
         name,
         opening: name,
@@ -4328,6 +4337,9 @@ function aggregateFilteredOpeningGames(data, filters) {
         colour: context === "played_as_white" ? "white" : context.startsWith("black") ? "black" : game?.colour || game?.color || "mixed",
         color: context === "played_as_white" ? "white" : context.startsWith("black") ? "black" : game?.colour || game?.color || "mixed",
         context,
+        openingRole: role,
+        repertoireOwned: role.startsWith("played_"),
+        repertoireSlot: role === "played_as_white" ? "white" : role === "played_as_black" ? context : null,
         contextLabel: contextLabel(context),
         repertoireContext: context,
       });
@@ -4423,6 +4435,7 @@ function applyReportFilters(data, filters) {
   const openingFitScore = buildFilteredOpeningFitScore(aggregate.topOpenings, aggregate.weakLines);
   const openingIdentity = buildFilteredOpeningIdentity(aggregate.topOpenings, aggregate.weakLines, normalizedFilters);
   const trainingPlan = buildFilteredTrainingPlan(aggregate.weakLines, aggregate.topOpenings);
+  const reportDecision = buildFilteredReportDecision(aggregate.topOpenings, aggregate.totalGames);
   const weakestLine = aggregate.weakLines?.[0] || null;
   const oneThingToFix = weakestLine
     ? {
@@ -4456,6 +4469,8 @@ function applyReportFilters(data, filters) {
     recentGames: aggregate.filteredGames,
     training_plan: trainingPlan.length ? trainingPlan : data.training_plan,
     trainingPlan: trainingPlan.length ? trainingPlan : data.trainingPlan,
+    reportDecision,
+    report_decision: reportDecision,
     performanceByTimeControl: aggregate.performanceByTimeControl,
     performance_by_time_control: aggregate.performanceByTimeControl,
     timeControlPerformance: aggregate.performanceByTimeControl,
@@ -9210,7 +9225,7 @@ function ReturnUserDashboard({
 
 function FounderPassProfileCard({ isPremium, entitlement, onFounderPass }) {
   const valueBullets = [
-    "Save every report",
+    "Save up to 50 reports",
     "Compare progress over time",
     "Track weak lines",
     "Personal repertoire plan",
@@ -12744,7 +12759,6 @@ function SimplifiedHomepageStory({ onSampleReport }) {
           <h2 id="homepage-proof-title">Evidence shown only when it is available.</h2>
           <p>OpeningFit labels small samples instead of turning them into confident recommendations.</p>
         </div>
-        <GameAnalysisCount copy="sentence" className="homepageVerifiedCount" />
       </section>
 
       <section className="homepageHowSection" id="how-it-works-app" aria-labelledby="homepage-how-title">
@@ -13189,7 +13203,6 @@ function LandingSection({ onOpeningClick }) {
               No PGN upload · Public games only · Confidence labels
             </p>
 
-            <GameAnalysisCount className="landingGamesAnalysedCount" />
 
             <div className="landingHeroMiniHow" aria-label="How Opening Fit works">
               {heroSteps.map((step, index) => (
@@ -13317,7 +13330,7 @@ function LandingSection({ onOpeningClick }) {
           <div className="landingAnnotatedShot">
             <span className="annotation annotationInput">Input: public username</span>
             <span className="annotation annotationOutput">Output: keep / fix / watch</span>
-            <span className="annotation annotationTime">Time: under a minute</span>
+            <span className="annotation annotationTime">Time varies by public game history</span>
             <LandingSampleResultPreview onOpeningClick={onOpeningClick} />
           </div>
         </div>
@@ -13672,7 +13685,7 @@ function LandingSection({ onOpeningClick }) {
             </p>
 
             <ul>
-              <li>Save every report and compare progress</li>
+              <li>Save up to 50 reports and compare progress</li>
               <li>Track weak lines over time</li>
               <li>Full opening table and advanced filters</li>
               <li>Personal repertoire plan</li>
@@ -13776,6 +13789,11 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
           <h2>This example stays separate from your report history.</h2>
           <p>OpeningFit does not save, sync, export, or compare the fictional sample as if it were your analysis.</p>
         </div>
+        <details className="landingAdvancedOptions">
+          <summary>How analysis works</summary>
+          <p>OpeningFit fetches public games, applies your date and time-control filters, excludes invalid or opening-light records, and analyses at most {DEFAULT_PUBLIC_ANALYSIS_CONTRACT.analysisGameLimit} eligible games per import. It identifies openings from moves and player colour, then labels confidence before selecting report decisions.</p>
+          <a href="/how-it-works">Read the methodology, score formula and limitations</a>
+        </details>
       </section>
     );
   }
@@ -13910,7 +13928,7 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
     <section className="exportHistoryShell" id="report-history">
       <div className="exportHistoryIntro">
         <span>{hasSavedHistory ? "Export & history" : "Paid progress tracking"}</span>
-        <h2>{hasSavedHistory ? "Save this report or export it as a study plan." : "Save every report and compare progress with paid access."}</h2>
+        <h2>{hasSavedHistory ? "Save this report or export it as a study plan." : "Save up to 50 reports and compare progress with paid access."}</h2>
         <p>
           {hasSavedHistory
             ? "Keep a local copy of your Opening Fit reports so you can compare your opening progress over time."
@@ -16980,7 +16998,7 @@ export default function App() {
             loadingStep={loadingStep}
             stage={importStage}
             elapsedSeconds={loadingElapsedSeconds}
-            showWakeupMessage={loadingElapsedSeconds >= 15}
+            showWakeupMessage={loadingElapsedSeconds >= 90}
             onCancel={cancelImport}
           />
         ) : null}

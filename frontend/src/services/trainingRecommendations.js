@@ -168,10 +168,10 @@ function confidenceLabel(item = {}) {
   const games = safeNumber(item.games ?? item.gamesPlayed ?? item.games_played, 0);
   const lossRate = safeNumber(item.lossRate ?? item.loss_rate, 0);
   if (games >= TRAINING_TARGET_THRESHOLDS.secondaryMinGames && lossRate >= TRAINING_TARGET_THRESHOLDS.weakLossRate) {
-    return "High confidence";
+    return `High confidence — based on ${games} relevant games.`;
   }
-  if (games >= TRAINING_TARGET_THRESHOLDS.weakLineMinGames) return "Developing pattern";
-  return "Limited evidence";
+  if (games >= TRAINING_TARGET_THRESHOLDS.weakLineMinGames) return `Developing pattern — based on ${games} relevant games.`;
+  return `Limited evidence — only ${games} relevant game${games === 1 ? "" : "s"} found.`;
 }
 
 function hasRepeatableEvidence(item = {}) {
