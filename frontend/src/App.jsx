@@ -4390,24 +4390,38 @@ function applyReportFilters(data, filters) {
     };
   }
 
-  const aggregate = aggregateFilteredOpeningGames(data, filters);
+  const normalizedFilters = normalizeReportFilters(filters);
+  const isUnfiltered =
+    normalizedFilters.timeControl === "all" &&
+    normalizedFilters.dateRange === "all" &&
+    normalizedFilters.colour === "all" &&
+    !normalizedFilters.openingQuery.trim();
+  if (isUnfiltered) {
+    return {
+      ...data,
+      reportFilters: { ...normalizedFilters, limited: false },
+      filterSummary: "All Games, All Time, All",
+    };
+  }
+
+  const aggregate = aggregateFilteredOpeningGames(data, normalizedFilters);
   const originalCounts = buildReportGameCounts(data);
-  const timeLabel = TIME_CONTROL_FILTERS.find((item) => item.key === filters.timeControl)?.label || "All Games";
-  const dateLabel = DATE_RANGE_FILTERS.find((item) => item.key === filters.dateRange)?.label || "All Time";
-  const colourLabel = COLOUR_FILTERS.find((item) => item.key === (filters.colour || "all"))?.label || "All";
-  const openingLabel = filters.openingQuery ? `, ${filters.openingQuery}` : "";
+  const timeLabel = TIME_CONTROL_FILTERS.find((item) => item.key === normalizedFilters.timeControl)?.label || "All Games";
+  const dateLabel = DATE_RANGE_FILTERS.find((item) => item.key === normalizedFilters.dateRange)?.label || "All Time";
+  const colourLabel = COLOUR_FILTERS.find((item) => item.key === (normalizedFilters.colour || "all"))?.label || "All";
+  const openingLabel = normalizedFilters.openingQuery ? `, ${normalizedFilters.openingQuery}` : "";
   const filterSummary = `${timeLabel}, ${dateLabel}, ${colourLabel}${openingLabel}`;
 
   if (!aggregate) {
     return {
       ...data,
-      reportFilters: { ...filters, timeLabel, dateLabel, colourLabel, limited: true },
+      reportFilters: { ...normalizedFilters, timeLabel, dateLabel, colourLabel, limited: true },
       filterSummary,
     };
   }
 
   const openingFitScore = buildFilteredOpeningFitScore(aggregate.topOpenings, aggregate.weakLines);
-  const openingIdentity = buildFilteredOpeningIdentity(aggregate.topOpenings, aggregate.weakLines, filters);
+  const openingIdentity = buildFilteredOpeningIdentity(aggregate.topOpenings, aggregate.weakLines, normalizedFilters);
   const trainingPlan = buildFilteredTrainingPlan(aggregate.weakLines, aggregate.topOpenings);
   const weakestLine = aggregate.weakLines?.[0] || null;
   const oneThingToFix = weakestLine
@@ -4483,7 +4497,7 @@ function applyReportFilters(data, filters) {
     timeRange: dateLabel,
     dateRange: dateLabel,
     reportFilters: {
-      ...filters,
+      ...normalizedFilters,
       timeLabel,
       dateLabel,
       colourLabel,
