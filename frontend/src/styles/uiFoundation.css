@@ -832,7 +832,7 @@ body.light,
     transition: none;
   }
 }
- .routeLoadingFallback { min-height: 100svh; display: grid; place-content: center; gap: 12px; padding: 24px; text-align: center; background: var(--of-color-bg, #07111f); color: var(--of-color-text, #f8fafc); }
+ .routeLoadingFallback { min-height: 100svh; display: grid; place-content: center; gap: 12px; padding: 24px; text-align: center; background: var(--of-color-page, #07111f); color: var(--of-color-text, #f8fafc); }
  .routeLoadingFallback > div { width: min(360px, 80vw); height: 12px; border-radius: 999px; background: linear-gradient(90deg, rgba(148,163,184,.15), rgba(148,163,184,.4), rgba(148,163,184,.15)); background-size: 200% 100%; animation: route-loading 1.2s linear infinite; }
  @keyframes route-loading { to { background-position: -200% 0; } }
  @media (prefers-reduced-motion: reduce) { .routeLoadingFallback > div { animation: none; } }

@@ -18,10 +18,10 @@ test("anonymous first-report onboarding uses local preferences", () => {
   assert.equal(hasCompleteTrainingPreferences(result), true);
 });
 
-test("authenticated and anonymous first reports open only after their persistence source is ready", () => {
-  assert.equal(shouldStartPostReportOnboarding({ firstReport: true, reportVisible: true, hydrated: true, authenticated: false, profileLoading: false, preferences: {} }), true);
+test("personalisation never opens automatically after a first report", () => {
+  assert.equal(shouldStartPostReportOnboarding({ firstReport: true, reportVisible: true, hydrated: true, authenticated: false, profileLoading: false, preferences: {} }), false);
   assert.equal(shouldStartPostReportOnboarding({ firstReport: true, reportVisible: true, hydrated: true, authenticated: true, profileLoading: true, preferences: {} }), false);
-  assert.equal(shouldStartPostReportOnboarding({ firstReport: true, reportVisible: true, hydrated: true, authenticated: true, profileLoading: false, preferences: {} }), true);
+  assert.equal(shouldStartPostReportOnboarding({ firstReport: true, reportVisible: true, hydrated: true, authenticated: true, profileLoading: false, preferences: {} }), false);
   assert.equal(shouldStartPostReportOnboarding({ firstReport: true, reportVisible: true, hydrated: true, authenticated: true, profileLoading: false, preferences: { status: "skipped" } }), false);
 });
 

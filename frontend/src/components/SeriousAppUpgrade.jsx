@@ -245,7 +245,7 @@ export function SeriousPremiumStrip() {
   return (
     <section className="seriousPremiumStrip" id="premium-value">
       <div>
-        <p className="eyebrow">Founder Pass</p>
+        <p className="eyebrow">OpeningFit Plus</p>
         <h2>Keep the free report useful. Upgrade for depth and convenience.</h2>
       </div>
 

@@ -7,12 +7,17 @@
   padding: 18px;
   background: rgba(2, 6, 23, 0.68);
   backdrop-filter: blur(12px);
+  overscroll-behavior: contain;
 }
 
 .founderPassUpgradePanel {
   position: relative;
   width: min(520px, 100%);
   max-width: calc(100vw - 28px);
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   border-radius: 28px;
   padding: 24px;
   color: #f8fafc;

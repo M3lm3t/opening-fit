@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
 import { useAuth } from "../context/AuthDataProvider.jsx";
 import { trackProductEvent } from "../lib/productAnalytics.js";
@@ -10,9 +10,9 @@ import {
   normaliseTrainingPreferences,
   readLocalTrainingPreferences,
   resolveTrainingPreferences,
-  shouldStartPostReportOnboarding,
   writeLocalTrainingPreferences,
 } from "../lib/trainingPreferences.js";
+import { releaseExclusiveDialog, requestExclusiveDialog, subscribeExclusiveDialog, useAccessibleDialog } from "../lib/dialogAccessibility.js";
 import "./PostReportOnboarding.css";
 
 const STEPS = [
@@ -24,8 +24,10 @@ const STEPS = [
 export const TRAINING_PREFERENCES_EDIT_EVENT = "openingfit:edit-training-preferences";
 export const TRAINING_PREFERENCES_UPDATED_EVENT = "openingfit:training-preferences-updated";
 
-export default function PostReportOnboarding({ firstReport = false, reportVisible = false }) {
-  const { user, settings, saveSettings, profileLoading, hydrated } = useAuth();
+const DIALOG_ID = "training-personalisation";
+
+export default function PostReportOnboarding() {
+  const { user, settings, saveSettings } = useAuth();
   const authenticated = Boolean(user?.id);
   const stored = useMemo(() => resolveTrainingPreferences({
     authenticated,
@@ -37,16 +39,13 @@ export default function PostReportOnboarding({ firstReport = false, reportVisibl
   const [values, setValues] = useState(stored);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [source, setSource] = useState("first_report");
+  const [source, setSource] = useState("training_choice");
+  const [activeDialog, setActiveDialog] = useState(null);
+  const dialogRef = useRef(null);
 
   useEffect(() => { setValues(stored); }, [stored]);
 
-  useEffect(() => {
-    if (!shouldStartPostReportOnboarding({ firstReport, reportVisible, hydrated, authenticated, profileLoading, preferences: stored })) return;
-    setSource("first_report");
-    setOpen(true);
-    void trackProductEvent("onboarding_started", { authenticated, source: "first_report" }, { onceKey: user?.id || "anonymous-first-report" });
-  }, [authenticated, firstReport, hydrated, profileLoading, reportVisible, stored, user?.id]);
+  useEffect(() => subscribeExclusiveDialog(setActiveDialog), []);
 
   useEffect(() => {
     const edit = () => {
@@ -55,6 +54,7 @@ export default function PostReportOnboarding({ firstReport = false, reportVisibl
       setError("");
       setSource("settings");
       setOpen(true);
+      requestExclusiveDialog(DIALOG_ID);
       void trackProductEvent("onboarding_started", { authenticated, source: "settings" });
     };
     window.addEventListener(TRAINING_PREFERENCES_EDIT_EVENT, edit);
@@ -69,12 +69,19 @@ export default function PostReportOnboarding({ firstReport = false, reportVisibl
     return value;
   };
 
+  const closeDialog = useCallback(() => {
+    setOpen(false);
+    releaseExclusiveDialog(DIALOG_ID);
+  }, []);
+
+  useEffect(() => () => releaseExclusiveDialog(DIALOG_ID), []);
+
   const skip = async () => {
     setSaving(true);
     setError("");
     try {
       await persist({ ...values, status: "skipped", updatedAt: new Date().toISOString() });
-      setOpen(false);
+      closeDialog();
       void trackProductEvent("onboarding_skipped", { authenticated, source });
     } catch (saveError) {
       setError(saveError?.message || "Your choice could not be saved. You can close this and edit it later.");
@@ -90,7 +97,7 @@ export default function PostReportOnboarding({ firstReport = false, reportVisibl
     setError("");
     try {
       await persist(completed);
-      setOpen(false);
+      closeDialog();
       void trackProductEvent("onboarding_completed", { authenticated, source, resultCategory: "completed" });
       void trackProductEvent("training_preference_updated", { authenticated, source, resultCategory: "saved" });
     } catch (saveError) {
@@ -100,12 +107,15 @@ export default function PostReportOnboarding({ firstReport = false, reportVisibl
     }
   };
 
-  if (!open) return null;
+  const dialogOpen = open && activeDialog === DIALOG_ID;
+  useAccessibleDialog(dialogRef, dialogOpen, closeDialog);
+
+  if (!dialogOpen) return null;
   const current = STEPS[step];
   const selected = values[current.key];
 
   return (
-    <aside className="postReportOnboarding" role="dialog" aria-modal="false" aria-labelledby="post-report-onboarding-title">
+    <aside ref={dialogRef} className="postReportOnboarding" role="dialog" aria-modal="true" aria-labelledby="post-report-onboarding-title">
       <header>
         <div><span>Personalise your next week</span><strong id="post-report-onboarding-title">Three quick choices</strong></div>
         <button type="button" aria-label="Close and skip for now" onClick={skip} disabled={saving}><X size={18} /></button>

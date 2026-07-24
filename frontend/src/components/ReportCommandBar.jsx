@@ -1,4 +1,6 @@
 import { TabNavigation } from "./ui/UiPrimitives.jsx";
+import { isSampleReport } from "../fixtures/sampleReport.js";
+import { buildReportGameCounts } from "../lib/reportGameCounts.js";
 
 function getUsername(data) {
   return (
@@ -20,12 +22,7 @@ function getPlatform(data) {
 }
 
 function getGames(data) {
-  return (
-    Number(data?.games_analyzed) ||
-    Number(data?.gamesImported) ||
-    Number(data?.total_games) ||
-    0
-  );
+  return buildReportGameCounts(data).classified;
 }
 
 export default function ReportCommandBar({
@@ -40,6 +37,7 @@ export default function ReportCommandBar({
   const username = getUsername(data);
   const platform = getPlatform(data);
   const games = getGames(data);
+  const sampleMode = isSampleReport(data);
 
   const views = [
     { key: "verdict", label: "Verdict", mode: "summary", target: "report-verdict", activeViews: ["overview", "report", "verdict"] },
@@ -71,12 +69,12 @@ export default function ReportCommandBar({
   return (
     <section className="reportCommandBar" aria-label="Report command bar">
       <div className="reportCommandBar__summary">
-        <span className="reportCommandBar__status">Live report</span>
+        <span className="reportCommandBar__status">{sampleMode ? "Sample report" : "Live report"}</span>
         <div>
           <strong>{username}</strong>
           <p>
-            {platform}
-            {games ? ` · ${games} games analysed` : ""}
+            {sampleMode ? "Example data" : platform}
+            {games ? ` · ${games} usable opening signal${games === 1 ? "" : "s"}` : ""}
           </p>
         </div>
       </div>

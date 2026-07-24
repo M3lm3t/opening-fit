@@ -42,7 +42,7 @@ export const guideSeoPages = [
     relatedLinks: [
       { label: "Best openings for beginners", href: "/guides/best-chess-openings-for-beginners" },
       { label: "Vienna Game guide", href: "/openings/vienna-game" },
-      { label: "Caro-Kann Defense guide", href: "/openings/caro-kann-defense" },
+      { label: "Caro-Kann Defence guide", href: "/openings/caro-kann-defense" },
       { label: "Browse opening pages", href: "/openings" },
     ],
   },
@@ -63,7 +63,7 @@ export const guideSeoPages = [
       {
         heading: "Good beginner openings against 1.e4",
         body:
-          "The Caro-Kann Defense is solid and structure-focused. The Scandinavian Defense is direct and easy to organise, but you must not move the queen too often. The French Defense and simple 1...e5 setups can also work if you understand the pawn breaks and development plans.",
+          "The Caro-Kann Defence is solid and structure-focused. The Scandinavian Defence is direct and easy to organise, but you must not move the queen too often. The French Defence and simple 1...e5 setups can also work if you understand the pawn breaks and development plans.",
       },
       {
         heading: "Good beginner openings against 1.d4",
@@ -79,7 +79,7 @@ export const guideSeoPages = [
     relatedLinks: [
       { label: "Italian Game guide", href: "/openings/italian-game" },
       { label: "London System guide", href: "/openings/london-system" },
-      { label: "Caro-Kann Defense guide", href: "/openings/caro-kann-defense" },
+      { label: "Caro-Kann Defence guide", href: "/openings/caro-kann-defense" },
       { label: "1000 rated openings", href: "/guides/best-chess-openings-for-1000-rated-players" },
     ],
   },
@@ -116,7 +116,7 @@ export const guideSeoPages = [
     relatedLinks: [
       { label: "Beginner openings", href: "/guides/best-chess-openings-for-beginners" },
       { label: "Italian Game guide", href: "/openings/italian-game" },
-      { label: "Scandinavian Defense guide", href: "/openings/scandinavian-defense" },
+      { label: "Scandinavian Defence guide", href: "/openings/scandinavian-defense" },
       { label: "1200 rated openings", href: "/guides/best-chess-openings-for-1200-rated-players" },
     ],
   },
@@ -189,8 +189,8 @@ export const guideSeoPages = [
     ],
     relatedLinks: [
       { label: "1200 rated openings", href: "/guides/best-chess-openings-for-1200-rated-players" },
-      { label: "Caro-Kann Defense guide", href: "/openings/caro-kann-defense" },
-      { label: "Scandinavian Defense guide", href: "/openings/scandinavian-defense" },
+      { label: "Caro-Kann Defence guide", href: "/openings/caro-kann-defense" },
+      { label: "Scandinavian Defence guide", href: "/openings/scandinavian-defense" },
       { label: "Browse openings", href: "/openings" },
     ],
   },

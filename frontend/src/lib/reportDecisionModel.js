@@ -29,12 +29,33 @@ export function openingScore(item) {
 }
 
 export function openingContext(item) {
-  const raw = text([item?.context, item?.contextKey, item?.context_key, item?.role, item?.side, item?.colour, item?.color].join(" ")).toLowerCase();
-  if (raw.includes("white") || raw.includes("played_as_white")) return { key: "white", label: "White" };
-  if (raw.includes("black_vs_e4") || raw.includes("vs 1.e4") || raw.includes("vs e4")) return { key: "black_e4", label: "Black vs 1.e4" };
-  if (raw.includes("black_vs_d4") || raw.includes("vs 1.d4") || raw.includes("vs d4")) return { key: "black_d4", label: "Black vs 1.d4" };
-  if (raw.includes("black")) return { key: "black_other", label: "Black / other responses" };
-  return { key: "unresolved", label: "Other or unresolved" };
+  const perspective = openingPerspective(item);
+  const slot = text(perspective.repertoireSlot || item?.context || item?.contextKey || item?.context_key).toLowerCase();
+  if (perspective.role === "faced_as_white") return { key: "faced_white", label: "Faced as White" };
+  if (perspective.role === "faced_as_black") return { key: "faced_black", label: "Faced as Black" };
+  if (perspective.role === "played_as_white" || slot === "white") return { key: "white", label: "Played as White" };
+  if (perspective.role === "played_as_black" && slot === "black_vs_e4") return { key: "black_e4", label: "Played as Black vs 1.e4" };
+  if (perspective.role === "played_as_black" && slot === "black_vs_d4") return { key: "black_d4", label: "Played as Black vs 1.d4" };
+  if (perspective.role === "played_as_black") return { key: "black_other", label: "Played as Black vs other first moves" };
+  return { key: "unresolved", label: "Ownership unresolved" };
+}
+
+export function openingPerspective(item = {}) {
+  const explicit = item?.perspective && typeof item.perspective === "object" ? item.perspective : {};
+  const role = text(explicit.role || item.openingRole || item.opening_role || item.role).toLowerCase();
+  if (["played_as_white", "played_as_black", "faced_as_white", "faced_as_black"].includes(role)) {
+    const relationship = role.startsWith("played_") ? "played" : "faced";
+    return {
+      role,
+      relationship,
+      repertoireOwned: relationship === "played",
+      repertoireSlot: explicit.repertoireSlot || item.repertoireSlot || item.repertoire_slot || (role === "played_as_white" ? "white" : null),
+      userColour: explicit.userColour || item.userColour || item.user_colour || (role.endsWith("white") ? "white" : "black"),
+      label: explicit.label || item.roleLabel || item.role_label || (relationship === "played" ? `Played as ${role.endsWith("white") ? "White" : "Black"}` : `Faced as ${role.endsWith("white") ? "White" : "Black"}`),
+      source: explicit.classificationSource || item.classificationSource || item.classification_source || "explicit_role",
+    };
+  }
+  return { role: "unknown_mixed", relationship: "unknown", repertoireOwned: false, repertoireSlot: null, userColour: text(item.colour || item.color).toLowerCase() || "unknown", label: "Ownership unresolved", source: "legacy_unresolved" };
 }
 
 export function openingConfidence(item) {
@@ -62,6 +83,8 @@ export function collectReportOpenings(data = {}) {
     ...list(recommendationGroups.black_vs_e4 || recommendationGroups.blackVsE4).map((item) => ({ ...item, context: item.context || "black_vs_e4" })),
     ...list(recommendationGroups.black_vs_d4 || recommendationGroups.blackVsD4).map((item) => ({ ...item, context: item.context || "black_vs_d4" })),
     ...list(recommendationGroups.black_vs_other || recommendationGroups.blackVsOther).map((item) => ({ ...item, context: item.context || "black_vs_other" })),
+    ...list(recommendationGroups.faced_as_white || recommendationGroups.facedAsWhite).map((item) => ({ ...item, openingRole: item.openingRole || "faced_as_white" })),
+    ...list(recommendationGroups.faced_as_black || recommendationGroups.facedAsBlack).map((item) => ({ ...item, openingRole: item.openingRole || "faced_as_black" })),
   ];
   const sources = [
     data.preferred_white, data.preferredWhite, data.preferred_black, data.preferredBlack,
@@ -85,6 +108,7 @@ export function collectReportOpenings(data = {}) {
 }
 
 function decisionType(item) {
+  if (!openingPerspective(item).repertoireOwned) return null;
   if (openingGames(item) < 3) return null;
   const label = verdict(item);
   if (/avoid|replace|reduce|drop|park|risky/.test(label)) return "reduce";
@@ -113,6 +137,9 @@ function decision(item, type) {
     performance: performanceSummary(item),
     evidence: fitEvidence(item),
     source: item,
+    role: openingPerspective(item).role,
+    relationship: openingPerspective(item).relationship,
+    repertoireOwned: openingPerspective(item).repertoireOwned,
   };
 }
 
@@ -170,7 +197,7 @@ export function buildRepertoireMapModel(data = {}) {
     ["black_d4", "Black versus 1.d4"], ["black_other", "Other Black responses"],
     ["unresolved", "Other or unresolved"],
   ];
-  const openings = collectReportOpenings(data);
+  const openings = collectReportOpenings(data).filter((item) => openingPerspective(item).repertoireOwned);
   return groups.map(([key, label]) => {
     const candidates = openings.filter((item) => openingContext(item).key === key).sort((a, b) => openingGames(b) - openingGames(a));
     const main = candidates[0];
@@ -185,8 +212,57 @@ export function buildRepertoireMapModel(data = {}) {
   }).filter(Boolean);
 }
 
+function comparableHistory(data = {}, reportHistory = []) {
+  const currentGames = Number(data.gamesAnalysed ?? data.gamesAnalyzed ?? data.gamesImported ?? data.total_games ?? 0) || 0;
+  const currentPlatform = text(data.platform || data.importPlatform).toLowerCase();
+  const currentUsername = text(data.username || data.playerName).toLowerCase();
+  const currentTime = Date.parse(data.importedAt || data.imported_at || data.lastUpdated || data.last_updated || "");
+  return list(reportHistory).find((row) => {
+    const candidate = row?.normalized_snapshot || row?.snapshot || row;
+    const games = Number(candidate?.total_games_analysed ?? candidate?.summary?.games ?? candidate?.report?.gamesAnalysed ?? 0) || 0;
+    const platform = text(candidate?.source_platform || candidate?.report?.platform).toLowerCase();
+    const username = text(candidate?.source_username || candidate?.report?.username).toLowerCase();
+    const time = Date.parse(candidate?.generated_at || candidate?.created_at || candidate?.report?.importedAt || "");
+    if (Math.min(currentGames, games) < 5) return false;
+    if (currentPlatform && platform && !currentPlatform.includes(platform) && !platform.includes(currentPlatform)) return false;
+    if (currentUsername && username && currentUsername !== username) return false;
+    return Number.isFinite(currentTime) && Number.isFinite(time) && time < currentTime;
+  }) || null;
+}
+
+function canonicalOpening(source, fallbackType) {
+  if (!source?.opening) return null;
+  const match = source.source || {};
+  return {
+    type: fallbackType,
+    opening: source.opening,
+    context: source.roleLabel || source.role || "Ownership unresolved",
+    contextKey: openingContext({ ...match, openingRole: source.role, repertoireSlot: source.repertoireSlot }).key,
+    reason: source.evidence?.[0] || `${source.games} game${source.games === 1 ? "" : "s"} support this decision.`,
+    confidence: source.confidence || "Insufficient data",
+    confidenceDetail: analysisConfidence({ games: source.games }),
+    games: Number(source.games || 0),
+    score: source.score ?? null,
+    fitLabel: source.sampleSizeStatus === "insufficient_data" ? "Insufficient data" : fitBand(source.score, analysisConfidence({ games: source.games })),
+    performance: performanceSummary({ games: source.games, fitScore: source.score }),
+    evidence: fitEvidence({ games: source.games, fitScore: source.score }),
+    source: match,
+    role: source.role,
+    relationship: source.relationship,
+    repertoireOwned: Boolean(source.repertoireOwned),
+  };
+}
+
 export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory = []) {
-  const decisions = buildRepertoireDecisions(data);
+  const serverDecision = data.reportDecision || data.report_decision || null;
+  const legacyDecisions = serverDecision ? [] : buildRepertoireDecisions(data);
+  const sourceOpenings = collectReportOpenings(data);
+  const sourceFor = (entry) => sourceOpenings.find((item) => openingName(item).toLowerCase() === text(entry?.opening).toLowerCase() && openingPerspective(item).role === entry?.role) || {};
+  const establishedStrength = serverDecision?.establishedStrength ? { ...serverDecision.establishedStrength, source: sourceFor(serverDecision.establishedStrength) } : null;
+  const primaryProblem = serverDecision?.primaryProblem ? { ...serverDecision.primaryProblem, source: sourceFor(serverDecision.primaryProblem) } : null;
+  const decisions = serverDecision
+    ? [canonicalOpening(establishedStrength, "keep"), canonicalOpening(primaryProblem, "repair")].filter(Boolean)
+    : legacyDecisions;
   const keep = decisions.find((item) => item.type === "keep");
   const repair = decisions.find((item) => item.type === "repair");
   const reduce = decisions.find((item) => item.type === "reduce");
@@ -195,29 +271,48 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
   const score = Number(fitData?.overallScore ?? data.openingFitScore ?? data.opening_fit_score ?? data.repertoireHealth?.score ?? data.repertoire_health?.score);
   const scoreValue = Number.isFinite(score) ? Math.round(score) : null;
   const confidence = text(data.confidenceLabel || data.confidence_label || data.reportConfidence || data.report_confidence) || analysisConfidence({ games }).label;
-  const previous = reportHistory?.[1]?.summary?.openingFitProgress?.score ?? reportHistory?.[1]?.summary?.opening_fit_score ?? null;
-  const trend = scoreValue !== null && previous !== null && previous !== undefined && previous !== "" && Number.isFinite(Number(previous))
+  const previousRow = comparableHistory(data, reportHistory);
+  const previous = previousRow?.openingfit_score ?? previousRow?.normalized_snapshot?.openingfit_score ?? previousRow?.snapshot?.openingfit_score ?? previousRow?.summary?.openingFitProgress?.score ?? previousRow?.summary?.opening_fit_score ?? null;
+  const comparisonAllowed = Boolean(serverDecision?.baseline?.comparisonClaimsAllowed || previousRow);
+  const trend = comparisonAllowed && scoreValue !== null && previous !== null && previous !== undefined && previous !== "" && Number.isFinite(Number(previous))
     ? scoreValue - Number(previous)
     : null;
-  const strongest = keep?.opening || buildRepertoireMapModel(data)[0]?.opening || "Not enough evidence yet";
+  const strongest = keep?.opening || "Not enough evidence yet";
   const weakest = issues[0]?.opening || repair?.opening || reduce?.opening || "No recurring weakness identified";
   const next = repair || reduce || keep || null;
+  const nextTrainingAction = serverDecision?.nextTrainingAction || (next ? { type: next.type, opening: next.opening, role: next.role, label: `${next.type === "keep" ? "Consolidate" : "Repair"} ${next.opening}`, reason: next.reason } : { type: "collect_more_games", opening: null, role: null, label: "Collect more games before changing your repertoire", reason: "No opening has enough correctly attributed evidence for a strength or weakness claim." });
   const playerProfile = data.playerProfile || data.player_profile || {};
   const displayName = text(data.displayName || data.display_name || playerProfile.displayName || playerProfile.display_name || data.username || data.playerName) || "OpeningFit player";
   const username = text(data.username || data.playerName || data.player_name || playerProfile.username);
-  const platform = /lichess/i.test(text(data.platform || data.importPlatform || playerProfile.platform)) ? "Lichess" : "Chess.com";
+  const platform = data.sampleMode || data.sample_mode
+    ? "Example data"
+    : /lichess/i.test(text(data.platform || data.importPlatform || playerProfile.platform)) ? "Lichess" : "Chess.com";
   const rating = Number(data.currentRating ?? data.current_rating ?? data.rating ?? playerProfile.currentRating ?? playerProfile.current_rating);
   const period = text(data.analysisPeriod || data.analysis_period || data.importRangeLabel || data.import_range_label) || (data.monthsChecked ? `Last ${data.monthsChecked} month${Number(data.monthsChecked) === 1 ? "" : "s"}` : "Recent games");
   const date = data.importedAt || data.imported_at || data.lastUpdated || data.last_updated || null;
   const timeControl = text(data.effectiveTimeFormatLabel || data.effective_time_format_label || data.analysisTimeFormatLabel || data.analysis_time_format_label || data.detectedTimeFormat?.label || data.detected_time_format?.label);
-  const paragraph = keep || repair
-    ? `${keep ? `${keep.opening} is the clearest area to keep.` : "No keep decision is reliable yet."} ${repair ? `${repair.opening} is the most important repair target.` : reduce ? `${reduce.opening} needs a reduce-or-replace decision.` : "No repeated repair target is clear yet."}`
-    : "The current game sample is too small or unclear for a confident repertoire verdict.";
+  const paragraph = nextTrainingAction.type === "prepare_against"
+    ? `You face the ${nextTrainingAction.opening} as ${nextTrainingAction.role === "faced_as_white" ? "White" : "Black"}; ${nextTrainingAction.label.toLowerCase()}.`
+    : keep || repair
+      ? `${keep ? `${keep.opening} is the clearest sufficiently supported area to keep` : "No established strength is supported yet"}; ${repair ? `${repair.opening} is the most important supported repair target.` : reduce ? `${reduce.opening} needs a reduce-or-replace decision.` : "no repeated repair target is clear yet."}`
+      : "The current game sample is too small or ownership is unresolved, so there is no confident repertoire verdict.";
+  const baseline = serverDecision?.baseline || { status: comparisonAllowed ? "comparable_later_report" : "baseline", hasComparablePrevious: comparisonAllowed, comparisonClaimsAllowed: comparisonAllowed };
+  const authoritative = {
+    schemaVersion: serverDecision?.schemaVersion || 1,
+    establishedStrength: establishedStrength || (keep ? { opening: keep.opening, role: keep.role, games: keep.games, score: keep.score, repertoireOwned: true } : null),
+    primaryProblem: primaryProblem || (repair ? { opening: repair.opening, role: repair.role, games: repair.games, score: repair.score, repertoireOwned: true } : null),
+    nextTrainingAction,
+    supportingEvidence: serverDecision?.supportingEvidence || [nextTrainingAction.reason],
+    confidence: serverDecision?.confidence || { status: decisions.length ? "sufficient" : "insufficient_data", gamesAnalysed: games, minimumOpeningGames: 3 },
+    baseline: { ...baseline, status: comparisonAllowed ? "comparable_later_report" : "baseline", hasComparablePrevious: comparisonAllowed, comparisonClaimsAllowed: comparisonAllowed },
+  };
   return {
+    ...authoritative,
+    authoritative,
     header: { displayName, username, platform, rating: Number.isFinite(rating) ? rating : null, games, period, date, timeControl },
-    verdict: { paragraph, strongest, weakness: weakest, nextDecision: next ? `${next.type === "keep" ? "Keep" : next.type === "repair" ? "Repair" : "Reduce or replace"} ${next.opening}` : "Collect more games before changing the repertoire" },
+    verdict: { paragraph, strongest, weakness: weakest, nextDecision: nextTrainingAction.label },
     decisions, issues, repertoire: buildRepertoireMapModel(data),
     health: { score: scoreValue, confidence, games, strongest, weakest, trend },
-    training: next ? { opening: next.opening, line: text(next.source?.variation || next.source?.line || next.source?.moveLine || next.source?.move_line), objective: next.reason, source: next.source } : null,
+    training: { opening: nextTrainingAction.opening, line: text(next?.source?.variation || next?.source?.line || next?.source?.moveLine || next?.source?.move_line), objective: nextTrainingAction.reason, label: nextTrainingAction.label, type: nextTrainingAction.type, source: next?.source || null },
   };
 }

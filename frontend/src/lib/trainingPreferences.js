@@ -59,11 +59,8 @@ export function resolveTrainingPreferences({ authenticated = false, settings = {
   return normaliseTrainingPreferences(localPreferences);
 }
 
-export function shouldStartPostReportOnboarding({ firstReport, reportVisible, hydrated, authenticated, profileLoading, preferences } = {}) {
-  if (!firstReport || !reportVisible || !hydrated) return false;
-  if (authenticated && profileLoading) return false;
-  const status = normaliseTrainingPreferences(preferences).status;
-  return status !== "completed" && status !== "skipped";
+export function shouldStartPostReportOnboarding() {
+  return false;
 }
 
 function goalCopy(goal, focus) {

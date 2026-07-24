@@ -1,3 +1,5 @@
+export const HOME_NAVIGATION = Object.freeze({ key: "home", label: "OpeningFit homepage", path: "/", native: true });
+
 export const APP_NAV_ROUTES = {
   today: { view: "dashboard", path: "/dashboard", target: "coach-dashboard", fallbackIds: ["app-dashboard"] },
   dashboard: { view: "dashboard", path: "/dashboard", target: "coach-dashboard", fallbackIds: ["app-dashboard"] },

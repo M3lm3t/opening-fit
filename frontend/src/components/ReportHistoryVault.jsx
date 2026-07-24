@@ -584,7 +584,7 @@ export default function ReportHistoryVault({ data, fitData, onLoadReport }) {
 
     if (user?.id) {
       if (!hasPremiumAccess) {
-        setStatus("Founder Pass is required to save cloud report history. Anonymous browser history still works locally.");
+        setStatus("OpeningFit Plus is required to save cloud report history. Anonymous browser history still works locally.");
         return;
       }
 

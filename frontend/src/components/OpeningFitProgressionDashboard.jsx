@@ -77,8 +77,8 @@ function collectOpenings(data) {
     ? openings
     : [
         { name: "London System", games: 8, winRate: 56 },
-        { name: "King's Indian Defense", games: 6, winRate: 49 },
-        { name: "Sicilian Defense", games: 5, winRate: 52 },
+        { name: "King's Indian Defence", games: 6, winRate: 49 },
+        { name: "Sicilian Defence", games: 5, winRate: 52 },
       ];
 }
 

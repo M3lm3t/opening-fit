@@ -269,12 +269,12 @@ export default function AppActionRouter({ onViewChange }) {
       "feedback": { view: "feedback", target: "feedback", path: "/" },
       "leave feedback": { view: "feedback", target: "feedback", path: "/" },
 
-      "premium": { view: "profile", target: "premium", path: "/premium" },
-      "pricing": { view: "profile", target: "premium", path: "/premium" },
-      "upgrade": { view: "profile", target: "premium", path: "/premium", founderIntent: true },
-      "upgrade to premium": { view: "profile", target: "premium", path: "/premium", founderIntent: true },
-      "get founder pass": { view: "profile", target: "premium", path: "/premium", founderIntent: true },
-      "unlock full report": { view: "profile", target: "premium", path: "/premium", founderIntent: true },
+      "premium": { view: "premium", target: "premium", path: "/premium" },
+      "pricing": { view: "premium", target: "premium", path: "/premium" },
+      "upgrade": { view: "premium", target: "premium", path: "/premium" },
+      "upgrade to premium": { view: "premium", target: "premium", path: "/premium" },
+      "get founder pass": { view: "premium", target: "premium", path: "/premium" },
+      "unlock full report": { view: "report", target: "full-report-details", path: "/report", reportMode: "full" },
     };
 
     const comingSoonMap = {

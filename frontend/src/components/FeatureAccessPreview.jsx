@@ -9,7 +9,7 @@ export default function FeatureAccessPreview({ feature, eyebrow = "OpeningFit pa
       <div className="featureAccessPreview__copy">
         <span>{eyebrow}</span><h2>{title}</h2><p>{featurePreview(feature)}</p>{children}
       </div>
-      {onUpgrade ? <button type="button" className="primaryBtn" onClick={onUpgrade}>See paid access</button> : null}
+      {onUpgrade ? <button type="button" className="primaryBtn" onClick={onUpgrade} aria-label={`See OpeningFit Plus options for ${title}`}>See OpeningFit Plus options</button> : null}
     </section>
   );
 }

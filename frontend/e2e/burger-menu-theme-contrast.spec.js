@@ -8,7 +8,8 @@ test("burger menu uses solid, readable surfaces in dark and light mode", async (
   await page.addInitScript(() => localStorage.setItem("openingFit:theme", "dark"));
   await page.goto(`${appUrl}/login`, { waitUntil: "domcontentloaded" });
 
-  await page.getByRole("button", { name: "Open OpeningFit menu" }).click();
+  const menuTrigger = page.getByRole("button", { name: "Open OpeningFit menu" });
+  await menuTrigger.click();
   const panel = page.locator(".appPrimaryMobilePanel");
   const backdrop = page.locator(".appPrimaryMobileBackdrop");
   await expect(panel).toBeVisible();
@@ -26,6 +27,7 @@ test("burger menu uses solid, readable surfaces in dark and light mode", async (
   await expect.poll(() => panel.evaluate((element) => getComputedStyle(element).color))
     .toBe("rgb(15, 23, 42)");
 
-  await page.mouse.click(2, 400);
+  await page.keyboard.press("Escape");
   await expect(panel).toBeHidden();
+  await expect(menuTrigger).toBeFocused();
 });

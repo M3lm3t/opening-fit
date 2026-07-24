@@ -4,7 +4,7 @@ export const OPENINGFIT_SCORE_FORMULA = Object.freeze([
   { key: "stability", aliases: ["stability"], title: "Familiarity / stability", weight: 22, explanation: "How concentrated the sample is in repeated openings, including openings with at least five games." },
   { key: "whitePerformance", aliases: ["whitePerformance", "white_performance"], title: "White results", weight: 20, explanation: "The game-weighted result score from recognised White openings." },
   { key: "blackPerformance", aliases: ["blackPerformance", "black_performance"], title: "Black results", weight: 20, explanation: "The game-weighted result score from recognised Black openings." },
-  { key: "confidence", aliases: ["confidence", "sampleConfidence", "sample_confidence"], title: "Data confidence", weight: 18, explanation: "The number of analysed games and repeated openings with at least five games." },
+  { key: "confidence", aliases: ["confidence", "sampleConfidence", "sample_confidence"], title: "Data confidence", weight: 18, explanation: "The number of classified games and repeated openings with at least five games." },
   { key: "weaknessControl", aliases: ["weaknessControl", "weakness_control"], title: "Weakness control", weight: 12, explanation: "A deduction for lower-scoring and rare or unclear opening samples." },
   { key: "recentConsistency", aliases: ["recentConsistency", "recent_consistency"], title: "Sample consistency proxy", weight: 8, explanation: "The current formula uses a coarse sample-size proxy: 58 below 20 games and 72 from 20 games onward." },
 ]);
@@ -74,6 +74,6 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
       : "This older report contains the final score and game sample, but not a compatible component breakdown.",
     doesNotAffect: "Your chess-platform rating and official federation rating do not directly determine this score. It is not an official rating or a measure of objective opening quality.",
     whyChange: "The score can change when recognised opening results, repertoire concentration, repeated weaknesses, sample size, or the mix of White and Black games changes.",
-    smallSamples: `Fewer than ${OPENINGFIT_SCORE_MINIMUM_GAMES} analysed games is treated as provisional. Small samples can move sharply because each game has more influence.`,
+    smallSamples: `Fewer than ${OPENINGFIT_SCORE_MINIMUM_GAMES} classified games is treated as provisional. Small samples can move sharply because each game has more influence.`,
   };
 }

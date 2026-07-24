@@ -4,7 +4,7 @@ import { buildOpeningScorePresentation } from "../services/openingScorePresentat
 import "./OpeningScoreProgress.css";
 
 const SCORE_COPY =
-  "The OpeningFit Score is a coaching score based on your analysed games. It looks at how consistently you reach playable positions, how focused your repertoire is, and where recurring opening problems appear. It is designed to track your personal progress, not compare you with titled players.";
+  "The OpeningFit Score is a 0–100 coaching score based on classified opening evidence. It measures familiarity, White and Black results, recurring weaknesses and data confidence. It is available on a baseline report, but change is shown only after a comparable later report.";
 
 function formatDate(value) {
   const timestamp = Date.parse(value);
@@ -16,7 +16,7 @@ function modelFor(props) {
   return buildOpeningScorePresentation(props);
 }
 
-export function OpeningScoreBreakdown({ data, fitData, reportHistory = [], openingFitUserState = [], onAction }) {
+export function OpeningScoreBreakdown({ data, fitData, reportHistory = [], openingFitUserState = [], onAction, decisionModel = null }) {
   const model = useMemo(
     () => modelFor({ data: data || {}, fitData, reportHistory, openingFitUserState }),
     [data, fitData, reportHistory, openingFitUserState]
@@ -31,6 +31,9 @@ export function OpeningScoreBreakdown({ data, fitData, reportHistory = [], openi
       </section>
     );
   }
+  const comparisonAllowed = Boolean(decisionModel?.baseline?.comparisonClaimsAllowed);
+  const displayDelta = comparisonAllowed ? model.delta : null;
+  const displayTrend = comparisonAllowed ? model.trend : "Baseline report; no comparison claim yet";
 
   return (
     <section className="openingScoreBreakdown" aria-labelledby="opening-score-breakdown-title">
@@ -41,11 +44,11 @@ export function OpeningScoreBreakdown({ data, fitData, reportHistory = [], openi
             <h2 id="opening-score-breakdown-title">{model.score ?? "-"} / 100</h2>
             <InfoHint label="How is the OpeningFit Score calculated?">{SCORE_COPY}</InfoHint>
           </div>
-          <p>{model.label} - {model.trend}</p>
+          <p>{model.label} - {displayTrend}</p>
         </div>
         <div className="openingScoreTrendBadge">
           <span>Trend</span>
-          <strong>{model.delta === null ? "New" : `${model.delta > 0 ? "+" : ""}${model.delta}`}</strong>
+          <strong>{displayDelta === null ? "New" : `${displayDelta > 0 ? "+" : ""}${displayDelta}`}</strong>
         </div>
       </div>
 
@@ -161,7 +164,7 @@ export function MonthlyRecapCard({ data, fitData, reportHistory = [], openingFit
           <dd>{model.recap.biggestFocus}</dd>
         </div>
         <div>
-          <dt>Games analysed</dt>
+          <dt>Classified games</dt>
           <dd>{model.recap.gamesAnalysed || "More needed"}</dd>
         </div>
       </dl>

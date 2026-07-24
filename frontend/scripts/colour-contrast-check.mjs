@@ -1,11 +1,11 @@
 import { chromium } from "playwright";
 import { createServer } from "vite";
-import { DEMO_REPORT } from "../src/demoReportData.js";
+import { SAMPLE_REPORT } from "../src/fixtures/sampleReport.js";
 
 const HOST = "127.0.0.1";
 const PORT = Number(process.env.OPENINGFIT_CONTRAST_PORT || 4178);
 const BASE_URL = `http://${HOST}:${PORT}`;
-const ROUTES = ["/", "/login", "/report", "/repertoire", "/train", "/progress", "/account", "/premium", "/privacy", "/terms", "/guides", "/openings"];
+const ROUTES = ["/", "/login", "/report", "/report/sample", "/repertoire", "/train", "/progress", "/account", "/premium", "/privacy", "/terms", "/guides", "/openings"];
 const THEMES = ["dark", "light"];
 const VIEWPORTS = [
   { name: "phone", width: 390, height: 844 },
@@ -117,8 +117,8 @@ async function main() {
         await page.addInitScript(({ selectedTheme, report }) => {
           localStorage.setItem("openingFit:theme", selectedTheme);
           localStorage.setItem("openingFit:trainingPreferences:v1", JSON.stringify({ status: "skipped" }));
-          localStorage.setItem("openingFit:lastAnalysis", JSON.stringify({ username: report.username || "DemoPlayer", platform: report.platform || "demo", savedAt: new Date().toISOString(), analysis: report }));
-        }, { selectedTheme: theme, report: DEMO_REPORT });
+          localStorage.setItem("openingFit:lastAnalysis", JSON.stringify({ username: report.username || "Example Player — Sample", platform: report.platform || "example", savedAt: new Date().toISOString(), analysis: report }));
+        }, { selectedTheme: theme, report: SAMPLE_REPORT });
         for (const route of ROUTES) {
           await page.goto(`${BASE_URL}${route}`, { waitUntil: "domcontentloaded" });
           await page.locator("body").waitFor({ state: "visible", timeout: 10000 });

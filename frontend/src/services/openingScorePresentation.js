@@ -1,5 +1,6 @@
 import { buildOpeningHealthSnapshot } from "./openingHealth";
 import { buildRepertoireMap } from "./repertoireStatus";
+import { openingPerspective } from "../lib/reportDecisionModel.js";
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -307,7 +308,7 @@ function buildTimeline({ data, historyPoints, openingFitUserState }) {
 
   const openings = collectOpenings(data);
   const best = openings
-    .filter((item) => scoreOpening(item) !== null)
+    .filter((item) => scoreOpening(item) !== null && openingGames(item) >= 3 && openingPerspective(item).repertoireOwned)
     .sort((a, b) => (scoreOpening(b) || 0) - (scoreOpening(a) || 0))[0];
   if (best) {
     rows.push({
@@ -332,7 +333,7 @@ function buildTimeline({ data, historyPoints, openingFitUserState }) {
 function buildMilestones({ data, delta, repertoireMap, openings }) {
   const games = gameCount(data);
   const best = openings
-    .filter((item) => scoreOpening(item) !== null)
+    .filter((item) => scoreOpening(item) !== null && openingGames(item) >= 3 && openingPerspective(item).repertoireOwned)
     .sort((a, b) => (scoreOpening(b) || 0) - (scoreOpening(a) || 0))[0];
   const mainTen = openings.find((item) => openingGames(item) >= 10);
   const milestones = [
@@ -388,9 +389,9 @@ export function buildOpeningScorePresentation({ data = {}, fitData = null, repor
   const factors = health ? buildFactors({ data: data || {}, health, repertoireMap, openings }) : [];
   const timeline = buildTimeline({ data: data || {}, historyPoints, openingFitUserState });
   const milestones = buildMilestones({ data: data || {}, delta, repertoireMap, openings });
-  const improved = openings
-    .filter((item) => scoreOpening(item) !== null)
-    .sort((a, b) => (scoreOpening(b) || 0) - (scoreOpening(a) || 0))[0];
+  // A single current snapshot cannot identify improvement.  Opening-level
+  // improvement requires comparable earlier opening statistics.
+  const improved = null;
   const focus = factors.find((factor) => /attention|Incomplete|Spread|Building|Developing/i.test(factor.status)) || factors[0];
 
   return {
@@ -403,7 +404,7 @@ export function buildOpeningScorePresentation({ data = {}, fitData = null, repor
     milestones,
     recap: {
       scoreMovement: delta === null ? "New report" : `${delta > 0 ? "+" : ""}${delta}`,
-      mostImprovedOpening: improved ? openingName(improved) : "More data needed",
+      mostImprovedOpening: improved ? openingName(improved) : historyPoints.length >= 2 ? "Comparable opening history needed" : "Baseline report",
       biggestFocus: focus?.title || "Build a repeat sample",
       gamesAnalysed: gameCount(data || {}),
       verdict:

@@ -33,7 +33,7 @@ const OPENING_HUB_GROUPS = [
     links: [
       ["Italian Game", "/openings/italian-game"],
       ["London System", "/openings/london-system"],
-      ["Caro-Kann Defense", "/openings/caro-kann-defense"],
+      ["Caro-Kann Defence", "/openings/caro-kann-defense"],
       ["Beginner guide", "/guides/best-chess-openings-for-beginners"],
     ],
   },
@@ -49,10 +49,10 @@ const OPENING_HUB_GROUPS = [
   },
   {
     title: "Black against 1.e4",
-    text: "Defenses for players who want structure, direct play, or counterattack.",
+    text: "Defences for players who want structure, direct play, or counterattack.",
     links: [
-      ["Caro-Kann Defense", "/openings/caro-kann-defense"],
-      ["Scandinavian Defense", "/openings/scandinavian-defense"],
+      ["Caro-Kann Defence", "/openings/caro-kann-defense"],
+      ["Scandinavian Defence", "/openings/scandinavian-defense"],
       ["French Defence", "/openings/french-defence"],
       ["Sicilian Defence", "/openings/sicilian-defence"],
     ],
@@ -82,7 +82,7 @@ const OPENING_HUB_GROUPS = [
     text: "For players who want repeatable structures before expanding theory.",
     links: [
       ["London System", "/openings/london-system"],
-      ["Caro-Kann Defense", "/openings/caro-kann-defense"],
+      ["Caro-Kann Defence", "/openings/caro-kann-defense"],
       ["Queen's Gambit", "/openings/queens-gambit"],
       ["Slav Defence", "/openings/slav-defence"],
     ],
@@ -121,7 +121,7 @@ function OpeningTopNav({ ThemeToggle, seoTheme, setSeoTheme }) {
       <div>
         <a href="/openings">Openings</a>
         <a href="/#app-dashboard">Analyse your games</a>
-        <a href="/openingfit-sample-report">Sample report</a>
+        <a href="/report/sample">Sample report</a>
       </div>
       {ThemeToggle ? (
         <ThemeToggle

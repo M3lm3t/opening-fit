@@ -1,3 +1,5 @@
+import { openingPerspective } from "../lib/reportDecisionModel.js";
+
 function clampScore(value, fallback = 0) {
   const number = Number(String(value ?? "").replace("%", ""));
   if (!Number.isFinite(number)) return fallback;
@@ -53,6 +55,14 @@ function getTrend(item) {
 }
 
 function getContext(item) {
+  const perspective = openingPerspective(item);
+  if (perspective.role === "played_as_white") return "white";
+  if (perspective.role === "played_as_black") {
+    if (perspective.repertoireSlot === "black_vs_d4") return "blackVsD4";
+    return "blackVsE4";
+  }
+  if (perspective.relationship === "faced") return "opponent";
+
   const raw = String(
     item?.context ||
       item?.bucket ||
@@ -65,9 +75,7 @@ function getContext(item) {
       item?.response_to ||
       ""
   ).toLowerCase();
-  const name = String(getOpeningName(item)).toLowerCase();
-
-  if (raw.includes("white") || name.includes(" white ")) return "white";
+  if (raw.includes("white")) return "white";
   if (raw.includes("e4") || raw.includes("king pawn") || raw.includes("king's pawn")) return "blackVsE4";
   if (raw.includes("d4") || raw.includes("queen pawn") || raw.includes("queen's pawn")) return "blackVsD4";
   if (raw.includes("black")) return "blackVsE4";
@@ -105,6 +113,7 @@ function collectSourceOpenings(data = {}, fitData = null) {
     const name = getOpeningName(item);
     if (isUnknownOpening(name)) return;
     const context = getContext(item);
+    if (context === "opponent") return;
     const key = `${name.toLowerCase()}::${context}`;
     const games = getGames(item);
     const rating = clampScore(

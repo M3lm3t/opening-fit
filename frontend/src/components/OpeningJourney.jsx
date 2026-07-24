@@ -625,14 +625,14 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [] 
       <div className="openingJourneyGrid">
         <article className="openingJourneyScore">
           <span>OpeningFit Score</span>
-          <strong>{journey.openingFitScore.value}</strong>
-          <p>{journey.openingFitScore.explanation}</p>
+          <strong>{journey.openingFitScore.value}/100</strong>
+          <p>Primary coaching score for repertoire familiarity, results, recurring weaknesses and evidence confidence. Available on baseline reports; this trend view requires comparable history.</p>
         </article>
 
         <article className="openingJourneyHealth">
           <span>Repertoire Health</span>
           <strong>{journey.healthScore}/100</strong>
-          <p>{healthStatus(journey.health)}</p>
+          <p>Secondary diagnostic of coverage and opening mastery. It is shown only in Progress details because it overlaps the primary OpeningFit Score. {healthStatus(journey.health)}</p>
         </article>
 
         <article className="openingJourneyWeakLine">

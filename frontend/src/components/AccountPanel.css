@@ -1443,6 +1443,23 @@
   z-index: 1;
 }
 
+.profileSignedOutAuth,
+.profileAccountLoading {
+  width: min(100%, 760px);
+  margin: 0 auto;
+}
+
+.profileAccountLoading {
+  padding: clamp(24px, 5vw, 48px);
+  border: 1px solid var(--of-border, #d8dee8);
+  border-radius: var(--of-radius-lg, 16px);
+  background: var(--of-surface, #fff);
+}
+
+.profileAccountLoading span { color: var(--of-muted, #64748b); font-size: .76rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.profileAccountLoading h1 { margin: 8px 0; }
+.profileAccountLoading p { margin: 0; color: var(--of-muted, #64748b); }
+
 .page.light .accountDangerLink,
 .light .accountDangerLink {
   color: #be123c;
@@ -1686,6 +1703,14 @@
 .profileDashboard.profileDashboardSimple .accountPanel--screen input {
   word-break: normal;
   overflow-wrap: break-word;
+}
+
+/* Screen routes use document scrolling; only the floating account popover scrolls internally. */
+.profileSignedOutAuth .accountPanel--screen,
+.accountPanelShell--screen > .accountPanel--screen {
+  max-height: none;
+  overflow: visible;
+  overscroll-behavior: auto;
 }
 
 .profileAccountCard .accountAuthStack,

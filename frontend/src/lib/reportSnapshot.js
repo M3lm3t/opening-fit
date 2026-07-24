@@ -1,4 +1,4 @@
-export const REPORT_SCHEMA_VERSION = 3;
+export const REPORT_SCHEMA_VERSION = 4;
 
 function first(value, ...fallbacks) {
   return [value, ...fallbacks].find((item) => item !== undefined && item !== null && item !== "") ?? null;
@@ -118,8 +118,13 @@ function openingRows(report = {}, summary = {}) {
     const games = numberOrNull(first(item?.games, item?.count, item?.total, item?.sample_size, item?.sampleSize));
     return {
       name: cleanText(first(item?.name, item?.opening, item?.eco_name, item?.label)),
-      context: cleanText(first(item?.context, item?.repertoireContext, item?.repertoire_context)),
+      context: cleanText(first(item?.openingRole, item?.opening_role, item?.perspective?.role, item?.context, item?.repertoireContext, item?.repertoire_context)),
       colour: cleanText(first(item?.colour, item?.color, item?.side)),
+      opening_role: cleanText(first(item?.openingRole, item?.opening_role, item?.perspective?.role)),
+      relationship: cleanText(first(item?.relationship, item?.perspective?.relationship)),
+      repertoire_owned: first(item?.repertoireOwned, item?.repertoire_owned, item?.perspective?.repertoireOwned) === true,
+      repertoire_slot: cleanText(first(item?.repertoireSlot, item?.repertoire_slot, item?.perspective?.repertoireSlot)),
+      opening_side: cleanText(first(item?.openingSide, item?.opening_side, item?.perspective?.openingSide)),
       games,
       wins: numberOrNull(first(item?.wins, item?.win_count)),
       draws: numberOrNull(first(item?.draws, item?.draw_count)),
@@ -302,6 +307,7 @@ export function buildReportSnapshot({
     training_outcomes: list(first(report.trainingOutcomes, report.training_outcomes)),
     training_outcome_context: first(report.trainingOutcomeContext, report.training_outcome_context) || {},
     active_repertoire: activeRepertoire && typeof activeRepertoire === "object" ? activeRepertoire : null,
+    report_decision: first(report.reportDecision, report.report_decision) || null,
     analysis_metadata: {
       analysis_id: analysisId,
       analysis_version: cleanText(first(report.analysisVersion, report.analysis_version)),
@@ -351,6 +357,7 @@ export function adaptReportHistoryRow(row = {}) {
       training_outcomes: list(rawSnapshot.training_outcomes),
       training_outcome_context: rawSnapshot.training_outcome_context || {},
       active_repertoire: rawSnapshot.active_repertoire || null,
+      report_decision: rawSnapshot.report_decision || null,
       analysis_metadata: rawSnapshot.analysis_metadata || {},
     };
   }

@@ -5,7 +5,7 @@ import { buildPrimaryReportSummary, primaryComparisonState } from "./primaryRepo
 const completeModel = {
   header: { games: 24 },
   health: { score: 68, confidence: "High confidence", games: 24 },
-  verdict: { paragraph: "Italian Game is the clearest area to keep. Sicilian Defence is the most important repair target.", strongest: "Italian Game", weakness: "Sicilian Defence" },
+  verdict: { paragraph: "Italian Game is the clearest area to keep; Sicilian Defence is the most important repair target.", strongest: "Italian Game", weakness: "Sicilian Defence" },
   repertoire: [
     { key: "white", opening: "Italian Game", confidence: "High confidence", games: 10 },
     { key: "black_e4", opening: "Caro-Kann Defence", confidence: "Medium confidence", games: 8 },

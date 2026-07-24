@@ -154,7 +154,7 @@ function buildDailyPlan(data, habitState) {
       },
       {
         key: "weakness",
-        title: "Train against your weakest defense",
+        title: "Train against your weakest defence",
         text: `Use today's drill to repair ${weakOpeningName}.`,
       },
       {

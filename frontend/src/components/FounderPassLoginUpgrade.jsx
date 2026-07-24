@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { releaseExclusiveDialog, requestExclusiveDialog, subscribeExclusiveDialog, useAccessibleDialog } from "../lib/dialogAccessibility.js";
 import "./FounderPassLoginUpgrade.css";
 
-export default function FounderPassLoginUpgrade({ accountUser }) {
+const DIALOG_ID = "openingfit-plus-upgrade";
+
+export default function FounderPassLoginUpgrade({ accountUser, isPremium = false }) {
   const valueBullets = [
     "Save every report",
     "Compare progress over time",
@@ -17,84 +20,52 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
   ];
 
   const [open, setOpen] = useState(false);
+  const [activeDialog, setActiveDialog] = useState(null);
   const [status, setStatus] = useState("");
+  const dialogRef = useRef(null);
   const checkoutLoading = false;
 
   useEffect(() => {
     const handleFounderIntent = () => {
+      if (isPremium) return;
       setStatus("");
       setOpen(true);
-    };
-
-    const handleUnlockClick = (event) => {
-      const trigger = event.target?.closest?.("button, a, [role='button']");
-      if (!trigger) return;
-      if (trigger.closest("[data-founder-pass-direct='true']")) return;
-      if (trigger.closest(".founderPassUpgradePanel")) return;
-      if (trigger.closest(".accountPanel")) return;
-
-      const label = [
-        trigger.textContent,
-        trigger.getAttribute("aria-label"),
-        trigger.getAttribute("title"),
-        trigger.className,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      const looksLikeUnlock =
-        label.includes("founder pass") ||
-        label.includes("unlock founder") ||
-        label.includes("unlock full") ||
-        label.includes("full repertoire") ||
-        label.includes("full report") ||
-        label.includes("unlock export") ||
-        label.includes("saved history");
-
-      const isNonUpgradeAction =
-        label.includes("preview") ||
-        label.includes("maybe later") ||
-        label.includes("exit preview") ||
-        label.includes("continue with free");
-
-      if (looksLikeUnlock && !isNonUpgradeAction) {
-        setStatus("");
-        setOpen(true);
-      }
+      requestExclusiveDialog(DIALOG_ID);
     };
 
     window.addEventListener("openingfit:founder-pass-intent", handleFounderIntent);
-    document.addEventListener("click", handleUnlockClick);
 
     return () => {
       window.removeEventListener("openingfit:founder-pass-intent", handleFounderIntent);
-      document.removeEventListener("click", handleUnlockClick);
     };
+  }, [isPremium]);
+
+  useEffect(() => subscribeExclusiveDialog(setActiveDialog), []);
+
+  const closeDialog = useCallback(() => {
+    setOpen(false);
+    releaseExclusiveDialog(DIALOG_ID);
   }, []);
 
+  useEffect(() => () => releaseExclusiveDialog(DIALOG_ID), []);
   useEffect(() => {
-    if (!open) return undefined;
+    if (isPremium && open) closeDialog();
+  }, [closeDialog, isPremium, open]);
 
-    const handleEscape = (event) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [open]);
+  const dialogOpen = open && activeDialog === DIALOG_ID && !isPremium;
+  useAccessibleDialog(dialogRef, dialogOpen, closeDialog);
 
   const continueToAccountPayment = async () => {
     if (accountUser?.id) {
-      setOpen(false);
+      closeDialog();
       window.location.assign("/premium");
       return;
     }
 
     setStatus("Please sign in or create an account before upgrading.");
 
-    // Close this Founder Pass modal first so the account/payment UI is not hidden behind it.
-    setOpen(false);
+    // Close this upgrade dialog first so the account/payment UI is not hidden behind it.
+    closeDialog();
 
     // Put the user on the account area.
     window.history.replaceState(
@@ -127,25 +98,27 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
   };
 
 
-  if (!open) return null;
+  if (!dialogOpen) return null;
 
   return (
     <div
       className="founderPassUpgradeBackdrop"
       role="presentation"
-      onClick={() => setOpen(false)}
+      onClick={closeDialog}
     >
       <section
         className="founderPassUpgradePanel"
         role="dialog"
         aria-modal="true"
+        aria-labelledby="openingfit-plus-upgrade-title"
+        ref={dialogRef}
         onClick={(event) => event.stopPropagation()}
       >
         <button
           className="founderPassUpgradeClose"
           type="button"
-          onClick={() => setOpen(false)}
-          aria-label="Close Founder Pass panel"
+          onClick={closeDialog}
+          aria-label="Close OpeningFit Plus panel"
         >
           <X size={20} aria-hidden="true" />
         </button>
@@ -155,7 +128,7 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
           <strong>Subscriptions from £4.99 per month</strong>
         </div>
 
-        <h2>Save reports and track your opening progress.</h2>
+        <h2 id="openingfit-plus-upgrade-title">Save reports and track your opening progress.</h2>
 
         <p>
           The free report stays useful. OpeningFit Plus adds saved report history,
@@ -163,7 +136,7 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
           plan. Login first so your access can be linked to your account.
         </p>
 
-        <div className="founderPassUpgradeValue" aria-label="Founder Pass value">
+        <div className="founderPassUpgradeValue" aria-label="OpeningFit Plus value">
           {valueBullets.map((item) => (
             <span key={item}>{item}</span>
           ))}
@@ -224,7 +197,7 @@ export default function FounderPassLoginUpgrade({ accountUser }) {
         <button
           className="founderPassUpgradeSecondary"
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={closeDialog}
         >
           Maybe later
         </button>

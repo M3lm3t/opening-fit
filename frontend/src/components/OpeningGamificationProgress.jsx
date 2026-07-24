@@ -30,8 +30,7 @@ export default function OpeningGamificationProgress({
           <p className="eyebrow">Opening XP</p>
           <h2>Progress that rewards improvement activity</h2>
           <p>
-            XP comes from analysed games, played samples, weak-line training, and measurable opening improvement.
-            Login alone does not count.
+            XP is an activity-points total with no fixed maximum. It is available after tracked training or comparable report activity; it is not a repertoire-quality score.
           </p>
         </div>
         <div className="openingTotalXp">

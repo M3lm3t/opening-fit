@@ -327,7 +327,7 @@ function buildInsights(data, fitData, previous, fixedLine) {
   ].filter(Boolean).slice(0, 5);
 }
 
-export default function WhatChangedSinceLastAnalysis({ data, fitData, retentionSnapshots = [] }) {
+export default function WhatChangedSinceLastAnalysis({ data, fitData, retentionSnapshots = [], decisionModel = null }) {
   const summary = useMemo(() => {
     const previous = previousSnapshot(retentionSnapshots, data);
     const fixedLine = previous ? fixedLineEvidence(data || {}, previous) : null;
@@ -339,6 +339,7 @@ export default function WhatChangedSinceLastAnalysis({ data, fitData, retentionS
   }, [data, fitData, retentionSnapshots]);
 
   if (!data) return null;
+  const comparisonAllowed = Boolean(decisionModel?.baseline?.comparisonClaimsAllowed);
 
   return (
     <section className="whatChangedSinceLastAnalysis" aria-labelledby="what-changed-title">
@@ -349,7 +350,7 @@ export default function WhatChangedSinceLastAnalysis({ data, fitData, retentionS
         </div>
       </div>
 
-      {summary.previous ? (
+      {comparisonAllowed && summary.previous ? (
         summary.fixedLine || summary.insights.length ? (
           <>
             {summary.fixedLine ? (
@@ -375,7 +376,7 @@ export default function WhatChangedSinceLastAnalysis({ data, fitData, retentionS
           <p>No clear opening change stood out against the previous snapshot.</p>
         )
       ) : (
-        <p>Analyse again after playing more games to see what changed.</p>
+        <p>This is a baseline report. Analyse again after playing more games to see what changed.</p>
       )}
     </section>
   );

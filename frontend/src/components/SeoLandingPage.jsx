@@ -17,17 +17,17 @@ export const SEO_LINKS = [
   ["Opening guides", "/openings"],
   ["Chess guides", "/guides"],
   ["Vienna Game", "/chess-openings/vienna-game"],
-  ["Scandinavian Defense", "/chess-openings/scandinavian-defense"],
-  ["Caro-Kann Defense", "/chess-openings/caro-kann-defense"],
+  ["Scandinavian Defence", "/chess-openings/scandinavian-defense"],
+  ["Caro-Kann Defence", "/chess-openings/caro-kann-defense"],
   ["London System", "/chess-openings/london-system"],
-  ["Sicilian Defense", "/chess-openings/sicilian-defense"],
+  ["Sicilian Defence", "/chess-openings/sicilian-defense"],
   ["Which opening?", "/guides/which-chess-opening-should-i-play"],
   ["Beginner openings", "/guides/best-chess-openings-for-beginners"],
   ["1000 rated openings", "/guides/best-chess-openings-for-1000-rated-players"],
   ["Repertoire builder", "/chess-opening-repertoire-builder"],
   ["Chess.com analysis", "/chess-com-opening-analysis"],
   ["Lichess analysis", "/lichess-opening-analysis"],
-  ["Sample report", "/openingfit-sample-report"],
+  ["Sample report", "/report/sample"],
 ];
 
 const sharedFaqs = [
@@ -685,7 +685,7 @@ export default function SeoLandingPage({ page, ThemeToggle, Analytics, AppTopNav
               </a>
               <div>
                 <a href="/">Import games</a>
-                <a href="/openingfit-sample-report">Sample report</a>
+                <a href="/report/sample">Sample report</a>
               </div>
             </nav>
           )}
@@ -697,7 +697,7 @@ export default function SeoLandingPage({ page, ThemeToggle, Analytics, AppTopNav
               <p>{page.intro}</p>
               <div className="seoHeroActions">
                 <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
-                <a className="seoSecondaryCta" href="/openingfit-sample-report">View sample report</a>
+                <a className="seoSecondaryCta" href="/report/sample">View sample report</a>
               </div>
             </div>
             <SeoExampleCards />

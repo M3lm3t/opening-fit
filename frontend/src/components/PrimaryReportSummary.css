@@ -4,6 +4,7 @@
 .primaryReportVerdict,
 .primaryReportRepertoire,
 .primaryReportTraining,
+.primaryReportProblem,
 .primaryReportConfidence {
   min-width: 0; padding: clamp(16px, 2.5vw, 24px); border: 1px solid var(--of-border, #d8dee8); border-radius: var(--of-radius-lg, 16px); background: var(--of-surface, #fff); overflow: hidden;
 }
@@ -11,7 +12,8 @@
 .primaryReportScore span,
 .primaryReportVerdict > span,
 .primaryReportRepertoire header span,
-.primaryReportTraining span { color: var(--of-muted, #64748b); font-size: .74rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+.primaryReportTraining span,
+.primaryReportProblem span { color: var(--of-muted, #64748b); font-size: .74rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
 .primaryReportScore strong { color: var(--of-text, #0f172a); font-size: clamp(3.2rem, 7vw, 5.8rem); line-height: .95; }
 .primaryReportScore small { color: var(--of-muted, #64748b); font-weight: 800; }
 .primaryReportScore em { margin-top: 7px; padding: 4px 8px; border-radius: 999px; background: var(--of-surface-muted, #f1f5f9); color: var(--of-muted, #64748b); font-size: .72rem; font-style: normal; font-weight: 900; }
@@ -36,6 +38,18 @@
 .primaryReportRepertoire article p { margin: 0; color: var(--of-muted, #64748b); font-size: .82rem; overflow-wrap: anywhere; }
 .primaryReportTraining { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; border-color: color-mix(in srgb, var(--of-accent, #2563eb) 28%, var(--of-border, #d8dee8)); }
 .primaryReportTraining p { margin: 6px 0 0; color: var(--of-muted, #64748b); line-height: 1.45; }
+.primaryReportProblem h2 { margin: 3px 0 0; font-size: clamp(1.15rem, 2vw, 1.4rem); }
+.primaryReportProblem p { margin: 6px 0; color: var(--of-muted, #64748b); line-height: 1.45; }
+.primaryReportProblem small { color: var(--of-muted, #64748b); }
+.reportGameCountSummary { padding: 14px 16px; border: 1px solid var(--of-border, #d8dee8); border-radius: var(--of-radius-md, 12px); background: var(--of-surface, #fff); }
+.reportGameCountSummary > p { margin: 0; line-height: 1.55; }
+.reportGameCountSummary details { margin-top: 8px; }
+.reportGameCountSummary summary { color: var(--of-muted, #64748b); cursor: pointer; font-weight: 800; }
+.reportGameCountSummary dl { display: grid; gap: 8px; margin: 12px 0; }
+.reportGameCountSummary dl > div { display: grid; grid-template-columns: minmax(120px, .35fr) minmax(0, 1fr); gap: 10px; }
+.reportGameCountSummary dt { font-weight: 800; text-transform: capitalize; }
+.reportGameCountSummary dd { margin: 0; color: var(--of-muted, #64748b); }
+.reportGameExclusions ul { margin: 6px 0 0; padding-left: 20px; color: var(--of-muted, #64748b); }
 .primaryReportTraining button { min-height: 48px; white-space: nowrap; }
 .primaryReportMore { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .primaryReportMore small { color: var(--of-muted, #64748b); }
@@ -46,6 +60,7 @@
   .primaryReportHero,
   .primaryReportRepertoire > div,
   .primaryReportTraining { grid-template-columns: 1fr; }
+  .reportGameCountSummary dl > div { grid-template-columns: 1fr; gap: 2px; }
   .primaryReportScore { min-height: 190px; }
   .primaryReportRepertoire > header { align-items: flex-start; }
   .primaryReportTraining button,

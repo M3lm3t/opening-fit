@@ -2,11 +2,7 @@ const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
 function oneSentence(model = {}) {
   const paragraph = text(model.verdict?.paragraph);
-  if (/too small|not enough evidence/i.test(paragraph)) return paragraph || "There is not enough evidence yet for a confident repertoire verdict.";
-  const strongest = text(model.verdict?.strongest);
-  const weakness = text(model.verdict?.weakness);
-  if (strongest && weakness) return `${strongest} is your clearest repertoire anchor; ${weakness} is the main area to repair.`;
-  return paragraph.split(/(?<=[.!?])\s+/)[0] || "OpeningFit needs more games before making a confident verdict.";
+  return paragraph || "There is not enough evidence yet for a confident repertoire verdict.";
 }
 
 export function buildPrimaryReportSummary(model = {}, report = {}) {
@@ -29,16 +25,28 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   const completion = Number(report.weeklyTrainingPlan?.completionPercent ?? report.weekly_training_plan?.completionPercent ?? report.weekly_training_plan?.completion_percent ?? 0) || 0;
   const lowConfidence = /low|insufficient|limited/i.test(text(model.health?.confidence)) || Number(model.health?.games || 0) < 5;
   const training = model.training;
+  const problem = model.primaryProblem || model.decisions?.find?.((item) => item.type === "repair") || null;
   return {
     score: model.health?.score !== null && model.health?.score !== undefined && Number.isFinite(Number(model.health.score)) ? Math.round(Number(model.health.score)) : null,
     scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Score pending" : "OpeningFit Score",
     verdict: oneSentence(model),
     confidence: text(model.health?.confidence) || "Insufficient data",
-    confidenceWarning: lowConfidence ? `This report has ${model.health?.games || 0} analysed games, so recommendations are provisional. More games will improve confidence.` : "",
+    confidenceWarning: lowConfidence ? `This report has ${model.health?.games || 0} usable opening signal${Number(model.health?.games || 0) === 1 ? "" : "s"}, so recommendations are provisional. More eligible games will improve confidence.` : "",
     slots,
     incompleteRepertoire: slots.some((slot) => !slot.complete),
+    problem: {
+      title: problem?.opening || "No sufficiently supported repertoire weakness",
+      reason: problem?.reason || problem?.objective || problem?.evidence?.[2] || model.nextTrainingAction?.reason || "The current evidence does not support naming a recurring repair target.",
+      evidence: Array.isArray(problem?.evidence) && problem.evidence.length
+        ? problem.evidence.slice(0, 2).join(" · ")
+        : Array.isArray(model.supportingEvidence) && model.supportingEvidence.length
+          ? model.supportingEvidence.find((item) => text(item).toLowerCase().includes(text(problem?.opening).toLowerCase())) || model.supportingEvidence[0]
+        : problem?.games
+          ? `${problem.games} usable opening signal${Number(problem.games) === 1 ? "" : "s"} support this decision.`
+          : "No problem claim is made without sufficient evidence.",
+    },
     training: {
-      title: training?.opening ? `Train ${training.opening}` : "Build one repeatable opening habit",
+      title: training?.label || (training?.opening ? `Train ${training.opening}` : "Collect more games before changing your repertoire"),
       reason: training?.objective || "Review one opening focus before your next games.",
       source: training?.source || null,
       cta: completion > 0 && completion < 100 ? "Continue training" : "Start this week’s training",

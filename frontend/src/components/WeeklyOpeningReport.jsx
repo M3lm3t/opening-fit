@@ -6,6 +6,7 @@ import {
   getOpeningScore,
   safeNumber,
 } from "./playerLevelLogic";
+import { openingPerspective } from "../lib/reportDecisionModel.js";
 import "./WeeklyOpeningReport.css";
 
 const MAX_HISTORY = 16;
@@ -59,6 +60,8 @@ function normaliseOpenings(data) {
         verdict: item?.verdict || item?.fitVerdict || item?.status || "Track",
         mastery: calculateMastery(score, games),
         confidence: calculateConfidence(score, games),
+        openingRole: openingPerspective(item).role,
+        repertoireOwned: openingPerspective(item).repertoireOwned,
       });
     }
   });
@@ -370,21 +373,20 @@ function buildNextBestAction({ biggestWeakness, mostImproved, mostPlayed, compar
 function buildWeeklyReport(data, current, previous, history) {
   const comparison = compareSnapshots(current, previous);
   const openings = Array.isArray(current?.openings) ? current.openings.filter(Boolean) : [];
-  const bestOpening = [...openings].sort((a, b) => b.mastery - a.mastery || b.winRate - a.winRate)[0] || null;
+  const ownedSupported = openings.filter((item) => item.repertoireOwned && item.games >= 3);
+  const bestOpening = [...ownedSupported].sort((a, b) => b.mastery - a.mastery || b.winRate - a.winRate)[0] || null;
   const mostImproved =
-    comparison.changes.find((item) => (item.masteryDelta ?? 0) > 0) ||
-    [...openings].sort((a, b) => b.mastery - a.mastery)[0] ||
-    null;
+    (previous ? comparison.changes.find((item) => (item.masteryDelta ?? 0) > 0) : null) || null;
   const biggestWeakness =
     comparison.changes
-      .filter((item) => item.winRate < 48 || (item.masteryDelta ?? 0) < 0)
+      .filter((item) => item.repertoireOwned && item.games >= 3 && (item.winRate < 48 || (item.masteryDelta ?? 0) < 0))
       .sort((a, b) => {
         const dropA = a.masteryDelta ?? 0;
         const dropB = b.masteryDelta ?? 0;
         if (dropA !== dropB) return dropA - dropB;
         return a.mastery - b.mastery;
       })[0] ||
-    [...openings].sort((a, b) => a.mastery - b.mastery)[0] ||
+    [...ownedSupported].sort((a, b) => a.mastery - b.mastery)[0] ||
     null;
   const trendOpening =
     comparison.newOpenings[0] ||
@@ -486,7 +488,7 @@ function Meter({ value, label }) {
   );
 }
 
-export default function WeeklyOpeningReport({ data, savedHistory = [] }) {
+export default function WeeklyOpeningReport({ data, savedHistory = [], decisionModel = null }) {
   const key = useMemo(() => storageKey(data || {}), [data]);
   const currentSnapshot = useMemo(() => makeSnapshot(data || {}), [data]);
   const history = useMemo(() => {
@@ -511,6 +513,10 @@ export default function WeeklyOpeningReport({ data, savedHistory = [] }) {
   const previousSnapshot =
     history.find((item) => item.id !== currentSnapshot.id) || null;
   const weekly = buildWeeklyReport(data, currentSnapshot, previousSnapshot, history);
+  const comparisonAllowed = Boolean(decisionModel?.baseline?.comparisonClaimsAllowed);
+  const authoritativeStrength = decisionModel?.establishedStrength || null;
+  const authoritativeProblem = decisionModel?.primaryProblem || null;
+  const authoritativeAction = decisionModel?.nextTrainingAction || null;
   const topMastery = [...currentSnapshot.openings.filter(Boolean)]
     .sort((a, b) => b.mastery - a.mastery)
     .slice(0, 4);
@@ -524,7 +530,7 @@ export default function WeeklyOpeningReport({ data, savedHistory = [] }) {
           <p className="weeklyOpeningKicker">Weekly Opening Report</p>
           <h2>Your chess identity is evolving over time.</h2>
           <p>
-            {previousSnapshot
+            {comparisonAllowed && previousSnapshot
               ? `${weekRangeLabel()} compared with your previous saved report. ${weekly.identityLine}`
               : "This report starts your baseline. Re-import next week to see what changed."}
           </p>
@@ -540,28 +546,28 @@ export default function WeeklyOpeningReport({ data, savedHistory = [] }) {
       <div className="weeklyOpeningGrid">
         <article className="weeklyOpeningCard weeklyOpeningCard--positive weeklyProgressThisWeekCard">
           <span>Your Progress This Week</span>
-          <h3>{weekly.nextBestAction}</h3>
+          <h3>{authoritativeAction?.label || weekly.nextBestAction}</h3>
           <p>
-            Best opening: {weekly.bestOpening?.name || "baseline pending"}.
-            {previousSnapshot ? " Compared against your previous saved period." : " Save another import next week for deltas."}
+            Established strength: {authoritativeStrength?.opening || "not enough evidence yet"}.
+            {comparisonAllowed ? " Compared against a valid earlier report." : " This is a baseline; save another comparable report for deltas."}
           </p>
         </article>
 
         <article className="weeklyOpeningCard weeklyOpeningCard--positive">
           <span>Best opening this week</span>
-          <h3>{weekly.bestOpening?.name || "Not enough data"}</h3>
+          <h3>{authoritativeStrength?.opening || "Not enough data"}</h3>
           <p>
-            {weekly.bestOpening
-              ? `${weekly.bestOpening.name} is at ${weekly.bestOpening.winRate}% with ${weekly.bestOpening.games} games.`
+            {authoritativeStrength
+              ? `${authoritativeStrength.opening} is supported by ${authoritativeStrength.games} game${authoritativeStrength.games === 1 ? "" : "s"}.`
               : "Import more games to identify a weekly strength."}
           </p>
         </article>
 
         <article className="weeklyOpeningCard weeklyOpeningCard--positive">
           <span>Most improved opening</span>
-          <h3>{weekly.mostImproved?.name || "No movement yet"}</h3>
+          <h3>{comparisonAllowed && weekly.mostImproved?.name ? weekly.mostImproved.name : "No comparable movement yet"}</h3>
           <p>
-            {weekly.mostImproved
+            {comparisonAllowed && weekly.mostImproved
               ? `${weekly.mostImproved.name} mastery ${weekly.mostImproved.masteryDelta !== null && weekly.mostImproved.masteryDelta !== undefined ? signed(weekly.mostImproved.masteryDelta, "%") : "is"} now at ${weekly.mostImproved.mastery}%.`
               : "Save this report, play more games, then return for a weekly comparison."}
           </p>
@@ -569,10 +575,10 @@ export default function WeeklyOpeningReport({ data, savedHistory = [] }) {
 
         <article className="weeklyOpeningCard weeklyOpeningCard--warning">
           <span>Biggest weakness this week</span>
-          <h3>{weekly.biggestWeakness?.name || "Not enough data"}</h3>
+          <h3>{authoritativeProblem?.opening || "Not enough data"}</h3>
           <p>
-            {weekly.biggestWeakness
-              ? `${weekly.biggestWeakness.name} is at ${weekly.biggestWeakness.mastery}% mastery with a ${weekly.biggestWeakness.winRate}% score.`
+            {authoritativeProblem
+              ? `${authoritativeProblem.opening} is the authoritative supported repair target across ${authoritativeProblem.games} games.`
               : "No repeated weakness has emerged yet."}
           </p>
         </article>

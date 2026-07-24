@@ -43,11 +43,11 @@ export default function FounderPassOutcomePanel({
   return (
     <section className="founderOutcome" id="founder-pass-outcome">
       <div className="founderOutcome__copy">
-        <p className="founderOutcome__eyebrow">Founder Pass</p>
+        <p className="founderOutcome__eyebrow">OpeningFit Plus</p>
         <h2>Upgrade when you want to track progress.</h2>
         <p>
           Your free report already gives the headline verdict, top actions, and
-          a useful opening snapshot. Founder Pass adds saved reports, weak-line
+          a useful opening snapshot. OpeningFit Plus adds saved reports, weak-line
           tracking, progress comparisons, and exportable study plans.
         </p>
 
@@ -102,7 +102,7 @@ export default function FounderPassOutcomePanel({
           {totalGames
             ? `Your current report is based on ${totalGames} imported games.`
             : "Your current report is based on your imported games."}{" "}
-          Founder Pass turns the snapshot into progress you can compare.
+          OpeningFit Plus turns the snapshot into progress you can compare.
         </p>
       </div>
     </section>

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthDataProvider";
+import { canPersistReport, isSampleReport } from "../fixtures/sampleReport.js";
 
 const LOCAL_REPORT_KEY = "openingFit:lastAnalysis";
 const MIGRATION_PREFIX = "openingFit:migratedLocalReport:";
@@ -144,6 +145,10 @@ export default function AccountRestoreSync({
     if (restoreInProgress) return;
     if (restoreError) return;
     if (restoredUserRef.current === user.id) return;
+    if (isSampleReport(data)) {
+      restoredUserRef.current = user.id;
+      return;
+    }
 
     const latestCloudReport = getLatestRestorableReport({ openingFitUserState, profile, reportHistory });
     const latestReport = latestCloudReport?.report || null;
@@ -204,6 +209,7 @@ export default function AccountRestoreSync({
     setPlatform,
     setData,
     onRestoredReport,
+    data,
   ]);
 
   useEffect(() => {
@@ -214,6 +220,7 @@ export default function AccountRestoreSync({
       if (!profileLoaded) return;
       if (restoreError) return;
       if (restoredUserRef.current !== user.id) return;
+      if (data && !canPersistReport(data)) return;
       if (!data) {
         const emptySignature = JSON.stringify({
           userId: user.id,

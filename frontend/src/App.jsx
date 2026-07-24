@@ -37,8 +37,6 @@ import PostReportOnboarding, { TRAINING_PREFERENCES_EDIT_EVENT } from "./compone
 import WeeklyRecap from "./components/WeeklyRecap.jsx";
 import OpeningFitVerdict from "./components/OpeningFitVerdict";
 import OpeningCoachSummary from "./components/OpeningCoachSummary";
-import AnalysisVerdictModal from "./components/AnalysisVerdictModal";
-import ReturningUserBriefing from "./components/ReturningUserBriefing";
 import GameAnalysisCount from "./components/GameAnalysisCount.jsx";
 import OpeningJourney from "./components/OpeningJourney";
 import OneThingToFixCard from "./components/OneThingToFixCard";
@@ -63,7 +61,7 @@ import {
 } from "./components/OpeningScoreProgress";
 import DailyOpeningHabit from "./components/DailyOpeningHabit";
 import { useAuth } from "./context/AuthDataProvider";
-import { getAppSection, navigateApp, scrollToAppTarget } from "./appNavigation";
+import { getAppSection, HOME_NAVIGATION, navigateApp, scrollToAppTarget } from "./appNavigation";
 
 
 import { CoachSummaryCard, SeriousAppTabs, NextBestActions } from "./components/SeriousAppUpgrade";
@@ -103,7 +101,18 @@ import {
   buildWeakestLineTrainingTarget,
   buildWeakestLineTrainingTargetFromLine,
 } from "./services/weakestLineTraining";
-import { DEMO_REPORT } from "./demoReportData";
+import {
+  SAMPLE_REPORT,
+  SAMPLE_REPORT_CTA_SOURCES,
+  SAMPLE_REPORT_PATH,
+  canPersistReport,
+  isSampleReport,
+  isSampleReportPath,
+  reportForInitialPath,
+  sampleReportEntry,
+  sampleReportExit,
+  sampleAnalyticsContext,
+} from "./fixtures/sampleReport.js";
 import { buildApiUrl, logApiDiagnostic } from "./lib/apiBase";
 import { importGames as importGamesFromApi } from "./lib/importClient";
 import {
@@ -113,13 +122,14 @@ import {
   runWithControlledRetry,
   validateImportUsername,
 } from "./lib/importJourney";
-import { buildReportDecisionModel } from "./lib/reportDecisionModel";
+import { buildReportDecisionModel, openingPerspective } from "./lib/reportDecisionModel";
 import { adaptReportHistoryRow, buildReportSnapshot } from "./lib/reportSnapshot.js";
 import { saveRecommendationFeedback } from "./lib/fitTrustModel";
 import { REPERTOIRE_PENDING_KEY } from "./lib/repertoireWorkspace";
 import { canUsePremiumPreview } from "./lib/premiumExperience";
 import { canUseFeature, featureLimit, OPENINGFIT_FEATURES } from "./lib/premiumEntitlement.js";
 import { trackProductEvent } from "./lib/productAnalytics";
+import { completedAnalysisJourney, restoredReportJourney } from "./lib/postAnalysisJourney.js";
 import { SUPPORT_EMAIL } from "./lib/supportConfig.js";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
@@ -130,6 +140,8 @@ import PrimaryReportSummary from "./components/PrimaryReportSummary.jsx";
 import FeatureAccessPreview from "./components/FeatureAccessPreview.jsx";
 import { selectPreviousReportSnapshot } from "./lib/reportComparisonPresentation.js";
 import { primaryComparisonState } from "./lib/primaryReportSummary.js";
+import { buildReportGameCounts, reportCountSentence } from "./lib/reportGameCounts.js";
+import { accountExperienceState, subscriptionPresentation } from "./lib/accountExperience.js";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
 const AccountPanel = lazy(() => import("./components/AccountPanel"));
 const OpeningPracticeLinesPanel = lazy(() => import("./components/OpeningPracticeLinesPanel"));
@@ -213,7 +225,6 @@ const ANALYSIS_TIME_FORMAT_KEY = "openingFit:lastAnalysisTimeFormat";
 const OPENING_SCORE_LIMITED_EVIDENCE_GAMES = 10;
 const REPORT_FILTERS_KEY = "openingFit:reportFilters";
 const AUTH_RETURN_PATH_KEY = "openingFit:authReturnPath";
-const ANALYSIS_VERDICT_DISMISSED_KEY = "openingFit:analysisVerdictDismissed";
 const ACTIVE_IMPORT_KEY = "openingFit:activeImport";
 const platforms = {
   chesscom: {
@@ -227,26 +238,6 @@ const platforms = {
     usernamePlaceholder: "Lichess username",
   },
 };
-
-function readDismissedAnalysisVerdicts() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(ANALYSIS_VERDICT_DISMISSED_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function hasDismissedAnalysisVerdict(analysisId) {
-  if (!analysisId) return true;
-  return readDismissedAnalysisVerdicts().includes(analysisId);
-}
-
-function rememberDismissedAnalysisVerdict(analysisId) {
-  if (!analysisId) return;
-  const next = [analysisId, ...readDismissedAnalysisVerdicts().filter((item) => item !== analysisId)].slice(0, 30);
-  localStorage.setItem(ANALYSIS_VERDICT_DISMISSED_KEY, JSON.stringify(next));
-}
 
 function ChessLoadingMark() {
   return (
@@ -290,75 +281,11 @@ function getImportedAccountPlatform(report, fallback = "") {
 }
 
 function isDemoAnalysis(report) {
-  const source = String(report?.platform || report?.importPlatform || report?.import_platform || "").toLowerCase();
-  const username = String(report?.username || report?.playerName || report?.player_name || "").toLowerCase();
-  return source === "demo" || username === "demoplayer" || report === DEMO_REPORT;
-}
-
-function hasImportedReportPayload(report) {
-  return Boolean(
-    report &&
-      (
-        report.username ||
-        report.player ||
-        getImportedGameCount(report) ||
-        report.top_openings?.length ||
-        report.opening_stats?.length ||
-        report.openings?.length
-      )
-  );
+  return isSampleReport(report);
 }
 
 function getImportedGameCount(report) {
-  return safeNumber(
-    report?.gamesImported ??
-      report?.games_imported ??
-      report?.gamesAnalysed ??
-      report?.gamesAnalyzed ??
-      report?.games_analyzed ??
-      report?.gamesFound ??
-      report?.games_found ??
-      report?.totalGames ??
-      report?.total_games
-  );
-}
-
-function countOpeningItems(value) {
-  if (!value) return 0;
-  if (Array.isArray(value)) {
-    return value.reduce((total, item) => {
-      if (!item) return total;
-      if (typeof item === "string") return total + (isUnknownOpeningName(item) ? 0 : 1);
-      if (Array.isArray(item?.items)) return total + countOpeningItems(item.items);
-      return total + (isUnknownOpeningName(getOpeningName(item)) ? 0 : 1);
-    }, 0);
-  }
-  if (typeof value === "object") {
-    return Object.values(value).reduce((total, item) => total + countOpeningItems(item), 0);
-  }
-  return 0;
-}
-
-function getClassifiedOpeningCount(report) {
-  const detectedOpenings = countOpeningItems([
-    ...(Array.isArray(report?.best_openings) ? report.best_openings : []),
-    ...(Array.isArray(report?.bestOpenings) ? report.bestOpenings : []),
-    ...(Array.isArray(report?.top_openings) ? report.top_openings : []),
-    ...(Array.isArray(report?.topOpenings) ? report.topOpenings : []),
-    ...(Array.isArray(report?.opening_stats) ? report.opening_stats : []),
-    ...(Array.isArray(report?.openingStats) ? report.openingStats : []),
-  ]);
-  const recommendationOpenings = countOpeningItems(
-    report?.opening_recommendations || report?.openingRecommendations || {}
-  );
-  const playedOpenings = countOpeningItems([
-    ...(Array.isArray(report?.preferred_white) ? report.preferred_white : []),
-    ...(Array.isArray(report?.preferred_black) ? report.preferred_black : []),
-    ...(Array.isArray(report?.preferredWhite) ? report.preferredWhite : []),
-    ...(Array.isArray(report?.preferredBlack) ? report.preferredBlack : []),
-  ]);
-
-  return detectedOpenings + recommendationOpenings + playedOpenings;
+  return buildReportGameCounts(report).imported;
 }
 
 function formatGameCount(count) {
@@ -366,9 +293,11 @@ function formatGameCount(count) {
 }
 
 function buildImportOutcome(report, platformLabel) {
-  const gamesImported = getImportedGameCount(report);
-  const openingSignals = getClassifiedOpeningCount(report);
+  const counts = buildReportGameCounts(report);
+  const gamesImported = counts.imported;
+  const openingSignals = counts.classified;
   const platformName = platformLabel || "the selected platform";
+  const countSentence = reportCountSentence(report);
 
   if (!gamesImported) {
     return {
@@ -383,8 +312,8 @@ function buildImportOutcome(report, platformLabel) {
     return {
       tone: "warning",
       title: "Games imported, but openings were too thin to classify",
-      message: `We imported ${formatGameCount(gamesImported)} from ${platformName}, but there were not enough repeated or classified opening positions to build strong verdicts yet.`,
-      meta: `${formatGameCount(gamesImported)} imported`,
+      message: `${countSentence} There is not enough usable opening evidence to build strong verdicts yet.`,
+      meta: `${counts.excluded} excluded`,
     };
   }
 
@@ -392,16 +321,16 @@ function buildImportOutcome(report, platformLabel) {
     return {
       tone: "warning",
       title: "Import complete with a light opening sample",
-      message: `We imported ${formatGameCount(gamesImported)} from ${platformName}. Your report is ready, but the opening sample is still small, so recommendations are starter signals.`,
-      meta: `${formatGameCount(gamesImported)} imported`,
+      message: `${countSentence} Your report is ready, but the opening sample is still small, so recommendations are starter signals.`,
+      meta: `${counts.excluded} excluded`,
     };
   }
 
   return {
     tone: "success",
     title: `Imported ${formatGameCount(gamesImported)} from ${platformName}`,
-    message: "Your OpeningFit report is ready with opening verdicts, recommendations, and training focus.",
-    meta: `${openingSignals} opening signal${openingSignals === 1 ? "" : "s"} found`,
+    message: `${countSentence} Your OpeningFit report is ready with a verdict and one training focus.`,
+    meta: `${counts.excluded} excluded`,
   };
 }
 
@@ -819,6 +748,7 @@ const SAFE_CONTEXT_FALLBACK_COPY =
 const PUBLIC_ACCOUNT_CAUTION_COPY =
   "This appears to be a high-level or public account. OpeningFit is analysing recent online results only, not judging the player’s actual opening knowledge.";
 
+/* Legacy name-based ownership heuristics intentionally retired.
 const BLACK_OPENING_NAME_PATTERNS = [
   "defence",
   "defense",
@@ -885,10 +815,14 @@ function openingNameColourHint(name = "") {
   return "unknown";
 }
 
+*/
 function contextLabel(context = "") {
   return (
     {
       played_as_white: "played as White",
+      played_as_black: "played as Black",
+      faced_as_white: "faced as White",
+      faced_as_black: "faced as Black",
       black_vs_e4: "played as Black vs 1.e4",
       black_vs_d4: "played as Black vs 1.d4",
       black_vs_other: "played as Black vs other first moves",
@@ -914,7 +848,12 @@ function normalizeBlackRepertoireContext(context, item = null) {
     : "black_vs_d4";
 }
 
-function itemContext(item, fallback = "unknown_mixed") {
+function itemContext(item) {
+  const perspective = openingPerspective(item || {});
+  if (perspective.role === "played_as_white") return "played_as_white";
+  if (perspective.role === "played_as_black") return perspective.repertoireSlot || "black_vs_other";
+  if (["faced_as_white", "faced_as_black"].includes(perspective.role)) return perspective.role;
+
   const raw =
     item?.context ||
     item?.repertoireContext ||
@@ -927,41 +866,25 @@ function itemContext(item, fallback = "unknown_mixed") {
     return context;
   }
 
-  const firstMoveBucket = firstMoveBucketForOpening(item);
-
   if (BLACK_REPERTOIRE_CONTEXTS.has(context)) {
     return normalizeBlackRepertoireContext(context, item);
   }
 
-  const side = String(getOpeningSide(item)).toLowerCase();
-
-  if (side.includes("white")) return "played_as_white";
-  if (side.includes("black")) {
-    if (firstMoveBucket) return firstMoveBucket;
-    return fallback === "played_as_white"
-      ? "unknown_mixed"
-      : normalizeBlackRepertoireContext(fallback, item);
-  }
-
-  if (fallback !== "played_as_white" && firstMoveBucket) return firstMoveBucket;
-
-  return normalizeBlackRepertoireContext(fallback, item);
+  return "unknown_mixed";
 }
 
-function contextIsCompatible(name, context) {
-  const hint = openingNameColourHint(name);
-
-  if (context === "played_as_white") return hint !== "black";
-  if (BLACK_REPERTOIRE_CONTEXTS.has(context)) return hint !== "white";
-
-  return false;
+function contextIsCompatible(_name, context, item = {}) {
+  const perspective = openingPerspective(item);
+  if (context === "played_as_white") return perspective.role === "played_as_white";
+  if (BLACK_REPERTOIRE_CONTEXTS.has(context)) return perspective.role === "played_as_black";
+  return ["faced_as_white", "faced_as_black"].includes(context) && perspective.role === context;
 }
 
 function normalizeRecommendationItem(item, fallbackContext = "unknown_mixed") {
   const source = typeof item === "string" ? { name: item } : item || {};
   const name = getOpeningName(source);
   const context = itemContext(source, fallbackContext);
-  const compatible = contextIsCompatible(name, context);
+  const compatible = contextIsCompatible(name, context, source);
   const safeContext = compatible ? context : "unknown_mixed";
   const normalizedBase = {
     ...source,
@@ -1294,37 +1217,36 @@ function buildRepertoireReportSections(data) {
       const name = getOpeningName(item);
       const explicitContext = itemContext(item, "unknown_mixed");
       const bucket = firstMoveBucketForOpening(item);
-      const hint = openingNameColourHint(name);
-      const side = String(getOpeningSide(item)).toLowerCase();
+      const perspective = openingPerspective(item);
 
-      if (!contextIsCompatible(name, section.context)) return false;
+      if (!contextIsCompatible(name, section.context, item)) return false;
       if (explicitContext === section.context) return true;
 
-      if (section.context === "played_as_white") return hint === "white";
+      if (section.context === "played_as_white") return perspective.role === "played_as_white";
       if (section.context === "black_vs_e4") {
-        return (hint === "black" || side.includes("black")) && bucket === "black_vs_e4";
+        return perspective.role === "played_as_black" && bucket === "black_vs_e4";
       }
       if (section.context === "black_vs_d4") {
-        return (hint === "black" || side.includes("black")) && bucket === "black_vs_d4";
+        return perspective.role === "played_as_black" && bucket === "black_vs_d4";
       }
-      return (hint === "black" || side.includes("black")) && bucket === "black_vs_other";
+      return perspective.role === "played_as_black" && bucket === "black_vs_other";
     });
   };
 
   return REPERTOIRE_SECTION_ORDER.map((section) => {
     const uncertainItems = findSectionItems("too_little_data").filter((item) => {
       const context = itemContext(item);
-      const hint = openingNameColourHint(getOpeningName(item));
+      const perspective = openingPerspective(item);
 
       if (context === section.context) return true;
-      if (section.context === "played_as_white") return hint === "white";
+      if (section.context === "played_as_white") return perspective.role === "played_as_white";
       if (section.context === "black_vs_e4") {
-        return hint === "black" && firstMoveBucketForOpening(item) === "black_vs_e4";
+        return perspective.role === "played_as_black" && firstMoveBucketForOpening(item) === "black_vs_e4";
       }
       if (section.context === "black_vs_d4") {
-        return hint === "black" && firstMoveBucketForOpening(item) === "black_vs_d4";
+        return perspective.role === "played_as_black" && firstMoveBucketForOpening(item) === "black_vs_d4";
       }
-      return hint === "black" && firstMoveBucketForOpening(item) === "black_vs_other";
+      return perspective.role === "played_as_black" && firstMoveBucketForOpening(item) === "black_vs_other";
     });
     const sectionItems = normalizeRecommendationSection(
       findSectionItems(section.key),
@@ -2900,7 +2822,7 @@ function LockedPremiumCard({ title, text }) {
   return (
     <div className="premiumLockedInline">
       <div>
-        <span className="premiumBadge">Founder Pass</span>
+        <span className="premiumBadge">OpeningFit Plus</span>
         <h3>{title}</h3>
         <p>{text}</p>
       </div>
@@ -4472,8 +4394,16 @@ function aggregateFilteredOpeningGames(data, filters) {
 
 function applyReportFilters(data, filters) {
   if (!data) return null;
+  if (isSampleReport(data)) {
+    return {
+      ...data,
+      reportFilters: { ...filters, sampleMode: true, limited: false },
+      filterSummary: "Example data",
+    };
+  }
 
   const aggregate = aggregateFilteredOpeningGames(data, filters);
+  const originalCounts = buildReportGameCounts(data);
   const timeLabel = TIME_CONTROL_FILTERS.find((item) => item.key === filters.timeControl)?.label || "All Games";
   const dateLabel = DATE_RANGE_FILTERS.find((item) => item.key === filters.dateRange)?.label || "All Time";
   const colourLabel = COLOUR_FILTERS.find((item) => item.key === (filters.colour || "all"))?.label || "All";
@@ -4503,6 +4433,18 @@ function applyReportFilters(data, filters) {
         trainingTarget: weakestLine.trainingTarget,
       }
     : data?.retentionMetrics?.oneThingToFix || data?.oneThingToFix || null;
+  const filterExcluded = Math.max(0, originalCounts.classified - aggregate.totalGames);
+  const exclusionReasons = [
+    ...originalCounts.exclusionReasons,
+    ...(filterExcluded ? [{ key: "reportFilters", label: "Outside the selected report filters", count: filterExcluded }] : []),
+  ];
+  const gameCounts = {
+    imported: originalCounts.imported,
+    eligible: aggregate.totalGames,
+    classified: aggregate.totalGames,
+    excluded: Math.max(0, originalCounts.imported - aggregate.totalGames),
+    exclusionReasons,
+  };
 
   return {
     ...data,
@@ -4547,6 +4489,14 @@ function applyReportFilters(data, filters) {
     gamesImported: aggregate.totalGames,
     gamesAnalysed: aggregate.totalGames,
     gamesAnalyzed: aggregate.totalGames,
+    gamesEligible: gameCounts.eligible,
+    games_eligible: gameCounts.eligible,
+    gamesClassified: gameCounts.classified,
+    games_classified: gameCounts.classified,
+    gamesExcluded: gameCounts.excluded,
+    games_excluded: gameCounts.excluded,
+    gameCounts,
+    game_counts: gameCounts,
     skippedGames: Math.max(0, aggregate.sourceGames - aggregate.totalGames),
     skipped_games: Math.max(0, aggregate.sourceGames - aggregate.totalGames),
     skippedGameReasons:
@@ -4929,32 +4879,15 @@ function ImportQualitySummary({ data }) {
     data.requestedUsername ||
     data.requested_username ||
     "Unknown";
-  const gamesFound =
-    data.gamesFound ??
-    data.games_found ??
-    data.totalGames ??
-    data.total_games ??
-    data.gamesImported ??
-    0;
-  const gamesAnalysed =
-    data.gamesAnalysed ??
-    data.gamesAnalyzed ??
-    data.games_analyzed ??
-    data.gamesImported ??
-    data.games_imported ??
-    0;
-  const skippedGames =
-    data.skippedGames ??
-    data.skipped_games ??
-    Math.max(0, Number(gamesFound || 0) - Number(gamesAnalysed || 0));
+  const counts = buildReportGameCounts(data);
   const months =
     data.importMonths ||
     data.import_months ||
     data.monthsChecked ||
     data.months_checked ||
     "Recent";
-  const quality = importQualityLabel(gamesAnalysed);
-  const skippedReasons = normaliseSkippedReasons(data, Number(skippedGames) || 0);
+  const quality = importQualityLabel(counts.classified);
+  const skippedReasons = counts.exclusionReasons.length ? counts.exclusionReasons : normaliseSkippedReasons(data, counts.excluded);
 
   return (
     <section className="importQualitySummary" aria-label="Import quality summary">
@@ -4979,16 +4912,20 @@ function ImportQualitySummary({ data }) {
           <strong>{username}</strong>
         </div>
         <div>
-          <span>Games found</span>
-          <strong>{gamesFound || 0}</strong>
+          <span>Imported games</span>
+          <strong>{counts.imported}</strong>
         </div>
         <div>
-          <span>Games analysed</span>
-          <strong>{gamesAnalysed || 0}</strong>
+          <span>Eligible games</span>
+          <strong>{counts.eligible}</strong>
         </div>
         <div>
-          <span>Skipped</span>
-          <strong>{skippedGames || 0}</strong>
+          <span>Classified games</span>
+          <strong>{counts.classified}</strong>
+        </div>
+        <div>
+          <span>Excluded games</span>
+          <strong>{counts.excluded}</strong>
         </div>
         <div>
           <span>Time range</span>
@@ -5000,11 +4937,11 @@ function ImportQualitySummary({ data }) {
         </div>
       </div>
 
-      <p className="importQualityCopy">{importQualityCopy(gamesAnalysed)}</p>
+      <p className="importQualityCopy">{importQualityCopy(counts.classified)}</p>
 
       {skippedReasons.length ? (
         <div className="skippedReasons">
-          <span>Skipped-game reasons</span>
+          <span>Excluded-game reasons</span>
           <div>
             {skippedReasons.map((reason) => (
               <small key={`${reason.label}-${reason.count ?? "unknown"}`}>
@@ -5201,8 +5138,8 @@ function EvidenceTableSection({ data, fitData, entitlement = null, onPractice })
 
       {!hasFullEvidence && rows.length > visibleRows.length ? (
         <LockedPremiumCard
-          title="Full evidence table available with Founder Pass"
-          text={`The free report shows the first ${visibleRows.length} rows. Founder Pass shows all ${rows.length} openings so you can compare confidence, score, and weak lines over time.`}
+          title="Full evidence table available with OpeningFit Plus"
+          text={`The free report shows the first ${visibleRows.length} rows. OpeningFit Plus shows all ${rows.length} openings so you can compare confidence, score, and weak lines over time.`}
         />
       ) : null}
     </section>
@@ -5496,13 +5433,7 @@ function getRecommendationHistoryChange(current, previous) {
 }
 
 function getAnalysisTrustSignals(data, fitData) {
-  const games =
-    data?.gamesAnalysed ||
-    data?.gamesAnalyzed ||
-    data?.games_analyzed ||
-    data?.gamesImported ||
-    data?.total_games ||
-    0;
+  const games = buildReportGameCounts(data).classified;
   const detectedOpenings = buildDetectedOpeningSnapshot(data, fitData);
   const recommendedOpenings = buildNextStepOpenings(data, fitData);
   const confidenceScore = getProgressScoreValue(
@@ -5531,7 +5462,7 @@ function getAnalysisTrustSignals(data, fitData) {
     confidenceScore,
     basis: lowData
       ? "Style-based suggestions while opening data is limited"
-      : "Real opening data from your analysed games",
+      : "Real opening data from classified games",
   };
 }
 
@@ -5550,9 +5481,9 @@ function AnalysisTrustSignalsPanel({ data, fitData }) {
 
       <div className="analysisTrustSignalGrid">
         <article>
-          <span>Games analysed</span>
+          <span>Classified games</span>
           <strong>{trust.games || 0}</strong>
-          <p>Recent public games feeding this report.</p>
+          <p>Eligible games with a usable opening classification.</p>
         </article>
         <article>
           <span>Openings detected</span>
@@ -6663,7 +6594,7 @@ function FinalReportFlow({
     () => buildReportDecisionModel(data, fitData, reportHistory),
     [data, fitData, reportHistory]
   );
-  const [reportMode, setReportMode] = useState("summary");
+  const [reportMode, setReportMode] = useState(() => isSampleReport(data) ? "full" : "summary");
   const showFullReport = reportMode === "full";
   const showOpeningTable = reportMode === "table";
   const currentComparisonSnapshot = useMemo(
@@ -6696,6 +6627,10 @@ function FinalReportFlow({
     window.addEventListener("openingfit:set-report-mode", handleReportMode);
     return () => window.removeEventListener("openingfit:set-report-mode", handleReportMode);
   }, []);
+
+  useEffect(() => {
+    if (isSampleReport(data)) setReportMode("full");
+  }, [data]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !import.meta.env?.DEV) return undefined;
@@ -6773,15 +6708,6 @@ function FinalReportFlow({
       <details className="reportFullDisclosure" id="full-report-details" open={showFullReport || showOpeningTable} onToggle={(event) => { if (event.currentTarget.open && reportMode === "summary") setReportMode("full"); else if (!event.currentTarget.open && reportMode !== "summary") setReportMode("summary"); }}>
         <summary><span>Full report</span><strong>View recommendations, evidence, training detail and report tools</strong></summary>
         <div className="reportFullDisclosureBody">
-          <DecisionReportHeader model={decisionModel} onReanalyse={() => onNavigate?.("analyse") || onViewChange?.("analyse")} />
-          <CoachDecisionVerdict model={decisionModel} />
-          {authenticated && canUseFeature(entitlement, OPENINGFIT_FEATURES.PROGRESS_OUTCOMES) ? <TrainingImpactSection report={data} reportHistory={reportHistory} source="report" onViewHistory={() => onNavigate?.("journey")} onAnalytics={onAnalytics} /> : authenticated ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.PROGRESS_OUTCOMES} title="See training impact in later games" onUpgrade={() => onNavigate?.("premium")} /> : null}
-          <FiniteTrainingSession model={decisionModel} recentGames={recentGames} onPractice={onPractice} />
-          <ReportDecisionCards model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} onRepertoire={() => onNavigate?.("repertoire")} onFeedback={onAnalytics} />
-          <CompactOpeningHealth model={decisionModel} />
-          <DecisionRepertoireMap model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} />
-          <CostlyIssuesSection model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} />
-
           <details className="reportSupportingDataDetails" open={showOpeningTable}>
             <summary><span>Supporting evidence</span><strong>Results, confidence, time controls, and supporting games</strong></summary>
             <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
@@ -6790,16 +6716,29 @@ function FinalReportFlow({
             <ImportQualitySummary data={data} />
           </details>
 
-          <details className="reportSecondaryDetails" open={showFullReport}>
-            <summary><span>Additional details</span><strong>Trends, journey, advanced scores, and retained report tools</strong></summary>
+          <details className="reportAdvancedRecommendations">
+            <summary><span>Advanced recommendations</span><strong>Detailed decision cards, repertoire map and additional practice tools</strong></summary>
+            <DecisionReportHeader model={decisionModel} onReanalyse={() => onNavigate?.("analyse") || onViewChange?.("analyse")} />
+            <CoachDecisionVerdict model={decisionModel} />
+            <FiniteTrainingSession model={decisionModel} recentGames={recentGames} onPractice={onPractice} />
+            <ReportDecisionCards model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} onRepertoire={() => onNavigate?.("repertoire")} onFeedback={onAnalytics} />
+            <CompactOpeningHealth model={decisionModel} />
+            <DecisionRepertoireMap model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} />
+            <CostlyIssuesSection model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} />
+          </details>
+
+          <details className="reportSecondaryDetails">
+            <summary><span>Progress and details</span><strong>Optional secondary metrics, achievements, detailed tables and tools</strong></summary>
             <div className="reportSecondaryDetailsBody">
-              {reportHistory.length ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
-              <WhatChangedSinceLastAnalysis data={data} fitData={fitData} retentionSnapshots={retentionSnapshots} />
-              <OpeningJourney data={data} fitData={fitData} retentionSnapshots={retentionSnapshots} onPractice={onPractice} onNavigate={onNavigate} />
-              <OpeningScoreBreakdown data={data} fitData={fitData} reportHistory={reportHistory} openingFitUserState={openingFitUserState} onAction={(route) => onNavigate?.(route)} />
+              {!decisionModel.baseline.comparisonClaimsAllowed ? <p className="reportBaselineDetailsNotice">This is your baseline report. Progress deltas, improvement achievements, streak claims and comparison-only metrics stay unavailable until a comparable later report exists.</p> : null}
+              {decisionModel.baseline.comparisonClaimsAllowed && authenticated && canUseFeature(entitlement, OPENINGFIT_FEATURES.PROGRESS_OUTCOMES) ? <TrainingImpactSection report={data} reportHistory={reportHistory} source="report" onViewHistory={() => onNavigate?.("journey")} onAnalytics={onAnalytics} /> : decisionModel.baseline.comparisonClaimsAllowed && authenticated ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.PROGRESS_OUTCOMES} title="See training impact in later games" onUpgrade={() => onNavigate?.("premium")} /> : null}
+              {decisionModel.baseline.comparisonClaimsAllowed && reportHistory.length ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
+              {decisionModel.baseline.comparisonClaimsAllowed ? <WhatChangedSinceLastAnalysis data={data} fitData={fitData} retentionSnapshots={retentionSnapshots} decisionModel={decisionModel} /> : null}
+              {decisionModel.baseline.comparisonClaimsAllowed ? <OpeningJourney data={data} fitData={fitData} retentionSnapshots={retentionSnapshots} onPractice={onPractice} onNavigate={onNavigate} /> : null}
+              <OpeningScoreBreakdown data={data} fitData={fitData} reportHistory={reportHistory} openingFitUserState={openingFitUserState} onAction={(route) => onNavigate?.(route)} decisionModel={decisionModel} />
               <InterestingThinDataSection data={data} fitData={fitData} />
-              <WeeklyOpeningReport data={data} savedHistory={openingFitUserState.flatMap((row) => row?.coach_progress?.weeklyOpeningSnapshots || []).filter(Boolean)} />
-              <OpeningGamificationProgress data={data} fitData={fitData} savedProgress={openingFitUserState.map((row) => row?.coach_progress?.openingGamification || null).filter(Boolean)[0] || null} />
+              {decisionModel.baseline.comparisonClaimsAllowed ? <WeeklyOpeningReport data={data} savedHistory={openingFitUserState.flatMap((row) => row?.coach_progress?.weeklyOpeningSnapshots || []).filter(Boolean)} decisionModel={decisionModel} /> : null}
+              {decisionModel.baseline.comparisonClaimsAllowed ? <OpeningGamificationProgress data={data} fitData={fitData} savedProgress={openingFitUserState.map((row) => row?.coach_progress?.openingGamification || null).filter(Boolean)[0] || null} /> : null}
             </div>
           </details>
 
@@ -7467,7 +7406,7 @@ function ProfileIdentityCard({
         </div>
         <div>
           <span>Premium status</span>
-          <strong>{isPremium ? "Founder Pass active" : "Free"}</strong>
+          <strong>{isPremium ? "OpeningFit Plus active" : "Free"}</strong>
         </div>
         <div>
           <span>Rating</span>
@@ -7891,11 +7830,8 @@ function buildPlayerSummary(data, fitData) {
 }
 
 function getProfilePlanLabel({ isPremium, isPremiumPreview, accountUser, entitlement }) {
-  if (entitlement?.hasPremiumAccess && entitlement.accessType === "lifetime") return "OpeningFit Lifetime";
-  if (entitlement?.hasPremiumAccess && entitlement.accessType === "annual_subscription") return "OpeningFit Plus annual";
-  if (entitlement?.hasPremiumAccess && entitlement.accessType === "monthly_subscription") return "OpeningFit Plus monthly";
-  if (isPremium) return "Paid access active";
-  if (isPremiumPreview) return "Premium active";
+  if (entitlement?.hasPremiumAccess) return subscriptionPresentation(entitlement).planName;
+  if (isPremium || isPremiumPreview) return "OpeningFit Plus";
   return accountUser ? "Free account" : "Free account";
 }
 
@@ -8383,8 +8319,8 @@ function ProfileAchievementsCard({ data, fitData, isPremium }) {
       done: hasBlack,
     },
     {
-      title: "Founder Pass member",
-      text: isPremium ? "Founder Pass is active on this profile." : "Save reports and compare opening progress over time.",
+      title: "OpeningFit Plus member",
+      text: isPremium ? "OpeningFit Plus is active on this profile." : "Save reports and compare opening progress over time.",
       done: isPremium,
     },
   ];
@@ -9286,7 +9222,7 @@ function ReturnUserDashboard({
   );
 }
 
-function FounderPassProfileCard({ isPremium, onFounderPass }) {
+function FounderPassProfileCard({ isPremium, entitlement, onFounderPass }) {
   const valueBullets = [
     "Save every report",
     "Compare progress over time",
@@ -9300,7 +9236,7 @@ function FounderPassProfileCard({ isPremium, onFounderPass }) {
     <section className={isPremium ? "profileFounderCard profileFounderCardActive" : "profileFounderCard"}>
       <div className="profileFounderMain">
         <p className="eyebrow">OpeningFit Plus</p>
-        <h2>{isPremium ? "Paid access active" : "Save and compare your opening progress"}</h2>
+        <h2>{isPremium ? subscriptionPresentation(entitlement).planName : "Save and compare your opening progress"}</h2>
         <p>
           {isPremium
             ? "Your profile has Plus or preserved lifetime access. Saved reports and progress tracking stay attached to this account."
@@ -9322,7 +9258,7 @@ function FounderPassProfileCard({ isPremium, onFounderPass }) {
       <div className="profileFounderOffer">
         <span>Subscription plans</span>
         <strong>From £4.99/month</strong>
-        <div className="profileFounderOfferBadges" aria-label="Founder Pass offer details">
+        <div className="profileFounderOfferBadges" aria-label="OpeningFit Plus offer details">
           <span>Monthly or annual</span>
           <span>Cancel in settings</span>
         </div>
@@ -9556,6 +9492,13 @@ function OpeningFitProfileDashboard({
   activeView = "profile",
   onAnalytics,
 }) {
+  const accountState = accountExperienceState({ authLoading, authHydrated, profileLoading, user: accountUser });
+  if (accountState === "checking_session" || accountState === "restoring_account") {
+    return <section className="profileAccountLoading" aria-busy="true" aria-live="polite"><span>Account</span><h1>{accountState === "checking_session" ? "Checking your session…" : "Restoring your account…"}</h1><p>OpeningFit is securely checking your session and saved account data.</p></section>;
+  }
+  if (accountState === "signed_out") {
+    return <section className="profileSignedOutAuth" id="login" aria-label="OpeningFit login"><AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} /></section>;
+  }
   const hasStoredProgress =
     accountUser?.id &&
     (Array.isArray(openingFitUserState) ? openingFitUserState : []).some(
@@ -9734,7 +9677,7 @@ function OpeningFitProfileDashboard({
           />
 
           {data ? <ProfileAchievementsCard data={data} fitData={fitData} isPremium={isPremium} /> : null}
-          <FounderPassProfileCard isPremium={isPremium} onFounderPass={onFounderPass} />
+          <FounderPassProfileCard isPremium={isPremium} entitlement={entitlement} onFounderPass={onFounderPass} />
         </div>
       </details>
       </ProfileInsightsBoundary>
@@ -10140,10 +10083,10 @@ function CompactReportSummary({ data, fitData, onViewChange, onPractice }) {
 
       <article className="upgradeAuditPreviewCard">
         <div>
-          <span>Founder Pass</span>
+          <span>OpeningFit Plus</span>
           <h3>Want to save and compare this repertoire plan?</h3>
           <p>
-            Your free report shows the headline patterns. Founder Pass adds
+            Your free report shows the headline patterns. OpeningFit Plus adds
             saved report history, colour-split repertoire review, weak-line
             tracking, and a practical training plan.
           </p>
@@ -12058,6 +12001,7 @@ function AppPrimaryNav({
   onThemeToggle,
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuTriggerRef = useRef(null);
   const isAppNavigation = mode === "app";
   const profileLabel = accountUser ? "Account" : "Sign in";
   const items = isAppNavigation
@@ -12070,17 +12014,14 @@ function AppPrimaryNav({
     : [
         { key: "analyse", label: "Analyse", path: hasReport ? "/" : "/#import", native: !hasReport },
         { key: "how", label: "How it works", path: "/#how-it-works-app", native: true },
-        { key: "example", label: "Sample report", path: "/report", target: "app-results", action: onExampleReport },
+        { key: "example", label: "Sample report", path: SAMPLE_REPORT_PATH, target: "app-results", action: onExampleReport },
         { key: "learn", label: "Learn", path: "/guides", native: true },
         { key: "pricing", label: "Pricing", path: "/premium" },
       ];
   const accountAction = accountUser
     ? { key: "account", label: "Account", path: "/account" }
     : { key: "login", label: "Sign in", path: "/login", target: "login", action: onLogin };
-  const brandAction =
-    isAppNavigation
-      ? { key: hasReport ? "report" : "analyse", label: hasReport ? "Report" : "Analyse" }
-      : { key: "analyse", label: "Analyse" };
+  const brandAction = HOME_NAVIGATION;
   const primaryAction = accountUser
     ? { key: "analyse", label: "New analysis" }
     : { key: "analyse", label: "Analyse games" };
@@ -12145,7 +12086,10 @@ function AppPrimaryNav({
     if (!mobileMenuOpen) return undefined;
 
     const closeOnEscape = (event) => {
-      if (event.key === "Escape") setMobileMenuOpen(false);
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setMobileMenuOpen(false);
+      window.requestAnimationFrame(() => mobileMenuTriggerRef.current?.focus());
     };
 
     window.addEventListener("keydown", closeOnEscape);
@@ -12155,7 +12099,7 @@ function AppPrimaryNav({
   return (
     <nav className={`appPrimaryNav appPrimaryNav--${mode}`} aria-label={isAppNavigation ? "OpeningFit application" : "OpeningFit website"}>
       <div className="appPrimaryNavInner">
-        <a className="appPrimaryBrand" href="#app-dashboard" onClick={(event) => navigate(event, brandAction)}>
+        <a className="appPrimaryBrand" href={HOME_NAVIGATION.path} onClick={(event) => navigate(event, brandAction)} aria-label={HOME_NAVIGATION.label}>
           <img className="appPrimaryBrandLogo" src="/icons/openingfit-icon.svg" alt="" width="36" height="36" aria-hidden="true" />
           <span>OpeningFit</span>
         </a>
@@ -12195,6 +12139,7 @@ function AppPrimaryNav({
         </a>
 
         <button
+          ref={mobileMenuTriggerRef}
           className="appPrimaryMenuToggle"
           type="button"
           aria-controls={mobileMenuId}
@@ -12332,13 +12277,7 @@ function AccountSyncStatusBar({
   let tone = "loggedOut";
   let plan = "Free";
   let action = "Login";
-  const paidPlanLabel = entitlement?.accessType === "lifetime"
-    ? "Lifetime"
-    : entitlement?.accessType === "annual_subscription"
-      ? "Plus annual"
-      : entitlement?.accessType === "monthly_subscription"
-        ? "Plus monthly"
-        : "Paid";
+  const paidPlanLabel = subscriptionPresentation(entitlement).planName;
 
   if (!isSupabaseConfigured) {
     label = "Logged out";
@@ -12541,7 +12480,7 @@ function getCurrentPath() {
 }
 
 function isPrivateSeoPath(path) {
-  return ["/account", "/profile", "/login", "/dashboard", "/report", "/repertoire", "/progress", "/journey", "/train", "/premium", "/upgrade"].includes(path);
+  return ["/account", "/profile", "/login", "/dashboard", "/report", SAMPLE_REPORT_PATH, "/repertoire", "/progress", "/journey", "/train", "/premium", "/upgrade"].includes(path);
 }
 
 function getInitialAppView() {
@@ -12550,7 +12489,7 @@ function getInitialAppView() {
   if (path === "/account" || path === "/profile" || path === "/login") return "profile";
   if (path === "/upgrade" || path === "/premium") return "upgrade";
   if (path === "/train") return "train";
-  if (path === "/report") return "report";
+  if (path === "/report" || isSampleReportPath(path)) return "report";
   if (path === "/repertoire") return "repertoire";
   if (path === "/progress") return "progress";
   if (path === "/journey") return "journey";
@@ -12615,8 +12554,8 @@ function PopularChessOpeningGuides() {
     { label: "Best Chess Openings for 1000 Rated Players", href: "/guides/best-chess-openings-for-1000-rated-players", text: "Reduce early blunders with familiar structures." },
     { label: "Best Chess Openings for 1200 Rated Players", href: "/guides/best-chess-openings-for-1200-rated-players", text: "Start choosing openings by style and evidence." },
     { label: "Vienna Game Guide", href: "/openings/vienna-game", text: "An attacking 1.e4 option with early initiative." },
-    { label: "Caro-Kann Defense Guide", href: "/openings/caro-kann-defense", text: "A solid Black defense against 1.e4." },
-    { label: "Scandinavian Defense Guide", href: "/openings/scandinavian-defense", text: "A direct defense with clear central contact." },
+    { label: "Caro-Kann Defence Guide", href: "/openings/caro-kann-defense", text: "A solid Black defence against 1.e4." },
+    { label: "Scandinavian Defence Guide", href: "/openings/scandinavian-defense", text: "A direct defence with clear central contact." },
   ];
 
   return (
@@ -12860,7 +12799,7 @@ function SimplifiedHomepageStory({ onSampleReport }) {
           <h2 id="homepage-sample-title">See the full report before importing.</h2>
           <p>The sample demonstrates the report structure and is clearly separated from your personalised analysis.</p>
         </div>
-        <button className="primaryBtn" type="button" onClick={onSampleReport}>Open full sample report</button>
+        <button className="primaryBtn" type="button" onClick={() => onSampleReport?.(SAMPLE_REPORT_CTA_SOURCES.landingStory)}>Open full sample report</button>
       </section>
 
       <section className="homepageFounderSection" id="about" aria-labelledby="homepage-founder-title">
@@ -13383,7 +13322,7 @@ function LandingSection({ onOpeningClick }) {
           <p>
             See strengths, weak lines, confidence, and one next study target.
           </p>
-          <a className="landingSecondaryBtn" href="#sample-report">
+          <a className="landingSecondaryBtn" href={SAMPLE_REPORT_PATH}>
             View sample report
           </a>
         </div>
@@ -13787,7 +13726,7 @@ function LandingSection({ onOpeningClick }) {
           <a className="landingPrimaryBtn" href="#app-dashboard">
             Analyse your games
           </a>
-          <a className="landingSecondaryBtn" href="#sample-report">
+          <a className="landingSecondaryBtn" href={SAMPLE_REPORT_PATH}>
             View sample report
           </a>
         </div>
@@ -13843,6 +13782,17 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
   }, [cloudReportHistory, cloudUser?.id, hasSavedHistory]);
 
   if (!data) return null;
+  if (isSampleReport(data)) {
+    return (
+      <section className="exportHistoryShell" id="report-history" aria-label="Sample report history notice">
+        <div className="exportHistoryIntro">
+          <span>Sample report · Example data</span>
+          <h2>This example stays separate from your report history.</h2>
+          <p>OpeningFit does not save, sync, export, or compare the fictional sample as if it were your analysis.</p>
+        </div>
+      </section>
+    );
+  }
 
   const playerName =
     data.username ||
@@ -13877,6 +13827,10 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
   });
 
   const handleSaveReport = async () => {
+    if (!canPersistReport(data)) {
+      setHistoryStatus("Sample reports are example data and cannot be added to report history.");
+      return;
+    }
     if (!hasSavedHistory) {
       onUpgrade?.();
       return;
@@ -13980,7 +13934,7 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
         <p>
           {hasSavedHistory
             ? "Keep a local copy of your Opening Fit reports so you can compare your opening progress over time."
-            : "The free report gives the verdict and first actions. Founder Pass adds saved reports, weak-line tracking, and exportable study plans."}
+            : "The free report gives the verdict and first actions. OpeningFit Plus adds saved reports, weak-line tracking, and exportable study plans."}
         </p>
 
         <div className="exportHistoryActions">
@@ -14557,55 +14511,44 @@ export default function App() {
   const [loadingElapsedSeconds, setLoadingElapsedSeconds] = useState(0);
   const [error, setError] = useState("");
   const [importStatus, setImportStatus] = useState(null);
-  const [data, setData] = useState(null);
-  const [analysisVerdictId, setAnalysisVerdictId] = useState("");
+  const [data, setData] = useState(() => reportForInitialPath(getCurrentPath()));
   const [activeView, setActiveView] = useState(getInitialAppView);
   const [forceAnalyseImportFlow, setForceAnalyseImportFlow] = useState(false);
   const importAbortRef = useRef(null);
   const activeImportKeyRef = useRef("");
   const reportRedirectKeyRef = useRef("");
+  const sampleEntrySourceRef = useRef(isSampleReportPath(getCurrentPath()) ? "direct_sample_url" : "");
   const parsedPgnMovesCacheRef = useRef(new Map());
 
   useEffect(() => {
     setAccountUser(supabaseUser || null);
   }, [supabaseUser]);
 
-  const loadDemoReport = () => {
-    setAnalysisVerdictId("");
-    if (!hasImportedReportPayload(data) || isDemoAnalysis(data)) {
-      setData(DEMO_REPORT);
-      setTimeout(() => {
-        setData((current) =>
-          !hasImportedReportPayload(current) || isDemoAnalysis(current) ? DEMO_REPORT : current
-        );
-      }, 250);
-      setImportStatus({
-        tone: "info",
-        title: "Sample report loaded",
-        message: "This is demo data. Import a real Chess.com or Lichess username when you are ready.",
-        meta: "Demo only",
-      });
-    } else {
-      setImportStatus({
-        tone: "info",
-        title: "Keeping your imported report",
-        message: "Your real analysis is already loaded, so the sample report was not allowed to replace it.",
-        meta: "Real report protected",
-      });
-    }
+  const loadDemoReport = (source = "landing_sample_cta") => {
+    const entry = sampleReportEntry(typeof source === "string" ? source : "sample_report");
+    sampleEntrySourceRef.current = entry.analytics.source;
+    setData(entry.report);
+    setShowPublicLanding(false);
+    setImportStatus(null);
     setError("");
-
-    if (typeof setActiveView === "function") {
-      setActiveView("report");
+    setActiveView(entry.view);
+    if (window.location.pathname !== entry.path) {
+      window.history.pushState({}, "", entry.path);
     }
-
-    if (window.location.pathname !== "/report") {
-      window.history.pushState({}, "", "/report");
-    }
-
     setTimeout(() => {
       scrollToAppTarget("app-results");
     }, 80);
+  };
+
+  const exitSampleReport = () => {
+    const exit = sampleReportExit();
+    setData(exit.report);
+    setImportStatus(null);
+    setError("");
+    setForceAnalyseImportFlow(true);
+    setActiveView(exit.view);
+    window.history.pushState({}, "", exit.path);
+    window.setTimeout(() => scrollToAppTarget(exit.target, { fallbackIds: ["app-dashboard"] }), 80);
   };
 
   const handleFounderPassClick = async (source = "pricing_page", billingInterval = "annual") => {
@@ -14620,9 +14563,9 @@ export default function App() {
       }
       setImportStatus({
         tone: "info",
-        title: "Log in to get Founder Pass",
+        title: "Log in to get OpeningFit Plus",
         message: "Create an account or log in first, then OpeningFit will return you to the secure purchase page.",
-        meta: "Founder Pass",
+        meta: "OpeningFit Plus",
       });
       setActiveView("profile");
       if (window.location.pathname !== "/login") {
@@ -14637,7 +14580,7 @@ export default function App() {
       setPremiumCheckoutLoading(true);
       await startPremiumCheckout(supabaseUser, billingInterval);
     } catch (error) {
-      console.error("OpeningFit Founder Pass checkout failed", error);
+      console.error("OpeningFit Plus checkout failed", error);
       setPremiumCheckoutError(error?.message || "We could not start secure checkout. Please try again.");
     } finally {
       setPremiumCheckoutLoading(false);
@@ -14705,7 +14648,6 @@ export default function App() {
   const [, setLocalSavedAt] = useState("");
   const [cloudSaveWarning, setCloudSaveWarning] = useState("");
   const [cloudSaveStatus, setCloudSaveStatus] = useState("");
-  const [returningUserBriefing, setReturningUserBriefing] = useState(null);
   const previousAuthUserIdRef = useRef(undefined);
   const shouldShowLandingIntro = () => {
     if (isPrivateSeoPath(getCurrentPath())) return false;
@@ -14782,8 +14724,7 @@ export default function App() {
     }
 
     if (previousUserId && previousUserId !== currentUserId) {
-      setData(null);
-      setAnalysisVerdictId("");
+      setData(isSampleReportPath(getCurrentPath()) ? SAMPLE_REPORT : null);
       setSelectedGameIndex(0);
       setReplayOpeningFilter("");
       setPracticeOpening(null);
@@ -14791,7 +14732,6 @@ export default function App() {
       setError("");
       setCloudSaveWarning("");
       setCloudSaveStatus("");
-      setReturningUserBriefing(null);
     }
 
     previousAuthUserIdRef.current = currentUserId;
@@ -14820,6 +14760,11 @@ export default function App() {
   useEffect(() => {
     if (authLoading || !authHydrated) return;
     if (supabaseUser?.id) return;
+    if (isSampleReportPath(getCurrentPath())) {
+      setData(SAMPLE_REPORT);
+      setShowPublicLanding(false);
+      return;
+    }
 
     const savedUsername = localStorage.getItem(USERNAME_KEY);
     const savedPlatform = localStorage.getItem(PLATFORM_KEY);
@@ -15220,6 +15165,7 @@ export default function App() {
   };
 
   const saveLocalAnalysis = (analysis, cleanUsername, selectedPlatformKey = platform) => {
+    if (!canPersistReport(analysis)) return false;
     const savedAt = new Date().toISOString();
     const importedUsername = getImportedAccountUsername(analysis, cleanUsername) || cleanUsername;
     const importedPlatform = getImportedAccountPlatform(analysis, selectedPlatformKey) || selectedPlatformKey;
@@ -15246,6 +15192,7 @@ export default function App() {
       normalizeAnalysisTimeFormat(analysis.analysisTimeFormat || analysisTimeFormat)
     );
     setLocalSavedAt(savedAt);
+    return true;
   };
 
   const handleCloudRestore = async (event) => {
@@ -15489,10 +15436,17 @@ export default function App() {
   };
 
   const handleAppNavigate = (routeOrKey, options = {}) => {
-    const requested =
+    let requested =
       typeof routeOrKey === "string"
         ? sectionRouteMap[routeOrKey] || routeOrKey
         : routeOrKey;
+    const requestedRoute = typeof requested === "string" ? null : requested;
+    const requestedSection = typeof requested === "string" ? getAppSection(requested) : getAppSection(requestedRoute?.view);
+    if (isSampleReport(data) && requestedSection === "report") {
+      requested = typeof requested === "string"
+        ? { view: "report", path: SAMPLE_REPORT_PATH, target: "app-results" }
+        : { ...requested, path: SAMPLE_REPORT_PATH };
+    }
     const requestedView = typeof requested === "string" ? requested : requested?.view;
     setForceAnalyseImportFlow(requestedView === "analyse");
     if (requested && typeof requested === "object" && "replayOpening" in requested) {
@@ -15507,8 +15461,13 @@ export default function App() {
 
   const startOpeningPractice = (openingTarget) => {
     if (!openingTarget) return;
-    void trackEvent("training_started", { source: "report_or_repertoire", openingCategory: openingTarget.contextKey || openingTarget.section || openingTarget.side || "opening" });
+    const sampleMode = isSampleReport(data);
+    void trackEvent("training_started", { source: sampleMode ? "sample_report" : "report_or_repertoire", sample: sampleMode, reportKind: sampleMode ? "sample" : "user", openingCategory: openingTarget.contextKey || openingTarget.section || openingTarget.side || "opening" });
     setPracticeOpening(openingTarget);
+    if (sampleMode) {
+      window.setTimeout(() => scrollToAppTarget("opening-practice", { fallbackIds: ["report-training-plan", "app-results"] }), 60);
+      return;
+    }
     handleAppNavigate({
       view: "train",
       path: "/train",
@@ -15516,95 +15475,6 @@ export default function App() {
       fallbackIds: ["today-training", "training-plan"],
     });
   };
-
-  const getReturningBriefingStorageKey = useCallback(() => {
-    return supabaseUser?.id ? `openingfit:returning-briefing:v2:${supabaseUser.id}` : "";
-  }, [supabaseUser?.id]);
-
-  const buildReturningBriefingIdentity = useCallback(
-    ({ report, username: briefingUsername, platform: briefingPlatform, trainingTarget }) => {
-      if (!supabaseUser?.id || !report) return "";
-      const reportStamp =
-        report.lastUpdated ||
-        report.last_updated ||
-        report.importedAt ||
-        report.imported_at ||
-        report.savedAt ||
-        "";
-      const games =
-        report.gamesImported ||
-        report.games_imported ||
-        report.gamesAnalysed ||
-        report.games_analyzed ||
-        report.totalGames ||
-        report.total_games ||
-        "";
-      const trainingKey =
-        trainingTarget?.opening ||
-        trainingTarget?.name ||
-        trainingTarget?.openingName ||
-        trainingTarget?.moveLine ||
-        trainingTarget?.move_line ||
-        "";
-      return [
-        String(briefingPlatform || report.platform || report.importPlatform || "unknown").toLowerCase(),
-        String(briefingUsername || report.username || report.playerName || "unknown").toLowerCase(),
-        String(reportStamp).slice(0, 19),
-        String(games),
-        String(trainingKey).toLowerCase(),
-      ].join(":");
-    },
-    [supabaseUser?.id]
-  );
-
-  const queueReturningUserBriefing = useCallback(
-    ({ report, username: briefingUsername, platform: briefingPlatform, source }) => {
-      if (!["cloud", "analysis"].includes(source) || !report || !supabaseUser?.id) return;
-      const storageKey = getReturningBriefingStorageKey();
-      const reportKey = buildReturningBriefingIdentity({
-        report,
-        username: briefingUsername,
-        platform: briefingPlatform,
-      });
-      if (!storageKey || !reportKey) return;
-
-      let previous = {};
-      try {
-        previous = JSON.parse(localStorage.getItem(storageKey) || "{}") || {};
-      } catch {
-        previous = {};
-      }
-
-      const today = new Date().toISOString().slice(0, 10);
-      const changedReportOrRecommendation = previous.reportKey && previous.reportKey !== reportKey;
-      if (!changedReportOrRecommendation && previous.dismissedDay === today) return;
-
-      setReturningUserBriefing({
-        storageKey,
-        reportKey,
-        report,
-        username: briefingUsername,
-        platform: briefingPlatform,
-        restoredAt: new Date().toISOString(),
-      });
-    },
-    [buildReturningBriefingIdentity, getReturningBriefingStorageKey, supabaseUser?.id]
-  );
-
-  const dismissReturningUserBriefing = useCallback(() => {
-    if (returningUserBriefing?.storageKey) {
-      const now = new Date();
-      localStorage.setItem(
-        returningUserBriefing.storageKey,
-        JSON.stringify({
-          dismissedAt: now.toISOString(),
-          dismissedDay: now.toISOString().slice(0, 10),
-          reportKey: returningUserBriefing.reportKey,
-        })
-      );
-    }
-    setReturningUserBriefing(null);
-  }, [returningUserBriefing?.reportKey, returningUserBriefing?.storageKey]);
 
   const practiceOpeningName = practiceOpening ? getOpeningName(practiceOpening) : "";
   const practiceLineFocus = practiceOpening
@@ -15651,7 +15521,6 @@ export default function App() {
     }
     setLoadingStep("");
     setError("");
-    setAnalysisVerdictId("");
     setImportStatus({
       tone: "info",
       title: "Import cancelled",
@@ -15661,13 +15530,15 @@ export default function App() {
   };
 
   const redirectToReportAfterSuccessfulImport = (redirectKey) => {
-    if (!redirectKey || reportRedirectKeyRef.current === redirectKey) return;
+    if (!redirectKey) return;
+    const alreadyRedirected = reportRedirectKeyRef.current === redirectKey;
     reportRedirectKeyRef.current = redirectKey;
-    setActiveView("report");
-    if (typeof window !== "undefined" && window.location.pathname !== "/report") {
-      window.history.pushState({}, "", "/report");
+    const journey = completedAnalysisJourney();
+    setActiveView(journey.view);
+    if (typeof window !== "undefined" && window.location.pathname !== journey.path) {
+      window.history.pushState({}, "", journey.path);
     }
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !alreadyRedirected) {
       window.requestAnimationFrame(() => {
         scrollToAppTarget("app-results", { behavior: "auto" });
       });
@@ -15732,6 +15603,7 @@ export default function App() {
 
     setLoading(true);
     void trackEvent("username_submitted", { platform: selectedPlatformKey, source: "analysis_form" });
+    void trackEvent("analysis_started", { platform: selectedPlatformKey, source: "analysis_form", refresh: hadPreviousReport });
     if (data) void trackEvent("reanalysis_started", { platform: selectedPlatformKey, source: "analysis_form" });
     setImportStage(IMPORT_STAGES.FETCHING);
     setLoadingStep("Finding your games...");
@@ -15746,12 +15618,10 @@ export default function App() {
     });
     setCloudSaveWarning("");
     setCloudSaveStatus("");
-    setReturningUserBriefing(null);
     setSavedProfileMessage("");
     if (!hadPreviousReport) {
       setSelectedGameIndex(0);
       setPracticeOpening(null);
-      setAnalysisVerdictId("");
       setOpenSections(closedSections);
     }
     try {
@@ -15864,7 +15734,7 @@ export default function App() {
       };
       const importOutcome = buildImportOutcome(cleanData, selectedPlatform.label);
 
-      if (!getImportedGameCount(cleanData)) {
+      if (!buildReportGameCounts(cleanData).classified) {
         setImportStage(IMPORT_STAGES.RECOVERABLE_ERROR);
         setError("");
         setImportStatus({
@@ -15903,12 +15773,9 @@ export default function App() {
       cleanData.analysisOwnerUserId = supabaseUser?.id || null;
       cleanData.analysis_owner_user_id = cleanData.analysisOwnerUserId;
       const userReportRetentionKey = `${supabaseUser?.id || "guest"}:${reportRetentionKey}`;
-      const shouldShowAnalysisVerdict = !hasDismissedAnalysisVerdict(reportRetentionKey);
-
       setImportStage(IMPORT_STAGES.SAVING);
       setLoadingStep("Saving your completed report...");
       setData(cleanData);
-      setAnalysisVerdictId(shouldShowAnalysisVerdict ? reportRetentionKey : "");
       setUsername(importedUsername);
       setImportStatus(
         importOutcome.tone === "warning"
@@ -15923,8 +15790,20 @@ export default function App() {
           : importOutcome
       );
       saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
-      successfulReportRedirectKey = hadPreviousReport ? "" : userReportRetentionKey;
+      successfulReportRedirectKey = userReportRetentionKey;
       setImportStage(IMPORT_STAGES.COMPLETE);
+      const completedCounts = buildReportGameCounts(cleanData);
+      void trackEvent("analysis_completed", {
+        platform: selectedPlatformKey,
+        source: "analysis_form",
+        refresh: hadPreviousReport,
+        games: completedCounts.classified,
+        gamesImported: completedCounts.imported,
+        gamesEligible: completedCounts.eligible,
+        gamesClassified: completedCounts.classified,
+        gamesExcluded: completedCounts.excluded,
+        analysisId: cleanData.analysisId,
+      });
 
       logRetentionEvent(
         "data_imported",
@@ -16036,14 +15915,6 @@ export default function App() {
           if (!reportSaveFailed) {
             setCloudSaveStatus("saved");
             setCloudSaveWarning("");
-            if (!shouldShowAnalysisVerdict) {
-              queueReturningUserBriefing({
-                report: cleanData,
-                username: importedUsername,
-                platform: selectedPlatformKey,
-                source: "analysis",
-              });
-            }
           } else {
             const authExpired = cloudSyncFailures.some((result) =>
               /jwt|session|auth|unauthorized|401/i.test(String(result.value?.error?.message || result.reason?.message || ""))
@@ -16329,25 +16200,6 @@ export default function App() {
     filteredPreferredWhite,
     filteredPreferredBlack,
   ]);
-
-  const analysisVerdictScore =
-    fitData?.overallScore ??
-    reportData?.openingFitScore ??
-    reportData?.opening_fit_score ??
-    null;
-  const openingScoreStatus =
-    reportData?.openingFitScoreBand ||
-    reportData?.opening_fit_score_band ||
-    reportData?.openingFitScoreStatus ||
-    reportData?.opening_fit_score_status ||
-    fitData?.scoreBand ||
-    fitData?.status ||
-    fitData?.label ||
-    "";
-  const analysisVerdictTrainingTarget =
-    fitData?.weakestOpening ||
-    fitData?.bestOpening ||
-    null;
 
   const personalTrainingPlan = useMemo(() => {
     const plan = [];
@@ -16638,14 +16490,23 @@ export default function App() {
   );
   const activeAppSection = getAppSection(activeView);
   const currentPath = getCurrentPath();
+  const resolvedAccountUser = supabaseUser || accountUser;
+  const loginAccountState = accountExperienceState({ authLoading, authHydrated, profileLoading, user: resolvedAccountUser });
+  const isSignedOutLoginPage = currentPath === "/login" && loginAccountState === "signed_out";
   const analyticsViewRef = useRef("");
   useEffect(() => {
     const key = `${activeAppSection}:${currentPath}`;
     if (analyticsViewRef.current === key) return;
     analyticsViewRef.current = key;
-    const common = { authenticated: Boolean(supabaseUser?.id), access: isPremium ? "premium" : "free" };
+    const sampleMode = isSampleReport(reportData);
+    const common = {
+      authenticated: Boolean(supabaseUser?.id),
+      access: isPremium ? "premium" : "free",
+      ...(sampleMode ? sampleAnalyticsContext(sampleEntrySourceRef.current || "sample_route") : { sample: false, reportKind: "user" }),
+      ...(reportData ? (() => { const counts = buildReportGameCounts(reportData); return { gamesImported: counts.imported, gamesEligible: counts.eligible, gamesClassified: counts.classified, gamesExcluded: counts.excluded }; })() : {}),
+    };
     if (isPublicLanding) void trackProductEvent("homepage_viewed", { ...common, route: currentPath });
-    if (activeAppSection === "report" && reportData) { void trackProductEvent("report_viewed", { ...common, platform, source: "navigation" }); void trackProductEvent("coach_verdict_viewed", { ...common, platform, source: "report" }); }
+    if (activeAppSection === "report" && reportData) { const reportPlatform = sampleMode ? "example" : platform; void trackProductEvent("report_viewed", { ...common, platform: reportPlatform, source: sampleMode ? common.source : "navigation" }); void trackProductEvent("coach_verdict_viewed", { ...common, platform: reportPlatform, source: sampleMode ? "sample_report" : "report" }); sampleEntrySourceRef.current = ""; }
     if (activeAppSection === "repertoire") void trackProductEvent("repertoire_viewed", { ...common, platform, source: "navigation" });
     if (activeAppSection === "journey") { const reportCount = cloudReportHistory?.length || 0; void trackProductEvent("returning_dashboard_viewed", { ...common, platform, reportCount }); if (reportCount >= 2) void trackProductEvent("report_comparison_viewed", { ...common, reportCount }); }
   }, [activeAppSection, cloudReportHistory?.length, currentPath, isPremium, isPublicLanding, platform, reportData, supabaseUser?.id]);
@@ -16694,12 +16555,6 @@ export default function App() {
       ...history,
     ];
   }, [cloudReportHistory, data, fitData, platform, username]);
-  const hasPreviousReportForOnboarding = useMemo(() => {
-    if (!data) return false;
-    const current = buildReportSnapshot({ report: data, summary: buildReportHistorySummary(data, fitData) });
-    const snapshots = effectiveReportHistory.map((item) => adaptReportHistoryRow(item));
-    return Boolean(selectPreviousReportSnapshot(current, snapshots));
-  }, [data, effectiveReportHistory, fitData]);
   const latestCloudReport = getLatestCloudReport(cloudReportHistory);
 
   const loadLatestCloudReport = () => {
@@ -16954,6 +16809,9 @@ export default function App() {
 
   useEffect(() => {
     const syncViewFromPath = () => {
+      const path = getCurrentPath();
+      setData((current) => isSampleReportPath(path) ? SAMPLE_REPORT : isSampleReport(current) ? null : current);
+      if (isSampleReportPath(path)) setShowPublicLanding(false);
       setActiveView(getInitialAppView());
     };
 
@@ -17031,9 +16889,9 @@ export default function App() {
         />
         <OpeningFitPolishToast />
         <AppPrimaryNav
-          mode={accountUser && !isPublicLanding ? "app" : "marketing"}
+          mode={resolvedAccountUser && !isPublicLanding && !isSampleReport(reportData) ? "app" : "marketing"}
           activeView={activeView}
-          accountUser={accountUser}
+          accountUser={resolvedAccountUser}
           hasReport={Boolean(reportData)}
           onNavigate={handleAppNavigate}
           onExampleReport={loadDemoReport}
@@ -17043,7 +16901,7 @@ export default function App() {
             setTheme((current) => (current === "dark" ? "light" : "dark"))
           }
         />
-        <AccountSyncStatusBar
+        {!isSignedOutLoginPage ? <AccountSyncStatusBar
           user={supabaseUser || accountUser}
           isSupabaseConfigured={isSupabaseConfigured}
           authLoading={authLoading}
@@ -17059,13 +16917,13 @@ export default function App() {
           onAccount={syncStatus === "error" || cloudSaveStatus === "failed" ? retryAccountSync : openLoginPage}
           onCloudRestore={handleCloudRestore}
           onSignOut={handleAccountSignOut}
-        />
+        /> : null}
         <AppActionRouter onViewChange={setActiveView} />
-        <MobileBottomNav
+        {!isSampleReport(reportData) && !isSignedOutLoginPage ? <MobileBottomNav
           activeView={activeView}
           hasReport={Boolean(reportData)}
           onNavigate={handleAppNavigate}
-        />
+        /> : null}
 
         {data ? (
           <>
@@ -17074,7 +16932,7 @@ export default function App() {
           </>
         ) : null}
 
-        <FounderPassLoginUpgrade accountUser={accountUser} />
+        <FounderPassLoginUpgrade accountUser={resolvedAccountUser} isPremium={isPremium} />
 
         <CheckoutStatusNotice
           onAnalytics={trackEvent}
@@ -17113,17 +16971,11 @@ export default function App() {
                 : "Loaded your saved OpeningFit report.",
               meta: restoredPlatform || null,
             });
-            queueReturningUserBriefing({
-              report,
-              username: restoredUsername,
-              platform: restoredPlatform,
-              source,
-            });
-
-            if (getCurrentPath() === "/") {
-              setActiveView("dashboard");
-              window.history.replaceState({}, "", "/dashboard");
-            }
+            void report;
+            void source;
+            const journey = restoredReportJourney();
+            setActiveView(journey.view);
+            if (getCurrentPath() !== journey.path) window.history.replaceState({}, "", journey.path);
           }}
         />
 
@@ -17357,7 +17209,7 @@ export default function App() {
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
-                  loadDemoReport();
+                  loadDemoReport(SAMPLE_REPORT_CTA_SOURCES.importHero);
                 }}
                 disabled={loading}
               >
@@ -17537,63 +17389,6 @@ export default function App() {
             </div>
           )}
 
-          <ReturningUserBriefing
-            open={false}
-            report={returningUserBriefing?.report}
-            displayName={
-              supabaseProfile?.display_name ||
-              supabaseProfile?.username ||
-              returningUserBriefing?.username ||
-              username
-            }
-            openingScore={analysisVerdictScore}
-            scoreStatus={openingScoreStatus}
-            reportHistory={effectiveReportHistory}
-            openingFitUserState={openingFitUserState}
-            trainingTarget={analysisVerdictTrainingTarget}
-            onClose={dismissReturningUserBriefing}
-            onViewReport={() => {
-              dismissReturningUserBriefing();
-              handleAppNavigate({
-                view: "report",
-                path: "/report",
-                target: "app-results",
-              });
-            }}
-            onContinueTraining={(target) => {
-              dismissReturningUserBriefing();
-              startOpeningPractice(target);
-            }}
-          />
-
-          {analysisVerdictId && reportData && !loading ? (
-            <AnalysisVerdictModal
-              data={reportData}
-              fitData={fitData}
-              openingScore={analysisVerdictScore}
-              analysisId={analysisVerdictId}
-              trainingTarget={analysisVerdictTrainingTarget}
-              onDismiss={() => {
-                rememberDismissedAnalysisVerdict(analysisVerdictId);
-                setAnalysisVerdictId("");
-              }}
-              onViewReport={() => {
-                rememberDismissedAnalysisVerdict(analysisVerdictId);
-                setAnalysisVerdictId("");
-                handleAppNavigate({
-                  view: "report",
-                  path: "/report",
-                  target: "app-results",
-                });
-              }}
-              onStartTraining={(target) => {
-                rememberDismissedAnalysisVerdict(analysisVerdictId);
-                setAnalysisVerdictId("");
-                startOpeningPractice(target);
-              }}
-            />
-          ) : null}
-
           {importStatus || (reportData && cloudSaveStatus && !cloudSaveWarning) ? (
             <div className="postImportStatusStack" aria-label="Import status">
               {importStatus ? (
@@ -17697,10 +17492,19 @@ export default function App() {
             <div
               id="app-results"
               className={activeAppSection === "train" ? "appResultsShell appResultsShellTrain" : "appResultsShell"}
+              data-report-kind={isSampleReport(reportData) ? "sample" : "user"}
             >
               {activeAppSection === "report" ? (
                 <>
-                  <ResumeTrainingPrompt data={reportData} onResume={startOpeningPractice} />
+                  {isSampleReport(reportData) ? (
+                    <section className="sampleReportNotice" aria-label="Sample report — example data">
+                      <div>
+                        <strong>Sample report</strong>
+                        <span>Example data for a fictional player. This is not your analysis and will not be saved to your history.</span>
+                      </div>
+                      <button type="button" className="primaryBtn" onClick={exitSampleReport}>Analyse my games</button>
+                    </section>
+                  ) : null}
                   <FinalReportFlow
                     data={reportData}
                     fitData={fitData}
@@ -17957,11 +17761,11 @@ export default function App() {
 
           {activeAppSection === "profile" && activeView !== "feedback" ? (
             <section className="profileSection" id="profile">
-              <ResumeTrainingPrompt data={reportData || data} onResume={startOpeningPractice} />
+              {resolvedAccountUser?.id && loginAccountState === "authenticated" ? <ResumeTrainingPrompt data={reportData || data} onResume={startOpeningPractice} /> : null}
               <OpeningFitProfileDashboard
                 data={reportData}
                 fitData={fitData}
-                accountUser={accountUser}
+                accountUser={resolvedAccountUser}
                 username={username}
                 platform={platform}
                 isPremium={isPremium}
@@ -18046,16 +17850,13 @@ export default function App() {
             </section>
           ) : null}
 
-          {isPublicLanding ? (
+          {isSignedOutLoginPage ? null : isPublicLanding ? (
             <PublicHomepageFooter onAccount={openLoginPage} />
           ) : (
             <AppStoreReadinessFooter onAccount={openLoginPage} />
           )}
         </main>
-        <PostReportOnboarding
-          firstReport={Boolean(reportData && !isDemoAnalysis(reportData) && !hasPreviousReportForOnboarding)}
-          reportVisible={Boolean(reportData && activeAppSection === "report")}
-        />
+        <PostReportOnboarding />
       </div>
 
     </>

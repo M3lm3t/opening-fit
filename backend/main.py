@@ -14,6 +14,8 @@ from analysis.opening_fit_metrics import build_opening_fit_metrics, merge_openin
 from analysis.opening_coach_insights import build_opening_coach_insights
 from analysis.opening_training_opportunities import extract_opening_training_opportunities
 from analysis.retention_metrics import build_retention_metrics
+from analysis.opening_perspective import attach_perspective, classify_opening_perspective, perspective_from_item
+from analysis.report_decision import build_report_decision, reports_are_comparable
 from opening_detection import (
     detect_opening,
     detect_opening_from_pgn,
@@ -504,8 +506,14 @@ def change_direction(current: float, previous: float, margin: float = 0.5) -> st
 
 
 def build_report_progress_comparison(current: Dict[str, Any], previous: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    if not previous:
-        return {"enabled": False, "available": False, "items": [], "summary": ""}
+    if not reports_are_comparable(current, previous):
+        return {
+            "enabled": False,
+            "available": False,
+            "status": "baseline",
+            "items": [],
+            "summary": "This is a baseline report; comparison claims require an earlier comparable report.",
+        }
 
     items: List[Dict[str, Any]] = []
     current_openings = report_opening_map(current)
@@ -1650,15 +1658,16 @@ def guess_opening_from_pgn(pgn: str) -> str:
 
 
 SKIPPED_REASON_LABELS = {
-    "bullet": "Bullet games",
-    "variants": "Variants",
-    "veryShort": "Very short games",
-    "abandoned": "Abandoned or disconnected games",
-    "earlyTimeout": "Very early timeouts",
-    "oneMoveResignation": "One-move resignations",
-    "tooFewLegalMoves": "Too few legal moves to classify",
-    "missingOpening": "Missing opening/ECO data",
-    "outsideWindow": "Games outside selected import window",
+    "bullet": "Unsupported time control (bullet)",
+    "variants": "Unsupported chess variant",
+    "veryShort": "Insufficient opening moves",
+    "abandoned": "Incomplete or abandoned game",
+    "earlyTimeout": "Incomplete or abandoned game",
+    "oneMoveResignation": "Incomplete or abandoned game",
+    "tooFewLegalMoves": "Insufficient opening moves",
+    "missingOpening": "Missing or invalid PGN/opening data",
+    "outsideWindow": "Outside selected date range",
+    "analysisLimit": "Outside the current analysis limit",
 }
 
 
@@ -1672,6 +1681,33 @@ def skipped_reason_items(reason_counts: Dict[str, int]) -> List[Dict[str, Any]]:
         for key, count in reason_counts.items()
         if count
     ]
+
+
+def build_game_count_summary(
+    imported: int,
+    classified: int,
+    reason_counts: Optional[Dict[str, int]] = None,
+) -> Dict[str, Any]:
+    """Return the stable count contract used by report UI and analytics.
+
+    Imported is what the platform returned in the requested window. Eligible is
+    what remains after date and supported-time-control filtering. Classified is
+    the subset with enough valid opening data to produce a report signal.
+    """
+    reasons = reason_counts or {}
+    imported_count = max(0, int(imported or 0))
+    classified_count = min(imported_count, max(0, int(classified or 0)))
+    filter_excluded = sum(int(reasons.get(key, 0) or 0) for key in ("bullet", "outsideWindow"))
+    eligible_count = max(classified_count, imported_count - filter_excluded)
+    excluded_count = max(0, imported_count - classified_count)
+    return {
+        "imported": imported_count,
+        "eligible": eligible_count,
+        "classified": classified_count,
+        "excluded": excluded_count,
+        "exclusionReasons": skipped_reason_items(reasons),
+        "exclusion_reasons": skipped_reason_items(reasons),
+    }
 
 
 def chesscom_skip_reason(game: Dict[str, Any]) -> Optional[str]:
@@ -2015,6 +2051,8 @@ PUBLIC_ACCOUNT_CAUTION_COPY = (
 )
 MASTER_TITLES = {"gm", "im", "fm", "cm", "wgm", "wim", "wfm", "wcm", "nm", "lm"}
 
+"""Legacy name-based ownership heuristic retained only in history for reference.
+Current classification uses detector metadata plus the user's actual colour.
 BLACK_OPENING_NAME_PATTERNS = [
     "defence",
     "defense",
@@ -2078,6 +2116,7 @@ def opening_name_colour_hint(opening: str) -> str:
         return "white"
 
     return "unknown"
+"""
 
 
 def is_unknown_opening_name(opening: str) -> bool:
@@ -2130,19 +2169,21 @@ def black_context_from_first_white_move(first_white_move: str) -> str:
     return "unknown_mixed"
 
 
-def opening_context_for_game(colour: str, first_white_move: str) -> str:
-    if colour == "white":
-        return "played_as_white"
-
-    if colour == "black":
-        return black_context_from_first_white_move(first_white_move)
-
-    return "unknown_mixed"
+def opening_context_for_game(colour: str, first_white_move: str, opening_side: Optional[str] = None) -> str:
+    perspective = classify_opening_perspective(
+        user_colour=colour,
+        opening_side=opening_side,
+        first_white_move=first_white_move,
+    )
+    return str(perspective["repertoireSlot"] or perspective["role"])
 
 
 def context_label(context: str) -> str:
     return {
-        "played_as_white": "played as White",
+        "played_as_white": "played by you as White",
+        "played_as_black": "played by you as Black",
+        "faced_as_white": "faced by you as White",
+        "faced_as_black": "faced by you as Black",
         "black_vs_e4": "played as Black vs 1.e4",
         "black_vs_d4": "played as Black vs 1.d4",
         "black_vs_other": "played as Black vs other first moves",
@@ -2241,10 +2282,10 @@ def adapt_openings_for_report_mode(
 
 
 def context_colour(context: str) -> str:
-    if context == "played_as_white":
+    if context in {"played_as_white", "faced_as_white"}:
         return "white"
 
-    if context in {"black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other"}:
+    if context in {"played_as_black", "faced_as_black", "black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other"}:
         return "black"
 
     return "mixed"
@@ -2253,6 +2294,8 @@ def context_colour(context: str) -> str:
 def dominant_opening_context(stats: Dict[str, int]) -> str:
     context_counts = {
         "played_as_white": int(stats.get("played_as_white", 0) or 0),
+        "faced_as_white": int(stats.get("faced_as_white", 0) or 0),
+        "faced_as_black": int(stats.get("faced_as_black", 0) or 0),
         "black_vs_e4": int(stats.get("black_vs_e4", 0) or 0),
         "black_vs_d4": int(stats.get("black_vs_d4", 0) or 0),
         "black_vs_other": int(stats.get("black_vs_other", 0) or 0),
@@ -2272,6 +2315,28 @@ def dominant_opening_context(stats: Dict[str, int]) -> str:
     return ranked[0][0]
 
 
+def dominant_opening_role(stats: Dict[str, Any]) -> str:
+    counts = {
+        role: int(stats.get(role, 0) or 0)
+        for role in ("played_as_white", "played_as_black", "faced_as_white", "faced_as_black")
+    }
+    ranked = sorted(((role, count) for role, count in counts.items() if count), key=lambda row: row[1], reverse=True)
+    if not ranked or (len(ranked) > 1 and ranked[0][1] == ranked[1][1]):
+        return "unknown_mixed"
+    return ranked[0][0]
+
+
+def perspective_for_opening_stats(stats: Dict[str, Any], context: str) -> Dict[str, Any]:
+    role = dominant_opening_role(stats)
+    return perspective_from_item(
+        {
+            "openingRole": role,
+            "userColour": context_colour(context),
+            "repertoireSlot": context if role == "played_as_black" else "white" if role == "played_as_white" else None,
+        }
+    )
+
+
 def empty_opening_stats() -> Dict[str, Any]:
     return {
         "name": "",
@@ -2282,6 +2347,9 @@ def empty_opening_stats() -> Dict[str, Any]:
         "white": 0,
         "black": 0,
         "played_as_white": 0,
+        "played_as_black": 0,
+        "faced_as_white": 0,
+        "faced_as_black": 0,
         "black_vs_e4": 0,
         "black_vs_d4": 0,
         "black_vs_other": 0,
@@ -2852,6 +2920,9 @@ def opening_item(
         "plan_structures_8": dict(stats.get("plan_structures_8", {}) or {}),
         "plan_structures_10": dict(stats.get("plan_structures_10", {}) or {}),
         "context": context,
+        "openingRole": dominant_opening_role(stats),
+        "opening_role": dominant_opening_role(stats),
+        "userColour": context_colour(context),
         "contextLabel": context_label(context),
         "repertoireContext": context,
         "recommendationCopy": SAFE_CONTEXT_FALLBACK_COPY if context == "unknown_mixed" else "",
@@ -2859,6 +2930,7 @@ def opening_item(
         "color": context_colour(context),
         **opening_explanation(name),
     }
+    item = attach_perspective(item, perspective_for_opening_stats(stats, context))
 
     if win_rate is not None:
         item["win_rate"] = win_rate
@@ -2882,7 +2954,10 @@ def opening_confidence_fields(opening: Dict[str, Any], total_games: int = 0) -> 
     total = int(total_games or 0)
     sample_pct = round((games / total) * 100, 1) if total > 0 else 0
     context = str(opening.get("context") or opening.get("repertoireContext") or "unknown_mixed")
-    clean_context = context != "unknown_mixed" and context_is_compatible(str(opening.get("name", "")), context)
+    clean_context = context in {
+        "played_as_white", "black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other",
+        "faced_as_white", "faced_as_black",
+    }
     score = opening.get("winRate", opening.get("win_rate"))
     wins = int(opening.get("wins", 0) or 0)
     draws = int(opening.get("draws", 0) or 0)
@@ -3034,8 +3109,10 @@ def opening_evidence_bullets(opening: Dict[str, Any]) -> List[str]:
     score = opening.get("winRate", opening.get("win_rate"))
     confidence = str(opening.get("confidence") or "Too little data")
     context = str(opening.get("contextLabel") or context_label(str(opening.get("context") or "")))
+    relationship = perspective_from_item(opening)["relationship"]
+    verb = "faced" if relationship == "faced" else "played" if relationship == "played" else "encountered"
     bullets = [
-        f"You played this opening {games} time{'' if games == 1 else 's'}.",
+        f"You {verb} this opening {games} time{'' if games == 1 else 's'}.",
         f"Colour context: {context}.",
     ]
 
@@ -3073,33 +3150,24 @@ def opening_evidence_bullets(opening: Dict[str, Any]) -> List[str]:
 
 
 def context_is_compatible(name: str, context: str) -> bool:
-    hint = opening_name_colour_hint(name)
-
-    if context == "played_as_white":
-        return hint != "black"
-
-    if context in {"black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other"}:
-        return hint != "white"
-
-    return False
+    return context in {"played_as_white", "played_as_black", "black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other"}
 
 
 def repertoire_context_title(opening: Dict[str, Any]) -> str:
     name = str(opening.get("name", "this opening"))
     context = str(opening.get("context") or opening.get("repertoireContext") or "unknown_mixed")
-    hint = opening_name_colour_hint(name)
-
-    if context == "played_as_white" and hint == "black":
-        return f"facing {name} as White"
-
-    if context in {"black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other"} and hint == "white":
-        return f"facing {name} as Black"
 
     if context == "played_as_white":
         return f"{name} as White"
 
-    if context in {"black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other"}:
+    if context in {"played_as_black", "black_vs_e4", "black_vs_d4", "black_vs_other", "black_vs_d4_other"}:
         return f"{name} as Black"
+
+    if context == "faced_as_white":
+        return f"facing {name} as White"
+
+    if context == "faced_as_black":
+        return f"facing {name} as Black"
 
     return f"{name} as a mixed signal"
 
@@ -3108,6 +3176,15 @@ def is_clean_repertoire_context(opening: Dict[str, Any]) -> bool:
     name = str(opening.get("name", ""))
     context = str(opening.get("context") or opening.get("repertoireContext") or "unknown_mixed")
     return context_is_compatible(name, context)
+
+
+def preferred_openings_for_role(openings: List[Dict[str, Any]], role: str, limit: int = 5) -> List[Dict[str, Any]]:
+    candidates = [item for item in openings or [] if perspective_from_item(item)["role"] == role]
+    return sorted(
+        candidates,
+        key=lambda item: (int(item.get("games", 0) or 0), int(item.get("fitScore", 0) or 0)),
+        reverse=True,
+    )[:limit]
 
 
 def build_colour_aware_recommendations(
@@ -3121,6 +3198,8 @@ def build_colour_aware_recommendations(
         "black_vs_e4": [],
         "black_vs_d4": [],
         "black_vs_other": [],
+        "faced_as_white": [],
+        "faced_as_black": [],
         "experimental_rare": [],
         "too_little_data": [],
     }
@@ -3151,6 +3230,16 @@ def build_colour_aware_recommendations(
 
         if games <= 2:
             sections["too_little_data"].append(item)
+            continue
+
+        if context in {"faced_as_white", "faced_as_black"}:
+            preparation = {
+                **item,
+                "recommendationType": "opponent_preparation",
+                "recommendation_type": "opponent_preparation",
+                "recommendationCopy": f"Prepare against the {display_name}; this is an opening you face, not one attributed to your repertoire.",
+            }
+            sections[context].append(preparation)
             continue
 
         if context == "unknown_mixed" or not context_is_compatible(display_name, context):
@@ -3209,6 +3298,8 @@ def build_colour_aware_recommendations(
         "blackVsD4Detailed": sections["black_vs_d4"],
         "blackVsOtherDetailed": sections["black_vs_other"],
         "blackVsD4OtherDetailed": black_d4_other,
+        "facedAsWhite": sections["faced_as_white"],
+        "facedAsBlack": sections["faced_as_black"],
         "experimentalRare": sections["experimental_rare"],
         "tooLittleData": sections["too_little_data"],
         "sections": [
@@ -3231,6 +3322,16 @@ def build_colour_aware_recommendations(
                 "key": "black_vs_other",
                 "title": "Black vs other first moves",
                 "items": sections["black_vs_other"],
+            },
+            {
+                "key": "faced_as_white",
+                "title": "Openings and defences you face as White",
+                "items": sections["faced_as_white"],
+            },
+            {
+                "key": "faced_as_black",
+                "title": "Openings and systems you face as Black",
+                "items": sections["faced_as_black"],
             },
             {
                 "key": "experimental_rare",
@@ -3294,6 +3395,7 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "contextLabel": context_label(context),
                 "repertoireContext": context,
             }
+        item = attach_perspective(item, perspective_for_opening_stats(stats, context))
         item.update(loss_timing_fields(item))
         item.update(opponent_rating_fields(item))
         item.update(move_order_consistency_fields(item))
@@ -3552,7 +3654,7 @@ def engine_verdict(cp: Optional[int]) -> str:
 
 
 def line_user_colour(context: str) -> chess.Color:
-    return chess.WHITE if context == "played_as_white" else chess.BLACK
+    return chess.WHITE if context in {"played_as_white", "faced_as_white"} else chess.BLACK
 
 
 def validate_problem_lines_with_stockfish(problem_lines: List[Dict[str, Any]], max_lines: int = 2) -> Dict[str, Any]:
@@ -5448,9 +5550,9 @@ def sanitise_recommendation_sections(sections: Dict[str, Any]) -> Dict[str, Any]
         cleaned = []
         for item in sections.get(key, []):
             name_key = str(item.get("name") or "").lower()
-            incompatible = (
-                (key == "white_repertoire" and opening_name_colour_hint(item.get("name", "")) == "black")
-                or (key.startswith("black") and opening_name_colour_hint(item.get("name", "")) == "white")
+            role = perspective_from_item(item)["role"]
+            incompatible = (key == "white_repertoire" and role != "played_as_white") or (
+                key.startswith("black") and role != "played_as_black"
             )
             if incompatible or str(item.get("confidence", "")).lower().startswith("too little"):
                 demoted = {**item, "sanityNote": "Demoted because the colour context or sample size is not strong enough."}
@@ -8082,6 +8184,7 @@ def build_not_enough_games_import_result(
     platform_label = "Chess.com" if platform == "chess.com" else "Lichess"
     player_profile = player_profile or normalize_player_profile(platform, {}, username)
 
+    game_counts = build_game_count_summary(games_found, 0, skipped_reason_counts)
     return {
         "ok": False,
         "code": "not_enough_games",
@@ -8098,11 +8201,19 @@ def build_not_enough_games_import_result(
         **rating_context_from_profile(player_profile),
         "total_games": 0,
         "totalGames": 0,
-        "gamesImported": 0,
+        "gamesImported": games_found,
         "gamesFound": games_found,
         "games_found": games_found,
         "gamesAnalysed": 0,
         "gamesAnalyzed": 0,
+        "gamesEligible": game_counts["eligible"],
+        "games_eligible": game_counts["eligible"],
+        "gamesClassified": 0,
+        "games_classified": 0,
+        "gamesExcluded": game_counts["excluded"],
+        "games_excluded": game_counts["excluded"],
+        "gameCounts": game_counts,
+        "game_counts": game_counts,
         "skippedGames": games_found,
         "skipped_game_reasons": skipped_reason_counts,
         "skippedGameReasons": skipped_reason_items(skipped_reason_counts),
@@ -8255,13 +8366,21 @@ def import_chesscom_logic(username: str, months: int = 3):
         pgn = game.get("pgn", "")
         moves = clean_moves_from_pgn(pgn)
         move_count = move_count_from_moves(moves)
-        opening = guess_opening_from_pgn(pgn)
+        opening_detection = detect_opening_from_pgn(pgn, moves)
+        opening = str(opening_detection.get("opening") or guess_opening_from_pgn(pgn))
         colour = colour_for_user(game, username)
         result = result_for_user(game, username)
         user_rating, opponent_rating = chesscom_user_and_opponent_rating(game, username)
         loss_timing = classify_loss_timing(result, moves=moves)
         first_white_move = extract_first_white_move_from_text(pgn)
-        repertoire_context = opening_context_for_game(colour, first_white_move)
+        perspective = classify_opening_perspective(
+            user_colour=colour,
+            opening_side=opening_detection.get("openingSide"),
+            first_white_move=first_white_move,
+            classification_source=str(opening_detection.get("openingSideSource") or "move_sequence_or_opening_metadata"),
+        )
+        repertoire_context = str(perspective["repertoireSlot"] or perspective["role"])
+        perspective_fields = attach_perspective({}, perspective)
         time_control_raw = game.get("time_control") or game.get("timeControl") or game.get("time_class")
         time_control_normalized = normalise_filter_time_control(game.get("time_class") or time_control_raw)
         played_at = (
@@ -8286,6 +8405,8 @@ def import_chesscom_logic(username: str, months: int = 3):
             if colour in {"white", "black"}:
                 stats[colour] += 1
             stats[repertoire_context] += 1
+            if perspective["role"] != repertoire_context:
+                stats[perspective["role"]] += 1
 
             if result == "win":
                 stats["wins"] += 1
@@ -8317,6 +8438,7 @@ def import_chesscom_logic(username: str, months: int = 3):
                 "context": repertoire_context,
                 "contextLabel": context_label(repertoire_context),
                 "repertoireContext": repertoire_context,
+                **perspective_fields,
                 "end_time": game.get("end_time"),
                 "endTime": game.get("end_time"),
                 "played_at": played_at,
@@ -8353,6 +8475,7 @@ def import_chesscom_logic(username: str, months: int = 3):
                 "context": repertoire_context,
                 "contextLabel": context_label(repertoire_context),
                 "repertoireContext": repertoire_context,
+                **perspective_fields,
                 "end_time": game.get("end_time"),
                 "endTime": game.get("end_time"),
                 "played_at": played_at,
@@ -8407,6 +8530,7 @@ def import_chesscom_logic(username: str, months: int = 3):
             "repertoireContext": dominant_opening_context(stats),
             **explanation,
         }
+        item = attach_perspective(item, perspective_for_opening_stats(stats, dominant_opening_context(stats)))
         item.update(loss_timing_fields(item))
         item.update(opponent_rating_fields(item))
         item.update(move_order_consistency_fields(item))
@@ -8488,6 +8612,8 @@ def import_chesscom_logic(username: str, months: int = 3):
     top_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(top_openings, recent_opening_trend_report))
     best_openings = attach_opening_recommendation_reasons(best_openings)
     top_openings = attach_opening_recommendation_reasons(top_openings)
+    preferred_white = preferred_openings_for_role(best_openings, "played_as_white")
+    preferred_black = preferred_openings_for_role(best_openings, "played_as_black")
     opening_roi = build_opening_roi(
         best_openings,
         problem_lines,
@@ -8593,6 +8719,10 @@ def import_chesscom_logic(username: str, months: int = 3):
 
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
+    count_reasons = dict(skipped_reason_counts)
+    if len(all_games) > len(analysis_candidates):
+        count_reasons["analysisLimit"] = len(all_games) - len(analysis_candidates)
+    game_counts = build_game_count_summary(len(all_games), len(analysed_games), count_reasons)
     result = {
         "username": player_profile.get("username") or player.get("username", username),
         "display_name": player_profile.get("display_name"),
@@ -8609,10 +8739,18 @@ def import_chesscom_logic(username: str, months: int = 3):
         "chess_title": player.get("title"),
         "total_games": len(analysed_games),
         "totalGames": len(analysed_games),
-        "gamesImported": len(analysed_games),
+        "gamesImported": len(all_games),
         "gamesFound": len(all_games),
         "gamesAnalysed": len(analysed_games),
         "gamesAnalyzed": len(analysed_games),
+        "gamesEligible": game_counts["eligible"],
+        "games_eligible": game_counts["eligible"],
+        "gamesClassified": game_counts["classified"],
+        "games_classified": game_counts["classified"],
+        "gamesExcluded": game_counts["excluded"],
+        "games_excluded": game_counts["excluded"],
+        "gameCounts": game_counts,
+        "game_counts": game_counts,
         "skippedGames": len(all_games) - len(analysed_games),
         "skipped_game_reasons": skipped_reason_counts,
         "skippedGameReasons": skipped_reason_items(skipped_reason_counts),
@@ -8729,6 +8867,10 @@ def import_chesscom_logic(username: str, months: int = 3):
     opening_coach_insights = build_opening_coach_insights(result)
     result["opening_coach_insights"] = opening_coach_insights
     result["openingCoachInsights"] = opening_coach_insights
+
+    report_decision = build_report_decision(result, openings=best_openings, previous_report=previous_report)
+    result["report_decision"] = report_decision
+    result["reportDecision"] = report_decision
 
     result["progress_comparison"] = build_report_progress_comparison(
         result,
@@ -8875,7 +9017,21 @@ def build_lichess_analysis(
         moves = moves_text.split() if moves_text else []
         move_count = move_count_from_moves(moves)
         first_white_move = moves[0] if moves else ""
-        repertoire_context = opening_context_for_game(colour, first_white_move)
+        raw_opening = game.get("opening") if isinstance(game.get("opening"), dict) else {}
+        opening_detection = detect_opening(
+            moves,
+            tagged_opening=str(raw_opening.get("name") or opening),
+            eco=str(raw_opening.get("eco") or ""),
+        )
+        opening = str(opening_detection.get("opening") or opening)
+        perspective = classify_opening_perspective(
+            user_colour=colour,
+            opening_side=opening_detection.get("openingSide"),
+            first_white_move=first_white_move,
+            classification_source=str(opening_detection.get("openingSideSource") or "move_sequence_or_opening_metadata"),
+        )
+        repertoire_context = str(perspective["repertoireSlot"] or perspective["role"])
+        perspective_fields = attach_perspective({}, perspective)
         loss_timing = classify_loss_timing(result, moves=moves)
         time_control_raw = lichess_time_control_raw(game)
         time_control_normalized = lichess_time_class(game)
@@ -8922,6 +9078,8 @@ def build_lichess_analysis(
             if colour in {"white", "black"}:
                 stats[colour] += 1
             stats[repertoire_context] += 1
+            if perspective["role"] != repertoire_context:
+                stats[perspective["role"]] += 1
 
             if result == "win":
                 stats["wins"] += 1
@@ -8953,6 +9111,7 @@ def build_lichess_analysis(
                 "context": repertoire_context,
                 "contextLabel": context_label(repertoire_context),
                 "repertoireContext": repertoire_context,
+                **perspective_fields,
                 "end_time": game.get("lastMoveAt") or game.get("createdAt"),
                 "endTime": game.get("lastMoveAt") or game.get("createdAt"),
                 "played_at": played_at,
@@ -8990,6 +9149,7 @@ def build_lichess_analysis(
                 "context": repertoire_context,
                 "contextLabel": context_label(repertoire_context),
                 "repertoireContext": repertoire_context,
+                **perspective_fields,
                 "end_time": game.get("lastMoveAt") or game.get("createdAt"),
                 "endTime": game.get("lastMoveAt") or game.get("createdAt"),
                 "played_at": played_at,
@@ -9044,6 +9204,7 @@ def build_lichess_analysis(
             "repertoireContext": dominant_opening_context(stats),
             **explanation,
         }
+        item = attach_perspective(item, perspective_for_opening_stats(stats, dominant_opening_context(stats)))
         item.update(loss_timing_fields(item))
         item.update(opponent_rating_fields(item))
         item.update(move_order_consistency_fields(item))
@@ -9151,6 +9312,8 @@ def build_lichess_analysis(
     top_openings = sort_openings_for_recommendation(apply_recent_trends_to_openings(top_openings, recent_opening_trend_report))
     best_openings = attach_opening_recommendation_reasons(best_openings)
     top_openings = attach_opening_recommendation_reasons(top_openings)
+    preferred_white = preferred_openings_for_role(best_openings, "played_as_white")
+    preferred_black = preferred_openings_for_role(best_openings, "played_as_black")
     opening_roi = build_opening_roi(
         best_openings,
         problem_lines,
@@ -9255,6 +9418,7 @@ def build_lichess_analysis(
     diagnostic_summary = build_diagnostic_summary(recent_games, username=username)
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
+    game_counts = build_game_count_summary(games_found, len(games), skipped_reason_counts)
     result = {
         "username": player_profile.get("username") or username,
         "display_name": player_profile.get("display_name"),
@@ -9273,10 +9437,18 @@ def build_lichess_analysis(
         "playerLevel": player_level,
         "total_games": len(games),
         "totalGames": len(games),
-        "gamesImported": len(games),
+        "gamesImported": games_found,
         "gamesFound": games_found,
         "gamesAnalysed": len(games),
         "gamesAnalyzed": len(games),
+        "gamesEligible": game_counts["eligible"],
+        "games_eligible": game_counts["eligible"],
+        "gamesClassified": game_counts["classified"],
+        "games_classified": game_counts["classified"],
+        "gamesExcluded": game_counts["excluded"],
+        "games_excluded": game_counts["excluded"],
+        "gameCounts": game_counts,
+        "game_counts": game_counts,
         "skippedGames": max(0, games_found - len(games)),
         "skipped_game_reasons": skipped_reason_counts,
         "skippedGameReasons": skipped_reason_items(skipped_reason_counts),
@@ -9405,6 +9577,10 @@ def build_lichess_analysis(
     opening_coach_insights = build_opening_coach_insights(result)
     result["opening_coach_insights"] = opening_coach_insights
     result["openingCoachInsights"] = opening_coach_insights
+
+    report_decision = build_report_decision(result, openings=best_openings, previous_report=previous_report)
+    result["report_decision"] = report_decision
+    result["reportDecision"] = report_decision
 
     result["progress_comparison"] = build_report_progress_comparison(
         result,

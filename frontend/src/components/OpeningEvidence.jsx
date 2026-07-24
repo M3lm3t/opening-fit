@@ -5,6 +5,7 @@ import {
   isAdvancedOrStrongerLevel,
 } from "./playerLevelLogic";
 import { getOpeningRecommendationReason } from "./openingCopy";
+import { openingPerspective } from "../lib/reportDecisionModel.js";
 
 export const CONFIDENCE_THRESHOLDS = {
   highGames: 25,
@@ -25,6 +26,7 @@ function normaliseConfidenceLabel(value) {
   return text;
 }
 
+/* Legacy name-based ownership lists intentionally retired. New reports use openingPerspective.
 const BLACK_OPENING_NAME_PATTERNS = [
   "defence",
   "defense",
@@ -74,6 +76,7 @@ const WHITE_OPENING_NAME_PATTERNS = [
   "polish opening",
   "bird's opening",
 ];
+*/
 
 function numberValue(value, fallback = null) {
   if (value === undefined || value === null || value === "") return fallback;
@@ -150,18 +153,9 @@ function sideFromText(value) {
 }
 
 export function getOpeningNameSideHint(opening) {
-  const name = getEvidenceOpeningName(opening, "");
-  const lower = String(name || "").toLowerCase();
-
-  if (BLACK_OPENING_NAME_PATTERNS.some((pattern) => lower.includes(pattern))) {
-    return "black";
-  }
-
-  if (WHITE_OPENING_NAME_PATTERNS.some((pattern) => lower.includes(pattern))) {
-    return "white";
-  }
-
-  return "unknown";
+  const side = opening?.openingSide || opening?.opening_side || opening?.perspective?.openingSide;
+  const normalized = String(side || "").toLowerCase();
+  return ["white", "black"].includes(normalized) ? normalized : "unknown";
 }
 
 export function getOpeningContext(opening) {
@@ -174,63 +168,24 @@ export function getOpeningContext(opening) {
       opening?.category ||
       ""
   ).toLowerCase();
-  const rawSide = String(
-    opening?.colour ||
-      opening?.color ||
-      opening?.side ||
-      opening?.as ||
-      opening?.player_color ||
-      ""
-  ).toLowerCase();
-  const hint = getOpeningNameSideHint(opening);
-  const looksFaced =
-    rawContext.includes("faced") ||
-    rawContext.includes("opponent") ||
-    opening?.faced === true ||
-    opening?.opponentOpening === true ||
-    opening?.opponent_opening === true;
-  const isWhiteContext =
-    rawContext.includes("played_as_white") ||
-    rawContext.includes("as white") ||
-    rawContext.includes("played as white") ||
-    rawSide.includes("white");
-  const isBlackContext =
-    rawContext.includes("black_vs") ||
-    rawContext.includes("as black") ||
-    rawContext.includes("played as black") ||
-    rawSide.includes("black");
+  const explicit = openingPerspective(opening);
+  const role = explicit.role !== "unknown_mixed"
+    ? explicit.role
+    : rawContext.includes("faced_as_white") ? "faced_as_white"
+      : rawContext.includes("faced_as_black") ? "faced_as_black"
+        : "unknown_mixed";
 
-  if (looksFaced) {
+  if (role === "faced_as_white" || role === "faced_as_black") {
     return {
       type: "faced",
-      label: "You faced this",
-      detail: "opponent opening",
+      label: `You face this as ${role.endsWith("white") ? "White" : "Black"}`,
+      detail: "opponent preparation",
       canRecommend: false,
       isRepertoire: false,
     };
   }
 
-  if (isWhiteContext && hint === "black") {
-    return {
-      type: "faced",
-      label: "You faced this",
-      detail: "facing it as White",
-      canRecommend: false,
-      isRepertoire: false,
-    };
-  }
-
-  if (isBlackContext && hint === "white") {
-    return {
-      type: "faced",
-      label: "You faced this",
-      detail: "facing it as Black",
-      canRecommend: false,
-      isRepertoire: false,
-    };
-  }
-
-  if (isWhiteContext) {
+  if (role === "played_as_white") {
     return {
       type: "white",
       label: "As White",
@@ -240,8 +195,9 @@ export function getOpeningContext(opening) {
     };
   }
 
-  if (isBlackContext) {
+  if (role === "played_as_black") {
     const isVsOther =
+      explicit.repertoireSlot === "black_vs_other" ||
       rawContext.includes("black_vs_other") ||
       rawContext.includes("other first") ||
       rawContext.includes("1.c4") ||
@@ -249,6 +205,7 @@ export function getOpeningContext(opening) {
       rawContext.includes("c4") ||
       rawContext.includes("nf3");
     const isVsD4 =
+      explicit.repertoireSlot === "black_vs_d4" ||
       rawContext.includes("black_vs_d4") ||
       rawContext.includes("vs 1.d4") ||
       rawContext.includes("vs d4");

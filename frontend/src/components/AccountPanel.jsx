@@ -15,6 +15,7 @@ import { logRetentionEvent } from "../services/retentionEvents";
 import { trackProductEvent } from "../lib/productAnalytics";
 import ReferralCodeEntry from "./ReferralCodeEntry";
 import { SUPPORT_EMAIL, supportMailto } from "../lib/supportConfig.js";
+import { ACCOUNT_SAVE_EXPLANATION, GOOGLE_AUTH_EXPLANATION, OPENINGFIT_PLUS_NAME, subscriptionPresentation } from "../lib/accountExperience.js";
 
 const EMPTY_PROFILE = {
   chesscom_username: "",
@@ -141,14 +142,9 @@ function SubscriptionManagement({
   const periodDate = entitlementDate(entitlement?.currentPeriodEnd);
   const isSubscriber = accessType === "monthly_subscription" || accessType === "annual_subscription";
   const isLifetime = accessType === "lifetime";
-  const planName = accessType === "monthly_subscription"
-    ? "OpeningFit Monthly"
-    : accessType === "annual_subscription"
-      ? "OpeningFit Annual"
-      : isLifetime
-        ? "OpeningFit Lifetime"
-        : "OpeningFit Free";
-  const accessLabel = accessType.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
+  const presentation = subscriptionPresentation(entitlement);
+  const planName = presentation.planName;
+  const accessLabel = presentation.accessLabel;
   const statusLabel = accessType === "free"
     ? "Not subscribed"
     : status.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
@@ -185,10 +181,11 @@ function SubscriptionManagement({
         <div><dt>Renewal or access end</dt><dd>{isLifetime ? "Lifetime access" : periodDate || "Not available"}</dd></div>
       </dl>
       <p>{dateMessage}</p>
+      <small>{presentation.billingDescription}</small>
       {portalError ? <p className="accountSubscriptionError" role="alert">{portalError}</p> : null}
       <div className="accountSubscriptionActions">
         {canManage ? <button type="button" onClick={onManage} disabled={portalLoading}>{portalLoading ? "Opening Stripe..." : "Manage subscription"}</button> : null}
-        {accessType === "free" ? <button type="button" onClick={onUpgrade} disabled={checkoutLoading}>{checkoutLoading ? "Opening checkout..." : "Upgrade OpeningFit"}</button> : null}
+        {accessType === "free" ? <button type="button" onClick={onUpgrade} disabled={checkoutLoading}>{checkoutLoading ? "Opening checkout..." : `View ${OPENINGFIT_PLUS_NAME}`}</button> : null}
       </div>
       {isSubscriber && !canManage ? <small>No Stripe customer account is linked yet. Refresh after Stripe finishes synchronising.</small> : null}
     </section>
@@ -686,12 +683,12 @@ export default function AccountPanel({ variant = "floating",
           <div className="accountPanelHeader">
             <div>
               <span className="accountEyebrow">Account security</span>
-              <h3>{user ? "Account details" : "Create a secure account"}</h3>
+              <h3>{user ? "Account details" : "Log in or create account"}</h3>
               {isScreen ? (
                 <p>
                   {user
                     ? "Manage sign-in, chess usernames, sync, and account actions."
-                    : "Sign in to keep saved reports and chess account details attached to your OpeningFit account."}
+                    : ACCOUNT_SAVE_EXPLANATION}
                 </p>
               ) : null}
             </div>
@@ -722,8 +719,8 @@ export default function AccountPanel({ variant = "floating",
             <form className="accountAuthStack" onSubmit={handleEmailPasswordAuth}>
               <div className="accountAuthIntro">
                 <span>Free account</span>
-                <strong>{accountLoading ? "Checking your session..." : "Save reports across devices"}</strong>
-                <p>Log in with your email and password, or send yourself a secure login link.</p>
+                <strong>{accountLoading ? "Checking your session..." : "Log in or create account"}</strong>
+                <p>{ACCOUNT_SAVE_EXPLANATION} Use email and password, a secure email link, or Google sign-in.</p>
               </div>
 
               {!isScreen ? <PreLoginCuriosityHooks /> : null}
@@ -739,9 +736,7 @@ export default function AccountPanel({ variant = "floating",
                     Continue with Google
                   </button>
 
-                  <p className="accountBetaNote">
-                    Beta note: Google may show OpeningFit's secure auth provider during sign-in.
-                  </p>
+                  <p className="accountBetaNote">{GOOGLE_AUTH_EXPLANATION}</p>
 
                   <div className="accountDivider">
                     <span>or</span>
@@ -757,6 +752,8 @@ export default function AccountPanel({ variant = "floating",
               <div className="accountAuthMode" role="tablist" aria-label="Account mode">
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={authMode === "login"}
                   className={authMode === "login" ? "isActive" : ""}
                   onClick={() => {
                     setAuthMode("login");
@@ -768,6 +765,8 @@ export default function AccountPanel({ variant = "floating",
                 </button>
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={authMode === "signup"}
                   className={authMode === "signup" ? "isActive" : ""}
                   onClick={() => {
                     setAuthMode("signup");
@@ -987,7 +986,7 @@ export default function AccountPanel({ variant = "floating",
               {!isScreen ? (
                 <div className="accountPremiumBox">
                 <div>
-                  <strong>{hasPremiumAccess ? "Paid access active" : "OpeningFit Plus"}</strong>
+                  <strong>{hasPremiumAccess ? subscriptionPresentation(entitlement).planName : OPENINGFIT_PLUS_NAME}</strong>
                   <p>
                     {hasPremiumAccess
                       ? "Your account has paid or preserved lifetime access."
@@ -1060,11 +1059,11 @@ export default function AccountPanel({ variant = "floating",
 
           {status && user ? <div className="accountStatus">{status}</div> : null}
 
-          <nav className="accountLegalLinks" aria-label="Account help and legal links">
+          {user ? <nav className="accountLegalLinks" aria-label="Account help and legal links">
             <a href="#privacy">Privacy Policy</a>
             <a href="#terms">Terms</a>
             <a href={SUPPORT_MAILTO}>Support</a>
-          </nav>
+          </nav> : null}
         </div>
       ) : null}
     </div>

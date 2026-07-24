@@ -68,9 +68,9 @@ function collectOpenings(data) {
   return openings.length
     ? openings
     : [
-        { name: "Sicilian Defense", games: 7, winRate: 46 },
+        { name: "Sicilian Defence", games: 7, winRate: 46 },
         { name: "London System", games: 8, winRate: 56 },
-        { name: "King's Indian Defense", games: 6, winRate: 49 },
+        { name: "King's Indian Defence", games: 6, winRate: 49 },
       ];
 }
 

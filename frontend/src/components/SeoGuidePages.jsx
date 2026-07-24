@@ -7,7 +7,7 @@ const GUIDE_RELATED_OPENINGS = [
   ["Vienna Game", "/openings/vienna-game"],
   ["Italian Game", "/openings/italian-game"],
   ["London System", "/openings/london-system"],
-  ["Caro-Kann Defense", "/openings/caro-kann-defense"],
+  ["Caro-Kann Defence", "/openings/caro-kann-defense"],
 ];
 
 function SeoTopNav({ ThemeToggle, seoTheme, setSeoTheme }) {
@@ -43,7 +43,7 @@ export function SeoAnalysisCta({ title = "Find the openings that fit your own ga
       </p>
       <div className="seoHeroActions">
         <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
-        <a className="seoSecondaryCta" href="/openingfit-sample-report">View sample report</a>
+        <a className="seoSecondaryCta" href="/report/sample">View sample report</a>
       </div>
     </section>
   );
@@ -197,8 +197,8 @@ export function GuidesHubPage({ ThemeToggle, Analytics, AppTopNav = null }) {
         </div>
         <nav>
           <a href="/openings/vienna-game">Vienna Game</a>
-          <a href="/openings/caro-kann-defense">Caro-Kann Defense</a>
-          <a href="/openings/scandinavian-defense">Scandinavian Defense</a>
+          <a href="/openings/caro-kann-defense">Caro-Kann Defence</a>
+          <a href="/openings/scandinavian-defense">Scandinavian Defence</a>
           <a href="/openings/london-system">London System</a>
           <a href="/openings/italian-game">Italian Game</a>
         </nav>

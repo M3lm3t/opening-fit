@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
+import { canPersistReport } from "../fixtures/sampleReport.js";
 import { buildTrainingRecommendations } from "../services/trainingRecommendations";
 import { buildWeakestLineTrainingTarget } from "../services/weakestLineTraining";
 import "./TodayTrainingCard.css";
@@ -126,6 +127,7 @@ export default function TodayTrainingCard({
   }, [cloudState, primary]);
 
   const saveProgress = async (state) => {
+    if (!canPersistReport(data)) return;
     const payload = {
       state,
       opening: primary?.opening || "",

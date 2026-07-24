@@ -9,6 +9,27 @@ UNKNOWN_OPENING = "Unknown Opening"
 OPEN_GAME_FAMILY = "Open Game"
 QUEEN_PAWN_FAMILY = "Queen's Pawn Opening"
 
+# This is classification metadata, not a repertoire inference.  It records
+# which side's move sequence defines the named family.  Repertoire ownership
+# is resolved later by combining this value with the user's actual colour.
+OPENING_SIDE_METADATA = {
+    "Ruy Lopez": "white", "Italian Game": "white", "Scotch Game": "white",
+    "Vienna Game": "white", "Four Knights Game": "white", "King's Gambit": "white",
+    "Queen's Gambit": "white", "English Opening": "white", "Catalan Opening": "white",
+    "London System": "white", "Jobava London System": "white", "RÃ©ti Opening": "white",
+    "King's Indian Attack": "white", OPEN_GAME_FAMILY: "white", QUEEN_PAWN_FAMILY: "white",
+    "Sicilian Defence": "black", "French Defence": "black", "Caro-Kann Defence": "black",
+    "Scandinavian Defence": "black", "Alekhine Defence": "black", "Pirc Defence": "black",
+    "Modern Defence": "black", "King's Indian Defence": "black", "GrÃ¼nfeld Defence": "black",
+    "Queen's Gambit Declined": "black", "Slav Defence": "black",
+    "Nimzo-Indian Defence": "black", "Benoni Defence": "black", "Dutch Defence": "black",
+}
+
+
+def opening_side_for(opening: str) -> str | None:
+    """Return explicit classifier metadata for the side defining a family."""
+    return OPENING_SIDE_METADATA.get(normalise_opening_name(opening))
+
 
 def clean_san(move: str) -> str:
     return (
@@ -426,6 +447,7 @@ def exact_book_signal(moves: list[str]) -> dict[str, Any] | None:
         "weight": 34 + len(best.moves),
         "evidence": f"Matched book line through {' '.join(best.moves)}.",
         "eco": best.eco,
+        "openingSide": opening_side_for(best.name),
     }
 
 
@@ -447,6 +469,7 @@ def eco_signal(eco: str, eco_url: str = "", tagged_opening: str = "") -> dict[st
         "weight": 38 if tagged_opening or eco_url else 30,
         "evidence": f"ECO metadata points to {name}." if eco else f"Opening metadata points to {name}.",
         "eco": str(eco or "").upper() or None,
+        "openingSide": opening_side_for(name),
     }
 
 
@@ -624,6 +647,8 @@ def aggregate_signals(signals: list[dict[str, Any]]) -> dict[str, Any]:
             "typicalPlans": typical_plans_for(UNKNOWN_OPENING),
             "repertoireBucket": repertoire_bucket_for(UNKNOWN_OPENING),
             "signals": [],
+            "openingSide": None,
+            "openingSideSource": "unresolved",
         }
 
     scores: dict[str, float] = {}
@@ -652,6 +677,8 @@ def aggregate_signals(signals: list[dict[str, Any]]) -> dict[str, Any]:
         "typicalPlans": typical_plans_for(best_opening),
         "repertoireBucket": repertoire_bucket_for(best_opening),
         "signals": sorted(signals, key=lambda signal: signal.get("weight", 0) * signal.get("confidence", 0), reverse=True),
+        "openingSide": best_signal.get("openingSide") or opening_side_for(best_opening),
+        "openingSideSource": "move_sequence_or_opening_metadata",
     }
 
 

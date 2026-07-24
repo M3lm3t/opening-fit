@@ -2,7 +2,20 @@ import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { createServer } from "vite";
-import { DEMO_REPORT } from "../src/demoReportData.js";
+import { SAMPLE_REPORT } from "../src/fixtures/sampleReport.js";
+
+const USER_REPORT_FIXTURE = Object.freeze({
+  ...SAMPLE_REPORT,
+  sampleMode: false,
+  sample_mode: false,
+  sampleLabel: undefined,
+  source: "visual_user_fixture",
+  isDemo: false,
+  username: "Visual Test Player",
+  playerName: "Visual Test Player",
+  platform: "chess.com",
+  importPlatform: "chess.com",
+});
 
 const PORT = Number(process.env.OPENINGFIT_VISUAL_PORT || 4177);
 const HOST = "127.0.0.1";
@@ -29,7 +42,7 @@ const SCREENSHOT_DIR = path.resolve("test-screenshots");
 
 const requestedRoutes = String(process.env.OPENINGFIT_VISUAL_ROUTES || "").split(",").map((route) => route.trim()).filter(Boolean);
 const requestedViewports = new Set(String(process.env.OPENINGFIT_VISUAL_VIEWPORTS || "").split(",").map((name) => name.trim()).filter(Boolean));
-const allRoutes = ["/", "/login", "/dashboard", "/report", "/repertoire", "/train", "/progress", "/account", "/journey", "/premium"];
+const allRoutes = ["/", "/login", "/dashboard", "/report", "/report/sample", "/repertoire", "/train", "/progress", "/account", "/journey", "/premium"];
 const routes = requestedRoutes.length ? allRoutes.filter((route) => requestedRoutes.includes(route)) : allRoutes;
 const allViewports = [
   { name: "phone-compact", width: 320, height: 568 },
@@ -266,6 +279,37 @@ async function assertRouteLayout(page, route) {
   const failures = [];
   const viewport = page.viewportSize();
 
+  if (route === "/") {
+    const sampleLinks = page.locator('a[href="/report/sample"]');
+    if (await sampleLinks.count() !== 2) failures.push("Homepage must expose exactly two sample-report CTAs.");
+  }
+
+  if (route === "/report/sample") {
+    const sampleNotice = page.locator(".sampleReportNotice").first();
+    if (!(await sampleNotice.isVisible().catch(() => false))) failures.push("Sample report notice is not visible.");
+    const pageText = await page.locator("body").innerText();
+    for (const requiredText of ["Sample report", "Example data", "Analyse my games", "72 usable opening signals", "fictional player"]) {
+      if (!pageText.includes(requiredText)) failures.push(`Sample report is missing required text: ${requiredText}.`);
+    }
+    const fullReportOpen = await page.locator("#full-report-details").getAttribute("open");
+    if (fullReportOpen === null) failures.push("Full sample report is not expanded.");
+    const persistedReport = await page.evaluate(() => window.localStorage.getItem("openingFit:lastAnalysis"));
+    if (persistedReport !== null) failures.push("Direct sample route persisted data as the visitor's report.");
+  }
+
+  if (route === "/report" || route === "/report/sample") {
+    const visibleDialogs = await page.locator('[role="dialog"]:visible').count();
+    if (visibleDialogs > 0) failures.push("Report route opened an automatic dialog.");
+  }
+
+  if (route === "/login") {
+    const pageText = await page.locator("body").innerText();
+    for (const forbiddenText of ["Total games analysed", "Reports saved", "Training completed", "Opening progress markers", "Manage subscription", "Privacy Policy"]) {
+      if (pageText.includes(forbiddenText)) failures.push(`Signed-out login rendered authenticated account content: ${forbiddenText}.`);
+    }
+    if (!pageText.includes("Log in or create account")) failures.push("Signed-out login heading is missing.");
+  }
+
   const pageMetrics = await page.evaluate(() => {
     const documentElement = document.documentElement;
     const body = document.body;
@@ -362,12 +406,12 @@ async function main() {
           await page.evaluate(({ report, includeOpportunity, opportunity }) => {
             const analysis = includeOpportunity ? { ...report, openingTrainingOpportunities: [opportunity], opening_training_opportunities: [opportunity] } : report;
             window.localStorage.setItem("openingFit:lastAnalysis", JSON.stringify({
-              username: report.username || "DemoPlayer",
-              platform: report.platform || "demo",
+              username: report.username || "Example Player — Sample",
+              platform: report.platform || "example",
               savedAt: new Date().toISOString(),
               analysis,
             }));
-          }, { report: DEMO_REPORT, includeOpportunity: route === "/train", opportunity: TRAINING_OPPORTUNITY_FIXTURE });
+          }, { report: USER_REPORT_FIXTURE, includeOpportunity: route === "/train", opportunity: TRAINING_OPPORTUNITY_FIXTURE });
           await page.reload({ waitUntil: "domcontentloaded" });
         }
         await page.locator(".page, .seoPageShell").first().waitFor({ state: "visible", timeout: 10000 });
@@ -379,7 +423,7 @@ async function main() {
           }
         }
         await page.waitForTimeout(350);
-        const routeName = route.replace(/^\//, "") || "home";
+        const routeName = route.replace(/^\//, "").replaceAll("/", "-") || "home";
         const filename = `${routeName}-${viewport.name}-${viewport.width}x${viewport.height}.png`;
         const filepath = path.join(SCREENSHOT_DIR, filename);
         await page.screenshot({ path: filepath, fullPage: true });
@@ -388,12 +432,39 @@ async function main() {
         await assertRouteLayout(page, route);
         await assertIconControlAlignment(page, route);
 
+        if (route === "/report/sample") {
+          await page.reload({ waitUntil: "domcontentloaded" });
+          await page.locator(".sampleReportNotice").first().waitFor({ state: "visible", timeout: 10000 });
+          await assertRouteLayout(page, route);
+        }
+
+        if (route === "/report") {
+          const viewFullReport = page.getByRole("button", { name: "View full report" });
+          if (await viewFullReport.isVisible().catch(() => false)) {
+            await viewFullReport.click();
+            if (await page.locator("#full-report-details").getAttribute("open") === null) {
+              throw new Error("View full report did not expand the report.");
+            }
+            if (await page.locator('[role="dialog"]:visible').count() > 0) {
+              throw new Error("View full report opened a paywall or another dialog.");
+            }
+          }
+        }
+
         if (route === "/report" || route === "/train") {
           await page.evaluate(() => window.localStorage.removeItem("openingFit:lastAnalysis"));
         }
 
         if (route === "/account") {
-          await assertAccountLayout(page);
+          const authenticatedAccountCard = page.locator(".simpleProfileCard", { hasText: "Account" }).first();
+          if (await authenticatedAccountCard.isVisible().catch(() => false)) {
+            await assertAccountLayout(page);
+          } else {
+            const pageText = await page.locator("body").innerText();
+            if (!pageText.includes("Log in or create account")) {
+              throw new Error("Signed-out account route rendered neither the login surface nor the authenticated dashboard.");
+            }
+          }
         }
       }
     }
