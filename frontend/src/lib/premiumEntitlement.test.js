@@ -27,6 +27,23 @@ test("lifetime access always takes precedence over subscription state", () => {
   assert.equal(result.currentPeriodEnd, null);
 });
 
+test("legacy active non-expiring entitlements remain grandfathered lifetime access", () => {
+  const legacy = resolvePremiumEntitlement([{
+    status: "active",
+    expires_at: null,
+    stripe_subscription_id: null,
+  }], { now });
+  assert.equal(legacy.hasPremiumAccess, true);
+  assert.equal(legacy.accessType, "lifetime");
+
+  const ambiguousSubscription = resolvePremiumEntitlement([{
+    status: "active",
+    expires_at: null,
+    stripe_subscription_id: "sub_legacy",
+  }], { now });
+  assert.equal(ambiguousSubscription.hasPremiumAccess, false);
+});
+
 test("a non-grandfathered refunded lifetime purchase is expired", () => {
   const result = resolvePremiumEntitlement([{
     access_type: "lifetime",

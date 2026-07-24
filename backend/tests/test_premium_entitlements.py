@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import main as main_module
 from main import (
     checkout_session_is_paid,
     claim_stripe_webhook_event,
@@ -15,6 +16,7 @@ from main import (
     stripe_timestamp_iso,
     subscription_access_type,
     subscription_grants_access,
+    trusted_entitlement_for_request,
     update_premium_from_subscription_event,
     upsert_premium_entitlement,
 )
@@ -160,6 +162,39 @@ def test_lifetime_entitlement_wins_over_subscription_events():
     existing = {"access_type": "lifetime", "is_grandfathered_lifetime": True}
     incoming = {"access_type": "monthly_subscription", "source": "stripe_customer.subscription.updated"}
     assert should_preserve_lifetime_entitlement(existing, incoming) is True
+
+
+def test_request_entitlement_falls_back_to_legacy_schema(monkeypatch):
+    class LegacyQuery:
+        def __init__(self):
+            self.columns = ""
+
+        def select(self, columns):
+            self.columns = columns
+            return self
+
+        def eq(self, _key, _value):
+            return self
+
+        def execute(self):
+            if "access_type" in self.columns:
+                raise RuntimeError("access_type column is missing")
+            return type("Result", (), {"data": [{"status": "active", "expires_at": None, "stripe_subscription_id": None}]})()
+
+    class LegacySupabase:
+        def table(self, name):
+            assert name == "premium_entitlements"
+            return LegacyQuery()
+
+    request = type("Request", (), {"headers": {"authorization": "Bearer token"}})()
+    monkeypatch.setattr(main_module, "get_auth_user", lambda _request: type("User", (), {"id": "legacy-user"})())
+    monkeypatch.setattr(main_module, "get_supabase_admin_client", lambda: LegacySupabase())
+    monkeypatch.setattr(main_module, "log_supabase_diagnostic", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(main_module, "log_payment_diagnostic", lambda *_args, **_kwargs: None)
+
+    entitlement = trusted_entitlement_for_request(request, require_auth=True)
+    assert entitlement["access_type"] == "lifetime"
+    assert entitlement["is_grandfathered_lifetime"] is True
 
 
 def test_canceled_subscription_retains_access_only_until_period_end():

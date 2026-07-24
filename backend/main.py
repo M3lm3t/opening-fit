@@ -51,7 +51,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import create_client, Client
-from feature_entitlements import can_use_feature, entitlement_has_paid_access, feature_limit
+from feature_entitlements import can_use_feature, entitlement_has_paid_access, feature_limit, normalise_entitlement_record
 from runtime_config import (
     assert_valid_startup_configuration,
     build_allowed_origins,
@@ -9848,25 +9848,42 @@ def trusted_entitlement_for_request(request: Optional[Request], *, require_auth:
         return None
     auth_user = get_auth_user(request)
     user_id = str(getattr(auth_user, "id", "") or "")
+    client = get_supabase_admin_client()
     try:
         result = (
-            get_supabase_admin_client()
-            .table("premium_entitlements")
+            client.table("premium_entitlements")
             .select("access_type,status,current_period_end,expires_at,is_grandfathered_lifetime,premium_since")
             .eq("user_id", user_id)
             .execute()
         )
-    except Exception as exc:
-        log_supabase_diagnostic(
-            "premium entitlement resolution failed",
-            operation="entitlement_resolve",
-            result="failed",
-            retryable=True,
-            user_id=user_id,
-            error=exc,
-        )
-        raise
-    rows = result.data or []
+        rows = result.data or []
+    except Exception as canonical_error:
+        try:
+            legacy_result = (
+                client.table("premium_entitlements")
+                .select("status,source,expires_at,premium_since,stripe_customer_id,stripe_checkout_session_id,stripe_subscription_id")
+                .eq("user_id", user_id)
+                .execute()
+            )
+            rows = [normalise_entitlement_record(row) for row in (legacy_result.data or [])]
+            log_supabase_diagnostic(
+                "legacy premium entitlement schema adapted",
+                operation="entitlement_resolve",
+                result="legacy_schema",
+                retryable=False,
+                user_id=user_id,
+            )
+        except Exception as legacy_error:
+            log_supabase_diagnostic(
+                "premium entitlement resolution failed",
+                operation="entitlement_resolve",
+                result="failed",
+                retryable=True,
+                user_id=user_id,
+                error=legacy_error,
+            )
+            raise legacy_error from canonical_error
+    rows = [normalise_entitlement_record(row) for row in rows]
     entitlement = next((row for row in rows if str(row.get("access_type") or "").lower() == "lifetime"), rows[0] if rows else None)
     log_payment_diagnostic(
         "premium entitlement resolved",

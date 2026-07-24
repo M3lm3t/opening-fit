@@ -94,6 +94,13 @@ function accessTypeFor(row) {
   if (stored === "lifetime" || SUBSCRIPTION_TYPES.has(stored)) return stored;
   if (String(row?.checkout_mode || "").toLowerCase() === "payment") return "lifetime";
   if (String(row?.checkout_mode || "").toLowerCase() === "subscription") return "monthly_subscription";
+  const legacyStatus = String(row?.status || "").toLowerCase();
+  if (
+    ["active", "trialing"].includes(legacyStatus)
+    && !row?.expires_at
+    && !row?.current_period_end
+    && !row?.stripe_subscription_id
+  ) return "lifetime";
   return "free";
 }
 

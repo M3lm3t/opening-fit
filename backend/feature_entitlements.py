@@ -35,8 +35,32 @@ def _parse_timestamp(value: Any) -> Optional[datetime]:
         return None
 
 
+def normalise_entitlement_record(entitlement: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Adapt pre-subscription entitlement rows without trusting profile flags.
+
+    Before recurring plans existed, an active row with no expiry or subscription
+    marker represented lifetime access. Canonical rows always win when an
+    ``access_type`` is present.
+    """
+    row = dict(entitlement or {})
+    if row.get("access_type"):
+        return row
+    status = str(row.get("status") or "").lower().replace("cancelled", "canceled")
+    is_legacy_lifetime = (
+        status in {"active", "trialing"}
+        and not row.get("expires_at")
+        and not row.get("current_period_end")
+        and not row.get("stripe_subscription_id")
+        and str(row.get("checkout_mode") or "").lower() != "subscription"
+    )
+    if is_legacy_lifetime:
+        row["access_type"] = "lifetime"
+        row["is_grandfathered_lifetime"] = True
+    return row
+
+
 def entitlement_has_paid_access(entitlement: Optional[Dict[str, Any]], now: Optional[datetime] = None) -> bool:
-    row = entitlement or {}
+    row = normalise_entitlement_record(entitlement)
     access_type = str(row.get("access_type") or "").lower()
     status = str(row.get("status") or "").lower().replace("cancelled", "canceled")
     if access_type == "lifetime":

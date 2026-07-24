@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from feature_entitlements import can_use_feature, entitlement_has_paid_access, feature_limit
+from feature_entitlements import can_use_feature, entitlement_has_paid_access, feature_limit, normalise_entitlement_record
 
 
 NOW = datetime(2026, 7, 18, tzinfo=timezone.utc)
@@ -29,6 +29,20 @@ def test_monthly_annual_and_lifetime_receive_paid_features():
         assert can_use_feature(entitlement, "report_comparison", NOW)
         assert can_use_feature(entitlement, "own_game_drills", NOW)
         assert feature_limit(entitlement, "report_refresh", "minimum_minutes_between_refreshes") == 5
+
+
+def test_legacy_active_non_expiring_entitlement_is_adapted_as_lifetime():
+    legacy = {"status": "active", "expires_at": None, "stripe_subscription_id": None}
+    adapted = normalise_entitlement_record(legacy)
+    assert adapted["access_type"] == "lifetime"
+    assert adapted["is_grandfathered_lifetime"] is True
+    assert entitlement_has_paid_access(legacy, NOW)
+
+
+def test_legacy_subscription_marker_is_not_misclassified_as_lifetime():
+    legacy_subscription = {"status": "active", "expires_at": None, "stripe_subscription_id": "sub_legacy"}
+    assert normalise_entitlement_record(legacy_subscription).get("access_type") is None
+    assert not entitlement_has_paid_access(legacy_subscription, NOW)
 
 
 def test_canceled_is_active_only_until_period_end_and_expired_is_free():
