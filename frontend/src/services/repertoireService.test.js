@@ -6,6 +6,7 @@ import {
   acceptRepertoireRecommendation,
   getActiveRepertoire,
   initialiseRepertoireFromReport,
+  legacyRepertoireWorkspace,
   rejectRepertoireRecommendation,
   replaceRepertoireEntry,
   updateRepertoireMetrics,
@@ -97,6 +98,54 @@ test("first repertoire creation normalises all required report slots", async () 
   assert.equal(created.every((row) => row.status === "active" && row.source === "recommended"), true);
   assert.equal(created.find((row) => row.slot === "white_primary").canonical_opening_id, "vienna-game");
   assert.equal((await getActiveRepertoire(USER_ID, { client })).length, 3);
+});
+
+test("missing production RPC saves the repertoire through the deployed cloud workspace", async () => {
+  let saved = null;
+  const client = {
+    async rpc() {
+      return { data: null, error: { code: "PGRST202", message: "Could not find the function public.initialise_repertoire_from_report(p_entries) in the schema cache" } };
+    },
+    from(table) {
+      assert.equal(table, "openingfit_user_state");
+      return {
+        async upsert(payload, options) {
+          saved = { payload, options };
+          return { data: [payload], error: null };
+        },
+      };
+    },
+  };
+  const existingState = { id: "state-1", platform: "lichess", username: "player", coach_progress: { todayTraining: { state: "started" } } };
+  const result = await initialiseRepertoireFromReport(USER_ID, report, { client, existingState });
+
+  assert.equal(result.storage, "legacy-cloud");
+  assert.equal(result.workspace.items.length, 3);
+  assert.equal(saved.payload.id, "state-1");
+  assert.deepEqual(saved.payload.coach_progress.todayTraining, { state: "started" });
+  assert.equal(saved.payload.coach_progress.repertoireWorkspace.items[0].name, "Vienna Game");
+  assert.deepEqual(saved.options, { onConflict: "user_id,platform,username" });
+});
+
+test("legacy repertoire workspace retains the typed report evidence", () => {
+  const workspace = legacyRepertoireWorkspace([
+    { slot: "black_vs_e4", display_name: "Caro-Kann Defense", sample_size: 12, recent_score: 58, confidence: "Medium", key_weakness: "Early queen pressure" },
+  ], "2026-07-26T12:00:00.000Z");
+  assert.equal(workspace.items[0].section, "blackE4");
+  assert.equal(workspace.items[0].games, 12);
+  assert.equal(workspace.items[0].opening.keyWeakness, "Early queen pressure");
+  assert.equal(workspace.updatedAt, "2026-07-26T12:00:00.000Z");
+});
+
+test("a failed compatibility save never exposes the raw schema-cache error", async () => {
+  const client = {
+    async rpc() { return { data: null, error: { code: "PGRST202", message: "schema cache" } }; },
+    from() { return { async upsert() { return { data: null, error: { message: "permission denied" } }; } }; },
+  };
+  await assert.rejects(
+    () => initialiseRepertoireFromReport(USER_ID, report, { client }),
+    /saved repertoire is temporarily unavailable.*report is safe/i
+  );
 });
 
 test("accepting a recommendation archives the old user selection explicitly", async () => {

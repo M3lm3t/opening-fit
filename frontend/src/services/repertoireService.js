@@ -54,6 +54,81 @@ function repertoireError(error, fallback) {
   return new Error(message || fallback);
 }
 
+function isMissingRepertoireInitialiser(error) {
+  const message = String(error?.message || "");
+  return error?.code === "PGRST202" || (
+    /initialise_repertoire_from_report/i.test(message) &&
+    /schema cache|could not find the function/i.test(message)
+  );
+}
+
+function legacySectionForSlot(slot) {
+  if (slot === "white_primary" || slot === "white_secondary") return "white";
+  if (slot === "black_vs_e4") return "blackE4";
+  if (slot === "black_vs_d4") return "blackD4";
+  return "other";
+}
+
+export function legacyRepertoireWorkspace(entries, savedAt = new Date().toISOString()) {
+  return {
+    version: 1,
+    items: entries.map((entry) => ({
+      id: `${legacySectionForSlot(entry.slot)}:${normaliseOpeningKey(entry.display_name)}`,
+      section: legacySectionForSlot(entry.slot),
+      sectionLabel: entry.slot === "white_primary" || entry.slot === "white_secondary"
+        ? "White"
+        : entry.slot === "black_vs_e4"
+          ? "Black versus 1.e4"
+          : entry.slot === "black_vs_d4" ? "Black versus 1.d4" : "Other",
+      name: entry.display_name,
+      role: entry.slot === "white_secondary" ? "Backup" : "Main",
+      status: "Current",
+      locked: false,
+      notes: "",
+      source: "analysis",
+      games: entry.sample_size,
+      fit: entry.recent_score,
+      confidence: entry.confidence,
+      opening: {
+        name: entry.display_name,
+        confidence: entry.confidence,
+        games: entry.sample_size,
+        score: entry.recent_score,
+        keyStrength: entry.key_strength,
+        keyWeakness: entry.key_weakness,
+        trainingFocus: entry.current_training_focus,
+      },
+    })),
+    dismissed: [],
+    updatedAt: savedAt,
+  };
+}
+
+async function saveLegacyRepertoire(client, userId, report, entries, existingState = null) {
+  const workspace = legacyRepertoireWorkspace(entries);
+  const platform = textOrNull(existingState?.platform || report.platform || report.importPlatform || report.import_platform) || "unknown";
+  const username = textOrNull(existingState?.username || report.username || report.playerName || report.player_name) || "guest";
+  const payload = {
+    ...(existingState?.id ? { id: existingState.id } : {}),
+    user_id: userId,
+    platform,
+    username,
+    last_report: report,
+    coach_progress: {
+      ...(existingState?.coach_progress || {}),
+      repertoireWorkspace: workspace,
+    },
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await client
+    .from("openingfit_user_state")
+    .upsert(payload, { onConflict: "user_id,platform,username" });
+  if (error) {
+    throw new Error("Your saved repertoire is temporarily unavailable. Your report is safe; please try again.");
+  }
+  return { storage: "legacy-cloud", workspace };
+}
+
 async function callRpc(client, name, params, fallback) {
   const { data, error } = await client.rpc(name, params);
   if (error) throw repertoireError(error, fallback);
@@ -168,7 +243,13 @@ export async function initialiseRepertoireFromReport(userId, report, options = {
   const entries = repertoireEntriesFromReport(report);
   const missing = REQUIRED_REPERTOIRE_SLOTS.filter((slot) => !entries.some((entry) => entry.slot === slot));
   if (missing.length) throw new Error(`This report cannot build a complete repertoire yet. Missing: ${missing.join(", ")}.`);
-  return callRpc(getClient(options), "initialise_repertoire_from_report", { p_entries: entries }, "Could not build your repertoire.");
+  const client = getClient(options);
+  const { data, error } = await client.rpc("initialise_repertoire_from_report", { p_entries: entries });
+  if (!error) return data;
+  if (isMissingRepertoireInitialiser(error)) {
+    return saveLegacyRepertoire(client, userId, report, entries, options.existingState);
+  }
+  throw repertoireError(error, "Could not build your repertoire.");
 }
 
 export async function acceptRepertoireRecommendation(userId, recommendationId, options = {}) {

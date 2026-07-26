@@ -69,10 +69,11 @@ function SuggestedChange({ suggestion, busy, onKeep, onAccept }) {
 }
 
 export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPractice, onReport, onAccount, onTrainingHistory, onUpgrade }) {
-  const { user, entitlement, openingFitUserState = [] } = useAuth();
+  const { user, entitlement, openingFitUserState = [], refreshUserData } = useAuth();
   const hasFullRepertoire = canUseFeature(entitlement, OPENINGFIT_FEATURES.FULL_REPERTOIRE);
   const cloudWorkspace = openingFitUserState.map((row) => row?.coach_progress?.repertoireWorkspace).find(Boolean) || null;
-  const legacyEntries = useMemo(() => legacyWorkspaceEntries(cloudWorkspace || readLocalWorkspace() || {}), [cloudWorkspace]);
+  const [localWorkspace, setLocalWorkspace] = useState(() => readLocalWorkspace());
+  const legacyEntries = useMemo(() => legacyWorkspaceEntries(cloudWorkspace || localWorkspace || {}), [cloudWorkspace, localWorkspace]);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(Boolean(user?.id));
   const [busyId, setBusyId] = useState("");
@@ -112,8 +113,16 @@ export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPr
     if (!user?.id) { onAccount?.(); return; }
     setBusyId("build"); setMessage("");
     try {
-      await initialiseRepertoireFromReport(user.id, data);
-      await refresh();
+      const existingState = openingFitUserState.find((row) => row?.coach_progress?.repertoireWorkspace) || openingFitUserState[0] || null;
+      const result = await initialiseRepertoireFromReport(user.id, data, { existingState });
+      if (result?.storage === "legacy-cloud") {
+        localStorage.setItem(REPERTOIRE_STORAGE_KEY, JSON.stringify(result.workspace));
+        setLocalWorkspace(result.workspace);
+        setLoadError("");
+        await refreshUserData?.();
+      } else {
+        await refresh();
+      }
       setMessage("Your saved repertoire is ready.");
       void trackProductEvent("repertoire_created", { authenticated: true, source: "repertoire_workspace" });
     } catch (error) { setMessage(error.message); }
