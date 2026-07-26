@@ -85,11 +85,18 @@ function mergePartialRestoreData(nextData, currentData) {
     }
   });
 
+  // A partial refresh may preserve the last successful entitlement rows. Keep
+  // the derived access state in sync with those rows instead of retaining a
+  // transient "free" result calculated from the failed response.
+  const entitlement = resolvePremiumEntitlement(merged.premium_entitlements || []);
+  merged.entitlement = entitlement;
+  merged.hasPremiumAccess = entitlement.hasPremiumAccess;
+
   return merged;
 }
 
 function getUserVisibleRestoreWarnings(restoreWarnings = []) {
-  return restoreWarnings.filter((warning) => warning?.userVisible !== false && warning?.required !== false);
+  return restoreWarnings.filter((warning) => warning?.userVisible === true);
 }
 
 function withTimeout(promise, ms = RESTORE_TIMEOUT_MS, label = "Supabase request") {

@@ -13,6 +13,7 @@ import {
   persistReportSnapshot,
 } from "../lib/reportSnapshot";
 import { completedTrainingFocuses, evaluateTrainingOutcomes } from "../lib/trainingOutcomes";
+import { restoreWithRetry } from "../lib/userDataRestore.js";
 
 export const USER_DATA_TABLES = [
   // Keep full cloud restore focused on the tables the app actually reads from
@@ -96,6 +97,8 @@ const PROFILE_RESTORE_COLUMNS =
   "id,user_id,email,display_name,username,platform,chesscom_username,lichess_username,is_premium,last_report,created_at,updated_at";
 const RESTORE_PROFILE_TIMEOUT_MS = 5000;
 const RESTORE_TABLE_TIMEOUT_MS = 3500;
+const RESTORE_ENTITLEMENT_TIMEOUT_MS = 4500;
+const RESTORE_ENTITLEMENT_ATTEMPTS = 2;
 
 function isRequiredRestoreTable(table) {
   return REQUIRED_RESTORE_TABLES.has(table);
@@ -119,19 +122,7 @@ function getRestoreQueryDetails(table, userId, options = {}) {
 }
 
 function withUserDataTimeout(promise, ms, label) {
-  let timeoutId;
-
-  const timeoutPromise = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => {
-      const error = new Error(`${label} timed out after ${ms}ms`);
-      error.name = "WorkspaceRestoreTimeout";
-      reject(error);
-    }, ms);
-  });
-
-  return Promise.race([promise, timeoutPromise]).finally(() => {
-    clearTimeout(timeoutId);
-  });
+  return restoreWithRetry(() => promise, { timeoutMs: ms, label });
 }
 
 export function createDefaultUserData(profile = null) {
@@ -610,10 +601,16 @@ export async function fetchAllUserData(user, options = {}) {
   const settledResults = await Promise.allSettled(
     tableNames.map(async (table) => {
       try {
-        const rows = await withUserDataTimeout(
-          selectUserRows(table, user.id),
-          tableTimeout,
-          `OpeningFit ${table} restore`
+        const isEntitlementRestore = table === "premium_entitlements";
+        const rows = await restoreWithRetry(
+          () => selectUserRows(table, user.id),
+          {
+            timeoutMs: isEntitlementRestore
+              ? options.entitlementTimeoutMs ?? Math.max(tableTimeout, RESTORE_ENTITLEMENT_TIMEOUT_MS)
+              : tableTimeout,
+            label: `OpeningFit ${table} restore`,
+            attempts: isEntitlementRestore ? RESTORE_ENTITLEMENT_ATTEMPTS : 1,
+          }
         );
         return { table, rows, error: null };
       } catch (tableError) {
@@ -690,7 +687,9 @@ export async function fetchAllUserData(user, options = {}) {
         status: item.error?.status,
         required,
         optional: !required,
-        userVisible: required,
+        // Entitlement failures must never look like a confirmed free account.
+        // Surface a retry notice while continuing to fail closed.
+        userVisible: required || item.table === "premium_entitlements",
         emptyRowsAllowed: true,
         query: getRestoreQueryDetails(item.table, user.id),
       };
