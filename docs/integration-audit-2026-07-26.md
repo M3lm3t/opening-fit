@@ -88,6 +88,13 @@ access:
 4. Exercise Google, password, and email-link authentication with designated QA
    accounts, including refresh and a second browser profile.
 
+The live checkout blocker remains the Supabase reconciliation, not a missing
+Stripe price or disabled subscription flag. On 26 July 2026 the safe public
+diagnostics reported Stripe, webhook, monthly price and annual price configured,
+subscriptions enabled, and `billing_schema=not_ready`. Follow
+`docs/production-reconciliation-execution-runbook.md`; do not use a direct
+`supabase db push` against the drifted production migration history.
+
 ## Automated verification
 
 - Backend: 161 tests passed.

@@ -14329,6 +14329,7 @@ export default function App() {
   const [isPremiumPreview, setIsPremiumPreview] = useState(false);
   const [premiumCheckoutLoading, setPremiumCheckoutLoading] = useState(false);
   const [premiumCheckoutError, setPremiumCheckoutError] = useState("");
+  const premiumCheckoutInFlightRef = useRef(false);
 
   const unlockPremiumDemo = () => {
     setIsPremiumPreview(canUsePremiumPreview({ isDevelopment: import.meta.env.DEV, requested: true }));
@@ -14402,7 +14403,7 @@ export default function App() {
     window.setTimeout(() => scrollToAppTarget(exit.target, { fallbackIds: ["app-dashboard"] }), 80);
   };
 
-  const handleFounderPassClick = async (source = "pricing_page", billingInterval = "annual") => {
+  const handleFounderPassClick = async (source = "pricing_page", billingInterval = "monthly") => {
     void trackEvent("premium_upgrade_prompt_selected", { source: typeof source === "string" ? source : "pricing_page" });
     setPremiumCheckoutError("");
 
@@ -14426,14 +14427,16 @@ export default function App() {
       return;
     }
 
-    if (isPremium || premiumCheckoutLoading) return;
+    if (isPremium || premiumCheckoutInFlightRef.current) return;
     try {
+      premiumCheckoutInFlightRef.current = true;
       setPremiumCheckoutLoading(true);
       await startPremiumCheckout(supabaseUser, billingInterval);
     } catch (error) {
       console.error("OpeningFit Plus checkout failed", error);
       setPremiumCheckoutError(error?.message || "We could not start secure checkout. Please try again.");
     } finally {
+      premiumCheckoutInFlightRef.current = false;
       setPremiumCheckoutLoading(false);
     }
   };

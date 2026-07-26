@@ -20,6 +20,13 @@ DEVELOPMENT_ORIGINS = (
 )
 TRUE_VALUES = {"1", "true", "yes", "on"}
 FALSE_VALUES = {"0", "false", "no", "off"}
+BILLING_CONFIGURATION_FIELDS = {
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID",
+    "STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID",
+    "STRIPE_OPENINGFIT_FOUNDING_ANNUAL_COUPON_ID",
+}
 
 
 def runtime_environment(env: Optional[Mapping[str, str]] = None) -> str:
@@ -165,20 +172,23 @@ def validate_runtime_configuration(env: Optional[Mapping[str, str]] = None) -> l
 
 def assert_valid_startup_configuration(env: Optional[Mapping[str, str]] = None) -> None:
     errors = validate_runtime_configuration(env)
-    if errors:
-        raise RuntimeError("Invalid production configuration: " + ", ".join(errors))
+    # Billing configuration is deliberately diagnosed at runtime so imports,
+    # reports, auth and existing-member access stay available while new
+    # checkout fails closed. Core production configuration remains fatal.
+    fatal_errors = [name for name in errors if name not in BILLING_CONFIGURATION_FIELDS]
+    if fatal_errors:
+        raise RuntimeError("Invalid production configuration: " + ", ".join(fatal_errors))
 
 
 def readiness_payload(env: Optional[Mapping[str, str]] = None) -> dict[str, str]:
     source = env if env is not None else os.environ
     errors = validate_runtime_configuration(source)
     database_ready = bool(source.get("SUPABASE_URL") and source.get("SUPABASE_SERVICE_ROLE_KEY"))
-    stripe_ready = bool(source.get("STRIPE_SECRET_KEY"))
-    webhook_ready = bool(source.get("STRIPE_WEBHOOK_SECRET"))
-    pricing_ready = bool(
-        source.get("STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID")
-        and source.get("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID")
-    )
+    stripe_ready = bool(source.get("STRIPE_SECRET_KEY")) and "STRIPE_SECRET_KEY" not in errors
+    webhook_ready = bool(source.get("STRIPE_WEBHOOK_SECRET")) and "STRIPE_WEBHOOK_SECRET" not in errors
+    monthly_price_ready = bool(source.get("STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID")) and "STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID" not in errors
+    annual_price_ready = bool(source.get("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID")) and "STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID" not in errors
+    pricing_ready = monthly_price_ready and annual_price_ready
     portal_ready = bool(source.get("STRIPE_CUSTOMER_PORTAL_RETURN_URL")) or not is_production_environment(source)
     cors_ready = bool(build_allowed_origins(source)) and (
         not is_production_environment(source)
@@ -191,6 +201,8 @@ def readiness_payload(env: Optional[Mapping[str, str]] = None) -> dict[str, str]
         "stripe": "configured" if stripe_ready else "not_configured",
         "webhook": "configured" if webhook_ready else "not_configured",
         "pricing": "configured" if pricing_ready else "not_configured",
+        "monthly_price": "configured" if monthly_price_ready else "not_configured",
+        "annual_price": "configured" if annual_price_ready else "not_configured",
         "portal": "configured" if portal_ready else "not_configured",
         "cors": "configured" if cors_ready else "not_configured",
         "subscriptions": "enabled" if subscriptions_enabled(source) else "disabled",

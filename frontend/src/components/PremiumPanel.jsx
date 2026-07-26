@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadBillingConfiguration } from "../accountApi.js";
-import { annualEffectiveMonthly, DEFAULT_BILLING_CONFIGURATION, formatGbp, normaliseBillingConfiguration } from "../lib/premiumExperience.js";
+import { annualEffectiveMonthly, annualSavings, BILLING_INTERVAL_STORAGE_KEY, checkoutUnavailableMessage, DEFAULT_BILLING_CONFIGURATION, formatGbp, normaliseBillingConfiguration, normaliseBillingInterval } from "../lib/premiumExperience.js";
 import { trackProductEvent } from "../lib/productAnalytics.js";
 import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT, loadPublicAnalysisContract, publicFeatureComparison } from "../lib/productTransparency.js";
 import { OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
@@ -17,12 +17,20 @@ const FAQ = [
   ["Is the Fit Score a chess rating?", "No. It is a personalised indicator combining supported opening results, familiarity, consistency and repertoire suitability. It is not an official chess rating."],
 ];
 
-function BillingToggle({ value, onChange, monthlyAvailable, annualAvailable, monthlyAmount, annualAmount }) {
-  return <fieldset className="subscriptionBillingToggle"><legend>Billing interval</legend><label className={value === "monthly" ? "isSelected" : ""}><input type="radio" name="billing-interval" value="monthly" checked={value === "monthly"} disabled={!monthlyAvailable} onChange={() => onChange("monthly")} /><span>Monthly · {formatGbp(monthlyAmount)}</span></label><label className={value === "annual" ? "isSelected" : ""}><input type="radio" name="billing-interval" value="annual" checked={value === "annual"} disabled={!annualAvailable} onChange={() => onChange("annual")} /><span>Annual · {formatGbp(annualAmount)}</span><strong>Best value</strong></label></fieldset>;
+function BillingToggle({ value, onChange, monthlyAmount, annualAmount, saving }) {
+  return <fieldset className="subscriptionBillingToggle"><legend>Billing interval</legend><label className={value === "monthly" ? "isSelected" : ""}><input type="radio" name="billing-interval" value="monthly" checked={value === "monthly"} onChange={() => onChange("monthly")} /><span>Monthly · {formatGbp(monthlyAmount)} billed monthly</span></label><label className={value === "annual" ? "isSelected" : ""}><input type="radio" name="billing-interval" value="annual" checked={value === "annual"} onChange={() => onChange("annual")} /><span>Annual · {formatGbp(annualAmount)} billed annually</span><strong>Save {formatGbp(saving)}</strong></label></fieldset>;
+}
+
+function savedBillingInterval() {
+  try {
+    return normaliseBillingInterval(window.localStorage.getItem(BILLING_INTERVAL_STORAGE_KEY));
+  } catch {
+    return "monthly";
+  }
 }
 
 export default function PremiumPanel({ isPremium, entitlement, authenticated = false, onFounderPass, checkoutLoading = false, checkoutError = "" }) {
-  const [interval, setInterval] = useState("annual");
+  const [interval, setInterval] = useState(savedBillingInterval);
   const [configuration, setConfiguration] = useState(DEFAULT_BILLING_CONFIGURATION);
   const [configurationState, setConfigurationState] = useState("loading");
   const [analysisContract, setAnalysisContract] = useState(DEFAULT_PUBLIC_ANALYSIS_CONTRACT);
@@ -30,24 +38,31 @@ export default function PremiumPanel({ isPremium, entitlement, authenticated = f
   useEffect(() => {
     void trackProductEvent("pricing_viewed", { source: "pricing_page", authenticated }, { onceKey: "subscription_pricing" });
     let active = true;
-    loadBillingConfiguration().then((value) => { if (!active) return; const next = normaliseBillingConfiguration(value); setConfiguration(next); setInterval(next.annual.available ? "annual" : "monthly"); setConfigurationState("ready"); }).catch(() => { if (active) setConfigurationState("error"); });
+    loadBillingConfiguration().then((value) => { if (!active) return; setConfiguration(normaliseBillingConfiguration(value)); setConfigurationState("ready"); }).catch(() => { if (active) setConfigurationState("error"); });
     loadPublicAnalysisContract().then((value) => { if (active) setAnalysisContract(value); }).catch(() => {});
     return () => { active = false; };
   }, [authenticated]);
 
   const effectiveMonthly = annualEffectiveMonthly(configuration);
+  const saving = annualSavings(configuration);
   const founding = configuration.foundingOffer.enabled;
   const selected = configuration[interval];
   const selectedAmount = interval === "annual" && founding ? configuration.foundingOffer.firstYearAmount : selected.amount;
-  const checkoutAvailable = configurationState === "ready" && selected.available;
+  const checkoutAvailable = configurationState === "ready" && configuration.checkoutReady && selected.available;
   const lifetime = entitlement?.accessType === "lifetime" && entitlement?.hasPremiumAccess;
   const priceSummary = useMemo(() => interval === "monthly"
     ? `${formatGbp(selectedAmount)} per month`
     : founding ? `${formatGbp(selectedAmount)} for the first year` : `${formatGbp(selectedAmount)} per year`, [founding, interval, selectedAmount]);
 
   const changeInterval = (next) => {
-    setInterval(next);
-    void trackProductEvent("billing_interval_changed", { source: "pricing_page", authenticated, billingInterval: next });
+    const selectedInterval = normaliseBillingInterval(next);
+    setInterval(selectedInterval);
+    try {
+      window.localStorage.setItem(BILLING_INTERVAL_STORAGE_KEY, selectedInterval);
+    } catch {
+      // Plan comparison remains usable when browser storage is unavailable.
+    }
+    void trackProductEvent("billing_interval_changed", { source: "pricing_page", authenticated, billingInterval: selectedInterval });
   };
 
   const checkout = () => onFounderPass?.("pricing_page", interval);
@@ -60,12 +75,13 @@ export default function PremiumPanel({ isPremium, entitlement, authenticated = f
       <article className="subscriptionPlanCard subscriptionPlanCard--free"><span>Free</span><h2>£0</h2><p>A useful starting report—not an empty teaser.</p><ul><li>First report included</li><li>Basic repertoire coverage and style</li><li>One Keep recommendation</li><li>One Repair recommendation</li><li>Refresh on demand, at least {analysisContract.freeRefreshMinutes} minutes apart</li><li>{analysisContract.freeWeeklyTasks}-task weekly training preview</li></ul><a className="secondaryBtn" href="/analyse">Analyse games</a></article>
 
       <article className="subscriptionPlanCard subscriptionPlanCard--plus"><header><div><span>OpeningFit Plus</span><h2>{priceSummary}</h2></div>{interval === "annual" ? <strong>Best value</strong> : null}</header>
-        <BillingToggle value={interval} onChange={changeInterval} monthlyAvailable={configuration.monthly.available || configurationState !== "ready"} annualAvailable={configuration.annual.available || configurationState !== "ready"} monthlyAmount={configuration.monthly.amount} annualAmount={configuration.annual.amount} />
+        <BillingToggle value={interval} onChange={changeInterval} monthlyAmount={configuration.monthly.amount} annualAmount={configuration.annual.amount} saving={saving} />
         {interval === "annual" ? <p className="subscriptionEffectivePrice" aria-live="polite">{formatGbp(configuration.annual.amount)} billed annually · equivalent to {formatGbp(effectiveMonthly)}/month.</p> : <p className="subscriptionEffectivePrice" aria-live="polite">{formatGbp(configuration.monthly.amount)} billed monthly.</p>}
         {interval === "annual" && founding ? <aside className="subscriptionFoundingOffer"><strong>Founding launch price</strong><p>{formatGbp(configuration.foundingOffer.firstYearAmount)} for the first year, then {formatGbp(configuration.foundingOffer.renewsAtAmount)} per year unless cancelled.</p></aside> : null}
         <ul><li>Living White and Black repertoire</li><li>Weekly personalised training from your games</li><li>Own-game opening drills</li><li>Progress between reports</li><li>Evidence of whether trained weaknesses recur</li><li>Saved reports and full recommendation evidence</li></ul>
-        <button type="button" className="premiumCheckoutBtn" onClick={checkout} disabled={isPremium || checkoutLoading || !checkoutAvailable}>{isPremium ? lifetime ? "Lifetime access active" : "OpeningFit Plus active" : checkoutLoading ? "Opening secure checkout…" : configurationState === "loading" ? "Loading secure pricing…" : !checkoutAvailable ? "Checkout temporarily unavailable" : `Choose ${interval} billing`}</button>
-        {configurationState === "error" ? <p className="premiumCheckoutError" role="alert">Secure pricing could not be loaded. No checkout was started.</p> : null}{checkoutError ? <p className="premiumCheckoutError" role="alert">{checkoutError}</p> : null}
+        <button type="button" className="premiumCheckoutBtn" onClick={checkout} disabled={isPremium || checkoutLoading || !checkoutAvailable}>{isPremium ? lifetime ? "Lifetime access active" : "OpeningFit Plus active" : checkoutLoading ? "Opening secure checkout…" : configurationState === "loading" ? "Checking secure checkout…" : !checkoutAvailable ? "Subscription checkout unavailable" : !authenticated ? "Sign in to subscribe" : `Continue with ${interval} billing`}</button>
+        {!isPremium && !checkoutAvailable ? <p className="premiumCheckoutAvailability" role={configurationState === "error" ? "alert" : "status"}>{checkoutUnavailableMessage(configuration, configurationState)}</p> : null}
+        {checkoutError ? <p className="premiumCheckoutError" role="alert">{checkoutError}</p> : null}
         <small>Recurring billing. Cancel through account settings. Access continues until the end of the paid period after cancellation.</small>
       </article>
     </div>

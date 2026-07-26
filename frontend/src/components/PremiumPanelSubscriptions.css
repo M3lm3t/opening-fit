@@ -53,6 +53,12 @@
   opacity: 1;
 }
 
+.subscriptionPricing .premiumCheckoutAvailability {
+  margin: 0;
+  color: var(--subscription-muted-text);
+  line-height: 1.5;
+}
+
 .subscriptionPricingHero h1 {
   font-size: clamp(1.9rem, 4.2vw, 3rem);
   line-height: 1.06;

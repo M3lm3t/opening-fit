@@ -98,11 +98,14 @@ def test_readiness_reports_only_safe_configured_statuses(monkeypatch):
         "stripe": "configured",
         "webhook": "configured",
         "pricing": "configured",
+        "monthly_price": "configured",
+        "annual_price": "configured",
         "portal": "configured",
         "cors": "configured",
         "subscriptions": "disabled",
         "environment": "production",
         "billing_schema": "ready",
+        "checkout": "disabled",
     }
     assert "sk_live_value" not in response.text
 
@@ -114,6 +117,8 @@ def test_enabled_subscriptions_are_not_ready_without_billing_schema(monkeypatch)
         "stripe": "configured",
         "webhook": "configured",
         "pricing": "configured",
+        "monthly_price": "configured",
+        "annual_price": "configured",
         "portal": "configured",
         "cors": "configured",
         "subscriptions": "enabled",
@@ -123,3 +128,4 @@ def test_enabled_subscriptions_are_not_ready_without_billing_schema(monkeypatch)
     response = client.get("/api/readiness")
     assert response.status_code == 503
     assert response.json()["billing_schema"] == "not_ready"
+    assert response.json()["checkout"] == "not_ready"

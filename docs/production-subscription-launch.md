@@ -2,7 +2,47 @@
 
 This is the single sequential operator checklist for subscription launch. Do not paste secrets, customer data, or full Stripe identifiers into this file or a deployment ticket. Repository validation does not prove an external dashboard step is complete.
 
-Current repository assessment: **ready for the final manual gates; checkout must remain disabled until every blocking checkbox below is complete.**
+Current production assessment (26 July 2026): Stripe credentials, webhook secret,
+both live price slots and the subscription flag are present, but
+`/api/readiness` reports `billing_schema=not_ready`. Checkout must remain
+disabled until the reviewed Supabase reconciliation runbook is completed. Do
+not bypass this guard: a payment must not be accepted until its entitlement and
+webhook ledger can be persisted safely.
+
+## Required production billing environment
+
+These are the existing backend variable names. Keep every value in the backend
+secret store; none may use a `VITE_` prefix.
+
+- `OPENINGFIT_SUBSCRIPTIONS_ENABLED=true` only after every launch gate passes.
+- `STRIPE_SECRET_KEY` must be the live secret key used by the production Stripe account.
+- `STRIPE_WEBHOOK_SECRET` must be the signing secret for the production `/api/stripe/webhook` endpoint, not a Stripe CLI secret.
+- `STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID` must identify the active recurring GBP monthly Price.
+- `STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID` must identify the active recurring GBP annual Price.
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` must point to the reconciled production project.
+- `FRONTEND_URL`, `FRONTEND_URL_WWW`, `STRIPE_CUSTOMER_PORTAL_RETURN_URL`, and `CORS_ALLOWED_ORIGINS` must use the approved OpeningFit production origins.
+
+Optional offer configuration remains
+`OPENINGFIT_FOUNDING_ANNUAL_OFFER_ENABLED` and
+`STRIPE_OPENINGFIT_FOUNDING_ANNUAL_COUPON_ID`. Display amounts remain
+`OPENINGFIT_PLUS_MONTHLY_PRICE_GBP=4.99` and
+`OPENINGFIT_PLUS_ANNUAL_PRICE_GBP=39.99`; Stripe itself is authoritative for
+the charged amount.
+
+Short Stripe verification procedure:
+
+1. In Stripe live mode, open each configured Price and confirm both belong to
+   the OpeningFit Plus product, are active, use GBP, and recur at exactly
+   £4.99/month and £39.99/year respectively.
+2. Confirm the production webhook points to `/api/stripe/webhook`, uses the
+   stored endpoint signing secret, and subscribes to the events listed below.
+3. With checkout still disabled, confirm `/api/readiness` reports `stripe`,
+   `webhook`, `monthly_price`, and `annual_price` as `configured`; responses
+   must contain no keys or Price identifiers.
+4. Complete the Supabase reconciliation and test-mode purchase matrix before
+   enabling subscriptions. A designated operator must then perform the single
+   controlled live purchase described below; automated tests must not create a
+   live Checkout Session.
 
 ## Before migrations
 
@@ -18,7 +58,7 @@ Current repository assessment: **ready for the final manual gates; checkout must
 
 - [ ] Link the Supabase CLI to the production project without storing the service-role key in the repository.
 - [ ] Run `supabase migration list` and apply migrations in filename order.
-- [ ] Confirm the latest applied migration is `202607180004_feature_entitlement_enforcement.sql`.
+- [ ] Confirm the latest applied migration is `202607200003_production_coaching_and_entitlement_enforcement.sql` after completing the reviewed reconciliation sequence.
 - [ ] Run the audit SQL below read-only.
 - [ ] Investigate and resolve every unexpected row before continuing.
 - [ ] Verify RLS is enabled for `premium_entitlements`, `repertoire`, `weekly_training_plans`, `report_history`, and `stripe_webhook_events`.

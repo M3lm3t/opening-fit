@@ -1,6 +1,6 @@
 import { supabase } from "./lib/supabaseClient";
 import { buildApiUrl, getApiBaseUrl } from "./lib/apiBase";
-import { canStartCheckout } from "./lib/premiumExperience";
+import { canStartCheckout, normaliseBillingInterval } from "./lib/premiumExperience";
 import { trackProductEvent } from "./lib/productAnalytics";
 
 async function readJsonOrText(response) {
@@ -118,7 +118,7 @@ export async function loadBillingConfiguration() {
   return data;
 }
 
-export async function startPremiumCheckout(user, billingInterval = "annual") {
+export async function startPremiumCheckout(user, billingInterval = "monthly") {
   if (!canStartCheckout(user)) {
     throw new Error("Please sign in or create an account before upgrading.");
   }
@@ -131,7 +131,11 @@ export async function startPremiumCheckout(user, billingInterval = "annual") {
     });
   }
 
-  const interval = billingInterval === "monthly" ? "monthly" : "annual";
+  if (!["monthly", "annual"].includes(billingInterval)) {
+    throw new Error("Choose monthly or annual billing.");
+  }
+  const interval = normaliseBillingInterval(billingInterval);
+  const checkoutRequestId = globalThis.crypto?.randomUUID?.();
   void trackProductEvent("checkout_started", { source: "pricing_page", authenticated: true, billingInterval: interval });
   let response;
   try {
@@ -140,8 +144,8 @@ export async function startPremiumCheckout(user, billingInterval = "annual") {
       headers: await authHeaders(),
       body: JSON.stringify({
         userId: user.id,
-        email: user.email,
         billingInterval: interval,
+        checkoutRequestId,
       }),
     });
   } catch (error) {

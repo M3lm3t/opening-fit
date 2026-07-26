@@ -9,6 +9,8 @@ from main import billing_configuration, checkout_price_configuration
 
 
 PRICE_ENV = [
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
     "STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID",
     "STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID",
     "STRIPE_OPENINGFIT_FOUNDING_ANNUAL_COUPON_ID",
@@ -25,20 +27,30 @@ def clear_billing_env(monkeypatch):
         monkeypatch.delenv(name, raising=False)
 
 
+def configure_checkout_env(monkeypatch):
+    monkeypatch.setenv("OPENINGFIT_SUBSCRIPTIONS_ENABLED", "true")
+    monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_checkout")
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", "whsec_test_checkout")
+    monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID", "price_month")
+    monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID", "price_year")
+
+
 def test_public_billing_config_never_exposes_price_ids(monkeypatch):
     clear_billing_env(monkeypatch)
+    configure_checkout_env(monkeypatch)
     monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID", "price_month_secret")
     monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID", "price_year_secret")
     result = billing_configuration()
-    assert result["monthly"] == {"available": True, "amount": 4.99, "currency": "GBP"}
-    assert result["annual"] == {"available": True, "amount": 39.99, "currency": "GBP"}
+    assert result["monthly"] == {"available": True, "configured": True, "amount": 4.99, "currency": "GBP"}
+    assert result["annual"] == {"available": True, "configured": True, "amount": 39.99, "currency": "GBP"}
+    assert result["checkoutReady"] is True
     assert "price_month_secret" not in str(result)
     assert "price_year_secret" not in str(result)
 
 
 def test_founding_offer_requires_flag_annual_price_and_one_use_coupon(monkeypatch):
     clear_billing_env(monkeypatch)
-    monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID", "price_year")
+    configure_checkout_env(monkeypatch)
     monkeypatch.setenv("STRIPE_OPENINGFIT_FOUNDING_ANNUAL_COUPON_ID", "coupon_first_year")
     assert billing_configuration()["foundingOffer"]["enabled"] is False
     monkeypatch.setenv("OPENINGFIT_FOUNDING_ANNUAL_OFFER_ENABLED", "true")
@@ -81,9 +93,7 @@ def test_launch_control_disables_new_checkout_without_hiding_existing_account_se
 
 def test_launch_control_allows_server_selected_checkout_prices(monkeypatch):
     clear_billing_env(monkeypatch)
-    monkeypatch.setenv("OPENINGFIT_SUBSCRIPTIONS_ENABLED", "true")
-    monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID", "price_month")
-    monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID", "price_year")
+    configure_checkout_env(monkeypatch)
     assert billing_configuration()["monthly"]["available"] is True
     assert checkout_price_configuration("annual")["price_id"] == "price_year"
 
@@ -106,8 +116,9 @@ def test_production_billing_fails_closed_when_required_schema_is_missing(monkeyp
 
     monkeypatch.setattr(main, "get_supabase_admin_client", lambda: MissingSchemaClient())
     config = billing_configuration()
-    assert config["subscriptionsEnabled"] is False
-    assert config["checkoutStatus"] == "schema_upgrade_required"
+    assert config["subscriptionsEnabled"] is True
+    assert config["checkoutReady"] is False
+    assert "billing_schema_not_ready" in config["unavailableReasons"]
     assert config["monthly"]["available"] is False
 
     result = asyncio.run(main.create_checkout_session({}, object()))
@@ -117,9 +128,7 @@ def test_production_billing_fails_closed_when_required_schema_is_missing(monkeyp
 
 def test_unsigned_checkout_and_sync_return_controlled_auth_errors(monkeypatch):
     clear_billing_env(monkeypatch)
-    monkeypatch.setenv("OPENINGFIT_SUBSCRIPTIONS_ENABLED", "true")
-    monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_placeholder")
-    monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID", "price_year")
+    configure_checkout_env(monkeypatch)
     request = SimpleNamespace(headers={}, url=SimpleNamespace(path="/api/account/create-checkout-session"))
     user_id = "11111111-1111-4111-8111-111111111111"
 
@@ -140,10 +149,7 @@ def test_authenticated_checkout_creates_session_with_selected_recurring_price(
     monkeypatch, selected, expected_price, expected_interval
 ):
     clear_billing_env(monkeypatch)
-    monkeypatch.setenv("OPENINGFIT_SUBSCRIPTIONS_ENABLED", "true")
-    monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_placeholder")
-    monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID", "price_month")
-    monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID", "price_year")
+    configure_checkout_env(monkeypatch)
     monkeypatch.setenv("FRONTEND_URL", "https://www.openingfit.com")
 
     user_id = "11111111-1111-4111-8111-111111111111"
@@ -184,3 +190,39 @@ def test_authenticated_checkout_creates_session_with_selected_recurring_price(
     assert captured["line_items"] == [{"price": expected_price, "quantity": 1}]
     assert captured["metadata"]["billing_interval"] == selected
     assert captured["subscription_data"]["metadata"]["user_id"] == user_id
+    assert captured["idempotency_key"].startswith(f"openingfit-checkout:{user_id}:{selected}:")
+
+
+@pytest.mark.parametrize(
+    ("missing_name", "reason"),
+    (
+        ("STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID", "monthly_price_missing"),
+        ("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID", "annual_price_missing"),
+    ),
+)
+def test_both_server_prices_are_required_before_either_plan_is_available(monkeypatch, missing_name, reason):
+    clear_billing_env(monkeypatch)
+    configure_checkout_env(monkeypatch)
+    monkeypatch.delenv(missing_name)
+
+    config = billing_configuration()
+    assert config["monthly"]["available"] is False
+    assert config["annual"]["available"] is False
+    assert reason in config["unavailableReasons"]
+    assert "price_month" not in str(config)
+    assert "price_year" not in str(config)
+
+
+def test_client_price_identifier_is_rejected_before_stripe_is_called(monkeypatch):
+    clear_billing_env(monkeypatch)
+    configure_checkout_env(monkeypatch)
+    request = SimpleNamespace(headers={}, url=SimpleNamespace(path="/api/account/create-checkout-session"))
+
+    result = asyncio.run(main.create_checkout_session({
+        "userId": "11111111-1111-4111-8111-111111111111",
+        "billingInterval": "monthly",
+        "priceId": "price_client_supplied",
+    }, request))
+
+    assert result.status_code == 400
+    assert b"unsupported_checkout_parameter" in result.body

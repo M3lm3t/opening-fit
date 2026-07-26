@@ -833,7 +833,16 @@ def api_readiness():
     payload = readiness_payload()
     schema = billing_schema_readiness()
     payload["billing_schema"] = "ready" if schema["ready"] else "not_ready"
-    if payload["subscriptions"] == "enabled" and not schema["ready"]:
+    checkout_dependencies_ready = all(
+        payload.get(key) == "configured"
+        for key in ("stripe", "webhook", "monthly_price", "annual_price")
+    ) and schema["ready"]
+    payload["checkout"] = (
+        "disabled"
+        if payload["subscriptions"] == "disabled"
+        else "ready" if checkout_dependencies_ready else "not_ready"
+    )
+    if payload["subscriptions"] == "enabled" and not checkout_dependencies_ready:
         payload["status"] = "not_ready"
     return JSONResponse(status_code=200 if payload["status"] == "ready" else 503, content=payload)
 
@@ -12633,13 +12642,33 @@ def billing_configuration() -> Dict[str, Any]:
     founding_amount = float(os.getenv("OPENINGFIT_FOUNDING_FIRST_YEAR_PRICE_GBP", "29.99"))
     launch_enabled = subscriptions_enabled()
     schema_ready = billing_schema_readiness()["ready"]
-    checkout_enabled = launch_enabled and schema_ready
+    runtime_readiness = readiness_payload()
+    stripe_ready = runtime_readiness["stripe"] == "configured"
+    webhook_ready = runtime_readiness["webhook"] == "configured"
+    monthly_ready = runtime_readiness["monthly_price"] == "configured"
+    annual_ready = runtime_readiness["annual_price"] == "configured"
+    unavailable_reasons = []
+    if not launch_enabled:
+        unavailable_reasons.append("subscriptions_disabled")
+    if not monthly_ready:
+        unavailable_reasons.append("monthly_price_missing")
+    if not annual_ready:
+        unavailable_reasons.append("annual_price_missing")
+    if not stripe_ready:
+        unavailable_reasons.append("stripe_secret_missing")
+    if not webhook_ready:
+        unavailable_reasons.append("webhook_secret_missing")
+    if not schema_ready:
+        unavailable_reasons.append("billing_schema_not_ready")
+    checkout_enabled = not unavailable_reasons
     return {
-        "monthly": {"available": checkout_enabled and bool(monthly_price_id), "amount": monthly_amount, "currency": "GBP"},
-        "annual": {"available": checkout_enabled and bool(annual_price_id), "amount": annual_amount, "currency": "GBP"},
+        "monthly": {"available": checkout_enabled, "configured": monthly_ready, "amount": monthly_amount, "currency": "GBP"},
+        "annual": {"available": checkout_enabled, "configured": annual_ready, "amount": annual_amount, "currency": "GBP"},
         "foundingOffer": {"enabled": checkout_enabled and founding_enabled, "firstYearAmount": founding_amount if checkout_enabled and founding_enabled else None, "renewsAtAmount": annual_amount if checkout_enabled and founding_enabled else None},
-        "subscriptionsEnabled": checkout_enabled,
-        "checkoutStatus": "available" if checkout_enabled else "schema_upgrade_required" if launch_enabled and not schema_ready else "temporarily_unavailable",
+        "subscriptionsEnabled": launch_enabled,
+        "checkoutReady": checkout_enabled,
+        "checkoutStatus": "available" if checkout_enabled else unavailable_reasons[0],
+        "unavailableReasons": unavailable_reasons,
         "lifetimeMembersRetainAccess": True,
     }
 
@@ -12663,20 +12692,32 @@ def get_billing_configuration():
 
 @app.post("/api/account/create-checkout-session")
 async def create_checkout_session(payload: Dict[str, Any], request: Request):
-    if not subscriptions_enabled():
+    forbidden_price_fields = {"priceId", "price_id", "stripePriceId", "stripe_price_id"}
+    if any(field in payload for field in forbidden_price_fields):
         return checkout_error_response(
-            503,
-            "New subscriptions are temporarily unavailable. Existing paid access is unaffected.",
-            "subscription checkout disabled by launch control",
-            code="subscriptions_not_enabled",
+            400,
+            "Choose monthly or annual billing.",
+            "client attempted to submit a Stripe price identifier",
+            code="unsupported_checkout_parameter",
             retryable=False,
         )
-    if not billing_schema_readiness()["ready"]:
+
+    billing = billing_configuration()
+    if not billing["checkoutReady"]:
+        reason = billing["checkoutStatus"]
+        messages = {
+            "subscriptions_disabled": "New subscriptions are not open yet. Existing paid access is unaffected.",
+            "monthly_price_missing": "Monthly checkout is not configured yet. Existing paid access is unaffected.",
+            "annual_price_missing": "Annual checkout is not configured yet. Existing paid access is unaffected.",
+            "stripe_secret_missing": "Secure checkout is not configured yet. Existing paid access is unaffected.",
+            "webhook_secret_missing": "Payment confirmation is not configured yet. Existing paid access is unaffected.",
+            "billing_schema_not_ready": "New subscriptions are temporarily unavailable while account storage is upgraded. Existing paid access is unaffected.",
+        }
         return checkout_error_response(
             503,
-            "New subscriptions are temporarily unavailable while account storage is upgraded. Existing paid access is unaffected.",
-            "subscription checkout blocked because billing schema is not ready",
-            code="billing_schema_not_ready",
+            messages.get(reason, "New subscriptions are temporarily unavailable. Existing paid access is unaffected."),
+            "subscription checkout unavailable",
+            code=reason,
             retryable=False,
         )
 
@@ -12698,6 +12739,18 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
     stripe.api_key = stripe_secret_key
 
     requested_user_id = payload.get("userId")
+    checkout_request_id = str(payload.get("checkoutRequestId") or uuid4())
+
+    try:
+        UUID(checkout_request_id)
+    except (ValueError, TypeError, AttributeError):
+        return checkout_error_response(
+            400,
+            "We could not safely start checkout. Please try again.",
+            "invalid checkout request id",
+            code="invalid_checkout_request",
+            retryable=True,
+        )
 
     if not requested_user_id:
         return checkout_error_response(
@@ -12727,7 +12780,7 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
         )
 
     try:
-        checkout_config = checkout_price_configuration(payload.get("billingInterval", "annual"))
+        checkout_config = checkout_price_configuration(payload.get("billingInterval", "monthly"))
     except HTTPException as exc:
         return checkout_error_response(
             exc.status_code,
@@ -12739,7 +12792,7 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
 
     stripe_price_id = checkout_config["price_id"]
     user_id = str(auth_user.id)
-    email = getattr(auth_user, "email", None) or payload.get("email")
+    email = getattr(auth_user, "email", None)
     product = "openingfit_plus"
     checkout_metadata = {
         "user_id": user_id,
@@ -12796,7 +12849,10 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
                 "metadata": checkout_metadata,
             }
 
-        session = stripe.checkout.Session.create(**session_params)
+        session = stripe.checkout.Session.create(
+            **session_params,
+            idempotency_key=f"openingfit-checkout:{user_id}:{checkout_config['interval']}:{checkout_request_id}",
+        )
     except Exception as exc:
         return checkout_error_response(
             500,
