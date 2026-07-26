@@ -89,6 +89,7 @@ def test_readiness_reports_only_safe_configured_statuses(monkeypatch):
     }
     for name, value in values.items():
         monkeypatch.setenv(name, value)
+    monkeypatch.setattr(main, "billing_schema_readiness", lambda: {"ready": True, "reason": "ready"})
     response = client.get("/api/readiness")
     assert response.status_code == 200
     assert response.json() == {
@@ -101,5 +102,24 @@ def test_readiness_reports_only_safe_configured_statuses(monkeypatch):
         "cors": "configured",
         "subscriptions": "disabled",
         "environment": "production",
+        "billing_schema": "ready",
     }
     assert "sk_live_value" not in response.text
+
+
+def test_enabled_subscriptions_are_not_ready_without_billing_schema(monkeypatch):
+    monkeypatch.setattr(main, "readiness_payload", lambda: {
+        "status": "ready",
+        "database": "configured",
+        "stripe": "configured",
+        "webhook": "configured",
+        "pricing": "configured",
+        "portal": "configured",
+        "cors": "configured",
+        "subscriptions": "enabled",
+        "environment": "production",
+    })
+    monkeypatch.setattr(main, "billing_schema_readiness", lambda: {"ready": False, "reason": "schema_unavailable"})
+    response = client.get("/api/readiness")
+    assert response.status_code == 503
+    assert response.json()["billing_schema"] == "not_ready"

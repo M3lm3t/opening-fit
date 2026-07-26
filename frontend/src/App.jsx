@@ -12008,7 +12008,7 @@ function AppPrimaryNav({
   const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
 
   const isPrimaryNavItemActive = (item) => {
-    const isPremiumPath = currentPath === "/premium" || currentPath === "/upgrade";
+    const isPremiumPath = currentPath === "/premium" || currentPath === "/pricing" || currentPath === "/upgrade";
     if (item.key === activeView) return true;
 
     const activeViewsByKey = {
@@ -12462,14 +12462,14 @@ function getCurrentPath() {
 }
 
 function isPrivateSeoPath(path) {
-  return ["/account", "/profile", "/login", "/dashboard", "/report", SAMPLE_REPORT_PATH, "/repertoire", "/progress", "/journey", "/train", "/premium", "/upgrade"].includes(path);
+  return ["/account", "/profile", "/login", "/dashboard", "/report", SAMPLE_REPORT_PATH, "/repertoire", "/progress", "/journey", "/train", "/premium", "/pricing", "/upgrade"].includes(path);
 }
 
 function getInitialAppView() {
   const path = getCurrentPath();
   if (path === "/dashboard") return "dashboard";
   if (path === "/account" || path === "/profile" || path === "/login") return "profile";
-  if (path === "/upgrade" || path === "/premium") return "upgrade";
+  if (path === "/upgrade" || path === "/premium" || path === "/pricing") return "upgrade";
   if (path === "/train") return "train";
   if (path === "/report" || isSampleReportPath(path)) return "report";
   if (path === "/repertoire") return "repertoire";
@@ -17147,7 +17147,7 @@ export default function App() {
           {activeAppSection === "report" && !reportData && !loading ? (
             <section className="card appEmptySection productEmptyState" id="app-results">
               <span className="productStateIcon"><ChartNoAxesCombined size={22} /></span>
-              <div><p className="eyebrow">Your report</p><h2>Your opening profile starts with one import.</h2>
+              <div><p className="eyebrow">Your report</p><h1>Your opening profile starts with one import.</h1>
               <p>OpeningFit will turn recent games into opening verdicts, confidence labels, and one clear line to study.</p></div>
               <div className="productStatePreview" aria-label="Report contents">
                 <span><CheckCircle2 size={15} /> Repertoire coverage</span>

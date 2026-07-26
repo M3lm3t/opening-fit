@@ -55,6 +55,7 @@ from feature_entitlements import FEATURE_ACCESS, can_use_feature, entitlement_ha
 from runtime_config import (
     assert_valid_startup_configuration,
     build_allowed_origins,
+    is_production_environment,
     readiness_payload,
     runtime_environment,
     subscriptions_enabled,
@@ -830,6 +831,10 @@ def api_health():
 @app.get("/api/readiness")
 def api_readiness():
     payload = readiness_payload()
+    schema = billing_schema_readiness()
+    payload["billing_schema"] = "ready" if schema["ready"] else "not_ready"
+    if payload["subscriptions"] == "enabled" and not schema["ready"]:
+        payload["status"] = "not_ready"
     return JSONResponse(status_code=200 if payload["status"] == "ready" else 503, content=payload)
 
 
@@ -12577,6 +12582,47 @@ def env_flag(name: str, default: bool = False) -> bool:
     return default if not value else value in {"1", "true", "yes", "on"}
 
 
+BILLING_SCHEMA_COLUMNS = (
+    "user_id,status,source,stripe_customer_id,stripe_checkout_session_id,"
+    "stripe_subscription_id,stripe_payment_intent_id,stripe_price_id,checkout_mode,"
+    "access_type,current_period_start,current_period_end,cancel_at_period_end,"
+    "plan_interval,stripe_status,is_grandfathered_lifetime,last_stripe_event_id,"
+    "last_stripe_event_created_at,premium_since,expires_at,updated_at"
+)
+BILLING_SCHEMA_CACHE: Dict[str, Any] = {"checked_at": 0.0, "ready": None}
+BILLING_SCHEMA_CACHE_SECONDS = 60
+
+
+def billing_schema_readiness(force: bool = False) -> Dict[str, Any]:
+    if not is_production_environment():
+        return {"ready": True, "reason": "not_required"}
+
+    now = time.monotonic()
+    cached_ready = BILLING_SCHEMA_CACHE.get("ready")
+    if not force and cached_ready is not None and now - float(BILLING_SCHEMA_CACHE.get("checked_at") or 0) < BILLING_SCHEMA_CACHE_SECONDS:
+        return {"ready": bool(cached_ready), "reason": "cached"}
+
+    ready = False
+    reason = "schema_unavailable"
+    try:
+        admin = get_supabase_admin_client()
+        admin.table("premium_entitlements").select(BILLING_SCHEMA_COLUMNS).limit(1).execute()
+        admin.table("stripe_webhook_events").select("event_id,status,attempt_count,updated_at").limit(1).execute()
+        ready = True
+        reason = "ready"
+    except Exception as exc:
+        log_payment_diagnostic(
+            "billing schema readiness check failed",
+            operation="billing_schema_readiness",
+            result="not_ready",
+            retryable=False,
+            error_type=exc.__class__.__name__,
+        )
+
+    BILLING_SCHEMA_CACHE.update({"checked_at": now, "ready": ready})
+    return {"ready": ready, "reason": reason}
+
+
 def billing_configuration() -> Dict[str, Any]:
     monthly_price_id = os.getenv("STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID", "").strip()
     annual_price_id = os.getenv("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID", "").strip()
@@ -12585,13 +12631,15 @@ def billing_configuration() -> Dict[str, Any]:
     monthly_amount = float(os.getenv("OPENINGFIT_PLUS_MONTHLY_PRICE_GBP", "4.99"))
     annual_amount = float(os.getenv("OPENINGFIT_PLUS_ANNUAL_PRICE_GBP", "39.99"))
     founding_amount = float(os.getenv("OPENINGFIT_FOUNDING_FIRST_YEAR_PRICE_GBP", "29.99"))
-    checkout_enabled = subscriptions_enabled()
+    launch_enabled = subscriptions_enabled()
+    schema_ready = billing_schema_readiness()["ready"]
+    checkout_enabled = launch_enabled and schema_ready
     return {
         "monthly": {"available": checkout_enabled and bool(monthly_price_id), "amount": monthly_amount, "currency": "GBP"},
         "annual": {"available": checkout_enabled and bool(annual_price_id), "amount": annual_amount, "currency": "GBP"},
         "foundingOffer": {"enabled": checkout_enabled and founding_enabled, "firstYearAmount": founding_amount if checkout_enabled and founding_enabled else None, "renewsAtAmount": annual_amount if checkout_enabled and founding_enabled else None},
         "subscriptionsEnabled": checkout_enabled,
-        "checkoutStatus": "available" if checkout_enabled else "temporarily_unavailable",
+        "checkoutStatus": "available" if checkout_enabled else "schema_upgrade_required" if launch_enabled and not schema_ready else "temporarily_unavailable",
         "lifetimeMembersRetainAccess": True,
     }
 
@@ -12621,6 +12669,14 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
             "New subscriptions are temporarily unavailable. Existing paid access is unaffected.",
             "subscription checkout disabled by launch control",
             code="subscriptions_not_enabled",
+            retryable=False,
+        )
+    if not billing_schema_readiness()["ready"]:
+        return checkout_error_response(
+            503,
+            "New subscriptions are temporarily unavailable while account storage is upgraded. Existing paid access is unaffected.",
+            "subscription checkout blocked because billing schema is not ready",
+            code="billing_schema_not_ready",
             retryable=False,
         )
 
@@ -12665,7 +12721,7 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
             exc.status_code,
             "Please sign in or create an account before upgrading.",
             "checkout auth validation failed",
-            status_code=exc.status_code,
+            auth_status=exc.status_code,
             detail=exc.detail,
             user_id=requested_user_id,
         )
@@ -12779,6 +12835,14 @@ async def create_checkout_session(payload: Dict[str, Any], request: Request):
 
 @app.post("/api/account/sync-checkout-session")
 async def sync_checkout_session(payload: Dict[str, Any], request: Request):
+    if not billing_schema_readiness()["ready"]:
+        return checkout_error_response(
+            503,
+            "Payment verification is temporarily unavailable while account storage is upgraded. Please try restore access later; do not purchase again.",
+            "checkout sync blocked because billing schema is not ready",
+            code="billing_schema_not_ready",
+            retryable=True,
+        )
     stripe_secret_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
     if not stripe_secret_key:
         return checkout_error_response(
@@ -12814,7 +12878,7 @@ async def sync_checkout_session(payload: Dict[str, Any], request: Request):
             exc.status_code,
             "Please sign in or create an account before restoring access.",
             "checkout sync auth validation failed",
-            status_code=exc.status_code,
+            auth_status=exc.status_code,
             detail=exc.detail,
             user_id=requested_user_id,
         )

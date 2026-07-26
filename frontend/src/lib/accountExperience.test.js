@@ -73,3 +73,9 @@ test("inner-page brand navigation is a native semantic homepage link", () => {
   assert.match(app, /className="appPrimaryBrand" href=\{HOME_NAVIGATION\.path\}/);
   assert.doesNotMatch(app, /className="appPrimaryBrand" href="#app-dashboard"/);
 });
+
+test("pricing is a direct route alias and an empty report retains a page heading", () => {
+  const app = read("../App.jsx");
+  assert.match(app, /path === "\/upgrade" \|\| path === "\/premium" \|\| path === "\/pricing"/);
+  assert.match(app, /<h1>Your opening profile starts with one import\.<\/h1>/);
+});

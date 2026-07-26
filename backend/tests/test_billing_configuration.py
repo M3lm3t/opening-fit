@@ -88,6 +88,50 @@ def test_launch_control_allows_server_selected_checkout_prices(monkeypatch):
     assert checkout_price_configuration("annual")["price_id"] == "price_year"
 
 
+def test_production_billing_fails_closed_when_required_schema_is_missing(monkeypatch):
+    clear_billing_env(monkeypatch)
+    monkeypatch.setenv("OPENINGFIT_SUBSCRIPTIONS_ENABLED", "true")
+    monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_MONTHLY_PRICE_ID", "price_month")
+    monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID", "price_year")
+    monkeypatch.setattr(main, "is_production_environment", lambda: True)
+    main.BILLING_SCHEMA_CACHE.update({"checked_at": 0.0, "ready": None})
+
+    class MissingSchemaQuery:
+        def select(self, _columns): return self
+        def limit(self, _value): return self
+        def execute(self): raise RuntimeError("required relation is missing")
+
+    class MissingSchemaClient:
+        def table(self, _name): return MissingSchemaQuery()
+
+    monkeypatch.setattr(main, "get_supabase_admin_client", lambda: MissingSchemaClient())
+    config = billing_configuration()
+    assert config["subscriptionsEnabled"] is False
+    assert config["checkoutStatus"] == "schema_upgrade_required"
+    assert config["monthly"]["available"] is False
+
+    result = asyncio.run(main.create_checkout_session({}, object()))
+    assert result.status_code == 503
+    assert b"Existing paid access is unaffected" in result.body
+
+
+def test_unsigned_checkout_and_sync_return_controlled_auth_errors(monkeypatch):
+    clear_billing_env(monkeypatch)
+    monkeypatch.setenv("OPENINGFIT_SUBSCRIPTIONS_ENABLED", "true")
+    monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_placeholder")
+    monkeypatch.setenv("STRIPE_OPENINGFIT_PLUS_ANNUAL_PRICE_ID", "price_year")
+    request = SimpleNamespace(headers={}, url=SimpleNamespace(path="/api/account/create-checkout-session"))
+    user_id = "11111111-1111-4111-8111-111111111111"
+
+    checkout = asyncio.run(main.create_checkout_session({"userId": user_id, "billingInterval": "annual"}, request))
+    assert checkout.status_code == 401
+    assert b"sign in or create an account" in checkout.body
+
+    sync = asyncio.run(main.sync_checkout_session({"userId": user_id, "sessionId": "cs_test_audit"}, request))
+    assert sync.status_code == 401
+    assert b"sign in or create an account" in sync.body
+
+
 @pytest.mark.parametrize(
     ("selected", "expected_price", "expected_interval"),
     (("monthly", "price_month", "month"), ("annual", "price_year", "year")),

@@ -19,6 +19,10 @@ function friendlyApiError(payload, fallback) {
     return "Checkout is temporarily unavailable. Please contact support so we can fix the payment setup.";
   }
 
+  if (payload?.code === "billing_schema_not_ready") {
+    return "Checkout is temporarily unavailable while account storage is upgraded. Please try again later.";
+  }
+
   if (payload?.code === "stripe_checkout_create_failed" || payload?.code === "stripe_checkout_missing_url") {
     return "Stripe checkout could not start. Please try again, or contact support if it keeps happening.";
   }
