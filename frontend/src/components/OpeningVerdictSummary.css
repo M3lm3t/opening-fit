@@ -1,0 +1,15 @@
+.openingVerdictSummary { display: grid; gap: 8px; margin-top: 10px; }
+.openingVerdictBands { display: flex; flex-wrap: wrap; gap: 7px; }
+.openingVerdictBand { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 5px 8px; border: 1px solid var(--of-border, #cbd5e1); border-radius: 999px; background: var(--of-surface-muted, #f8fafc); color: var(--of-text, #0f172a); }
+.openingVerdictBand small { color: var(--of-muted, #64748b); font-size: .7rem; font-weight: 750; }
+.openingVerdictBand strong { font-size: .78rem; }
+.openingVerdictBand .infoHintButton { width: 20px; height: 20px; min-height: 20px; padding: 0; }
+.openingVerdictRecommendation { margin: 0; color: var(--of-text, #0f172a); font-size: .88rem; line-height: 1.45; }
+.openingVerdictNumbers { color: var(--of-muted, #64748b); font-size: .76rem; }
+.openingVerdictNumbers summary { width: fit-content; cursor: pointer; font-weight: 800; }
+.openingVerdictNumbers p { margin: 6px 0 2px; }
+.openingVerdictNumbers small { display: block; line-height: 1.4; }
+.page.light .openingVerdictNumbers,
+[data-theme="light"] .openingVerdictNumbers { color: #52647a; }
+.openingVerdictSummary--compact { margin-top: 7px; }
+@media (max-width: 520px) { .openingVerdictBand { flex: 1 1 calc(50% - 7px); border-radius: 9px; } }

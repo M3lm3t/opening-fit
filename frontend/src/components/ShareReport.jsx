@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { buildReportGameCounts } from "../lib/reportGameCounts.js";
 import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
-import { formatChessScore, formatRecommendationConfidence, recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
+import { recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
+import { formatOpeningVerdictText } from "../lib/fitTrustModel.js";
+import OpeningVerdictSummary from "./OpeningVerdictSummary.jsx";
 
 function getOpeningName(item) {
   return (
@@ -134,7 +136,7 @@ export default function ShareReport({ data }) {
       });
 
     const decision = normaliseReportDecision(data.reportDecision || data.report_decision);
-    const card = (entry) => entry ? { name: entry.opening, games: entry.sample?.games ?? entry.games, winRate: entry.sample?.scoreRate ?? entry.scoreRate ?? entry.score } : null;
+    const card = (entry) => entry ? { name: entry.opening, games: entry.sample?.games ?? entry.games, winRate: entry.sample?.scoreRate ?? entry.scoreRate ?? entry.score, source: entry } : null;
     const best = card(decision?.establishedStrength);
     const weakest = card(decision?.primaryProblem);
     const nextAction = decision?.nextTrainingAction || { label: "Collect more games before changing your repertoire", reason: "No reliable opening weakness was found yet." };
@@ -151,10 +153,10 @@ Games analysed: ${gamesImported || "Imported games"}
 Style: ${style}
 
 Established strength: ${decision?.establishedStrength ? recommendationCopy(decision.establishedStrength, "keep") : "We do not have enough consistent results to name one yet."}
-${decision?.establishedStrength ? `${formatChessScore(decision.establishedStrength)} ${formatRecommendationConfidence(decision.establishedStrength)}` : ""}
+${decision?.establishedStrength ? formatOpeningVerdictText(decision.establishedStrength, { verdict: "keep" }) : ""}
 
 Primary problem: ${recommendationCopy(decision?.primaryProblem, "repair")}
-${decision?.primaryProblem ? `${formatChessScore(decision.primaryProblem)} ${formatRecommendationConfidence(decision.primaryProblem)}` : ""}
+${decision?.primaryProblem ? formatOpeningVerdictText(decision.primaryProblem, { verdict: "repair" }) : ""}
 
 Next training action:
 ${training.title}. ${training.explanation}
@@ -249,19 +251,13 @@ Try it: https://www.openingfit.com`;
           <div className="shareReportResult best">
             <span>Established strength</span>
             <h3>{report.best?.name || "Not enough evidence yet"}</h3>
-            <p>
-              {report.best?.winRate ? `${report.best.winRate}% score` : "Best current result"}
-              {report.best?.games ? ` · ${report.best.games} games` : ""}
-            </p>
+            {report.best ? <OpeningVerdictSummary opening={report.best.source} verdict="keep" compact /> : <p>Not enough evidence yet</p>}
           </div>
 
           <div className="shareReportResult fix">
             <span>Primary problem</span>
             <h3>{report.weakest?.name || "No reliable opening weakness found yet"}</h3>
-            <p>
-              {report.weakest?.winRate ? `${report.weakest.winRate}% score` : "Needs review"}
-              {report.weakest?.games ? ` · ${report.weakest.games} games` : ""}
-            </p>
+            {report.weakest ? <OpeningVerdictSummary opening={report.weakest.source} verdict="repair" compact /> : <p>No weakness claim is supported</p>}
           </div>
         </div>
 

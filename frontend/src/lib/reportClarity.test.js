@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { buildReportGameCounts, countNoun, reportCountSentence } from "./reportGameCounts.js";
+import { buildReportGameCounts, countNoun, reportCountSentence, reportSaveState } from "./reportGameCounts.js";
 import { reportMetricAvailability } from "./reportMetricDefinitions.js";
 import { buildReportDecisionModel } from "./reportDecisionModel.js";
 import { buildPrimaryReportSummary } from "./primaryReportSummary.js";
@@ -27,6 +27,18 @@ test("excluded categories are concise and duplicate categories merge", () => {
     { key: "veryShort", count: 1 }, { key: "tooFewLegalMoves", count: 2 },
   ] });
   assert.deepEqual(counts.exclusionReasons.map((row) => [row.label, row.count]), [["Did not contain enough opening information", 3]]);
+});
+
+test("excluded games keep recorded reasons and use an honest fallback", () => {
+  const recorded = buildReportGameCounts({ gameCounts: { contractVersion: 2, fetchedGames: 10, analysedGames: 7, exclusionReasons: { duplicate: 2 } } });
+  assert.deepEqual(recorded.exclusionReasons.map((reason) => [reason.label, reason.count]), [["Duplicate game record", 2], ["Reason unavailable", 1]]);
+  const unavailable = buildReportGameCounts({ gamesImported: 10, gamesAnalysed: 7, gamesExcluded: 3 });
+  assert.deepEqual(unavailable.exclusionReasons.map((reason) => [reason.label, reason.count]), [["Reason unavailable", 3]]);
+});
+
+test("logged-out reports clearly identify the local-save state", () => {
+  assert.deepEqual(reportSaveState("local", false), { label: "Saved locally", detail: "This report stays in this browser. Log in to sync it across devices." });
+  assert.equal(reportSaveState("saved", true).label, "Saved to cloud");
 });
 
 test("count sentence handles singular and plural grammar", () => {
@@ -102,8 +114,10 @@ test("main report model and component expose exactly one primary training action
   const summary = buildPrimaryReportSummary(model, {});
   assert.equal(summary.training.title, "Collect more games");
   assert.equal(Object.hasOwn(summary, "training"), true);
+  assert.equal(summary.decisions.filter((decision) => decision.primary).length, 1);
   const component = fs.readFileSync(fileURLToPath(new URL("../components/PrimaryReportSummary.jsx", import.meta.url)), "utf8");
-  assert.equal((component.match(/className="primaryReportTraining"/g) || []).length, 1);
+  assert.equal((component.match(/className="primaryReportTraining"/g) || []).length, 0);
+  assert.equal((component.match(/className="primaryBtn"/g) || []).length, 1);
 });
 
 test("canonical primary problem uses its own evidence rather than the strength evidence", () => {

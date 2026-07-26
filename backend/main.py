@@ -22,7 +22,7 @@ from opening_detection import (
     normalise_opening_name as detect_normalise_opening_name,
     pgn_tag_value,
 )
-from typing import List, Dict, Any, Optional, Tuple, TypedDict
+from typing import List, Dict, Any, Optional, Tuple, TypedDict, Callable
 import os
 from dotenv import load_dotenv
 import re
@@ -299,7 +299,7 @@ class AnalysisJobRequest(BaseModel):
 PRODUCT_ANALYTICS_EVENTS = {
     "weekly_recap_shown", "weekly_recap_opened", "weekly_recap_dismissed", "weekly_recap_action_clicked",
     "onboarding_started", "onboarding_completed", "onboarding_skipped", "training_preference_updated",
-    "homepage_viewed", "platform_selected", "username_started", "username_submitted", "account_lookup_succeeded", "account_lookup_failed", "analysis_started", "analysis_failed", "analysis_completed", "report_viewed", "coach_verdict_viewed", "recommendation_expanded", "evidence_viewed", "supporting_game_opened", "fit_explanation_opened", "repertoire_viewed", "opening_added", "opening_replaced", "opening_locked", "recommendation_dismissed", "repertoire_created", "repertoire_change_accepted", "repertoire_change_rejected", "repertoire_training_opened", "training_started", "weekly_plan_started", "training_task_started", "training_task_completed", "weekly_plan_completed", "training_task_failed", "training_answer_revealed", "training_session_completed", "training_impact_viewed", "training_history_opened", "returning_dashboard_viewed", "new_games_detected", "reanalysis_started", "report_comparison_viewed", "report_history_opened", "resolved_issue_viewed", "account_created", "sign_in_completed", "premium_page_viewed", "pricing_viewed", "billing_interval_changed", "checkout_started", "checkout_failed", "checkout_cancelled", "checkout_completed", "entitlement_confirmed", "entitlement_delayed", "subscription_manage_clicked", "upgrade_clicked", "portal_open_failed", "recommendation_feedback_submitted", "general_feedback_submitted", "import_problem_reported",
+    "homepage_viewed", "platform_selected", "username_started", "username_submitted", "account_lookup_succeeded", "account_lookup_failed", "analysis_started", "analysis_failed", "analysis_completed", "report_viewed", "coach_verdict_viewed", "recommendation_expanded", "evidence_viewed", "supporting_game_opened", "fit_explanation_opened", "repertoire_viewed", "opening_added", "opening_replaced", "opening_locked", "recommendation_dismissed", "repertoire_created", "repertoire_change_accepted", "repertoire_change_rejected", "repertoire_training_opened", "training_started", "weekly_plan_started", "training_task_started", "training_task_completed", "weekly_plan_completed", "training_task_failed", "training_answer_revealed", "training_session_completed", "training_impact_viewed", "training_history_opened", "returning_dashboard_viewed", "new_games_detected", "reanalysis_started", "report_comparison_viewed", "report_history_opened", "resolved_issue_viewed", "account_created", "sign_in_completed", "plus_invitation_viewed", "premium_page_viewed", "pricing_viewed", "billing_interval_changed", "checkout_started", "checkout_failed", "checkout_cancelled", "checkout_completed", "entitlement_confirmed", "entitlement_delayed", "subscription_manage_clicked", "upgrade_clicked", "portal_open_failed", "recommendation_feedback_submitted", "general_feedback_submitted", "import_problem_reported",
 }
 SAFE_ANALYTICS_KEYS = {"platform", "route", "authenticated", "deviceCategory", "resultCategory", "errorCategory", "source", "access", "stage", "attempts", "feedback", "decision", "confidence", "games", "fetchedGames", "dateRangeEligibleGames", "timeControlEligibleGames", "analysisCandidateGames", "analysedGames", "excludedGames", "openingCategory", "hasSessionContext", "newGames", "reportCount", "billingInterval"}
 
@@ -839,16 +839,6 @@ GAMES_ANALYSED_COUNT_CACHE: Dict[str, Any] = {
 }
 
 
-def public_historical_games_analysed_baseline() -> int:
-    # Only set this when it represents verified historic QA, demo, or live analyses.
-    raw_value = os.getenv("PUBLIC_HISTORICAL_GAMES_ANALYSED_BASELINE", "0").strip()
-
-    try:
-        return max(0, int(raw_value))
-    except (TypeError, ValueError):
-        return 0
-
-
 @app.get("/api/public/games-analysed-count")
 def public_games_analysed_count():
     now = datetime.now(timezone.utc)
@@ -860,15 +850,11 @@ def public_games_analysed_count():
             headers={"Cache-Control": "public, max-age=300, s-maxage=300"},
         )
 
-    baseline = public_historical_games_analysed_baseline()
-
     if supabase is None:
         payload = {
             "ok": False,
-            "count": baseline,
-            "live_count": 0,
-            "baseline": baseline,
-            "source": "baseline_only",
+            "count": None,
+            "source": "unavailable",
         }
         return JSONResponse(
             content=payload,
@@ -887,10 +873,8 @@ def public_games_analysed_count():
         log_supabase_diagnostic("public games analysed count failed", error=exc)
         payload = {
             "ok": False,
-            "count": baseline,
-            "live_count": 0,
-            "baseline": baseline,
-            "source": "baseline_only",
+            "count": None,
+            "source": "unavailable",
         }
         return JSONResponse(
             content=payload,
@@ -899,10 +883,8 @@ def public_games_analysed_count():
 
     payload = {
         "ok": True,
-        "count": baseline + live_count,
-        "live_count": live_count,
-        "baseline": baseline,
-        "source": "analysed_games_count",
+        "count": live_count,
+        "source": "analysed_games_unique_saved_records",
     }
     GAMES_ANALYSED_COUNT_CACHE["payload"] = payload
     GAMES_ANALYSED_COUNT_CACHE["expires_at"] = now + timedelta(minutes=5)
@@ -8411,7 +8393,7 @@ def build_not_enough_games_import_result(
     }
 
 
-def import_chesscom_logic(username: str, months: int = 3, time_control: str = "custom"):
+def import_chesscom_logic(username: str, months: int = 3, time_control: str = "custom", progress: Optional[Callable[..., None]] = None):
     username = username.strip()
 
     if not username:
@@ -8431,6 +8413,8 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
         },
     )
 
+    if progress:
+        progress("requesting_public_games")
     player = validate_player(username)
     player_profile = normalize_player_profile("chess.com", player, username)
     player_stats = fetch_chesscom_stats(player_profile.get("username") or username)
@@ -8476,6 +8460,8 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
 
         all_games.extend(user_games)
 
+    if progress:
+        progress("games_found", fetchedGames=len(all_games))
     if not all_games:
         return build_not_enough_games_import_result(
             username=player.get("username", username),
@@ -8488,6 +8474,8 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
             archives_checked=archive_breakdown,
         )
 
+    if progress:
+        progress("filtering_eligible_games", fetchedGames=len(all_games))
     time_control_games, unsupported_time_control_count = filter_games_by_time_control(
         all_games, "chess.com", time_control
     )
@@ -8499,6 +8487,13 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
     )[:ANALYSIS_GAME_LIMIT]
     analysed_games, skipped_reason_counts = split_usable_games(analysis_candidates, chesscom_skip_reason)
 
+    if progress:
+        progress(
+            "identifying_openings",
+            fetchedGames=len(all_games),
+            eligibleGames=len(time_control_games),
+            analysedGames=len(analysed_games),
+        )
     if not analysed_games:
         return build_not_enough_games_import_result(
             username=player.get("username", username),
@@ -8654,6 +8649,13 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
             }
         )
 
+    if progress:
+        progress(
+            "building_recommendations",
+            fetchedGames=len(all_games),
+            eligibleGames=len(time_control_games),
+            analysedGames=len(analysed_games),
+        )
     top_openings = []
     total_opening_games = sum(int(stats.get("games", 0) or 0) for stats in opening_results.values())
 
@@ -9152,6 +9154,7 @@ def build_lichess_analysis(
     skipped_reason_counts: Optional[Dict[str, int]] = None,
     player_profile: Optional[Dict[str, Any]] = None,
     count_context: Optional[Dict[str, Any]] = None,
+    progress: Optional[Callable[..., None]] = None,
 ):
     games_found = games_found if games_found is not None else len(games)
     skipped_reason_counts = skipped_reason_counts or {key: 0 for key in SKIPPED_REASON_LABELS}
@@ -9343,6 +9346,13 @@ def build_lichess_analysis(
             }
         )
 
+    if progress:
+        progress(
+            "building_recommendations",
+            fetchedGames=games_found,
+            eligibleGames=len(games),
+            analysedGames=len(games),
+        )
     top_openings = []
     total_opening_games = sum(int(stats.get("games", 0) or 0) for stats in opening_results.values())
 
@@ -9803,7 +9813,7 @@ def build_lichess_analysis(
     return result
 
 
-def import_lichess_logic(username: str, months: int = 3, time_control: str = "custom"):
+def import_lichess_logic(username: str, months: int = 3, time_control: str = "custom", progress: Optional[Callable[..., None]] = None):
     username = username.strip()
 
     if not username:
@@ -9823,6 +9833,8 @@ def import_lichess_logic(username: str, months: int = 3, time_control: str = "cu
         },
     )
 
+    if progress:
+        progress("requesting_public_games")
     user_url = f"https://lichess.org/api/user/{username}"
 
     try:
@@ -9921,6 +9933,8 @@ def import_lichess_logic(username: str, months: int = 3, time_control: str = "cu
         except json.JSONDecodeError:
             continue
 
+    if progress:
+        progress("games_found", fetchedGames=len(games))
     if not games:
         return build_not_enough_games_import_result(
             username=resolved_username,
@@ -9939,6 +9953,8 @@ def import_lichess_logic(username: str, months: int = 3, time_control: str = "cu
             ],
         )
 
+    if progress:
+        progress("filtering_eligible_games", fetchedGames=len(games))
     time_control_games, unsupported_time_control_count = filter_games_by_time_control(
         games, "lichess", time_control
     )
@@ -9953,6 +9969,13 @@ def import_lichess_logic(username: str, months: int = 3, time_control: str = "cu
     skipped_reason_counts["duplicate"] = duplicate_count
     skipped_reason_counts["analysisLimit"] = max(0, len(unique_games) - len(analysis_candidates))
 
+    if progress:
+        progress(
+            "identifying_openings",
+            fetchedGames=len(games),
+            eligibleGames=len(time_control_games),
+            analysedGames=len(analysed_games),
+        )
     if not analysed_games:
         return build_not_enough_games_import_result(
             username=resolved_username,
@@ -9988,10 +10011,11 @@ def import_lichess_logic(username: str, months: int = 3, time_control: str = "cu
             "analysisCandidateGames": len(analysis_candidates),
             "timeControl": time_control,
         },
+        progress=progress,
     )
 
 
-def run_import_route(platform: str, username: str, months: int, time_control: str = "custom"):
+def run_import_route(platform: str, username: str, months: int, time_control: str = "custom", progress: Optional[Callable[..., None]] = None):
     clean_username = username.strip()
     clean_months = max(1, min(int(months or 3), 12))
 
@@ -10004,9 +10028,9 @@ def run_import_route(platform: str, username: str, months: int, time_control: st
 
     try:
         if platform == "chess.com":
-            result = import_chesscom_logic(clean_username, clean_months, time_control)
+            result = import_chesscom_logic(clean_username, clean_months, time_control, progress=progress)
         else:
-            result = import_lichess_logic(clean_username, clean_months, time_control)
+            result = import_lichess_logic(clean_username, clean_months, time_control, progress=progress)
 
         logger.info(
             "import_route_completed platform=%s username=%s months=%s games_imported=%s games_found=%s",
@@ -10249,7 +10273,23 @@ def analysis_job_public(job: Dict[str, Any]) -> Dict[str, Any]:
         payload["result"] = job["result"]
     if job.get("error") is not None:
         payload["error"] = job["error"]
+    if job.get("progress") is not None:
+        payload["progress"] = job["progress"]
     return payload
+
+
+def update_analysis_job_progress(job_id: str, stage: str, **counts: Any) -> None:
+    safe_counts = {
+        key: max(0, int(value))
+        for key, value in counts.items()
+        if key in {"fetchedGames", "eligibleGames", "analysedGames"} and value is not None
+    }
+    with analysis_jobs_lock:
+        job = analysis_jobs.get(job_id)
+        if not job or job.get("status") not in {"queued", "running"}:
+            return
+        job["progress"] = {"stage": stage, "counts": safe_counts}
+        job["updatedAt"] = now_iso()
 
 
 def prune_analysis_jobs(now_monotonic: Optional[float] = None) -> None:
@@ -10274,13 +10314,22 @@ def execute_analysis_job(job_id: str) -> None:
         time_control = job.get("timeControl", "custom")
 
     try:
-        result = run_import_route(platform, username, months, time_control)
+        progress = lambda stage, **counts: update_analysis_job_progress(job_id, stage, **counts)
+        result = run_import_route(platform, username, months, time_control, progress)
         if isinstance(result, JSONResponse):
             try:
                 error_payload = json.loads(result.body.decode("utf-8", errors="replace"))
             except json.JSONDecodeError:
                 error_payload = {}
             raise RuntimeError(error_payload.get("message") or "Analysis failed.")
+        result_counts = (result.get("gameCounts") or result.get("game_counts") or {}) if isinstance(result, dict) else {}
+        update_analysis_job_progress(
+            job_id,
+            "finishing_report",
+            fetchedGames=result_counts.get("fetchedGames"),
+            eligibleGames=result_counts.get("timeControlEligibleGames"),
+            analysedGames=result_counts.get("analysedGames"),
+        )
         result = compact_analysis_result(result)
         with analysis_jobs_lock:
             if job := analysis_jobs.get(job_id):
@@ -10336,6 +10385,7 @@ def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
             "createdAt": created_at, "updatedAt": created_at, "platform": platform,
             "username": username, "months": months, "timeControl": time_control, "result": None, "error": None,
             "ownerUserId": owner_user_id, "paidAccess": entitlement_has_paid_access(entitlement),
+            "progress": {"stage": "queued", "counts": {}},
         }
         analysis_jobs[job_id] = job
         analysis_job_keys[request_key] = job_id

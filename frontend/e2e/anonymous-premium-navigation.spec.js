@@ -17,6 +17,11 @@ test("a signed-out visitor deliberately choosing OpeningFit Plus reaches login",
   }));
   await page.goto(`${appUrl}/premium`, { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Keep improving after the first report." })).toBeVisible();
+  await page.getByRole("radio", { name: /Monthly · £4\.99/ }).check();
+  await expect(page.getByRole("heading", { name: "£4.99 per month" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Choose monthly billing" })).toBeVisible();
+  await page.getByRole("radio", { name: /Annual · £39\.99/ }).check();
+  await expect(page.getByRole("heading", { name: "£39.99 per year" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Choose annual billing/ }).first()).toBeVisible();
   await page.getByRole("button", { name: /Choose annual billing/ }).first().click();
   await expect(page).toHaveURL(/\/login/);

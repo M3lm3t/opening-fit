@@ -1,0 +1,21 @@
+.publicGamesMetricSlot {
+  min-width: min(18rem, 100%);
+  min-height: 3.25rem;
+  display: grid;
+  place-items: center end;
+}
+
+.publicGamesMetric {
+  margin: 0;
+  padding: .7rem 1rem;
+  border: 1px solid var(--of-color-border);
+  border-radius: 999px;
+  background: var(--of-color-surface-muted);
+  color: var(--of-color-text);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .publicGamesMetricSlot { place-items: center start; }
+}

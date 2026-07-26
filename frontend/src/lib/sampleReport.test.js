@@ -37,7 +37,7 @@ test("direct sample URL and refresh load the deterministic fixture", () => {
 
 test("sample is clearly labelled and uses a fictional example player", () => {
   assert.equal(isSampleReport(SAMPLE_REPORT), true);
-  assert.equal(SAMPLE_REPORT.sampleLabel, "Sample report");
+  assert.equal(SAMPLE_REPORT.sampleLabel, "Example report");
   assert.match(SAMPLE_REPORT.username, /Example Player.*Sample/);
   assert.doesNotMatch(SAMPLE_REPORT.username, /chess\.com|lichess/i);
 });
@@ -58,6 +58,10 @@ test("sample has one coherent strength, problem and next action without progress
   assert.equal(model.authoritative.establishedStrength.opening, "Vienna Game");
   assert.equal(model.authoritative.primaryProblem.opening, "Queen's Gambit Declined");
   assert.equal(model.authoritative.nextTrainingAction.opening, "Queen's Gambit Declined");
+  const repair = model.decisions.find((decision) => decision.type === "repair");
+  assert.equal(repair.presentation.fit.label, "Strong");
+  assert.equal(repair.presentation.performance.label, "Struggling");
+  assert.notEqual(repair.presentation.fit.score, repair.presentation.performance.score);
   assert.equal(SAMPLE_REPORT.next_training_actions.length, 1);
   assert.equal(model.authoritative.baseline.comparisonClaimsAllowed, false);
   assert.doesNotMatch(JSON.stringify(SAMPLE_REPORT), /most improved|weekly improvement|has improved/i);

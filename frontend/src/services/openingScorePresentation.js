@@ -409,7 +409,7 @@ export function buildOpeningScorePresentation({ data = {}, fitData = null, repor
       gamesAnalysed: gameCount(data || {}),
       verdict:
         score !== null
-          ? `Your OpeningFit Score is ${score}/100 and currently ${trendFor(delta, historyPoints.length).toLowerCase()}.`
+          ? `Your repertoire coverage is ${score}/100 and currently ${trendFor(delta, historyPoints.length).toLowerCase()}.`
           : "Your OpeningFit progress story starts after the next analysis.",
     },
     hasHistory: historyPoints.length >= 2,

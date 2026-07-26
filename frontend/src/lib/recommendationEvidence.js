@@ -1,7 +1,9 @@
+import { OPENING_EVIDENCE_THRESHOLDS } from "./fitTrustModel.js";
+
 export const RECOMMENDATION_EVIDENCE_THRESHOLDS = Object.freeze({
-  minimum: 5,
-  medium: 10,
-  high: 15,
+  minimum: OPENING_EVIDENCE_THRESHOLDS.minimum,
+  medium: OPENING_EVIDENCE_THRESHOLDS.moderate,
+  high: OPENING_EVIDENCE_THRESHOLDS.high,
 });
 
 const clean = (value) => String(value ?? "").replace(/\s+/g, " ").trim();

@@ -6,11 +6,15 @@ from datetime import datetime
 from typing import Any, Iterable, Mapping, Optional
 
 from analysis.opening_perspective import perspective_from_item
+from analysis.evidence_thresholds import (
+    HIGH_CONFIDENCE_GAMES,
+    MINIMUM_OPENING_GAMES,
+    MODERATE_CONFIDENCE_GAMES,
+)
 
 
-MIN_OPENING_EVIDENCE = 5
-MEDIUM_CONFIDENCE_GAMES = 10
-HIGH_CONFIDENCE_GAMES = 15
+MIN_OPENING_EVIDENCE = MINIMUM_OPENING_GAMES
+MEDIUM_CONFIDENCE_GAMES = MODERATE_CONFIDENCE_GAMES
 MIN_COMPARABLE_REPORT_GAMES = 5
 
 
@@ -62,7 +66,7 @@ def _result_counts(games: list[Mapping[str, Any]]) -> tuple[int, int, int]:
 def _candidate_score_rate(item: Mapping[str, Any], games: int, wins: int, draws: int) -> Optional[float]:
     if games and wins + draws + int(_number(item.get("losses")) or 0) == games:
         return round(((wins + draws * 0.5) / games) * 100, 1)
-    for key in ("scoreRate", "score_rate", "rawResultScore", "raw_result_score", "winRate", "win_rate", "score", "fitScore", "fit_score"):
+    for key in ("scoreRate", "score_rate", "rawResultScore", "raw_result_score", "winRate", "win_rate", "score"):
         value = _number(item.get(key))
         if value is not None:
             return round(max(0, min(100, value * 100 if 0 <= value <= 1 else value)), 1)
@@ -187,6 +191,7 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
     if supporting_ids and len(supporting_ids) != games:
         validation.append("supporting_games_do_not_reconcile")
     score_rate = round(((wins + draws * 0.5) / games) * 100, 1) if games and complete_results else _candidate_score_rate(item, games, wins, draws)
+    fit_score = _number(item.get("fitScore") if item.get("fitScore") is not None else item.get("fit_score"))
     latest = max((_iso(game.get("played_at") or game.get("playedAt") or game.get("end_time") or game.get("endTime")) for game in matched), default=None)
     recency = latest.date().isoformat() if latest else None
     issue = _issue_for(report, item, set(supporting_ids))
@@ -288,6 +293,7 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         "games": games,
         "score": score_rate,
         "scoreRate": score_rate,
+        "fitScore": round(max(0, min(100, fit_score)), 1) if fit_score is not None else None,
         "issue": issue,
         "confidence": confidence,
         "sampleSizeStatus": "sufficient" if games >= MIN_OPENING_EVIDENCE and not validation else "insufficient_data",

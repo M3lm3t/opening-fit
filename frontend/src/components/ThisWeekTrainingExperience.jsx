@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Check, CheckCircle2, ChevronRight, Clock3, CloudOff, Play, RotateCcw, Target } from "lucide-react";
 import { useAuth } from "../context/AuthDataProvider.jsx";
 import { completeWeeklyTask, weeklyPlanWindow } from "../lib/weeklyTrainingPlan.js";
-import { buildFoundationalWeeklyPlan, buildThisWeekTrainingView, openingForWeeklyTask } from "../lib/thisWeekTraining.js";
+import { buildFoundationalWeeklyPlan, buildThisWeekTrainingView, freeTrainingPreviewState, openingForWeeklyTask } from "../lib/thisWeekTraining.js";
 import { trackProductEvent } from "../lib/productAnalytics.js";
 import { getOrCreateWeeklyTrainingPlan, setWeeklyTrainingTaskCompletion } from "../services/weeklyTrainingPlanService.js";
 import { canUseFeature, OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
@@ -19,6 +19,7 @@ const TASK_LABELS = {
   game_review: "Game review",
   concept_review: "Concept review",
 };
+const PLUS_CONTINUATION_BENEFITS = ["Full weekly plan", "Own-game drills", "Saved progress", "Repertoire workspace"];
 
 function cacheKey(userId) {
   return `${CACHE_PREFIX}:${userId || "local"}`;
@@ -191,6 +192,15 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
 
   const view = useMemo(() => buildThisWeekTrainingView(plan), [plan]);
 
+  const trackPlusInvitation = useCallback(() => {
+    void trackProductEvent("plus_invitation_viewed", { authenticated: Boolean(userId), source: "free_training_preview", access: "free" }, { onceKey: plan?.id || "free-training" });
+  }, [plan?.id, userId]);
+
+  const openPlus = useCallback(() => {
+    void trackProductEvent("upgrade_clicked", { authenticated: Boolean(userId), source: "free_training_preview", access: "free" });
+    onUpgrade?.();
+  }, [onUpgrade, userId]);
+
   const startTask = (task) => {
     if (!task) return;
     setActiveTaskId(task.id);
@@ -198,6 +208,12 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
     void trackProductEvent("training_task_started", { authenticated: Boolean(userId), source: "this_week", openingCategory: openingForWeeklyTask(task, plan).side }, { onceKey: `${plan?.id}:${task.id}` });
     onPractice?.(practiceTarget(task, plan));
     window.setTimeout(() => document.getElementById("opening-practice")?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 40);
+  };
+
+  const startFreeTask = (task) => {
+    if (!task) return;
+    setActiveTaskId(task.id);
+    void trackProductEvent("training_task_started", { authenticated: Boolean(userId), source: "free_training_preview", openingCategory: openingForWeeklyTask(task, plan).side }, { onceKey: `free:${plan?.id}:${task.id}` });
   };
 
   const completeTask = async (task) => {
@@ -213,7 +229,7 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
       setPendingTaskIds((current) => current.filter((id) => id !== task.id));
       writeCache(userId, saved, pendingTaskIds.filter((id) => id !== task.id));
       setError("");
-      void trackProductEvent("training_task_completed", { authenticated: Boolean(userId), source: "this_week", openingCategory: openingForWeeklyTask(task, plan).side, resultCategory: "completed" });
+      void trackProductEvent("training_task_completed", { authenticated: Boolean(userId), source: hasWeeklyPlan ? "this_week" : "free_training_preview", openingCategory: openingForWeeklyTask(task, plan).side, resultCategory: "completed" });
       if (saved.status === "completed" || saved.completionPercent === 100) {
         void trackProductEvent("weekly_plan_completed", { authenticated: Boolean(userId), source: plan.foundation ? "foundation_plan" : "weekly_plan", resultCategory: "completed" }, { onceKey: plan.id });
       }
@@ -238,7 +254,16 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
 
   if (!hasWeeklyPlan) {
     const previewTask = plan.tasks?.[0];
-    return <section className="thisWeekTraining" id="this-week-training"><div className="thisWeekHeroCopy"><span className="thisWeekEyebrow">This Week · Preview</span><h1>{plan.primaryGoal}</h1><p>{plan.reason}</p></div><FeatureAccessPreview feature={OPENINGFIT_FEATURES.WEEKLY_PLAN} title="Unlock the full weekly plan" onUpgrade={onUpgrade}>{previewTask ? <article><strong>{previewTask.title}</strong><small>{previewTask.explanation} · About {previewTask.estimatedMinutes || 5} minutes</small></article> : null}</FeatureAccessPreview></section>;
+    const freeState = freeTrainingPreviewState(previewTask, activeTaskId);
+    return <section className="thisWeekTraining thisWeekTraining--free" id="this-week-training" aria-labelledby="free-training-title">
+      <div className="thisWeekHeroCopy"><span className="thisWeekEyebrow">Your free training action</span><h1 id="free-training-title">{plan.primaryGoal}</h1><p>{plan.reason}</p></div>
+      {previewTask ? <article className="thisWeekFreeTask">
+        <TaskMeta task={previewTask} plan={plan} />
+        <h2>{previewTask.title}</h2><p>{previewTask.explanation}</p>
+        {!freeState.started ? <button type="button" className="primaryBtn" onClick={() => startFreeTask(previewTask)}><Play size={17} /> Start free action</button> : freeState.completed ? <p className="thisWeekFreeComplete"><CheckCircle2 size={18} /> Free action completed</p> : <div className="thisWeekFreeActive"><strong>Use this success check</strong><p>{previewTask.successCriteria}</p><button type="button" className="primaryBtn" disabled={busyTaskId === previewTask.id} onClick={() => completeTask(previewTask)}>{busyTaskId === previewTask.id ? "Saving…" : "Mark action complete"}</button></div>}
+      </article> : null}
+      {freeState.showPlusInvitation ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.WEEKLY_PLAN} eyebrow="Continue with OpeningFit Plus" title="Keep this training loop going" benefits={PLUS_CONTINUATION_BENEFITS} onViewed={trackPlusInvitation} onUpgrade={openPlus} /> : null}
+    </section>;
   }
 
   return (

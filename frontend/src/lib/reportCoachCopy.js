@@ -26,7 +26,7 @@ export function formatRecommendationConfidence(recommendation = {}) {
   const ageNote = old ? " The sample is well supported but may not reflect your current play." : "";
   if (!games) return "Confidence unavailable — no relevant games were found.";
   if (level.includes("high")) return `High confidence — based on ${basis}.${ageNote}`;
-  if (level.includes("medium")) return `Medium confidence — based on ${basis}.${ageNote}`;
+  if (level.includes("medium") || level.includes("moderate")) return `Moderate confidence — based on ${basis}.${ageNote}`;
   return `Low confidence — only ${basis} ${games === 1 ? "was" : "were"} found.${ageNote}`;
 }
 

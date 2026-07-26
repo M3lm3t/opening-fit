@@ -42,7 +42,7 @@ function gamesFor(item = {}) {
 
 function scoreFor(item = {}) {
   return clampScore(
-    firstValue(item.fit_score, item.fitScore, item.openingFitScore, item.opening_fit_score, item.score, item.winRate, item.win_rate)
+    firstValue(item.fit_score, item.fitScore, item.openingFitScore, item.opening_fit_score, item.traitFitScore, item.styleFitScore)
   );
 }
 

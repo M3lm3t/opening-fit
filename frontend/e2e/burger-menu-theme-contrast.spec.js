@@ -14,6 +14,8 @@ test("burger menu uses solid, readable surfaces in dark and light mode", async (
   const backdrop = page.locator(".appPrimaryMobileBackdrop");
   await expect(panel).toBeVisible();
   await expect(backdrop).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+  await expect(panel.getByRole("link", { name: "Sign in", exact: true })).toHaveCount(1);
 
   await expect.poll(() => panel.evaluate((element) => getComputedStyle(element).backgroundColor))
     .toBe("rgb(11, 18, 32)");
@@ -30,4 +32,5 @@ test("burger menu uses solid, readable surfaces in dark and light mode", async (
   await page.keyboard.press("Escape");
   await expect(panel).toBeHidden();
   await expect(menuTrigger).toBeFocused();
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
 });

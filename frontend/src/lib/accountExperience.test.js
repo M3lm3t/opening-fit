@@ -48,6 +48,23 @@ test("login copy contains operational methods without beta or dashboard language
   assert.match(account, /\bCreate account\b/);
   assert.doesNotMatch(account, /Beta note/i);
   assert.match(account, /aria-selected=\{authMode === "login"\}/);
+  assert.match(account, /const HeadingTag = isScreen && !user \? "h1" : "h3"/);
+  assert.match(account, /!isScreen \? <div className="accountAuthIntro">/);
+});
+
+test("login initialisation stays local and does not block profile restoration", () => {
+  const app = read("../App.jsx");
+  assert.match(app, /accountState === "checking_session"/);
+  assert.doesNotMatch(app, /accountState === "checking_session" \|\| accountState === "restoring_account"/);
+  assert.match(app, /profileAccountLoading--local/);
+});
+
+test("landing trust claims appear once beside the username form", () => {
+  const app = read("../App.jsx");
+  for (const claim of ["No password required", "First report free", "Uses public game data"]) {
+    assert.equal(app.split(claim).length - 1, 1);
+  }
+  assert.doesNotMatch(app, /className="landingHeroProof"/);
 });
 
 test("inner-page brand navigation is a native semantic homepage link", () => {

@@ -102,7 +102,7 @@ export function buildReportComparisonView({ currentSnapshot, reportSnapshots = [
     }
     comparison.summaryHighlights.forEach((item) => highlights.push(statusItem(item)));
     if (!comparison.summaryHighlights.length && comparison.scoreStatus === "stable") {
-      highlights.push(statusItem({ type: "score", status: "stable", text: `OpeningFit Score remains broadly unchanged at ${rounded(comparison.currentScore)}.` }));
+      highlights.push(statusItem({ type: "score", status: "stable", text: `Repertoire coverage remains broadly unchanged at ${rounded(comparison.currentScore)}.` }));
     }
     if (!highlights.length && comparison.confidenceWarnings.length) {
       highlights.push(statusItem({ type: "confidence", status: "insufficient evidence", text: "There is not enough comparable data to call a meaningful change yet." }));
@@ -110,7 +110,7 @@ export function buildReportComparisonView({ currentSnapshot, reportSnapshots = [
 
     const scoreDetail = comparison.previousScore === null || comparison.currentScore === null ? [] : [statusItem({
       key: "score",
-      title: "OpeningFit Score",
+      title: "Repertoire coverage",
       text: `${rounded(comparison.previousScore)} before · ${rounded(comparison.currentScore)} now`,
       status: comparison.scoreStatus,
     })];

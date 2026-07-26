@@ -1,26 +1,30 @@
-import { BookOpenCheck, ChartNoAxesCombined, Crown, Dumbbell, TrendingUp } from "lucide-react";
+import { BookOpenCheck, ChartNoAxesCombined, Crown, Dumbbell, TrendingUp, UserRound } from "lucide-react";
 import { getAppSection } from "../appNavigation";
+import { buildMobileNavigationItems } from "../lib/mobileNavigation.js";
 
-export default function MobileBottomNav({ activeView, hasReport = false, onNavigate }) {
+const ICONS = Object.freeze({
+  report: ChartNoAxesCombined,
+  repertoire: BookOpenCheck,
+  train: Dumbbell,
+  progress: TrendingUp,
+  premium: Crown,
+  account: UserRound,
+});
+
+export default function MobileBottomNav({
+  activeView,
+  hasReport = false,
+  accountUser = null,
+  entitlement = null,
+  entitlementState = "loading",
+  onNavigate,
+}) {
   const activeSection = getAppSection(activeView);
-  const items = [
-    {
-      key: "report",
-      label: "Report",
-      Icon: ChartNoAxesCombined,
-      needsReport: true,
-      activeViews: ["report", "recommendations", "openings", "weakspots", "verdicts"],
-    },
-    { key: "repertoire", label: "Repertoire", Icon: BookOpenCheck, needsReport: true, activeViews: ["repertoire"] },
-    {
-      key: "train",
-      label: "Train",
-      Icon: Dumbbell,
-      activeViews: ["train", "training", "interactive", "practice"],
-    },
-    { key: "progress", label: "Progress", Icon: TrendingUp, activeViews: ["progress"] },
-    { key: "premium", label: "Premium", Icon: Crown, activeViews: ["premium", "upgrade"] },
-  ];
+  const items = buildMobileNavigationItems({
+    authenticated: Boolean(accountUser?.id),
+    entitlement,
+    entitlementState,
+  }).map((item) => ({ ...item, Icon: ICONS[item.key] }));
 
   function handleClick(event, item) {
     event.preventDefault();
@@ -46,11 +50,19 @@ export default function MobileBottomNav({ activeView, hasReport = false, onNavig
       onNavigate?.({ view: "premium", path: "/premium", target: "premium" });
       return;
     }
+    if (target === "account") {
+      onNavigate?.({ view: "account", path: "/account", target: "profile-account", fallbackIds: ["profile"] });
+      return;
+    }
     onNavigate?.(target);
   }
 
   return (
-    <nav className="mobileBottomNav of-mobile-bottom-nav" aria-label="Mobile app navigation">
+    <nav
+      className="mobileBottomNav of-mobile-bottom-nav"
+      aria-label="Mobile app navigation"
+      style={{ "--mobile-nav-items": items.length }}
+    >
       {items.map((item) => {
         const isReportPrompt = item.needsReport && !hasReport;
         const isActive =

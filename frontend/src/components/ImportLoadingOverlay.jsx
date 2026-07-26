@@ -35,6 +35,7 @@ export default function ImportLoadingOverlay({
   mode = "import",
   loadingStep = "",
   stage = IMPORT_STAGES.FETCHING,
+  progress = null,
   showWakeupMessage = false,
   elapsedSeconds = 0,
   onCancel,
@@ -43,37 +44,44 @@ export default function ImportLoadingOverlay({
   const progressStages = [
     {
       key: IMPORT_STAGES.FETCHING,
-      title: "Finding recent games",
+      title: "Requesting public games",
       detail: `Requesting available public games from ${platform}.`,
       icon: Search,
     },
     {
+      key: IMPORT_STAGES.GAMES_FOUND,
+      title: "Games found",
+      detail: "Confirming how many public games were returned.",
+      icon: Check,
+    },
+    {
       key: IMPORT_STAGES.FILTERING,
-      title: "Checking eligible time controls",
+      title: "Filtering eligible games",
       detail: "Separating games that can support this report.",
       icon: ListChecks,
     },
     {
       key: IMPORT_STAGES.IDENTIFYING,
-      title: "Identifying recurring opening positions",
+      title: "Identifying openings",
       detail: "Grouping repeated openings and move orders.",
       icon: BookOpen,
     },
     {
       key: IMPORT_STAGES.RECOMMENDING,
-      title: "Comparing results",
+      title: "Building recommendations",
       detail: "Preparing evidence-based repertoire recommendations.",
       icon: BarChart3,
     },
     {
       key: IMPORT_STAGES.SAVING,
-      title: "Saving report",
+      title: "Saving / finishing report",
       detail: "Keeping the completed report available on this device.",
       icon: Lightbulb,
     },
   ];
-  const activeStageIndex = Math.max(0, progressStages.findIndex((item) => item.key === stage));
-  const activeStage = progressStages[activeStageIndex] || progressStages[0];
+  const activeStageIndex = progressStages.findIndex((item) => item.key === stage);
+  const hasRealStage = Boolean(progress?.real && activeStageIndex >= 0);
+  const activeStage = hasRealStage ? progressStages[activeStageIndex] : null;
   const platformLabel =
     typeof platform === "string" && platform.length ? platform : "your chess platform";
   const timing = analysisTimingStatus(elapsedSeconds);
@@ -103,7 +111,7 @@ export default function ImportLoadingOverlay({
         <div className="importLoadingProgressWrap">
           <div className="importLoadingProgressLabel">
             <span>{platformLabel}{username ? ` / ${username}` : ""}</span>
-            <strong>{IMPORT_STAGE_DETAILS[stage]?.title || activeStage.title}</strong>
+            <strong>{hasRealStage ? IMPORT_STAGE_DETAILS[stage]?.title || activeStage.title : "Analysis in progress"}</strong>
           </div>
         </div>
 
@@ -112,8 +120,8 @@ export default function ImportLoadingOverlay({
             <div className="importLoadingActiveMessage">
               <ChessAnalysisLoader />
               <span><Search size={14} /> Analysing games</span>
-              <strong>{activeStage.title}</strong>
-              <p>{IMPORT_STAGE_DETAILS[stage]?.detail || activeStage.detail}</p>
+              <strong>{hasRealStage ? activeStage.title : "Waiting for a confirmed analysis stage"}</strong>
+              <p>{progress?.message || "OpeningFit is waiting for the analysis service. Detailed stages are not available for this request."}</p>
             </div>
 
             <div className="importLoadingSteps">
@@ -122,16 +130,16 @@ export default function ImportLoadingOverlay({
                 return (
                   <div
                     className={
-                      index < activeStageIndex
+                      hasRealStage && index < activeStageIndex
                         ? "importLoadingStepDone"
-                        : index === activeStageIndex
+                        : hasRealStage && index === activeStageIndex
                           ? "importLoadingStepActive"
                           : ""
                     }
                     key={stage.title}
                   >
                     <span className="importLoadingStepIcon">
-                      {index < activeStageIndex ? <Check size={16} /> : <StageIcon size={16} />}
+                      {hasRealStage && index < activeStageIndex ? <Check size={16} /> : <StageIcon size={16} />}
                     </span>
                     <p><strong>{stage.title}</strong><small>{stage.detail}</small></p>
                   </div>
@@ -146,8 +154,8 @@ export default function ImportLoadingOverlay({
         ) : null}
 
         <footer className="importLoadingFooter">
-          <span>{loadingStep || activeStage.detail}</span>
-          <small>{timing.label} You can safely cancel without replacing your last report.</small>
+          <span>{loadingStep || progress?.message || activeStage?.detail || "Analysis in progress."}</span>
+          <small>{timing.showElapsed ? `${timing.elapsedLabel}. ` : ""}{timing.expectation} You can safely cancel without replacing your last report.</small>
         </footer>
       </div>
     </div>

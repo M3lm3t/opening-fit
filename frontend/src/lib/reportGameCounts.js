@@ -69,7 +69,7 @@ function mergeReasons(rows) {
 function reconciledReasons(rows, excluded, precise) {
   const knownTotal = rows.reduce((sum, row) => sum + (row.count || 0), 0);
   if (!precise || rows.some((row) => row.count === null)) return rows;
-  if (knownTotal < excluded) return [...rows, { key: "other", label: "Other or unavailable reason", count: excluded - knownTotal }];
+  if (knownTotal < excluded) return [...rows, { key: "unavailable", label: "Reason unavailable", count: excluded - knownTotal }];
   return rows;
 }
 
@@ -107,7 +107,7 @@ export function buildReportGameCounts(report = {}) {
   const explicitExcluded = firstInteger(source.excluded, report.gamesExcluded, report.skippedGames);
   const fetchedGames = Math.max(analysedGames, firstInteger(source.imported, report.gamesFound, report.gamesImported, explicitExcluded === null ? null : analysedGames + explicitExcluded) ?? analysedGames);
   const excludedGames = fetchedGames - analysedGames;
-  const rows = mergeReasons(reasonRows(report, source));
+  const rows = reconciledReasons(mergeReasons(reasonRows(report, source)), excludedGames, true);
   return {
     fetchedGames,
     dateRangeEligibleGames: null,
@@ -144,4 +144,12 @@ export const REPORT_COUNT_DEFINITIONS = Object.freeze({
   analysedGames: "Candidate games with enough valid opening information to contribute to this report.",
   excludedGames: "Fetched games not analysed; the available reasons reconcile to this total.",
 });
+
+export function reportSaveState(status = "", authenticated = false) {
+  if (status === "saving") return { label: "Saving", detail: "Syncing this report to your account." };
+  if (status === "saved") return { label: "Saved to cloud", detail: "This report is synced to your OpeningFit account." };
+  if (status === "failed") return { label: "Saved locally", detail: "Cloud save failed, but this report remains available on this device." };
+  if (status === "local" || !authenticated) return { label: "Saved locally", detail: "This report stays in this browser. Log in to sync it across devices." };
+  return { label: "Save state unavailable", detail: "No save confirmation was recorded for this report." };
+}
 import { analysedGameSentence } from "./reportCoachCopy.js";

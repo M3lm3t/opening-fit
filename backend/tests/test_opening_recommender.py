@@ -67,12 +67,12 @@ def test_existing_opening_samples_drive_upgrade_type_without_tiny_sample_overcla
 
     assert italian["currently_played"] is True
     assert italian["upgrade_type"] == "experiment"
-    assert italian["confidence"] == "Low"
+    assert italian["confidence"] == "Insufficient data"
     assert italian["recommendation_label"] == "Too little data"
     assert italian["reason_label"] == "Too little data"
-    assert "too small" in italian["confidence_reason"]
+    assert "Fewer than 5" in italian["confidence_reason"]
     assert caro["upgrade_type"] == "keep"
-    assert caro["confidence"] == "Medium"
+    assert caro["confidence"] == "Low"
     assert caro["recommendation_label"] == "Keep"
     assert french["upgrade_type"] == "replace"
 

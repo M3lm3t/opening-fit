@@ -524,7 +524,7 @@ export function buildWhatChanged({ data = {}, reportHistory = [] } = {}) {
   if (current.score !== null && previous.score !== null) {
     const delta = current.score - previous.score;
     rows.push({
-      label: "OpeningFit score",
+      label: "Repertoire coverage",
       value: delta === 0 ? "No change" : `${delta > 0 ? "+" : ""}${delta}`,
       tone: delta > 0 ? "positive" : delta < 0 ? "negative" : "neutral",
       detail: delta === 0 ? "Your headline score held steady." : "Compared with your previous completed analysis.",

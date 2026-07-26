@@ -32,6 +32,22 @@ function coverageLabel(value, fallback = "") {
   return label || "Insufficient data";
 }
 
+function weaknessContext(model = {}) {
+  const problem = model.authoritative?.primaryProblem || model.primaryProblem;
+  if (problem) return "A reliable opening weakness was found, so the report can name a specific repair target.";
+  const strength = model.authoritative?.establishedStrength || model.establishedStrength;
+  const score = integer(model.health?.score);
+  const scoreLabel = score === null ? "A coverage score" : `${score}/100`;
+  const confidenceStatus = text(model.authoritative?.confidence?.status || model.confidence?.status).toLowerCase();
+  if (/insufficient|small|limited/.test(confidenceStatus)) {
+    return "No reliable opening weakness means the available opening-specific sample is too small for that claim. It does not mean every repertoire role is strong.";
+  }
+  if (strength) {
+    return `${scoreLabel} can sit beside no reliable weakness because ${text(strength.opening) || "one repertoire role"} has enough evidence for a keep decision while other roles remain incomplete or below the weakness threshold.`;
+  }
+  return `${scoreLabel} can sit beside no reliable weakness because coverage combines the whole repertoire, while a weakness label needs one repeated, opening-specific pattern to pass its evidence threshold.`;
+}
+
 function reasonForChange(currentScore, previousScore, current, previous) {
   if (previousScore === null) return "This is your baseline score; a later report can explain what changed.";
   if (currentScore === previousScore) return "The rounded score is unchanged from the previous report.";
@@ -71,12 +87,13 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
     reasonForChange: reasonForChange(currentScore, previousScore, currentBreakdown, previousBreakdown),
     scale: { minimum: 0, maximum: 100 },
     formulaVersion: report.openingFitScoreContract?.formulaVersion || report.opening_fit_score_contract?.formulaVersion || "openingfit_score_v1",
-    meaning: "Your OpeningFit Score measures how complete, consistent and successful your current opening repertoire appears in the games analysed. It is not your chess rating.",
+    meaning: "Repertoire coverage is a 0–100 summary of how complete, repeated and successful your opening evidence is across the games analysed. It is not a chess rating or an engine judgement of opening quality.",
+    weaknessContext: weaknessContext(model),
     affects: components.length
       ? "The current calculation uses only the components shown below, with the displayed weights."
       : "This older report contains the final score and game sample, but not a compatible component breakdown.",
     doesNotAffect: "Your chess-platform rating and official federation rating do not directly determine this score. It is not an official rating or a measure of objective opening quality.",
-    whyChange: "The score can change when recognised opening results, repertoire concentration, repeated weaknesses, sample size, or the mix of White and Black games changes.",
+    whyChange: "It rises with more repeated recognised openings, broader White and Black evidence, stronger results and fewer recurring weak samples. It falls when coverage is thin or uneven, results are weaker, or recurring weak samples appear.",
     smallSamples: `Fewer than ${OPENINGFIT_SCORE_MINIMUM_GAMES} classified games is treated as provisional. Small samples can move sharply because each game has more influence.`,
   };
 }

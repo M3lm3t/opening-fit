@@ -15,11 +15,19 @@ for (const viewport of [
     await page.setViewportSize(viewport);
     await page.goto(`${appUrl}/login`, { waitUntil: "domcontentloaded" });
 
+    await expect(page.getByRole("heading", { name: "Log in or create account", exact: true })).toHaveCount(1);
+    const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(horizontalOverflow).toBeLessThanOrEqual(2);
+
     await page.getByLabel("Email").fill("auth-layout@example.invalid");
     await page.getByLabel("Password", { exact: true }).fill("not-a-real-password");
     const submit = page.locator('button[type="submit"]', { hasText: "Log in" });
 
     await expect(submit).toBeVisible();
+    const submitBox = await submit.boundingBox();
+    expect(submitBox).not.toBeNull();
+    expect(submitBox.x).toBeGreaterThanOrEqual(0);
+    expect(submitBox.x + submitBox.width).toBeLessThanOrEqual(viewport.width);
     await submit.click();
     await expect(submit).toBeEnabled({ timeout: 15_000 });
     await expect(page.locator("body")).toBeVisible();

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 import GameReplayBoard from "./GameReplayBoard";
 import NextBestAction from "./NextBestAction";
+import OpeningVerdictSummary from "./OpeningVerdictSummary.jsx";
 import { buildGameReviewMission, buildOpeningEvidence, completionSet } from "../services/gameReviewMissions";
 import { xpForEvent } from "../services/xpProgress";
 import "./OpeningDetailPanel.css";
@@ -64,7 +65,6 @@ export default function OpeningDetailPanel({
   );
   const name = openingName(opening);
   const games = numberValue(opening.games ?? opening.count ?? opening.total, evidence.games.length);
-  const score = numberValue(opening.fitScore ?? opening.fit_score ?? opening.score ?? opening.winRate ?? opening.win_rate, null);
   const selectedGame = mission.games[selectedIndex] || null;
   const orientation = String(opening.side || opening.colour || opening.color || selectedGame?.player_color || "").toLowerCase().includes("black")
     ? "black"
@@ -106,10 +106,10 @@ export default function OpeningDetailPanel({
 
       <div className="openingDetailStats">
         <span>Classification <strong>{classification(opening, category)}</strong></span>
-        <span>Score <strong>{score ?? "Low data"}</strong></span>
         <span>Games <strong>{games}</strong></span>
         <span>Record <strong>{record(opening)}</strong></span>
       </div>
+      <OpeningVerdictSummary opening={opening} verdict={classification(opening, category)} compact />
 
       <details className="openingReasonDetails">
         <summary>Why am I seeing this?</summary>

@@ -55,7 +55,7 @@ function collectOpenings(report = {}) {
 }
 
 function openingScore(item = {}) {
-  return numberValue(item.fitScore ?? item.fit_score ?? item.openingFitScore ?? item.score ?? item.winRate ?? item.win_rate, null);
+  return numberValue(item.fitScore ?? item.fit_score ?? item.openingFitScore ?? item.opening_fit_score, null);
 }
 
 function activityType(item = {}) {
@@ -109,7 +109,7 @@ export const ACHIEVEMENTS = [
   { key: "century_club", title: "Century Club", requirement: "Analyse at least 100 games in total." },
   { key: "repertoire_builder", title: "Repertoire Builder", requirement: "Have both a White and Black repertoire opening detected or confirmed." },
   { key: "opening_specialist", title: "Opening Specialist", requirement: "Complete ten meaningful activities connected to the same opening." },
-  { key: "progress_detected", title: "Progress Detected", requirement: "Record a valid OpeningFit score increase between separate analyses." },
+  { key: "progress_detected", title: "Progress Detected", requirement: "Record a valid repertoire coverage increase between separate analyses." },
 ];
 
 export function evaluateAchievements({ reportHistory = [], activity = [], data = {} } = {}) {
@@ -196,7 +196,7 @@ export function buildWeeklyRecap({ data = {}, reportHistory = [], activity = [],
   const observation = mostReviewed
     ? `You worked on ${mostReviewed[0]} more than any other opening this week.`
     : scoreChange !== null
-      ? `Your OpeningFit score ${scoreChange >= 0 ? "rose" : "moved down"} ${Math.abs(scoreChange)} point${Math.abs(scoreChange) === 1 ? "" : "s"} across comparable reports.`
+      ? `Your repertoire coverage ${scoreChange >= 0 ? "rose" : "moved down"} ${Math.abs(scoreChange)} point${Math.abs(scoreChange) === 1 ? "" : "s"} across comparable reports.`
       : "This week has enough room for one focused opening action.";
 
   return {
@@ -252,7 +252,7 @@ export function buildJourneyEvents({ data = {}, reportHistory = [], activity = [
     if (!time) return;
     if (index === 0) add({ key: "first-analysis", type: "milestones", date: time, title: "First analysis", detail: `${gameCount(report)} games analysed.` });
     const score = reportScore(row);
-    if (score !== null) add({ key: `score:${time}`, type: "progress", date: time, title: `OpeningFit score ${score}`, detail: "Saved report score." });
+    if (score !== null) add({ key: `score:${time}`, type: "progress", date: time, title: `Repertoire coverage ${score}`, detail: "Saved report coverage." });
     const strongest = collectOpenings(report).filter((item) => openingScore(item) !== null).sort((a, b) => openingScore(b) - openingScore(a))[0];
     if (strongest) add({ key: `strongest:${time}:${openingName(strongest)}`, type: "openings", date: time, title: "Strongest opening identified", detail: openingName(strongest) });
   });

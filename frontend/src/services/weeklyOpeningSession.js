@@ -30,7 +30,7 @@ function getGames(item = {}) {
 }
 
 function getScore(item = {}) {
-  return numberValue(item.fit_score, item.fitScore, item.openingFitScore, item.opening_fit_score, item.score, item.winRate, item.win_rate);
+  return numberValue(item.fit_score, item.fitScore, item.openingFitScore, item.opening_fit_score);
 }
 
 function reportDate(data = {}) {

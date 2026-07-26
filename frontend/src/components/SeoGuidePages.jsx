@@ -43,7 +43,7 @@ export function SeoAnalysisCta({ title = "Find the openings that fit your own ga
       </p>
       <div className="seoHeroActions">
         <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
-        <a className="seoSecondaryCta" href="/report/sample">View sample report</a>
+        <a className="seoSecondaryCta" href="/report/sample">View example report</a>
       </div>
     </section>
   );

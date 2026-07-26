@@ -121,7 +121,7 @@ function OpeningTopNav({ ThemeToggle, seoTheme, setSeoTheme }) {
       <div>
         <a href="/openings">Openings</a>
         <a href="/#app-dashboard">Analyse your games</a>
-        <a href="/report/sample">Sample report</a>
+        <a href="/report/sample">Example report</a>
       </div>
       {ThemeToggle ? (
         <ThemeToggle

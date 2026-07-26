@@ -4,7 +4,7 @@ import { buildOpeningScorePresentation } from "../services/openingScorePresentat
 import "./OpeningScoreProgress.css";
 
 const SCORE_COPY =
-  "The OpeningFit Score is a 0–100 coaching score based on classified opening evidence. It measures familiarity, White and Black results, recurring weaknesses and data confidence. It is available on a baseline report, but change is shown only after a comparable later report.";
+  "Repertoire coverage is a 0–100 summary based on classified opening evidence. It combines familiarity, White and Black results, recurring weaknesses and data coverage. It is not a chess rating. It is available on a baseline report, but change is shown only after a comparable later report.";
 
 function formatDate(value) {
   const timestamp = Date.parse(value);
@@ -25,7 +25,7 @@ export function OpeningScoreBreakdown({ data, fitData, reportHistory = [], openi
   if (!data) {
     return (
       <section className="openingScoreBreakdown openingScoreEmpty">
-        <span>OpeningFit Score</span>
+        <span>Repertoire coverage</span>
         <h2>Your score appears after one analysis.</h2>
         <p>Analyse recent games and OpeningFit will explain what is helping or holding back the score.</p>
       </section>
@@ -39,10 +39,10 @@ export function OpeningScoreBreakdown({ data, fitData, reportHistory = [], openi
     <section className="openingScoreBreakdown" aria-labelledby="opening-score-breakdown-title">
       <div className="openingScoreBreakdownHeader">
         <div>
-          <p className="eyebrow">OpeningFit Score</p>
+          <p className="eyebrow">Repertoire coverage</p>
           <div className="openingScoreTitleRow">
             <h2 id="opening-score-breakdown-title">{model.score ?? "-"} / 100</h2>
-            <InfoHint label="How is the OpeningFit Score calculated?">{SCORE_COPY}</InfoHint>
+            <InfoHint label="How is repertoire coverage calculated?">{SCORE_COPY}</InfoHint>
           </div>
           <p>{model.label} - {displayTrend}</p>
         </div>

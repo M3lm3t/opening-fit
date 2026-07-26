@@ -47,7 +47,37 @@ def test_execute_analysis_job_publishes_completed_result(monkeypatch):
 
     assert completed["status"] == "completed"
     assert completed["result"] == {"gamesImported": 12}
-    assert called == [("lichess", "ExamplePlayer", 2, "rapid")]
+    assert called[0][:4] == ("lichess", "ExamplePlayer", 2, "rapid")
+    assert callable(called[0][4])
+
+
+def test_analysis_job_publishes_only_real_stage_updates(monkeypatch):
+    monkeypatch.setattr(main.analysis_job_executor, "submit", lambda *_args: None)
+    started = main.start_analysis_job(main.AnalysisJobRequest(platform="chesscom", username="Player", months=1))
+
+    def run(_platform, _username, _months, _time_control, progress):
+        progress("requesting_public_games")
+        progress("games_found", fetchedGames=310)
+        progress("filtering_eligible_games", fetchedGames=310)
+        progress("identifying_openings", fetchedGames=310, eligibleGames=180, analysedGames=160)
+        progress("building_recommendations", fetchedGames=310, eligibleGames=180, analysedGames=160)
+        return {"gameCounts": {"fetchedGames": 310, "timeControlEligibleGames": 180, "analysedGames": 160}}
+
+    monkeypatch.setattr(main, "run_import_route", run)
+    main.execute_analysis_job(started["jobId"])
+    completed = main.get_analysis_job(main.UUID(started["jobId"]))
+    assert completed["progress"] == {
+        "stage": "finishing_report",
+        "counts": {"fetchedGames": 310, "eligibleGames": 180, "analysedGames": 160},
+    }
+
+
+def test_analysis_progress_drops_unrecognised_and_sensitive_counts(monkeypatch):
+    monkeypatch.setattr(main.analysis_job_executor, "submit", lambda *_args: None)
+    started = main.start_analysis_job(main.AnalysisJobRequest(platform="lichess", username="Player", months=1))
+    main.update_analysis_job_progress(started["jobId"], "games_found", fetchedGames=12, username="Player", pgn="1. e4")
+    current = main.get_analysis_job(main.UUID(started["jobId"]))
+    assert current["progress"] == {"stage": "games_found", "counts": {"fetchedGames": 12}}
 
 
 def test_month_and_time_control_choices_are_part_of_the_job_identity(monkeypatch):

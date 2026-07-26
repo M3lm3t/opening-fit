@@ -7,6 +7,8 @@ import {
 import { getOpeningRecommendationReason } from "./openingCopy";
 import { openingPerspective } from "../lib/reportDecisionModel.js";
 import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
+import RecommendationEvidenceDisclosure from "./RecommendationEvidenceDisclosure.jsx";
+import OpeningVerdictSummary from "./OpeningVerdictSummary.jsx";
 import { formatChessScore, formatRecommendationConfidence } from "../lib/reportCoachCopy.js";
 
 export const CONFIDENCE_THRESHOLDS = {
@@ -721,9 +723,8 @@ export function getOpeningEvidence(opening, data, options = {}) {
       : `${baseVerdict} — ${signal.badge}`;
   const chips = [
     `Colour: ${getEvidenceColour(opening)}`,
-    `Verdict: ${verdict}`,
-    games ? `${games} game${games === 1 ? "" : "s"}` : "Game count unavailable",
-    score !== null ? formatChessScore(canonical) : "Score unavailable",
+    games ? `${games} game${games === 1 ? "" : "s"}` : "",
+    score !== null ? formatChessScore(canonical) : "",
     canonical?.openingRiskProfile?.theoryLoad || canonical?.opening_risk_profile?.theory_load
       ? `Theory: ${canonical.openingRiskProfile?.theoryLoad || canonical.opening_risk_profile?.theory_load}`
       : "",
@@ -737,7 +738,6 @@ export function getOpeningEvidence(opening, data, options = {}) {
       ? `Fixability: ${canonical.fixabilityCategory || canonical.fixability_category}`
       : "",
     baseline,
-    signal.badge,
   ].filter(Boolean);
 
   return {
@@ -783,21 +783,19 @@ export default function OpeningEvidenceBlock({
         ))}
       </div>
 
-      <p>
-        <strong>Why this?</strong> {evidence.why}
-      </p>
-
-      {!hideReason ? (
-        <p>
-          <strong>Reason:</strong> {evidence.reason}
-        </p>
-      ) : null}
+      <OpeningVerdictSummary opening={opening} verdict={evidence.verdict} compact />
 
       {!hideNextAction ? (
         <p>
           <strong>Next action:</strong> {evidence.nextAction.replace(/^Next action:\s*/i, "")}
         </p>
       ) : null}
+
+      <RecommendationEvidenceDisclosure
+        recommendation={opening}
+        report={data}
+        interpretation={!hideReason ? evidence.reason : evidence.why}
+      />
 
       {priorityReason ? (
         <div className="openingPriorityReason">

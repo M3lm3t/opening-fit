@@ -49,6 +49,7 @@ const allViewports = [
   { name: "phone", width: 360, height: 800 },
   { name: "phone-plus", width: 390, height: 844 },
   { name: "phone-tall", width: 412, height: 915 },
+  { name: "phone-large", width: 430, height: 932 },
   { name: "tablet", width: 768, height: 1024 },
   { name: "tablet-lg", width: 820, height: 1180 },
   { name: "desktop", width: 1024, height: 768 },
@@ -282,14 +283,25 @@ async function assertRouteLayout(page, route) {
   if (route === "/") {
     const sampleLinks = page.locator('a[href="/report/sample"]');
     if (await sampleLinks.count() !== 2) failures.push("Homepage must expose exactly two sample-report CTAs.");
+    for (const trustClaim of ["No password required", "First report free", "Uses public game data"]) {
+      const visibleClaimCount = await page.getByText(trustClaim, { exact: true }).evaluateAll((nodes) => nodes.filter((node) => {
+        const rect = node.getBoundingClientRect();
+        const style = getComputedStyle(node);
+        return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+      }).length);
+      if (visibleClaimCount !== 1) failures.push(`Homepage must show ${trustClaim} once near the form.`);
+    }
+    if (viewport?.width <= 760 && await page.locator(".homepageSamplePreview").isVisible().catch(() => false)) {
+      failures.push("Homepage sample preview competes with the analysis form on mobile.");
+    }
   }
 
   if (route === "/report/sample") {
     const sampleNotice = page.locator(".sampleReportNotice").first();
-    if (!(await sampleNotice.isVisible().catch(() => false))) failures.push("Sample report notice is not visible.");
+    if (!(await sampleNotice.isVisible().catch(() => false))) failures.push("Example report notice is not visible.");
     const pageText = await page.locator("body").innerText();
-    for (const requiredText of ["Sample report", "Example data", "Analyse my games", "72 games contained enough opening information to analyse", "fictional player"]) {
-      if (!pageText.includes(requiredText)) failures.push(`Sample report is missing required text: ${requiredText}.`);
+    for (const requiredText of ["Example report", "Fictional data", "Analyse my games", "72 analysed games", "fictional player"]) {
+      if (!pageText.includes(requiredText)) failures.push(`Example report is missing required text: ${requiredText}.`);
     }
     const fullReportOpen = await page.locator("#full-report-details").getAttribute("open");
     if (fullReportOpen === null) failures.push("Full sample report is not expanded.");
@@ -308,6 +320,8 @@ async function assertRouteLayout(page, route) {
       if (pageText.includes(forbiddenText)) failures.push(`Signed-out login rendered authenticated account content: ${forbiddenText}.`);
     }
     if (!pageText.includes("Log in or create account")) failures.push("Signed-out login heading is missing.");
+    const loginHeadings = page.getByRole("heading", { name: "Log in or create account", exact: true });
+    if (await loginHeadings.count() !== 1) failures.push("Signed-out login must have one clear page heading.");
   }
 
   const pageMetrics = await page.evaluate(() => {
@@ -339,6 +353,21 @@ async function assertRouteLayout(page, route) {
         if (navBox.height < 60) {
           failures.push(`Mobile bottom navigation is too short for touch targets (${Math.round(navBox.height)}px).`);
         }
+      }
+    }
+
+    if (route === "/report") {
+      if (!(await bottomNav.isVisible().catch(() => false))) failures.push("Canonical mobile navigation is missing.");
+      if (await page.getByRole("button", { name: "Open OpeningFit menu" }).isVisible().catch(() => false)) {
+        failures.push("Phone layout shows both bottom navigation and a redundant hamburger.");
+      }
+      const navText = await bottomNav.innerText();
+      if (!navText.includes("Pricing")) failures.push("Resolved logged-out mobile navigation is missing Pricing.");
+      if (/Premium|Upgrade/.test(navText)) failures.push("Logged-out mobile navigation uses an ambiguous upgrade label.");
+    } else if (["/", "/login", "/premium"].includes(route)) {
+      if (await bottomNav.isVisible().catch(() => false)) failures.push("Marketing route shows the application bottom navigation.");
+      if (!(await page.getByRole("button", { name: "Open OpeningFit menu" }).isVisible().catch(() => false))) {
+        failures.push("Marketing route is missing its responsive menu.");
       }
     }
   }

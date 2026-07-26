@@ -232,6 +232,7 @@ export default function AccountPanel({ variant = "floating",
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState("");
   const authBusy = saving || oauthLoading || accountLoading || !authHydrated;
+  const HeadingTag = isScreen && !user ? "h1" : "h3";
 
   useEffect(() => {
     if (isScreen) setIsOpen(true);
@@ -683,12 +684,12 @@ export default function AccountPanel({ variant = "floating",
           <div className="accountPanelHeader">
             <div>
               <span className="accountEyebrow">Account security</span>
-              <h3>{user ? "Account details" : "Log in or create account"}</h3>
+              <HeadingTag>{user ? "Account details" : "Log in or create account"}</HeadingTag>
               {isScreen ? (
                 <p>
                   {user
                     ? "Manage sign-in, chess usernames, sync, and account actions."
-                    : ACCOUNT_SAVE_EXPLANATION}
+                    : `${ACCOUNT_SAVE_EXPLANATION} Choose Google, email and password, or a secure login link.`}
                 </p>
               ) : null}
             </div>
@@ -717,11 +718,11 @@ export default function AccountPanel({ variant = "floating",
 
           {isSupabaseConfigured && !user ? (
             <form className="accountAuthStack" onSubmit={handleEmailPasswordAuth}>
-              <div className="accountAuthIntro">
+              {!isScreen ? <div className="accountAuthIntro">
                 <span>Free account</span>
                 <strong>{accountLoading ? "Checking your session..." : "Log in or create account"}</strong>
                 <p>{ACCOUNT_SAVE_EXPLANATION} Use email and password, a secure email link, or Google sign-in.</p>
-              </div>
+              </div> : null}
 
               {!isScreen ? <PreLoginCuriosityHooks /> : null}
 
@@ -736,7 +737,7 @@ export default function AccountPanel({ variant = "floating",
                     Continue with Google
                   </button>
 
-                  <p className="accountBetaNote">{GOOGLE_AUTH_EXPLANATION}</p>
+                  {!isScreen ? <p className="accountBetaNote">{GOOGLE_AUTH_EXPLANATION}</p> : null}
 
                   <div className="accountDivider">
                     <span>or</span>

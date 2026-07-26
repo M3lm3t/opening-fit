@@ -4,6 +4,8 @@ import {
   buildImportRequestKey,
   analysisTimingStatus,
   classifyImportFailure,
+  mapAnalysisJobProgress,
+  recoveryActionsForImportFailure,
   runWithControlledRetry,
   validateImportUsername,
 } from "./importJourney.js";
@@ -69,7 +71,48 @@ test("error causes stay distinct and actionable", () => {
 });
 
 test("loading timing identifies a genuinely slow upstream request", () => {
+  assert.equal(analysisTimingStatus(14).showElapsed, false);
+  assert.equal(analysisTimingStatus(15).elapsedLabel, "0:15 elapsed");
   assert.equal(analysisTimingStatus(45).slow, false);
   assert.equal(analysisTimingStatus(91).slow, true);
   assert.match(analysisTimingStatus(91).label, /platform or analysis service/i);
+});
+
+test("real job stages map without inventing percentage progress", () => {
+  const progress = mapAnalysisJobProgress({ stage: "identifying_openings", counts: { fetchedGames: 310, eligibleGames: 180 } });
+  assert.equal(progress.real, true);
+  assert.equal(progress.stage, "identifying_openings");
+  assert.equal(progress.message, "310 games found — identifying recurring openings.");
+  assert.equal(Object.hasOwn(progress, "percent"), false);
+});
+
+test("missing or unknown job stages remain honestly indeterminate", () => {
+  assert.deepEqual(mapAnalysisJobProgress(null), { real: false, stage: null, counts: {}, message: "Analysis is running. Detailed stages are not available for this request." });
+  assert.equal(mapAnalysisJobProgress({ stage: "mystery" }).real, false);
+});
+
+test("required analysis failures stay distinct and have recovery actions", () => {
+  const cases = [
+    [{ status: 404, message: "not found" }, "username_not_found"],
+    [{ message: "no eligible games" }, "no_eligible_games"],
+    [{ status: 429, message: "rate limited" }, "platform_temporarily_unavailable"],
+    [{ type: "network" }, "network_server_failure"],
+    [{ type: "timeout" }, "analysis_timed_out"],
+    [{ message: "unexpected" }, "unknown_import_error"],
+  ];
+  for (const [error, category] of cases) {
+    assert.equal(classifyImportFailure({ error }).category, category);
+    assert.ok(recoveryActionsForImportFailure(category).length > 0, `${category} needs a recovery action`);
+  }
+});
+
+test("the app guards cancellation, duplicate submission and fake stage timers", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../App.jsx", import.meta.url), "utf8");
+  const importFlow = source.slice(source.indexOf("const importGames = async"), source.indexOf("const submitFeedback"));
+  assert.match(source, /const activeImportRunRef = useRef\(0\)/);
+  assert.match(importFlow, /activeImportRunRef\.current !== runId \|\| abortController\.signal\.aborted/);
+  assert.match(importFlow, /if \(loading \|\| activeImportKeyRef\.current\)/);
+  assert.doesNotMatch(importFlow, /await new Promise\(\(resolve\) => setTimeout/);
+  assert.ok(importFlow.indexOf("activeImportRunRef.current !== runId") < importFlow.indexOf("setData(cleanData)"));
 });

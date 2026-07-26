@@ -290,13 +290,13 @@ export default function OpeningFitRetentionCommandCenter({ data, username }) {
             grow mastery, and watch your chess identity evolve over time.
           </p>
         </div>
-        <div className="ofRetentionScoreCard" aria-label={`OpeningFit score ${openingFitScore}`}>
+        <div className="ofRetentionScoreCard" aria-label={`Repertoire coverage ${openingFitScore}`}>
           <div className="ofLevelBurst" aria-hidden="true">Level up</div>
           <span>
-            OpeningFit Score{" "}
+            Repertoire coverage{" "}
             <OpeningScoreInfo
               opening={{
-                name: "OpeningFit Score",
+                name: "Repertoire coverage",
                 games: totalGames,
                 fitScore: openingFitScore,
                 confidence: totalGames >= 10 ? "Useful confidence" : "Limited confidence",

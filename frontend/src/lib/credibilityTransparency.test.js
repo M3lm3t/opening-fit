@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 
 const app = readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
 const methodology = readFileSync(new URL("../components/PublicTrustPage.jsx", import.meta.url), "utf8");
@@ -9,10 +9,16 @@ const score = readFileSync(new URL("../components/OpeningFitScoreDisclosure.jsx"
 const counts = readFileSync(new URL("../components/ReportGameCountSummary.jsx", import.meta.url), "utf8");
 const sample = readFileSync(new URL("../components/PrimaryReportSummary.jsx", import.meta.url), "utf8");
 
-test("homepage no longer displays an unverifiable analysed-games aggregate", () => {
-  assert.doesNotMatch(app, /GameAnalysisCount/);
-  assert.equal(existsSync(new URL("../components/GameAnalysisCount.jsx", import.meta.url)), false);
-  assert.doesNotMatch(app, /OpeningFit has analysed \{?/);
+test("homepage metric uses the guarded public component without embedded totals", () => {
+  assert.match(app, /PublicGamesAnalysedMetric/);
+  assert.doesNotMatch(app, /\d[\d,]*\+ games analysed|OpeningFit has analysed/);
+  assert.doesNotMatch(app, /credibilityTestimonials|credibilityCaseStudies|Social proof|Early launch metrics/);
+});
+
+test("homepage examples are labelled as fictional and never as visitor results", () => {
+  assert.match(app, /Example report/);
+  assert.match(app, /Illustrative example using fictional data/);
+  assert.match(sample, /Example report .* Fictional data/);
 });
 
 test("methodology covers the current pipeline and non-capabilities", () => {
@@ -27,7 +33,7 @@ test("methodology is linked from score, counts, pricing and sample report", () =
 
 test("commercial copy uses exact implemented limits and read-only previews", () => {
   assert.match(pricing, /publicFeatureComparison/);
-  assert.match(pricing, /Example data .* Read-only/);
+  assert.match(pricing, /Illustrative example .* Read-only/);
   assert.match(pricing, /does not create or save a report/);
   assert.doesNotMatch(pricing, /fair-use|automatic or on demand|Save every report/i);
 });

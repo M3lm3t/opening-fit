@@ -13,6 +13,11 @@ except ModuleNotFoundError:  # pragma: no cover - package-style test imports
         OpeningCatalogItem,
     )
 
+try:
+    from analysis.evidence_thresholds import HIGH_CONFIDENCE_GAMES, MINIMUM_OPENING_GAMES, MODERATE_CONFIDENCE_GAMES
+except ModuleNotFoundError:  # pragma: no cover - package-style test imports
+    from backend.analysis.evidence_thresholds import HIGH_CONFIDENCE_GAMES, MINIMUM_OPENING_GAMES, MODERATE_CONFIDENCE_GAMES
+
 
 SLOT_DEFINITIONS = {
     "white": {"colour": "white", "against": None},
@@ -25,9 +30,9 @@ THEORY_SCORE = {"low": 1, "medium": 2, "high": 3}
 DIFFICULTY_SCORE = {"easy": 1, "medium": 2, "hard": 3}
 CONFIDENCE_LABELS = {
     "high": "High",
-    "medium": "Medium",
+    "medium": "Moderate",
     "low": "Low",
-    "none": "None",
+    "none": "Insufficient data",
 }
 
 
@@ -298,20 +303,20 @@ def confidence_details_for_recommendation(
     currently_played: bool,
     current_games: int,
 ) -> Dict[str, Any]:
-    if current_games >= 10:
+    if current_games >= HIGH_CONFIDENCE_GAMES:
         tier = "high"
         reason = f"{current_games} games gives OpeningFit a reliable opening-specific sample."
-    elif current_games >= 4:
+    elif current_games >= MODERATE_CONFIDENCE_GAMES:
         tier = "medium"
         reason = f"{current_games} games is enough for an early read, but not a final verdict."
-    elif current_games >= 1:
+    elif current_games >= MINIMUM_OPENING_GAMES:
         tier = "low"
         reason = (
             f"{current_games} game{'' if current_games == 1 else 's'} is too small for a hard recommendation."
         )
     else:
         tier = "none"
-        reason = "No games found for this opening, so this is not backed by opening-specific results."
+        reason = f"Fewer than {MINIMUM_OPENING_GAMES} games were found, so this is not backed by enough opening-specific results."
 
     return {
         "tier": tier,

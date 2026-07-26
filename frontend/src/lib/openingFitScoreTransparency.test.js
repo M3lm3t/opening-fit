@@ -12,8 +12,16 @@ test("score exposes real weighted formula inputs and separate report coverage", 
   assert.equal(view.provisional, false);
   assert.deepEqual(view.components.map((item) => item.key), OPENINGFIT_SCORE_FORMULA.map((item) => item.key));
   assert.equal(view.components.reduce((sum, item) => sum + item.weight, 0), 100);
-  assert.match(view.meaning, /not your chess rating/i);
+  assert.match(view.meaning, /not a chess rating/i);
   assert.deepEqual(view.scale, { minimum: 0, maximum: 100 });
+});
+
+test("a medium score explains why one supported role can coexist with no weakness", () => {
+  const view = buildOpeningFitScoreTransparency({
+    model: { header: { games: 12 }, health: { score: 60 }, authoritative: { establishedStrength: { opening: "Vienna Game" }, primaryProblem: null } },
+    report: { openingFitScoreBreakdown: breakdown },
+  });
+  assert.match(view.weaknessContext, /60\/100.*Vienna Game.*other roles remain incomplete/i);
 });
 
 test("fewer than the minimum games visibly marks the score provisional", () => {

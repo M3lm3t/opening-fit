@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildFoundationalWeeklyPlan, buildThisWeekTrainingView, openingForWeeklyTask, weeklyTargetMetricLabel } from "./thisWeekTraining.js";
+import { buildFoundationalWeeklyPlan, buildThisWeekTrainingView, freeTrainingPreviewState, openingForWeeklyTask, weeklyTargetMetricLabel } from "./thisWeekTraining.js";
 
 test("first-time users receive a lightweight structured foundation plan", () => {
   const plan = buildFoundationalWeeklyPlan({ report: {} });
@@ -38,4 +38,11 @@ test("weekly completion includes future-game and reassessment guidance", () => {
 test("task opening metadata keeps Black training oriented as Black", () => {
   assert.equal(openingForWeeklyTask({ openingId: "french-defense", trainingSide: "black" }).side, "black");
   assert.match(weeklyTargetMetricLabel({ type: "task_completion" }, 4), /4 focused tasks/);
+});
+
+test("free training appears before the contextual Plus invitation", () => {
+  const task = { id: "free-task", status: "pending" };
+  assert.deepEqual(freeTrainingPreviewState(task), { state: "ready", started: false, completed: false, showPlusInvitation: false });
+  assert.equal(freeTrainingPreviewState(task, "free-task").showPlusInvitation, true);
+  assert.deepEqual(freeTrainingPreviewState({ ...task, status: "completed" }), { state: "completed", started: true, completed: true, showPlusInvitation: true });
 });

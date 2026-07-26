@@ -115,7 +115,7 @@ async function legacyImport({ apiPath, cleanUsername, safeMonths, safeTimeContro
   };
 }
 
-export async function importGames({ platform, username, months, timeControl = "custom", controller, onJobStarted, accessToken = "" }) {
+export async function importGames({ platform, username, months, timeControl = "custom", controller, onJobStarted, onProgress, accessToken = "" }) {
   const apiPath = platformPath(platform);
   const cleanUsername = String(username || "").trim();
   const safeMonths = Number.isFinite(Number(months)) ? Number(months) : 3;
@@ -165,6 +165,7 @@ export async function importGames({ platform, username, months, timeControl = "c
     }
 
     onJobStarted?.(started);
+    onProgress?.(started.progress || null, started);
     const statusUrl = buildApiUrl(`/api/analysis/jobs/${encodeURIComponent(started.jobId)}`);
     while (true) {
       if (abortController.signal.aborted) throw new DOMException("Import cancelled.", "AbortError");
@@ -173,6 +174,7 @@ export async function importGames({ platform, username, months, timeControl = "c
       if (!statusResponse.ok) {
         throw new ImportClientError({ type: "http", status: statusResponse.status, message: backendMessageFromJson(job, "Could not check analysis progress."), responseText, url: statusUrl });
       }
+      onProgress?.(job.progress || null, job);
       if (job.status === "completed") {
         return { data: job.result, url: statusUrl, status: statusResponse.status, responseText: JSON.stringify(job.result) };
       }

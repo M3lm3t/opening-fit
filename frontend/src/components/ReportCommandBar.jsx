@@ -69,7 +69,7 @@ export default function ReportCommandBar({
   return (
     <section className="reportCommandBar" aria-label="Report command bar">
       <div className="reportCommandBar__summary">
-        <span className="reportCommandBar__status">{sampleMode ? "Sample report" : "Live report"}</span>
+        <span className="reportCommandBar__status">{sampleMode ? "Example report" : "Live report"}</span>
         <div>
           <strong>{username}</strong>
           <p>

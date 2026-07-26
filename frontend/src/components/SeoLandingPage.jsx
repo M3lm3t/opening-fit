@@ -27,7 +27,7 @@ export const SEO_LINKS = [
   ["Repertoire builder", "/chess-opening-repertoire-builder"],
   ["Chess.com analysis", "/chess-com-opening-analysis"],
   ["Lichess analysis", "/lichess-opening-analysis"],
-  ["Sample report", "/report/sample"],
+  ["Example report", "/report/sample"],
 ];
 
 const sharedFaqs = [
@@ -394,11 +394,11 @@ export const SEO_PAGES = {
     ],
   },
   "/openingfit-sample-report": {
-    title: "OpeningFit Sample Report | Chess Opening Analysis Example",
+    title: "OpeningFit Example Report | Chess Opening Analysis Example",
     description:
       "See an example OpeningFit chess opening report with keep, improve, and watch cards for repertoire planning.",
-    h1: "OpeningFit sample report",
-    eyebrow: "Sample report",
+    h1: "OpeningFit example report",
+    eyebrow: "Example report",
     intro:
       "Preview the kind of opening report OpeningFit creates from real online games: clean result cards, confidence-aware verdicts, and practical study direction.",
     problemTitle: "A useful report should be easy to act on.",
@@ -408,7 +408,7 @@ export const SEO_PAGES = {
     solution:
       "The sample cards show how the app frames openings as keep, improve, or watch, then connects each result to an action.",
     faq: [
-      ["Is the sample report real data?", "It is demo-style sample data designed to show the report format without exposing a real player's history."],
+      ["Is the example report real data?", "No. It uses clearly fictional data to show the report format without exposing a real player's history."],
       ["Can I generate my own report?", "Yes. Go back to the main import flow and enter a Chess.com or Lichess username."],
       ...sharedFaqs,
     ],
@@ -685,7 +685,7 @@ export default function SeoLandingPage({ page, ThemeToggle, Analytics, AppTopNav
               </a>
               <div>
                 <a href="/">Import games</a>
-                <a href="/report/sample">Sample report</a>
+                <a href="/report/sample">Example report</a>
               </div>
             </nav>
           )}
@@ -697,7 +697,7 @@ export default function SeoLandingPage({ page, ThemeToggle, Analytics, AppTopNav
               <p>{page.intro}</p>
               <div className="seoHeroActions">
                 <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
-                <a className="seoSecondaryCta" href="/report/sample">View sample report</a>
+                <a className="seoSecondaryCta" href="/report/sample">View example report</a>
               </div>
             </div>
             <SeoExampleCards />

@@ -1,6 +1,6 @@
 export const REPORT_METRIC_DEFINITIONS = Object.freeze({
   openingFitScore: Object.freeze({
-    label: "OpeningFit Score",
+    label: "Repertoire coverage",
     scale: "0–100",
     purpose: "Primary coaching score for repertoire familiarity, White and Black results, recurring weaknesses and evidence confidence.",
     baselineAvailable: true,

@@ -6,6 +6,9 @@ import OpeningScoreInfo from "./OpeningScoreInfo";
 import RecommendationExplanationPanel from "./RecommendationExplanationPanel";
 import RecommendationReasonHint, { recommendationReasonDetails } from "./RecommendationReasonHint";
 import OpeningDetailPanel from "./OpeningDetailPanel";
+import RecommendationEvidenceDisclosure from "./RecommendationEvidenceDisclosure.jsx";
+import OpeningVerdictSummary from "./OpeningVerdictSummary.jsx";
+import { analysisConfidence, buildOpeningVerdictPresentation, openingFitScore, OPENING_EVIDENCE_THRESHOLDS } from "../lib/fitTrustModel.js";
 import "./RecommendedOpeningFit.css";
 
 const TRAIT_CONFIG = [
@@ -71,16 +74,9 @@ function titleCase(value) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function confidenceFromGames(games) {
-  if (games >= 10) return "High";
-  if (games >= 4) return "Medium";
-  if (games >= 1) return "Low";
-  return "None";
-}
-
 function fallbackVerdictLabel(tone, item, games) {
   const upgrade = String(item.upgrade_type || item.upgradeType || "").toLowerCase();
-  if (games > 0 && games <= 3) return "Too little data";
+  if (games > 0 && games < OPENING_EVIDENCE_THRESHOLDS.minimum) return "Too little data";
   if (tone === "delay" || upgrade === "replace" || upgrade === "avoid") return "Avoid for now";
   if (tone === "try" || upgrade === "new_recommendation" || upgrade === "experiment") return "Try next";
   if (upgrade === "fix") return "Improve";
@@ -165,11 +161,11 @@ function getBestExistingFallback(data) {
     .slice(0, 2)
     .map((item) => ({
       name: openingName(item),
-      fit_score: item.fitScore || item.openingFitScore || item.score || item.winRate || item.win_rate || 60,
+      fit_score: item.fitScore ?? item.openingFitScore ?? null,
       games: item.games ?? item.games_played ?? item.gamesPlayed ?? item.count ?? 0,
       confidence:
         item.confidence ||
-        confidenceFromGames(item.games ?? item.games_played ?? item.gamesPlayed ?? item.count ?? 0),
+        analysisConfidence({ games: item.games ?? item.games_played ?? item.gamesPlayed ?? item.count ?? 0 }).label,
       confidence_level: item.confidence_level || item.confidenceLevel || "medium",
       recommendation_label: item.recommendation_label || item.recommendationLabel || "Improve",
       reason_label: item.reason_label || item.reasonLabel || "Needs repair",
@@ -381,13 +377,13 @@ function firstLines(name) {
 function RecommendationCard({ item, label, tone, traits, playerProfile, alternatives, report, onPractice }) {
   const [showDetail, setShowDetail] = useState(false);
   const name = openingName(item);
-  const fit = clamp(item.fit_score ?? item.fitScore ?? item.score ?? 60);
+  const fit = openingFitScore(item);
   const priorityReason =
     tone === "delay"
       ? getOpeningRecommendationReason(item, item, playerProfile, { alternatives })
       : null;
   const games = Number(displayValue(item.games, item.games_played, item.gamesPlayed, item.count, 0)) || 0;
-  const confidence = titleCase(displayValue(item.confidence, item.confidence_label, item.confidenceLabel, confidenceFromGames(games)));
+  const confidence = titleCase(displayValue(item.confidence, item.confidence_label, item.confidenceLabel, analysisConfidence({ games }).label));
   const verdictLabel = displayValue(
     item.recommendation_label,
     item.recommendationLabel,
@@ -404,8 +400,7 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
   const displayReasonLabel = useMappedReason ? mappedReason.title : reasonLabel;
   const displayReason = useMappedReason ? mappedReason.message : shortReason;
   const displayAction = useMappedReason ? mappedReason.nextStep : nextAction;
-  const learning = titleCase(item.learning_cost || item.learningCost || "medium");
-  const risk = titleCase(item.risk_level || item.riskLevel || "medium");
+  const presentation = buildOpeningVerdictPresentation({ ...item, games, confidence, verdict: verdictLabel });
   const lines = firstLines(name);
 
   return (
@@ -417,7 +412,7 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
         </div>
         <strong>
           <span>
-            Fit score
+            Fit: {presentation.fit.label}
             <OpeningScoreInfo
               opening={{
                 ...item,
@@ -431,7 +426,6 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
               label={`Why ${name} has this fit score`}
             />
           </span>
-          {fit}
         </strong>
       </div>
 
@@ -440,12 +434,7 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
         <span>{displayReasonLabel}</span>
       </div>
 
-      <div className="recommendedOpeningMetrics" aria-label={`${name} recommendation metrics`}>
-        <span>Confidence: {confidence}</span>
-        <span>Games: {games}</span>
-        <span>Learning: {learning}</span>
-        <span>Risk: {risk}</span>
-      </div>
+      <OpeningVerdictSummary opening={{ ...item, name, games, confidence, verdict: verdictLabel }} verdict={verdictLabel} compact />
 
       <OpeningRecommendationVerdict
         item={{
@@ -468,6 +457,13 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
         <p>{displayReason}</p>
         <small>{displayAction}</small>
       </div>
+
+      <RecommendationEvidenceDisclosure
+        recommendation={{ ...item, name, games, confidence }}
+        report={report}
+        interpretation={displayReason}
+        label={`Why ${name} is recommended`}
+      />
 
       <RecommendationExplanationPanel
         compact

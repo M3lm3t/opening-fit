@@ -5,7 +5,7 @@ export default function OpeningFitScoreDisclosure({ model, report, previousRepor
   const view = buildOpeningFitScoreTransparency({ model, report, previousReport });
   return (
     <details className="openingFitScoreDisclosure">
-      <summary aria-label="Explain the OpeningFit Score">How this score works</summary>
+      <summary aria-label="Explain repertoire coverage">How repertoire coverage works</summary>
       <div className="openingFitScoreDisclosureBody">
         <p className="openingFitScoreMeaning">{view.meaning}</p>
         <dl className="openingFitScoreFacts">
@@ -14,6 +14,7 @@ export default function OpeningFitScoreDisclosure({ model, report, previousRepor
           <div><dt>Report coverage</dt><dd>{view.statusLabel}</dd></div>
           <div><dt>Games used</dt><dd>{view.games}</dd></div>
         </dl>
+        <section><h3>Why coverage and the verdict can differ</h3><p>{view.weaknessContext}</p></section>
         <section><h3>Main reason for change</h3><p>{view.reasonForChange}</p></section>
         {view.hasComponentData ? <section><h3>Inputs used by this calculation</h3><div className="openingFitScoreComponents">{view.components.map((component) => <article key={component.key}><header><strong>{component.title}</strong><span>{component.value} / 100 · {component.weight}% weight</span></header><p>{component.explanation}</p></article>)}</div></section> : <p className="openingFitScoreMissingComponents">Component data is unavailable for this report, so OpeningFit is not inventing a breakdown.</p>}
         <section className="openingFitScoreExplanationGrid">

@@ -2,7 +2,8 @@ import "./ReportSnapshot.css";
 import { getPlayerLevelText } from "./playerLevelLogic";
 import { getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
-import { formatRecommendationConfidence, recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
+import { recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
+import OpeningVerdictSummary from "./OpeningVerdictSummary.jsx";
 
 function toNumber(value, fallback = 0) {
   const n = Number(value);
@@ -149,7 +150,7 @@ export default function ReportSnapshot({ data, onViewChange }) {
     {
       eyebrow: publicMode ? "Recent strength" : "Best fit",
       title: openingContextTitle(bestFit, "No established strength yet"),
-      detail: bestFit ? formatRecommendationConfidence(bestFit) : "Not enough opening-specific evidence",
+      detail: bestFit ? "" : "Not enough opening-specific evidence",
       note: publicMode
         ? "A higher-scoring recent online sample, not a judgement of full opening knowledge."
         : canUseAsRepertoire(bestFit)
@@ -157,11 +158,13 @@ export default function ReportSnapshot({ data, onViewChange }) {
           : "This is not clean enough to treat as a repertoire recommendation yet.",
       action: "See recommendations",
       view: "repertoire",
+      source: bestFit,
+      verdict: "keep",
     },
     {
       eyebrow: publicMode ? "Lower-scoring sample" : "Needs work",
       title: openingContextTitle(weakSpot, publicMode ? "Recent underperformer" : "No reliable opening weakness found yet"),
-      detail: weakSpot ? formatRecommendationConfidence(weakSpot) : "No weakness claim is supported",
+      detail: weakSpot ? "" : "No weakness claim is supported",
       note: publicMode
         ? "Compare by time control, opponent pool, and whether the games were experimental."
         : canUseAsRepertoire(weakSpot)
@@ -169,6 +172,8 @@ export default function ReportSnapshot({ data, onViewChange }) {
           : "Separate played and faced games before calling this a weakness.",
       action: "Open study plan",
       view: "training",
+      source: weakSpot,
+      verdict: "repair",
     },
     {
       eyebrow: "Next focus",
@@ -206,7 +211,8 @@ export default function ReportSnapshot({ data, onViewChange }) {
           <article className="reportSnapshotCard" key={card.eyebrow}>
             <p className="reportSnapshotEyebrow">{card.eyebrow}</p>
             <h3>{card.title}</h3>
-            <p className="reportSnapshotDetail">{card.detail}</p>
+            {card.detail ? <p className="reportSnapshotDetail">{card.detail}</p> : null}
+            {card.source ? <OpeningVerdictSummary opening={card.source} verdict={card.verdict} compact /> : null}
             <p className="reportSnapshotNote">{card.note}</p>
 
             {typeof onViewChange === "function" ? (

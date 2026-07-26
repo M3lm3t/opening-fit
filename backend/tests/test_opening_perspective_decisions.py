@@ -23,7 +23,7 @@ def opening(name, role, games, score, verdict="Keep"):
         first_white_move="e4",
     )
     return attach_perspective(
-        {"name": name, "games": games, "fitScore": score, "verdict": verdict, "evidence": [f"{games} game{'s' if games != 1 else ''} analysed."]},
+        {"name": name, "games": games, "scoreRate": score, "fitScore": 70, "verdict": verdict, "evidence": [f"{games} game{'s' if games != 1 else ''} analysed."]},
         perspective,
     )
 
@@ -117,3 +117,15 @@ def test_faced_opening_becomes_preparation_not_repertoire_problem():
     assert decision["primaryProblem"] is None
     assert decision["nextTrainingAction"]["type"] == "prepare_against"
     assert decision["nextTrainingAction"]["label"] == "Prepare against the French Defence"
+
+
+def test_fit_score_is_preserved_but_never_used_as_current_performance():
+    row = opening("Vienna Game", "played_as_white", 8, 62)
+    row.pop("scoreRate")
+    row["fitScore"] = 91
+    decision = build_report_decision(report(games=8), openings=[row])
+    recommendation = decision["recommendations"][0]
+
+    assert recommendation["fitScore"] == 91
+    assert recommendation["scoreRate"] is None
+    assert recommendation["verdict"] == "insufficient-data"

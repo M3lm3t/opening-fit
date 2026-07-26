@@ -321,7 +321,7 @@ function summaryHighlights(scoreStatus, scoreChange, previousScore, currentScore
     highlights.push({
       type: "score",
       status: scoreStatus,
-      text: `OpeningFit Score ${scoreStatus === "improved" ? "increased" : "decreased"} from ${Math.round(previousScore)} to ${Math.round(currentScore)}.`,
+      text: `Repertoire coverage ${scoreStatus === "improved" ? "increased" : "decreased"} from ${Math.round(previousScore)} to ${Math.round(currentScore)}.`,
       previousValue: previousScore,
       currentValue: currentScore,
       change: scoreChange,

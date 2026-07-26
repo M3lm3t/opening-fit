@@ -387,12 +387,12 @@ function TodayHeader({ header, xp, onPrimary, onAnalyse }) {
           {header.primaryCta}
         </button>
       </div>
-      <div className="coachScorePanel" aria-label="OpeningFit score">
+      <div className="coachScorePanel" aria-label="Repertoire coverage">
         <span>Current streak</span>
         <strong className="todayStreakNumber">{header.streak.current}</strong>
         <small>Longest {header.streak.longest} day{header.streak.longest === 1 ? "" : "s"}</small>
         <div className="coachTrendLine">
-          <span>OpeningFit Score</span>
+          <span>Repertoire coverage</span>
           <b className={header.scoreDelta > 0 ? "isPositive" : header.scoreDelta < 0 ? "isNegative" : ""}>
             {header.score ?? "-"}{header.scoreDelta !== null && header.scoreDelta !== undefined ? ` (${header.scoreDelta >= 0 ? "+" : ""}${header.scoreDelta})` : ""}
           </b>
@@ -418,8 +418,8 @@ function CoachVerdictCard({ model, onPrimary }) {
           {model.task.cta}
         </button>
       </div>
-      <div className="coachScorePanel" aria-label="OpeningFit score">
-        <span>OpeningFit Score</span>
+      <div className="coachScorePanel" aria-label="Repertoire coverage">
+        <span>Repertoire coverage</span>
         <strong>{model.score ?? "-"}</strong>
         <small>{model.score !== null && model.score !== undefined ? "/100" : "After analysis"}</small>
         <div className="coachTrendLine">

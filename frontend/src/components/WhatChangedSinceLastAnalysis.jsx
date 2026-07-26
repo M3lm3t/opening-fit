@@ -314,7 +314,7 @@ function buildInsights(data, fitData, previous, fixedLine) {
   const stale = staleOpening(data);
 
   return [
-    deltaText("OpeningFit Score", currentScore, previousScore),
+    deltaText("Repertoire coverage", currentScore, previousScore),
     deltaText("Repertoire Health", currentHealth, previousHealth, "/100"),
     currentWeak && previousWeak && currentWeak !== previousWeak
       ? `Weakest line changed from ${previousWeak} to ${currentWeak}.`

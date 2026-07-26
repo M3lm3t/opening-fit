@@ -60,7 +60,7 @@ function buildFallbackInsights(data = {}) {
       ? {
           openingName: bestName,
           games: numberValue(best.games ?? best.gamesPlayed ?? best.games_played, 0),
-          score: numberValue(best.fitScore ?? best.score ?? best.winRate, null),
+          score: numberValue(best.fitScore ?? best.fit_score ?? best.openingFitScore ?? best.opening_fit_score, null),
           action: `Keep ${bestName} as the reference point while you compare weaker lines.`,
         }
       : null,

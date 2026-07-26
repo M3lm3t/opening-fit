@@ -112,3 +112,10 @@ export function buildThisWeekTrainingView(plan) {
     reassessment: `OpeningFit will reassess this plan after a new valid report or when the next week starts after ${plan.weekEnd || "this week"}.`,
   };
 }
+
+export function freeTrainingPreviewState(task, activeTaskId = "") {
+  if (!task) return { state: "unavailable", started: false, completed: false, showPlusInvitation: false };
+  const completed = task.status === "completed";
+  const started = completed || activeTaskId === task.id;
+  return { state: completed ? "completed" : started ? "started" : "ready", started, completed, showPlusInvitation: started };
+}

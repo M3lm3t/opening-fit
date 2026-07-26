@@ -4,7 +4,7 @@ const payload = (row = {}) => row.report || row.last_report || row.analysis || r
 const dateValue = (row = {}) => Date.parse(row.created_at || row.createdAt || row.updated_at || row.summary?.reportDate || payload(row).importedAt || payload(row).imported_at || "") || 0;
 const openingName = (row = {}) => row.name || row.opening || row.openingName || row.opening_name || "";
 const games = (row = {}) => num(row.games ?? row.count ?? row.total ?? row.sampleSize) || 0;
-const score = (row = {}) => num(row.fitScore ?? row.fit_score ?? row.score ?? row.winRate ?? row.win_rate);
+const score = (row = {}) => num(row.fitScore ?? row.fit_score ?? row.openingFitScore ?? row.opening_fit_score);
 const confidence = (row = {}) => String(row.confidenceLabel || row.confidence_label || row.confidence || (games(row) >= 8 ? "High" : games(row) >= 3 ? "Medium" : games(row) ? "Low" : "Insufficient evidence"));
 
 export function orderedCompletedReports(history = []) {

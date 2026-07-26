@@ -43,7 +43,7 @@ export function publicFeatureComparison(contract = DEFAULT_PUBLIC_ANALYSIS_CONTR
   const limits = normalisePublicAnalysisContract(contract);
   return [
     ["Opening report", "First report included", "Ongoing reports"],
-    ["OpeningFit Score and style", "Included", "Included"],
+    ["Repertoire coverage and style", "Included", "Included"],
     ["Keep / repair / next action", "One of each", "One of each, with fuller evidence"],
     ["Report refresh", `On demand, at least ${limits.freeRefreshMinutes} minutes apart`, `On demand, at least ${limits.plusRefreshMinutes} minutes apart`],
     ["Game-history window", `Up to ${limits.freeHistoryMonths} months`, `Up to ${limits.plusHistoryMonths} months`],

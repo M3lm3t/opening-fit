@@ -8,6 +8,18 @@ test("successful analysis opens the report without a verdict or personalisation 
   assert.deepEqual(completedAnalysisJourney(), { view: "report", path: "/report", reportMode: "summary", dialog: null, personalisationOpen: false, source: "analysis_completed" });
 });
 
+test("legacy verdict UI cannot become an automatic post-analysis modal", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const appSource = await readFile(new URL("../App.jsx", import.meta.url), "utf8");
+  const verdictModalSource = await readFile(new URL("../components/AnalysisVerdictModal.jsx", import.meta.url), "utf8");
+  const personalisationSource = await readFile(new URL("../components/PostReportOnboarding.jsx", import.meta.url), "utf8");
+  assert.doesNotMatch(appSource, /import AnalysisVerdictModal/);
+  assert.match(verdictModalSource, /open = false/);
+  assert.match(verdictModalSource, /if \(!open \|\| !data \|\| !analysisId/);
+  assert.match(personalisationSource, /addEventListener\(TRAINING_PREFERENCES_EDIT_EVENT, edit\)/);
+  assert.doesNotMatch(personalisationSource, /analysis_completed|report_restored/);
+});
+
 test("view full report reveals report detail and never requests an upgrade", () => {
   assert.deepEqual(viewFullReportJourney(), { view: "report", path: "/report", reportMode: "full", target: "full-report-details", dialog: null, upgrade: false });
 });

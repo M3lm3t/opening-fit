@@ -26,7 +26,7 @@ function openingName(item) {
 }
 
 function openingScore(item) {
-  const raw = item?.fitScore ?? item?.fit_score ?? item?.score ?? item?.winRate ?? item?.win_rate;
+  const raw = item?.fitScore ?? item?.fit_score ?? item?.openingFitScore ?? item?.opening_fit_score;
   const number = Number(String(raw ?? "").replace("%", ""));
   if (!Number.isFinite(number)) return null;
   return Math.max(0, Math.min(100, Math.round(number <= 1 ? number * 100 : number)));
@@ -348,6 +348,7 @@ function gameCount(data = {}) {
 }
 
 export default function AnalysisVerdictModal({
+  open = false,
   data,
   fitData,
   openingScore,
@@ -373,6 +374,7 @@ export default function AnalysisVerdictModal({
   const hasTrainingAction = Boolean(onStartTraining || onViewReport);
 
   useEffect(() => {
+    if (!open) return undefined;
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusTarget = dialogRef.current?.querySelector("button, [href], [tabindex]:not([tabindex='-1'])");
     window.setTimeout(() => focusTarget?.focus?.(), 0);
@@ -380,9 +382,10 @@ export default function AnalysisVerdictModal({
     return () => {
       previousFocusRef.current?.focus?.();
     };
-  }, []);
+  }, [open]);
 
   useEffect(() => {
+    if (!open) return undefined;
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -419,10 +422,10 @@ export default function AnalysisVerdictModal({
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [onDismiss, showScoreInfo]);
+  }, [onDismiss, open, showScoreInfo]);
 
   useEffect(() => {
-    if (!showScoreInfo) return undefined;
+    if (!open || !showScoreInfo) return undefined;
 
     const handlePointerDown = (event) => {
       if (scoreInfoRef.current?.contains(event.target)) return;
@@ -431,9 +434,9 @@ export default function AnalysisVerdictModal({
 
     window.addEventListener("pointerdown", handlePointerDown);
     return () => window.removeEventListener("pointerdown", handlePointerDown);
-  }, [showScoreInfo]);
+  }, [open, showScoreInfo]);
 
-  if (!data || !analysisId || !insights.length) return null;
+  if (!open || !data || !analysisId || !insights.length) return null;
 
   return createPortal(
     <div className="analysisVerdictOverlay" role="presentation" onPointerDown={onDismiss}>

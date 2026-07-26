@@ -27,7 +27,7 @@ function openingGames(item) {
 }
 
 function openingScore(item) {
-  const direct = item?.fitScore ?? item?.winRate ?? item?.win_rate ?? item?.score ?? item?.scoreRate;
+  const direct = item?.sample?.scoreRate ?? item?.scoreRate ?? item?.score_rate ?? item?.rawResultScore ?? item?.raw_result_score ?? item?.winRate ?? item?.win_rate;
   if (direct !== undefined && direct !== null && direct !== "") {
     const score = safeNumber(direct, 0);
     return clampScore(score <= 1 ? score * 100 : score);
@@ -36,7 +36,8 @@ function openingScore(item) {
   const games = openingGames(item);
   const wins = safeNumber(item?.wins ?? item?.w, 0);
   const draws = safeNumber(item?.draws ?? item?.d, 0);
-  if (!games) return 0;
+  const losses = safeNumber(item?.losses ?? item?.l, 0);
+  if (!games || (!wins && !draws && !losses)) return null;
   return clampScore(((wins + draws * 0.5) / games) * 100);
 }
 
@@ -177,7 +178,8 @@ export function buildOpeningGamificationSnapshot(data = {}, fitData = null, prev
   const openingXp = openings.map((opening) => {
     const previousRow = previousRows.get(opening.name.toLowerCase()) || {};
     const gameDelta = Math.max(0, opening.games - safeNumber(previousRow.games, 0));
-    const scoreDelta = opening.score - safeNumber(previousRow.score, opening.score);
+    const previousScore = previousRow.score === undefined || previousRow.score === null || previousRow.score === "" ? null : safeNumber(previousRow.score, null);
+    const scoreDelta = opening.score !== null && previousScore !== null ? opening.score - previousScore : 0;
     const improvementXp = Math.max(0, scoreDelta) * 18;
     const earned = alreadyProcessed
       ? 0

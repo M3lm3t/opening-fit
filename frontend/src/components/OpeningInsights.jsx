@@ -100,7 +100,7 @@ function statusForOpening(item) {
 }
 
 function fitScore(item) {
-  return number(item?.fitScore ?? item?.fit_score ?? item?.score ?? item?.winRate ?? item?.win_rate ?? 0);
+  return number(item?.fitScore ?? item?.fit_score ?? item?.openingFitScore ?? item?.opening_fit_score ?? 0);
 }
 
 function confidence(item) {

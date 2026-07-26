@@ -1,4 +1,4 @@
-import { analysisConfidence, evidenceBasedReason, fitBand, fitEvidence, performanceSummary } from "./fitTrustModel.js";
+import { analysisConfidence, buildOpeningVerdictPresentation, evidenceBasedReason, fitEvidence, openingFitScore, performanceSummary } from "./fitTrustModel.js";
 import { normaliseReportDecision } from "./recommendationEvidence.js";
 import { coachVerdict, formatRecommendationConfidence, trainingActionCopy } from "./reportCoachCopy.js";
 
@@ -23,7 +23,7 @@ export function openingGames(item) {
 }
 
 export function openingScore(item) {
-  const raw = item?.sample?.scoreRate ?? item?.scoreRate ?? item?.score_rate ?? item?.winRate ?? item?.win_rate ?? item?.fitScore ?? item?.fit_score ?? item?.score;
+  const raw = item?.sample?.scoreRate ?? item?.scoreRate ?? item?.score_rate ?? item?.rawResultScore ?? item?.raw_result_score ?? item?.winRate ?? item?.win_rate ?? item?.score;
   if (raw === undefined || raw === null || raw === "") return null;
   const value = Number(String(raw).replace("%", ""));
   if (!Number.isFinite(value)) return null;
@@ -126,6 +126,7 @@ function decisionType(item) {
 
 function decision(item, type) {
   const context = openingContext(item);
+  const presentation = buildOpeningVerdictPresentation(item, { verdict: type });
   return {
     type,
     opening: openingName(item),
@@ -136,8 +137,9 @@ function decision(item, type) {
     confidenceDetail: analysisConfidence(item),
     games: openingGames(item),
     score: openingScore(item),
-    fitLabel: fitBand(openingScore(item), analysisConfidence(item)),
+    fitLabel: presentation.fit.label,
     performance: performanceSummary(item),
+    presentation,
     evidence: fitEvidence(item),
     source: item,
     role: openingPerspective(item).role,
@@ -208,7 +210,8 @@ export function buildRepertoireMapModel(data = {}) {
     const weak = candidates.filter((item) => item !== main).sort((a, b) => (openingScore(a) ?? 100) - (openingScore(b) ?? 100))[0];
     return {
       key, label, opening: openingName(main), verdict: verdict(main) || "Review",
-      fit: openingScore(main), confidence: openingConfidence(main), games: openingGames(main),
+      fit: openingFitScore(main), confidence: openingConfidence(main), games: openingGames(main),
+      presentation: buildOpeningVerdictPresentation(main, { verdict: verdict(main) || "Review" }),
       weakestLine: text(weak?.variation || weak?.line || weak?.moveLine || weak?.move_line) || (weak ? openingName(weak) : ""),
       nextAction: reason(main), source: main,
     };
@@ -240,6 +243,8 @@ function canonicalOpening(source, fallbackType) {
   const games = Number(sample.games ?? source.games ?? 0);
   const score = sample.scoreRate ?? source.scoreRate ?? source.score ?? null;
   const confidence = typeof source.confidence === "object" ? source.confidence : analysisConfidence({ games });
+  const presentationSource = { ...match, ...source, sample: source.sample || match.sample };
+  const presentation = buildOpeningVerdictPresentation(presentationSource, { verdict: fallbackType });
   return {
     type: fallbackType,
     opening: source.opening,
@@ -250,8 +255,9 @@ function canonicalOpening(source, fallbackType) {
     confidenceDetail: { ...analysisConfidence({ games }), ...confidence, games },
     games,
     score,
-    fitLabel: source.sampleSizeStatus === "insufficient_data" ? "Insufficient data" : fitBand(score, analysisConfidence({ games })),
+    fitLabel: presentation.fit.label,
     performance: performanceSummary({ games, wins: sample.wins, draws: sample.draws, losses: sample.losses, scoreRate: score }),
+    presentation,
     evidence: fitEvidence({ games, wins: sample.wins, draws: sample.draws, losses: sample.losses, scoreRate: score }),
     source: match,
     role: source.role,

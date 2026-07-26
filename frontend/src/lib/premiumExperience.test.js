@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import { annualEffectiveMonthly, canStartCheckout, canUsePremiumPreview, checkoutReturnState, confirmEntitlementWithRetry, formatGbp, normaliseBillingConfiguration, premiumFeatureStructure } from "./premiumExperience.js";
 test("production preview flags cannot grant access", () => { assert.equal(canUsePremiumPreview({ isDevelopment: false, requested: true }), false); assert.equal(canUsePremiumPreview({ isDevelopment: true, requested: true }), true); });
 test("paid copy includes only implemented outcomes", () => { const model = premiumFeatureStructure(); assert.match(model.free.join(" "), /Useful first report/); assert.match(model.premium.join(" "), /Progress between reports/); assert.match(model.premium.join(" "), /Living repertoire/); assert.doesNotMatch(model.premium.join(" "), /email|engine|course library/i); });
@@ -9,3 +11,11 @@ test("cancelled checkout returns safely", () => assert.equal(checkoutReturnState
 test("signed-out checkout is rejected", () => { assert.equal(canStartCheckout(null), false); assert.equal(canStartCheckout({ id: "user" }), true); });
 test("subscription prices and annual effective monthly price are transparent", () => { const config = normaliseBillingConfiguration({ monthly: { available: true, amount: 4.99 }, annual: { available: true, amount: 39.99 } }); assert.equal(formatGbp(config.monthly.amount), "£4.99"); assert.equal(annualEffectiveMonthly(config), 3.33); });
 test("founding offer cannot appear without enabled server configuration", () => { assert.equal(normaliseBillingConfiguration({ annual: { available: true }, foundingOffer: { enabled: false, firstYearAmount: 29.99 } }).foundingOffer.enabled, false); assert.equal(normaliseBillingConfiguration({ annual: { available: false }, foundingOffer: { enabled: true, firstYearAmount: 29.99 } }).foundingOffer.enabled, false); });
+test("pricing selection drives the visible price and checkout interval together", () => {
+  const component = fs.readFileSync(fileURLToPath(new URL("../components/PremiumPanel.jsx", import.meta.url)), "utf8");
+  assert.match(component, /const selected = configuration\[interval\]/);
+  assert.match(component, /onFounderPass\?\.\("pricing_page", interval\)/);
+  assert.match(component, /`Choose \$\{interval\} billing`/);
+  assert.match(component, /Monthly · \{formatGbp\(monthlyAmount\)\}/);
+  assert.match(component, /Annual · \{formatGbp\(annualAmount\)\}/);
+});

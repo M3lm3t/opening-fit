@@ -67,7 +67,7 @@ function openingGames(item) {
 }
 
 function openingWinRate(item) {
-  const direct = item?.winRate ?? item?.win_rate ?? item?.score ?? item?.scoreRate ?? item?.fitScore;
+  const direct = item?.sample?.scoreRate ?? item?.scoreRate ?? item?.score_rate ?? item?.rawResultScore ?? item?.raw_result_score ?? item?.winRate ?? item?.win_rate;
   if (direct !== undefined && direct !== null && direct !== "") {
     const value = safeNumber(direct, 0);
     return Math.round(value <= 1 ? value * 100 : value);
@@ -76,7 +76,7 @@ function openingWinRate(item) {
   const games = openingGames(item);
   const wins = safeNumber(item?.wins ?? item?.w, 0);
   const draws = safeNumber(item?.draws ?? item?.d, 0);
-  if (!games) return 0;
+  if (!games || (!wins && !draws && !safeNumber(item?.losses ?? item?.l, 0))) return null;
   return Math.round(((wins + draws * 0.5) / games) * 100);
 }
 
@@ -273,7 +273,7 @@ function asRecommendationFromWeakLine(line) {
 }
 
 function asRecommendationFromOpening(opening, fallback = false) {
-  const lowRate = opening.winRate && opening.winRate < 50;
+  const lowRate = opening.winRate !== null && opening.winRate < 50;
   const side = inferPracticeSide(opening);
   const reason = lowRate
     ? "This opening has a meaningful sample and lower results, but no exact weak branch was isolated yet."
@@ -288,7 +288,7 @@ function asRecommendationFromOpening(opening, fallback = false) {
     sideLabel: side === "black" ? "Train as Black" : "Train as White",
     startLabel: opening.moveLine ? `after ${opening.moveLine}` : "from the main starting moves",
     games: opening.games,
-    winRate: opening.winRate || null,
+    winRate: opening.winRate,
     lossRate: opening.lossRate,
     confidence: opening.games >= 10 ? "Developing pattern" : "Limited evidence",
     reason: lowRate ? "Why this was picked:" : "Fallback target:",
@@ -316,7 +316,7 @@ function asRecommendationFromOpening(opening, fallback = false) {
         source: "opening-fallback-training",
       },
     },
-    rankScore: opening.games * 5 + Math.max(0, 55 - (opening.winRate || 55)) * 3,
+    rankScore: opening.games * 5 + Math.max(0, 55 - (opening.winRate ?? 55)) * 3,
   };
 }
 
@@ -348,7 +348,7 @@ export function buildTrainingRecommendations(data = null, fitData = null) {
   const openings = collectOpenings(data, fitData);
   const openingRecs = openings
     .filter((opening) => opening.games >= TRAINING_TARGET_THRESHOLDS.meaningfulOpeningGames)
-    .filter((opening) => opening.winRate < 50 || !weakLines.some((line) => normaliseKey(line.opening) === normaliseKey(opening.opening)))
+    .filter((opening) => (opening.winRate !== null && opening.winRate < 50) || !weakLines.some((line) => normaliseKey(line.opening) === normaliseKey(opening.opening)))
     .map((opening) => asRecommendationFromOpening(opening));
   const ranked = onePrimaryPerOpening([...weakLines, ...openingRecs]);
   const primary = ranked[0] || null;

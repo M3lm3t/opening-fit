@@ -1,3 +1,6 @@
+import RecommendationEvidenceDisclosure from "./RecommendationEvidenceDisclosure.jsx";
+import OpeningVerdictSummary from "./OpeningVerdictSummary.jsx";
+import { analysisConfidence, OPENING_EVIDENCE_THRESHOLDS } from "../lib/fitTrustModel.js";
 import "./OpeningFitVerdict.css";
 
 const VERDICT_ORDER = ["Keep", "Improve", "Avoid for now", "Try next"];
@@ -23,18 +26,11 @@ function gameCount(item) {
 }
 
 function scoreValue(item) {
-  const direct = item?.score ?? item?.winRate ?? item?.win_rate ?? item?.percentage ?? item?.fit_score ?? item?.fitScore;
+  const direct = item?.sample?.scoreRate ?? item?.scoreRate ?? item?.score_rate ?? item?.rawResultScore ?? item?.raw_result_score ?? item?.winRate ?? item?.win_rate ?? item?.percentage;
   if (direct === undefined || direct === null || direct === "") return null;
   const number = numberValue(direct, null);
   if (number === null) return null;
   return number <= 1 ? Math.round(number * 100) : Math.round(number);
-}
-
-function confidenceFromGames(games) {
-  if (games >= 10) return "High";
-  if (games >= 4) return "Medium";
-  if (games >= 1) return "Low";
-  return "None";
 }
 
 function coachInsights(data = {}) {
@@ -58,15 +54,6 @@ function coachDiagnosticFor(data, name) {
 
 function titleCase(value) {
   return String(value || "").replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function issueLabel(issueType) {
-  if (issueType === "opening") return "Opening issue";
-  if (issueType === "transition") return "Transition issue";
-  if (issueType === "middlegame") return "Later-game issue";
-  if (issueType === "mixed") return "Mixed issue";
-  if (issueType === "insufficient_data") return "Too little repeated data";
-  return "Report signal";
 }
 
 function friendlyLabel(label, diagnostic) {
@@ -102,7 +89,7 @@ function inferredLabel(item) {
   const games = gameCount(item);
   const score = scoreValue(item);
   if (!games) return "Try next";
-  if (games <= 3) return "Try next";
+  if (games < OPENING_EVIDENCE_THRESHOLDS.minimum) return "Try next";
   if (score === null) return "Improve";
   if (score >= 55) return "Keep";
   if (score >= 40) return "Improve";
@@ -130,7 +117,7 @@ function nextAction(item, label) {
 function decorate(item) {
   const label = inferredLabel(item);
   const games = gameCount(item);
-  const confidence = item?.confidence || item?.confidence_label || item?.confidenceLabel || confidenceFromGames(games);
+  const confidence = item?.confidence || item?.confidence_label || item?.confidenceLabel || analysisConfidence({ games }).label;
   return {
     item,
     label,
@@ -209,7 +196,6 @@ export default function OpeningFitVerdict({ data, fitData, onPractice }) {
           const diagnostic = coachDiagnosticFor(data, card.name);
           const label = friendlyLabel(card.label, diagnostic);
           const confidence = titleCase(diagnostic?.confidence || card.confidence);
-          const issue = issueLabel(diagnostic?.issueType);
           const why = diagnostic?.explanation || card.reason;
           const action = diagnostic?.recommendation || card.action;
           const avoidReason = label === "Park for now" ? explainAvoidReason(card, diagnostic) : null;
@@ -219,21 +205,14 @@ export default function OpeningFitVerdict({ data, fitData, onPractice }) {
             <span>{label}</span>
             <h3>{card.name}</h3>
             <p>{why}</p>
-            <small>
-              {confidence} confidence
-              {card.games ? ` - ${card.games} game${card.games === 1 ? "" : "s"}` : " - no opening-specific games"}
-            </small>
+            <OpeningVerdictSummary opening={{ ...card.item, games: card.games, confidence, verdict: card.label }} verdict={card.label} compact />
             <strong>{action}</strong>
-            <details className="openingFitVerdictWhy">
-              <summary aria-label={`Why ${card.name} is labelled ${label}`}>Why?</summary>
-              <div>
-                <p><b>Games analysed:</b> {diagnostic?.games || card.games || "Not enough opening-specific games"}</p>
-                <p><b>Issue type:</b> {issue}</p>
-                <p><b>Verdict reason:</b> {why}</p>
-                {avoidReason ? <p><b>Park reason:</b> {avoidReason}.</p> : null}
-                <p><b>Next action:</b> {action}</p>
-              </div>
-            </details>
+            <RecommendationEvidenceDisclosure
+              recommendation={{ ...card.item, games: diagnostic?.games || card.games }}
+              report={data}
+              interpretation={[why, avoidReason ? `Park reason: ${avoidReason}.` : "", action].filter(Boolean).join(" ")}
+              label={`Why ${card.name} is labelled ${label}`}
+            />
             {onPractice ? (
               <button type="button" onClick={() => onPractice(card.item)}>
                 Train This Line
