@@ -140,6 +140,32 @@ alter table public.report_history enable row level security;
 grant select, insert, update, delete on public.report_history to authenticated;
 grant all on public.report_history to service_role;
 
+-- Production retains legacy owner-scoped report policies alongside the
+-- reconciled policies. PostgreSQL combines permissive policies with OR, so an
+-- owner's row reaches the paid-mutation trigger and receives its exact 42501
+-- contract; a cross-owner row remains hidden and affects zero rows.
+create policy "Users can manage own report history"
+on public.report_history
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+create policy "Users can read own report history"
+on public.report_history for select
+using (auth.uid() = user_id);
+
+create policy "Users can insert own report history"
+on public.report_history for insert
+with check (auth.uid() = user_id);
+
+create policy "Users can update own report history"
+on public.report_history for update
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+create policy "Users can delete own report history"
+on public.report_history for delete
+using (auth.uid() = user_id);
+
 create table public.recommendation_history (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,

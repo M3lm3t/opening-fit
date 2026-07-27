@@ -100,8 +100,14 @@ select pg_temp.openingfit_assert_exact_failure(
 -- No error, wrong state, wrong message, and unrelated errors must all escape
 -- the matcher unchanged. The outer helper verifies their exact contracts.
 select pg_temp.openingfit_assert_rethrown(
-  'no error',
+  'silent success',
   'select 1',
+  'P0001',
+  'Expected protected operation unexpectedly succeeded'
+);
+select pg_temp.openingfit_assert_rethrown(
+  'zero-row protected operation',
+  'select 1 where false',
   'P0001',
   'Expected protected operation unexpectedly succeeded'
 );

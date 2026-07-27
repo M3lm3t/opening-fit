@@ -144,21 +144,79 @@ insert into public.repertoire(user_id,slot,display_name,canonical_name,source,st
 select free_user,'white_primary','Non-customer smoke','Non-customer smoke','user_selected','active'
 from openingfit_smoke_identity;
 
--- Report RLS matrix: free owner read, cross-owner hidden, mutation rejected.
+-- Report RLS matrix: free owner read, cross-owner hidden, owner mutation
+-- rejected by the paid-mutation trigger, and cross-owner mutation filtered to
+-- zero rows by RLS before any row trigger can run.
 set local role authenticated;
 select set_config('request.jwt.claim.role', 'authenticated', true);
 select set_config('request.jwt.claim.sub', (select free_user::text from openingfit_smoke_identity), true);
 do $block$
-declare affected bigint;
+declare
+  affected bigint;
+  rejected int := 0;
+  caught_state text;
+  caught_message text;
 begin
   if (select count(*) from public.report_history where report_key='reconciliation-smoke-free') <> 1
     then raise exception 'Free owner report read failed'; end if;
   if exists (select 1 from public.report_history where report_key='reconciliation-smoke-paid')
     then raise exception 'Cross-owner report was visible'; end if;
-  update public.report_history set report_key='must-not-change'
-  where report_key='reconciliation-smoke-free';
+
+  begin
+    insert into public.report_history(user_id,report_key)
+    select free_user,'must-not-insert' from openingfit_smoke_identity;
+    raise exception 'Free report insert unexpectedly succeeded';
+  exception when others then
+    get stacked diagnostics
+      caught_state = returned_sqlstate,
+      caught_message = message_text;
+    if caught_state <> '42501'
+       or caught_message <> 'Paid OpeningFit access is required for this feature' then
+      raise;
+    end if;
+    rejected := rejected + 1;
+  end;
+
+  begin
+    update public.report_history set report_key='must-not-change'
+    where report_key='reconciliation-smoke-free';
+    raise exception 'Free report update unexpectedly succeeded';
+  exception when others then
+    get stacked diagnostics
+      caught_state = returned_sqlstate,
+      caught_message = message_text;
+    if caught_state <> '42501'
+       or caught_message <> 'Paid OpeningFit access is required for this feature' then
+      raise;
+    end if;
+    rejected := rejected + 1;
+  end;
+
+  begin
+    delete from public.report_history
+    where report_key='reconciliation-smoke-free';
+    raise exception 'Free report delete unexpectedly succeeded';
+  exception when others then
+    get stacked diagnostics
+      caught_state = returned_sqlstate,
+      caught_message = message_text;
+    if caught_state <> '42501'
+       or caught_message <> 'Paid OpeningFit access is required for this feature' then
+      raise;
+    end if;
+    rejected := rejected + 1;
+  end;
+
+  if rejected <> 3 then raise exception 'One or more free report writes were not rejected'; end if;
+
+  update public.report_history set report_key='must-not-cross-update'
+  where report_key='reconciliation-smoke-paid';
   get diagnostics affected = row_count;
-  if affected <> 0 then raise exception 'Free report mutation succeeded'; end if;
+  if affected <> 0 then raise exception 'Cross-owner report update affected rows'; end if;
+
+  delete from public.report_history where report_key='reconciliation-smoke-paid';
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'Cross-owner report delete affected rows'; end if;
 end
 $block$;
 reset role;
@@ -251,14 +309,53 @@ end
 $block$;
 reset role;
 
--- Anonymous report access must fail; service-role access must succeed.
+-- Anonymous direct table access is rejected by PostgreSQL privileges. This is
+-- deliberately distinct from the paid-feature trigger contract above.
 set local role anon;
 select set_config('request.jwt.claim.role', 'anon', true);
 select set_config('request.jwt.claim.sub', '', true);
-do $block$ begin
-  begin perform count(*) from public.report_history; raise exception 'Anonymous report read succeeded';
-  exception when insufficient_privilege then null; end;
-end $block$;
+do $block$
+declare
+  rejected int := 0;
+  caught_state text;
+  caught_message text;
+begin
+  begin
+    perform count(*) from public.report_history;
+    raise exception 'Anonymous report read unexpectedly succeeded';
+  exception when others then
+    get stacked diagnostics caught_state = returned_sqlstate, caught_message = message_text;
+    if caught_state <> '42501' or caught_message <> 'permission denied for table report_history' then raise; end if;
+    rejected := rejected + 1;
+  end;
+  begin
+    insert into public.report_history(user_id,report_key)
+    select free_user,'anonymous-must-not-insert' from openingfit_smoke_identity;
+    raise exception 'Anonymous report insert unexpectedly succeeded';
+  exception when others then
+    get stacked diagnostics caught_state = returned_sqlstate, caught_message = message_text;
+    if caught_state <> '42501' or caught_message <> 'permission denied for table report_history' then raise; end if;
+    rejected := rejected + 1;
+  end;
+  begin
+    update public.report_history set report_key='anonymous-must-not-update';
+    raise exception 'Anonymous report update unexpectedly succeeded';
+  exception when others then
+    get stacked diagnostics caught_state = returned_sqlstate, caught_message = message_text;
+    if caught_state <> '42501' or caught_message <> 'permission denied for table report_history' then raise; end if;
+    rejected := rejected + 1;
+  end;
+  begin
+    delete from public.report_history;
+    raise exception 'Anonymous report delete unexpectedly succeeded';
+  exception when others then
+    get stacked diagnostics caught_state = returned_sqlstate, caught_message = message_text;
+    if caught_state <> '42501' or caught_message <> 'permission denied for table report_history' then raise; end if;
+    rejected := rejected + 1;
+  end;
+  if rejected <> 4 then raise exception 'One or more anonymous report operations were not rejected'; end if;
+end
+$block$;
 reset role;
 set local role service_role;
 select set_config('request.jwt.claim.role', 'service_role', true);

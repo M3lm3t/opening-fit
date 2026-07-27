@@ -287,6 +287,7 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000007
 do $$
 declare
   affected_rows bigint;
+  report_rejections integer := 0;
   caught_state text;
   caught_message text;
 begin
@@ -314,15 +315,49 @@ begin
     end if;
   end;
 
-  update public.report_history set report_key = 'free-update-fixture'
-  where user_id = '00000000-0000-0000-0000-000000000007';
+  begin
+    update public.report_history set report_key = 'free-update-fixture'
+    where user_id = '00000000-0000-0000-0000-000000000007';
+    raise exception 'Free report update unexpectedly succeeded';
+  exception when others then
+    get stacked diagnostics
+      caught_state = returned_sqlstate,
+      caught_message = message_text;
+    if caught_state <> '42501'
+       or caught_message <> 'Paid OpeningFit access is required for this feature' then
+      raise;
+    end if;
+    report_rejections := report_rejections + 1;
+  end;
+
+  begin
+    delete from public.report_history
+    where user_id = '00000000-0000-0000-0000-000000000007';
+    raise exception 'Free report delete unexpectedly succeeded';
+  exception when others then
+    get stacked diagnostics
+      caught_state = returned_sqlstate,
+      caught_message = message_text;
+    if caught_state <> '42501'
+       or caught_message <> 'Paid OpeningFit access is required for this feature' then
+      raise;
+    end if;
+    report_rejections := report_rejections + 1;
+  end;
+
+  if report_rejections <> 2 then
+    raise exception 'Free report update/delete rejection count differed';
+  end if;
+
+  update public.report_history set report_key = 'cross-owner-update-fixture'
+  where user_id = '00000000-0000-0000-0000-000000000001';
   get diagnostics affected_rows = row_count;
-  if affected_rows <> 0 then raise exception 'Free report update unexpectedly affected rows'; end if;
+  if affected_rows <> 0 then raise exception 'Cross-owner report update affected rows'; end if;
 
   delete from public.report_history
-  where user_id = '00000000-0000-0000-0000-000000000007';
+  where user_id = '00000000-0000-0000-0000-000000000001';
   get diagnostics affected_rows = row_count;
-  if affected_rows <> 0 then raise exception 'Free report delete unexpectedly affected rows'; end if;
+  if affected_rows <> 0 then raise exception 'Cross-owner report delete affected rows'; end if;
 
   if (select count(*) from public.report_history where report_key = 'free-owner-report') <> 1 then
     raise exception 'Free report mutation checks changed the owner report';
@@ -335,12 +370,21 @@ set role anon;
 select set_config('request.jwt.claim.role', 'anon', false);
 select set_config('request.jwt.claim.sub', '', false);
 do $$
+declare
+  caught_state text;
+  caught_message text;
 begin
   begin
     perform count(*) from public.report_history;
     raise exception 'Anonymous report read unexpectedly succeeded';
-  exception when insufficient_privilege then
-    null;
+  exception when others then
+    get stacked diagnostics
+      caught_state = returned_sqlstate,
+      caught_message = message_text;
+    if caught_state <> '42501'
+       or caught_message <> 'permission denied for table report_history' then
+      raise;
+    end if;
   end;
 end;
 $$;

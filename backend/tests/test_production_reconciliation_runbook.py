@@ -171,17 +171,27 @@ def test_expected_failure_handlers_require_exact_error_contracts():
         "caught_message <> 'profiles.is_premium can only be updated by trusted server code'"
         in foundation
     )
-    assert full.count("caught_state <> '42501'") == 3
+    assert full.count("caught_state <> '42501'") >= 6
     assert full.count(
         "caught_message <> 'Paid OpeningFit access is required for this feature'"
-    ) == 3
+    ) >= 6
+    for sentinel in [
+        "Free report insert unexpectedly succeeded",
+        "Free report update unexpectedly succeeded",
+        "Free report delete unexpectedly succeeded",
+        "Cross-owner report update affected rows",
+        "Cross-owner report delete affected rows",
+    ]:
+        assert sentinel in full
+    assert full.count("permission denied for table report_history") == 4
 
 
 def test_expected_error_regression_covers_failure_modes_and_cleanup():
     sql = read("supabase/tests/production_reconciliation_expected_error_contract.sql")
     for case in [
         "The precise expected authorization contract is accepted",
-        "no error",
+        "silent success",
+        "zero-row protected operation",
         "incorrect SQLSTATE",
         "correct SQLSTATE with wrong message",
         "unrelated constraint error",

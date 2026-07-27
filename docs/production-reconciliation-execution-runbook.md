@@ -384,10 +384,17 @@ Run the full rollback smoke matrix using the parameterised command above.
 Expected results are: service-role profile mutation accepted; authenticated
 self-upgrade rejected; synthetic entitlement upsert accepted; lifetime, active
 subscription, and canceled-current resolver checks true; expired and free
-checks false; free owners read only their own reports but cannot mutate them;
-anonymous report access rejected; service role access accepted; paid repertoire,
-weekly-plan, and training-outcome writes accepted; equivalent free writes all
-rejected. Any raised exception is a STOP. A successful command ends in
+checks false; free owners read only their own reports, while their own report
+insert/update/delete operations are rejected with SQLSTATE `42501` and exactly
+`Paid OpeningFit access is required for this feature`; cross-owner report
+updates/deletes affect zero rows through RLS; anonymous direct report-table
+access is rejected with SQLSTATE `42501` and exactly
+`permission denied for table report_history`; service-role access is accepted;
+paid repertoire, weekly-plan, and training-outcome writes are accepted; and
+equivalent free function calls are rejected with the exact paid-access contract.
+Direct authenticated writes to repertoire and weekly-plan tables remain revoked;
+their supported security-definer functions exercise insert/update/archive
+behaviour and the paid-mutation trigger. Any unexpected exception is a STOP. A successful command ends in
 `ROLLBACK` and changes no persistent rows.
 
 If the CLI query facility is unavailable, the reviewed alternative is the
