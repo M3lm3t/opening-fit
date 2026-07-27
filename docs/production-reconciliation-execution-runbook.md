@@ -381,21 +381,31 @@ must pass and all duplicate/ambiguous counts must be zero.
 Record the before/after row counts. Do not run `migration repair` in this window.
 
 Run the full rollback smoke matrix using the parameterised command above.
-Expected results are: service-role profile mutation accepted; authenticated
-self-upgrade rejected; synthetic entitlement upsert accepted; lifetime, active
-subscription, and canceled-current resolver checks true; expired and free
-checks false; free owners read only their own reports, while their own report
-insert/update/delete operations are rejected with SQLSTATE `42501` and exactly
-`Paid OpeningFit access is required for this feature`; cross-owner report
-updates/deletes affect zero rows through RLS; anonymous direct report-table
-access is rejected with SQLSTATE `42501` and exactly
-`permission denied for table report_history`; service-role access is accepted;
-paid repertoire, weekly-plan, and training-outcome writes are accepted; and
-equivalent free function calls are rejected with the exact paid-access contract.
-Direct authenticated writes to repertoire and weekly-plan tables remain revoked;
-their supported security-definer functions exercise insert/update/archive
-behaviour and the paid-mutation trigger. Any unexpected exception is a STOP. A successful command ends in
-`ROLLBACK` and changes no persistent rows.
+The reviewed final-schema contract is:
+
+| Actor and operation | Required result |
+| --- | --- |
+| Anonymous SELECT on report history, repertoire, or weekly plans | Query succeeds and returns exactly zero visible rows through RLS. |
+| Anonymous INSERT on report history, repertoire, or weekly plans | Exact SQLSTATE `42501` and `Paid OpeningFit access is required for this feature`. |
+| Anonymous UPDATE or DELETE on those three tables | Statement succeeds and affects exactly zero rows through RLS. |
+| Anonymous repertoire mutation function | Exact SQLSTATE `42501` and `permission denied for function replace_repertoire_entry`. |
+| Anonymous weekly-plan mutation function | Exact SQLSTATE `42501` and `permission denied for function save_weekly_training_plan`. |
+| Anonymous training-outcome function | Exact SQLSTATE `42501` and `permission denied for function apply_repertoire_training_outcomes`. |
+| Free owner report INSERT, UPDATE, or DELETE | Exact SQLSTATE `42501` and `Paid OpeningFit access is required for this feature`. |
+| Free cross-owner report UPDATE or DELETE | Statement succeeds and affects exactly zero rows through RLS. |
+| Free repertoire, weekly-plan, or training-outcome function | Exact SQLSTATE `42501` and the paid-access message above. |
+| Paid resolver and mutation functions | Active, canceled-current, and lifetime access succeed; expired and free access fail; repertoire, weekly-plan, and training-outcome mutations succeed. |
+| Service-role report, repertoire, and weekly-plan INSERT/UPDATE/DELETE | Each trusted mutation succeeds and its changed state is verified inside the smoke transaction. |
+| Service-role training-outcome and manual lifetime functions | Each trusted mutation succeeds and the resulting repertoire/profile/entitlement state is verified inside the transaction. |
+| All smoke fixtures | The final `ROLLBACK` removes every change and restores both designated accounts. |
+
+Production currently grants `anon` table privileges on these tables; RLS and the
+paid-mutation triggers provide the effective table boundary, while the mutation
+functions are explicitly revoked from `anon`. Direct authenticated repertoire
+and weekly-plan writes remain revoked; supported security-definer functions
+exercise their insert/update/archive behaviour. Any unexpected exception,
+nonzero hidden-row count, or missing trusted mutation is a STOP. A successful
+command ends in `ROLLBACK` and changes no persistent rows.
 
 If the CLI query facility is unavailable, the reviewed alternative is the
 Supabase SQL Editor: open the correct production project, create one saved query

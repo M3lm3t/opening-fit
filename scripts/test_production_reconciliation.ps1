@@ -70,6 +70,32 @@ function Assert-SqlFailure {
   Write-Host "PASS expected failure: $ExpectedText"
 }
 
+function Assert-SmokeSqlFailure {
+  param(
+    [Parameter(Mandatory = $true)][string]$Database,
+    [Parameter(Mandatory = $true)][string]$RelativePath,
+    [Parameter(Mandatory = $true)][string]$FreeUser,
+    [Parameter(Mandatory = $true)][string]$PaidUser,
+    [Parameter(Mandatory = $true)][string]$ExpectedText
+  )
+  $containerPath = "/workspace/" + ($RelativePath -replace "\\", "/")
+  $settings = "set openingfit.smoke_free_user = '$FreeUser'; set openingfit.smoke_paid_user = '$PaidUser';"
+  $previousErrorPreference = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  $output = & docker exec -e "PGPASSWORD=$password" $container psql `
+    -v ON_ERROR_STOP=1 -U postgres -d $Database -c $settings -f $containerPath 2>&1
+  $exitCode = $LASTEXITCODE
+  $ErrorActionPreference = $previousErrorPreference
+  if ($exitCode -eq 0) {
+    throw "Expected smoke SQL failure but command succeeded: $Database / $RelativePath"
+  }
+  $renderedOutput = $output -join [Environment]::NewLine
+  if ($renderedOutput -notmatch [regex]::Escape($ExpectedText)) {
+    throw "Smoke SQL failed for an unexpected reason: $Database / $RelativePath $renderedOutput"
+  }
+  Write-Host "PASS expected smoke failure: $ExpectedText"
+}
+
 function Invoke-Validator {
   param(
     [Parameter(Mandatory = $true)][string]$Database,
@@ -161,6 +187,7 @@ try {
   Invoke-ContainerSql "openingfit_clean" "supabase/migrations/202607200001_production_schema_reconciliation_foundation.sql"
   Invoke-ContainerSql "openingfit_clean" "supabase/migrations/202607200002_production_entitlement_preservation.sql"
   Invoke-ContainerSql "openingfit_clean" "supabase/migrations/202607200003_production_coaching_and_entitlement_enforcement.sql"
+  Invoke-ContainerSql "openingfit_clean" "supabase/tests/production_reconciliation_final_grants_fixture.sql"
 
   Invoke-ContainerSql "openingfit_clean" "supabase/tests/production_reconciliation_assertions.sql"
   Invoke-Validator "openingfit_clean" "final" "PASS"
@@ -185,11 +212,24 @@ try {
   Invoke-SmokeSql "openingfit_validator_sequence" "scripts/smoke_production_reconciliation_entitlement.sql" `
     "00000000-0000-0000-0000-000000000007"
   Invoke-ContainerSql "openingfit_validator_sequence" "supabase/migrations/202607200003_production_coaching_and_entitlement_enforcement.sql"
+  Invoke-ContainerSql "openingfit_validator_sequence" "supabase/tests/production_reconciliation_final_grants_fixture.sql"
   Invoke-Validator "openingfit_validator_sequence" "final" "PASS"
   Invoke-SmokeSql "openingfit_validator_sequence" "scripts/smoke_production_reconciliation.sql" `
     "00000000-0000-0000-0000-000000000007" "00000000-0000-0000-0000-000000000001"
   Invoke-ContainerSql "openingfit_validator_sequence" "supabase/tests/production_reconciliation_smoke_rollback_assertions.sql"
   Write-Host "PASS phase-aware validator sequence"
+
+  New-FixtureDatabase "openingfit_smoke_anonymous_visibility"
+  Invoke-ContainerSql "openingfit_smoke_anonymous_visibility" "supabase/migrations/202607200001_production_schema_reconciliation_foundation.sql"
+  Invoke-ContainerSql "openingfit_smoke_anonymous_visibility" "supabase/migrations/202607200002_production_entitlement_preservation.sql"
+  Invoke-ContainerSql "openingfit_smoke_anonymous_visibility" "supabase/migrations/202607200003_production_coaching_and_entitlement_enforcement.sql"
+  Invoke-ContainerSql "openingfit_smoke_anonymous_visibility" "supabase/tests/production_reconciliation_final_grants_fixture.sql"
+  Invoke-ContainerSql "openingfit_smoke_anonymous_visibility" "supabase/tests/failure_smoke_anonymous_visibility.sql"
+  Assert-SmokeSqlFailure "openingfit_smoke_anonymous_visibility" "scripts/smoke_production_reconciliation.sql" `
+    "00000000-0000-0000-0000-000000000007" "00000000-0000-0000-0000-000000000001" `
+    "Anonymous report visibility was not zero"
+  Invoke-ContainerSql "openingfit_smoke_anonymous_visibility" "supabase/tests/production_reconciliation_smoke_rollback_assertions.sql"
+  Write-Host "PASS anonymous visibility fail-closed smoke regression"
 
   foreach ($missingObjectCase in @(
     @{ Name = "baseline"; Mode = "baseline"; Through = 0; File = "validator_failure_missing_baseline_object.sql" },

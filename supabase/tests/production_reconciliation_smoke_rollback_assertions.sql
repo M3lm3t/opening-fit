@@ -8,15 +8,27 @@ begin
   ) then raise exception 'Synthetic smoke entitlement survived rollback'; end if;
   if exists (
     select 1 from public.report_history
-    where report_key in ('reconciliation-smoke-paid','reconciliation-smoke-free','must-not-change')
+    where report_key in (
+      'reconciliation-smoke-paid','reconciliation-smoke-free','must-not-insert',
+      'must-not-change','must-not-cross-update','anonymous-must-not-insert',
+      'anonymous-must-not-update','reconciliation-smoke-service-report',
+      'reconciliation-smoke-service-report-updated'
+    )
   ) then raise exception 'Synthetic smoke report survived rollback'; end if;
   if exists (
     select 1 from public.repertoire
-    where canonical_name = 'Non-customer smoke' or display_name = 'Must fail'
+    where canonical_name in ('Non-customer smoke','Service role smoke')
+       or display_name in (
+         'Must fail','anonymous-must-not-update','Service role smoke',
+         'Service role smoke updated'
+       )
   ) then raise exception 'Synthetic smoke repertoire survived rollback'; end if;
   if exists (
     select 1 from public.weekly_training_plans
-    where primary_goal in ('Non-customer smoke','Must fail')
+    where primary_goal in (
+      'Non-customer smoke','Must fail','anonymous-must-not-update',
+      'Service role smoke','Service role smoke updated'
+    )
   ) then raise exception 'Synthetic smoke weekly plan survived rollback'; end if;
   if exists (
     select 1 from public.premium_entitlements

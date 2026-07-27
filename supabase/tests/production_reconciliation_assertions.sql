@@ -370,22 +370,12 @@ set role anon;
 select set_config('request.jwt.claim.role', 'anon', false);
 select set_config('request.jwt.claim.sub', '', false);
 do $$
-declare
-  caught_state text;
-  caught_message text;
+declare visible_rows bigint;
 begin
-  begin
-    perform count(*) from public.report_history;
-    raise exception 'Anonymous report read unexpectedly succeeded';
-  exception when others then
-    get stacked diagnostics
-      caught_state = returned_sqlstate,
-      caught_message = message_text;
-    if caught_state <> '42501'
-       or caught_message <> 'permission denied for table report_history' then
-      raise;
-    end if;
-  end;
+  select count(*) into visible_rows from public.report_history;
+  if visible_rows <> 0 then
+    raise exception 'Anonymous report history visibility was not zero';
+  end if;
 end;
 $$;
 reset role;

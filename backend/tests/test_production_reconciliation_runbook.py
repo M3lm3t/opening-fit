@@ -183,7 +183,68 @@ def test_expected_failure_handlers_require_exact_error_contracts():
         "Cross-owner report delete affected rows",
     ]:
         assert sentinel in full
-    assert full.count("permission denied for table report_history") == 4
+    for function_name in [
+        "replace_repertoire_entry",
+        "save_weekly_training_plan",
+        "apply_repertoire_training_outcomes",
+    ]:
+        assert f"permission denied for function {function_name}" in full
+
+
+def test_complete_smoke_matrix_covers_final_anonymous_and_service_contracts():
+    full = read("scripts/smoke_production_reconciliation.sql")
+    harness = read("scripts/test_production_reconciliation.ps1")
+    fixture = read(
+        "supabase/tests/production_reconciliation_final_grants_fixture.sql"
+    )
+
+    for marker in [
+        "Anonymous report visibility was not zero",
+        "Anonymous repertoire visibility was not zero",
+        "Anonymous weekly-plan visibility was not zero",
+        "Anonymous report update affected rows",
+        "Anonymous report delete affected rows",
+        "Anonymous repertoire update affected rows",
+        "Anonymous repertoire delete affected rows",
+        "Anonymous weekly-plan update affected rows",
+        "Anonymous weekly-plan delete affected rows",
+        "Service report update failed",
+        "Service report delete failed",
+        "Service repertoire update failed",
+        "Service repertoire delete failed",
+        "Service weekly-plan update failed",
+        "Service weekly-plan delete failed",
+        "Service training-outcome mutation failed",
+        "Service entitlement mutation failed",
+    ]:
+        assert marker in full
+
+    for table in [
+        "report_history",
+        "repertoire",
+        "weekly_training_plans",
+        "premium_entitlements",
+    ]:
+        assert f"grant all on public.{table} to anon" in fixture.lower()
+        assert f"grant all on public.{table} to service_role" in fixture.lower()
+    assert "grant all on public.profiles to service_role" in fixture.lower()
+    assert (
+        "grant execute on function public.apply_repertoire_training_outcomes(jsonb) "
+        "to service_role"
+    ) in fixture.lower()
+    assert (
+        "grant execute on function public.grant_manual_lifetime_entitlement(uuid, text) "
+        "to service_role"
+    ) in fixture.lower()
+    assert (
+        "grant select on openingfit_smoke_identity to authenticated, anon, service_role"
+        in full
+    )
+    assert harness.count(
+        "supabase/tests/production_reconciliation_final_grants_fixture.sql"
+    ) == 3
+    assert "failure_smoke_anonymous_visibility.sql" in harness
+    assert "Anonymous report visibility was not zero" in harness
 
 
 def test_expected_error_regression_covers_failure_modes_and_cleanup():
