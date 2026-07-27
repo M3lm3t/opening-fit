@@ -1,0 +1,89 @@
+# Production reconciliation execution record
+
+Copy this file to a private operations location. Do not commit the completed
+record, schema dumps, dashboard exports, customer identifiers, or secrets.
+
+## Approval and identity
+
+- Production project reference (verify in dashboard and CLI):
+- Operator:
+- Independent approver / second read-only reviewer:
+- SQL review verdict and evidence link: `APPROVED` / `REJECTED`
+- Approval UTC timestamp:
+- Release branch and commit:
+- Supabase CLI version (`npx.cmd supabase --version`):
+- Migration 1 SHA-256:
+- Migration 2 SHA-256:
+- Migration 3 SHA-256:
+- Preview SHA-256:
+- Validator SHA-256:
+- Candidate-query SHA-256:
+- Counts-query SHA-256:
+
+## Recovery evidence
+
+- Backup/PITR dashboard page and screenshot/evidence location:
+- Last restorable UTC point immediately before execution:
+- Retention duration and earliest retained UTC point:
+- Named person authorised and able to initiate restoration:
+- Written recovery procedure/location:
+- Restoration target and estimated recovery time:
+- Restore test evidence/date, or explicitly `NOT RESTORE-TESTED`:
+- Observation period end UTC (must remain covered by retention):
+
+## Window and concurrency
+
+- Checkout-disabled evidence:
+- Quiet-window start/end UTC:
+- Administrative jobs paused/confirmed absent by:
+- Blocking-activity query result:
+- Open/long transaction query result:
+- Stripe webhook traffic at start:
+- Webhook handling decision (continue / pause with provider retry plan):
+
+## Baseline
+
+- Schema dump path/hash:
+- Migration-history output path/hash:
+- Impact preview path/hash:
+- Baseline validator output path/hash:
+- Aggregate-count output path/hash:
+- Aggregate counts (paste table):
+
+## Candidate decisions
+
+| Candidate type | Redacted owner ID | Database evidence | Stripe dashboard review evidence | Decision and approver |
+|---|---|---|---|---|
+| Conservative legacy entitlement | | | | |
+| Premium profile without entitlement | | | | |
+
+Both rows require an explicit `APPROVE LIFETIME` decision. Any recurring,
+checkout, webhook, price, subscription, or payment evidence requires `STOP`.
+
+## Stage results
+
+| UTC start/end | Stage | File hash rechecked | Expected result | Actual result/evidence | PROCEED/STOP | Approver |
+|---|---|---|---|---|---|---|
+| | Baseline | | `BASELINE_VALIDATION_PASS` | | | |
+| | Migration 1 | | transaction committed | | | |
+| | Foundation validation | | `FOUNDATION_VALIDATION_PASS` | | | |
+| | Premium guard smoke | | service allowed; self-upgrade rejected | | | |
+| | Migration 2 | | transaction committed | | | |
+| | Entitlement validation | | `ENTITLEMENT_VALIDATION_PASS` | | | |
+| | Ledger/upsert smoke | | assertions pass; one audit row retained | | | |
+| | Migration 3 | | transaction committed | | | |
+| | Final validation | | `FINAL_VALIDATION_PASS` | | | |
+| | Resolver/RLS/paid-feature smoke | | all matrix assertions pass | | | |
+
+## Final reconciliation
+
+- Post-schema dump path/hash:
+- Post-migration-history capture path/hash (must remain unchanged):
+- Post-count output path/hash:
+- Intentionally changed counts by table and reason:
+- Retained synthetic webhook event ID (non-customer):
+- Confirm exactly one synthetic audit row intentionally retained:
+- Unexpected changes (must be none, otherwise STOP):
+- Observation results and UTC end:
+- History-alignment follow-up ticket/review (separate task; never silently repair):
+- Final go/no-go decision, operator, approver, UTC:

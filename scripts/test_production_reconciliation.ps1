@@ -6,6 +6,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $container = "openingfit-reconciliation-$PID"
 $password = "openingfit-local-reconciliation-only"
+. (Join-Path $PSScriptRoot "production_reconciliation_test_helpers.ps1")
 
 function Invoke-ContainerSql {
   param(
@@ -16,6 +17,25 @@ function Invoke-ContainerSql {
   & docker exec -e "PGPASSWORD=$password" $container psql -v ON_ERROR_STOP=1 -U postgres -d $Database -f $containerPath
   if ($LASTEXITCODE -ne 0) {
     throw "SQL execution failed: $Database / $RelativePath"
+  }
+}
+
+function Invoke-SmokeSql {
+  param(
+    [Parameter(Mandatory = $true)][string]$Database,
+    [Parameter(Mandatory = $true)][string]$RelativePath,
+    [Parameter(Mandatory = $true)][string]$FreeUser,
+    [string]$PaidUser
+  )
+  $containerPath = "/workspace/" + ($RelativePath -replace "\\", "/")
+  $settings = "set openingfit.smoke_free_user = '$FreeUser';"
+  if ($PaidUser) {
+    $settings += " set openingfit.smoke_paid_user = '$PaidUser';"
+  }
+  & docker exec -e "PGPASSWORD=$password" $container psql `
+    -v ON_ERROR_STOP=1 -U postgres -d $Database -c $settings -f $containerPath
+  if ($LASTEXITCODE -ne 0) {
+    throw "Smoke SQL failed: $Database / $RelativePath"
   }
 }
 
@@ -78,7 +98,32 @@ function Invoke-Validator {
   Write-Host "PASS validator $Mode -> $summaryName"
 }
 
+function Invoke-CandidateCheck {
+  param(
+    [Parameter(Mandatory = $true)][string]$Database,
+    [Parameter(Mandatory = $true)][int]$ExpectedLegacy,
+    [Parameter(Mandatory = $true)][int]$ExpectedProfile
+  )
+  $path = "/workspace/scripts/identify_production_reconciliation_candidates.sql"
+  $output = & docker exec -e "PGPASSWORD=$password" $container psql `
+    -v ON_ERROR_STOP=1 -A -t -F "|" -U postgres -d $Database -f $path 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Candidate safety query crashed: $Database $($output -join [Environment]::NewLine)"
+  }
+  $rendered = $output -join [Environment]::NewLine
+  Write-Host $rendered
+  $counts = Get-OpeningFitCandidateCounts -Output $output
+  if ($counts.Legacy -ne $ExpectedLegacy -or $counts.Profile -ne $ExpectedProfile) {
+    throw "Candidate counts differed: $Database expected $ExpectedLegacy/$ExpectedProfile $rendered"
+  }
+  if ($rendered -match "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|(?:cus|sub|pi|price|cs)_[A-Za-z0-9_]+") {
+    throw "Candidate query leaked a full owner or Stripe identifier: $Database"
+  }
+  Write-Host "PASS identifier-safe candidates $ExpectedLegacy/$ExpectedProfile"
+}
+
 try {
+  & (Join-Path $PSScriptRoot "test_production_reconciliation_output_parsing.ps1")
   Write-Host "Starting isolated local Postgres container $container"
   & docker run --name $container -e "POSTGRES_PASSWORD=$password" -e "POSTGRES_DB=postgres" -v "$($repoRoot):/workspace:ro" -d $PostgresImage
   if ($LASTEXITCODE -ne 0) { throw "Could not start local Postgres container" }
@@ -95,7 +140,10 @@ try {
   if (-not $ready) { throw "Local Postgres did not become ready" }
 
   New-FixtureDatabase "openingfit_clean"
+  Invoke-ContainerSql "openingfit_clean" "supabase/tests/production_reconciliation_expected_error_contract.sql"
   Invoke-ContainerSql "openingfit_clean" "scripts/preview_production_reconciliation_impact.sql"
+  Invoke-CandidateCheck "openingfit_clean" 1 1
+  Invoke-ContainerSql "openingfit_clean" "scripts/capture_production_reconciliation_counts.sql"
   Invoke-ContainerSql "openingfit_clean" "supabase/migrations/202607200001_production_schema_reconciliation_foundation.sql"
   Invoke-ContainerSql "openingfit_clean" "supabase/migrations/202607200002_production_entitlement_preservation.sql"
   Invoke-ContainerSql "openingfit_clean" "supabase/migrations/202607200003_production_coaching_and_entitlement_enforcement.sql"
@@ -108,6 +156,8 @@ try {
   Invoke-ContainerSql "openingfit_clean" "supabase/tests/production_reconciliation_assertions.sql"
   Invoke-Validator "openingfit_clean" "final" "PASS"
   Invoke-ContainerSql "openingfit_clean" "scripts/preview_production_reconciliation_impact.sql"
+  Invoke-CandidateCheck "openingfit_clean" 0 0
+  Invoke-ContainerSql "openingfit_clean" "scripts/capture_production_reconciliation_counts.sql"
   Write-Host "PASS clean upgrade, retry, preservation, authorization, and resolver tests"
 
   # Exercise the exact audited production phase sequence. This fixture removes
@@ -115,13 +165,21 @@ try {
   New-FixtureDatabase "openingfit_validator_sequence"
   Invoke-ContainerSql "openingfit_validator_sequence" "supabase/tests/production_reconciliation_validator_baseline_fixture.sql"
   Invoke-ContainerSql "openingfit_validator_sequence" "scripts/preview_production_reconciliation_impact.sql"
+  Invoke-CandidateCheck "openingfit_validator_sequence" 1 1
   Invoke-Validator "openingfit_validator_sequence" "baseline" "PASS" -RequireExpectedNotYetPresent
   Invoke-ContainerSql "openingfit_validator_sequence" "supabase/migrations/202607200001_production_schema_reconciliation_foundation.sql"
   Invoke-Validator "openingfit_validator_sequence" "foundation" "PASS" -RequireExpectedNotYetPresent
+  Invoke-SmokeSql "openingfit_validator_sequence" "scripts/smoke_production_reconciliation_foundation.sql" `
+    "00000000-0000-0000-0000-000000000007"
   Invoke-ContainerSql "openingfit_validator_sequence" "supabase/migrations/202607200002_production_entitlement_preservation.sql"
   Invoke-Validator "openingfit_validator_sequence" "entitlement" "PASS" -RequireExpectedNotYetPresent
+  Invoke-SmokeSql "openingfit_validator_sequence" "scripts/smoke_production_reconciliation_entitlement.sql" `
+    "00000000-0000-0000-0000-000000000007"
   Invoke-ContainerSql "openingfit_validator_sequence" "supabase/migrations/202607200003_production_coaching_and_entitlement_enforcement.sql"
   Invoke-Validator "openingfit_validator_sequence" "final" "PASS"
+  Invoke-SmokeSql "openingfit_validator_sequence" "scripts/smoke_production_reconciliation.sql" `
+    "00000000-0000-0000-0000-000000000007" "00000000-0000-0000-0000-000000000001"
+  Invoke-ContainerSql "openingfit_validator_sequence" "supabase/tests/production_reconciliation_smoke_rollback_assertions.sql"
   Write-Host "PASS phase-aware validator sequence"
 
   foreach ($missingObjectCase in @(

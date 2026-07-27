@@ -158,6 +158,9 @@ $$;
 -- Ordinary self-upgrade is rejected; the same write is accepted for the
 -- service-role JWT context used by backend/webhook clients.
 do $$
+declare
+  caught_state text;
+  caught_message text;
 begin
   perform set_config('request.jwt.claim.role', 'authenticated', false);
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000007', false);
@@ -168,7 +171,11 @@ begin
     raise exception 'Ordinary user self-upgrade unexpectedly succeeded';
   exception
     when others then
-      if sqlerrm = 'Ordinary user self-upgrade unexpectedly succeeded' then
+      get stacked diagnostics
+        caught_state = returned_sqlstate,
+        caught_message = message_text;
+      if caught_state <> 'P0001'
+         or caught_message <> 'profiles.is_premium can only be updated by trusted server code' then
         raise;
       end if;
   end;
@@ -253,6 +260,8 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000007
 do $$
 declare
   affected_rows bigint;
+  caught_state text;
+  caught_message text;
 begin
   if (select count(*) from public.report_history where report_key = 'free-owner-report') <> 1 then
     raise exception 'Free owner could not read own report history';
@@ -269,7 +278,13 @@ begin
     values ('00000000-0000-0000-0000-000000000007', 'free-mutation-fixture');
     raise exception 'Free report insert unexpectedly succeeded';
   exception when others then
-    if sqlerrm = 'Free report insert unexpectedly succeeded' then raise; end if;
+    get stacked diagnostics
+      caught_state = returned_sqlstate,
+      caught_message = message_text;
+    if caught_state <> '42501'
+       or caught_message <> 'Paid OpeningFit access is required for this feature' then
+      raise;
+    end if;
   end;
 
   update public.report_history set report_key = 'free-update-fixture'
