@@ -43,8 +43,9 @@ begin
       and is_grandfathered_lifetime is true
       and status = 'active'
       and expires_at is null
+      and source = 'legacy_lifetime_repair'
   ) then
-    raise exception 'Legacy active entitlement was not preserved as lifetime';
+    raise exception 'Approved paying lifetime entitlement was not preserved';
   end if;
 
   if not exists (
@@ -52,8 +53,34 @@ begin
     where user_id = '00000000-0000-0000-0000-000000000002'
       and access_type = 'lifetime'
       and is_grandfathered_lifetime is true
+      and status = 'active'
+      and expires_at is null
+      and source = 'legacy_lifetime_repair'
   ) then
-    raise exception 'Premium profile was not backfilled as lifetime';
+    raise exception 'Approved owner-operated lifetime entitlement was not preserved';
+  end if;
+
+  if (
+    select count(*)
+    from public.premium_entitlements
+    where source = 'legacy_lifetime_repair'
+      and access_type = 'lifetime'
+      and is_grandfathered_lifetime is true
+      and status = 'active'
+      and expires_at is null
+      and stripe_customer_id is null
+      and stripe_subscription_id is null
+      and stripe_payment_intent_id is null
+      and stripe_price_id is null
+      and checkout_mode is null
+      and plan_interval is null
+      and stripe_status is null
+      and current_period_start is null
+      and current_period_end is null
+      and last_stripe_event_id is null
+      and last_stripe_event_created_at is null
+  ) <> 2 then
+    raise exception 'Reviewed lifetime cohort did not reconcile to exactly two rows';
   end if;
 
   if not exists (

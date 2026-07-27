@@ -431,6 +431,7 @@ begin
           nullif(to_jsonb(e)->>'source', '') as source,
           nullif(to_jsonb(e)->>'expires_at', '') as expires_at,
           nullif(to_jsonb(e)->>'stripe_customer_id', '') as stripe_customer_id,
+          nullif(to_jsonb(e)->>'stripe_checkout_session_id', '') as stripe_checkout_session_id,
           nullif(to_jsonb(e)->>'stripe_subscription_id', '') as stripe_subscription_id,
           nullif(to_jsonb(e)->>'stripe_payment_intent_id', '') as stripe_payment_intent_id,
           nullif(to_jsonb(e)->>'stripe_price_id', '') as stripe_price_id,
@@ -438,6 +439,7 @@ begin
           nullif(to_jsonb(e)->>'access_type', '') as access_type,
           nullif(to_jsonb(e)->>'current_period_start', '') as current_period_start,
           nullif(to_jsonb(e)->>'current_period_end', '') as current_period_end,
+          coalesce((to_jsonb(e)->>'cancel_at_period_end')::boolean, false) as cancel_at_period_end,
           nullif(to_jsonb(e)->>'plan_interval', '') as plan_interval,
           nullif(to_jsonb(e)->>'stripe_status', '') as stripe_status,
           nullif(to_jsonb(e)->>'last_stripe_event_id', '') as last_stripe_event_id,
@@ -453,10 +455,35 @@ begin
             and stripe_payment_intent_id is null and stripe_price_id is null
             and checkout_mode is null and plan_interval is null and stripe_status is null
             and current_period_start is null and current_period_end is null
+            and not cancel_at_period_end
             and last_stripe_event_id is null and last_stripe_event_created_at is null
             and (source is null or source in (
-              'legacy', 'legacy_fixture', 'legacy_lifetime_backfill', 'manual_support'
+              'legacy', 'legacy_fixture', 'legacy_lifetime_backfill',
+              'manual_support', 'legacy_lifetime_repair'
             )) as conservative_candidate,
+          source = 'legacy_lifetime_repair' as exact_reviewed_source,
+          source = 'legacy_lifetime_repair'
+            and access_type is null and not grandfathered
+            and status in ('active', 'premium', 'paid', 'lifetime')
+            and expires_at is null
+            and stripe_customer_id is null and stripe_checkout_session_id is null
+            and stripe_subscription_id is null and stripe_payment_intent_id is null
+            and stripe_price_id is null and checkout_mode is null
+            and plan_interval is null and stripe_status is null
+            and current_period_start is null and current_period_end is null
+            and not cancel_at_period_end
+            and last_stripe_event_id is null and last_stripe_event_created_at is null
+            as pristine_reviewed_candidate,
+          source = 'legacy_lifetime_repair'
+            and access_type = 'lifetime' and status = 'active' and grandfathered
+            and expires_at is null
+            and stripe_customer_id is null and stripe_checkout_session_id is null
+            and stripe_subscription_id is null and stripe_payment_intent_id is null
+            and stripe_price_id is null and checkout_mode is null
+            and plan_interval is null and stripe_status is null
+            and current_period_start is null and current_period_end is null
+            and last_stripe_event_id is null and last_stripe_event_created_at is null
+            as canonical_reviewed_lifetime,
           access_type is null and coalesce(checkout_mode, '') <> 'payment' and (
             stripe_subscription_id is not null or checkout_mode = 'subscription'
             or plan_interval in ('month', 'year')
@@ -496,6 +523,12 @@ begin
           group by stripe_subscription_id having count(*) > 1
         ) groups
         union all select 'conservative_lifetime_candidates', count(*) filter (where conservative_candidate) from classified
+        union all select 'reviewed_source_total_exact_cohort', count(*) filter (where exact_reviewed_source) from classified
+        union all select 'reviewed_source_pristine_candidates', count(*) filter (where pristine_reviewed_candidate) from classified
+        union all select 'reviewed_source_canonical_rows', count(*) filter (where canonical_reviewed_lifetime) from classified
+        union all select 'reviewed_source_conflicting_evidence', count(*) filter (
+          where exact_reviewed_source and not pristine_reviewed_candidate and not canonical_reviewed_lifetime
+        ) from classified
         union all select 'customer_only_ambiguous', count(*) filter (
           where access_type is null and stripe_customer_id is not null
             and stripe_subscription_id is null and stripe_payment_intent_id is null
@@ -571,7 +604,19 @@ begin
     $entitlement_metrics$
     loop
       if item.metric = 'conservative_lifetime_candidates' then
-        expected_count := case when phase_number < 3 then 1 else 0 end;
+        expected_count := case when phase_number < 3 then 2 else 0 end;
+        object_present := item.value = expected_count;
+        actual_text := expected_count::text;
+      elsif item.metric = 'reviewed_source_total_exact_cohort' then
+        expected_count := 2;
+        object_present := item.value = expected_count;
+        actual_text := expected_count::text;
+      elsif item.metric = 'reviewed_source_pristine_candidates' then
+        expected_count := case when phase_number < 3 then 2 else 0 end;
+        object_present := item.value = expected_count;
+        actual_text := expected_count::text;
+      elsif item.metric = 'reviewed_source_canonical_rows' then
+        expected_count := case when phase_number < 3 then 0 else 2 end;
         object_present := item.value = expected_count;
         actual_text := expected_count::text;
       elsif item.metric = 'grandfathered_lifetime_count' then
@@ -605,7 +650,7 @@ begin
           where nullif(to_jsonb(entitlement)->>'user_id', '') = profile.user_id::text
         )
     $backfill$ into actual_count;
-    expected_count := case when phase_number < 3 then 1 else 0 end;
+    expected_count := 0;
     perform pg_temp.record_openingfit_validation(
       mode_name, phase_number, 1, 'profiles:entitlement_backfill_candidates',
       actual_count = expected_count, expected_count::text, actual_count::text,

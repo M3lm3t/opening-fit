@@ -38,6 +38,83 @@ def test_identifier_safe_query_contains_exact_conservative_predicate():
     assert "or e.row_data ->> 'source' in" in candidate_section
 
 
+def test_reviewed_source_is_exact_and_consistent_across_operator_sql():
+    approved_source = "legacy_lifetime_repair"
+    paths = [
+        "supabase/migrations/202607200002_production_entitlement_preservation.sql",
+        "scripts/identify_production_reconciliation_candidates.sql",
+        "scripts/preview_production_reconciliation_impact.sql",
+        "scripts/validate_production_subscription_schema.sql",
+        "scripts/diagnose_reviewed_production_entitlements.sql",
+    ]
+    for path in paths:
+        sql = read(path)
+        assert f"'{approved_source}'" in sql
+
+    for path in paths:
+        sql = normalized_predicate_fragment(read(path))
+        assert approved_source in sql
+        assert f"like '%{approved_source}%'" not in sql
+        assert f"ilike '%{approved_source}%'" not in sql
+        assert f"~ '{approved_source}" not in sql
+        assert f"~* '{approved_source}" not in sql
+        assert f"similar to '{approved_source}" not in sql
+        assert f"'{approved_source}%" not in sql
+
+
+def test_reviewed_source_cardinality_and_profile_backfill_are_fail_closed():
+    migration = read(
+        "supabase/migrations/202607200002_production_entitlement_preservation.sql"
+    )
+    validator = read("scripts/validate_production_subscription_schema.sql")
+    harness = read("scripts/test_production_reconciliation.ps1")
+    assert (
+        "expected exactly two reviewed conservative lifetime entitlements"
+        in migration
+    )
+    assert "conservative_candidate_count = 2" in migration
+    assert "reviewed_source_total_count <> 2" in migration
+    assert "reviewed_candidate_count = 2" in migration
+    assert "reviewed_canonical_count = 2" in migration
+    assert "reviewed_conflicting_count <> 0" in migration
+    assert migration.count("coalesce(cancel_at_period_end, false) is false") >= 2
+    assert "phase_number < 3 then 2 else 0" in validator
+    assert "expected_count := 0;" in validator
+    assert 'Invoke-CandidateCheck "openingfit_clean" 2 0' in harness
+    assert "failure_entitlement_reviewed_candidate_count.sql" in harness
+    assert "failure_entitlement_reviewed_candidate_extra.sql" in harness
+    assert "failure_entitlement_reviewed_source_near_match.sql" in harness
+    assert "failure_entitlement_reviewed_source_recurring.sql" in harness
+    assert "failure_entitlement_reviewed_source_cancel_flag.sql" in harness
+    assert "failure_entitlement_reviewed_source_third_recurring.sql" in harness
+    assert "production_reconciliation_third_recurring_rollback_assertions.sql" in harness
+    assert "failure_entitlement_reviewed_source_mixed.sql" in harness
+    assert "failure_entitlement_reviewed_source_partial.sql" in harness
+
+
+def test_reviewed_source_total_is_counted_before_evidence_filtering():
+    migration = normalized_predicate_fragment(
+        read("supabase/migrations/202607200002_production_entitlement_preservation.sql")
+    )
+    cohort_select = migration.split("select count(*) into conservative_candidate_count", 1)[1]
+    cohort_select = cohort_select.split("reviewed_conflicting_count :=", 1)[0]
+    assert "select count(*), count(*) filter" in cohort_select
+    assert "where source = 'legacy_lifetime_repair'" in cohort_select
+    assert cohort_select.rsplit("where source = 'legacy_lifetime_repair'", 1)[1].strip() == ";"
+
+    for path in [
+        "scripts/identify_production_reconciliation_candidates.sql",
+        "scripts/preview_production_reconciliation_impact.sql",
+        "scripts/validate_production_subscription_schema.sql",
+        "scripts/diagnose_reviewed_production_entitlements.sql",
+    ]:
+        sql = read(path)
+        assert "total_exact_source_cohort" in sql or "reviewed_source_total_exact_cohort" in sql
+        assert "pristine_reviewed" in sql
+        assert "canonical_reviewed" in sql
+        assert "conflicting" in sql
+
+
 def test_candidate_output_is_redacted_and_has_stop_evidence_gate():
     sql = read("scripts/identify_production_reconciliation_candidates.sql")
     output_sections = sql[sql.index("select\n  candidate_type,") :]
@@ -135,3 +212,15 @@ def test_execution_record_has_required_evidence_fields():
         "intentionally changed counts", "not restore-tested",
     ]:
         assert phrase in record
+
+
+def test_runbook_records_two_existing_lifetimes_and_no_profile_backfill():
+    runbook = read("docs/production-reconciliation-execution-runbook.md")
+    record = read("docs/production-reconciliation-execution-record.md")
+    for text in (runbook, record):
+        assert "ofr-v1-9bccdb630af841fe" in text
+        assert "ofr-v1-3e8058d82714f9ee" in text
+    assert "conservative candidates" in runbook
+    assert "profile-without-entitlement" in runbook
+    assert "profile-only backfill" in runbook
+    assert "zero profile-derived entitlement insertions" in runbook

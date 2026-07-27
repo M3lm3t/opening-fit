@@ -200,6 +200,112 @@ where access_type is null
 -- grant and no Stripe object, checkout, lifecycle, or event evidence. Only
 -- known legacy/manual sources are accepted; an unknown source remains visible
 -- for human classification instead of being guessed.
+--
+-- This production reconciliation has exactly two privately reviewed rows using
+-- one additional exact source value. Count the complete exact-source cohort
+-- before applying any evidence filter. The assertion then permits only the two
+-- pristine candidates or the same two fully reconciled rows on a whole-file
+-- retry. Extra rows, partial/mixed states, and any attached Stripe evidence fail
+-- closed and roll back the entire migration.
+do $$
+declare
+  conservative_candidate_count bigint;
+  reviewed_source_total_count bigint;
+  reviewed_candidate_count bigint;
+  reviewed_canonical_count bigint;
+  reviewed_conflicting_count bigint;
+begin
+  select count(*) into conservative_candidate_count
+  from public.premium_entitlements
+  where access_type is null
+    and lower(coalesce(status, '')) in ('active', 'premium', 'paid', 'lifetime')
+    and expires_at is null
+    and stripe_customer_id is null
+    and stripe_subscription_id is null
+    and stripe_payment_intent_id is null
+    and stripe_price_id is null
+    and checkout_mode is null
+    and plan_interval is null
+    and stripe_status is null
+    and current_period_start is null
+    and current_period_end is null
+    and last_stripe_event_id is null
+    and last_stripe_event_created_at is null
+    and (
+      source is null
+      or source in (
+        'legacy', 'legacy_fixture', 'legacy_lifetime_backfill',
+        'manual_support', 'legacy_lifetime_repair'
+      )
+    );
+
+  select
+    count(*),
+    count(*) filter (
+      where access_type is null
+        and coalesce(is_grandfathered_lifetime, false) is false
+        and lower(coalesce(status, '')) in ('active', 'premium', 'paid', 'lifetime')
+        and expires_at is null
+        and stripe_customer_id is null
+        and stripe_checkout_session_id is null
+        and stripe_subscription_id is null
+        and stripe_payment_intent_id is null
+        and stripe_price_id is null
+        and checkout_mode is null
+        and plan_interval is null
+        and stripe_status is null
+        and current_period_start is null
+        and current_period_end is null
+        and coalesce(cancel_at_period_end, false) is false
+        and last_stripe_event_id is null
+        and last_stripe_event_created_at is null
+    ),
+    count(*) filter (
+      where access_type = 'lifetime'
+        and status = 'active'
+        and is_grandfathered_lifetime is true
+        and expires_at is null
+        and stripe_customer_id is null
+        and stripe_checkout_session_id is null
+        and stripe_subscription_id is null
+        and stripe_payment_intent_id is null
+        and stripe_price_id is null
+        and checkout_mode is null
+        and plan_interval is null
+        and stripe_status is null
+        and current_period_start is null
+        and current_period_end is null
+        and coalesce(cancel_at_period_end, false) is false
+        and last_stripe_event_id is null
+        and last_stripe_event_created_at is null
+    )
+  into reviewed_source_total_count, reviewed_candidate_count, reviewed_canonical_count
+  from public.premium_entitlements
+  where source = 'legacy_lifetime_repair';
+
+  reviewed_conflicting_count := reviewed_source_total_count
+    - reviewed_candidate_count
+    - reviewed_canonical_count;
+
+  if reviewed_source_total_count <> 2
+    or reviewed_conflicting_count <> 0
+    or not (
+    (
+      conservative_candidate_count = 2
+      and reviewed_candidate_count = 2
+      and reviewed_canonical_count = 0
+    )
+    or (
+      conservative_candidate_count = 0
+      and reviewed_candidate_count = 0
+      and reviewed_canonical_count = 2
+    )
+  ) then
+    raise exception 'Entitlement reconciliation failed: expected exactly two reviewed conservative lifetime entitlements';
+  end if;
+end;
+$$;
+
 update public.premium_entitlements
 set access_type = 'lifetime',
     is_grandfathered_lifetime = true
@@ -219,7 +325,10 @@ where access_type is null
   and last_stripe_event_created_at is null
   and (
     source is null
-    or source in ('legacy', 'legacy_fixture', 'legacy_lifetime_backfill', 'manual_support')
+    or source in (
+      'legacy', 'legacy_fixture', 'legacy_lifetime_backfill',
+      'manual_support', 'legacy_lifetime_repair'
+    )
   );
 
 -- Profiles were historically the only lifetime-access source. Insert only when

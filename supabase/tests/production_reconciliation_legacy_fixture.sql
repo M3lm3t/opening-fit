@@ -233,6 +233,15 @@ insert into public.profiles (id, user_id, is_premium) values
   ('00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000011', false),
   ('00000000-0000-0000-0000-000000000012', '00000000-0000-0000-0000-000000000012', false);
 
+-- Synthetic stand-ins for the two privately approved production owners. The
+-- exact source is intentionally exercised without committing any PII.
+update public.profiles
+set premium_source = 'legacy_lifetime_repair'
+where user_id in (
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000002'
+);
+
 insert into public.user_profiles (id, user_id)
 select id, id from auth.users;
 
@@ -244,9 +253,13 @@ insert into public.premium_entitlements (
   last_stripe_event_created_at, stripe_payment_intent_id, stripe_price_id,
   checkout_mode
 ) values
-  -- Audited legacy active/non-expiring row.
-  ('00000000-0000-0000-0000-000000000001', 'active', null, null, null,
+  -- Human-approved paying lifetime customer stand-in.
+  ('00000000-0000-0000-0000-000000000001', 'active', 'legacy_lifetime_repair', null, null,
    now() - interval '1 year', null, null, null, null, false, false, null, null, null, null,
+   null, null, null),
+  -- Human-approved owner-operated lifetime test-account stand-in.
+  ('00000000-0000-0000-0000-000000000002', 'active', 'legacy_lifetime_repair', null, null,
+   now() - interval '1 day', null, null, null, null, false, false, null, null, null, null,
    null, null, null),
   -- Active monthly subscription.
   ('00000000-0000-0000-0000-000000000003', 'active', 'stripe_subscription.updated',

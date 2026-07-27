@@ -2,9 +2,10 @@
 -- baseline shape used to exercise phase-aware validation. Synthetic data only.
 
 delete from public.premium_entitlements;
-update public.profiles set is_premium = false;
+update public.profiles set is_premium = false, premium_source = null;
 update public.profiles
-set is_premium = true
+set is_premium = true,
+    premium_source = 'legacy_lifetime_repair'
 where user_id in (
   '00000000-0000-0000-0000-000000000001',
   '00000000-0000-0000-0000-000000000002'
@@ -16,10 +17,15 @@ where user_id = '00000000-0000-0000-0000-000000000012';
 
 insert into public.premium_entitlements (
   user_id, status, source, premium_since, expires_at
-) values (
-  '00000000-0000-0000-0000-000000000001',
-  'active', 'legacy_fixture', now() - interval '1 year', null
-);
+) values
+  (
+    '00000000-0000-0000-0000-000000000001',
+    'active', 'legacy_lifetime_repair', now() - interval '1 year', null
+  ),
+  (
+    '00000000-0000-0000-0000-000000000002',
+    'active', 'legacy_lifetime_repair', now() - interval '1 day', null
+  );
 
 delete from public.report_history;
 insert into public.report_history (user_id, report_key, report)

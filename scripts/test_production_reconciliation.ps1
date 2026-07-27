@@ -119,6 +119,15 @@ function Invoke-CandidateCheck {
   if ($rendered -match "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|(?:cus|sub|pi|price|cs)_[A-Za-z0-9_]+") {
     throw "Candidate query leaked a full owner or Stripe identifier: $Database"
   }
+  $reviewedCounts = Get-OpeningFitReviewedSourceCounts -Output $output
+  $expectedPristine = if ($ExpectedLegacy -eq 2) { 2 } else { 0 }
+  $expectedCanonical = if ($ExpectedLegacy -eq 2) { 0 } else { 2 }
+  if ($reviewedCounts.Total -ne 2 `
+      -or $reviewedCounts.Pristine -ne $expectedPristine `
+      -or $reviewedCounts.Canonical -ne $expectedCanonical `
+      -or $reviewedCounts.Conflicting -ne 0) {
+    throw "Reviewed-source counts differed: $Database expected 2/$expectedPristine/$expectedCanonical/0 $rendered"
+  }
   Write-Host "PASS identifier-safe candidates $ExpectedLegacy/$ExpectedProfile"
 }
 
@@ -142,7 +151,7 @@ try {
   New-FixtureDatabase "openingfit_clean"
   Invoke-ContainerSql "openingfit_clean" "supabase/tests/production_reconciliation_expected_error_contract.sql"
   Invoke-ContainerSql "openingfit_clean" "scripts/preview_production_reconciliation_impact.sql"
-  Invoke-CandidateCheck "openingfit_clean" 1 1
+  Invoke-CandidateCheck "openingfit_clean" 2 0
   Invoke-ContainerSql "openingfit_clean" "scripts/capture_production_reconciliation_counts.sql"
   Invoke-ContainerSql "openingfit_clean" "supabase/migrations/202607200001_production_schema_reconciliation_foundation.sql"
   Invoke-ContainerSql "openingfit_clean" "supabase/migrations/202607200002_production_entitlement_preservation.sql"
@@ -165,7 +174,7 @@ try {
   New-FixtureDatabase "openingfit_validator_sequence"
   Invoke-ContainerSql "openingfit_validator_sequence" "supabase/tests/production_reconciliation_validator_baseline_fixture.sql"
   Invoke-ContainerSql "openingfit_validator_sequence" "scripts/preview_production_reconciliation_impact.sql"
-  Invoke-CandidateCheck "openingfit_validator_sequence" 1 1
+  Invoke-CandidateCheck "openingfit_validator_sequence" 2 0
   Invoke-Validator "openingfit_validator_sequence" "baseline" "PASS" -RequireExpectedNotYetPresent
   Invoke-ContainerSql "openingfit_validator_sequence" "supabase/migrations/202607200001_production_schema_reconciliation_foundation.sql"
   Invoke-Validator "openingfit_validator_sequence" "foundation" "PASS" -RequireExpectedNotYetPresent
@@ -269,6 +278,71 @@ try {
       Invoke-ContainerSql $database "supabase/tests/manual_grant_failure_rollback_assertions.sql"
     }
   }
+
+  foreach ($reviewedSourceFixture in @(
+    @{
+      Name = "reviewed_count"
+      File = "failure_entitlement_reviewed_candidate_count.sql"
+      Error = "expected exactly two reviewed conservative lifetime entitlements"
+    },
+    @{
+      Name = "reviewed_extra"
+      File = "failure_entitlement_reviewed_candidate_extra.sql"
+      Error = "expected exactly two reviewed conservative lifetime entitlements"
+    },
+    @{
+      Name = "reviewed_recurring"
+      File = "failure_entitlement_reviewed_source_recurring.sql"
+      Error = "expected exactly two reviewed conservative lifetime entitlements"
+    },
+    @{
+      Name = "reviewed_cancel_flag"
+      File = "failure_entitlement_reviewed_source_cancel_flag.sql"
+      Error = "expected exactly two reviewed conservative lifetime entitlements"
+    },
+    @{
+      Name = "reviewed_third_recurring"
+      File = "failure_entitlement_reviewed_source_third_recurring.sql"
+      Error = "expected exactly two reviewed conservative lifetime entitlements"
+    },
+    @{
+      Name = "reviewed_mixed"
+      File = "failure_entitlement_reviewed_source_mixed.sql"
+      Error = "expected exactly two reviewed conservative lifetime entitlements"
+    },
+    @{
+      Name = "reviewed_partial"
+      File = "failure_entitlement_reviewed_source_partial.sql"
+      Error = "expected exactly two reviewed conservative lifetime entitlements"
+    },
+    @{
+      Name = "reviewed_near_match"
+      File = "failure_entitlement_reviewed_source_near_match.sql"
+      Error = "unclassified entitlement rows remain"
+    }
+  )) {
+    $database = "openingfit_" + $reviewedSourceFixture.Name
+    New-FixtureDatabase $database
+    Invoke-ContainerSql $database "supabase/migrations/202607200001_production_schema_reconciliation_foundation.sql"
+    Invoke-ContainerSql $database ("supabase/tests/" + $reviewedSourceFixture.File)
+    Assert-SqlFailure $database "supabase/migrations/202607200002_production_entitlement_preservation.sql" $reviewedSourceFixture.Error
+    if ($reviewedSourceFixture.Name -eq "reviewed_count") {
+      Invoke-ContainerSql $database "supabase/tests/production_reconciliation_reviewed_count_rollback_assertions.sql"
+    }
+    elseif ($reviewedSourceFixture.Name -eq "reviewed_third_recurring") {
+      Invoke-ContainerSql $database "supabase/tests/production_reconciliation_third_recurring_rollback_assertions.sql"
+    }
+    elseif ($reviewedSourceFixture.Name -eq "reviewed_mixed") {
+      Invoke-ContainerSql $database "supabase/tests/production_reconciliation_mixed_rollback_assertions.sql"
+    }
+    elseif ($reviewedSourceFixture.Name -eq "reviewed_partial") {
+      Invoke-ContainerSql $database "supabase/tests/production_reconciliation_partial_rollback_assertions.sql"
+    }
+    else {
+      Invoke-ContainerSql $database "supabase/tests/production_reconciliation_failure_rollback_assertions.sql"
+    }
+  }
+  Write-Host "PASS exact reviewed source, cardinality, recurring evidence, and near-match gates"
 
   Write-Host "All local production reconciliation tests passed."
 }

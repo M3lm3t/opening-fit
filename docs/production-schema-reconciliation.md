@@ -13,7 +13,10 @@ last.
 
 Migration 2 uses a fixed reconciliation order: validate ambiguity before any
 data update; classify conclusive subscriptions; classify explicit payment-mode
-one-time purchases; classify evidence-free legacy lifetime grants; backfill
+one-time purchases; require the exact privately reviewed conservative cohort
+to contain exactly two total rows before evidence filtering and to be either
+two pristine candidates or those same two already-canonical retry rows;
+classify evidence-free legacy lifetime grants; backfill
 premium profiles without entitlements; require every row to have a supported
 `access_type`; normalise fields only after classification; add constraints; then
 install lifetime/stale-event triggers. Stripe references are never cleared before
@@ -90,7 +93,8 @@ verbatim. This repository change does not perform or authorize that repair.
 ## Manual review gates
 
 - Confirm the two audited legacy lifetime candidates still satisfy the migration
-  predicates immediately before execution.
+  predicates immediately before execution, and confirm there are zero premium
+  profiles without an existing entitlement.
 - Confirm every existing Stripe subscription has a non-null subscription ID or
   an unambiguous `checkout_mode = 'subscription'` marker.
 - Review the conservative monthly fallback for subscriptions whose interval was

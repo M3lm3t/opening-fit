@@ -113,9 +113,12 @@ function Invoke-OpeningFitReconciliationValidator {
    npx.cmd supabase db query --linked --file scripts/identify_production_reconciliation_candidates.sql
    ```
 
-6. Verify the audited candidates from that output: exactly one conservative
-   legacy entitlement candidate; exactly one premium profile without any
-   entitlement; zero customer-only, Price-only, source-only, contradictory
+6. Verify the audited candidates from that output: exact-source cohort `2`,
+   pristine reviewed candidates `2`, already-canonical reviewed rows `0`,
+   exact-source conflicting-evidence rows `0`, exactly two conservative legacy
+   entitlement candidates; zero premium profiles without any
+   entitlement; zero profile-only entitlement backfills; zero customer-only,
+   Price-only, source-only, contradictory
    payment/lifetime, unclassified, or otherwise ambiguous rows; and no newly
    observed recurring evidence on either candidate. The candidate script uses
    exactly migration 2's predicates and emits only a stable `ofr-v1-…` digest.
@@ -131,8 +134,20 @@ function Invoke-OpeningFitReconciliationValidator {
    searched, UTC time, reviewer, and yes/no evidence result. **Any recurring,
    webhook, checkout, price, subscription, invoice, charge, or payment evidence
    means STOP, not automatic lifetime conversion.** If the account cannot be
-   conclusively matched in Stripe, STOP. If both reviews find no evidence, the
-   operator and approver must separately decide `APPROVE LIFETIME` for each row.
+   conclusively matched in Stripe, STOP.
+
+   The privately reviewed ownership decisions are:
+
+   - `ofr-v1-9bccdb630af841fe`: genuine paying customer with intentionally
+     granted lifetime access;
+   - `ofr-v1-3e8058d82714f9ee`: owner-operated test account intentionally
+     retaining lifetime premium access.
+
+   The committed record contains no PII. Reconfirm both redacted mappings and
+   record an independent `APPROVE LIFETIME` for each row. Any new recurring or
+   contradictory evidence is `STOP`. Unexpected payment/checkout evidence must
+   be reviewed against the private approval record and may never trigger an
+   automatic lifetime conversion.
 7. Run and preserve the explicit baseline validator. Reconciliation-only
    objects must be reported as `EXPECTED_NOT_YET_PRESENT`; all required
    baseline checks and the summary must pass:
@@ -182,8 +197,9 @@ function Invoke-OpeningFitReconciliationValidator {
     The approver must compare migration 2's conservative predicate
     predicate-by-predicate with the JSON-safe equivalent in
     `scripts/identify_production_reconciliation_candidates.sql`, confirm the
-    expected cardinalities are `1` and `1`, confirm every ambiguity metric is
-    `0`, and sign both candidate decisions. No cardinality or validator may be
+    expected cardinalities are `2` and `0`, confirm profile-only backfill is
+    `0`, confirm every ambiguity metric is `0`, and sign both candidate
+    decisions. No cardinality or validator may be
     weakened to manufacture a pass.
 
 ### Running parameterised smoke SQL
@@ -236,8 +252,8 @@ each row before starting the next one.
 | Order | Stage/query | Only acceptable result | STOP when |
 |---:|---|---|---|
 | 1 | Backup/recovery check | usable point, authority, procedure, retention coverage recorded | any item unavailable or unverified |
-| 2 | Impact preview | conservative candidate `1`; profile-without-entitlement `1`; every ambiguity/contradiction/unclassified metric `0` | any number differs |
-| 3 | Identifier-safe candidates | one redacted row of each type; DB evidence counts `0`; Stripe review finds no evidence; both decisions `APPROVE LIFETIME` | missing/extra row, evidence, uncertain match, or approval absent |
+| 2 | Impact preview | exact-source cohort `2`; pristine reviewed `2`; canonical reviewed `0`; exact-source conflicts `0`; conservative candidates `2`; profile-without-entitlement `0`; profile-only backfill `0`; every ambiguity/contradiction/unclassified metric `0` | any number differs |
+| 3 | Identifier-safe candidates | exactly the two approved redacted entitlement rows; DB evidence counts `0`; private ownership review matches; both decisions `APPROVE LIFETIME` | missing/extra row, evidence, uncertain match, or approval absent |
 | 4 | Baseline validator | every baseline requirement `PASS`; later objects `EXPECTED_NOT_YET_PRESENT`; summary `BASELINE_VALIDATION_PASS` | any `FAIL`, query error, or other summary |
 | 5 | Schema/history/count/activity captures | files hashed; blocked and old transactions both `0`; approved baseline counts | capture missing, target mismatch, blocker, or unexplained count |
 | 6 | Migration 1 | command succeeds and its transaction commits | error, timeout, uncertain session, or hash mismatch |
@@ -303,16 +319,22 @@ Post-migration-2 validation:
 - Run `Invoke-OpeningFitReconciliationValidator -Mode entitlement`. The final
   row must be `ENTITLEMENT_VALIDATION_PASS`; final coaching objects may still
   be `EXPECTED_NOT_YET_PRESENT`.
-- Confirm the legacy entitlement and profile-derived entitlement are lifetime,
-  active, non-expiring, and grandfathered without printing identifiers.
+- Confirm both reviewed existing entitlements are lifetime, active,
+  non-expiring, and grandfathered without printing identifiers. Confirm the
+  profile-only backfill inserted zero rows and each exact source was preserved.
 - Confirm zero null/duplicate owners, zero duplicate Stripe subscription IDs,
   zero ambiguous entitlement rows, and zero premium profiles without a current
-  qualifying entitlement.
+  qualifying entitlement. The exact reviewed-source assertion first counts
+  every row with that exact source and requires a total cohort of two before
+  applying any evidence filter. Those same two rows must be two pristine
+  candidates on first execution or two canonical grandfathered rows on a
+  whole-file retry; every conflicting, partial, mixed, or extra state is a STOP.
 - Confirm every row with recurring evidence is classified monthly or annual,
   and no such row is lifetime.
 - Confirm the pre-update ambiguity gates ran before any classification. The
   reviewed order is: ambiguity assertions, subscription classification,
-  explicit payment lifetime, conservative legacy lifetime, profile backfill,
+  explicit payment lifetime, exact reviewed-cohort cardinality assertion,
+  conservative legacy lifetime, profile backfill,
   classification-completeness assertion, normalisation, constraints, triggers.
   No Stripe evidence may be cleared before those gates pass.
 - Run `scripts/smoke_production_reconciliation_entitlement.sql` with the
@@ -393,7 +415,7 @@ complete result or screenshot. Never combine the three files into one query.
    execution does not insert migration-history rows. Any history difference is
    a STOP and investigation; do not repair it in this window. Counts must match
    except for changes explicitly caused by the reviewed migrations: two legacy
-   lifetime classifications, one profile-derived entitlement insertion, typed
+   lifetime classifications, zero profile-derived entitlement insertions, typed
    repertoire imports described by the preview, and exactly one retained
    synthetic webhook row. Record exact deltas; any unexplained delta is a STOP.
 

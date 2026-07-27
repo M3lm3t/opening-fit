@@ -52,13 +52,19 @@ record, schema dumps, dashboard exports, customer identifiers, or secrets.
 
 ## Candidate decisions
 
-| Candidate type | Redacted owner ID | Database evidence | Stripe dashboard review evidence | Decision and approver |
-|---|---|---|---|---|
-| Conservative legacy entitlement | | | | |
-| Premium profile without entitlement | | | | |
+| Candidate type | Redacted owner ID | Human-approved role | Database evidence | Stripe dashboard review evidence | Decision and approver |
+|---|---|---|---|---|---|
+| Conservative legacy entitlement | `ofr-v1-9bccdb630af841fe` | Paying customer with intentionally granted lifetime access | No stored recurring/checkout/payment evidence | | |
+| Conservative legacy entitlement | `ofr-v1-3e8058d82714f9ee` | Owner-operated test account retaining lifetime premium | No stored recurring/checkout/payment evidence | | |
 
-Both rows require an explicit `APPROVE LIFETIME` decision. Any recurring,
-checkout, webhook, price, subscription, or payment evidence requires `STOP`.
+Expected pre-migration counts are an exact-source cohort of two, two pristine
+reviewed candidates, zero canonical reviewed rows, zero exact-source conflicts,
+two conservative candidates, zero premium profiles without an entitlement,
+zero profile-only backfills, zero ambiguous active non-expiring rows, and zero
+unclassified rows. Both rows require an
+explicit `APPROVE LIFETIME` decision. New recurring or contradictory evidence
+requires `STOP`; unexpected payment evidence requires private human review and
+must never cause automatic classification.
 
 ## Stage results
 
@@ -81,6 +87,8 @@ checkout, webhook, price, subscription, or payment evidence requires `STOP`.
 - Post-migration-history capture path/hash (must remain unchanged):
 - Post-count output path/hash:
 - Intentionally changed counts by table and reason:
+- Confirm two existing entitlements classified as grandfathered lifetime:
+- Confirm profile-only entitlement inserts equal zero:
 - Retained synthetic webhook event ID (non-customer):
 - Confirm exactly one synthetic audit row intentionally retained:
 - Unexpected changes (must be none, otherwise STOP):

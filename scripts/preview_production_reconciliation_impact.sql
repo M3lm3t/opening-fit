@@ -9,6 +9,7 @@ with entitlement_rows as (
     nullif(to_jsonb(e)->>'access_type', '') as access_type,
     coalesce((to_jsonb(e)->>'is_grandfathered_lifetime')::boolean, false) as is_grandfathered_lifetime,
     nullif(to_jsonb(e)->>'stripe_customer_id', '') as stripe_customer_id,
+    nullif(to_jsonb(e)->>'stripe_checkout_session_id', '') as stripe_checkout_session_id,
     nullif(to_jsonb(e)->>'stripe_subscription_id', '') as stripe_subscription_id,
     nullif(to_jsonb(e)->>'stripe_payment_intent_id', '') as stripe_payment_intent_id,
     nullif(to_jsonb(e)->>'stripe_price_id', '') as stripe_price_id,
@@ -17,6 +18,7 @@ with entitlement_rows as (
     nullif(to_jsonb(e)->>'stripe_status', '') as stripe_status,
     nullif(to_jsonb(e)->>'current_period_start', '') as current_period_start,
     nullif(to_jsonb(e)->>'current_period_end', '') as current_period_end,
+    coalesce((to_jsonb(e)->>'cancel_at_period_end')::boolean, false) as cancel_at_period_end,
     nullif(to_jsonb(e)->>'expires_at', '') as expires_at,
     nullif(to_jsonb(e)->>'source', '') as source,
     nullif(to_jsonb(e)->>'last_stripe_event_id', '') as last_stripe_event_id,
@@ -32,9 +34,40 @@ with entitlement_rows as (
       and checkout_mode is null
       and plan_interval is null and stripe_status is null
       and current_period_start is null and current_period_end is null
+      and not cancel_at_period_end
       and last_stripe_event_id is null and last_stripe_event_created_at is null
-      and (source is null or source in ('legacy', 'legacy_fixture', 'legacy_lifetime_backfill', 'manual_support'))
+      and (
+        source is null
+        or source in (
+          'legacy', 'legacy_fixture', 'legacy_lifetime_backfill',
+          'manual_support', 'legacy_lifetime_repair'
+        )
+      )
       as conservative_lifetime_candidate,
+    source = 'legacy_lifetime_repair' as exact_reviewed_source,
+    source = 'legacy_lifetime_repair'
+      and access_type is null
+      and not is_grandfathered_lifetime
+      and status in ('active', 'premium', 'paid', 'lifetime')
+      and expires_at is null
+      and stripe_customer_id is null and stripe_checkout_session_id is null
+      and stripe_subscription_id is null and stripe_payment_intent_id is null
+      and stripe_price_id is null and checkout_mode is null
+      and plan_interval is null and stripe_status is null
+      and current_period_start is null and current_period_end is null
+      and not cancel_at_period_end
+      and last_stripe_event_id is null and last_stripe_event_created_at is null
+      as pristine_reviewed_candidate,
+    source = 'legacy_lifetime_repair'
+      and access_type = 'lifetime' and status = 'active'
+      and is_grandfathered_lifetime and expires_at is null
+      and stripe_customer_id is null and stripe_checkout_session_id is null
+      and stripe_subscription_id is null and stripe_payment_intent_id is null
+      and stripe_price_id is null and checkout_mode is null
+      and plan_interval is null and stripe_status is null
+      and current_period_start is null and current_period_end is null
+      and last_stripe_event_id is null and last_stripe_event_created_at is null
+      as canonical_reviewed_lifetime,
     access_type is null and coalesce(checkout_mode, '') <> 'payment' and (
       stripe_subscription_id is not null or checkout_mode = 'subscription'
       or plan_interval in ('month', 'year')
@@ -96,6 +129,12 @@ with entitlement_rows as (
   union select user_id from premium_profiles
 ), metrics as (
   select 'entitlements.total'::text metric, count(*)::bigint affected_rows from classified
+  union all select 'entitlements.reviewed_source_total_exact_cohort', count(*) filter (where exact_reviewed_source) from classified
+  union all select 'entitlements.reviewed_source_pristine_candidates', count(*) filter (where pristine_reviewed_candidate) from classified
+  union all select 'entitlements.reviewed_source_canonical_rows', count(*) filter (where canonical_reviewed_lifetime) from classified
+  union all select 'entitlements.reviewed_source_conflicting_evidence', count(*) filter (
+    where exact_reviewed_source and not pristine_reviewed_candidate and not canonical_reviewed_lifetime
+  ) from classified
   union all select 'entitlements.legacy_lifetime_candidates_conservative', count(*) filter (where conservative_lifetime_candidate) from classified
   union all select 'entitlements.explicit_one_time_payment_lifetime_classifications', count(*) filter (where payment_lifetime_evidence) from classified
   union all select 'entitlements.explicit_subscription_classifications', count(*) filter (where subscription_classifiable) from classified

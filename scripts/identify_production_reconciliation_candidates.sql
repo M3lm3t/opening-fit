@@ -41,7 +41,8 @@ where nullif(e.row_data ->> 'access_type', '') is null
   and (
     nullif(e.row_data ->> 'source', '') is null
     or e.row_data ->> 'source' in (
-      'legacy', 'legacy_fixture', 'legacy_lifetime_backfill', 'manual_support'
+      'legacy', 'legacy_fixture', 'legacy_lifetime_backfill',
+      'manual_support', 'legacy_lifetime_repair'
     )
   )
 union all
@@ -75,6 +76,7 @@ select
   c.user_id,
   array_remove(array[
     case when nullif(c.row_data ->> 'stripe_customer_id', '') is not null then 'entitlement_customer' end,
+    case when nullif(c.row_data ->> 'stripe_checkout_session_id', '') is not null then 'entitlement_checkout' end,
     case when nullif(c.row_data ->> 'stripe_subscription_id', '') is not null then 'entitlement_subscription' end,
     case when nullif(c.row_data ->> 'stripe_payment_intent_id', '') is not null then 'entitlement_payment' end,
     case when nullif(c.row_data ->> 'stripe_price_id', '') is not null then 'entitlement_price' end,
@@ -90,6 +92,7 @@ select
   ], null) as evidence_types,
   array_remove(array[
     nullif(c.row_data ->> 'stripe_customer_id', ''),
+    nullif(c.row_data ->> 'stripe_checkout_session_id', ''),
     nullif(c.row_data ->> 'stripe_subscription_id', ''),
     nullif(c.row_data ->> 'stripe_payment_intent_id', ''),
     nullif(c.row_data ->> 'stripe_price_id', ''),
@@ -173,5 +176,67 @@ select
   count(*) filter (where candidate_type = 'premium_profile_without_entitlement')
     as premium_profile_without_entitlement_count
 from openingfit_reconciliation_candidates;
+
+-- Count the complete exact-source cohort before evidence filtering. The final
+-- column makes every source-qualified row outside the two accepted states an
+-- explicit STOP condition without returning an owner or Stripe identifier.
+with reviewed_source_rows as (
+  select to_jsonb(e) as row_data
+  from public.premium_entitlements e
+  where to_jsonb(e) ->> 'source' = 'legacy_lifetime_repair'
+), reviewed_source_states as (
+  select
+    nullif(row_data ->> 'access_type', '') is null
+      and not coalesce((row_data ->> 'is_grandfathered_lifetime')::boolean, false)
+      and lower(coalesce(row_data ->> 'status', '')) in ('active', 'premium', 'paid', 'lifetime')
+      and nullif(row_data ->> 'expires_at', '') is null
+      and nullif(row_data ->> 'stripe_customer_id', '') is null
+      and nullif(row_data ->> 'stripe_checkout_session_id', '') is null
+      and nullif(row_data ->> 'stripe_subscription_id', '') is null
+      and nullif(row_data ->> 'stripe_payment_intent_id', '') is null
+      and nullif(row_data ->> 'stripe_price_id', '') is null
+      and nullif(row_data ->> 'checkout_mode', '') is null
+      and nullif(row_data ->> 'plan_interval', '') is null
+      and nullif(row_data ->> 'stripe_status', '') is null
+      and nullif(row_data ->> 'current_period_start', '') is null
+      and nullif(row_data ->> 'current_period_end', '') is null
+      and not coalesce((row_data ->> 'cancel_at_period_end')::boolean, false)
+      and nullif(row_data ->> 'last_stripe_event_id', '') is null
+      and nullif(row_data ->> 'last_stripe_event_created_at', '') is null
+      as pristine_reviewed_candidate,
+    row_data ->> 'access_type' = 'lifetime'
+      and row_data ->> 'status' = 'active'
+      and coalesce((row_data ->> 'is_grandfathered_lifetime')::boolean, false)
+      and nullif(row_data ->> 'expires_at', '') is null
+      and nullif(row_data ->> 'stripe_customer_id', '') is null
+      and nullif(row_data ->> 'stripe_checkout_session_id', '') is null
+      and nullif(row_data ->> 'stripe_subscription_id', '') is null
+      and nullif(row_data ->> 'stripe_payment_intent_id', '') is null
+      and nullif(row_data ->> 'stripe_price_id', '') is null
+      and nullif(row_data ->> 'checkout_mode', '') is null
+      and nullif(row_data ->> 'plan_interval', '') is null
+      and nullif(row_data ->> 'stripe_status', '') is null
+      and nullif(row_data ->> 'current_period_start', '') is null
+      and nullif(row_data ->> 'current_period_end', '') is null
+      and not coalesce((row_data ->> 'cancel_at_period_end')::boolean, false)
+      and nullif(row_data ->> 'last_stripe_event_id', '') is null
+      and nullif(row_data ->> 'last_stripe_event_created_at', '') is null
+      as canonical_reviewed_lifetime
+  from reviewed_source_rows
+), reviewed_source_counts as (
+  select
+    count(*)::bigint as total_exact_source_cohort,
+    count(*) filter (where pristine_reviewed_candidate)::bigint as pristine_reviewed_candidates,
+    count(*) filter (where canonical_reviewed_lifetime)::bigint as canonical_reviewed_rows
+  from reviewed_source_states
+)
+select
+  'OPENINGFIT_REVIEWED_SOURCE_COUNTS' as result_type,
+  total_exact_source_cohort,
+  pristine_reviewed_candidates,
+  canonical_reviewed_rows,
+  total_exact_source_cohort - pristine_reviewed_candidates - canonical_reviewed_rows
+    as exact_source_rows_with_conflicting_evidence
+from reviewed_source_counts;
 
 rollback;
