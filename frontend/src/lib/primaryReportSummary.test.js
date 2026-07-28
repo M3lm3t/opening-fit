@@ -170,8 +170,53 @@ test("a positive verdict can have medium coverage and no reliable weakness", () 
   assert.equal(view.score, 60);
   assert.equal(view.scoreLabel, "Repertoire coverage");
   assert.equal(view.weaknessState, "strong_results");
+  assert.equal(view.problem.title, "No single opening stands out as a major weakness");
   assert.match(view.evidenceExplanation, /Vienna Game has enough evidence.*still need more evidence/i);
   assert.equal(view.primaryAction.title, "This week: practise Vienna Game for approximately 10 minutes.");
+  assert.equal(view.recommendationContext.title, "Why Vienna Game fits your current repertoire");
+  assert.match(view.recommendationContext.reasons.join(" "), /8 suitable games/i);
+});
+
+test("recommended opening reasons use recorded evidence rather than a weakness claim", () => {
+  const view = buildPrimaryReportSummary({
+    ...completeModel,
+    establishedStrength: { opening: "Ruy Lopez", sample: { games: 7, wins: 4, draws: 2, losses: 1, scoreRate: 71.4 }, fitReasonBullets: ["Builds from move orders already present in the analysed games."] },
+    authoritative: { establishedStrength: { opening: "Ruy Lopez", sample: { games: 7, wins: 4, draws: 2, losses: 1, scoreRate: 71.4 }, fitReasonBullets: ["Builds from move orders already present in the analysed games."] }, primaryProblem: null, nextTrainingAction: { type: "keep", opening: "Ruy Lopez" }, confidence: { status: "sufficient" } },
+    primaryProblem: null,
+    training: { type: "keep", opening: "Ruy Lopez" },
+  });
+  assert.equal(view.recommendationContext.reasons.length, 3);
+  assert.match(view.recommendationContext.reasons[0], /move orders already present/i);
+  assert.doesNotMatch(view.recommendationContext.reasons.join(" "), /because you are weak|AI/i);
+});
+
+test("a recorded style-fit recommendation is explained as fit rather than weakness", () => {
+  const ruy = { opening: "Ruy Lopez", sample: { games: 9, wins: 5, draws: 2, losses: 2, scoreRate: 66.7 }, fitReasonBullets: ["The recorded style profile favours patient positional pressure.", "This move order already appears in the analysed games."] };
+  const view = buildPrimaryReportSummary({
+    ...completeModel,
+    establishedStrength: ruy,
+    primaryProblem: null,
+    authoritative: { establishedStrength: ruy, primaryProblem: null, nextTrainingAction: { type: "keep", opening: "Ruy Lopez" }, confidence: { status: "sufficient" } },
+    training: { type: "keep", opening: "Ruy Lopez" },
+  });
+  assert.equal(view.recommendationContext.title, "Why Ruy Lopez fits your current repertoire");
+  assert.match(view.recommendationContext.reasons.join(" "), /recorded style profile.*move order already appears/i);
+  assert.doesNotMatch(view.recommendationContext.reasons.join(" "), /weakness|repair/i);
+});
+
+test("a repertoire-gap repair remains a repair action and does not masquerade as a fit recommendation", () => {
+  const gap = { opening: "Queen's Gambit Declined", games: 6, sample: { games: 6, wins: 1, draws: 2, losses: 3 }, issue: { positionOrMoveSequence: "1.d4 d5 2.c4 e6" } };
+  const view = buildPrimaryReportSummary({
+    ...completeModel,
+    establishedStrength: null,
+    primaryProblem: gap,
+    authoritative: { establishedStrength: null, primaryProblem: gap, nextTrainingAction: { type: "repair_repertoire", opening: gap.opening, sample: gap.sample }, confidence: { status: "sufficient" } },
+    training: { type: "repair_repertoire", opening: gap.opening, line: "1.d4 d5 2.c4 e6", source: gap },
+  });
+  assert.equal(view.weaknessState, "reliable_weakness");
+  assert.equal(view.recommendationContext, null);
+  assert.equal(view.primaryAction.type, "training");
+  assert.match(view.primaryAction.title, /Queen's Gambit Declined.*1\.d4 d5 2\.c4 e6/i);
 });
 
 test("insufficient evidence explains no weakness without claiming strength", () => {

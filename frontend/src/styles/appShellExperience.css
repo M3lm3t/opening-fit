@@ -365,10 +365,9 @@
   gap: 6px !important;
 }
 
-.usernameTrustStrip span {
-  min-height: 26px !important;
-  padding: 4px 8px !important;
-  border-radius: 999px !important;
+.usernameTrustStrip li {
+  min-height: 24px !important;
+  padding: 0 !important;
   font-size: 0.72rem !important;
 }
 
@@ -644,10 +643,6 @@
   .analyseImportHero .primaryBtn,
   .analyseImportHero .input {
     width: 100% !important;
-  }
-
-  .usernameTrustStrip span:nth-child(n + 3) {
-    display: none !important;
   }
 
   .landingAdvancedGrid,

@@ -1,15 +1,13 @@
 import "./ImportLoadingOverlay.css";
 import {
-  BarChart3,
   BookOpen,
   Check,
-  Lightbulb,
   ListChecks,
   Search,
   Sparkles,
   X,
 } from "lucide-react";
-import { analysisTimingStatus, IMPORT_STAGES, IMPORT_STAGE_DETAILS } from "../lib/importJourney";
+import { analysisTimingStatus, IMPORT_STAGES } from "../lib/importJourney";
 
 function ChessAnalysisLoader() {
   return (
@@ -36,52 +34,44 @@ export default function ImportLoadingOverlay({
   loadingStep = "",
   stage = IMPORT_STAGES.FETCHING,
   progress = null,
-  showWakeupMessage = false,
   elapsedSeconds = 0,
   onCancel,
 }) {
   const isAnalysis = mode === "analysis";
   const progressStages = [
     {
-      key: IMPORT_STAGES.FETCHING,
-      title: "Requesting public games",
-      detail: `Requesting available public games from ${platform}.`,
+      keys: [IMPORT_STAGES.FETCHING, IMPORT_STAGES.GAMES_FOUND],
+      title: "Finding your games",
+      detail: `Checking available public games from ${platform}.`,
       icon: Search,
     },
     {
-      key: IMPORT_STAGES.GAMES_FOUND,
-      title: "Games found",
-      detail: "Confirming how many public games were returned.",
-      icon: Check,
-    },
-    {
-      key: IMPORT_STAGES.FILTERING,
-      title: "Filtering eligible games",
-      detail: "Separating games that can support this report.",
+      keys: [IMPORT_STAGES.FILTERING],
+      title: "Choosing suitable games",
+      detail: "Keeping games that can support a useful report.",
       icon: ListChecks,
     },
     {
-      key: IMPORT_STAGES.IDENTIFYING,
-      title: "Identifying openings",
+      keys: [IMPORT_STAGES.IDENTIFYING],
+      title: "Understanding your openings",
       detail: "Grouping repeated openings and move orders.",
       icon: BookOpen,
     },
     {
-      key: IMPORT_STAGES.RECOMMENDING,
-      title: "Building recommendations",
+      keys: [IMPORT_STAGES.RECOMMENDING, IMPORT_STAGES.SAVING, IMPORT_STAGES.COMPLETE],
+      title: "Building your recommendations",
       detail: "Preparing evidence-based repertoire recommendations.",
-      icon: BarChart3,
-    },
-    {
-      key: IMPORT_STAGES.SAVING,
-      title: "Saving / finishing report",
-      detail: "Keeping the completed report available on this device.",
-      icon: Lightbulb,
+      icon: Sparkles,
     },
   ];
-  const activeStageIndex = progressStages.findIndex((item) => item.key === stage);
+  const activeStageIndex = progressStages.findIndex((item) => item.keys.includes(stage));
   const hasRealStage = Boolean(progress?.real && activeStageIndex >= 0);
   const activeStage = hasRealStage ? progressStages[activeStageIndex] : null;
+  const stageProgress = progress?.progress;
+  const determinate = Boolean(stageProgress && stageProgress.maximum > 0);
+  const progressValue = determinate ? Math.max(0, Math.min(stageProgress.current, stageProgress.maximum)) : null;
+  const progressPercent = determinate ? Math.round((progressValue / stageProgress.maximum) * 100) : null;
+  const complete = stage === IMPORT_STAGES.COMPLETE;
   const platformLabel =
     typeof platform === "string" && platform.length ? platform : "your chess platform";
   const timing = analysisTimingStatus(elapsedSeconds);
@@ -101,7 +91,7 @@ export default function ImportLoadingOverlay({
               <h2>Building your OpeningFit report</h2>
             </div>
           </div>
-          {typeof onCancel === "function" ? (
+          {typeof onCancel === "function" && !complete ? (
             <button className="importLoadingCancel" type="button" onClick={onCancel} aria-label="Cancel analysis">
               <X size={18} />
             </button>
@@ -111,7 +101,17 @@ export default function ImportLoadingOverlay({
         <div className="importLoadingProgressWrap">
           <div className="importLoadingProgressLabel">
             <span>{platformLabel}{username ? ` / ${username}` : ""}</span>
-            <strong>{hasRealStage ? IMPORT_STAGE_DETAILS[stage]?.title || activeStage.title : "Analysis in progress"}</strong>
+            <span className="importLoadingProgressState"><strong>{complete ? "Report ready" : hasRealStage ? activeStage.title : "Analysis in progress"}</strong>{determinate ? <b>{progressPercent}%</b> : null}</span>
+          </div>
+          <div
+            className={`importLoadingProgress ${determinate ? "importLoadingProgress--determinate" : "importLoadingProgress--indeterminate"}`}
+            role="progressbar"
+            aria-label={determinate ? `${activeStage?.title || "Analysis"} progress` : `${activeStage?.title || "Analysis"} in progress`}
+            aria-valuemin={determinate ? 0 : undefined}
+            aria-valuemax={determinate ? stageProgress.maximum : undefined}
+            aria-valuenow={determinate ? progressValue : undefined}
+          >
+            <span style={determinate ? { width: `${progressPercent}%` } : undefined} />
           </div>
         </div>
 
@@ -119,29 +119,30 @@ export default function ImportLoadingOverlay({
           <div className="importLoadingNarrative">
             <div className="importLoadingActiveMessage">
               <ChessAnalysisLoader />
-              <span><Search size={14} /> Analysing games</span>
-              <strong>{hasRealStage ? activeStage.title : "Waiting for a confirmed analysis stage"}</strong>
+              <span>{complete ? <Check size={14} /> : <Search size={14} />} {complete ? "Analysis complete" : "Analysing games"}</span>
+              <strong>{complete ? "Your report is ready" : hasRealStage ? activeStage.title : "Waiting for a confirmed analysis stage"}</strong>
               <p>{progress?.message || "OpeningFit is waiting for the analysis service. Detailed stages are not available for this request."}</p>
             </div>
 
             <div className="importLoadingSteps">
-              {progressStages.map((stage, index) => {
-                const StageIcon = stage.icon;
+              {progressStages.map((stageItem, index) => {
+                const StageIcon = stageItem.icon;
+                const isDone = complete || (hasRealStage && index < activeStageIndex);
                 return (
                   <div
                     className={
-                      hasRealStage && index < activeStageIndex
+                      isDone
                         ? "importLoadingStepDone"
                         : hasRealStage && index === activeStageIndex
                           ? "importLoadingStepActive"
                           : ""
                     }
-                    key={stage.title}
+                    key={stageItem.title}
                   >
                     <span className="importLoadingStepIcon">
-                      {hasRealStage && index < activeStageIndex ? <Check size={16} /> : <StageIcon size={16} />}
+                      {isDone ? <Check size={16} /> : <StageIcon size={16} />}
                     </span>
-                    <p><strong>{stage.title}</strong><small>{stage.detail}</small></p>
+                    <p><strong>{stageItem.title}</strong><small>{stageItem.detail}</small></p>
                   </div>
                 );
               })}
@@ -149,8 +150,8 @@ export default function ImportLoadingOverlay({
           </div>
         </div>
 
-        {showWakeupMessage || timing.slow ? (
-          <p className="importLoadingWakeup">{timing.label} OpeningFit is still waiting safely; you can cancel without removing your previous report.</p>
+        {elapsedSeconds >= 7 && !complete ? (
+          <p className="importLoadingWakeup">{timing.reassurance} You can cancel without removing your previous report.</p>
         ) : null}
 
         <footer className="importLoadingFooter">

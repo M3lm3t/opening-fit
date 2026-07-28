@@ -16,6 +16,11 @@
 .primaryReportScoreExplanation { min-width: 0; padding: clamp(16px, 2.5vw, 24px); border: 1px solid var(--of-border, #d8dee8); border-radius: var(--of-radius-lg, 16px); background: var(--of-surface, #fff); }
 .primaryReportScoreExplanation h2 { margin: 0 0 8px; font-size: clamp(1.15rem, 2vw, 1.4rem); }
 .primaryReportScoreExplanation p { margin: 7px 0 0; color: var(--of-muted, #64748b); line-height: 1.5; }
+.primaryReportScoreContributors { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--of-border, #d8dee8); }
+.primaryReportScoreContributors > strong { font-size: .86rem; }
+.primaryReportScoreContributors ul { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.primaryReportScoreContributors li { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--of-muted, #64748b); font-size: .82rem; }
+.primaryReportScoreContributors b { color: var(--of-text, #0f172a); white-space: nowrap; }
 [data-theme="light"] .primaryReportScore em { color: #52647a; }
 .primaryReportVerdict { display: grid; align-content: center; }
 .primaryReportVerdict h1 { margin: 4px 0 8px; font-size: clamp(1.55rem, 3vw, 2.35rem); }
@@ -24,6 +29,9 @@
 .primaryReportEvidence { margin-top: 14px; padding: 12px 14px; border-left: 4px solid var(--of-accent, #2563eb); border-radius: var(--of-radius-md, 12px); background: var(--of-surface-muted, #f8fafc); }
 .primaryReportEvidence strong { display: block; }
 .primaryReportEvidence p { margin-top: 4px; color: var(--of-muted, #64748b); font-size: .9rem; }
+.primaryReportFitContext { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--of-border, #d8dee8); }
+.primaryReportFitContext > strong { font-size: .86rem; }
+.primaryReportFitContext ul { display: grid; gap: 4px; margin: 7px 0 0; padding-left: 18px; color: var(--of-muted, #64748b); font-size: .82rem; line-height: 1.4; }
 .primaryReportNextAction { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: clamp(16px, 2.5vw, 22px); border: 1px solid color-mix(in srgb, var(--of-accent, #2563eb) 38%, var(--of-border, #d8dee8)); border-radius: var(--of-radius-lg, 16px); background: color-mix(in srgb, var(--of-accent, #2563eb) 8%, var(--of-surface, #fff)); }
 .primaryReportNextAction > span { color: var(--of-muted, #64748b); font-size: .74rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
 .primaryReportNextAction h2 { flex: 1; margin: 0; font-size: clamp(1.05rem, 2vw, 1.35rem); line-height: 1.35; }

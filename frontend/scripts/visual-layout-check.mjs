@@ -46,6 +46,7 @@ const allRoutes = ["/", "/login", "/dashboard", "/report", "/report/sample", "/r
 const routes = requestedRoutes.length ? allRoutes.filter((route) => requestedRoutes.includes(route)) : allRoutes;
 const allViewports = [
   { name: "phone-compact", width: 320, height: 568 },
+  { name: "phone-standard", width: 375, height: 667 },
   { name: "phone", width: 360, height: 800 },
   { name: "phone-plus", width: 390, height: 844 },
   { name: "phone-tall", width: 412, height: 915 },

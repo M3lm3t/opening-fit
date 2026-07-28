@@ -13,6 +13,16 @@ const finite = (value) => value !== null && value !== undefined && value !== "" 
 const integer = (value) => finite(value) ? Math.round(Number(value)) : null;
 const text = (value) => String(value ?? "").trim();
 
+export function openingFitDevelopmentState(score) {
+  const value = integer(score);
+  if (value === null) return { key: "pending", label: "Coverage pending" };
+  if (value < 45) return { key: "building", label: "Building repertoire" };
+  if (value < 65) return { key: "developing", label: "Developing repertoire" };
+  if (value < 78) return { key: "solid", label: "Solid repertoire" };
+  if (value < 90) return { key: "strong", label: "Strong repertoire" };
+  return { key: "excellent", label: "Excellent repertoire coverage" };
+}
+
 function breakdown(report = {}) {
   const value = report.openingFitScoreBreakdown || report.opening_fit_score_breakdown || report.scoreComponents || report.score_components;
   return value && typeof value === "object" ? value : {};
@@ -72,6 +82,18 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
     const value = componentValue(currentBreakdown, component);
     return value === null ? [] : [{ key: component.key, title: component.title, value, weight: component.weight, explanation: component.explanation }];
   });
+  const contributors = components
+    .map((component) => ({ ...component, constraint: (100 - component.value) * component.weight }))
+    .sort((left, right) => right.constraint - left.constraint)
+    .slice(0, 3)
+    .map((component) => ({
+      key: component.key,
+      title: component.title,
+      value: component.value,
+      explanation: component.value >= 70
+        ? `${component.title} is supporting the current score.`
+        : `${component.title} is one of the main areas limiting the current score.`,
+    }));
   const coverage = coverageLabel(componentValue(currentBreakdown, OPENINGFIT_SCORE_FORMULA.find((item) => item.key === "evidenceCoverage")), model.health?.confidence);
   const provisional = games < OPENINGFIT_SCORE_MINIMUM_GAMES;
   return {
@@ -87,6 +109,8 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
     reasonForChange: reasonForChange(currentScore, previousScore, currentBreakdown, previousBreakdown),
     scale: { minimum: 0, maximum: 100 },
     formulaVersion: report.openingFitScoreContract?.formulaVersion || report.opening_fit_score_contract?.formulaVersion || "openingfit_score_v1",
+    developmentState: openingFitDevelopmentState(currentScore),
+    contributors,
     meaning: "Repertoire coverage is a 0–100 summary of how complete, repeated and successful your opening evidence is across the games analysed. It is not a chess rating or an engine judgement of opening quality.",
     weaknessContext: weaknessContext(model),
     affects: components.length

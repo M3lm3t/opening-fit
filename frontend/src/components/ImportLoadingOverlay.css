@@ -191,6 +191,20 @@
   color: #bae6fd;
 }
 
+.importLoadingProgressState {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  text-align: right;
+}
+
+.importLoadingProgressState b {
+  min-width: 3ch;
+  color: #f8fafc;
+  font-variant-numeric: tabular-nums;
+}
+
 .importLoadingProgress {
   height: 7px;
   overflow: hidden;
@@ -205,6 +219,11 @@
   background: linear-gradient(90deg, #22c55e, #38bdf8);
   box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
   transition: width 420ms ease;
+}
+
+.importLoadingProgress--indeterminate span {
+  width: 38%;
+  animation: importLoadingIndeterminate 1.35s ease-in-out infinite;
 }
 
 .importLoadingWorkspace {
@@ -234,6 +253,10 @@
   border-radius: 10px;
   padding: 14px;
   background: rgba(14, 165, 233, 0.08);
+}
+
+.importLoadingActiveMessage p {
+  min-height: 2.6em;
 }
 
 .importLoadingChessLoader {
@@ -429,6 +452,12 @@
   }
 }
 
+@keyframes importLoadingIndeterminate {
+  0% { transform: translateX(-110%); }
+  55% { transform: translateX(110%); }
+  100% { transform: translateX(265%); }
+}
+
 @keyframes importLoadingBoardScan {
   0%, 100% {
     transform: translate(-3px, 3px);
@@ -469,6 +498,11 @@
 :root[data-theme="light"] .importLoadingActiveMessage p,
 .page.light .importLoadingActiveMessage p {
   color: #475569;
+}
+
+:root[data-theme="light"] .importLoadingProgressState b,
+.page.light .importLoadingProgressState b {
+  color: #0f172a;
 }
 
 :root[data-theme="light"] .importLoadingChessBoard,
@@ -568,7 +602,17 @@
 
 @media (prefers-reduced-motion: reduce) {
   .importLoadingChessBoard::after,
-  .importLoadingStepActive .importLoadingStepIcon {
+  .importLoadingStepActive .importLoadingStepIcon,
+  .importLoadingProgress--indeterminate span {
     animation: none;
+  }
+
+  .importLoadingProgress--indeterminate span {
+    width: 55%;
+    opacity: 0.7;
+  }
+
+  .importLoadingProgressLabel {
+    align-items: flex-start;
   }
 }

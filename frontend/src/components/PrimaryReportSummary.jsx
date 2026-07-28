@@ -43,6 +43,7 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
         <div className={`primaryReportEvidence primaryReportEvidence--${view.weaknessState}`}>
           <strong>{view.problem.title}</strong>
           <p>{view.evidenceExplanation}</p>
+          {view.recommendationContext?.reasons?.length ? <div className="primaryReportFitContext"><strong>{view.recommendationContext.title}</strong><ul>{view.recommendationContext.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div> : null}
         </div>
         <small>{view.confidence}</small>
       </div>
@@ -57,11 +58,12 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
 
       <section className="primaryReportScoreSection" aria-labelledby="repertoire-coverage-title">
         <div className="primaryReportScore" aria-label={view.scoreLabel}>
-          <span>{view.scoreLabel}</span><strong>{view.score ?? "—"}</strong><small>{view.score === null ? "Not enough evidence" : "/100"}</small><em>{scoreView.statusLabel}</em>
+          <span>{view.scoreLabel}</span><strong>{view.score ?? "—"}</strong><small>{view.score === null ? "Not enough evidence" : "/100"}</small><em>{scoreView.developmentState.label}</em>
         </div>
         <div className="primaryReportScoreExplanation">
           <h2 id="repertoire-coverage-title">What this number means</h2>
-          <p>{scoreView.meaning}</p><p>{scoreView.whyChange}</p><p>{scoreView.weaknessContext}</p>
+          <p>{scoreView.meaning}</p><p>{scoreView.weaknessContext}</p>
+          {scoreView.contributors.length ? <div className="primaryReportScoreContributors" aria-label={view.score === null ? "Main score contributors" : `Why the repertoire coverage score is ${view.score}`}><strong>{view.score === null ? "Main contributors" : `Why ${view.score}?`}</strong><ul>{scoreView.contributors.map((item) => <li key={item.key}><span>{item.title}</span><b>{item.value}/100</b></li>)}</ul></div> : null}
         </div>
       </section>
       <OpeningFitScoreDisclosure model={model} report={report} previousReport={previousReport} />

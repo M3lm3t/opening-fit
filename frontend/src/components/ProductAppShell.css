@@ -1027,7 +1027,7 @@
     display: none !important;
   }
 
-  .publicLandingPage .usernameTrustStrip span {
+  .publicLandingPage .usernameTrustStrip li {
     display: inline-flex !important;
     align-items: center;
   }

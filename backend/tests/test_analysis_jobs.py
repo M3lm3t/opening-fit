@@ -75,9 +75,26 @@ def test_analysis_job_publishes_only_real_stage_updates(monkeypatch):
 def test_analysis_progress_drops_unrecognised_and_sensitive_counts(monkeypatch):
     monkeypatch.setattr(main.analysis_job_executor, "submit", lambda *_args: None)
     started = main.start_analysis_job(main.AnalysisJobRequest(platform="lichess", username="Player", months=1))
-    main.update_analysis_job_progress(started["jobId"], "games_found", fetchedGames=12, username="Player", pgn="1. e4")
+    main.update_analysis_job_progress(
+        started["jobId"],
+        "requesting_public_games",
+        fetchedGames=12,
+        archivesProcessed=1,
+        archivesTotal=3,
+        processedGames=7,
+        username="Player",
+        pgn="1. e4",
+    )
     current = main.get_analysis_job(main.UUID(started["jobId"]))
-    assert current["progress"] == {"stage": "games_found", "counts": {"fetchedGames": 12}}
+    assert current["progress"] == {
+        "stage": "requesting_public_games",
+        "counts": {
+            "fetchedGames": 12,
+            "archivesProcessed": 1,
+            "archivesTotal": 3,
+            "processedGames": 7,
+        },
+    }
 
 
 def test_month_and_time_control_choices_are_part_of_the_job_identity(monkeypatch):
@@ -86,6 +103,50 @@ def test_month_and_time_control_choices_are_part_of_the_job_identity(monkeypatch
     three_month = main.start_analysis_job(main.AnalysisJobRequest(platform="chesscom", username="Player", months=3, time_control="blitz"))
     rapid = main.start_analysis_job(main.AnalysisJobRequest(platform="chesscom", username="Player", months=1, time_control="rapid"))
     assert len({one_month["jobId"], three_month["jobId"], rapid["jobId"]}) == 3
+
+
+def test_chesscom_archive_progress_uses_completed_archives_and_cumulative_games(monkeypatch):
+    events = []
+    monkeypatch.setattr(main, "log_analytics_event", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(main, "validate_player", lambda username: {"username": username, "url": "https://example.test/player"})
+    monkeypatch.setattr(main, "fetch_chesscom_stats", lambda _username: {})
+    monkeypatch.setattr(main, "fetch_archives", lambda _username: ["2026/01", "2026/02", "2026/03"])
+    monkeypatch.setattr(main, "fetch_games_from_archive", lambda archive: [{"white": {"username": "Player"}, "black": {"username": "Other"}, "archive": archive}])
+    monkeypatch.setattr(main, "filter_games_by_time_control", lambda games, *_args: (games, 0))
+    monkeypatch.setattr(main, "deduplicate_games", lambda games, *_args: (games, 0))
+    monkeypatch.setattr(main, "split_usable_games", lambda *_args: ([], {}))
+
+    main.import_chesscom_logic("Player", months=3, progress=lambda stage, **counts: events.append((stage, counts)))
+
+    archive_events = [counts for stage, counts in events if stage == "requesting_public_games" and "archivesTotal" in counts]
+    assert archive_events == [
+        {"archivesProcessed": 0, "archivesTotal": 3, "fetchedGames": 0},
+        {"archivesProcessed": 1, "archivesTotal": 3, "fetchedGames": 1},
+        {"archivesProcessed": 2, "archivesTotal": 3, "fetchedGames": 2},
+        {"archivesProcessed": 3, "archivesTotal": 3, "fetchedGames": 3},
+    ]
+
+
+def test_chesscom_partial_archive_failure_is_retryable_and_never_builds_a_partial_report(monkeypatch):
+    events = []
+    monkeypatch.setattr(main, "log_analytics_event", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(main, "validate_player", lambda username: {"username": username})
+    monkeypatch.setattr(main, "fetch_chesscom_stats", lambda _username: {})
+    monkeypatch.setattr(main, "fetch_archives", lambda _username: ["2026/01", "2026/02"])
+
+    def fetch(archive):
+        if archive.endswith("02"):
+            raise HTTPException(status_code=404, detail="Archive unavailable")
+        return [{"white": {"username": "Player"}, "black": {"username": "Other"}}]
+
+    monkeypatch.setattr(main, "fetch_games_from_archive", fetch)
+
+    with pytest.raises(HTTPException) as error:
+        main.import_chesscom_logic("Player", months=2, progress=lambda stage, **counts: events.append((stage, counts)))
+
+    assert error.value.status_code == 502
+    assert "No partial report was created" in str(error.value.detail)
+    assert not any(stage == "games_found" for stage, _counts in events)
 
 
 def test_expired_analysis_job_is_removed(monkeypatch):

@@ -122,9 +122,11 @@ import {
   buildImportRequestKey,
   classifyImportFailure,
   mapAnalysisJobProgress,
+  mergeAnalysisJobProgress,
   recoveryActionsForImportFailure,
   runWithControlledRetry,
   validateImportUsername,
+  waitForProgressCompletion,
 } from "./lib/importJourney";
 import { buildReportDecisionModel, openingPerspective } from "./lib/reportDecisionModel";
 import { buildFilteredReportDecision } from "./lib/recommendationEvidence.js";
@@ -7037,7 +7039,7 @@ function CurrentReportSummary({
   const dashboardStats = [
     { label: "Player", value: playerName, detail: platformLabel, tone: "player" },
     { label: "Date analysed", value: analysedDate, detail: `${games || "—"} games analysed`, tone: "date" },
-    { label: "Opening Fit Score", value: score || "—", detail: score ? "/100 repertoire health" : "Score pending", tone: "score" },
+    { label: "Repertoire coverage", value: score || "—", detail: score ? "/100 evidence summary" : "Coverage pending", tone: "score" },
     { label: "Top recommendation", value: mainRecommendation, detail: focusOpening ? getOpeningContextTitle(focusOpening) : "One clear next step", tone: "recommendation" },
   ];
   const insightCards = [
@@ -7157,12 +7159,12 @@ function CurrentReportSummary({
           <p>{verdict.profile}</p>
         </div>
 
-        <div className="commandCentreScore" aria-label="Opening Fit Score">
+        <div className="commandCentreScore" aria-label="Repertoire coverage">
           <span>
-            Opening Fit Score{" "}
+            Repertoire coverage{" "}
             <OpeningScoreInfoButton
               opening={{
-                name: "Opening Fit Score",
+                name: "Repertoire coverage",
                 games: scoredOpenings.reduce((total, opening) => total + getOpeningGames(opening), 0),
                 fitScore: score,
                 confidence: score ? "Report-level estimate" : "Not enough data",
@@ -7831,7 +7833,7 @@ function buildProfileInsights(data, fitData) {
   }
 
   if (score !== null && score !== undefined) {
-    insights.push(`Opening Fit score: ${Math.round(Number(score)) || score}/100.`);
+    insights.push(`Repertoire coverage: ${Math.round(Number(score)) || score}/100.`);
   }
 
   if (!insights.length) {
@@ -14366,11 +14368,18 @@ export default function App() {
   const [activeView, setActiveView] = useState(getInitialAppView);
   const [forceAnalyseImportFlow, setForceAnalyseImportFlow] = useState(false);
   const importAbortRef = useRef(null);
+  const analysisProgressRef = useRef(null);
   const activeImportRunRef = useRef(0);
   const activeImportKeyRef = useRef("");
   const reportRedirectKeyRef = useRef("");
   const sampleEntrySourceRef = useRef(isSampleReportPath(getCurrentPath()) ? "direct_sample_url" : "");
   const parsedPgnMovesCacheRef = useRef(new Map());
+
+  useEffect(() => () => {
+    activeImportRunRef.current += 1;
+    importAbortRef.current?.abort();
+    importAbortRef.current = null;
+  }, []);
 
   useEffect(() => {
     setAccountUser(supabaseUser || null);
@@ -15376,6 +15385,7 @@ export default function App() {
 
     setLoading(false);
     setImportStage(IMPORT_STAGES.IDLE);
+    analysisProgressRef.current = null;
     setAnalysisProgress(null);
     activeImportKeyRef.current = "";
     try {
@@ -15467,6 +15477,7 @@ export default function App() {
     let successfulReportRedirectKey = "";
 
     setLoading(true);
+    analysisProgressRef.current = null;
     setAnalysisProgress(null);
     void trackEvent("username_submitted", { platform: selectedPlatformKey, source: "analysis_form" });
     void trackEvent("analysis_started", { platform: selectedPlatformKey, source: "analysis_form", refresh: hadPreviousReport });
@@ -15546,7 +15557,8 @@ export default function App() {
           },
           onProgress: (progress) => {
             if (activeImportRunRef.current !== runId || abortController.signal.aborted) return;
-            const mapped = mapAnalysisJobProgress(progress);
+            const mapped = mergeAnalysisJobProgress(analysisProgressRef.current, mapAnalysisJobProgress(progress));
+            analysisProgressRef.current = mapped;
             setAnalysisProgress(mapped);
             if (mapped.stage) setImportStage(mapped.stage);
             setLoadingStep(mapped.message);
@@ -15630,7 +15642,17 @@ export default function App() {
       const userReportRetentionKey = `${supabaseUser?.id || "guest"}:${reportRetentionKey}`;
       setImportStage(IMPORT_STAGES.SAVING);
       setLoadingStep("Saving your completed report...");
-      setAnalysisProgress({ real: true, stage: IMPORT_STAGES.SAVING, counts: completedImportCounts, message: "Saving the completed report on this device." });
+      const savingProgress = { real: true, stage: IMPORT_STAGES.SAVING, counts: completedImportCounts, progress: { current: 1, maximum: 1, unit: "stage" }, message: "Saving the completed report on this device." };
+      analysisProgressRef.current = savingProgress;
+      setAnalysisProgress(savingProgress);
+      saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
+      const completeProgress = { ...savingProgress, stage: IMPORT_STAGES.COMPLETE, message: `${completedImportCounts.fetchedGames} games imported. Your report is ready.` };
+      analysisProgressRef.current = completeProgress;
+      setImportStage(IMPORT_STAGES.COMPLETE);
+      setLoadingStep(completeProgress.message);
+      setAnalysisProgress(completeProgress);
+      await waitForProgressCompletion(abortController.signal, 350, window);
+      if (activeImportRunRef.current !== runId || abortController.signal.aborted) return;
       setData(cleanData);
       setUsername(importedUsername);
       setImportStatus(
@@ -15645,9 +15667,7 @@ export default function App() {
             }
           : importOutcome
       );
-      saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
       successfulReportRedirectKey = userReportRetentionKey;
-      setImportStage(IMPORT_STAGES.COMPLETE);
       const completedCounts = buildReportGameCounts(cleanData);
       void trackEvent("analysis_completed", {
         platform: selectedPlatformKey,
@@ -15896,6 +15916,7 @@ export default function App() {
         }
         setLoading(false);
         setLoadingStep("");
+        analysisProgressRef.current = null;
         setAnalysisProgress(null);
       }
       if (activeImportRunRef.current === runId && successfulReportRedirectKey) {
@@ -16872,7 +16893,6 @@ export default function App() {
             stage={importStage}
             progress={analysisProgress}
             elapsedSeconds={loadingElapsedSeconds}
-            showWakeupMessage={loadingElapsedSeconds >= 90}
             onCancel={cancelImport}
           />
         ) : null}
@@ -17005,11 +17025,11 @@ export default function App() {
                   }
                 />
                 <small className="heroUsernameHelp" id="username-help">Check the platform and spelling, then start your report.</small>
-                <div className="usernameTrustStrip" aria-label="Username import trust notes">
-                  <span>No password required</span>
-                  <span>First report free</span>
-                  <span>Uses public game data</span>
-                </div>
+                <ul className="usernameTrustStrip" aria-label="Username import trust notes">
+                  <li><CheckCircle2 size={14} aria-hidden="true" /> No password required</li>
+                  <li><CheckCircle2 size={14} aria-hidden="true" /> First report free</li>
+                  <li><CheckCircle2 size={14} aria-hidden="true" /> Uses public game data</li>
+                </ul>
               </label>
 
               <div className="appActionButtons">

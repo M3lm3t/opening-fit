@@ -1,6 +1,7 @@
 import { buildOpeningHealthSnapshot } from "./openingHealth";
 import { buildRepertoireMap } from "./repertoireStatus";
 import { openingPerspective } from "../lib/reportDecisionModel.js";
+import { openingFitDevelopmentState } from "../lib/openingFitScoreTransparency.js";
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -76,12 +77,7 @@ function gameCount(data = {}) {
 }
 
 function scoreLabel(score) {
-  if (score === null || score === undefined) return "Building";
-  if (score >= 85) return "Excellent";
-  if (score >= 72) return "Strong";
-  if (score >= 58) return "Stable";
-  if (score >= 42) return "Developing";
-  return "Building";
+  return openingFitDevelopmentState(score).label;
 }
 
 function statusForScore(score) {

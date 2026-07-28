@@ -182,12 +182,12 @@ export default function OpeningFitDiagnosisFirst({
           </p>
         </div>
 
-        <div className="diagnosisFirst__scoreCard" aria-label="Opening Fit Score">
+        <div className="diagnosisFirst__scoreCard" aria-label="Repertoire coverage">
           <span>
-            Opening Fit Score{" "}
+            Repertoire coverage{" "}
             <OpeningScoreInfo
               opening={{
-                name: "Opening Fit Score",
+                name: "Repertoire coverage",
                 games: totalGames,
                 fitScore,
                 confidence: totalGames >= 10 ? "Useful confidence" : "Limited confidence",

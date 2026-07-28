@@ -7474,8 +7474,8 @@ def build_opening_fit_profile(
         return {
             "opening_fit_score": 0,
             "openingFitScore": 0,
-            "opening_fit_score_explanation": "Import more games before assigning an OpeningFit Score.",
-            "openingFitScoreExplanation": "Import more games before assigning an OpeningFit Score.",
+            "opening_fit_score_explanation": "Import more games before assigning a repertoire coverage score.",
+            "openingFitScoreExplanation": "Import more games before assigning a repertoire coverage score.",
             "opening_identity": "Repertoire experimenter",
             "openingIdentity": "Repertoire experimenter",
             "opening_identity_explanation": "There is not enough stable opening data yet, so OpeningFit is treating this as an early repertoire snapshot.",
@@ -8453,8 +8453,27 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
             archives_checked=[],
         )
 
-    for archive_url in selected_archives:
-        games = fetch_games_from_archive(archive_url)
+    if progress:
+        progress(
+            "requesting_public_games",
+            archivesProcessed=0,
+            archivesTotal=len(selected_archives),
+            fetchedGames=0,
+        )
+
+    for archive_index, archive_url in enumerate(selected_archives, start=1):
+        try:
+            games = fetch_games_from_archive(archive_url)
+        except HTTPException as exc:
+            if exc.status_code == 429:
+                raise
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Chess.com could not return all selected monthly game archives. "
+                    "No partial report was created; retry the import in a moment."
+                ),
+            ) from exc
         user_games = []
 
         for game in games:
@@ -8473,6 +8492,14 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
         )
 
         all_games.extend(user_games)
+
+        if progress:
+            progress(
+                "requesting_public_games",
+                archivesProcessed=archive_index,
+                archivesTotal=len(selected_archives),
+                fetchedGames=len(all_games),
+            )
 
     if progress:
         progress("games_found", fetchedGames=len(all_games))
@@ -8532,7 +8559,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
     recent_games = []
     opening_game_samples = []
 
-    for game in analysed_games:
+    for game_index, game in enumerate(analysed_games, start=1):
         pgn = game.get("pgn", "")
         moves = clean_moves_from_pgn(pgn)
         move_count = move_count_from_moves(moves)
@@ -8627,6 +8654,15 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
                 "blackUsername": game.get("black", {}).get("username", ""),
             }
         )
+
+        if progress and (game_index == len(analysed_games) or game_index % 10 == 0):
+            progress(
+                "identifying_openings",
+                fetchedGames=len(all_games),
+                eligibleGames=len(time_control_games),
+                analysedGames=len(analysed_games),
+                processedGames=game_index,
+            )
         opening_game_samples.append(
             {
                 "url": game.get("url"),
@@ -10296,7 +10332,14 @@ def update_analysis_job_progress(job_id: str, stage: str, **counts: Any) -> None
     safe_counts = {
         key: max(0, int(value))
         for key, value in counts.items()
-        if key in {"fetchedGames", "eligibleGames", "analysedGames"} and value is not None
+        if key in {
+            "fetchedGames",
+            "eligibleGames",
+            "analysedGames",
+            "archivesProcessed",
+            "archivesTotal",
+            "processedGames",
+        } and value is not None
     }
     with analysis_jobs_lock:
         job = analysis_jobs.get(job_id)

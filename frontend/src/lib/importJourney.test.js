@@ -5,9 +5,11 @@ import {
   analysisTimingStatus,
   classifyImportFailure,
   mapAnalysisJobProgress,
+  mergeAnalysisJobProgress,
   recoveryActionsForImportFailure,
   runWithControlledRetry,
   validateImportUsername,
+  waitForProgressCompletion,
 } from "./importJourney.js";
 
 test("valid Chess.com and Lichess usernames pass validation", () => {
@@ -68,6 +70,7 @@ test("error causes stay distinct and actionable", () => {
   assert.equal(classifyImportFailure({ error: { status: 403, message: "profile is private" } }).category, "private_profile");
   assert.equal(classifyImportFailure({ error: { message: "no eligible games after unsupported time control filters" } }).category, "no_eligible_games");
   assert.equal(classifyImportFailure({ error: { status: 403, message: "This account can analyse up to 3 months" } }).category, "account_limit");
+  assert.equal(classifyImportFailure({ error: { status: 502, message: "Chess.com could not return all selected monthly game archives" } }).category, "platform_temporarily_unavailable");
 });
 
 test("loading timing identifies a genuinely slow upstream request", () => {
@@ -76,6 +79,31 @@ test("loading timing identifies a genuinely slow upstream request", () => {
   assert.equal(analysisTimingStatus(45).slow, false);
   assert.equal(analysisTimingStatus(91).slow, true);
   assert.match(analysisTimingStatus(91).label, /platform or analysis service/i);
+  assert.match(analysisTimingStatus(7).reassurance, /larger game histories/i);
+});
+
+test("archive and game processing progress use measurable totals", () => {
+  const archives = mapAnalysisJobProgress({ stage: "requesting_public_games", counts: { archivesProcessed: 1, archivesTotal: 3, fetchedGames: 42 } });
+  assert.deepEqual(archives.progress, { current: 1, maximum: 3, unit: "archives" });
+  assert.match(archives.message, /2 of 3 monthly archives.*42 games found so far/i);
+  const games = mapAnalysisJobProgress({ stage: "identifying_openings", counts: { fetchedGames: 42, analysedGames: 30, processedGames: 18 } });
+  assert.deepEqual(games.progress, { current: 18, maximum: 30, unit: "games" });
+  assert.match(games.message, /Processing game 18 of 30/i);
+});
+
+test("progress never moves backwards and malformed totals remain indeterminate", () => {
+  const first = mapAnalysisJobProgress({ stage: "requesting_public_games", counts: { archivesProcessed: 2, archivesTotal: 3 } });
+  const stale = mapAnalysisJobProgress({ stage: "requesting_public_games", counts: { archivesProcessed: 1, archivesTotal: 3 } });
+  assert.equal(mergeAnalysisJobProgress(first, stale).progress.current, 2);
+  const later = mapAnalysisJobProgress({ stage: "identifying_openings", counts: { analysedGames: 20, processedGames: 10 } });
+  assert.equal(mergeAnalysisJobProgress(later, first).stage, "identifying_openings");
+  assert.equal(mapAnalysisJobProgress({ stage: "requesting_public_games", counts: { archivesTotal: 0 } }).progress, null);
+});
+
+test("a successful finishing stage reaches a complete determinate unit", () => {
+  const saving = mapAnalysisJobProgress({ stage: "finishing_report", counts: { fetchedGames: 42 } });
+  assert.deepEqual(saving.progress, { current: 1, maximum: 1, unit: "stage" });
+  assert.equal(Math.round((saving.progress.current / saving.progress.maximum) * 100), 100);
 });
 
 test("real job stages map without inventing percentage progress", () => {
@@ -113,6 +141,40 @@ test("the app guards cancellation, duplicate submission and fake stage timers", 
   assert.match(source, /const activeImportRunRef = useRef\(0\)/);
   assert.match(importFlow, /activeImportRunRef\.current !== runId \|\| abortController\.signal\.aborted/);
   assert.match(importFlow, /if \(loading \|\| activeImportKeyRef\.current\)/);
-  assert.doesNotMatch(importFlow, /await new Promise\(\(resolve\) => setTimeout/);
+  assert.match(importFlow, /waitForProgressCompletion\(abortController\.signal, 350, window\)/);
+  assert.doesNotMatch(importFlow, /setInterval|IMPORT_STAGES\.(FILTERING|IDENTIFYING|RECOMMENDING).*setTimeout/s);
   assert.ok(importFlow.indexOf("activeImportRunRef.current !== runId") < importFlow.indexOf("setData(cleanData)"));
+});
+
+test("completion delay and active request are cleaned up on abort or unmount", async () => {
+  const controller = new AbortController();
+  let scheduled = null;
+  let cleared = null;
+  const waiting = waitForProgressCompletion(controller.signal, 350, {
+    setTimeout(callback) { scheduled = callback; return 17; },
+    clearTimeout(id) { cleared = id; },
+  });
+  controller.abort();
+  await waiting;
+  assert.equal(cleared, 17);
+  assert.equal(typeof scheduled, "function");
+
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../App.jsx", import.meta.url), "utf8");
+  assert.match(source, /useEffect\(\(\) => \(\) => \{\s*activeImportRunRef\.current \+= 1;\s*importAbortRef\.current\?\.abort\(\)/s);
+  assert.match(source, /return \(\) => window\.clearInterval\(interval\)/);
+});
+
+test("the loading overlay exposes accessible determinate and indeterminate progress", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../components/ImportLoadingOverlay.jsx", import.meta.url), "utf8");
+  const styles = await readFile(new URL("../components/ImportLoadingOverlay.css", import.meta.url), "utf8");
+  assert.match(source, /role="progressbar"/);
+  assert.match(source, /aria-valuenow=\{determinate \? progressValue : undefined\}/);
+  assert.match(source, /<b>\{progressPercent\}%<\/b>/);
+  assert.match(source, /elapsedSeconds >= 7/);
+  assert.match(styles, /importLoadingProgress--indeterminate/);
+  assert.match(styles, /prefers-reduced-motion: reduce/);
+  assert.match(styles, /@media \(max-width: 420px\)/);
+  assert.doesNotMatch(styles, /min-width:\s*[4-9]\d\dpx/);
 });

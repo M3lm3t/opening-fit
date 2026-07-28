@@ -99,9 +99,35 @@ function noWeaknessExplanation({ model, problem, problemCandidates, strength, sl
   if (strength) {
     const missingRoles = slots.filter((slot) => !slot.complete).map((slot) => slot.label);
     const elsewhere = missingRoles.length ? `${missingRoles.join(" and ")} still need more evidence.` : "Other roles did not produce one repeated weak pattern above the report threshold.";
-    return { kind: "strong_results", title: "No reliable opening weakness found yet", text: `${strength.opening} has enough evidence for a keep decision. ${elsewhere}` };
+    return { kind: "strong_results", title: "No single opening stands out as a major weakness", text: `${strength.opening} has enough evidence for a keep decision. ${elsewhere}` };
   }
-  return { kind: "mixed_or_distributed", title: "No reliable opening weakness found yet", text: "The available weaker results are mixed across openings or roles, so no single repeated pattern supports a repair claim yet." };
+  return { kind: "mixed_or_distributed", title: "No single opening stands out as a major weakness", text: "The available weaker results are mixed across openings or roles, so no single repeated pattern supports a repair claim yet." };
+}
+
+function recommendationContext(strength) {
+  if (!strength) return null;
+  const combined = { ...(strength.source || {}), ...strength };
+  const sample = combined.sample || {};
+  const games = openingGames(combined);
+  const scoreRate = Number(sample.scoreRate ?? combined.scoreRate ?? combined.score);
+  const wins = Number(sample.wins ?? combined.wins);
+  const draws = Number(sample.draws ?? combined.draws);
+  const losses = Number(sample.losses ?? combined.losses);
+  const explicit = [
+    ...(Array.isArray(combined.fitReasonBullets) ? combined.fitReasonBullets : []),
+    ...(Array.isArray(combined.fit_reason_bullets) ? combined.fit_reason_bullets : []),
+  ].map(text).filter(Boolean);
+  const reasons = [...explicit];
+  if (games > 0 && [wins, draws, losses].every(Number.isFinite) && wins + draws + losses === games) {
+    reasons.push(`${games} suitable games produced ${wins} wins, ${draws} draws and ${losses} losses.`);
+  } else if (games > 0) {
+    reasons.push(`${games} suitable games support this opening-specific decision.`);
+  }
+  if (Number.isFinite(scoreRate)) reasons.push(`Its current chess score is ${Math.round(scoreRate)}% in the analysed sample, with draws counting as half a point.`);
+  return {
+    title: `Why ${strength.opening} fits your current repertoire`,
+    reasons: [...new Set(reasons)].slice(0, 3),
+  };
 }
 
 export function buildPrimaryReportSummary(model = {}, report = {}) {
@@ -135,6 +161,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   const trainingTitle = training?.label || (training?.opening ? `Train ${training.opening}` : "Collect more games before changing your repertoire");
   const trainingReason = training?.objective || training?.reason || model.nextTrainingAction?.reason || "Review one opening focus before your next games.";
   const weakness = noWeaknessExplanation({ model, problem, problemCandidates, strength, slots });
+  const fitContext = recommendationContext(strength);
   const primaryAction = primaryActionCopy({ collectMoreGames, model, report, nextAction, training, problem, strength });
   return {
     score: model.health?.score !== null && model.health?.score !== undefined && Number.isFinite(Number(model.health.score)) ? Math.round(Number(model.health.score)) : null,
@@ -142,6 +169,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     verdict: oneSentence(model),
     evidenceExplanation: weakness.text,
     weaknessState: weakness.kind,
+    recommendationContext: fitContext,
     primaryAction,
     confidence: text(model.health?.confidence) || "Insufficient data",
     confidenceWarning: lowConfidence ? `This report has ${model.health?.games || 0} game${Number(model.health?.games || 0) === 1 ? "" : "s"} with enough opening information, so recommendations are provisional. More analysed games will improve confidence.` : "",

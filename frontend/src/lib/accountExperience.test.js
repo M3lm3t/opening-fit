@@ -65,6 +65,8 @@ test("landing trust claims appear once beside the username form", () => {
     assert.equal(app.split(claim).length - 1, 1);
   }
   assert.doesNotMatch(app, /className="landingHeroProof"/);
+  assert.match(app, /<ul className="usernameTrustStrip"/);
+  assert.doesNotMatch(app, /<button[^>]*>\s*No password required/i);
 });
 
 test("inner-page brand navigation is a native semantic homepage link", () => {

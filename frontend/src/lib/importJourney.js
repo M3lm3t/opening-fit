@@ -58,8 +58,11 @@ export function analysisTimingStatus(elapsedSeconds = 0) {
   const elapsed = Math.max(0, Number(elapsedSeconds) || 0);
   const elapsedLabel = elapsed >= 15 ? `${Math.floor(elapsed / 60)}:${String(Math.floor(elapsed % 60)).padStart(2, "0")} elapsed` : "";
   const expectation = "Reports can take up to several minutes when public histories are large or a chess platform is responding slowly.";
-  if (elapsed >= 90) return { slow: true, showElapsed: true, elapsedLabel, expectation, label: "This is taking longer than usual; the chess platform or analysis service may be responding slowly, but the request is still active." };
-  return { slow: false, showElapsed: elapsed >= 15, elapsedLabel, expectation, label: expectation };
+  const reassurance = elapsed >= 90
+    ? "This is taking longer than usual, but the request is still active."
+    : "Still working — larger game histories can take a little longer.";
+  if (elapsed >= 90) return { slow: true, showElapsed: true, elapsedLabel, expectation, reassurance, label: "This is taking longer than usual; the chess platform or analysis service may be responding slowly, but the request is still active." };
+  return { slow: false, showElapsed: elapsed >= 15, elapsedLabel, expectation, reassurance, label: expectation };
 }
 
 const JOB_STAGE_MAP = Object.freeze({
@@ -72,27 +75,92 @@ const JOB_STAGE_MAP = Object.freeze({
   finishing_report: IMPORT_STAGES.SAVING,
 });
 
+const IMPORT_STAGE_ORDER = Object.freeze([
+  IMPORT_STAGES.QUEUED,
+  IMPORT_STAGES.FETCHING,
+  IMPORT_STAGES.GAMES_FOUND,
+  IMPORT_STAGES.FILTERING,
+  IMPORT_STAGES.IDENTIFYING,
+  IMPORT_STAGES.RECOMMENDING,
+  IMPORT_STAGES.SAVING,
+  IMPORT_STAGES.COMPLETE,
+]);
+
+function determinateProgress(stage, counts) {
+  if (stage === IMPORT_STAGES.FETCHING && counts.archivesTotal > 0) {
+    return { current: Math.min(counts.archivesProcessed || 0, counts.archivesTotal), maximum: counts.archivesTotal, unit: "archives" };
+  }
+  if (stage === IMPORT_STAGES.IDENTIFYING && counts.analysedGames > 0 && Number.isFinite(counts.processedGames)) {
+    return { current: Math.min(counts.processedGames, counts.analysedGames), maximum: counts.analysedGames, unit: "games" };
+  }
+  if ([IMPORT_STAGES.GAMES_FOUND, IMPORT_STAGES.SAVING, IMPORT_STAGES.COMPLETE].includes(stage)) {
+    return { current: 1, maximum: 1, unit: "stage" };
+  }
+  return null;
+}
+
 export function mapAnalysisJobProgress(progress) {
   const rawStage = String(progress?.stage || "").trim();
   const stage = JOB_STAGE_MAP[rawStage] || null;
   const rawCounts = progress?.counts && typeof progress.counts === "object" ? progress.counts : {};
-  const counts = Object.fromEntries(["fetchedGames", "eligibleGames", "analysedGames"].flatMap((key) => {
+  const counts = Object.fromEntries(["fetchedGames", "eligibleGames", "analysedGames", "archivesProcessed", "archivesTotal", "processedGames"].flatMap((key) => {
     const value = Number(rawCounts[key]);
     return Number.isFinite(value) && value >= 0 ? [[key, Math.round(value)]] : [];
   }));
   if (!stage) return { real: false, stage: null, counts: {}, message: "Analysis is running. Detailed stages are not available for this request." };
   const found = counts.fetchedGames;
+  const stageProgress = determinateProgress(stage, counts);
+  const archiveStatus = stageProgress?.unit === "archives"
+    ? `Checking ${Math.min(stageProgress.current + 1, stageProgress.maximum)} of ${stageProgress.maximum} monthly archive${stageProgress.maximum === 1 ? "" : "s"}.`
+    : "Connecting to the chess platform and checking recent game archives.";
+  const processingStatus = stageProgress?.unit === "games"
+    ? `Processing game ${stageProgress.current} of ${stageProgress.maximum}${Number.isFinite(found) ? ` from ${found} found` : ""}.`
+    : `${Number.isFinite(found) ? `${found} game${found === 1 ? "" : "s"} found — ` : ""}identifying recurring openings.`;
   const prefix = Number.isFinite(found) ? `${found} game${found === 1 ? "" : "s"} found — ` : "";
   const messages = {
     [IMPORT_STAGES.QUEUED]: "Analysis is queued and will start as soon as capacity is available.",
-    [IMPORT_STAGES.FETCHING]: "Requesting public games from the selected chess platform.",
+    [IMPORT_STAGES.FETCHING]: `${archiveStatus}${Number.isFinite(found) && found > 0 ? ` ${found} game${found === 1 ? "" : "s"} found so far.` : ""}`,
     [IMPORT_STAGES.GAMES_FOUND]: Number.isFinite(found) ? `${found} public game${found === 1 ? "" : "s"} found.` : "Public games found.",
     [IMPORT_STAGES.FILTERING]: `${prefix}filtering eligible games.`,
-    [IMPORT_STAGES.IDENTIFYING]: `${prefix}identifying recurring openings.`,
+    [IMPORT_STAGES.IDENTIFYING]: processingStatus,
     [IMPORT_STAGES.RECOMMENDING]: `${prefix}building recommendations from the supported opening evidence.`,
     [IMPORT_STAGES.SAVING]: "Finishing the report and preparing it for this device.",
   };
-  return { real: true, stage, counts, message: messages[stage] || IMPORT_STAGE_DETAILS[stage]?.detail || "Analysis is running." };
+  return { real: true, stage, counts, progress: stageProgress, message: messages[stage] || IMPORT_STAGE_DETAILS[stage]?.detail || "Analysis is running." };
+}
+
+export function mergeAnalysisJobProgress(previous, incoming) {
+  if (!incoming?.real) return previous?.real ? previous : incoming;
+  if (!previous?.real) return incoming;
+  const previousIndex = IMPORT_STAGE_ORDER.indexOf(previous.stage);
+  const incomingIndex = IMPORT_STAGE_ORDER.indexOf(incoming.stage);
+  if (previousIndex > incomingIndex && incomingIndex >= 0) return previous;
+  if (previous.stage !== incoming.stage || !previous.progress || !incoming.progress) return incoming;
+  if (previous.progress.unit !== incoming.progress.unit) return incoming;
+  const previousRatio = previous.progress.maximum > 0 ? previous.progress.current / previous.progress.maximum : 0;
+  const incomingRatio = incoming.progress.maximum > 0 ? incoming.progress.current / incoming.progress.maximum : 0;
+  if (incomingRatio < previousRatio) return previous;
+  return incoming;
+}
+
+export function waitForProgressCompletion(signal, delay = 350, timers = globalThis) {
+  return new Promise((resolve) => {
+    let settled = false;
+    let handleAbort = () => {};
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      signal?.removeEventListener?.("abort", handleAbort);
+      resolve();
+    };
+    const timeoutId = timers.setTimeout(finish, Math.max(0, Number(delay) || 0));
+    handleAbort = () => {
+      timers.clearTimeout(timeoutId);
+      finish();
+    };
+    if (signal?.aborted) handleAbort();
+    else signal?.addEventListener?.("abort", handleAbort, { once: true });
+  });
 }
 
 export function classifyImportFailure({ error, platform = "chesscom", hadPreviousReport = false, reportCreated = false }) {

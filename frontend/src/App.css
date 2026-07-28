@@ -33743,29 +33743,31 @@ body,
 .usernameTrustStrip {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 2px;
+  gap: 7px 14px;
+  margin: 3px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.usernameTrustStrip span {
+.usernameTrustStrip li {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 9px;
-  border: 1px solid rgba(125, 211, 252, 0.2);
-  border-radius: 999px;
-  background: rgba(14, 165, 233, 0.08);
+  gap: 5px;
+  min-height: 24px;
   color: var(--text-soft);
   font-size: 0.76rem;
-  font-weight: 850;
+  font-weight: 750;
   letter-spacing: 0;
   text-transform: none;
 }
 
-.page.light .usernameTrustStrip span,
-[data-theme="light"] .usernameTrustStrip span {
-  background: #f8fafc;
-  border-color: rgba(15, 23, 42, 0.1);
+.usernameTrustStrip li svg {
+  flex: 0 0 auto;
+  color: var(--success, #22c55e);
+}
+
+.page.light .usernameTrustStrip li,
+[data-theme="light"] .usernameTrustStrip li {
   color: #475569;
 }
 
@@ -46868,8 +46870,8 @@ a,
     grid-template-columns: 1fr;
   }
 
-  .usernameTrustStrip span {
-    justify-content: center;
+  .usernameTrustStrip li {
+    justify-content: flex-start;
     width: 100%;
   }
 
