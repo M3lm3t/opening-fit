@@ -1,16 +1,14 @@
 import { buildPrimaryReportSummary } from "../lib/primaryReportSummary.js";
 import { buildOpeningFitScoreTransparency } from "../lib/openingFitScoreTransparency.js";
 import OpeningFitScoreDisclosure from "./OpeningFitScoreDisclosure.jsx";
-import { canUseFeature, OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
 import { isSampleReport } from "../fixtures/sampleReport.js";
 import ReportGameCountSummary from "./ReportGameCountSummary.jsx";
 import RecommendationEvidenceDisclosure from "./RecommendationEvidenceDisclosure.jsx";
 import "./PrimaryReportSummary.css";
 
-export default function PrimaryReportSummary({ model, report, previousReport = null, comparison = null, entitlement = null, saveStatus = "", authenticated = false, onAccount, onTraining, onPractice, onEvidence, onAnalyse, onFullReport }) {
+export default function PrimaryReportSummary({ model, report, previousReport = null, comparison = null, saveStatus = "", authenticated = false, onAccount, onTraining, onPractice, onEvidence, onAnalyse, onFullReport }) {
   const view = buildPrimaryReportSummary(model, report);
   const scoreView = buildOpeningFitScoreTransparency({ model, report, previousReport });
-  const hasFullRepertoire = isSampleReport(report) || canUseFeature(entitlement, OPENINGFIT_FEATURES.FULL_REPERTOIRE);
   const strengthEvidence = { ...(model.authoritative?.establishedStrength?.source || {}), ...(model.authoritative?.establishedStrength || model.establishedStrength || {}) };
   const problemEvidence = { ...(model.authoritative?.primaryProblem?.source || {}), ...(model.authoritative?.primaryProblem || model.primaryProblem || {}) };
   const trainingTarget = model.authoritative?.primaryProblem || model.authoritative?.establishedStrength || {};
@@ -19,6 +17,7 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
     ...trainingTarget,
     ...(model.authoritative?.nextTrainingAction || model.nextTrainingAction || {}),
     sample: model.authoritative?.nextTrainingAction?.sample || trainingTarget.sample,
+    trainingPriority: model.authoritative?.trainingPriority || model.trainingPriority || null,
   };
   const actionAvailable = (action) => Boolean(action && (
     (action.type === "practice" && onPractice) ||
@@ -38,7 +37,7 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
 
       <div className="primaryReportVerdict">
         <span>Coach verdict</span>
-        <h1 id="primary-report-title">Your opening plan</h1>
+        <h2 id="primary-report-title" tabIndex="-1">Your opening plan</h2>
         <p>{view.verdict}</p>
         <div className={`primaryReportEvidence primaryReportEvidence--${view.weaknessState}`}>
           <strong>{view.problem.title}</strong>
@@ -87,13 +86,10 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
       </section>
 
       {view.confidenceWarning ? <aside className="primaryReportConfidence" role="status"><strong>Confidence is still developing</strong><p>{view.confidenceWarning}</p></aside> : null}
-      {hasFullRepertoire ? <section className="primaryReportRepertoire" id="report-repertoire" aria-labelledby="primary-repertoire-title">
+      <section className="primaryReportRepertoire" id="report-repertoire" aria-labelledby="primary-repertoire-title">
         <header><div><span>Current repertoire</span><h2 id="primary-repertoire-title">Your three core slots</h2></div>{view.incompleteRepertoire ? <strong>Still building</strong> : <strong>Core slots covered</strong>}</header>
-        <div>{view.slots.map((slot) => <article key={slot.key} className={!slot.complete ? "isIncomplete" : ""}><span>{slot.label}</span><h3>{slot.opening}</h3><p>{slot.confidence}</p></article>)}</div>
-      </section> : view.slots.some((slot) => slot.complete) ? <section className="primaryReportRepertoire" id="report-repertoire" aria-labelledby="primary-repertoire-title">
-        <header><div><span>Current repertoire</span><h2 id="primary-repertoire-title">Your supported repertoire role</h2></div><strong>From this report</strong></header>
-        <div>{view.slots.filter((slot) => slot.complete).slice(0, 1).map((slot) => <article key={slot.key}><span>{slot.label}</span><h3>{slot.opening}</h3><p>{slot.confidence}</p></article>)}</div>
-      </section> : null}
+        <div>{view.slots.map((slot) => <article key={slot.key} className={!slot.complete ? "isIncomplete" : ""}><span>{slot.label}</span><h3>{slot.opening}</h3><strong className="primaryReportRoleStatus">{slot.confidence} · {slot.games} relevant game{slot.games === 1 ? "" : "s"}</strong><p>{slot.evidence}</p>{!slot.complete ? <p>{slot.requirement}</p> : null}<small>{slot.filters}</small></article>)}</div>
+      </section>
 
       {comparison ? <div className="primaryReportComparison">{comparison}</div> : null}
       <div className="primaryReportMore"><button type="button" className="secondaryBtn" onClick={onFullReport}>View full report</button><small>Recommendations, evidence, detailed repertoire roles, sharing and report tools are preserved below.</small></div>

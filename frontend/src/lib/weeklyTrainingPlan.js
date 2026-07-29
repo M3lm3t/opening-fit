@@ -1,5 +1,6 @@
 import { findOpeningLine, normaliseOpeningKey } from "../data/openings.ts";
 import { normaliseTrainingPreferences, personaliseWeeklyTrainingPlan } from "./trainingPreferences.js";
+import { formatTrainingPriorityTitle, resolveTrainingPriority, trainingTaskFromPriority } from "./trainingPriority.js";
 
 export const WEEKLY_TRAINING_PLAN_SCHEMA_VERSION = 1;
 export const WEEKLY_TRAINING_TASK_TYPES = Object.freeze(["position_drill", "line_replay", "game_review", "concept_review"]);
@@ -130,10 +131,45 @@ export function adaptLegacyTrainingPlan(legacyPlan, context = {}) {
 
 export function buildWeeklyTrainingPlan({ userId, report, repertoire = [], reportId = null, now = new Date(), preferences = null } = {}) {
   if (!userId || !report) return { state: "missing-report", plan: null };
-  const active = list(repertoire).filter((entry) => entry.status === "active");
-  if (!active.length) return { state: "missing-repertoire", plan: null };
   const gamesAnalysed = reportGames(report);
   if (gamesAnalysed < 5) return { state: "insufficient-games", plan: null };
+  const priority = resolveTrainingPriority(report, { allowFallback: false });
+  if (priority) {
+    const focus = priority.openingName || "your current opening evidence";
+    const priorityTask = trainingTaskFromPriority(priority, 1);
+    const tasks = [
+      priorityTask,
+      task({ type: priority.evidenceGameIds.length ? "game_review" : "concept_review", title: `Review the evidence for ${focus}`, explanation: priority.evidenceGameIds.length ? "Use the same supporting games behind the report priority; this does not select a second opening." : "The report priority has no saved game references, so keep this review conceptual instead of inventing a game.", openingId: priority.openingKey, games: priority.evidenceGameIds, success: "Record the first decision point and one safer practical cue.", minutes: 8, order: 2 }),
+      task({ type: "concept_review", title: `Prepare one practical cue for ${focus}`, explanation: "Convert the same report priority into one short reminder for your next relevant game.", openingId: priority.openingKey, games: priority.evidenceGameIds, success: "Write one cue you can recall before move ten.", minutes: 6, order: 3 }),
+      task({ type: "concept_review", title: `Recheck the ${focus} success condition`, explanation: "Use the report's success check again without introducing another opening priority.", openingId: priority.openingKey, games: priority.evidenceGameIds, success: priority.successCheck, minutes: 6, order: 4 }),
+    ];
+    if (normaliseTrainingPreferences(preferences).weeklyMinutes === 60) tasks.push(task({ type: "game_review", title: `Reinforce the ${focus} priority`, explanation: "Included for the longer weekly training preference and kept on the same report priority.", openingId: priority.openingKey, games: priority.evidenceGameIds, success: "Apply the same cue to one additional relevant example.", minutes: 12, order: 5 }));
+    const { weekStart, weekEnd } = weeklyPlanWindow(now);
+    const plan = {
+      schemaVersion: WEEKLY_TRAINING_PLAN_SCHEMA_VERSION,
+      id: makeUuid(),
+      userId,
+      weekStart,
+      weekEnd,
+      reportId: reportId || priority.sourceReportId || report.report_id || report.id || null,
+      status: "active",
+      primaryGoal: formatTrainingPriorityTitle(priority),
+      reason: priority.rationale,
+      estimatedMinutes: tasks.reduce((sum, item) => sum + item.estimatedMinutes, 0),
+      targetMetric: { type: "task_completion", target: 100, openingId: priority.openingKey, trainingPriorityId: priority.priorityId, evidenceGames: priority.evidenceCount, label: priority.successCheck },
+      tasks,
+      completionPercent: 0,
+      createdAt: new Date(now).toISOString(),
+      completedAt: null,
+      trainingPriority: priority,
+      trainingPriorityId: priority.priorityId,
+      preservePrimaryGoal: true,
+    };
+    return { state: "created", plan: personaliseWeeklyTrainingPlan(plan, preferences, { allowTaskResize: true }) };
+  }
+
+  const active = list(repertoire).filter((entry) => entry.status === "active");
+  if (!active.length) return { state: "missing-repertoire", plan: null };
 
   const weakness = mainWeakness(report, active);
   const legacy = adaptLegacyTrainingPlan(report.training_plan || report.trainingPlan || [], { openingId: weakness?.key || null });
@@ -238,6 +274,7 @@ export function completeWeeklyTask(plan, taskId, completed = true) {
   };
 }
 
-export function isReusableWeeklyPlan(plan, { weekStart, reportId, forceRefresh = false } = {}) {
-  return Boolean(plan && !forceRefresh && plan.status === "active" && plan.weekStart === weekStart && (!reportId || plan.reportId === reportId));
+export function isReusableWeeklyPlan(plan, { weekStart, reportId, priorityId = null, forceRefresh = false } = {}) {
+  const currentPriorityId = plan?.trainingPriorityId || plan?.targetMetric?.trainingPriorityId || null;
+  return Boolean(plan && !forceRefresh && plan.status === "active" && plan.weekStart === weekStart && (!reportId || plan.reportId === reportId) && (!priorityId || currentPriorityId === priorityId));
 }

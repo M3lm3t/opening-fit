@@ -1,5 +1,8 @@
-import { formatRecommendationConfidence, missingSlotCopy, recommendationCopy } from "./reportCoachCopy.js";
+import { formatRecommendationConfidence, recommendationCopy } from "./reportCoachCopy.js";
 import { analysisConfidence, OPENING_EVIDENCE_THRESHOLDS } from "./fitTrustModel.js";
+import { formatTrainingPriorityTitle } from "./trainingPriority.js";
+import { formatResultCounts } from "./reportGameCounts.js";
+import { repertoireRoleEvidenceCopy } from "./repertoireEvidence.js";
 
 const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
@@ -62,24 +65,28 @@ function explicitFocus(source) {
   return { opening, detail };
 }
 
-function primaryActionCopy({ collectMoreGames, model, report, nextAction, training, problem, strength }) {
+function primaryActionCopy({ collectMoreGames, model, report, nextAction, training, problem, strength, priority, slots = [] }) {
   if (collectMoreGames) {
+    const gap = slots.filter((slot) => !slot.complete).sort((left, right) => Number(left.additionalRelevantGamesRequired ?? 99) - Number(right.additionalRelevantGamesRequired ?? 99) || left.key.localeCompare(right.key))[0];
     return {
-      title: moreGamesCopy(model, report, [nextAction, problem, strength].filter(Boolean), "can make another confident opening decision"),
+      title: gap?.requirement || moreGamesCopy(model, report, [nextAction, problem, strength].filter(Boolean), "can make another confident opening decision"),
       label: "Analyse more games",
       type: "analyse",
     };
   }
-  const source = training?.source || nextAction || problem || strength;
+  const source = priority || training?.source || nextAction || problem || strength;
   const focus = explicitFocus(source);
   const opening = text(training?.opening || nextAction?.opening || focus.opening);
   const detail = text(training?.line || focus.detail);
   const namedFocus = [opening, detail && detail.toLowerCase() !== opening.toLowerCase() ? detail : ""].filter(Boolean).join(" — ");
+  const duration = priority?.estimatedDurationMinutes || training?.durationMinutes || training?.estimatedMinutes || 10;
   return {
-    title: namedFocus
-      ? `This week: practise ${namedFocus} for approximately 10 minutes.`
-      : "This week: review one recent analysed opening game for approximately 10 minutes.",
-    label: "Start 10-minute practice",
+    title: priority
+      ? formatTrainingPriorityTitle(priority)
+      : namedFocus
+      ? `This week: practise ${namedFocus} for approximately ${duration} minutes.`
+      : `This week: review one recent analysed opening game for approximately ${duration} minutes.`,
+    label: `Start ${duration}-minute practice`,
     type: "training",
     target: source || null,
   };
@@ -119,7 +126,7 @@ function recommendationContext(strength) {
   ].map(text).filter(Boolean);
   const reasons = [...explicit];
   if (games > 0 && [wins, draws, losses].every(Number.isFinite) && wins + draws + losses === games) {
-    reasons.push(`${games} suitable games produced ${wins} wins, ${draws} draws and ${losses} losses.`);
+    reasons.push(`${games} suitable games produced ${formatResultCounts({ wins, draws, losses })}.`);
   } else if (games > 0) {
     reasons.push(`${games} suitable games support this opening-specific decision.`);
   }
@@ -138,13 +145,21 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     ["black_d4", "Black against 1.d4"],
   ].map(([key, label]) => {
     const item = repertoire.get(key);
+    const evidenceCopy = repertoireRoleEvidenceCopy(item ? { ...item, label } : { key, label, status: "missing" });
     return {
       key,
       label,
-      opening: item?.opening || missingSlotCopy(key),
-      confidence: item ? formatRecommendationConfidence({ games: item.games, confidence: item.confidence }) : "More correctly attributed games are needed.",
-      games: Number.isFinite(Number(item?.games)) ? Math.max(0, Math.round(Number(item.games))) : null,
-      complete: Boolean(item),
+      opening: item?.opening || "Not established yet",
+      confidence: item?.status === "supported" ? formatRecommendationConfidence({ games: item.games, confidence: item.confidence }) : evidenceCopy.statusLabel,
+      evidence: evidenceCopy.evidence,
+      requirement: evidenceCopy.requirement,
+      filters: evidenceCopy.filters,
+      games: Number.isFinite(Number(item?.games)) ? Math.max(0, Math.round(Number(item.games))) : 0,
+      status: item?.status || "missing",
+      complete: item?.status === "supported" || item?.complete === true,
+      tentative: item?.status === "tentative" || item?.tentative === true,
+      evidenceRequirement: item?.evidenceRequirement || null,
+      additionalRelevantGamesRequired: Number(item?.evidenceRequirement?.additionalRelevantGamesRequired ?? 5),
     };
   });
   const lowConfidence = /low|insufficient|limited/i.test(text(model.health?.confidence)) || Number(model.health?.games || 0) < 5;
@@ -154,15 +169,16 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   const strength = decisionWithEvidence(strengthCandidates[0]);
   const problem = decisionWithEvidence(problemCandidates[0]);
   const nextAction = model.authoritative?.nextTrainingAction || model.nextTrainingAction || null;
+  const trainingPriority = model.authoritative?.trainingPriority || model.trainingPriority || null;
   const hasExplicitTrainingAction = Boolean(nextAction?.type || training?.type || training?.opening || training?.source);
   const collectMoreGames = nextAction?.type === "collect_more_games" || !hasExplicitTrainingAction;
   const keepFallback = moreGamesCopy(model, report, strengthCandidates, "makes a confident keep recommendation");
   const repairFallback = moreGamesCopy(model, report, problemCandidates, "identifies a confident repair target");
   const trainingTitle = training?.label || (training?.opening ? `Train ${training.opening}` : "Collect more games before changing your repertoire");
-  const trainingReason = training?.objective || training?.reason || model.nextTrainingAction?.reason || "Review one opening focus before your next games.";
+  const trainingReason = trainingPriority?.rationale || training?.objective || training?.reason || model.nextTrainingAction?.reason || "Review one opening focus before your next games.";
   const weakness = noWeaknessExplanation({ model, problem, problemCandidates, strength, slots });
   const fitContext = recommendationContext(strength);
-  const primaryAction = primaryActionCopy({ collectMoreGames, model, report, nextAction, training, problem, strength });
+  const primaryAction = primaryActionCopy({ collectMoreGames, model, report, nextAction, training, problem, strength, priority: trainingPriority, slots });
   return {
     score: model.health?.score !== null && model.health?.score !== undefined && Number.isFinite(Number(model.health.score)) ? Math.round(Number(model.health.score)) : null,
     scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Coverage pending" : "Repertoire coverage",
@@ -170,6 +186,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     evidenceExplanation: weakness.text,
     weaknessState: weakness.kind,
     recommendationContext: fitContext,
+    trainingPriority,
     primaryAction,
     confidence: text(model.health?.confidence) || "Insufficient data",
     confidenceWarning: lowConfidence ? `This report has ${model.health?.games || 0} game${Number(model.health?.games || 0) === 1 ? "" : "s"} with enough opening information, so recommendations are provisional. More analysed games will improve confidence.` : "",
@@ -195,6 +212,9 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
       title: trainingTitle,
       reason: trainingReason,
       source: training?.source || null,
+      trainingPriorityId: trainingPriority?.priorityId || null,
+      openingName: trainingPriority?.openingName || training?.opening || null,
+      estimatedDurationMinutes: trainingPriority?.estimatedDurationMinutes || training?.durationMinutes || 10,
       cta: primaryAction.label,
       actionType: collectMoreGames ? "analyse" : "training",
     },

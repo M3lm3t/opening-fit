@@ -1,4 +1,5 @@
 import { OPENING_EVIDENCE_THRESHOLDS } from "./fitTrustModel.js";
+import { formatResultCounts } from "./reportGameCounts.js";
 
 export const MISSING_RECOMMENDATION_EVIDENCE =
   "There is not enough detailed evidence to explain this recommendation yet.";
@@ -87,7 +88,7 @@ export function buildRecommendationExplanation(entry = {}, options = {}) {
 
   if (games !== null && games > 0) rows.push({ key: "games", label: "Relevant games", value: `${games} game${games === 1 ? "" : "s"}` });
   if (results) {
-    rows.push({ key: "results", label: "Results", value: `${results.wins} win${results.wins === 1 ? "" : "s"}, ${results.draws} draw${results.draws === 1 ? "" : "s"}, ${results.losses} loss${results.losses === 1 ? "" : "es"}` });
+    rows.push({ key: "results", label: "Results", value: formatResultCounts(results) });
     rows.push({ key: "score", label: "Chess score", value: `${results.scoreRate}%` });
   } else if (!hasSuppliedResults) {
     const suppliedScore = finite(sample.scoreRate ?? sample.score_rate ?? entry.scoreRate ?? entry.score_rate);

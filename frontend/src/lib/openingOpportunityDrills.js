@@ -118,6 +118,7 @@ export function buildOpeningOpportunityDrill(opportunity, report = {}) {
     }
   }
   const correctOptionId = "plan";
+  const generalSetup = opportunity.generalSetup === true || opportunity.general_setup === true;
   return {
     valid: true,
     id: `opportunity-drill:${text(opportunity.opportunityId || opportunity.opportunity_id)}`,
@@ -128,7 +129,7 @@ export function buildOpeningOpportunityDrill(opportunity, report = {}) {
     side,
     orientation: side,
     initialFen: position.chess?.fen() || null,
-    prompt: type === "position_choice" ? "Play the best supported repertoire move." : type === "line_replay" ? `Replay the short line as ${side === "black" ? "Black" : "White"}.` : "Which plan best fits this position?",
+    prompt: type === "position_choice" ? "What would you play here?" : type === "line_replay" ? `Replay the short line as ${side === "black" ? "Black" : "White"}.` : generalSetup ? "Which plan best supports this general opening setup?" : "Which plan best fits this position?",
     explanation: text(opportunity.explanation) || "Review the opening decision shown by your analysed game.",
     evidence: text(opportunity.evidence),
     confidence: opportunity.confidence ?? null,
@@ -145,6 +146,7 @@ export function buildOpeningOpportunityDrill(opportunity, report = {}) {
     ],
     correctOptionId,
     sourceGame: sourceGame(opportunity, report),
+    generalSetup,
   };
 }
 

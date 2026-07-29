@@ -3,6 +3,7 @@ import { getPlayerLevelText } from "./playerLevelLogic";
 import { getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
 import { recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
+import { formatTrainingPriorityTitle, resolveTrainingPriority } from "../lib/trainingPriority.js";
 import OpeningVerdictSummary from "./OpeningVerdictSummary.jsx";
 
 function toNumber(value, fallback = 0) {
@@ -136,6 +137,7 @@ export default function ReportSnapshot({ data, onViewChange }) {
   const bestFit = publicMode ? findBestFit(data) : decision?.establishedStrength || null;
   const weakSpot = publicMode ? findWeakSpot(data) : decision?.primaryProblem || null;
   const recommendation = publicMode ? getRecommendation(data) : decision?.nextTrainingAction?.label;
+  const trainingPriority = publicMode ? null : resolveTrainingPriority(data, { decision, allowFallback: true });
 
   const playerLevel = getPlayerLevelText(data, "");
   const rating = data?.rating || data?.chesscomRating || data?.lichessRating;
@@ -177,11 +179,13 @@ export default function ReportSnapshot({ data, onViewChange }) {
     },
     {
       eyebrow: "Next focus",
-      title: trainingActionCopy(decision?.nextTrainingAction || { title: recommendation }, weakSpot || bestFit).title,
+      title: trainingPriority
+        ? formatTrainingPriorityTitle(trainingPriority, { prefix: false })
+        : trainingActionCopy(decision?.nextTrainingAction || { title: recommendation }, weakSpot || bestFit).title,
       detail: profileDetail || "Based on your imported games",
       note: publicMode
         ? "OpeningFit is analysing recent online results only."
-        : trainingActionCopy(decision?.nextTrainingAction || { title: recommendation }, weakSpot || bestFit).explanation,
+        : trainingPriority?.rationale || trainingActionCopy(decision?.nextTrainingAction || { title: recommendation }, weakSpot || bestFit).explanation,
       action: publicMode ? "Review trends" : "Start training",
       view: "training",
     },

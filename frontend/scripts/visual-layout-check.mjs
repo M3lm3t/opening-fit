@@ -304,8 +304,9 @@ async function assertRouteLayout(page, route) {
     for (const requiredText of ["Example report", "Fictional data", "Analyse my games", "72 analysed games", "fictional player"]) {
       if (!pageText.includes(requiredText)) failures.push(`Example report is missing required text: ${requiredText}.`);
     }
-    const fullReportOpen = await page.locator("#full-report-details").getAttribute("open");
-    if (fullReportOpen === null) failures.push("Full sample report is not expanded.");
+    const reportNavigation = page.getByRole("navigation", { name: "Report sections" });
+    if (!(await reportNavigation.isVisible().catch(() => false))) failures.push("Example report is missing the five-view report navigation.");
+    if (await reportNavigation.getByRole("button").count() !== 5) failures.push("Example report must expose exactly five report views.");
     const persistedReport = await page.evaluate(() => window.localStorage.getItem("openingFit:lastAnalysis"));
     if (persistedReport !== null) failures.push("Direct sample route persisted data as the visitor's report.");
   }
@@ -376,6 +377,7 @@ async function assertRouteLayout(page, route) {
   const clippedText = await page.locator("h1,h2,h3,p,a,button,label,strong,span").evaluateAll((nodes) => {
     const results = [];
     for (const node of nodes) {
+      if (node.matches(".reportPageTitle,.sr-only")) continue;
       const rect = node.getBoundingClientRect();
       const text = (node.textContent || "").replace(/\s+/g, " ").trim();
       if (!text || rect.width <= 0 || rect.height <= 0) continue;
@@ -469,15 +471,25 @@ async function main() {
         }
 
         if (route === "/report") {
-          const viewFullReport = page.getByRole("button", { name: "View full report" });
-          if (await viewFullReport.isVisible().catch(() => false)) {
-            await viewFullReport.click();
-            if (await page.locator("#full-report-details").getAttribute("open") === null) {
-              throw new Error("View full report did not expand the report.");
+          const reportViews = [
+            ["Summary", "#report-summary-view"],
+            ["Repertoire", "#report-repertoire-view"],
+            ["Problems", "#report-problems-view"],
+            ["Train", "#report-train-view"],
+            ["Evidence", "#report-evidence-view"],
+          ];
+          const reportNavigation = page.getByRole("navigation", { name: "Report sections" });
+          for (const [label, selector] of reportViews) {
+            const reportButton = reportNavigation.getByRole("button", { name: label, exact: true });
+            if (label !== "Summary") await reportButton.click();
+            if (!(await page.locator(selector).isVisible().catch(() => false))) {
+              const active = await reportNavigation.locator('[aria-current="page"]').allTextContents();
+              throw new Error(`Report view ${label} did not open (${page.url()}; active: ${active.join(", ") || "none"}).`);
             }
-            if (await page.locator('[role="dialog"]:visible').count() > 0) {
-              throw new Error("View full report opened a paywall or another dialog.");
-            }
+            await assertRouteLayout(page, route);
+          }
+          if (await page.locator('[role="dialog"]:visible').count() > 0) {
+            throw new Error("Report navigation opened a paywall or another dialog.");
           }
         }
 

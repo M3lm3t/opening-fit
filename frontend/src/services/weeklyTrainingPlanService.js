@@ -2,6 +2,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabaseClient.js";
 import { adaptReportHistoryRow } from "../lib/reportSnapshot.js";
 import { buildWeeklyTrainingPlan, isReusableWeeklyPlan, weeklyPlanWindow } from "../lib/weeklyTrainingPlan.js";
 import { getActiveRepertoire } from "./repertoireService.js";
+import { resolveTrainingPriority } from "../lib/trainingPriority.js";
 
 function requireUser(userId) {
   if (!String(userId || "").trim()) throw new Error("Sign in to use a saved weekly training plan.");
@@ -18,6 +19,7 @@ function serviceError(error, fallback) {
 }
 
 export function weeklyPlanFromRow(row = {}) {
+  const targetMetric = row.target_metric || {};
   return {
     schemaVersion: Number(row.schema_version || 1),
     id: row.id,
@@ -29,11 +31,13 @@ export function weeklyPlanFromRow(row = {}) {
     primaryGoal: row.primary_goal,
     reason: row.reason,
     estimatedMinutes: row.estimated_minutes,
-    targetMetric: row.target_metric || {},
+    targetMetric,
     tasks: Array.isArray(row.tasks) ? row.tasks : [],
     completionPercent: row.completion_percent || 0,
     createdAt: row.created_at,
     completedAt: row.completed_at,
+    trainingPriorityId: targetMetric.trainingPriorityId || null,
+    preservePrimaryGoal: Boolean(targetMetric.trainingPriorityId),
   };
 }
 
@@ -84,7 +88,8 @@ export async function getOrCreateWeeklyTrainingPlan(userId, options = {}) {
   if (!report) return { state: "missing-report", plan: current || null, reused: Boolean(current) };
 
   const { weekStart } = weeklyPlanWindow(options.now || new Date());
-  if (isReusableWeeklyPlan(current, { weekStart, reportId, forceRefresh: options.forceRefresh })) {
+  const priority = resolveTrainingPriority(report, { allowFallback: false });
+  if (isReusableWeeklyPlan(current, { weekStart, reportId, priorityId: priority?.priorityId || null, forceRefresh: options.forceRefresh })) {
     return { state: "reused", plan: current, reused: true };
   }
 

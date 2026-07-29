@@ -137,7 +137,8 @@ test("incomplete repertoire keeps all three required slots without invented open
   const view = buildPrimaryReportSummary({ ...completeModel, repertoire: completeModel.repertoire.slice(0, 1) });
   assert.equal(view.incompleteRepertoire, true);
   assert.deepEqual(view.slots.map((slot) => slot.label), ["White", "Black against 1.e4", "Black against 1.d4"]);
-  assert.equal(view.slots[1].opening, "No Black defence against 1.e4 has enough correctly attributed games yet.");
+  assert.equal(view.slots[1].opening, "Not established yet");
+  assert.match(view.slots[1].requirement, /as Black against 1\.e4/);
 });
 
 test("low data produces a calm prominent confidence warning", () => {
@@ -223,10 +224,13 @@ test("insufficient evidence explains no weakness without claiming strength", () 
   const view = buildPrimaryReportSummary({
     health: { score: 60, confidence: "Limited report coverage", games: 3 },
     authoritative: { primaryProblem: null, establishedStrength: null, nextTrainingAction: { type: "collect_more_games" }, confidence: { status: "insufficient_data", gamesAnalysed: 3 } },
+    repertoire: [{ key: "black_d4", label: "Black against 1.d4", status: "tentative", opening: "Queen's Gambit Declined", games: 4, evidenceRequirement: { requiredColour: "black", opponentFirstMove: "1.d4", timeControls: ["rapid"], threshold: 5, additionalRelevantGamesRequired: 1 } }],
   }, {});
   assert.equal(view.weaknessState, "insufficient_evidence");
   assert.match(view.evidenceExplanation, /not enough evidence.*not.*all openings are strong/i);
   assert.equal(view.primaryAction.type, "analyse");
+  assert.match(view.primaryAction.title, /rapid games as Black against 1\.d4.*1 more relevant example is currently needed/i);
+  assert.doesNotMatch(view.primaryAction.title, /play 5 more|arbitrary rapid games/i);
 });
 
 test("missing optional training data uses an honest unnamed fallback", () => {

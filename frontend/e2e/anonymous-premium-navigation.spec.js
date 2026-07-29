@@ -32,6 +32,9 @@ test("a signed-out visitor deliberately choosing OpeningFit Plus reaches login",
   await expect(page.getByRole("button", { name: "Sign in to subscribe" })).toBeVisible();
   await page.getByRole("radio", { name: /Annual.*£39\.99/ }).check();
   await expect(page.getByRole("heading", { name: "£39.99 per year" })).toBeVisible();
+  await expect(page.getByText("£39.99 billed annually · equivalent to £3.33/month.")).toBeVisible();
+  await expect(page.getByText("Save £19.89", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Recurring billing\. Cancel through account settings\./)).toBeVisible();
   await page.getByRole("button", { name: "Sign in to subscribe" }).click();
   await expect(page).toHaveURL(/\/login/);
   await expect(page.getByRole("heading", { name: "Log in or create account" })).toBeVisible();

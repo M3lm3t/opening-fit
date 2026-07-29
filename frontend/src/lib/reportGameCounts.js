@@ -131,6 +131,10 @@ export function countNoun(count, singular, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+export function formatResultCounts({ wins = 0, draws = 0, losses = 0 } = {}) {
+  return `${countNoun(Number(wins) || 0, "win")}, ${countNoun(Number(draws) || 0, "draw")} and ${countNoun(Number(losses) || 0, "loss", "losses")}`;
+}
+
 export function reportCountSentence(report = {}) {
   const counts = buildReportGameCounts(report);
   return `${countNoun(counts.fetchedGames, "public game")} found. ${analysedGameSentence(counts.analysedGames)} ${countNoun(counts.excludedGames, "game")} not analysed.`;

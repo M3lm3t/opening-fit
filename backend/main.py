@@ -15,7 +15,7 @@ from analysis.opening_coach_insights import build_opening_coach_insights
 from analysis.opening_training_opportunities import extract_opening_training_opportunities
 from analysis.retention_metrics import build_retention_metrics
 from analysis.opening_perspective import attach_perspective, classify_opening_perspective, perspective_from_item
-from analysis.report_decision import build_report_decision, reports_are_comparable
+from analysis.report_decision import apply_repertoire_coverage_score, build_report_decision, reports_are_comparable
 from opening_detection import (
     detect_opening,
     detect_opening_from_pgn,
@@ -507,6 +507,22 @@ def change_direction(current: float, previous: float, margin: float = 0.5) -> st
     return "stable"
 
 
+def report_score_formula_version(report: Optional[Dict[str, Any]]) -> str:
+    if not isinstance(report, dict):
+        return ""
+    contract = (
+        report.get("repertoireCoverageScore")
+        or report.get("repertoire_coverage_score")
+        or report.get("openingFitScoreContract")
+        or report.get("opening_fit_score_contract")
+        or report.get("score_contract")
+        or {}
+    )
+    if not isinstance(contract, dict):
+        return ""
+    return str(contract.get("formulaVersion") or contract.get("formula_version") or "").strip()
+
+
 def build_report_progress_comparison(current: Dict[str, Any], previous: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     if not reports_are_comparable(current, previous):
         return {
@@ -523,7 +539,9 @@ def build_report_progress_comparison(current: Dict[str, Any], previous: Optional
 
     current_fit = numeric_report_value(current, "openingFitScore", "opening_fit_score")
     previous_fit = numeric_report_value(previous, "openingFitScore", "opening_fit_score")
-    if current_fit is not None and previous_fit is not None:
+    current_fit_version = report_score_formula_version(current) or "openingfit_score_v1"
+    previous_fit_version = report_score_formula_version(previous) or "openingfit_score_v1"
+    if current_fit is not None and previous_fit is not None and current_fit_version == previous_fit_version:
         direction = change_direction(current_fit, previous_fit, 1)
         if direction != "stable":
             verb = "improved" if direction == "improved" else "dropped"
@@ -8534,6 +8552,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
             fetchedGames=len(all_games),
             eligibleGames=len(time_control_games),
             analysedGames=len(analysed_games),
+            excludedGames=max(0, len(all_games) - len(analysed_games)),
         )
     if not analysed_games:
         return build_not_enough_games_import_result(
@@ -8662,6 +8681,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
                 eligibleGames=len(time_control_games),
                 analysedGames=len(analysed_games),
                 processedGames=game_index,
+                excludedGames=max(0, len(all_games) - len(analysed_games)),
             )
         opening_game_samples.append(
             {
@@ -8705,6 +8725,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
             fetchedGames=len(all_games),
             eligibleGames=len(time_control_games),
             analysedGames=len(analysed_games),
+            excludedGames=max(0, len(all_games) - len(analysed_games)),
         )
     top_openings = []
     total_opening_games = sum(int(stats.get("games", 0) or 0) for stats in opening_results.values())
@@ -9095,6 +9116,9 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
     report_decision = build_report_decision(result, openings=best_openings, previous_report=previous_report)
     result["report_decision"] = report_decision
     result["reportDecision"] = report_decision
+    apply_repertoire_coverage_score(result, report_decision)
+    result["training_priority"] = report_decision["trainingPriority"]
+    result["trainingPriority"] = report_decision["trainingPriority"]
 
     result["progress_comparison"] = build_report_progress_comparison(
         result,
@@ -9828,6 +9852,9 @@ def build_lichess_analysis(
     report_decision = build_report_decision(result, openings=best_openings, previous_report=previous_report)
     result["report_decision"] = report_decision
     result["reportDecision"] = report_decision
+    apply_repertoire_coverage_score(result, report_decision)
+    result["training_priority"] = report_decision["trainingPriority"]
+    result["trainingPriority"] = report_decision["trainingPriority"]
 
     result["progress_comparison"] = build_report_progress_comparison(
         result,
@@ -10025,6 +10052,7 @@ def import_lichess_logic(username: str, months: int = 3, time_control: str = "cu
             fetchedGames=len(games),
             eligibleGames=len(time_control_games),
             analysedGames=len(analysed_games),
+            excludedGames=max(0, len(games) - len(analysed_games)),
         )
     if not analysed_games:
         return build_not_enough_games_import_result(
@@ -10324,7 +10352,11 @@ def analysis_job_public(job: Dict[str, Any]) -> Dict[str, Any]:
     if job.get("error") is not None:
         payload["error"] = job["error"]
     if job.get("progress") is not None:
-        payload["progress"] = job["progress"]
+        payload["progress"] = {
+            **job["progress"],
+            "elapsedSeconds": max(0, int(time.monotonic() - float(job.get("createdMonotonic") or time.monotonic()))),
+            "lastUpdatedAt": job.get("updatedAt"),
+        }
     return payload
 
 
@@ -10339,6 +10371,7 @@ def update_analysis_job_progress(job_id: str, stage: str, **counts: Any) -> None
             "archivesProcessed",
             "archivesTotal",
             "processedGames",
+            "excludedGames",
         } and value is not None
     }
     with analysis_jobs_lock:
@@ -10386,6 +10419,7 @@ def execute_analysis_job(job_id: str) -> None:
             fetchedGames=result_counts.get("fetchedGames"),
             eligibleGames=result_counts.get("timeControlEligibleGames"),
             analysedGames=result_counts.get("analysedGames"),
+            excludedGames=result_counts.get("excludedGames"),
         )
         result = compact_analysis_result(result)
         with analysis_jobs_lock:
@@ -10439,7 +10473,7 @@ def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
         created_at = now_iso()
         job = {
             "jobId": job_id, "requestKey": request_key, "status": "queued",
-            "createdAt": created_at, "updatedAt": created_at, "platform": platform,
+            "createdAt": created_at, "updatedAt": created_at, "createdMonotonic": time.monotonic(), "platform": platform,
             "username": username, "months": months, "timeControl": time_control, "result": None, "error": None,
             "ownerUserId": owner_user_id, "paidAccess": entitlement_has_paid_access(entitlement),
             "progress": {"stage": "queued", "counts": {}},

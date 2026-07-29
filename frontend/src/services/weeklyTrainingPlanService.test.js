@@ -15,6 +15,19 @@ const REPORT_B = "00000000-0000-4000-8000-000000000011";
 const NOW = new Date("2026-07-18T12:00:00Z");
 const repertoire = [{ status: "active", slot: "white_primary", canonical_opening_id: "vienna-game", display_name: "Vienna Game", sample_size: 12, key_weakness: "Early queen pressure" }];
 const report = (id) => ({ report_id: id, source_platform: "chesscom", source_username: "Player", total_games_analysed: 20, weaknesses: [{ title: "Early queen pressure", opening: "Vienna Game", frequency: 4 }] });
+const priorityReport = (id) => ({
+  ...report(id),
+  reportDecision: {
+    nextTrainingAction: {
+      type: "repair_repertoire",
+      recommendationId: "caro:played_as_black",
+      opening: "Caro-Kann Defence",
+      role: "played_as_black",
+      reason: "The current report selects the Caro-Kann priority.",
+      sample: { games: 8 },
+    },
+  },
+});
 
 function row(plan) {
   return {
@@ -73,6 +86,18 @@ test("a new valid report midweek creates a replacement plan", async () => {
   assert.equal(result.state, "regenerated-for-report");
   assert.equal(result.plan.reportId, REPORT_B);
   assert.equal(fake.calls[0].name, "save_weekly_training_plan");
+});
+
+test("a stale same-report plan is replaced when its priority differs", async () => {
+  const currentPlan = buildWeeklyTrainingPlan({ userId: USER_ID, report: report(REPORT_A), repertoire, reportId: REPORT_A, now: NOW }).plan;
+  const fake = client();
+  const result = await getOrCreateWeeklyTrainingPlan(USER_ID, { client: fake, report: priorityReport(REPORT_A), reportId: REPORT_A, repertoire, currentPlan, now: NOW });
+
+  assert.equal(result.state, "created");
+  assert.equal(result.reused, false);
+  assert.equal(fake.calls[0].name, "save_weekly_training_plan");
+  assert.match(result.plan.primaryGoal, /Caro-Kann Defence/);
+  assert.doesNotMatch(JSON.stringify(result.plan), /Vienna Game|Early queen pressure/);
 });
 
 test("task and full-plan completion are persisted through RPCs", async () => {

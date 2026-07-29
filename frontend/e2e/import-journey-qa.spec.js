@@ -1,3 +1,4 @@
+/* global process */
 import { expect, test } from "playwright/test";
 import { SAMPLE_REPORT } from "../src/fixtures/sampleReport.js";
 
@@ -15,6 +16,7 @@ function reportFixture({ games = 72, score = 72 } = {}) {
     username: "JourneyPlayer",
     playerName: "JourneyPlayer",
     platform: "chess.com",
+    source: "chesscom",
     importPlatform: "chesscom",
     gamesImported: games,
     gamesFound: games,
@@ -28,6 +30,68 @@ function reportFixture({ games = 72, score = 72 } = {}) {
       analysedGames: games,
       excludedGames: 0,
     },
+  };
+}
+
+function caroPriorityReport() {
+  const priority = {
+    schemaVersion: 1,
+    priorityId: "training-caro-kann:played-as-black",
+    taskId: "training-caro-kann:played-as-black",
+    recommendationId: "caro-kann:played_as_black",
+    openingName: "Caro-Kann Defence",
+    openingKey: "caro-kann-defense",
+    role: "played_as_black",
+    playerColour: "black",
+    taskType: "game_review",
+    actionType: "repair_repertoire",
+    title: "Practise Caro-Kann Defence",
+    rationale: "Twelve opening-specific games make this the clearest current repair priority.",
+    evidenceCount: 12,
+    evidenceGameIds: [],
+    estimatedDurationMinutes: 10,
+    successCheck: "Record one safer plan for the first unclear position.",
+    confidenceStatus: "medium",
+    sourceReportId: "analysis-caro",
+    fallback: false,
+    fallbackReason: null,
+  };
+  const recommendation = {
+    recommendationId: "caro-kann:played_as_black",
+    opening: "Caro-Kann Defence",
+    openingName: "Caro-Kann Defence",
+    openingId: "caro-kann-defense",
+    role: "played_as_black",
+    verdict: "repair",
+    sample: { games: 12, wins: 3, draws: 2, losses: 7, scoreRate: 33.3 },
+    trainingAction: { title: "Repair Caro-Kann Defence", explanation: priority.rationale },
+  };
+  const reportDecision = {
+    schemaVersion: 2,
+    recommendations: [recommendation],
+    establishedStrength: null,
+    primaryProblem: recommendation,
+    nextTrainingAction: {
+      type: "repair_repertoire",
+      recommendationId: "caro-kann:played_as_black",
+      opening: "Caro-Kann Defence",
+      role: "played_as_black",
+      label: "Repair Caro-Kann Defence",
+      reason: priority.rationale,
+      sample: { games: 12 },
+    },
+    trainingPriority: priority,
+  };
+  return {
+    ...reportFixture({ games: 280, score: 63 }),
+    analysisId: "analysis-caro",
+    gamesImported: 311,
+    gamesFound: 311,
+    gamesAnalysed: 280,
+    reportDecision,
+    report_decision: reportDecision,
+    trainingPriority: priority,
+    training_priority: priority,
   };
 }
 
@@ -79,6 +143,7 @@ test("signed-out visitor sees readable real progress before a many-game report",
   await expect(overlay.locator(".importLoadingActiveMessage p")).toHaveText(/Processing game 36 of 72/i, { timeout: 7000 });
   await expect(overlay.getByText("Building your recommendations", { exact: true }).first()).toBeVisible({ timeout: 9000 });
   await expect(page.getByRole("heading", { name: "Your opening plan" })).toBeVisible({ timeout: 12000 });
+  await expect(page.locator(".reportPageTitle")).toBeFocused();
   await expect(overlay).toHaveCount(0);
 });
 
@@ -120,4 +185,29 @@ test("failed import leaves a correction or retry action", async ({ page }) => {
   await startImport(page, "FailedJourneyPlayer");
   await expect(page.locator(".importLoadingOverlay")).toHaveCount(0, { timeout: 5000 });
   await expect(page.getByRole("button", { name: "Retry analysis" })).toBeVisible();
+});
+
+test("the report priority survives navigation and a direct signed-out reload of train", async ({ page }) => {
+  await routeJob(page, [{
+    status: "completed",
+    progress: { stage: "finishing_report", counts: { fetchedGames: 311, analysedGames: 280 } },
+    result: caroPriorityReport(),
+  }]);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(appUrl, { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Stop guessing which chess openings you should play." })).toBeVisible();
+  await startImport(page, "PriorityJourneyPlayer");
+
+  const action = page.getByRole("heading", { name: "This week: practise Caro-Kann Defence for approximately 10 minutes." }).first();
+  await expect(action).toBeVisible({ timeout: 5000 });
+  await page.getByRole("button", { name: "Start 10-minute practice" }).click();
+  await expect(page).toHaveURL(/\/train$/);
+  await expect(page.getByRole("heading", { name: "This week: practise Caro-Kann Defence for approximately 10 minutes." })).toBeVisible();
+  await expect(page.getByText(/Twelve opening-specific games make this the clearest current repair priority/).first()).toBeVisible();
+  await expect(page.getByText(/6 minutes|Only 311 recent games/i)).toHaveCount(0);
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/train$/);
+  await expect(page.getByRole("heading", { name: "This week: practise Caro-Kann Defence for approximately 10 minutes." })).toBeVisible();
+  await expect(page.getByText(/Vienna Game/)).toHaveCount(0);
 });

@@ -72,8 +72,8 @@ export function canUsePremiumPreview({ isDevelopment = false, requested = false 
 export function canStartCheckout(user) { return Boolean(user?.id); }
 export function premiumFeatureStructure() {
   return {
-    free: ["Useful first report", "Basic score and style", "One Keep recommendation", "One Repair recommendation", "Limited refreshes", "Weekly-plan preview"],
-    premium: ["Living repertoire", "Weekly training from your games", "Progress between reports", "Training outcomes", "Saved report history", "Full recommendation evidence"],
+    free: ["Useful first report", "Basic repertoire coverage and style", "Keep and repair verdicts when supported by evidence", "One next training action", "Limited refreshes", "One-task weekly-plan preview"],
+    premium: ["Living repertoire", "Up to five weekly training tasks", "Own-game drills when a usable imported position is available", "Progress between reports", "Training outcomes", "Saved report history", "Full recommendation evidence where available"],
   };
 }
 export function checkoutReturnState(value) { if (value === "cancelled") return { state: "cancelled", canRetry: true, repurchase: false }; if (value === "confirmed") return { state: "confirmed", canRetry: false, repurchase: false }; if (value === "delayed") return { state: "delayed", canRetry: true, repurchase: false }; return { state: "processing", canRetry: true, repurchase: false }; }

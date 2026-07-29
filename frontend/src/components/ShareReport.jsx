@@ -3,6 +3,7 @@ import { buildReportGameCounts } from "../lib/reportGameCounts.js";
 import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
 import { recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
 import { formatOpeningVerdictText } from "../lib/fitTrustModel.js";
+import { formatTrainingPriorityTitle, resolveTrainingPriority } from "../lib/trainingPriority.js";
 import OpeningVerdictSummary from "./OpeningVerdictSummary.jsx";
 
 function getOpeningName(item) {
@@ -140,7 +141,10 @@ export default function ShareReport({ data }) {
     const best = card(decision?.establishedStrength);
     const weakest = card(decision?.primaryProblem);
     const nextAction = decision?.nextTrainingAction || { label: "Collect more games before changing your repertoire", reason: "No reliable opening weakness was found yet." };
-    const training = trainingActionCopy(nextAction, decision?.primaryProblem || decision?.establishedStrength);
+    const trainingPriority = resolveTrainingPriority(data, { decision, allowFallback: true });
+    const training = trainingPriority
+      ? { title: formatTrainingPriorityTitle(trainingPriority, { prefix: false }), explanation: trainingPriority.rationale }
+      : trainingActionCopy(nextAction, decision?.primaryProblem || decision?.establishedStrength);
 
     const username = getUsername(data);
     const gamesImported = getGamesImported(data);
@@ -170,6 +174,7 @@ Try it: https://www.openingfit.com`;
       best,
       weakest,
       nextAction,
+      trainingPriority,
       training,
       text,
     };

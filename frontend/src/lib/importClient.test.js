@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { importGames, ImportClientError } from "./importClient.js";
+import { importGames, ImportClientError, isAnalysisJobStale } from "./importClient.js";
+
+test("stale analysis jobs time out only after five minutes without a confirmed update", () => {
+  const lastActivityAt = 1_000;
+  assert.equal(isAnalysisJobStale({ status: "running", lastActivityAt, now: lastActivityAt + 299_999 }), false);
+  assert.equal(isAnalysisJobStale({ status: "running", lastActivityAt, now: lastActivityAt + 300_000 }), true);
+  assert.equal(isAnalysisJobStale({ status: "completed", lastActivityAt, now: lastActivityAt + 300_000 }), false);
+});
 
 
 test("background analysis starts a job and returns its completed result", async (context) => {

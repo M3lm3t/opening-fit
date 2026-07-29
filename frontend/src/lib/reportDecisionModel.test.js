@@ -20,8 +20,16 @@ test("full Chess.com data produces ordered decisions", () => {
   assert.equal(model.header.platform, "Chess.com");
 });
 test("very small report exposes its coverage without inflating recommendation confidence", () => assert.match(buildReportDecisionModel({ gamesImported: 2 }).health.confidence, /2 analysed games/));
-test("white-only data does not create inaccurate Black categories", () => assert.deepEqual(buildReportDecisionModel({ preferred_white: [{ name: "Vienna", openingRole: "played_as_white", repertoireSlot: "white", games: 5, score: 70 }] }).repertoire.map((row) => row.key), ["white"]));
-test("black-only data does not create a White category", () => assert.equal(buildReportDecisionModel({ preferred_black: [{ name: "Caro-Kann", openingRole: "played_as_black", repertoireSlot: "black_vs_e4", games: 5, score: 60 }] }).repertoire.some((row) => row.key === "white"), false));
+test("white-only data keeps explicit missing Black roles", () => {
+  const roles = buildReportDecisionModel({ preferred_white: [{ name: "Vienna", openingRole: "played_as_white", repertoireSlot: "white", games: 5, score: 70 }] }).repertoire;
+  assert.deepEqual(roles.map((row) => row.key), ["white", "black_e4", "black_d4"]);
+  assert.equal(roles.find((row) => row.key === "black_e4").status, "missing");
+});
+test("black-only data keeps an explicit missing White role", () => {
+  const roles = buildReportDecisionModel({ preferred_black: [{ name: "Caro-Kann", openingRole: "played_as_black", repertoireSlot: "black_vs_e4", games: 5, score: 60 }] }).repertoire;
+  assert.equal(roles.find((row) => row.key === "white").status, "missing");
+  assert.equal(roles.find((row) => row.key === "black_e4").status, "supported");
+});
 test("missing style and previous report remain safe", () => assert.equal(buildReportDecisionModel(full, {}, []).health.trend, null));
 test("premium/free status does not alter decisions", () => assert.deepEqual(buildReportDecisionModel({ ...full, isPremium: true }).decisions, buildReportDecisionModel({ ...full, isPremium: false }).decisions));
 test("Lichess and long usernames are retained", () => { const model = buildReportDecisionModel({ ...full, platform: "lichess" }); assert.equal(model.header.platform, "Lichess"); assert.equal(model.header.username, full.username); });
@@ -84,7 +92,9 @@ test("all headline consumers use the same authoritative next action", () => {
   const model = buildReportDecisionModel(full, { overallScore: 62 });
   const summary = buildPrimaryReportSummary(model, full);
   assert.equal(model.verdict.nextDecision, model.nextTrainingAction.label);
-  assert.equal(model.training.label, model.nextTrainingAction.label);
-  assert.equal(summary.training.title, model.nextTrainingAction.label);
+  assert.equal(model.training.opening, model.nextTrainingAction.opening);
+  assert.equal(model.training.durationMinutes, 10);
+  assert.equal(summary.training.title, model.training.label);
+  assert.equal(summary.training.trainingPriorityId, model.trainingPriority.priorityId);
   assert.equal(summary.verdict, model.verdict.paragraph);
 });

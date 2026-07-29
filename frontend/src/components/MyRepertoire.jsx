@@ -147,7 +147,7 @@ export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPr
     onPractice?.({ name: card.openingName, opening: card.openingName, slot: card.slot, section: card.slot });
   };
 
-  if (data && !hasFullRepertoire) return <section className="myRepertoireEmpty" id="my-repertoire"><span>My Repertoire · Preview</span><h1>Your report has the foundations of a repertoire.</h1><p>Keep using your free score, style profile, Keep recommendation, Repair recommendation and next action.</p><FeatureAccessPreview feature={OPENINGFIT_FEATURES.FULL_REPERTOIRE} title="Save a permanent White and Black workspace" onUpgrade={onUpgrade} /></section>;
+  if (data && !hasFullRepertoire) return <section className="myRepertoireEmpty" id="my-repertoire"><span>My Repertoire · Preview</span><h1>Your report has the foundations of a repertoire.</h1><p>Keep using your free coverage, style profile, evidence-supported verdicts and next training action.</p><FeatureAccessPreview feature={OPENINGFIT_FEATURES.FULL_REPERTOIRE} title="Save a permanent White and Black workspace" onUpgrade={onUpgrade} /></section>;
 
   if (view.state === "loading") return <section className="myRepertoireEmpty" role="status"><span>My Repertoire</span><h1>Loading your saved repertoire…</h1><div className="repertoireLoadingBars" aria-hidden="true"><i /><i /><i /></div></section>;
   if (view.state === "no-report") return <section className="myRepertoireEmpty" id="my-repertoire"><span>My Repertoire</span><h1>Your permanent repertoire starts with a report.</h1><p>{view.notice}</p><button className="primaryBtn" type="button" onClick={onAnalyse}>Analyse games</button></section>;

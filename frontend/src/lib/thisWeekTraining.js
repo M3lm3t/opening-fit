@@ -1,6 +1,7 @@
 import { findOpeningLine, normaliseOpeningKey } from "../data/openings.ts";
 import { WEEKLY_TRAINING_PLAN_SCHEMA_VERSION, weeklyPlanWindow } from "./weeklyTrainingPlan.js";
 import { normaliseTrainingPreferences, personaliseWeeklyTrainingPlan } from "./trainingPreferences.js";
+import { formatTrainingPriorityTitle, resolveTrainingPriority, trainingTaskFromPriority } from "./trainingPriority.js";
 
 const text = (value) => String(value ?? "").trim();
 const list = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
@@ -9,10 +10,6 @@ const number = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 const makeId = (prefix) => `${prefix}-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`;
-
-function reportGames(report = {}) {
-  return number(report.total_games_analysed ?? report.gamesImported ?? report.games_imported ?? report.totalGames ?? report.total_games, 0);
-}
 
 function foundationOpening(report = {}, repertoire = []) {
   const active = list(repertoire).find((entry) => entry.status === "active") || {};
@@ -47,11 +44,36 @@ function foundationalTask({ type, title, explanation, successCriteria, minutes, 
 }
 
 export function buildFoundationalWeeklyPlan({ userId = "local", report = {}, repertoire = [], now = new Date(), preferences = null } = {}) {
-  const opening = foundationOpening(report, repertoire);
-  const games = reportGames(report);
+  const priority = resolveTrainingPriority(report);
+  const fallbackOpeningValue = foundationOpening(report, repertoire);
+  const opening = priority.openingName ? { id: priority.openingKey, name: priority.openingName, side: priority.playerColour || fallbackOpeningValue.side } : fallbackOpeningValue;
   const { weekStart, weekEnd } = weeklyPlanWindow(now);
+  const priorityTask = { ...trainingTaskFromPriority(priority, 1), fixedDuration: !priority.fallback };
+  if (!priority.fallback) {
+    return {
+      schemaVersion: WEEKLY_TRAINING_PLAN_SCHEMA_VERSION,
+      id: makeId("priority-plan"),
+      userId,
+      weekStart,
+      weekEnd,
+      reportId: priority.sourceReportId,
+      status: "active",
+      primaryGoal: formatTrainingPriorityTitle(priority),
+      reason: priority.rationale,
+      estimatedMinutes: priority.estimatedDurationMinutes,
+      targetMetric: { type: "task_completion", target: 100, label: "Complete this report training priority", openingId: priority.openingKey, trainingPriorityId: priority.priorityId, evidenceGames: priority.evidenceCount },
+      tasks: [priorityTask],
+      completionPercent: 0,
+      createdAt: new Date(now).toISOString(),
+      completedAt: null,
+      foundation: false,
+      trainingPriority: priority,
+      trainingPriorityId: priority.priorityId,
+      preservePrimaryGoal: true,
+    };
+  }
   const tasks = [
-    foundationalTask({ type: "concept_review", title: `Set up ${opening.name} with purpose`, explanation: "Start with development, king safety, and a clear plan. This stays foundational because there is not enough reliable game evidence for a narrower claim yet.", successCriteria: "Name your first development priority and one king-safety cue.", minutes: 6, order: 1, opening }),
+    priorityTask,
     foundationalTask({ type: "line_replay", title: `Replay one familiar ${opening.name} setup`, explanation: "Rehearse a familiar setup without treating it as forced theory. The aim is to reach a playable position you recognise.", successCriteria: "Replay the setup twice and describe where each minor piece belongs.", minutes: 8, order: 2, opening }),
     foundationalTask({ type: "game_review", title: "Review one game for the first decision point", explanation: "Use one recent game if available; otherwise use your next game. Look for the first moment your opening plan became unclear.", successCriteria: "Record one decision to repeat and one to reconsider.", minutes: 8, order: 3, opening }),
   ];
@@ -67,14 +89,17 @@ export function buildFoundationalWeeklyPlan({ userId = "local", report = {}, rep
     reportId: null,
     status: "active",
     primaryGoal: `Build a reliable ${opening.name} foundation`,
-    reason: games ? `Only ${games} recent game${games === 1 ? " is" : "s are"} available, so this week builds dependable habits without making a low-sample performance claim.` : "There is not enough report evidence yet, so this week builds dependable opening habits while you collect games.",
-    estimatedMinutes: 22,
-    targetMetric: { type: "task_completion", target: 100, label: "Complete all 3 foundation tasks", openingId: opening.id },
+    reason: priority.fallbackReason,
+    estimatedMinutes: tasks.reduce((sum, task) => sum + Number(task.estimatedMinutes || 0), 0),
+    targetMetric: { type: "task_completion", target: 100, label: "Complete all 3 foundation tasks", openingId: opening.id, trainingPriorityId: priority.priorityId, evidenceGames: priority.evidenceCount },
     tasks,
     completionPercent: 0,
     createdAt: new Date(now).toISOString(),
     completedAt: null,
     foundation: true,
+    trainingPriority: priority,
+    trainingPriorityId: priority.priorityId,
+    preservePrimaryGoal: false,
   };
   return personaliseWeeklyTrainingPlan(plan, preferences, { allowTaskResize: true });
 }

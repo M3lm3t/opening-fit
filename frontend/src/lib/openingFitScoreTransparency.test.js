@@ -21,7 +21,7 @@ test("a medium score explains why one supported role can coexist with no weaknes
     model: { header: { games: 12 }, health: { score: 63 }, authoritative: { establishedStrength: { opening: "Vienna Game" }, primaryProblem: null } },
     report: { openingFitScoreBreakdown: breakdown },
   });
-  assert.match(view.weaknessContext, /63\/100.*Vienna Game.*other roles remain incomplete/i);
+  assert.match(view.weaknessContext, /neutral finding.*core repertoire role/i);
   assert.equal(view.developmentState.label, "Developing repertoire");
   assert.equal(view.contributors.length, 3);
 });
@@ -59,7 +59,7 @@ test("high score and moderate low-sample states keep confidence separate from de
   });
   assert.equal(lowSample.developmentState.label, "Developing repertoire");
   assert.equal(lowSample.statusLabel, "Provisional score");
-  assert.match(lowSample.smallSamples, /Fewer than 5 classified games/i);
+  assert.match(lowSample.smallSamples, /Fewer than 5 relevant games in a role/i);
 });
 
 test("fewer than the minimum games visibly marks the score provisional", () => {
@@ -99,4 +99,39 @@ test("main score surfaces reuse the central development-state helper", async () 
     assert.match(source, /Repertoire coverage/i);
     assert.doesNotMatch(source, /Opening\s*Fit Score/i);
   }
+  assert.match(methodologySource, /repertoire_coverage_v2/);
+  assert.match(methodologySource, /core-role completeness \(60%\).*evidence confidence \(40%\)/i);
+  assert.match(methodologySource, /openingfit_score_v1.*not compared numerically/i);
+});
+
+test("versioned coverage components reconcile and keep results and repair status separate", () => {
+  const contract = {
+    formulaVersion: "repertoire_coverage_v2",
+    meaning: "Coverage measures core repertoire roles and supporting evidence. It is not a chess rating.",
+    components: [
+      { key: "repertoireCompleteness", label: "Repertoire completeness", score: 33.3, weight: 60, contribution: 19.98 },
+      { key: "evidenceConfidence", label: "Evidence confidence", score: 60, weight: 40, contribution: 24 },
+    ],
+    repairStatus: { label: "No reliable repair target yet", scored: false, explanation: "Reported separately." },
+    recentResults: { scored: false },
+  };
+  const view = buildOpeningFitScoreTransparency({
+    model: { header: { games: 280 }, health: { score: 43.98 }, authoritative: { primaryProblem: null } },
+    report: { openingFitScore: 43.98, repertoireCoverageScore: contract },
+  });
+  assert.equal(view.formulaVersion, "repertoire_coverage_v2");
+  assert.equal(Number(view.components.reduce((sum, component) => sum + component.contribution, 0).toFixed(2)), 43.98);
+  assert.deepEqual(view.components.map((component) => component.key), ["repertoireCompleteness", "evidenceConfidence"]);
+  assert.equal(view.components.some((component) => /result|weakness/i.test(component.title)), false);
+  assert.equal(view.repairStatus.scored, false);
+});
+
+test("legacy scores are retained but not compared across methodology versions", () => {
+  const view = buildOpeningFitScoreTransparency({
+    model: { header: { games: 30 }, health: { score: 44 } },
+    report: { openingFitScore: 44, repertoireCoverageScore: { formulaVersion: "repertoire_coverage_v2", components: [] } },
+    previousReport: { openingfit_score: 61, score_contract: { formulaVersion: "openingfit_score_v1" } },
+  });
+  assert.equal(view.comparableMethodology, false);
+  assert.match(view.reasonForChange, /not compared numerically/i);
 });

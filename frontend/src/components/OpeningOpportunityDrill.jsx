@@ -22,7 +22,7 @@ function currentChess(fen) {
   try { return new Chess(fen); } catch { return null; }
 }
 
-export default function OpeningOpportunityDrill({ opportunity, report, onClose }) {
+export default function OpeningOpportunityDrill({ opportunity, report, onClose, onEngaged, onCompleted }) {
   const { recordActivity } = useAuth();
   const drill = useMemo(() => buildOpeningOpportunityDrill(opportunity, report), [opportunity, report]);
   const [progress, setProgress] = useState(() => loadOpeningOpportunityProgress());
@@ -48,7 +48,11 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose }
     setSession(next);
     setProgress(nextProgress);
     saveOpeningOpportunityProgress(nextProgress);
+    if (next.attempts > session.attempts || (next.revealed && !session.revealed)) {
+      onEngaged?.({ drill, session: next });
+    }
     if (next.completion && !session.completion) {
+      onCompleted?.({ drill, session: next });
       window.dispatchEvent(new CustomEvent(TRAINING_TASK_COMPLETED_EVENT, { detail: { opening: drill.openingName, line: drill.opportunityId, result: next.repeatedFailure ? "repeated_failure" : "completed" } }));
       void recordActivity?.("opening_opportunity_drill_completed", {
         opportunityId: drill.opportunityId,
@@ -104,8 +108,12 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose }
     <section className={`openingOpportunityDrill openingOpportunityDrill--${drill.type}`} aria-labelledby="opening-opportunity-title">
       <header className="openingOpportunityHeader">
         <div><span>{TYPE_LABELS[drill.type]} · Train as {drill.side === "black" ? "Black" : "White"}</span><h2 id="opening-opportunity-title">{drill.openingName}</h2><p>{drill.prompt}</p></div>
-        <div className="openingOpportunityStats"><span>Attempts <strong>{session.attempts}</strong></span><span>Recurrence <strong>{drill.recurrenceCount}×</strong></span><span>Status <strong>{session.completion ? "Complete" : session.repeatedFailure ? "Repeat recommended" : "In progress"}</strong></span></div>
+        <div className="openingOpportunityStats"><span>Attempts <strong>{session.attempts}</strong></span><span>{drill.generalSetup ? "Evidence" : "Recurrence"} <strong>{drill.generalSetup ? "General setup" : `${drill.recurrenceCount}×`}</strong></span><span>Status <strong>{session.completion ? "Complete" : session.repeatedFailure ? "Repeat recommended" : "In progress"}</strong></span></div>
       </header>
+
+      <p className="openingOpportunityAttribution">
+        {drill.sourceGame ? <>Own-game exercise from this report.{drill.sourceGame.url ? <> <a href={drill.sourceGame.url} target="_blank" rel="noreferrer">Open source game</a></> : null}</> : drill.generalSetup ? "General setup exercise. No position is being attributed to one of your games." : "Report-backed concept exercise without a recoverable source-game position."}
+      </p>
 
       {drill.type === "concept_check" ? (
         <div className="openingConceptCheck">

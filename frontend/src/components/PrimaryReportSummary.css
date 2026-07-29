@@ -64,6 +64,9 @@
 .primaryReportRepertoire article span { color: var(--of-muted, #64748b); font-size: .78rem; font-weight: 800; }
 .primaryReportRepertoire article h3 { margin: 5px 0; font-size: 1rem; overflow-wrap: anywhere; }
 .primaryReportRepertoire article p { margin: 0; color: var(--of-muted, #64748b); font-size: .82rem; overflow-wrap: anywhere; }
+.primaryReportRepertoire article p + p { margin-top: 7px; }
+.primaryReportRoleStatus { display: block; margin-bottom: 7px; color: var(--of-text, #0f172a); font-size: .78rem; }
+.primaryReportRepertoire article small { display: block; margin-top: 8px; color: var(--of-muted, #64748b); font-size: .72rem; line-height: 1.4; }
 .reportGameCountSummary { padding: 14px 16px; border: 1px solid var(--of-border, #d8dee8); border-radius: var(--of-radius-md, 12px); background: var(--of-surface, #fff); }
 .reportGameCountSummary > p { margin: 0; line-height: 1.55; }
 .reportGameCountCompact { display: flex; flex-wrap: wrap; gap: 8px; }

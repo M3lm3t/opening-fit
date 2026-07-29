@@ -33759,7 +33759,11 @@ body,
   font-weight: 750;
   letter-spacing: 0;
   text-transform: none;
+  cursor: default;
 }
+
+.analysisSettingsPlusCopy { margin: 0; color: var(--text-soft); font-size: .82rem; line-height: 1.45; }
+.analysisSettingsPlusCopy a { font-weight: 850; }
 
 .usernameTrustStrip li svg {
   flex: 0 0 auto;
@@ -33855,6 +33859,10 @@ body,
 
 .analyseImportHero .appActionButtons {
   display: block;
+}
+
+.heroImportFlow > .appActionButtons {
+  grid-column: 1 / -1;
 }
 
 .analyseImportHero .primaryBtn {
@@ -41002,7 +41010,7 @@ body,
   }
 
   .landingAdvancedOptions {
-    display: none !important;
+    display: block !important;
   }
 
   .preAnalysisSupport {

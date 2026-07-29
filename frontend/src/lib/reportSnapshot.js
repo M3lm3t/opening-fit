@@ -1,5 +1,6 @@
 import { buildReportGameCounts } from "./reportGameCounts.js";
 import { normaliseReportDecision } from "./recommendationEvidence.js";
+import { resolveTrainingPriority } from "./trainingPriority.js";
 
 export const REPORT_SCHEMA_VERSION = 4;
 
@@ -267,6 +268,7 @@ export function buildReportSnapshot({
     report.retentionMetrics?.scoreComponents,
     report.retention_metrics?.score_components,
   );
+  const scoreContract = first(report.repertoireCoverageScore, report.repertoire_coverage_score, report.openingFitScoreContract, report.opening_fit_score_contract);
   const recommendations = recommendationSlots(report);
   const activeRepertoire = first(
     summary.activeRepertoire,
@@ -278,6 +280,8 @@ export function buildReportSnapshot({
   );
   const analysisId = stableAnalysisIdentity(report, summary);
   const gameCounts = buildReportGameCounts(report);
+  const reportDecision = normaliseReportDecision(first(report.reportDecision, report.report_decision)) || null;
+  const trainingPriority = resolveTrainingPriority(report, { decision: reportDecision, allowFallback: false });
 
   return {
     report_id: reportId,
@@ -306,6 +310,8 @@ export function buildReportSnapshot({
     time_controls_included: timeControls(report, summary),
     openingfit_score: fitScore,
     score_components: scoreComponents && typeof scoreComponents === "object" ? scoreComponents : null,
+    score_contract: scoreContract && typeof scoreContract === "object" ? scoreContract : null,
+    repertoire_roles: list(first(report.repertoireRoles, report.repertoire_roles, reportDecision?.repertoireRoles)),
     style_profile: first(summary.styleProfile, summary.style_profile, report.styleProfile, report.style_profile),
     recommendations: {
       white: recommendations.white.opening,
@@ -323,7 +329,8 @@ export function buildReportSnapshot({
     training_outcomes: list(first(report.trainingOutcomes, report.training_outcomes)),
     training_outcome_context: first(report.trainingOutcomeContext, report.training_outcome_context) || {},
     active_repertoire: activeRepertoire && typeof activeRepertoire === "object" ? activeRepertoire : null,
-    report_decision: normaliseReportDecision(first(report.reportDecision, report.report_decision)) || null,
+    report_decision: reportDecision,
+    training_priority: trainingPriority,
     analysis_metadata: {
       analysis_id: analysisId,
       analysis_version: cleanText(first(report.analysisVersion, report.analysis_version)),
@@ -339,6 +346,7 @@ export function buildReportSnapshot({
 export function adaptReportHistoryRow(row = {}) {
   const rawSnapshot = row.normalized_snapshot || row.snapshot;
   if (rawSnapshot && Number(rawSnapshot.report_schema_version) >= 2) {
+    const reportDecision = normaliseReportDecision(rawSnapshot.report_decision) || null;
     return {
       ...rawSnapshot,
       report_id: row.id || rawSnapshot.report_id || null,
@@ -374,7 +382,8 @@ export function adaptReportHistoryRow(row = {}) {
       training_outcomes: list(rawSnapshot.training_outcomes),
       training_outcome_context: rawSnapshot.training_outcome_context || {},
       active_repertoire: rawSnapshot.active_repertoire || null,
-      report_decision: rawSnapshot.report_decision || null,
+      report_decision: reportDecision,
+      training_priority: resolveTrainingPriority(rawSnapshot, { decision: reportDecision, allowFallback: false }),
       analysis_metadata: rawSnapshot.analysis_metadata || {},
     };
   }

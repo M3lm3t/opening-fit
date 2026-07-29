@@ -147,6 +147,7 @@ import PrimaryReportSummary from "./components/PrimaryReportSummary.jsx";
 import FeatureAccessPreview from "./components/FeatureAccessPreview.jsx";
 import { selectPreviousReportSnapshot } from "./lib/reportComparisonPresentation.js";
 import { primaryComparisonState } from "./lib/primaryReportSummary.js";
+import { normaliseReportView, reportViewFromLocation, reportViewHash, reportViewHeadingId } from "./lib/reportViews.js";
 import { buildReportGameCounts, reportCountSentence } from "./lib/reportGameCounts.js";
 import { accountExperienceState, subscriptionPresentation } from "./lib/accountExperience.js";
 import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT } from "./lib/productTransparency.js";
@@ -2762,7 +2763,7 @@ function buildOpeningFitData(data) {
             Math.min(recognised.length, 8)
         )
       : 0;
-  const backendScore = safeNumber(data?.openingFitScore ?? data?.opening_fit_score, 0);
+  const backendScore = safeNumber(data?.openingFitScore ?? data?.opening_fit_score, null);
   const openingIdentity =
     data?.openingIdentity || data?.opening_identity || playerStyle.title || "Opening identity pending";
   const identityExplanation =
@@ -2778,12 +2779,12 @@ function buildOpeningFitData(data) {
     scoredOpenings,
     bestOpening,
     weakestOpening,
-    overallScore: backendScore || overallScore,
+    overallScore: backendScore ?? overallScore,
     recommendedAction: buildSingleRecommendedAction(data),
     scoreExplanation:
       data?.openingFitScoreExplanation ||
       data?.opening_fit_score_explanation ||
-      "OpeningFit combines repertoire stability, White and Black performance, sample confidence, clear lower-scoring samples, and recent consistency.",
+      "Repertoire coverage combines core-role completeness and opening-specific evidence confidence. Recent results and repair status are shown separately.",
     openingIdentity,
     identityExplanation,
     scoreBreakdown: data?.openingFitScoreBreakdown || {},
@@ -6552,7 +6553,6 @@ function FinalReportFlow({
   onNavigate,
   onLoadReport,
   recentGames = [],
-  isPremium = false,
   reportHistory = [],
   openingFitUserState = [],
   retentionSnapshots = [],
@@ -6570,9 +6570,7 @@ function FinalReportFlow({
     () => buildReportDecisionModel(data, fitData, reportHistory),
     [data, fitData, reportHistory]
   );
-  const [reportMode, setReportMode] = useState(() => isSampleReport(data) ? "full" : "summary");
-  const showFullReport = reportMode === "full";
-  const showOpeningTable = reportMode === "table";
+  const [reportView, setReportView] = useState(() => reportViewFromLocation());
   const currentComparisonSnapshot = useMemo(
     () => buildReportSnapshot({ report: data, summary: buildReportHistorySummary(data, fitData) }),
     [data, fitData]
@@ -6593,20 +6591,29 @@ function FinalReportFlow({
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
 
-    const handleReportMode = (event) => {
-      const mode = event.detail?.mode;
-      if (["summary", "full", "table"].includes(mode)) {
-        setReportMode(mode);
-      }
-    };
+    const handleReportMode = (event) => setReportView(event.detail?.mode === "table" ? "evidence" : event.detail?.mode === "full" ? "repertoire" : "summary");
+    const handleHistory = () => setReportView(reportViewFromLocation());
 
     window.addEventListener("openingfit:set-report-mode", handleReportMode);
-    return () => window.removeEventListener("openingfit:set-report-mode", handleReportMode);
+    window.addEventListener("popstate", handleHistory);
+    window.addEventListener("hashchange", handleHistory);
+    return () => {
+      window.removeEventListener("openingfit:set-report-mode", handleReportMode);
+      window.removeEventListener("popstate", handleHistory);
+      window.removeEventListener("hashchange", handleHistory);
+    };
   }, []);
 
-  useEffect(() => {
-    if (isSampleReport(data)) setReportMode("full");
-  }, [data]);
+  const changeReportView = useCallback((value) => {
+    const next = normaliseReportView(value);
+    setReportView(next);
+    if (typeof window !== "undefined" && window.location.hash !== reportViewHash(next)) {
+      window.history.pushState({ reportView: next }, "", reportViewHash(next));
+    }
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => document.getElementById(reportViewHeadingId(next))?.focus());
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined" || !import.meta.env?.DEV) return undefined;
@@ -6630,10 +6637,10 @@ function FinalReportFlow({
     window.requestAnimationFrame(checkVerdictCardWidths);
     window.addEventListener("resize", checkVerdictCardWidths);
     return () => window.removeEventListener("resize", checkVerdictCardWidths);
-  }, [activeView, data, fitData, reportMode]);
+  }, [activeView, data, fitData, reportView]);
 
   const openOpeningBreakdown = useCallback(() => {
-    setReportMode("table");
+    changeReportView("evidence");
     if (typeof window === "undefined") return;
     window.setTimeout(() => {
       document.getElementById("evidence-table")?.scrollIntoView({
@@ -6641,17 +6648,18 @@ function FinalReportFlow({
         block: "start",
       });
     }, 60);
-  }, []);
+  }, [changeReportView]);
 
   const openFullReport = useCallback(() => {
-    setReportMode("full");
+    changeReportView("repertoire");
     if (typeof window === "undefined") return;
-    window.setTimeout(() => document.getElementById("full-report-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
-  }, []);
+    window.setTimeout(() => document.getElementById("report-repertoire-view")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  }, [changeReportView]);
 
   return (
     <div className="finalReportFlow decisionReportFlow">
-      <PrimaryReportSummary
+      <h1 className="reportPageTitle" tabIndex="-1">OpeningFit report for {data?.username || data?.player || "your games"}</h1>
+      {reportView === "summary" ? <section className="reportViewPanel" id="report-summary-view" aria-label="Report summary"><PrimaryReportSummary
         model={decisionModel}
         report={data}
         previousReport={hasComparisonAccess ? previousComparisonSnapshot : null}
@@ -6674,58 +6682,51 @@ function FinalReportFlow({
         saveStatus={saveStatus}
         authenticated={authenticated}
         onAccount={onAccount}
-      />
+      /></section> : null}
 
       <ReportCommandBar
         data={data}
-        activeView={activeView}
-        reportMode={reportMode}
-        onReportModeChange={setReportMode}
-        onNavigate={onNavigate}
-        isPremium={isPremium}
-        onUpgrade={() => onNavigate?.("premium")}
+        activeSection={reportView}
+        onSectionChange={changeReportView}
       />
 
-      <details className="reportFullDisclosure" id="full-report-details" open={showFullReport || showOpeningTable} onToggle={(event) => { if (event.currentTarget.open && reportMode === "summary") setReportMode("full"); else if (!event.currentTarget.open && reportMode !== "summary") setReportMode("summary"); }}>
-        <summary><span>Full report</span><strong>View recommendations, evidence, training detail and report tools</strong></summary>
-        <div className="reportFullDisclosureBody">
-          <details className="reportSupportingDataDetails" open={showOpeningTable}>
-            <summary><span>Supporting evidence</span><strong>Results, confidence, time controls, and supporting games</strong></summary>
-            <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
-            <EvidenceTableSection data={data} fitData={fitData} entitlement={entitlement} onPractice={onPractice} />
-            <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
-            <ImportQualitySummary data={data} />
-          </details>
+      {reportView === "repertoire" ? <section className="reportViewPanel" id="report-repertoire-view" aria-labelledby="report-repertoire-view-title">
+        <header className="reportViewHeader"><span>Repertoire</span><h2 id="report-repertoire-view-title" tabIndex="-1">Your three core roles and practical alternatives</h2><p>Established, tentative and missing roles stay visible without inventing an opening.</p></header>
+        <DecisionRepertoireMap model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} />
+        <FocusedRepertoireSection data={data} onPractice={onPractice} onViewEvidence={openOpeningBreakdown} onAnalytics={onAnalytics} />
+      </section> : null}
 
-          <details className="reportAdvancedRecommendations">
-            <summary><span>Advanced recommendations</span><strong>Detailed decision cards, repertoire map and additional practice tools</strong></summary>
-            <DecisionReportHeader model={decisionModel} onReanalyse={() => onNavigate?.("analyse") || onViewChange?.("analyse")} />
-            <CoachDecisionVerdict model={decisionModel} />
-            <FiniteTrainingSession model={decisionModel} recentGames={recentGames} onPractice={onPractice} />
-            <ReportDecisionCards model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} onRepertoire={() => onNavigate?.("repertoire")} onFeedback={onAnalytics} />
-            <CompactOpeningHealth model={decisionModel} />
-            <DecisionRepertoireMap model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} />
-            <CostlyIssuesSection model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} />
-          </details>
+      {reportView === "problems" ? <section className="reportViewPanel" id="report-problems-view" aria-labelledby="report-problems-view-title">
+        <header className="reportViewHeader"><span>Problems</span><h2 id="report-problems-view-title" tabIndex="-1">Repeated issues and evidence still missing</h2><p>A missing role is an evidence gap, not automatically a weakness.</p></header>
+        {decisionModel.repertoire.some((role) => !role.complete) ? <div className="reportEvidenceGapGrid" aria-label="Missing repertoire evidence">{decisionModel.repertoire.filter((role) => !role.complete).map((role) => <article key={role.key}><span>{role.label}</span><strong>{role.opening || "Not established yet"}</strong><p>{role.evidenceRequirement?.whyNeeded || "More correctly attributed games are needed for this exact role."}</p></article>)}</div> : null}
+        <CostlyIssuesSection model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} />
+        <InterestingThinDataSection data={data} fitData={fitData} />
+      </section> : null}
 
-          <details className="reportSecondaryDetails">
-            <summary><span>Progress and details</span><strong>Optional secondary metrics, achievements, detailed tables and tools</strong></summary>
-            <div className="reportSecondaryDetailsBody">
-              {!decisionModel.baseline.comparisonClaimsAllowed ? <p className="reportBaselineDetailsNotice">This is your baseline report. Progress deltas, improvement achievements, streak claims and comparison-only metrics stay unavailable until a comparable later report exists.</p> : null}
-              {decisionModel.baseline.comparisonClaimsAllowed && authenticated && canUseFeature(entitlement, OPENINGFIT_FEATURES.PROGRESS_OUTCOMES) ? <TrainingImpactSection report={data} reportHistory={reportHistory} source="report" onViewHistory={() => onNavigate?.("journey")} onAnalytics={onAnalytics} /> : decisionModel.baseline.comparisonClaimsAllowed && authenticated ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.PROGRESS_OUTCOMES} title="See training impact in later games" onUpgrade={() => onNavigate?.("premium")} /> : null}
-              {decisionModel.baseline.comparisonClaimsAllowed && reportHistory.length ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
-              {decisionModel.baseline.comparisonClaimsAllowed ? <WhatChangedSinceLastAnalysis data={data} fitData={fitData} retentionSnapshots={retentionSnapshots} decisionModel={decisionModel} /> : null}
-              {decisionModel.baseline.comparisonClaimsAllowed ? <OpeningJourney data={data} fitData={fitData} retentionSnapshots={retentionSnapshots} onPractice={onPractice} onNavigate={onNavigate} /> : null}
-              <OpeningScoreBreakdown data={data} fitData={fitData} reportHistory={reportHistory} openingFitUserState={openingFitUserState} onAction={(route) => onNavigate?.(route)} decisionModel={decisionModel} />
-              <InterestingThinDataSection data={data} fitData={fitData} />
-              {decisionModel.baseline.comparisonClaimsAllowed ? <WeeklyOpeningReport data={data} savedHistory={openingFitUserState.flatMap((row) => row?.coach_progress?.weeklyOpeningSnapshots || []).filter(Boolean)} decisionModel={decisionModel} /> : null}
-              {decisionModel.baseline.comparisonClaimsAllowed ? <OpeningGamificationProgress data={data} fitData={fitData} savedProgress={openingFitUserState.map((row) => row?.coach_progress?.openingGamification || null).filter(Boolean)[0] || null} /> : null}
-            </div>
-          </details>
+      {reportView === "train" ? <section className="reportViewPanel" id="report-train-view" aria-labelledby="report-train-view-title">
+        <header className="reportViewHeader"><span>Train</span><h2 id="report-train-view-title" tabIndex="-1">Your canonical current task</h2><p>Start with the report’s single evidence-backed priority. The full weekly plan remains on the training page.</p></header>
+        <FiniteTrainingSession model={decisionModel} recentGames={recentGames} onPractice={onPractice} />
+        <div className="reportTrainLaunch"><button type="button" className="primaryBtn" onClick={() => onNavigate?.({ view: "train", path: "/train", target: "training-plan" })}>Open this week’s training plan</button></div>
+      </section> : null}
 
-          <ReportExportAndHistory data={data} entitlement={entitlement} onUpgrade={() => onNavigate?.("premium")} onLoadReport={onLoadReport} />
+      {reportView === "evidence" ? <section className="reportViewPanel" id="report-evidence-view" aria-labelledby="report-evidence-view-title">
+        <header className="reportViewHeader"><span>Evidence</span><h2 id="report-evidence-view-title" tabIndex="-1">Games, filters, confidence and report tools</h2><p>Inspect what was included, what was excluded and how the report reached its decisions.</p></header>
+        <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
+        <EvidenceTableSection data={data} fitData={fitData} entitlement={entitlement} onPractice={onPractice} />
+        <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
+        <ImportQualitySummary data={data} />
+        <div className="reportSecondaryDetailsBody">
+          {!decisionModel.baseline.comparisonClaimsAllowed ? <p className="reportBaselineDetailsNotice">This is your baseline report. Progress deltas, improvement achievements, streak claims and comparison-only metrics stay unavailable until a comparable later report exists.</p> : null}
+          {decisionModel.baseline.comparisonClaimsAllowed && authenticated && canUseFeature(entitlement, OPENINGFIT_FEATURES.PROGRESS_OUTCOMES) ? <TrainingImpactSection report={data} reportHistory={reportHistory} source="report" onViewHistory={() => onNavigate?.("journey")} onAnalytics={onAnalytics} /> : decisionModel.baseline.comparisonClaimsAllowed && authenticated ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.PROGRESS_OUTCOMES} title="See training impact in later games" onUpgrade={() => onNavigate?.("premium")} /> : null}
+          {decisionModel.baseline.comparisonClaimsAllowed && reportHistory.length ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
+          {decisionModel.baseline.comparisonClaimsAllowed ? <WhatChangedSinceLastAnalysis data={data} fitData={fitData} retentionSnapshots={retentionSnapshots} decisionModel={decisionModel} /> : null}
+          {decisionModel.baseline.comparisonClaimsAllowed ? <OpeningJourney data={data} fitData={fitData} retentionSnapshots={retentionSnapshots} onPractice={onPractice} onNavigate={onNavigate} /> : null}
+          <OpeningScoreBreakdown data={data} fitData={fitData} reportHistory={reportHistory} openingFitUserState={openingFitUserState} onAction={(route) => onNavigate?.(route)} decisionModel={decisionModel} />
+          {decisionModel.baseline.comparisonClaimsAllowed ? <WeeklyOpeningReport data={data} savedHistory={openingFitUserState.flatMap((row) => row?.coach_progress?.weeklyOpeningSnapshots || []).filter(Boolean)} decisionModel={decisionModel} /> : null}
+          {decisionModel.baseline.comparisonClaimsAllowed ? <OpeningGamificationProgress data={data} fitData={fitData} savedProgress={openingFitUserState.map((row) => row?.coach_progress?.openingGamification || null).filter(Boolean)[0] || null} /> : null}
         </div>
-      </details>
+        <ReportExportAndHistory data={data} entitlement={entitlement} onUpgrade={() => onNavigate?.("premium")} onLoadReport={onLoadReport} />
+      </section> : null}
     </div>
   );
 }
@@ -15415,6 +15416,7 @@ export default function App() {
     if (typeof window !== "undefined" && !alreadyRedirected) {
       window.requestAnimationFrame(() => {
         scrollToAppTarget("app-results", { behavior: "auto" });
+        document.querySelector("#app-results .reportPageTitle")?.focus();
       });
     }
   };
@@ -16953,7 +16955,7 @@ export default function App() {
                 </div>
                 <div className="homepageSampleRows">
                   <div className="homepageSampleRow homepageSampleRow--keep">
-                    <span>Best fit</span><strong>Caro-Kann Defence</strong>
+                    <span>Best fit</span><strong>Vienna Game</strong>
                   </div>
                   <div className="homepageSampleRow homepageSampleRow--repair">
                     <span>Biggest issue</span><strong>Unclear plan against 1.d4</strong>
@@ -17032,20 +17034,6 @@ export default function App() {
                 </ul>
               </label>
 
-              <div className="appActionButtons">
-                <button
-                  className="primaryBtn"
-                  type="button"
-                  onClick={() => importGames()}
-                  disabled={loading}
-                >
-                  {loading ? `Analysing ${platforms[platform]?.label || "games"}...` : "Get my opening report"}
-                </button>
-                <small className="primaryActionMicrocopy">
-                  <ShieldCheck size={14} /> No PGN upload required.
-                </small>
-              </div>
-
               <details className="landingAdvancedOptions">
                 <summary>Analysis settings</summary>
                 <div className="landingAdvancedGrid">
@@ -17066,6 +17054,7 @@ export default function App() {
                       12 months {gameHistoryMonths >= 12 ? "" : "- Paid"}
                     </option>
                   </select>
+                  {gameHistoryMonths < 12 ? <p className="analysisSettingsPlusCopy">Six- and twelve-month history are included with OpeningFit Plus. <a href="/premium">See Plus pricing</a>.</p> : null}
 
                   <fieldset className="analysisTimeFormatSelector">
                     <legend>Change time controls</legend>
@@ -17089,6 +17078,20 @@ export default function App() {
                   </fieldset>
                 </div>
               </details>
+
+              <div className="appActionButtons">
+                <button
+                  className="primaryBtn"
+                  type="button"
+                  onClick={() => importGames()}
+                  disabled={loading}
+                >
+                  {loading ? `Analysing ${platforms[platform]?.label || "games"}...` : "Get my opening report"}
+                </button>
+                <small className="primaryActionMicrocopy">
+                  <ShieldCheck size={14} /> No PGN upload required.
+                </small>
+              </div>
             </div>
 
             <div className="compactTrustRow">

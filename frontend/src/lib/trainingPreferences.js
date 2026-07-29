@@ -78,6 +78,14 @@ function cadenceCopy(frequency) {
 
 function allocateMinutes(tasks, total) {
   if (!tasks.length || !total) return tasks;
+  const fixedTotal = tasks.reduce((sum, task) => sum + (task.fixedDuration ? Number(task.estimatedMinutes || 0) : 0), 0);
+  const flexible = tasks.filter((task) => !task.fixedDuration);
+  if (fixedTotal && flexible.length) {
+    const allocated = allocateMinutes(flexible, Math.max(flexible.length * 3, total - fixedTotal));
+    let flexibleIndex = 0;
+    return tasks.map((task) => task.fixedDuration ? task : allocated[flexibleIndex++]);
+  }
+  if (fixedTotal) return tasks;
   const minimum = 3;
   const base = Math.max(minimum, Math.floor(total / tasks.length));
   let remaining = total - (base * tasks.length);
@@ -98,7 +106,7 @@ export function personaliseWeeklyTrainingPlan(plan, value, { allowTaskResize = f
   const focus = String(plan.targetMetric?.openingId || "opening").replaceAll("-", " ");
   return {
     ...plan,
-    primaryGoal: goalCopy(preferences.mainGoal, focus),
+    primaryGoal: plan.preservePrimaryGoal ? plan.primaryGoal : goalCopy(preferences.mainGoal, focus),
     reason: `${plan.reason} ${cadenceCopy(preferences.playFrequency)}`,
     estimatedMinutes: tasks.reduce((sum, task) => sum + Number(task.estimatedMinutes || 0), 0),
     tasks,

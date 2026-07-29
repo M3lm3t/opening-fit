@@ -1,4 +1,5 @@
 import { OPENING_EVIDENCE_THRESHOLDS } from "./fitTrustModel.js";
+import { countNoun, formatResultCounts } from "./reportGameCounts.js";
 
 export const RECOMMENDATION_EVIDENCE_THRESHOLDS = Object.freeze({
   minimum: OPENING_EVIDENCE_THRESHOLDS.minimum,
@@ -110,7 +111,7 @@ function recommendationFromAggregate(item = {}) {
     repertoireSlot: slotFor(item, role),
     verdict,
     sample: { games, wins, draws, losses, scoreRate, gameIds: Array.isArray(item.gameIds) ? item.gameIds : [] },
-    evidence: [`${games} game${games === 1 ? "" : "s"}: ${wins} wins, ${draws} draws, ${losses} losses.`, `Chess score: ${scoreRate}%.`],
+    evidence: [`${countNoun(games, "game")}: ${formatResultCounts({ wins, draws, losses })}.`, `Chess score: ${scoreRate}%.`],
   });
 }
 

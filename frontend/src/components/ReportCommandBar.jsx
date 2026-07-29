@@ -1,6 +1,7 @@
 import { TabNavigation } from "./ui/UiPrimitives.jsx";
 import { isSampleReport } from "../fixtures/sampleReport.js";
 import { buildReportGameCounts } from "../lib/reportGameCounts.js";
+import { REPORT_VIEWS } from "../lib/reportViews.js";
 
 function getUsername(data) {
   return (
@@ -27,10 +28,8 @@ function getGames(data) {
 
 export default function ReportCommandBar({
   data,
-  activeView,
-  reportMode,
-  onReportModeChange,
-  onNavigate,
+  activeSection = "summary",
+  onSectionChange,
 }) {
   if (!data) return null;
 
@@ -39,35 +38,10 @@ export default function ReportCommandBar({
   const games = getGames(data);
   const sampleMode = isSampleReport(data);
 
-  const views = [
-    { key: "verdict", label: "Verdict", mode: "summary", target: "report-verdict", activeViews: ["overview", "report", "verdict"] },
-    {
-      key: "repertoire",
-      label: "Repertoire",
-      mode: "full",
-      target: "report-repertoire",
-      activeViews: ["recommendations", "repertoire", "openings"],
-    },
-    { key: "weakspots", label: "Weaknesses", mode: "full", target: "report-fixes", activeViews: ["weakspots", "verdicts"] },
-    { key: "training", label: "Training", mode: "full", target: "report-training-plan", activeViews: ["train", "training"] },
-    { key: "games", label: "Games/Data", mode: "table", target: "report-recent-games", activeViews: ["games", "data"] },
-  ];
-
-  const jumpToView = (view) => {
-    if (view.mode) onReportModeChange?.(view.mode);
-    onNavigate?.({ path: "/report", target: view.target || view.key, reportMode: view.mode });
-  };
-  const tabItems = views.map((view) => ({
-    ...view,
-    active:
-      activeView === view.key ||
-      view.activeViews?.includes(activeView) ||
-      (view.mode === "summary" && reportMode === "summary") ||
-      (view.mode === "table" && reportMode === "table"),
-  }));
+  const tabItems = REPORT_VIEWS.map((view) => ({ ...view, active: view.key === activeSection }));
 
   return (
-    <section className="reportCommandBar" aria-label="Report command bar">
+    <section className="reportCommandBar" aria-label="Report command bar" data-app-action-router-ignore="true">
       <div className="reportCommandBar__summary">
         <span className="reportCommandBar__status">{sampleMode ? "Example report" : "Live report"}</span>
         <div>
@@ -83,7 +57,8 @@ export default function ReportCommandBar({
         className="reportCommandBar__tabs"
         ariaLabel="Report sections"
         items={tabItems}
-        onSelect={jumpToView}
+        activeKey={activeSection}
+        onSelect={(view) => onSectionChange?.(view.key)}
       />
     </section>
   );

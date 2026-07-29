@@ -64,3 +64,29 @@ test("old text plans adapt without losing their displayed wording", () => {
   assert.equal(adapted[0].explanation, "Replay the Vienna line.");
   assert.equal(adapted.every((task) => task.type === "concept_review"), true);
 });
+
+test("the paid weekly plan stays on the canonical report priority", () => {
+  const canonicalReport = {
+    ...report,
+    reportDecision: {
+      nextTrainingAction: {
+        type: "repair_repertoire",
+        recommendationId: "caro:played_as_black",
+        opening: "Caro-Kann Defence",
+        role: "played_as_black",
+        reason: "Twelve opening-specific games support this repair priority.",
+        sample: { games: 12, gameIds: ["caro-1", "caro-2"] },
+      },
+    },
+  };
+  const result = buildWeeklyTrainingPlan({ userId: USER_ID, report: canonicalReport, repertoire, reportId: REPORT_ID, now: NOW });
+
+  assert.equal(result.state, "created");
+  assert.equal(result.plan.trainingPriority.openingName, "Caro-Kann Defence");
+  assert.equal(result.plan.tasks[0].estimatedMinutes, 10);
+  assert.equal(result.plan.tasks.every((task) => !task.openingName || task.openingName === "Caro-Kann Defence"), true);
+  assert.equal(result.plan.tasks.every((task) => task.openingId === "caro-kann-defense"), true);
+  assert.doesNotMatch(JSON.stringify(result.plan), /Vienna Game|Early queen pressure/);
+  assert.equal(isReusableWeeklyPlan(result.plan, { ...weeklyPlanWindow(NOW), reportId: REPORT_ID, priorityId: result.plan.trainingPriorityId }), true);
+  assert.equal(isReusableWeeklyPlan(result.plan, { ...weeklyPlanWindow(NOW), reportId: REPORT_ID, priorityId: "training-vienna" }), false);
+});

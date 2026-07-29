@@ -103,12 +103,14 @@ export function mapAnalysisJobProgress(progress) {
   const rawStage = String(progress?.stage || "").trim();
   const stage = JOB_STAGE_MAP[rawStage] || null;
   const rawCounts = progress?.counts && typeof progress.counts === "object" ? progress.counts : {};
-  const counts = Object.fromEntries(["fetchedGames", "eligibleGames", "analysedGames", "archivesProcessed", "archivesTotal", "processedGames"].flatMap((key) => {
+  const counts = Object.fromEntries(["fetchedGames", "eligibleGames", "analysedGames", "excludedGames", "archivesProcessed", "archivesTotal", "processedGames"].flatMap((key) => {
     const value = Number(rawCounts[key]);
     return Number.isFinite(value) && value >= 0 ? [[key, Math.round(value)]] : [];
   }));
   if (!stage) return { real: false, stage: null, counts: {}, message: "Analysis is running. Detailed stages are not available for this request." };
   const found = counts.fetchedGames;
+  const suitable = counts.analysedGames;
+  const excluded = counts.excludedGames;
   const stageProgress = determinateProgress(stage, counts);
   const archiveStatus = stageProgress?.unit === "archives"
     ? `Checking ${Math.min(stageProgress.current + 1, stageProgress.maximum)} of ${stageProgress.maximum} monthly archive${stageProgress.maximum === 1 ? "" : "s"}.`
@@ -123,10 +125,10 @@ export function mapAnalysisJobProgress(progress) {
     [IMPORT_STAGES.GAMES_FOUND]: Number.isFinite(found) ? `${found} public game${found === 1 ? "" : "s"} found.` : "Public games found.",
     [IMPORT_STAGES.FILTERING]: `${prefix}filtering eligible games.`,
     [IMPORT_STAGES.IDENTIFYING]: processingStatus,
-    [IMPORT_STAGES.RECOMMENDING]: `${prefix}building recommendations from the supported opening evidence.`,
+    [IMPORT_STAGES.RECOMMENDING]: `${Number.isFinite(suitable) ? `${suitable} suitable for analysis${Number.isFinite(excluded) ? `, ${excluded} excluded` : ""} — ` : prefix}building recommendations from supported opening evidence.`,
     [IMPORT_STAGES.SAVING]: "Finishing the report and preparing it for this device.",
   };
-  return { real: true, stage, counts, progress: stageProgress, message: messages[stage] || IMPORT_STAGE_DETAILS[stage]?.detail || "Analysis is running." };
+  return { real: true, stage, counts, progress: stageProgress, message: messages[stage] || IMPORT_STAGE_DETAILS[stage]?.detail || "Analysis is running.", elapsedSeconds: Number(progress?.elapsedSeconds) || 0, lastUpdatedAt: progress?.lastUpdatedAt || null };
 }
 
 export function mergeAnalysisJobProgress(previous, incoming) {

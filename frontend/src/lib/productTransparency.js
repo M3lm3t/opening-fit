@@ -44,7 +44,8 @@ export function publicFeatureComparison(contract = DEFAULT_PUBLIC_ANALYSIS_CONTR
   return [
     ["Opening report", "First report included", "Ongoing reports"],
     ["Repertoire coverage and style", "Included", "Included"],
-    ["Keep / repair / next action", "One of each", "One of each, with fuller evidence"],
+    ["Keep and repair verdicts", "When supported by your evidence", "When supported, with fuller evidence"],
+    ["Next training action", "One personalised action", `Up to ${limits.plusWeeklyTasks} weekly tasks`],
     ["Report refresh", `On demand, at least ${limits.freeRefreshMinutes} minutes apart`, `On demand, at least ${limits.plusRefreshMinutes} minutes apart`],
     ["Game-history window", `Up to ${limits.freeHistoryMonths} months`, `Up to ${limits.plusHistoryMonths} months`],
     ["Recommendation evidence", `Up to ${limits.freeEvidenceGames} games`, `Up to ${limits.plusEvidenceGames} games`],

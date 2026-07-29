@@ -66,10 +66,10 @@ def test_analysis_job_publishes_only_real_stage_updates(monkeypatch):
     monkeypatch.setattr(main, "run_import_route", run)
     main.execute_analysis_job(started["jobId"])
     completed = main.get_analysis_job(main.UUID(started["jobId"]))
-    assert completed["progress"] == {
-        "stage": "finishing_report",
-        "counts": {"fetchedGames": 310, "eligibleGames": 180, "analysedGames": 160},
-    }
+    assert completed["progress"]["stage"] == "finishing_report"
+    assert completed["progress"]["counts"] == {"fetchedGames": 310, "eligibleGames": 180, "analysedGames": 160}
+    assert completed["progress"]["elapsedSeconds"] >= 0
+    assert completed["progress"]["lastUpdatedAt"]
 
 
 def test_analysis_progress_drops_unrecognised_and_sensitive_counts(monkeypatch):
@@ -86,15 +86,23 @@ def test_analysis_progress_drops_unrecognised_and_sensitive_counts(monkeypatch):
         pgn="1. e4",
     )
     current = main.get_analysis_job(main.UUID(started["jobId"]))
-    assert current["progress"] == {
-        "stage": "requesting_public_games",
-        "counts": {
+    assert current["progress"]["stage"] == "requesting_public_games"
+    assert current["progress"]["counts"] == {
             "fetchedGames": 12,
             "archivesProcessed": 1,
             "archivesTotal": 3,
             "processedGames": 7,
-        },
     }
+    assert "username" not in current["progress"]["counts"]
+    assert "pgn" not in current["progress"]["counts"]
+
+
+def test_analysis_progress_publishes_excluded_counts_without_sensitive_rows(monkeypatch):
+    monkeypatch.setattr(main.analysis_job_executor, "submit", lambda *_args: None)
+    started = main.start_analysis_job(main.AnalysisJobRequest(platform="chesscom", username="Player", months=1))
+    main.update_analysis_job_progress(started["jobId"], "building_recommendations", fetchedGames=311, analysedGames=280, excludedGames=31)
+    current = main.get_analysis_job(main.UUID(started["jobId"]))
+    assert current["progress"]["counts"] == {"fetchedGames": 311, "analysedGames": 280, "excludedGames": 31}
 
 
 def test_month_and_time_control_choices_are_part_of_the_job_identity(monkeypatch):

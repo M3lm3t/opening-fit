@@ -114,6 +114,14 @@ test("real job stages map without inventing percentage progress", () => {
   assert.equal(Object.hasOwn(progress, "percent"), false);
 });
 
+test("recommendation progress reports suitable and excluded counts without fake precision", () => {
+  const progress = mapAnalysisJobProgress({ stage: "building_recommendations", counts: { fetchedGames: 311, analysedGames: 280, excludedGames: 31 }, elapsedSeconds: 18, lastUpdatedAt: "2026-07-29T10:00:00Z" });
+  assert.equal(progress.progress, null);
+  assert.match(progress.message, /280 suitable for analysis, 31 excluded/i);
+  assert.equal(progress.elapsedSeconds, 18);
+  assert.equal(progress.lastUpdatedAt, "2026-07-29T10:00:00Z");
+});
+
 test("missing or unknown job stages remain honestly indeterminate", () => {
   assert.deepEqual(mapAnalysisJobProgress(null), { real: false, stage: null, counts: {}, message: "Analysis is running. Detailed stages are not available for this request." });
   assert.equal(mapAnalysisJobProgress({ stage: "mystery" }).real, false);
@@ -177,4 +185,6 @@ test("the loading overlay exposes accessible determinate and indeterminate progr
   assert.match(styles, /prefers-reduced-motion: reduce/);
   assert.match(styles, /@media \(max-width: 420px\)/);
   assert.doesNotMatch(styles, /min-width:\s*[4-9]\d\dpx/);
+  assert.match(source, /role="dialog"/);
+  assert.equal((source.match(/aria-live="polite"/g) || []).length, 1);
 });

@@ -1,3 +1,5 @@
+import { formatResultCounts } from "./reportGameCounts.js";
+
 export const OPENING_EVIDENCE_THRESHOLDS = Object.freeze({
   minimum: 5,
   moderate: 10,
@@ -110,7 +112,7 @@ export function performanceBand(item = {}) {
 
 export function performanceSummary(item = {}) {
   const sample = resultSample(item);
-  if (sample.reconciled) return `${sample.wins} wins, ${sample.draws} draws, ${sample.losses} losses`;
+  if (sample.reconciled) return formatResultCounts(sample);
   if (sample.scoreRate !== null) return `${sample.scoreRate}% chess score across ${sample.games} game${sample.games === 1 ? "" : "s"}`;
   return sample.games ? `${sample.games} opening-specific game${sample.games === 1 ? "" : "s"}; result split unavailable` : "Performance unavailable";
 }

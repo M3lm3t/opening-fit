@@ -8,7 +8,10 @@ import { getOrCreateWeeklyTrainingPlan, setWeeklyTrainingTaskCompletion } from "
 import { canUseFeature, OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
 import { personaliseWeeklyTrainingPlan, readLocalTrainingPreferences, resolveTrainingPreferences } from "../lib/trainingPreferences.js";
 import { TRAINING_PREFERENCES_EDIT_EVENT, TRAINING_PREFERENCES_UPDATED_EVENT } from "./PostReportOnboarding.jsx";
+import { resolveTrainingPriority, trainingPlanMatchesPriority } from "../lib/trainingPriority.js";
 import FeatureAccessPreview from "./FeatureAccessPreview.jsx";
+import OpeningOpportunityDrill from "./OpeningOpportunityDrill.jsx";
+import { buildFreeTrainingExercise } from "../lib/freeTrainingExercise.js";
 import "./ThisWeekTrainingExperience.css";
 import "./ThisWeekTrainingCompletion.css";
 
@@ -120,13 +123,18 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
   const userId = user?.id || "";
   const [trainingPreferences, setTrainingPreferences] = useState(() => resolveTrainingPreferences({ authenticated: Boolean(user?.id), settings, localPreferences: readLocalTrainingPreferences() }));
   const hasWeeklyPlan = canUseFeature(entitlement, OPENINGFIT_FEATURES.WEEKLY_PLAN);
-  const initial = useMemo(() => readCache(userId), [userId]);
+  const currentPriority = useMemo(() => resolveTrainingPriority(report || {}), [report]);
+  const initial = useMemo(() => {
+    const cached = readCache(userId);
+    return cached.plan && trainingPlanMatchesPriority(cached.plan, currentPriority) ? cached : { plan: null, pendingTaskIds: [] };
+  }, [currentPriority, userId]);
   const [plan, setPlan] = useState(initial.plan);
   const [loading, setLoading] = useState(Boolean(userId && !initial.plan));
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busyTaskId, setBusyTaskId] = useState("");
   const [activeTaskId, setActiveTaskId] = useState("");
+  const [freeExerciseEngaged, setFreeExerciseEngaged] = useState(false);
   const [pendingTaskIds, setPendingTaskIds] = useState(initial.pendingTaskIds);
 
   useEffect(() => {
@@ -142,7 +150,8 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
   const foundation = useCallback(() => buildFoundationalWeeklyPlan({ userId: userId || "local", report: report || {}, preferences: trainingPreferences }), [report, trainingPreferences, userId]);
 
   const loadPlan = useCallback(async () => {
-    const cached = readCache(userId);
+    const stored = readCache(userId);
+    const cached = stored.plan && trainingPlanMatchesPriority(stored.plan, currentPriority) ? stored : { plan: null, pendingTaskIds: [] };
     if (!userId || !hasWeeklyPlan) {
       const localPlan = cached.plan ? personalise(cached.plan) : foundation();
       setPlan(localPlan);
@@ -181,7 +190,7 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
     } finally {
       setLoading(false);
     }
-  }, [foundation, hasWeeklyPlan, personalise, trainingPreferences, userId]);
+  }, [currentPriority, foundation, hasWeeklyPlan, personalise, trainingPreferences, userId]);
 
   useEffect(() => { void loadPlan(); }, [loadPlan]);
   useEffect(() => {
@@ -191,6 +200,15 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
   }, [error, loadPlan, pendingTaskIds.length]);
 
   const view = useMemo(() => buildThisWeekTrainingView(plan), [plan]);
+  const previewTask = plan?.tasks?.[0] || null;
+  const freeExercise = useMemo(
+    () => previewTask ? buildFreeTrainingExercise(report || {}, currentPriority) : null,
+    [currentPriority, previewTask, report]
+  );
+
+  useEffect(() => {
+    setFreeExerciseEngaged(false);
+  }, [plan?.id, previewTask?.id]);
 
   const trackPlusInvitation = useCallback(() => {
     void trackProductEvent("plus_invitation_viewed", { authenticated: Boolean(userId), source: "free_training_preview", access: "free" }, { onceKey: plan?.id || "free-training" });
@@ -212,6 +230,7 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
 
   const startFreeTask = (task) => {
     if (!task) return;
+    setFreeExerciseEngaged(false);
     setActiveTaskId(task.id);
     void trackProductEvent("training_task_started", { authenticated: Boolean(userId), source: "free_training_preview", openingCategory: openingForWeeklyTask(task, plan).side }, { onceKey: `free:${plan?.id}:${task.id}` });
   };
@@ -253,14 +272,16 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
   }
 
   if (!hasWeeklyPlan) {
-    const previewTask = plan.tasks?.[0];
     const freeState = freeTrainingPreviewState(previewTask, activeTaskId);
     return <section className="thisWeekTraining thisWeekTraining--free" id="this-week-training" aria-labelledby="free-training-title">
       <div className="thisWeekHeroCopy"><span className="thisWeekEyebrow">Your free training action</span><h1 id="free-training-title">{plan.primaryGoal}</h1><p>{plan.reason}</p></div>
       {previewTask ? <article className="thisWeekFreeTask">
         <TaskMeta task={previewTask} plan={plan} />
         <h2>{previewTask.title}</h2><p>{previewTask.explanation}</p>
-        {!freeState.started ? <button type="button" className="primaryBtn" onClick={() => startFreeTask(previewTask)}><Play size={17} /> Start free action</button> : freeState.completed ? <p className="thisWeekFreeComplete"><CheckCircle2 size={18} /> Free action completed</p> : <div className="thisWeekFreeActive"><strong>Use this success check</strong><p>{previewTask.successCriteria}</p><button type="button" className="primaryBtn" disabled={busyTaskId === previewTask.id} onClick={() => completeTask(previewTask)}>{busyTaskId === previewTask.id ? "Saving…" : "Mark action complete"}</button></div>}
+        {!freeState.started ? <button type="button" className="primaryBtn" onClick={() => startFreeTask(previewTask)}><Play size={17} /> Start free action</button> : freeState.completed ? <p className="thisWeekFreeComplete"><CheckCircle2 size={18} /> Free action completed</p> : <div className="thisWeekFreeExercise">
+          <OpeningOpportunityDrill opportunity={freeExercise.opportunity} report={report} onEngaged={() => setFreeExerciseEngaged(true)} onCompleted={() => setFreeExerciseEngaged(true)} />
+          <div className="thisWeekFreeActive"><strong>Success check</strong><p>{previewTask.successCriteria}</p>{freeExerciseEngaged ? <button type="button" className="primaryBtn" disabled={busyTaskId === previewTask.id} onClick={() => completeTask(previewTask)}>{busyTaskId === previewTask.id ? "Saving…" : "Complete this exercise"}</button> : <small>Attempt the exercise or reveal its answer before completing this action.</small>}</div>
+        </div>}
       </article> : null}
       {freeState.showPlusInvitation ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.WEEKLY_PLAN} eyebrow="Continue with OpeningFit Plus" title="Keep this training loop going" benefits={PLUS_CONTINUATION_BENEFITS} onViewed={trackPlusInvitation} onUpgrade={openPlus} /> : null}
     </section>;

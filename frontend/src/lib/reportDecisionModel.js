@@ -1,6 +1,7 @@
 import { analysisConfidence, buildOpeningVerdictPresentation, evidenceBasedReason, fitEvidence, openingFitScore, performanceSummary } from "./fitTrustModel.js";
 import { normaliseReportDecision } from "./recommendationEvidence.js";
 import { coachVerdict, formatRecommendationConfidence, trainingActionCopy } from "./reportCoachCopy.js";
+import { formatTrainingPriorityTitle, resolveTrainingPriority } from "./trainingPriority.js";
 
 function list(value) {
   if (!value) return [];
@@ -198,24 +199,55 @@ export function buildCostlyIssues(data = {}, decisions = buildRepertoireDecision
 
 export function buildRepertoireMapModel(data = {}) {
   const groups = [
-    ["white", "White repertoire"], ["black_e4", "Black versus 1.e4"],
-    ["black_d4", "Black versus 1.d4"], ["black_other", "Other Black responses"],
-    ["unresolved", "Other or unresolved"],
+    { key: "white", label: "White", role: "played_as_white", colour: "white", opponentFirstMove: null },
+    { key: "black_e4", label: "Black against 1.e4", role: "played_as_black", colour: "black", opponentFirstMove: "1.e4" },
+    { key: "black_d4", label: "Black against 1.d4", role: "played_as_black", colour: "black", opponentFirstMove: "1.d4" },
   ];
+  const explicitRoles = list(data.repertoireRoles || data.repertoire_roles || data.reportDecision?.repertoireRoles || data.report_decision?.repertoireRoles);
   const openings = collectReportOpenings(data).filter((item) => openingPerspective(item).repertoireOwned);
-  return groups.map(([key, label]) => {
+  const threshold = Number(data.reportDecision?.confidence?.minimumOpeningGames || data.report_decision?.confidence?.minimumOpeningGames || 5);
+  const timeControls = list(data.timeControlsIncluded || data.time_controls_included).map(text).filter(Boolean);
+  return groups.map(({ key, label, role, colour, opponentFirstMove }) => {
+    const explicit = explicitRoles.find((item) => item.key === key);
+    if (explicit) {
+      return {
+        ...explicit,
+        key,
+        label,
+        opening: explicit.openingName || null,
+        games: openingGames({ games: explicit.evidenceCount }),
+        complete: explicit.status === "supported",
+        tentative: explicit.status === "tentative",
+        evidenceRequirement: explicit.evidenceRequirement || explicit.evidence_requirement,
+      };
+    }
     const candidates = openings.filter((item) => openingContext(item).key === key).sort((a, b) => openingGames(b) - openingGames(a));
     const main = candidates[0];
-    if (!main) return null;
+    const games = openingGames(main);
+    const status = main ? games >= threshold ? "supported" : "tentative" : "missing";
+    const requirement = {
+      requiredRole: role,
+      requiredColour: colour,
+      opponentFirstMove,
+      openingFamily: main ? openingName(main) : null,
+      timeControls,
+      currentRelevantSample: games,
+      threshold,
+      additionalRelevantGamesRequired: Math.max(0, threshold - games),
+      whyNeeded: `OpeningFit needs ${threshold} correctly attributed games in this repertoire role before treating one opening as established.`,
+      nonGuarantee: "Arbitrary games do not guarantee progress: only games that pass the filters and contribute to this exact role reduce the requirement.",
+    };
+    if (!main) return { key, label, status, opening: null, games: 0, confidence: "Insufficient evidence", complete: false, tentative: false, evidenceRequirement: requirement, source: null };
     const weak = candidates.filter((item) => item !== main).sort((a, b) => (openingScore(a) ?? 100) - (openingScore(b) ?? 100))[0];
     return {
-      key, label, opening: openingName(main), verdict: verdict(main) || "Review",
-      fit: openingFitScore(main), confidence: openingConfidence(main), games: openingGames(main),
+      key, label, status, opening: openingName(main), verdict: verdict(main) || "Review",
+      fit: openingFitScore(main), confidence: openingConfidence(main), games,
+      complete: status === "supported", tentative: status === "tentative", evidenceRequirement: requirement,
       presentation: buildOpeningVerdictPresentation(main, { verdict: verdict(main) || "Review" }),
       weakestLine: text(weak?.variation || weak?.line || weak?.moveLine || weak?.move_line) || (weak ? openingName(weak) : ""),
       nextAction: reason(main), source: main,
     };
-  }).filter(Boolean);
+  });
 }
 
 function comparableHistory(data = {}, reportHistory = []) {
@@ -297,6 +329,7 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
   const weakest = issues[0]?.opening || repair?.opening || reduce?.opening || "No recurring weakness identified";
   const next = repair || reduce || keep || null;
   const nextTrainingAction = serverDecision?.nextTrainingAction || (next ? { type: next.type, opening: next.opening, role: next.role, label: `${next.type === "keep" ? "Consolidate" : "Repair"} ${next.opening}`, reason: next.reason } : { type: "collect_more_games", opening: null, role: null, label: "Collect more games before changing your repertoire", reason: "No opening has enough correctly attributed evidence for a strength or weakness claim." });
+  const trainingPriority = resolveTrainingPriority(data, { decision: serverDecision ? { ...serverDecision, nextTrainingAction } : { nextTrainingAction }, allowFallback: false });
   const playerProfile = data.playerProfile || data.player_profile || {};
   const displayName = text(data.displayName || data.display_name || playerProfile.displayName || playerProfile.display_name || data.username || data.playerName) || "OpeningFit player";
   const username = text(data.username || data.playerName || data.player_name || playerProfile.username);
@@ -316,11 +349,12 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
     establishedStrength: establishedStrength || (keep ? { opening: keep.opening, role: keep.role, games: keep.games, score: keep.score, repertoireOwned: true } : null),
     primaryProblem: primaryProblem || (repair ? { opening: repair.opening, role: repair.role, games: repair.games, score: repair.score, repertoireOwned: true } : null),
     nextTrainingAction,
+    trainingPriority,
     supportingEvidence: serverDecision?.supportingEvidence || [nextTrainingAction.reason],
     confidence: serverDecision?.confidence || { status: decisions.length ? "sufficient" : "insufficient_data", gamesAnalysed: games, minimumOpeningGames: 5 },
     baseline: { ...baseline, status: comparisonAllowed ? "comparable_later_report" : "baseline", hasComparablePrevious: comparisonAllowed, comparisonClaimsAllowed: comparisonAllowed },
   };
-  const repertoireSource = serverDecision?.recommendations?.length ? { best_openings: serverDecision.recommendations } : data;
+  const repertoireSource = serverDecision?.recommendations?.length ? { ...data, best_openings: serverDecision.recommendations, repertoireRoles: serverDecision.repertoireRoles } : data;
   return {
     ...authoritative,
     authoritative,
@@ -328,6 +362,6 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
     verdict: { paragraph, strongest, weakness: weakest, nextDecision: nextTrainingAction.label },
     decisions, issues, repertoire: buildRepertoireMapModel(repertoireSource),
     health: { score: scoreValue, confidence, games, strongest, weakest, trend },
-    training: { opening: nextTrainingAction.opening, line: text(next?.source?.variation || next?.source?.line || next?.source?.moveLine || next?.source?.move_line), objective: trainingActionCopy(nextTrainingAction, primaryProblem || establishedStrength).explanation, label: trainingActionCopy(nextTrainingAction, primaryProblem || establishedStrength).title, type: nextTrainingAction.type, source: next?.source || primaryProblem || establishedStrength || null },
+    training: { opening: trainingPriority?.openingName || nextTrainingAction.opening, line: trainingPriority?.lineOrPosition || text(next?.source?.variation || next?.source?.line || next?.source?.moveLine || next?.source?.move_line), objective: trainingPriority?.rationale || trainingActionCopy(nextTrainingAction, primaryProblem || establishedStrength).explanation, label: trainingPriority ? formatTrainingPriorityTitle(trainingPriority, { prefix: false }) : trainingActionCopy(nextTrainingAction, primaryProblem || establishedStrength).title, type: nextTrainingAction.type, durationMinutes: trainingPriority?.estimatedDurationMinutes || 10, source: trainingPriority || next?.source || primaryProblem || establishedStrength || null },
   };
 }

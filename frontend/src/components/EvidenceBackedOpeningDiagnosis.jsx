@@ -1,6 +1,7 @@
 import "./EvidenceBackedOpeningDiagnosis.css";
 import { getPlayerLevelText } from "./playerLevelLogic";
 import { getOpeningConfidence, getOpeningSignal } from "./OpeningEvidence";
+import { formatResultCounts } from "../lib/reportGameCounts.js";
 
 function toArray(value) {
   if (!value) return [];
@@ -285,7 +286,7 @@ function buildReason(item, average, verdict) {
 
   const record =
     wins || draws || losses
-      ? `${wins} wins, ${draws} draws and ${losses} losses`
+      ? formatResultCounts({ wins, draws, losses })
       : `${games} games in this opening sample`;
 
   if (["Recent strength", "Main weapon", "Reliable choice"].includes(verdict)) {

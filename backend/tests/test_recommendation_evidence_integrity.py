@@ -1,5 +1,5 @@
 from analysis.opening_perspective import attach_perspective, classify_opening_perspective
-from analysis.report_decision import build_report_decision
+from analysis.report_decision import apply_repertoire_coverage_score, build_report_decision
 
 
 def perspective(role: str):
@@ -170,3 +170,72 @@ def test_broad_training_action_does_not_invent_a_variation():
     assert "variationName" not in action
     assert "move sequence" in action["reason"]
     assert action["completionTarget"]["count"] == 3
+
+
+def test_report_exposes_one_canonical_training_priority_for_all_clients():
+    games = [game("Caro-Kann Defence", "played_as_black", index, "loss" if index <= 3 else "draw") for index in range(1, 6)]
+    decision = build_report_decision(report(games), openings=[opening("Caro-Kann Defence", "played_as_black", 5, 0, 2, 3)])
+    action = decision["nextTrainingAction"]
+    priority = decision["trainingPriority"]
+
+    assert priority["recommendationId"] == action["recommendationId"]
+    assert priority["openingName"] == action["opening"] == "Caro-Kann Defence"
+    assert priority["role"] == action["role"] == "played_as_black"
+    assert priority["playerColour"] == "black"
+    assert priority["evidenceCount"] == 5
+    assert priority["estimatedDurationMinutes"] == 10
+    assert priority["fallback"] is False
+    assert priority["priorityId"].startswith("training-")
+
+
+def test_report_evidence_uses_singular_result_and_game_labels():
+    games = [game("Italian Game", "played_as_white", 1, "draw")]
+    decision = build_report_decision(report(games), openings=[opening("Italian Game", "played_as_white", 1, 0, 1, 0)])
+    recommendation = decision["recommendations"][0]
+
+    assert recommendation["evidence"][0] == "1 game: 0 wins, 1 draw, 0 losses."
+    assert recommendation["confidence"]["reason"] == "Only 1 opening-specific game is available; collect more evidence before changing the repertoire."
+
+
+def test_repertoire_roles_expose_role_specific_evidence_gaps_and_filters():
+    games = [
+        *[game("Vienna Game", "played_as_white", index, "win") for index in range(1, 6)],
+        *[game("Caro-Kann Defence", "played_as_black", index, "draw") for index in range(6, 10)],
+    ]
+    payload = report(games)
+    payload["analysisTimeFormat"] = "rapid"
+    decision = build_report_decision(payload, openings=[
+        opening("Vienna Game", "played_as_white", 5, 5, 0, 0),
+        opening("Caro-Kann Defence", "played_as_black", 4, 0, 4, 0),
+    ])
+    roles = {row["key"]: row for row in decision["repertoireRoles"]}
+
+    assert list(roles) == ["white", "black_e4", "black_d4"]
+    assert roles["white"]["status"] == "supported"
+    assert roles["black_e4"]["status"] == "tentative"
+    assert roles["black_e4"]["evidenceRequirement"]["additionalRelevantGamesRequired"] == 1
+    assert roles["black_e4"]["evidenceRequirement"]["opponentFirstMove"] == "1.e4"
+    assert roles["black_e4"]["evidenceRequirement"]["timeControls"] == ["rapid"]
+    assert roles["black_d4"]["status"] == "missing"
+    assert roles["black_d4"]["evidenceRequirement"]["additionalRelevantGamesRequired"] == 5
+    assert roles["black_d4"]["evidenceRequirement"]["opponentFirstMove"] == "1.d4"
+
+
+def test_repertoire_coverage_arithmetic_excludes_results_and_neutral_weakness_state():
+    games = [game("Vienna Game", "played_as_white", index, "loss") for index in range(1, 6)]
+    decision = build_report_decision(report(games), openings=[opening("Vienna Game", "played_as_white", 5, 0, 0, 5)])
+    score = decision["repertoireCoverageScore"]
+
+    assert score["formulaVersion"] == "repertoire_coverage_v2"
+    assert score["weightsTotal"] == 100
+    assert sum(component["contribution"] for component in score["components"]) == score["score"]
+    assert score["recentResults"]["scored"] is False
+    assert score["repairStatus"]["scored"] is False
+    assert score["repairStatus"]["label"] in {"Reliable repair target found", "No reliable repair target yet"}
+
+    payload = {"openingFitScore": 61, "openingFitScoreBreakdown": {"blackPerformance": 41}}
+    apply_repertoire_coverage_score(payload, decision)
+    assert payload["openingFitScoreLegacyV1"] == 61
+    assert payload["openingFitScore"] == score["score"]
+    assert payload["openingFitScoreContract"]["formulaVersion"] == "repertoire_coverage_v2"
+    assert payload["openingFitScoreBreakdown"] == {component["key"]: component["score"] for component in score["components"]}

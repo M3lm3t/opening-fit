@@ -220,8 +220,17 @@ export function PageState({
 }
 
 export function TabNavigation({ items = [], activeKey, onSelect, className = "", ariaLabel = "Sections" }) {
+  const handleKeys = (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    const buttons = [...event.currentTarget.querySelectorAll("button:not(:disabled)")];
+    if (!buttons.length) return;
+    const current = Math.max(0, buttons.indexOf(document.activeElement));
+    const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : event.key === "ArrowRight" ? (current + 1) % buttons.length : (current - 1 + buttons.length) % buttons.length;
+    event.preventDefault();
+    buttons[next]?.focus();
+  };
   return (
-    <nav className={cx("of-tab-navigation", className)} aria-label={ariaLabel}>
+    <nav className={cx("of-tab-navigation", className)} aria-label={ariaLabel} onKeyDown={handleKeys}>
       {items.map((item) => {
         const isActive = item.key === activeKey || item.active;
         return (

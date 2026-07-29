@@ -79,8 +79,9 @@ export default function ImportLoadingOverlay({
   return (
     <div
       className={`importLoadingOverlay ${isAnalysis ? "analysisLoadingOverlay" : ""}`}
-      role="status"
-      aria-live="polite"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="import-loading-title"
     >
       <div className="importLoadingCard">
         <header className="importLoadingHeader">
@@ -88,7 +89,7 @@ export default function ImportLoadingOverlay({
             <span className="importLoadingMark"><Sparkles size={19} /></span>
             <div>
               <span className="importLoadingEyebrow">Personal report in progress</span>
-              <h2>Building your OpeningFit report</h2>
+              <h2 id="import-loading-title">Building your OpeningFit report</h2>
             </div>
           </div>
           {typeof onCancel === "function" && !complete ? (
@@ -117,7 +118,7 @@ export default function ImportLoadingOverlay({
 
         <div className="importLoadingWorkspace">
           <div className="importLoadingNarrative">
-            <div className="importLoadingActiveMessage">
+            <div className="importLoadingActiveMessage" role="status" aria-live="polite" aria-atomic="true">
               <ChessAnalysisLoader />
               <span>{complete ? <Check size={14} /> : <Search size={14} />} {complete ? "Analysis complete" : "Analysing games"}</span>
               <strong>{complete ? "Your report is ready" : hasRealStage ? activeStage.title : "Waiting for a confirmed analysis stage"}</strong>

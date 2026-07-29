@@ -145,6 +145,64 @@ test("stores structured training outcomes without inventing rating causation", (
   assert.doesNotMatch(JSON.stringify(snapshot.training_outcomes), /caused|rating improvement/i);
 });
 
+test("persists and restores the canonical training priority", () => {
+  const report = {
+    ...completedReport(),
+    reportDecision: {
+      recommendations: [{
+        recommendationId: "caro:played_as_black",
+        opening: "Caro-Kann Defence",
+        role: "played_as_black",
+        verdict: "repair",
+        sample: { games: 5, wins: 0, draws: 2, losses: 3, scoreRate: 20 },
+      }],
+      primaryProblem: {
+        recommendationId: "caro:played_as_black",
+        opening: "Caro-Kann Defence",
+        role: "played_as_black",
+        verdict: "repair",
+        sample: { games: 5, wins: 0, draws: 2, losses: 3, scoreRate: 20 },
+      },
+      nextTrainingAction: {
+        type: "repair_repertoire",
+        recommendationId: "caro:played_as_black",
+        opening: "Caro-Kann Defence",
+        role: "played_as_black",
+        reason: "Five opening-specific games support this repair priority.",
+        sample: { games: 5, wins: 0, draws: 2, losses: 3, scoreRate: 20 },
+      },
+    },
+  };
+  const snapshot = buildReportSnapshot({ report, userId: "user-1", reportId: "report-caro" });
+  const restored = adaptReportHistoryRow({ id: "report-caro", user_id: "user-1", snapshot });
+
+  assert.equal(snapshot.training_priority.openingName, "Caro-Kann Defence");
+  assert.equal(snapshot.training_priority.estimatedDurationMinutes, 10);
+  assert.equal(restored.training_priority.priorityId, snapshot.training_priority.priorityId);
+  assert.equal(restored.training_priority.openingName, "Caro-Kann Defence");
+});
+
+test("persists the score methodology so historical comparisons do not mix versions", () => {
+  const scoreContract = {
+    formulaVersion: "repertoire_coverage_v2",
+    score: 44,
+    components: [
+      { key: "repertoireCompleteness", score: 33.3, weight: 60, contribution: 19.98 },
+      { key: "evidenceConfidence", score: 60, weight: 40, contribution: 24 },
+    ],
+  };
+  const snapshot = buildReportSnapshot({
+    report: { ...completedReport(), openingFitScore: 44, openingFitScoreContract: scoreContract, repertoireRoles: [{ key: "white", status: "supported" }] },
+    userId: "user-1",
+    reportId: "versioned-score",
+  });
+  const restored = adaptReportHistoryRow({ id: "versioned-score", user_id: "user-1", snapshot });
+
+  assert.equal(snapshot.score_contract.formulaVersion, "repertoire_coverage_v2");
+  assert.equal(restored.score_contract.formulaVersion, "repertoire_coverage_v2");
+  assert.equal(restored.repertoire_roles[0].key, "white");
+});
+
 test("only completed, owned, non-demo reports are eligible for cloud history", () => {
   const valid = completedReport();
   assert.equal(isValidCompletedReport(valid, {}, "user-1"), true);

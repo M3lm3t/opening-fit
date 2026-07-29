@@ -3,6 +3,14 @@ import { buildApiUrl } from "./apiBase.js";
 const IMPORT_TIMEOUT_MS = 15 * 60 * 1000;
 const JOB_START_TIMEOUT_MS = 75000;
 const JOB_POLL_INTERVAL_MS = 1400;
+const JOB_STALE_TIMEOUT_MS = 5 * 60 * 1000;
+
+export function isAnalysisJobStale({ status, lastActivityAt, now = Date.now(), timeoutMs = JOB_STALE_TIMEOUT_MS }) {
+  return status === "running"
+    && Number.isFinite(lastActivityAt)
+    && Number.isFinite(now)
+    && now - lastActivityAt >= timeoutMs;
+}
 
 export class ImportClientError extends Error {
   constructor({ type, status = null, message, responseText = "", url = "", errorName = "" }) {
@@ -167,6 +175,8 @@ export async function importGames({ platform, username, months, timeControl = "c
     onJobStarted?.(started);
     onProgress?.(started.progress || null, started);
     const statusUrl = buildApiUrl(`/api/analysis/jobs/${encodeURIComponent(started.jobId)}`);
+    let lastJobUpdate = String(started.updatedAt || "");
+    let lastJobActivityAt = Date.now();
     while (true) {
       if (abortController.signal.aborted) throw new DOMException("Import cancelled.", "AbortError");
       const statusResponse = await fetch(statusUrl, { signal: abortController.signal, headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
@@ -174,12 +184,22 @@ export async function importGames({ platform, username, months, timeControl = "c
       if (!statusResponse.ok) {
         throw new ImportClientError({ type: "http", status: statusResponse.status, message: backendMessageFromJson(job, "Could not check analysis progress."), responseText, url: statusUrl });
       }
+      const jobUpdate = String(job.updatedAt || "");
+      if (jobUpdate && jobUpdate !== lastJobUpdate) {
+        lastJobUpdate = jobUpdate;
+        lastJobActivityAt = Date.now();
+      } else if (isAnalysisJobStale({ status: job.status, lastActivityAt: lastJobActivityAt })) {
+        throw new ImportClientError({ type: "timeout", status: 408, message: "The analysis job stopped reporting progress. Your previous report is unchanged; retry the analysis.", responseText, url: statusUrl });
+      }
       onProgress?.(job.progress || null, job);
       if (job.status === "completed") {
         return { data: job.result, url: statusUrl, status: statusResponse.status, responseText: JSON.stringify(job.result) };
       }
       if (job.status === "failed") {
         throw new ImportClientError({ type: "http", status: job.error?.status || 500, message: job.error?.message || "Analysis failed.", responseText, url: statusUrl });
+      }
+      if (job.status === "cancelled") {
+        throw new ImportClientError({ type: "unknown", status: 409, message: "Import cancelled. Your previous report is unchanged.", responseText, url: statusUrl });
       }
       await delay(JOB_POLL_INTERVAL_MS, abortController.signal);
     }

@@ -8,6 +8,7 @@ import {
 } from "./playerLevelLogic";
 import { openingPerspective } from "../lib/reportDecisionModel.js";
 import { REPORT_COACH_TEMPLATES, recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
+import { formatTrainingPriorityTitle } from "../lib/trainingPriority.js";
 import "./WeeklyOpeningReport.css";
 
 const MAX_HISTORY = 16;
@@ -518,6 +519,7 @@ export default function WeeklyOpeningReport({ data, savedHistory = [], decisionM
   const authoritativeStrength = decisionModel?.establishedStrength || null;
   const authoritativeProblem = decisionModel?.primaryProblem || null;
   const authoritativeAction = decisionModel?.nextTrainingAction || null;
+  const trainingPriority = decisionModel?.trainingPriority || null;
   const topMastery = [...currentSnapshot.openings.filter(Boolean)]
     .sort((a, b) => b.mastery - a.mastery)
     .slice(0, 4);
@@ -547,7 +549,7 @@ export default function WeeklyOpeningReport({ data, savedHistory = [], decisionM
       <div className="weeklyOpeningGrid">
         <article className="weeklyOpeningCard weeklyOpeningCard--positive weeklyProgressThisWeekCard">
           <span>Your Progress This Week</span>
-          <h3>{trainingActionCopy(authoritativeAction || { title: weekly.nextBestAction }, authoritativeProblem || authoritativeStrength).title}</h3>
+          <h3>{trainingPriority ? formatTrainingPriorityTitle(trainingPriority, { prefix: false }) : trainingActionCopy(authoritativeAction || { title: weekly.nextBestAction }, authoritativeProblem || authoritativeStrength).title}</h3>
           <p>
             {authoritativeStrength ? recommendationCopy(authoritativeStrength, "keep") : REPORT_COACH_TEMPLATES.noStrength}
             {comparisonAllowed ? " Compared against a valid earlier report." : " This is a baseline; save another comparable report for deltas."}

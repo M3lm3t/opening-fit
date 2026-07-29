@@ -1,12 +1,13 @@
 export const OPENINGFIT_SCORE_MINIMUM_GAMES = 5;
 
+// Retained only to explain reports saved under the original mixed methodology.
 export const OPENINGFIT_SCORE_FORMULA = Object.freeze([
   { key: "stability", aliases: ["stability"], title: "Familiarity / stability", weight: 22, explanation: "How concentrated the sample is in repeated openings, including openings with at least five games." },
   { key: "whitePerformance", aliases: ["whitePerformance", "white_performance"], title: "White results", weight: 20, explanation: "The game-weighted result score from recognised White openings." },
   { key: "blackPerformance", aliases: ["blackPerformance", "black_performance"], title: "Black results", weight: 20, explanation: "The game-weighted result score from recognised Black openings." },
-  { key: "evidenceCoverage", aliases: ["evidenceCoverage", "evidence_coverage", "confidence", "sampleConfidence", "sample_confidence"], title: "Evidence coverage", weight: 18, explanation: "The number of classified games and repeated openings with at least five games. This is report coverage, not confidence in every recommendation." },
-  { key: "weaknessControl", aliases: ["weaknessControl", "weakness_control"], title: "Weakness control", weight: 12, explanation: "A deduction for lower-scoring and rare or unclear opening samples." },
-  { key: "recentConsistency", aliases: ["recentConsistency", "recent_consistency"], title: "Sample consistency proxy", weight: 8, explanation: "The current formula uses a coarse sample-size proxy: 58 below 20 games and 72 from 20 games onward." },
+  { key: "evidenceCoverage", aliases: ["evidenceCoverage", "evidence_coverage", "confidence", "sampleConfidence", "sample_confidence"], title: "Evidence coverage", weight: 18, explanation: "The number of classified games and repeated openings with at least five games." },
+  { key: "weaknessControl", aliases: ["weaknessControl", "weakness_control"], title: "Weakness control", weight: 12, explanation: "A legacy deduction for lower-scoring and rare or unclear opening samples." },
+  { key: "recentConsistency", aliases: ["recentConsistency", "recent_consistency"], title: "Sample consistency proxy", weight: 8, explanation: "The legacy formula used a coarse sample-size proxy." },
 ]);
 
 const finite = (value) => value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value));
@@ -28,48 +29,48 @@ function breakdown(report = {}) {
   return value && typeof value === "object" ? value : {};
 }
 
+function scoreContract(report = {}) {
+  const value = report.repertoireCoverageScore || report.repertoire_coverage_score || report.openingFitScoreContract || report.opening_fit_score_contract || report.score_contract;
+  return value && typeof value === "object" ? value : {};
+}
+
 function componentValue(source, component) {
-  const value = component.aliases.map((key) => source[key]).find(finite);
-  return integer(value);
+  return integer(component.aliases.map((key) => source[key]).find(finite));
 }
 
 function coverageLabel(value, fallback = "") {
-  if (finite(value)) {
-    const score = Number(value);
-    return score >= 75 ? "Broad report coverage" : score >= 50 ? "Moderate report coverage" : "Limited report coverage";
-  }
-  const label = text(fallback);
-  return label || "Insufficient data";
+  if (finite(value)) return Number(value) >= 75 ? "Broad role evidence" : Number(value) >= 50 ? "Moderate role evidence" : "Limited role evidence";
+  return text(fallback) || "Insufficient data";
 }
 
-function weaknessContext(model = {}) {
+function weaknessContext(model = {}, repairStatus = null) {
   const problem = model.authoritative?.primaryProblem || model.primaryProblem;
-  if (problem) return "A reliable opening weakness was found, so the report can name a specific repair target.";
-  const strength = model.authoritative?.establishedStrength || model.establishedStrength;
-  const score = integer(model.health?.score);
-  const scoreLabel = score === null ? "A coverage score" : `${score}/100`;
-  const confidenceStatus = text(model.authoritative?.confidence?.status || model.confidence?.status).toLowerCase();
-  if (/insufficient|small|limited/.test(confidenceStatus)) {
-    return "No reliable opening weakness means the available opening-specific sample is too small for that claim. It does not mean every repertoire role is strong.";
-  }
-  if (strength) {
-    return `${scoreLabel} can sit beside no reliable weakness because ${text(strength.opening) || "one repertoire role"} has enough evidence for a keep decision while other roles remain incomplete or below the weakness threshold.`;
-  }
-  return `${scoreLabel} can sit beside no reliable weakness because coverage combines the whole repertoire, while a weakness label needs one repeated, opening-specific pattern to pass its evidence threshold.`;
+  if (problem) return "A reliable opening weakness was found and is shown separately as a specific repair target; it does not alter repertoire coverage.";
+  if (repairStatus?.label) return `${repairStatus.label}. This is a neutral evidence state, not a good or bad coverage component.`;
+  return "No reliable opening weakness is a neutral finding. Coverage instead reflects whether each core repertoire role has enough evidence.";
 }
 
-function reasonForChange(currentScore, previousScore, current, previous) {
-  if (previousScore === null) return "This is your baseline score; a later report can explain what changed.";
+function reasonForChange(currentScore, previousScore, current, previous, currentVersion, previousVersion, currentContract = {}, previousContract = {}) {
+  if (previousScore === null) return "This is your baseline score; a later report using the same methodology can explain what changed.";
+  if (currentVersion !== previousVersion) return `The saved score uses ${previousVersion}; it is not compared numerically with the current ${currentVersion} method.`;
   if (currentScore === previousScore) return "The rounded score is unchanged from the previous report.";
+  if (currentVersion === "repertoire_coverage_v2") {
+    const earlier = new Map((previousContract.components || []).map((component) => [component.key, component]));
+    const changes = (currentContract.components || []).flatMap((component) => {
+      const before = earlier.get(component.key);
+      if (!before || !finite(component.score) || !finite(before.score)) return [];
+      return [{ title: component.label || component.title || component.key, now: Number(component.score), before: Number(before.score), impact: Math.abs(Number(component.score) - Number(before.score)) * Number(component.weight || 0) }];
+    }).sort((left, right) => right.impact - left.impact);
+    if (changes.length) return `${changes[0].title} ${changes[0].now > changes[0].before ? "increased" : "decreased"} from ${changes[0].before} to ${changes[0].now}, the largest weighted coverage change.`;
+  }
   const changes = OPENINGFIT_SCORE_FORMULA.flatMap((component) => {
     const now = componentValue(current, component);
     const before = componentValue(previous, component);
     return now === null || before === null ? [] : [{ ...component, now, before, contribution: Math.abs(now - before) * component.weight }];
   }).sort((left, right) => right.contribution - left.contribution);
-  if (!changes.length) return `The score moved from ${previousScore} to ${currentScore}, but the older report does not contain compatible component data.`;
+  if (!changes.length) return `The score moved from ${previousScore} to ${currentScore}, but the reports do not contain compatible component data.`;
   const main = changes[0];
-  if (main.now === main.before) return `The score moved from ${previousScore} to ${currentScore}; no single saved component explains most of the rounded change.`;
-  return `${main.title} ${main.now > main.before ? "increased" : "decreased"} from ${main.before} to ${main.now}, the largest weighted component change in the available reports.`;
+  return `${main.title} ${main.now > main.before ? "increased" : "decreased"} from ${main.before} to ${main.now}, the largest weighted component change.`;
 }
 
 export function buildOpeningFitScoreTransparency({ model = {}, report = {}, previousReport = null } = {}) {
@@ -78,46 +79,58 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
   const games = integer(model.header?.games ?? report.gamesAnalysed ?? report.gamesImported ?? report.total_games) || 0;
   const currentBreakdown = breakdown(report);
   const previousBreakdown = breakdown(previousReport || {});
-  const components = OPENINGFIT_SCORE_FORMULA.flatMap((component) => {
-    const value = componentValue(currentBreakdown, component);
-    return value === null ? [] : [{ key: component.key, title: component.title, value, weight: component.weight, explanation: component.explanation }];
-  });
+  const contract = scoreContract(report);
+  const previousContract = scoreContract(previousReport || {});
+  const formulaVersion = text(contract.formulaVersion) || "openingfit_score_v1";
+  const previousFormulaVersion = text(previousContract.formulaVersion) || "openingfit_score_v1";
+  const components = formulaVersion === "repertoire_coverage_v2" && Array.isArray(contract.components)
+    ? contract.components.map((component) => ({
+      key: component.key,
+      title: component.label || component.title || component.key,
+      value: integer(component.score),
+      exactValue: finite(component.score) ? Number(component.score) : null,
+      weight: integer(component.weight),
+      contribution: finite(component.contribution) ? Number(component.contribution) : null,
+      explanation: component.key === "repertoireCompleteness"
+        ? "The share of White, Black against 1.e4, and Black against 1.d4 roles that meet the evidence threshold."
+        : "How close the three roles are, on average, to their current opening-specific evidence threshold.",
+    })).filter((component) => component.value !== null && component.weight !== null)
+    : OPENINGFIT_SCORE_FORMULA.flatMap((component) => {
+      const value = componentValue(currentBreakdown, component);
+      return value === null ? [] : [{ key: component.key, title: component.title, value, exactValue: value, weight: component.weight, contribution: value * component.weight / 100, explanation: component.explanation }];
+    });
   const contributors = components
     .map((component) => ({ ...component, constraint: (100 - component.value) * component.weight }))
     .sort((left, right) => right.constraint - left.constraint)
     .slice(0, 3)
-    .map((component) => ({
-      key: component.key,
-      title: component.title,
-      value: component.value,
-      explanation: component.value >= 70
-        ? `${component.title} is supporting the current score.`
-        : `${component.title} is one of the main areas limiting the current score.`,
-    }));
-  const coverage = coverageLabel(componentValue(currentBreakdown, OPENINGFIT_SCORE_FORMULA.find((item) => item.key === "evidenceCoverage")), model.health?.confidence);
+    .map((component) => ({ key: component.key, title: component.title, value: component.value, explanation: component.value >= 70 ? `${component.title} supports the current score.` : `${component.title} is limiting the current score.` }));
+  const evidence = components.find((item) => item.key === "evidenceConfidence" || item.key === "evidenceCoverage");
+  const coverage = formulaVersion === "repertoire_coverage_v2"
+    ? coverageLabel(evidence?.exactValue, model.health?.confidence)
+    : finite(evidence?.exactValue)
+      ? Number(evidence.exactValue) >= 75 ? "Broad report coverage" : Number(evidence.exactValue) >= 50 ? "Moderate report coverage" : "Limited report coverage"
+      : text(model.health?.confidence) || "Insufficient data";
   const provisional = games < OPENINGFIT_SCORE_MINIMUM_GAMES;
+  const repairStatus = contract.repairStatus || contract.repair_status || null;
   return {
-    currentScore,
-    previousScore,
-    games,
-    confidence: coverage,
-    coverage,
-    provisional,
+    currentScore, previousScore, games, confidence: coverage, coverage, provisional,
     statusLabel: provisional ? "Provisional score" : coverage,
-    components,
-    hasComponentData: components.length > 0,
-    reasonForChange: reasonForChange(currentScore, previousScore, currentBreakdown, previousBreakdown),
-    scale: { minimum: 0, maximum: 100 },
-    formulaVersion: report.openingFitScoreContract?.formulaVersion || report.opening_fit_score_contract?.formulaVersion || "openingfit_score_v1",
-    developmentState: openingFitDevelopmentState(currentScore),
-    contributors,
-    meaning: "Repertoire coverage is a 0–100 summary of how complete, repeated and successful your opening evidence is across the games analysed. It is not a chess rating or an engine judgement of opening quality.",
-    weaknessContext: weaknessContext(model),
-    affects: components.length
-      ? "The current calculation uses only the components shown below, with the displayed weights."
-      : "This older report contains the final score and game sample, but not a compatible component breakdown.",
-    doesNotAffect: "Your chess-platform rating and official federation rating do not directly determine this score. It is not an official rating or a measure of objective opening quality.",
-    whyChange: "It rises with more repeated recognised openings, broader White and Black evidence, stronger results and fewer recurring weak samples. It falls when coverage is thin or uneven, results are weaker, or recurring weak samples appear.",
-    smallSamples: `Fewer than ${OPENINGFIT_SCORE_MINIMUM_GAMES} classified games is treated as provisional. Small samples can move sharply because each game has more influence.`,
+    components, hasComponentData: components.length > 0,
+    reasonForChange: reasonForChange(currentScore, previousScore, currentBreakdown, previousBreakdown, formulaVersion, previousFormulaVersion, contract, previousContract),
+    scale: { minimum: 0, maximum: 100 }, formulaVersion, previousFormulaVersion,
+    comparableMethodology: previousScore === null || formulaVersion === previousFormulaVersion,
+    developmentState: openingFitDevelopmentState(currentScore), contributors,
+    meaning: formulaVersion === "repertoire_coverage_v2"
+      ? text(contract.meaning) || "Coverage measures the three core repertoire roles and their supporting evidence. It is not a chess rating, opening-quality grade, or engine evaluation."
+      : "This legacy score mixed repertoire stability, results, evidence and weakness signals. It is retained for historical reports and is not a chess rating or engine judgement.",
+    weaknessContext: weaknessContext(model, repairStatus),
+    affects: components.length ? "The calculation uses only the components and weights shown below." : "This older report contains the final score but not a compatible component breakdown.",
+    doesNotAffect: formulaVersion === "repertoire_coverage_v2" ? "Recent win rate, chess rating and weakness status do not directly change this coverage score." : "Official ratings do not directly determine the legacy score.",
+    whyChange: formulaVersion === "repertoire_coverage_v2"
+      ? "It rises only when correctly attributed games establish or strengthen White, Black against 1.e4, and Black against 1.d4 evidence."
+      : "The legacy method also moved with results and weakness signals.",
+    smallSamples: `Fewer than ${OPENINGFIT_SCORE_MINIMUM_GAMES} relevant games in a role cannot establish that role.`,
+    repairStatus,
+    recentResultsStatus: contract.recentResults || contract.recent_results || null,
   };
 }
