@@ -6673,7 +6673,7 @@ function FinalReportFlow({
             onAnalytics={onAnalytics}
           />
         ) : null}
-        onTraining={() => onNavigate?.({ view: "train", path: "/train", target: "training-plan" })}
+        onTraining={() => onNavigate?.({ view: "train", path: "/train?start=report-task", target: "training-plan" })}
         onPractice={onPractice}
         onEvidence={openOpeningBreakdown}
         onAnalyse={() => { if (onNavigate) onNavigate("analyse"); else onViewChange?.("analyse"); }}

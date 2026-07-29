@@ -20,26 +20,82 @@ function scoreOpportunity(opportunity, priority) {
   return (exactGame ? 100 : 0) + (sameOpening ? 20 : 0) + (sameSide ? 5 : 0) + Number(opportunity.recurrenceCount || opportunity.recurrence_count || 0);
 }
 
-function generalSetupOpportunity(priority = {}) {
+function reportDecision(report = {}) {
+  return report.reportDecision || report.report_decision || {};
+}
+
+function sameOpening(left, right) {
+  return Boolean(left && right && normaliseOpeningKey(left) === normaliseOpeningKey(right));
+}
+
+export function explainTrainingPriority(report = {}, priority = null) {
+  const opening = text(priority?.openingName) || "this opening";
+  const games = Math.max(0, Number(priority?.evidenceCount || 0));
+  const decision = reportDecision(report);
+  const problem = decision.primaryProblem || decision.primary_problem || null;
+  const confidence = text(priority?.confidenceStatus).toLowerCase();
+  const role = text(priority?.role).toLowerCase();
+  const actionType = text(priority?.actionType).toLowerCase();
+  const problemGames = Number(problem?.sample?.games ?? problem?.games ?? games);
+  const supportedProblem = problem && sameOpening(problem.opening || problem.openingName, opening) && problemGames >= 5;
+
+  if (supportedProblem && /repair|weak|problem/.test(actionType)) {
+    return {
+      kind: "reliable_weakness",
+      label: "Reliable weakness",
+      text: `Selected because ${opening} is the report's evidence-supported repair priority across ${games || problemGames} analysed games.`,
+    };
+  }
+  if (role.startsWith("faced_")) {
+    return {
+      kind: "preparation_opportunity",
+      label: "Preparation opportunity",
+      text: games
+        ? `Selected because you faced ${opening} ${games} time${games === 1 ? "" : "s"} in this report; frequency supports preparation, not a weakness claim.`
+        : `Selected as preparation for ${opening}; the report does not establish it as a weakness.`,
+    };
+  }
+  if (/insufficient|limited|unknown/.test(confidence) || priority?.fallback) {
+    return {
+      kind: "insufficient_evidence",
+      label: "Insufficient evidence",
+      text: `Selected as a low-commitment review of ${opening}; the available evidence does not establish a reliable weakness.`,
+    };
+  }
+  return {
+    kind: "preparation_opportunity",
+    label: "Preparation opportunity",
+    text: games
+      ? `Selected because ${opening} appears in ${games} relevant analysed game${games === 1 ? "" : "s"}; no reliable weakness is claimed.`
+      : `Selected from the report's training priority as preparation; the evidence does not establish a weakness.`,
+  };
+}
+
+function generalSetupOpportunity(priority = {}, priorityReason = null, report = {}) {
   const opening = text(priority.openingName) || "Opening fundamentals";
+  const fictional = report.sampleMode || report.sample_mode || report.source === "sample_fixture";
   return {
     opportunityId: `free-general-setup:${text(priority.priorityId) || normaliseOpeningKey(opening) || "report"}`,
     openingId: text(priority.openingKey) || normaliseOpeningKey(opening),
     openingName: opening,
     side: priority.playerColour === "black" ? "black" : "white",
     issueType: "unsuitable_opening_plan",
-    explanation: text(priority.rationale) || "Use a stable development plan before making an unsupported repertoire change.",
-    evidence: "General setup task based on the report’s canonical training priority. This position is not claimed to come from one of your games.",
+    explanation: priorityReason?.text || text(priority.rationale) || "Use a stable development plan before making an unsupported repertoire change.",
+    evidence: fictional
+      ? "Fictional general setup based on the illustrative example report."
+      : `${priorityReason?.label || "Preparation opportunity"}. Based on your report's training priority, not on a reconstructed position from a particular game.`,
     confidence: null,
     recurrenceCount: 1,
     generalSetup: true,
+    trainingPriorityReason: priorityReason,
   };
 }
 
 export function buildFreeTrainingExercise(report = {}, priority = null) {
+  const priorityReason = explainTrainingPriority(report, priority);
   const opportunities = list(report.openingTrainingOpportunities || report.opening_training_opportunities)
     .map((opportunity) => ({ opportunity, drill: buildOpeningOpportunityDrill(opportunity, report) }))
-    .filter((entry) => entry.drill.valid)
+    .filter((entry) => entry.drill.valid && entry.drill.provenance?.kind === "own_game_position")
     .sort((left, right) => scoreOpportunity(right.opportunity, priority) - scoreOpportunity(left.opportunity, priority));
   const evidenceIds = new Set(list(priority?.evidenceGameIds).map(text));
   const matchesContext = (opportunity) => (
@@ -50,21 +106,28 @@ export function buildFreeTrainingExercise(report = {}, priority = null) {
     || opportunities.find(({ opportunity }) => matchesContext(opportunity));
 
   if (matched) {
+    const opportunity = { ...matched.opportunity, trainingPriorityReason: priorityReason };
+    const drill = buildOpeningOpportunityDrill(opportunity, report);
     return {
-      kind: "own_game",
-      opportunity: matched.opportunity,
-      drill: matched.drill,
-      attribution: matched.drill.sourceGame?.url ? "Own-game position from this report" : "Own-game position from the analysed report evidence",
-      sourceGameId: matched.drill.sourceGame?.id || opportunityGameId(matched.opportunity) || null,
+      kind: "own_game_position",
+      opportunity,
+      drill,
+      provenance: drill.provenance,
+      priorityReason,
+      attribution: "From one of your analysed games",
+      sourceGameId: drill.sourceGame?.id || opportunityGameId(opportunity) || null,
     };
   }
 
-  const opportunity = generalSetupOpportunity(priority || {});
+  const opportunity = generalSetupOpportunity(priority || {}, priorityReason, report);
+  const drill = buildOpeningOpportunityDrill(opportunity, report);
   return {
-    kind: "general_setup",
+    kind: "general_opening_setup",
     opportunity,
-    drill: buildOpeningOpportunityDrill(opportunity, report),
-    attribution: "General setup exercise — not reconstructed from a user game",
+    drill,
+    provenance: drill.provenance,
+    priorityReason,
+    attribution: drill.provenance.label,
     sourceGameId: null,
   };
 }

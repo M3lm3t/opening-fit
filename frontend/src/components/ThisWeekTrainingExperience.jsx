@@ -210,6 +210,15 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
     setFreeExerciseEngaged(false);
   }, [plan?.id, previewTask?.id]);
 
+  useEffect(() => {
+    if (hasWeeklyPlan || !previewTask || activeTaskId === previewTask.id || typeof window === "undefined") return;
+    const requestedFromReport = new URLSearchParams(window.location.search).get("start") === "report-task";
+    if (!requestedFromReport) return;
+    setActiveTaskId(previewTask.id);
+    void trackProductEvent("training_task_started", { authenticated: Boolean(userId), source: "free_training_preview", openingCategory: openingForWeeklyTask(previewTask, plan).side }, { onceKey: `free:${plan?.id}:${previewTask.id}` });
+    window.history.replaceState({}, "", "/train");
+  }, [activeTaskId, hasWeeklyPlan, plan, plan?.id, previewTask, userId]);
+
   const trackPlusInvitation = useCallback(() => {
     void trackProductEvent("plus_invitation_viewed", { authenticated: Boolean(userId), source: "free_training_preview", access: "free" }, { onceKey: plan?.id || "free-training" });
   }, [plan?.id, userId]);

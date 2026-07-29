@@ -18,6 +18,14 @@ import "./OpeningOpportunityDrill.css";
 
 const TYPE_LABELS = { position_choice: "Position choice", line_replay: "Line replay", concept_check: "Concept check" };
 
+function sourceSummary(sourceGame) {
+  if (!sourceGame) return "";
+  const date = sourceGame.playedAt && !Number.isNaN(Date.parse(sourceGame.playedAt))
+    ? new Date(sourceGame.playedAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+    : "";
+  return [sourceGame.opponent ? `Opponent: ${sourceGame.opponent}` : "", date, sourceGame.result ? `Result: ${sourceGame.result}` : "", sourceGame.opening, sourceGame.moveNumber ? `Move ${sourceGame.moveNumber}` : ""].filter(Boolean).join(" · ");
+}
+
 function currentChess(fen) {
   try { return new Chess(fen); } catch { return null; }
 }
@@ -42,6 +50,7 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose, 
   const userColour = drill.side === "black" ? "b" : "w";
   const canMove = Boolean(drill.valid && chess && chess.turn() === userColour && !session.completion && drill.type !== "concept_check");
   const currentExpectedMove = drill.type === "line_replay" ? drill.expectedMoves?.[session.lineIndex] : drill.recommendedMove;
+  const ownGame = drill.provenance?.kind === "own_game_position";
 
   const persist = (next) => {
     const nextProgress = updateOpeningOpportunityProgress(progress, drill, next);
@@ -108,12 +117,16 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose, 
     <section className={`openingOpportunityDrill openingOpportunityDrill--${drill.type}`} aria-labelledby="opening-opportunity-title">
       <header className="openingOpportunityHeader">
         <div><span>{TYPE_LABELS[drill.type]} · Train as {drill.side === "black" ? "Black" : "White"}</span><h2 id="opening-opportunity-title">{drill.openingName}</h2><p>{drill.prompt}</p></div>
-        <div className="openingOpportunityStats"><span>Attempts <strong>{session.attempts}</strong></span><span>{drill.generalSetup ? "Evidence" : "Recurrence"} <strong>{drill.generalSetup ? "General setup" : `${drill.recurrenceCount}×`}</strong></span><span>Status <strong>{session.completion ? "Complete" : session.repeatedFailure ? "Repeat recommended" : "In progress"}</strong></span></div>
+        <div className="openingOpportunityStats"><span>Attempts <strong>{session.attempts}</strong></span><span>Source <strong>{ownGame ? "Analysed game" : drill.provenance?.fictional ? "Fictional example" : "General setup"}</strong></span><span>Status <strong>{session.completion ? "Complete" : session.repeatedFailure ? "Repeat recommended" : "In progress"}</strong></span></div>
       </header>
 
       <p className="openingOpportunityAttribution">
-        {drill.sourceGame ? <>Own-game exercise from this report.{drill.sourceGame.url ? <> <a href={drill.sourceGame.url} target="_blank" rel="noreferrer">Open source game</a></> : null}</> : drill.generalSetup ? "General setup exercise. No position is being attributed to one of your games." : "Report-backed concept exercise without a recoverable source-game position."}
+        <strong>{drill.provenance?.label || "General opening setup"}</strong> · {drill.provenance?.contextLabel}
+        {ownGame && sourceSummary(drill.sourceGame) ? <> · {sourceSummary(drill.sourceGame)}</> : null}
+        {ownGame && drill.sourceGame?.url ? <> · <a href={drill.sourceGame.url} target="_blank" rel="noreferrer">Open source game</a></> : null}
       </p>
+      {drill.provenance?.disclaimer ? <p className="openingOpportunityProvenanceNote">{drill.provenance.disclaimer}</p> : null}
+      {drill.priorityReason?.text ? <p className={`openingOpportunityPriority openingOpportunityPriority--${drill.priorityReason.kind}`}><strong>{drill.priorityReason.label}</strong> · {drill.priorityReason.text}</p> : null}
 
       {drill.type === "concept_check" ? (
         <div className="openingConceptCheck">

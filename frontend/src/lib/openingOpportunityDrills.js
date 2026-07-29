@@ -21,36 +21,64 @@ function conceptForIssue(issueType = "") {
   const concepts = {
     early_queen_movement: {
       plan: "Develop a new minor piece and keep the queen from becoming a tempo target.",
-      distractors: ["Move the queen again to create a threat", "Start a wing pawn attack before development"],
+      distractors: ["Use another queen move to increase pressure on the centre", "Gain kingside space with a pawn move before developing another piece"],
     },
     delayed_castling: {
       plan: "Complete development and secure the king before starting a side operation.",
-      distractors: ["Keep the king central so both rooks stay flexible", "Make another pawn move regardless of the centre"],
+      distractors: ["Keep the king central while waiting for the centre to clarify", "Gain queenside space before connecting the rooks"],
     },
     missing_development_move: {
       plan: "Bring an undeveloped knight or bishop toward the centre.",
-      distractors: ["Move an already-developed piece again", "Look for an immediate queen raid"],
+      distractors: ["Reposition an active piece to improve it further", "Clarify the central pawn tension before developing another piece"],
     },
     pawn_structure_mistake: {
       plan: "Preserve the intended pawn structure until the supported pawn break is ready.",
-      distractors: ["Push the nearest pawn immediately", "Trade pawns only to simplify"],
+      distractors: ["Use the thematic pawn break immediately to gain space", "Release the central tension now to simplify the structure"],
     },
     unsuitable_opening_plan: {
-      plan: "Follow the opening's recorded development plan before changing the structure.",
-      distractors: ["Create threats with the queen first", "Copy the opponent's last move"],
+      plan: "Complete development, keep the centre supported, and choose a pawn break only when the position justifies it.",
+      distractors: ["Commit to a pawn break before finishing development", "Trade the centre immediately regardless of the piece placement"],
     },
     left_known_opening_territory: {
       plan: "Return to the familiar development plan and identify the first decision point.",
-      distractors: ["Memorise every possible opponent move", "Abandon the opening after this game"],
+      distractors: ["Choose the most forcing continuation and calculate from there", "Simplify into a familiar structure even if it changes the opening plan"],
     },
     intended_repertoire_move_missed: {
       plan: "Recall the intended repertoire move and the position cue that triggers it.",
-      distractors: ["Choose a new opening immediately", "Play the most forcing-looking move without checking the plan"],
+      distractors: ["Prefer a forcing alternative that creates an immediate threat", "Use a natural developing move and aim to transpose later"],
     },
   };
   return concepts[issueType] || {
-    plan: "Finish development, protect the king, and follow the recorded opening plan.",
-    distractors: ["Move the queen until a tactic appears", "Push several pawns before developing"],
+    plan: "Develop the minor pieces, keep the centre supported, and secure the king before starting a flank operation.",
+    distractors: ["Gain flank space first and delay castling until the structure is fixed", "Resolve the central tension first, then decide where each minor piece belongs"],
+  };
+}
+
+function exerciseConcept(opportunity = {}, openingName = "", side = "white") {
+  if (/caro[- ]kann/i.test(openingName) && side === "white") {
+    return {
+      plan: "Develop the kingside, support the centre, and castle before committing to a variation-specific pawn break.",
+      question: "With the precise Caro-Kann variation unknown, which White plan is the safest general setup priority?",
+      explanation: "Caro-Kann variations call for different pawn breaks, so the reliable common lesson is to finish development and secure the king before committing the centre.",
+      distractors: [
+        "Prepare e5 immediately, regardless of Black's setup or White's development",
+        "Exchange on d5 at once in every Caro-Kann position to simplify",
+      ],
+      distractorExplanations: [
+        "An e5 break can be thematic in some structures, but it is not automatically sound before the variation and piece placement are known.",
+        "Exchanging on d5 is a legitimate choice in some lines, but treating it as compulsory ignores the position and variation.",
+      ],
+    };
+  }
+  const base = conceptForIssue(text(opportunity.issueType || opportunity.issue_type));
+  return {
+    ...base,
+    question: "Which plan best supports sound opening development in this setup?",
+    explanation: "The best general plan coordinates development, central control, and king safety without claiming a variation-specific move is forced.",
+    distractorExplanations: [
+      "This can be playable in a specific position, but it commits before the development and centre are understood.",
+      "This may suit another structure, but it is not a safe default without position-specific evidence.",
+    ],
   };
 }
 
@@ -77,11 +105,108 @@ function sameMove(left, right) {
   return Boolean(left && right && left.from === right.from && left.to === right.to && (left.promotion || "") === (right.promotion || ""));
 }
 
+function reportGames(report = {}) {
+  return [...list(report.recentGames), ...list(report.recent_games), ...list(report.openingGames), ...list(report.opening_games), ...list(report.games)];
+}
+
 function sourceGame(opportunity, report = {}) {
   const gameId = text(opportunity.gameId || opportunity.game_id);
-  const games = [...list(report.recentGames), ...list(report.recent_games), ...list(report.openingGames), ...list(report.opening_games)];
+  const games = reportGames(report);
   const game = games.find((item) => [item?.gameId, item?.game_id, item?.id, item?.url].map(text).includes(gameId));
-  return game ? { id: gameId, url: text(game.url), opening: text(game.opening || game.name) } : gameId ? { id: gameId, url: "", opening: "" } : null;
+  return game ? { id: gameId, game } : null;
+}
+
+function normalizedFen(value) {
+  return text(value).split(/\s+/).slice(0, 4).join(" ");
+}
+
+function normalizedPlayer(value) {
+  return text(value).toLowerCase();
+}
+
+function pgnHeaders(pgn) {
+  const headers = {};
+  for (const match of text(pgn).matchAll(/^\[([^\s]+)\s+"([^"]*)"\]$/gm)) headers[match[1].toLowerCase()] = match[2];
+  return headers;
+}
+
+function reconstructPosition(pgn, side, moveNumber) {
+  try {
+    const parsed = new Chess();
+    parsed.loadPgn(pgn);
+    const history = parsed.history();
+    const targetPly = (moveNumber - 1) * 2 + (side === "black" ? 1 : 0);
+    if (targetPly < 0 || targetPly >= history.length) return null;
+    const replay = new Chess();
+    for (let index = 0; index < targetPly; index += 1) replay.move(history[index]);
+    return replay.fen();
+  } catch {
+    return null;
+  }
+}
+
+function validatedSourceUrl(url, platform) {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return "";
+    const host = parsed.hostname.toLowerCase();
+    if (platform === "chess.com" && (host === "chess.com" || host.endsWith(".chess.com")) && /\/game\//.test(parsed.pathname)) return parsed.href;
+    if (platform === "lichess" && (host === "lichess.org" || host.endsWith(".lichess.org")) && /^\/[a-zA-Z0-9]{8,12}/.test(parsed.pathname)) return parsed.href;
+  } catch {
+    return "";
+  }
+  return "";
+}
+
+export function normalizeExerciseProvenance(opportunity = {}, report = {}) {
+  const fictional = Boolean(report.sampleMode || report.sample_mode || report.source === "sample_fixture" || report.isDemo);
+  const general = {
+    kind: "general_opening_setup",
+    fictional,
+    label: fictional ? "Fictional general opening setup" : "General opening setup",
+    contextLabel: fictional ? "Illustrative example based on the fictional report's training priority" : "Based on your report's training priority",
+    disclaimer: fictional
+      ? "This illustrative position belongs to the fictional example, not to the visitor or a particular user game."
+      : "This position is illustrative and is not claimed to come from a particular game of yours.",
+    sourceGame: null,
+  };
+  if (fictional || opportunity.generalSetup === true || opportunity.general_setup === true) return general;
+
+  const match = sourceGame(opportunity, report);
+  const game = match?.game;
+  const gameId = text(opportunity.gameId || opportunity.game_id);
+  const fen = text(opportunity.positionFen || opportunity.position_fen);
+  const moveNumber = Number(opportunity.moveNumber || opportunity.move_number);
+  const side = text(opportunity.side).toLowerCase() === "black" ? "black" : "white";
+  const pgn = text(game?.pgn || game?.PGN || game?.rawPgn || game?.raw_pgn);
+  const reportUsername = normalizedPlayer(report.username || report.playerName || report.player_name || report.playerProfile?.username || report.player_profile?.username);
+  const platformValue = text(report.platform || report.importPlatform || report.import_platform).toLowerCase();
+  const platform = platformValue.includes("lichess") ? "lichess" : platformValue.includes("chess") ? "chess.com" : "";
+  const headers = pgnHeaders(pgn);
+  const expectedOwner = normalizedPlayer(side === "white" ? game?.white_username || game?.whiteUsername || headers.white : game?.black_username || game?.blackUsername || headers.black);
+  const reconstructed = reconstructPosition(pgn, side, moveNumber);
+  if (!gameId || !game || !pgn || !platform || !reportUsername || expectedOwner !== reportUsername || !Number.isInteger(moveNumber) || moveNumber < 1 || !fen || !reconstructed || normalizedFen(reconstructed) !== normalizedFen(fen)) return general;
+
+  const opponent = text(side === "white" ? game.black_username || game.blackUsername || headers.black : game.white_username || game.whiteUsername || headers.white);
+  const playedAt = text(game.played_at || game.playedAt || game.played_date || game.playedDate || game.end_time || game.endTime || headers.date);
+  return {
+    kind: "own_game_position",
+    fictional: false,
+    label: "From one of your analysed games",
+    contextLabel: "Board position reconstructed from the recorded PGN",
+    disclaimer: "",
+    sourceGame: {
+      id: gameId,
+      url: validatedSourceUrl(text(game.url), platform),
+      opponent: opponent || null,
+      playedAt: playedAt || null,
+      result: text(game.result || headers.result) || null,
+      opening: text(game.opening || game.name || opportunity.openingName || opportunity.opening_name) || null,
+      moveNumber,
+      platform,
+    },
+  };
 }
 
 function lineMoves(opportunity = {}) {
@@ -93,11 +218,16 @@ export function buildOpeningOpportunityDrill(opportunity, report = {}) {
     return { valid: false, error: "This training opportunity is missing its identifier.", type: "concept_check" };
   }
   const side = text(opportunity.side).toLowerCase() === "black" ? "black" : "white";
-  const fen = text(opportunity.positionFen || opportunity.position_fen);
-  const moves = lineMoves(opportunity);
-  const recommendedMove = cleanSan(opportunity.recommendedMove || opportunity.recommended_move);
-  const acceptedMoves = [...new Set([recommendedMove, ...list(opportunity.alternativeMoves || opportunity.alternative_moves), ...list(opportunity.recognisedTranspositions || opportunity.recognizedTranspositions || opportunity.acceptedMoves || opportunity.accepted_moves)].map(cleanSan).filter(Boolean))];
-  const concept = conceptForIssue(text(opportunity.issueType || opportunity.issue_type));
+  const provenance = normalizeExerciseProvenance(opportunity, report);
+  const ownGamePosition = provenance.kind === "own_game_position";
+  const fen = ownGamePosition ? text(opportunity.positionFen || opportunity.position_fen) : "";
+  const moves = ownGamePosition ? lineMoves(opportunity) : [];
+  const recommendedMove = ownGamePosition ? cleanSan(opportunity.recommendedMove || opportunity.recommended_move) : "";
+  const acceptedMoves = ownGamePosition
+    ? [...new Set([recommendedMove, ...list(opportunity.alternativeMoves || opportunity.alternative_moves), ...list(opportunity.recognisedTranspositions || opportunity.recognizedTranspositions || opportunity.acceptedMoves || opportunity.accepted_moves)].map(cleanSan).filter(Boolean))]
+    : [];
+  const resolvedOpeningName = openingLabel(opportunity);
+  const concept = exerciseConcept(opportunity, resolvedOpeningName, side);
   const hasMoveAnswer = Boolean(recommendedMove);
   const type = moves.length >= 2 ? "line_replay" : hasMoveAnswer ? "position_choice" : "concept_check";
   const position = fen ? safeChess(fen) : { chess: null, error: "The saved opportunity does not include a board position." };
@@ -118,18 +248,18 @@ export function buildOpeningOpportunityDrill(opportunity, report = {}) {
     }
   }
   const correctOptionId = "plan";
-  const generalSetup = opportunity.generalSetup === true || opportunity.general_setup === true;
+  const generalSetup = provenance.kind === "general_opening_setup";
   return {
     valid: true,
     id: `opportunity-drill:${text(opportunity.opportunityId || opportunity.opportunity_id)}`,
     opportunityId: text(opportunity.opportunityId || opportunity.opportunity_id),
     type,
     openingId: text(opportunity.openingId || opportunity.opening_id),
-    openingName: openingLabel(opportunity),
+    openingName: resolvedOpeningName,
     side,
     orientation: side,
     initialFen: position.chess?.fen() || null,
-    prompt: type === "position_choice" ? "What would you play here?" : type === "line_replay" ? `Replay the short line as ${side === "black" ? "Black" : "White"}.` : generalSetup ? "Which plan best supports this general opening setup?" : "Which plan best fits this position?",
+    prompt: type === "position_choice" ? "What would you play here?" : type === "line_replay" ? `Replay the short line as ${side === "black" ? "Black" : "White"}.` : concept.question,
     explanation: text(opportunity.explanation) || "Review the opening decision shown by your analysed game.",
     evidence: text(opportunity.evidence),
     confidence: opportunity.confidence ?? null,
@@ -139,13 +269,16 @@ export function buildOpeningOpportunityDrill(opportunity, report = {}) {
     acceptedMoves,
     expectedMoves: moves,
     plan: concept.plan,
+    answerExplanation: concept.explanation,
     conceptOptions: [
-      { id: correctOptionId, label: concept.plan },
-      { id: "alternative-a", label: concept.distractors[0] },
-      { id: "alternative-b", label: concept.distractors[1] },
+      { id: correctOptionId, label: concept.plan, explanation: concept.explanation },
+      { id: "alternative-a", label: concept.distractors[0], explanation: concept.distractorExplanations[0] },
+      { id: "alternative-b", label: concept.distractors[1], explanation: concept.distractorExplanations[1] },
     ],
     correctOptionId,
-    sourceGame: sourceGame(opportunity, report),
+    sourceGame: provenance.sourceGame,
+    provenance,
+    priorityReason: opportunity.trainingPriorityReason || opportunity.training_priority_reason || null,
     generalSetup,
   };
 }
@@ -224,7 +357,7 @@ export function answerOpeningConcept(drill, session, optionId) {
   const attempts = session.attempts + 1;
   const option = drill.conceptOptions.find((item) => item.id === optionId);
   const success = optionId === drill.correctOptionId;
-  return { ...session, attempts, success, completion: success, repeatedFailure: Boolean(session.repeatedFailure || (!success && attempts >= 3)), lastPlayed: option?.label || "No answer selected", feedback: feedbackFor(drill, option?.label, success, { error: success ? "" : "That plan is possible in other positions, but it is not the supported focus here." }) };
+  return { ...session, attempts, success, completion: success, repeatedFailure: Boolean(session.repeatedFailure || (!success && attempts >= 3)), lastPlayed: option?.label || "No answer selected", feedback: feedbackFor(drill, option?.label, success, { why: option?.explanation || drill.answerExplanation, error: success ? "" : option?.explanation || "That plan may fit another position, but it is not the supported focus here." }) };
 }
 
 export function revealOpeningOpportunityAnswer(drill, session) {
