@@ -1,9 +1,9 @@
-import { formatRecommendationConfidence, recommendationCopy } from "./reportCoachCopy.js";
+import { recommendationCopy } from "./reportCoachCopy.js";
 import { analysisConfidence, OPENING_EVIDENCE_THRESHOLDS } from "./fitTrustModel.js";
 import { formatTrainingPriorityTitle } from "./trainingPriority.js";
 import { formatResultCounts } from "./reportGameCounts.js";
-import { repertoireRoleEvidenceCopy } from "./repertoireEvidence.js";
 import { formatOpeningNameForDisplay } from "./openingNamePresentation.js";
+import { buildAuthoritativeRoleViewModels } from "./authoritativeReportPresentation.js";
 
 const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
@@ -154,37 +154,31 @@ function recommendationContext(strength) {
 }
 
 export function buildPrimaryReportSummary(model = {}, report = {}) {
-  const repertoire = new Map((Array.isArray(model.repertoire) ? model.repertoire : []).map((item) => [item.key, item]));
-  const slots = [
-    ["white", "White"],
-    ["black_e4", "Black against 1.e4"],
-    ["black_d4", "Black against 1.d4"],
-  ].map(([key, label]) => {
-    const item = repertoire.get(key);
-    const declaredComplete = item?.status === "supported" || item?.complete === true || Number(item?.games) >= Number(item?.evidenceRequirement?.threshold || 5);
-    const evidenceCopy = repertoireRoleEvidenceCopy(item ? { ...item, label, complete: declaredComplete } : { key, label, status: "missing" });
-    return {
-      key,
-      label,
-      opening: formatOpeningNameForDisplay(item?.opening) || "Not established yet",
-      confidence: item?.status === "supported" ? formatRecommendationConfidence({ games: item.games, confidence: item.confidence }) : evidenceCopy.statusLabel,
-      evidence: evidenceCopy.evidence,
-      requirement: evidenceCopy.requirement,
-      filters: evidenceCopy.filters,
-      games: Number.isFinite(Number(item?.games)) ? Math.max(0, Math.round(Number(item.games))) : null,
-      status: item?.status || "missing",
-      complete: evidenceCopy.established,
-      tentative: item?.status === "tentative" || item?.tentative === true,
-      reasonCode: evidenceCopy.reasonCode,
-      explanation: evidenceCopy.explanation,
-      funnelRows: evidenceCopy.funnelRows,
-      evidenceRequirement: item?.evidenceRequirement || null,
-      additionalRelevantGamesRequired: evidenceCopy.funnel?.assignedToLeadingOpening !== null && Number.isFinite(Number(evidenceCopy.funnel.assignedToLeadingOpening))
-        ? Math.max(0, Number(item?.evidenceRequirement?.threshold || 5) - Number(evidenceCopy.funnel.assignedToLeadingOpening))
-        : null,
-      evidenceDiagnostics: evidenceCopy.diagnostics,
-    };
-  });
+  const suppliedRoles = Array.isArray(model.repertoire) ? model.repertoire : [];
+  const roleModels = suppliedRoles.length && suppliedRoles.every((item) => ["established", "building", "unresolved"].includes(item.status))
+    ? suppliedRoles
+    : buildAuthoritativeRoleViewModels({ baseRoles: suppliedRoles, candidates: suppliedRoles.map((item) => item.source).filter(Boolean) });
+  const slots = roleModels.map((item) => ({
+    key: item.key,
+    label: item.label,
+    opening: item.displayName || "Not established yet",
+    confidence: item.confidence?.label || "Evidence unavailable",
+    evidence: item.evidenceReason,
+    requirement: item.evidenceRequirementCopy || item.evidenceRequirement?.whyNeeded || item.evidenceReason,
+    filters: item.evidenceFilters || item.evidenceRequirement?.nonGuarantee || "Only correctly attributed games in this role count toward establishment.",
+    games: item.relevantGames,
+    status: item.status,
+    verdict: item.verdict,
+    verdictLabel: item.verdictLabel,
+    complete: item.status === "established",
+    tentative: item.status === "building",
+    reasonCode: item.evidenceReasonCode || item.dataQuality,
+    explanation: item.evidenceReason,
+    funnelRows: item.evidenceFunnelRows || [],
+    evidenceRequirement: item.evidenceRequirement,
+    additionalRelevantGamesRequired: item.gamesNeeded,
+    evidenceDiagnostics: item.evidenceDiagnostics || [],
+  }));
   const lowConfidence = /low|insufficient|limited/i.test(text(model.health?.confidence)) || Number(model.health?.games || 0) < 5;
   const training = model.training;
   const strengthCandidates = [model.authoritative?.establishedStrength, model.establishedStrength, model.decisions?.find?.((item) => item.type === "keep")].filter(Boolean);

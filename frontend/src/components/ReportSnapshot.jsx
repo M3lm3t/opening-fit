@@ -3,7 +3,8 @@ import { getPlayerLevelText } from "./playerLevelLogic";
 import { getOpeningContext, getOpeningSignal } from "./OpeningEvidence";
 import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
 import { recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
-import { formatTrainingPriorityTitle, resolveTrainingPriority } from "../lib/trainingPriority.js";
+import { formatTrainingPriorityTitle } from "../lib/trainingPriority.js";
+import { selectAuthoritativeCoachingPriority } from "../lib/authoritativeReportPresentation.js";
 import OpeningVerdictSummary from "./OpeningVerdictSummary.jsx";
 
 function toNumber(value, fallback = 0) {
@@ -137,7 +138,7 @@ export default function ReportSnapshot({ data, onViewChange }) {
   const bestFit = publicMode ? findBestFit(data) : decision?.establishedStrength || null;
   const weakSpot = publicMode ? findWeakSpot(data) : decision?.primaryProblem || null;
   const recommendation = publicMode ? getRecommendation(data) : decision?.nextTrainingAction?.label;
-  const trainingPriority = publicMode ? null : resolveTrainingPriority(data, { decision, allowFallback: true });
+  const trainingPriority = publicMode ? null : selectAuthoritativeCoachingPriority(data, { decision, allowFallback: true });
 
   const playerLevel = getPlayerLevelText(data, "");
   const rating = data?.rating || data?.chesscomRating || data?.lichessRating;

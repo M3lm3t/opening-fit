@@ -1,6 +1,7 @@
 import { findOpeningLine, normaliseOpeningKey } from "../data/openings.ts";
 import { normaliseTrainingPreferences, personaliseWeeklyTrainingPlan } from "./trainingPreferences.js";
-import { formatTrainingPriorityTitle, resolveTrainingPriority, trainingTaskFromPriority } from "./trainingPriority.js";
+import { formatTrainingPriorityTitle, trainingTaskFromPriority } from "./trainingPriority.js";
+import { selectAuthoritativeCoachingPriority } from "./authoritativeReportPresentation.js";
 
 export const WEEKLY_TRAINING_PLAN_SCHEMA_VERSION = 1;
 export const WEEKLY_TRAINING_TASK_TYPES = Object.freeze(["position_drill", "line_replay", "game_review", "concept_review"]);
@@ -133,7 +134,7 @@ export function buildWeeklyTrainingPlan({ userId, report, repertoire = [], repor
   if (!userId || !report) return { state: "missing-report", plan: null };
   const gamesAnalysed = reportGames(report);
   if (gamesAnalysed < 5) return { state: "insufficient-games", plan: null };
-  const priority = resolveTrainingPriority(report, { allowFallback: false });
+  const priority = selectAuthoritativeCoachingPriority(report, { allowFallback: false });
   if (priority) {
     const focus = priority.openingName || "your current opening evidence";
     const priorityTask = trainingTaskFromPriority(priority, 1);

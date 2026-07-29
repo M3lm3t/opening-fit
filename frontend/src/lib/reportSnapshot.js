@@ -1,6 +1,6 @@
 import { buildReportGameCounts } from "./reportGameCounts.js";
 import { normaliseReportDecision } from "./recommendationEvidence.js";
-import { resolveTrainingPriority } from "./trainingPriority.js";
+import { selectAuthoritativeCoachingPriority } from "./authoritativeReportPresentation.js";
 
 export const REPORT_SCHEMA_VERSION = 4;
 
@@ -281,7 +281,7 @@ export function buildReportSnapshot({
   const analysisId = stableAnalysisIdentity(report, summary);
   const gameCounts = buildReportGameCounts(report);
   const reportDecision = normaliseReportDecision(first(report.reportDecision, report.report_decision)) || null;
-  const trainingPriority = resolveTrainingPriority(report, { decision: reportDecision, allowFallback: false });
+  const trainingPriority = selectAuthoritativeCoachingPriority(report, { decision: reportDecision, allowFallback: false });
 
   return {
     report_id: reportId,
@@ -383,7 +383,7 @@ export function adaptReportHistoryRow(row = {}) {
       training_outcome_context: rawSnapshot.training_outcome_context || {},
       active_repertoire: rawSnapshot.active_repertoire || null,
       report_decision: reportDecision,
-      training_priority: resolveTrainingPriority(rawSnapshot, { decision: reportDecision, allowFallback: false }),
+      training_priority: selectAuthoritativeCoachingPriority(rawSnapshot, { decision: reportDecision, allowFallback: false }),
       analysis_metadata: rawSnapshot.analysis_metadata || {},
     };
   }

@@ -69,13 +69,16 @@ export function legacyWorkspaceEntries(workspace = {}) {
   });
 }
 
-function card(entry, progress) {
-  const sample = finite(entry.sample_size) ? Math.max(0, Math.round(Number(entry.sample_size))) : null;
-  const score = finite(entry.recent_score) ? Math.round(Number(entry.recent_score)) : null;
+function card(entry, progress, roleModel = null) {
+  const roleMatches = roleModel && normaliseOpeningKey(roleModel.displayName) === normaliseOpeningKey(entry.display_name || entry.canonical_name);
+  const authoritative = roleMatches ? roleModel : null;
+  const sample = authoritative ? authoritative.relevantGames : finite(entry.sample_size) ? Math.max(0, Math.round(Number(entry.sample_size))) : null;
+  const score = authoritative ? authoritative.fitScore : finite(entry.recent_score) ? Math.round(Number(entry.recent_score)) : null;
   return {
     ...entry,
-    openingName: entry.display_name || entry.canonical_name || "Unnamed opening",
-    confidenceLabel: entry.confidence || evidence,
+    openingName: authoritative?.displayName || entry.display_name || entry.canonical_name || "Unnamed opening",
+    verdictLabel: authoritative?.verdictLabel || null,
+    confidenceLabel: authoritative?.confidence?.label || entry.confidence || evidence,
     gamesLabel: sample === null ? evidence : `${sample} game${sample === 1 ? "" : "s"}`,
     scoreLabel: score === null ? evidence : `${score}%`,
     strengthLabel: entry.key_strength || evidence,
@@ -84,12 +87,14 @@ function card(entry, progress) {
     reviewedLabel: entry.last_reviewed_at ? new Date(entry.last_reviewed_at).toLocaleDateString() : evidence,
     progress: progress.get(openingKey(entry)) || { status: "insufficient evidence", label: evidence },
     lowSample: sample === null || sample < 5,
-    establishmentStatus: sample === null || sample === 0 ? "unresolved" : sample >= 5 && !String(entry.confidence || "").toLowerCase().includes("low") ? "established" : "building",
+    establishmentStatus: authoritative?.status || (sample === null || sample === 0 ? "unresolved" : sample >= 5 && !String(entry.confidence || "").toLowerCase().includes("low") ? "established" : "building"),
     evidenceCount: sample,
+    evidenceReason: authoritative?.evidenceReason || null,
+    dataQuality: authoritative?.dataQuality || (roleModel ? "saved_opening_differs_from_current_role" : "saved_workspace_only"),
   };
 }
 
-export function buildRepertoireWorkspaceView({ report = null, entries = [], legacyEntries = [], reportHistory = [], loading = false, error = "" } = {}) {
+export function buildRepertoireWorkspaceView({ report = null, entries = [], legacyEntries = [], reportHistory = [], roleModels = [], loading = false, error = "" } = {}) {
   if (loading) return { state: "loading", sections: [], suggestions: [], notice: "Loading your saved repertoire…" };
   const activeRows = entries.filter((entry) => entry.status === "active");
   const usingLegacy = !activeRows.length && legacyEntries.length > 0;
@@ -98,14 +103,15 @@ export function buildRepertoireWorkspaceView({ report = null, entries = [], lega
   if (report && !active.length) return { state: "not-built", sections: [], suggestions: [], notice: "Your report is ready, but no repertoire has been saved yet." };
 
   const progress = repertoireProgressMap(report, reportHistory);
+  const roleForSlot = (slot) => roleModels.find((role) => role.key === (slot === "white_primary" ? "white" : slot === "black_vs_e4" ? "black_e4" : slot === "black_vs_d4" ? "black_d4" : ""));
   const sections = REPERTOIRE_WORKSPACE_SECTIONS.map((section) => ({
     ...section,
-    cards: active.filter((entry) => section.slots.includes(entry.slot)).map((entry) => card(entry, progress)),
+    cards: active.filter((entry) => section.slots.includes(entry.slot)).map((entry) => card(entry, progress, roleForSlot(entry.slot))),
   }));
   const suggestions = entries.filter((entry) => entry.status === "considering" && entry.source === "recommended").map((entry) => {
     const current = active.find((item) => item.slot === entry.slot);
     return {
-      ...card(entry, progress),
+      ...card(entry, progress, roleForSlot(entry.slot)),
       currentOpening: current?.display_name || current?.canonical_name || evidence,
       reason: entry.recommendation_reason || entry.key_weakness || evidence,
       expectedBenefit: entry.expected_benefit || entry.key_strength || evidence,

@@ -8,6 +8,7 @@ import FeatureAccessPreview from "./FeatureAccessPreview.jsx";
 import { canUseFeature, OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
 import { repertoireIntentions, trainingResponsePlans } from "../lib/premiumContinuity.js";
 import { normaliseOpeningKey } from "../data/openings.ts";
+import { buildReportDecisionModel } from "../lib/reportDecisionModel.js";
 import {
   acceptRepertoireRecommendation,
   getRepertoireEntries,
@@ -30,7 +31,7 @@ function RepertoireCard({ card, intention, savedPlan, onIntention, onTrain, onEv
         <div><span>{card.slot.replaceAll("_", " ")}</span><h3>{card.openingName}</h3></div>
         <strong>{card.confidenceLabel}</strong>
       </header>
-      <div className="repertoireEvidenceDecision"><section><span>OpeningFit evidence</span><strong>{card.establishmentStatus}</strong><p>{card.gamesLabel} · {card.confidenceLabel}</p></section><section><label htmlFor={`repertoire-intention-${card.id || card.slot}`}>Your decision</label><select id={`repertoire-intention-${card.id || card.slot}`} value={intention || ""} onChange={(event) => onIntention(card, event.target.value)}><option value="" disabled>Choose intention</option>{INTENTIONS.map((item) => <option key={item}>{item}</option>)}</select><small>This preference does not alter OpeningFit’s evidence or recommendation.</small></section></div>
+      <div className="repertoireEvidenceDecision"><section><span>OpeningFit evidence</span><strong>{card.verdictLabel ? `${card.verdictLabel} · ${card.establishmentStatus}` : card.establishmentStatus}</strong><p>{card.gamesLabel} · {card.confidenceLabel}</p>{card.evidenceReason ? <small>{card.evidenceReason}</small> : null}</section><section><label htmlFor={`repertoire-intention-${card.id || card.slot}`}>Your decision</label><select id={`repertoire-intention-${card.id || card.slot}`} value={intention || ""} onChange={(event) => onIntention(card, event.target.value)}><option value="" disabled>Choose intention</option>{INTENTIONS.map((item) => <option key={item}>{item}</option>)}</select><small>This preference does not alter OpeningFit’s evidence or recommendation.</small></section></div>
       <dl className="repertoireCardMetrics">
         <div><dt>Games analysed</dt><dd>{card.gamesLabel}</dd></div>
         <div><dt>Status</dt><dd>{card.establishmentStatus}</dd></div>
@@ -89,6 +90,10 @@ export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPr
   const syncedReportRef = useRef("");
   const intentions = repertoireIntentions(settings);
   const responsePlans = trainingResponsePlans(settings);
+  const roleModels = useMemo(() => data ? buildReportDecisionModel(data, {}, reportHistory).repertoire.map((role) => ({
+    ...role,
+    userIntention: intentions[role.key === "white" ? "white_primary" : role.key === "black_e4" ? "black_vs_e4" : "black_vs_d4"]?.intention || null,
+  })) : [], [data, intentions, reportHistory]);
 
   const refresh = useCallback(async () => {
     if (!user?.id || !hasFullRepertoire) { setEntries([]); setLoading(false); return []; }
@@ -116,7 +121,7 @@ export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPr
     void updateRepertoireMetrics(user.id, data).then(refresh).catch((error) => setLoadError(error.message));
   }, [data, entries, refresh, user?.id]);
 
-  const view = useMemo(() => buildRepertoireWorkspaceView({ report: data, entries, legacyEntries, reportHistory, loading, error: loadError }), [data, entries, legacyEntries, loadError, loading, reportHistory]);
+  const view = useMemo(() => buildRepertoireWorkspaceView({ report: data, entries, legacyEntries, reportHistory, roleModels, loading, error: loadError }), [data, entries, legacyEntries, loadError, loading, reportHistory, roleModels]);
 
   const build = async () => {
     if (!user?.id) { onAccount?.(); return; }

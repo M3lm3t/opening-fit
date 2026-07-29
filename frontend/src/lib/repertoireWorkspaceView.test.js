@@ -68,6 +68,21 @@ test("active cards and suggested changes expose complete saved evidence", () => 
   assert.equal(view.suggestions[0].expectedBenefit, "More natural development");
 });
 
+test("the premium workspace reuses the current authoritative role verdict and evidence", () => {
+  const role = {
+    key: "white", displayName: "Vienna Game", verdictLabel: "Keep", status: "established",
+    relevantGames: 60, fitScore: 67, confidence: { label: "Moderate" },
+    evidenceReason: "60 correctly attributed games support Vienna Game in this role.", dataQuality: "structured_role_and_recommendation",
+  };
+  const view = buildRepertoireWorkspaceView({ report, entries: [entry({ sample_size: 2, confidence: "Low" })], roleModels: [role] });
+  const card = view.sections[0].cards[0];
+  assert.equal(card.verdictLabel, "Keep");
+  assert.equal(card.establishmentStatus, "established");
+  assert.equal(card.gamesLabel, "60 games");
+  assert.equal(card.confidenceLabel, "Moderate");
+  assert.equal(card.scoreLabel, "67%");
+});
+
 test("loading state is explicit", () => {
   assert.equal(buildRepertoireWorkspaceView({ loading: true }).state, "loading");
 });

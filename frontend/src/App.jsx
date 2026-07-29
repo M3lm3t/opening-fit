@@ -6691,9 +6691,9 @@ function FinalReportFlow({
       />
 
       {reportView === "repertoire" ? <section className="reportViewPanel" id="report-repertoire-view" aria-labelledby="report-repertoire-view-title">
-        <header className="reportViewHeader"><span>Repertoire</span><h2 id="report-repertoire-view-title" tabIndex="-1">Your three core roles and practical alternatives</h2><p>Established, tentative and missing roles stay visible without inventing an opening.</p></header>
+        <header className="reportViewHeader"><span>Repertoire</span><h2 id="report-repertoire-view-title" tabIndex="-1">Your three core roles and practical alternatives</h2><p>Established, building and unresolved roles stay visible without inventing an opening.</p></header>
         <DecisionRepertoireMap model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} />
-        <FocusedRepertoireSection data={data} onPractice={onPractice} onViewEvidence={openOpeningBreakdown} onAnalytics={onAnalytics} />
+        <FocusedRepertoireSection data={data} model={decisionModel} onPractice={onPractice} onViewEvidence={openOpeningBreakdown} onAnalytics={onAnalytics} />
       </section> : null}
 
       {reportView === "problems" ? <section className="reportViewPanel" id="report-problems-view" aria-labelledby="report-problems-view-title">
@@ -10319,11 +10319,18 @@ function DecisionRepertoireMap({ model, onPractice, onEvidence }) {
       <div>
         {model.repertoire.map((area) => (
           <article key={area.key}>
-            <span>{area.label}</span><h3>{area.opening}</h3>
-            <OpeningVerdictSummary opening={{ ...area.source, verdict: area.verdict }} verdict={area.verdict} compact />
+            <span>{area.label}</span><h3>{area.displayName}</h3>
+            <dl>
+              <div><dt>Verdict</dt><dd>{area.verdictLabel}</dd></div>
+              <div><dt>Relevant games</dt><dd>{area.relevantGames ?? "Not recorded"}</dd></div>
+              <div><dt>Confidence</dt><dd>{area.confidence.label}</dd></div>
+              {area.fitScore !== null ? <div><dt>Fit</dt><dd>{area.fitScore}/100 · {area.fitLabel}</dd></div> : null}
+              {area.performanceScore !== null ? <div><dt>Performance</dt><dd>{area.performanceScore}% · {area.performanceLabel}</dd></div> : null}
+            </dl>
+            {area.fitScore === null ? <p>{area.fitLabel}</p> : null}
             {area.weakestLine ? <dl><div><dt>Weakest recurring line</dt><dd>{area.weakestLine}</dd></div></dl> : null}
-            <p>{area.nextAction}</p>
-            <div><button type="button" onClick={() => onEvidence?.(area)}>Evidence</button><button type="button" onClick={() => onPractice?.(area.source)}>Train next</button></div>
+            <p>{area.recommendationReason}</p>
+            <div><button type="button" onClick={() => onEvidence?.(area)}>Evidence</button><button type="button" onClick={() => onPractice?.({ ...(area.source || {}), name: area.displayName, opening: area.displayName, openingName: area.displayName, role: area.role, repertoireSlot: area.key })}>Train next</button></div>
           </article>
         ))}
       </div>
@@ -10355,29 +10362,8 @@ function FiniteTrainingSession({ model, recentGames, onPractice }) {
   );
 }
 
-function getFocusedRepertoirePlan(data) {
+function getLegacyFocusedRepertoireSupportingPlan(data) {
   const sections = buildRepertoireReportSections(data);
-  const coachPlan = getOpeningCoachInsights(data)?.repertoireRecommendation || {};
-  const maintenance = data?.repertoireMaintenanceCost || data?.repertoire_maintenance_cost || {};
-  const pickFromSection = (key, limit) => {
-    const section = sections.find((item) => item.key === key);
-    const candidates = uniqueOpeningsByNameAndContext([
-      ...(section?.buckets?.bestFit || []),
-      ...(section?.buckets?.needsReview || []),
-      ...(section?.buckets?.risky || []),
-      ...(section?.buckets?.notEnoughData || []),
-    ])
-      .filter((opening) => opening && getOpeningName(opening) && !isUnknownOpeningName(getOpeningName(opening)))
-      .sort((a, b) => {
-        const verdictDelta = confidencePriority(b) - confidencePriority(a);
-        if (verdictDelta) return verdictDelta;
-        const gamesDelta = getOpeningGames(b) - getOpeningGames(a);
-        if (gamesDelta) return gamesDelta;
-        return getWinRate(b) - getWinRate(a);
-      });
-
-    return candidates.slice(0, limit);
-  };
   const row = (slot, question, opening, sectionKey) => ({
     slot,
     question,
@@ -10395,58 +10381,36 @@ function getFocusedRepertoirePlan(data) {
       : "No reliable recommendation yet. Keep importing games in this role.",
   });
 
-  const white = pickFromSection("white_repertoire", 2);
-  const e4 = pickFromSection("black_vs_e4", 1);
-  const d4 = pickFromSection("black_vs_d4", 1);
   const later = uniqueOpeningsByNameAndContext([
     ...(sections.flatMap((section) => section.buckets.notEnoughData || [])),
     ...(sections.flatMap((section) => section.buckets.risky || [])),
   ])
     .filter((opening) => getOpeningGames(opening) > 0)
     .slice(0, 2);
-  const tooManySystems =
-    String(maintenance.category || "").toLowerCase().includes("high") ||
-    safeNumber(maintenance.familyCount ?? maintenance.family_count, 0) > 3;
-  const focusOpening =
-    getOpeningCoachInsights(data)?.focusMission?.openingName ||
-    getOpeningCoachInsights(data)?.repertoireRecommendation?.focus ||
-    white[0]?.name ||
-    e4[0]?.name ||
-    d4[0]?.name ||
-    "";
-  const coachWhite = Array.isArray(coachPlan.white) ? coachPlan.white.map((item) => getOpeningName(item)).filter(Boolean) : [];
-  const coachE4 = Array.isArray(coachPlan.blackVsE4) ? coachPlan.blackVsE4.map((item) => getOpeningName(item)).filter(Boolean) : [];
-  const coachD4 = Array.isArray(coachPlan.blackVsD4) ? coachPlan.blackVsD4.map((item) => getOpeningName(item)).filter(Boolean) : [];
-  const byName = (name, fallbackItems) =>
-    fallbackItems.find((opening) => normaliseCoachOpeningName(getOpeningName(opening)) === normaliseCoachOpeningName(name)) || fallbackItems[0] || null;
-  const coachFallback = (name, context) =>
-    name
-      ? normalizeRecommendationItem(
-          {
-            name,
-            context,
-            games: 0,
-            recommendationCopy: "Recommended by the current coach insight object, but the detailed game sample is still thin.",
-          },
-          context
-        )
-      : null;
-
   return {
-    rows: [
-      ...white.map((opening, index) => row(index === 0 ? "White" : "White backup", "What should I play as White?", opening, "white_repertoire")),
-      row("Vs 1.e4", "What should I play against 1.e4?", byName(coachE4[0], e4) || coachFallback(coachE4[0], "black_vs_e4"), "black_vs_e4"),
-      row("Vs 1.d4", "What should I play against 1.d4?", byName(coachD4[0], d4) || coachFallback(coachD4[0], "black_vs_d4"), "black_vs_d4"),
-    ].filter((item) => item.opening),
     later: later.map((opening) => row("Later", "Not now", opening, itemContext(opening))),
-    focusBanner: tooManySystems
-      ? maintenance.advice ||
-        "You do not need another opening yet. Your fastest improvement is making your current repertoire more reliable."
-      : focusOpening
-        ? `Before learning something new, make ${focusOpening} more reliable.`
-        : "Before learning something new, build a clearer sample in your current openings.",
-    coachRationale: coachPlan.rationale || "",
-    hasCoachPlan: Boolean(coachWhite.length || coachE4.length || coachD4.length),
+  };
+}
+
+function getFocusedRepertoirePlan(data, model) {
+  const supporting = getLegacyFocusedRepertoireSupportingPlan(data);
+  const priority = model?.coachingPriority || null;
+  return {
+    rows: (model?.repertoire || []).map((role) => ({
+      ...role,
+      slot: role.label,
+      question: role.label === "White" ? "What should I play as White?" : `What should I play as ${role.label}?`,
+      name: role.displayName,
+      opening: role.source,
+      score: role.fitScore,
+      games: role.relevantGames,
+      reason: role.recommendationReason,
+    })),
+    later: supporting.later,
+    focusBanner: priority
+      ? `Current weekly priority: ${priority.displayName || "review one recent opening"}. ${priority.reason || "This is the report's selected training task."} This training priority is separate from the three repertoire-role decisions.`
+      : "No separate weekly training priority is available in this report. Keep building evidence in the three core roles.",
+    coachRationale: "",
   };
 }
 
@@ -10570,8 +10534,8 @@ function buildOpponentResponsePrep(data = {}) {
     .slice(0, 4);
 }
 
-function FocusedRepertoireSection({ data, onPractice, onViewEvidence, onAnalytics }) {
-  const plan = getFocusedRepertoirePlan(data || {});
+function FocusedRepertoireSection({ data, model, onPractice, onViewEvidence, onAnalytics }) {
+  const plan = getFocusedRepertoirePlan(data || {}, model);
   const responses = buildOpponentResponsePrep(data || {});
 
   useEffect(() => {
@@ -10608,13 +10572,13 @@ function FocusedRepertoireSection({ data, onPractice, onViewEvidence, onAnalytic
       <div className="focusedRepertoireHeader">
         <div>
           <p className="eyebrow">Focused repertoire</p>
-          <h2 id="focused-repertoire-title">Your focused repertoire</h2>
-          <p>One practical answer for each main role, using the recommendations already present in this report.</p>
+          <h2 id="focused-repertoire-title">Core repertoire</h2>
+          <p>The same three opening roles and decisions shown in your report summary.</p>
         </div>
       </div>
 
       <div className="focusedRepertoireBanner">
-        <strong>Focus before learning something new</strong>
+        <strong>Weekly training priority</strong>
         <span>{plan.focusBanner}</span>
         {plan.coachRationale ? <small>{plan.coachRationale}</small> : null}
       </div>
@@ -10628,11 +10592,11 @@ function FocusedRepertoireSection({ data, onPractice, onViewEvidence, onAnalytic
             <dl>
               <div>
                 <dt>Verdict</dt>
-                <dd>{row.verdict}</dd>
+                <dd>{row.verdictLabel}</dd>
               </div>
               <div>
                 <dt>Fit</dt>
-                <dd>{row.score !== null && row.score !== undefined ? `${Math.round(row.score)}/100` : "Pending"}</dd>
+                <dd>{row.score !== null && row.score !== undefined ? `${Math.round(row.score)}/100 · ${row.fitLabel}` : row.fitLabel}</dd>
               </div>
               <div>
                 <dt>Sample</dt>
@@ -10664,7 +10628,7 @@ function FocusedRepertoireSection({ data, onPractice, onViewEvidence, onAnalytic
                     source: "focused_repertoire",
                     slot: row.slot,
                   });
-                  onViewEvidence?.(row.opening);
+                  onViewEvidence?.(row);
                 }}
               >
                 View evidence

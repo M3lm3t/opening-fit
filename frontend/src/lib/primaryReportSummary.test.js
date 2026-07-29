@@ -28,7 +28,7 @@ test("free and premium first reports share the same analysis hierarchy", () => {
   assert.equal(free.training.cta, "Start 10-minute practice");
   assert.equal(free.scoreLabel, "Coverage indicator");
   assert.equal(free.establishedRoleCount, 3);
-  assert.deepEqual(free.slots.map((slot) => slot.confidence), ["Established", "Established", "Established"]);
+  assert.deepEqual(free.slots.map((slot) => slot.confidence), ["Low", "Low", "Low"]);
 });
 
 test("the report leads with verdict, evidence, one action and compact status", async () => {

@@ -1,7 +1,8 @@
 import { findOpeningLine, normaliseOpeningKey } from "../data/openings.ts";
 import { WEEKLY_TRAINING_PLAN_SCHEMA_VERSION, weeklyPlanWindow } from "./weeklyTrainingPlan.js";
 import { normaliseTrainingPreferences, personaliseWeeklyTrainingPlan } from "./trainingPreferences.js";
-import { formatTrainingPriorityTitle, resolveTrainingPriority, trainingTaskFromPriority } from "./trainingPriority.js";
+import { formatTrainingPriorityTitle, trainingTaskFromPriority } from "./trainingPriority.js";
+import { selectAuthoritativeCoachingPriority } from "./authoritativeReportPresentation.js";
 
 const text = (value) => String(value ?? "").trim();
 const list = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
@@ -44,7 +45,7 @@ function foundationalTask({ type, title, explanation, successCriteria, minutes, 
 }
 
 export function buildFoundationalWeeklyPlan({ userId = "local", report = {}, repertoire = [], now = new Date(), preferences = null } = {}) {
-  const priority = resolveTrainingPriority(report);
+  const priority = selectAuthoritativeCoachingPriority(report);
   const fallbackOpeningValue = foundationOpening(report, repertoire);
   const opening = priority.openingName ? { id: priority.openingKey, name: priority.openingName, side: priority.playerColour || fallbackOpeningValue.side } : fallbackOpeningValue;
   const { weekStart, weekEnd } = weeklyPlanWindow(now);

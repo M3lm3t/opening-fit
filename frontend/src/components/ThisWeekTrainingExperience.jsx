@@ -8,7 +8,8 @@ import { getOrCreateWeeklyTrainingPlan, getWeeklyTrainingPlanHistory, setWeeklyT
 import { canUseFeature, OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
 import { personaliseWeeklyTrainingPlan, readLocalTrainingPreferences, resolveTrainingPreferences } from "../lib/trainingPreferences.js";
 import { TRAINING_PREFERENCES_EDIT_EVENT, TRAINING_PREFERENCES_UPDATED_EVENT } from "./PostReportOnboarding.jsx";
-import { resolveTrainingPriority, trainingPlanMatchesPriority } from "../lib/trainingPriority.js";
+import { trainingPlanMatchesPriority } from "../lib/trainingPriority.js";
+import { selectAuthoritativeCoachingPriority } from "../lib/authoritativeReportPresentation.js";
 import FeatureAccessPreview from "./FeatureAccessPreview.jsx";
 import OpeningOpportunityDrill from "./OpeningOpportunityDrill.jsx";
 import TrainingGameReviewSession from "./TrainingGameReviewSession.jsx";
@@ -149,7 +150,7 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
   const userId = user?.id || "";
   const [trainingPreferences, setTrainingPreferences] = useState(() => resolveTrainingPreferences({ authenticated: Boolean(user?.id), settings, localPreferences: readLocalTrainingPreferences() }));
   const hasWeeklyPlan = canUseFeature(entitlement, OPENINGFIT_FEATURES.WEEKLY_PLAN);
-  const currentPriority = useMemo(() => resolveTrainingPriority(report || {}), [report]);
+  const currentPriority = useMemo(() => selectAuthoritativeCoachingPriority(report || {}), [report]);
   const initial = useMemo(() => {
     const cached = readCache(userId);
     return cached.plan && trainingPlanMatchesPriority(cached.plan, currentPriority) ? cached : { plan: null, pendingTaskIds: [] };

@@ -2,7 +2,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabaseClient.js";
 import { adaptReportHistoryRow } from "../lib/reportSnapshot.js";
 import { buildWeeklyTrainingPlan, isReusableWeeklyPlan, weeklyPlanWindow } from "../lib/weeklyTrainingPlan.js";
 import { getActiveRepertoire } from "./repertoireService.js";
-import { resolveTrainingPriority } from "../lib/trainingPriority.js";
+import { selectAuthoritativeCoachingPriority } from "../lib/authoritativeReportPresentation.js";
 
 function requireUser(userId) {
   if (!String(userId || "").trim()) throw new Error("Sign in to use a saved weekly training plan.");
@@ -100,7 +100,7 @@ export async function getOrCreateWeeklyTrainingPlan(userId, options = {}) {
   if (!report) return { state: "missing-report", plan: current || null, reused: Boolean(current) };
 
   const { weekStart } = weeklyPlanWindow(options.now || new Date());
-  const priority = resolveTrainingPriority(report, { allowFallback: false });
+  const priority = selectAuthoritativeCoachingPriority(report, { allowFallback: false });
   if (isReusableWeeklyPlan(current, { weekStart, reportId, priorityId: priority?.priorityId || null, forceRefresh: options.forceRefresh })) {
     return { state: "reused", plan: current, reused: true };
   }

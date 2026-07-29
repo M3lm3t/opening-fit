@@ -23,12 +23,12 @@ test("very small report exposes its coverage without inflating recommendation co
 test("white-only data keeps explicit missing Black roles", () => {
   const roles = buildReportDecisionModel({ preferred_white: [{ name: "Vienna", openingRole: "played_as_white", repertoireSlot: "white", games: 5, score: 70 }] }).repertoire;
   assert.deepEqual(roles.map((row) => row.key), ["white", "black_e4", "black_d4"]);
-  assert.equal(roles.find((row) => row.key === "black_e4").status, "missing");
+  assert.equal(roles.find((row) => row.key === "black_e4").status, "unresolved");
 });
 test("black-only data keeps an explicit missing White role", () => {
   const roles = buildReportDecisionModel({ preferred_black: [{ name: "Caro-Kann", openingRole: "played_as_black", repertoireSlot: "black_vs_e4", games: 5, score: 60 }] }).repertoire;
-  assert.equal(roles.find((row) => row.key === "white").status, "missing");
-  assert.equal(roles.find((row) => row.key === "black_e4").status, "supported");
+  assert.equal(roles.find((row) => row.key === "white").status, "unresolved");
+  assert.equal(roles.find((row) => row.key === "black_e4").status, "established");
 });
 test("saved snake-case role evidence retains its leading count", () => {
   const roles = buildReportDecisionModel({
@@ -39,7 +39,7 @@ test("saved snake-case role evidence retains its leading count", () => {
     }],
   }).repertoire;
   const role = roles.find((row) => row.key === "black_e4");
-  assert.equal(role.opening, "Caro-Kann Defense");
+  assert.equal(role.opening, "Caro-Kann Defence");
   assert.equal(role.games, 3);
 });
 test("missing style and previous report remain safe", () => assert.equal(buildReportDecisionModel(full, {}, []).health.trend, null));

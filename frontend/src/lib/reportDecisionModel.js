@@ -1,7 +1,8 @@
 import { analysisConfidence, buildOpeningVerdictPresentation, evidenceBasedReason, fitEvidence, openingFitScore, performanceSummary } from "./fitTrustModel.js";
 import { normaliseReportDecision } from "./recommendationEvidence.js";
 import { coachVerdict, formatRecommendationConfidence, trainingActionCopy } from "./reportCoachCopy.js";
-import { formatTrainingPriorityTitle, resolveTrainingPriority } from "./trainingPriority.js";
+import { formatTrainingPriorityTitle } from "./trainingPriority.js";
+import { buildAuthoritativeRoleViewModels, selectAuthoritativeCoachingPriority } from "./authoritativeReportPresentation.js";
 
 function list(value) {
   if (!value) return [];
@@ -346,7 +347,7 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
   const weakest = issues[0]?.opening || repair?.opening || reduce?.opening || "No recurring weakness identified";
   const next = repair || reduce || keep || null;
   const nextTrainingAction = serverDecision?.nextTrainingAction || (next ? { type: next.type, opening: next.opening, role: next.role, label: `${next.type === "keep" ? "Consolidate" : "Repair"} ${next.opening}`, reason: next.reason } : { type: "collect_more_games", opening: null, role: null, label: "Collect more games before changing your repertoire", reason: "No opening has enough correctly attributed evidence for a strength or weakness claim." });
-  const trainingPriority = resolveTrainingPriority(data, { decision: serverDecision ? { ...serverDecision, nextTrainingAction } : { nextTrainingAction }, allowFallback: false });
+  const trainingPriority = selectAuthoritativeCoachingPriority(data, { decision: serverDecision ? { ...serverDecision, nextTrainingAction } : { nextTrainingAction }, allowFallback: false });
   const playerProfile = data.playerProfile || data.player_profile || {};
   const displayName = text(data.displayName || data.display_name || playerProfile.displayName || playerProfile.display_name || data.username || data.playerName) || "OpeningFit player";
   const username = text(data.username || data.playerName || data.player_name || playerProfile.username);
@@ -372,12 +373,17 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
     baseline: { ...baseline, status: comparisonAllowed ? "comparable_later_report" : "baseline", hasComparablePrevious: comparisonAllowed, comparisonClaimsAllowed: comparisonAllowed },
   };
   const repertoireSource = serverDecision?.recommendations?.length ? { ...data, best_openings: serverDecision.recommendations, repertoireRoles: serverDecision.repertoireRoles } : data;
+  const repertoire = buildAuthoritativeRoleViewModels({
+    baseRoles: buildRepertoireMapModel(repertoireSource),
+    candidates: collectReportOpenings(repertoireSource),
+  });
   return {
     ...authoritative,
     authoritative,
     header: { displayName, username, platform, rating: Number.isFinite(rating) ? rating : null, games, period, date, timeControl },
     verdict: { paragraph, strongest, weakness: weakest, nextDecision: nextTrainingAction.label },
-    decisions, issues, repertoire: buildRepertoireMapModel(repertoireSource),
+    decisions, issues, repertoire,
+    coachingPriority: trainingPriority,
     health: { score: scoreValue, confidence, games, strongest, weakest, trend },
     training: { opening: trainingPriority?.openingName || nextTrainingAction.opening, line: trainingPriority?.lineOrPosition || text(next?.source?.variation || next?.source?.line || next?.source?.moveLine || next?.source?.move_line), objective: trainingPriority?.rationale || trainingActionCopy(nextTrainingAction, primaryProblem || establishedStrength).explanation, label: trainingPriority ? formatTrainingPriorityTitle(trainingPriority, { prefix: false }) : trainingActionCopy(nextTrainingAction, primaryProblem || establishedStrength).title, type: nextTrainingAction.type, durationMinutes: trainingPriority?.estimatedDurationMinutes || 10, source: trainingPriority || next?.source || primaryProblem || establishedStrength || null },
   };
