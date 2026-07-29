@@ -11,6 +11,7 @@ import { TRAINING_PREFERENCES_EDIT_EVENT, TRAINING_PREFERENCES_UPDATED_EVENT } f
 import { resolveTrainingPriority, trainingPlanMatchesPriority } from "../lib/trainingPriority.js";
 import FeatureAccessPreview from "./FeatureAccessPreview.jsx";
 import OpeningOpportunityDrill from "./OpeningOpportunityDrill.jsx";
+import TrainingGameReviewSession from "./TrainingGameReviewSession.jsx";
 import { buildFreeTrainingExercise } from "../lib/freeTrainingExercise.js";
 import "./ThisWeekTrainingExperience.css";
 import "./ThisWeekTrainingCompletion.css";
@@ -74,7 +75,7 @@ function TaskMeta({ task, plan }) {
   );
 }
 
-function PendingTaskCard({ task, plan, current, active, busy, onStart, onComplete }) {
+function PendingTaskCard({ task, plan, current, active, busy, completionAllowed = true, onStart, onComplete }) {
   return (
     <article className={`thisWeekTaskCard ${current ? "thisWeekTaskCard--current" : ""}`} aria-current={current ? "step" : undefined}>
       <div className="thisWeekTaskOrder" aria-hidden="true">{task.order}</div>
@@ -93,7 +94,7 @@ function PendingTaskCard({ task, plan, current, active, busy, onStart, onComplet
           <button type="button" className={current ? "primaryBtn" : "secondaryBtn"} onClick={() => onStart(task)}>
             <Play size={16} /> {active ? "Continue task" : "Start task"}
           </button>
-          <button type="button" className="thisWeekCompleteButton" disabled={busy} onClick={() => onComplete(task)}>
+          <button type="button" className="thisWeekCompleteButton" disabled={busy || !completionAllowed} onClick={() => onComplete(task)} title={!completionAllowed ? "Finish the review, concept, and saved plan first." : undefined}>
             <Check size={16} /> {busy ? "Saving…" : "Mark complete"}
           </button>
         </div>
@@ -134,7 +135,8 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
   const [notice, setNotice] = useState("");
   const [busyTaskId, setBusyTaskId] = useState("");
   const [activeTaskId, setActiveTaskId] = useState("");
-  const [freeExerciseEngaged, setFreeExerciseEngaged] = useState(false);
+  const [conceptEngaged, setConceptEngaged] = useState(false);
+  const [trainingSessionReady, setTrainingSessionReady] = useState(false);
   const [pendingTaskIds, setPendingTaskIds] = useState(initial.pendingTaskIds);
 
   useEffect(() => {
@@ -207,7 +209,8 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
   );
 
   useEffect(() => {
-    setFreeExerciseEngaged(false);
+    setConceptEngaged(false);
+    setTrainingSessionReady(false);
   }, [plan?.id, previewTask?.id]);
 
   useEffect(() => {
@@ -227,19 +230,25 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
     void trackProductEvent("upgrade_clicked", { authenticated: Boolean(userId), source: "free_training_preview", access: "free" });
     onUpgrade?.();
   }, [onUpgrade, userId]);
+  const handleTrainingReadiness = useCallback((state) => setTrainingSessionReady(state.complete), []);
 
   const startTask = (task) => {
     if (!task) return;
     setActiveTaskId(task.id);
     void trackProductEvent("weekly_plan_started", { authenticated: Boolean(userId), source: plan?.foundation ? "foundation_plan" : "weekly_plan" }, { onceKey: plan?.id });
     void trackProductEvent("training_task_started", { authenticated: Boolean(userId), source: "this_week", openingCategory: openingForWeeklyTask(task, plan).side }, { onceKey: `${plan?.id}:${task.id}` });
-    onPractice?.(practiceTarget(task, plan));
-    window.setTimeout(() => document.getElementById("opening-practice")?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 40);
+    if (task.id === previewTask?.id) {
+      window.setTimeout(() => document.getElementById("training-review-session-title")?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 40);
+    } else {
+      onPractice?.(practiceTarget(task, plan));
+      window.setTimeout(() => document.getElementById("opening-practice")?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 40);
+    }
   };
 
   const startFreeTask = (task) => {
     if (!task) return;
-    setFreeExerciseEngaged(false);
+    setConceptEngaged(false);
+    setTrainingSessionReady(false);
     setActiveTaskId(task.id);
     void trackProductEvent("training_task_started", { authenticated: Boolean(userId), source: "free_training_preview", openingCategory: openingForWeeklyTask(task, plan).side }, { onceKey: `free:${plan?.id}:${task.id}` });
   };
@@ -288,8 +297,10 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
         <TaskMeta task={previewTask} plan={plan} />
         <h2>{previewTask.title}</h2><p>{previewTask.explanation}</p>
         {!freeState.started ? <button type="button" className="primaryBtn" onClick={() => startFreeTask(previewTask)}><Play size={17} /> Start free action</button> : freeState.completed ? <p className="thisWeekFreeComplete"><CheckCircle2 size={18} /> Free action completed</p> : <div className="thisWeekFreeExercise">
-          <OpeningOpportunityDrill opportunity={freeExercise.opportunity} report={report} onEngaged={() => setFreeExerciseEngaged(true)} onCompleted={() => setFreeExerciseEngaged(true)} />
-          <div className="thisWeekFreeActive"><strong>Success check</strong><p>{previewTask.successCriteria}</p>{freeExerciseEngaged ? <button type="button" className="primaryBtn" disabled={busyTaskId === previewTask.id} onClick={() => completeTask(previewTask)}>{busyTaskId === previewTask.id ? "Saving…" : "Complete this exercise"}</button> : <small>Attempt the exercise or reveal its answer before completing this action.</small>}</div>
+          <TrainingGameReviewSession report={report} priority={currentPriority} exercise={freeExercise} conceptEngaged={conceptEngaged} onReadinessChange={handleTrainingReadiness}>
+            <OpeningOpportunityDrill opportunity={freeExercise.opportunity} report={report} onEngaged={() => setConceptEngaged(true)} onCompleted={() => setConceptEngaged(true)} />
+          </TrainingGameReviewSession>
+          <div className="thisWeekFreeActive"><strong>Success check</strong><p>Review one supplied game when available, attempt or reveal the concept, and save one response plan.</p>{trainingSessionReady ? <button type="button" className="primaryBtn" disabled={busyTaskId === previewTask.id} onClick={() => completeTask(previewTask)}>{busyTaskId === previewTask.id ? "Saving…" : "Complete this session"}</button> : <small>Finish the available review steps shown above before completing this action.</small>}</div>
         </div>}
       </article> : null}
       {freeState.showPlusInvitation ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.WEEKLY_PLAN} eyebrow="Continue with OpeningFit Plus" title="Keep this training loop going" benefits={PLUS_CONTINUATION_BENEFITS} onViewed={trackPlusInvitation} onUpgrade={openPlus} /> : null}
@@ -334,10 +345,13 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
             <div><span>Current next action</span><strong>{view.nextTask?.title}</strong></div>
             <button type="button" className="primaryBtn" onClick={() => startTask(view.nextTask)}><Play size={17} /> {activeTaskId === view.nextTask?.id ? "Continue training" : "Continue training"}<ChevronRight size={17} /></button>
           </div>
+          {activeTaskId === previewTask?.id && freeExercise ? <TrainingGameReviewSession report={report} priority={currentPriority} exercise={freeExercise} conceptEngaged={conceptEngaged} onReadinessChange={handleTrainingReadiness}>
+            <OpeningOpportunityDrill opportunity={freeExercise.opportunity} report={report} onEngaged={() => setConceptEngaged(true)} onCompleted={() => setConceptEngaged(true)} />
+          </TrainingGameReviewSession> : null}
           <section className="thisWeekTasks" aria-labelledby="this-week-tasks-title">
             <header><div><span>Ordered plan</span><h2 id="this-week-tasks-title">Your tasks</h2></div><small>One focus, completed in order where possible.</small></header>
             <div className="thisWeekPendingTasks">
-              {view.pendingTasks.map((task) => <PendingTaskCard key={task.id} task={task} plan={plan} current={task.id === view.nextTask?.id} active={task.id === activeTaskId} busy={task.id === busyTaskId} onStart={startTask} onComplete={completeTask} />)}
+              {view.pendingTasks.map((task) => <PendingTaskCard key={task.id} task={task} plan={plan} current={task.id === view.nextTask?.id} active={task.id === activeTaskId} busy={task.id === busyTaskId} completionAllowed={task.id !== previewTask?.id || trainingSessionReady} onStart={startTask} onComplete={completeTask} />)}
             </div>
             {view.completedTasks.length ? <div className="thisWeekCompletedTasks"><h3>Completed tasks</h3>{view.completedTasks.map((task) => <CompletedTask key={task.id} task={task} plan={plan} />)}</div> : null}
           </section>

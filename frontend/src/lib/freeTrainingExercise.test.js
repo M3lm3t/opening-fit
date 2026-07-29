@@ -150,9 +150,9 @@ test("the duplicate-start removal preserves the authoritative premium gate", () 
   assert.match(source, /if \(!hasWeeklyPlan\)/);
 });
 
-test("free completion remains gated behind exercise engagement", () => {
+test("free completion requires the complete review session", () => {
   const source = readFileSync(new URL("../components/ThisWeekTrainingExperience.jsx", import.meta.url), "utf8");
-  assert.match(source, /<OpeningOpportunityDrill[\s\S]*?onEngaged=/);
-  assert.match(source, /freeExerciseEngaged \? <button[\s\S]*?Complete this exercise/);
+  assert.match(source, /<TrainingGameReviewSession[\s\S]*?<OpeningOpportunityDrill[\s\S]*?onEngaged=/);
+  assert.match(source, /trainingSessionReady \? <button[\s\S]*?Complete this session/);
   assert.doesNotMatch(source, /Mark action complete/);
 });

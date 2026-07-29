@@ -117,6 +117,10 @@ def test_faced_opening_becomes_preparation_not_repertoire_problem():
     assert decision["primaryProblem"] is None
     assert decision["nextTrainingAction"]["type"] == "prepare_against"
     assert decision["nextTrainingAction"]["label"] == "Prepare against the French Defence"
+    recommendation = decision["recommendations"][0]["trainingAction"]
+    assert "supplied recent games" in recommendation["exercise"]
+    assert "repeated position" not in recommendation["concept"]
+    assert recommendation["completionTarget"]["count"] == 1
 
 
 def test_fit_score_is_preserved_but_never_used_as_current_performance():

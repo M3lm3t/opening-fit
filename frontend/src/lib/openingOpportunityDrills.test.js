@@ -45,7 +45,7 @@ test("completion progress persists attempts, success and last practised", () => 
   const storage = { getItem: (key) => values.get(key) || null, setItem: (key, value) => values.set(key, value) };
   assert.equal(saveOpeningOpportunityProgress(progress, storage), true);
   assert.deepEqual(loadOpeningOpportunityProgress(storage), progress);
-  assert.deepEqual(progress[drill.id], { attempts: 1, success: true, completion: true, lastPractised: "2026-07-18T12:00:00.000Z", repeatedFailure: false });
+  assert.deepEqual(progress[drill.id], { attempts: 1, success: true, completion: true, revealed: false, lastPractised: "2026-07-18T12:00:00.000Z", repeatedFailure: false, reviewedGameIds: [], responsePlan: "" });
 });
 
 test("repeated failure remains tracked after later success", () => {

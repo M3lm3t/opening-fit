@@ -255,9 +255,9 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         explanation = f"Keep playing {opening_name}; {_count_label(games, 'recent game')} {'supports' if games == 1 else 'support'} it. {exercise}"
     elif not owned and games >= MIN_OPENING_EVIDENCE:
         title = f"Prepare against the {opening_name}"
-        concept = "Find the first repeated position where your plan was unclear and write down one simple response."
-        exercise = f"Review three games where you faced {opening_name} as {perspective['userColour'].title()}."
-        completion_target = {"type": "reviewed_games", "count": 3, "label": "Finish three game reviews and save one response plan."}
+        concept = "In each supplied recent game, note the first position where you were unsure of your plan, then choose one response to remember."
+        exercise = f"Review up to three supplied recent games where you faced {opening_name} as {perspective['userColour'].title()}."
+        completion_target = {"type": "reviewed_games", "count": 1, "label": "Review at least one supplied game and save one response plan."}
         explanation = f"You faced {opening_name} as {perspective['userColour'].title()} in {_count_label(games, 'recent game')}. {exercise} {concept}"
     else:
         title = "Collect more games before changing your repertoire"

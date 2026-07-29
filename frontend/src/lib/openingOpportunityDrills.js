@@ -59,7 +59,7 @@ function exerciseConcept(opportunity = {}, openingName = "", side = "white") {
     return {
       plan: "Develop the kingside, support the centre, and castle before committing to a variation-specific pawn break.",
       question: "With the precise Caro-Kann variation unknown, which White plan is the safest general setup priority?",
-      explanation: "Caro-Kann variations call for different pawn breaks, so the reliable common lesson is to finish development and secure the king before committing the centre.",
+      explanation: "Because the exact variation is unknown, avoid committing to a pawn break that only works in one structure. Complete development, support the centre, and castle before choosing a variation-specific plan.",
       distractors: [
         "Prepare e5 immediately, regardless of Black's setup or White's development",
         "Exchange on d5 at once in every Caro-Kann position to simplify",
@@ -362,7 +362,7 @@ export function answerOpeningConcept(drill, session, optionId) {
 
 export function revealOpeningOpportunityAnswer(drill, session) {
   const answer = drill.type === "line_replay" ? drill.expectedMoves?.[session.lineIndex] : drill.recommendedMove || drill.plan;
-  return { ...session, revealed: true, feedback: feedbackFor(drill, session.lastPlayed || "Answer requested", false, { recommended: answer, revealed: true }) };
+  return { ...session, revealed: true, feedback: feedbackFor(drill, session.lastPlayed || "Answer requested", false, { recommended: answer, why: drill.answerExplanation, revealed: true }) };
 }
 
 export function updateOpeningOpportunityProgress(progress = {}, drill, session, now = new Date()) {
@@ -373,8 +373,24 @@ export function updateOpeningOpportunityProgress(progress = {}, drill, session, 
       attempts: Number(session.attempts || 0),
       success: Boolean(session.success || current.success),
       completion: Boolean(session.completion || current.completion),
+      revealed: Boolean(session.revealed || current.revealed),
       lastPractised: new Date(now).toISOString(),
       repeatedFailure: Boolean(session.repeatedFailure),
+      reviewedGameIds: Array.isArray(current.reviewedGameIds) ? current.reviewedGameIds : [],
+      responsePlan: text(current.responsePlan),
+    },
+  };
+}
+
+export function updateOpeningOpportunityReviewProgress(progress = {}, drillId, changes = {}, now = new Date()) {
+  const current = progress[drillId] || {};
+  return {
+    ...progress,
+    [drillId]: {
+      ...current,
+      reviewedGameIds: [...new Set(list(changes.reviewedGameIds ?? current.reviewedGameIds).map(text))],
+      responsePlan: text(changes.responsePlan ?? current.responsePlan),
+      lastPractised: new Date(now).toISOString(),
     },
   };
 }

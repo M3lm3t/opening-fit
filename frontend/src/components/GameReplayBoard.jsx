@@ -3,6 +3,7 @@ import { Chess } from "chess.js";
 import { ChevronLeft, ChevronRight, SkipBack, SkipForward } from "lucide-react";
 import ChessPositionBoard from "./ChessPositionBoard";
 import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes.jsx";
+import { parseReplayPgn } from "../lib/trainingGameReview.js";
 
 function buildPositionFromMoves(moves, moveIndex) {
   const chess = new Chess();
@@ -39,7 +40,8 @@ export default function GameReplayBoard({
   title = "Game Replay",
   initialOrientation = "white",
 }) {
-  const moves = useMemo(() => (Array.isArray(game?.moves) ? game.moves : []), [game]);
+  const parsedPgn = useMemo(() => parseReplayPgn(game?.pgn), [game?.pgn]);
+  const moves = useMemo(() => parsedPgn?.moves || (Array.isArray(game?.moves) ? game.moves : []), [game, parsedPgn]);
   const [moveIndex, setMoveIndex] = useState(0);
   const [orientation, setOrientation] = useState(initialOrientation);
   const { boardTheme, setBoardTheme } = useBoardTheme();
@@ -178,6 +180,7 @@ export default function GameReplayBoard({
                 type="button"
                 disabled={!row.white}
                 onClick={() => setMoveIndex(row.whiteIndex)}
+                aria-label={`Go to move ${row.moveNumber}, White played ${row.white}`}
               >
                 {row.white}
               </button>
@@ -189,6 +192,7 @@ export default function GameReplayBoard({
                 type="button"
                 disabled={!row.black}
                 onClick={() => setMoveIndex(row.blackIndex)}
+                aria-label={`Go to move ${row.moveNumber}, Black played ${row.black}`}
               >
                 {row.black}
               </button>

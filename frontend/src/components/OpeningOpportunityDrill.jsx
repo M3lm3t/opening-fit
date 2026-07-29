@@ -168,10 +168,10 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose, 
           <dl>
             <div><dt>You played</dt><dd>{session.feedback.played}</dd></div>
             {(session.attempts > 0 || session.revealed) ? <div><dt>{drill.type === "concept_check" ? "Recommended plan" : "Recommended move or plan"}</dt><dd>{session.feedback.recommended || currentExpectedMove || drill.plan}</dd></div> : null}
-            <div><dt>Why it matters</dt><dd>{session.feedback.why}</dd></div>
+            <div><dt>Why this answer is recommended</dt><dd>{session.feedback.why}</dd></div>
             {session.feedback.gameReference ? <div><dt>Your evidence</dt><dd>{session.feedback.gameReference}{drill.sourceGame?.url ? <> <a href={drill.sourceGame.url} target="_blank" rel="noreferrer">Open game</a></> : null}</dd></div> : null}
           </dl>
-          {session.feedback.error ? <p>{session.feedback.error}</p> : session.feedback.transposition ? <p>That recognised transposition reaches a supported route, so it counts.</p> : <p>Good recall. Keep the position cue attached to the move.</p>}
+          {session.feedback.error ? <p>{session.feedback.error}</p> : session.feedback.transposition ? <p>That recognised transposition reaches a supported route, so it counts.</p> : ownGame ? <p>Keep this recorded position and its plan connected in your review.</p> : <p>{drill.answerExplanation}</p>}
         </div>
       ) : null}
 
