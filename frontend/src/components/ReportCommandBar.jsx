@@ -43,11 +43,11 @@ export default function ReportCommandBar({
   return (
     <section className="reportCommandBar" aria-label="Report command bar" data-app-action-router-ignore="true">
       <div className="reportCommandBar__summary">
-        <span className="reportCommandBar__status">{sampleMode ? "Example report" : "Live report"}</span>
+        <span className="reportCommandBar__status">{sampleMode ? "Illustrative example" : "Live report"}</span>
         <div>
           <strong>{username}</strong>
           <p>
-            {sampleMode ? "Example data" : platform}
+            {sampleMode ? "Fictional data" : platform}
             {games ? ` · ${games} game${games === 1 ? "" : "s"} analysed` : ""}
           </p>
         </div>

@@ -12012,6 +12012,7 @@ function AppPrimaryNav({
 
   const isPrimaryNavItemActive = (item) => {
     const isPremiumPath = currentPath === "/premium" || currentPath === "/pricing" || currentPath === "/upgrade";
+    if (item.key === "example") return isSampleReportPath(currentPath);
     if (item.key === activeView) return true;
 
     const activeViewsByKey = {
@@ -12020,7 +12021,6 @@ function AppPrimaryNav({
       report: ["report", "overview", "recommendations", "openings", "weakspots", "verdicts", "progress"],
       repertoire: ["repertoire"],
       recommendations: ["recommendations", "openings", "weakspots", "verdicts"],
-      example: ["report", "overview", "recommendations", "openings", "weakspots", "verdicts"],
       training: ["train", "training", "interactive", "practice"],
       journey: ["journey"],
       games: ["games", "data"],
@@ -13646,7 +13646,7 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
     return (
       <section className="exportHistoryShell" id="report-history" aria-label="Example report history notice">
         <div className="exportHistoryIntro">
-          <span>Example report · Fictional data</span>
+          <span>Illustrative example · Fictional data</span>
           <h2>This example stays separate from your report history.</h2>
           <p>OpeningFit does not save, sync, export, or compare the fictional sample as if it were your analysis.</p>
         </div>
@@ -14374,6 +14374,7 @@ export default function App() {
   const activeImportKeyRef = useRef("");
   const reportRedirectKeyRef = useRef("");
   const sampleEntrySourceRef = useRef(isSampleReportPath(getCurrentPath()) ? "direct_sample_url" : "");
+  const genuineReportBeforeSampleRef = useRef(null);
   const parsedPgnMovesCacheRef = useRef(new Map());
 
   useEffect(() => () => {
@@ -14388,6 +14389,7 @@ export default function App() {
 
   const loadDemoReport = (source = "landing_sample_cta") => {
     const entry = sampleReportEntry(typeof source === "string" ? source : "sample_report");
+    if (data && !isSampleReport(data)) genuineReportBeforeSampleRef.current = data;
     sampleEntrySourceRef.current = entry.analytics.source;
     setData(entry.report);
     setShowPublicLanding(false);
@@ -14625,6 +14627,12 @@ export default function App() {
     if (authLoading || !authHydrated) return;
     if (supabaseUser?.id) return;
     if (isSampleReportPath(getCurrentPath())) {
+      try {
+        const storedReport = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null")?.analysis;
+        if (storedReport && !isSampleReport(storedReport)) genuineReportBeforeSampleRef.current = storedReport;
+      } catch {
+        // Keep the example available even when an unrelated local save is invalid.
+      }
       setData(SAMPLE_REPORT);
       setShowPublicLanding(false);
       return;
@@ -15314,6 +15322,10 @@ export default function App() {
         : routeOrKey;
     const requestedRoute = typeof requested === "string" ? null : requested;
     const requestedSection = typeof requested === "string" ? getAppSection(requested) : getAppSection(requestedRoute?.view);
+    if (isSampleReport(data) && requestedSection === "train") {
+      exitSampleReport();
+      return;
+    }
     if (isSampleReport(data) && requestedSection === "report") {
       requested = typeof requested === "string"
         ? { view: "report", path: SAMPLE_REPORT_PATH, target: "app-results" }
@@ -15334,12 +15346,12 @@ export default function App() {
   const startOpeningPractice = (openingTarget) => {
     if (!openingTarget) return;
     const sampleMode = isSampleReport(data);
-    void trackEvent("training_started", { source: sampleMode ? "sample_report" : "report_or_repertoire", sample: sampleMode, reportKind: sampleMode ? "sample" : "user", openingCategory: openingTarget.contextKey || openingTarget.section || openingTarget.side || "opening" });
-    setPracticeOpening(openingTarget);
     if (sampleMode) {
-      window.setTimeout(() => scrollToAppTarget("opening-practice", { fallbackIds: ["report-training-plan", "app-results"] }), 60);
+      exitSampleReport();
       return;
     }
+    void trackEvent("training_started", { source: sampleMode ? "sample_report" : "report_or_repertoire", sample: sampleMode, reportKind: sampleMode ? "sample" : "user", openingCategory: openingTarget.contextKey || openingTarget.section || openingTarget.side || "opening" });
+    setPracticeOpening(openingTarget);
     handleAppNavigate({
       view: "train",
       path: "/train",
@@ -16706,7 +16718,16 @@ export default function App() {
   useEffect(() => {
     const syncViewFromPath = () => {
       const path = getCurrentPath();
-      setData((current) => isSampleReportPath(path) ? SAMPLE_REPORT : isSampleReport(current) ? null : current);
+      setData((current) => {
+        if (isSampleReportPath(path)) {
+          if (current && !isSampleReport(current)) genuineReportBeforeSampleRef.current = current;
+          return SAMPLE_REPORT;
+        }
+        if (isSampleReport(current)) {
+          return path === "/report" ? genuineReportBeforeSampleRef.current : null;
+        }
+        return current;
+      });
       if (isSampleReportPath(path)) setShowPublicLanding(false);
       setActiveView(getInitialAppView());
     };
@@ -17393,12 +17414,12 @@ export default function App() {
               {activeAppSection === "report" ? (
                 <>
                   {isSampleReport(reportData) ? (
-                    <section className="sampleReportNotice" aria-label="Example report — fictional data">
+                    <section className="sampleReportNotice" aria-label="Illustrative example — fictional data">
                       <div>
-                        <strong>Example report</strong>
+                        <strong>Illustrative example</strong>
                         <span>Fictional data for a fictional player. This is not your analysis and will not be saved to your history.</span>
                       </div>
-                      <button type="button" className="primaryBtn" onClick={exitSampleReport}>Analyse my games</button>
+                      <button type="button" className="primaryBtn" onClick={exitSampleReport}>Analyse your games</button>
                     </section>
                   ) : null}
                   <FinalReportFlow

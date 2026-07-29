@@ -33,7 +33,7 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
   };
   return (
     <section className="primaryReportSummary" aria-labelledby="primary-report-title">
-      {isSampleReport(report) ? <p className="primaryReportSampleLabel">Example report · Fictional data · <a href="/how-it-works">How analysis works</a></p> : null}
+      {isSampleReport(report) ? <p className="primaryReportSampleLabel">Illustrative example · Fictional data · <a href="/how-it-works">How analysis works</a></p> : null}
 
       <div className="primaryReportVerdict">
         <span>Coach verdict</span>

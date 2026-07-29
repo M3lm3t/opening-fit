@@ -154,7 +154,7 @@ export const SAMPLE_REPORT = Object.freeze({
   schemaVersion: 4,
   sampleMode: true,
   sample_mode: true,
-  sampleLabel: "Example report",
+  sampleLabel: "Illustrative example",
   source: "sample_fixture",
   isDemo: true,
   analysisCompleted: true,

@@ -18,7 +18,7 @@ test("homepage metric uses the guarded public component without embedded totals"
 test("homepage examples are labelled as fictional and never as visitor results", () => {
   assert.match(app, /Example report/);
   assert.match(app, /Illustrative example using fictional data/);
-  assert.match(sample, /Example report .* Fictional data/);
+  assert.match(sample, /Illustrative example .* Fictional data/);
 });
 
 test("methodology covers the current pipeline and non-capabilities", () => {
