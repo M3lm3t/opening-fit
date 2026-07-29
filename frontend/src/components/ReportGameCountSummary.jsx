@@ -1,10 +1,12 @@
 import { buildReportGameCounts, reportCountSentence, reportSaveState, REPORT_COUNT_DEFINITIONS } from "../lib/reportGameCounts.js";
+import { isSampleReport } from "../fixtures/sampleReport.js";
 
 const labelForKey = (key) => key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
 
 export default function ReportGameCountSummary({ report, saveStatus = "", authenticated = false, onAccount }) {
   const counts = buildReportGameCounts(report);
-  const save = reportSaveState(saveStatus, authenticated);
+  const sampleMode = isSampleReport(report);
+  const save = reportSaveState(saveStatus, authenticated, sampleMode);
   return (
     <section className="reportGameCountSummary" aria-label="Import and save status">
       <div className="reportGameCountCompact">
@@ -28,7 +30,7 @@ export default function ReportGameCountSummary({ report, saveStatus = "", authen
       <details>
         <summary>Save details</summary>
         <p>{save.detail}</p>
-        {(saveStatus === "local" || saveStatus === "failed" || !authenticated) && onAccount ? <button type="button" className="secondaryBtn" onClick={onAccount}>{authenticated ? "Open account" : "Log in to sync"}</button> : null}
+        {!sampleMode && (saveStatus === "local" || saveStatus === "failed" || !authenticated) && onAccount ? <button type="button" className="secondaryBtn" onClick={onAccount}>{authenticated ? "Open account" : "Log in to sync"}</button> : null}
       </details>
     </section>
   );

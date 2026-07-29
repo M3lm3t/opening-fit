@@ -220,6 +220,7 @@ def test_repertoire_roles_expose_role_specific_evidence_gaps_and_filters():
     assert roles["black_e4"]["evidenceFunnel"]["correctlyAttributed"] == 4
     assert roles["black_e4"]["evidenceFunnel"]["assignedToLeadingOpening"] == 4
     assert roles["black_e4"]["evidenceFunnel"]["importedCandidates"] is None
+    assert roles["black_e4"]["evidenceFunnel"]["passedReportFilters"] == 4
     assert roles["black_d4"]["status"] == "missing"
     assert roles["black_d4"]["evidenceReasonCode"] == "unsupported_or_unknown"
     assert roles["black_d4"]["evidenceRequirement"]["additionalRelevantGamesRequired"] == 5
@@ -243,6 +244,50 @@ def test_repertoire_role_funnel_exposes_split_attributed_evidence_without_claimi
     assert role["evidenceFunnel"]["assignedToLeadingOpening"] == 3
     assert role["evidenceFunnel"]["distinctAttributedOpenings"] == 2
     assert role["evidenceRequirement"]["additionalRelevantGamesRequired"] == 2
+
+
+def test_role_evidence_derives_the_leader_from_the_same_eighty_four_game_breakdown():
+    groups = (
+        ("Caro-Kann Defense", 30),
+        ("French Defense", 20),
+        ("Sicilian Defense", 18),
+        ("Pirc Defense", 16),
+    )
+    games = []
+    number = 1
+    for name, count in groups:
+        for _ in range(count):
+            games.append(game(name, "played_as_black", number, "draw"))
+            number += 1
+
+    decision = build_report_decision(report(games), openings=[])
+    role = next(row for row in decision["repertoireRoles"] if row["key"] == "black_e4")
+
+    assert role["status"] == "supported"
+    assert role["openingName"] == "Caro-Kann Defense"
+    assert role["evidenceCount"] == 30
+    assert role["evidenceFunnel"]["passedReportFilters"] == 84
+    assert role["evidenceFunnel"]["correctlyAttributed"] == 84
+    assert role["evidenceFunnel"]["assignedToLeadingOpening"] == 30
+    assert role["evidenceFunnel"]["distinctAttributedOpenings"] == 4
+    assert sum(item["games"] for item in role["evidenceFunnel"]["openingBreakdown"]) == 84
+    assert role["evidenceRequirement"]["additionalRelevantGamesRequired"] == 0
+
+
+def test_role_evidence_counts_filtered_but_unclassified_games_without_inventing_an_opening():
+    unresolved = [
+        {**game("Temporary", "played_as_black", index, "draw"), "opening": ""}
+        for index in range(1, 4)
+    ]
+    decision = build_report_decision(report(unresolved), openings=[])
+    role = next(row for row in decision["repertoireRoles"] if row["key"] == "black_e4")
+
+    assert role["status"] == "missing"
+    assert role["evidenceReasonCode"] == "opening_unclassified"
+    assert role["evidenceFunnel"]["passedReportFilters"] == 3
+    assert role["evidenceFunnel"]["correctlyAttributed"] == 0
+    assert role["evidenceFunnel"]["openingUnclassified"] == 3
+    assert role["evidenceFunnel"]["openingBreakdown"] == []
 
 
 def test_repertoire_coverage_arithmetic_excludes_results_and_neutral_weakness_state():

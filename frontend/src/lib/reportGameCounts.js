@@ -149,7 +149,8 @@ export const REPORT_COUNT_DEFINITIONS = Object.freeze({
   excludedGames: "Fetched games not analysed; the available reasons reconcile to this total.",
 });
 
-export function reportSaveState(status = "", authenticated = false) {
+export function reportSaveState(status = "", authenticated = false, sampleMode = false) {
+  if (sampleMode) return { label: "Example only · Not saved", detail: "Fictional example data is not stored locally or synced to an account." };
   if (status === "saving") return { label: "Saving", detail: "Syncing this report to your account." };
   if (status === "saved") return { label: "Saved to cloud", detail: "This report is synced to your OpeningFit account." };
   if (status === "failed") return { label: "Saved locally", detail: "Cloud save failed, but this report remains available on this device." };

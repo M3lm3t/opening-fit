@@ -50,7 +50,8 @@ test("the report leads with verdict, evidence, one action and compact status", a
   assert.match(source, /Why these decisions\?/);
   assert.match(source, /Why isn&apos;t this established\?/);
   assert.match(source, /View evidence and full report/);
-  assert.match(source, /does not measure playing strength or opening quality/);
+  assert.match(source, /Role completeness shows whether all three repertoire jobs are filled/);
+  assert.match(source, /coverage indicator also considers how strongly each role is supported by evidence/);
   assert.doesNotMatch(source, /<small>\/100<\/small>|Why \$\{view\.score\}\?/);
   assert.doesNotMatch(source, /primaryReportProblem|primaryReportTraining/);
   assert.match(appSource, /onPractice=\{onPractice\}/);
@@ -147,7 +148,7 @@ test("incomplete repertoire keeps all three required slots without invented open
   assert.deepEqual(view.slots.map((slot) => slot.label), ["White", "Black against 1.e4", "Black against 1.d4"]);
   assert.equal(view.slots[1].opening, "Not established yet");
   assert.equal(view.slots[1].reasonCode, "unsupported_or_unknown");
-  assert.match(view.slots[1].explanation, /does not yet have enough correctly attributed games/i);
+  assert.match(view.slots[1].explanation, /does not yet have enough correctly attributed evidence/i);
 });
 
 test("low data produces a calm prominent confidence warning", () => {
@@ -239,7 +240,7 @@ test("insufficient evidence explains no weakness without claiming strength", () 
   assert.equal(view.weaknessState, "insufficient_evidence");
   assert.match(view.evidenceExplanation, /not enough evidence.*not.*all openings are strong/i);
   assert.equal(view.primaryAction.type, "analyse");
-  assert.match(view.primaryAction.title, /rapid.*1 more correctly attributed game.*Black-versus-1\.d4/i);
+  assert.match(view.primaryAction.title, /rapid.*1 more correctly attributed game.*Black-against-1\.d4/i);
   assert.doesNotMatch(view.primaryAction.title, /play 5 more|arbitrary rapid games/i);
 });
 
@@ -254,6 +255,25 @@ test("missing optional training data uses an honest unnamed fallback", () => {
   });
   assert.equal(view.primaryAction.title, "This week: review one recent analysed opening game for approximately 10 minutes.");
   assert.doesNotMatch(view.primaryAction.title, /branch|variation|position/i);
+});
+
+test("report summary formats canonical Defense names for UK presentation", () => {
+  const view = buildPrimaryReportSummary({
+    ...completeModel,
+    establishedStrength: { opening: "Caro-Kann Defense", games: 8, sample: { games: 8, wins: 4, draws: 2, losses: 2 } },
+    primaryProblem: { opening: "Sicilian Defense", games: 6, sample: { games: 6, wins: 1, draws: 1, losses: 4 } },
+    repertoire: [{ key: "black_e4", status: "supported", opening: "Caro-Kann Defense", games: 8, evidenceRequirement: { threshold: 5, additionalRelevantGamesRequired: 0 } }],
+    training: { opening: "Sicilian Defense", objective: "Review Sicilian Defense development." },
+  });
+  assert.equal(view.decisions[0].title, "Caro-Kann Defence");
+  assert.equal(view.decisions[1].title, "Sicilian Defence");
+  const displayed = [
+    view.verdict, view.evidenceExplanation, view.primaryAction.title,
+    ...view.slots.flatMap((slot) => [slot.opening, slot.explanation]),
+    ...view.decisions.flatMap((decision) => [decision.title, decision.reason]),
+    view.problem.title, view.problem.reason, view.training.title, view.training.reason, view.training.openingName,
+  ].join(" ");
+  assert.doesNotMatch(displayed, /\bDefense\b/);
 });
 
 test("no-weakness states distinguish confidence failure from distributed evidence", () => {

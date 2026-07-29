@@ -356,7 +356,7 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
     controls = _time_controls(report)
     rows = []
     for spec in REPERTOIRE_ROLE_SPECS:
-        role_games: list[Mapping[str, Any]] = []
+        matching_role_games: list[Mapping[str, Any]] = []
         seen_role_game_ids: set[str] = set()
         for game in _report_games(report):
             game_perspective = perspective_from_item(game)
@@ -364,11 +364,21 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
             if (
                 game_perspective.get("role") == spec["role"]
                 and str(game_perspective.get("repertoireSlot") or "") in spec["slots"]
-                and _name(game)
                 and game_id not in seen_role_game_ids
             ):
                 seen_role_game_ids.add(game_id)
-                role_games.append(game)
+                matching_role_games.append(game)
+        role_games = [game for game in matching_role_games if _name(game)]
+        opening_groups: dict[str, dict[str, Any]] = {}
+        for game in role_games:
+            key = _opening_key(_name(game))
+            group = opening_groups.setdefault(key, {"openingName": _name(game), "games": 0, "gameIds": []})
+            group["games"] += 1
+            group["gameIds"].append(_game_id(game))
+        opening_breakdown = sorted(
+            opening_groups.values(),
+            key=lambda item: (-int(item["games"]), str(item["openingName"]).lower()),
+        )
         candidates = [
             item for item in recommendations
             if item.get("repertoireOwned")
@@ -377,14 +387,31 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
             and bool((item.get("validation") or {}).get("valid", True))
         ]
         candidate = sorted(candidates, key=lambda item: (-int(_number((item.get("sample") or {}).get("games")) or 0), str(item.get("openingName") or "").lower()))[0] if candidates else None
-        sample = candidate.get("sample") if isinstance(candidate, Mapping) and isinstance(candidate.get("sample"), Mapping) else {}
-        current = max(0, int(_number(sample.get("games")) or 0))
-        attributed = len(role_games) if role_games else sum(max(0, int(_number((item.get("sample") or {}).get("games")) or 0)) for item in candidates)
-        attributed_openings = len({_opening_key(_name(game)) for game in role_games}) if role_games else sum(1 for item in candidates if int(_number((item.get("sample") or {}).get("games")) or 0) > 0)
+        if opening_breakdown:
+            leading = opening_breakdown[0]
+            opening = str(leading["openingName"]).strip()
+            current = int(leading["games"])
+            sample_ids = list(leading["gameIds"])
+            candidate = next((item for item in candidates if _opening_key(item.get("openingName")) == _opening_key(opening)), None)
+        else:
+            sample = candidate.get("sample") if isinstance(candidate, Mapping) and isinstance(candidate.get("sample"), Mapping) else {}
+            current = max(0, int(_number(sample.get("games")) or 0))
+            opening = str(candidate.get("openingName") or "").strip() if candidate else ""
+            sample_ids = list(sample.get("gameIds") or [])
+            opening_breakdown = [
+                {
+                    "openingName": str(item.get("openingName") or "").strip(),
+                    "games": max(0, int(_number((item.get("sample") or {}).get("games")) or 0)),
+                    "gameIds": list((item.get("sample") or {}).get("gameIds") or []),
+                }
+                for item in candidates
+                if int(_number((item.get("sample") or {}).get("games")) or 0) > 0
+            ]
+        attributed = sum(int(item["games"]) for item in opening_breakdown)
+        attributed_openings = len(opening_breakdown)
         additional = max(0, MIN_OPENING_EVIDENCE - current)
-        supported = bool(candidate and current >= MIN_OPENING_EVIDENCE and candidate.get("sampleSizeStatus") == "sufficient")
-        status = "supported" if supported else "tentative" if candidate and current else "missing"
-        opening = str(candidate.get("openingName") or "").strip() if candidate else ""
+        supported = current >= MIN_OPENING_EVIDENCE
+        status = "supported" if supported else "tentative" if current else "missing"
         target = opening or spec["label"]
         reason_code = None
         if not supported:
@@ -392,6 +419,8 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
                 reason_code = "split_across_openings"
             elif current > 0:
                 reason_code = "below_evidence_threshold"
+            elif matching_role_games:
+                reason_code = "opening_unclassified"
             else:
                 # The analysed report does not retain role-specific counts for games
                 # rejected before opening attribution. Do not turn that absence into
@@ -401,14 +430,16 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
             "key": spec["key"], "label": spec["label"], "status": status,
             "openingName": opening or None, "openingKey": candidate.get("openingId") if candidate else None,
             "confidence": (candidate.get("confidence") or {}).get("level") if candidate else "insufficient",
-            "evidenceCount": current, "evidenceGameIds": list(sample.get("gameIds") or []),
+            "evidenceCount": current, "evidenceGameIds": sample_ids,
             "evidenceReasonCode": reason_code,
             "evidenceFunnel": {
                 "importedCandidates": None,
-                "passedReportFilters": None,
+                "passedReportFilters": len(matching_role_games) if _report_games(report) else None,
                 "correctlyAttributed": attributed,
                 "assignedToLeadingOpening": current,
                 "distinctAttributedOpenings": attributed_openings,
+                "openingUnclassified": max(0, len(matching_role_games) - attributed) if _report_games(report) else None,
+                "openingBreakdown": opening_breakdown,
                 "establishmentThreshold": MIN_OPENING_EVIDENCE,
                 "additionalRequired": additional,
             },

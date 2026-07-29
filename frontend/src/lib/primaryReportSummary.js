@@ -3,6 +3,7 @@ import { analysisConfidence, OPENING_EVIDENCE_THRESHOLDS } from "./fitTrustModel
 import { formatTrainingPriorityTitle } from "./trainingPriority.js";
 import { formatResultCounts } from "./reportGameCounts.js";
 import { repertoireRoleEvidenceCopy } from "./repertoireEvidence.js";
+import { formatOpeningNameForDisplay } from "./openingNamePresentation.js";
 
 const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
@@ -55,7 +56,7 @@ function explicitFocus(source) {
   const combined = { ...(source.source || {}), ...source };
   const issue = combined.recurringIssue || combined.recurring_issue || combined.issue || {};
   const training = combined.trainingAction || combined.training_action || {};
-  const opening = text(combined.opening || combined.openingName || combined.opening_name || combined.name);
+  const opening = formatOpeningNameForDisplay(combined.opening || combined.openingName || combined.opening_name || combined.name);
   const detail = text(
     issue.variationName || issue.variation_name || combined.variationName || combined.variation_name ||
     combined.variation || combined.lineName || combined.line_name || training.variationName || training.variation_name ||
@@ -93,7 +94,7 @@ function primaryActionCopy({ collectMoreGames, model, report, nextAction, traini
 }
 
 function noWeaknessExplanation({ model, problem, problemCandidates, strength, slots }) {
-  if (problem) return { kind: "reliable_weakness", title: problem.opening, text: recommendationCopy(problem, "repair") };
+  if (problem) return { kind: "reliable_weakness", title: formatOpeningNameForDisplay(problem.opening), text: formatOpeningNameForDisplay(recommendationCopy(problem, "repair")) };
   const candidate = problemCandidates[0];
   const candidateGames = openingGames(candidate);
   const confidenceStatus = text(model.authoritative?.confidence?.status || model.confidence?.status).toLowerCase();
@@ -106,14 +107,14 @@ function noWeaknessExplanation({ model, problem, problemCandidates, strength, sl
   if (strength) {
     const missingRoles = slots.filter((slot) => !slot.complete).map((slot) => slot.label);
     const elsewhere = missingRoles.length ? `${missingRoles.join(" and ")} still need more evidence.` : "Other roles did not produce one repeated weak pattern above the report threshold.";
-    return { kind: "strong_results", title: "No statistically reliable opening weakness was found", text: `${strength.opening} has enough evidence for a keep decision. ${elsewhere}` };
+    return { kind: "strong_results", title: "No statistically reliable opening weakness was found", text: `${formatOpeningNameForDisplay(strength.opening)} has enough evidence for a keep decision. ${elsewhere}` };
   }
   return { kind: "mixed_or_distributed", title: "No statistically reliable opening weakness was found", text: "The available weaker results are mixed across openings or roles, so no single repeated pattern supports a repair claim yet." };
 }
 
 function preparationReason({ problem, collectMoreGames, priority, training, nextAction, fallback }) {
   if (problem || collectMoreGames) return fallback;
-  const opening = text(priority?.openingName || training?.opening || nextAction?.opening);
+  const opening = formatOpeningNameForDisplay(priority?.openingName || training?.opening || nextAction?.opening);
   const count = Number(priority?.evidenceCount ?? nextAction?.sample?.games ?? training?.source?.sample?.games ?? training?.source?.games);
   const role = text(priority?.role || nextAction?.role).toLowerCase();
   if (opening && Number.isFinite(count) && count > 0) {
@@ -147,8 +148,8 @@ function recommendationContext(strength) {
   }
   if (Number.isFinite(scoreRate)) reasons.push(`Its current chess score is ${Math.round(scoreRate)}% in the analysed sample, with draws counting as half a point.`);
   return {
-    title: `Why ${strength.opening} fits your current repertoire`,
-    reasons: [...new Set(reasons)].slice(0, 3),
+    title: `Why ${formatOpeningNameForDisplay(strength.opening)} fits your current repertoire`,
+    reasons: [...new Set(reasons.map(formatOpeningNameForDisplay))].slice(0, 3),
   };
 }
 
@@ -160,25 +161,28 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     ["black_d4", "Black against 1.d4"],
   ].map(([key, label]) => {
     const item = repertoire.get(key);
-    const complete = item?.status === "supported" || item?.complete === true || Number(item?.games) >= Number(item?.evidenceRequirement?.threshold || 5);
-    const evidenceCopy = repertoireRoleEvidenceCopy(item ? { ...item, label, complete } : { key, label, status: "missing" });
+    const declaredComplete = item?.status === "supported" || item?.complete === true || Number(item?.games) >= Number(item?.evidenceRequirement?.threshold || 5);
+    const evidenceCopy = repertoireRoleEvidenceCopy(item ? { ...item, label, complete: declaredComplete } : { key, label, status: "missing" });
     return {
       key,
       label,
-      opening: item?.opening || "Not established yet",
+      opening: formatOpeningNameForDisplay(item?.opening) || "Not established yet",
       confidence: item?.status === "supported" ? formatRecommendationConfidence({ games: item.games, confidence: item.confidence }) : evidenceCopy.statusLabel,
       evidence: evidenceCopy.evidence,
       requirement: evidenceCopy.requirement,
       filters: evidenceCopy.filters,
       games: Number.isFinite(Number(item?.games)) ? Math.max(0, Math.round(Number(item.games))) : null,
       status: item?.status || "missing",
-      complete,
+      complete: evidenceCopy.established,
       tentative: item?.status === "tentative" || item?.tentative === true,
       reasonCode: evidenceCopy.reasonCode,
       explanation: evidenceCopy.explanation,
       funnelRows: evidenceCopy.funnelRows,
       evidenceRequirement: item?.evidenceRequirement || null,
-      additionalRelevantGamesRequired: Number(item?.evidenceRequirement?.additionalRelevantGamesRequired ?? 5),
+      additionalRelevantGamesRequired: evidenceCopy.funnel?.assignedToLeadingOpening !== null && Number.isFinite(Number(evidenceCopy.funnel.assignedToLeadingOpening))
+        ? Math.max(0, Number(item?.evidenceRequirement?.threshold || 5) - Number(evidenceCopy.funnel.assignedToLeadingOpening))
+        : null,
+      evidenceDiagnostics: evidenceCopy.diagnostics,
     };
   });
   const lowConfidence = /low|insufficient|limited/i.test(text(model.health?.confidence)) || Number(model.health?.games || 0) < 5;
@@ -192,19 +196,20 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   const hasExplicitTrainingAction = Boolean(nextAction?.type || training?.type || training?.opening || training?.source);
   const collectMoreGames = nextAction?.type === "collect_more_games" || !hasExplicitTrainingAction;
   const keepFallback = moreGamesCopy(model, report, strengthCandidates, "makes a confident keep recommendation");
-  const trainingTitle = training?.label || (training?.opening ? `Train ${training.opening}` : "Collect more games before changing your repertoire");
+  const trainingTitle = formatOpeningNameForDisplay(training?.label || (training?.opening ? `Train ${training.opening}` : "Collect more games before changing your repertoire"));
   const rawTrainingReason = trainingPriority?.rationale || training?.objective || training?.reason || model.nextTrainingAction?.reason || "Review one opening focus before your next games.";
   const weakness = noWeaknessExplanation({ model, problem, problemCandidates, strength, slots });
   const fitContext = recommendationContext(strength);
   const primaryAction = primaryActionCopy({ collectMoreGames, model, report, nextAction, training, problem, strength, priority: trainingPriority, slots });
-  const trainingReason = preparationReason({ problem, collectMoreGames, priority: trainingPriority, training, nextAction, fallback: rawTrainingReason });
+  primaryAction.title = formatOpeningNameForDisplay(primaryAction.title);
+  const trainingReason = formatOpeningNameForDisplay(preparationReason({ problem, collectMoreGames, priority: trainingPriority, training, nextAction, fallback: rawTrainingReason }));
   const establishedRoleCount = slots.filter((slot) => slot.complete).length;
   return {
     score: model.health?.score !== null && model.health?.score !== undefined && Number.isFinite(Number(model.health.score)) ? Math.round(Number(model.health.score)) : null,
     scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Coverage pending" : "Coverage indicator",
     establishedRoleCount,
     totalRoleCount: slots.length,
-    verdict: oneSentence(model),
+    verdict: formatOpeningNameForDisplay(oneSentence(model)),
     evidenceExplanation: weakness.text,
     weaknessState: weakness.kind,
     recommendationContext: fitContext,
@@ -215,8 +220,8 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     slots,
     incompleteRepertoire: slots.some((slot) => !slot.complete),
     decisions: [
-      { key: "keep", label: "Keep", title: strength?.opening || "your current choices while evidence builds", reason: strength ? recommendationCopy(strength, "keep") : keepFallback, source: strength, action: branchAction(strength) },
-      { key: "repair", label: problem ? "Repair" : "Weakness check", title: problem?.opening || "No reliable repair target", reason: problem ? recommendationCopy(problem, "repair") : weakness.text, source: problem, action: branchAction(problem) },
+      { key: "keep", label: "Keep", title: formatOpeningNameForDisplay(strength?.opening) || "your current choices while evidence builds", reason: strength ? formatOpeningNameForDisplay(recommendationCopy(strength, "keep")) : keepFallback, source: strength, action: branchAction(strength) },
+      { key: "repair", label: problem ? "Repair" : "Weakness check", title: formatOpeningNameForDisplay(problem?.opening) || "No reliable repair target", reason: problem ? formatOpeningNameForDisplay(recommendationCopy(problem, "repair")) : weakness.text, source: problem, action: branchAction(problem) },
       { key: "train", label: problem ? "Train next" : collectMoreGames ? "Build evidence" : "Best preparation opportunity", title: primaryAction.title, reason: trainingReason, source: training?.source || problem || strength || null, action: primaryAction.type === "analyse" ? { label: primaryAction.label, type: primaryAction.type } : { label: primaryAction.label, type: primaryAction.type, target: primaryAction.target }, primary: true },
     ],
     problem: {
@@ -235,7 +240,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
       reason: trainingReason,
       source: training?.source || null,
       trainingPriorityId: trainingPriority?.priorityId || null,
-      openingName: trainingPriority?.openingName || training?.opening || null,
+      openingName: formatOpeningNameForDisplay(trainingPriority?.openingName || training?.opening) || null,
       estimatedDurationMinutes: trainingPriority?.estimatedDurationMinutes || training?.durationMinutes || 10,
       cta: primaryAction.label,
       actionType: collectMoreGames ? "analyse" : "training",

@@ -210,12 +210,14 @@ export function buildRepertoireMapModel(data = {}) {
   return groups.map(({ key, label, role, colour, opponentFirstMove }) => {
     const explicit = explicitRoles.find((item) => item.key === key);
     if (explicit) {
+      const explicitCount = explicit.evidenceCount ?? explicit.evidence_count
+        ?? explicit.evidenceFunnel?.assignedToLeadingOpening ?? explicit.evidence_funnel?.assigned_to_leading_opening;
       return {
         ...explicit,
         key,
         label,
-        opening: explicit.openingName || null,
-        games: openingGames({ games: explicit.evidenceCount }),
+        opening: explicit.openingName || explicit.opening_name || null,
+        games: explicitCount === null || explicitCount === undefined || explicitCount === "" ? null : openingGames({ games: explicitCount }),
         complete: explicit.status === "supported",
         tentative: explicit.status === "tentative",
         evidenceRequirement: explicit.evidenceRequirement || explicit.evidence_requirement,

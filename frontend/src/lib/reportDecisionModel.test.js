@@ -30,6 +30,18 @@ test("black-only data keeps an explicit missing White role", () => {
   assert.equal(roles.find((row) => row.key === "white").status, "missing");
   assert.equal(roles.find((row) => row.key === "black_e4").status, "supported");
 });
+test("saved snake-case role evidence retains its leading count", () => {
+  const roles = buildReportDecisionModel({
+    repertoire_roles: [{
+      key: "black_e4", status: "tentative", opening_name: "Caro-Kann Defense", evidence_count: 3,
+      evidence_funnel: { correctly_attributed: 7, assigned_to_leading_opening: 3, distinct_attributed_openings: 2 },
+      evidence_requirement: { threshold: 5, additional_relevant_games_required: 2 },
+    }],
+  }).repertoire;
+  const role = roles.find((row) => row.key === "black_e4");
+  assert.equal(role.opening, "Caro-Kann Defense");
+  assert.equal(role.games, 3);
+});
 test("missing style and previous report remain safe", () => assert.equal(buildReportDecisionModel(full, {}, []).health.trend, null));
 test("premium/free status does not alter decisions", () => assert.deepEqual(buildReportDecisionModel({ ...full, isPremium: true }).decisions, buildReportDecisionModel({ ...full, isPremium: false }).decisions));
 test("Lichess and long usernames are retained", () => { const model = buildReportDecisionModel({ ...full, platform: "lichess" }); assert.equal(model.header.platform, "Lichess"); assert.equal(model.header.username, full.username); });

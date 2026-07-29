@@ -69,7 +69,9 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
           <span>Repertoire completeness</span>
           <h2 id="repertoire-coverage-title">{view.establishedRoleCount} of {view.totalRoleCount} repertoire roles established</h2>
           <ul className="primaryReportRoleOverview">{view.slots.map((slot) => <li key={slot.key}><span>{slot.label}</span><strong>{slot.complete ? "Established" : "Building"}</strong></li>)}</ul>
-          <p>Coverage measures how established and well-supported the three core repertoire roles are. It does not measure playing strength or opening quality.</p>
+          <p>{scoreView.formulaVersion === "repertoire_coverage_v2"
+            ? "Role completeness shows whether all three repertoire jobs are filled. The coverage indicator also considers how strongly each role is supported by evidence."
+            : "This saved report uses the earlier coverage method. It does not measure playing strength or opening quality."}</p>
           <p className="primaryReportCoverageIndicator"><strong>{view.scoreLabel}:</strong> {view.score === null ? "Unavailable" : `${view.score}%`} · {scoreView.developmentState.label}</p>
         </div>
       </section>

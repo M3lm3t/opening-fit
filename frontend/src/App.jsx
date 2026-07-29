@@ -17352,7 +17352,7 @@ export default function App() {
                 </div>
               ) : null}
 
-              {reportData && cloudSaveStatus && !cloudSaveWarning ? (
+              {reportData && !isSampleReport(reportData) && cloudSaveStatus && !cloudSaveWarning ? (
                 <div className="cloudSaveStatusPill" role="status">
                   <span className="productFeedbackIcon" aria-hidden="true">
                     {cloudSaveStatus === "saving" ? <Clock3 size={18} /> : <CheckCircle2 size={18} />}

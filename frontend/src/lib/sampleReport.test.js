@@ -120,11 +120,16 @@ test("visible sample labels use the fictional example contract", () => {
   const appSource = readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
   const summarySource = readFileSync(new URL("../components/PrimaryReportSummary.jsx", import.meta.url), "utf8");
   const commandBarSource = readFileSync(new URL("../components/ReportCommandBar.jsx", import.meta.url), "utf8");
+  const countSummarySource = readFileSync(new URL("../components/ReportGameCountSummary.jsx", import.meta.url), "utf8");
+  const countContractSource = readFileSync(new URL("./reportGameCounts.js", import.meta.url), "utf8");
   for (const source of [appSource, summarySource, commandBarSource]) {
     assert.match(source, /Illustrative example/);
     assert.match(source, /Fictional data/);
   }
   assert.match(appSource, />Analyse your games<\/button>/);
+  assert.match(countContractSource, /Example only · Not saved/);
+  assert.match(countSummarySource, /isSampleReport\(report\)/);
+  assert.match(appSource, /reportData && !isSampleReport\(reportData\) && cloudSaveStatus/);
 });
 
 test("sample analytics are distinguishable from user-report analytics", () => {
