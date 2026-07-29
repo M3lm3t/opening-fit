@@ -6,6 +6,8 @@ import { trackProductEvent } from "../lib/productAnalytics.js";
 import TrainingImpactSection from "./TrainingImpactSection.jsx";
 import FeatureAccessPreview from "./FeatureAccessPreview.jsx";
 import { canUseFeature, OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
+import { repertoireIntentions, trainingResponsePlans } from "../lib/premiumContinuity.js";
+import { normaliseOpeningKey } from "../data/openings.ts";
 import {
   acceptRepertoireRecommendation,
   getRepertoireEntries,
@@ -19,18 +21,23 @@ function readLocalWorkspace() {
   try { return JSON.parse(localStorage.getItem(REPERTOIRE_STORAGE_KEY) || "null"); } catch { return null; }
 }
 
-function RepertoireCard({ card, onTrain, onEvidence }) {
+const INTENTIONS = ["Keep", "Explore", "Replace later"];
+
+function RepertoireCard({ card, intention, savedPlan, onIntention, onTrain, onEvidence }) {
   return (
     <article className={`permanentRepertoireCard ${card.lowSample ? "permanentRepertoireCard--low-sample" : ""}`}>
       <header>
         <div><span>{card.slot.replaceAll("_", " ")}</span><h3>{card.openingName}</h3></div>
         <strong>{card.confidenceLabel}</strong>
       </header>
+      <div className="repertoireEvidenceDecision"><section><span>OpeningFit evidence</span><strong>{card.establishmentStatus}</strong><p>{card.gamesLabel} · {card.confidenceLabel}</p></section><section><label htmlFor={`repertoire-intention-${card.id || card.slot}`}>Your decision</label><select id={`repertoire-intention-${card.id || card.slot}`} value={intention || ""} onChange={(event) => onIntention(card, event.target.value)}><option value="" disabled>Choose intention</option>{INTENTIONS.map((item) => <option key={item}>{item}</option>)}</select><small>This preference does not alter OpeningFit’s evidence or recommendation.</small></section></div>
       <dl className="repertoireCardMetrics">
         <div><dt>Games analysed</dt><dd>{card.gamesLabel}</dd></div>
-        <div><dt>Recent result score</dt><dd>{card.scoreLabel}</dd></div>
+        <div><dt>Status</dt><dd>{card.establishmentStatus}</dd></div>
+        <div><dt>Last analysed</dt><dd>{card.reviewedLabel}</dd></div>
+        <div><dt>Comparable trend</dt><dd>{card.progress.label}</dd></div>
       </dl>
-      <p className={`repertoireProgress repertoireProgress--${card.progress.status.replaceAll(" ", "-")}`}>{card.progress.label}</p>
+      <div className="repertoireLatestPlan"><strong>Latest saved plan</strong><p>{savedPlan || "No saved response plan for this role yet."}</p><small>Current task: {card.trainingLabel}</small></div>
       <details className="repertoireCardDetails">
         <summary>Strength, weakness and training focus</summary>
         <dl>
@@ -69,7 +76,7 @@ function SuggestedChange({ suggestion, busy, onKeep, onAccept }) {
 }
 
 export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPractice, onReport, onAccount, onTrainingHistory, onUpgrade }) {
-  const { user, entitlement, openingFitUserState = [], refreshUserData } = useAuth();
+  const { user, entitlement, settings, saveSettings, openingFitUserState = [], refreshUserData } = useAuth();
   const hasFullRepertoire = canUseFeature(entitlement, OPENINGFIT_FEATURES.FULL_REPERTOIRE);
   const cloudWorkspace = openingFitUserState.map((row) => row?.coach_progress?.repertoireWorkspace).find(Boolean) || null;
   const [localWorkspace, setLocalWorkspace] = useState(() => readLocalWorkspace());
@@ -80,6 +87,8 @@ export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPr
   const [message, setMessage] = useState("");
   const [loadError, setLoadError] = useState("");
   const syncedReportRef = useRef("");
+  const intentions = repertoireIntentions(settings);
+  const responsePlans = trainingResponsePlans(settings);
 
   const refresh = useCallback(async () => {
     if (!user?.id || !hasFullRepertoire) { setEntries([]); setLoading(false); return []; }
@@ -147,6 +156,18 @@ export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPr
     onPractice?.({ name: card.openingName, opening: card.openingName, slot: card.slot, section: card.slot });
   };
 
+  const saveIntention = async (card, intention) => {
+    if (!user?.id || !INTENTIONS.includes(intention)) return;
+    setBusyId(`intention:${card.slot}`);
+    try {
+      await saveSettings?.({ preferences: { repertoireIntentions: { ...intentions, [card.slot]: { intention, openingName: card.openingName, updatedAt: new Date().toISOString() } } } });
+      setMessage(`Your decision for ${card.openingName} is saved separately from OpeningFit’s evidence.`);
+    } catch { setMessage("That decision is saved only after account sync succeeds. Please retry."); }
+    finally { setBusyId(""); }
+  };
+
+  const savedPlanFor = (card) => Object.values(responsePlans).filter((item) => !item?.fictional && normaliseOpeningKey(item?.openingName) === normaliseOpeningKey(card.openingName)).sort((left, right) => (Date.parse(right.updatedAt) || 0) - (Date.parse(left.updatedAt) || 0))[0]?.responsePlan || "";
+
   if (data && !hasFullRepertoire) return <section className="myRepertoireEmpty" id="my-repertoire"><span>My Repertoire · Preview</span><h1>Your report has the foundations of a repertoire.</h1><p>Keep using your free coverage, style profile, evidence-supported verdicts and next training action.</p><FeatureAccessPreview feature={OPENINGFIT_FEATURES.FULL_REPERTOIRE} title="Save a permanent White and Black workspace" onUpgrade={onUpgrade} /></section>;
 
   if (view.state === "loading") return <section className="myRepertoireEmpty" role="status"><span>My Repertoire</span><h1>Loading your saved repertoire…</h1><div className="repertoireLoadingBars" aria-hidden="true"><i /><i /><i /></div></section>;
@@ -176,7 +197,7 @@ export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPr
         {view.sections.map((section) => (
           <section className="permanentRepertoireSlot" key={section.key} aria-labelledby={`repertoire-${section.key}`}>
             <header><div><span>Active slot</span><h2 id={`repertoire-${section.key}`}>{section.title}</h2></div><strong>{section.cards.length}</strong></header>
-            {section.cards.length ? <div className="permanentRepertoireCards">{section.cards.map((card) => <RepertoireCard key={card.id || `${card.slot}:${card.openingName}`} card={card} onTrain={train} onEvidence={onReport} />)}</div> : <div className="repertoireSlotEmpty"><strong>{section.key === "white" ? "No White opening saved" : section.key.startsWith("black") ? "No Black opening saved for this response" : "No optional secondary choice"}</strong><p>{section.key === "optional" ? "Optional slots can stay empty." : "Not enough evidence yet to save a dependable choice here."}</p></div>}
+            {section.cards.length ? <div className="permanentRepertoireCards">{section.cards.map((card) => <RepertoireCard key={card.id || `${card.slot}:${card.openingName}`} card={card} intention={intentions[card.slot]?.intention} savedPlan={savedPlanFor(card)} onIntention={saveIntention} onTrain={train} onEvidence={onReport} />)}</div> : <div className="repertoireSlotEmpty"><strong>{section.key === "white" ? "No White opening saved" : section.key.startsWith("black") ? "No Black opening saved for this response" : "No optional secondary choice"}</strong><p>{section.key === "optional" ? "Optional slots can stay empty." : "Not enough evidence yet to save a dependable choice here."}</p></div>}
           </section>
         ))}
       </div>

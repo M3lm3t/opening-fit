@@ -84,6 +84,8 @@ function card(entry, progress) {
     reviewedLabel: entry.last_reviewed_at ? new Date(entry.last_reviewed_at).toLocaleDateString() : evidence,
     progress: progress.get(openingKey(entry)) || { status: "insufficient evidence", label: evidence },
     lowSample: sample === null || sample < 5,
+    establishmentStatus: sample === null || sample === 0 ? "unresolved" : sample >= 5 && !String(entry.confidence || "").toLowerCase().includes("low") ? "established" : "building",
+    evidenceCount: sample,
   };
 }
 

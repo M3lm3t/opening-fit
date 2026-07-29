@@ -29,7 +29,7 @@ test("renders meaningful improvement with previous and current values", () => {
   const view = viewFor(comparisonFixtures.scoreIncrease.current);
   assert.equal(view.state, "ready");
   assert.equal(view.primaryHighlights.length <= 5, true);
-  assert.ok(view.primaryHighlights.some((item) => item.statusLabel === "Improvement" && /60 to 68/.test(item.text)));
+  assert.ok(view.primaryHighlights.some((item) => item.statusLabel === "Improved with supporting evidence" && /60 to 68/.test(item.text)));
   assert.ok(view.details.some((item) => item.title === "Repertoire coverage" && /60 before · 68 now/.test(item.text)));
 });
 
@@ -53,7 +53,18 @@ test("small samples render insufficient data and never claim improvement", () =>
   });
   assert.ok(view.warnings.some((warning) => /required before OpeningFit calls/i.test(warning)));
   assert.equal(view.details.find((item) => item.title === "Repertoire coverage")?.statusLabel, "Insufficient data");
-  assert.equal(view.primaryHighlights.some((item) => item.statusLabel === "Improvement"), false);
+  assert.equal(view.primaryHighlights.some((item) => item.statusLabel === "Improved with supporting evidence"), false);
+});
+
+test("incompatible reports explain why and omit comparative detail", () => {
+  const view = buildReportComparisonView({
+    currentSnapshot: dated({ ...comparisonFixtures.scoreIncrease.current, source_platform: "lichess" }, "2026-07-01T10:00:00Z"),
+    reportSnapshots: [dated({ ...comparisonFixtures.scoreIncrease.previous, source_platform: "chesscom" }, "2026-06-01T10:00:00Z")],
+  });
+  assert.equal(view.state, "not-comparable");
+  assert.match(view.message, /platform changed/i);
+  assert.deepEqual(view.primaryHighlights, []);
+  assert.deepEqual(view.details, []);
 });
 
 test("renders loading state", () => {

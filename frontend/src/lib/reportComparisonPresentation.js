@@ -1,16 +1,16 @@
 import { compareReportSnapshots } from "./reportComparison.js";
 
 export const COMPARISON_STATUS_LABELS = Object.freeze({
-  improved: "Improvement",
+  improved: "Improved with supporting evidence",
   declined: "Decline",
   stable: "Unchanged",
   changed: "Changed",
   sample: "New sample",
   "insufficient evidence": "Insufficient data",
   partially_improved: "Partial improvement",
-  not_improved: "Not improved",
-  not_encountered: "Not encountered",
-  insufficient_data: "Insufficient data",
+  not_improved: "Still recurring",
+  not_encountered: "Not encountered again",
+  insufficient_data: "More evidence needed",
 });
 
 const rounded = (value) => (Number.isFinite(Number(value)) ? Math.round(Number(value)) : null);
@@ -96,6 +96,12 @@ export function buildReportComparisonView({ currentSnapshot, reportSnapshots = [
     }
 
     const comparison = compareReportSnapshots(previousSnapshot, currentSnapshot);
+    if (comparison.comparisonState === "reports_not_comparable") return {
+      state: "not-comparable",
+      title: "Reports not comparable",
+      message: comparison.compatibilityReasons.join(" ") || "The report identity or filters changed, so OpeningFit will not claim progress.",
+      primaryHighlights: [], details: [], warnings: comparison.compatibilityReasons, hasHistory: true, comparison,
+    };
     const highlights = [];
     if (comparison.newGamesCount > 0) {
       highlights.push(statusItem({ type: "games", status: "sample", text: `${rounded(comparison.newGamesCount)} new game${rounded(comparison.newGamesCount) === 1 ? "" : "s"} analysed.` }));
@@ -128,7 +134,9 @@ export function buildReportComparisonView({ currentSnapshot, reportSnapshots = [
     const repertoireDetails = comparison.repertoireChanges.map((item, index) => statusItem({
       key: `repertoire:${item.type}:${index}`,
       title: item.type.replaceAll("_", " "),
-      text: item.previousOpening || item.currentOpening
+      text: item.type.startsWith("role ")
+        ? `${item.previousGames} supporting games before · ${item.currentGames} now${item.previousEstablished !== item.currentEstablished ? ` · ${item.currentEstablished ? "role established" : "role no longer established"}` : ""}`
+        : item.previousOpening || item.currentOpening
         ? `${item.previousOpening || "Not set"} before · ${item.currentOpening || "Not set"} now`
         : `${item.opening}${item.previousConfidence || item.currentConfidence ? ` · ${item.previousConfidence || "Not set"} before · ${item.currentConfidence || "Not set"} now` : ""}`,
       status: item.type.includes("increased") ? "improved" : item.type.includes("decreased") || item.type.includes("removed") ? "declined" : item.type === "opening retained" ? "stable" : "changed",

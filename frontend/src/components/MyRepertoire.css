@@ -107,6 +107,7 @@
   background: var(--of-surface-muted, #f8fafc);
   color: var(--of-muted, #64748b);
 }
+.repertoireEvidenceDecision{display:grid;grid-template-columns:1fr 1fr;gap:10px}.repertoireEvidenceDecision>section,.repertoireLatestPlan{display:grid;gap:5px;padding:10px;border:1px solid var(--of-border,#d8dee8);border-radius:10px;background:var(--of-surface-muted,#f8fafc)}.repertoireEvidenceDecision span,.repertoireEvidenceDecision label,.repertoireLatestPlan>strong{font-size:.74rem;font-weight:850;color:var(--of-muted,#64748b)}.repertoireEvidenceDecision strong{text-transform:capitalize}.repertoireEvidenceDecision p,.repertoireLatestPlan p{margin:0;overflow-wrap:anywhere}.repertoireEvidenceDecision select{min-height:44px;padding:7px;border:1px solid var(--of-border,#d8dee8);border-radius:8px;background:var(--of-surface,#fff);color:var(--of-text,#0f172a)}.repertoireEvidenceDecision small,.repertoireLatestPlan small{color:var(--of-muted,#64748b);line-height:1.4}@media(max-width:560px){.repertoireEvidenceDecision{grid-template-columns:1fr}}
 
 .permanentRepertoireSections {
   min-width: 0;

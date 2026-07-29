@@ -16855,6 +16855,7 @@ export default function App() {
 
         <CheckoutStatusNotice
           onAnalytics={trackEvent}
+          onContinue={() => handleAppNavigate(reportData ? "train" : "analyse")}
           onRestoreAccess={async (checkoutSessionId) => {
             if (!supabaseUser?.id) {
               openLoginPage();

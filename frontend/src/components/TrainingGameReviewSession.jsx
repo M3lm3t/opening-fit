@@ -7,6 +7,9 @@ import {
   updateOpeningOpportunityReviewProgress,
 } from "../lib/openingOpportunityDrills.js";
 import { selectTrainingReviewGames, trainingReviewRequirements } from "../lib/trainingGameReview.js";
+import { useAuth } from "../context/AuthDataProvider.jsx";
+import { canUseFeature, OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
+import { trainingResponsePlans } from "../lib/premiumContinuity.js";
 import "./TrainingGameReviewSession.css";
 
 function displayDate(value) {
@@ -14,23 +17,28 @@ function displayDate(value) {
   return parsed ? new Date(parsed).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "Date unavailable";
 }
 
-export default function TrainingGameReviewSession({ report, priority, exercise, conceptEngaged, onReadinessChange, children }) {
+export default function TrainingGameReviewSession({ report, priority, exercise, taskId = "", planId = "", conceptEngaged, onReadinessChange, children }) {
+  const { user, entitlement, settings, saveSettings } = useAuth();
+  const canSyncPlan = Boolean(user?.id && canUseFeature(entitlement, OPENINGFIT_FEATURES.WEEKLY_PLAN));
+  const cloudPlans = trainingResponsePlans(settings);
+  const cloudPlan = taskId ? cloudPlans[taskId] : null;
   const drillId = exercise?.drill?.id || "openingfit-training-review";
   const games = useMemo(() => selectTrainingReviewGames(report || {}, priority || {}, exercise?.priorityReason), [exercise?.priorityReason, priority, report]);
   const [activeGameId, setActiveGameId] = useState("");
-  const [saved, setSaved] = useState(() => loadOpeningOpportunityProgress()[drillId] || {});
-  const [responsePlan, setResponsePlan] = useState(() => saved.responsePlan || "");
+  const [saved, setSaved] = useState(() => ({ ...(loadOpeningOpportunityProgress()[drillId] || {}), ...(cloudPlan?.responsePlan ? { responsePlan: cloudPlan.responsePlan } : {}) }));
+  const [responsePlan, setResponsePlan] = useState(() => cloudPlan?.responsePlan || saved.responsePlan || "");
+  const [saveStatus, setSaveStatus] = useState("");
   const reviewedGameIds = useMemo(() => Array.isArray(saved.reviewedGameIds) ? saved.reviewedGameIds : [], [saved.reviewedGameIds]);
   const requirements = useMemo(() => trainingReviewRequirements({ games, reviewedGameIds, conceptEngaged: conceptEngaged || saved.attempts > 0 || saved.completion || saved.revealed, responsePlan: saved.responsePlan }), [conceptEngaged, games, reviewedGameIds, saved.attempts, saved.completion, saved.responsePlan, saved.revealed]);
   const hasActionableGames = games.some((game) => game.hasInternalReplay || game.sourceUrl);
   const activeGame = games.find((game) => game.id === activeGameId);
 
   useEffect(() => {
-    const current = loadOpeningOpportunityProgress()[drillId] || {};
+    const current = { ...(loadOpeningOpportunityProgress()[drillId] || {}), ...(cloudPlan?.responsePlan ? { responsePlan: cloudPlan.responsePlan } : {}) };
     setSaved(current);
     setResponsePlan(current.responsePlan || "");
     setActiveGameId("");
-  }, [drillId]);
+  }, [cloudPlan?.responsePlan, drillId]);
 
   useEffect(() => { onReadinessChange?.(requirements); }, [onReadinessChange, requirements]);
 
@@ -46,7 +54,18 @@ export default function TrainingGameReviewSession({ report, priority, exercise, 
     persist({ reviewedGameIds: [...reviewedGameIds, game.id] });
   };
 
-  const savePlan = () => persist({ responsePlan });
+  const savePlan = async () => {
+    persist({ responsePlan });
+    if (!canSyncPlan || !taskId) { setSaveStatus("Saved on this device."); return; }
+    setSaveStatus("Syncing response plan…");
+    const sourceType = exercise?.provenance?.fictional ? "fictional preview" : exercise?.kind === "own_game_position" ? "own game" : "general setup";
+    try {
+      await saveSettings?.({ preferences: { trainingResponsePlans: { ...cloudPlans, [taskId]: { taskId, planId, responsePlan: responsePlan.trim(), openingName: exercise?.drill?.openingName || priority?.openingName || "Opening focus", sourceType, fictional: Boolean(exercise?.provenance?.fictional), synced: true, updatedAt: new Date().toISOString() } } } });
+      setSaveStatus("Saved across your OpeningFit account.");
+    } catch {
+      setSaveStatus("Saved on this device. Cloud sync can be retried later.");
+    }
+  };
   const opening = exercise?.drill?.openingName || priority?.openingName || "this opening";
 
   return (
@@ -99,6 +118,7 @@ export default function TrainingGameReviewSession({ report, priority, exercise, 
           <label htmlFor={`training-plan-${drillId}`}>Next time I reach this setup, I will…</label>
           <textarea id={`training-plan-${drillId}`} value={responsePlan} maxLength={240} onChange={(event) => setResponsePlan(event.target.value)} placeholder="Write one short, practical cue." />
           <button type="button" className="secondaryBtn" disabled={!responsePlan.trim()} onClick={savePlan}>Save my plan</button>
+          {saveStatus ? <small role="status">{saveStatus}</small> : null}
         </div>
       </section>
 

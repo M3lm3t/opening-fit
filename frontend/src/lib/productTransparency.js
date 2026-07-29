@@ -50,6 +50,8 @@ export function publicFeatureComparison(contract = DEFAULT_PUBLIC_ANALYSIS_CONTR
     ["Game-history window", `Up to ${limits.freeHistoryMonths} months`, `Up to ${limits.plusHistoryMonths} months`],
     ["Recommendation evidence", `Up to ${limits.freeEvidenceGames} games`, `Up to ${limits.plusEvidenceGames} games`],
     ["Weekly training", `${limits.freeWeeklyTasks}-task preview`, `Up to ${limits.plusWeeklyTasks} tasks`],
+    ["Response plans", "One plan saved on this device", "Saved with your account"],
+    ["Training history", "Not included", "Completed genuine tasks"],
     ["Saved report history", "Not included", `Up to ${limits.savedReportLimit} reports`],
     ["Progress comparisons", "Not included", "Comparable completed reports only"],
   ];

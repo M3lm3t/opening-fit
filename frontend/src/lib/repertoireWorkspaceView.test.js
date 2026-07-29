@@ -48,6 +48,8 @@ test("missing and low-sample statistics never become fake zero values", () => {
   assert.equal(card.gamesLabel, "Not enough evidence yet");
   assert.equal(card.scoreLabel, "Not enough evidence yet");
   assert.equal(card.confidenceLabel, "Not enough evidence yet");
+  assert.equal(card.establishmentStatus, "unresolved");
+  assert.equal(card.evidenceCount, null);
   assert.equal(card.progress.label, "Not enough evidence yet");
 });
 
@@ -57,6 +59,8 @@ test("active cards and suggested changes expose complete saved evidence", () => 
   const view = buildRepertoireWorkspaceView({ report, entries: [current, suggestion] });
   const card = view.sections[0].cards[0];
   assert.equal(card.gamesLabel, "12 games");
+  assert.equal(card.evidenceCount, 12);
+  assert.equal(card.establishmentStatus, "established");
   assert.equal(card.scoreLabel, "58%");
   assert.equal(card.strengthLabel, "Reliable structure");
   assert.equal(view.suggestions[0].currentOpening, "Vienna Game");

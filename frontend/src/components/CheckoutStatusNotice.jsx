@@ -6,7 +6,7 @@ import "./CheckoutStatusNotice.css";
 
 const DIALOG_ID = "checkout-status";
 
-export default function CheckoutStatusNotice({ onRestoreAccess, onClose, onAnalytics }) {
+export default function CheckoutStatusNotice({ onRestoreAccess, onClose, onContinue, onAnalytics }) {
   const [status, setStatus] = useState(null);
   const [sessionId, setSessionId] = useState("");
   const [entitlement, setEntitlement] = useState("idle");
@@ -55,6 +55,7 @@ export default function CheckoutStatusNotice({ onRestoreAccess, onClose, onAnaly
     releaseExclusiveDialog(DIALOG_ID);
     onClose?.();
   }, [onClose]);
+  const continueToWorkspace = useCallback(() => { close(); onContinue?.(); }, [close, onContinue]);
 
   useEffect(() => () => releaseExclusiveDialog(DIALOG_ID), []);
 
@@ -75,11 +76,12 @@ export default function CheckoutStatusNotice({ onRestoreAccess, onClose, onAnaly
         <button className="checkoutNoticeClose" type="button" onClick={close} aria-label="Close checkout message"><X size={18} aria-hidden="true" /></button>
         <div className="checkoutNoticeIcon">{success ? "✓" : "↩"}</div>
         <p className="checkoutNoticeEyebrow">{success ? "OpeningFit Plus" : "Checkout cancelled"}</p>
-        <h2 id="checkout-status-title">{success ? "Thanks for supporting OpeningFit." : "No payment was taken."}</h2>
+        <h2 id="checkout-status-title">{success && entitlement === "confirmed" ? "OpeningFit Plus is active." : success ? "Thanks for supporting OpeningFit." : "No payment was taken."}</h2>
         <p>{success ? message : "Your free report remains available. You can return to pricing whenever it is useful."}</p>
         <div className="checkoutNoticeActions">
           {success && entitlement !== "confirmed" ? <button className="checkoutNoticePrimary" type="button" onClick={verify} disabled={entitlement === "processing"}>{entitlement === "processing" ? "Checking access…" : "Retry access check"}</button> : null}
-          <button className={success ? "checkoutNoticeSecondary" : "checkoutNoticePrimary"} type="button" onClick={close}>Continue to OpeningFit</button>
+          {success && entitlement === "confirmed" ? <button className="checkoutNoticePrimary" type="button" onClick={continueToWorkspace}>Open this week’s plan</button> : null}
+          <button className={success ? "checkoutNoticeSecondary" : "checkoutNoticePrimary"} type="button" onClick={close}>{success && entitlement === "confirmed" ? "Stay on this page" : "Continue to OpeningFit"}</button>
         </div>
       </section>
     </div>

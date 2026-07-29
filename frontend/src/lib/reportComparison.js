@@ -22,6 +22,30 @@ function text(value) {
   return cleaned || null;
 }
 
+function sameKnownValue(left, right) {
+  if (left === null || left === undefined || left === "" || right === null || right === undefined || right === "") return true;
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+export function reportComparisonCompatibility(previous = {}, current = {}) {
+  const reasons = [];
+  const previousPlatform = text(previous.source_platform)?.toLowerCase();
+  const currentPlatform = text(current.source_platform)?.toLowerCase();
+  const previousUsername = text(previous.source_username)?.toLowerCase();
+  const currentUsername = text(current.source_username)?.toLowerCase();
+  if (!sameKnownValue(previousPlatform, currentPlatform)) reasons.push("The source platform changed.");
+  if (!sameKnownValue(previousUsername, currentUsername)) reasons.push("The chess username changed.");
+  const beforeMetadata = previous.analysis_metadata || {};
+  const currentMetadata = current.analysis_metadata || {};
+  if (!sameKnownValue(beforeMetadata.analysis_time_format, currentMetadata.analysis_time_format)) reasons.push("The time-control filter changed.");
+  if (!sameKnownValue(beforeMetadata.import_months, currentMetadata.import_months)) reasons.push("The report window changed.");
+  if (!sameKnownValue(beforeMetadata.filters, currentMetadata.filters)) reasons.push("The report filters changed.");
+  const beforeControls = list(previous.time_controls_included).map(String).sort();
+  const currentControls = list(current.time_controls_included).map(String).sort();
+  if (beforeControls.length && currentControls.length && JSON.stringify(beforeControls) !== JSON.stringify(currentControls)) reasons.push("The included time controls changed.");
+  return { comparable: reasons.length === 0, reasons };
+}
+
 function canonicalOpening(name) {
   const raw = text(name);
   if (!raw) return { key: null, name: null };
@@ -201,6 +225,26 @@ function compareRepertoire(previous = {}, current = {}) {
   return changes;
 }
 
+function roleRows(snapshot = {}) {
+  return new Map(list(snapshot.repertoire_roles).map((role) => [text(role.key || role.slot), role]).filter(([key]) => key));
+}
+
+function compareRoleEstablishment(previous = {}, current = {}) {
+  const before = roleRows(previous);
+  const now = roleRows(current);
+  return [...new Set([...before.keys(), ...now.keys()])].flatMap((key) => {
+    const oldRole = before.get(key);
+    const newRole = now.get(key);
+    if (!oldRole || !newRole) return [];
+    const oldEstablished = Boolean(oldRole.established || oldRole.status === "established");
+    const newEstablished = Boolean(newRole.established || newRole.status === "established");
+    const oldGames = numberOrNull(oldRole.leadingOpeningGames ?? oldRole.leading_opening_games ?? oldRole.games) || 0;
+    const newGames = numberOrNull(newRole.leadingOpeningGames ?? newRole.leading_opening_games ?? newRole.games) || 0;
+    if (oldEstablished === newEstablished && oldGames === newGames) return [];
+    return [{ type: oldEstablished !== newEstablished ? "role establishment changed" : "role evidence changed", slot: key, previousEstablished: oldEstablished, currentEstablished: newEstablished, previousGames: oldGames, currentGames: newGames }];
+  });
+}
+
 function rawWeaknesses(snapshot = {}) {
   const metadata = snapshot.analysis_metadata || {};
   if (Array.isArray(snapshot.weaknesses)) return snapshot.weaknesses;
@@ -362,26 +406,37 @@ export function compareReportSnapshots(previousReport, currentReport) {
     trainingProgress: [],
     summaryHighlights: [],
     confidenceWarnings: [],
+    comparable: false,
+    comparisonState: previous ? "more_evidence_needed" : "baseline",
+    compatibilityReasons: [],
   };
   if (!previous) return empty;
 
-  const previousPlatform = text(previous.source_platform)?.toLowerCase();
-  const currentPlatform = text(current.source_platform)?.toLowerCase();
-  const comparablePlatform = !previousPlatform || !currentPlatform || previousPlatform === currentPlatform;
+  const compatibility = reportComparisonCompatibility(previous, current);
+  if (!compatibility.comparable) return {
+    ...empty,
+    comparable: false,
+    comparisonState: "reports_not_comparable",
+    compatibilityReasons: compatibility.reasons,
+    confidenceWarnings: compatibility.reasons.map((message) => ({ code: "reports_not_comparable", message })),
+  };
+  const comparablePlatform = true;
   const previousScore = numberOrNull(previous.openingfit_score);
   const currentScore = numberOrNull(current.openingfit_score);
   const previousGames = numberOrNull(previous.total_games_analysed);
   const currentGames = numberOrNull(current.total_games_analysed);
-  const enoughReportGames = previousGames >= REPORT_COMPARISON_RULES.minimumReportGames && currentGames >= REPORT_COMPARISON_RULES.minimumReportGames;
+  const sampleNotReduced = previousGames === null || currentGames === null || currentGames >= previousGames;
+  const enoughReportGames = previousGames >= REPORT_COMPARISON_RULES.minimumReportGames && currentGames >= REPORT_COMPARISON_RULES.minimumReportGames && sampleNotReduced;
   const scoreChange = comparablePlatform && enoughReportGames && previousScore !== null && currentScore !== null ? currentScore - previousScore : null;
   const scoreStatus = scoreChange === null ? "insufficient evidence" : statusForDelta(scoreChange, REPORT_COMPARISON_RULES.scoreChangePoints);
   const inferredNewGames = previousGames !== null && currentGames !== null && currentGames >= previousGames ? currentGames - previousGames : null;
-  const openingChanges = compareOpenings(previous, current, comparablePlatform);
+  const openingChanges = compareOpenings(previous, current, comparablePlatform && sampleNotReduced);
   const repertoireChanges = compareRepertoire(previous, current);
-  const weaknesses = compareWeaknesses(previous, current, comparablePlatform);
+  const weaknesses = compareWeaknesses(previous, current, comparablePlatform && sampleNotReduced);
   const confidenceWarnings = [];
   if (!comparablePlatform) confidenceWarnings.push({ code: "platform_changed", message: "The source platform changed, so performance changes are not treated as directly comparable." });
   if (comparablePlatform && !enoughReportGames) confidenceWarnings.push({ code: "small_report_sample", message: `At least ${REPORT_COMPARISON_RULES.minimumReportGames} games in each report are required before OpeningFit calls an overall score change an improvement or decline.` });
+  if (!sampleNotReduced) confidenceWarnings.push({ code: "smaller_report_sample", message: "Fewer games were analysed in the current report, so OpeningFit does not call the score change an improvement." });
   openingChanges.filter((change) => change.status === "insufficient evidence" && (
     change.previousGames < REPORT_COMPARISON_RULES.minimumOpeningGames || change.currentGames < REPORT_COMPARISON_RULES.minimumOpeningGames
   )).forEach((change) => {
@@ -400,12 +455,15 @@ export function compareReportSnapshots(previousReport, currentReport) {
     currentScore,
     scoreChange,
     scoreStatus,
-    scoreComponentChanges: compareScoreComponents(previous, current, comparablePlatform),
+    scoreComponentChanges: compareScoreComponents(previous, current, comparablePlatform && sampleNotReduced),
     openingChanges,
-    repertoireChanges,
+    repertoireChanges: [...repertoireChanges, ...compareRoleEstablishment(previous, current)],
     ...weaknesses,
     trainingProgress,
     summaryHighlights: highlights,
     confidenceWarnings,
+    comparable: true,
+    comparisonState: measuredHighlight?.status === "not_encountered" ? "not_encountered_again" : scoreStatus === "improved" || measuredHighlight?.status === "improved" ? "improved_with_supporting_evidence" : measuredHighlight?.status === "not_improved" ? "still_recurring" : "more_evidence_needed",
+    compatibilityReasons: [],
   };
 }

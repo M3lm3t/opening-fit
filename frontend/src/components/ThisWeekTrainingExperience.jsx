@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthDataProvider.jsx";
 import { completeWeeklyTask, weeklyPlanWindow } from "../lib/weeklyTrainingPlan.js";
 import { buildFoundationalWeeklyPlan, buildThisWeekTrainingView, freeTrainingPreviewState, openingForWeeklyTask } from "../lib/thisWeekTraining.js";
 import { trackProductEvent } from "../lib/productAnalytics.js";
-import { getOrCreateWeeklyTrainingPlan, setWeeklyTrainingTaskCompletion } from "../services/weeklyTrainingPlanService.js";
+import { getOrCreateWeeklyTrainingPlan, getWeeklyTrainingPlanHistory, setWeeklyTrainingTaskCompletion } from "../services/weeklyTrainingPlanService.js";
 import { canUseFeature, OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
 import { personaliseWeeklyTrainingPlan, readLocalTrainingPreferences, resolveTrainingPreferences } from "../lib/trainingPreferences.js";
 import { TRAINING_PREFERENCES_EDIT_EVENT, TRAINING_PREFERENCES_UPDATED_EVENT } from "./PostReportOnboarding.jsx";
@@ -13,6 +13,9 @@ import FeatureAccessPreview from "./FeatureAccessPreview.jsx";
 import OpeningOpportunityDrill from "./OpeningOpportunityDrill.jsx";
 import TrainingGameReviewSession from "./TrainingGameReviewSession.jsx";
 import { buildFreeTrainingExercise } from "../lib/freeTrainingExercise.js";
+import { loadOpeningOpportunityProgress } from "../lib/openingOpportunityDrills.js";
+import { buildPremiumTrainingHistory, buildPremiumWeeklyOverview, contextualPlusContinuation, trainingResponsePlans } from "../lib/premiumContinuity.js";
+import { selectTrainingReviewGames } from "../lib/trainingGameReview.js";
 import "./ThisWeekTrainingExperience.css";
 import "./ThisWeekTrainingCompletion.css";
 
@@ -23,7 +26,6 @@ const TASK_LABELS = {
   game_review: "Game review",
   concept_review: "Concept review",
 };
-const PLUS_CONTINUATION_BENEFITS = ["Full weekly plan", "Own-game drills", "Saved progress", "Repertoire workspace"];
 
 function cacheKey(userId) {
   return `${CACHE_PREFIX}:${userId || "local"}`;
@@ -119,6 +121,29 @@ function CompletedTask({ task, plan }) {
   );
 }
 
+function formatPlanDate(value) {
+  const parsed = Date.parse(value || "");
+  return parsed ? new Date(parsed).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "Date unavailable";
+}
+
+function PremiumWeeklyOverview({ plan, report, priority, responsePlans, onContinue }) {
+  const overview = buildPremiumWeeklyOverview(plan, responsePlans);
+  const games = selectTrainingReviewGames(report || {}, priority || {}, { kind: priority?.actionType?.includes("repair") ? "reliable_weakness" : "preparation_opportunity" });
+  return <section className="premiumWeeklyOverview" aria-labelledby="premium-weekly-focus-title">
+    <header><div><span>Main focus</span><h2 id="premium-weekly-focus-title">{overview.primaryTask?.title || plan.primaryGoal}</h2><p>{overview.primaryTask?.explanation || plan.reason}</p></div><div className="premiumWeeklyOverview__progress"><strong>{overview.completionPercent}%</strong><span>{overview.completed} of {overview.total} tasks</span></div></header>
+    <dl><div><dt>Evidence and confidence</dt><dd>{overview.evidenceCount} supporting game{overview.evidenceCount === 1 ? "" : "s"} · {overview.confidence}</dd></div><div><dt>Total plan time</dt><dd>{overview.estimatedMinutes} minutes</dd></div><div><dt>Generated</dt><dd>{formatPlanDate(overview.generatedAt)}</dd></div></dl>
+    <div className="premiumWeeklyOverview__grid"><section><h3>{games.length ? "Own-game evidence" : "Exercise source"}</h3>{games.length ? <ul>{games.map((game) => <li key={game.id}><strong>{game.opening}</strong><span>{game.opponent} · {game.result} · {game.platform}</span></li>)}</ul> : <p>General opening setup · no recoverable source game is stored.</p>}</section><section><h3>Your saved plan</h3><blockquote>{overview.responsePlan || "Complete the main session and save one practical response here."}</blockquote><small>{overview.responsePlanSource}</small></section></div>
+    {overview.primaryTask ? <button className="primaryBtn" type="button" onClick={() => onContinue(overview.primaryTask)}><Play size={16} /> Continue training</button> : null}
+    <footer><span>Progress check</span><p>{overview.refreshMessage}</p></footer>
+  </section>;
+}
+
+function PremiumTrainingHistory({ plans, responsePlans }) {
+  const rows = buildPremiumTrainingHistory(plans, responsePlans);
+  if (!rows.length) return null;
+  return <section className="premiumTrainingHistory" aria-labelledby="premium-training-history-title"><header><span>Training history</span><h2 id="premium-training-history-title">Completed work you can revisit</h2></header><div>{rows.slice(0, 8).map((row) => <details key={row.id}><summary><span><strong>{row.title}</strong><small>{row.openingName} · {row.sourceType}</small></span><span>{formatPlanDate(row.completedAt)}</span></summary><div><p>{row.explanation}</p><dl><div><dt>Started</dt><dd>{formatPlanDate(row.startedAt)}</dd></div><div><dt>Completed</dt><dd>{formatPlanDate(row.completedAt)}</dd></div><div><dt>Later recurrence</dt><dd>{row.recurrenceStatus}</dd></div></dl><p><strong>Saved response plan:</strong> {row.responsePlan || "No response plan was saved for this task."}</p><small>Read-only review</small></div></details>)}</div></section>;
+}
+
 export default function ThisWeekTrainingExperience({ report, onPractice, onAnalyse, onReport, onUpgrade }) {
   const { user, entitlement, settings } = useAuth();
   const userId = user?.id || "";
@@ -138,6 +163,7 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
   const [conceptEngaged, setConceptEngaged] = useState(false);
   const [trainingSessionReady, setTrainingSessionReady] = useState(false);
   const [pendingTaskIds, setPendingTaskIds] = useState(initial.pendingTaskIds);
+  const [historyPlans, setHistoryPlans] = useState([]);
 
   useEffect(() => {
     setTrainingPreferences(resolveTrainingPreferences({ authenticated: Boolean(userId), settings, localPreferences: readLocalTrainingPreferences() }));
@@ -196,6 +222,12 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
 
   useEffect(() => { void loadPlan(); }, [loadPlan]);
   useEffect(() => {
+    let active = true;
+    if (!userId || !hasWeeklyPlan) { setHistoryPlans([]); return () => { active = false; }; }
+    getWeeklyTrainingPlanHistory(userId).then((rows) => { if (active) setHistoryPlans(rows); }).catch(() => { if (active) setHistoryPlans([]); });
+    return () => { active = false; };
+  }, [hasWeeklyPlan, userId]);
+  useEffect(() => {
     const reconnect = () => { if (pendingTaskIds.length || error) void loadPlan(); };
     window.addEventListener("online", reconnect);
     return () => window.removeEventListener("online", reconnect);
@@ -207,6 +239,9 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
     () => previewTask ? buildFreeTrainingExercise(report || {}, currentPriority) : null,
     [currentPriority, previewTask, report]
   );
+  const responsePlans = trainingResponsePlans(settings);
+  const freeSavedPlan = freeExercise?.drill?.id ? loadOpeningOpportunityProgress()[freeExercise.drill.id]?.responsePlan || "" : "";
+  const freeContinuation = contextualPlusContinuation(currentPriority || {}, freeSavedPlan);
 
   useEffect(() => {
     setConceptEngaged(false);
@@ -297,13 +332,13 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
         <TaskMeta task={previewTask} plan={plan} />
         <h2>{previewTask.title}</h2><p>{previewTask.explanation}</p>
         {!freeState.started ? <button type="button" className="primaryBtn" onClick={() => startFreeTask(previewTask)}><Play size={17} /> Start free action</button> : freeState.completed ? <p className="thisWeekFreeComplete"><CheckCircle2 size={18} /> Free action completed</p> : <div className="thisWeekFreeExercise">
-          <TrainingGameReviewSession report={report} priority={currentPriority} exercise={freeExercise} conceptEngaged={conceptEngaged} onReadinessChange={handleTrainingReadiness}>
+          <TrainingGameReviewSession report={report} priority={currentPriority} exercise={freeExercise} taskId={previewTask.id} planId={plan.id} conceptEngaged={conceptEngaged} onReadinessChange={handleTrainingReadiness}>
             <OpeningOpportunityDrill opportunity={freeExercise.opportunity} report={report} onEngaged={() => setConceptEngaged(true)} onCompleted={() => setConceptEngaged(true)} />
           </TrainingGameReviewSession>
           <div className="thisWeekFreeActive"><strong>Success check</strong><p>Review one supplied game when available, attempt or reveal the concept, and save one response plan.</p>{trainingSessionReady ? <button type="button" className="primaryBtn" disabled={busyTaskId === previewTask.id} onClick={() => completeTask(previewTask)}>{busyTaskId === previewTask.id ? "Saving…" : "Complete this session"}</button> : <small>Finish the available review steps shown above before completing this action.</small>}</div>
         </div>}
       </article> : null}
-      {freeState.showPlusInvitation ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.WEEKLY_PLAN} eyebrow="Continue with OpeningFit Plus" title="Keep this training loop going" benefits={PLUS_CONTINUATION_BENEFITS} onViewed={trackPlusInvitation} onUpgrade={openPlus} /> : null}
+      {freeState.showPlusInvitation ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.WEEKLY_PLAN} eyebrow="Continue with OpeningFit Plus" title={freeContinuation.title} onViewed={trackPlusInvitation} onUpgrade={openPlus}><p>{freeContinuation.message}</p></FeatureAccessPreview> : null}
     </section>;
   }
 
@@ -331,6 +366,8 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
       </dl>
       <button type="button" className="thisWeekPreferenceEdit" onClick={() => window.dispatchEvent(new Event(TRAINING_PREFERENCES_EDIT_EVENT))}>Edit weekly preferences</button>
 
+      <PremiumWeeklyOverview plan={plan} report={report} priority={currentPriority} responsePlans={responsePlans} onContinue={startTask} />
+
       {view.state === "completed" ? (
         <section className="thisWeekCompletion" aria-labelledby="this-week-complete-title">
           <CheckCircle2 size={34} />
@@ -345,11 +382,11 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
             <div><span>Current next action</span><strong>{view.nextTask?.title}</strong></div>
             <button type="button" className="primaryBtn" onClick={() => startTask(view.nextTask)}><Play size={17} /> {activeTaskId === view.nextTask?.id ? "Continue training" : "Continue training"}<ChevronRight size={17} /></button>
           </div>
-          {activeTaskId === previewTask?.id && freeExercise ? <TrainingGameReviewSession report={report} priority={currentPriority} exercise={freeExercise} conceptEngaged={conceptEngaged} onReadinessChange={handleTrainingReadiness}>
+          {activeTaskId === previewTask?.id && freeExercise ? <TrainingGameReviewSession report={report} priority={currentPriority} exercise={freeExercise} taskId={previewTask.id} planId={plan.id} conceptEngaged={conceptEngaged} onReadinessChange={handleTrainingReadiness}>
             <OpeningOpportunityDrill opportunity={freeExercise.opportunity} report={report} onEngaged={() => setConceptEngaged(true)} onCompleted={() => setConceptEngaged(true)} />
           </TrainingGameReviewSession> : null}
           <section className="thisWeekTasks" aria-labelledby="this-week-tasks-title">
-            <header><div><span>Ordered plan</span><h2 id="this-week-tasks-title">Your tasks</h2></div><small>One focus, completed in order where possible.</small></header>
+            <header><div><span>Ordered plan</span><h2 id="this-week-tasks-title">Remaining tasks</h2></div><small>One main focus, then supporting work in order where possible.</small></header>
             <div className="thisWeekPendingTasks">
               {view.pendingTasks.map((task) => <PendingTaskCard key={task.id} task={task} plan={plan} current={task.id === view.nextTask?.id} active={task.id === activeTaskId} busy={task.id === busyTaskId} completionAllowed={task.id !== previewTask?.id || trainingSessionReady} onStart={startTask} onComplete={completeTask} />)}
             </div>
@@ -357,6 +394,7 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
           </section>
         </>
       )}
+      <PremiumTrainingHistory plans={historyPlans} responsePlans={responsePlans} />
     </section>
   );
 }

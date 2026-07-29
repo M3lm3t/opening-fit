@@ -77,6 +77,18 @@ export async function getCurrentWeeklyTrainingPlan(userId, options = {}) {
   return data ? weeklyPlanFromRow(data) : null;
 }
 
+export async function getWeeklyTrainingPlanHistory(userId, options = {}) {
+  requireUser(userId);
+  const { data, error } = await clientFor(options)
+    .from("weekly_training_plans")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(Math.max(1, Math.min(20, Number(options.limit || 12))));
+  if (error) throw serviceError(error, "Could not load training history.");
+  return (data || []).map(weeklyPlanFromRow);
+}
+
 export async function getOrCreateWeeklyTrainingPlan(userId, options = {}) {
   requireUser(userId);
   const client = clientFor(options);

@@ -58,11 +58,41 @@ test("tiny overall samples never produce a score improvement claim", () => {
   assert.ok(result.confidenceWarnings.some((warning) => warning.code === "small_report_sample"));
 });
 
-test("changed platforms disable direct performance comparison", () => {
+test("changed platforms make reports non-comparable without progress claims", () => {
   const result = compareReportSnapshots(comparisonFixtures.changedPlatform.previous, comparisonFixtures.changedPlatform.current);
+  assert.equal(result.comparable, false);
+  assert.equal(result.comparisonState, "reports_not_comparable");
   assert.equal(result.scoreChange, null);
-  assert.equal(result.openingChanges.every((item) => item.status === "insufficient evidence"), true);
-  assert.equal(result.confidenceWarnings[0].code, "platform_changed");
+  assert.deepEqual(result.openingChanges, []);
+  assert.equal(result.confidenceWarnings[0].code, "reports_not_comparable");
+});
+
+test("changed username prevents comparison even on the same platform", () => {
+  const previous = { ...comparisonFixtures.scoreIncrease.previous, source_platform: "chesscom", source_username: "player-one" };
+  const current = { ...comparisonFixtures.scoreIncrease.current, source_platform: "chesscom", source_username: "player-two" };
+  const result = compareReportSnapshots(previous, current);
+  assert.equal(result.comparisonState, "reports_not_comparable");
+  assert.match(result.compatibilityReasons.join(" "), /username changed/i);
+  assert.deepEqual(result.summaryHighlights, []);
+});
+
+test("changed report window or filters prevent comparison", () => {
+  const previous = { ...comparisonFixtures.scoreIncrease.previous, analysis_metadata: { import_months: 6, filters: { rated: true } } };
+  const current = { ...comparisonFixtures.scoreIncrease.current, analysis_metadata: { import_months: 12, filters: { rated: false } } };
+  const result = compareReportSnapshots(previous, current);
+  assert.equal(result.comparisonState, "reports_not_comparable");
+  assert.match(result.compatibilityReasons.join(" "), /window changed/i);
+  assert.match(result.compatibilityReasons.join(" "), /filters changed/i);
+});
+
+test("a smaller current sample never produces an improvement claim", () => {
+  const previous = { ...comparisonFixtures.scoreIncrease.previous, total_games_analysed: 20, openingfit_score: 60 };
+  const current = { ...comparisonFixtures.scoreIncrease.current, total_games_analysed: 10, openingfit_score: 80 };
+  const result = compareReportSnapshots(previous, current);
+  assert.equal(result.scoreStatus, "insufficient evidence");
+  assert.equal(result.scoreChange, null);
+  assert.equal(result.summaryHighlights.some((item) => item.status === "improved"), false);
+  assert.ok(result.confidenceWarnings.some((warning) => warning.code === "smaller_report_sample"));
 });
 
 test("missing old fields stay safe and do not create invented changes", () => {
@@ -139,6 +169,7 @@ test("measured training outcomes replace inferred training claims", () => {
   const result = compareReportSnapshots(previous, current);
   assert.equal(result.trainingProgress.length, 1);
   assert.equal(result.trainingProgress[0].status, "not_encountered");
+  assert.equal(result.comparisonState, "not_encountered_again");
   assert.match(result.trainingProgress[0].message, /not appeared again/i);
   assert.doesNotMatch(result.trainingProgress[0].message, /caused|rating improvement/i);
 });
