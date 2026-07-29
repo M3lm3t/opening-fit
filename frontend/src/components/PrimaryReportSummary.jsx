@@ -31,6 +31,7 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
     else if (action?.type === "analyse") onAnalyse?.();
     else if (action?.type === "training") onTraining?.(action.target);
   };
+  const missingSlots = view.slots.filter((slot) => !slot.complete);
   return (
     <section className="primaryReportSummary" aria-labelledby="primary-report-title">
       {isSampleReport(report) ? <p className="primaryReportSampleLabel">Illustrative example · Fictional data · <a href="/how-it-works">How analysis works</a></p> : null}
@@ -39,42 +40,50 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
         <span>Coach verdict</span>
         <h2 id="primary-report-title" tabIndex="-1">Your opening plan</h2>
         <p>{view.verdict}</p>
+        <p className="primaryReportKeep"><strong>Keep playing</strong><span>{view.decisions[0].title}</span></p>
         <div className={`primaryReportEvidence primaryReportEvidence--${view.weaknessState}`}>
           <strong>{view.problem.title}</strong>
           <p>{view.evidenceExplanation}</p>
-          {view.recommendationContext?.reasons?.length ? <div className="primaryReportFitContext"><strong>{view.recommendationContext.title}</strong><ul>{view.recommendationContext.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div> : null}
         </div>
         <small>{view.confidence}</small>
       </div>
 
+      {missingSlots.length ? <section className="primaryReportBuilding" aria-labelledby="building-role-title">
+        <span>Missing or building repertoire role</span>
+        <h2 id="building-role-title">{missingSlots.map((slot) => slot.label).join(" · ")}</h2>
+        <p>{missingSlots[0].explanation}</p>
+      </section> : null}
+
       <section className="primaryReportNextAction" aria-labelledby="primary-action-title">
-        <span>One next action</span>
-        <h2 id="primary-action-title">{view.primaryAction.title}</h2>
+        <span>{view.decisions[2].label}</span>
+        <div><h2 id="primary-action-title">{view.primaryAction.title}</h2><p>{view.decisions[2].reason}</p></div>
         {actionAvailable(view.primaryAction) ? <button type="button" className="primaryBtn" onClick={() => runAction(view.primaryAction)}>{view.primaryAction.label}</button> : null}
       </section>
+
+      <div className="primaryReportMore"><button type="button" className="secondaryBtn" onClick={onFullReport}>View evidence and full report</button><small>Detailed repertoire roles, import counts, calculation, sharing and report tools are preserved below.</small></div>
 
       <ReportGameCountSummary report={report} saveStatus={saveStatus} authenticated={authenticated} onAccount={onAccount} />
 
       <section className="primaryReportScoreSection" aria-labelledby="repertoire-coverage-title">
-        <div className="primaryReportScore" aria-label={view.scoreLabel}>
-          <span>{view.scoreLabel}</span><strong>{view.score ?? "—"}</strong><small>{view.score === null ? "Not enough evidence" : "/100"}</small><em>{scoreView.developmentState.label}</em>
-        </div>
         <div className="primaryReportScoreExplanation">
-          <h2 id="repertoire-coverage-title">What this number means</h2>
-          <p>{scoreView.meaning}</p><p>{scoreView.weaknessContext}</p>
-          {scoreView.contributors.length ? <div className="primaryReportScoreContributors" aria-label={view.score === null ? "Main score contributors" : `Why the repertoire coverage score is ${view.score}`}><strong>{view.score === null ? "Main contributors" : `Why ${view.score}?`}</strong><ul>{scoreView.contributors.map((item) => <li key={item.key}><span>{item.title}</span><b>{item.value}/100</b></li>)}</ul></div> : null}
+          <span>Repertoire completeness</span>
+          <h2 id="repertoire-coverage-title">{view.establishedRoleCount} of {view.totalRoleCount} repertoire roles established</h2>
+          <ul className="primaryReportRoleOverview">{view.slots.map((slot) => <li key={slot.key}><span>{slot.label}</span><strong>{slot.complete ? "Established" : "Building"}</strong></li>)}</ul>
+          <p>Coverage measures how established and well-supported the three core repertoire roles are. It does not measure playing strength or opening quality.</p>
+          <p className="primaryReportCoverageIndicator"><strong>{view.scoreLabel}:</strong> {view.score === null ? "Unavailable" : `${view.score}%`} · {scoreView.developmentState.label}</p>
         </div>
       </section>
       <OpeningFitScoreDisclosure model={model} report={report} previousReport={previousReport} />
 
-      <section className="primaryReportDecisions" aria-labelledby="primary-decisions-title">
-        <header><span>Supporting decisions</span><h2 id="primary-decisions-title">Keep, repair, then train</h2></header>
+      <details className="primaryReportSupportingDisclosure"><summary>Supporting decisions and evidence</summary><section className="primaryReportDecisions" aria-labelledby="primary-decisions-title">
+        <header><span>Supporting decisions</span><h2 id="primary-decisions-title">Keep, assess, then train</h2></header>
         <div>{view.decisions.map((decision, index) => (
           <article className={`primaryReportDecision primaryReportDecision--${decision.key}`} key={decision.key}>
             <span>{index + 1}. {decision.label}</span><h3>{decision.title}</h3><p>{decision.reason}</p>
             {decision.key !== "train" && actionAvailable(decision.action) ? <button type="button" className="secondaryBtn" onClick={() => runAction(decision.action)}>{decision.action.label}</button> : null}
           </article>
         ))}</div>
+        {view.recommendationContext?.reasons?.length ? <div className="primaryReportFitContext"><strong>{view.recommendationContext.title}</strong><ul>{view.recommendationContext.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div> : null}
         <details className="primaryReportDecisionEvidence">
           <summary>Why these decisions?</summary>
           <div>
@@ -83,16 +92,15 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
             <RecommendationEvidenceDisclosure recommendation={trainingEvidence} report={report} interpretation={view.decisions[2].reason} label="Evidence for Train next" />
           </div>
         </details>
-      </section>
+      </section></details>
 
       {view.confidenceWarning ? <aside className="primaryReportConfidence" role="status"><strong>Confidence is still developing</strong><p>{view.confidenceWarning}</p></aside> : null}
-      <section className="primaryReportRepertoire" id="report-repertoire" aria-labelledby="primary-repertoire-title">
-        <header><div><span>Current repertoire</span><h2 id="primary-repertoire-title">Your three core slots</h2></div>{view.incompleteRepertoire ? <strong>Still building</strong> : <strong>Core slots covered</strong>}</header>
-        <div>{view.slots.map((slot) => <article key={slot.key} className={!slot.complete ? "isIncomplete" : ""}><span>{slot.label}</span><h3>{slot.opening}</h3><strong className="primaryReportRoleStatus">{slot.confidence} · {slot.games} relevant game{slot.games === 1 ? "" : "s"}</strong><p>{slot.evidence}</p>{!slot.complete ? <p>{slot.requirement}</p> : null}<small>{slot.filters}</small></article>)}</div>
-      </section>
+      <details className="primaryReportRepertoireDisclosure"><summary>Detailed repertoire role evidence</summary><section className="primaryReportRepertoire" id="report-repertoire" aria-labelledby="primary-repertoire-title">
+        <header><div><span>Current repertoire</span><h2 id="primary-repertoire-title">Your three core roles</h2></div>{view.incompleteRepertoire ? <strong>Still building</strong> : <strong>Core roles covered</strong>}</header>
+        <div>{view.slots.map((slot) => <article key={slot.key} className={!slot.complete ? "isIncomplete" : ""}><span>{slot.label}</span><h3>{slot.opening}</h3><strong className="primaryReportRoleStatus">{slot.confidence}{slot.complete && slot.games !== null ? ` · ${slot.games} relevant game${slot.games === 1 ? "" : "s"}` : ""}</strong><p>{slot.explanation}</p>{!slot.complete ? <details><summary>Why isn&apos;t this established?</summary><p><code>{slot.reasonCode}</code></p>{slot.funnelRows.length ? <dl>{slot.funnelRows.map((row) => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}</dl> : <p>Detailed role-stage counts were not stored with this report.</p>}<p>{slot.requirement}</p><small>{slot.filters}</small></details> : null}</article>)}</div>
+      </section></details>
 
       {comparison ? <div className="primaryReportComparison">{comparison}</div> : null}
-      <div className="primaryReportMore"><button type="button" className="secondaryBtn" onClick={onFullReport}>View full report</button><small>Recommendations, evidence, detailed repertoire roles, sharing and report tools are preserved below.</small></div>
     </section>
   );
 }

@@ -26,7 +26,9 @@ test("free and premium first reports share the same analysis hierarchy", () => {
   assert.deepEqual(free.decisions.map((decision) => decision.title), ["Italian Game", "Sicilian Defence", "This week: practise Sicilian Defence for approximately 10 minutes."]);
   assert.equal(free.decisions[2].action.label, "Start 10-minute practice");
   assert.equal(free.training.cta, "Start 10-minute practice");
-  assert.equal(free.scoreLabel, "Repertoire coverage");
+  assert.equal(free.scoreLabel, "Coverage indicator");
+  assert.equal(free.establishedRoleCount, 3);
+  assert.deepEqual(free.slots.map((slot) => slot.confidence), ["Established", "Established", "Established"]);
 });
 
 test("the report leads with verdict, evidence, one action and compact status", async () => {
@@ -37,13 +39,19 @@ test("the report leads with verdict, evidence, one action and compact status", a
   const decisions = source.indexOf("<section className=\"primaryReportDecisions\"");
   const verdict = source.indexOf("<div className=\"primaryReportVerdict\"");
   const action = source.indexOf("<section className=\"primaryReportNextAction\"");
+  const building = source.indexOf("<section className=\"primaryReportBuilding\"");
+  const more = source.indexOf("<div className=\"primaryReportMore\"");
   const status = source.indexOf("<ReportGameCountSummary");
   const score = source.indexOf("<section className=\"primaryReportScoreSection\"");
-  assert.ok(verdict < action && action < status && status < score && score < decisions);
+  assert.ok(verdict < building && building < action && action < more && more < status && status < score && score < decisions);
   assert.ok(decisions < source.indexOf("<section className=\"primaryReportRepertoire\""));
   assert.equal((source.match(/"primaryBtn"/g) || []).length, 1);
   assert.doesNotMatch(source, /FeatureAccessPreview/);
   assert.match(source, /Why these decisions\?/);
+  assert.match(source, /Why isn&apos;t this established\?/);
+  assert.match(source, /View evidence and full report/);
+  assert.match(source, /does not measure playing strength or opening quality/);
+  assert.doesNotMatch(source, /<small>\/100<\/small>|Why \$\{view\.score\}\?/);
   assert.doesNotMatch(source, /primaryReportProblem|primaryReportTraining/);
   assert.match(appSource, /onPractice=\{onPractice\}/);
   assert.match(appSource, /onEvidence=\{openOpeningBreakdown\}/);
@@ -76,7 +84,7 @@ test("one-game samples cannot become keep or repair decisions", () => {
   assert.equal(view.decisions[0].source, null);
   assert.equal(view.decisions[1].source, null);
   assert.match(view.decisions[0].reason, /Play 4 more rapid games/);
-  assert.match(view.decisions[1].reason, /Play 4 more rapid games/);
+  assert.match(view.decisions[1].reason, /no single repeated pattern supports a repair claim/i);
   assert.deepEqual(view.decisions[2].action, { label: "Analyse more games", type: "analyse" });
 });
 
@@ -138,7 +146,8 @@ test("incomplete repertoire keeps all three required slots without invented open
   assert.equal(view.incompleteRepertoire, true);
   assert.deepEqual(view.slots.map((slot) => slot.label), ["White", "Black against 1.e4", "Black against 1.d4"]);
   assert.equal(view.slots[1].opening, "Not established yet");
-  assert.match(view.slots[1].requirement, /as Black against 1\.e4/);
+  assert.equal(view.slots[1].reasonCode, "unsupported_or_unknown");
+  assert.match(view.slots[1].explanation, /does not yet have enough correctly attributed games/i);
 });
 
 test("low data produces a calm prominent confidence warning", () => {
@@ -169,9 +178,10 @@ test("a positive verdict can have medium coverage and no reliable weakness", () 
     training: { type: "keep", opening: "Vienna Game" },
   });
   assert.equal(view.score, 60);
-  assert.equal(view.scoreLabel, "Repertoire coverage");
+  assert.equal(view.scoreLabel, "Coverage indicator");
+  assert.equal(view.establishedRoleCount, 1);
   assert.equal(view.weaknessState, "strong_results");
-  assert.equal(view.problem.title, "No single opening stands out as a major weakness");
+  assert.equal(view.problem.title, "No statistically reliable opening weakness was found");
   assert.match(view.evidenceExplanation, /Vienna Game has enough evidence.*still need more evidence/i);
   assert.equal(view.primaryAction.title, "This week: practise Vienna Game for approximately 10 minutes.");
   assert.equal(view.recommendationContext.title, "Why Vienna Game fits your current repertoire");
@@ -229,7 +239,7 @@ test("insufficient evidence explains no weakness without claiming strength", () 
   assert.equal(view.weaknessState, "insufficient_evidence");
   assert.match(view.evidenceExplanation, /not enough evidence.*not.*all openings are strong/i);
   assert.equal(view.primaryAction.type, "analyse");
-  assert.match(view.primaryAction.title, /rapid games as Black against 1\.d4.*1 more relevant example is currently needed/i);
+  assert.match(view.primaryAction.title, /rapid.*1 more correctly attributed game.*Black-versus-1\.d4/i);
   assert.doesNotMatch(view.primaryAction.title, /play 5 more|arbitrary rapid games/i);
 });
 
@@ -261,4 +271,46 @@ test("no-weakness states distinguish confidence failure from distributed evidenc
   });
   assert.equal(mixed.weaknessState, "mixed_or_distributed");
   assert.match(mixed.evidenceExplanation, /mixed across openings or roles/i);
+});
+
+test("no reliable weakness labels a frequent faced opening as preparation, not repair", () => {
+  const view = buildPrimaryReportSummary({
+    ...completeModel,
+    primaryProblem: null,
+    authoritative: {
+      primaryProblem: null,
+      establishedStrength: completeModel.establishedStrength,
+      nextTrainingAction: { type: "prepare_against", opening: "Caro-Kann Defence", role: "faced_as_white", sample: { games: 10 } },
+      trainingPriority: { openingName: "Caro-Kann Defence", role: "faced_as_white", evidenceCount: 10, estimatedDurationMinutes: 10 },
+      confidence: { status: "sufficient" },
+    },
+    training: { type: "prepare_against", opening: "Caro-Kann Defence" },
+  });
+  assert.equal(view.decisions[2].label, "Best preparation opportunity");
+  assert.match(view.decisions[2].reason, /No statistically reliable opening weakness.*faced it 10 times/i);
+  assert.doesNotMatch(view.decisions[2].reason, /repair|mistake|poor plan/i);
+});
+
+test("a supported weakness retains repair language", () => {
+  const view = buildPrimaryReportSummary(completeModel);
+  assert.equal(view.weaknessState, "reliable_weakness");
+  assert.equal(view.decisions[1].label, "Repair");
+  assert.equal(view.decisions[2].label, "Train next");
+  assert.equal(view.establishedRoleCount, 3);
+});
+
+test("coverage completeness and the weighted indicator remain separate", () => {
+  const view = buildPrimaryReportSummary({
+    ...completeModel,
+    health: { score: 67, confidence: "Moderate report coverage", games: 280 },
+    repertoire: [
+      { key: "white", status: "supported", opening: "Vienna Game", games: 8 },
+      { key: "black_e4", status: "missing", games: 0, evidenceReasonCode: "unsupported_or_unknown" },
+      { key: "black_d4", status: "supported", opening: "Slav Defence", games: 7 },
+    ],
+  });
+  assert.equal(view.establishedRoleCount, 2);
+  assert.equal(view.totalRoleCount, 3);
+  assert.equal(view.score, 67);
+  assert.equal(view.scoreLabel, "Coverage indicator");
 });

@@ -51,9 +51,9 @@ function weaknessContext(model = {}, repairStatus = null) {
 }
 
 function reasonForChange(currentScore, previousScore, current, previous, currentVersion, previousVersion, currentContract = {}, previousContract = {}) {
-  if (previousScore === null) return "This is your baseline score; a later report using the same methodology can explain what changed.";
+  if (previousScore === null) return "This is your baseline coverage indicator; a later report using the same methodology can explain what changed.";
   if (currentVersion !== previousVersion) return `The saved score uses ${previousVersion}; it is not compared numerically with the current ${currentVersion} method.`;
-  if (currentScore === previousScore) return "The rounded score is unchanged from the previous report.";
+  if (currentScore === previousScore) return "The rounded coverage indicator is unchanged from the previous report.";
   if (currentVersion === "repertoire_coverage_v2") {
     const earlier = new Map((previousContract.components || []).map((component) => [component.key, component]));
     const changes = (currentContract.components || []).flatMap((component) => {
@@ -68,7 +68,7 @@ function reasonForChange(currentScore, previousScore, current, previous, current
     const before = componentValue(previous, component);
     return now === null || before === null ? [] : [{ ...component, now, before, contribution: Math.abs(now - before) * component.weight }];
   }).sort((left, right) => right.contribution - left.contribution);
-  if (!changes.length) return `The score moved from ${previousScore} to ${currentScore}, but the reports do not contain compatible component data.`;
+  if (!changes.length) return `The coverage indicator moved from ${previousScore} to ${currentScore}, but the reports do not contain compatible component data.`;
   const main = changes[0];
   return `${main.title} ${main.now > main.before ? "increased" : "decreased"} from ${main.before} to ${main.now}, the largest weighted component change.`;
 }
@@ -103,7 +103,7 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
     .map((component) => ({ ...component, constraint: (100 - component.value) * component.weight }))
     .sort((left, right) => right.constraint - left.constraint)
     .slice(0, 3)
-    .map((component) => ({ key: component.key, title: component.title, value: component.value, explanation: component.value >= 70 ? `${component.title} supports the current score.` : `${component.title} is limiting the current score.` }));
+    .map((component) => ({ key: component.key, title: component.title, value: component.value, explanation: component.value >= 70 ? `${component.title} supports the current coverage indicator.` : `${component.title} is limiting the current coverage indicator.` }));
   const evidence = components.find((item) => item.key === "evidenceConfidence" || item.key === "evidenceCoverage");
   const coverage = formulaVersion === "repertoire_coverage_v2"
     ? coverageLabel(evidence?.exactValue, model.health?.confidence)
@@ -114,7 +114,7 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
   const repairStatus = contract.repairStatus || contract.repair_status || null;
   return {
     currentScore, previousScore, games, confidence: coverage, coverage, provisional,
-    statusLabel: provisional ? "Provisional score" : coverage,
+    statusLabel: provisional ? "Provisional coverage indicator" : coverage,
     components, hasComponentData: components.length > 0,
     reasonForChange: reasonForChange(currentScore, previousScore, currentBreakdown, previousBreakdown, formulaVersion, previousFormulaVersion, contract, previousContract),
     scale: { minimum: 0, maximum: 100 }, formulaVersion, previousFormulaVersion,

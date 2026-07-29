@@ -224,7 +224,22 @@ export function buildRepertoireMapModel(data = {}) {
     const candidates = openings.filter((item) => openingContext(item).key === key).sort((a, b) => openingGames(b) - openingGames(a));
     const main = candidates[0];
     const games = openingGames(main);
+    const correctlyAttributed = candidates.reduce((sum, item) => sum + openingGames(item), 0);
+    const distinctAttributedOpenings = candidates.filter((item) => openingGames(item) > 0).length;
     const status = main ? games >= threshold ? "supported" : "tentative" : "missing";
+    const evidenceReasonCode = status === "supported" ? null
+      : distinctAttributedOpenings > 1 && correctlyAttributed > games ? "split_across_openings"
+      : games > 0 ? "below_evidence_threshold"
+      : "unsupported_or_unknown";
+    const evidenceFunnel = {
+      importedCandidates: null,
+      passedReportFilters: null,
+      correctlyAttributed: main ? correctlyAttributed : null,
+      assignedToLeadingOpening: main ? games : null,
+      distinctAttributedOpenings: main ? distinctAttributedOpenings : null,
+      establishmentThreshold: threshold,
+      additionalRequired: Math.max(0, threshold - games),
+    };
     const requirement = {
       requiredRole: role,
       requiredColour: colour,
@@ -237,12 +252,12 @@ export function buildRepertoireMapModel(data = {}) {
       whyNeeded: `OpeningFit needs ${threshold} correctly attributed games in this repertoire role before treating one opening as established.`,
       nonGuarantee: "Arbitrary games do not guarantee progress: only games that pass the filters and contribute to this exact role reduce the requirement.",
     };
-    if (!main) return { key, label, status, opening: null, games: 0, confidence: "Insufficient evidence", complete: false, tentative: false, evidenceRequirement: requirement, source: null };
+    if (!main) return { key, label, status, opening: null, games: 0, confidence: "Insufficient evidence", complete: false, tentative: false, evidenceReasonCode, evidenceFunnel, evidenceRequirement: requirement, source: null };
     const weak = candidates.filter((item) => item !== main).sort((a, b) => (openingScore(a) ?? 100) - (openingScore(b) ?? 100))[0];
     return {
       key, label, status, opening: openingName(main), verdict: verdict(main) || "Review",
       fit: openingFitScore(main), confidence: openingConfidence(main), games,
-      complete: status === "supported", tentative: status === "tentative", evidenceRequirement: requirement,
+      complete: status === "supported", tentative: status === "tentative", evidenceReasonCode, evidenceFunnel, evidenceRequirement: requirement,
       presentation: buildOpeningVerdictPresentation(main, { verdict: verdict(main) || "Review" }),
       weakestLine: text(weak?.variation || weak?.line || weak?.moveLine || weak?.move_line) || (weak ? openingName(weak) : ""),
       nextAction: reason(main), source: main,

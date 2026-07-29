@@ -216,9 +216,33 @@ def test_repertoire_roles_expose_role_specific_evidence_gaps_and_filters():
     assert roles["black_e4"]["evidenceRequirement"]["additionalRelevantGamesRequired"] == 1
     assert roles["black_e4"]["evidenceRequirement"]["opponentFirstMove"] == "1.e4"
     assert roles["black_e4"]["evidenceRequirement"]["timeControls"] == ["rapid"]
+    assert roles["black_e4"]["evidenceReasonCode"] == "below_evidence_threshold"
+    assert roles["black_e4"]["evidenceFunnel"]["correctlyAttributed"] == 4
+    assert roles["black_e4"]["evidenceFunnel"]["assignedToLeadingOpening"] == 4
+    assert roles["black_e4"]["evidenceFunnel"]["importedCandidates"] is None
     assert roles["black_d4"]["status"] == "missing"
+    assert roles["black_d4"]["evidenceReasonCode"] == "unsupported_or_unknown"
     assert roles["black_d4"]["evidenceRequirement"]["additionalRelevantGamesRequired"] == 5
     assert roles["black_d4"]["evidenceRequirement"]["opponentFirstMove"] == "1.d4"
+
+
+def test_repertoire_role_funnel_exposes_split_attributed_evidence_without_claiming_zero():
+    games = [
+        *[game("Caro-Kann Defence", "played_as_black", index, "draw") for index in range(1, 4)],
+        *[game("French Defence", "played_as_black", index, "draw") for index in range(4, 6)],
+    ]
+    decision = build_report_decision(report(games), openings=[
+        opening("Caro-Kann Defence", "played_as_black", 3, 0, 3, 0),
+        opening("French Defence", "played_as_black", 2, 0, 2, 0),
+    ])
+    role = next(row for row in decision["repertoireRoles"] if row["key"] == "black_e4")
+
+    assert role["status"] == "tentative"
+    assert role["evidenceReasonCode"] == "split_across_openings"
+    assert role["evidenceFunnel"]["correctlyAttributed"] == 5
+    assert role["evidenceFunnel"]["assignedToLeadingOpening"] == 3
+    assert role["evidenceFunnel"]["distinctAttributedOpenings"] == 2
+    assert role["evidenceRequirement"]["additionalRelevantGamesRequired"] == 2
 
 
 def test_repertoire_coverage_arithmetic_excludes_results_and_neutral_weakness_state():

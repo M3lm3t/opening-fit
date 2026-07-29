@@ -356,6 +356,19 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
     controls = _time_controls(report)
     rows = []
     for spec in REPERTOIRE_ROLE_SPECS:
+        role_games: list[Mapping[str, Any]] = []
+        seen_role_game_ids: set[str] = set()
+        for game in _report_games(report):
+            game_perspective = perspective_from_item(game)
+            game_id = _game_id(game)
+            if (
+                game_perspective.get("role") == spec["role"]
+                and str(game_perspective.get("repertoireSlot") or "") in spec["slots"]
+                and _name(game)
+                and game_id not in seen_role_game_ids
+            ):
+                seen_role_game_ids.add(game_id)
+                role_games.append(game)
         candidates = [
             item for item in recommendations
             if item.get("repertoireOwned")
@@ -366,16 +379,39 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
         candidate = sorted(candidates, key=lambda item: (-int(_number((item.get("sample") or {}).get("games")) or 0), str(item.get("openingName") or "").lower()))[0] if candidates else None
         sample = candidate.get("sample") if isinstance(candidate, Mapping) and isinstance(candidate.get("sample"), Mapping) else {}
         current = max(0, int(_number(sample.get("games")) or 0))
+        attributed = len(role_games) if role_games else sum(max(0, int(_number((item.get("sample") or {}).get("games")) or 0)) for item in candidates)
+        attributed_openings = len({_opening_key(_name(game)) for game in role_games}) if role_games else sum(1 for item in candidates if int(_number((item.get("sample") or {}).get("games")) or 0) > 0)
         additional = max(0, MIN_OPENING_EVIDENCE - current)
         supported = bool(candidate and current >= MIN_OPENING_EVIDENCE and candidate.get("sampleSizeStatus") == "sufficient")
         status = "supported" if supported else "tentative" if candidate and current else "missing"
         opening = str(candidate.get("openingName") or "").strip() if candidate else ""
         target = opening or spec["label"]
+        reason_code = None
+        if not supported:
+            if attributed_openings > 1 and attributed > current:
+                reason_code = "split_across_openings"
+            elif current > 0:
+                reason_code = "below_evidence_threshold"
+            else:
+                # The analysed report does not retain role-specific counts for games
+                # rejected before opening attribution. Do not turn that absence into
+                # a claim that no matching public games existed.
+                reason_code = "unsupported_or_unknown"
         rows.append({
             "key": spec["key"], "label": spec["label"], "status": status,
             "openingName": opening or None, "openingKey": candidate.get("openingId") if candidate else None,
             "confidence": (candidate.get("confidence") or {}).get("level") if candidate else "insufficient",
             "evidenceCount": current, "evidenceGameIds": list(sample.get("gameIds") or []),
+            "evidenceReasonCode": reason_code,
+            "evidenceFunnel": {
+                "importedCandidates": None,
+                "passedReportFilters": None,
+                "correctlyAttributed": attributed,
+                "assignedToLeadingOpening": current,
+                "distinctAttributedOpenings": attributed_openings,
+                "establishmentThreshold": MIN_OPENING_EVIDENCE,
+                "additionalRequired": additional,
+            },
             "evidenceRequirement": {
                 "requiredRole": spec["role"], "requiredColour": spec["colour"],
                 "opponentFirstMove": spec["opponentFirstMove"], "openingFamily": opening or None,

@@ -98,17 +98,32 @@ function noWeaknessExplanation({ model, problem, problemCandidates, strength, sl
   const candidateGames = openingGames(candidate);
   const confidenceStatus = text(model.authoritative?.confidence?.status || model.confidence?.status).toLowerCase();
   if (candidate && candidateGames >= OPENING_EVIDENCE_THRESHOLDS.minimum) {
-    return { kind: "confidence_threshold", title: "No reliable opening weakness found yet", text: "A possible weak pattern exists, but its recorded confidence or evidence quality did not meet the threshold for a firm repair claim." };
+    return { kind: "confidence_threshold", title: "No statistically reliable opening weakness was found", text: "A possible weak pattern exists, but its recorded confidence or evidence quality did not meet the threshold for a firm repair claim." };
   }
   if (/insufficient|small|limited/.test(confidenceStatus) || Number(model.health?.games || 0) < OPENING_EVIDENCE_THRESHOLDS.minimum) {
-    return { kind: "insufficient_evidence", title: "No reliable opening weakness found yet", text: "The report has too little opening-specific evidence to name a weakness reliably. This means ‘not enough evidence’, not ‘all openings are strong’." };
+    return { kind: "insufficient_evidence", title: "No statistically reliable opening weakness was found", text: "The report has too little opening-specific evidence to name a weakness reliably. This means ‘not enough evidence’, not ‘all openings are strong’." };
   }
   if (strength) {
     const missingRoles = slots.filter((slot) => !slot.complete).map((slot) => slot.label);
     const elsewhere = missingRoles.length ? `${missingRoles.join(" and ")} still need more evidence.` : "Other roles did not produce one repeated weak pattern above the report threshold.";
-    return { kind: "strong_results", title: "No single opening stands out as a major weakness", text: `${strength.opening} has enough evidence for a keep decision. ${elsewhere}` };
+    return { kind: "strong_results", title: "No statistically reliable opening weakness was found", text: `${strength.opening} has enough evidence for a keep decision. ${elsewhere}` };
   }
-  return { kind: "mixed_or_distributed", title: "No single opening stands out as a major weakness", text: "The available weaker results are mixed across openings or roles, so no single repeated pattern supports a repair claim yet." };
+  return { kind: "mixed_or_distributed", title: "No statistically reliable opening weakness was found", text: "The available weaker results are mixed across openings or roles, so no single repeated pattern supports a repair claim yet." };
+}
+
+function preparationReason({ problem, collectMoreGames, priority, training, nextAction, fallback }) {
+  if (problem || collectMoreGames) return fallback;
+  const opening = text(priority?.openingName || training?.opening || nextAction?.opening);
+  const count = Number(priority?.evidenceCount ?? nextAction?.sample?.games ?? training?.source?.sample?.games ?? training?.source?.games);
+  const role = text(priority?.role || nextAction?.role).toLowerCase();
+  if (opening && Number.isFinite(count) && count > 0) {
+    return role.startsWith("faced_")
+      ? `No statistically reliable opening weakness was found. ${opening} is your best preparation opportunity because you faced it ${Math.round(count)} time${Math.round(count) === 1 ? "" : "s"}.`
+      : `No statistically reliable opening weakness was found. ${opening} is your best preparation opportunity because it appeared in ${Math.round(count)} analysed game${Math.round(count) === 1 ? "" : "s"}.`;
+  }
+  return opening
+    ? `No statistically reliable opening weakness was found. ${opening} is the best available preparation opportunity from this report.`
+    : "No statistically reliable opening weakness was found. This review is the best available preparation opportunity from the current evidence.";
 }
 
 function recommendationContext(strength) {
@@ -145,7 +160,8 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     ["black_d4", "Black against 1.d4"],
   ].map(([key, label]) => {
     const item = repertoire.get(key);
-    const evidenceCopy = repertoireRoleEvidenceCopy(item ? { ...item, label } : { key, label, status: "missing" });
+    const complete = item?.status === "supported" || item?.complete === true || Number(item?.games) >= Number(item?.evidenceRequirement?.threshold || 5);
+    const evidenceCopy = repertoireRoleEvidenceCopy(item ? { ...item, label, complete } : { key, label, status: "missing" });
     return {
       key,
       label,
@@ -154,10 +170,13 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
       evidence: evidenceCopy.evidence,
       requirement: evidenceCopy.requirement,
       filters: evidenceCopy.filters,
-      games: Number.isFinite(Number(item?.games)) ? Math.max(0, Math.round(Number(item.games))) : 0,
+      games: Number.isFinite(Number(item?.games)) ? Math.max(0, Math.round(Number(item.games))) : null,
       status: item?.status || "missing",
-      complete: item?.status === "supported" || item?.complete === true,
+      complete,
       tentative: item?.status === "tentative" || item?.tentative === true,
+      reasonCode: evidenceCopy.reasonCode,
+      explanation: evidenceCopy.explanation,
+      funnelRows: evidenceCopy.funnelRows,
       evidenceRequirement: item?.evidenceRequirement || null,
       additionalRelevantGamesRequired: Number(item?.evidenceRequirement?.additionalRelevantGamesRequired ?? 5),
     };
@@ -173,15 +192,18 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   const hasExplicitTrainingAction = Boolean(nextAction?.type || training?.type || training?.opening || training?.source);
   const collectMoreGames = nextAction?.type === "collect_more_games" || !hasExplicitTrainingAction;
   const keepFallback = moreGamesCopy(model, report, strengthCandidates, "makes a confident keep recommendation");
-  const repairFallback = moreGamesCopy(model, report, problemCandidates, "identifies a confident repair target");
   const trainingTitle = training?.label || (training?.opening ? `Train ${training.opening}` : "Collect more games before changing your repertoire");
-  const trainingReason = trainingPriority?.rationale || training?.objective || training?.reason || model.nextTrainingAction?.reason || "Review one opening focus before your next games.";
+  const rawTrainingReason = trainingPriority?.rationale || training?.objective || training?.reason || model.nextTrainingAction?.reason || "Review one opening focus before your next games.";
   const weakness = noWeaknessExplanation({ model, problem, problemCandidates, strength, slots });
   const fitContext = recommendationContext(strength);
   const primaryAction = primaryActionCopy({ collectMoreGames, model, report, nextAction, training, problem, strength, priority: trainingPriority, slots });
+  const trainingReason = preparationReason({ problem, collectMoreGames, priority: trainingPriority, training, nextAction, fallback: rawTrainingReason });
+  const establishedRoleCount = slots.filter((slot) => slot.complete).length;
   return {
     score: model.health?.score !== null && model.health?.score !== undefined && Number.isFinite(Number(model.health.score)) ? Math.round(Number(model.health.score)) : null,
-    scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Coverage pending" : "Repertoire coverage",
+    scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Coverage pending" : "Coverage indicator",
+    establishedRoleCount,
+    totalRoleCount: slots.length,
     verdict: oneSentence(model),
     evidenceExplanation: weakness.text,
     weaknessState: weakness.kind,
@@ -193,9 +215,9 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     slots,
     incompleteRepertoire: slots.some((slot) => !slot.complete),
     decisions: [
-      { key: "keep", label: "Keep", title: strength?.opening || "No established strength yet", reason: strength ? recommendationCopy(strength, "keep") : keepFallback, source: strength, action: branchAction(strength) },
-      { key: "repair", label: "Repair", title: problem?.opening || "No reliable repair target yet", reason: problem ? recommendationCopy(problem, "repair") : repairFallback, source: problem, action: branchAction(problem) },
-      { key: "train", label: "Train next", title: primaryAction.title, reason: trainingReason, source: training?.source || problem || strength || null, action: primaryAction.type === "analyse" ? { label: primaryAction.label, type: primaryAction.type } : { label: primaryAction.label, type: primaryAction.type, target: primaryAction.target }, primary: true },
+      { key: "keep", label: "Keep", title: strength?.opening || "your current choices while evidence builds", reason: strength ? recommendationCopy(strength, "keep") : keepFallback, source: strength, action: branchAction(strength) },
+      { key: "repair", label: problem ? "Repair" : "Weakness check", title: problem?.opening || "No reliable repair target", reason: problem ? recommendationCopy(problem, "repair") : weakness.text, source: problem, action: branchAction(problem) },
+      { key: "train", label: problem ? "Train next" : collectMoreGames ? "Build evidence" : "Best preparation opportunity", title: primaryAction.title, reason: trainingReason, source: training?.source || problem || strength || null, action: primaryAction.type === "analyse" ? { label: primaryAction.label, type: primaryAction.type } : { label: primaryAction.label, type: primaryAction.type, target: primaryAction.target }, primary: true },
     ],
     problem: {
       title: weakness.title,

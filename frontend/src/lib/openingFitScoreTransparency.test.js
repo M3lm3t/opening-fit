@@ -58,14 +58,14 @@ test("high score and moderate low-sample states keep confidence separate from de
     report: { openingFitScoreBreakdown: { ...breakdown, confidence: 18 } },
   });
   assert.equal(lowSample.developmentState.label, "Developing repertoire");
-  assert.equal(lowSample.statusLabel, "Provisional score");
+  assert.equal(lowSample.statusLabel, "Provisional coverage indicator");
   assert.match(lowSample.smallSamples, /Fewer than 5 relevant games in a role/i);
 });
 
 test("fewer than the minimum games visibly marks the score provisional", () => {
   const view = buildOpeningFitScoreTransparency({ model: { header: { games: 3 }, health: { score: 42, confidence: "Low confidence" } }, report: { openingFitScoreBreakdown: { ...breakdown, confidence: 20 } } });
   assert.equal(view.provisional, true);
-  assert.equal(view.statusLabel, "Provisional score");
+  assert.equal(view.statusLabel, "Provisional coverage indicator");
   assert.match(view.smallSamples, new RegExp(`Fewer than ${OPENINGFIT_SCORE_MINIMUM_GAMES}`));
 });
 
