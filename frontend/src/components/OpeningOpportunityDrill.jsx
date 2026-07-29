@@ -30,11 +30,11 @@ function currentChess(fen) {
   try { return new Chess(fen); } catch { return null; }
 }
 
-export default function OpeningOpportunityDrill({ opportunity, report, onClose, onEngaged, onCompleted }) {
+export default function OpeningOpportunityDrill({ opportunity, report, onClose, onEngaged, onCompleted, showPriorityReason = true }) {
   const { recordActivity } = useAuth();
   const drill = useMemo(() => buildOpeningOpportunityDrill(opportunity, report), [opportunity, report]);
-  const [progress, setProgress] = useState(() => loadOpeningOpportunityProgress());
-  const [session, setSession] = useState(() => createOpeningOpportunitySession(drill, loadOpeningOpportunityProgress()[drill.id]));
+  const [progress, setProgress] = useState(() => drill.provenance?.fictional ? {} : loadOpeningOpportunityProgress());
+  const [session, setSession] = useState(() => createOpeningOpportunitySession(drill, drill.provenance?.fictional ? {} : loadOpeningOpportunityProgress()[drill.id]));
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [feedbackSquare, setFeedbackSquare] = useState(null);
   const sessionIdentity = `${drill.id}:${drill.type}:${drill.initialFen || "general"}`;
@@ -43,7 +43,7 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose, 
   useEffect(() => {
     if (sessionIdentityRef.current === sessionIdentity) return;
     sessionIdentityRef.current = sessionIdentity;
-    const saved = loadOpeningOpportunityProgress();
+    const saved = drill.provenance?.fictional ? {} : loadOpeningOpportunityProgress();
     setProgress(saved);
     setSession(createOpeningOpportunitySession(drill, saved[drill.id]));
     setSelectedSquare(null);
@@ -60,11 +60,11 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose, 
     const nextProgress = updateOpeningOpportunityProgress(progress, drill, next);
     setSession(next);
     setProgress(nextProgress);
-    saveOpeningOpportunityProgress(nextProgress);
+    if (!drill.provenance?.fictional) saveOpeningOpportunityProgress(nextProgress);
     if (next.attempts > session.attempts || (next.revealed && !session.revealed)) {
       onEngaged?.({ drill, session: next });
     }
-    if (next.completion && !session.completion) {
+    if (next.completion && !session.completion && !drill.provenance?.fictional) {
       onCompleted?.({ drill, session: next });
       window.dispatchEvent(new CustomEvent(TRAINING_TASK_COMPLETED_EVENT, { detail: { opening: drill.openingName, line: drill.opportunityId, result: next.repeatedFailure ? "repeated_failure" : "completed" } }));
       void recordActivity?.("opening_opportunity_drill_completed", {
@@ -130,7 +130,8 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose, 
         {ownGame && drill.sourceGame?.url ? <> · <a href={drill.sourceGame.url} target="_blank" rel="noreferrer">Open source game</a></> : null}
       </p>
       {drill.provenance?.disclaimer ? <p className="openingOpportunityProvenanceNote">{drill.provenance.disclaimer}</p> : null}
-      {drill.priorityReason?.text ? <p className={`openingOpportunityPriority openingOpportunityPriority--${drill.priorityReason.kind}`}><strong>{drill.priorityReason.label}</strong> · {drill.priorityReason.text}</p> : null}
+      {showPriorityReason && drill.priorityReason?.text ? <p className={`openingOpportunityPriority openingOpportunityPriority--${drill.priorityReason.kind}`}><strong>{drill.priorityReason.label}</strong> · {drill.priorityReason.text}</p> : null}
+      {drill.knownLine ? <section className="openingOpportunityKnownLine" aria-labelledby="known-line-title"><span>What happened in the supplied game</span><h3 id="known-line-title">Recorded opening moves</h3><p>In the supplied game, the opening began <strong>{drill.knownLine}</strong>.</p></section> : null}
 
       {drill.type === "concept_check" ? (
         <div className="openingConceptCheck">
@@ -168,7 +169,8 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose, 
           <dl>
             <div><dt>You played</dt><dd>{session.feedback.played}</dd></div>
             {(session.attempts > 0 || session.revealed) ? <div><dt>{drill.type === "concept_check" ? "Recommended plan" : "Recommended move or plan"}</dt><dd>{session.feedback.recommended || currentExpectedMove || drill.plan}</dd></div> : null}
-            <div><dt>Why this answer is recommended</dt><dd>{session.feedback.why}</dd></div>
+            <div><dt>{drill.type === "concept_check" ? drill.knownLine ? "Why it fits this structure" : "Why variation-specific commitment is premature" : "Why this answer is recommended"}</dt><dd>{session.feedback.why}</dd></div>
+            {drill.type === "concept_check" ? <div><dt>What to watch for next time</dt><dd>{drill.watchForNextTime}</dd></div> : null}
             {session.feedback.gameReference ? <div><dt>Your evidence</dt><dd>{session.feedback.gameReference}{drill.sourceGame?.url ? <> <a href={drill.sourceGame.url} target="_blank" rel="noreferrer">Open game</a></> : null}</dd></div> : null}
           </dl>
           {session.feedback.error ? <p>{session.feedback.error}</p> : session.feedback.transposition ? <p>That recognised transposition reaches a supported route, so it counts.</p> : ownGame ? <p>Keep this recorded position and its plan connected in your review.</p> : <p>{drill.answerExplanation}</p>}

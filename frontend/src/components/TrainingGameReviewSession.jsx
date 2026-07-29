@@ -1,133 +1,195 @@
-import { useEffect, useMemo, useState } from "react";
-import { Check, ExternalLink, Play } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, CheckCircle2, ExternalLink, Play, RotateCcw } from "lucide-react";
 import GameReplayBoard from "./GameReplayBoard.jsx";
 import {
   loadOpeningOpportunityProgress,
   saveOpeningOpportunityProgress,
   updateOpeningOpportunityReviewProgress,
 } from "../lib/openingOpportunityDrills.js";
-import { selectTrainingReviewGames, trainingReviewRequirements } from "../lib/trainingGameReview.js";
+import {
+  buildTrainingReviewSelection,
+  deriveKnownLineConcept,
+  nextTrainingSessionStep,
+  recentGamesReviewCopy,
+  restoredTrainingSessionStep,
+  trainingReviewFunnelCopy,
+  trainingReviewRequirements,
+} from "../lib/trainingGameReview.js";
+import { formatOpeningNameForDisplay } from "../lib/openingNamePresentation.js";
 import { useAuth } from "../context/AuthDataProvider.jsx";
 import { canUseFeature, OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
 import { trainingResponsePlans } from "../lib/premiumContinuity.js";
 import "./TrainingGameReviewSession.css";
 
+const STEPS = [
+  { id: "focus", number: 1, label: "Focus" },
+  { id: "review", number: 2, label: "Review" },
+  { id: "concept", number: 3, label: "Concept" },
+  { id: "commit", number: 4, label: "Commit" },
+];
+
 function displayDate(value) {
   const parsed = Date.parse(value);
-  return parsed ? new Date(parsed).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "Date unavailable";
+  return parsed ? new Date(parsed).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "Date not recorded";
+}
+
+function sourceType(exercise) {
+  if (exercise?.provenance?.fictional) return "Fictional example";
+  if (exercise?.kind === "own_game_position") return "Own-game position";
+  return exercise?.drill?.knownLine ? "General opening setup grounded in supplied game data" : "General opening setup";
+}
+
+function TrainingStep({ step, active, complete, onOpen, children }) {
+  const headingId = `training-${step.id}-title`;
+  return <section className={`trainingReviewStep ${active ? "trainingReviewStep--active" : ""} ${complete ? "trainingReviewStep--complete" : ""}`} aria-labelledby={headingId}>
+    <button type="button" className="trainingReviewStep__toggle" onClick={onOpen} aria-expanded={active} aria-controls={`training-${step.id}-content`}>
+      <span className="trainingReviewStep__number" aria-hidden="true">{complete ? <Check size={16} /> : step.number}</span>
+      <span><strong id={headingId}>{step.label}</strong><small>{complete ? "Completed · reopen step" : active ? "Current step" : "Open step"}</small></span>
+    </button>
+    {active ? <div className="trainingReviewStep__content" id={`training-${step.id}-content`}>{children}</div> : null}
+  </section>;
 }
 
 export default function TrainingGameReviewSession({ report, priority, exercise, taskId = "", planId = "", conceptEngaged, onReadinessChange, children }) {
   const { user, entitlement, settings, saveSettings } = useAuth();
+  const fictional = Boolean(exercise?.provenance?.fictional);
   const canSyncPlan = Boolean(user?.id && canUseFeature(entitlement, OPENINGFIT_FEATURES.WEEKLY_PLAN));
   const cloudPlans = trainingResponsePlans(settings);
   const cloudPlan = taskId ? cloudPlans[taskId] : null;
   const drillId = exercise?.drill?.id || "openingfit-training-review";
-  const games = useMemo(() => selectTrainingReviewGames(report || {}, priority || {}, exercise?.priorityReason), [exercise?.priorityReason, priority, report]);
+  const opening = formatOpeningNameForDisplay(exercise?.drill?.openingName || priority?.openingName || "this opening");
+  const selection = useMemo(() => buildTrainingReviewSelection(report || {}, priority || {}, exercise?.priorityReason), [exercise?.priorityReason, priority, report]);
+  const games = selection.games;
+  const funnelCopy = trainingReviewFunnelCopy(selection.funnel, opening);
   const [activeGameId, setActiveGameId] = useState("");
-  const [saved, setSaved] = useState(() => ({ ...(loadOpeningOpportunityProgress()[drillId] || {}), ...(cloudPlan?.responsePlan ? { responsePlan: cloudPlan.responsePlan } : {}) }));
-  const [responsePlan, setResponsePlan] = useState(() => cloudPlan?.responsePlan || saved.responsePlan || "");
+  const initialSaved = useMemo(() => ({ ...(fictional ? {} : loadOpeningOpportunityProgress()[drillId] || {}), ...(cloudPlan?.responsePlan ? { responsePlan: cloudPlan.responsePlan } : {}) }), [cloudPlan, drillId, fictional]);
+  const [saved, setSaved] = useState(initialSaved);
+  const [responsePlan, setResponsePlan] = useState(() => initialSaved.responsePlan || exercise?.drill?.suggestedResponsePlan || "");
   const [saveStatus, setSaveStatus] = useState("");
+  const [activeStep, setActiveStep] = useState("focus");
+  const [focusComplete, setFocusComplete] = useState(false);
+  const [reviewAgain, setReviewAgain] = useState(false);
+  const stepRefs = useRef({});
   const reviewedGameIds = useMemo(() => Array.isArray(saved.reviewedGameIds) ? saved.reviewedGameIds : [], [saved.reviewedGameIds]);
-  const requirements = useMemo(() => trainingReviewRequirements({ games, reviewedGameIds, conceptEngaged: conceptEngaged || saved.attempts > 0 || saved.completion || saved.revealed, responsePlan: saved.responsePlan }), [conceptEngaged, games, reviewedGameIds, saved.attempts, saved.completion, saved.responsePlan, saved.revealed]);
+  const conceptComplete = Boolean(conceptEngaged || saved.attempts > 0 || saved.completion || saved.revealed);
+  const requirements = useMemo(() => trainingReviewRequirements({ games, reviewedGameIds, conceptEngaged: conceptComplete, responsePlan: saved.responsePlan }), [conceptComplete, games, reviewedGameIds, saved.responsePlan]);
   const hasActionableGames = games.some((game) => game.hasInternalReplay || game.sourceUrl);
   const activeGame = games.find((game) => game.id === activeGameId);
+  const knownLine = activeGame ? deriveKnownLineConcept(activeGame, opening) : games.map((game) => deriveKnownLineConcept(game, opening)).find(Boolean);
+
+  const openStep = (step) => {
+    setActiveStep(step);
+    window.setTimeout(() => stepRefs.current[step]?.focus?.(), 0);
+  };
 
   useEffect(() => {
-    const current = { ...(loadOpeningOpportunityProgress()[drillId] || {}), ...(cloudPlan?.responsePlan ? { responsePlan: cloudPlan.responsePlan } : {}) };
-    setSaved(current);
-    setResponsePlan(current.responsePlan || "");
+    setSaved(initialSaved);
+    setResponsePlan(initialSaved.responsePlan || exercise?.drill?.suggestedResponsePlan || "");
     setActiveGameId("");
-  }, [cloudPlan?.responsePlan, drillId]);
+    setReviewAgain(false);
+    setFocusComplete(Boolean(initialSaved.responsePlan || initialSaved.attempts > 0 || initialSaved.completion || initialSaved.revealed || initialSaved.reviewedGameIds?.length));
+    setActiveStep(restoredTrainingSessionStep(initialSaved));
+  }, [exercise?.drill?.suggestedResponsePlan, initialSaved]);
 
   useEffect(() => { onReadinessChange?.(requirements); }, [onReadinessChange, requirements]);
+  useEffect(() => {
+    if (conceptComplete && activeStep === "concept") {
+      setActiveStep(nextTrainingSessionStep("concept", "engaged"));
+      window.setTimeout(() => stepRefs.current.commit?.focus?.(), 0);
+    }
+  }, [activeStep, conceptComplete]);
 
   const persist = (changes) => {
-    const progress = loadOpeningOpportunityProgress();
-    const next = updateOpeningOpportunityReviewProgress(progress, drillId, changes);
-    saveOpeningOpportunityProgress(next);
+    const base = fictional ? { [drillId]: saved } : loadOpeningOpportunityProgress();
+    const next = updateOpeningOpportunityReviewProgress(base, drillId, changes);
+    if (!fictional) saveOpeningOpportunityProgress(next);
     setSaved(next[drillId]);
   };
 
-  const reviewGame = (game) => {
-    setActiveGameId(game.id);
+  const markReviewed = (game) => {
     persist({ reviewedGameIds: [...reviewedGameIds, game.id] });
+    openStep(nextTrainingSessionStep("review", "reviewed"));
   };
 
   const savePlan = async () => {
-    persist({ responsePlan });
-    if (!canSyncPlan || !taskId) { setSaveStatus("Saved on this device."); return; }
+    const trimmed = responsePlan.trim();
+    if (!trimmed) return;
+    if (fictional) { setSaveStatus("Fictional example plans are not saved."); return; }
+    persist({ responsePlan: trimmed });
+    setReviewAgain(false);
+    if (!canSyncPlan || !taskId) { setSaveStatus("Plan saved on this device."); return; }
     setSaveStatus("Syncing response plan…");
-    const sourceType = exercise?.provenance?.fictional ? "fictional preview" : exercise?.kind === "own_game_position" ? "own game" : "general setup";
+    const savedSourceType = exercise?.kind === "own_game_position" ? "own game" : "general setup";
     try {
-      await saveSettings?.({ preferences: { trainingResponsePlans: { ...cloudPlans, [taskId]: { taskId, planId, responsePlan: responsePlan.trim(), openingName: exercise?.drill?.openingName || priority?.openingName || "Opening focus", sourceType, fictional: Boolean(exercise?.provenance?.fictional), synced: true, updatedAt: new Date().toISOString() } } } });
-      setSaveStatus("Saved across your OpeningFit account.");
+      await saveSettings?.({ preferences: { trainingResponsePlans: { ...cloudPlans, [taskId]: { taskId, planId, responsePlan: trimmed, openingName: opening, sourceType: savedSourceType, fictional: false, synced: true, updatedAt: new Date().toISOString() } } } });
+      setSaveStatus("Plan saved across your OpeningFit account.");
     } catch {
-      setSaveStatus("Saved on this device. Cloud sync can be retried later.");
+      setSaveStatus("Plan saved on this device. Cloud sync can be retried later.");
     }
   };
-  const opening = exercise?.drill?.openingName || priority?.openingName || "this opening";
 
-  return (
-    <section className="trainingReviewSession" aria-labelledby="training-review-session-title">
-      <header className="trainingReviewSession__header">
-        <span>Approximately 10 minutes</span>
-        <h3 id="training-review-session-title">One focused review session</h3>
-      </header>
+  const completed = requirements.complete && !reviewAgain;
+  const stepComplete = {
+    focus: focusComplete || requirements.reviewComplete || requirements.conceptComplete || requirements.planComplete,
+    review: requirements.reviewComplete,
+    concept: requirements.conceptComplete,
+    commit: requirements.planComplete,
+  };
 
-      <section className="trainingReviewStep" aria-labelledby="training-focus-title">
-        <div className="trainingReviewStep__number">1</div>
-        <div><span>Focus · 30 seconds</span><h4 id="training-focus-title">Why this topic was selected</h4><p>{exercise?.priorityReason?.text || `This report selected ${opening} as a practical preparation topic; it is not automatically a diagnosed weakness.`}</p></div>
-      </section>
+  if (completed) {
+    const reviewed = games.find((game) => reviewedGameIds.includes(game.id));
+    return <section className="trainingReviewSession trainingReviewSession--complete" aria-labelledby="training-review-session-title" aria-live="polite">
+      <CheckCircle2 size={30} aria-hidden="true" />
+      <div><span>Session complete</span><h3 id="training-review-session-title">Plan saved for {opening}</h3><p>Check whether this opening recurs in a future comparable report.</p></div>
+      <dl className="trainingReviewCompletion">
+        <div><dt>Opening trained</dt><dd>{opening}</dd></div>
+        <div><dt>Source game reviewed</dt><dd>{reviewed ? `${reviewed.opponent} · ${displayDate(reviewed.playedAt)}` : hasActionableGames ? "One supplied game" : "No recoverable source game required"}</dd></div>
+        <div><dt>Concept</dt><dd>Completed</dd></div>
+        <div><dt>Saved response plan</dt><dd>{saved.responsePlan}</dd></div>
+        <div><dt>Source type</dt><dd>{sourceType(exercise)}</dd></div>
+      </dl>
+      <p role="status">{saveStatus || "Plan saved on this device."}</p>
+      <button type="button" className="secondaryBtn" onClick={() => { setReviewAgain(true); openStep("review"); }}><RotateCcw size={16} /> Review again</button>
+    </section>;
+  }
 
-      <section className="trainingReviewStep" aria-labelledby="training-games-title">
-        <div className="trainingReviewStep__number">2</div>
-        <div className="trainingReviewStep__content">
-          <span>Review · approximately 6 minutes</span>
-          <h4 id="training-games-title">Review these games</h4>
-          {hasActionableGames ? <p>Review these {games.length} recent {opening} game{games.length === 1 ? "" : "s"}. In each game, note the first position where you were unsure of your plan. Then compare your notes and choose one response to remember.</p> : games.length ? <p>This saved report retains matching game metadata, but no replay or validated source link. Continue with the concept and written plan; no game review is required.</p> : <p>This saved report does not contain matching source games. Continue with the general concept and written plan; no game review is required.</p>}
-          {games.length ? <div className="trainingReviewGames">
-            {games.map((game, index) => <article className="trainingReviewGame" key={game.id} aria-labelledby={`training-game-${index}`}>
-              <header><div><span>{game.platform}</span><h5 id={`training-game-${index}`}>{game.opening || opening}</h5></div><strong>{game.result}</strong></header>
-              <dl>
-                <div><dt>Opponent</dt><dd>{game.opponent}</dd></div>
-                <div><dt>Played as</dt><dd>{game.userColour || "Colour unavailable"}</dd></div>
-                <div><dt>Date</dt><dd>{displayDate(game.playedAt)}</dd></div>
-                <div><dt>Time control</dt><dd>{game.timeControl}</dd></div>
-              </dl>
-              <p><strong>Why selected:</strong> {game.whySelected}</p>
-              <div className="trainingReviewGame__actions">
-                {game.hasInternalReplay ? <button type="button" className="primaryBtn" onClick={() => reviewGame(game)}><Play size={16} /> {activeGameId === game.id ? "Reviewing in OpeningFit" : "Review in OpeningFit"}</button> : null}
-                {game.sourceUrl ? <a className="secondaryBtn" href={game.sourceUrl} target="_blank" rel="noreferrer" onClick={() => persist({ reviewedGameIds: [...reviewedGameIds, game.id] })}>Open {game.platform} source game <ExternalLink size={15} aria-hidden="true" /><span className="srOnly"> (opens in a new tab)</span></a> : null}
-                {!game.hasInternalReplay && !game.sourceUrl ? <span className="trainingReviewUnavailable">Replay and source link unavailable in this saved report.</span> : null}
-              </div>
-            </article>)}
-          </div> : null}
-          {activeGame ? <GameReplayBoard key={activeGame.id} game={activeGame} title={`Review: ${activeGame.opening || opening}`} initialOrientation={activeGame.userColour || "white"} /> : null}
-        </div>
-      </section>
+  return <section className="trainingReviewSession" aria-labelledby="training-review-session-title">
+    <header className="trainingReviewSession__header"><span>Approximately 10 minutes</span><h3 id="training-review-session-title">One focused review session</h3></header>
+    <nav className="trainingReviewProgress" aria-label="Training session steps"><ol>{STEPS.map((step) => <li key={step.id} data-active={activeStep === step.id} data-complete={stepComplete[step.id]}><button ref={(node) => { stepRefs.current[step.id] = node; }} type="button" onClick={() => setActiveStep(step.id)} aria-current={activeStep === step.id ? "step" : undefined}><span>{stepComplete[step.id] ? <Check size={14} aria-hidden="true" /> : step.number}</span>{step.label}<small className="srOnly">{stepComplete[step.id] ? " completed" : ""}</small></button></li>)}</ol></nav>
+    <p className="srOnly" role="status" aria-live="polite">Current training step: {STEPS.find((step) => step.id === activeStep)?.label}.</p>
 
-      <section className="trainingReviewStep" aria-labelledby="training-concept-title">
-        <div className="trainingReviewStep__number">3</div>
-        <div className="trainingReviewStep__content"><span>Concept · approximately 2 minutes</span><h4 id="training-concept-title">Choose the plan to remember</h4>{children}</div>
-      </section>
+    <TrainingStep step={STEPS[0]} active={activeStep === "focus"} complete={stepComplete.focus} onOpen={() => setActiveStep("focus")}>
+      <span>Approximately 30 seconds</span><h4>Why this topic was selected</h4><p>{exercise?.priorityReason?.text || `This report selected ${opening} as a practical preparation topic; it is not automatically a diagnosed weakness.`}</p>
+      {funnelCopy ? <p className="trainingReviewFunnelSummary">{funnelCopy}</p> : null}
+      <button type="button" className="primaryBtn" onClick={() => { setFocusComplete(true); openStep(nextTrainingSessionStep("focus", "continue")); }}>Continue to game review</button>
+    </TrainingStep>
 
-      <section className="trainingReviewStep" aria-labelledby="training-commit-title">
-        <div className="trainingReviewStep__number">4</div>
-        <div className="trainingReviewStep__content"><span>Commit · approximately 1 minute</span><h4 id="training-commit-title">Save your response plan</h4>
-          <label htmlFor={`training-plan-${drillId}`}>Next time I reach this setup, I will…</label>
-          <textarea id={`training-plan-${drillId}`} value={responsePlan} maxLength={240} onChange={(event) => setResponsePlan(event.target.value)} placeholder="Write one short, practical cue." />
-          <button type="button" className="secondaryBtn" disabled={!responsePlan.trim()} onClick={savePlan}>Save my plan</button>
-          {saveStatus ? <small role="status">{saveStatus}</small> : null}
-        </div>
-      </section>
+    <TrainingStep step={STEPS[1]} active={activeStep === "review"} complete={stepComplete.review} onOpen={() => setActiveStep("review")}>
+      <span>Approximately 6 minutes</span><h4>{recentGamesReviewCopy(games.length)}</h4>
+      {funnelCopy ? <p>{funnelCopy}</p> : null}
+      <details className="trainingReviewFunnel"><summary>Source-game availability</summary><dl><div><dt>Relevant games found</dt><dd>{selection.funnel.relevantGamesFound}</dd></div><div><dt>Usable opening and colour</dt><dd>{selection.funnel.usableOpeningAndColour}</dd></div><div><dt>Valid PGN</dt><dd>{selection.funnel.validPgn}</dd></div><div><dt>Valid external URL</dt><dd>{selection.funnel.validExternalUrls}</dd></div><div><dt>Selected for this session</dt><dd>{selection.funnel.selected}</dd></div></dl></details>
+      {!hasActionableGames ? <p>{games.length ? "Matching metadata is retained, but no replay or validated source link is recoverable. Continue to the general concept." : "No matching source game is stored. Continue to the general concept."}</p> : null}
+      {games.length ? <div className="trainingReviewGames">{games.map((game, index) => <article className="trainingReviewGame" key={game.id} aria-labelledby={`training-game-${index}`}>
+        <header><div><span>{game.platform}</span><h5 id={`training-game-${index}`}>{game.opening || opening}</h5></div><strong>{game.result}</strong></header>
+        <dl><div><dt>Opponent</dt><dd>{game.opponent}</dd></div><div><dt>Played as</dt><dd>{game.userColour || "Colour not recorded"}</dd></div><div><dt>Date</dt><dd>{displayDate(game.playedAt)}</dd></div><div><dt>Time control</dt><dd>{game.timeControl}</dd></div><div><dt>Event</dt><dd>{game.event}</dd></div></dl>
+        <p><strong>Why selected:</strong> {game.whySelected}</p>
+        <div className="trainingReviewGame__actions">{game.hasInternalReplay ? <button type="button" className="primaryBtn" onClick={() => setActiveGameId(activeGameId === game.id ? "" : game.id)}><Play size={16} /> {activeGameId === game.id ? "Collapse review" : "Review in OpeningFit"}</button> : null}{game.sourceUrl ? <a className="secondaryBtn" href={game.sourceUrl} target="_blank" rel="noreferrer">Open {game.platform} source game <ExternalLink size={15} aria-hidden="true" /><span className="srOnly"> (opens in a new tab)</span></a> : null}{!game.hasInternalReplay && game.sourceUrl ? <button type="button" className="primaryBtn" onClick={() => markReviewed(game)}>Mark source game reviewed and continue</button> : null}{!game.hasInternalReplay && !game.sourceUrl ? <span className="trainingReviewUnavailable">Replay and source link are not retained in this saved report.</span> : null}</div>
+      </article>)}</div> : null}
+      {activeGame ? <div className="trainingReviewReplay"><div className="trainingReviewReplay__cue"><strong>Opening decision point</strong>{knownLine?.line ? <p>Position selected for plan practice after: {knownLine.line}</p> : <p>Use the replay to review the early plan; no error position is claimed.</p>}</div><GameReplayBoard key={activeGame.id} game={activeGame} title={`Review position · ${activeGame.opening || opening}`} initialOrientation={activeGame.userColour || "white"} initialMoveIndex={knownLine?.moves?.length || 0} /><button type="button" className="primaryBtn" onClick={() => markReviewed(activeGame)}>Mark reviewed and continue</button></div> : null}
+      {!hasActionableGames ? <button type="button" className="primaryBtn" onClick={() => openStep(nextTrainingSessionStep("review", "no_source"))}>Continue to concept</button> : null}
+    </TrainingStep>
 
-      <div className="trainingReviewChecklist" aria-label="Session completion requirements">
-        <strong>Complete when</strong>
-        <span data-complete={requirements.reviewComplete}><Check size={15} /> {hasActionableGames ? "At least one supplied game reviewed" : "No source-game review required"}</span>
-        <span data-complete={requirements.conceptComplete}><Check size={15} /> Concept attempted or answer revealed</span>
-        <span data-complete={requirements.planComplete}><Check size={15} /> Response plan saved</span>
-      </div>
-    </section>
-  );
+    <TrainingStep step={STEPS[2]} active={activeStep === "concept"} complete={stepComplete.concept} onOpen={() => setActiveStep("concept")}>
+      <span>Approximately 2 minutes</span><h4>Choose the plan to remember</h4>{children}
+    </TrainingStep>
+
+    <TrainingStep step={STEPS[3]} active={activeStep === "commit"} complete={stepComplete.commit} onOpen={() => setActiveStep("commit")}>
+      <span>Approximately 1 minute</span><h4>Save your response plan</h4><p>The suggested plan is editable and is not saved until you choose Save.</p>
+      <label htmlFor={`training-plan-${drillId}`}>Next time I reach this setup, I will…</label>
+      <textarea id={`training-plan-${drillId}`} value={responsePlan} maxLength={240} onChange={(event) => setResponsePlan(event.target.value)} placeholder="Write one short, practical cue." />
+      <button type="button" className="primaryBtn" disabled={!responsePlan.trim()} onClick={savePlan}>Save my plan</button>{saveStatus ? <small role="status">{saveStatus}</small> : null}
+    </TrainingStep>
+
+    <div className="trainingReviewChecklist" aria-label="Session completion requirements"><strong>Complete when</strong><span data-complete={requirements.reviewComplete}><Check size={15} /> {hasActionableGames ? "At least one supplied game explicitly reviewed" : "No source-game review required"}</span><span data-complete={requirements.conceptComplete}><Check size={15} /> Concept attempted or answer revealed</span><span data-complete={requirements.planComplete}><Check size={15} /> Response plan saved</span></div>
+  </section>;
 }

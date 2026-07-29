@@ -334,7 +334,7 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
         <h2>{previewTask.title}</h2><p>{previewTask.explanation}</p>
         {!freeState.started ? <button type="button" className="primaryBtn" onClick={() => startFreeTask(previewTask)}><Play size={17} /> Start free action</button> : freeState.completed ? <p className="thisWeekFreeComplete"><CheckCircle2 size={18} /> Free action completed</p> : <div className="thisWeekFreeExercise">
           <TrainingGameReviewSession report={report} priority={currentPriority} exercise={freeExercise} taskId={previewTask.id} planId={plan.id} conceptEngaged={conceptEngaged} onReadinessChange={handleTrainingReadiness}>
-            <OpeningOpportunityDrill opportunity={freeExercise.opportunity} report={report} onEngaged={() => setConceptEngaged(true)} onCompleted={() => setConceptEngaged(true)} />
+            <OpeningOpportunityDrill opportunity={freeExercise.opportunity} report={report} showPriorityReason={false} onEngaged={() => setConceptEngaged(true)} onCompleted={() => setConceptEngaged(true)} />
           </TrainingGameReviewSession>
           <div className="thisWeekFreeActive"><strong>Success check</strong><p>Review one supplied game when available, attempt or reveal the concept, and save one response plan.</p>{trainingSessionReady ? <button type="button" className="primaryBtn" disabled={busyTaskId === previewTask.id} onClick={() => completeTask(previewTask)}>{busyTaskId === previewTask.id ? "Saving…" : "Complete this session"}</button> : <small>Finish the available review steps shown above before completing this action.</small>}</div>
         </div>}
@@ -384,7 +384,7 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
             <button type="button" className="primaryBtn" onClick={() => startTask(view.nextTask)}><Play size={17} /> {activeTaskId === view.nextTask?.id ? "Continue training" : "Continue training"}<ChevronRight size={17} /></button>
           </div>
           {activeTaskId === previewTask?.id && freeExercise ? <TrainingGameReviewSession report={report} priority={currentPriority} exercise={freeExercise} taskId={previewTask.id} planId={plan.id} conceptEngaged={conceptEngaged} onReadinessChange={handleTrainingReadiness}>
-            <OpeningOpportunityDrill opportunity={freeExercise.opportunity} report={report} onEngaged={() => setConceptEngaged(true)} onCompleted={() => setConceptEngaged(true)} />
+            <OpeningOpportunityDrill opportunity={freeExercise.opportunity} report={report} showPriorityReason={false} onEngaged={() => setConceptEngaged(true)} onCompleted={() => setConceptEngaged(true)} />
           </TrainingGameReviewSession> : null}
           <section className="thisWeekTasks" aria-labelledby="this-week-tasks-title">
             <header><div><span>Ordered plan</span><h2 id="this-week-tasks-title">Remaining tasks</h2></div><small>One main focus, then supporting work in order where possible.</small></header>

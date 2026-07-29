@@ -1,5 +1,6 @@
 import { Chess } from "chess.js";
 import { findOpeningLine } from "../data/openings.ts";
+import { formatOpeningNameForDisplay } from "./openingNamePresentation.js";
 
 export const OPENING_OPPORTUNITY_PROGRESS_KEY = "openingFit:openingOpportunityProgress:v1";
 export const OPENING_OPPORTUNITY_DRILL_TYPES = Object.freeze(["position_choice", "line_replay", "concept_check"]);
@@ -10,11 +11,10 @@ const cleanSan = (value) => text(value).replace(/[!?+#]+$/g, "").replaceAll("0-0
 
 function openingLabel(opportunity = {}) {
   const known = findOpeningLine(opportunity.openingName || opportunity.openingId || "");
-  if (known?.name) return known.name;
-  return text(opportunity.openingName || opportunity.openingId || "Opening position")
+  if (known?.name) return formatOpeningNameForDisplay(known.name);
+  return formatOpeningNameForDisplay(text(opportunity.openingName || opportunity.openingId || "Opening position")
     .replaceAll("-", " ")
-    .replace(/\bdefense\b/i, "Defence")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    .replace(/\b\w/g, (letter) => letter.toUpperCase()));
 }
 
 function conceptForIssue(issueType = "") {
@@ -55,6 +55,19 @@ function conceptForIssue(issueType = "") {
 }
 
 function exerciseConcept(opportunity = {}, openingName = "", side = "white") {
+  const known = opportunity.knownLineConcept || opportunity.known_line_concept;
+  if (known?.line && known?.plan && known?.why && Array.isArray(known.alternatives) && known.alternatives.length >= 2) {
+    return {
+      plan: text(known.plan),
+      question: text(known.prompt),
+      explanation: text(known.why),
+      watchFor: text(known.watchFor),
+      knownLine: text(known.line),
+      suggestedResponsePlan: text(known.suggestedResponsePlan || known.plan),
+      distractors: known.alternatives.slice(0, 2).map(text),
+      distractorExplanations: list(known.alternativeExplanations).slice(0, 2).map(text),
+    };
+  }
   if (/caro[- ]kann/i.test(openingName) && side === "white") {
     return {
       plan: "Develop the kingside, support the centre, and castle before committing to a variation-specific pawn break.",
@@ -270,6 +283,10 @@ export function buildOpeningOpportunityDrill(opportunity, report = {}) {
     expectedMoves: moves,
     plan: concept.plan,
     answerExplanation: concept.explanation,
+    knownLine: concept.knownLine || "",
+    structureExplanation: concept.explanation,
+    watchForNextTime: concept.watchFor || "Exact play depends on the resulting structure and piece placement.",
+    suggestedResponsePlan: concept.suggestedResponsePlan || concept.plan,
     conceptOptions: [
       { id: correctOptionId, label: concept.plan, explanation: concept.explanation },
       { id: "alternative-a", label: concept.distractors[0], explanation: concept.distractorExplanations[0] },

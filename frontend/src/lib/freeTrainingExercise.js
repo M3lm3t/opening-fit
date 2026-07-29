@@ -1,5 +1,6 @@
 import { buildOpeningOpportunityDrill } from "./openingOpportunityDrills.js";
 import { normaliseOpeningKey } from "../data/openings.ts";
+import { buildTrainingReviewSelection, deriveKnownLineConcept } from "./trainingGameReview.js";
 
 const list = (value) => Array.isArray(value) ? value.filter(Boolean) : [];
 const text = (value) => String(value ?? "").trim();
@@ -71,7 +72,7 @@ export function explainTrainingPriority(report = {}, priority = null) {
   };
 }
 
-function generalSetupOpportunity(priority = {}, priorityReason = null, report = {}) {
+function generalSetupOpportunity(priority = {}, priorityReason = null, report = {}, knownLineConcept = null) {
   const opening = text(priority.openingName) || "Opening fundamentals";
   const fictional = report.sampleMode || report.sample_mode || report.source === "sample_fixture";
   return {
@@ -87,12 +88,15 @@ function generalSetupOpportunity(priority = {}, priorityReason = null, report = 
     confidence: null,
     recurrenceCount: 1,
     generalSetup: true,
+    knownLineConcept,
     trainingPriorityReason: priorityReason,
   };
 }
 
 export function buildFreeTrainingExercise(report = {}, priority = null) {
   const priorityReason = explainTrainingPriority(report, priority);
+  const selectedReview = buildTrainingReviewSelection(report, priority || {}, priorityReason);
+  const knownLineConcept = selectedReview.games.map((game) => deriveKnownLineConcept(game, priority?.openingName)).find(Boolean) || null;
   const opportunities = list(report.openingTrainingOpportunities || report.opening_training_opportunities)
     .map((opportunity) => ({ opportunity, drill: buildOpeningOpportunityDrill(opportunity, report) }))
     .filter((entry) => entry.drill.valid && entry.drill.provenance?.kind === "own_game_position")
@@ -106,7 +110,7 @@ export function buildFreeTrainingExercise(report = {}, priority = null) {
     || opportunities.find(({ opportunity }) => matchesContext(opportunity));
 
   if (matched) {
-    const opportunity = { ...matched.opportunity, trainingPriorityReason: priorityReason };
+    const opportunity = { ...matched.opportunity, knownLineConcept, trainingPriorityReason: priorityReason };
     const drill = buildOpeningOpportunityDrill(opportunity, report);
     return {
       kind: "own_game_position",
@@ -119,7 +123,7 @@ export function buildFreeTrainingExercise(report = {}, priority = null) {
     };
   }
 
-  const opportunity = generalSetupOpportunity(priority || {}, priorityReason, report);
+  const opportunity = generalSetupOpportunity(priority || {}, priorityReason, report, knownLineConcept);
   const drill = buildOpeningOpportunityDrill(opportunity, report);
   return {
     kind: "general_opening_setup",

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { parseReplayPgn, selectTrainingReviewGames, trainingReviewRequirements, validatedGameUrl } from "./trainingGameReview.js";
+import { buildTrainingReviewSelection, deriveKnownLineConcept, nextTrainingSessionStep, parseReplayPgn, recentGamesReviewCopy, restoredTrainingSessionStep, selectTrainingReviewGames, trainingReviewFunnelCopy, trainingReviewRequirements, validatedGameUrl } from "./trainingGameReview.js";
 
 const pgn = (id, date = "2026.07.20", result = "1-0") => `[Event "Fixture"]\n[Site "https://www.chess.com/game/live/${id}"]\n[Date "${date}"]\n[White "ReviewPlayer"]\n[Black "Opponent${id}"]\n[Result "${result}"]\n[Opening "Caro-Kann Defence"]\n\n1. e4 c6 2. d4 d5 3. Nc3 dxe4 ${result}`;
 const priority = { openingName: "Caro-Kann Defence", openingKey: "caro-kann-defense", playerColour: "white", actionType: "prepare_against" };
@@ -17,6 +17,54 @@ test("deduplicates a lightweight index row and its richer PGN row by stable iden
   const selected = selectTrainingReviewGames(report, priority);
   assert.equal(selected.length, 1);
   assert.equal(selected[0].hasInternalReplay, true);
+});
+
+test("ten relevant games and one recoverable game produce an honest source funnel", () => {
+  const selection = buildTrainingReviewSelection({ username: "ReviewPlayer", games: [game("only", "2026.07.20")] }, { ...priority, evidenceCount: 10 });
+  assert.deepEqual(selection.funnel, { relevantGamesFound: 10, usableOpeningAndColour: 1, validPgn: 1, validExternalUrls: 1, recoverable: 1, selected: 1, known: true });
+  assert.match(trainingReviewFunnelCopy(selection.funnel, priority.openingName), /found 10 relevant Caro-Kann Defence games.*One contained enough recoverable/i);
+});
+
+test("up to three recoverable games are supplied and review copy pluralises", () => {
+  const report = { username: "ReviewPlayer", games: [game("1", "2026.07.01"), game("2", "2026.07.02"), game("3", "2026.07.03"), game("4", "2026.07.04")] };
+  const selection = buildTrainingReviewSelection(report, { ...priority, evidenceCount: 10 });
+  assert.equal(selection.games.length, 3);
+  assert.equal(selection.funnel.recoverable, 4);
+  assert.equal(recentGamesReviewCopy(1), "Review this recent game");
+  assert.equal(recentGamesReviewCopy(2), "Review these 2 recent games");
+});
+
+test("opponent metadata resolves from structured fields and PGN headers for both colours", () => {
+  const structured = selectTrainingReviewGames({ username: "ReviewPlayer", games: [{ ...game("structured", "2026.07.20"), opponent: { username: "StructuredOpponent" } }] }, priority)[0];
+  assert.equal(structured.opponent, "StructuredOpponent");
+
+  const white = selectTrainingReviewGames({ username: "ReviewPlayer", games: [game("white", "2026.07.20")] }, priority)[0];
+  assert.equal(white.opponent, "Opponentwhite");
+  const blackPgn = `[Event "Fixture"]\n[Date "2026.07.20"]\n[White "WhiteOpponent"]\n[Black "ReviewPlayer"]\n[Result "0-1"]\n[Opening "Caro-Kann Defence"]\n\n1. e4 c6 2. d4 d5 0-1`;
+  const black = selectTrainingReviewGames({ username: "ReviewPlayer", games: [{ gameId: "black-pgn", pgn: blackPgn, opening: "Caro-Kann Defence", colour: "black" }] }, { ...priority, playerColour: "black" })[0];
+  assert.equal(black.opponent, "WhiteOpponent");
+  assert.notEqual(black.opponent, "ReviewPlayer");
+});
+
+test("inconsistent PGN colour metadata never displays the report player as their own opponent", () => {
+  const inconsistentPgn = `[White "SomeoneElse"]\n[Black "ReviewPlayer"]\n[Opening "Caro-Kann Defence"]\n\n1. e4 c6 2. d4 d5`;
+  const selected = selectTrainingReviewGames({ username: "ReviewPlayer", games: [{ gameId: "inconsistent", pgn: inconsistentPgn, opening: "Caro-Kann Defence", colour: "white" }] }, priority)[0];
+  assert.equal(selected.opponent, "Opponent not recorded");
+});
+
+test("missing opponent uses the conservative recorded-state fallback", () => {
+  const selected = selectTrainingReviewGames({ username: "ReviewPlayer", games: [{ gameId: "missing-opponent", pgn: "1. e4 c6 2. d4 d5", opening: "Caro-Kann Defence", colour: "white" }] }, priority)[0];
+  assert.equal(selected.opponent, "Opponent not recorded");
+});
+
+test("known PGN lines ground a structure-specific concept without inventing moves", () => {
+  const exchangePgn = `[Event "Fixture"]\n[White "ReviewPlayer"]\n[Black "Opponent"]\n[Result "1/2-1/2"]\n\n1. e4 c6 2. Nc3 d5 3. exd5 cxd5 4. d4 1/2-1/2`;
+  const concept = deriveKnownLineConcept({ pgn: exchangePgn, opening: "Caro-Kann Defense" }, "Caro-Kann Defense");
+  assert.equal(concept.line, "1.e4 c6 2.Nc3 d5 3.exd5 cxd5 4.d4");
+  assert.match(concept.plan, /light-squared bishop.*castle/i);
+  assert.match(concept.why, /central exchange.*piece activity/i);
+  assert.doesNotMatch(concept.line, /e5/);
+  assert.equal(deriveKnownLineConcept({ pgn: "1. e4" }, "Caro-Kann Defence"), null);
 });
 
 test("valid PGN creates an internal replay using recorded moves", () => {
@@ -58,13 +106,29 @@ test("completion requires review, concept engagement, and a saved plan when a ga
   assert.equal(trainingReviewRequirements({ games, reviewedGameIds: ["one"], conceptEngaged: true, responsePlan: "Castle." }).complete, true);
 });
 
+test("four training steps advance in order and saved or legacy progress remains recoverable", () => {
+  assert.equal(nextTrainingSessionStep("focus", "continue"), "review");
+  assert.equal(nextTrainingSessionStep("review", "reviewed"), "concept");
+  assert.equal(nextTrainingSessionStep("concept", "engaged"), "commit");
+  assert.equal(nextTrainingSessionStep("review", "unknown_legacy_event"), "review");
+  assert.equal(restoredTrainingSessionStep({ reviewedGameIds: ["one"] }), "concept");
+  assert.equal(restoredTrainingSessionStep({ attempts: 1 }), "commit");
+  assert.equal(restoredTrainingSessionStep({ responsePlan: "Develop and castle." }), "commit");
+  assert.equal(restoredTrainingSessionStep({ legacyUnknown: true }), "focus");
+});
+
 test("the session uses the existing replay board and exposes accessible review semantics", () => {
   const source = readFileSync(new URL("../components/TrainingGameReviewSession.jsx", import.meta.url), "utf8");
   assert.match(source, /import GameReplayBoard/);
-  assert.match(source, /Review these games/);
+  assert.match(source, /recentGamesReviewCopy/);
   assert.match(source, /Why this topic was selected/);
   assert.match(source, /label htmlFor=/);
   assert.match(source, /opens in a new tab/);
+  assert.match(source, /Mark reviewed and continue/);
+  assert.match(source, /Session complete/);
+  assert.match(source, /Review again/);
+  assert.doesNotMatch(source, /onClick=\{\(\) => persist\(\{ reviewedGameIds/);
+  assert.doesNotMatch(source, /mastery|mastered|you improved/i);
   assert.doesNotMatch(source, /repeated position|move was a mistake|blunder/i);
 });
 
@@ -79,4 +143,6 @@ test("mobile rules stack cards and preserve practical tap targets", () => {
   const css = readFileSync(new URL("../components/TrainingGameReviewSession.css", import.meta.url), "utf8");
   assert.match(css, /@media\(max-width:900px\).*grid-template-columns:1fr/s);
   assert.match(css, /min-height:44px/);
+  assert.match(css, /trainingReviewProgress.*overflow-x:auto/s);
+  assert.match(css, /replayMovesWrap\{max-height:/);
 });

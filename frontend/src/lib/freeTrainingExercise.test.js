@@ -125,6 +125,31 @@ test("the general Caro-Kann exercise teaches a concrete concept with plausible a
   assert.doesNotMatch(JSON.stringify(exercise.drill.conceptOptions), /copy the opponent|queen first|recorded development plan/i);
 });
 
+test("a recoverable PGN grounds the concept in only its recorded opening moves", () => {
+  const exchangePgn = `[Event "Fixture"]\n[White "ReportPlayer"]\n[Black "PracticeOpponent"]\n[Result "1/2-1/2"]\n\n1. e4 c6 2. Nc3 d5 3. exd5 cxd5 4. d4 1/2-1/2`;
+  const exercise = buildFreeTrainingExercise({ username: "ReportPlayer", games: [{ gameId: "known", opening: "Caro-Kann Defense", colour: "white", pgn: exchangePgn }] }, priority);
+  assert.equal(exercise.kind, "general_opening_setup");
+  assert.equal(exercise.drill.openingName, "Caro-Kann Defence");
+  assert.equal(exercise.drill.knownLine, "1.e4 c6 2.Nc3 d5 3.exd5 cxd5 4.d4");
+  assert.match(exercise.drill.prompt, /supplied game.*1\.e4 c6/i);
+  assert.match(exercise.drill.answerExplanation, /central exchange.*piece activity/i);
+  assert.doesNotMatch(exercise.drill.knownLine, /e5/);
+});
+
+test("invalid or incomplete PGN retains the honest general concept", () => {
+  const exercise = buildFreeTrainingExercise({ username: "ReportPlayer", games: [{ gameId: "broken", opening: "Caro-Kann Defense", colour: "white", pgn: "1. e4" }] }, priority);
+  assert.equal(exercise.drill.knownLine, "");
+  assert.match(exercise.drill.prompt, /variation unknown/i);
+});
+
+test("fictional training renderers explicitly skip persistence", () => {
+  const drillSource = readFileSync(new URL("../components/OpeningOpportunityDrill.jsx", import.meta.url), "utf8");
+  const sessionSource = readFileSync(new URL("../components/TrainingGameReviewSession.jsx", import.meta.url), "utf8");
+  assert.match(drillSource, /if \(!drill\.provenance\?\.fictional\) saveOpeningOpportunityProgress/);
+  assert.match(sessionSource, /if \(!fictional\) saveOpeningOpportunityProgress/);
+  assert.match(sessionSource, /Fictional example plans are not saved/);
+});
+
 test("the renderer consumes one mutually exclusive provenance state", () => {
   const source = readFileSync(new URL("../components/OpeningOpportunityDrill.jsx", import.meta.url), "utf8");
   assert.match(source, /drill\.provenance\?\.kind === "own_game_position"/);

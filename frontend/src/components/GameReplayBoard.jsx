@@ -39,10 +39,11 @@ export default function GameReplayBoard({
   game,
   title = "Game Replay",
   initialOrientation = "white",
+  initialMoveIndex = 0,
 }) {
   const parsedPgn = useMemo(() => parseReplayPgn(game?.pgn), [game?.pgn]);
   const moves = useMemo(() => parsedPgn?.moves || (Array.isArray(game?.moves) ? game.moves : []), [game, parsedPgn]);
-  const [moveIndex, setMoveIndex] = useState(0);
+  const [moveIndex, setMoveIndex] = useState(() => Math.max(0, Math.min(Number(initialMoveIndex) || 0, moves.length)));
   const [orientation, setOrientation] = useState(initialOrientation);
   const { boardTheme, setBoardTheme } = useBoardTheme();
 
