@@ -6,6 +6,8 @@ const appUrl = process.env.OPENINGFIT_E2E_URL;
 test.skip(!appUrl, "Set OPENINGFIT_E2E_URL to a configured local preview.");
 
 const jobId = "00000000-0000-0000-0000-000000000042";
+const jobStartRoute = "**/api/analysis/jobs";
+const jobStatusRoute = `**/api/analysis/jobs/${jobId}`;
 
 function reportFixture({ games = 72, score = 72 } = {}) {
   return {
@@ -113,16 +115,57 @@ async function startImport(page, username = "JourneyPlayer") {
 
 function routeJob(page, states) {
   let poll = 0;
-  return page.route(/\/api\/analysis\/jobs(?:\/.*)?$/, async (route) => {
-    if (route.request().method() === "POST") {
+  const context = page.context();
+  return Promise.all([
+    context.route(jobStartRoute, async (route) => {
+      if (route.request().method() !== "POST") {
+        await route.fallback();
+        return;
+      }
       await route.fulfill({ status: 202, contentType: "application/json", body: JSON.stringify({ jobId, status: "queued", progress: { stage: "queued", counts: {} } }) });
-      return;
-    }
-    const state = states[Math.min(poll, states.length - 1)];
-    poll += 1;
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ jobId, ...state }) });
-  });
+    }),
+    context.route(jobStatusRoute, async (route) => {
+      if (route.request().method() !== "GET") {
+        await route.fallback();
+        return;
+      }
+      const state = states[Math.min(poll, states.length - 1)];
+      poll += 1;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ jobId, ...state }) });
+    }),
+  ]);
 }
+
+test("signed-out example refresh stays fictional and preserves a genuine local report", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(appUrl, { waitUntil: "domcontentloaded" });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "domcontentloaded" });
+  const genuinePayload = JSON.stringify({
+    username: "SafeLocalPlayer",
+    platform: "chess.com",
+    savedAt: "2026-07-29T10:00:00Z",
+    analysis: { analysisCompleted: true, username: "SafeLocalPlayer", platform: "chess.com", gamesAnalysed: 8 },
+  });
+  await page.evaluate((payload) => localStorage.setItem("openingFit:lastAnalysis", payload), genuinePayload);
+
+  await page.getByRole("button", { name: "Open full example report" }).click();
+  await expect(page).toHaveURL(/\/report\/sample$/);
+  await expect(page.locator('[data-report-kind="sample"]')).toBeVisible();
+  await expect(page.getByText("Illustrative example", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Fictional data for a fictional player/).first()).toBeVisible();
+  await expect(page.getByText(/will not be saved to your history/).first()).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("openingFit:lastAnalysis"))).toBe(genuinePayload);
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator('[data-report-kind="sample"]')).toBeVisible();
+  await expect(page.getByText("Illustrative example", { exact: true }).first()).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("openingFit:lastAnalysis"))).toBe(genuinePayload);
+
+  await page.getByRole("button", { name: "Analyse your games" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  expect(await page.evaluate(() => localStorage.getItem("openingFit:lastAnalysis"))).toBe(genuinePayload);
+});
 
 test("signed-out visitor sees readable real progress before a many-game report", async ({ page }) => {
   await routeJob(page, [
@@ -170,7 +213,8 @@ test("few and empty completed imports resolve without an endless loading state",
   await expect(page.getByRole("heading", { name: "Your opening plan" })).toBeVisible({ timeout: 5000 });
   await expect(page.locator(".primaryReportConfidence")).toContainText("Confidence is still developing");
 
-  await page.unroute(/\/api\/analysis\/jobs(?:\/.*)?$/);
+  await page.context().unroute(jobStartRoute);
+  await page.context().unroute(jobStatusRoute);
   await page.goto(appUrl, { waitUntil: "domcontentloaded" });
   await routeJob(page, [{ status: "completed", progress: { stage: "finishing_report", counts: { fetchedGames: 0, analysedGames: 0 } }, result: { username: "NoGamesPlayer", platform: "chess.com", gamesImported: 0, gamesFound: 0, gamesAnalysed: 0 } }]);
   await startImport(page, "NoGamesPlayer");
@@ -204,6 +248,14 @@ test("the report priority survives navigation and a direct signed-out reload of 
   await expect(page).toHaveURL(/\/train$/);
   await expect(page.getByRole("heading", { name: "This week: practise Caro-Kann Defence for approximately 10 minutes." })).toBeVisible();
   await expect(page.getByText(/Twelve opening-specific games make this the clearest current repair priority/).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start free action" })).toHaveCount(0);
+  await expect(page.getByText("General opening setup", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open source game" })).toHaveCount(0);
+  const choices = page.locator(".openingConceptOptions button");
+  await expect(choices).toHaveCount(3);
+  await choices.first().click();
+  await expect(page.getByText("Why it matters", { exact: true })).toBeVisible();
+  await expect(page.locator(".openingOpportunityFeedback")).toContainText(/coordinates development, central control, and king safety/i);
   await expect(page.getByText(/6 minutes|Only 311 recent games/i)).toHaveCount(0);
 
   await page.reload({ waitUntil: "domcontentloaded" });

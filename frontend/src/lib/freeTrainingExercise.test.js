@@ -128,6 +128,7 @@ test("the general Caro-Kann exercise teaches a concrete concept with plausible a
 test("the renderer consumes one mutually exclusive provenance state", () => {
   const source = readFileSync(new URL("../components/OpeningOpportunityDrill.jsx", import.meta.url), "utf8");
   assert.match(source, /drill\.provenance\?\.kind === "own_game_position"/);
+  assert.match(source, /if \(sessionIdentityRef\.current === sessionIdentity\) return;/);
   assert.doesNotMatch(source, /Own-game exercise from this report/);
   assert.doesNotMatch(source, /drill\.sourceGame \? .*drill\.generalSetup/s);
 });

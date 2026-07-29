@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Eye, RotateCcw } from "lucide-react";
 import { Chess } from "chess.js";
 import { useAuth } from "../context/AuthDataProvider.jsx";
@@ -37,14 +37,18 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose, 
   const [session, setSession] = useState(() => createOpeningOpportunitySession(drill, loadOpeningOpportunityProgress()[drill.id]));
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [feedbackSquare, setFeedbackSquare] = useState(null);
+  const sessionIdentity = `${drill.id}:${drill.type}:${drill.initialFen || "general"}`;
+  const sessionIdentityRef = useRef(sessionIdentity);
 
   useEffect(() => {
+    if (sessionIdentityRef.current === sessionIdentity) return;
+    sessionIdentityRef.current = sessionIdentity;
     const saved = loadOpeningOpportunityProgress();
     setProgress(saved);
     setSession(createOpeningOpportunitySession(drill, saved[drill.id]));
     setSelectedSquare(null);
     setFeedbackSquare(null);
-  }, [drill]);
+  }, [drill, sessionIdentity]);
 
   const chess = useMemo(() => currentChess(session.fen), [session.fen]);
   const userColour = drill.side === "black" ? "b" : "w";
