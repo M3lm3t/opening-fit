@@ -23,11 +23,11 @@ test("very small report exposes its coverage without inflating recommendation co
 test("white-only data keeps explicit missing Black roles", () => {
   const roles = buildReportDecisionModel({ preferred_white: [{ name: "Vienna", openingRole: "played_as_white", repertoireSlot: "white", games: 5, score: 70 }] }).repertoire;
   assert.deepEqual(roles.map((row) => row.key), ["white", "black_e4", "black_d4"]);
-  assert.equal(roles.find((row) => row.key === "black_e4").status, "unresolved");
+  assert.equal(roles.find((row) => row.key === "black_e4").status, "insufficient");
 });
 test("black-only data keeps an explicit missing White role", () => {
   const roles = buildReportDecisionModel({ preferred_black: [{ name: "Caro-Kann", openingRole: "played_as_black", repertoireSlot: "black_vs_e4", games: 5, score: 60 }] }).repertoire;
-  assert.equal(roles.find((row) => row.key === "white").status, "unresolved");
+  assert.equal(roles.find((row) => row.key === "white").status, "insufficient");
   assert.equal(roles.find((row) => row.key === "black_e4").status, "established");
 });
 test("saved snake-case role evidence retains its leading count", () => {

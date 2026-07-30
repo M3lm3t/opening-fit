@@ -10,7 +10,7 @@ export default function OpeningFitScoreDisclosure({ model, report, previousRepor
       <div className="openingFitScoreDisclosureBody">
         <p className="openingFitScoreMeaning">{view.meaning}</p>
         <dl className="openingFitScoreFacts">
-          <div><dt>Current coverage indicator</dt><dd>{view.currentScore ?? "Unavailable"}{view.currentScore === null ? "" : "%"}</dd></div>
+          <div><dt>Current coverage indicator</dt><dd>{view.scoreDisplayLabel}</dd></div>
           <div><dt>Previous coverage indicator</dt><dd>{view.previousScore === null ? "No previous indicator" : `${view.previousScore}%`}</dd></div>
           <div><dt>Evidence state</dt><dd>{view.statusLabel}</dd></div>
           <div><dt>Games analysed</dt><dd>{view.games}</dd></div>

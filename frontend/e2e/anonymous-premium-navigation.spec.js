@@ -26,7 +26,7 @@ test("a signed-out visitor deliberately choosing OpeningFit Plus reaches login",
     });
   });
   await page.goto(`${appUrl}/premium`, { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Keep improving after the first report." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Turn each report into useful weekly training." })).toBeVisible();
   await expect(page.getByRole("radio", { name: /Monthly.*£4\.99/ })).toBeChecked();
   await expect(page.getByRole("heading", { name: "£4.99 per month" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sign in to subscribe" })).toBeVisible();

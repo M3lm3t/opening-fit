@@ -98,7 +98,7 @@ export function fitBand(score) {
   const value = rounded(score);
   if (value === null) return "Unknown";
   if (value >= OPENING_VERDICT_BANDS.fit.strong) return "Strong";
-  if (value >= OPENING_VERDICT_BANDS.fit.mixed) return "Mixed";
+  if (value >= OPENING_VERDICT_BANDS.fit.mixed) return "Developing fit";
   return "Weak";
 }
 

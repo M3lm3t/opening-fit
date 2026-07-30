@@ -41,8 +41,8 @@ test("does not compare the in-memory report with its saved copy", () => {
 
 test("renders decline explicitly", () => {
   const view = viewFor(comparisonFixtures.scoreDecrease.current);
-  assert.ok(view.primaryHighlights.some((item) => item.statusLabel === "Decline"));
-  assert.ok(view.details.some((item) => item.title === "Repertoire coverage" && item.statusLabel === "Decline"));
+  assert.ok(view.primaryHighlights.some((item) => item.statusLabel === "Declined with supporting evidence"));
+  assert.ok(view.details.some((item) => item.title === "Repertoire coverage" && item.statusLabel === "Declined with supporting evidence"));
 });
 
 test("small samples render insufficient data and never claim improvement", () => {
@@ -52,7 +52,7 @@ test("small samples render insufficient data and never claim improvement", () =>
     reportSnapshots: [smallPrevious],
   });
   assert.ok(view.warnings.some((warning) => /required before OpeningFit calls/i.test(warning)));
-  assert.equal(view.details.find((item) => item.title === "Repertoire coverage")?.statusLabel, "Insufficient data");
+  assert.equal(view.details.find((item) => item.title === "Repertoire coverage")?.statusLabel, "Not enough comparable evidence");
   assert.equal(view.primaryHighlights.some((item) => item.statusLabel === "Improved with supporting evidence"), false);
 });
 

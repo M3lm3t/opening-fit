@@ -74,11 +74,12 @@ function playedAtValue(value) {
 }
 
 function gameColour(game, headers, report) {
+  const username = text(report.username || report.playerName || report.player_name || report.playerProfile?.username || report.player_profile?.username).toLowerCase();
+  const matchesWhite = Boolean(username && whitePlayer(game, headers).toLowerCase() === username);
+  const matchesBlack = Boolean(username && blackPlayer(game, headers).toLowerCase() === username);
+  if (matchesWhite !== matchesBlack) return matchesWhite ? "white" : "black";
   const explicit = text(game.userColour || game.user_colour || game.colour || game.color).toLowerCase();
   if (["white", "black"].includes(explicit)) return explicit;
-  const username = text(report.username || report.playerName || report.player_name || report.playerProfile?.username || report.player_profile?.username).toLowerCase();
-  if (username && whitePlayer(game, headers).toLowerCase() === username) return "white";
-  if (username && blackPlayer(game, headers).toLowerCase() === username) return "black";
   return "";
 }
 
@@ -161,10 +162,37 @@ export function buildTrainingReviewSelection(report = {}, priority = {}, priorit
   const { eligible, openingMatches } = trainingReviewCandidates(report, priority);
   const difficultReview = priorityReason?.kind === "reliable_weakness" || /repair|weak|problem/.test(text(priority.actionType || priority.action_type).toLowerCase());
   const resultRank = { Loss: 0, Draw: 1, Win: 2 };
-  const ranked = eligible
+  const evidenceIds = new Set(list(priority.evidenceGameIds || priority.evidence_game_ids).map(text));
+  const targetBranch = text(priority.lineOrPosition || priority.line_or_position).toLowerCase();
+  const responseCounts = new Map();
+  eligible.forEach((game) => {
+    const response = text(game.raw?.opponentResponse || game.raw?.opponent_response || game.raw?.commonResponse || game.raw?.common_response).toLowerCase();
+    if (response) responseCounts.set(response, (responseCounts.get(response) || 0) + 1);
+  });
+  const annotated = eligible.map((game) => {
+    const branch = text(game.raw?.branch || game.raw?.variation || game.raw?.moveLine || game.raw?.move_line).toLowerCase();
+    const deviationMove = Number(game.raw?.deviationMoveNumber ?? game.raw?.deviation_move_number ?? game.raw?.firstDeviationMove ?? game.raw?.first_deviation_move);
+    const opponentResponse = text(game.raw?.opponentResponse || game.raw?.opponent_response || game.raw?.commonResponse || game.raw?.common_response).toLowerCase();
+    return {
+      ...game,
+      isPriorityEvidence: evidenceIds.has(game.id),
+      entersTargetBranch: Boolean(targetBranch && branch && (branch.includes(targetBranch) || targetBranch.includes(branch))),
+      earlyRecordedDeviation: Number.isFinite(deviationMove) && deviationMove > 0 && deviationMove <= 12,
+      repeatedOpponentResponse: Boolean(opponentResponse && responseCounts.get(opponentResponse) > 1),
+    };
+  });
+  const ranked = annotated
     .sort((left, right) => {
       const usable = Number(Boolean(right.pgn || right.sourceUrl)) - Number(Boolean(left.pgn || left.sourceUrl));
       if (usable) return usable;
+      const evidence = Number(right.isPriorityEvidence) - Number(left.isPriorityEvidence);
+      if (evidence) return evidence;
+      const branch = Number(right.entersTargetBranch) - Number(left.entersTargetBranch);
+      if (branch) return branch;
+      const deviation = Number(right.earlyRecordedDeviation) - Number(left.earlyRecordedDeviation);
+      if (deviation) return deviation;
+      const response = Number(right.repeatedOpponentResponse) - Number(left.repeatedOpponentResponse);
+      if (response) return response;
       if (difficultReview) {
         const result = (resultRank[left.result] ?? 3) - (resultRank[right.result] ?? 3);
         if (result) return result;
@@ -173,15 +201,31 @@ export function buildTrainingReviewSelection(report = {}, priority = {}, priorit
     })
   const recoverableRanked = ranked.filter((game) => Boolean(game.moves.length || game.sourceUrl));
   const selectedCandidates = recoverableRanked.length ? recoverableRanked : ranked;
-  const games = selectedCandidates.slice(0, Math.max(0, Math.min(3, limit)))
+  const selectedLimit = Math.max(0, Math.min(3, limit));
+  const selected = selectedCandidates.slice(0, selectedLimit);
+  if (difficultReview && selectedLimit > 1 && selected.some((game) => game.result === "Loss") && !selected.some((game) => game.result === "Win")) {
+    const comparison = selectedCandidates.find((game) => game.result === "Win" && !selected.some((item) => item.id === game.id));
+    if (comparison) selected.splice(selected.length - 1, 1, comparison);
+  }
+  const games = selected
     .map((game) => {
       const knownResult = ["Win", "Draw", "Loss"].includes(game.result) ? game.result.toLowerCase() : "analysed game";
+      const selectionReason = game.entersTargetBranch
+        ? "This game entered the recorded target branch and is useful for reviewing your plan."
+        : game.earlyRecordedDeviation
+          ? "The report records an early deviation here, making it useful for reviewing when your familiar plan changed; this is not an engine mistake claim."
+          : game.repeatedOpponentResponse
+            ? "This game contains a repeated opponent response from the available report data."
+            : difficultReview && game.result === "Loss"
+              ? "This recent loss is representative of the evidence-supported repair sample; review the plan without assuming a specific engine mistake."
+              : difficultReview && game.result === "Win"
+                ? "This successful game provides a comparison example from the same opening and colour."
+                : `A recent analysed example matching ${game.opening || priority.openingName || "the selected opening"} as ${game.userColour || "the selected colour"}; it is not presented as proof of weakness.`;
       return {
         ...game,
         hasInternalReplay: game.moves.length > 0,
-        whySelected: difficultReview
-          ? `A recent ${knownResult} in the report's evidence-supported repair priority.`
-          : `A recent analysed example matching ${game.opening || priority.openingName || "the selected opening"} as ${game.userColour || "the selected colour"}; it is not presented as proof of weakness.`,
+        whySelected: selectionReason,
+        selectionCategory: game.entersTargetBranch ? "target_branch" : game.earlyRecordedDeviation ? "early_recorded_deviation" : game.repeatedOpponentResponse ? "repeated_opponent_response" : difficultReview && game.result === "Win" ? "successful_comparison" : difficultReview ? `representative_${knownResult.replaceAll(" ", "_")}` : "recent_representative",
       };
     });
   const suppliedRelevant = Number(priority.evidenceCount ?? priority.relevantGames);

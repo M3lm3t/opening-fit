@@ -211,8 +211,8 @@ def test_repertoire_roles_expose_role_specific_evidence_gaps_and_filters():
     roles = {row["key"]: row for row in decision["repertoireRoles"]}
 
     assert list(roles) == ["white", "black_e4", "black_d4"]
-    assert roles["white"]["status"] == "supported"
-    assert roles["black_e4"]["status"] == "tentative"
+    assert roles["white"]["status"] == "established"
+    assert roles["black_e4"]["status"] == "building"
     assert roles["black_e4"]["evidenceRequirement"]["additionalRelevantGamesRequired"] == 1
     assert roles["black_e4"]["evidenceRequirement"]["opponentFirstMove"] == "1.e4"
     assert roles["black_e4"]["evidenceRequirement"]["timeControls"] == ["rapid"]
@@ -221,7 +221,7 @@ def test_repertoire_roles_expose_role_specific_evidence_gaps_and_filters():
     assert roles["black_e4"]["evidenceFunnel"]["assignedToLeadingOpening"] == 4
     assert roles["black_e4"]["evidenceFunnel"]["importedCandidates"] is None
     assert roles["black_e4"]["evidenceFunnel"]["passedReportFilters"] == 4
-    assert roles["black_d4"]["status"] == "missing"
+    assert roles["black_d4"]["status"] == "insufficient"
     assert roles["black_d4"]["evidenceReasonCode"] == "unsupported_or_unknown"
     assert roles["black_d4"]["evidenceRequirement"]["additionalRelevantGamesRequired"] == 5
     assert roles["black_d4"]["evidenceRequirement"]["opponentFirstMove"] == "1.d4"
@@ -238,7 +238,7 @@ def test_repertoire_role_funnel_exposes_split_attributed_evidence_without_claimi
     ])
     role = next(row for row in decision["repertoireRoles"] if row["key"] == "black_e4")
 
-    assert role["status"] == "tentative"
+    assert role["status"] == "building"
     assert role["evidenceReasonCode"] == "split_across_openings"
     assert role["evidenceFunnel"]["correctlyAttributed"] == 5
     assert role["evidenceFunnel"]["assignedToLeadingOpening"] == 3
@@ -263,7 +263,7 @@ def test_role_evidence_derives_the_leader_from_the_same_eighty_four_game_breakdo
     decision = build_report_decision(report(games), openings=[])
     role = next(row for row in decision["repertoireRoles"] if row["key"] == "black_e4")
 
-    assert role["status"] == "supported"
+    assert role["status"] == "insufficient"
     assert role["openingName"] == "Caro-Kann Defense"
     assert role["evidenceCount"] == 30
     assert role["evidenceFunnel"]["passedReportFilters"] == 84
@@ -282,7 +282,7 @@ def test_role_evidence_counts_filtered_but_unclassified_games_without_inventing_
     decision = build_report_decision(report(unresolved), openings=[])
     role = next(row for row in decision["repertoireRoles"] if row["key"] == "black_e4")
 
-    assert role["status"] == "missing"
+    assert role["status"] == "insufficient"
     assert role["evidenceReasonCode"] == "opening_unclassified"
     assert role["evidenceFunnel"]["passedReportFilters"] == 3
     assert role["evidenceFunnel"]["correctlyAttributed"] == 0

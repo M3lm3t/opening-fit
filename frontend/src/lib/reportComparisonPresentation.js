@@ -2,15 +2,15 @@ import { compareReportSnapshots } from "./reportComparison.js";
 
 export const COMPARISON_STATUS_LABELS = Object.freeze({
   improved: "Improved with supporting evidence",
-  declined: "Decline",
-  stable: "Unchanged",
-  changed: "Changed",
+  declined: "Declined with supporting evidence",
+  stable: "Stable",
+  changed: "Role or opening changed",
   sample: "New sample",
-  "insufficient evidence": "Insufficient data",
+  "insufficient evidence": "Not enough comparable evidence",
   partially_improved: "Partial improvement",
   not_improved: "Still recurring",
   not_encountered: "Not encountered again",
-  insufficient_data: "More evidence needed",
+  insufficient_data: "Not enough comparable evidence",
 });
 
 const rounded = (value) => (Number.isFinite(Number(value)) ? Math.round(Number(value)) : null);

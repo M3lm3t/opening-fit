@@ -18,6 +18,11 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - package-style test imports
     from backend.analysis.evidence_thresholds import HIGH_CONFIDENCE_GAMES, MINIMUM_OPENING_GAMES, MODERATE_CONFIDENCE_GAMES
 
+try:
+    from analysis.opening_perspective import RepertoireRole, perspective_from_item
+except ModuleNotFoundError:  # pragma: no cover - package-style test imports
+    from backend.analysis.opening_perspective import RepertoireRole, perspective_from_item
+
 
 SLOT_DEFINITIONS = {
     "white": {"colour": "white", "against": None},
@@ -44,6 +49,22 @@ def normalise_name(name: str) -> str:
     return str(name or "").strip().lower().replace("’", "'")
 
 
+def repertoire_role_for_stats(item: Dict[str, Any]) -> str:
+    explicit = str(item.get("repertoireRole") or item.get("repertoire_role") or "").strip()
+    if explicit in {member.value for member in RepertoireRole}:
+        return explicit
+    context = str(item.get("repertoireSlot") or item.get("repertoire_slot") or item.get("context") or item.get("repertoireContext") or "").strip()
+    if context in {"white", "played_as_white", "main_white", "white_primary"}:
+        return RepertoireRole.WHITE.value
+    if context in {RepertoireRole.BLACK_VS_E4.value, RepertoireRole.BLACK_VS_D4.value}:
+        return context
+    return str(perspective_from_item(item).get("repertoireRole") or RepertoireRole.UNRESOLVED.value)
+
+
+def role_stats_key(role: str, opening_name: str) -> str:
+    return f"{role}::{normalise_name(opening_name)}"
+
+
 def score_for_opening_stats(stats: Dict[str, Any]) -> Optional[float]:
     games = int(stats.get("games", 0) or 0)
     if games <= 0:
@@ -67,8 +88,9 @@ def flatten_current_openings(current_opening_stats: Any) -> Dict[str, Dict[str, 
         name = str(item.get("name") or item.get("opening") or "").strip()
         if not name:
             return
-        key = normalise_name(name)
-        existing = flattened.get(key, {"name": name, "games": 0, "wins": 0, "draws": 0, "losses": 0})
+        role = repertoire_role_for_stats(item)
+        key = role_stats_key(role, name)
+        existing = flattened.get(key, {"name": name, "games": 0, "wins": 0, "draws": 0, "losses": 0, "repertoireRole": role})
         previous_games = int(existing.get("games", 0) or 0)
         item_games = int(item.get("games", 0) or item.get("games_played", 0) or item.get("gamesPlayed", 0) or 0)
         existing["games"] = int(existing.get("games", 0) or 0) + item_games
@@ -183,18 +205,21 @@ def successful_tag_boost(
     item: OpeningCatalogItem,
     current_stats: Dict[str, Dict[str, Any]],
     catalog_lookup: Dict[str, OpeningCatalogItem],
+    repertoire_role: str,
 ) -> float:
     item_tags = set(item.get("style_tags", []))
     boosts = []
 
-    for key, stats in current_stats.items():
+    for stats in current_stats.values():
+        if repertoire_role_for_stats(stats) != repertoire_role:
+            continue
         games = int(stats.get("games", 0) or 0)
         if games < 3:
             continue
         score = score_for_opening_stats(stats)
         if score is None or score < 55:
             continue
-        played_catalog = catalog_lookup.get(key)
+        played_catalog = catalog_lookup.get(normalise_name(stats.get("name", "")))
         if not played_catalog:
             continue
         overlap = len(item_tags.intersection(played_catalog.get("style_tags", [])))
@@ -473,16 +498,17 @@ def build_recommendation(
     current_stats: Dict[str, Dict[str, Any]],
     catalog_lookup: Dict[str, OpeningCatalogItem],
     rating: Optional[int],
+    repertoire_role: str,
 ) -> Dict[str, Any]:
     traits = style_fingerprint.get("traits") or {}
-    key = normalise_name(item["name"])
+    key = role_stats_key(repertoire_role, item["name"])
     stats = current_stats.get(key)
     current_games = int(stats.get("games", 0) or 0) if stats else 0
     currently_played = bool(stats)
     fit = trait_fit_score(item, traits)
     fit -= rating_penalty(item, rating)
     fit -= theory_penalty(item, rating, traits)
-    fit += successful_tag_boost(item, current_stats, catalog_lookup)
+    fit += successful_tag_boost(item, current_stats, catalog_lookup, repertoire_role)
     fit += existing_opening_adjustment(item, stats)
     fit += plan_clarity_adjustment(stats)
     fit += recent_trend_adjustment(stats)
@@ -499,6 +525,12 @@ def build_recommendation(
 
     return {
         "name": item["name"],
+        "repertoireRole": repertoire_role,
+        "repertoire_role": repertoire_role,
+        "alternativeRole": repertoire_role,
+        "alternative_role": repertoire_role,
+        "repertoireSlot": repertoire_role if repertoire_role != RepertoireRole.UNRESOLVED.value else None,
+        "repertoire_slot": repertoire_role if repertoire_role != RepertoireRole.UNRESOLVED.value else None,
         "fit_score": fit_score,
         "fitScore": fit_score,
         "confidence": confidence["label"],
@@ -629,8 +661,8 @@ def build_opening_recommendations(
     current_stats = flatten_current_openings(current_opening_stats)
 
     for name in existing_openings or []:
-        key = normalise_name(name)
-        current_stats.setdefault(key, {"name": name, "games": 0, "wins": 0, "draws": 0, "losses": 0})
+        key = role_stats_key(RepertoireRole.UNRESOLVED.value, name)
+        current_stats.setdefault(key, {"name": name, "games": 0, "wins": 0, "draws": 0, "losses": 0, "repertoireRole": RepertoireRole.UNRESOLVED.value})
 
     catalog_lookup = catalog_by_name()
     slots = colour_needs or ["white", "black_vs_e4", "black_vs_d4"]
@@ -640,7 +672,7 @@ def build_opening_recommendations(
         if slot not in slots:
             continue
         recommendations = [
-            build_recommendation(item, style_fingerprint, current_stats, catalog_lookup, player_rating)
+            build_recommendation(item, style_fingerprint, current_stats, catalog_lookup, player_rating, slot)
             for item in catalog_items_for_slot(slot)
         ]
         output[slot] = balanced_top_recommendations(recommendations, limit=limit_per_slot)

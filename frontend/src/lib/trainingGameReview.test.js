@@ -8,7 +8,8 @@ const priority = { openingName: "Caro-Kann Defence", openingKey: "caro-kann-defe
 const game = (id, date, result = "1-0", extra = {}) => ({ gameId: id, pgn: pgn(id, date, result), opening: "Caro-Kann Defence", colour: "white", played_at: date.replaceAll(".", "-") + "T12:00:00Z", result, ...extra });
 
 test("selects no more than three exact opening-and-colour games deterministically", () => {
-  const report = { username: "ReviewPlayer", opening_games: [game("1", "2026.07.01"), game("2", "2026.07.02"), game("3", "2026.07.03"), game("4", "2026.07.04"), { ...game("wrong", "2026.07.30"), opening: "French Defence" }, { ...game("black", "2026.07.31"), colour: "black" }] };
+  const blackPgn = `[Event "Fixture"]\n[Date "2026.07.31"]\n[White "Opponentblack"]\n[Black "ReviewPlayer"]\n[Result "0-1"]\n[Opening "Caro-Kann Defence"]\n\n1. e4 c6 2. d4 d5 0-1`;
+  const report = { username: "ReviewPlayer", opening_games: [game("1", "2026.07.01"), game("2", "2026.07.02"), game("3", "2026.07.03"), game("4", "2026.07.04"), { ...game("wrong", "2026.07.30"), opening: "French Defence" }, { ...game("black", "2026.07.31"), pgn: blackPgn, colour: "black" }] };
   assert.deepEqual(selectTrainingReviewGames(report, priority).map((item) => item.id), ["4", "3", "2"]);
 });
 
@@ -46,10 +47,13 @@ test("opponent metadata resolves from structured fields and PGN headers for both
   assert.notEqual(black.opponent, "ReviewPlayer");
 });
 
-test("inconsistent PGN colour metadata never displays the report player as their own opponent", () => {
+test("PGN identity corrects inconsistent supplied colour metadata", () => {
   const inconsistentPgn = `[White "SomeoneElse"]\n[Black "ReviewPlayer"]\n[Opening "Caro-Kann Defence"]\n\n1. e4 c6 2. d4 d5`;
-  const selected = selectTrainingReviewGames({ username: "ReviewPlayer", games: [{ gameId: "inconsistent", pgn: inconsistentPgn, opening: "Caro-Kann Defence", colour: "white" }] }, priority)[0];
-  assert.equal(selected.opponent, "Opponent not recorded");
+  const report = { username: "ReviewPlayer", games: [{ gameId: "inconsistent", pgn: inconsistentPgn, opening: "Caro-Kann Defence", colour: "white" }] };
+  assert.equal(selectTrainingReviewGames(report, priority).length, 0);
+  const selected = selectTrainingReviewGames(report, { ...priority, playerColour: "black" })[0];
+  assert.equal(selected.userColour, "black");
+  assert.equal(selected.opponent, "SomeoneElse");
 });
 
 test("missing opponent uses the conservative recorded-state fallback", () => {
@@ -91,6 +95,21 @@ test("repair reviews rank losses before draws and wins without changing the scor
   const reason = { kind: "reliable_weakness" };
   const report = { username: "ReviewPlayer", games: [game("win", "2026.07.22", "1-0"), game("draw", "2026.07.21", "1/2-1/2"), game("loss", "2026.07.20", "0-1")] };
   assert.deepEqual(selectTrainingReviewGames(report, { ...priority, actionType: "repair_repertoire" }, reason).map((item) => item.result), ["Loss", "Draw", "Win"]);
+});
+
+test("representative selection prefers the recorded branch and retains a successful comparison", () => {
+  const reason = { kind: "reliable_weakness" };
+  const report = { username: "ReviewPlayer", games: [
+    game("recent-loss", "2026.07.24", "0-1"),
+    game("branch-loss", "2026.07.20", "0-1", { branch: "1.e4 c6 2.d4 d5" }),
+    game("comparison-win", "2026.07.19", "1-0"),
+    game("older-draw", "2026.07.18", "1/2-1/2"),
+  ] };
+  const selected = selectTrainingReviewGames(report, { ...priority, actionType: "repair_repertoire", lineOrPosition: "1.e4 c6 2.d4 d5", evidenceGameIds: ["branch-loss", "comparison-win"] }, reason);
+  assert.equal(selected[0].id, "branch-loss");
+  assert.equal(selected[0].selectionCategory, "target_branch");
+  assert.ok(selected.some((item) => item.selectionCategory === "successful_comparison"));
+  assert.equal(new Set(selected.map((item) => item.id)).size, selected.length);
 });
 
 test("preparation examples never describe a loss as weakness evidence", () => {
@@ -141,8 +160,12 @@ test("general feedback cannot use unsupported position-cue recall copy", () => {
 
 test("mobile rules stack cards and preserve practical tap targets", () => {
   const css = readFileSync(new URL("../components/TrainingGameReviewSession.css", import.meta.url), "utf8");
+  const weeklyCss = readFileSync(new URL("../components/ThisWeekTrainingExperience.css", import.meta.url), "utf8");
   assert.match(css, /@media\(max-width:900px\).*grid-template-columns:1fr/s);
   assert.match(css, /min-height:44px/);
   assert.match(css, /trainingReviewProgress.*overflow-x:auto/s);
   assert.match(css, /replayMovesWrap\{max-height:/);
+  assert.match(weeklyCss, /@media\(max-width:480px\).*thisWeekFreeTask>\.primaryBtn\{width:100%;min-height:44px\}/s);
+  assert.match(weeklyCss, /overflow-wrap:anywhere/);
+  assert.match(weeklyCss, /trainingReviewProgress ol\{display:flex;min-width:max-content\}/);
 });

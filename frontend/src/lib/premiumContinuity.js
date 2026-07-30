@@ -1,6 +1,27 @@
 const list = (value) => Array.isArray(value) ? value.filter(Boolean) : [];
 const text = (value) => String(value ?? "").trim();
 
+export function buildTrainingResponsePlanRecord({ existing = {}, taskId, planId, responsePlan, openingName, priority = {}, sourceType = "general setup", synced = false, now = new Date() } = {}) {
+  const timestamp = new Date(now).toISOString();
+  return {
+    taskId: text(taskId) || null,
+    planId: text(planId) || null,
+    responsePlan: text(responsePlan),
+    openingName: text(openingName) || "Opening focus",
+    repertoireRole: text(priority.repertoireRole) || "unresolved",
+    playerColour: text(priority.playerColour) || null,
+    triggeringPosition: text(priority.lineOrPosition) || null,
+    sourceReportId: text(priority.sourceReportId) || null,
+    sourceType: text(sourceType) || "general setup",
+    fictional: false,
+    synced: Boolean(synced),
+    createdAt: existing.createdAt || timestamp,
+    updatedAt: timestamp,
+    reviewState: "active",
+    completionState: "response_plan_saved",
+  };
+}
+
 export function trainingResponsePlans(settings = {}) {
   const plans = settings?.preferences?.trainingResponsePlans;
   return plans && typeof plans === "object" && !Array.isArray(plans) ? plans : {};

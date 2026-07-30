@@ -138,7 +138,7 @@ function isAdvancedPlayer(data) {
 
 function sideFromText(value) {
   const text = String(value || "").toLowerCase();
-  if (text.includes("unknown") || text.includes("mixed")) return "Mixed signal";
+  if (text.includes("unknown") || text.includes("mixed")) return "Context not established";
   if (text.includes("white")) return "White";
   if (text.includes("black")) return "Black";
   return "";
@@ -219,7 +219,7 @@ export function getOpeningContext(opening) {
 
   return {
     type: "mixed",
-    label: "Mixed signal",
+    label: "Context not established",
     detail: "side/context unclear",
     canRecommend: false,
     isRepertoire: false,
@@ -372,7 +372,7 @@ export function getOpeningSignal(opening) {
   if (!context.canRecommend) {
     return {
       tier: "mixed",
-      label: "Mixed signal",
+      label: "Context not established",
       badge: "Too little data",
       className: "insufficient",
       canBePrimary: false,

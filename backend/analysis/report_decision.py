@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 from typing import Any, Iterable, Mapping, Optional
 
-from analysis.opening_perspective import perspective_from_item
+from analysis.opening_perspective import RepertoireRole, normalise_player_identifier, perspective_from_item
 from analysis.evidence_thresholds import (
     HIGH_CONFIDENCE_GAMES,
     MINIMUM_OPENING_GAMES,
@@ -22,10 +22,19 @@ REPERTOIRE_COVERAGE_COMPONENTS = (
     {"key": "evidenceConfidence", "label": "Evidence confidence", "weight": 40},
 )
 REPERTOIRE_ROLE_SPECS = (
-    {"key": "white", "label": "White", "role": "played_as_white", "colour": "white", "opponentFirstMove": None, "slots": {"white", "main_white", "white_primary"}},
-    {"key": "black_e4", "label": "Black against 1.e4", "role": "played_as_black", "colour": "black", "opponentFirstMove": "1.e4", "slots": {"black_vs_e4"}},
-    {"key": "black_d4", "label": "Black against 1.d4", "role": "played_as_black", "colour": "black", "opponentFirstMove": "1.d4", "slots": {"black_vs_d4"}},
+    {"key": "white", "role": RepertoireRole.WHITE.value, "label": "White", "colour": "white", "opponentFirstMove": None},
+    {"key": "black_e4", "role": RepertoireRole.BLACK_VS_E4.value, "label": "Black against 1.e4", "colour": "black", "opponentFirstMove": "1.e4"},
+    {"key": "black_d4", "role": RepertoireRole.BLACK_VS_D4.value, "label": "Black against 1.d4", "colour": "black", "opponentFirstMove": "1.d4"},
 )
+SUPPORTED_FINDING_TYPES = frozenset({
+    "opening_weakness",
+    "branch_weakness",
+    "opponent_response_problem",
+    "repertoire_gap",
+    "preparation_opportunity",
+    "stable_strength",
+    "insufficient_evidence",
+})
 
 
 def _number(value: Any) -> Optional[float]:
@@ -92,8 +101,8 @@ def reports_are_comparable(current: Mapping[str, Any], previous: Optional[Mappin
         return False
     current_platform = str(current.get("platform") or current.get("importPlatform") or "").lower()
     previous_platform = str(previous.get("platform") or previous.get("importPlatform") or "").lower()
-    current_user = str(current.get("username") or current.get("playerName") or "").lower()
-    previous_user = str(previous.get("username") or previous.get("playerName") or "").lower()
+    current_user = normalise_player_identifier(current.get("username") or current.get("playerName"))
+    previous_user = normalise_player_identifier(previous.get("username") or previous.get("playerName"))
     if current_platform and previous_platform and current_platform != previous_platform:
         return False
     if current_user and previous_user and current_user != previous_user:
@@ -123,7 +132,11 @@ def _matching_games(report: Mapping[str, Any], item: Mapping[str, Any]) -> list[
         perspective = perspective_from_item(game)
         if _opening_key(game.get("opening") or game.get("name")) != expected_name:
             continue
-        if perspective["role"] != expected["role"]:
+        if perspective.get("repertoireRole") != expected.get("repertoireRole"):
+            continue
+        if expected.get("relationship") != "unknown" and perspective.get("relationship") != expected.get("relationship"):
+            continue
+        if not perspective.get("roleAttributionTrusted"):
             continue
         game_id = _game_id(game)
         if game_id in seen:
@@ -180,16 +193,80 @@ def _confidence(games: int, *, clean_context: bool, complete_results: bool, supp
     return {"level": level, "reason": reason, "sampleSize": games, "recency": recency}
 
 
+def _report_count(report: Mapping[str, Any], *keys: str) -> Optional[int]:
+    counts = report.get("gameCounts") or report.get("game_counts") or {}
+    for key in keys:
+        value = report.get(key)
+        if value is None and isinstance(counts, Mapping):
+            value = counts.get(key)
+        number = _number(value)
+        if number is not None:
+            return max(0, int(number))
+    return None
+
+
+def _confidence_contract(
+    *,
+    raw_games: int,
+    supporting_games: int,
+    perspective: Mapping[str, Any],
+    validation: list[str],
+    confidence: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not perspective.get("roleAttributionTrusted") or perspective.get("repertoireRole") == RepertoireRole.UNRESOLVED.value:
+        code = str(perspective.get("attributionReasonCode") or "role_attribution_unresolved")
+    elif supporting_games < MIN_OPENING_EVIDENCE:
+        code = "supporting_sample_below_threshold"
+    elif validation:
+        code = validation[0]
+    else:
+        code = f"supported_{confidence.get('level') or 'low'}_confidence"
+    explanation = str(confidence.get("reason") or "").strip()
+    if raw_games != supporting_games:
+        explanation = (
+            f"{raw_games} games were recorded for this opening, but {supporting_games} correctly attributed games "
+            f"support this verdict; {MIN_OPENING_EVIDENCE} are required. {explanation}"
+        ).strip()
+    return {
+        "supportingGameCount": supporting_games,
+        "supporting_game_count": supporting_games,
+        "requiredGameCount": MIN_OPENING_EVIDENCE,
+        "required_game_count": MIN_OPENING_EVIDENCE,
+        "confidenceReasonCode": code,
+        "confidence_reason_code": code,
+        "confidenceExplanation": explanation,
+        "confidence_explanation": explanation,
+    }
+
+
+def _evidence_status(
+    *,
+    supporting_games: int,
+    perspective: Mapping[str, Any],
+    verdict: str,
+    validation: list[str],
+) -> str:
+    if not perspective.get("roleAttributionTrusted") or perspective.get("repertoireRole") == RepertoireRole.UNRESOLVED.value:
+        return "unresolved"
+    if supporting_games <= 0:
+        return "insufficient"
+    if supporting_games < MIN_OPENING_EVIDENCE:
+        return "building"
+    if verdict == "insufficient-data" or validation:
+        return "insufficient"
+    return "established"
+
+
 def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]) -> dict[str, Any]:
     perspective = perspective_from_item(item)
     matched = _matching_games(report, item)
     validation: list[str] = []
+    raw_games = _games(item)
     if matched:
         games = len(matched)
         wins, draws, losses = _result_counts(matched)
         supporting_ids = [_game_id(game) for game in matched]
-        source_games = _games(item)
-        if source_games and source_games != games:
+        if raw_games and raw_games != games:
             validation.append("source_sample_replaced_by_supporting_games")
     else:
         games = _games(item)
@@ -206,14 +283,26 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         validation.append("supporting_games_do_not_reconcile")
     score_rate = round(((wins + draws * 0.5) / games) * 100, 1) if games and complete_results else _candidate_score_rate(item, games, wins, draws)
     fit_score = _number(item.get("fitScore") if item.get("fitScore") is not None else item.get("fit_score"))
-    latest = max((_iso(game.get("played_at") or game.get("playedAt") or game.get("end_time") or game.get("endTime")) for game in matched), default=None)
+    played_dates = [
+        parsed
+        for game in matched
+        if (parsed := _iso(game.get("played_at") or game.get("playedAt") or game.get("end_time") or game.get("endTime"))) is not None
+    ]
+    latest = max(played_dates, default=None)
     recency = latest.date().isoformat() if latest else None
     issue = _issue_for(report, item, set(supporting_ids))
-    clean_context = perspective["repertoireOwned"] or perspective["opponentPreparation"]
+    clean_context = bool(perspective.get("roleAttributionTrusted"))
     confidence = _confidence(games, clean_context=clean_context, complete_results=complete_results, supporting_ids=len(supporting_ids), recency=recency)
+    confidence_contract = _confidence_contract(
+        raw_games=raw_games,
+        supporting_games=games,
+        perspective=perspective,
+        validation=validation,
+        confidence=confidence,
+    )
     owned = perspective["repertoireOwned"]
 
-    if games < MIN_OPENING_EVIDENCE or score_rate is None or validation:
+    if not perspective.get("roleAttributionTrusted") or games < MIN_OPENING_EVIDENCE or score_rate is None or validation:
         verdict = "insufficient-data"
     elif not owned:
         verdict = "explore"
@@ -225,7 +314,8 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         verdict = "explore"
 
     opening_name = _name(item)
-    recommendation_id = f"{_slug(opening_name)}:{perspective['role']}"
+    repertoire_role = str(perspective.get("repertoireRole") or RepertoireRole.UNRESOLVED.value)
+    recommendation_id = f"{_slug(opening_name)}:{repertoire_role}:{perspective['role']}"
     sample = {
         "gameIds": supporting_ids,
         "games": games,
@@ -290,6 +380,31 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         + (100 if issue else 20) * 0.20
         + recency_score * 0.10
     )
+    evidence_status = _evidence_status(
+        supporting_games=games,
+        perspective=perspective,
+        verdict=verdict,
+        validation=validation,
+    )
+    finding_type = (
+        "branch_weakness" if verdict == "repair" and issue
+        else "opening_weakness" if verdict == "repair"
+        else "stable_strength" if verdict == "keep"
+        else "opponent_response_problem" if perspective["relationship"] == "faced" and verdict == "explore" and score_rate is not None and score_rate < 45
+        else "preparation_opportunity" if perspective["relationship"] == "faced" and verdict == "explore"
+        else "insufficient_evidence"
+    )
+    imported_games = _report_count(report, "gamesImported", "fetchedGames")
+    eligible_games = _report_count(report, "gamesEligible", "timeControlEligibleGames", "eligible")
+    excluded_games = _report_count(report, "gamesExcluded", "excludedGames", "excluded")
+    evidence_counts = {
+        "importedGames": imported_games,
+        "eligibleGames": eligible_games,
+        "classifiedOpeningGames": raw_games if raw_games > 0 else games,
+        "roleAttributedGames": games,
+        "supportingGames": games,
+        "excludedGames": excluded_games,
+    }
     return {
         "recommendationId": recommendation_id,
         "verdict": verdict,
@@ -298,6 +413,8 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         "opening": opening_name,
         "variationName": item.get("variation") or item.get("line") or None,
         "playerColour": perspective["userColour"],
+        "repertoireRole": repertoire_role,
+        "repertoire_role": repertoire_role,
         "role": perspective["role"],
         "roleLabel": perspective["label"],
         "relationship": perspective["relationship"],
@@ -310,6 +427,13 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         "fitScore": round(max(0, min(100, fit_score)), 1) if fit_score is not None else None,
         "issue": issue,
         "confidence": confidence,
+        **confidence_contract,
+        "evidenceStatus": evidence_status,
+        "evidence_status": evidence_status,
+        "findingType": finding_type,
+        "finding_type": finding_type,
+        "evidenceCounts": evidence_counts,
+        "evidence_counts": evidence_counts,
         "sampleSizeStatus": "sufficient" if games >= MIN_OPENING_EVIDENCE and not validation else "insufficient_data",
         "trainingAction": training_action,
         "priority": priority,
@@ -357,17 +481,18 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
     rows = []
     for spec in REPERTOIRE_ROLE_SPECS:
         matching_role_games: list[Mapping[str, Any]] = []
+        unresolved_role_games: list[Mapping[str, Any]] = []
         seen_role_game_ids: set[str] = set()
         for game in _report_games(report):
             game_perspective = perspective_from_item(game)
             game_id = _game_id(game)
-            if (
-                game_perspective.get("role") == spec["role"]
-                and str(game_perspective.get("repertoireSlot") or "") in spec["slots"]
-                and game_id not in seen_role_game_ids
-            ):
-                seen_role_game_ids.add(game_id)
+            if game_perspective.get("repertoireRole") != spec["role"] or game_id in seen_role_game_ids:
+                continue
+            seen_role_game_ids.add(game_id)
+            if game_perspective.get("roleAttributionTrusted"):
                 matching_role_games.append(game)
+            else:
+                unresolved_role_games.append(game)
         role_games = [game for game in matching_role_games if _name(game)]
         opening_groups: dict[str, dict[str, Any]] = {}
         for game in role_games:
@@ -382,8 +507,7 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
         candidates = [
             item for item in recommendations
             if item.get("repertoireOwned")
-            and item.get("role") == spec["role"]
-            and str(item.get("repertoireSlot") or "") in spec["slots"]
+            and item.get("repertoireRole") == spec["role"]
             and bool((item.get("validation") or {}).get("valid", True))
         ]
         candidate = sorted(candidates, key=lambda item: (-int(_number((item.get("sample") or {}).get("games")) or 0), str(item.get("openingName") or "").lower()))[0] if candidates else None
@@ -410,35 +534,80 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
         attributed = sum(int(item["games"]) for item in opening_breakdown)
         attributed_openings = len(opening_breakdown)
         additional = max(0, MIN_OPENING_EVIDENCE - current)
-        supported = current >= MIN_OPENING_EVIDENCE
-        status = "supported" if supported else "tentative" if current else "missing"
+        candidate_verdict = str((candidate or {}).get("verdict") or "insufficient-data")
+        candidate_confidence = str(((candidate or {}).get("confidence") or {}).get("level") or "insufficient")
+        candidate_supported = bool(candidate and candidate_verdict != "insufficient-data" and candidate_confidence in {"low", "medium", "high"})
+        if unresolved_role_games and not matching_role_games:
+            status = "unresolved"
+        elif current <= 0:
+            status = "insufficient"
+        elif current < MIN_OPENING_EVIDENCE:
+            status = "building"
+        elif candidate_supported:
+            status = "established"
+        else:
+            status = "insufficient"
         target = opening or spec["label"]
         reason_code = None
-        if not supported:
+        if status != "established":
             if attributed_openings > 1 and attributed > current:
                 reason_code = "split_across_openings"
             elif current > 0:
-                reason_code = "below_evidence_threshold"
+                reason_code = "below_evidence_threshold" if current < MIN_OPENING_EVIDENCE else "verdict_or_confidence_unsupported"
             elif matching_role_games:
                 reason_code = "opening_unclassified"
+            elif unresolved_role_games:
+                reason_code = "role_attribution_unresolved"
             else:
                 # The analysed report does not retain role-specific counts for games
                 # rejected before opening attribution. Do not turn that absence into
                 # a claim that no matching public games existed.
                 reason_code = "unsupported_or_unknown"
+        alternatives_by_role = report.get("recommended_openings") or report.get("recommendedOpeningsByStyle") or {}
+        role_alternatives = alternatives_by_role.get(spec["role"], []) if isinstance(alternatives_by_role, Mapping) else []
+        compatible_alternative = next(({
+            "openingName": str(item.get("name") or item.get("opening") or "").strip(),
+            "repertoireRole": spec["role"],
+            "fitScore": item.get("fitScore", item.get("fit_score")),
+            "confidence": item.get("confidence"),
+            "reason": item.get("reason") or item.get("shortReason") or item.get("short_reason"),
+        } for item in role_alternatives if isinstance(item, Mapping)
+            and str(item.get("repertoireRole") or item.get("repertoire_role") or spec["role"]) == spec["role"]
+            and str(item.get("name") or item.get("opening") or "").strip()
+            and _opening_key(item.get("name") or item.get("opening")) != _opening_key(opening)), None)
+        confidence_contract = (candidate or {}).get("confidenceExplanation") or (
+            f"{current} correctly attributed games support the leading opening; {MIN_OPENING_EVIDENCE} are required."
+        )
         rows.append({
             "key": spec["key"], "label": spec["label"], "status": status,
+            "role": spec["role"], "repertoireRole": spec["role"],
             "openingName": opening or None, "openingKey": candidate.get("openingId") if candidate else None,
-            "confidence": (candidate.get("confidence") or {}).get("level") if candidate else "insufficient",
+            "currentOpening": opening or None,
+            "verdict": candidate_verdict,
+            "fitScore": candidate.get("fitScore") if candidate else None,
+            "confidence": candidate_confidence,
+            "conciseReason": str((candidate or {}).get("trainingAction", {}).get("explanation") or confidence_contract),
+            "compatibleAlternative": compatible_alternative,
+            "alternativeRole": spec["role"] if compatible_alternative else None,
+            "reasonCodes": [value for value in [reason_code, (candidate or {}).get("confidenceReasonCode")] if value],
             "evidenceCount": current, "evidenceGameIds": sample_ids,
+            "rawGameCount": int(_number((candidate or {}).get("evidenceCounts", {}).get("classifiedOpeningGames")) or current),
+            "relevantGameCount": attributed,
+            "supportingGameCount": current,
+            "requiredGameCount": MIN_OPENING_EVIDENCE,
+            "confidenceReasonCode": (candidate or {}).get("confidenceReasonCode") or reason_code,
+            "confidenceExplanation": confidence_contract,
             "evidenceReasonCode": reason_code,
             "evidenceFunnel": {
+                # The import total is global and cannot honestly be assigned to a
+                # single repertoire role before colour/first-move attribution.
                 "importedCandidates": None,
-                "passedReportFilters": len(matching_role_games) if _report_games(report) else None,
+                "passedReportFilters": len(matching_role_games) + len(unresolved_role_games) if _report_games(report) else None,
                 "correctlyAttributed": attributed,
                 "assignedToLeadingOpening": current,
                 "distinctAttributedOpenings": attributed_openings,
                 "openingUnclassified": max(0, len(matching_role_games) - attributed) if _report_games(report) else None,
+                "roleAttributionUnresolved": len(unresolved_role_games) if _report_games(report) else None,
                 "openingBreakdown": opening_breakdown,
                 "establishmentThreshold": MIN_OPENING_EVIDENCE,
                 "additionalRequired": additional,
@@ -457,9 +626,9 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
 
 
 def build_repertoire_coverage_score(repertoire_roles: list[Mapping[str, Any]], primary_problem: Optional[Mapping[str, Any]] = None) -> dict[str, Any]:
-    supported = sum(1 for row in repertoire_roles if row.get("status") == "supported")
+    supported = sum(1 for row in repertoire_roles if row.get("status") == "established")
     completeness = round((supported / len(REPERTOIRE_ROLE_SPECS)) * 100, 1)
-    evidence_scores = [min(100.0, (float(_number(row.get("evidenceCount")) or 0) / MIN_OPENING_EVIDENCE) * 100) for row in repertoire_roles]
+    evidence_scores = [min(100.0, (float(_number(row.get("supportingGameCount") or row.get("evidenceCount")) or 0) / MIN_OPENING_EVIDENCE) * 100) for row in repertoire_roles]
     evidence_confidence = round(sum(evidence_scores) / len(REPERTOIRE_ROLE_SPECS), 1)
     values = {"repertoireCompleteness": completeness, "evidenceConfidence": evidence_confidence}
     components = [
@@ -513,11 +682,20 @@ def _training_priority(action: Mapping[str, Any], recommendations: list[Mapping[
     confidence = target.get("confidence") if isinstance(target, Mapping) and isinstance(target.get("confidence"), Mapping) else {}
     opening = str(action.get("opening") or (target or {}).get("openingName") or "").strip() or None
     role = str(action.get("role") or (target or {}).get("role") or "").strip() or None
+    repertoire_role = str(action.get("repertoireRole") or (target or {}).get("repertoireRole") or "").strip() or RepertoireRole.UNRESOLVED.value
     colour = str(action.get("colour") or (target or {}).get("playerColour") or "").strip() or None
     action_type = str(action.get("type") or "review").strip()
     completion = action.get("completionTarget") if isinstance(action.get("completionTarget"), Mapping) else {}
     opening_key = str((target or {}).get("openingId") or (_slug(opening) if opening else "")).strip() or None
-    title = f"Practise {opening}" if opening else str(action.get("title") or action.get("label") or "Review your current opening evidence").strip()
+    colour_label = colour.title() if colour in {"white", "black"} else None
+    if action_type == "prepare_against" and opening:
+        title = f"Prepare against {opening}{f' as {colour_label}' if colour_label else ''}"
+    elif action_type == "repair_repertoire" and opening:
+        title = f"Repair {opening}{f' as {colour_label}' if colour_label else ''}"
+    elif action_type == "consolidate_strength" and opening:
+        title = f"Reinforce {opening}{f' as {colour_label}' if colour_label else ''}"
+    else:
+        title = str(action.get("title") or action.get("label") or "Build more opening evidence").strip()
     task_type = (
         "position_drill" if action.get("lineOrPosition")
         else "concept_review" if action_type == "collect_more_games"
@@ -526,6 +704,19 @@ def _training_priority(action: Mapping[str, Any], recommendations: list[Mapping[
     )
     priority_identity = recommendation_id or f"{action_type}:{opening_key or 'report'}"
     priority_id = f"training-{priority_identity}"
+    evidence_ids = [str(value) for value in (sample.get("gameIds") or []) if str(value)]
+    has_recorded_line = bool(action.get("lineOrPosition"))
+    workflow_steps = []
+    if evidence_ids:
+        workflow_steps.append({"type": "source_game_review", "label": "Review up to three relevant source games.", "source": "user_games"})
+        workflow_steps.append({"type": "decision_point", "label": "Identify the first position where your plan became unclear.", "source": "user_games"})
+    workflow_steps.append({"type": "response_plan", "label": "Save one short response plan for the position or opening.", "source": "report_and_general_guidance"})
+    workflow_steps.append({
+        "type": "position_practice" if has_recorded_line else "setup_practice",
+        "label": "Practise the recorded position." if has_recorded_line else "Practise a clearly labelled general setup drill.",
+        "source": "user_games" if has_recorded_line else "general_guidance",
+    })
+    workflow_steps.append({"type": "completion", "label": str(completion.get("label") or "Complete the practice and record one practical takeaway.").strip(), "source": "completion_contract"})
     return {
         "schemaVersion": 1,
         "priorityId": priority_id,
@@ -534,17 +725,33 @@ def _training_priority(action: Mapping[str, Any], recommendations: list[Mapping[
         "openingName": opening,
         "openingKey": opening_key,
         "role": role,
+        "repertoireRole": repertoire_role,
+        "repertoire_role": repertoire_role,
+        "findingType": str(action.get("findingType") or (target or {}).get("findingType") or "insufficient_evidence"),
+        "finding_type": str(action.get("findingType") or (target or {}).get("findingType") or "insufficient_evidence"),
         "playerColour": colour,
         "taskType": task_type,
         "title": title,
         "rationale": str(action.get("reason") or action.get("explanation") or "Review the report evidence before your next games.").strip(),
         "evidenceCount": max(0, int(_number(sample.get("games")) or 0)),
-        "evidenceGameIds": [str(value) for value in (sample.get("gameIds") or []) if str(value)],
+        "supportingGameCount": max(0, int(_number(sample.get("games")) or 0)),
+        "evidenceGameIds": evidence_ids,
         "estimatedDurationMinutes": 10,
         "successCheck": str(completion.get("label") or "Complete the practice and record one practical takeaway.").strip(),
         "confidenceStatus": str(confidence.get("level") or "unknown").strip(),
         "sourceReportId": report.get("analysisId") or report.get("analysis_id") or report.get("reportId") or report.get("report_id"),
         "lineOrPosition": action.get("lineOrPosition"),
+        "completionTarget": dict(completion),
+        "workflowSteps": workflow_steps,
+        "fallbackSetupDrill": None if has_recorded_line else {
+            "source": "general_guidance",
+            "label": "General opening setup",
+            "instruction": "Complete development, support the centre and secure the king before choosing a structure-specific pawn break.",
+        },
+        "sourceGameAvailability": {
+            "supportingGames": max(0, int(_number(sample.get("games")) or 0)),
+            "referencedGameIds": len(evidence_ids),
+        },
         "fallback": False,
         "fallbackReason": None,
     }
@@ -558,7 +765,7 @@ def build_report_decision(
 ) -> dict[str, Any]:
     recommendations = [_canonical_recommendation(report, item) for item in openings if _name(item)]
     owned = [item for item in recommendations if item["repertoireOwned"] and item["validation"]["valid"]]
-    faced = [item for item in recommendations if not item["repertoireOwned"] and item["verdict"] == "explore"]
+    faced = [item for item in recommendations if item["relationship"] == "faced" and item["verdict"] == "explore"]
     strengths = [item for item in owned if item["verdict"] == "keep"]
     problems = [item for item in owned if item["verdict"] == "repair"]
     strength = sorted(
@@ -574,6 +781,7 @@ def build_report_decision(
         training = problem["trainingAction"]
         action = {
             "type": "repair_repertoire", "opening": problem["openingName"], "role": problem["role"],
+            "repertoireRole": problem["repertoireRole"], "findingType": problem["findingType"],
             "label": training["title"], "reason": training["explanation"],
             "recommendationId": problem["recommendationId"], "sample": problem["sample"],
             **training,
@@ -583,6 +791,7 @@ def build_report_decision(
         training = preparation["trainingAction"]
         action = {
             "type": "prepare_against", "opening": preparation["openingName"], "role": preparation["role"],
+            "repertoireRole": preparation["repertoireRole"], "findingType": preparation["findingType"],
             "label": training["title"], "reason": training["explanation"],
             "recommendationId": preparation["recommendationId"], "sample": preparation["sample"],
             **training,
@@ -591,6 +800,7 @@ def build_report_decision(
         training = strength["trainingAction"]
         action = {
             "type": "consolidate_strength", "opening": strength["openingName"], "role": strength["role"],
+            "repertoireRole": strength["repertoireRole"], "findingType": "stable_strength",
             "label": training["title"], "reason": training["explanation"],
             "recommendationId": strength["recommendationId"], "sample": strength["sample"],
             **training,
@@ -598,6 +808,7 @@ def build_report_decision(
     else:
         action = {
             "type": "collect_more_games", "opening": None, "role": None,
+            "repertoireRole": RepertoireRole.UNRESOLVED.value, "findingType": "insufficient_evidence",
             "label": "Collect more games before changing your repertoire",
             "reason": "No reliable opening weakness was found. Keep your current repertoire and check again after more games.",
             "recommendationId": None, "sample": None,
@@ -620,14 +831,37 @@ def build_report_decision(
     if problem:
         evidence.extend(problem["evidence"][:2])
     evidence.append(action["reason"])
+    findings = [
+        {
+            "type": item["findingType"],
+            "opening": item["openingName"],
+            "repertoireRole": item["repertoireRole"],
+            "playerColour": item["playerColour"],
+            "supportingGameCount": item["supportingGameCount"],
+            "confidenceReasonCode": item["confidenceReasonCode"],
+            "recommendationId": item["recommendationId"],
+        }
+        for item in recommendations
+    ]
+    findings.extend({
+        "type": "repertoire_gap" if role["status"] in {"insufficient", "unresolved"} and not role.get("currentOpening") else "insufficient_evidence",
+        "opening": role.get("currentOpening"),
+        "repertoireRole": role["repertoireRole"],
+        "playerColour": role.get("evidenceRequirement", {}).get("requiredColour"),
+        "supportingGameCount": role["supportingGameCount"],
+        "confidenceReasonCode": role.get("confidenceReasonCode"),
+        "recommendationId": None,
+    } for role in repertoire_roles if role["status"] != "established")
     return {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "recommendations": recommendations,
+        "findings": findings,
         "establishedStrength": strength,
         "primaryProblem": problem,
         "nextTrainingAction": action,
         "trainingPriority": training_priority,
         "repertoireRoles": repertoire_roles,
+        "roleDecisions": repertoire_roles,
         "repertoireCoverageScore": repertoire_coverage_score,
         "supportingEvidence": evidence,
         "reportCoverage": coverage,

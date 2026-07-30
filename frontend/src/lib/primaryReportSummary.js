@@ -155,7 +155,7 @@ function recommendationContext(strength) {
 
 export function buildPrimaryReportSummary(model = {}, report = {}) {
   const suppliedRoles = Array.isArray(model.repertoire) ? model.repertoire : [];
-  const roleModels = suppliedRoles.length && suppliedRoles.every((item) => ["established", "building", "unresolved"].includes(item.status))
+  const roleModels = suppliedRoles.length && suppliedRoles.every((item) => ["established", "building", "insufficient", "unresolved"].includes(item.status))
     ? suppliedRoles
     : buildAuthoritativeRoleViewModels({ baseRoles: suppliedRoles, candidates: suppliedRoles.map((item) => item.source).filter(Boolean) });
   const slots = roleModels.map((item) => ({
@@ -168,6 +168,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     filters: item.evidenceFilters || item.evidenceRequirement?.nonGuarantee || "Only correctly attributed games in this role count toward establishment.",
     games: item.relevantGames,
     status: item.status,
+    statusLabel: item.statusLabel,
     verdict: item.verdict,
     verdictLabel: item.verdictLabel,
     complete: item.status === "established",
@@ -178,6 +179,13 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     evidenceRequirement: item.evidenceRequirement,
     additionalRelevantGamesRequired: item.gamesNeeded,
     evidenceDiagnostics: item.evidenceDiagnostics || [],
+    supportingGames: item.supportingGames,
+    rawGames: item.rawGames,
+    requiredGames: item.requiredGames,
+    confidenceCounts: item.confidenceCounts,
+    confidenceExplanation: item.confidenceExplanation,
+    contextualAction: item.contextualAction,
+    compatibleAlternative: item.compatibleAlternative,
   }));
   const lowConfidence = /low|insufficient|limited/i.test(text(model.health?.confidence)) || Number(model.health?.games || 0) < 5;
   const training = model.training;
@@ -198,10 +206,12 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   primaryAction.title = formatOpeningNameForDisplay(primaryAction.title);
   const trainingReason = formatOpeningNameForDisplay(preparationReason({ problem, collectMoreGames, priority: trainingPriority, training, nextAction, fallback: rawTrainingReason }));
   const establishedRoleCount = slots.filter((slot) => slot.complete).length;
+  const completenessLabel = ({ 0: "Repertoire not established yet", 1: "Building repertoire", 2: "Nearly complete", 3: "Complete repertoire" })[establishedRoleCount] || "Repertoire status unavailable";
   return {
     score: model.health?.score !== null && model.health?.score !== undefined && Number.isFinite(Number(model.health.score)) ? Math.round(Number(model.health.score)) : null,
     scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Coverage pending" : "Coverage indicator",
     establishedRoleCount,
+    completenessLabel,
     totalRoleCount: slots.length,
     verdict: formatOpeningNameForDisplay(oneSentence(model)),
     evidenceExplanation: weakness.text,

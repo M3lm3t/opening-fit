@@ -1,5 +1,4 @@
 import OpeningFitStudyPlanner from "./components/OpeningFitStudyPlanner.jsx";
-import OpeningFitRetentionCommandCenter from "./components/OpeningFitRetentionCommandCenter.jsx";
 import OpeningFitProgressionDashboard from "./components/OpeningFitProgressionDashboard.jsx";
 import OpeningFitRetentionSystems from "./components/OpeningFitRetentionSystems.jsx";
 import OpeningFitImportDoctor from "./components/OpeningFitImportDoctor.jsx";
@@ -24,7 +23,6 @@ import WeeklyOpeningSessionCard from "./components/WeeklyOpeningSessionCard";
 import ProgressTracker from "./components/ProgressTracker";
 import ShareReport from "./components/ShareReport";
 import ReportSnapshot from "./components/ReportSnapshot";
-import OpeningCoachPlan from "./components/OpeningCoachPlan";
 import OpeningProgressTracker from "./components/OpeningProgressTracker";
 import WeeklyOpeningReport, { buildWeeklyOpeningSnapshot } from "./components/WeeklyOpeningReport";
 import OpeningGamificationProgress from "./components/OpeningGamificationProgress";
@@ -129,6 +127,7 @@ import {
   waitForProgressCompletion,
 } from "./lib/importJourney";
 import { buildReportDecisionModel, openingPerspective } from "./lib/reportDecisionModel";
+import { describeLineProvenance } from "./lib/lineProvenance.js";
 import { buildFilteredReportDecision } from "./lib/recommendationEvidence.js";
 import { adaptReportHistoryRow, buildReportSnapshot } from "./lib/reportSnapshot.js";
 import { saveRecommendationFeedback } from "./lib/fitTrustModel";
@@ -6692,8 +6691,8 @@ function FinalReportFlow({
 
       {reportView === "repertoire" ? <section className="reportViewPanel" id="report-repertoire-view" aria-labelledby="report-repertoire-view-title">
         <header className="reportViewHeader"><span>Repertoire</span><h2 id="report-repertoire-view-title" tabIndex="-1">Your three core roles and practical alternatives</h2><p>Established, building and unresolved roles stay visible without inventing an opening.</p></header>
-        <DecisionRepertoireMap model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} />
-        <FocusedRepertoireSection data={data} model={decisionModel} onPractice={onPractice} onViewEvidence={openOpeningBreakdown} onAnalytics={onAnalytics} />
+        <DecisionRepertoireMap model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} onAnalyse={() => onNavigate?.("analyse")} />
+        <FocusedRepertoireSection data={data} model={decisionModel} onPractice={onPractice} onAnalytics={onAnalytics} />
       </section> : null}
 
       {reportView === "problems" ? <section className="reportViewPanel" id="report-problems-view" aria-labelledby="report-problems-view-title">
@@ -10271,7 +10270,7 @@ function CompactOpeningHealth({ model }) {
     <section className="compactOpeningHealth" aria-labelledby="opening-health-title">
       <header><p className="eyebrow">Opening health</p><h2 id="opening-health-title">Overall repertoire signal</h2></header>
       <div className="compactOpeningHealthGrid">
-        <div className="compactOpeningHealthScore"><span>Fit</span><strong>{health.score ?? "—"}</strong><small>{health.score !== null ? "/100" : "Unavailable"}</small></div>
+        <div className="compactOpeningHealthScore"><span>Coverage</span><strong>{health.score ?? "—"}</strong><small>{health.score !== null ? "/100" : "Unavailable"}</small></div>
         <dl>
           <div><dt>Confidence</dt><dd>{health.confidence}</dd></div>
           <div><dt>Games</dt><dd>{health.games}</dd></div>
@@ -10283,7 +10282,7 @@ function CompactOpeningHealth({ model }) {
       <details className="fitMetricDefinitions">
         <summary>What these metrics mean</summary>
         <dl>
-          <div><dt>Opening Fit</dt><dd>A suitability signal from available results, repetition, plan clarity and behavioural-fit inputs. It is not chess strength or objective opening quality.</dd></div>
+          <div><dt>Repertoire coverage</dt><dd>A combined signal from established roles, available results, repetition, plan clarity and behavioural-fit inputs. It is not a chess rating or objective opening-quality grade.</dd></div>
           <div><dt>Performance</dt><dd>The results achieved in the analysed games.</dd></div>
           <div><dt>Confidence</dt><dd>The amount of opening-specific evidence. A high Fit from few games remains low confidence.</dd></div>
           <div><dt>Trend</dt><dd>Change between comparable reports when prior data exists; it is separate from Fit.</dd></div>
@@ -10311,7 +10310,7 @@ function CostlyIssuesSection({ model, onPractice, onEvidence }) {
   );
 }
 
-function DecisionRepertoireMap({ model, onPractice, onEvidence }) {
+function DecisionRepertoireMap({ model, onPractice, onEvidence, onAnalyse }) {
   if (!model.repertoire.length) return null;
   return (
     <section className="decisionRepertoireMap" id="repertoire-map" aria-labelledby="decision-map-title">
@@ -10319,10 +10318,11 @@ function DecisionRepertoireMap({ model, onPractice, onEvidence }) {
       <div>
         {model.repertoire.map((area) => (
           <article key={area.key}>
-            <span>{area.label}</span><h3>{area.displayName}</h3>
+            <span>{area.label}</span><h3>{area.displayName || "Not established yet"}</h3>
             <dl>
-              <div><dt>Verdict</dt><dd>{area.verdictLabel}</dd></div>
-              <div><dt>Relevant games</dt><dd>{area.relevantGames ?? "Not recorded"}</dd></div>
+              <div><dt>Status</dt><dd>{area.statusLabel}</dd></div>
+              <div><dt>Decision</dt><dd>{area.verdictLabel}</dd></div>
+              <div><dt>Supporting sample</dt><dd>{area.supportingGames ?? area.relevantGames ?? "Not recorded"}</dd></div>
               <div><dt>Confidence</dt><dd>{area.confidence.label}</dd></div>
               {area.fitScore !== null ? <div><dt>Fit</dt><dd>{area.fitScore}/100 · {area.fitLabel}</dd></div> : null}
               {area.performanceScore !== null ? <div><dt>Performance</dt><dd>{area.performanceScore}% · {area.performanceLabel}</dd></div> : null}
@@ -10330,7 +10330,9 @@ function DecisionRepertoireMap({ model, onPractice, onEvidence }) {
             {area.fitScore === null ? <p>{area.fitLabel}</p> : null}
             {area.weakestLine ? <dl><div><dt>Weakest recurring line</dt><dd>{area.weakestLine}</dd></div></dl> : null}
             <p>{area.recommendationReason}</p>
-            <div><button type="button" onClick={() => onEvidence?.(area)}>Evidence</button><button type="button" onClick={() => onPractice?.({ ...(area.source || {}), name: area.displayName, opening: area.displayName, openingName: area.displayName, role: area.role, repertoireSlot: area.key })}>Train next</button></div>
+            {area.compatibleAlternative ? <p><strong>Same-role option:</strong> {area.compatibleAlternative.openingName}</p> : null}
+            <details><summary>Why this confidence?</summary><p>{area.confidenceExplanation}</p><dl>{Object.entries(area.confidenceCounts || {}).filter(([, value]) => value !== null).map(([key, value]) => <div key={key}><dt>{key.replace(/([A-Z])/g, " $1")}</dt><dd>{value}</dd></div>)}</dl></details>
+            <div><button type="button" onClick={() => onEvidence?.(area)}>Evidence</button>{area.contextualAction?.type === "practice" ? <button type="button" onClick={() => onPractice?.({ ...(area.source || {}), name: area.displayName, opening: area.displayName, openingName: area.displayName, role: area.role, repertoireRole: area.role })}>{area.contextualAction.label}</button> : null}{area.contextualAction?.type === "analyse" ? <button type="button" onClick={onAnalyse}>{area.contextualAction.label}</button> : null}{area.contextualAction?.type === "options" ? <button type="button" onClick={() => onEvidence?.(area)}>{area.contextualAction.label}</button> : null}</div>
           </article>
         ))}
       </div>
@@ -10342,11 +10344,12 @@ function FiniteTrainingSession({ model, recentGames, onPractice }) {
   const training = model.training;
   if (!training) return null;
   const recent = recentGames?.[0] || null;
+  const provenance = describeLineProvenance({ line: training.line, findingType: model.coachingPriority?.findingType, sampleSize: model.coachingPriority?.evidenceCount, sourceGameIds: model.coachingPriority?.evidenceGameIds, illustrative: model.header.platform === "Example data" });
   return (
     <section className="finiteTrainingSession" id="report-training-plan" aria-labelledby="finite-training-title">
       <div><p className="eyebrow">Next training session</p><h2 id="finite-training-title">One focused review before your next games</h2><p>A short session should be enough to review this target once; take longer if the position is unfamiliar.</p></div>
       <ol>
-        <li><span>Line</span><strong>{training.line || `Specific ${training.opening} line unavailable in this report`}</strong></li>
+        <li><span>{provenance?.label || "Line"}</span><strong>{training.line || `Specific ${training.opening} line unavailable in this report`}</strong>{provenance ? <small>{provenance.note}</small> : null}</li>
         <li><span>Position</span><strong>{recent?.opening ? `Review the recent ${recent.opening} game` : "No recent position is attached to this report"}</strong></li>
         <li><span>Repetition</span><strong>Play the line from memory, then correct it once</strong></li>
         <li><span>Next-game objective</span><strong>{training.objective}</strong></li>
@@ -10396,16 +10399,6 @@ function getFocusedRepertoirePlan(data, model) {
   const supporting = getLegacyFocusedRepertoireSupportingPlan(data);
   const priority = model?.coachingPriority || null;
   return {
-    rows: (model?.repertoire || []).map((role) => ({
-      ...role,
-      slot: role.label,
-      question: role.label === "White" ? "What should I play as White?" : `What should I play as ${role.label}?`,
-      name: role.displayName,
-      opening: role.source,
-      score: role.fitScore,
-      games: role.relevantGames,
-      reason: role.recommendationReason,
-    })),
     later: supporting.later,
     focusBanner: priority
       ? `Current weekly priority: ${priority.displayName || "review one recent opening"}. ${priority.reason || "This is the report's selected training task."} This training priority is separate from the three repertoire-role decisions.`
@@ -10534,29 +10527,21 @@ function buildOpponentResponsePrep(data = {}) {
     .slice(0, 4);
 }
 
-function FocusedRepertoireSection({ data, model, onPractice, onViewEvidence, onAnalytics }) {
+function FocusedRepertoireSection({ data, model, onPractice, onAnalytics }) {
   const plan = getFocusedRepertoirePlan(data || {}, model);
   const responses = buildOpponentResponsePrep(data || {});
 
   useEffect(() => {
-    if (plan.rows.length || responses.length) {
+    if (plan.later.length || responses.length) {
       onAnalytics?.("coach_repertoire_opened", {
-        rows: plan.rows.length,
+        supportingAlternatives: plan.later.length,
         opponentResponses: responses.length,
       });
     }
-  }, [onAnalytics, plan.rows.length, responses.length]);
+  }, [onAnalytics, plan.later.length, responses.length]);
 
-  if (!plan.rows.length && !responses.length) return null;
+  if (!plan.later.length && !responses.length && !model?.coachingPriority) return null;
 
-  const practiceTarget = (row) => ({
-    ...(row.opening || {}),
-    name: row.name,
-    opening: row.name,
-    openingName: row.name,
-    selectedReason: row.reason,
-    source: "focused-repertoire",
-  });
   const responsePracticeTarget = (row) => ({
     name: row.openingName,
     opening: row.openingName,
@@ -10571,9 +10556,9 @@ function FocusedRepertoireSection({ data, model, onPractice, onViewEvidence, onA
     <section className="focusedRepertoireSection" id="focused-repertoire" aria-labelledby="focused-repertoire-title">
       <div className="focusedRepertoireHeader">
         <div>
-          <p className="eyebrow">Focused repertoire</p>
-          <h2 id="focused-repertoire-title">Core repertoire</h2>
-          <p>The same three opening roles and decisions shown in your report summary.</p>
+          <p className="eyebrow">Supporting practice</p>
+          <h2 id="focused-repertoire-title">Weekly action and response preparation</h2>
+          <p>The primary repertoire map above owns the three role decisions. This area keeps only supporting practice and alternatives.</p>
         </div>
       </div>
 
@@ -10581,61 +10566,6 @@ function FocusedRepertoireSection({ data, model, onPractice, onViewEvidence, onA
         <strong>Weekly training priority</strong>
         <span>{plan.focusBanner}</span>
         {plan.coachRationale ? <small>{plan.coachRationale}</small> : null}
-      </div>
-
-      <div className="focusedRepertoireGrid">
-        {plan.rows.map((row) => (
-          <article className="focusedRepertoireCard" key={`${row.slot}-${row.name}`}>
-            <span>{row.slot}</span>
-            <h3>{row.name}</h3>
-            <p>{row.question}</p>
-            <dl>
-              <div>
-                <dt>Verdict</dt>
-                <dd>{row.verdictLabel}</dd>
-              </div>
-              <div>
-                <dt>Fit</dt>
-                <dd>{row.score !== null && row.score !== undefined ? `${Math.round(row.score)}/100 · ${row.fitLabel}` : row.fitLabel}</dd>
-              </div>
-              <div>
-                <dt>Sample</dt>
-                <dd>{row.games} game{row.games === 1 ? "" : "s"}</dd>
-              </div>
-            </dl>
-            <p>{row.reason}</p>
-            <div className="focusedRepertoireActions">
-              <button
-                type="button"
-                className="primaryBtn"
-                onClick={() => {
-                  onAnalytics?.("coach_practice_started", {
-                    opening: row.name,
-                    source: "focused_repertoire",
-                    slot: row.slot,
-                  });
-                  onPractice?.(practiceTarget(row));
-                }}
-              >
-                Practise
-              </button>
-              <button
-                type="button"
-                className="secondaryBtn"
-                onClick={() => {
-                  onAnalytics?.("coach_diagnostic_opened", {
-                    opening: row.name,
-                    source: "focused_repertoire",
-                    slot: row.slot,
-                  });
-                  onViewEvidence?.(row);
-                }}
-              >
-                View evidence
-              </button>
-            </div>
-          </article>
-        ))}
       </div>
 
       {plan.later.length ? (
@@ -10660,11 +10590,11 @@ function FocusedRepertoireSection({ data, model, onPractice, onViewEvidence, onA
             {responses.map((row) => (
               <article className="opponentResponseCard" key={`${row.openingName}-${row.reply}`}>
                 <span>{row.openingName}</span>
-                <h4>Most common reply: {row.reply}</h4>
+                <h4>Opponent&apos;s most common continuation: {row.reply}</h4>
                 <p>{row.score !== null ? `${row.score}% result in this branch` : "Result is not calculable yet"} across {row.games} games.</p>
                 {row.isHardest ? <strong>Hardest response in this sample</strong> : null}
                 <small>{row.recommendation}</small>
-                <code>{row.branch}</code>
+                <strong>Opponent-response practice</strong><code>{row.branch}</code><small>{row.games <= 2 ? `Seen in ${row.games} games—use as review evidence, not a repertoire recommendation.` : `Observed in ${row.games} games.`}</small>
                 <button
                   type="button"
                   className="secondaryBtn"
@@ -17461,12 +17391,6 @@ export default function App() {
                     onStartTraining={(recommendation) => startOpeningPractice(recommendation?.trainingTarget || recommendation?.opening)}
                   />
 
-                  <OpeningFitRetentionCommandCenter
-                    data={reportData}
-                    username={username}
-                    onPractice={startOpeningPractice}
-                  />
-
                   <DailyOpeningHabit
                     data={reportData}
                     user={supabaseUser || accountUser}
@@ -17480,7 +17404,6 @@ export default function App() {
                     onPractice={startOpeningPractice}
                   />
 
-                  <OpeningCoachPlan data={reportData} />
                   <RepertoireStudyPlan data={reportData} />
                   <NextStudySession
                     fitData={fitData}

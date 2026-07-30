@@ -18,7 +18,7 @@ import {
 import { formatOpeningNameForDisplay } from "../lib/openingNamePresentation.js";
 import { useAuth } from "../context/AuthDataProvider.jsx";
 import { canUseFeature, OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
-import { trainingResponsePlans } from "../lib/premiumContinuity.js";
+import { buildTrainingResponsePlanRecord, trainingResponsePlans } from "../lib/premiumContinuity.js";
 import "./TrainingGameReviewSession.css";
 
 const STEPS = [
@@ -46,7 +46,7 @@ function TrainingStep({ step, active, complete, onOpen, children }) {
       <span className="trainingReviewStep__number" aria-hidden="true">{complete ? <Check size={16} /> : step.number}</span>
       <span><strong id={headingId}>{step.label}</strong><small>{complete ? "Completed · reopen step" : active ? "Current step" : "Open step"}</small></span>
     </button>
-    {active ? <div className="trainingReviewStep__content" id={`training-${step.id}-content`}>{children}</div> : null}
+    <div className="trainingReviewStep__content" id={`training-${step.id}-content`} hidden={!active}>{children}</div>
   </section>;
 }
 
@@ -72,6 +72,7 @@ export default function TrainingGameReviewSession({ report, priority, exercise, 
   const stepRefs = useRef({});
   const reviewedGameIds = useMemo(() => Array.isArray(saved.reviewedGameIds) ? saved.reviewedGameIds : [], [saved.reviewedGameIds]);
   const conceptComplete = Boolean(conceptEngaged || saved.attempts > 0 || saved.completion || saved.revealed);
+  const conceptAutoAdvancedRef = useRef(conceptComplete);
   const requirements = useMemo(() => trainingReviewRequirements({ games, reviewedGameIds, conceptEngaged: conceptComplete, responsePlan: saved.responsePlan }), [conceptComplete, games, reviewedGameIds, saved.responsePlan]);
   const hasActionableGames = games.some((game) => game.hasInternalReplay || game.sourceUrl);
   const activeGame = games.find((game) => game.id === activeGameId);
@@ -93,7 +94,12 @@ export default function TrainingGameReviewSession({ report, priority, exercise, 
 
   useEffect(() => { onReadinessChange?.(requirements); }, [onReadinessChange, requirements]);
   useEffect(() => {
-    if (conceptComplete && activeStep === "concept") {
+    if (!conceptComplete) {
+      conceptAutoAdvancedRef.current = false;
+      return;
+    }
+    if (activeStep === "concept" && !conceptAutoAdvancedRef.current) {
+      conceptAutoAdvancedRef.current = true;
       setActiveStep(nextTrainingSessionStep("concept", "engaged"));
       window.setTimeout(() => stepRefs.current.commit?.focus?.(), 0);
     }
@@ -115,13 +121,18 @@ export default function TrainingGameReviewSession({ report, priority, exercise, 
     const trimmed = responsePlan.trim();
     if (!trimmed) return;
     if (fictional) { setSaveStatus("Fictional example plans are not saved."); return; }
-    persist({ responsePlan: trimmed });
+    const responsePlanMetadata = buildTrainingResponsePlanRecord({
+      existing: cloudPlan || saved.responsePlanMetadata || {}, taskId, planId, responsePlan: trimmed, openingName: opening,
+      priority: { ...priority, lineOrPosition: priority?.lineOrPosition || exercise?.drill?.positionFen || exercise?.drill?.line || null },
+      sourceType: exercise?.kind === "own_game_position" ? "own game" : "general setup",
+    });
+    persist({ responsePlan: trimmed, responsePlanMetadata });
     setReviewAgain(false);
     if (!canSyncPlan || !taskId) { setSaveStatus("Plan saved on this device."); return; }
     setSaveStatus("Syncing response plan…");
     const savedSourceType = exercise?.kind === "own_game_position" ? "own game" : "general setup";
     try {
-      await saveSettings?.({ preferences: { trainingResponsePlans: { ...cloudPlans, [taskId]: { taskId, planId, responsePlan: trimmed, openingName: opening, sourceType: savedSourceType, fictional: false, synced: true, updatedAt: new Date().toISOString() } } } });
+      await saveSettings?.({ preferences: { trainingResponsePlans: { ...cloudPlans, [taskId]: { ...responsePlanMetadata, sourceType: savedSourceType, synced: true } } } });
       setSaveStatus("Plan saved across your OpeningFit account.");
     } catch {
       setSaveStatus("Plan saved on this device. Cloud sync can be retried later.");
@@ -184,8 +195,8 @@ export default function TrainingGameReviewSession({ report, priority, exercise, 
     </TrainingStep>
 
     <TrainingStep step={STEPS[3]} active={activeStep === "commit"} complete={stepComplete.commit} onOpen={() => setActiveStep("commit")}>
-      <span>Approximately 1 minute</span><h4>Save your response plan</h4><p>The suggested plan is editable and is not saved until you choose Save.</p>
-      <label htmlFor={`training-plan-${drillId}`}>Next time I reach this setup, I will…</label>
+      <span>Approximately 1 minute</span><h4>Save your response plan</h4><p>The suggested starting point is editable and is not saved until you choose Save. {exercise?.kind === "own_game_position" ? "Its trigger comes from the supplied game position." : "It is general opening guidance, not a conclusion about a specific move in your games."}</p>
+      <label htmlFor={`training-plan-${drillId}`}>When this position appears, what will you try to remember?</label>
       <textarea id={`training-plan-${drillId}`} value={responsePlan} maxLength={240} onChange={(event) => setResponsePlan(event.target.value)} placeholder="Write one short, practical cue." />
       <button type="button" className="primaryBtn" disabled={!responsePlan.trim()} onClick={savePlan}>Save my plan</button>{saveStatus ? <small role="status">{saveStatus}</small> : null}
     </TrainingStep>

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { buildPremiumTrainingHistory, buildPremiumWeeklyOverview, contextualPlusContinuation, repertoireIntentions, trainingResponsePlans } from "./premiumContinuity.js";
+import { buildPremiumTrainingHistory, buildPremiumWeeklyOverview, buildTrainingResponsePlanRecord, contextualPlusContinuation, repertoireIntentions, trainingResponsePlans } from "./premiumContinuity.js";
 
 const tasks = Array.from({ length: 6 }, (_, index) => ({
   id: `task-${index + 1}`,
@@ -81,6 +81,17 @@ test("continuity preferences safely separate response plans and repertoire inten
   assert.equal(trainingResponsePlans(settings).task.responsePlan, "Play c3");
   assert.equal(repertoireIntentions(settings).black_vs_e4.intention, "Keep");
   assert.deepEqual(trainingResponsePlans({ preferences: { trainingResponsePlans: [] } }), {});
+});
+
+test("response plans retain their opening, role, trigger, report and review state", () => {
+  const record = buildTrainingResponsePlanRecord({
+    taskId: "task-1", planId: "plan-1", responsePlan: "Develop, support the centre, then castle.", openingName: "Caro-Kann Defence",
+    priority: { repertoireRole: "white", playerColour: "white", lineOrPosition: "1.e4 c6 2.d4 d5", sourceReportId: "report-1" },
+    sourceType: "own game", now: new Date("2026-07-30T10:00:00Z"),
+  });
+  assert.deepEqual({ role: record.repertoireRole, colour: record.playerColour, trigger: record.triggeringPosition, report: record.sourceReportId, state: record.completionState }, { role: "white", colour: "white", trigger: "1.e4 c6 2.d4 d5", report: "report-1", state: "response_plan_saved" });
+  assert.equal(record.synced, false);
+  assert.equal(record.createdAt, "2026-07-30T10:00:00.000Z");
 });
 
 test("weekly view has a distinct main focus, source type, continuation and remaining tasks", () => {

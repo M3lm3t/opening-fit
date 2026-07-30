@@ -119,7 +119,7 @@ export function normaliseRepertoireRoleEvidence(slot = {}) {
   if (funnel.correctlyAttributed !== null && breakdownTotal > funnel.correctlyAttributed) diagnostics.push("breakdown_exceeds_attributed");
   if (breakdownLeading && leading !== null && breakdownLeading.games !== leading) diagnostics.push("leading_count_disagrees_with_breakdown");
   if (breakdownLeading && storedOpening && breakdownLeading.opening.toLowerCase() !== storedOpening.toLowerCase()) diagnostics.push("leading_opening_disagrees_with_breakdown");
-  const declaredEstablished = slot.status === "supported" || slot.complete === true;
+  const declaredEstablished = ["established", "supported"].includes(slot.status) || slot.complete === true;
   if (!declaredEstablished && leading !== null && leading >= threshold) diagnostics.push("unestablished_role_meets_threshold");
   if (declaredEstablished && leading !== null && leading < threshold) diagnostics.push("established_role_below_threshold");
   const suppliedAdditional = optionalInteger(requirement.additionalRelevantGamesRequired ?? requirement.additional_relevant_games_required);
@@ -160,7 +160,7 @@ export function repertoireRoleEvidenceCopy(slot = {}) {
   const role = rolePhrase(slot, requirement);
   return {
     established: false,
-    statusLabel: slot.status === "tentative" || slot.tentative ? "Building" : "Not established yet",
+    statusLabel: ["building", "tentative"].includes(slot.status) || slot.tentative ? "Building" : "Not established yet",
     reasonCode,
     explanation,
     evidence: explanation,

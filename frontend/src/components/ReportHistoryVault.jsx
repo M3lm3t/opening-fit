@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 import { adaptReportHistoryRow } from "../lib/reportSnapshot";
 import { buildReportGameCounts } from "../lib/reportGameCounts.js";
+import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
 
 const HISTORY_KEY = "openingFit:reportHistory:v1";
 const TIME_FORMAT_LABELS = {
@@ -296,6 +297,8 @@ function snapshotFromHistoryItem(item) {
 }
 
 function strongestOpening(snapshot) {
+  const canonical = normaliseReportDecision(snapshot?.report_decision || snapshot?.reportDecision);
+  if (canonical) return canonical.establishedStrength?.opening || "Not available yet";
   const top = Array.isArray(snapshot?.topOpenings) ? snapshot.topOpenings : [];
   return top
     .filter((item) => item?.name)
@@ -307,6 +310,8 @@ function strongestOpening(snapshot) {
 }
 
 function weakestOpening(snapshot) {
+  const canonical = normaliseReportDecision(snapshot?.report_decision || snapshot?.reportDecision);
+  if (canonical) return canonical.primaryProblem?.opening || "No reliable weakness";
   const weakLines = Array.isArray(snapshot?.weakLines) ? snapshot.weakLines : [];
   const line = weakLines.find(Boolean);
   if (line) return line.line || line.variation || line.opening || line.name || "Weak line tracked";
@@ -357,7 +362,7 @@ function buildWhatChanged(previous, current) {
         detail: previousWeak === currentWeak ? "Still the main line to review." : `Changed from ${previousWeak}.`,
       },
       {
-        label: "Repertoire score",
+        label: "Repertoire coverage",
         value: currentScore === null ? "Not available yet" : `${currentScore}`,
         detail: scoreDelta === null ? "No comparable score in the older report." : `${signedDelta(scoreDelta)} since previous report.`,
       },

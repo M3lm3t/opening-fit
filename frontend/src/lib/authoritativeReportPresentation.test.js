@@ -114,7 +114,9 @@ test("summary completeness and every repertoire renderer consume the authoritati
 
   const app = readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
   assert.match(app, /getFocusedRepertoirePlan\(data \|\| \{\}, model\)/);
-  assert.match(app, /rows: \(model\?\.repertoire \|\| \[\]\)/);
+  const decisionMap = app.slice(app.indexOf("function DecisionRepertoireMap"), app.indexOf("function FiniteTrainingSession"));
+  assert.match(decisionMap, /model\.repertoire\.map/);
+  assert.doesNotMatch(app.slice(app.indexOf("function getFocusedRepertoirePlan(data, model)"), app.indexOf("function movesForReportGame")), /rows:|model\?\.repertoire/);
   assert.doesNotMatch(app.slice(app.indexOf("function DecisionRepertoireMap"), app.indexOf("function FiniteTrainingSession")), /OpeningVerdictSummary/);
   assert.doesNotMatch(app.slice(app.indexOf("function getFocusedRepertoirePlan(data, model)"), app.indexOf("function movesForReportGame")), /focusMission|repertoireRecommendation\?\.focus/);
 });

@@ -56,6 +56,14 @@ function canonicalPriority(source, report, decision) {
   const sample = source.sample && typeof source.sample === "object" ? source.sample : target?.sample || {};
   const openingName = text(target?.openingName || target?.opening || source.openingName || source.opening_name || source.opening) || null;
   const actionType = text(source.type || source.actionType || source.action_type || "review");
+  const explicitFindingType = text(source.findingType || source.finding_type || target?.findingType || target?.finding_type);
+  const findingType = explicitFindingType || (
+    /prepare|explore/.test(actionType.toLowerCase()) ? "preparation_opportunity"
+      : /repair|fix|weak/.test(actionType.toLowerCase()) ? "reliable_weakness"
+        : /missing/.test(actionType.toLowerCase()) ? "missing_role"
+          : /collect|fallback|insufficient/.test(actionType.toLowerCase()) ? "insufficient_evidence"
+            : "preparation_opportunity"
+  );
   const recommendationId = text(source.recommendationId || source.recommendation_id || target?.recommendationId);
   const openingKey = text(source.openingKey || source.opening_key || source.openingId || source.opening_id || target?.openingId) || (openingName ? slug(openingName) : null);
   const priorityId = text(source.priorityId || source.priority_id || source.taskId || source.task_id) || `training-${recommendationId || `${actionType}:${openingKey || "report"}`}`;
@@ -71,18 +79,25 @@ function canonicalPriority(source, report, decision) {
     openingName,
     openingKey,
     role: text(source.role || target?.role) || null,
+    repertoireRole: text(source.repertoireRole || source.repertoire_role || target?.repertoireRole || target?.repertoire_role) || "unresolved",
+    findingType,
     playerColour: colourFor(source, target),
     taskType: taskTypeFor(source),
     actionType,
     title,
     rationale: text(source.rationale || source.reason || source.explanation) || "Review the available report evidence before your next games.",
     evidenceCount: integer(source.evidenceCount ?? source.evidence_count ?? sample.games ?? source.games),
+    supportingGameCount: integer(source.supportingGameCount ?? source.supporting_game_count ?? source.evidenceCount ?? source.evidence_count ?? sample.games ?? source.games),
     evidenceGameIds: list(source.evidenceGameIds || source.evidence_game_ids || sample.gameIds || sample.game_ids || source.sourceGameIds || source.source_game_ids).map(text).filter(Boolean),
     estimatedDurationMinutes: duration,
     successCheck: text(source.successCheck || source.success_check || source.successCriteria || source.success_criteria || completion.label) || "Complete the practice and record one practical takeaway.",
+    completionTarget: completion,
     confidenceStatus: text(source.confidenceStatus || source.confidence_status || target?.confidence?.level || source.confidence?.level || source.confidence) || "unknown",
     sourceReportId: text(source.sourceReportId || source.source_report_id || report.analysisId || report.analysis_id || report.report_id || report.id) || null,
     lineOrPosition: text(source.lineOrPosition || source.line_or_position || source.line || source.moveLine || source.move_line) || null,
+    workflowSteps: list(source.workflowSteps || source.workflow_steps),
+    fallbackSetupDrill: source.fallbackSetupDrill || source.fallback_setup_drill || null,
+    sourceGameAvailability: source.sourceGameAvailability || source.source_game_availability || null,
     positionFen: text(source.positionFen || source.position_fen) || null,
     expectedMoves: list(source.expectedMoves || source.expected_moves).map(text).filter(Boolean),
     fallback,
@@ -119,6 +134,8 @@ function fallbackPriority(report, decision) {
     openingName: hasNamedOpening ? opening.name : null,
     openingKey: hasNamedOpening ? opening.key : null,
     role: null,
+    repertoireRole: "unresolved",
+    findingType: "insufficient_evidence",
     playerColour: opening.colour,
     taskType: "concept_review",
     actionType: "fallback",
@@ -126,15 +143,24 @@ function fallbackPriority(report, decision) {
     rationale: reason,
     evidenceCount: opening.games,
     evidenceGameIds: [],
+    supportingGameCount: opening.games,
     estimatedDurationMinutes: 10,
     successCheck: "Name one development cue and one practical response for your next game.",
+    completionTarget: { type: "concept_and_future_evidence", count: 1, label: "Save one setup cue, then add relevant games before reassessing." },
     confidenceStatus: "insufficient_branch_evidence",
     sourceReportId: text(report.analysisId || report.analysis_id || report.report_id || report.id) || null,
     lineOrPosition: null,
+    workflowSteps: [
+      { type: "setup_practice", label: "Review one clearly labelled general opening setup.", source: "general_guidance" },
+      { type: "response_plan", label: "Save one practical cue for your next relevant game.", source: "general_guidance" },
+      { type: "completion", label: "Add relevant games before changing your repertoire.", source: "completion_contract" },
+    ],
+    fallbackSetupDrill: { source: "general_guidance", label: "General opening setup", instruction: "Complete development, support the centre and secure the king before choosing a structure-specific pawn break." },
     positionFen: null,
     expectedMoves: [],
     fallback: true,
     fallbackReason: reason,
+    sourceGameAvailability: { supportingGames: opening.games, referencedGameIds: 0 },
   };
 }
 
@@ -147,7 +173,8 @@ export function resolveTrainingPriority(report = {}, { decision: suppliedDecisio
 
 export function formatTrainingPriorityTitle(priority, { prefix = true } = {}) {
   const duration = integer(priority?.estimatedDurationMinutes, 10);
-  const focus = priority?.openingName ? `practise ${priority.openingName}` : text(priority?.title).replace(/[.!]+$/, "").toLowerCase();
+  const explicit = text(priority?.title).replace(/[.!]+$/, "");
+  const focus = explicit ? `${explicit.charAt(0).toLowerCase()}${explicit.slice(1)}` : priority?.openingName ? `practise ${priority.openingName}` : "review one recent opening game";
   const sentence = `${focus || "review one recent opening game"} for approximately ${duration} minutes`;
   return `${prefix ? "This week: " : ""}${sentence}.`;
 }
@@ -170,6 +197,16 @@ export function trainingTaskFromPriority(priority, order = 1) {
     order,
     status: "pending",
     trainingPriorityId: priority.priorityId,
+    findingType: priority.findingType,
+    repertoireRole: priority.repertoireRole,
+    evidenceCount: priority.evidenceCount,
+    evidenceSource: priority.evidenceGameIds?.length ? "user_games" : "general_guidance",
+    evidenceSourceLabel: priority.evidenceGameIds?.length ? "Supported by your analysed games" : "General setup guidance; no recoverable source game is claimed",
+    sourceReportId: priority.sourceReportId,
+    lineOrPosition: priority.lineOrPosition,
+    completionTarget: priority.completionTarget,
+    workflowSteps: priority.workflowSteps,
+    fallbackSetupDrill: priority.fallbackSetupDrill,
     fallback: priority.fallback,
     fallbackReason: priority.fallbackReason,
     fixedDuration: true,

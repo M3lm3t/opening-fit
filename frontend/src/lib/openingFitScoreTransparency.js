@@ -43,11 +43,22 @@ function coverageLabel(value, fallback = "") {
   return text(fallback) || "Insufficient data";
 }
 
+const ROLE_REASON_COPY = Object.freeze({
+  below_evidence_threshold: "one or more roles have not reached the supporting-game threshold",
+  split_across_openings: "evidence is split across several openings in a role",
+  verdict_or_confidence_unsupported: "a role has games but its verdict or confidence is not yet supported",
+  role_attribution_unresolved: "some games could not be assigned reliably to a repertoire role",
+  opening_unclassified: "some eligible games could not be classified into a usable opening family",
+  unsupported_or_unknown: "an older or incomplete report does not contain enough role-specific evidence",
+});
+
 function weaknessContext(model = {}, repairStatus = null) {
   const problem = model.authoritative?.primaryProblem || model.primaryProblem;
   if (problem) return "A reliable opening weakness was found and is shown separately as a specific repair target; it does not alter repertoire coverage.";
-  if (repairStatus?.label) return `${repairStatus.label}. This is a neutral evidence state, not a good or bad coverage component.`;
-  return "No reliable opening weakness is a neutral finding. Coverage instead reflects whether each core repertoire role has enough evidence.";
+  const reasons = [...new Set((model.repertoire || []).flatMap((role) => [role.evidenceReasonCode, ...(role.reasonCodes || [])]).map((reason) => ROLE_REASON_COPY[reason]).filter(Boolean))];
+  const constraint = reasons.length ? ` The score is lower because ${reasons.slice(0, 2).join(" and ")}.` : "";
+  if (repairStatus?.label) return `${repairStatus.label}. This is a neutral evidence state, not a good or bad coverage component.${constraint}`;
+  return `No statistically reliable weakness was found. That neutral finding does not mean every core repertoire role is established: coverage reflects whether each role has enough consistent evidence, not the number of weaknesses.${constraint}`;
 }
 
 function reasonForChange(currentScore, previousScore, current, previous, currentVersion, previousVersion, currentContract = {}, previousContract = {}) {
@@ -114,6 +125,8 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
   const repairStatus = contract.repairStatus || contract.repair_status || null;
   return {
     currentScore, previousScore, games, confidence: coverage, coverage, provisional,
+    displayScore: components.length ? currentScore : null,
+    scoreDisplayLabel: components.length ? (currentScore === null ? "Score still forming" : `${currentScore}%`) : "Score still forming",
     statusLabel: provisional ? "Provisional coverage indicator" : coverage,
     components, hasComponentData: components.length > 0,
     reasonForChange: reasonForChange(currentScore, previousScore, currentBreakdown, previousBreakdown, formulaVersion, previousFormulaVersion, contract, previousContract),

@@ -140,6 +140,21 @@ export function reportCountSentence(report = {}) {
   return `${countNoun(counts.fetchedGames, "public game")} found. ${analysedGameSentence(counts.analysedGames)} ${countNoun(counts.excludedGames, "game")} not analysed.`;
 }
 
+export function reportExclusionSummary(report = {}) {
+  const counts = buildReportGameCounts(report);
+  if (!counts.excludedGames) return { summary: "No imported games were excluded.", confidenceNote: "", detailed: counts.breakdownAvailable };
+  const known = counts.exclusionReasons.filter((row) => row.count !== null && row.count > 0);
+  const summary = !counts.breakdownAvailable
+    ? "A detailed exclusion breakdown is unavailable for this older report."
+    : known.length
+      ? `${counts.excludedGames} excluded: ${known.sort((a, b) => b.count - a.count).slice(0, 3).map((row) => `${row.count} ${row.label.toLowerCase()}`).join(", ")}.`
+      : `${counts.excludedGames} excluded. Reason unavailable.`;
+  const confidenceNote = counts.fetchedGames > 0 && counts.excludedGames / counts.fetchedGames > 0.5
+    ? "More than half of the imported games could not support this report, so opening-specific confidence may be limited even when the public-game total is large."
+    : "";
+  return { summary, confidenceNote, detailed: counts.breakdownAvailable };
+}
+
 export const REPORT_COUNT_DEFINITIONS = Object.freeze({
   fetchedGames: "Public game records returned by the selected chess platform for the requested import period.",
   dateRangeEligibleGames: "Returned games inside the selected import period.",

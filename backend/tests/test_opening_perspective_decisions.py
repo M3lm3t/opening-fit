@@ -74,7 +74,9 @@ def test_white_and_black_transpositions_keep_user_perspective():
     assert as_white["role"] == "faced_as_white"
     assert slav["opening"] == "Slav Defence"
     assert as_black["role"] == "played_as_black"
-    assert as_black["repertoireSlot"] == "black_vs_other"
+    assert as_black["repertoireSlot"] is None
+    assert as_black["repertoireRole"] == "unresolved"
+    assert as_black["attributionReasonCode"] == "opponent_first_move_unresolved"
 
 
 def test_one_game_sample_is_never_a_strength_problem_or_perfect_fit_claim():

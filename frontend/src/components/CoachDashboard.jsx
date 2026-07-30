@@ -15,6 +15,8 @@ import {
 import { buildXpProgress, xpForEvent } from "../services/xpProgress";
 import NextBestAction from "./NextBestAction";
 import SessionSummary from "./SessionSummary";
+import { buildReportDecisionModel } from "../lib/reportDecisionModel.js";
+import { formatTrainingPriorityTitle } from "../lib/trainingPriority.js";
 import "./CoachDashboard.css";
 
 function asArray(value) {
@@ -201,22 +203,6 @@ function getScoreTrend(reportHistory = [], currentScore = null) {
   return currentScore - previous;
 }
 
-function getCoachInsights(data = {}) {
-  data = data || {};
-  return data.openingCoachInsights || data.opening_coach_insights || {};
-}
-
-function getFocusMission(data = {}) {
-  data = data || {};
-  const insights = getCoachInsights(data);
-  return insights.focusMission || insights.focus_mission || {};
-}
-
-function getTrainingPlan(data = {}) {
-  data = data || {};
-  return asArray(data.training_plan).length ? asArray(data.training_plan) : asArray(data.trainingPlan);
-}
-
 function getRecommendationBuckets(data = {}) {
   data = data || {};
   const recs = data.opening_recommendations || data.openingRecommendations || data.recommendedOpenings || {};
@@ -275,63 +261,25 @@ function buildRepertoireFocus(openings = [], data = {}) {
 
 function buildDashboardModel({ data = {}, fitData = null, reportHistory = [], openingFitUserState = [] }) {
   data = data || {};
+  const decisionModel = buildReportDecisionModel(data, fitData || {}, reportHistory);
   const openings = collectOpenings(data, fitData);
   const gameCount = getGameCount(data, openings);
-  const score = getHealthScore(data, fitData);
+  const score = decisionModel.health?.score ?? getHealthScore(data, fitData);
   const trend = getScoreTrend(reportHistory, score);
-  const mission = getFocusMission(data);
-  const plan = getTrainingPlan(data);
   const games = getReportGames(data);
-  const strongest =
-    openings
-      .filter((opening) => opening.games >= 2 && opening.score !== null)
-      .sort((a, b) => (b.score || 0) - (a.score || 0) || b.games - a.games)[0] ||
-    openings.sort((a, b) => b.games - a.games)[0] ||
-    fitData?.bestOpening ||
-    null;
-  const leak =
-    openings
-      .filter((opening) => opening.games >= 2 && opening.score !== null && openingName(opening) !== openingName(strongest))
-      .sort((a, b) => (a.score || 100) - (b.score || 100) || b.games - a.games)[0] ||
-    fitData?.weakestOpening ||
-    null;
+  const strongest = decisionModel.establishedStrength || null;
+  const leak = decisionModel.primaryProblem || null;
   const repertoire = buildRepertoireFocus(openings, data);
-  const taskOpening = mission.opening || mission.name || openingName(leak || strongest, "");
-  const taskText =
-    mission.title ||
-    mission.task ||
-    (leak
-      ? `Review one recent game in ${openingName(leak)} and practise the first 8 moves.`
-      : strongest
-        ? `Practise ${openingName(strongest)} for 10 minutes.`
-        : plan[0] || "Analyse recent games to unlock today's opening task.");
-  const taskWhy =
-    mission.reason ||
-    mission.why ||
-    (leak
-      ? `${openingName(leak)} is the clearest repeat issue in the current sample.`
-      : strongest
-        ? `${openingName(strongest)} is your best current opening signal, so make it more reliable.`
-        : "OpeningFit needs a recent report before it can choose a precise training target.");
+  const priority = decisionModel.coachingPriority;
+  const taskOpening = priority?.openingName || decisionModel.nextTrainingAction?.opening || "";
+  const taskText = priority ? formatTrainingPriorityTitle(priority, { prefix: false }) : decisionModel.nextTrainingAction?.label || "Analyse recent games to unlock today's opening task.";
+  const taskWhy = priority?.rationale || decisionModel.nextTrainingAction?.reason || "OpeningFit needs a recent report before it can choose a precise training target.";
   const practiceSessions = asArray(openingFitUserState).filter((row) =>
     /practice|training|mission|drill/i.test(String(row.type || row.activity_type || row.event_type || ""))
   ).length;
 
-  let verdict = "Your opening coach is ready for a fresh analysis.";
-  let reason = "Import recent games and OpeningFit will choose the first priority from your own positions.";
-  if (gameCount > 0 && leak && strongest) {
-    verdict = `${openingName(strongest)} is a real strength. Your next gain is fixing ${openingName(leak)}.`;
-    reason = `${openingName(strongest)} has the strongest current signal, while ${openingName(leak)} is holding the repertoire back.`;
-  } else if (gameCount > 0 && repertoire.status === "Scattered") {
-    verdict = "You are playing too many openings at once. A narrower repertoire will help you improve faster.";
-    reason = repertoire.text;
-  } else if (gameCount > 0 && strongest) {
-    verdict = `${openingName(strongest)} is your clearest current strength. Build today's work around it.`;
-    reason = `${openingName(strongest)} has the best available score/sample in this report.`;
-  } else if (gameCount > 0) {
-    verdict = "Your report is started, but the opening sample is still thin.";
-    reason = "Play a few more games with one planned repertoire, then refresh the analysis.";
-  }
+  const verdict = decisionModel.verdict?.paragraph || "Your opening coach is ready for a fresh analysis.";
+  const reason = taskWhy;
 
   return {
     verdict,
@@ -345,9 +293,9 @@ function buildDashboardModel({ data = {}, fitData = null, reportHistory = [], op
     task: {
       text: taskText,
       opening: taskOpening,
-      minutes: leak ? 10 : 5,
+      minutes: priority?.estimatedDurationMinutes || 10,
       why: taskWhy,
-      cta: leak || strongest ? "Start today's plan" : "Analyse games",
+      cta: priority ? "Start today's plan" : "Analyse games",
     },
     progress: {
       hasHistory: asArray(reportHistory).length >= 2 || trend !== null || practiceSessions > 0,

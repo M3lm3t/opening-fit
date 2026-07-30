@@ -2,6 +2,14 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Any, Mapping, TypedDict
+import unicodedata
+
+
+class RepertoireRole(str, Enum):
+    WHITE = "white"
+    BLACK_VS_E4 = "black_vs_e4"
+    BLACK_VS_D4 = "black_vs_d4"
+    UNRESOLVED = "unresolved"
 
 
 class OpeningRole(str, Enum):
@@ -25,6 +33,9 @@ class OpeningPerspective(TypedDict):
     relationship: str
     repertoireOwned: bool
     repertoireSlot: str | None
+    repertoireRole: str
+    roleAttributionTrusted: bool
+    attributionReasonCode: str | None
     opponentPreparation: bool
     label: str
     classificationSource: str
@@ -32,13 +43,43 @@ class OpeningPerspective(TypedDict):
 
 def black_repertoire_slot(first_white_move: str) -> str:
     move = str(first_white_move or "").strip().rstrip("+#?!")
+    if move.startswith("1."):
+        move = move[2:].strip()
     if move == "e4":
         return "black_vs_e4"
     if move == "d4":
         return "black_vs_d4"
-    if move in {"c4", "Nf3", "g3", "b3"}:
-        return "black_vs_other"
-    return "black_vs_other"
+    return RepertoireRole.UNRESOLVED.value
+
+
+def normalise_player_identifier(value: Any) -> str:
+    """Normalise public-platform usernames without guessing account ownership."""
+    return unicodedata.normalize("NFKC", str(value or "")).strip().casefold()
+
+
+def player_colour_from_names(username: Any, white_username: Any, black_username: Any) -> tuple[str, str | None]:
+    user = normalise_player_identifier(username)
+    white = normalise_player_identifier(white_username)
+    black = normalise_player_identifier(black_username)
+    if not user:
+        return "unknown", "analysed_username_missing"
+    white_match = bool(white and white == user)
+    black_match = bool(black and black == user)
+    if white_match == black_match:
+        return "unknown", "player_colour_ambiguous" if white_match else "analysed_username_not_found"
+    return ("white", None) if white_match else ("black", None)
+
+
+def canonical_repertoire_role(user_colour: str, first_white_move: str = "") -> tuple[str, str | None]:
+    colour = str(user_colour or "").strip().lower()
+    if colour == "white":
+        return RepertoireRole.WHITE.value, None
+    if colour != "black":
+        return RepertoireRole.UNRESOLVED.value, "player_colour_unresolved"
+    role = black_repertoire_slot(first_white_move)
+    if role == RepertoireRole.UNRESOLVED.value:
+        return role, "opponent_first_move_unresolved"
+    return role, None
 
 
 def classify_opening_perspective(
@@ -53,6 +94,7 @@ def classify_opening_perspective(
     role = OpeningRole.UNKNOWN
     relationship = OpeningRelationship.UNKNOWN
     repertoire_slot = None
+    repertoire_role, role_reason = canonical_repertoire_role(user, first_white_move)
 
     if user == "white" and side == "white":
         role = OpeningRole.PLAYED_AS_WHITE
@@ -61,7 +103,7 @@ def classify_opening_perspective(
     elif user == "black" and side == "black":
         role = OpeningRole.PLAYED_AS_BLACK
         relationship = OpeningRelationship.PLAYED
-        repertoire_slot = black_repertoire_slot(first_white_move)
+        repertoire_slot = repertoire_role if repertoire_role != RepertoireRole.UNRESOLVED.value else None
     elif user == "white" and side == "black":
         role = OpeningRole.FACED_AS_WHITE
         relationship = OpeningRelationship.FACED
@@ -76,6 +118,8 @@ def classify_opening_perspective(
         OpeningRole.FACED_AS_BLACK: "faced by you as Black",
         OpeningRole.UNKNOWN: "ownership unresolved",
     }
+    trusted = repertoire_role != RepertoireRole.UNRESOLVED.value and side in {"white", "black"}
+    attribution_reason = role_reason if role_reason else None if trusted else "opening_side_unresolved"
     return {
         "userColour": user if user in {"white", "black"} else "unknown",
         "openingSide": side if side in {"white", "black"} else None,
@@ -83,6 +127,9 @@ def classify_opening_perspective(
         "relationship": relationship.value,
         "repertoireOwned": relationship is OpeningRelationship.PLAYED,
         "repertoireSlot": repertoire_slot,
+        "repertoireRole": repertoire_role,
+        "roleAttributionTrusted": trusted,
+        "attributionReasonCode": attribution_reason,
         "opponentPreparation": relationship is OpeningRelationship.FACED,
         "label": labels[role],
         "classificationSource": classification_source,
@@ -93,20 +140,37 @@ def perspective_from_item(item: Mapping[str, Any]) -> OpeningPerspective:
     """Read current records and conservatively adapt older stored reports."""
     explicit = item.get("perspective")
     if isinstance(explicit, Mapping) and explicit.get("role"):
-        return dict(explicit)  # type: ignore[return-value]
+        stored = dict(explicit)
+        opening_side = stored.get("openingSide") or stored.get("opening_side")
+        repertoire_role = str(stored.get("repertoireRole") or stored.get("repertoire_role") or stored.get("repertoireSlot") or stored.get("repertoire_slot") or "")
+        if repertoire_role not in {member.value for member in RepertoireRole}:
+            repertoire_role, reason = canonical_repertoire_role(str(stored.get("userColour") or stored.get("user_colour") or ""), str(item.get("firstWhiteMove") or item.get("first_white_move") or ""))
+            stored["attributionReasonCode"] = stored.get("attributionReasonCode") or reason or "legacy_role_unresolved"
+        stored["repertoireRole"] = repertoire_role
+        stored["roleAttributionTrusted"] = bool(stored.get("roleAttributionTrusted", stored.get("role_attribution_trusted", repertoire_role != RepertoireRole.UNRESOLVED.value and opening_side in {"white", "black"})))
+        stored.setdefault("attributionReasonCode", None if stored["roleAttributionTrusted"] else "legacy_role_unresolved")
+        return stored  # type: ignore[return-value]
 
     role = str(item.get("role") or item.get("openingRole") or item.get("opening_role") or "")
     if role in {member.value for member in OpeningRole}:
         user_colour = str(item.get("userColour") or item.get("user_colour") or item.get("colour") or item.get("color") or "unknown")
         relationship = "played" if role.startswith("played_") else "faced" if role.startswith("faced_") else "unknown"
         slot = item.get("repertoireSlot") or item.get("repertoire_slot")
+        repertoire_role = str(item.get("repertoireRole") or item.get("repertoire_role") or slot or "")
+        if repertoire_role not in {member.value for member in RepertoireRole}:
+            repertoire_role, _reason = canonical_repertoire_role(user_colour, str(item.get("firstWhiteMove") or item.get("first_white_move") or ""))
+        opening_side = item.get("openingSide") or item.get("opening_side")
+        trusted = bool(item.get("roleAttributionTrusted", item.get("role_attribution_trusted", repertoire_role != RepertoireRole.UNRESOLVED.value and opening_side in {"white", "black"})))
         return {
             "userColour": user_colour,
-            "openingSide": item.get("openingSide") or item.get("opening_side"),
+            "openingSide": opening_side,
             "role": role,
             "relationship": relationship,
             "repertoireOwned": relationship == "played",
             "repertoireSlot": str(slot) if slot else None,
+            "repertoireRole": repertoire_role,
+            "roleAttributionTrusted": trusted,
+            "attributionReasonCode": item.get("attributionReasonCode") or item.get("attribution_reason_code") or (None if trusted else "legacy_role_unresolved"),
             "opponentPreparation": relationship == "faced",
             "label": str(item.get("roleLabel") or item.get("role_label") or role.replace("_", " ")),
             "classificationSource": str(item.get("classificationSource") or item.get("classification_source") or "stored_explicit_role"),
@@ -134,6 +198,12 @@ def attach_perspective(item: Mapping[str, Any], perspective: OpeningPerspective)
         "repertoire_owned": perspective["repertoireOwned"],
         "repertoireSlot": perspective["repertoireSlot"],
         "repertoire_slot": perspective["repertoireSlot"],
+        "repertoireRole": perspective["repertoireRole"],
+        "repertoire_role": perspective["repertoireRole"],
+        "roleAttributionTrusted": perspective["roleAttributionTrusted"],
+        "role_attribution_trusted": perspective["roleAttributionTrusted"],
+        "attributionReasonCode": perspective["attributionReasonCode"],
+        "attribution_reason_code": perspective["attributionReasonCode"],
         "openingSide": perspective["openingSide"],
         "opening_side": perspective["openingSide"],
         "roleLabel": perspective["label"],

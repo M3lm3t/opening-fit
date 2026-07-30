@@ -57,7 +57,7 @@ export default function OpeningDetailsModal({ opening, data = null, onClose, onR
       (games ? Math.round(((wins + draws * 0.5) / games) * 100) : 0)
   );
 
-  const colour = opening.colour || opening.color || opening.side || "Mixed";
+  const colour = opening.colour || opening.color || opening.side || "Not established";
   const context = getOpeningContext(opening);
   const signal = getOpeningSignal(opening);
   const confidenceLabel =

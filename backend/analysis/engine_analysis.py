@@ -10,6 +10,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 try:
+    from analysis.opening_perspective import player_colour_from_names
+except ModuleNotFoundError:  # pragma: no cover - package-style test imports
+    from backend.analysis.opening_perspective import player_colour_from_names
+
+try:
     import chess
     import chess.engine
     import chess.pgn
@@ -93,12 +98,14 @@ def user_colour_for_game(game: Any, username: Optional[str], fallback: Optional[
     if not game or not username:
         return None
 
-    username_lower = username.lower()
-    white = str(game.headers.get("White", "")).lower()
-    black = str(game.headers.get("Black", "")).lower()
-    if username_lower and username_lower == white:
+    colour, _reason = player_colour_from_names(
+        username,
+        game.headers.get("White", ""),
+        game.headers.get("Black", ""),
+    )
+    if colour == "white":
         return chess.WHITE
-    if username_lower and username_lower == black:
+    if colour == "black":
         return chess.BLACK
     return None
 

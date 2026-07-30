@@ -73,7 +73,7 @@ export function canStartCheckout(user) { return Boolean(user?.id); }
 export function premiumFeatureStructure() {
   return {
     free: ["Useful first report", "Basic repertoire coverage and style", "Keep and repair verdicts when supported by evidence", "One next training action", "Limited refreshes", "One-task weekly-plan preview"],
-    premium: ["Living three-role repertoire", "Up to five prioritised weekly training tasks", "Relevant source-game reviews when recoverable", "Clearly labelled general setups otherwise", "Response plans synced through account settings", "Comparable-report progress", "Report and completed-training history", "Full recommendation evidence where available"],
+    premium: ["Living three-role repertoire", "Up to five evidence-backed weekly tasks without padding", "Most relevant source-game reviews when recoverable", "Clearly labelled general setup drills otherwise", "Editable response plans for recurring positions", "Honest recurrence and improvement checks", "Report and completed-training history", "Full recommendation evidence where available"],
   };
 }
 export function checkoutReturnState(value) { if (value === "cancelled") return { state: "cancelled", canRetry: true, repurchase: false }; if (value === "confirmed") return { state: "confirmed", canRetry: false, repurchase: false }; if (value === "delayed") return { state: "delayed", canRetry: true, repurchase: false }; return { state: "processing", canRetry: true, repurchase: false }; }

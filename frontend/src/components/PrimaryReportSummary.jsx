@@ -56,7 +56,7 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
 
       <section className="primaryReportNextAction" aria-labelledby="primary-action-title">
         <span>{view.decisions[2].label}</span>
-        <div><h2 id="primary-action-title">{view.primaryAction.title}</h2><p>{view.decisions[2].reason}</p></div>
+        <div><h2 id="primary-action-title">{view.primaryAction.title}</h2><p>{view.decisions[2].reason}</p>{view.trainingPriority?.workflowSteps?.length ? <details className="primaryReportWeeklySteps"><summary>This week’s completion steps</summary><ol>{view.trainingPriority.workflowSteps.slice(0, 5).map((step, index) => <li key={`${step.type || "step"}-${index}`}>{step.label}</li>)}</ol></details> : null}</div>
         {actionAvailable(view.primaryAction) ? <button type="button" className="primaryBtn" onClick={() => runAction(view.primaryAction)}>{view.primaryAction.label}</button> : null}
       </section>
 
@@ -68,13 +68,14 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
         <div className="primaryReportScoreExplanation">
           <span>Repertoire completeness</span>
           <h2 id="repertoire-coverage-title">{view.establishedRoleCount} of {view.totalRoleCount} repertoire roles established</h2>
-          <ul className="primaryReportRoleOverview">{view.slots.map((slot) => <li key={slot.key}><span>{slot.label}</span><strong>{slot.complete ? "Established" : "Building"}</strong></li>)}</ul>
+          <strong>{view.completenessLabel}</strong>
+          <ul className="primaryReportRoleOverview">{view.slots.map((slot) => <li key={slot.key}><span>{slot.label}</span><strong>{slot.statusLabel}</strong></li>)}</ul>
           <p>{isSampleReport(report)
             ? "Role completeness shows whether the fictional repertoire fills all three jobs. The coverage indicator also reflects the strength of its supporting evidence."
             : scoreView.formulaVersion === "repertoire_coverage_v2"
             ? "Role completeness shows whether all three repertoire jobs are filled. The coverage indicator also considers how strongly each role is supported by evidence."
             : "This saved report uses the earlier coverage method. It does not measure playing strength or opening quality."}</p>
-          <p className="primaryReportCoverageIndicator"><strong>{view.scoreLabel}:</strong> {view.score === null ? "Unavailable" : `${view.score}%`} · {scoreView.developmentState.label}</p>
+          <p className="primaryReportCoverageIndicator"><strong>{view.scoreLabel}:</strong> {scoreView.scoreDisplayLabel} · {scoreView.displayScore === null ? "Evidence components are incomplete" : scoreView.developmentState.label}</p>
         </div>
       </section>
       <OpeningFitScoreDisclosure model={model} report={report} previousReport={previousReport} />
@@ -101,7 +102,7 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
       {view.confidenceWarning ? <aside className="primaryReportConfidence" role="status"><strong>Confidence is still developing</strong><p>{view.confidenceWarning}</p></aside> : null}
       <details className="primaryReportRepertoireDisclosure"><summary>Detailed repertoire role evidence</summary><section className="primaryReportRepertoire" id="report-repertoire" aria-labelledby="primary-repertoire-title">
         <header><div><span>Current repertoire</span><h2 id="primary-repertoire-title">Your three core roles</h2></div>{view.incompleteRepertoire ? <strong>Still building</strong> : <strong>Core roles covered</strong>}</header>
-        <div>{view.slots.map((slot) => <article key={slot.key} className={!slot.complete ? "isIncomplete" : ""}><span>{slot.label}</span><h3>{slot.opening}</h3><strong className="primaryReportRoleStatus">{slot.confidence}{slot.complete && slot.games !== null ? ` · ${slot.games} relevant game${slot.games === 1 ? "" : "s"}` : ""}</strong><p>{slot.explanation}</p>{!slot.complete ? <details><summary>Why isn&apos;t this established?</summary><p><code>{slot.reasonCode}</code></p>{slot.funnelRows.length ? <dl>{slot.funnelRows.map((row) => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}</dl> : <p>Detailed role-stage counts were not stored with this report.</p>}<p>{slot.requirement}</p><small>{slot.filters}</small></details> : null}</article>)}</div>
+        <div>{view.slots.map((slot) => <article key={slot.key} className={!slot.complete ? "isIncomplete" : ""}><span>{slot.label}</span><h3>{slot.opening}</h3><strong className="primaryReportRoleStatus">{slot.statusLabel}{slot.supportingGames !== null ? ` · ${slot.supportingGames} supporting game${slot.supportingGames === 1 ? "" : "s"}` : ""}</strong><p>{slot.explanation}</p>{!slot.complete ? <details><summary>Why isn&apos;t this established?</summary><p>{slot.confidenceExplanation}</p>{slot.funnelRows.length ? <dl>{slot.funnelRows.map((row) => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}</dl> : <p>Detailed role-stage counts were not stored with this report.</p>}<p>{slot.requirement}</p><small>{slot.filters}</small></details> : null}</article>)}</div>
       </section></details>
 
       {comparison ? <div className="primaryReportComparison">{comparison}</div> : null}

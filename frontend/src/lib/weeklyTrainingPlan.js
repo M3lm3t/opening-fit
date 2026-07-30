@@ -93,7 +93,7 @@ function expectedMoves(weakness = {}) {
   return text(raw) ? text(raw).split(/\s+/).filter(Boolean).slice(0, 12) : [];
 }
 
-function task({ type, title, explanation, openingId = null, games = [], fen = null, moves = [], success, minutes, order }) {
+function task({ type, title, explanation, openingId = null, games = [], fen = null, moves = [], success, minutes, order, findingType = null, role = null, source = "report_evidence", sourceLabel = "Supported by the current report", lineOrPosition = null }) {
   return {
     id: makeId("weekly-task"),
     type,
@@ -107,6 +107,11 @@ function task({ type, title, explanation, openingId = null, games = [], fen = nu
     estimatedMinutes: minutes,
     order,
     status: "pending",
+    findingType,
+    repertoireRole: role,
+    evidenceSource: source,
+    evidenceSourceLabel: sourceLabel,
+    lineOrPosition,
   };
 }
 
@@ -134,17 +139,60 @@ export function buildWeeklyTrainingPlan({ userId, report, repertoire = [], repor
   if (!userId || !report) return { state: "missing-report", plan: null };
   const gamesAnalysed = reportGames(report);
   if (gamesAnalysed < 5) return { state: "insufficient-games", plan: null };
-  const priority = selectAuthoritativeCoachingPriority(report, { allowFallback: false });
+  const hasCanonicalDecision = Boolean(report.reportDecision || report.report_decision || report.trainingPriority || report.training_priority);
+  const priority = selectAuthoritativeCoachingPriority(report, { allowFallback: hasCanonicalDecision });
   if (priority) {
     const focus = priority.openingName || "your current opening evidence";
-    const priorityTask = trainingTaskFromPriority(priority, 1);
-    const tasks = [
-      priorityTask,
-      task({ type: priority.evidenceGameIds.length ? "game_review" : "concept_review", title: `Review the evidence for ${focus}`, explanation: priority.evidenceGameIds.length ? "Use the same supporting games behind the report priority; this does not select a second opening." : "The report priority has no saved game references, so keep this review conceptual instead of inventing a game.", openingId: priority.openingKey, games: priority.evidenceGameIds, success: "Record the first decision point and one safer practical cue.", minutes: 8, order: 2 }),
-      task({ type: "concept_review", title: `Prepare one practical cue for ${focus}`, explanation: "Convert the same report priority into one short reminder for your next relevant game.", openingId: priority.openingKey, games: priority.evidenceGameIds, success: "Write one cue you can recall before move ten.", minutes: 6, order: 3 }),
-      task({ type: "concept_review", title: `Recheck the ${focus} success condition`, explanation: "Use the report's success check again without introducing another opening priority.", openingId: priority.openingKey, games: priority.evidenceGameIds, success: priority.successCheck, minutes: 6, order: 4 }),
-    ];
-    if (normaliseTrainingPreferences(preferences).weeklyMinutes === 60) tasks.push(task({ type: "game_review", title: `Reinforce the ${focus} priority`, explanation: "Included for the longer weekly training preference and kept on the same report priority.", openingId: priority.openingKey, games: priority.evidenceGameIds, success: "Apply the same cue to one additional relevant example.", minutes: 12, order: 5 }));
+    const priorityTask = {
+      ...trainingTaskFromPriority(priority, 1),
+      explanation: priority.rationale,
+      evidenceSourceLabel: priority.evidenceGameIds.length ? `${priority.evidenceCount} supporting game${priority.evidenceCount === 1 ? "" : "s"} selected this priority.` : "No recoverable source game is claimed; this uses clearly labelled general setup guidance.",
+    };
+    const tasks = [priorityTask];
+    const add = (value) => tasks.push(task({ ...value, order: tasks.length + 1, findingType: priority.findingType, role: priority.repertoireRole }));
+    if (priority.evidenceGameIds.length > 1) add({
+      type: "game_review",
+      title: `Compare relevant ${focus} games`,
+      explanation: "These games belong to the same evidence-backed priority. Compare a difficult example with a successful one when both are recoverable; no move is labelled a mistake without recorded evidence.",
+      openingId: priority.openingKey,
+      games: priority.evidenceGameIds.slice(0, 3),
+      success: "Review up to three supplied games and record the first position where your plan became unclear.",
+      minutes: 8,
+      source: "user_games",
+      sourceLabel: "Observed in your analysed games",
+    });
+    if (priority.lineOrPosition) add({
+      type: "position_drill",
+      title: `Practise the recorded ${focus} position`,
+      explanation: "The report retained a recurring position or move sequence for this priority. Practise it as a report-backed position, not an engine verdict.",
+      openingId: priority.openingKey,
+      games: priority.evidenceGameIds,
+      success: priority.successCheck,
+      minutes: 8,
+      source: "user_games",
+      sourceLabel: "Recorded position from your report evidence",
+      lineOrPosition: priority.lineOrPosition,
+    });
+    else if (priority.fallbackSetupDrill) add({
+      type: "concept_review",
+      title: `Practise a general ${focus} setup`,
+      explanation: `${priority.fallbackSetupDrill.instruction} This is general opening guidance because no recoverable target position is stored.`,
+      openingId: priority.openingKey,
+      success: "Explain the setup cue from memory and identify when it applies.",
+      minutes: 6,
+      source: "general_guidance",
+      sourceLabel: "General opening setup; not presented as a conclusion from one game",
+    });
+    if (["new_games", "future_games", "concept_and_future_evidence"].includes(priority.completionTarget?.type)) add({
+      type: "concept_review",
+      title: `Build the next ${focus} evidence sample`,
+      explanation: "The current priority explicitly requires future relevant games before OpeningFit can reassess it.",
+      openingId: priority.openingKey,
+      success: priority.successCheck,
+      minutes: 5,
+      source: "future_evidence",
+      sourceLabel: "Evidence-building task from the report's completion condition",
+    });
     const { weekStart, weekEnd } = weeklyPlanWindow(now);
     const plan = {
       schemaVersion: WEEKLY_TRAINING_PLAN_SCHEMA_VERSION,

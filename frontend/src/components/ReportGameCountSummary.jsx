@@ -1,4 +1,4 @@
-import { buildReportGameCounts, reportCountSentence, reportSaveState, REPORT_COUNT_DEFINITIONS } from "../lib/reportGameCounts.js";
+import { buildReportGameCounts, reportCountSentence, reportExclusionSummary, reportSaveState, REPORT_COUNT_DEFINITIONS } from "../lib/reportGameCounts.js";
 import { isSampleReport } from "../fixtures/sampleReport.js";
 
 const labelForKey = (key) => key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
@@ -7,6 +7,7 @@ export default function ReportGameCountSummary({ report, saveStatus = "", authen
   const counts = buildReportGameCounts(report);
   const sampleMode = isSampleReport(report);
   const save = reportSaveState(saveStatus, authenticated, sampleMode);
+  const exclusions = reportExclusionSummary(report);
   return (
     <section className="reportGameCountSummary" aria-label="Import and save status">
       <div className="reportGameCountCompact">
@@ -15,6 +16,8 @@ export default function ReportGameCountSummary({ report, saveStatus = "", authen
         <span><strong>{counts.excludedGames}</strong> excluded</span>
         <span><strong>{save.label}</strong></span>
       </div>
+      {counts.excludedGames ? <p className="reportGameExclusionSummary">{exclusions.summary}</p> : null}
+      {exclusions.confidenceNote ? <p role="status" className="reportGameConfidenceNote">{exclusions.confidenceNote}</p> : null}
       <details>
         <summary>Import and exclusion details</summary>
         <p>{reportCountSentence(report)}</p>

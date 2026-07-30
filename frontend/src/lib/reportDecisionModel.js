@@ -219,8 +219,8 @@ export function buildRepertoireMapModel(data = {}) {
         label,
         opening: explicit.openingName || explicit.opening_name || null,
         games: explicitCount === null || explicitCount === undefined || explicitCount === "" ? null : openingGames({ games: explicitCount }),
-        complete: explicit.status === "supported",
-        tentative: explicit.status === "tentative",
+        complete: ["established", "supported"].includes(explicit.status),
+        tentative: ["building", "tentative"].includes(explicit.status),
         evidenceRequirement: explicit.evidenceRequirement || explicit.evidence_requirement,
       };
     }
@@ -329,7 +329,12 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
   const keep = decisions.find((item) => item.type === "keep");
   const repair = decisions.find((item) => item.type === "repair");
   const reduce = decisions.find((item) => item.type === "reduce");
-  const issues = buildCostlyIssues(data, decisions);
+  const issues = serverDecision
+    ? primaryProblem
+      ? buildCostlyIssues({ problem_lines: primaryProblem.issue ? [{ ...primaryProblem.issue, opening: primaryProblem.opening }] : [] }, decisions)
+          .map((item) => ({ ...item, findingType: primaryProblem.findingType || primaryProblem.finding_type || (primaryProblem.issue ? "branch_weakness" : "opening_weakness") }))
+      : []
+    : buildCostlyIssues(data, decisions);
   const games = Number(data.gamesAnalysed ?? data.gamesAnalyzed ?? data.games_analyzed ?? data.gamesImported ?? data.total_games ?? 0) || 0;
   const score = Number(fitData?.overallScore ?? data.openingFitScore ?? data.opening_fit_score ?? data.repertoireHealth?.score ?? data.repertoire_health?.score);
   const scoreValue = Number.isFinite(score) ? Math.round(score) : null;

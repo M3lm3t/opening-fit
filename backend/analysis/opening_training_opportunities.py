@@ -14,6 +14,11 @@ try:
 except ImportError:  # Runtime entrypoint adds backend/ directly to sys.path.
     from opening_detection import BOOK_LINES, detect_opening, normalise_opening_name
 
+try:
+    from analysis.opening_perspective import player_colour_from_names
+except ModuleNotFoundError:  # pragma: no cover - package-style test imports
+    from backend.analysis.opening_perspective import player_colour_from_names
+
 
 OPENING_PHASE_END_MOVE = 12
 DEFAULT_OPPORTUNITY_LIMIT = 12
@@ -89,10 +94,14 @@ def _user_colour(game: Dict[str, Any], parsed: Any, username: str) -> Optional[b
         return chess.WHITE
     if colour == "black":
         return chess.BLACK
-    username = username.lower()
-    if username and _text(parsed.headers.get("White")).lower() == username:
+    resolved, _reason = player_colour_from_names(
+        username,
+        parsed.headers.get("White"),
+        parsed.headers.get("Black"),
+    )
+    if resolved == "white":
         return chess.WHITE
-    if username and _text(parsed.headers.get("Black")).lower() == username:
+    if resolved == "black":
         return chess.BLACK
     return None
 

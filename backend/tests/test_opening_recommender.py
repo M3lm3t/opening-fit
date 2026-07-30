@@ -53,9 +53,9 @@ def test_existing_opening_samples_drive_upgrade_type_without_tiny_sample_overcla
     recommendations = build_opening_recommendations(
         tactical_fingerprint(),
         current_opening_stats=[
-            {"name": "Italian Game", "games": 2, "wins": 2, "draws": 0, "losses": 0},
-            {"name": "Caro-Kann Defence", "games": 6, "wins": 4, "draws": 1, "losses": 1},
-            {"name": "French Defence", "games": 6, "wins": 1, "draws": 1, "losses": 4},
+            {"name": "Italian Game", "repertoireRole": "white", "games": 2, "wins": 2, "draws": 0, "losses": 0},
+            {"name": "Caro-Kann Defence", "repertoireRole": "black_vs_e4", "games": 6, "wins": 4, "draws": 1, "losses": 1},
+            {"name": "French Defence", "repertoireRole": "black_vs_e4", "games": 6, "wins": 1, "draws": 1, "losses": 4},
         ],
         player_rating=1300,
         limit_per_slot=10,

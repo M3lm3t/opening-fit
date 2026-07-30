@@ -20,6 +20,10 @@ const openingName = (value = {}) => {
 const openingKey = (value) => normaliseOpeningKey(openingName(typeof value === "object" ? value : { name: value }));
 
 function contextKey(candidate = {}) {
+  const repertoireRole = text(candidate.repertoireRole || candidate.repertoire_role || candidate.perspective?.repertoireRole).toLowerCase();
+  if (repertoireRole === "white") return "white";
+  if (repertoireRole === "black_vs_e4") return "black_e4";
+  if (repertoireRole === "black_vs_d4") return "black_d4";
   const role = text(candidate.role || candidate.openingRole || candidate.opening_role).toLowerCase();
   const slot = text(candidate.repertoireSlot || candidate.repertoire_slot || candidate.contextKey || candidate.context_key || candidate.context).toLowerCase();
   if (role === "played_as_white" || ["white", "white_repertoire", "white_primary"].includes(slot)) return "white";
@@ -78,7 +82,7 @@ export function buildAuthoritativeRoleViewModels({ baseRoles = [], candidates = 
     const threshold = Number(base.evidenceRequirement?.threshold ?? base.evidence_requirement?.threshold ?? 5);
     // Older saved reports often stored the role count but no status. Preserve their
     // established role only when that recorded count meets the same shared threshold.
-    const compatibleStatus = !base.status && rawCount !== null && rawCount >= threshold ? "supported" : base.status;
+    const compatibleStatus = !base.status && rawCount !== null && rawCount >= threshold ? "supported" : base.status === "established" ? "supported" : base.status === "building" ? "tentative" : base.status;
     const evidenceInput = { ...base, status: compatibleStatus, games: rawCount, key: role.key, label: role.label };
     const normalized = normaliseRepertoireRoleEvidence(evidenceInput);
     const evidence = repertoireRoleEvidenceCopy(evidenceInput);
@@ -86,7 +90,12 @@ export function buildAuthoritativeRoleViewModels({ baseRoles = [], candidates = 
     const candidateCount = finite(candidate?.sample?.games ?? candidate?.games) ? Number(candidate.sample?.games ?? candidate.games) : null;
     const candidateEvidenceValid = candidate?.validation?.valid !== false && !(count !== null && candidateCount !== null && count !== candidateCount);
     const validEstablished = normalized.valid && normalized.established;
-    const status = validEstablished ? "established" : count > 0 ? "building" : "unresolved";
+    const canonicalStatus = text(base.status).toLowerCase();
+    const status = validEstablished
+      ? "established"
+      : canonicalStatus === "insufficient" ? "insufficient"
+      : canonicalStatus === "unresolved" ? "unresolved"
+      : count > 0 ? "building" : "insufficient";
     const mergedMetricSource = candidate ? { ...candidate, sample: { ...(candidate.sample || {}), games: count ?? candidate.sample?.games ?? candidate.games } } : count !== null ? { games: count } : {};
     const presentation = buildOpeningVerdictPresentation(mergedMetricSource, { verdict: verdictValue(candidate || base) || "Watch" });
     const confidence = analysisConfidence(mergedMetricSource);
@@ -94,9 +103,40 @@ export function buildAuthoritativeRoleViewModels({ baseRoles = [], candidates = 
       ? normaliseRoleVerdict(verdictValue(candidate || base), { established: status === "established", relevantGames: count || 0 })
       : "insufficient_evidence";
     const displayName = openingName(base) || openingName(candidate) || "Not established yet";
-    const fitScore = candidate ? openingFitScore(candidate) : null;
+    const fitScore = candidate && candidateEvidenceValid ? openingFitScore(candidate) : null;
     const performanceScore = candidate ? presentation.performance.score : null;
     const sourceTier = candidate && base?.status ? "structured_role_and_recommendation" : candidate ? "calculated_opening_statistics" : displayName !== "Not established yet" ? "legacy_role_fallback" : "conservative_fallback";
+    const alternative = base.compatibleAlternative || base.compatible_alternative || null;
+    const alternativeRole = text(base.alternativeRole || base.alternative_role || alternative?.repertoireRole || alternative?.repertoire_role).toLowerCase();
+    const alternativeSupporting = finite(alternative?.supportingGameCount ?? alternative?.supporting_game_count ?? alternative?.evidenceCounts?.supportingGames ?? alternative?.sample?.games)
+      ? Number(alternative.supportingGameCount ?? alternative.supporting_game_count ?? alternative.evidenceCounts?.supportingGames ?? alternative.sample?.games) : null;
+    const alternativeRequired = finite(alternative?.requiredGameCount ?? alternative?.required_game_count ?? alternative?.evidenceCounts?.requiredGames)
+      ? Number(alternative.requiredGameCount ?? alternative.required_game_count ?? alternative.evidenceCounts?.requiredGames) : threshold;
+    const compatibleAlternative = alternative
+      && alternativeRole === role.role
+      && alternative?.validation?.valid !== false
+      && alternativeSupporting !== null
+      && alternativeSupporting >= alternativeRequired
+      ? alternative
+      : null;
+    const counts = candidate?.evidenceCounts || candidate?.evidence_counts || {};
+    const supporting = finite(base.supportingGameCount ?? base.supporting_game_count ?? counts.supportingGames ?? count)
+      ? Number(base.supportingGameCount ?? base.supporting_game_count ?? counts.supportingGames ?? count) : null;
+    const raw = finite(base.rawGameCount ?? base.raw_game_count ?? counts.classifiedOpeningGames)
+      ? Number(base.rawGameCount ?? base.raw_game_count ?? counts.classifiedOpeningGames) : null;
+    const required = finite(base.requiredGameCount ?? base.required_game_count ?? candidate?.requiredGameCount ?? threshold)
+      ? Number(base.requiredGameCount ?? base.required_game_count ?? candidate?.requiredGameCount ?? threshold) : threshold;
+    const recordedConfidenceExplanation = text(candidate?.confidenceExplanation || candidate?.confidence_explanation || base.confidenceExplanation || base.confidence_explanation || evidence.explanation);
+    const confidenceExplanation = raw !== null && supporting !== null && raw !== supporting
+      ? `${raw} games were identified in this opening family. ${supporting} consistently reached a position that supports this decision.${recordedConfidenceExplanation ? ` ${recordedConfidenceExplanation}` : ""}`
+      : recordedConfidenceExplanation;
+    const contextualAction = status === "established" && displayName !== "Not established yet"
+      ? { type: "practice", label: "Practise this role" }
+      : supporting > 0
+        ? { type: "analyse", label: `Play ${Math.max(1, required - supporting)} more relevant game${Math.max(1, required - supporting) === 1 ? "" : "s"}` }
+        : compatibleAlternative
+          ? { type: "options", label: "See suitable options" }
+          : { type: "analyse", label: "Play more games" };
     return {
       key: role.key,
       role: role.role,
@@ -105,6 +145,7 @@ export function buildAuthoritativeRoleViewModels({ baseRoles = [], candidates = 
       displayName,
       opening: displayName,
       status,
+      statusLabel: ({ established: "Established", building: "Building", insufficient: "Not enough evidence", unresolved: "Unresolved" })[status],
       verdict,
       verdictLabel: roleVerdictLabel(verdict),
       fitScore,
@@ -113,9 +154,13 @@ export function buildAuthoritativeRoleViewModels({ baseRoles = [], candidates = 
       performanceLabel: performanceScore === null ? "Performance not available for this saved report." : presentation.performance.label,
       confidence: { level: confidence.level, label: confidence.label, detail: confidence.explanation, games: count },
       relevantGames: count,
+      supportingGames: supporting,
+      rawGames: raw,
+      requiredGames: required,
       games: count,
       evidenceReason: evidence.explanation,
-      evidenceReasonCode: evidence.reasonCode,
+      evidenceReasonCode: text(base.evidenceReasonCode || base.evidence_reason_code) || evidence.reasonCode,
+      reasonCodes: list(base.reasonCodes || base.reason_codes),
       evidenceRequirementCopy: evidence.requirement,
       evidenceFilters: evidence.filters,
       evidenceFunnelRows: evidence.funnelRows,
@@ -131,12 +176,25 @@ export function buildAuthoritativeRoleViewModels({ baseRoles = [], candidates = 
       evidenceDiagnostics: normalized.diagnostics,
       source: candidate || base.source || null,
       nextAction: recommendationReason(candidate, evidence),
+      contextualAction,
+      compatibleAlternative,
+      confidenceExplanation,
+      confidenceCounts: {
+        imported: finite(counts.importedGames) ? Number(counts.importedGames) : null,
+        eligible: finite(counts.eligibleGames) ? Number(counts.eligibleGames) : null,
+        relevant: raw,
+        supporting,
+        required,
+        excluded: finite(counts.excludedGames) ? Number(counts.excludedGames) : null,
+      },
       presentation,
     };
   });
 }
 
 function priorityType(priority = {}, decision = {}) {
+  const finding = text(priority.findingType || priority.finding_type).toLowerCase();
+  if (finding) return finding;
   const action = text(priority.actionType || decision?.nextTrainingAction?.type || decision?.next_training_action?.type).toLowerCase();
   const role = text(priority.role).toLowerCase();
   if (/collect|fallback|insufficient/.test(action)) return "insufficient_evidence";

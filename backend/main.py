@@ -14,7 +14,12 @@ from analysis.opening_fit_metrics import build_opening_fit_metrics, merge_openin
 from analysis.opening_coach_insights import build_opening_coach_insights
 from analysis.opening_training_opportunities import extract_opening_training_opportunities
 from analysis.retention_metrics import build_retention_metrics
-from analysis.opening_perspective import attach_perspective, classify_opening_perspective, perspective_from_item
+from analysis.opening_perspective import (
+    attach_perspective,
+    classify_opening_perspective,
+    perspective_from_item,
+    player_colour_from_names,
+)
 from analysis.report_decision import apply_repertoire_coverage_score, build_report_decision, reports_are_comparable
 from opening_detection import (
     detect_opening,
@@ -1937,13 +1942,14 @@ def split_usable_games(
 
 
 def result_for_user(game: Dict[str, Any], username: str) -> str:
-    username = username.lower()
-    white_user = game.get("white", {}).get("username", "").lower()
-    black_user = game.get("black", {}).get("username", "").lower()
-
-    if white_user == username:
+    colour, _reason = player_colour_from_names(
+        username,
+        game.get("white", {}).get("username", ""),
+        game.get("black", {}).get("username", ""),
+    )
+    if colour == "white":
         res = game.get("white", {}).get("result", "")
-    elif black_user == username:
+    elif colour == "black":
         res = game.get("black", {}).get("result", "")
     else:
         return "unknown"
@@ -1965,15 +1971,12 @@ def result_for_user(game: Dict[str, Any], username: str) -> str:
 
 
 def colour_for_user(game: Dict[str, Any], username: str) -> str:
-    username = username.lower()
-
-    if game.get("white", {}).get("username", "").lower() == username:
-        return "white"
-
-    if game.get("black", {}).get("username", "").lower() == username:
-        return "black"
-
-    return "unknown"
+    colour, _reason = player_colour_from_names(
+        username,
+        game.get("white", {}).get("username", ""),
+        game.get("black", {}).get("username", ""),
+    )
+    return colour
 
 
 def extract_year_month(url: str) -> str:
@@ -2469,12 +2472,28 @@ def dominant_opening_role(stats: Dict[str, Any]) -> str:
 
 
 def perspective_for_opening_stats(stats: Dict[str, Any], context: str) -> Dict[str, Any]:
-    role = dominant_opening_role(stats)
+    role = str(stats.get("perspectiveRole") or dominant_opening_role(stats))
+    derived_role = (
+        "white" if context in {"played_as_white", "faced_as_white"}
+        else context if context in {"black_vs_e4", "black_vs_d4"}
+        else "unresolved"
+    )
+    repertoire_role = str(stats.get("repertoireRole") or derived_role)
+    opening_side = {
+        "played_as_white": "white",
+        "played_as_black": "black",
+        "faced_as_white": "black",
+        "faced_as_black": "white",
+    }.get(role)
     return perspective_from_item(
         {
             "openingRole": role,
             "userColour": context_colour(context),
-            "repertoireSlot": context if role == "played_as_black" else "white" if role == "played_as_white" else None,
+            "openingSide": opening_side,
+            "repertoireRole": repertoire_role,
+            "roleAttributionTrusted": bool(stats.get("roleAttributionTrusted", repertoire_role != "unresolved" and opening_side)),
+            "attributionReasonCode": stats.get("attributionReasonCode"),
+            "repertoireSlot": repertoire_role if role.startswith("played_") and repertoire_role != "unresolved" else None,
         }
     )
 
@@ -2663,26 +2682,26 @@ def rating_context_from_profile(profile: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def chesscom_user_and_opponent_rating(game: Dict[str, Any], username: str) -> Tuple[Optional[int], Optional[int]]:
-    username_lower = username.lower()
     white = game.get("white", {}) or {}
     black = game.get("black", {}) or {}
-    if str(white.get("username", "")).lower() == username_lower:
+    colour, _reason = player_colour_from_names(username, white.get("username"), black.get("username"))
+    if colour == "white":
         return numeric_rating(white.get("rating")), numeric_rating(black.get("rating"))
-    if str(black.get("username", "")).lower() == username_lower:
+    if colour == "black":
         return numeric_rating(black.get("rating")), numeric_rating(white.get("rating"))
     return None, None
 
 
 def lichess_user_and_opponent_rating(game: Dict[str, Any], username: str) -> Tuple[Optional[int], Optional[int]]:
-    username_lower = username.lower()
     players = game.get("players", {}) or {}
     white_player = players.get("white", {}) or {}
     black_player = players.get("black", {}) or {}
     white_name = lichess_user_name(white_player, "White")
     black_name = lichess_user_name(black_player, "Black")
-    if white_name.lower() == username_lower:
+    colour, _reason = player_colour_from_names(username, white_name, black_name)
+    if colour == "white":
         return numeric_rating(white_player.get("rating")), numeric_rating(black_player.get("rating"))
-    if black_name.lower() == username_lower:
+    if colour == "black":
         return numeric_rating(black_player.get("rating")), numeric_rating(white_player.get("rating"))
     return None, None
 
@@ -8495,10 +8514,12 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
         user_games = []
 
         for game in games:
-            white_user = game.get("white", {}).get("username", "").lower()
-            black_user = game.get("black", {}).get("username", "").lower()
-
-            if username.lower() in {white_user, black_user}:
+            colour, _reason = player_colour_from_names(
+                username,
+                game.get("white", {}).get("username", ""),
+                game.get("black", {}).get("username", ""),
+            )
+            if colour in {"white", "black"}:
                 user_games.append(game)
 
         archive_breakdown.append(
@@ -8612,8 +8633,15 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
         elif colour == "black":
             black_opening_counter[opening] += 1
 
-        context_key = f"{opening}::{repertoire_context}"
-        for stats in (opening_results[opening], context_opening_results[context_key]):
+        context_key = f"{opening}::{perspective['repertoireRole']}::{perspective['role']}"
+        context_stats = context_opening_results[context_key]
+        context_stats.update({
+            "repertoireRole": perspective["repertoireRole"],
+            "perspectiveRole": perspective["role"],
+            "roleAttributionTrusted": perspective["roleAttributionTrusted"],
+            "attributionReasonCode": perspective["attributionReasonCode"],
+        })
+        for stats in (opening_results[opening], context_stats):
             stats["name"] = opening
             stats["games"] += 1
             add_rating_context_to_stats(stats, user_rating, opponent_rating)
@@ -9160,16 +9188,15 @@ def lichess_user_name(player: Dict[str, Any], fallback: str) -> str:
 
 
 def get_lichess_result(game: Dict[str, Any], username: str) -> str:
-    username_lower = username.lower()
-
     players = game.get("players", {})
     white_name = lichess_user_name(players.get("white", {}), "White")
     black_name = lichess_user_name(players.get("black", {}), "Black")
 
     winner = game.get("winner")
 
-    is_white = white_name.lower() == username_lower
-    is_black = black_name.lower() == username_lower
+    colour, _reason = player_colour_from_names(username, white_name, black_name)
+    is_white = colour == "white"
+    is_black = colour == "black"
 
     if not winner:
         return "draw"
@@ -9184,19 +9211,11 @@ def get_lichess_result(game: Dict[str, Any], username: str) -> str:
 
 
 def get_lichess_colour(game: Dict[str, Any], username: str) -> str:
-    username_lower = username.lower()
-
     players = game.get("players", {})
     white_name = lichess_user_name(players.get("white", {}), "White")
     black_name = lichess_user_name(players.get("black", {}), "Black")
-
-    if white_name.lower() == username_lower:
-        return "white"
-
-    if black_name.lower() == username_lower:
-        return "black"
-
-    return "unknown"
+    colour, _reason = player_colour_from_names(username, white_name, black_name)
+    return colour
 
 
 def get_lichess_opening_name(game: Dict[str, Any]) -> str:
@@ -9254,14 +9273,12 @@ def build_lichess_analysis(
         white_name = lichess_user_name(white_player, "White")
         black_name = lichess_user_name(black_player, "Black")
 
-        username_lower = username.lower()
-
-        if white_name.lower() == username_lower:
+        resolved_colour, _reason = player_colour_from_names(username, white_name, black_name)
+        if resolved_colour == "white":
             rating_value = white_player.get("rating")
             if isinstance(rating_value, (int, float)):
                 player_ratings.append(int(rating_value))
-
-        if black_name.lower() == username_lower:
+        if resolved_colour == "black":
             rating_value = black_player.get("rating")
             if isinstance(rating_value, (int, float)):
                 player_ratings.append(int(rating_value))
@@ -9322,8 +9339,15 @@ def build_lichess_analysis(
         elif colour == "black":
             black_opening_counter[opening] += 1
 
-        context_key = f"{opening}::{repertoire_context}"
-        for stats in (opening_results[opening], context_opening_results[context_key]):
+        context_key = f"{opening}::{perspective['repertoireRole']}::{perspective['role']}"
+        context_stats = context_opening_results[context_key]
+        context_stats.update({
+            "repertoireRole": perspective["repertoireRole"],
+            "perspectiveRole": perspective["role"],
+            "roleAttributionTrusted": perspective["roleAttributionTrusted"],
+            "attributionReasonCode": perspective["attributionReasonCode"],
+        })
+        for stats in (opening_results[opening], context_stats):
             stats["name"] = opening
             stats["games"] += 1
             add_rating_context_to_stats(stats, user_rating, opponent_rating)

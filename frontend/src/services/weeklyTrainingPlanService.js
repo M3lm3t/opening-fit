@@ -100,7 +100,8 @@ export async function getOrCreateWeeklyTrainingPlan(userId, options = {}) {
   if (!report) return { state: "missing-report", plan: current || null, reused: Boolean(current) };
 
   const { weekStart } = weeklyPlanWindow(options.now || new Date());
-  const priority = selectAuthoritativeCoachingPriority(report, { allowFallback: false });
+  const hasCanonicalDecision = Boolean(report.reportDecision || report.report_decision || report.trainingPriority || report.training_priority);
+  const priority = selectAuthoritativeCoachingPriority(report, { allowFallback: hasCanonicalDecision });
   if (isReusableWeeklyPlan(current, { weekStart, reportId, priorityId: priority?.priorityId || null, forceRefresh: options.forceRefresh })) {
     return { state: "reused", plan: current, reused: true };
   }

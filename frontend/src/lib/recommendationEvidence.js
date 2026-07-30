@@ -29,6 +29,13 @@ function slotFor(item, role) {
   return item.repertoireSlot || item.repertoire_slot || item.context || item.repertoireContext || "black_vs_other";
 }
 
+function repertoireRoleFor(item, role) {
+  const explicit = clean(item.repertoireRole || item.repertoire_role || item.perspective?.repertoireRole).toLowerCase();
+  if (["white", "black_vs_e4", "black_vs_d4", "unresolved"].includes(explicit)) return explicit;
+  const slot = slotFor(item, role);
+  return ["white", "black_vs_e4", "black_vs_d4"].includes(slot) ? slot : "unresolved";
+}
+
 export function confidenceForRecommendation(games, valid = true, traceable = true) {
   const count = Math.max(0, Math.round(numeric(games)));
   if (valid && traceable && count >= RECOMMENDATION_EVIDENCE_THRESHOLDS.high) return { level: "high", label: "High confidence" };
@@ -80,6 +87,7 @@ export function normaliseCanonicalRecommendation(entry) {
     relationship,
     repertoireOwned: relationship === "played",
     repertoireSlot: slotFor(entry, role),
+    repertoireRole: repertoireRoleFor(entry, role),
     sample: checked.sample,
     games: checked.sample.games,
     score: checked.sample.scoreRate,
@@ -167,5 +175,18 @@ export function normaliseReportDecision(decision = {}) {
   if (!nextTrainingAction || (nextTrainingAction.recommendationId && !target)) {
     nextTrainingAction = { type: "collect_more_games", opening: null, role: null, label: "Collect more games before changing your repertoire", reason: "The saved recommendation evidence does not reconcile, so no repertoire change is recommended.", recommendationId: null, sample: null };
   }
-  return { ...decision, schemaVersion: decision.schemaVersion || 1, recommendations, establishedStrength, primaryProblem, nextTrainingAction };
+  const roleDecisions = Array.isArray(decision.roleDecisions || decision.role_decisions || decision.repertoireRoles || decision.repertoire_roles)
+    ? (decision.roleDecisions || decision.role_decisions || decision.repertoireRoles || decision.repertoire_roles)
+    : [];
+  return {
+    ...decision,
+    schemaVersion: decision.schemaVersion || 1,
+    recommendations,
+    establishedStrength,
+    primaryProblem,
+    nextTrainingAction,
+    roleDecisions,
+    repertoireRoles: roleDecisions,
+    findings: Array.isArray(decision.findings) ? decision.findings : [],
+  };
 }

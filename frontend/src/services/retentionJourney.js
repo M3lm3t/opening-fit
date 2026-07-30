@@ -220,22 +220,22 @@ export function buildWeeklyRecap({ data = {}, reportHistory = [], activity = [],
 }
 
 export function buildCoachSummary({ data = {}, reportHistory = [], activity = [] } = {}) {
-  const openings = collectOpenings(data);
-  const strongest = openings.filter((item) => openingScore(item) !== null).sort((a, b) => openingScore(b) - openingScore(a))[0];
-  const weakest = openings.filter((item) => openingScore(item) !== null).sort((a, b) => openingScore(a) - openingScore(b))[0];
+  const model = buildReportDecisionModel(data, {}, reportHistory);
+  const strongest = model.establishedStrength;
+  const weakest = model.primaryProblem;
   const tasks = buildTodayTasks({ data, reportHistory, activity });
   const incomplete = tasks.find((task) => !task.completed);
 
   return {
     goingWell: strongest
-      ? `${openingName(strongest)} is your strongest current signal across ${numberValue(strongest.games ?? strongest.count, 0) || "a small sample"} games.`
+      ? `${openingName(strongest)} is the report's established strength across ${numberValue(strongest.sample?.games ?? strongest.games, 0) || "a supported sample"} games.`
       : "OpeningFit needs more repeated opening data before naming a strength.",
     needsAttention:
       weakest && strongest && openingName(weakest) !== openingName(strongest)
-        ? `${openingName(weakest)} is the current priority to review. Sample size: ${numberValue(weakest.games ?? weakest.count, 0) || "limited"}.`
+        ? `${openingName(weakest)} is the report's canonical repair priority. Sample size: ${numberValue(weakest.sample?.games ?? weakest.games, 0) || "limited"}.`
         : "No separate recurring weakness is strong enough to call yet.",
-    nextStep: incomplete?.title || "Refresh analysis after your next few games.",
-    confidence: openings.length >= 3 ? "Medium confidence" : "Low sample size",
+    nextStep: model.coachingPriority?.title || incomplete?.title || "Refresh analysis after your next few games.",
+    confidence: model.repertoire.filter((role) => Number(role.relevantGames || 0) > 0).length >= 3 ? "Medium confidence" : "Low sample size",
   };
 }
 
@@ -308,3 +308,4 @@ export function cohortComparisonState() {
     reason: "Anonymous comparisons are hidden until a secure aggregate cohort endpoint with at least 25 qualifying users is available.",
   };
 }
+import { buildReportDecisionModel } from "../lib/reportDecisionModel.js";

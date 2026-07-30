@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { annualEffectiveMonthly, annualSavings, canStartCheckout, canUsePremiumPreview, checkoutReturnState, checkoutUnavailableMessage, confirmEntitlementWithRetry, formatGbp, normaliseBillingConfiguration, normaliseBillingInterval, premiumFeatureStructure } from "./premiumExperience.js";
 test("production preview flags cannot grant access", () => { assert.equal(canUsePremiumPreview({ isDevelopment: false, requested: true }), false); assert.equal(canUsePremiumPreview({ isDevelopment: true, requested: true }), true); });
-test("paid copy includes only implemented outcomes", () => { const model = premiumFeatureStructure(); assert.match(model.free.join(" "), /Useful first report/); assert.match(model.free.join(" "), /when supported by evidence/i); assert.match(model.free.join(" "), /One next training action/i); assert.doesNotMatch(model.free.join(" "), /One Keep recommendation|One Repair recommendation/i); assert.match(model.premium.join(" "), /Comparable-report progress/); assert.match(model.premium.join(" "), /Living three-role repertoire/); assert.match(model.premium.join(" "), /source-game reviews when recoverable/i); assert.match(model.premium.join(" "), /general setups otherwise/i); assert.doesNotMatch(model.premium.join(" "), /email|engine|course library|guaranteed/i); });
+test("paid copy includes only implemented outcomes", () => { const model = premiumFeatureStructure(); assert.match(model.free.join(" "), /Useful first report/); assert.match(model.free.join(" "), /when supported by evidence/i); assert.match(model.free.join(" "), /One next training action/i); assert.doesNotMatch(model.free.join(" "), /One Keep recommendation|One Repair recommendation/i); assert.match(model.premium.join(" "), /Honest recurrence and improvement checks/); assert.match(model.premium.join(" "), /Living three-role repertoire/); assert.match(model.premium.join(" "), /source-game reviews when recoverable/i); assert.match(model.premium.join(" "), /general setup drills otherwise/i); assert.doesNotMatch(model.premium.join(" "), /email|engine|course library|guaranteed/i); });
 test("delayed entitlement retries successfully", async () => { let calls = 0; const result = await confirmEntitlementWithRetry(async () => ++calls === 2, { delay: async () => {} }); assert.deepEqual(result, { confirmed: true, attempts: 2 }); });
 test("failed entitlement does not ask for repurchase", async () => { assert.equal((await confirmEntitlementWithRetry(async () => false, { attempts: 2 })).confirmed, false); assert.equal(checkoutReturnState("delayed").repurchase, false); });
 test("cancelled checkout returns safely", () => assert.equal(checkoutReturnState("cancelled").state, "cancelled"));
@@ -21,7 +21,7 @@ test("pricing selection drives the visible price and checkout interval together"
   assert.match(component, /Sign in to subscribe/);
   assert.match(component, /BILLING_INTERVAL_STORAGE_KEY/);
   assert.match(component, /Keep and repair verdicts when supported by your evidence/);
-  assert.match(component, /general setup drills when no game position is recoverable/i);
+  assert.match(component, /general setups when no source position is recoverable/i);
   assert.doesNotMatch(component, /disabled=\{!monthlyAvailable\}|disabled=\{!annualAvailable\}/);
 });
 

@@ -90,3 +90,36 @@ test("the paid weekly plan stays on the canonical report priority", () => {
   assert.equal(isReusableWeeklyPlan(result.plan, { ...weeklyPlanWindow(NOW), reportId: REPORT_ID, priorityId: result.plan.trainingPriorityId }), true);
   assert.equal(isReusableWeeklyPlan(result.plan, { ...weeklyPlanWindow(NOW), reportId: REPORT_ID, priorityId: "training-vienna" }), false);
 });
+
+test("canonical Plus plans contain only supported tasks and never pad to five", () => {
+  const canonicalReport = {
+    ...report,
+    reportDecision: {
+      nextTrainingAction: {
+        type: "prepare_against", recommendationId: "caro:faced_as_white", opening: "Caro-Kann Defence",
+        role: "faced_as_white", repertoireRole: "white", findingType: "preparation_opportunity",
+        reason: "Six relevant games make this the strongest preparation opportunity.",
+        sample: { games: 6, gameIds: ["caro-1", "caro-2", "caro-3"] },
+      },
+    },
+  };
+  const result = buildWeeklyTrainingPlan({ userId: USER_ID, report: canonicalReport, repertoire, reportId: REPORT_ID, now: NOW, preferences: { mainGoal: "prepare_rated_games", playFrequency: "weekly", weeklyMinutes: 60, status: "completed" } });
+  assert.equal(result.plan.tasks.length, 2);
+  assert.equal(result.plan.tasks[0].findingType, "preparation_opportunity");
+  assert.equal(result.plan.tasks[1].type, "game_review");
+  assert.equal(result.plan.tasks.every((task) => task.explanation && task.successCriteria && task.evidenceSourceLabel), true);
+  assert.equal(result.plan.tasks.some((task) => /recheck|padding|unrelated/i.test(task.title)), false);
+});
+
+test("low-evidence canonical reports receive a constructive evidence-building plan", () => {
+  const lowEvidence = {
+    ...report,
+    reportDecision: { nextTrainingAction: { type: "collect_more_games" }, establishedStrength: null, primaryProblem: null },
+  };
+  const result = buildWeeklyTrainingPlan({ userId: USER_ID, report: lowEvidence, repertoire, reportId: REPORT_ID, now: NOW });
+  assert.equal(result.state, "created");
+  assert.equal(result.plan.trainingPriority.findingType, "insufficient_evidence");
+  assert.ok(result.plan.tasks.some((task) => task.evidenceSource === "future_evidence"));
+  assert.ok(result.plan.tasks.some((task) => task.evidenceSource === "general_guidance"));
+  assert.equal(result.plan.tasks.length <= 5, true);
+});

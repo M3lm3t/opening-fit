@@ -89,6 +89,7 @@ function PendingTaskCard({ task, plan, current, active, busy, completionAllowed 
         </header>
         <TaskMeta task={task} plan={plan} />
         <p className="thisWeekTaskExplanation">{task.explanation}</p>
+        <p className="thisWeekTaskEvidence"><strong>Evidence:</strong> {task.evidenceSourceLabel || "Supported by the current report."}</p>
         <details className="thisWeekSuccessCriteria">
           <summary>How to finish</summary>
           <p>{task.successCriteria}</p>
@@ -133,7 +134,8 @@ function PremiumWeeklyOverview({ plan, report, priority, responsePlans, onContin
   return <section className="premiumWeeklyOverview" aria-labelledby="premium-weekly-focus-title">
     <header><div><span>Main focus</span><h2 id="premium-weekly-focus-title">{overview.primaryTask?.title || plan.primaryGoal}</h2><p>{overview.primaryTask?.explanation || plan.reason}</p></div><div className="premiumWeeklyOverview__progress"><strong>{overview.completionPercent}%</strong><span>{overview.completed} of {overview.total} tasks</span></div></header>
     <dl><div><dt>Evidence and confidence</dt><dd>{overview.evidenceCount} supporting game{overview.evidenceCount === 1 ? "" : "s"} · {overview.confidence}</dd></div><div><dt>Total plan time</dt><dd>{overview.estimatedMinutes} minutes</dd></div><div><dt>Generated</dt><dd>{formatPlanDate(overview.generatedAt)}</dd></div></dl>
-    <div className="premiumWeeklyOverview__grid"><section><h3>{games.length ? "Own-game evidence" : "Exercise source"}</h3>{games.length ? <ul>{games.map((game) => <li key={game.id}><strong>{game.opening}</strong><span>{game.opponent} · {game.result} · {game.platform}</span></li>)}</ul> : <p>General opening setup · no recoverable source game is stored.</p>}</section><section><h3>Your saved plan</h3><blockquote>{overview.responsePlan || "Complete the main session and save one practical response here."}</blockquote><small>{overview.responsePlanSource}</small></section></div>
+    {priority?.workflowSteps?.length ? <section className="premiumWeeklyWorkflow" aria-labelledby="premium-weekly-workflow-title"><h3 id="premium-weekly-workflow-title">This week</h3><ol>{priority.workflowSteps.map((step, index) => <li key={`${step.type || "step"}-${index}`}>{step.label}</li>)}</ol></section> : null}
+    <div className="premiumWeeklyOverview__grid"><section><h3>{games.length ? "Own-game evidence" : "Exercise source"}</h3>{games.length ? <ul>{games.map((game) => <li key={game.id}><strong>{game.opening}</strong><span>{game.opponent} · {game.result} · {game.platform}</span><small>{game.whySelected}</small></li>)}</ul> : <p>General opening setup · no recoverable source game is stored.</p>}</section><section><h3>Your saved plan</h3><blockquote>{overview.responsePlan || "Complete the main session and save one practical response here."}</blockquote><small>{overview.responsePlanSource}</small></section></div>
     {overview.primaryTask ? <button className="primaryBtn" type="button" onClick={() => onContinue(overview.primaryTask)}><Play size={16} /> Continue training</button> : null}
     <footer><span>Progress check</span><p>{overview.refreshMessage}</p></footer>
   </section>;
@@ -331,7 +333,7 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
       <div className="thisWeekHeroCopy"><span className="thisWeekEyebrow">Your free training action</span><h1 id="free-training-title">{plan.primaryGoal}</h1><p>{plan.reason}</p></div>
       {previewTask ? <article className="thisWeekFreeTask">
         <TaskMeta task={previewTask} plan={plan} />
-        <h2>{previewTask.title}</h2><p>{previewTask.explanation}</p>
+        <h2>{previewTask.title}</h2><p>{previewTask.explanation}</p><p className="thisWeekTaskEvidence"><strong>Evidence:</strong> {previewTask.evidenceSourceLabel || "Supported by the current report."}</p>
         {!freeState.started ? <button type="button" className="primaryBtn" onClick={() => startFreeTask(previewTask)}><Play size={17} /> Start free action</button> : freeState.completed ? <p className="thisWeekFreeComplete"><CheckCircle2 size={18} /> Free action completed</p> : <div className="thisWeekFreeExercise">
           <TrainingGameReviewSession report={report} priority={currentPriority} exercise={freeExercise} taskId={previewTask.id} planId={plan.id} conceptEngaged={conceptEngaged} onReadinessChange={handleTrainingReadiness}>
             <OpeningOpportunityDrill opportunity={freeExercise.opportunity} report={report} showPriorityReason={false} onEngaged={() => setConceptEngaged(true)} onCompleted={() => setConceptEngaged(true)} />

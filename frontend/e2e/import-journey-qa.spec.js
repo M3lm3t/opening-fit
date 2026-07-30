@@ -249,14 +249,17 @@ test("the report priority survives navigation and a direct signed-out reload of 
   await expect(page.getByRole("heading", { name: "This week: practise Caro-Kann Defence for approximately 10 minutes." })).toBeVisible();
   await expect(page.getByText(/Twelve opening-specific games make this the clearest current repair priority/).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Start free action" })).toHaveCount(0);
-  await expect(page.getByText("General opening setup", { exact: true })).toBeVisible();
+  await expect(page.getByText(/General setup guidance; no recoverable source game is claimed/)).toBeVisible();
   await expect(page.getByRole("link", { name: "Open source game" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Continue to game review" }).click();
+  await page.getByRole("button", { name: "Continue to concept" }).click();
   const choices = page.locator(".openingConceptOptions button");
   await expect(choices).toHaveCount(3);
   await choices.first().click();
-  await expect(page.getByText("Why it matters", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /Concept Completed.*reopen step/ }).click();
+  await expect(page.getByText("Why variation-specific commitment is premature", { exact: true })).toBeVisible();
   await expect(page.locator(".openingOpportunityFeedback")).toContainText(/coordinates development, central control, and king safety/i);
-  await expect(page.getByText(/6 minutes|Only 311 recent games/i)).toHaveCount(0);
+  await expect(page.getByText(/Only 311 recent games/i)).toHaveCount(0);
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/train$/);

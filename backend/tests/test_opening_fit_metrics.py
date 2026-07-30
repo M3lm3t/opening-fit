@@ -106,7 +106,8 @@ def test_plan_clarity_changes_existing_opening_recommendation_fit():
         fingerprint,
         current_opening_stats=[
             {
-                "name": "Vienna Game",
+                    "name": "Vienna Game",
+                    "repertoireRole": "white",
                 "games": 8,
                 "wins": 4,
                 "draws": 2,
@@ -122,7 +123,8 @@ def test_plan_clarity_changes_existing_opening_recommendation_fit():
         fingerprint,
         current_opening_stats=[
             {
-                "name": "Vienna Game",
+                    "name": "Vienna Game",
+                    "repertoireRole": "white",
                 "games": 8,
                 "wins": 4,
                 "draws": 2,
