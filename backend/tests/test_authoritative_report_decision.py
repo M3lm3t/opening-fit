@@ -1,0 +1,162 @@
+from copy import deepcopy
+
+import pytest
+
+import main as backend_main
+from analysis.opening_perspective import attach_perspective, classify_opening_perspective
+from analysis.report_decision import assert_decision_consistency, build_report_decision
+
+
+def context(role: str):
+    colour = "white" if role == "white" else "black"
+    first_move = "d4" if role == "black_vs_d4" else "e4"
+    return classify_opening_perspective(
+        user_colour=colour,
+        opening_side=colour,
+        first_white_move=first_move,
+        classification_source="decision_contract_fixture",
+    )
+
+
+def opening(name, role, results, *, fit_score=None):
+    wins = results.count("win")
+    draws = results.count("draw")
+    losses = results.count("loss")
+    row = {"name": name, "games": len(results), "wins": wins, "draws": draws, "losses": losses}
+    if fit_score is not None:
+        row["fitScore"] = fit_score
+    return attach_perspective(row, context(role))
+
+
+def games_for(name, role, results, *, prefix=None):
+    marker = prefix or name.lower().replace(" ", "-")
+    return [
+        attach_perspective(
+            {
+                "opening": name,
+                "openingFamily": name,
+                "gameId": f"{marker}-{index}",
+                "result": result,
+                "played_at": f"2026-07-{index:02d}T12:00:00Z",
+            },
+            context(role),
+        )
+        for index, result in enumerate(results, 1)
+    ]
+
+
+def build(rows, games, **extra):
+    report = {
+        "analysisId": extra.pop("analysisId", "authoritative-fixture"),
+        "username": "FixturePlayer",
+        "platform": "chess.com",
+        "gamesAnalysed": len(games),
+        "opening_games": games,
+        **extra,
+    }
+    return build_report_decision(report, openings=rows)
+
+
+def test_six_game_severe_weakness_outranks_seven_game_playable_opening():
+    weak = ["win", "loss", "loss", "loss", "loss", "loss"]
+    playable = ["win", "win", "win", "win", "loss", "loss", "loss"]
+    decision = build(
+        [opening("Queen Pawn Game", "white", weak), opening("Scandinavian Defence", "black_vs_e4", playable)],
+        [*games_for("Queen Pawn Game", "white", weak), *games_for("Scandinavian Defence", "black_vs_e4", playable)],
+    )
+
+    assert decision["repair"]["opening"] == "Queen Pawn Game"
+    assert decision["primaryAction"]["opening"] == "Queen Pawn Game"
+    assert decision["primaryAction"]["verdict"] == "repair"
+
+
+def test_demo_has_one_queen_pawn_primary_action_and_consistent_aliases():
+    payload = backend_main.demo_profile()
+    decision = payload["reportDecision"]
+
+    assert decision["primaryAction"]["opening"] == "Queen Pawn Game"
+    assert decision["primaryAction"] == decision["nextTrainingAction"]
+    assert decision["trainingPriority"]["decisionId"] == decision["decisionId"]
+    assert payload["trainingPriority"]["openingName"] == "Queen Pawn Game"
+    assert payload["recommendedAction"] == decision["primaryAction"]["label"]
+
+
+def test_keep_and_zero_game_style_experiment_cannot_displace_repair():
+    weak = ["loss"] * 6
+    keep = ["win"] * 5 + ["loss"] * 2
+    decision = build(
+        [opening("Queen Pawn Game", "white", weak, fit_score=10), opening("Scandinavian Defence", "black_vs_e4", keep, fit_score=99)],
+        [*games_for("Queen Pawn Game", "white", weak), *games_for("Scandinavian Defence", "black_vs_e4", keep)],
+        recommended_openings={"black_vs_d4": [{"name": "King's Indian Defence", "games": 0, "fitScore": 100}]},
+    )
+
+    assert decision["keep"]["opening"] == "Scandinavian Defence"
+    assert decision["repair"]["opening"] == decision["primaryAction"]["opening"] == "Queen Pawn Game"
+    assert decision["experiment"]["openingName"] == "King's Indian Defence"
+    assert decision["experiment"]["games"] == 0
+
+
+def test_faced_evidence_never_creates_a_repertoire_repair():
+    faced = classify_opening_perspective(user_colour="white", opening_side="black", first_white_move="e4")
+    results = ["loss"] * 12
+    rows = [attach_perspective({"name": "Caro-Kann Defence", "games": 12, "wins": 0, "draws": 0, "losses": 12}, faced)]
+    games = [attach_perspective({"opening": "Caro-Kann Defence", "gameId": f"faced-{i}", "result": result}, faced) for i, result in enumerate(results, 1)]
+    decision = build(rows, games)
+
+    assert decision["repair"] is None
+    assert decision["primaryAction"]["verdict"] == "collect_more_data"
+    assert all(role.get("currentOpening") != "Caro-Kann Defence" for role in decision["repertoireRoles"])
+
+
+def test_black_repertoire_roles_remain_separate():
+    e4 = ["loss"] * 6
+    d4 = ["win"] * 6
+    decision = build(
+        [opening("French Defence", "black_vs_e4", e4), opening("King's Indian Defence", "black_vs_d4", d4)],
+        [*games_for("French Defence", "black_vs_e4", e4), *games_for("King's Indian Defence", "black_vs_d4", d4)],
+    )
+    roles = {row["repertoireRole"]: row for row in decision["repertoireRoles"]}
+
+    assert roles["black_vs_e4"]["currentOpening"] == "French Defence"
+    assert roles["black_vs_d4"]["currentOpening"] == "King's Indian Defence"
+    assert decision["primaryAction"]["repertoireRole"] == "black_vs_e4"
+
+
+def test_low_samples_choose_one_cautious_collect_action():
+    samples = {
+        "white": ("Vienna Game", ["win", "loss"]),
+        "black_vs_e4": ("French Defence", ["win", "loss"]),
+        "black_vs_d4": ("Slav Defence", ["draw", "loss"]),
+    }
+    rows = [opening(name, role, results) for role, (name, results) in samples.items()]
+    games = [game for role, (name, results) in samples.items() for game in games_for(name, role, results)]
+    decision = build(rows, games)
+
+    assert decision["primaryAction"]["verdict"] == "collect_more_data"
+    assert decision["primaryAction"]["confidenceLevel"] == "insufficient"
+    assert decision["primaryAction"] == decision["nextTrainingAction"]
+
+
+def test_repair_ties_are_stable_and_evidence_ids_match_target_context():
+    results = ["loss"] * 5
+    rows = [opening("Scandinavian Defence", "black_vs_e4", results), opening("French Defence", "black_vs_e4", results)]
+    games = [*games_for("Scandinavian Defence", "black_vs_e4", results, prefix="scandi"), *games_for("French Defence", "black_vs_e4", results, prefix="french")]
+
+    first = build(rows, games)
+    second = build(list(reversed(rows)), list(reversed(games)))
+
+    assert first["primaryAction"]["opening"] == second["primaryAction"]["opening"] == "French Defence"
+    assert set(first["primaryAction"]["evidenceGameIds"]) == {f"french-{index}" for index in range(1, 6)}
+    assert first["primaryAction"]["games"] == 5
+
+
+def test_contract_guard_rejects_competing_primary_alias_and_unsupported_percentages():
+    results = ["loss"] * 6
+    decision = build([opening("Queen Pawn Game", "white", results)], games_for("Queen Pawn Game", "white", results))
+    altered = deepcopy(decision)
+    altered["nextTrainingAction"] = {**altered["nextTrainingAction"], "opening": "Scandinavian Defence"}
+
+    with pytest.raises(ValueError, match="primaryAction and nextTrainingAction differ"):
+        assert_decision_consistency(altered)
+    assert "%" not in decision["primaryAction"]["successCheck"]
+    assert "estimated_impact" not in decision["primaryAction"]

@@ -14,9 +14,11 @@ const full = {
   ],
 };
 
-test("full Chess.com data produces ordered decisions", () => {
+test("legacy Chess.com data gets one cautious compatibility decision", () => {
   const model = buildReportDecisionModel(full, { overallScore: 62 });
-  assert.deepEqual(model.decisions.map((item) => item.type), ["keep", "repair", "reduce"]);
+  assert.deepEqual(model.decisions, []);
+  assert.equal(model.primaryAction.verdict, "collect_more_data");
+  assert.equal(model.primaryProblem, null);
   assert.equal(model.header.platform, "Chess.com");
 });
 test("very small report exposes its coverage without inflating recommendation confidence", () => assert.match(buildReportDecisionModel({ gamesImported: 2 }).health.confidence, /2 analysed games/));
@@ -107,6 +109,7 @@ test("all headline consumers use the same authoritative next action", () => {
   assert.equal(model.training.opening, model.nextTrainingAction.opening);
   assert.equal(model.training.durationMinutes, 10);
   assert.equal(summary.training.title, model.training.label);
-  assert.equal(summary.training.trainingPriorityId, model.trainingPriority.priorityId);
+  assert.equal(model.trainingPriority, null);
+  assert.equal(summary.trainingPriority, null);
   assert.equal(summary.verdict, model.verdict.paragraph);
 });

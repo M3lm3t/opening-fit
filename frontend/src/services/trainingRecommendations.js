@@ -333,7 +333,7 @@ function onePrimaryPerOpening(recommendations = []) {
 }
 
 function canonicalTrainingRecommendation(data = {}) {
-  const decision = normaliseReportDecision(data.reportDecision || data.report_decision || null);
+  const decision = normaliseReportDecision(data.reportDecision || data.report_decision || null, data);
   const action = decision?.nextTrainingAction;
   if (!decision || !action) return undefined;
   if (!action.opening) return null;

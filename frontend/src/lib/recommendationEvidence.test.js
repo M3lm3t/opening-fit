@@ -60,7 +60,8 @@ test("confidence sample mismatch is rejected", () => {
 
 test("confidence is capped by opening-specific sample size", () => {
     assert.equal(confidenceForRecommendation(2).level, "insufficient");
-    assert.equal(confidenceForRecommendation(4).level, "very_early");
+    assert.equal(confidenceForRecommendation(3).level, "insufficient");
+    assert.equal(confidenceForRecommendation(4).level, "low");
     assert.equal(confidenceForRecommendation(5).level, "low");
     assert.equal(confidenceForRecommendation(10).level, "moderate");
     assert.equal(confidenceForRecommendation(25).level, "high_sample");
@@ -87,4 +88,14 @@ test("a training action cannot retain a different opening", () => {
     assert.equal(decision.nextTrainingAction.opening, "Italian Game");
     assert.equal(decision.nextTrainingAction.label, "Repair Italian Game");
     assert.ok(decision.nextTrainingAction.validation.issues.includes("training_opening_does_not_reconcile"));
+});
+
+test("a canonical zero-game experiment remains separate and is not downgraded", () => {
+    const experiment = { recommendationId: "experiment:benko:black_vs_d4", openingName: "Benko Gambit", games: 0, repertoireRole: "black_vs_d4", verdict: "experiment", confidenceLevel: "no_personal_evidence" };
+    const action = { decisionId: "decision:experiment", actionId: "decision:experiment", recommendationId: experiment.recommendationId, opening: "Benko Gambit", repertoireRole: "black_vs_d4", verdict: "experiment", type: "experiment", confidenceLevel: "no_personal_evidence" };
+    const decision = normaliseReportDecision({ decisionId: action.decisionId, recommendations: [], experiment, primaryAction: action, nextTrainingAction: action });
+
+    assert.equal(decision.primaryAction, action);
+    assert.equal(decision.experiment, experiment);
+    assert.equal(decision.primaryAction.verdict, "experiment");
 });

@@ -134,7 +134,7 @@ export default function ReportSnapshot({ data, onViewChange }) {
 
   const reportMode = data?.reportMode || data?.report_mode || "normal_user";
   const publicMode = reportMode !== "normal_user";
-  const decision = normaliseReportDecision(data.reportDecision || data.report_decision);
+  const decision = normaliseReportDecision(data.reportDecision || data.report_decision, data);
   const bestFit = publicMode ? findBestFit(data) : decision?.establishedStrength || null;
   const weakSpot = publicMode ? findWeakSpot(data) : decision?.primaryProblem || null;
   const recommendation = publicMode ? getRecommendation(data) : decision?.nextTrainingAction?.label;

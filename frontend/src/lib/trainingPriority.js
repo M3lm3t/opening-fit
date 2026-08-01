@@ -21,9 +21,11 @@ function reportDecision(report = {}, supplied = null) {
 }
 
 function prioritySource(report = {}, decision = {}) {
-  const explicit = report.trainingPriority || report.training_priority || decision.trainingPriority || decision.training_priority;
+  // A decision-owned priority always wins. Top-level fields are compatibility
+  // aliases and may be stale in older saved reports.
+  const explicit = decision.trainingPriority || decision.training_priority || report.trainingPriority || report.training_priority;
   if (explicit && typeof explicit === "object") return explicit;
-  const action = decision.nextTrainingAction || decision.next_training_action || report.nextTrainingAction || report.next_training_action;
+  const action = decision.primaryAction || decision.primary_action || decision.nextTrainingAction || decision.next_training_action || report.nextTrainingAction || report.next_training_action;
   if (action && typeof action === "object" && text(action.type || action.actionType || action.action_type).toLowerCase() !== "collect_more_games") return action;
   const legacy = list(report.nextTrainingActions || report.next_training_actions || report.trainingPlan || report.training_plan)[0];
   return legacy && typeof legacy === "object" ? legacy : null;
@@ -87,6 +89,8 @@ function canonicalPriority(source, report, decision) {
   const workflowSteps = list(source.sessionSteps || source.session_steps || source.workflowSteps || source.workflow_steps);
   return {
     schemaVersion: TRAINING_PRIORITY_SCHEMA_VERSION,
+    decisionId: text(source.decisionId || source.decision_id || decision.decisionId || decision.decision_id) || null,
+    actionId: text(source.actionId || source.action_id || decision.primaryAction?.actionId || decision.primary_action?.action_id) || null,
     priorityId,
     taskId: text(source.taskId || source.task_id) || priorityId,
     recommendationId: recommendationId || null,
@@ -101,6 +105,7 @@ function canonicalPriority(source, report, decision) {
     playerColour: colourFor(source, target),
     taskType: taskTypeFor(source),
     actionType,
+    verdict: text(source.verdict || decision.primaryAction?.verdict || decision.primary_action?.verdict) || null,
     title,
     rationale: text(source.rationale || source.reason || source.explanation) || "Review the available report evidence before your next games.",
     reasonSelected: text(source.reasonSelected || source.reason_selected || source.rationale || source.reason || source.explanation) || "Review the available report evidence before your next games.",
@@ -113,6 +118,8 @@ function canonicalPriority(source, report, decision) {
     representativeGameStatus: representativeGameIds.length ? "verified" : "unavailable",
     representativeSelectionRequired: Number(source.schemaVersion || source.schema_version || 0) >= 2,
     estimatedDurationMinutes: duration,
+    trainingDuration: source.trainingDuration && typeof source.trainingDuration === "object" ? source.trainingDuration : { minutes: duration },
+    nextAction: text(source.nextAction || source.next_action || source.exercise || source.explanation) || null,
     successCheck: text(source.successCheck || source.success_check || source.successCriteria || source.success_criteria || completion.label) || "Complete the practice and record one practical takeaway.",
     completionTarget: completion,
     confidenceStatus: text(source.confidenceStatus || source.confidence_status || target?.confidence?.level || source.confidence?.level || source.confidence) || "unknown",

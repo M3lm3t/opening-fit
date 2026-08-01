@@ -12,7 +12,7 @@ import { buildTrainingRecommendations } from "../services/trainingRecommendation
 import { buildWeeklyOpeningSession } from "../services/weeklyOpeningSession.js";
 
 function recommendation({ id, opening, role, repertoireRole, verdict = "keep", games = 5, findingType = "stable_strength" }) {
-  const confidenceLevel = games >= 25 ? "high_sample" : games >= 10 ? "moderate" : games >= 5 ? "low" : games >= 3 ? "very_early" : "insufficient";
+  const confidenceLevel = games >= 25 ? "high_sample" : games >= 10 ? "moderate" : games >= 4 ? "low" : "insufficient";
   return {
     recommendationId: id,
     openingName: opening,
@@ -26,7 +26,7 @@ function recommendation({ id, opening, role, repertoireRole, verdict = "keep", g
     sample: { games, wins: games, draws: 0, losses: 0, gameIds: Array.from({ length: games }, (_, index) => `${id}-${index}`) },
     sampleSize: games,
     sampleThreshold: 5,
-    evidenceStatus: games >= 5 ? "sufficient" : games >= 3 ? "very_early" : "insufficient",
+    evidenceStatus: games >= 5 ? "sufficient" : games >= 4 ? "very_early" : "insufficient",
     confidenceLevel,
     confidenceReasons: [`${games} unique games support this context.`],
     confidence: { level: confidenceLevel, sampleSize: games },
@@ -62,12 +62,14 @@ function canonicalReport() {
     },
     topOpenings: [{ name: "Stale low result", games: 20, wins: 0, draws: 0, losses: 20, openingRole: "played_as_black", repertoireSlot: "black_vs_e4" }],
     reportDecision: {
-      schemaVersion: 4,
+      schemaVersion: 5,
+      decisionId: "decision:fixture:caro-white",
       recommendations: [strength, preparation],
       establishedStrength: strength,
       primaryProblem: null,
-      nextTrainingAction: { type: "prepare_against", opening: "Caro-Kann Defence", role: "faced_as_white", repertoireRole: "white", findingType: "preparation_opportunity", recommendationId: preparation.recommendationId, sample: preparation.sample, label: "Prepare against the Caro-Kann Defence", reason: "This is preparation, not a weakness." },
-      trainingPriority: { priorityId: "priority-caro", taskId: "priority-caro", recommendationId: preparation.recommendationId, openingName: "Caro-Kann Defence", role: "faced_as_white", repertoireRole: "white", findingType: "preparation_opportunity", evidenceCount: 5, estimatedDurationMinutes: 10, rationale: "This is preparation, not a weakness." },
+      primaryAction: { decisionId: "decision:fixture:caro-white", actionId: "decision:fixture:caro-white", type: "prepare_against", verdict: "experiment", opening: "Caro-Kann Defence", role: "faced_as_white", repertoireRole: "white", findingType: "preparation_opportunity", recommendationId: preparation.recommendationId, sample: preparation.sample, label: "Prepare against the Caro-Kann Defence", reason: "This is preparation, not a weakness.", nextAction: "Review one matching game.", trainingDuration: { minutes: 10 }, successCheck: "Save one response plan.", confidenceLevel: "low" },
+      nextTrainingAction: { decisionId: "decision:fixture:caro-white", actionId: "decision:fixture:caro-white", type: "prepare_against", verdict: "experiment", opening: "Caro-Kann Defence", role: "faced_as_white", repertoireRole: "white", findingType: "preparation_opportunity", recommendationId: preparation.recommendationId, sample: preparation.sample, label: "Prepare against the Caro-Kann Defence", reason: "This is preparation, not a weakness.", nextAction: "Review one matching game.", trainingDuration: { minutes: 10 }, successCheck: "Save one response plan.", confidenceLevel: "low" },
+      trainingPriority: { decisionId: "decision:fixture:caro-white", actionId: "decision:fixture:caro-white", priorityId: "priority-caro", taskId: "priority-caro", verdict: "experiment", recommendationId: preparation.recommendationId, openingName: "Caro-Kann Defence", role: "faced_as_white", repertoireRole: "white", findingType: "preparation_opportunity", evidenceCount: 5, estimatedDurationMinutes: 10, successCheck: "Save one response plan.", confidenceStatus: "low", rationale: "This is preparation, not a weakness." },
       repertoireRoles: [
         { key: "white", repertoireRole: "white", status: "established", openingName: "Vienna Game", evidenceCount: 5, supportingGameCount: 5, evidenceReasonCode: null },
         { key: "black_e4", repertoireRole: "black_vs_e4", status: "insufficient", openingName: null, evidenceCount: 0, supportingGameCount: 0, evidenceReasonCode: "unsupported_or_unknown", compatibleAlternative: { openingName: "French Defence", repertoireRole: "black_vs_d4" }, alternativeRole: "black_vs_d4" },
@@ -103,6 +105,43 @@ test("training services use the canonical action instead of reranking raw weak o
   assert.equal(weekly.targetName, "Caro-Kann Defence");
   assert.match(weekly.rationale, /preparation, not a weakness/i);
   assert.doesNotMatch(JSON.stringify({ training, weekly }), /Unrelated raw opening/);
+});
+
+test("every primary-decision consumer retains one decision contract", () => {
+  const report = canonicalReport();
+  const decision = report.reportDecision;
+  const model = buildReportDecisionModel(report);
+  const summary = buildPrimaryReportSummary(model, report);
+  const training = buildTrainingRecommendations(report);
+  const weekly = buildWeeklyOpeningSession(report);
+  const priority = model.trainingPriority;
+
+  const expected = {
+    decisionId: decision.decisionId,
+    target: decision.primaryAction.opening,
+    repertoireRole: decision.primaryAction.repertoireRole,
+    verdict: decision.primaryAction.verdict,
+    task: decision.primaryAction.nextAction,
+    duration: decision.primaryAction.trainingDuration.minutes,
+    confidence: decision.primaryAction.confidenceLevel,
+    successCheck: decision.primaryAction.successCheck,
+  };
+  assert.deepEqual({
+    decisionId: model.decisionId,
+    target: model.primaryAction.opening,
+    repertoireRole: model.primaryAction.repertoireRole,
+    verdict: model.primaryAction.verdict,
+    task: model.primaryAction.nextAction,
+    duration: priority.estimatedDurationMinutes,
+    confidence: priority.confidenceStatus,
+    successCheck: priority.successCheck,
+  }, expected);
+  assert.equal(summary.trainingPriority.decisionId, expected.decisionId);
+  assert.equal(summary.trainingPriority.openingName, expected.target);
+  assert.equal(training.primary.opening, expected.target);
+  assert.equal(training.primary.trainingTarget.decisionId, expected.decisionId);
+  assert.equal(weekly.targetName, expected.target);
+  assert.equal(weekly.trainingPriority.decisionId, expected.decisionId);
 });
 
 test("supported Vienna and Scandinavian samples keep summary and role-card decisions aligned", () => {

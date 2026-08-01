@@ -137,7 +137,7 @@ export default function ShareReport({ data }) {
         return b.winRate - a.winRate;
       });
 
-    const decision = normaliseReportDecision(data.reportDecision || data.report_decision);
+    const decision = normaliseReportDecision(data.reportDecision || data.report_decision, data);
     const card = (entry) => entry ? { name: entry.opening, games: entry.sample?.games ?? entry.games, winRate: entry.sample?.scoreRate ?? entry.scoreRate ?? entry.score, source: entry } : null;
     const best = card(decision?.establishedStrength);
     const weakest = card(decision?.primaryProblem);

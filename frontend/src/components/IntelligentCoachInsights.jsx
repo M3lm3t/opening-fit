@@ -8,6 +8,8 @@ import {
   getSmartPlayerLevelProfile,
   safeNumber,
 } from "./playerLevelLogic";
+import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
+import { selectAuthoritativeCoachingPriority } from "../lib/authoritativeReportPresentation.js";
 
 const TACTICAL_TERMS = [
   "gambit",
@@ -73,7 +75,41 @@ function matchesAny(name = "", terms = []) {
 }
 
 function normaliseCoach(data) {
-  return data?.ai_chess_coach || data?.aiChessCoach || null;
+  const decision = normaliseReportDecision(data?.reportDecision || data?.report_decision || null, data);
+  const priority = selectAuthoritativeCoachingPriority(data || {}, { decision, allowFallback: false });
+  if (!decision) return null;
+  const raw = data?.ai_chess_coach || data?.aiChessCoach || {};
+  const action = decision.primaryAction || decision.nextTrainingAction;
+  const title = action?.label || action?.title || "Collect more games before changing your repertoire";
+  const reason = action?.conciseReason || action?.reason || "The report does not contain enough traceable evidence for a repair target.";
+  const task = action?.nextAction || action?.exercise || action?.explanation || "Keep the repertoire stable and run a new report after more relevant games.";
+  const secondary = (decision.recommendations || []).filter((item) => item.recommendationId !== action?.recommendationId).slice(0, 3);
+  const psychology = {
+    headline: "Secondary evidence to review after the primary target",
+    summary: "These observations add context, but they do not replace the report's one primary action.",
+    insights: secondary.map((item) => ({
+      type: "secondary_opening_evidence", severity: "secondary",
+      title: `${item.openingName}: secondary evidence`,
+      body: item.trainingAction?.explanation || item.confidence?.reason || "This is not the current primary action.",
+      action: "Review after the primary target.",
+    })),
+    confidenceReset: "Use repeated, correctly attributed evidence before changing priorities.",
+  };
+  return {
+    ...raw,
+    headline: title,
+    summary: reason,
+    recommendations: [{
+      priority: 1, title, coach_note: reason, action: task,
+      confidence: action?.confidenceLevel || priority?.confidenceStatus || "insufficient",
+      decisionId: action?.decisionId || decision.decisionId,
+    }],
+    roadmap: [{ phase: "This week", title, task, decisionId: action?.decisionId || decision.decisionId }],
+    competitive_psychology: psychology,
+    competitivePsychology: psychology,
+    opening_improvement_suggestions: [],
+    openingImprovementSuggestions: [],
+  };
 }
 
 function openingSide(opening) {
@@ -106,11 +142,9 @@ function confidenceLabel(games, totalGames) {
 }
 
 function impactLabel(opening, averageScore = 50) {
-  const score = getOpeningScore(opening);
-  const games = getOpeningGames(opening);
-  const gap = score === null ? 8 : Math.max(0, averageScore - score);
-  const low = Math.max(2, Math.min(8, Math.round(gap / 7) + (games >= 12 ? 2 : 1)));
-  return `${low}-${Math.min(12, low + 3)}%`;
+  void opening;
+  void averageScore;
+  return null;
 }
 
 function resultPhrase(opening) {
@@ -149,7 +183,7 @@ function buildFallbackPsychology(data, useful, openings, averageScore, whiteScor
     insights.push({
       type: "nemesis_opening",
       severity: score !== null && score <= 35 && games >= 5 ? "high" : "medium",
-      title: `Players ${score !== null && score <= 35 ? "crush" : "keep hurting"} you with ${name}`,
+      title: `${name} is a secondary evidence pattern`,
       body: `${name} is becoming an emotional pressure point: ${games} games${score !== null ? `, ${score}% score` : ""}. Treat it as a specific anti-line to prepare, not proof the whole opening is bad.`,
       action: "Build one anti-plan and play a 10-game repair block before judging yourself again.",
     });
@@ -188,7 +222,7 @@ function buildFallbackPsychology(data, useful, openings, averageScore, whiteScor
   return {
     headline: insights[0]?.title || "Your confidence grows when the repertoire gets narrower",
     summary: insights.length
-      ? "These are the emotionally expensive patterns in your games: the openings that create dread, revenge energy, or repeated hesitation."
+      ? "These are secondary repeated patterns in the available games. Review them only after the primary action."
       : "No single painful pattern dominates yet. Keep building a larger sample and watch for recurring emotional pressure points.",
     insights: insights.slice(0, 4),
     confidenceReset: "Do not treat one loss as proof. Treat repeated pain as a training target you can deliberately hunt down.",
@@ -196,7 +230,7 @@ function buildFallbackPsychology(data, useful, openings, averageScore, whiteScor
   };
 }
 
-function buildFallbackCoach(data) {
+export function buildFallbackCoach(data) {
   const openings = collectOpenings(data, { includeUnknown: false });
   const quality = getBackendDataQuality(data);
   const gameCount =
@@ -244,7 +278,7 @@ function buildFallbackCoach(data) {
   );
 
   return {
-    headline: `Study ${targetName} next`,
+    headline: `Legacy coaching evidence for ${targetName}`,
     summary:
       "The fastest improvement path is to fix one repeated weak spot, then test it in real games before adding more theory.",
     recommendations: [
@@ -272,7 +306,7 @@ function buildFallbackCoach(data) {
             coach_note: `White is scoring ${whiteScore}% and Black is scoring ${blackScore}%.`,
             action: "Spend the next study block on the weaker side before learning a new opening.",
             confidence: "Medium",
-            estimated_impact: "4-8%",
+            estimated_impact: null,
           }
         : null,
       strongest && target
@@ -282,7 +316,7 @@ function buildFallbackCoach(data) {
             coach_note: "Your strongest opening shows the type of position you already handle well.",
             action: `Copy that clarity into ${targetName}: pawn structure, piece squares, and one middlegame plan.`,
             confidence: "Medium",
-            estimated_impact: "3-6%",
+            estimated_impact: null,
           }
         : null,
     ].filter(Boolean),
@@ -360,7 +394,7 @@ function coachValue(value, fallback = "") {
 export default function IntelligentCoachInsights({ data }) {
   if (!data) return null;
 
-  const coach = normaliseCoach(data) || buildFallbackCoach(data);
+  const coach = normaliseCoach(data);
   const rating = collectRatings(data) || getSmartPlayerLevelProfile(data)?.rating;
   const style = coach.style_analysis || coach.styleAnalysis || {};
   const preference = coach.preference_detection || coach.preferenceDetection || {};
@@ -462,7 +496,7 @@ export default function IntelligentCoachInsights({ data }) {
                   <p>{item.suggestion}</p>
                 </div>
                 <div className="coachSuggestionMeta">
-                  <strong>{item.estimated_impact || item.estimatedImpact || "3-6%"}</strong>
+                  {item.estimated_impact || item.estimatedImpact ? <strong>{item.estimated_impact || item.estimatedImpact}</strong> : null}
                   <small>{coachValue(item.confidence, "Medium")} confidence</small>
                 </div>
               </article>

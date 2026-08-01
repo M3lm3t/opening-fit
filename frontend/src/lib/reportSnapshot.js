@@ -280,7 +280,7 @@ export function buildReportSnapshot({
   );
   const analysisId = stableAnalysisIdentity(report, summary);
   const gameCounts = buildReportGameCounts(report);
-  const reportDecision = normaliseReportDecision(first(report.reportDecision, report.report_decision)) || null;
+  const reportDecision = normaliseReportDecision(first(report.reportDecision, report.report_decision), report) || null;
   const trainingPriority = selectAuthoritativeCoachingPriority(report, { decision: reportDecision, allowFallback: false });
 
   return {
@@ -357,7 +357,7 @@ export function buildReportSnapshot({
 export function adaptReportHistoryRow(row = {}) {
   const rawSnapshot = row.normalized_snapshot || row.snapshot;
   if (rawSnapshot && Number(rawSnapshot.report_schema_version) >= 2) {
-    const reportDecision = normaliseReportDecision(rawSnapshot.report_decision) || null;
+    const reportDecision = normaliseReportDecision(rawSnapshot.report_decision, rawSnapshot) || null;
     return {
       ...rawSnapshot,
       report_id: row.id || rawSnapshot.report_id || null,

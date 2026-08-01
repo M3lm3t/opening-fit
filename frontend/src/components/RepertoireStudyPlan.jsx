@@ -122,7 +122,7 @@ function fallbackOpening(label) {
 export default function RepertoireStudyPlan({ data }) {
   if (!data) return null;
 
-  const decision = normaliseReportDecision(data.reportDecision || data.report_decision || null);
+  const decision = normaliseReportDecision(data.reportDecision || data.report_decision || null, data);
   const openings = cleanOpenings(data);
   const repertoireOpenings = openings.filter((opening) =>
     ["white", "black"].includes(getOpeningContext(opening).type)
@@ -148,14 +148,17 @@ export default function RepertoireStudyPlan({ data }) {
     (!decision ? pickBest(repertoireOpenings, "black") : null) ||
     fallbackOpening("Choose a reliable Black defence");
 
-  const canonicalTarget = decision?.primaryProblem || decision?.recommendations?.find((item) => item.recommendationId === decision.nextTrainingAction?.recommendationId) || null;
+  const primaryAction = decision?.primaryAction || decision?.nextTrainingAction || null;
+  const canonicalTarget = primaryAction?.recommendationId
+    ? decision?.recommendations?.find((item) => item.recommendationId === primaryAction.recommendationId) || primaryAction
+    : primaryAction;
   const studyTarget = canonicalTarget
     ? {
-        name: canonicalTarget.opening,
+        name: canonicalTarget.opening || canonicalTarget.openingName || canonicalTarget.label,
         games: canonicalTarget.sample?.games || 0,
         winRate: canonicalTarget.performanceScore ?? canonicalTarget.scoreRate ?? 0,
-        colour: canonicalTarget.playerColour,
-        context: canonicalTarget.repertoireRole,
+        colour: canonicalTarget.playerColour || canonicalTarget.colour,
+        context: canonicalTarget.repertoireRole || canonicalTarget.role,
       }
     : (!decision ? pickWeakest(repertoireOpenings) || pickMostPlayed(repertoireOpenings) : null) ||
       fallbackOpening("Import more games to find a study target");
@@ -191,7 +194,7 @@ export default function RepertoireStudyPlan({ data }) {
           label="Study target"
           opening={studyTarget}
           type="study"
-          text="Review losses and find the first recurring mistake."
+          text={primaryAction?.conciseReason || primaryAction?.reason || "Follow the report's one primary action before changing another role."}
         />
       </div>
 

@@ -10873,6 +10873,18 @@ def demo_profile():
             **opening_explanation("Italian Game"),
         },
     ]
+    demo_best_openings = [
+        attach_perspective(
+            row,
+            classify_opening_perspective(
+                user_colour=str(row.get("colour") or "white"),
+                opening_side=str(row.get("colour") or "white"),
+                first_white_move="d4" if row.get("context") == "black_vs_d4" or row.get("name") == "Queen Pawn Game" else "e4",
+                classification_source="demo_fixture",
+            ),
+        )
+        for row in demo_best_openings
+    ]
 
     style_profile = {
         "primaryStyle": "Aggressive Tactical",
@@ -11062,6 +11074,8 @@ def demo_profile():
     )
 
     demo_data = {
+        "analysisId": "openingfit-demo-v1",
+        "analysis_id": "openingfit-demo-v1",
         "username": "DemoPlayer",
         "player_url": None,
         "playerUrl": None,
@@ -11164,6 +11178,16 @@ def demo_profile():
         },
         **premium_data,
     }
+
+    report_decision = build_report_decision(demo_data, openings=demo_best_openings)
+    demo_data["report_decision"] = report_decision
+    demo_data["reportDecision"] = report_decision
+    demo_data["training_priority"] = report_decision["trainingPriority"]
+    demo_data["trainingPriority"] = report_decision["trainingPriority"]
+    demo_data["recommended_action"] = report_decision["primaryAction"]["label"]
+    demo_data["recommendedAction"] = report_decision["primaryAction"]["label"]
+    demo_data["training_plan"] = [report_decision["primaryAction"]["nextAction"]]
+    demo_data["trainingPlan"] = demo_data["training_plan"]
 
     log_analytics_event("report_viewed", {"source": "sample_report"})
 

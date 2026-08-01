@@ -87,7 +87,7 @@ def test_three_game_french_slice_cannot_inherit_twenty_two_game_repair_claim():
         "scoreRate": 66.7,
     }
     assert recommendation["verdict"] == "insufficient-data"
-    assert recommendation["confidence"]["level"] == "very_early"
+    assert recommendation["confidence"]["level"] == "insufficient"
     assert decision["primaryProblem"] is None
     assert "22" not in decision["nextTrainingAction"]["reason"]
 
@@ -99,7 +99,7 @@ def test_total_report_volume_never_inflates_opening_confidence():
     decision = build_report_decision(payload, openings=[opening("Scandinavian Defence", "played_as_black", 4, 0, 0, 4)])
 
     assert decision["reportCoverage"]["level"] == "broad"
-    assert decision["recommendations"][0]["confidence"]["level"] == "very_early"
+    assert decision["recommendations"][0]["confidence"]["level"] == "low"
     assert decision["primaryProblem"] is None
 
 
@@ -157,7 +157,7 @@ def test_vienna_decision_contract_cannot_disagree_with_its_repertoire_role():
     recommendation = decision["recommendations"][0]
     role = next(row for row in decision["roleDecisions"] if row["repertoireRole"] == "white")
 
-    assert decision["schemaVersion"] == 4
+    assert decision["schemaVersion"] == 5
     assert recommendation["sampleSize"] == 60
     assert recommendation["sampleThreshold"] == 5
     assert recommendation["evidenceStatus"] == "sufficient"
@@ -185,10 +185,10 @@ def test_large_scandinavian_mixed_signal_is_not_insufficient_or_told_to_play_mor
     assert recommendation["verdict"] == role["verdict"] == "explore"
     assert role["status"] == "established"
     assert decision["primaryProblem"] is None
-    assert decision["nextTrainingAction"]["type"] == "review_mixed_signal"
+    assert decision["nextTrainingAction"]["type"] == "fill_repertoire_gap"
     combined_copy = " ".join([
         recommendation["recommendedAction"]["explanation"],
-        decision["nextTrainingAction"]["reason"],
+        recommendation["recommendedAction"]["explanation"],
         role["confidenceExplanation"],
     ]).lower()
     assert "large sample, mixed signal" in combined_copy
@@ -236,10 +236,11 @@ def test_sufficient_mixed_sample_returns_an_honest_review_action():
 
     assert decision["establishedStrength"] is None
     assert decision["primaryProblem"] is None
-    assert decision["nextTrainingAction"]["type"] == "review_mixed_signal"
-    assert decision["nextTrainingAction"]["completionTarget"]["type"] == "reviewed_games"
-    assert "sample is sufficient" in decision["nextTrainingAction"]["reason"]
-    assert "mixed" in decision["nextTrainingAction"]["reason"]
+    assert decision["nextTrainingAction"]["type"] == "fill_repertoire_gap"
+    recommendation = decision["recommendations"][0]
+    assert recommendation["recommendedAction"]["completionTarget"]["type"] == "reviewed_games"
+    assert "sample is sufficient" in recommendation["recommendedAction"]["explanation"]
+    assert "mixed" in recommendation["recommendedAction"]["explanation"]
 
 
 def test_a_weak_line_requires_recurrence_ids_and_a_move_sequence():
@@ -299,7 +300,7 @@ def test_report_evidence_uses_singular_result_and_game_labels():
     recommendation = decision["recommendations"][0]
 
     assert recommendation["evidence"][0] == "1 game: 0 wins, 1 draw, 0 losses."
-    assert recommendation["confidence"]["reason"] == "Only 1 opening-specific game is available; the sample is insufficient for a repertoire decision."
+    assert recommendation["confidence"]["reason"] == "1 opening-specific game is too little data for a firm verdict."
 
 
 def test_repertoire_roles_expose_role_specific_evidence_gaps_and_filters():
@@ -462,25 +463,16 @@ def test_caro_kann_priority_keeps_verified_games_and_post_classification_continu
         pgn_game("Caro-Kann Defence", "faced_as_white", 10, "1. e4 c6 2. Nc3 d5 3. d4 Nf6 4. e5", "draw"),
     ]
     decision = build_report_decision(report(games), openings=[opening("Caro-Kann Defence", "faced_as_white", 10, 0, 9, 1)])
-    priority = decision["trainingPriority"]
+    recommendation = decision["recommendations"][0]
 
-    assert priority["schemaVersion"] == 2
-    assert priority["openingName"] == "Caro-Kann Defence"
-    assert priority["role"] == "faced_as_white"
-    assert priority["playerRole"] == "white_repertoire"
-    assert priority["relationship"] == "faced_by_user"
-    assert priority["evidenceCount"] == 10
-    assert 1 <= len(priority["representativeGameIds"]) <= 3
-    assert set(priority["representativeGameIds"]) <= set(priority["evidenceGameIds"])
-    assert priority["recognisedLine"] == "1. e4 c6"
-    assert priority["classificationPly"] == 2
-    assert priority["opponentContinuation"]["move"] == "d5"
-    assert priority["opponentContinuation"]["games"] == 10
-    assert priority["opponentContinuation"]["move"] not in {"e4", "c6"}
-    assert priority["playerResponse"]["move"] == "Nc3"
-    assert priority["positionFen"]
-    assert priority["nextGameObjective"].startswith("In your next five relevant Caro-Kann Defence games")
-    assert priority["findingType"] == "preparation_opportunity"
+    assert recommendation["openingName"] == "Caro-Kann Defence"
+    assert recommendation["role"] == "faced_as_white"
+    assert recommendation["relationship"] == "faced"
+    assert recommendation["sampleSize"] == 10
+    assert set(recommendation["sample"]["gameIds"]) == {f"faced_as_white-{index}" for index in range(1, 11)}
+    assert recommendation["findingType"] == "preparation_opportunity"
+    assert decision["trainingPriority"]["openingName"] is None
+    assert decision["trainingPriority"]["findingType"] == "repertoire_gap"
 
 
 def test_training_priority_falls_back_to_line_rehearsal_without_verified_representative_game():

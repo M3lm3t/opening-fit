@@ -65,7 +65,7 @@ import { useAuth } from "./context/AuthDataProvider";
 import { getAppSection, HOME_NAVIGATION, navigateApp, scrollToAppTarget } from "./appNavigation";
 
 
-import { CoachSummaryCard, SeriousAppTabs, NextBestActions } from "./components/SeriousAppUpgrade";
+import { CoachSummaryCard, SeriousAppTabs } from "./components/SeriousAppUpgrade";
 
 
 import AppActionRouter from "./components/AppActionRouter";
@@ -4389,7 +4389,7 @@ function applyReportFilters(data, filters) {
   const openingFitScore = buildFilteredOpeningFitScore(aggregate.topOpenings, aggregate.weakLines);
   const openingIdentity = buildFilteredOpeningIdentity(aggregate.topOpenings, aggregate.weakLines, normalizedFilters);
   const trainingPlan = buildFilteredTrainingPlan(aggregate.weakLines, aggregate.topOpenings);
-  const reportDecision = buildFilteredReportDecision(aggregate.topOpenings, aggregate.totalGames);
+  const filteredReportDecision = buildFilteredReportDecision(aggregate.topOpenings, aggregate.totalGames);
   const weakestLine = aggregate.weakLines?.[0] || null;
   const oneThingToFix = weakestLine
     ? {
@@ -4421,10 +4421,10 @@ function applyReportFilters(data, filters) {
     weakLines: aggregate.weakLines,
     recent_games: aggregate.filteredGames,
     recentGames: aggregate.filteredGames,
-    training_plan: trainingPlan.length ? trainingPlan : data.training_plan,
-    trainingPlan: trainingPlan.length ? trainingPlan : data.trainingPlan,
-    reportDecision,
-    report_decision: reportDecision,
+    filteredTrainingPlan: trainingPlan,
+    filtered_training_plan: trainingPlan,
+    filteredReportDecision,
+    filtered_report_decision: filteredReportDecision,
     performanceByTimeControl: aggregate.performanceByTimeControl,
     performance_by_time_control: aggregate.performanceByTimeControl,
     timeControlPerformance: aggregate.performanceByTimeControl,

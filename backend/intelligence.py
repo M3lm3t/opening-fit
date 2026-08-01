@@ -990,7 +990,6 @@ def build_competitive_psychology(
         games = get_opening_games(nemesis)
         score = get_opening_score(nemesis)
         losses = safe_number(nemesis.get("losses") or nemesis.get("l"), None)
-        pain_word = "crush" if score is not None and score <= 35 and games >= 5 else "keep hurting"
         evidence = (
             f"{games} games, {score}% score"
             if score is not None
@@ -1002,8 +1001,8 @@ def build_competitive_psychology(
             {
                 "type": "nemesis_opening",
                 "severity": "high" if score is not None and score <= 35 and games >= 5 else "medium",
-                "title": f"Players {pain_word} you with {name}",
-                "body": f"{name} is becoming an emotional pressure point: {evidence}. Treat it like a revenge matchup, not a random bad opening.",
+                "title": f"{name} is a secondary evidence pattern",
+                "body": f"{name} is a secondary repeated pattern: {evidence}. Review it after the primary action.",
                 "action": "Build one anti-plan and play a 10-game repair block before judging yourself again.",
                 "opening": name,
             }
@@ -1054,7 +1053,7 @@ def build_competitive_psychology(
 
     headline = insights[0]["title"] if insights else "Your confidence grows when the repertoire gets narrower"
     summary = (
-        "These are the emotionally expensive patterns in your games: the openings that create dread, revenge energy, or repeated hesitation."
+        "These are secondary repeated patterns in the available games. Review them after the primary action."
         if insights
         else "No single painful pattern dominates yet. Keep building a larger sample and watch for recurring emotional pressure points."
     )
@@ -1189,8 +1188,8 @@ def build_ai_chess_coach(
                 "coach_note": f"White is scoring {white_score:g}% and Black is scoring {black_score:g}%. The next roadmap should repair the weaker side before adding new weapons.",
                 "action": f"Spend the next study block on one {weaker} line instead of learning another opening.",
                 "confidence": "Medium" if min(len(white_items), len(black_items)) else "Low",
-                "estimated_impact": "4-8%",
-                "estimatedImpact": "4-8%",
+                "estimated_impact": None,
+                "estimatedImpact": None,
             }
         )
 
@@ -1202,8 +1201,8 @@ def build_ai_chess_coach(
                 "coach_note": "Your best opening shows the kind of positions you handle well. Copy that clarity into the weaker line.",
                 "action": "Write down the pawn structure, usual piece squares, and one middlegame plan for the weaker opening.",
                 "confidence": confidence_from_sample(get_opening_games(best) + get_opening_games(weakest), games_imported),
-                "estimated_impact": "3-6%",
-                "estimatedImpact": "3-6%",
+                "estimated_impact": None,
+                "estimatedImpact": None,
             }
         )
 
@@ -1253,7 +1252,7 @@ def build_ai_chess_coach(
     )
 
     return {
-        "headline": f"Study {priority_name} next",
+        "headline": f"Legacy coaching evidence for {priority_name}",
         "summary": (
             f"The fastest improvement path is to repair one repeated weak spot, then test it for 10-20 games. "
             f"{preference_copy}"
@@ -1449,6 +1448,8 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
     if isinstance(fingerprint, dict) and not games_with_pgn and str(fingerprint.get("method") or "").startswith("deterministic_pgn"):
         fingerprint = {**fingerprint, "method": "insufficient_move_evidence", "confidence": "low"}
         data["style_fingerprint"] = data["styleFingerprint"] = fingerprint
+    decision = data.get("reportDecision") or data.get("report_decision")
+    primary_action = decision.get("primaryAction") if isinstance(decision, dict) else None
     data["backend_recommendation"] = recommendation
     data["backend_coach_summary"] = level_profile["headline"]
     data["backend_next_action"] = recommendation["primary_action"]
@@ -1459,6 +1460,46 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
         average_score,
         games_imported,
     )
+    if isinstance(primary_action, dict):
+        target = str(primary_action.get("opening") or primary_action.get("repertoireRole") or "the report evidence")
+        action_title = str(primary_action.get("label") or primary_action.get("title") or "Review the report evidence")
+        action_reason = str(primary_action.get("conciseReason") or primary_action.get("reason") or "This is the report's authoritative next action.")
+        action_task = str(primary_action.get("nextAction") or primary_action.get("exercise") or primary_action.get("explanation") or "Complete the report task.")
+        coach = dict(data["ai_chess_coach"])
+        coach["headline"] = action_title
+        coach["summary"] = action_reason
+        coach["recommendations"] = [{
+            "priority": 1, "title": action_title, "coach_note": action_reason,
+            "action": action_task, "confidence": primary_action.get("confidenceLevel") or "insufficient",
+            "decisionId": primary_action.get("decisionId"), "recommendationId": primary_action.get("recommendationId"),
+        }]
+        coach["roadmap"] = [{
+            "phase": "This week", "title": action_title, "task": action_task,
+            "decisionId": primary_action.get("decisionId"),
+        }]
+        secondary = [
+            row for row in (decision.get("recommendations") or [])
+            if isinstance(row, dict) and row.get("recommendationId") != primary_action.get("recommendationId")
+        ][:3]
+        psychology = {
+            "headline": "Secondary evidence to review after the primary target",
+            "summary": f"Keep {target} as the only current priority; these other observations remain secondary.",
+            "insights": [{
+                "type": "secondary_opening_evidence", "severity": "secondary",
+                "title": f"{row.get('openingName')}: secondary evidence",
+                "body": str((row.get("trainingAction") or {}).get("explanation") or (row.get("confidence") or {}).get("reason") or "This opening is not the primary action."),
+                "action": "Review after the primary target.",
+            } for row in secondary],
+            "confidenceReset": "One result is not proof; use the canonical evidence thresholds before changing priorities.",
+            "revengeTarget": None,
+        }
+        coach["competitive_psychology"] = coach["competitivePsychology"] = psychology
+        coach["opening_improvement_suggestions"] = []
+        coach["openingImprovementSuggestions"] = []
+        data["ai_chess_coach"] = coach
+        data["backend_recommendation"] = {"primary_action": primary_action, "source": "canonical_report_decision"}
+        data["backend_coach_summary"] = action_reason
+        data["backend_next_action"] = primary_action
     data["aiChessCoach"] = data["ai_chess_coach"]
     data["competitive_psychology"] = data["ai_chess_coach"].get("competitive_psychology")
     data["competitivePsychology"] = data["ai_chess_coach"].get("competitivePsychology")

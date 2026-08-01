@@ -107,7 +107,7 @@ function seededIndex(seed, length) {
 function buildDailyPlan(data, habitState) {
   const today = todayKey();
   const reportOpenings = collectReportOpenings(data);
-  const decision = normaliseReportDecision(data?.reportDecision || data?.report_decision || null);
+  const decision = normaliseReportDecision(data?.reportDecision || data?.report_decision || null, data);
   const asReportOpening = (item) => item ? { name: item.opening, games: item.sample?.games || 0, score: item.performanceScore ?? item.scoreRate ?? 50 } : null;
   const weakReportOpening = decision
     ? asReportOpening(decision.primaryProblem)

@@ -317,7 +317,7 @@ function canonicalOpening(source, fallbackType) {
 }
 
 export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory = []) {
-  const serverDecision = normaliseReportDecision(data.reportDecision || data.report_decision || null);
+  const serverDecision = normaliseReportDecision(data.reportDecision || data.report_decision || null, data);
   const legacyDecisions = serverDecision ? [] : buildRepertoireDecisions(data);
   const sourceOpenings = collectReportOpenings(data);
   const sourceFor = (entry) => sourceOpenings.find((item) => openingName(item).toLowerCase() === text(entry?.opening).toLowerCase() && openingPerspective(item).role === entry?.role) || {};
@@ -369,6 +369,11 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
   const baseline = serverDecision?.baseline || { status: comparisonAllowed ? "comparable_later_report" : "baseline", hasComparablePrevious: comparisonAllowed, comparisonClaimsAllowed: comparisonAllowed };
   const authoritative = {
     schemaVersion: serverDecision?.schemaVersion || 1,
+    decisionId: serverDecision?.decisionId || serverDecision?.decision_id || nextTrainingAction?.decisionId || null,
+    primaryAction: serverDecision?.primaryAction || nextTrainingAction,
+    keep: serverDecision?.keep || null,
+    repair: serverDecision?.repair || null,
+    experiment: serverDecision?.experiment || null,
     establishedStrength: establishedStrength || (keep ? { opening: keep.opening, role: keep.role, games: keep.games, score: keep.score, repertoireOwned: true } : null),
     primaryProblem: primaryProblem || (repair ? { opening: repair.opening, role: repair.role, games: repair.games, score: repair.score, repertoireOwned: true } : null),
     nextTrainingAction,

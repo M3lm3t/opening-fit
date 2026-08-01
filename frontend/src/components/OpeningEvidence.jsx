@@ -708,7 +708,7 @@ export function getEvidenceNextAction(opening, slot = "", data = null) {
 }
 
 export function getOpeningEvidence(opening, data, options = {}) {
-  const decision = normaliseReportDecision(data?.reportDecision || data?.report_decision);
+  const decision = normaliseReportDecision(data?.reportDecision || data?.report_decision, data);
   const openingRole = openingPerspective(opening || {}).role;
   const openingName = getEvidenceOpeningName(opening, "").toLowerCase();
   const authoritative = decision?.recommendations?.find((item) => item.opening.toLowerCase() === openingName && item.role === openingRole) || null;

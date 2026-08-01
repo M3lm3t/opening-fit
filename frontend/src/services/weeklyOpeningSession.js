@@ -130,7 +130,7 @@ export function buildWeeklyOpeningSession(data, fitData = {}) {
   }
 
 
-  const decision = normaliseReportDecision(data.reportDecision || data.report_decision || null);
+  const decision = normaliseReportDecision(data.reportDecision || data.report_decision || null, data);
   if (decision) {
     const action = decision.nextTrainingAction;
     const priority = decision.trainingPriority || data.trainingPriority || data.training_priority || null;
@@ -172,6 +172,8 @@ export function buildWeeklyOpeningSession(data, fitData = {}) {
     ];
     return {
       hasAnalysis: true,
+      decisionId: action?.decisionId || decision.decisionId || null,
+      trainingPriority: priority,
       target,
       targetName: name,
       practiceTarget,

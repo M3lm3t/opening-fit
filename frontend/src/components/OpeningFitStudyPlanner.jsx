@@ -11,7 +11,7 @@ import {
 } from "./playerLevelLogic";
 
 function getOpenings(data) {
-  const decision = normaliseReportDecision(data?.reportDecision || data?.report_decision || null);
+  const decision = normaliseReportDecision(data?.reportDecision || data?.report_decision || null, data);
   if (decision) return decision.recommendations.filter((item) => item.repertoireOwned);
   return [
     ...(Array.isArray(data?.top_openings) ? data.top_openings : []),

@@ -39,8 +39,7 @@ function repertoireRoleFor(item, role) {
 export function confidenceForRecommendation(games, valid = true, traceable = true) {
   const count = Math.max(0, Math.round(numeric(games)));
   if (!valid) return { level: "context_uncertain", label: "Context uncertain" };
-  if (count <= 2) return { level: "insufficient", label: "Insufficient sample" };
-  if (count <= 4) return { level: "very_early", label: "Very early signal" };
+  if (count <= 3) return { level: "insufficient", label: "Insufficient sample" };
   if (count <= 9) return { level: "low", label: "Low confidence" };
   if (count < RECOMMENDATION_EVIDENCE_THRESHOLDS.high || !traceable) return { level: "moderate", label: "Moderate confidence" };
   return { level: "high_sample", label: "High sample confidence" };
@@ -107,7 +106,7 @@ export function normaliseCanonicalRecommendation(entry) {
     verdict,
     sampleSize: checked.sample.games,
     sampleThreshold: numeric(entry.sampleThreshold || entry.sample_threshold, RECOMMENDATION_EVIDENCE_THRESHOLDS.minimum),
-    evidenceStatus: evidenceStatus || (supported ? "sufficient" : checked.sample.games >= 3 ? "very_early" : "insufficient"),
+    evidenceStatus: evidenceStatus || (supported ? "sufficient" : checked.sample.games >= 4 ? "very_early" : "insufficient"),
     sampleSizeStatus: supported ? "sufficient" : "insufficient_data",
     confidenceLevel,
     confidenceReasons: confidence.reasons,
@@ -171,8 +170,36 @@ export function buildFilteredReportDecision(openings = [], totalGames = 0) {
   };
 }
 
-export function normaliseReportDecision(decision = {}) {
-  if (!decision || typeof decision !== "object") return null;
+export function normaliseReportDecision(decision = {}, report = null) {
+  if (!decision || typeof decision !== "object") {
+    if (!report || typeof report !== "object") return null;
+    const action = {
+      decisionId: `legacy:${clean(report.analysisId || report.analysis_id || report.reportId || "report")}:collect_more_games`,
+      actionId: `legacy:${clean(report.analysisId || report.analysis_id || report.reportId || "report")}:collect_more_games`,
+      type: "collect_more_games", verdict: "collect_more_data", opening: null, role: null,
+      repertoireRole: "unresolved", targetType: "repertoire_gap",
+      label: "Collect more games before changing your repertoire",
+      reason: "This older report does not contain one traceable canonical priority, so OpeningFit will not invent a repair target.",
+      conciseReason: "This older report lacks traceable canonical decision evidence.",
+      nextAction: "Keep the current repertoire stable, collect five relevant games, then run a new report.",
+      trainingDuration: { minutes: 10 },
+      completionTarget: { type: "new_games", count: 5, label: "Add five relevant games before reassessing." },
+      successCheck: "Add five relevant games before reassessing.",
+      confidenceLevel: "insufficient", evidenceGameIds: [], recommendationId: null,
+      source: "legacy_compatibility_adapter", fallback: true,
+    };
+    return {
+      schemaVersion: 1, version: "legacy_compatibility_v1", sourceReportId: report.analysisId || report.analysis_id || null,
+      decisionId: action.decisionId,
+      evidenceStatus: "insufficient", overallSummary: action.reason,
+      recommendations: [], findings: [], keep: null, repair: null, experiment: null,
+      establishedStrength: null, primaryProblem: null, primaryAction: action, nextTrainingAction: action,
+      trainingPriority: null, rejectedCandidates: [], fallbackUsed: true, fallbackReason: action.reason,
+      roleDecisions: [], repertoireRoles: [], supportingEvidence: [action.reason],
+      confidence: { status: "insufficient_data", gamesAnalysed: null, minimumOpeningGames: RECOMMENDATION_EVIDENCE_THRESHOLDS.minimum },
+      baseline: { status: "baseline", hasComparablePrevious: false, comparisonClaimsAllowed: false },
+    };
+  }
   const recommendations = Array.isArray(decision.recommendations) ? decision.recommendations.map(normaliseCanonicalRecommendation).filter(Boolean) : [];
   const byId = (entry) => {
     const normalized = normaliseCanonicalRecommendation(entry);
@@ -181,8 +208,14 @@ export function normaliseReportDecision(decision = {}) {
   };
   const establishedStrength = byId(decision.establishedStrength);
   const primaryProblem = byId(decision.primaryProblem);
-  let nextTrainingAction = decision.nextTrainingAction || null;
+  const experiment = decision.experiment && typeof decision.experiment === "object" ? decision.experiment : null;
+  let nextTrainingAction = decision.primaryAction || decision.primary_action || decision.nextTrainingAction || null;
   const target = recommendations.find((item) => item.recommendationId === nextTrainingAction?.recommendationId && item.sampleSizeStatus === "sufficient");
+  const matchesExperiment = Boolean(
+    nextTrainingAction?.verdict === "experiment"
+    && experiment?.recommendationId
+    && experiment.recommendationId === nextTrainingAction.recommendationId
+  );
   if (nextTrainingAction && target) {
     const openingMismatch = nextTrainingAction.opening && clean(nextTrainingAction.opening).toLowerCase() !== target.opening.toLowerCase();
     nextTrainingAction = {
@@ -195,8 +228,9 @@ export function normaliseReportDecision(decision = {}) {
       validation: openingMismatch ? { valid: false, issues: ["training_opening_does_not_reconcile"] } : nextTrainingAction.validation,
     };
   }
-  if (!nextTrainingAction || (nextTrainingAction.recommendationId && !target)) {
-    nextTrainingAction = { type: "collect_more_games", opening: null, role: null, label: "Collect more games before changing your repertoire", reason: "The saved recommendation evidence does not reconcile, so no repertoire change is recommended.", recommendationId: null, sample: null };
+  if (!nextTrainingAction || (nextTrainingAction.recommendationId && !target && !matchesExperiment)) {
+    const recoveryId = `${decision.decisionId || decision.decision_id || "saved-report"}:collect_more_data`;
+    nextTrainingAction = { decisionId: recoveryId, actionId: recoveryId, type: "collect_more_games", verdict: "collect_more_data", opening: null, role: null, label: "Collect more games before changing your repertoire", reason: "The saved recommendation evidence does not reconcile, so no repertoire change is recommended.", recommendationId: null, sample: null };
   }
   const roleDecisions = Array.isArray(decision.roleDecisions || decision.role_decisions || decision.repertoireRoles || decision.repertoire_roles)
     ? (decision.roleDecisions || decision.role_decisions || decision.repertoireRoles || decision.repertoire_roles)
@@ -207,6 +241,8 @@ export function normaliseReportDecision(decision = {}) {
     recommendations,
     establishedStrength,
     primaryProblem,
+    experiment,
+    primaryAction: nextTrainingAction,
     nextTrainingAction,
     roleDecisions,
     repertoireRoles: roleDecisions,

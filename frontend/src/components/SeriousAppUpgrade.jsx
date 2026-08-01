@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
 
 function getOpeningName(opening) {
   return (
@@ -275,6 +276,9 @@ export function SeriousPremiumStrip() {
 export function NextBestActions({ data, onViewChange }) {
   if (!data) return null;
 
+  const decision = normaliseReportDecision(data.reportDecision || data.report_decision || null, data);
+  const primaryAction = decision?.primaryAction || decision?.nextTrainingAction;
+
   const openings = pickTopOpenings(data);
   const sortedByGames = [...openings].sort((a, b) => getGames(b) - getGames(a));
   const sortedByWinRate = [...openings]
@@ -282,18 +286,16 @@ export function NextBestActions({ data, onViewChange }) {
     .sort((a, b) => getWinRate(a) - getWinRate(b));
 
   const mostPlayed = sortedByGames[0];
-  const weakest = sortedByWinRate[0];
   const strongest = [...sortedByWinRate].reverse()[0];
 
   const mostPlayedName = mostPlayed ? getOpeningName(mostPlayed) : "your most common opening";
-  const weakestName = weakest ? getOpeningName(weakest) : "your lowest scoring opening";
   const strongestName = strongest ? getOpeningName(strongest) : "your strongest opening";
 
   const actionCards = [
     {
       label: "Step 1",
-      title: `Review ${weakestName}`,
-      text: "Start here if this line is costing you games. Look for the first repeated mistake.",
+      title: primaryAction?.label || primaryAction?.title || "Review the report's primary action",
+      text: primaryAction?.conciseReason || primaryAction?.reason || "Use the cautious action retained by the report decision.",
       button: "Train this line",
       view: "training",
       target: "next-actions",

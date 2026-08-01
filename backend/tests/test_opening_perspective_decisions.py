@@ -83,7 +83,8 @@ def test_one_game_sample_is_never_a_strength_problem_or_perfect_fit_claim():
     decision = build_report_decision(report(games=1), openings=[opening("Italian Game", "played_as_white", 1, 100)])
     assert decision["establishedStrength"] is None
     assert decision["primaryProblem"] is None
-    assert decision["nextTrainingAction"]["type"] == "collect_more_games"
+    assert decision["nextTrainingAction"]["type"] == "fill_repertoire_gap"
+    assert decision["nextTrainingAction"]["verdict"] == "collect_more_data"
     assert decision["confidence"]["status"] == "insufficient_data"
 
 
@@ -117,8 +118,8 @@ def test_faced_opening_becomes_preparation_not_repertoire_problem():
         openings=[opening("French Defence", "faced_as_white", 6, 25, "Fix")],
     )
     assert decision["primaryProblem"] is None
-    assert decision["nextTrainingAction"]["type"] == "prepare_against"
-    assert decision["nextTrainingAction"]["label"] == "Prepare against the French Defence"
+    assert decision["nextTrainingAction"]["type"] == "fill_repertoire_gap"
+    assert decision["recommendations"][0]["findingType"] == "opponent_response_problem"
     recommendation = decision["recommendations"][0]["trainingAction"]
     assert "supplied recent games" in recommendation["exercise"]
     assert "repeated position" not in recommendation["concept"]

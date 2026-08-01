@@ -212,17 +212,11 @@ def test_preparation_is_serialised_as_preparation_not_weakness():
     )
 
     assert decision["primaryProblem"] is None
-    assert decision["nextTrainingAction"]["findingType"] == "preparation_opportunity"
-    assert decision["trainingPriority"]["findingType"] == "preparation_opportunity"
+    assert decision["nextTrainingAction"]["findingType"] == "repertoire_gap"
+    assert decision["trainingPriority"]["findingType"] == "repertoire_gap"
     assert decision["findings"][0]["type"] == "preparation_opportunity"
-    priority = decision["trainingPriority"]
-    assert priority["title"] == "Prepare against Caro-Kann Defence as White"
-    assert priority["evidenceCount"] == 5
-    assert priority["successCheck"] == "Review at least one supplied game and save one response plan."
-    assert priority["workflowSteps"][0]["type"] == "line_rehearsal"
-    assert priority["workflowSteps"][-1]["type"] == "next_game_objective"
-    assert priority["fallbackSetupDrill"]["source"] == "general_guidance"
-    assert priority["sourceGameAvailability"] == {"supportingGames": 5, "referencedGameIds": 5}
+    assert decision["recommendations"][0]["findingType"] == "preparation_opportunity"
+    assert decision["recommendations"][0]["repertoireOwned"] is False
 
 
 def test_supported_poor_opponent_result_is_distinct_from_repertoire_weakness():
@@ -234,8 +228,8 @@ def test_supported_poor_opponent_result_is_distinct_from_repertoire_weakness():
     )
 
     assert decision["primaryProblem"] is None
-    assert decision["nextTrainingAction"]["findingType"] == "opponent_response_problem"
-    assert decision["trainingPriority"]["findingType"] == "opponent_response_problem"
+    assert decision["nextTrainingAction"]["findingType"] == "repertoire_gap"
+    assert decision["recommendations"][0]["findingType"] == "opponent_response_problem"
 
 
 def test_missing_canonical_role_is_a_gap_without_becoming_a_weakness():

@@ -297,7 +297,7 @@ function snapshotFromHistoryItem(item) {
 }
 
 function strongestOpening(snapshot) {
-  const canonical = normaliseReportDecision(snapshot?.report_decision || snapshot?.reportDecision);
+  const canonical = normaliseReportDecision(snapshot?.report_decision || snapshot?.reportDecision, snapshot);
   if (canonical) return canonical.establishedStrength?.opening || "Not available yet";
   const top = Array.isArray(snapshot?.topOpenings) ? snapshot.topOpenings : [];
   return top
@@ -310,7 +310,7 @@ function strongestOpening(snapshot) {
 }
 
 function weakestOpening(snapshot) {
-  const canonical = normaliseReportDecision(snapshot?.report_decision || snapshot?.reportDecision);
+  const canonical = normaliseReportDecision(snapshot?.report_decision || snapshot?.reportDecision, snapshot);
   if (canonical) return canonical.primaryProblem?.opening || "No reliable weakness";
   const weakLines = Array.isArray(snapshot?.weakLines) ? snapshot.weakLines : [];
   const line = weakLines.find(Boolean);

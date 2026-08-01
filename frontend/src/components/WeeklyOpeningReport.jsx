@@ -9,6 +9,7 @@ import {
 import { openingPerspective } from "../lib/reportDecisionModel.js";
 import { REPORT_COACH_TEMPLATES, recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
 import { formatTrainingPriorityTitle } from "../lib/trainingPriority.js";
+import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
 import "./WeeklyOpeningReport.css";
 
 const MAX_HISTORY = 16;
@@ -373,6 +374,8 @@ function buildNextBestAction({ biggestWeakness, mostImproved, mostPlayed, compar
 }
 
 function buildWeeklyReport(data, current, previous, history) {
+  const decision = normaliseReportDecision(data?.reportDecision || data?.report_decision || null, data);
+  const canonicalAction = decision?.primaryAction || decision?.nextTrainingAction || null;
   const comparison = compareSnapshots(current, previous);
   const openings = Array.isArray(current?.openings) ? current.openings.filter(Boolean) : [];
   const ownedSupported = openings.filter((item) => item.repertoireOwned && item.games >= 3);
@@ -402,7 +405,7 @@ function buildWeeklyReport(data, current, previous, history) {
     coach.headline ||
     coach.recommendations?.[0]?.title ||
     (biggestWeakness ? `Repair ${biggestWeakness.name}` : "Save this report as your weekly baseline");
-  const nextBestAction = buildNextBestAction({ biggestWeakness, mostImproved, mostPlayed, comparison });
+  const nextBestAction = canonicalAction?.label || canonicalAction?.title || buildNextBestAction({ biggestWeakness, mostImproved, mostPlayed, comparison });
   const studyFocus = nextBestAction || fallbackFocus;
   const repertoireConfidence = average(openings.slice(0, 8).map((item) => item.confidence));
   const studyConsistency = previous
