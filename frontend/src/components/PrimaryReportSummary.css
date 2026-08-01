@@ -1,125 +1,66 @@
 .primaryReportSummary { min-width: 0; display: grid; gap: 16px; }
-.primaryReportVerdict,
-.primaryReportRepertoire,
+.primaryReportHealth,
+.primaryReportCommand,
+.primaryReportExperiment,
 .primaryReportConfidence {
-  min-width: 0; padding: clamp(16px, 2.5vw, 24px); border: 1px solid var(--of-border, #d8dee8); border-radius: var(--of-radius-lg, 16px); background: var(--of-surface, #fff); overflow: hidden;
+  min-width: 0;
+  border: 1px solid var(--of-border, #d8dee8);
+  border-radius: var(--of-radius-lg, 16px);
+  background: var(--of-surface, #fff);
 }
-.primaryReportScoreSection { min-width: 0; }
-.primaryReportVerdict > span,
-.primaryReportRepertoire header span { color: var(--of-muted, #64748b); font-size: .74rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
-.primaryReportScoreExplanation { min-width: 0; padding: clamp(16px, 2.5vw, 24px); border: 1px solid var(--of-border, #d8dee8); border-radius: var(--of-radius-lg, 16px); background: var(--of-surface, #fff); }
-.primaryReportScoreExplanation h2 { margin: 0 0 8px; font-size: clamp(1.15rem, 2vw, 1.4rem); }
-.primaryReportScoreExplanation p { margin: 7px 0 0; color: var(--of-muted, #64748b); line-height: 1.5; }
-.primaryReportScoreExplanation > span,
-.primaryReportBuilding > span { color: var(--of-muted, #64748b); font-size: .72rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
-.primaryReportRoleOverview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin: 12px 0; padding: 0; list-style: none; }
-.primaryReportRoleOverview li { display: grid; gap: 3px; padding: 9px 10px; border-radius: var(--of-radius-sm, 8px); background: var(--of-surface-muted, #f1f5f9); font-size: .78rem; }
-.primaryReportRoleOverview span { color: var(--of-muted, #64748b); }
-.primaryReportCoverageIndicator { padding-top: 10px; border-top: 1px solid var(--of-border, #d8dee8); font-size: .86rem; }
-.primaryReportVerdict { display: grid; align-content: center; }
-.primaryReportVerdict h2 { margin: 4px 0 8px; font-size: clamp(1.55rem, 3vw, 2.35rem); }
-.primaryReportVerdict p { margin: 0; color: var(--of-text, #0f172a); font-size: clamp(1rem, 1.8vw, 1.16rem); line-height: 1.55; }
-.primaryReportVerdict small { margin-top: 11px; color: var(--of-muted, #64748b); }
-.primaryReportKeep { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 13px !important; padding-top: 12px; border-top: 1px solid var(--of-border, #d8dee8); }
-.primaryReportKeep strong { color: var(--of-accent, #2563eb); }
-.primaryReportEvidence { margin-top: 14px; padding: 12px 14px; border-left: 4px solid var(--of-accent, #2563eb); border-radius: var(--of-radius-md, 12px); background: var(--of-surface-muted, #f8fafc); }
-.primaryReportEvidence strong { display: block; }
-.primaryReportEvidence p { margin-top: 4px; color: var(--of-muted, #64748b); font-size: .9rem; }
-.primaryReportFitContext { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--of-border, #d8dee8); }
-.primaryReportFitContext > strong { font-size: .86rem; }
-.primaryReportFitContext ul { display: grid; gap: 4px; margin: 7px 0 0; padding-left: 18px; color: var(--of-muted, #64748b); font-size: .82rem; line-height: 1.4; }
-.primaryReportBuilding { min-width: 0; padding: 14px 16px; border: 1px dashed var(--of-border, #d8dee8); border-radius: var(--of-radius-md, 12px); background: var(--of-surface, #fff); }
-.primaryReportBuilding h2 { margin: 4px 0; font-size: 1rem; }
-.primaryReportBuilding p { margin: 0; color: var(--of-muted, #64748b); font-size: .84rem; line-height: 1.45; }
-.primaryReportNextAction { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: clamp(16px, 2.5vw, 22px); border: 1px solid color-mix(in srgb, var(--of-accent, #2563eb) 38%, var(--of-border, #d8dee8)); border-radius: var(--of-radius-lg, 16px); background: color-mix(in srgb, var(--of-accent, #2563eb) 8%, var(--of-surface, #fff)); }
-.primaryReportNextAction > span { color: var(--of-muted, #64748b); font-size: .74rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
-.primaryReportNextAction > div { flex: 1; min-width: 0; }
-.primaryReportNextAction h2 { margin: 0; font-size: clamp(1.05rem, 2vw, 1.35rem); line-height: 1.35; }
-.primaryReportNextAction p { margin: 5px 0 0; color: var(--of-muted, #64748b); font-size: .82rem; line-height: 1.4; }
-.primaryReportNextAction button { flex: 0 0 auto; min-height: 46px; }
-.primaryReportWeeklySteps { margin-top: 10px; }
-.primaryReportWeeklySteps summary { display: flex; align-items: center; min-height: 44px; color: var(--of-accent, #2563eb); font-weight: 800; cursor: pointer; }
-.primaryReportWeeklySteps ol { display: grid; gap: 5px; margin: 4px 0 0; padding-left: 20px; color: var(--of-muted, #64748b); font-size: .82rem; line-height: 1.45; }
-.primaryReportWeeklySteps li { overflow-wrap: anywhere; }
-.primaryReportConfidence { padding-block: 13px; background: color-mix(in srgb, var(--of-warning, #d97706) 7%, var(--of-surface, #fff)); }
-.primaryReportDecisions { min-width: 0; padding: clamp(16px, 2.5vw, 24px); border: 1px solid color-mix(in srgb, var(--of-accent, #2563eb) 24%, var(--of-border, #d8dee8)); border-radius: var(--of-radius-lg, 16px); background: var(--of-surface, #fff); }
-.primaryReportDecisions > header { margin-bottom: 12px; }
-.primaryReportDecisions > header span,
-.primaryReportDecision > span { color: var(--of-muted, #64748b); font-size: .72rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
-.primaryReportDecisions > header h2 { margin: 3px 0 0; font-size: clamp(1.2rem, 2vw, 1.5rem); }
-.primaryReportDecisions > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.primaryReportDecision { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; padding: 14px; border-radius: var(--of-radius-md, 12px); background: var(--of-surface-muted, #f8fafc); }
-.primaryReportDecision h3 { margin: 6px 0; font-size: 1rem; overflow-wrap: anywhere; }
-.primaryReportDecision p { margin: 0; color: var(--of-muted, #64748b); font-size: .84rem; line-height: 1.45; }
-.primaryReportDecision button { min-height: 44px; margin-top: auto; padding-top: 10px; padding-bottom: 10px; }
-.primaryReportDecision p + button { margin-top: 14px; }
-.primaryReportDecision--train { background: color-mix(in srgb, var(--of-accent, #2563eb) 8%, var(--of-surface-muted, #f8fafc)); }
-.primaryReportDecisionEvidence { margin-top: 10px; border-top: 1px solid var(--of-border, #d8dee8); }
-.primaryReportDecisionEvidence > summary { padding-top: 10px; color: var(--of-muted, #64748b); cursor: pointer; font-size: .82rem; font-weight: 800; }
-.primaryReportDecisionEvidence > div { display: grid; gap: 8px; margin-top: 9px; }
-.primaryReportSupportingDisclosure,
-.primaryReportRepertoireDisclosure { min-width: 0; }
-.primaryReportSupportingDisclosure > summary,
-.primaryReportRepertoireDisclosure > summary { padding: 11px 0; color: var(--of-muted, #64748b); cursor: pointer; font-weight: 850; }
+.primaryReportHealth { display: grid; grid-template-columns: minmax(190px, .65fr) minmax(0, 1.35fr); gap: 20px; align-items: center; padding: clamp(18px, 3vw, 28px); }
+.primaryReportHealth span,
+.primaryReportCommand > span,
+.primaryReportExperiment > span { color: var(--of-muted, #64748b); font-size: .73rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+.primaryReportHealth h2 { margin: 4px 0; font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1; }
+.primaryReportHealth strong { font-size: .86rem; }
+.primaryReportHealthExplanation { min-width: 0; }
+.primaryReportHealthExplanation p { margin: 0; line-height: 1.5; }
+.primaryReportHealthExplanation p + p { margin-top: 8px; color: var(--of-muted, #64748b); }
+.primaryReportHealthExplanation small { display: block; margin-top: 10px; color: var(--of-muted, #64748b); }
+.primaryReportCommandGrid { min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.primaryReportCommand { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; padding: clamp(15px, 2vw, 20px); overflow: hidden; }
+.primaryReportCommand--repair.isActionable { border-width: 2px; border-color: color-mix(in srgb, var(--of-warning, #d97706) 52%, var(--of-border, #d8dee8)); }
+.primaryReportCommand--repair.isCautious { border-style: dashed; }
+.primaryReportCommand--train { background: color-mix(in srgb, var(--of-accent, #2563eb) 7%, var(--of-surface, #fff)); }
+.primaryReportCommand h3 { margin: 0; font-size: clamp(1.05rem, 2vw, 1.35rem); overflow-wrap: anywhere; }
+.primaryReportCommand > strong { font-size: .82rem; }
+.primaryReportCommand p { margin: 0; color: var(--of-muted, #64748b); font-size: .86rem; line-height: 1.5; overflow-wrap: anywhere; }
+.primaryReportCommandMetric { width: 100%; padding-top: 8px; border-top: 1px solid var(--of-border, #d8dee8); color: var(--of-text, #0f172a) !important; font-weight: 800; }
+.primaryReportCommand small { color: var(--of-muted, #64748b); line-height: 1.4; }
+.primaryReportCommand button { min-height: 44px; margin-top: auto; }
+.primaryReportExperiment { display: grid; gap: 5px; padding: 14px 16px; background: var(--of-surface-muted, #f8fafc); }
+.primaryReportExperiment p { margin: 0; color: var(--of-muted, #64748b); font-size: .84rem; line-height: 1.45; }
+.primaryReportExperiment small { color: var(--of-muted, #64748b); font-weight: 800; }
+.primaryReportConfidence { padding: 13px 16px; background: color-mix(in srgb, var(--of-warning, #d97706) 7%, var(--of-surface, #fff)); }
 .primaryReportConfidence p { margin: 4px 0 0; color: var(--of-muted, #64748b); line-height: 1.45; }
-.primaryReportComparison { min-width: 0; }
-.primaryReportRepertoire { display: grid; gap: 12px; }
-.primaryReportRepertoire > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.primaryReportRepertoire h2 { margin: 3px 0 0; font-size: clamp(1.15rem, 2vw, 1.4rem); }
-.primaryReportRepertoire > header > strong { color: var(--of-muted, #64748b); font-size: .78rem; }
-.primaryReportRepertoire > div { min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.primaryReportRepertoire article { min-width: 0; padding: 12px; border-radius: var(--of-radius-md, 12px); background: var(--of-surface-muted, #f8fafc); }
-.primaryReportRepertoire article.isIncomplete { border: 1px dashed var(--of-border, #cbd5e1); }
-.primaryReportRepertoire article span { color: var(--of-muted, #64748b); font-size: .78rem; font-weight: 800; }
-.primaryReportRepertoire article h3 { margin: 5px 0; font-size: 1rem; overflow-wrap: anywhere; }
-.primaryReportRepertoire article p { margin: 0; color: var(--of-muted, #64748b); font-size: .82rem; overflow-wrap: anywhere; }
-.primaryReportRepertoire article p + p { margin-top: 7px; }
-.primaryReportRoleStatus { display: block; margin-bottom: 7px; color: var(--of-text, #0f172a); font-size: .78rem; }
-.primaryReportRepertoire article small { display: block; margin-top: 8px; color: var(--of-muted, #64748b); font-size: .72rem; line-height: 1.4; }
-.primaryReportRepertoire article > details { margin-top: 9px; border-top: 1px solid var(--of-border, #d8dee8); }
-.primaryReportRepertoire article > details > summary { padding-top: 9px; color: var(--of-text, #0f172a); cursor: pointer; font-size: .78rem; font-weight: 800; }
-.primaryReportRepertoire dl { display: grid; gap: 4px; margin: 9px 0; }
-.primaryReportRepertoire dl > div { display: flex; justify-content: space-between; gap: 10px; font-size: .76rem; }
-.primaryReportRepertoire dd { margin: 0; font-weight: 800; }
-.primaryReportRepertoire code { font-size: .72rem; overflow-wrap: anywhere; }
+.primaryReportMore { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.primaryReportMore button { min-height: 44px; }
+.primaryReportMore small { color: var(--of-muted, #64748b); }
 .reportGameCountSummary { padding: 14px 16px; border: 1px solid var(--of-border, #d8dee8); border-radius: var(--of-radius-md, 12px); background: var(--of-surface, #fff); }
 .reportGameCountSummary > p { margin: 0; line-height: 1.55; }
 .reportGameCountCompact { display: flex; flex-wrap: wrap; gap: 8px; }
-.reportGameCountCompact > span { padding: 6px 10px; border-radius: 999px; background: var(--of-surface-muted, #f1f5f9); color: var(--of-muted, #64748b); font-size: .8rem; }
+.reportGameCountCompact > span { padding: 6px 10px; border-radius: 8px; background: var(--of-surface-muted, #f1f5f9); color: var(--of-muted, #64748b); font-size: .8rem; }
 .reportGameCountCompact strong { color: var(--of-text, #0f172a); }
 .reportGameCountSummary details { margin-top: 8px; }
-.reportGameCountSummary summary { color: var(--of-muted, #64748b); cursor: pointer; font-weight: 800; }
+.reportGameCountSummary summary { min-height: 44px; display: flex; align-items: center; color: var(--of-muted, #64748b); cursor: pointer; font-weight: 800; }
 .reportGameCountSummary dl { display: grid; gap: 8px; margin: 12px 0; }
 .reportGameCountSummary dl > div { display: grid; grid-template-columns: minmax(120px, .35fr) minmax(0, 1fr); gap: 10px; }
 .reportGameCountSummary dt { font-weight: 800; text-transform: capitalize; }
 .reportGameCountSummary dd { margin: 0; color: var(--of-muted, #64748b); }
 .reportGameExclusions ul { margin: 6px 0 0; padding-left: 20px; color: var(--of-muted, #64748b); }
-.primaryReportMore { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.primaryReportMore small { color: var(--of-muted, #64748b); }
-@media (max-width: 760px) {
-  .decisionReportFlow > .primaryReportSummary { order: -2 !important; }
-  .decisionReportFlow > .reportCommandBar { order: -1 !important; }
-  .decisionReportFlow > .reportFullDisclosure { order: 0 !important; }
-  .primaryReportScoreSection,
-  .primaryReportDecisions > div,
-  .primaryReportRepertoire > div,
-  .primaryReportRoleOverview { grid-template-columns: 1fr; }
-  .primaryReportVerdict { padding: 15px; }
-  .primaryReportNextAction { display: grid; padding: 14px; }
-  .primaryReportNextAction button { width: 100%; }
-  .primaryReportDecisions { padding: 13px; }
-  .primaryReportVerdict h2 { font-size: 1.55rem; line-height: 1.05; }
-  .primaryReportVerdict p { font-size: .9rem; line-height: 1.4; }
-  .primaryReportVerdict small { margin-top: 7px; font-size: .72rem; }
-  .primaryReportDecisions > header { margin-bottom: 8px; }
-  .primaryReportDecisions > header h2 { font-size: 1.12rem; }
-  .primaryReportDecisions > div { gap: 7px; }
-  .primaryReportDecision { padding: 10px 11px; }
-  .primaryReportDecision h3 { margin: 3px 0; font-size: .92rem; }
-  .primaryReportDecision p { display: -webkit-box; overflow: hidden; font-size: .76rem; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-  .primaryReportDecision--train p { -webkit-line-clamp: 3; }
-  .primaryReportDecision p + button { width: 100%; min-height: 42px; margin-top: 9px; }
-  .reportGameCountSummary dl > div { grid-template-columns: 1fr; gap: 2px; }
-  .primaryReportRepertoire > header { align-items: flex-start; }
+@media (max-width: 900px) {
+  .primaryReportHealth { grid-template-columns: 1fr; gap: 12px; }
+  .primaryReportCommandGrid { grid-template-columns: 1fr; }
+  .primaryReportCommand--repair { order: 1; }
+  .primaryReportCommand--train { order: 2; }
+  .primaryReportCommand--keep { order: 3; }
+}
+@media (max-width: 520px) {
+  .primaryReportSummary { gap: 12px; }
+  .primaryReportHealth h2 { font-size: 2rem; }
+  .primaryReportCommand { padding: 14px; }
+  .primaryReportCommand button,
   .primaryReportMore button { width: 100%; }
+  .reportGameCountSummary dl > div { grid-template-columns: 1fr; gap: 2px; }
 }

@@ -153,6 +153,39 @@ function recommendationContext(strength) {
   };
 }
 
+function roleLabel(value) {
+  const clean = text(value).toLowerCase();
+  return ({
+    white: "White repertoire",
+    black_vs_e4: "Black against 1.e4",
+    black_vs_d4: "Black against 1.d4",
+    black_other: "Other Black games",
+  })[clean] || text(value).replaceAll("_", " ") || "Repertoire context unavailable";
+}
+
+function evidenceLabel(candidate) {
+  const combined = { ...(candidate?.source || {}), ...(candidate || {}) };
+  return text(combined.confidence?.label || combined.confidenceLabel || combined.confidence_level || combined.evidenceConfidence?.label) || "Unavailable";
+}
+
+function observedSummary(candidate) {
+  const combined = { ...(candidate?.source || {}), ...(candidate || {}) };
+  const sample = combined.sample || {};
+  const observed = combined.observedPerformance || combined.observed_performance || {};
+  const games = openingGames(combined);
+  const wins = Number(observed.wins ?? sample.wins ?? combined.wins);
+  const draws = Number(observed.draws ?? sample.draws ?? combined.draws);
+  const losses = Number(observed.losses ?? sample.losses ?? combined.losses);
+  const scoreRate = Number(observed.scoreRate ?? observed.score_rate ?? sample.scoreRate ?? sample.score_rate ?? combined.scoreRate ?? combined.score_rate);
+  return {
+    games,
+    results: games > 0 && [wins, draws, losses].every(Number.isFinite) && wins + draws + losses === games
+      ? formatResultCounts({ wins, draws, losses })
+      : null,
+    scoreRate: Number.isFinite(scoreRate) ? `${Math.round(scoreRate)}% Score Rate` : null,
+  };
+}
+
 export function buildPrimaryReportSummary(model = {}, report = {}) {
   const healthContract = report.repertoireHealth || report.repertoire_health || model.authoritative?.repertoireHealth || model.authoritative?.repertoireCoverageScore || null;
   const suppliedRoles = Array.isArray(model.repertoire) ? model.repertoire : [];
@@ -209,6 +242,8 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   const trainingReason = formatOpeningNameForDisplay(preparationReason({ problem, collectMoreGames, priority: trainingPriority, training, nextAction, fallback: rawTrainingReason }));
   const establishedRoleCount = slots.filter((slot) => slot.complete).length;
   const completenessLabel = ({ 0: "Repertoire not established yet", 1: "Building repertoire", 2: "Nearly complete", 3: "Complete repertoire" })[establishedRoleCount] || "Repertoire status unavailable";
+  const diagnosis = trainingPriority?.openingDiagnosis || trainingPriority?.opening_diagnosis || null;
+  const experiment = model.authoritative?.experiment || model.experiment || null;
   return {
     score: model.health?.score !== null && model.health?.score !== undefined && Number.isFinite(Number(model.health.score)) ? Math.round(Number(model.health.score)) : null,
     scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Repertoire Health pending" : "Repertoire Health",
@@ -223,6 +258,40 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     primaryAction,
     confidence: healthContract?.confidence?.label ? `Overall Evidence Confidence: ${healthContract.confidence.label}` : text(model.health?.confidence) || "Insufficient data",
     confidenceWarning: lowConfidence ? `This report has ${model.health?.games || 0} game${Number(model.health?.games || 0) === 1 ? "" : "s"} with enough opening information, so recommendations are provisional. More analysed games will improve confidence.` : "",
+    decisionId: model.authoritative?.decisionId || model.decisionId || null,
+    diagnosisId: diagnosis?.diagnosisId || diagnosis?.diagnosis_id || trainingPriority?.diagnosisId || null,
+    keep: {
+      available: Boolean(strength),
+      opening: formatOpeningNameForDisplay(strength?.opening) || "No supported Keep decision yet",
+      role: roleLabel(strength?.repertoireRole || strength?.repertoire_role),
+      reason: strength ? formatOpeningNameForDisplay(recommendationCopy(strength, "keep")) : keepFallback,
+      confidence: evidenceLabel(strength),
+      observed: observedSummary(strength),
+      source: strength,
+    },
+    repair: {
+      available: Boolean(problem),
+      opening: formatOpeningNameForDisplay(diagnosis?.variation || diagnosis?.opening || problem?.opening) || "No reliable repair target",
+      role: roleLabel(diagnosis?.repertoireRole || diagnosis?.repertoire_role || problem?.repertoireRole || problem?.repertoire_role),
+      diagnosis: text(diagnosis?.userFacingDiagnosis || diagnosis?.user_facing_diagnosis) || weakness.text,
+      supportingGames: Array.isArray(diagnosis?.supportingGameIds) ? diagnosis.supportingGameIds.length : openingGames(problem),
+      confidence: text(diagnosis?.confidenceReason || diagnosis?.confidence_reason) || evidenceLabel(problem),
+      source: problem,
+    },
+    trainNext: {
+      title: primaryAction.title,
+      reason: trainingReason,
+      duration: trainingPriority?.estimatedDurationMinutes || training?.durationMinutes || 10,
+      successCheck: text(trainingPriority?.successCheck || trainingPriority?.success_check) || "Complete the task and record one practical takeaway.",
+      action: primaryAction,
+      priorityId: trainingPriority?.priorityId || null,
+    },
+    experiment: experiment ? {
+      opening: formatOpeningNameForDisplay(experiment.openingName || experiment.opening || experiment.name) || "Optional opening experiment",
+      role: roleLabel(experiment.repertoireRole || experiment.repertoire_role),
+      reason: text(experiment.reason || experiment.explanation) || "This is an optional comparison, not a conclusion from your games.",
+      hasPersonalEvidence: openingGames(experiment) > 0,
+    } : null,
     slots,
     incompleteRepertoire: slots.some((slot) => !slot.complete),
     decisions: [

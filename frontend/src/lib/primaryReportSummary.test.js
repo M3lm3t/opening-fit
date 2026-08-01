@@ -31,29 +31,25 @@ test("free and premium first reports share the same analysis hierarchy", () => {
   assert.deepEqual(free.slots.map((slot) => slot.confidence), ["Low confidence", "Low confidence", "Low confidence"]);
 });
 
-test("the report leads with verdict, evidence, one action and compact status", async () => {
+test("the report renders one Health, Keep, Repair and Train next command centre", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../components/PrimaryReportSummary.jsx", import.meta.url), "utf8");
   const styles = await readFile(new URL("../components/PrimaryReportSummary.css", import.meta.url), "utf8");
   const appSource = await readFile(new URL("../App.jsx", import.meta.url), "utf8");
-  const decisions = source.indexOf("<section className=\"primaryReportDecisions\"");
-  const verdict = source.indexOf("<div className=\"primaryReportVerdict\"");
-  const action = source.indexOf("<section className=\"primaryReportNextAction\"");
-  const building = source.indexOf("<section className=\"primaryReportBuilding\"");
+  const health = source.indexOf("<section className=\"primaryReportHealth\"");
+  const keep = source.indexOf('data-command-role="keep"');
+  const repair = source.indexOf('data-command-role="repair"');
+  const train = source.indexOf('data-command-role="train-next"');
   const more = source.indexOf("<div className=\"primaryReportMore\"");
-  const status = source.indexOf("<ReportGameCountSummary");
-  const score = source.indexOf("<section className=\"primaryReportScoreSection\"");
-  assert.ok(verdict < building && building < action && action < more && more < status && status < score && score < decisions);
-  assert.ok(decisions < source.indexOf("<section className=\"primaryReportRepertoire\""));
+  assert.ok(health < keep && keep < repair && repair < train && train < more);
   assert.equal((source.match(/"primaryBtn"/g) || []).length, 1);
   assert.doesNotMatch(source, /FeatureAccessPreview/);
-  assert.match(source, /Why these decisions\?/);
-  assert.match(source, /Why isn&apos;t this established\?/);
-  assert.match(source, /View evidence and full report/);
-  assert.match(source, /Role completeness uses only openings you played in the three core jobs/);
-  assert.match(source, /Repertoire Health also shows concentration, evidence strength and unresolved recurring problems/);
+  assert.doesNotMatch(source, /primaryReportDecisions|primaryReportNextAction|primaryReportRepertoire/);
+  assert.match(source, /View supporting games/);
+  assert.match(source, /Explore repertoire details/);
   assert.doesNotMatch(source, /<small>\/100<\/small>|Why \$\{view\.score\}\?/);
-  assert.doesNotMatch(source, /primaryReportProblem|primaryReportTraining/);
+  assert.match(source, /data-decision-id=\{view\.decisionId/);
+  assert.match(source, /data-diagnosis-id=\{view\.diagnosisId/);
   assert.match(appSource, /onPractice=\{onPractice\}/);
   assert.match(appSource, /onEvidence=\{openOpeningBreakdown\}/);
   assert.match(appSource, /primaryComparison !== "hidden" && primaryComparison !== "preview"/);
@@ -62,9 +58,9 @@ test("the report leads with verdict, evidence, one action and compact status", a
   assert.match(appSource, /activeAppSection === "report" && !reportData && !loading/);
   assert.match(appSource, /className="card loadingCard" role="status" aria-live="polite" aria-busy="true"/);
   assert.match(appSource, /className="errorBox analyseErrorBox" role="alert"/);
-  assert.match(styles, /\.primaryReportNextAction/);
+  assert.match(styles, /\.primaryReportCommandGrid/);
+  assert.match(styles, /\.primaryReportCommand--repair \{ order: 1; \}/);
   assert.match(styles, /\.reportGameCountCompact/);
-  assert.match(styles, /-webkit-line-clamp: 2;/);
 });
 
 test("the report keeps one explicit training action when a weekly plan is in progress", () => {

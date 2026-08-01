@@ -2,23 +2,12 @@ import { buildPrimaryReportSummary } from "../lib/primaryReportSummary.js";
 import { buildOpeningFitScoreTransparency } from "../lib/openingFitScoreTransparency.js";
 import OpeningFitScoreDisclosure from "./OpeningFitScoreDisclosure.jsx";
 import { isSampleReport } from "../fixtures/sampleReport.js";
-import ReportGameCountSummary from "./ReportGameCountSummary.jsx";
-import RecommendationEvidenceDisclosure from "./RecommendationEvidenceDisclosure.jsx";
 import "./PrimaryReportSummary.css";
 
-export default function PrimaryReportSummary({ model, report, previousReport = null, comparison = null, saveStatus = "", authenticated = false, onAccount, onTraining, onPractice, onEvidence, onAnalyse, onFullReport }) {
+export default function PrimaryReportSummary({ model, report, previousReport = null, onTraining, onPractice, onEvidence, onAnalyse, onFullReport }) {
   const view = buildPrimaryReportSummary(model, report);
   const scoreView = buildOpeningFitScoreTransparency({ model, report, previousReport });
-  const strengthEvidence = { ...(model.authoritative?.establishedStrength?.source || {}), ...(model.authoritative?.establishedStrength || model.establishedStrength || {}) };
-  const problemEvidence = { ...(model.authoritative?.primaryProblem?.source || {}), ...(model.authoritative?.primaryProblem || model.primaryProblem || {}) };
-  const trainingTarget = model.authoritative?.primaryProblem || model.authoritative?.establishedStrength || {};
-  const trainingEvidence = {
-    ...(trainingTarget.source || {}),
-    ...trainingTarget,
-    ...(model.authoritative?.nextTrainingAction || model.nextTrainingAction || {}),
-    sample: model.authoritative?.nextTrainingAction?.sample || trainingTarget.sample,
-    trainingPriority: model.authoritative?.trainingPriority || model.trainingPriority || null,
-  };
+  const sampleMode = isSampleReport(report);
   const actionAvailable = (action) => Boolean(action && (
     (action.type === "practice" && onPractice) ||
     (action.type === "evidence" && onEvidence) ||
@@ -31,82 +20,65 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
     else if (action?.type === "analyse") onAnalyse?.();
     else if (action?.type === "training") onTraining?.(action.target);
   };
-  const missingSlots = view.slots.filter((slot) => !slot.complete);
-  return (
-    <section className="primaryReportSummary" aria-labelledby="primary-report-title">
-      {isSampleReport(report) ? <p className="primaryReportSampleLabel">Illustrative example · Fictional data · <a href="/how-it-works">How analysis works</a></p> : null}
 
-      <div className="primaryReportVerdict">
-        <span>Coach verdict</span>
-        <h2 id="primary-report-title" tabIndex="-1">Your opening plan</h2>
-        <p>{view.verdict}</p>
-        <p className="primaryReportKeep"><strong>Keep playing</strong><span>{view.decisions[0].title}</span></p>
-        <div className={`primaryReportEvidence primaryReportEvidence--${view.weaknessState}`}>
-          <strong>{view.problem.title}</strong>
-          <p>{view.evidenceExplanation}</p>
+  return (
+    <section className="primaryReportSummary" aria-labelledby="primary-report-title" data-report-command-centre="true">
+      {sampleMode ? <p className="primaryReportSampleLabel">Illustrative example · Fictional data · <a href="/how-it-works">How analysis works</a></p> : null}
+      <section className="primaryReportHealth" aria-labelledby="primary-report-title">
+        <div>
+          <span>Repertoire Health</span>
+          <h2 id="primary-report-title" tabIndex="-1">{scoreView.scoreDisplayLabel}</h2>
+          <strong>{view.completenessLabel} · {view.establishedRoleCount} of {view.totalRoleCount} roles established</strong>
         </div>
-        <small>{view.confidence}</small>
+        <div className="primaryReportHealthExplanation">
+          {sampleMode ? <p>Role completeness shows whether the fictional repertoire fills all three jobs.</p> : null}
+          <p>{scoreView.displayScore === null ? "The stored evidence cannot support a complete health calculation." : scoreView.explanation || scoreView.developmentState.label}</p>
+          <p>{view.verdict}</p>
+          <small>{view.confidence}</small>
+        </div>
+      </section>
+
+      <div className="primaryReportCommandGrid" aria-label="Keep, repair and train next">
+        <article className="primaryReportCommand primaryReportCommand--keep" data-command-role="keep">
+          <span>Keep</span>
+          <h3>{view.keep.opening}</h3>
+          <strong>{view.keep.role}</strong>
+          <p>{view.keep.reason}</p>
+          {view.keep.observed.results || view.keep.observed.scoreRate ? <p className="primaryReportCommandMetric">{[view.keep.observed.results, view.keep.observed.scoreRate].filter(Boolean).join(" · ")}</p> : null}
+          <small>Evidence Confidence: {view.keep.confidence}</small>
+          {view.keep.available && onEvidence ? <button type="button" className="secondaryBtn" onClick={() => onEvidence(view.keep.source)}>View supporting games</button> : null}
+        </article>
+
+        <article className={`primaryReportCommand primaryReportCommand--repair ${view.repair.available ? "isActionable" : "isCautious"}`} data-command-role="repair">
+          <span>Repair</span>
+          <h3>{view.repair.opening}</h3>
+          <strong>{view.repair.role}</strong>
+          <p>{view.repair.diagnosis}</p>
+          {view.repair.supportingGames > 0 ? <p className="primaryReportCommandMetric">{view.repair.supportingGames} supporting game{view.repair.supportingGames === 1 ? "" : "s"}</p> : null}
+          <small>Evidence Confidence: {view.repair.confidence}</small>
+          {view.repair.available && onEvidence ? <button type="button" className="secondaryBtn" onClick={() => onEvidence(view.repair.source)}>View supporting games</button> : null}
+        </article>
+
+        <article className="primaryReportCommand primaryReportCommand--train" data-command-role="train-next">
+          <span>Train next</span>
+          <h3>{view.trainNext.title}</h3>
+          <p>{view.trainNext.reason}</p>
+          <p><strong>Success:</strong> {view.trainNext.successCheck}</p>
+          <small>Approximately {view.trainNext.duration} minutes</small>
+          {actionAvailable(view.trainNext.action) ? <button type="button" className="primaryBtn" data-decision-id={view.decisionId || undefined} data-diagnosis-id={view.diagnosisId || undefined} onClick={() => runAction(view.trainNext.action)}>{view.trainNext.action.label}</button> : null}
+        </article>
       </div>
 
-      {missingSlots.length ? <section className="primaryReportBuilding" aria-labelledby="building-role-title">
-        <span>Missing or building repertoire role</span>
-        <h2 id="building-role-title">{missingSlots.map((slot) => slot.label).join(" · ")}</h2>
-        <p>{missingSlots[0].explanation}</p>
-      </section> : null}
-
-      <section className="primaryReportNextAction" aria-labelledby="primary-action-title">
-        <span>{view.decisions[2].label}</span>
-        <div><h2 id="primary-action-title">{view.primaryAction.title}</h2><p>{view.decisions[2].reason}</p>{view.trainingPriority?.workflowSteps?.length ? <details className="primaryReportWeeklySteps"><summary>This week’s completion steps</summary><ol>{view.trainingPriority.workflowSteps.slice(0, 5).map((step, index) => <li key={`${step.type || "step"}-${index}`}>{step.label}</li>)}</ol></details> : null}</div>
-        {actionAvailable(view.primaryAction) ? <button type="button" className="primaryBtn" onClick={() => runAction(view.primaryAction)}>{view.primaryAction.label}</button> : null}
-      </section>
-
-      <div className="primaryReportMore"><button type="button" className="secondaryBtn" onClick={onFullReport}>View evidence and full report</button><small>Detailed repertoire roles, import counts, calculation, sharing and report tools are preserved below.</small></div>
-
-      <ReportGameCountSummary report={report} saveStatus={saveStatus} authenticated={authenticated} onAccount={onAccount} />
-
-      <section className="primaryReportScoreSection" aria-labelledby="repertoire-health-title">
-        <div className="primaryReportScoreExplanation">
-          <span>Repertoire completeness</span>
-          <h2 id="repertoire-health-title">{view.establishedRoleCount} of {view.totalRoleCount} repertoire roles established</h2>
-          <strong>{view.completenessLabel}</strong>
-          <ul className="primaryReportRoleOverview">{view.slots.map((slot) => <li key={slot.key}><span>{slot.label}</span><strong>{slot.statusLabel}</strong></li>)}</ul>
-          <p>{isSampleReport(report)
-            ? "Role completeness shows whether the fictional repertoire fills all three jobs. The coverage indicator also reflects the strength of its supporting evidence."
-            : ["repertoire_health_v2", "repertoire_coverage_v2", "repertoire_coverage_v3"].includes(scoreView.formulaVersion)
-            ? "Role completeness uses only openings you played in the three core jobs. Repertoire Health also shows concentration, evidence strength and unresolved recurring problems."
-            : "This saved report uses the earlier coverage method. It does not measure playing strength or opening quality."}</p>
-          <p className="primaryReportCoverageIndicator"><strong>{view.scoreLabel}:</strong> {scoreView.scoreDisplayLabel} · {scoreView.displayScore === null ? "Evidence components are incomplete" : scoreView.explanation || scoreView.developmentState.label}</p>
-          {scoreView.evidenceConfidence ? <p><strong>Overall Evidence Confidence:</strong> {scoreView.evidenceConfidence.label}</p> : null}
-        </div>
-      </section>
-      <OpeningFitScoreDisclosure model={model} report={report} previousReport={previousReport} />
-
-      <details className="primaryReportSupportingDisclosure"><summary>Supporting decisions and evidence</summary><section className="primaryReportDecisions" aria-labelledby="primary-decisions-title">
-        <header><span>Supporting decisions</span><h2 id="primary-decisions-title">Keep, assess, then train</h2></header>
-        <div>{view.decisions.map((decision, index) => (
-          <article className={`primaryReportDecision primaryReportDecision--${decision.key}`} key={decision.key}>
-            <span>{index + 1}. {decision.label}</span><h3>{decision.title}</h3><p>{decision.reason}</p>
-            {decision.key !== "train" && actionAvailable(decision.action) ? <button type="button" className="secondaryBtn" onClick={() => runAction(decision.action)}>{decision.action.label}</button> : null}
-          </article>
-        ))}</div>
-        {view.recommendationContext?.reasons?.length ? <div className="primaryReportFitContext"><strong>{view.recommendationContext.title}</strong><ul>{view.recommendationContext.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div> : null}
-        <details className="primaryReportDecisionEvidence">
-          <summary>Why these decisions?</summary>
-          <div>
-            {view.decisions[0].source ? <RecommendationEvidenceDisclosure recommendation={strengthEvidence} report={report} interpretation={view.decisions[0].reason} label="Evidence for Keep" /> : null}
-            {view.decisions[1].source ? <RecommendationEvidenceDisclosure recommendation={problemEvidence} report={report} interpretation={view.decisions[1].reason} label="Evidence for Repair" /> : null}
-            <RecommendationEvidenceDisclosure recommendation={trainingEvidence} report={report} interpretation={view.decisions[2].reason} label="Evidence for Train next" />
-          </div>
-        </details>
-      </section></details>
+      {view.experiment ? <aside className="primaryReportExperiment">
+        <span>Optional experiment</span>
+        <strong>{view.experiment.opening} · {view.experiment.role}</strong>
+        <p>{view.experiment.reason}</p>
+        <small>{view.experiment.hasPersonalEvidence ? "Separate experimental evidence" : "No personal game evidence yet"}</small>
+      </aside> : null}
 
       {view.confidenceWarning ? <aside className="primaryReportConfidence" role="status"><strong>Confidence is still developing</strong><p>{view.confidenceWarning}</p></aside> : null}
-      <details className="primaryReportRepertoireDisclosure"><summary>Detailed repertoire role evidence</summary><section className="primaryReportRepertoire" id="report-repertoire" aria-labelledby="primary-repertoire-title">
-        <header><div><span>Current repertoire</span><h2 id="primary-repertoire-title">Your three core roles</h2></div>{view.incompleteRepertoire ? <strong>Still building</strong> : <strong>Core roles covered</strong>}</header>
-        <div>{view.slots.map((slot) => <article key={slot.key} className={!slot.complete ? "isIncomplete" : ""}><span>{slot.label}</span><h3>{slot.opening}</h3><strong className="primaryReportRoleStatus">{slot.statusLabel}{slot.supportingGames !== null ? ` · ${slot.supportingGames} supporting game${slot.supportingGames === 1 ? "" : "s"}` : ""}</strong><p>{slot.explanation}</p>{!slot.complete ? <details><summary>Why isn&apos;t this established?</summary><p>{slot.confidenceExplanation}</p>{slot.funnelRows.length ? <dl>{slot.funnelRows.map((row) => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}</dl> : <p>Detailed role-stage counts were not stored with this report.</p>}<p>{slot.requirement}</p><small>{slot.filters}</small></details> : null}</article>)}</div>
-      </section></details>
-
-      {comparison ? <div className="primaryReportComparison">{comparison}</div> : null}
+      <OpeningFitScoreDisclosure model={model} report={report} previousReport={previousReport} />
+      <div className="primaryReportMore"><button type="button" className="secondaryBtn" onClick={onFullReport}>Explore repertoire details</button><small>Rankings, role coverage, games, exclusions, history and report tools remain in the report views.</small></div>
     </section>
   );
 }

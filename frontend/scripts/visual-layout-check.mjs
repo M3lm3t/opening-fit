@@ -301,12 +301,12 @@ async function assertRouteLayout(page, route) {
     const sampleNotice = page.locator(".sampleReportNotice").first();
     if (!(await sampleNotice.isVisible().catch(() => false))) failures.push("Example report notice is not visible.");
     const pageText = await page.locator("body").innerText();
-    for (const requiredText of ["Example report", "Fictional data", "Analyse my games", "72 analysed games", "fictional player"]) {
+    for (const requiredText of ["Illustrative example", "Fictional data", "Analyse your games", "72 analysed games", "fictional player"]) {
       if (!pageText.includes(requiredText)) failures.push(`Example report is missing required text: ${requiredText}.`);
     }
-    const reportNavigation = page.getByRole("navigation", { name: "Report sections" });
+    const reportNavigation = page.getByRole("tablist", { name: "Report sections" });
     if (!(await reportNavigation.isVisible().catch(() => false))) failures.push("Example report is missing the five-view report navigation.");
-    if (await reportNavigation.getByRole("button").count() !== 5) failures.push("Example report must expose exactly five report views.");
+    if (await reportNavigation.getByRole("tab").count() !== 5) failures.push("Example report must expose exactly five report views.");
     const persistedReport = await page.evaluate(() => window.localStorage.getItem("openingFit:lastAnalysis"));
     if (persistedReport !== null) failures.push("Direct sample route persisted data as the visitor's report.");
   }
@@ -447,6 +447,9 @@ async function main() {
           await page.reload({ waitUntil: "domcontentloaded" });
         }
         await page.locator(".page, .seoPageShell").first().waitFor({ state: "visible", timeout: 10000 });
+        if (route === "/report/sample") {
+          await page.locator(".sampleReportNotice").first().waitFor({ state: "visible", timeout: 10000 });
+        }
         if (route === "/train") {
           const opportunityButton = page.locator(".trainingSessionQueue li.isCurrent button").first();
           if (await opportunityButton.isVisible().catch(() => false)) {
@@ -478,12 +481,12 @@ async function main() {
             ["Train", "#report-train-view"],
             ["Evidence", "#report-evidence-view"],
           ];
-          const reportNavigation = page.getByRole("navigation", { name: "Report sections" });
+          const reportNavigation = page.getByRole("tablist", { name: "Report sections" });
           for (const [label, selector] of reportViews) {
-            const reportButton = reportNavigation.getByRole("button", { name: label, exact: true });
+            const reportButton = reportNavigation.getByRole("tab", { name: label, exact: true });
             if (label !== "Summary") await reportButton.click();
             if (!(await page.locator(selector).isVisible().catch(() => false))) {
-              const active = await reportNavigation.locator('[aria-current="page"]').allTextContents();
+              const active = await reportNavigation.locator('[aria-selected="true"]').allTextContents();
               throw new Error(`Report view ${label} did not open (${page.url()}; active: ${active.join(", ") || "none"}).`);
             }
             await assertRouteLayout(page, route);

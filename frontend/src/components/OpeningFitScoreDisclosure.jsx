@@ -1,13 +1,15 @@
+import { useState } from "react";
 import { buildOpeningFitScoreTransparency } from "../lib/openingFitScoreTransparency.js";
 import "./OpeningFitScoreDisclosure.css";
 
 export default function OpeningFitScoreDisclosure({ model, report, previousReport }) {
+  const [open, setOpen] = useState(false);
   const view = buildOpeningFitScoreTransparency({ model, report, previousReport });
   const contributionTotal = view.components.reduce((sum, component) => sum + Number(component.contribution || 0), 0);
   return (
-    <details className="openingFitScoreDisclosure">
-      <summary aria-label="Explain Repertoire Health calculation">How Repertoire Health is calculated</summary>
-      <div className="openingFitScoreDisclosureBody">
+    <details className="openingFitScoreDisclosure" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary id="repertoire-health-methodology-control" aria-label="Explain Repertoire Health calculation" aria-expanded={open} aria-controls="repertoire-health-methodology">How Repertoire Health is calculated</summary>
+      <div className="openingFitScoreDisclosureBody" id="repertoire-health-methodology" role="region" aria-labelledby="repertoire-health-methodology-control">
         <p className="openingFitScoreMeaning">{view.meaning}</p>
         <dl className="openingFitScoreFacts">
           <div><dt>Current Repertoire Health</dt><dd>{view.scoreDisplayLabel}</dd></div>

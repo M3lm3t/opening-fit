@@ -219,7 +219,7 @@ export function PageState({
   );
 }
 
-export function TabNavigation({ items = [], activeKey, onSelect, className = "", ariaLabel = "Sections" }) {
+export function TabNavigation({ items = [], activeKey, onSelect, className = "", ariaLabel = "Sections", semanticTabs = false }) {
   const handleKeys = (event) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     const buttons = [...event.currentTarget.querySelectorAll("button:not(:disabled)")];
@@ -230,7 +230,7 @@ export function TabNavigation({ items = [], activeKey, onSelect, className = "",
     buttons[next]?.focus();
   };
   return (
-    <nav className={cx("of-tab-navigation", className)} aria-label={ariaLabel} onKeyDown={handleKeys}>
+    <nav className={cx("of-tab-navigation", className)} aria-label={ariaLabel} role={semanticTabs ? "tablist" : undefined} onKeyDown={handleKeys}>
       {items.map((item) => {
         const isActive = item.key === activeKey || item.active;
         return (
@@ -239,6 +239,11 @@ export function TabNavigation({ items = [], activeKey, onSelect, className = "",
             type="button"
             className={cx("of-tab-navigation__item", isActive && "is-active", item.className)}
             aria-current={isActive ? "page" : undefined}
+            role={semanticTabs ? "tab" : undefined}
+            aria-selected={semanticTabs ? isActive : undefined}
+            aria-controls={semanticTabs ? item.controls : undefined}
+            id={semanticTabs ? item.id : undefined}
+            tabIndex={semanticTabs ? (isActive ? 0 : -1) : undefined}
             disabled={item.disabled}
             onClick={() => onSelect?.(item)}
           >

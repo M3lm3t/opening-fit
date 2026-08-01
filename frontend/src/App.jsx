@@ -141,6 +141,7 @@ import { SUPPORT_EMAIL } from "./lib/supportConfig.js";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
 import ReportCommandBar from "./components/ReportCommandBar";
+import ReportGameCountSummary from "./components/ReportGameCountSummary.jsx";
 import ReportComparisonSection from "./components/ReportComparisonSection.jsx";
 import TrainingImpactSection from "./components/TrainingImpactSection.jsx";
 import PrimaryReportSummary from "./components/PrimaryReportSummary.jsx";
@@ -6539,6 +6540,7 @@ function FinalReportFlow({
   comparisonLoading = false,
   comparisonError = "",
   entitlement = null,
+  isPremium = false,
   saveStatus = "",
   onAccount,
 }) {
@@ -6635,63 +6637,57 @@ function FinalReportFlow({
   return (
     <div className="finalReportFlow decisionReportFlow">
       <h1 className="reportPageTitle" tabIndex="-1">OpeningFit report for {data?.username || data?.player || "your games"}</h1>
-      {reportView === "summary" ? <section className="reportViewPanel" id="report-summary-view" aria-label="Report summary"><PrimaryReportSummary
+      <ReportCommandBar
+        data={data}
+        model={decisionModel}
+        activeSection={reportView}
+        onSectionChange={changeReportView}
+        saveStatus={saveStatus}
+        authenticated={authenticated}
+      />
+
+      {reportView === "summary" ? <section className="reportViewPanel" id="report-summary-view" role="tabpanel" aria-labelledby="report-tab-summary"><PrimaryReportSummary
         model={decisionModel}
         report={data}
         previousReport={hasComparisonAccess ? previousComparisonSnapshot : null}
-        comparison={primaryComparison !== "hidden" && primaryComparison !== "preview" ? (
-          <ReportComparisonSection
-            currentSnapshot={currentComparisonSnapshot}
-            reportSnapshots={comparisonSnapshots}
-            loading={comparisonLoading}
-            error={comparisonError}
-            onViewHistory={() => onNavigate?.("history")}
-            onAnalytics={onAnalytics}
-          />
-        ) : null}
         onTraining={() => onNavigate?.({ view: "train", path: "/train?start=report-task", target: "training-plan" })}
         onPractice={onPractice}
         onEvidence={openOpeningBreakdown}
         onAnalyse={() => { if (onNavigate) onNavigate("analyse"); else onViewChange?.("analyse"); }}
         onFullReport={openFullReport}
         entitlement={entitlement}
-        saveStatus={saveStatus}
-        authenticated={authenticated}
-        onAccount={onAccount}
-      /></section> : null}
-
-      <ReportCommandBar
-        data={data}
-        activeSection={reportView}
-        onSectionChange={changeReportView}
       />
+      {!isPremium && entitlement?.hasPremiumAccess === false ? <div className="reportOverviewPlusContinuation"><FeatureAccessPreview feature={OPENINGFIT_FEATURES.WEEKLY_PLAN} eyebrow="Continue when useful" title="Turn this task into a saved weekly plan" benefits={["Full weekly plan", "Own-game drills", "Saved progress", "Repertoire workspace"]} onUpgrade={() => onNavigate?.("premium")} actionClassName="secondaryBtn"><p>Your free report and first training action remain available. Plus continues the same evidence-backed work.</p></FeatureAccessPreview></div> : null}
+      </section> : null}
 
-      {reportView === "repertoire" ? <section className="reportViewPanel" id="report-repertoire-view" aria-labelledby="report-repertoire-view-title">
+      {reportView === "repertoire" ? <section className="reportViewPanel" id="report-repertoire-view" role="tabpanel" aria-labelledby="report-tab-repertoire">
         <header className="reportViewHeader"><span>Repertoire</span><h2 id="report-repertoire-view-title" tabIndex="-1">Your three core roles and practical alternatives</h2><p>Established, building and unresolved roles stay visible without inventing an opening.</p></header>
         <DecisionRepertoireMap model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} onAnalyse={() => onNavigate?.("analyse")} />
         <FocusedRepertoireSection data={data} model={decisionModel} onPractice={onPractice} onAnalytics={onAnalytics} />
       </section> : null}
 
-      {reportView === "problems" ? <section className="reportViewPanel" id="report-problems-view" aria-labelledby="report-problems-view-title">
+      {reportView === "problems" ? <section className="reportViewPanel" id="report-problems-view" role="tabpanel" aria-labelledby="report-tab-problems">
         <header className="reportViewHeader"><span>Problems</span><h2 id="report-problems-view-title" tabIndex="-1">Repeated issues and evidence still missing</h2><p>A missing role is an evidence gap, not automatically a weakness.</p></header>
         {decisionModel.repertoire.some((role) => !role.complete) ? <div className="reportEvidenceGapGrid" aria-label="Missing repertoire evidence">{decisionModel.repertoire.filter((role) => !role.complete).map((role) => <article key={role.key}><span>{role.label}</span><strong>{role.opening || "Not established yet"}</strong><p>{role.evidenceRequirement?.whyNeeded || "More correctly attributed games are needed for this exact role."}</p></article>)}</div> : null}
         <CostlyIssuesSection model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} />
         <InterestingThinDataSection data={data} fitData={fitData} />
       </section> : null}
 
-      {reportView === "train" ? <section className="reportViewPanel" id="report-train-view" aria-labelledby="report-train-view-title">
+      {reportView === "train" ? <section className="reportViewPanel" id="report-train-view" role="tabpanel" aria-labelledby="report-tab-train">
         <header className="reportViewHeader"><span>Train</span><h2 id="report-train-view-title" tabIndex="-1">Your canonical current task</h2><p>Start with the report’s single evidence-backed priority. The full weekly plan remains on the training page.</p></header>
         <FiniteTrainingSession model={decisionModel} onPractice={onPractice} />
         <div className="reportTrainLaunch"><button type="button" className="primaryBtn" onClick={() => onNavigate?.({ view: "train", path: "/train", target: "training-plan" })}>Open this week’s training plan</button></div>
       </section> : null}
 
-      {reportView === "evidence" ? <section className="reportViewPanel" id="report-evidence-view" aria-labelledby="report-evidence-view-title">
+      {reportView === "evidence" ? <section className="reportViewPanel" id="report-evidence-view" role="tabpanel" aria-labelledby="report-tab-evidence">
         <header className="reportViewHeader"><span>Evidence</span><h2 id="report-evidence-view-title" tabIndex="-1">Games, filters, confidence and report tools</h2><p>Inspect what was included, what was excluded and how the report reached its decisions.</p></header>
         <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
+        <ReportGameCountSummary report={data} saveStatus={saveStatus} authenticated={authenticated} onAccount={onAccount} />
         <EvidenceTableSection data={data} fitData={fitData} entitlement={entitlement} onPractice={onPractice} />
         <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
         <ImportQualitySummary data={data} />
         <div className="reportSecondaryDetailsBody">
+          {primaryComparison !== "hidden" && primaryComparison !== "preview" ? <ReportComparisonSection currentSnapshot={currentComparisonSnapshot} reportSnapshots={comparisonSnapshots} loading={comparisonLoading} error={comparisonError} onViewHistory={() => onNavigate?.("history")} onAnalytics={onAnalytics} /> : null}
           {!decisionModel.baseline.comparisonClaimsAllowed ? <p className="reportBaselineDetailsNotice">This is your baseline report. Progress deltas, improvement achievements, streak claims and comparison-only metrics stay unavailable until a comparable later report exists.</p> : null}
           {decisionModel.baseline.comparisonClaimsAllowed && authenticated && canUseFeature(entitlement, OPENINGFIT_FEATURES.PROGRESS_OUTCOMES) ? <TrainingImpactSection report={data} reportHistory={reportHistory} source="report" onViewHistory={() => onNavigate?.("journey")} onAnalytics={onAnalytics} /> : decisionModel.baseline.comparisonClaimsAllowed && authenticated ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.PROGRESS_OUTCOMES} title="See training impact in later games" onUpgrade={() => onNavigate?.("premium")} /> : null}
           {decisionModel.baseline.comparisonClaimsAllowed && reportHistory.length ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
