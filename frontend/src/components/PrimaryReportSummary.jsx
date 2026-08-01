@@ -72,8 +72,8 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
           <ul className="primaryReportRoleOverview">{view.slots.map((slot) => <li key={slot.key}><span>{slot.label}</span><strong>{slot.statusLabel}</strong></li>)}</ul>
           <p>{isSampleReport(report)
             ? "Role completeness shows whether the fictional repertoire fills all three jobs. The coverage indicator also reflects the strength of its supporting evidence."
-            : scoreView.formulaVersion === "repertoire_coverage_v2"
-            ? "Role completeness shows whether all three repertoire jobs are filled. The coverage indicator also considers how strongly each role is supported by evidence."
+            : ["repertoire_coverage_v2", "repertoire_coverage_v3"].includes(scoreView.formulaVersion)
+            ? "Role completeness uses only openings you played in the three core jobs. The coverage indicator also shows concentration, evidence strength and unresolved recurring problems."
             : "This saved report uses the earlier coverage method. It does not measure playing strength or opening quality."}</p>
           <p className="primaryReportCoverageIndicator"><strong>{view.scoreLabel}:</strong> {scoreView.scoreDisplayLabel} · {scoreView.displayScore === null ? "Evidence components are incomplete" : scoreView.developmentState.label}</p>
         </div>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { OPENINGS, findOpeningLine, normaliseOpeningKey } from "../data/openings";
 import { fetchOpeningFitCloudState, saveOpeningFitCloudState } from "./openingFitCloudState";
+import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
 
 const DAILY_HABIT_KEY = "openingFit:dailyOpeningHabit";
 const REVIEW_INTERVALS = [1, 2, 4, 7, 14, 30];
@@ -106,10 +107,14 @@ function seededIndex(seed, length) {
 function buildDailyPlan(data, habitState) {
   const today = todayKey();
   const reportOpenings = collectReportOpenings(data);
-  const weakReportOpening = [...reportOpenings]
-    .filter((item) => item.games >= 2)
-    .sort((a, b) => a.score - b.score || b.games - a.games)[0];
-  const bestReportOpening = [...reportOpenings].sort((a, b) => b.score - a.score || b.games - a.games)[0];
+  const decision = normaliseReportDecision(data?.reportDecision || data?.report_decision || null);
+  const asReportOpening = (item) => item ? { name: item.opening, games: item.sample?.games || 0, score: item.performanceScore ?? item.scoreRate ?? 50 } : null;
+  const weakReportOpening = decision
+    ? asReportOpening(decision.primaryProblem)
+    : [...reportOpenings].filter((item) => item.games >= 2).sort((a, b) => a.score - b.score || b.games - a.games)[0];
+  const bestReportOpening = decision
+    ? asReportOpening(decision.establishedStrength)
+    : [...reportOpenings].sort((a, b) => b.score - a.score || b.games - a.games)[0];
   const dueReviews = Object.values(habitState.reviews || {})
     .filter((item) => item?.nextReviewDate && item.nextReviewDate <= today)
     .sort((a, b) => String(a.nextReviewDate).localeCompare(String(b.nextReviewDate)));
@@ -124,6 +129,10 @@ function buildDailyPlan(data, habitState) {
     focusOpening.trainingLines[seededIndex(`${today}:${focusOpening.id}`, focusOpening.trainingLines.length)] ||
     focusOpening.trainingLines[0];
   const weakOpeningName = weakReportOpening?.name || focusOpening.name;
+  const opportunityLabel = weakReportOpening ? "Train the report's repair target" : "Build a preparation opportunity";
+  const opportunityText = weakReportOpening
+    ? `Use today's drill to repair ${weakOpeningName}.`
+    : `No reliable weakness was found; use today's drill to prepare ${focusOpening.name}.`;
   const mistakeReview =
     focusOpening.traps?.[0]?.warning ||
     `Review the first moment you leave book in ${weakOpeningName}; that is usually where rating points leak.`;
@@ -154,8 +163,8 @@ function buildDailyPlan(data, habitState) {
       },
       {
         key: "weakness",
-        title: "Train against your weakest defence",
-        text: `Use today's drill to repair ${weakOpeningName}.`,
+        title: opportunityLabel,
+        text: opportunityText,
       },
       {
         key: "mistake",

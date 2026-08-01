@@ -6,6 +6,18 @@ def make_payload(games_imported, top_openings=None, games_list=None, months=3):
     payload = {
         "gamesImported": games_imported,
         "months": months,
+        "gameCounts": {
+            "contractVersion": 4,
+            "gamesFetched": games_imported,
+            "eligible": games_imported,
+            "gamesPgnAvailable": games_imported,
+            "gamesParsed": games_imported,
+            "gamesAttributed": games_imported,
+            "gamesClassified": games_imported,
+            "gamesUsedForOpeningStats": games_imported,
+            "gamesExcluded": 0,
+            "exclusionReasons": {},
+        },
     }
     if top_openings is not None:
         payload["top_openings"] = top_openings
@@ -26,14 +38,14 @@ def test_low_game_account():
     payload = make_payload(3, top_openings=[{"name": "Unknown Opening", "games": 2}])
     res = enrich_analysis_result(payload, username="lowgame", platform="chess.com")
     assert "analysisConfidence" in res
-    assert res["analysisConfidence"] in {"aggregate", "light"}
+    assert res["analysisConfidence"] == "low"
     assert res["notEnoughDataReason"] is not None
 
 
 def test_club_player_medium():
     payload = make_payload(7, top_openings=[{"name": "London System", "games": 4}, {"name": "Italian", "games": 3}])
     res = enrich_analysis_result(payload, username="clubplayer", platform="chess.com")
-    assert res["analysisConfidence"] == "medium"
+    assert res["analysisConfidence"] == "light"
 
 
 def test_elite_user_conservative_language():

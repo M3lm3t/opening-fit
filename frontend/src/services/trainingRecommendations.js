@@ -1,4 +1,5 @@
 import { mergeWeakLines } from "./weakLineDetection.js";
+import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
 
 export const TRAINING_TARGET_THRESHOLDS = {
   weakLineMinGames: 3,
@@ -331,6 +332,48 @@ function onePrimaryPerOpening(recommendations = []) {
   return [...byOpening.values()].sort((a, b) => b.rankScore - a.rankScore);
 }
 
+function canonicalTrainingRecommendation(data = {}) {
+  const decision = normaliseReportDecision(data.reportDecision || data.report_decision || null);
+  const action = decision?.nextTrainingAction;
+  if (!decision || !action) return undefined;
+  if (!action.opening) return null;
+  const source = decision.recommendations.find((item) => item.recommendationId === action.recommendationId) || null;
+  const priority = decision.trainingPriority || data.trainingPriority || data.training_priority || {};
+  const side = source?.playerColour || priority.playerColour || priority.player_colour || (source?.role === "played_as_black" ? "black" : "white");
+  const reason = action.reason || action.explanation || source?.recommendedAction?.explanation || source?.trainingAction?.explanation || "This is the report's authoritative next action.";
+  const target = {
+    ...(source || {}),
+    ...(priority || {}),
+    opening: action.opening,
+    name: action.opening,
+    openingName: action.opening,
+    variation: priority.recognisedLine || priority.practiceLine || action.variationName || action.lineOrPosition || source?.variationName || "",
+    moveLine: priority.practiceLine || priority.recognisedLine || action.lineOrPosition || "",
+    practiceSide: side,
+    side,
+    colour: side,
+    selectedReason: reason,
+    source: "authoritative-report-decision",
+  };
+  return {
+    type: action.type,
+    opening: action.opening,
+    variation: target.variation,
+    moveLine: target.moveLine,
+    games: source?.sampleSize ?? source?.sample?.games ?? 0,
+    winRate: source?.performanceScore ?? source?.scoreRate ?? null,
+    lossRate: source?.sample?.games ? Math.round(((source.sample.losses || 0) / source.sample.games) * 100) : null,
+    sideLabel: side === "black" ? "Train as Black" : "Train as White",
+    startLabel: target.moveLine ? `after ${target.moveLine}` : "from the report's recommended position",
+    confidence: source?.confidence?.label || source?.confidenceLevel || "Report decision",
+    reason: "Why this was picked:",
+    why: reason,
+    estimatedTime: `${priority.estimatedDurationMinutes || 10} minutes`,
+    trainingTarget: target,
+    rankScore: Number(priority.priorityScore || priority.priority_score || source?.priority || 0),
+  };
+}
+
 export function buildTrainingRecommendations(data = null, fitData = null) {
   if (!data) {
     return {
@@ -339,6 +382,19 @@ export function buildTrainingRecommendations(data = null, fitData = null) {
       secondary: null,
       recommendations: [],
       message: "Import your games to unlock personalised training",
+    };
+  }
+
+  const canonical = canonicalTrainingRecommendation(data);
+  if (canonical !== undefined) {
+    return {
+      state: canonical ? "personalised" : "evidence-building",
+      primary: canonical,
+      secondary: null,
+      recommendations: canonical ? [canonical] : [],
+      message: canonical
+        ? "This task comes from the report's authoritative decision."
+        : "The report does not support an opening-specific training target yet.",
     };
   }
 

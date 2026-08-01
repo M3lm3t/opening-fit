@@ -126,14 +126,21 @@ function normaliseGame(game, report, index) {
   const opponent = structuredOpponent || headerOpponent;
   const playedAt = playedAtValue(game.playedAt || game.played_at || game.playedDate || game.played_date || game.endTime || game.end_time || headers.date);
   const id = stableId(game, pgn, url, index);
+  const white = whitePlayer(game, headers);
+  const black = blackPlayer(game, headers);
+  const containsSubmittedPlayer = Boolean(analysedUsername && ((white.toLowerCase() === analysedUsername) !== (black.toLowerCase() === analysedUsername)));
+  const role = text(game.openingRole || game.opening_role || game.perspective?.role || game.role).toLowerCase();
+  const rawRelationship = text(game.relationship || game.perspective?.relationship).toLowerCase();
+  const relationship = rawRelationship === "played_by_user" ? "played" : rawRelationship === "faced_by_user" ? "faced" : rawRelationship || (role.startsWith("played_") ? "played" : role.startsWith("faced_") ? "faced" : "");
   return {
     id, opening, openingKey: openingKey(opening), userColour: colour,
+    role, relationship, containsSubmittedPlayer,
     opponent: opponent || "Opponent not recorded", result: relativeResult(game, headers, colour),
     playedAt, timeControl: text(game.timeControl || game.time_control || game.timeClass || game.time_class || headers.timecontrol) || "Time control not recorded",
     platform: platformFor(game, url), sourceUrl: url, pgn, moves: parsed?.moves || list(game.moves),
     event: text(game.event || headers.event) || "Event not recorded",
-    white: whitePlayer(game, headers),
-    black: blackPlayer(game, headers),
+    white,
+    black,
     raw: game,
   };
 }
@@ -148,13 +155,25 @@ function mergeGame(existing, candidate) {
 function trainingReviewCandidates(report = {}, priority = {}) {
   const targetOpening = openingKey(priority.openingKey || priority.openingName || "");
   const targetColour = text(priority.playerColour || priority.player_colour).toLowerCase();
+  const targetRole = text(priority.role || priority.playerRole || priority.player_role).toLowerCase();
+  const targetRelationship = text(priority.relationship).toLowerCase().replace("_by_user", "");
+  const evidenceIds = new Set(list(priority.evidenceGameIds || priority.evidence_game_ids).map(text));
+  const representativeIds = new Set(list(priority.representativeGameIds || priority.representative_game_ids).map(text));
+  const requireRepresentative = priority.representativeSelectionRequired === true || Number(priority.schemaVersion || priority.schema_version || 0) >= 2;
   const byId = new Map();
   reportGames(report).forEach((game, index) => {
     const normalized = normaliseGame(game, report, index);
     byId.set(normalized.id, mergeGame(byId.get(normalized.id), normalized));
   });
   const openingMatches = [...byId.values()].filter((game) => !targetOpening || game.openingKey === targetOpening);
-  const eligible = openingMatches.filter((game) => !targetColour || game.userColour === targetColour);
+  const eligible = openingMatches.filter((game) => (
+    (!requireRepresentative || evidenceIds.has(game.id))
+    && (!requireRepresentative || representativeIds.has(game.id))
+    && (!requireRepresentative || game.containsSubmittedPlayer)
+    && (!targetColour || game.userColour === targetColour)
+    && (!requireRepresentative || !targetRole || game.role === targetRole)
+    && (!requireRepresentative || !targetRelationship || game.relationship === targetRelationship)
+  ));
   return { eligible, openingMatches, targetColour };
 }
 
@@ -183,12 +202,12 @@ export function buildTrainingReviewSelection(report = {}, priority = {}, priorit
   });
   const ranked = annotated
     .sort((left, right) => {
-      const usable = Number(Boolean(right.pgn || right.sourceUrl)) - Number(Boolean(left.pgn || left.sourceUrl));
-      if (usable) return usable;
       const evidence = Number(right.isPriorityEvidence) - Number(left.isPriorityEvidence);
       if (evidence) return evidence;
       const branch = Number(right.entersTargetBranch) - Number(left.entersTargetBranch);
       if (branch) return branch;
+      const usable = Number(Boolean(right.pgn || right.sourceUrl)) - Number(Boolean(left.pgn || left.sourceUrl));
+      if (usable) return usable;
       const deviation = Number(right.earlyRecordedDeviation) - Number(left.earlyRecordedDeviation);
       if (deviation) return deviation;
       const response = Number(right.repeatedOpponentResponse) - Number(left.repeatedOpponentResponse);

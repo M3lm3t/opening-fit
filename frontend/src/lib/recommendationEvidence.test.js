@@ -59,9 +59,11 @@ test("confidence sample mismatch is rejected", () => {
 });
 
 test("confidence is capped by opening-specific sample size", () => {
-    assert.equal(confidenceForRecommendation(4).level, "low");
-    assert.equal(confidenceForRecommendation(10).level, "medium");
-    assert.equal(confidenceForRecommendation(15).level, "high");
+    assert.equal(confidenceForRecommendation(2).level, "insufficient");
+    assert.equal(confidenceForRecommendation(4).level, "very_early");
+    assert.equal(confidenceForRecommendation(5).level, "low");
+    assert.equal(confidenceForRecommendation(10).level, "moderate");
+    assert.equal(confidenceForRecommendation(25).level, "high_sample");
 });
 
 test("saved decisions are downgraded when target evidence is insufficient", () => {

@@ -13,6 +13,7 @@ import {
   sampleReportExit,
 } from "../fixtures/sampleReport.js";
 import { buildReportDecisionModel } from "./reportDecisionModel.js";
+import { buildReportGameCounts } from "./reportGameCounts.js";
 
 test("both full-sample landing CTAs use the fixed sample entry", () => {
   const appSource = readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
@@ -55,6 +56,21 @@ test("sample fixture renders the complete existing report model", () => {
   assert.ok(names.includes("Caro-Kann Defence"));
   assert.ok(names.includes("Queen's Gambit Declined"));
   assert.equal(SAMPLE_REPORT.next_training_actions.length, 1);
+});
+
+test("sample fixture has one reconciled count funnel backed by unique classified games", () => {
+  const counts = buildReportGameCounts(SAMPLE_REPORT);
+  assert.equal(counts.countStatus, "canonical");
+  assert.deepEqual([
+    counts.fetchedGames, counts.eligibleGames, counts.pgnAvailableGames, counts.parsedGames,
+    counts.attributedGames, counts.classifiedGames, counts.usedForOpeningStats,
+  ], [72, 72, 72, 72, 72, 72, 72]);
+  assert.equal(counts.excludedGames, 0);
+  assert.equal(SAMPLE_REPORT.games.length, 72);
+  assert.equal(new Set(SAMPLE_REPORT.games.map((game) => game.gameId)).size, 72);
+  assert.equal(SAMPLE_REPORT.games.filter((game) => game.pgn).length, 72);
+  assert.equal(SAMPLE_REPORT.best_openings.reduce((sum, opening) => sum + opening.games, 0), 72);
+  assert.ok(SAMPLE_REPORT.games.every((game) => ["played_by_user", "faced_by_user"].includes(game.relationship)));
 });
 
 test("sample ownership and faced-opening roles are internally consistent", () => {

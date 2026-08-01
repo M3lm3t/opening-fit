@@ -6,6 +6,7 @@ import {
   resolveTrainingPriority,
   trainingPlanMatchesPriority,
 } from "./trainingPriority.js";
+import { buildFoundationalWeeklyPlan } from "./thisWeekTraining.js";
 import { countNoun, formatResultCounts } from "./reportGameCounts.js";
 
 const caroDecision = {
@@ -14,6 +15,7 @@ const caroDecision = {
     openingName: "Caro-Kann Defence",
     openingId: "caro-kann-defense",
     role: "played_as_black",
+    repertoireRole: "black_vs_e4",
     sample: { games: 60, gameIds: ["game-1", "game-2"] },
     confidence: { level: "medium" },
   }],
@@ -22,6 +24,7 @@ const caroDecision = {
     recommendationId: "caro-kann:defence:played_as_black",
     opening: "Caro-Kann Defence",
     role: "played_as_black",
+    repertoireRole: "black_vs_e4",
     reason: "60 opening-specific games support this repair priority.",
   },
 };
@@ -32,6 +35,7 @@ test("normalises the report decision into one stable training priority", () => {
   assert.equal(priority.priorityId, "training-caro-kann:defence:played_as_black");
   assert.equal(priority.openingName, "Caro-Kann Defence");
   assert.equal(priority.playerColour, "black");
+  assert.equal(priority.playerRole, "black_vs_e4");
   assert.equal(priority.evidenceCount, 60);
   assert.equal(priority.estimatedDurationMinutes, 10);
   assert.equal(priority.fallback, false);
@@ -77,6 +81,31 @@ test("cached plans match only the exact report priority", () => {
   assert.equal(trainingPlanMatchesPriority({ trainingPriorityId: priority.priorityId }, priority), true);
   assert.equal(trainingPlanMatchesPriority({ trainingPriorityId: "training-vienna" }, priority), false);
   assert.equal(trainingPlanMatchesPriority({}, priority), false);
+});
+
+test("the report priority and the Train plan retain the same canonical ID", () => {
+  const report = {
+    analysisId: "analysis-caro",
+    reportDecision: caroDecision,
+    trainingPriority: {
+      schemaVersion: 2,
+      priorityId: "training-caro-kann:defence:played_as_black",
+      recommendationId: "caro-kann:defence:played_as_black",
+      openingName: "Caro-Kann Defence",
+      role: "played_as_black",
+      relationship: "played_by_user",
+      evidenceCount: 60,
+      evidenceGameIds: ["game-1", "game-2"],
+      representativeGameIds: ["game-2"],
+      nextGameObjective: "Use the rehearsed response in the next five relevant games.",
+    },
+  };
+  const reportPriority = resolveTrainingPriority(report, { allowFallback: false });
+  const trainPlan = buildFoundationalWeeklyPlan({ report, now: new Date("2026-08-01T12:00:00Z") });
+
+  assert.equal(trainPlan.trainingPriorityId, reportPriority.priorityId);
+  assert.equal(trainPlan.tasks[0].trainingPriorityId, reportPriority.priorityId);
+  assert.equal(trainPlan.tasks[0].representativeGameIds[0], "game-2");
 });
 
 test("shared count formatting handles singular and plural result labels", () => {

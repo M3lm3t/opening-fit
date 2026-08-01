@@ -1,5 +1,9 @@
 from analysis.opening_perspective import attach_perspective, classify_opening_perspective
-from analysis.report_decision import apply_repertoire_coverage_score, build_report_decision
+from copy import deepcopy
+
+import pytest
+
+from analysis.report_decision import apply_repertoire_coverage_score, assert_decision_consistency, build_report_decision
 
 
 def perspective(role: str):
@@ -22,10 +26,40 @@ def game(name: str, role: str, number: int, result: str):
     )
 
 
+def pgn_game(name: str, role: str, number: int, moves: str, result: str = "draw", classification_ply: int = 2):
+    result_tag = {"win": "1-0", "loss": "0-1", "draw": "1/2-1/2"}[result]
+    row = game(name, role, number, result)
+    row.update({
+        "pgn": f'[Event "Priority fixture"]\n[Site "https://chess.com/game/live/{number}"]\n[White "FixturePlayer"]\n[Black "Opponent{number}"]\n[Result "{result_tag}"]\n\n{moves} {result_tag}',
+        "white_username": "FixturePlayer",
+        "black_username": f"Opponent{number}",
+        "classificationPly": classification_ply,
+        "openingFamily": name,
+        "playerColour": "white",
+        "relationship": "faced_by_user",
+    })
+    return row
+
+
+def black_pgn_game(name: str, number: int, moves: str, result: str = "loss", classification_ply: int = 2):
+    result_tag = {"win": "0-1", "loss": "1-0", "draw": "1/2-1/2"}[result]
+    row = game(name, "played_as_black", number, result)
+    row.update({
+        "pgn": f'[Event "Priority fixture"]\n[Site "https://chess.com/game/live/black-{number}"]\n[White "Opponent{number}"]\n[Black "FixturePlayer"]\n[Result "{result_tag}"]\n\n{moves} {result_tag}',
+        "white_username": f"Opponent{number}",
+        "black_username": "FixturePlayer",
+        "classificationPly": classification_ply,
+        "openingFamily": name,
+        "playerColour": "black",
+        "relationship": "played_by_user",
+    })
+    return row
+
+
 def report(games):
     return {
         "platform": "chess.com",
-        "username": "example-player",
+        "username": "FixturePlayer",
         "gamesAnalysed": len(games),
         "importedAt": "2026-07-24T12:00:00Z",
         "opening_games": games,
@@ -53,7 +87,7 @@ def test_three_game_french_slice_cannot_inherit_twenty_two_game_repair_claim():
         "scoreRate": 66.7,
     }
     assert recommendation["verdict"] == "insufficient-data"
-    assert recommendation["confidence"]["level"] == "low"
+    assert recommendation["confidence"]["level"] == "very_early"
     assert decision["primaryProblem"] is None
     assert "22" not in decision["nextTrainingAction"]["reason"]
 
@@ -65,7 +99,7 @@ def test_total_report_volume_never_inflates_opening_confidence():
     decision = build_report_decision(payload, openings=[opening("Scandinavian Defence", "played_as_black", 4, 0, 0, 4)])
 
     assert decision["reportCoverage"]["level"] == "broad"
-    assert decision["recommendations"][0]["confidence"]["level"] == "low"
+    assert decision["recommendations"][0]["confidence"]["level"] == "very_early"
     assert decision["primaryProblem"] is None
 
 
@@ -113,6 +147,75 @@ def test_recommendation_ranking_is_deterministic_for_equal_evidence():
     assert first == second
 
 
+def test_vienna_decision_contract_cannot_disagree_with_its_repertoire_role():
+    results = ["win"] * 36 + ["draw"] * 12 + ["loss"] * 12
+    games = [game("Vienna Game", "played_as_white", index, result) for index, result in enumerate(results, 1)]
+    decision = build_report_decision(
+        report(games),
+        openings=[opening("Vienna Game", "played_as_white", 60, 36, 12, 12)],
+    )
+    recommendation = decision["recommendations"][0]
+    role = next(row for row in decision["roleDecisions"] if row["repertoireRole"] == "white")
+
+    assert decision["schemaVersion"] == 4
+    assert recommendation["sampleSize"] == 60
+    assert recommendation["sampleThreshold"] == 5
+    assert recommendation["evidenceStatus"] == "sufficient"
+    assert recommendation["confidenceLevel"] == "high_sample"
+    assert recommendation["fitScore"] is None
+    assert recommendation["verdict"] == role["verdict"] == "keep"
+    assert role["status"] == "established"
+    assert recommendation["alternativeOpening"] is None
+    assert "Style fit was not calculated" in recommendation["verdictReasons"][-1]
+
+
+def test_large_scandinavian_mixed_signal_is_not_insufficient_or_told_to_play_more():
+    results = ["win"] * 26 + ["draw"] * 26 + ["loss"] * 26
+    games = [game("Scandinavian Defence", "played_as_black", index, result) for index, result in enumerate(results, 1)]
+    decision = build_report_decision(
+        report(games),
+        openings=[opening("Scandinavian Defence", "played_as_black", 78, 26, 26, 26)],
+    )
+    recommendation = decision["recommendations"][0]
+    role = next(row for row in decision["roleDecisions"] if row["repertoireRole"] == "black_vs_e4")
+
+    assert recommendation["sampleSize"] == role["supportingGameCount"] == 78
+    assert recommendation["evidenceStatus"] == role["evidenceStatus"] == "sufficient"
+    assert recommendation["confidenceLevel"] == role["confidenceLevel"] == "high_sample"
+    assert recommendation["verdict"] == role["verdict"] == "explore"
+    assert role["status"] == "established"
+    assert decision["primaryProblem"] is None
+    assert decision["nextTrainingAction"]["type"] == "review_mixed_signal"
+    combined_copy = " ".join([
+        recommendation["recommendedAction"]["explanation"],
+        decision["nextTrainingAction"]["reason"],
+        role["confidenceExplanation"],
+    ]).lower()
+    assert "large sample, mixed signal" in combined_copy
+    assert "not enough" not in combined_copy
+    assert "more relevant game" not in combined_copy
+
+
+def test_alternative_requires_same_role_stronger_evidence_and_an_explicit_reason():
+    games = [
+        *[game("Vienna Game", "played_as_white", index, "loss") for index in range(1, 11)],
+        *[game("Italian Game", "played_as_white", index, "win") for index in range(11, 21)],
+        *[game("French Defence", "played_as_black", index, "win") for index in range(21, 31)],
+    ]
+    decision = build_report_decision(report(games), openings=[
+        opening("Vienna Game", "played_as_white", 10, 0, 0, 10),
+        opening("Italian Game", "played_as_white", 10, 10, 0, 0),
+        opening("French Defence", "played_as_black", 10, 10, 0, 0),
+    ])
+    vienna = next(row for row in decision["recommendations"] if row["openingName"] == "Vienna Game")
+
+    assert vienna["verdict"] == "repair"
+    assert vienna["alternativeOpening"]["openingName"] == "Italian Game"
+    assert vienna["alternativeOpening"]["repertoireRole"] == "white"
+    assert "same white role" in vienna["alternativeReason"]
+    assert "French Defence" not in vienna["alternativeReason"]
+
+
 def test_variation_names_do_not_silently_inflate_family_evidence():
     games = [
         *[game("French Defence", "played_as_black", index, "loss") for index in range(1, 4)],
@@ -127,14 +230,16 @@ def test_variation_names_do_not_silently_inflate_family_evidence():
     assert decision["primaryProblem"] is None
 
 
-def test_no_supported_weakness_returns_an_honest_collect_more_action():
+def test_sufficient_mixed_sample_returns_an_honest_review_action():
     games = [game("Italian Game", "played_as_white", index, result) for index, result in enumerate(["win", "draw", "draw", "loss", "draw"], 1)]
     decision = build_report_decision(report(games), openings=[opening("Italian Game", "played_as_white", 5, 1, 3, 1)])
 
     assert decision["establishedStrength"] is None
     assert decision["primaryProblem"] is None
-    assert decision["nextTrainingAction"]["type"] == "collect_more_games"
-    assert decision["nextTrainingAction"]["reason"].startswith("No reliable opening weakness")
+    assert decision["nextTrainingAction"]["type"] == "review_mixed_signal"
+    assert decision["nextTrainingAction"]["completionTarget"]["type"] == "reviewed_games"
+    assert "sample is sufficient" in decision["nextTrainingAction"]["reason"]
+    assert "mixed" in decision["nextTrainingAction"]["reason"]
 
 
 def test_a_weak_line_requires_recurrence_ids_and_a_move_sequence():
@@ -194,7 +299,7 @@ def test_report_evidence_uses_singular_result_and_game_labels():
     recommendation = decision["recommendations"][0]
 
     assert recommendation["evidence"][0] == "1 game: 0 wins, 1 draw, 0 losses."
-    assert recommendation["confidence"]["reason"] == "Only 1 opening-specific game is available; collect more evidence before changing the repertoire."
+    assert recommendation["confidence"]["reason"] == "Only 1 opening-specific game is available; the sample is insufficient for a repertoire decision."
 
 
 def test_repertoire_roles_expose_role_specific_evidence_gaps_and_filters():
@@ -295,16 +400,116 @@ def test_repertoire_coverage_arithmetic_excludes_results_and_neutral_weakness_st
     decision = build_report_decision(report(games), openings=[opening("Vienna Game", "played_as_white", 5, 0, 0, 5)])
     score = decision["repertoireCoverageScore"]
 
-    assert score["formulaVersion"] == "repertoire_coverage_v2"
+    assert score["formulaVersion"] == "repertoire_coverage_v3"
     assert score["weightsTotal"] == 100
     assert sum(component["contribution"] for component in score["components"]) == score["score"]
     assert score["recentResults"]["scored"] is False
-    assert score["repairStatus"]["scored"] is False
+    assert score["repairStatus"]["scored"] is True
     assert score["repairStatus"]["label"] in {"Reliable repair target found", "No reliable repair target yet"}
 
     payload = {"openingFitScore": 61, "openingFitScoreBreakdown": {"blackPerformance": 41}}
     apply_repertoire_coverage_score(payload, decision)
     assert payload["openingFitScoreLegacyV1"] == 61
     assert payload["openingFitScore"] == score["score"]
-    assert payload["openingFitScoreContract"]["formulaVersion"] == "repertoire_coverage_v2"
+    assert payload["openingFitScoreContract"]["formulaVersion"] == "repertoire_coverage_v3"
     assert payload["openingFitScoreBreakdown"] == {component["key"]: component["score"] for component in score["components"]}
+
+
+def test_decision_guard_rejects_summary_role_verdict_drift():
+    games = [game("Vienna Game", "played_as_white", index, "win") for index in range(1, 6)]
+    decision = build_report_decision(report(games), openings=[opening("Vienna Game", "played_as_white", 5, 5, 0, 0)])
+    broken = deepcopy(decision)
+    broken["roleDecisions"][0]["verdict"] = "explore"
+
+    with pytest.raises(ValueError, match="role verdict differs"):
+        assert_decision_consistency(broken)
+
+
+def test_decision_guard_rejects_threshold_cta_and_high_sample_insufficient_copy():
+    games = [game("Scandinavian Defence", "played_as_black", index, "draw") for index in range(1, 26)]
+    decision = build_report_decision(report(games), openings=[opening("Scandinavian Defence", "played_as_black", 25, 0, 25, 0)])
+
+    threshold_broken = deepcopy(decision)
+    threshold_broken["recommendations"][0]["recommendedAction"]["completionTarget"] = {"type": "new_games", "count": 1}
+    with pytest.raises(ValueError, match="asks for threshold games"):
+        assert_decision_consistency(threshold_broken)
+
+    confidence_broken = deepcopy(decision)
+    confidence_broken["recommendations"][0]["verdict"] = "insufficient-data"
+    with pytest.raises(ValueError, match="high sample confidence marked insufficient"):
+        assert_decision_consistency(confidence_broken)
+
+
+def test_decision_guard_rejects_conflicting_alternative():
+    games = [game("Vienna Game", "played_as_white", index, "loss") for index in range(1, 6)]
+    decision = build_report_decision(report(games), openings=[opening("Vienna Game", "played_as_white", 5, 0, 0, 5)])
+    broken = deepcopy(decision)
+    broken["recommendations"][0]["alternativeOpening"] = {
+        "openingName": "French Defence",
+        "repertoireRole": "black_vs_e4",
+    }
+
+    with pytest.raises(ValueError, match="incompatible or unexplained alternative"):
+        assert_decision_consistency(broken)
+
+
+def test_caro_kann_priority_keeps_verified_games_and_post_classification_continuation_together():
+    games = [
+        pgn_game("Caro-Kann Defence", "faced_as_white", index, "1. e4 c6 2. d4 d5 3. Nc3 Nf6 4. e5", "draw")
+        for index in range(1, 9)
+    ] + [
+        pgn_game("Caro-Kann Defence", "faced_as_white", 9, "1. e4 c6 2. Nc3 d5 3. d4 Nf6 4. e5", "loss"),
+        pgn_game("Caro-Kann Defence", "faced_as_white", 10, "1. e4 c6 2. Nc3 d5 3. d4 Nf6 4. e5", "draw"),
+    ]
+    decision = build_report_decision(report(games), openings=[opening("Caro-Kann Defence", "faced_as_white", 10, 0, 9, 1)])
+    priority = decision["trainingPriority"]
+
+    assert priority["schemaVersion"] == 2
+    assert priority["openingName"] == "Caro-Kann Defence"
+    assert priority["role"] == "faced_as_white"
+    assert priority["playerRole"] == "white_repertoire"
+    assert priority["relationship"] == "faced_by_user"
+    assert priority["evidenceCount"] == 10
+    assert 1 <= len(priority["representativeGameIds"]) <= 3
+    assert set(priority["representativeGameIds"]) <= set(priority["evidenceGameIds"])
+    assert priority["recognisedLine"] == "1. e4 c6"
+    assert priority["classificationPly"] == 2
+    assert priority["opponentContinuation"]["move"] == "d5"
+    assert priority["opponentContinuation"]["games"] == 10
+    assert priority["opponentContinuation"]["move"] not in {"e4", "c6"}
+    assert priority["playerResponse"]["move"] == "Nc3"
+    assert priority["positionFen"]
+    assert priority["nextGameObjective"].startswith("In your next five relevant Caro-Kann Defence games")
+    assert priority["findingType"] == "preparation_opportunity"
+
+
+def test_training_priority_falls_back_to_line_rehearsal_without_verified_representative_game():
+    games = [game("Caro-Kann Defence", "faced_as_white", index, "draw") for index in range(1, 6)]
+    priority = build_report_decision(report(games), openings=[opening("Caro-Kann Defence", "faced_as_white", 5, 0, 5, 0)])["trainingPriority"]
+
+    assert priority["representativeGameIds"] == []
+    assert priority["representativeGameStatus"] == "unavailable"
+    assert priority["positionFen"] is None
+    assert priority["workflowSteps"][0]["type"] == "line_rehearsal"
+    assert "No verified source game" in priority["workflowSteps"][0]["label"]
+
+
+def test_opponent_continuation_uses_the_next_white_move_when_the_player_is_black():
+    games = [
+        black_pgn_game("Caro-Kann Defence", index, "1. e4 c6 2. d4 d5 3. Nc3", "loss")
+        for index in range(1, 6)
+    ]
+    decision = build_report_decision(report(games), openings=[opening("Caro-Kann Defence", "played_as_black", 5, 0, 0, 5)])
+    priority = decision["trainingPriority"]
+
+    assert priority["playerColour"] == "black"
+    assert priority["playerRole"] == "black_vs_e4"
+    assert priority["relationship"] == "played_by_user"
+    assert priority["recognisedLine"] == "1. e4 c6"
+    assert priority["opponentContinuation"] == {
+        "move": "d4",
+        "games": 5,
+        "supportingGameIds": [f"played_as_black-{index}" for index in range(1, 6)],
+    }
+    assert priority["playerResponse"]["move"] == "d5"
+    assert priority["opponentContinuation"]["move"] not in {"e4", "c6"}

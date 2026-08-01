@@ -13,6 +13,33 @@ test("selects no more than three exact opening-and-colour games deterministicall
   assert.deepEqual(selectTrainingReviewGames(report, priority).map((item) => item.id), ["4", "3", "2"]);
 });
 
+test("a canonical Caro-Kann priority cannot borrow a Queen's Gambit representative", () => {
+  const queenPgn = `[Event "Fixture"]\n[White "ReviewPlayer"]\n[Black "QueenOpponent"]\n[Result "0-1"]\n[Opening "Queen's Gambit"]\n\n1. d4 d5 2. c4 e6 0-1`;
+  const caro = game("caro", "2026.07.20", "1/2-1/2", { openingRole: "faced_as_white", relationship: "faced_by_user" });
+  const queen = { gameId: "queen", pgn: queenPgn, opening: "Queen's Gambit", colour: "white", openingRole: "faced_as_white", relationship: "faced_by_user" };
+  const canonical = {
+    ...priority,
+    schemaVersion: 2,
+    representativeSelectionRequired: true,
+    role: "faced_as_white",
+    relationship: "faced_by_user",
+    evidenceGameIds: ["caro", "queen"],
+    representativeGameIds: ["caro"],
+  };
+
+  const selected = selectTrainingReviewGames({ username: "ReviewPlayer", games: [queen, caro] }, canonical);
+  assert.deepEqual(selected.map((item) => item.id), ["caro"]);
+  assert.ok(selected.every((item) => item.opening === "Caro-Kann Defence" && item.relationship === "faced"));
+});
+
+test("canonical representative validation rejects mismatched relationship and submitted-player identity", () => {
+  const wrongRelationship = game("wrong-context", "2026.07.20", "1-0", { openingRole: "faced_as_white", relationship: "played_by_user" });
+  const missingPlayer = { ...game("missing-player", "2026.07.21"), pgn: pgn("missing-player").replace("ReviewPlayer", "DifferentPlayer"), openingRole: "faced_as_white", relationship: "faced_by_user" };
+  const canonical = { ...priority, schemaVersion: 2, role: "faced_as_white", relationship: "faced_by_user", evidenceGameIds: ["wrong-context", "missing-player"], representativeGameIds: ["wrong-context", "missing-player"] };
+
+  assert.deepEqual(selectTrainingReviewGames({ username: "ReviewPlayer", games: [wrongRelationship, missingPlayer] }, canonical), []);
+});
+
 test("deduplicates a lightweight index row and its richer PGN row by stable identifier", () => {
   const report = { username: "ReviewPlayer", opening_games: [game("same", "2026.07.20")], analysis_game_index: [{ gameId: "same", opening: "Caro-Kann Defense", colour: "white", result: "win" }] };
   const selected = selectTrainingReviewGames(report, priority);

@@ -3,7 +3,7 @@ import { formatResultCounts } from "./reportGameCounts.js";
 export const OPENING_EVIDENCE_THRESHOLDS = Object.freeze({
   minimum: 5,
   moderate: 10,
-  high: 15,
+  high: 25,
 });
 
 export const OPENING_VERDICT_DEFINITIONS = Object.freeze({

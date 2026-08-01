@@ -179,8 +179,8 @@ function buildFallbackPsychology(data, useful, openings, averageScore, whiteScor
     insights.push({
       type: "identity_drift",
       severity: "medium",
-      title: "Your opening identity is too scattered",
-      body: `You touched ${openings.length} opening buckets, but only ${repeatOpenings} repeat enough to build confidence.`,
+      title: "Many opening buckets appear in this sample",
+      body: `You touched ${openings.length} opening buckets, but only ${repeatOpenings} repeat enough to build confidence. This is a broad sample observation, not a repertoire-concentration calculation.`,
       action: "Freeze the repertoire menu for two weeks and measure confidence before adding another line.",
     });
   }

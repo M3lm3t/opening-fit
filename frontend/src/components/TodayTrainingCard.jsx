@@ -56,6 +56,8 @@ function buildTodayFocus(data, plan) {
     };
   }
 
+  if (data.reportDecision || data.report_decision) return null;
+
   const weakestTraining = buildWeakestLineTrainingTarget(data);
   if (weakestTraining.available && weakestTraining.target) {
     const target = weakestTraining.target;

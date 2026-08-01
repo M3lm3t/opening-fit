@@ -102,12 +102,13 @@ export function buildFreeTrainingExercise(report = {}, priority = null) {
     .filter((entry) => entry.drill.valid && entry.drill.provenance?.kind === "own_game_position")
     .sort((left, right) => scoreOpportunity(right.opportunity, priority) - scoreOpportunity(left.opportunity, priority));
   const evidenceIds = new Set(list(priority?.evidenceGameIds).map(text));
+  const representativeIds = new Set(list(priority?.representativeGameIds).map(text));
+  const allowedIds = priority?.representativeSelectionRequired || Number(priority?.schemaVersion || 0) >= 2 ? representativeIds : evidenceIds;
   const matchesContext = (opportunity) => (
     (!priority?.openingName && !priority?.openingKey || opportunityOpening(opportunity) === normaliseOpeningKey(priority.openingKey || priority.openingName))
     && (!priority?.playerColour || text(opportunity.side).toLowerCase() === priority.playerColour)
   );
-  const matched = opportunities.find(({ opportunity }) => evidenceIds.has(opportunityGameId(opportunity)) && matchesContext(opportunity))
-    || opportunities.find(({ opportunity }) => matchesContext(opportunity));
+  const matched = opportunities.find(({ opportunity }) => allowedIds.has(opportunityGameId(opportunity)) && matchesContext(opportunity));
 
   if (matched) {
     const opportunity = { ...matched.opportunity, knownLineConcept, trainingPriorityReason: priorityReason };

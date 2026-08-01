@@ -122,14 +122,14 @@ def test_player_colour_matching_is_case_insensitive_and_unicode_normalised():
     assert perspective("black", "1.d4", "black")["repertoireRole"] == "black_vs_d4"
 
 
-def test_recognised_black_encounters_populate_the_correct_black_roles():
-    black_e4 = perspective("black", "e4", "white")
-    black_d4 = perspective("black", "d4", "white")
+def test_recognised_black_repertoire_games_populate_the_correct_black_roles():
+    black_e4 = perspective("black", "e4", "black")
+    black_d4 = perspective("black", "d4", "black")
     games = [
-        game("Italian Game", black_e4, 1),
+        game("French Defence", black_e4, 1),
         game("Scandinavian Defence", black_e4, 2),
-        game("Queen's Gambit", black_d4, 3),
-        game("Queen's Gambit", black_d4, 4),
+        game("King's Indian Defence", black_d4, 3),
+        game("King's Indian Defence", black_d4, 4),
     ]
     decision = build_report_decision(report(games), openings=[])
     role_rows = {item["repertoireRole"]: item for item in decision["repertoireRoles"]}
@@ -219,8 +219,8 @@ def test_preparation_is_serialised_as_preparation_not_weakness():
     assert priority["title"] == "Prepare against Caro-Kann Defence as White"
     assert priority["evidenceCount"] == 5
     assert priority["successCheck"] == "Review at least one supplied game and save one response plan."
-    assert priority["workflowSteps"][0]["type"] == "source_game_review"
-    assert priority["workflowSteps"][-1]["type"] == "completion"
+    assert priority["workflowSteps"][0]["type"] == "line_rehearsal"
+    assert priority["workflowSteps"][-1]["type"] == "next_game_objective"
     assert priority["fallbackSetupDrill"]["source"] == "general_guidance"
     assert priority["sourceGameAvailability"] == {"supportingGames": 5, "referencedGameIds": 5}
 
@@ -279,8 +279,10 @@ def test_one_canonical_decision_drives_role_alternative_and_weekly_priority():
 
     assert role["currentOpening"] == "French Defence"
     assert role["verdict"] == decision["primaryProblem"]["verdict"] == "repair"
-    assert role["compatibleAlternative"]["openingName"] == "Caro-Kann Defence"
-    assert role["alternativeRole"] == "black_vs_e4"
+    # Catalogue fit alone is not enough to deprioritise a played opening. An
+    # alternative needs its own same-role, role-attributed report evidence.
+    assert role["compatibleAlternative"] is None
+    assert role["alternativeRole"] is None
     assert decision["nextTrainingAction"]["opening"] == "French Defence"
     assert decision["trainingPriority"]["openingName"] == "French Defence"
     assert decision["trainingPriority"]["repertoireRole"] == "black_vs_e4"

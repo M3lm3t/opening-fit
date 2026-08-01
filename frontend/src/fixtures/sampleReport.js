@@ -106,6 +106,47 @@ const openings = [
 
 const byName = (name) => openings.find((opening) => opening.name === name);
 
+const sampleOpeningMoves = Object.freeze({
+  "Vienna Game": ["e4", "e5", "Nc3", "Nf6", "Bc4", "Bc5", "d3", "O-O"],
+  "Caro-Kann Defence": ["e4", "c6", "d4", "d5", "Nc3", "dxe4", "Nxe4", "Bf5"],
+  "Queen's Gambit Declined": ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "Bg5", "Be7"],
+  "French Defence": ["e4", "e6", "d4", "d5", "Nc3", "Nf6", "e5", "Nfd7"],
+  "London System": ["d4", "d5", "Nf3", "Nf6", "Bf4", "e6", "e3", "Be7"],
+  "English Opening": ["c4", "e5", "Nc3", "Nf6", "g3", "d5", "cxd5", "Nxd5"],
+});
+
+const sampleOpeningEco = Object.freeze({
+  "Vienna Game": "C25", "Caro-Kann Defence": "B10", "Queen's Gambit Declined": "D30",
+  "French Defence": "C00", "London System": "D02", "English Opening": "A10",
+});
+
+const canonicalSampleRole = (opening) => {
+  if (opening.perspective.userColour === "white") return "white_repertoire";
+  return opening.perspective.repertoireSlot || "black_other";
+};
+
+const sampleGames = openings.flatMap((opening) => Array.from({ length: opening.games }, (_, offset) => {
+  const number = offset + 1;
+  const slug = opening.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const id = `sample-${slug}-${number}`;
+  const playerIsWhite = opening.perspective.userColour === "white";
+  const white = playerIsWhite ? "Example Player — Sample" : `Example opponent ${number}`;
+  const black = playerIsWhite ? `Example opponent ${number}` : "Example Player — Sample";
+  const moves = sampleOpeningMoves[opening.name];
+  const result = number % 5 === 0 ? "1/2-1/2" : playerIsWhite ? "1-0" : "0-1";
+  return {
+    id, gameId: id, url: `https://example.invalid/games/${id}`,
+    white_username: white, black_username: black, playerColour: opening.perspective.userColour,
+    playerResult: result === "1/2-1/2" ? "draw" : "win", result, time_class: "rapid",
+    playedAt: `2026-06-${String(15 - (offset % 14)).padStart(2, "0")}T12:00:00.000Z`,
+    eco: sampleOpeningEco[opening.name], opening: opening.name, openingFamily: opening.name,
+    variation: null, classificationPly: 4, repertoireRole: canonicalSampleRole(opening),
+    relationship: opening.perspective.repertoireOwned ? "played_by_user" : "faced_by_user",
+    exclusionReason: null, moves,
+    pgn: `[White "${white}"]\n[Black "${black}"]\n[Result "${result}"]\n[ECO "${sampleOpeningEco[opening.name]}"]\n[Opening "${opening.name}"]\n\n1. ${moves[0]} ${moves[1]} 2. ${moves[2]} ${moves[3]} 3. ${moves[4]} ${moves[5]} 4. ${moves[6]} ${moves[7]} ${result}`,
+  };
+}));
+
 const establishedStrength = {
   opening: "Vienna Game",
   role: "played_as_white",
@@ -168,18 +209,35 @@ export const SAMPLE_REPORT = Object.freeze({
   importedAt: "2026-06-15T12:00:00.000Z",
   lastUpdated: "2026-06-15T12:00:00.000Z",
   gamesImported: 72,
+  gamesFound: 72,
   games_imported: 72,
   gamesAnalysed: 72,
   games_analyzed: 72,
   gamesEligible: 72,
   games_eligible: 72,
+  gamesWithPgn: 72,
+  gamesParsed: 72,
+  gamesAttributed: 72,
   gamesClassified: 72,
   games_classified: 72,
+  gamesUsedForOpeningStats: 72,
+  gamesUsedForFit: 72,
+  gamesUnclassified: 0,
   gamesExcluded: 0,
   games_excluded: 0,
   gameCounts: {
-    contractVersion: 2,
+    contractVersion: 4,
     fetchedGames: 72,
+    gamesFetched: 72,
+    gamesStructurallyUsable: 72,
+    eligible: 72,
+    gamesPgnAvailable: 72,
+    gamesParsed: 72,
+    gamesAttributed: 72,
+    gamesClassified: 72,
+    gamesUsedForOpeningStats: 72,
+    gamesUnclassified: 0,
+    gamesExcluded: 0,
     dateRangeEligibleGames: 72,
     timeControlEligibleGames: 72,
     analysisCandidateGames: 72,
@@ -189,11 +247,16 @@ export const SAMPLE_REPORT = Object.freeze({
     exclusionReasons: {
       outsideDateRange: 0, unsupportedTimeControl: 0, unsupportedGameType: 0,
       incompleteGame: 0, duplicate: 0, analysisLimit: 0,
-      missingOpeningSignal: 0, other: 0,
+      missingOpeningSignal: 0, parseFailure: 0, attributionFailed: 0,
+      unclassifiedOpening: 0, notUsedForOpeningStats: 0, other: 0,
     },
     analysisLimit: 300,
   },
-  game_counts: { imported: 72, eligible: 72, classified: 72, excluded: 0, exclusion_reasons: [] },
+  game_counts: {
+    contractVersion: 4, gamesFetched: 72, eligible: 72, gamesPgnAvailable: 72,
+    gamesParsed: 72, gamesAttributed: 72, gamesClassified: 72,
+    gamesUsedForOpeningStats: 72, gamesExcluded: 0, exclusionReasons: {},
+  },
   totalGames: 72,
   total_games: 72,
   monthsChecked: 3,
@@ -282,7 +345,7 @@ export const SAMPLE_REPORT = Object.freeze({
     },
   ],
   next_training_actions: [nextTrainingAction],
-  recent_games: [
+  example_game_previews: [
     {
       id: "sample-vienna-1",
       white_username: "Example Player — Sample",
@@ -314,7 +377,13 @@ export const SAMPLE_REPORT = Object.freeze({
       moves: ["e4", "e6", "d4", "d5", "Nc3", "Nf6", "e5", "Nfd7"],
     },
   ],
-  games: [],
+  recent_games: sampleGames.filter((game) => ["sample-vienna-game-1", "sample-queen-s-gambit-declined-1", "sample-french-defence-1"].includes(game.id)),
+  recentGames: sampleGames.filter((game) => ["sample-vienna-game-1", "sample-queen-s-gambit-declined-1", "sample-french-defence-1"].includes(game.id)),
+  games: sampleGames,
+  opening_games: sampleGames,
+  openingGames: sampleGames,
+  analysis_game_index: sampleGames,
+  analysisGameIndex: sampleGames,
 });
 
 export const SAMPLE_REPORT_PATH = "/report/sample";

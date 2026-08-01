@@ -1,4 +1,4 @@
-import { OPENINGS, findOpeningLine, normaliseOpeningKey } from "./openings";
+import { OPENINGS, findOpeningLine, normaliseOpeningKey } from "./openings.ts";
 
 const legacyOpeningPracticePacks = [
   {

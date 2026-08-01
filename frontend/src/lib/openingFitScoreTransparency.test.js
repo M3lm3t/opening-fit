@@ -99,9 +99,9 @@ test("main score surfaces reuse the central development-state helper", async () 
     assert.match(source, /Repertoire coverage/i);
     assert.doesNotMatch(source, /Opening\s*Fit Score/i);
   }
-  assert.match(methodologySource, /repertoire_coverage_v2/);
-  assert.match(methodologySource, /core-role completeness \(60%\).*evidence confidence \(40%\)/i);
-  assert.match(methodologySource, /openingfit_score_v1.*not compared numerically/i);
+  assert.match(methodologySource, /repertoire_coverage_v3/);
+  assert.match(methodologySource, /role completeness \(35%\).*concentration and consistency \(25%\).*evidence strength \(25%\).*unresolved recurring problems \(15%\)/i);
+  assert.match(methodologySource, /Historical reports retain their stored formula version/i);
 });
 
 test("versioned coverage components reconcile and keep results and repair status separate", () => {

@@ -1,6 +1,7 @@
-import { normaliseOpeningKey } from "../data/openings";
-import { findOpeningPracticePack } from "../data/openingPracticeLines";
-import { buildOpeningRecommendationVerdict } from "./openingRecommendationVerdicts";
+import { normaliseOpeningKey } from "../data/openings.ts";
+import { findOpeningPracticePack } from "../data/openingPracticeLines.js";
+import { buildOpeningRecommendationVerdict } from "./openingRecommendationVerdicts.js";
+import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -125,6 +126,59 @@ export function buildWeeklyOpeningSession(data, fitData = {}) {
       hasAnalysis: false,
       emptyTitle: "Your opening session appears after your first analysis.",
       emptyText: "Analyse recent games once, then OpeningFit can choose one review, one practice task, and one rapid-game objective.",
+    };
+  }
+
+
+  const decision = normaliseReportDecision(data.reportDecision || data.report_decision || null);
+  if (decision) {
+    const action = decision.nextTrainingAction;
+    const priority = decision.trainingPriority || data.trainingPriority || data.training_priority || null;
+    const target = decision.recommendations.find((item) => item.recommendationId === action?.recommendationId) || null;
+    const name = priority?.openingName || action?.opening || "your current repertoire";
+    const practiceTarget = target ? supportedPracticeTarget(target) : "";
+    const rationale = priority?.reasonSelected || priority?.rationale || action?.reason || action?.explanation || "Follow the report's authoritative next action before changing the repertoire.";
+    const reviewTitle = priority?.title || action?.label || action?.title || (target ? `Review ${name}` : "Keep collecting role-specific evidence");
+    const actions = [
+      {
+        key: "review",
+        title: reviewTitle,
+        time: `${priority?.estimatedDurationMinutes || 10} min`,
+        detail: rationale,
+        route: target ? "weakspots" : "games",
+      },
+      practiceTarget
+        ? {
+            key: "practice",
+            title: `Practise ${practiceTarget}`,
+            time: "5 min",
+            detail: "Use the existing opening practice board for one supported line.",
+            practiceTarget,
+          }
+        : {
+            key: "review-extra",
+            title: target ? `Review one more ${name} position` : "Review your latest role coverage",
+            time: "5 min",
+            detail: target ? "No supported practice pack was found, so keep this slot in review mode." : "Do not invent an opening weakness while the role evidence is incomplete.",
+            route: target ? "games" : "report",
+          },
+      {
+        key: "objective",
+        title: target ? `Play or review one rapid game with a ${name} focus` : "Play one game in an unestablished repertoire role",
+        time: "5 min",
+        detail: priority?.nextGameObjective || (target ? "Use the same plan from the authoritative report decision." : "This builds role-specific evidence without labelling an unsupported weakness."),
+        route: "training",
+      },
+    ];
+    return {
+      hasAnalysis: true,
+      target,
+      targetName: name,
+      practiceTarget,
+      rationale,
+      actions,
+      primaryRoute: actions[0].route,
+      weekLabel: weekLabelFromDate(reportDate(data)) ? `Week of ${weekLabelFromDate(reportDate(data))}` : "",
     };
   }
 

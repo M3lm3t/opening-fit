@@ -28,7 +28,7 @@ test("free and premium first reports share the same analysis hierarchy", () => {
   assert.equal(free.training.cta, "Start 10-minute practice");
   assert.equal(free.scoreLabel, "Coverage indicator");
   assert.equal(free.establishedRoleCount, 3);
-  assert.deepEqual(free.slots.map((slot) => slot.confidence), ["Low", "Low", "Low"]);
+  assert.deepEqual(free.slots.map((slot) => slot.confidence), ["Low confidence", "Low confidence", "Low confidence"]);
 });
 
 test("the report leads with verdict, evidence, one action and compact status", async () => {
@@ -50,8 +50,8 @@ test("the report leads with verdict, evidence, one action and compact status", a
   assert.match(source, /Why these decisions\?/);
   assert.match(source, /Why isn&apos;t this established\?/);
   assert.match(source, /View evidence and full report/);
-  assert.match(source, /Role completeness shows whether all three repertoire jobs are filled/);
-  assert.match(source, /coverage indicator also considers how strongly each role is supported by evidence/);
+  assert.match(source, /Role completeness uses only openings you played in the three core jobs/);
+  assert.match(source, /coverage indicator also shows concentration, evidence strength and unresolved recurring problems/);
   assert.doesNotMatch(source, /<small>\/100<\/small>|Why \$\{view\.score\}\?/);
   assert.doesNotMatch(source, /primaryReportProblem|primaryReportTraining/);
   assert.match(appSource, /onPractice=\{onPractice\}/);

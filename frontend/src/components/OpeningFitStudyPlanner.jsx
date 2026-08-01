@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 import { getOpeningSignal } from "./OpeningEvidence";
 import { fetchOpeningFitCloudState, saveOpeningFitCloudState } from "./openingFitCloudState";
+import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
 import {
   adaptVerdictForPlayerLevel,
   getLevelToneCopy,
@@ -10,6 +11,8 @@ import {
 } from "./playerLevelLogic";
 
 function getOpenings(data) {
+  const decision = normaliseReportDecision(data?.reportDecision || data?.report_decision || null);
+  if (decision) return decision.recommendations.filter((item) => item.repertoireOwned);
   return [
     ...(Array.isArray(data?.top_openings) ? data.top_openings : []),
     ...(Array.isArray(data?.opening_stats) ? data.opening_stats : []),
@@ -18,7 +21,7 @@ function getOpenings(data) {
 }
 
 function openingName(item) {
-  return item?.name || item?.opening || item?.eco_name || item?.label || "Unknown opening";
+  return item?.openingName || item?.name || item?.opening || item?.eco_name || item?.label || "Unknown opening";
 }
 
 function getGames(item) {
@@ -38,6 +41,12 @@ function verdictFor(item, data) {
   const signal = getOpeningSignal(item);
   const level = getSmartPlayerLevelProfile(data).level;
   const verdict = String(item?.verdict || "").toLowerCase();
+
+  if (item?.evidenceStatus && item.evidenceStatus !== "sufficient") return "Too few games";
+  if (verdict === "keep") return "Reliable choice";
+  if (verdict === "repair") return "Needs review";
+  if (verdict === "explore") return "Watch without changing";
+  if (verdict === "insufficient-data") return "Too few games";
 
   if (signal.tier === "none") return "No reliable data";
   if (signal.tier === "low") return "Too few games";
@@ -105,7 +114,7 @@ function buildTasks(opening, side, data) {
     },
   ];
 
-  if (verdict === "Keep") {
+  if (verdict === "Reliable choice") {
     return [
       {
         id: "keep-strength",
@@ -117,7 +126,7 @@ function buildTasks(opening, side, data) {
     ];
   }
 
-  if (verdict === "Avoid" && !advancedOrHigher) {
+  if (verdict === "Needs review" && !advancedOrHigher) {
     return [
       {
         id: "simplify",

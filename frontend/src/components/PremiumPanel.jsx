@@ -13,7 +13,7 @@ const FAQ = [
   ["Does this replace Chess.com analysis?", "No. OpeningFit is a focused opening-repertoire and training companion. It does not replace full-game engine analysis or Chess.com’s broader analysis tools."],
   ["Which platforms are supported?", "OpeningFit currently analyses public Chess.com and Lichess games."],
   ["What happens to lifetime access?", "Existing lifetime members keep lifetime access. A subscription launch does not convert or expire a lifetime entitlement."],
-  ["How many games are analysed?", "The number depends on public game activity, filters and valid opening records. Each import considers at most 300 eligible games. Free can request up to 3 months of history; Plus can request up to 12 months."],
+  ["How many games are analysed?", "The number depends on public game activity, filters and usable opening records. Each import classifies at most 300 structurally usable games, selected newest first. Free can request up to 3 months of history; Plus can request up to 12 months."],
   ["Is repertoire coverage a chess rating?", "No. Repertoire coverage describes whether the three core roles are established and supported by enough correctly attributed games. Results and weakness findings are shown separately."],
 ];
 

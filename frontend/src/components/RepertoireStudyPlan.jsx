@@ -1,4 +1,5 @@
 import { getOpeningContext } from "./OpeningEvidence";
+import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
 
 function getOpeningName(opening) {
   if (!opening) return "Unknown opening";
@@ -7,6 +8,7 @@ function getOpeningName(opening) {
 
   return (
     opening.name ||
+    opening.openingName ||
     opening.opening ||
     opening.eco ||
     opening.label ||
@@ -120,23 +122,43 @@ function fallbackOpening(label) {
 export default function RepertoireStudyPlan({ data }) {
   if (!data) return null;
 
+  const decision = normaliseReportDecision(data.reportDecision || data.report_decision || null);
   const openings = cleanOpenings(data);
   const repertoireOpenings = openings.filter((opening) =>
     ["white", "black"].includes(getOpeningContext(opening).type)
   );
 
+  const roleOpening = (role) => role?.currentOpening || role?.openingName
+    ? {
+        name: role.currentOpening || role.openingName,
+        games: role.sampleSize ?? role.supportingGameCount ?? role.evidenceCount ?? 0,
+        winRate: role.performanceScore ?? 0,
+        colour: role.repertoireRole === "white" ? "white" : "black",
+        context: role.repertoireRole,
+      }
+    : null;
+  const canonicalRoles = decision?.roleDecisions || [];
   const whitePick =
-    pickBest(repertoireOpenings, "white") ||
+    roleOpening(canonicalRoles.find((role) => role.repertoireRole === "white")) ||
+    (!decision ? pickBest(repertoireOpenings, "white") : null) ||
     fallbackOpening("Choose a main White opening");
 
   const blackPick =
-    pickBest(repertoireOpenings, "black") ||
+    roleOpening(canonicalRoles.find((role) => ["black_vs_e4", "black_vs_d4"].includes(role.repertoireRole) && role.status === "established")) ||
+    (!decision ? pickBest(repertoireOpenings, "black") : null) ||
     fallbackOpening("Choose a reliable Black defence");
 
-  const studyTarget =
-    pickWeakest(repertoireOpenings) ||
-    pickMostPlayed(repertoireOpenings) ||
-    fallbackOpening("Import more games to find a study target");
+  const canonicalTarget = decision?.primaryProblem || decision?.recommendations?.find((item) => item.recommendationId === decision.nextTrainingAction?.recommendationId) || null;
+  const studyTarget = canonicalTarget
+    ? {
+        name: canonicalTarget.opening,
+        games: canonicalTarget.sample?.games || 0,
+        winRate: canonicalTarget.performanceScore ?? canonicalTarget.scoreRate ?? 0,
+        colour: canonicalTarget.playerColour,
+        context: canonicalTarget.repertoireRole,
+      }
+    : (!decision ? pickWeakest(repertoireOpenings) || pickMostPlayed(repertoireOpenings) : null) ||
+      fallbackOpening("Import more games to find a study target");
 
   const anchorOpening = whitePick?.fallback ? blackPick : whitePick;
 

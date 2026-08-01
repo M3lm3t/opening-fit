@@ -12,7 +12,7 @@ import OpeningVerdictSummary from "./OpeningVerdictSummary.jsx";
 import { formatChessScore, formatRecommendationConfidence } from "../lib/reportCoachCopy.js";
 
 export const CONFIDENCE_THRESHOLDS = {
-  highGames: 15,
+  highGames: 25,
   mediumGames: 10,
   lowGames: 5,
 };
@@ -300,7 +300,7 @@ export function getConfidenceDetails(opening) {
       canBePrimary: true,
       canBeFirm: true,
       evidenceLine: `${confidenceCopy} ${score}% chess score. This pattern repeats enough to guide training.`,
-      explanation: "15+ reconciled opening-specific games. Good enough for a repertoire decision.",
+      explanation: "25+ reconciled opening-specific games. High sample confidence, while the chess conclusion may still be mixed.",
     };
   }
 
@@ -313,7 +313,7 @@ export function getConfidenceDetails(opening) {
       canBePrimary: true,
       canBeFirm: false,
       evidenceLine: `${confidenceCopy} ${score}% chess score. Useful, but confirm before a major change.`,
-      explanation: "10-14 games. Good for study order, not a full reset.",
+      explanation: "10-24 games. Moderate confidence for a repertoire decision.",
     };
   }
 
@@ -711,9 +711,41 @@ export function getOpeningEvidence(opening, data, options = {}) {
   const decision = normaliseReportDecision(data?.reportDecision || data?.report_decision);
   const openingRole = openingPerspective(opening || {}).role;
   const openingName = getEvidenceOpeningName(opening, "").toLowerCase();
-  const canonical = decision?.recommendations?.find((item) => item.opening.toLowerCase() === openingName && item.role === openingRole) || opening;
+  const authoritative = decision?.recommendations?.find((item) => item.opening.toLowerCase() === openingName && item.role === openingRole) || null;
+  const canonical = authoritative || opening;
   const games = getEvidenceGames(canonical);
   const score = getEvidenceScore(canonical);
+  if (authoritative) {
+    const verdictLabel = ({
+      keep: "Keep", repair: "Improve", explore: "Watch", "insufficient-data": "Insufficient evidence",
+    })[String(authoritative.verdict || "").toLowerCase()] || "Watch";
+    const confidenceLabel = authoritative.confidence?.label || authoritative.confidenceLevel || "Evidence unavailable";
+    const reasons = Array.isArray(authoritative.verdictReasons) ? authoritative.verdictReasons.filter(Boolean) : [];
+    const signal = {
+      tier: authoritative.confidenceLevel || authoritative.confidence?.level || "unknown",
+      label: confidenceLabel,
+      badge: confidenceLabel,
+      className: authoritative.evidenceStatus === "sufficient" ? "high" : "insufficient",
+      canBePrimary: authoritative.evidenceStatus === "sufficient" && authoritative.relationship === "played",
+      canBeFirm: authoritative.evidenceStatus === "sufficient" && ["moderate", "high_sample"].includes(authoritative.confidenceLevel || authoritative.confidence?.level),
+      evidenceLine: reasons.join(" ") || authoritative.confidence?.reason || "The authoritative report decision supplies this evidence state.",
+      explanation: reasons.join(" ") || authoritative.confidence?.reason || "The authoritative report decision supplies this evidence state.",
+    };
+    return {
+      chips: [
+        `Colour: ${getEvidenceColour(authoritative)}`,
+        `${games} game${games === 1 ? "" : "s"}`,
+        score !== null ? formatChessScore(authoritative) : "Performance unavailable",
+        confidenceLabel,
+      ],
+      verdict: verdictLabel,
+      reason: reasons.join(" ") || authoritative.trainingAction?.explanation || signal.explanation,
+      nextAction: authoritative.recommendedAction?.explanation || authoritative.trainingAction?.explanation || "Review the authoritative report action.",
+      why: signal.evidenceLine,
+      signal,
+      context: getOpeningContext(authoritative),
+    };
+  }
   const signal = getOpeningSignal(canonical);
   const baseline = baselineComparison(canonical, data);
   const baseVerdict = getEvidenceVerdict(canonical, data);

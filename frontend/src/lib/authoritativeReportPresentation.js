@@ -98,7 +98,17 @@ export function buildAuthoritativeRoleViewModels({ baseRoles = [], candidates = 
       : count > 0 ? "building" : "insufficient";
     const mergedMetricSource = candidate ? { ...candidate, sample: { ...(candidate.sample || {}), games: count ?? candidate.sample?.games ?? candidate.games } } : count !== null ? { games: count } : {};
     const presentation = buildOpeningVerdictPresentation(mergedMetricSource, { verdict: verdictValue(candidate || base) || "Watch" });
-    const confidence = analysisConfidence(mergedMetricSource);
+    const calculatedConfidence = analysisConfidence(mergedMetricSource);
+    const confidenceLevel = text(candidate?.confidenceLevel || candidate?.confidence_level || candidate?.confidence?.level || base.confidenceLevel || base.confidence_level) || calculatedConfidence.level;
+    const confidenceReasons = list(candidate?.confidenceReasons || candidate?.confidence_reasons || candidate?.confidence?.reasons || base.confidenceReasons || base.confidence_reasons);
+    const confidence = {
+      level: confidenceLevel,
+      label: text(candidate?.confidence?.label) || ({
+        high_sample: "High sample confidence", moderate: "Moderate confidence", low: "Low confidence",
+        very_early: "Very early signal", insufficient: "Insufficient sample", context_uncertain: "Context uncertain",
+      })[confidenceLevel] || calculatedConfidence.label,
+      explanation: confidenceReasons.join(" ") || text(candidate?.confidence?.reason) || calculatedConfidence.explanation,
+    };
     const verdict = candidateEvidenceValid
       ? normaliseRoleVerdict(verdictValue(candidate || base), { established: status === "established", relevantGames: count || 0 })
       : "insufficient_evidence";
@@ -106,12 +116,12 @@ export function buildAuthoritativeRoleViewModels({ baseRoles = [], candidates = 
     const fitScore = candidate && candidateEvidenceValid ? openingFitScore(candidate) : null;
     const performanceScore = candidate ? presentation.performance.score : null;
     const sourceTier = candidate && base?.status ? "structured_role_and_recommendation" : candidate ? "calculated_opening_statistics" : displayName !== "Not established yet" ? "legacy_role_fallback" : "conservative_fallback";
-    const alternative = base.compatibleAlternative || base.compatible_alternative || null;
+    const alternative = candidate?.alternativeOpening || candidate?.alternative_opening || base.alternativeOpening || base.compatibleAlternative || base.compatible_alternative || null;
     const alternativeRole = text(base.alternativeRole || base.alternative_role || alternative?.repertoireRole || alternative?.repertoire_role).toLowerCase();
-    const alternativeSupporting = finite(alternative?.supportingGameCount ?? alternative?.supporting_game_count ?? alternative?.evidenceCounts?.supportingGames ?? alternative?.sample?.games)
-      ? Number(alternative.supportingGameCount ?? alternative.supporting_game_count ?? alternative.evidenceCounts?.supportingGames ?? alternative.sample?.games) : null;
-    const alternativeRequired = finite(alternative?.requiredGameCount ?? alternative?.required_game_count ?? alternative?.evidenceCounts?.requiredGames)
-      ? Number(alternative.requiredGameCount ?? alternative.required_game_count ?? alternative.evidenceCounts?.requiredGames) : threshold;
+    const alternativeSupporting = finite(alternative?.sampleSize ?? alternative?.supportingGameCount ?? alternative?.supporting_game_count ?? alternative?.evidenceCounts?.supportingGames ?? alternative?.sample?.games)
+      ? Number(alternative.sampleSize ?? alternative.supportingGameCount ?? alternative.supporting_game_count ?? alternative.evidenceCounts?.supportingGames ?? alternative.sample?.games) : null;
+    const alternativeRequired = finite(alternative?.sampleThreshold ?? alternative?.requiredGameCount ?? alternative?.required_game_count ?? alternative?.evidenceCounts?.requiredGames)
+      ? Number(alternative.sampleThreshold ?? alternative.requiredGameCount ?? alternative.required_game_count ?? alternative.evidenceCounts?.requiredGames) : threshold;
     const compatibleAlternative = alternative
       && alternativeRole === role.role
       && alternative?.validation?.valid !== false
@@ -130,10 +140,13 @@ export function buildAuthoritativeRoleViewModels({ baseRoles = [], candidates = 
     const confidenceExplanation = raw !== null && supporting !== null && raw !== supporting
       ? `${raw} games were identified in this opening family. ${supporting} consistently reached a position that supports this decision.${recordedConfidenceExplanation ? ` ${recordedConfidenceExplanation}` : ""}`
       : recordedConfidenceExplanation;
+    const canonicalAction = candidate?.recommendedAction || candidate?.recommended_action || base.recommendedAction || null;
     const contextualAction = status === "established" && displayName !== "Not established yet"
-      ? { type: "practice", label: "Practise this role" }
+      ? { type: "practice", label: text(canonicalAction?.title || canonicalAction?.label) || (verdict === "watch" ? "Review this role" : "Practise this role") }
+      : supporting !== null && supporting >= required
+        ? { type: "review", label: text(canonicalAction?.title || canonicalAction?.label) || "Review evidence quality" }
       : supporting > 0
-        ? { type: "analyse", label: `Play ${Math.max(1, required - supporting)} more relevant game${Math.max(1, required - supporting) === 1 ? "" : "s"}` }
+        ? { type: "analyse", label: `Play ${required - supporting} more relevant game${required - supporting === 1 ? "" : "s"}` }
         : compatibleAlternative
           ? { type: "options", label: "See suitable options" }
           : { type: "analyse", label: "Play more games" };
@@ -145,14 +158,16 @@ export function buildAuthoritativeRoleViewModels({ baseRoles = [], candidates = 
       displayName,
       opening: displayName,
       status,
-      statusLabel: ({ established: "Established", building: "Building", insufficient: "Not enough evidence", unresolved: "Unresolved" })[status],
+      statusLabel: status === "insufficient" && supporting !== null && supporting >= required
+        ? "Evidence needs review"
+        : ({ established: "Established", building: "Building", insufficient: "Not enough evidence", unresolved: "Context uncertain" })[status],
       verdict,
       verdictLabel: roleVerdictLabel(verdict),
       fitScore,
       fitLabel: fitScore === null ? "Fit not calculated for this saved report." : presentation.fit.label,
       performanceScore,
       performanceLabel: performanceScore === null ? "Performance not available for this saved report." : presentation.performance.label,
-      confidence: { level: confidence.level, label: confidence.label, detail: confidence.explanation, games: count },
+      confidence: { level: confidence.level, label: confidence.label, detail: confidence.explanation, reasons: confidenceReasons, games: count },
       relevantGames: count,
       supportingGames: supporting,
       rawGames: raw,

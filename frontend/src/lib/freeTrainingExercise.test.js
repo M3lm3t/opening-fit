@@ -66,6 +66,16 @@ test("a general setup has a conservative disclaimer and no source link", () => {
   assert.match(exercise.provenance.disclaimer, /illustrative.*not claimed/i);
 });
 
+test("a canonical priority without a verified representative never borrows another opening's game", () => {
+  const canonical = { ...priority, schemaVersion: 2, representativeGameIds: [], representativeSelectionRequired: true };
+  const unrelated = { ...ownOpportunity, gameId: "queen-game", openingId: "queens-gambit", openingName: "Queen's Gambit" };
+  const exercise = buildFreeTrainingExercise({ ...ownReport, openingTrainingOpportunities: [unrelated] }, canonical);
+
+  assert.equal(exercise.kind, "general_opening_setup");
+  assert.equal(exercise.drill.sourceGame, null);
+  assert.match(exercise.provenance.disclaimer, /not claimed/i);
+});
+
 test("incomplete or unverifiable own-game data degrades to general setup", () => {
   for (const broken of [
     { ...ownOpportunity, moveNumber: null },

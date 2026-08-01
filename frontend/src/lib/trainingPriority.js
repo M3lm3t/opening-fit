@@ -1,11 +1,12 @@
 import { findOpeningLine, normaliseOpeningKey } from "../data/openings.ts";
 import { countNoun } from "./reportGameCounts.js";
 
-export const TRAINING_PRIORITY_SCHEMA_VERSION = 1;
+export const TRAINING_PRIORITY_SCHEMA_VERSION = 2;
 
 const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 const list = (value) => Array.isArray(value) ? value.filter(Boolean) : [];
 const integer = (value, fallback = 0) => {
+  if (value === null || value === undefined || value === "") return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : fallback;
 };
@@ -50,6 +51,15 @@ function taskTypeFor(source = {}) {
   return "concept_review";
 }
 
+function playerRoleFor(source = {}, target = {}) {
+  const explicit = text(source.playerRole || source.player_role);
+  if (["white_repertoire", "black_vs_e4", "black_vs_d4", "black_other", "unknown"].includes(explicit)) return explicit;
+  const repertoireRole = text(source.repertoireRole || source.repertoire_role || target?.repertoireRole || target?.repertoire_role);
+  if (repertoireRole === "white") return "white_repertoire";
+  if (["black_vs_e4", "black_vs_d4"].includes(repertoireRole)) return repertoireRole;
+  return colourFor(source, target) === "black" ? "black_other" : "unknown";
+}
+
 function canonicalPriority(source, report, decision) {
   if (!source || typeof source !== "object") return null;
   const target = targetFor(source, decision);
@@ -71,6 +81,10 @@ function canonicalPriority(source, report, decision) {
   const duration = Math.max(1, integer(source.estimatedDurationMinutes ?? source.estimated_duration_minutes ?? source.estimatedMinutes ?? source.estimated_minutes, 10));
   const fallback = source.fallback === true || source.isFallback === true || source.is_fallback === true;
   const title = text(source.trainingTitle || source.training_title || source.title) || (openingName ? `Practise ${openingName}` : text(source.label)) || "Review your current opening evidence";
+  const evidenceGameIds = [...new Set(list(source.evidenceGameIds || source.evidence_game_ids || sample.gameIds || sample.game_ids || source.sourceGameIds || source.source_game_ids).map(text).filter(Boolean))];
+  const evidenceSet = new Set(evidenceGameIds);
+  const representativeGameIds = [...new Set(list(source.representativeGameIds || source.representative_game_ids).map(text).filter((id) => id && evidenceSet.has(id)))].slice(0, 3);
+  const workflowSteps = list(source.sessionSteps || source.session_steps || source.workflowSteps || source.workflow_steps);
   return {
     schemaVersion: TRAINING_PRIORITY_SCHEMA_VERSION,
     priorityId,
@@ -79,6 +93,9 @@ function canonicalPriority(source, report, decision) {
     openingName,
     openingKey,
     role: text(source.role || target?.role) || null,
+    contextRole: text(source.contextRole || source.context_role || source.role || target?.role) || null,
+    playerRole: playerRoleFor(source, target),
+    relationship: ({ played: "played_by_user", faced: "faced_by_user" }[text(source.relationship || target?.relationship).toLowerCase()] || text(source.relationship || target?.relationship) || "unknown"),
     repertoireRole: text(source.repertoireRole || source.repertoire_role || target?.repertoireRole || target?.repertoire_role) || "unresolved",
     findingType,
     playerColour: colourFor(source, target),
@@ -86,16 +103,32 @@ function canonicalPriority(source, report, decision) {
     actionType,
     title,
     rationale: text(source.rationale || source.reason || source.explanation) || "Review the available report evidence before your next games.",
+    reasonSelected: text(source.reasonSelected || source.reason_selected || source.rationale || source.reason || source.explanation) || "Review the available report evidence before your next games.",
+    selectionCriteria: list(source.selectionCriteria || source.selection_criteria).map(text).filter(Boolean),
+    selectionFactors: source.selectionFactors || source.selection_factors || target?.priorityFactors || target?.priority_factors || {},
     evidenceCount: integer(source.evidenceCount ?? source.evidence_count ?? sample.games ?? source.games),
     supportingGameCount: integer(source.supportingGameCount ?? source.supporting_game_count ?? source.evidenceCount ?? source.evidence_count ?? sample.games ?? source.games),
-    evidenceGameIds: list(source.evidenceGameIds || source.evidence_game_ids || sample.gameIds || sample.game_ids || source.sourceGameIds || source.source_game_ids).map(text).filter(Boolean),
+    evidenceGameIds,
+    representativeGameIds,
+    representativeGameStatus: representativeGameIds.length ? "verified" : "unavailable",
+    representativeSelectionRequired: Number(source.schemaVersion || source.schema_version || 0) >= 2,
     estimatedDurationMinutes: duration,
     successCheck: text(source.successCheck || source.success_check || source.successCriteria || source.success_criteria || completion.label) || "Complete the practice and record one practical takeaway.",
     completionTarget: completion,
     confidenceStatus: text(source.confidenceStatus || source.confidence_status || target?.confidence?.level || source.confidence?.level || source.confidence) || "unknown",
+    confidence: source.confidence && typeof source.confidence === "object" ? source.confidence : target?.confidence || { level: text(source.confidenceStatus || source.confidence_status) || "unknown" },
     sourceReportId: text(source.sourceReportId || source.source_report_id || report.analysisId || report.analysis_id || report.report_id || report.id) || null,
-    lineOrPosition: text(source.lineOrPosition || source.line_or_position || source.line || source.moveLine || source.move_line) || null,
-    workflowSteps: list(source.workflowSteps || source.workflow_steps),
+    lineOrPosition: text(source.lineOrPosition || source.line_or_position || source.practiceLine || source.practice_line || source.recognisedLine || source.recognizedLine || source.line || source.moveLine || source.move_line) || null,
+    recognisedLine: text(source.recognisedLine || source.recognizedLine || source.recognised_line || source.recognized_line) || null,
+    practiceLine: text(source.practiceLine || source.practice_line) || null,
+    classificationPly: integer(source.classificationPly ?? source.classification_ply, null),
+    opponentContinuation: source.opponentContinuation || source.opponent_continuation || null,
+    playerResponse: source.playerResponse || source.player_response || null,
+    firstRepeatedDivergence: source.firstRepeatedDivergence || source.first_repeated_divergence || null,
+    nextGameObjective: text(source.nextGameObjective || source.next_game_objective) || null,
+    objectiveGameCount: integer(source.objectiveGameCount ?? source.objective_game_count, 5),
+    workflowSteps,
+    sessionSteps: workflowSteps,
     fallbackSetupDrill: source.fallbackSetupDrill || source.fallback_setup_drill || null,
     sourceGameAvailability: source.sourceGameAvailability || source.source_game_availability || null,
     positionFen: text(source.positionFen || source.position_fen) || null,
@@ -134,6 +167,7 @@ function fallbackPriority(report, decision) {
     openingName: hasNamedOpening ? opening.name : null,
     openingKey: hasNamedOpening ? opening.key : null,
     role: null,
+    relationship: "unknown",
     repertoireRole: "unresolved",
     findingType: "insufficient_evidence",
     playerColour: opening.colour,
@@ -141,19 +175,36 @@ function fallbackPriority(report, decision) {
     actionType: "fallback",
     title: hasNamedOpening ? `Review one familiar ${opening.name} setup` : "Review one familiar opening setup",
     rationale: reason,
+    reasonSelected: reason,
     evidenceCount: opening.games,
     evidenceGameIds: [],
+    representativeGameIds: [],
+    representativeGameStatus: "unavailable",
     supportingGameCount: opening.games,
     estimatedDurationMinutes: 10,
     successCheck: "Name one development cue and one practical response for your next game.",
     completionTarget: { type: "concept_and_future_evidence", count: 1, label: "Save one setup cue, then add relevant games before reassessing." },
     confidenceStatus: "insufficient_branch_evidence",
+    confidence: { level: "insufficient_branch_evidence" },
     sourceReportId: text(report.analysisId || report.analysis_id || report.report_id || report.id) || null,
     lineOrPosition: null,
+    recognisedLine: null,
+    practiceLine: null,
+    classificationPly: null,
+    opponentContinuation: null,
+    playerResponse: null,
+    firstRepeatedDivergence: null,
+    nextGameObjective: "In your next five relevant games, record the opening role and the first position where your plan became unclear.",
+    objectiveGameCount: 5,
     workflowSteps: [
       { type: "setup_practice", label: "Review one clearly labelled general opening setup.", source: "general_guidance" },
       { type: "response_plan", label: "Save one practical cue for your next relevant game.", source: "general_guidance" },
       { type: "completion", label: "Add relevant games before changing your repertoire.", source: "completion_contract" },
+    ],
+    sessionSteps: [
+      { type: "setup_practice", label: "Review one clearly labelled general opening setup.", source: "general_guidance" },
+      { type: "response_plan", label: "Save one practical cue for your next relevant game.", source: "general_guidance" },
+      { type: "next_game_objective", label: "In your next five relevant games, record the opening role and the first position where your plan became unclear.", source: "completion_contract" },
     ],
     fallbackSetupDrill: { source: "general_guidance", label: "General opening setup", instruction: "Complete development, support the centre and secure the king before choosing a structure-specific pawn break." },
     positionFen: null,
@@ -189,7 +240,11 @@ export function trainingTaskFromPriority(priority, order = 1) {
     openingId: priority.openingKey,
     openingName: priority.openingName,
     trainingSide: priority.playerColour,
+    playerRole: priority.playerRole,
+    contextRole: priority.contextRole,
+    relationship: priority.relationship,
     sourceGameIds: priority.evidenceGameIds,
+    representativeGameIds: priority.representativeGameIds,
     positionFen: priority.positionFen,
     expectedMoves: priority.expectedMoves,
     successCriteria: priority.successCheck,
@@ -204,6 +259,13 @@ export function trainingTaskFromPriority(priority, order = 1) {
     evidenceSourceLabel: priority.evidenceGameIds?.length ? "Supported by your analysed games" : "General setup guidance; no recoverable source game is claimed",
     sourceReportId: priority.sourceReportId,
     lineOrPosition: priority.lineOrPosition,
+    recognisedLine: priority.recognisedLine,
+    practiceLine: priority.practiceLine,
+    classificationPly: priority.classificationPly,
+    opponentContinuation: priority.opponentContinuation,
+    playerResponse: priority.playerResponse,
+    firstRepeatedDivergence: priority.firstRepeatedDivergence,
+    nextGameObjective: priority.nextGameObjective,
     completionTarget: priority.completionTarget,
     workflowSteps: priority.workflowSteps,
     fallbackSetupDrill: priority.fallbackSetupDrill,

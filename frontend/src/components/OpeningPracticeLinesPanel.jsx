@@ -32,7 +32,7 @@ const OPENING_FILTERS = [
 
 function getOpeningName(opening) {
   if (typeof opening === "string") return opening;
-  return opening?.name || opening?.opening || opening?.label || "Unknown opening";
+  return opening?.openingName || opening?.name || opening?.opening || opening?.label || "Unknown opening";
 }
 
 function normaliseLineSearch(value) {
@@ -123,6 +123,10 @@ function parseExactMoveSequence(opening = {}, trainingSet = null) {
     trainingSet?.starting_move_sequence,
     opening.moveLine,
     opening.move_line,
+    opening.practiceLine,
+    opening.practice_line,
+    opening.recognisedLine,
+    opening.recognizedLine,
     opening.lineMoves,
     opening.line_moves,
     opening.movesText,
@@ -154,7 +158,7 @@ function exactLineName(opening = {}, trainingSet = null, fallbackName = "") {
     opening.variation ||
     opening.line ||
     fallbackName ||
-    "Exact weak line"
+    "Report priority line"
   );
 }
 
@@ -201,6 +205,8 @@ function inferPracticeSide(pack, line) {
 function inferPracticeSideFromOpening(opening) {
   const text = [
     opening?.practiceSide,
+    opening?.playerColour,
+    opening?.player_colour,
     opening?.side,
     opening?.colour,
     opening?.color,

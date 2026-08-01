@@ -7,14 +7,20 @@ from main import (
     deduplicate_games,
     filter_games_by_time_control,
     lichess_skip_reason,
+    select_analysis_candidates,
 )
 
 
 def assert_invariants(summary):
-    assert summary["excludedGames"] == summary["fetchedGames"] - summary["analysedGames"]
+    stages = [summary[key] for key in (
+        "gamesFetched", "eligible", "gamesPgnAvailable", "gamesParsed",
+        "gamesAttributed", "gamesClassified", "gamesUsedForOpeningStats",
+    )]
+    assert all(left >= right for left, right in zip(stages, stages[1:]))
+    assert summary["gamesExcluded"] == summary["gamesFetched"] - summary["gamesUsedForOpeningStats"]
     assert sum(summary["exclusionReasons"].values()) == summary["excludedGames"]
-    assert summary["analysedGames"] <= summary["analysisCandidateGames"]
-    assert summary["usableOpeningSignals"] <= summary["analysedGames"]
+    assert summary["analysedGames"] == summary["gamesParsed"]
+    assert summary["usableOpeningSignals"] == summary["gamesUsedForOpeningStats"]
 
 
 def test_report_game_counts_reconcile_with_exclusions():
@@ -33,7 +39,8 @@ def test_analysis_limit_is_a_real_exclusion_not_the_evidence_payload_limit():
     )
     assert summary["analysisCandidateGames"] == 300
     assert summary["analysisLimit"] == 300
-    assert summary["exclusionReasons"]["analysisLimit"] == 7
+    assert summary["exclusionReasons"]["beyondMaximumGameCap"] == 7
+    assert summary["analysisSelectionRule"] == "newest_first"
     assert_invariants(summary)
 
     games = [{"url": f"g-{index}", "opening": "French Defence", "end_time": index} for index in range(280)]
@@ -65,14 +72,25 @@ def test_lichess_time_control_filter_uses_platform_speed_metadata():
 
 def test_no_usable_games_reconciles_under_missing_or_other_reasons():
     summary = build_game_count_summary(2, 0, {"outsideWindow": 1, "missingOpening": 1})
-    assert summary["exclusionReasons"]["outsideDateRange"] == 1
-    assert summary["exclusionReasons"]["missingOpeningSignal"] == 1
+    assert summary["exclusionReasons"]["outsideDateWindow"] == 1
+    assert summary["exclusionReasons"]["missingPgnMoves"] == 1
     assert_invariants(summary)
 
 
 def test_fewer_than_limit_has_no_limit_exclusion_and_incomplete_games_are_classified():
     summary = build_game_count_summary(12, 12, {}, analysis_candidates=12, analysis_limit=ANALYSIS_GAME_LIMIT)
-    assert summary["exclusionReasons"]["analysisLimit"] == 0
+    assert summary["exclusionReasons"].get("beyondMaximumGameCap", 0) == 0
     assert_invariants(summary)
     assert chesscom_skip_reason({"rules": "chess", "pgn": "1. e4 e5", "white": {"result": "resigned"}, "black": {"result": "win"}}) == "oneMoveResignation"
     assert lichess_skip_reason({"variant": {"key": "standard"}, "moves": "e4 e5", "status": "resign", "winner": "black"}) == "oneMoveResignation"
+
+
+def test_analysis_cap_selection_is_deterministic_and_newest_first():
+    games = [
+        {"url": "older", "end_time": 10},
+        {"url": "newer-b", "end_time": 30},
+        {"url": "newer-a", "end_time": 30},
+        {"url": "middle", "end_time": 20},
+    ]
+    selected = select_analysis_candidates(games, "chess.com", 3)
+    assert [game["url"] for game in selected] == ["newer-a", "newer-b", "middle"]

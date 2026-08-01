@@ -60,7 +60,7 @@ test("legacy reports receive safe bands without treating result score as fit", (
 
 test("high confidence requires the central threshold and traceable reconciled games", () => {
   const gameIds = Array.from({ length: OPENING_EVIDENCE_THRESHOLDS.high }, (_, index) => `game-${index}`);
-  assert.equal(analysisConfidence({ sample: { games: 15, wins: 8, draws: 2, losses: 5, gameIds } }).level, "high");
+  assert.equal(analysisConfidence({ sample: { games: 25, wins: 13, draws: 4, losses: 8, gameIds } }).level, "high");
   assert.equal(analysisConfidence({ games: 15, scoreRate: 60 }).level, "moderate");
 });
 

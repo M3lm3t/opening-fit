@@ -148,7 +148,23 @@ test("stores structured training outcomes without inventing rating causation", (
 test("persists and restores the canonical training priority", () => {
   const report = {
     ...completedReport(),
+    trainingPriority: {
+      schemaVersion: 2,
+      priorityId: "training-caro:played_as_black",
+      recommendationId: "caro:played_as_black",
+      openingName: "Caro-Kann Defence",
+      role: "played_as_black",
+      relationship: "played_by_user",
+      evidenceCount: 5,
+      evidenceGameIds: ["caro-1", "caro-2"],
+      representativeGameIds: ["caro-2"],
+      recognisedLine: "1. e4 c6",
+      classificationPly: 2,
+      opponentContinuation: { move: "d4", games: 2, supportingGameIds: ["caro-1", "caro-2"] },
+      nextGameObjective: "Use the response in the next five relevant games.",
+    },
     reportDecision: {
+      schemaVersion: 4,
       recommendations: [{
         recommendationId: "caro:played_as_black",
         opening: "Caro-Kann Defence",
@@ -180,6 +196,15 @@ test("persists and restores the canonical training priority", () => {
   assert.equal(snapshot.training_priority.estimatedDurationMinutes, 10);
   assert.equal(restored.training_priority.priorityId, snapshot.training_priority.priorityId);
   assert.equal(restored.training_priority.openingName, "Caro-Kann Defence");
+  assert.equal(restored.training_priority.relationship, "played_by_user");
+  assert.deepEqual(restored.training_priority.representativeGameIds, ["caro-2"]);
+  assert.equal(restored.training_priority.recognisedLine, "1. e4 c6");
+  assert.equal(restored.training_priority.classificationPly, 2);
+  assert.equal(restored.training_priority.opponentContinuation.move, "d4");
+  assert.match(restored.training_priority.nextGameObjective, /next five relevant games/i);
+  assert.equal(snapshot.report_decision.primaryProblem.verdict, "repair");
+  assert.equal(restored.report_decision.primaryProblem.verdict, "repair");
+  assert.equal(restored.report_decision.nextTrainingAction.opening, "Caro-Kann Defence");
 });
 
 test("persists the score methodology so historical comparisons do not mix versions", () => {
@@ -201,6 +226,25 @@ test("persists the score methodology so historical comparisons do not mix versio
   assert.equal(snapshot.score_contract.formulaVersion, "repertoire_coverage_v2");
   assert.equal(restored.score_contract.formulaVersion, "repertoire_coverage_v2");
   assert.equal(restored.repertoire_roles[0].key, "white");
+});
+
+test("persists the canonical count pipeline and maximum-game selection rule", () => {
+  const snapshot = buildReportSnapshot({
+    report: { ...completedReport(), gameCounts: {
+      contractVersion: 4, gamesFetched: 314, eligible: 281, gamesStructurallyUsable: 281,
+      gamesPgnAvailable: 281, gamesParsed: 281, gamesAttributed: 280,
+      gamesClassified: 280, gamesUsedForOpeningStats: 279, gamesUnclassified: 0,
+      gamesExcluded: 35, analysisLimit: 300, analysisSelectionRule: "newest_first",
+      exclusionReasons: { beyondMaximumGameCap: 14, incompleteGame: 19, attributionFailed: 1, notUsedForOpeningStats: 1 },
+    } },
+    userId: "user-1", reportId: "count-contract",
+  });
+  assert.equal(snapshot.game_counts.analysisSelectionRule, "newest_first");
+  assert.deepEqual([
+    snapshot.game_counts.fetchedGames, snapshot.game_counts.gamesStructurallyUsable,
+    snapshot.game_counts.gamesClassified, snapshot.game_counts.gamesUsedForOpeningStats,
+    snapshot.game_counts.gamesUnclassified, snapshot.game_counts.gamesExcluded,
+  ], [314, 281, 280, 279, 0, 35]);
 });
 
 test("only completed, owned, non-demo reports are eligible for cloud history", () => {

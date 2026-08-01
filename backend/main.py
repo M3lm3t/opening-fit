@@ -20,6 +20,12 @@ from analysis.opening_perspective import (
     perspective_from_item,
     player_colour_from_names,
 )
+from analysis.classified_game import (
+    build_classified_game_record,
+    opening_context_key,
+    record_is_classified,
+    record_is_used_for_opening_stats,
+)
 from analysis.report_decision import apply_repertoire_coverage_score, build_report_decision, reports_are_comparable
 from opening_detection import (
     detect_opening,
@@ -1685,37 +1691,56 @@ SKIPPED_REASON_LABELS = {
     "earlyTimeout": "Incomplete or abandoned game",
     "oneMoveResignation": "Incomplete or abandoned game",
     "tooFewLegalMoves": "Insufficient opening moves",
-    "missingOpening": "Missing or invalid PGN/opening data",
-    "outsideWindow": "Outside selected date range",
-    "analysisLimit": "Outside the current analysis limit",
+    "missingOpening": "Missing PGN or moves",
+    "outsideWindow": "Outside selected date window",
+    "analysisLimit": "Beyond configured maximum-game cap",
     "duplicate": "Duplicate game record",
 }
 
 CANONICAL_EXCLUSION_REASON_LABELS = {
-    "outsideDateRange": "Outside the selected period",
-    "unsupportedTimeControl": "Did not match the selected time controls",
+    "outsideDateWindow": "Outside selected date window",
+    "beyondMaximumGameCap": "Beyond configured maximum-game cap",
+    "unsupportedTimeControl": "Unsupported time control",
     "unsupportedGameType": "Unsupported chess variant",
     "incompleteGame": "Incomplete or abandoned game",
-    "duplicate": "Duplicate game record",
-    "analysisLimit": "Outside the current analysis limit",
-    "missingOpeningSignal": "Did not contain enough opening information",
-    "other": "Other",
+    "duplicate": "Duplicate",
+    "missingPgnMoves": "Missing PGN or moves",
+    "insufficientOpeningPlies": "Insufficient opening plies",
+    "parseFailure": "PGN or moves could not be parsed",
+    "attributionFailed": "Requested player could not be attributed to one side",
+    "unclassifiedOpening": "Opening family could not be classified",
+    "notUsedForOpeningStats": "Classified game was not usable in opening statistics",
+    "other": "Reason unavailable",
 }
 
 
 class ReportExclusionReasons(TypedDict):
-    outsideDateRange: int
+    outsideDateWindow: int
+    beyondMaximumGameCap: int
     unsupportedTimeControl: int
     unsupportedGameType: int
     incompleteGame: int
     duplicate: int
-    analysisLimit: int
-    missingOpeningSignal: int
+    missingPgnMoves: int
+    insufficientOpeningPlies: int
+    parseFailure: int
+    attributionFailed: int
+    unclassifiedOpening: int
+    notUsedForOpeningStats: int
     other: int
 
 
 class ReportGameCounts(TypedDict):
     fetchedGames: int
+    gamesFetched: int
+    gamesStructurallyUsable: int
+    gamesPgnAvailable: int
+    gamesParsed: int
+    gamesAttributed: int
+    gamesClassified: int
+    gamesUsedForOpeningStats: int
+    gamesUnclassified: int
+    gamesExcluded: int
     dateRangeEligibleGames: int
     timeControlEligibleGames: int
     analysisCandidateGames: int
@@ -1724,6 +1749,8 @@ class ReportGameCounts(TypedDict):
     excludedGames: int
     exclusionReasons: ReportExclusionReasons
     analysisLimit: Optional[int]
+    analysisSelectionRule: str
+    duplicateGamesRemoved: int
     contractVersion: int
 
 
@@ -1742,14 +1769,19 @@ def skipped_reason_items(reason_counts: Dict[str, int]) -> List[Dict[str, Any]]:
 def canonical_exclusion_reasons(reason_counts: Optional[Dict[str, int]] = None) -> ReportExclusionReasons:
     raw = reason_counts or {}
     grouped: ReportExclusionReasons = {
-        "outsideDateRange": int(raw.get("outsideDateRange", raw.get("outsideWindow", 0)) or 0),
+        "outsideDateWindow": int(raw.get("outsideDateWindow", raw.get("outsideDateRange", raw.get("outsideWindow", 0))) or 0),
+        "beyondMaximumGameCap": int(raw.get("beyondMaximumGameCap", raw.get("analysisLimit", 0)) or 0),
         "unsupportedTimeControl": int(raw.get("unsupportedTimeControl", raw.get("bullet", 0)) or 0),
         "unsupportedGameType": int(raw.get("unsupportedGameType", raw.get("variants", 0)) or 0),
         "incompleteGame": sum(int(raw.get(key, 0) or 0) for key in ("incompleteGame", "abandoned", "earlyTimeout", "oneMoveResignation")),
         "duplicate": int(raw.get("duplicate", 0) or 0),
-        "analysisLimit": int(raw.get("analysisLimit", 0) or 0),
-        "missingOpeningSignal": sum(int(raw.get(key, 0) or 0) for key in ("missingOpeningSignal", "veryShort", "tooFewLegalMoves", "missingOpening")),
-        "other": int(raw.get("other", 0) or 0),
+        "missingPgnMoves": sum(int(raw.get(key, 0) or 0) for key in ("missingPgnMoves", "missingOpening", "invalidPgn")),
+        "insufficientOpeningPlies": sum(int(raw.get(key, 0) or 0) for key in ("insufficientOpeningPlies", "veryShort", "tooFewLegalMoves")),
+        "parseFailure": int(raw.get("parseFailure", 0) or 0),
+        "attributionFailed": int(raw.get("attributionFailed", 0) or 0),
+        "unclassifiedOpening": int(raw.get("unclassifiedOpening", 0) or 0),
+        "notUsedForOpeningStats": int(raw.get("notUsedForOpeningStats", 0) or 0),
+        "other": sum(int(raw.get(key, 0) or 0) for key in ("other", "missingOpeningSignal")),
     }
     return grouped
 
@@ -1763,73 +1795,244 @@ def build_game_count_summary(
     time_control_eligible: Optional[int] = None,
     analysis_candidates: Optional[int] = None,
     analysis_limit: Optional[int] = None,
+    structurally_usable: Optional[int] = None,
+    pgn_available: Optional[int] = None,
+    parsed: Optional[int] = None,
+    attributed: Optional[int] = None,
+    used_for_opening_stats: Optional[int] = None,
+    duplicate_games_removed: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Build the authoritative, reconciled import-to-report count contract.
 
-    One analysed game produces at most one usable opening signal. Games rejected
-    by validation or the service limit are therefore excluded, not analysed.
+    Structural validation, opening classification and aggregate use are separate
+    stages. A structurally valid but unrecognised opening is unclassified rather
+    than misleadingly described as excluded.
     Legacy aliases remain in the response but are derived only from this object.
     """
     fetched = max(0, int(imported or 0))
-    analysed = min(fetched, max(0, int(classified or 0)))
+    structural = max(0, int(structurally_usable if structurally_usable is not None else classified or 0))
+    eligible = structural
+    pgn_games = max(0, int(pgn_available if pgn_available is not None else eligible))
+    parsed_games = max(0, int(parsed if parsed is not None else pgn_games))
+    attributed_games = max(0, int(attributed if attributed is not None else parsed_games))
+    classified_games = max(0, int(classified or 0))
+    used_games = max(0, int(used_for_opening_stats if used_for_opening_stats is not None else classified_games))
+    stages = [fetched, eligible, pgn_games, parsed_games, attributed_games, classified_games, used_games]
+    if any(left < right for left, right in zip(stages, stages[1:])):
+        raise ValueError(f"game_count_contract: invalid stage inputs {stages}")
+    unclassified_games = attributed_games - classified_games
     reasons = canonical_exclusion_reasons(reason_counts)
-    excluded = fetched - analysed
+    if reasons["duplicate"]:
+        raise ValueError(
+            "game_count_contract: duplicates are removed before fetched and must be recorded only in duplicateGamesRemoved"
+        )
+    excluded = fetched - used_games
+    stage_reasons = {
+        "parseFailure": pgn_games - parsed_games,
+        "attributionFailed": parsed_games - attributed_games,
+        "unclassifiedOpening": attributed_games - classified_games,
+        "notUsedForOpeningStats": classified_games - used_games,
+    }
+    for key, count in stage_reasons.items():
+        expected = max(0, count)
+        recorded = reasons[key]
+        if recorded not in (0, expected):
+            raise ValueError(
+                f"game_count_contract: recorded {key} reason {recorded} "
+                f"does not match stage gap {expected}"
+            )
+        reasons[key] = expected
     reason_total = sum(reasons.values())
     if reason_total < excluded:
         reasons["other"] += excluded - reason_total
     elif reason_total > excluded:
-        # Inputs should already be disjoint; keep the public invariant even when
-        # adapting older callers with overlapping reason categories.
-        overflow = reason_total - excluded
-        for key in (
-            "other", "missingOpeningSignal", "incompleteGame", "unsupportedGameType",
-            "duplicate", "analysisLimit", "unsupportedTimeControl", "outsideDateRange",
-        ):
-            reduction = min(reasons[key], overflow)
-            reasons[key] -= reduction
-            overflow -= reduction
-            if not overflow:
-                break
+        raise ValueError(f"game_count_contract: exclusion reasons total {reason_total} exceeds excluded {excluded}")
 
-    date_eligible = min(fetched, max(analysed, int(date_range_eligible if date_range_eligible is not None else fetched - reasons["outsideDateRange"])))
-    time_eligible = min(date_eligible, max(analysed, int(time_control_eligible if time_control_eligible is not None else date_eligible - reasons["unsupportedTimeControl"])))
-    candidates = min(time_eligible, max(analysed, int(analysis_candidates if analysis_candidates is not None else time_eligible - reasons["duplicate"] - reasons["analysisLimit"])))
+    date_eligible = min(fetched, max(structural, int(date_range_eligible if date_range_eligible is not None else fetched - reasons["outsideDateWindow"])))
+    time_eligible = min(date_eligible, max(structural, int(time_control_eligible if time_control_eligible is not None else date_eligible - reasons["unsupportedTimeControl"])))
+    candidates = min(time_eligible, max(structural, int(analysis_candidates if analysis_candidates is not None else time_eligible - reasons["duplicate"] - reasons["beyondMaximumGameCap"])))
     canonical: ReportGameCounts = {
         "fetchedGames": fetched,
+        "gamesFetched": fetched,
+        "gamesStructurallyUsable": structural,
+        "gamesPgnAvailable": pgn_games,
+        "gamesParsed": parsed_games,
+        "gamesAttributed": attributed_games,
+        "gamesClassified": classified_games,
+        "gamesUsedForOpeningStats": used_games,
+        "gamesUnclassified": unclassified_games,
+        "gamesExcluded": excluded,
         "dateRangeEligibleGames": date_eligible,
         "timeControlEligibleGames": time_eligible,
         "analysisCandidateGames": candidates,
-        "analysedGames": analysed,
-        "usableOpeningSignals": analysed,
+        "analysedGames": structural,
+        "usableOpeningSignals": used_games,
         "excludedGames": excluded,
         "exclusionReasons": reasons,
         "analysisLimit": analysis_limit,
-        "contractVersion": 2,
+        "analysisSelectionRule": "newest_first",
+        "duplicateGamesRemoved": max(0, int(duplicate_games_removed or reasons["duplicate"])),
+        "contractVersion": 4,
     }
     reason_rows = [
         {"key": key, "label": CANONICAL_EXCLUSION_REASON_LABELS[key], "count": count}
         for key, count in reasons.items() if count
     ]
-    return {
+    result = {
         **canonical,
         # Backward-compatible aliases. These are never independently calculated.
         "imported": fetched,
-        "eligible": time_eligible,
-        "classified": analysed,
+        "eligible": eligible,
+        "pgnAvailable": pgn_games,
+        "parsed": parsed_games,
+        "attributed": attributed_games,
+        "classified": classified_games,
+        "usedForOpeningStats": used_games,
         "excluded": excluded,
         "exclusion_reasons": reasons,
         "exclusionReasonItems": reason_rows,
+    }
+    return validate_game_count_contract(result)
+
+
+def validate_game_count_contract(counts: Dict[str, Any], *, opening_stat_games: Optional[int] = None) -> Dict[str, Any]:
+    """Fail closed for newly built reports; never infer counts from aggregates."""
+    ordered = [
+        counts.get("gamesFetched"), counts.get("eligible"), counts.get("gamesPgnAvailable"),
+        counts.get("gamesParsed"), counts.get("gamesAttributed"), counts.get("gamesClassified"),
+        counts.get("gamesUsedForOpeningStats"),
+    ]
+    if any(type(value) is not int or value < 0 for value in ordered):
+        raise ValueError("game_count_contract: every stage must be a non-negative integer")
+    if any(left < right for left, right in zip(ordered, ordered[1:])):
+        raise ValueError(f"game_count_contract: funnel is not monotonic: {ordered}")
+    excluded = counts.get("gamesExcluded")
+    if excluded != ordered[0] - ordered[-1]:
+        raise ValueError("game_count_contract: excluded must equal fetched minus used")
+    reasons = counts.get("exclusionReasons") or {}
+    if sum(reasons.values()) != excluded:
+        raise ValueError("game_count_contract: exclusion reasons do not reconcile")
+    if reasons.get("duplicate", 0) != 0:
+        raise ValueError("game_count_contract: fetched games must already be unique")
+    if type(counts.get("duplicateGamesRemoved")) is not int or counts["duplicateGamesRemoved"] < 0:
+        raise ValueError("game_count_contract: duplicateGamesRemoved must be a non-negative integer")
+    if opening_stat_games is not None and int(opening_stat_games) != ordered[-1]:
+        raise ValueError(
+            f"game_count_contract: opening-stat total {opening_stat_games} differs from used {ordered[-1]}"
+        )
+    alias_pairs = (("fetchedGames", "gamesFetched"), ("classified", "gamesClassified"), ("excluded", "gamesExcluded"))
+    if any(counts.get(left) != counts.get(right) for left, right in alias_pairs):
+        raise ValueError("game_count_contract: compatibility aliases diverged")
+    return counts
+
+
+def classified_game_pipeline_counts(records: List[Dict[str, Any]]) -> Dict[str, int]:
+    """Count each canonical record once through PGN, parse and attribution stages."""
+    unique: Dict[str, Dict[str, Any]] = {}
+    for record in records:
+        identity = str(record.get("gameId") or record.get("url") or "").strip()
+        if not identity:
+            raise ValueError("game_count_contract: a canonical game record has no stable identity")
+        unique.setdefault(identity, record)
+    values = list(unique.values())
+    pgn_records = [record for record in values if str(record.get("pgn") or "").strip() or record.get("moves")]
+    parsed_records = [
+        record for record in pgn_records
+        if record.get("moves") or int(record.get("classificationPly") or 0) > 0
+    ]
+    attributed_records = [
+        record for record in parsed_records
+        if record.get("playerColour") in {"white", "black"}
+        and record.get("playerRole") != "unknown"
+        and record.get("relationship") in {"played_by_user", "faced_by_user"}
+    ]
+    classified_records = [record for record in attributed_records if record_is_classified(record)]
+    used_records = [record for record in classified_records if record_is_used_for_opening_stats(record)]
+    return {
+        "uniqueRecords": len(values),
+        "pgnAvailable": len(pgn_records),
+        "parsed": len(parsed_records),
+        "attributed": len(attributed_records),
+        "classified": len(classified_records),
+        "usedForOpeningStats": len(used_records),
+    }
+
+
+def game_count_report_aliases(counts: Dict[str, Any]) -> Dict[str, Any]:
+    """Assign every public legacy alias from one validated contract."""
+    validate_game_count_contract(counts)
+    fetched = counts["gamesFetched"]
+    parsed = counts["gamesParsed"]
+    used = counts["gamesUsedForOpeningStats"]
+    excluded = counts["gamesExcluded"]
+    return {
+        "total_games": used, "totalGames": used,
+        "gamesImported": fetched, "gamesFound": fetched, "games_found": fetched,
+        "gamesEligible": counts["eligible"], "games_eligible": counts["eligible"],
+        "gamesStructurallyUsable": counts["gamesStructurallyUsable"],
+        "games_structurally_usable": counts["gamesStructurallyUsable"],
+        "gamesAnalysed": parsed, "gamesAnalyzed": parsed,
+        "gamesWithPgn": counts["gamesPgnAvailable"], "games_with_pgn": counts["gamesPgnAvailable"],
+        "gamesParsed": parsed, "games_parsed": parsed,
+        "gamesAttributed": counts["gamesAttributed"], "games_attributed": counts["gamesAttributed"],
+        "gamesClassified": counts["gamesClassified"], "games_classified": counts["gamesClassified"],
+        "gamesWithOpeningDetected": counts["gamesClassified"],
+        "games_with_opening_detected": counts["gamesClassified"],
+        "gamesUsedForOpeningStats": used, "games_used_for_opening_stats": used,
+        "gamesUnclassified": counts["gamesUnclassified"], "games_unclassified": counts["gamesUnclassified"],
+        "gamesUsedForFit": used, "games_used_for_fit": used,
+        "gamesExcluded": excluded, "games_excluded": excluded,
+        "skippedGames": excluded,
+        "gameCounts": counts, "game_counts": counts,
+        "skipped_game_reasons": counts["exclusionReasons"],
+        "skippedGameReasons": counts["exclusionReasonItems"],
     }
 
 
 def game_identity(game: Dict[str, Any], platform: str) -> str:
     if platform == "lichess":
         explicit = game.get("id") or game.get("gameId")
-        fallback = f"{game.get('createdAt')}:{game.get('lastMoveAt')}:{game.get('moves')}"
+        players = game.get("players") if isinstance(game.get("players"), dict) else {}
+        white = players.get("white") if isinstance(players.get("white"), dict) else {}
+        black = players.get("black") if isinstance(players.get("black"), dict) else {}
+        fallback_parts = (
+            platform,
+            white.get("userId") or white.get("name"),
+            black.get("userId") or black.get("name"),
+            game.get("createdAt"),
+            game.get("lastMoveAt"),
+            game.get("moves"),
+            game.get("winner"),
+            game.get("status"),
+        )
     else:
         explicit = game.get("uuid") or game.get("url")
-        fallback = f"{game.get('end_time')}:{game.get('pgn')}"
-    return str(explicit or hashlib.sha256(fallback.encode("utf-8", errors="ignore")).hexdigest())
+        white = game.get("white") if isinstance(game.get("white"), dict) else {}
+        black = game.get("black") if isinstance(game.get("black"), dict) else {}
+        fallback_parts = (
+            platform,
+            white.get("username"),
+            black.get("username"),
+            game.get("end_time") or game.get("endTime"),
+            game.get("pgn"),
+        )
+    fallback = "|".join(str(value or "") for value in fallback_parts)
+    return str(explicit or f"pgn-{hashlib.sha256(fallback.encode('utf-8', errors='ignore')).hexdigest()}")
+
+
+def select_analysis_candidates(games: List[Dict[str, Any]], platform: str, limit: int) -> List[Dict[str, Any]]:
+    """Select the capped analysis cohort deterministically, newest first."""
+    timestamp_keys = ("lastMoveAt", "createdAt") if platform == "lichess" else ("end_time", "endTime")
+
+    def selection_key(game: Dict[str, Any]) -> tuple[int, str]:
+        timestamp = next((game.get(key) for key in timestamp_keys if game.get(key) is not None), 0)
+        try:
+            epoch = int(timestamp or 0)
+        except (TypeError, ValueError):
+            epoch = 0
+        return (-epoch, game_identity(game, platform))
+
+    return sorted(games, key=selection_key)[:max(0, int(limit))]
 
 
 def deduplicate_games(games: List[Dict[str, Any]], platform: str) -> tuple[List[Dict[str, Any]], int]:
@@ -1882,9 +2085,6 @@ def chesscom_skip_reason(game: Dict[str, Any]) -> Optional[str]:
     if move_count_from_moves(moves) < 8:
         return "veryShort"
 
-    if is_unknown_opening_name(guess_opening_from_pgn(pgn)):
-        return "missingOpening"
-
     return None
 
 
@@ -1916,9 +2116,6 @@ def lichess_skip_reason(game: Dict[str, Any]) -> Optional[str]:
 
     if move_count_from_moves(moves) < 8:
         return "veryShort"
-
-    if is_unknown_opening_name(get_lichess_opening_name(game)):
-        return "missingOpening"
 
     return None
 
@@ -3083,6 +3280,7 @@ def opening_item(
         "plan_structures_6": dict(stats.get("plan_structures_6", {}) or {}),
         "plan_structures_8": dict(stats.get("plan_structures_8", {}) or {}),
         "plan_structures_10": dict(stats.get("plan_structures_10", {}) or {}),
+        "supportingGameIds": list(dict.fromkeys(stats.get("supportingGameIds", []) or [])),
         "context": context,
         "openingRole": dominant_opening_role(stats),
         "opening_role": dominant_opening_role(stats),
@@ -3552,6 +3750,7 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "plan_structures_6": dict(stats.get("plan_structures_6", {}) or {}),
                 "plan_structures_8": dict(stats.get("plan_structures_8", {}) or {}),
                 "plan_structures_10": dict(stats.get("plan_structures_10", {}) or {}),
+                "supportingGameIds": list(dict.fromkeys(stats.get("supportingGameIds", []) or [])),
                 "win_rate": win_rate,
                 "winRate": win_rate,
                 "score": score,
@@ -8389,24 +8588,7 @@ def build_not_enough_games_import_result(
         "platform": platform,
         "importPlatform": platform,
         **rating_context_from_profile(player_profile),
-        "total_games": 0,
-        "totalGames": 0,
-        "gamesImported": games_found,
-        "gamesFound": games_found,
-        "games_found": games_found,
-        "gamesAnalysed": 0,
-        "gamesAnalyzed": 0,
-        "gamesEligible": game_counts["eligible"],
-        "games_eligible": game_counts["eligible"],
-        "gamesClassified": 0,
-        "games_classified": 0,
-        "gamesExcluded": game_counts["excluded"],
-        "games_excluded": game_counts["excluded"],
-        "gameCounts": game_counts,
-        "game_counts": game_counts,
-        "skippedGames": games_found,
-        "skipped_game_reasons": skipped_reason_counts,
-        "skippedGameReasons": skipped_reason_items(skipped_reason_counts),
+        **game_count_report_aliases(game_counts),
         "months_checked": months,
         "monthsChecked": months,
         "archives_checked": archives_checked or [],
@@ -8476,6 +8658,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
     selected_archives = archives[-months:] if len(archives) >= months else archives
 
     all_games: List[Dict[str, Any]] = []
+    duplicate_count = 0
     archive_breakdown = []
 
     if not selected_archives:
@@ -8511,26 +8694,19 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
                     "No partial report was created; retry the import in a moment."
                 ),
             ) from exc
-        user_games = []
-
-        for game in games:
-            colour, _reason = player_colour_from_names(
-                username,
-                game.get("white", {}).get("username", ""),
-                game.get("black", {}).get("username", ""),
-            )
-            if colour in {"white", "black"}:
-                user_games.append(game)
+        unique_archive_games, _archive_duplicates = deduplicate_games(games, "chess.com")
 
         archive_breakdown.append(
             {
                 "archive": extract_year_month(archive_url),
-                "games_found": len(user_games),
-                "gamesFound": len(user_games),
+                "games_found": len(unique_archive_games),
+                "gamesFound": len(unique_archive_games),
             }
         )
 
-        all_games.extend(user_games)
+        all_games.extend(games)
+        all_games, newly_removed = deduplicate_games(all_games, "chess.com")
+        duplicate_count += newly_removed
 
         if progress:
             progress(
@@ -8559,12 +8735,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
     time_control_games, unsupported_time_control_count = filter_games_by_time_control(
         all_games, "chess.com", time_control
     )
-    unique_games, duplicate_count = deduplicate_games(time_control_games, "chess.com")
-    analysis_candidates = sorted(
-        unique_games,
-        key=lambda game: game.get("end_time") or 0,
-        reverse=True,
-    )[:ANALYSIS_GAME_LIMIT]
+    analysis_candidates = select_analysis_candidates(time_control_games, "chess.com", ANALYSIS_GAME_LIMIT)
     analysed_games, skipped_reason_counts = split_usable_games(analysis_candidates, chesscom_skip_reason)
 
     if progress:
@@ -8616,7 +8787,11 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
             first_white_move=first_white_move,
             classification_source=str(opening_detection.get("openingSideSource") or "move_sequence_or_opening_metadata"),
         )
-        repertoire_context = str(perspective["repertoireSlot"] or perspective["role"])
+        repertoire_context = (
+            "played_as_white"
+            if perspective["repertoireSlot"] == "white"
+            else str(perspective["repertoireSlot"] or perspective["role"])
+        )
         perspective_fields = attach_perspective({}, perspective)
         time_control_raw = game.get("time_control") or game.get("timeControl") or game.get("time_class")
         time_control_normalized = normalise_filter_time_control(game.get("time_class") or time_control_raw)
@@ -8625,41 +8800,57 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
             if game.get("end_time")
             else None
         )
+        tagged_variation = pgn_tag_value(pgn, "Opening")
+        canonical_game = build_classified_game_record(
+            game_id=game_identity(game, "chess.com"),
+            url=str(game.get("url") or ""),
+            player_colour=colour,
+            player_result=result,
+            time_control=time_control_normalized,
+            played_at=played_at,
+            eco=pgn_tag_value(pgn, "ECO") or None,
+            opening_family=opening,
+            variation=tagged_variation if tagged_variation and detect_normalise_opening_name(tagged_variation) != opening else None,
+            classification_ply=len(opening_detection.get("movesAnalysed") or []),
+            perspective=perspective,
+        )
 
-        opening_counter[opening] += 1
+        if record_is_used_for_opening_stats(canonical_game):
+            opening_counter[opening] += 1
 
-        if colour == "white":
-            white_opening_counter[opening] += 1
-        elif colour == "black":
-            black_opening_counter[opening] += 1
+            if colour == "white":
+                white_opening_counter[opening] += 1
+            elif colour == "black":
+                black_opening_counter[opening] += 1
 
-        context_key = f"{opening}::{perspective['repertoireRole']}::{perspective['role']}"
-        context_stats = context_opening_results[context_key]
-        context_stats.update({
-            "repertoireRole": perspective["repertoireRole"],
-            "perspectiveRole": perspective["role"],
-            "roleAttributionTrusted": perspective["roleAttributionTrusted"],
-            "attributionReasonCode": perspective["attributionReasonCode"],
-        })
-        for stats in (opening_results[opening], context_stats):
-            stats["name"] = opening
-            stats["games"] += 1
-            add_rating_context_to_stats(stats, user_rating, opponent_rating)
-            add_move_order_to_stats(stats, moves)
-            if colour in {"white", "black"}:
-                stats[colour] += 1
-            stats[repertoire_context] += 1
-            if perspective["role"] != repertoire_context:
-                stats[perspective["role"]] += 1
+            context_key = "::".join(opening_context_key(canonical_game))
+            context_stats = context_opening_results[context_key]
+            context_stats.update({
+                "repertoireRole": perspective["repertoireRole"],
+                "perspectiveRole": perspective["role"],
+                "roleAttributionTrusted": perspective["roleAttributionTrusted"],
+                "attributionReasonCode": perspective["attributionReasonCode"],
+            })
+            for stats in (opening_results[opening], context_stats):
+                stats["name"] = opening
+                stats["games"] += 1
+                stats.setdefault("supportingGameIds", []).append(canonical_game["gameId"])
+                add_rating_context_to_stats(stats, user_rating, opponent_rating)
+                add_move_order_to_stats(stats, moves)
+                if colour in {"white", "black"}:
+                    stats[colour] += 1
+                stats[repertoire_context] += 1
+                if perspective["role"] != repertoire_context:
+                    stats[perspective["role"]] += 1
 
-            if result == "win":
-                stats["wins"] += 1
-            elif result == "draw":
-                stats["draws"] += 1
-            elif result == "loss":
-                stats["losses"] += 1
-                add_loss_timing_to_stats(stats, loss_timing)
-            add_plan_structure_to_stats(stats, moves, result)
+                if result == "win":
+                    stats["wins"] += 1
+                elif result == "draw":
+                    stats["draws"] += 1
+                elif result == "loss":
+                    stats["losses"] += 1
+                    add_loss_timing_to_stats(stats, loss_timing)
+                add_plan_structure_to_stats(stats, moves, result)
 
         recent_games.append(
             {
@@ -8699,6 +8890,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
                 "whiteUsername": game.get("white", {}).get("username", ""),
                 "black_username": game.get("black", {}).get("username", ""),
                 "blackUsername": game.get("black", {}).get("username", ""),
+                **canonical_game,
             }
         )
 
@@ -8744,6 +8936,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
                 "moveCount": move_count,
                 "loss_timing": loss_timing,
                 "lossTiming": loss_timing,
+                **canonical_game,
             }
         )
 
@@ -8802,6 +8995,11 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
         item["evidence"] = opening_evidence_bullets(item)
         item["evidenceBullets"] = item["evidence"]
         top_openings.append(item)
+
+    # Public opening rows must retain their canonical colour/role/relationship
+    # context. The family-only accumulator is diagnostic and must not be shown
+    # as though its combined sample belonged to one dominant player context.
+    top_openings = build_opening_scores(context_opening_results)[:10]
 
     preferred_white = [
         {
@@ -8983,16 +9181,26 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
 
     count_reasons = dict(skipped_reason_counts)
     count_reasons["unsupportedTimeControl"] = unsupported_time_control_count
-    count_reasons["duplicate"] = duplicate_count
-    count_reasons["analysisLimit"] = max(0, len(unique_games) - len(analysis_candidates))
+    count_reasons["analysisLimit"] = max(0, len(time_control_games) - len(analysis_candidates))
+    pipeline_counts = classified_game_pipeline_counts(opening_game_samples)
     game_counts = build_game_count_summary(
         len(all_games),
-        len(analysed_games),
+        pipeline_counts["classified"],
         count_reasons,
         date_range_eligible=len(all_games),
         time_control_eligible=len(time_control_games),
         analysis_candidates=len(analysis_candidates),
         analysis_limit=ANALYSIS_GAME_LIMIT,
+        structurally_usable=len(analysed_games),
+        pgn_available=pipeline_counts["pgnAvailable"],
+        parsed=pipeline_counts["parsed"],
+        attributed=pipeline_counts["attributed"],
+        used_for_opening_stats=pipeline_counts["usedForOpeningStats"],
+        duplicate_games_removed=duplicate_count,
+    )
+    validate_game_count_contract(
+        game_counts,
+        opening_stat_games=sum(int(stats.get("games", 0) or 0) for stats in context_opening_results.values()),
     )
     result = {
         "username": player_profile.get("username") or player.get("username", username),
@@ -9008,23 +9216,9 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
         "title": player.get("title"),
         "chessTitle": player.get("title"),
         "chess_title": player.get("title"),
-        "total_games": len(analysed_games),
-        "totalGames": len(analysed_games),
-        "gamesImported": game_counts["fetchedGames"],
-        "gamesFound": game_counts["fetchedGames"],
-        "gamesAnalysed": game_counts["analysedGames"],
-        "gamesAnalyzed": game_counts["analysedGames"],
-        "gamesEligible": game_counts["eligible"],
-        "games_eligible": game_counts["eligible"],
-        "gamesClassified": game_counts["classified"],
-        "games_classified": game_counts["classified"],
-        "gamesExcluded": game_counts["excluded"],
-        "games_excluded": game_counts["excluded"],
-        "gameCounts": game_counts,
-        "game_counts": game_counts,
-        "skippedGames": game_counts["excludedGames"],
-        "skipped_game_reasons": game_counts["exclusionReasons"],
-        "skippedGameReasons": game_counts["exclusionReasonItems"],
+        **game_count_report_aliases(game_counts),
+        "gamesStructurallyUsable": game_counts["gamesStructurallyUsable"],
+        "gamesUnclassified": game_counts["gamesUnclassified"],
         "analysisTimeControl": time_control,
         "analysis_time_control": time_control,
         "months_checked": len(selected_archives),
@@ -9154,6 +9348,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
     )
     result["progressComparison"] = result["progress_comparison"]
 
+    result = enrich_analysis_result(result, username=username, platform="chess.com")
     result = compact_analysis_result(result)
     profile = save_user_profile(username, result)
 
@@ -9300,7 +9495,11 @@ def build_lichess_analysis(
             first_white_move=first_white_move,
             classification_source=str(opening_detection.get("openingSideSource") or "move_sequence_or_opening_metadata"),
         )
-        repertoire_context = str(perspective["repertoireSlot"] or perspective["role"])
+        repertoire_context = (
+            "played_as_white"
+            if perspective["repertoireSlot"] == "white"
+            else str(perspective["repertoireSlot"] or perspective["role"])
+        )
         perspective_fields = attach_perspective({}, perspective)
         loss_timing = classify_loss_timing(result, moves=moves)
         time_control_raw = lichess_time_control_raw(game)
@@ -9331,41 +9530,57 @@ def build_lichess_analysis(
             "",
             " ".join(pgn_moves),
         ]).strip()
+        tagged_variation = str(raw_opening.get("name") or "").strip()
+        canonical_game = build_classified_game_record(
+            game_id=game_identity(game, "lichess"),
+            url=f"https://lichess.org/{game.get('id')}" if game.get("id") else "",
+            player_colour=colour,
+            player_result=result,
+            time_control=time_control_normalized,
+            played_at=played_at,
+            eco=str(raw_opening.get("eco") or "") or None,
+            opening_family=opening,
+            variation=tagged_variation if tagged_variation and detect_normalise_opening_name(tagged_variation) != opening else None,
+            classification_ply=len(opening_detection.get("movesAnalysed") or []),
+            perspective=perspective,
+        )
 
-        opening_counter[opening] += 1
+        if record_is_used_for_opening_stats(canonical_game):
+            opening_counter[opening] += 1
 
-        if colour == "white":
-            white_opening_counter[opening] += 1
-        elif colour == "black":
-            black_opening_counter[opening] += 1
+            if colour == "white":
+                white_opening_counter[opening] += 1
+            elif colour == "black":
+                black_opening_counter[opening] += 1
 
-        context_key = f"{opening}::{perspective['repertoireRole']}::{perspective['role']}"
-        context_stats = context_opening_results[context_key]
-        context_stats.update({
-            "repertoireRole": perspective["repertoireRole"],
-            "perspectiveRole": perspective["role"],
-            "roleAttributionTrusted": perspective["roleAttributionTrusted"],
-            "attributionReasonCode": perspective["attributionReasonCode"],
-        })
-        for stats in (opening_results[opening], context_stats):
-            stats["name"] = opening
-            stats["games"] += 1
-            add_rating_context_to_stats(stats, user_rating, opponent_rating)
-            add_move_order_to_stats(stats, moves)
-            if colour in {"white", "black"}:
-                stats[colour] += 1
-            stats[repertoire_context] += 1
-            if perspective["role"] != repertoire_context:
-                stats[perspective["role"]] += 1
+            context_key = "::".join(opening_context_key(canonical_game))
+            context_stats = context_opening_results[context_key]
+            context_stats.update({
+                "repertoireRole": perspective["repertoireRole"],
+                "perspectiveRole": perspective["role"],
+                "roleAttributionTrusted": perspective["roleAttributionTrusted"],
+                "attributionReasonCode": perspective["attributionReasonCode"],
+            })
+            for stats in (opening_results[opening], context_stats):
+                stats["name"] = opening
+                stats["games"] += 1
+                stats.setdefault("supportingGameIds", []).append(canonical_game["gameId"])
+                add_rating_context_to_stats(stats, user_rating, opponent_rating)
+                add_move_order_to_stats(stats, moves)
+                if colour in {"white", "black"}:
+                    stats[colour] += 1
+                stats[repertoire_context] += 1
+                if perspective["role"] != repertoire_context:
+                    stats[perspective["role"]] += 1
 
-            if result == "win":
-                stats["wins"] += 1
-            elif result == "draw":
-                stats["draws"] += 1
-            elif result == "loss":
-                stats["losses"] += 1
-                add_loss_timing_to_stats(stats, loss_timing)
-            add_plan_structure_to_stats(stats, moves, result)
+                if result == "win":
+                    stats["wins"] += 1
+                elif result == "draw":
+                    stats["draws"] += 1
+                elif result == "loss":
+                    stats["losses"] += 1
+                    add_loss_timing_to_stats(stats, loss_timing)
+                add_plan_structure_to_stats(stats, moves, result)
 
         recent_games.append(
             {
@@ -9406,6 +9621,7 @@ def build_lichess_analysis(
                 "whiteUsername": white_name,
                 "black_username": black_name,
                 "blackUsername": black_name,
+                **canonical_game,
             }
         )
         opening_game_samples.append(
@@ -9441,6 +9657,7 @@ def build_lichess_analysis(
                 "moveCount": move_count,
                 "loss_timing": loss_timing,
                 "lossTiming": loss_timing,
+                **canonical_game,
             }
         )
 
@@ -9498,6 +9715,9 @@ def build_lichess_analysis(
         item["evidence"] = opening_evidence_bullets(item)
         item["evidenceBullets"] = item["evidence"]
         top_openings.append(item)
+
+    # Keep Lichess presentation on the same context-preserving aggregate.
+    top_openings = build_opening_scores(context_opening_results)[:10]
 
     preferred_white = [
         {
@@ -9703,14 +9923,25 @@ def build_lichess_analysis(
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
     count_context = count_context or {}
+    pipeline_counts = classified_game_pipeline_counts(opening_game_samples)
     game_counts = build_game_count_summary(
         games_found,
-        len(games),
+        pipeline_counts["classified"],
         skipped_reason_counts,
         date_range_eligible=count_context.get("dateRangeEligibleGames", games_found),
         time_control_eligible=count_context.get("timeControlEligibleGames", games_found),
         analysis_candidates=count_context.get("analysisCandidateGames", len(games)),
         analysis_limit=ANALYSIS_GAME_LIMIT,
+        structurally_usable=len(games),
+        pgn_available=pipeline_counts["pgnAvailable"],
+        parsed=pipeline_counts["parsed"],
+        attributed=pipeline_counts["attributed"],
+        used_for_opening_stats=pipeline_counts["usedForOpeningStats"],
+        duplicate_games_removed=int(count_context.get("duplicateGamesRemoved", 0) or 0),
+    )
+    validate_game_count_contract(
+        game_counts,
+        opening_stat_games=sum(int(stats.get("games", 0) or 0) for stats in context_opening_results.values()),
     )
     result = {
         "username": player_profile.get("username") or username,
@@ -9728,23 +9959,9 @@ def build_lichess_analysis(
         "lichessRating": current_rating,
         "player_level": player_level,
         "playerLevel": player_level,
-        "total_games": len(games),
-        "totalGames": len(games),
-        "gamesImported": game_counts["fetchedGames"],
-        "gamesFound": game_counts["fetchedGames"],
-        "gamesAnalysed": game_counts["analysedGames"],
-        "gamesAnalyzed": game_counts["analysedGames"],
-        "gamesEligible": game_counts["eligible"],
-        "games_eligible": game_counts["eligible"],
-        "gamesClassified": game_counts["classified"],
-        "games_classified": game_counts["classified"],
-        "gamesExcluded": game_counts["excluded"],
-        "games_excluded": game_counts["excluded"],
-        "gameCounts": game_counts,
-        "game_counts": game_counts,
-        "skippedGames": game_counts["excludedGames"],
-        "skipped_game_reasons": game_counts["exclusionReasons"],
-        "skippedGameReasons": game_counts["exclusionReasonItems"],
+        **game_count_report_aliases(game_counts),
+        "gamesStructurallyUsable": game_counts["gamesStructurallyUsable"],
+        "gamesUnclassified": game_counts["gamesUnclassified"],
         "analysisTimeControl": count_context.get("timeControl", "custom"),
         "analysis_time_control": count_context.get("timeControl", "custom"),
         "months_checked": months,
@@ -9886,6 +10103,7 @@ def build_lichess_analysis(
     )
     result["progressComparison"] = result["progress_comparison"]
 
+    result = enrich_analysis_result(result, username=username, platform="lichess")
     result = compact_analysis_result(result)
     profile = save_user_profile(username, result)
 
@@ -10034,6 +10252,7 @@ def import_lichess_logic(username: str, months: int = 3, time_control: str = "cu
         except json.JSONDecodeError:
             continue
 
+    games, duplicate_count = deduplicate_games(games, "lichess")
     if progress:
         progress("games_found", fetchedGames=len(games))
     if not games:
@@ -10059,16 +10278,10 @@ def import_lichess_logic(username: str, months: int = 3, time_control: str = "cu
     time_control_games, unsupported_time_control_count = filter_games_by_time_control(
         games, "lichess", time_control
     )
-    unique_games, duplicate_count = deduplicate_games(time_control_games, "lichess")
-    analysis_candidates = sorted(
-        unique_games,
-        key=lambda game: game.get("lastMoveAt") or game.get("createdAt") or 0,
-        reverse=True,
-    )[:ANALYSIS_GAME_LIMIT]
+    analysis_candidates = select_analysis_candidates(time_control_games, "lichess", ANALYSIS_GAME_LIMIT)
     analysed_games, skipped_reason_counts = split_usable_games(analysis_candidates, lichess_skip_reason)
     skipped_reason_counts["unsupportedTimeControl"] = unsupported_time_control_count
-    skipped_reason_counts["duplicate"] = duplicate_count
-    skipped_reason_counts["analysisLimit"] = max(0, len(unique_games) - len(analysis_candidates))
+    skipped_reason_counts["analysisLimit"] = max(0, len(time_control_games) - len(analysis_candidates))
 
     if progress:
         progress(
@@ -10111,6 +10324,7 @@ def import_lichess_logic(username: str, months: int = 3, time_control: str = "cu
             "dateRangeEligibleGames": len(games),
             "timeControlEligibleGames": len(time_control_games),
             "analysisCandidateGames": len(analysis_candidates),
+            "duplicateGamesRemoved": duplicate_count,
             "timeControl": time_control,
         },
         progress=progress,
@@ -10317,9 +10531,13 @@ def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
             {
                 key: game[key]
                 for key in (
-                    "url", "result", "opening", "name", "context", "contextLabel",
+                    "gameId", "url", "result", "opening", "name", "context", "contextLabel",
                     "time_class", "timeClass", "colour", "color", "end_time", "endTime",
-                    "played_at", "playedAt", "repertoireContext", "role", "repertoireSlot",
+                    "played_at", "playedAt", "repertoireContext", "openingRole", "repertoireSlot",
+                    "repertoireRole", "roleAttributionTrusted", "attributionReasonCode",
+                    "openingSide", "perspective", "playerColour", "playerResult", "timeControl",
+                    "eco", "openingFamily", "variation", "classificationPly", "playerRole",
+                    "relationship", "exclusionReason",
                 )
                 if key in game
             }
@@ -10331,9 +10549,13 @@ def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
             compact_games.append({
                 key: game[key]
                 for key in (
-                    "url", "rated", "result", "opening", "name", "context", "contextLabel",
+                    "gameId", "url", "rated", "result", "opening", "name", "context", "contextLabel",
                     "time_class", "colour", "end_time", "played_at", "pgn", "moves",
-                    "move_count", "loss_timing",
+                    "move_count", "loss_timing", "repertoireContext", "openingRole",
+                    "repertoireSlot", "repertoireRole", "roleAttributionTrusted",
+                    "attributionReasonCode", "openingSide", "perspective", "playerColour",
+                    "playerResult", "timeControl", "eco", "openingFamily", "variation",
+                    "classificationPly", "playerRole", "relationship", "exclusionReason",
                 )
                 if key in game
             })
@@ -10643,6 +10865,13 @@ def demo_profile():
             "repertoireContext": "played_as_white",
             **opening_explanation("Queen Pawn Game"),
         },
+        {
+            "name": "Italian Game", "games": 3, "wins": 2, "draws": 0, "losses": 1,
+            "win_rate": 66.7, "winRate": 66.7, "score": 0.67, "verdict": "Watch",
+            "colour": "white", "color": "white", "context": "played_as_white",
+            "contextLabel": context_label("played_as_white"), "repertoireContext": "played_as_white",
+            **opening_explanation("Italian Game"),
+        },
     ]
 
     style_profile = {
@@ -10690,30 +10919,30 @@ def demo_profile():
         ],
         "sample_size": 24,
         "sampleSize": 24,
-        "method": "deterministic_pgn_heuristics_v1",
+        "method": "demo_precomputed_traits_v1",
     }
 
     opening_recommendations = {
         "white_repertoire": [
             opening_item("Vienna Game", 8, "played_as_white", {"games": 8, "wins": 5}),
-            opening_item("Italian Game", 5, "played_as_white", {"games": 5, "wins": 3}),
+            opening_item("Italian Game", 3, "played_as_white", {"games": 3, "wins": 2}),
         ],
         "black_vs_e4": [
             opening_item("Scandinavian Defence", 7, "black_vs_e4", {"games": 7, "wins": 4}),
-            opening_item("Caro-Kann Defence", 4, "black_vs_e4", {"games": 4, "wins": 2}),
+            opening_item("Caro-Kann Defence", 0, "black_vs_e4", {"games": 0, "wins": 0}),
         ],
         "black_vs_d4": [
-            opening_item("Queen's Gambit Declined", 3, "black_vs_d4", {"games": 3, "wins": 1}),
+            opening_item("Queen's Gambit Declined", 0, "black_vs_d4", {"games": 0, "wins": 0}),
         ],
         "black_vs_other": [
-            opening_item("King's Indian setup", 2, "black_vs_other", {"games": 2, "wins": 1}),
+            opening_item("King's Indian setup", 0, "black_vs_other", {"games": 0, "wins": 0}),
         ],
         "experimental_rare": [
-            opening_item("Englund Gambit", 1, "black_vs_d4", {"games": 1, "wins": 0}),
+            opening_item("Englund Gambit", 0, "black_vs_d4", {"games": 0, "wins": 0}),
         ],
         "too_little_data": [
             {
-                **opening_item("Unclear transposition", 1, "unknown_mixed", {"games": 1, "wins": 0}),
+                **opening_item("Unclear transposition", 0, "unknown_mixed", {"games": 0, "wins": 0}),
                 "recommendationCopy": SAFE_CONTEXT_FALLBACK_COPY,
             }
         ],
@@ -10765,6 +10994,56 @@ def demo_profile():
         }
     )
 
+    demo_games: List[Dict[str, Any]] = []
+    demo_specs = [
+        ("Vienna Game", "white", "white", ["e4", "e5", "Nc3", "Nf6"], ["win"] * 5 + ["draw"] + ["loss"] * 2),
+        ("Scandinavian Defence", "black", "black", ["e4", "d5", "exd5", "Qxd5"], ["win"] * 4 + ["loss"] * 3),
+        ("Queen Pawn Game", "white", "white", ["d4", "d5", "Nf3", "Nf6"], ["win", "draw"] + ["loss"] * 4),
+        ("Italian Game", "white", "white", ["e4", "e5", "Nf3", "Nc6", "Bc4"], ["win"] * 2 + ["loss"]),
+    ]
+    demo_number = 0
+    for opening_name, player_colour, opening_side, moves, results in demo_specs:
+        for result in results:
+            demo_number += 1
+            white_name = "DemoPlayer" if player_colour == "white" else f"FictionalOpponent{demo_number}"
+            black_name = "DemoPlayer" if player_colour == "black" else f"FictionalOpponent{demo_number}"
+            move_text = " ".join(
+                f"{index // 2 + 1}. {moves[index]}{f' {moves[index + 1]}' if index + 1 < len(moves) else ''}"
+                for index in range(0, len(moves), 2)
+            )
+            pgn = f'[White "{white_name}"]\n[Black "{black_name}"]\n[Opening "{opening_name}"]\n\n{move_text}'
+            perspective = classify_opening_perspective(
+                user_colour=player_colour, opening_side=opening_side,
+                first_white_move=moves[0], classification_source="demo_fixture",
+            )
+            canonical_game = build_classified_game_record(
+                game_id=f"demo-game-{demo_number:02d}", url=f"https://example.invalid/demo-game-{demo_number:02d}",
+                player_colour=player_colour, player_result=result, time_control="rapid",
+                played_at=f"2026-07-{demo_number:02d}T12:00:00+00:00", eco=None,
+                opening_family=opening_name, variation=None, classification_ply=len(moves), perspective=perspective,
+            )
+            demo_games.append({
+                **attach_perspective({}, perspective),
+                "opening": opening_name, "name": opening_name,
+                "colour": player_colour, "color": player_colour, "result": result,
+                "pgn": pgn, "moves": moves, "movesText": " ".join(moves),
+                "whiteUsername": white_name, "blackUsername": black_name,
+                **canonical_game,
+            })
+
+    demo_pipeline = classified_game_pipeline_counts(demo_games)
+    demo_game_counts = build_game_count_summary(
+        24, demo_pipeline["classified"], {}, date_range_eligible=24,
+        time_control_eligible=24, analysis_candidates=24, analysis_limit=ANALYSIS_GAME_LIMIT,
+        structurally_usable=24, pgn_available=demo_pipeline["pgnAvailable"],
+        parsed=demo_pipeline["parsed"], attributed=demo_pipeline["attributed"],
+        used_for_opening_stats=demo_pipeline["usedForOpeningStats"], duplicate_games_removed=0,
+    )
+    validate_game_count_contract(
+        demo_game_counts,
+        opening_stat_games=sum(int(item.get("games", 0) or 0) for item in demo_best_openings),
+    )
+
     premium_data = build_premium_data(demo_best_openings, style_profile)
     opening_fit_profile = build_opening_fit_profile(
         demo_best_openings,
@@ -10792,13 +11071,7 @@ def demo_profile():
         "reportMode": "normal_user",
         "reportModeReasons": [],
         "publicAccountCaution": "",
-        "total_games": 24,
-        "totalGames": 24,
-        "gamesImported": 24,
-        "gamesFound": 24,
-        "gamesAnalysed": 24,
-        "gamesAnalyzed": 24,
-        "skippedGames": 0,
+        **game_count_report_aliases(demo_game_counts),
         "months_checked": 3,
         "monthsChecked": 3,
         "archives_checked": [
@@ -10828,19 +11101,19 @@ def demo_profile():
         "bestOpenings": demo_best_openings,
         "preferred_white": [
             {"name": "Vienna Game", "games": 8, "colour": "white", "color": "white", "context": "played_as_white", "contextLabel": context_label("played_as_white"), **opening_explanation("Vienna Game")},
-            {"name": "Italian Game", "games": 5, "colour": "white", "color": "white", "context": "played_as_white", "contextLabel": context_label("played_as_white"), **opening_explanation("Italian Game")},
+            {"name": "Italian Game", "games": 3, "colour": "white", "color": "white", "context": "played_as_white", "contextLabel": context_label("played_as_white"), **opening_explanation("Italian Game")},
         ],
         "preferredWhite": [
             {"name": "Vienna Game", "games": 8, "colour": "white", "color": "white", "context": "played_as_white", "contextLabel": context_label("played_as_white"), **opening_explanation("Vienna Game")},
-            {"name": "Italian Game", "games": 5, "colour": "white", "color": "white", "context": "played_as_white", "contextLabel": context_label("played_as_white"), **opening_explanation("Italian Game")},
+            {"name": "Italian Game", "games": 3, "colour": "white", "color": "white", "context": "played_as_white", "contextLabel": context_label("played_as_white"), **opening_explanation("Italian Game")},
         ],
         "preferred_black": [
             {"name": "Scandinavian Defence", "games": 7, "colour": "black", "color": "black", "context": "black_vs_e4", "contextLabel": context_label("black_vs_e4"), **opening_explanation("Scandinavian Defence")},
-            {"name": "Caro-Kann Defence", "games": 4, "colour": "black", "color": "black", "context": "black_vs_e4", "contextLabel": context_label("black_vs_e4"), **opening_explanation("Caro-Kann Defence")},
+            {"name": "Caro-Kann Defence", "games": 0, "colour": "black", "color": "black", "context": "black_vs_e4", "contextLabel": context_label("black_vs_e4"), **opening_explanation("Caro-Kann Defence")},
         ],
         "preferredBlack": [
             {"name": "Scandinavian Defence", "games": 7, "colour": "black", "color": "black", "context": "black_vs_e4", "contextLabel": context_label("black_vs_e4"), **opening_explanation("Scandinavian Defence")},
-            {"name": "Caro-Kann Defence", "games": 4, "colour": "black", "color": "black", "context": "black_vs_e4", "contextLabel": context_label("black_vs_e4"), **opening_explanation("Caro-Kann Defence")},
+            {"name": "Caro-Kann Defence", "games": 0, "colour": "black", "color": "black", "context": "black_vs_e4", "contextLabel": context_label("black_vs_e4"), **opening_explanation("Caro-Kann Defence")},
         ],
         "recommendations": [
             "As White, your most common practical choice is Vienna Game.",
@@ -10870,8 +11143,13 @@ def demo_profile():
             "After each game, review where tactics first appeared rather than only the final blunder.",
             "Do not switch openings every session. Give one opening a real test sample before judging it.",
         ],
-        "recent_games": [],
-        "recentGames": [],
+        "games": demo_games,
+        "opening_games": demo_games,
+        "openingGames": demo_games,
+        "analysis_game_index": demo_games,
+        "analysisGameIndex": demo_games,
+        "recent_games": demo_games[:10],
+        "recentGames": demo_games[:10],
         "savedProfile": {
             "username": "DemoPlayer",
             "lastUpdated": now_iso(),

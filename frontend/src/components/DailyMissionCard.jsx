@@ -41,6 +41,34 @@ function coachInsights(data = {}) {
 }
 
 function focusMission(data = {}) {
+  const decision = data?.reportDecision || data?.report_decision;
+  const action = decision?.nextTrainingAction;
+  const priority = decision?.trainingPriority || data?.trainingPriority || data?.training_priority;
+  if (priority?.openingName) {
+    return {
+      title: priority.title || `Review ${priority.openingName}`,
+      openingName: priority.openingName,
+      description: priority.reasonSelected || priority.rationale,
+      practiceGoal: priority.playerResponse?.move ? `Rehearse ${priority.playerResponse.move} once as your response.` : priority.rationale,
+      moveLine: priority.recognisedLine || priority.practiceLine || priority.lineOrPosition || "",
+      targetDrills: 1,
+      targetGames: priority.objectiveGameCount || 5,
+      successMetric: priority.nextGameObjective || priority.successCheck,
+    };
+  }
+  if (action?.opening) {
+    return {
+      title: action.label || action.title || `Review ${action.opening}`,
+      openingName: action.opening,
+      description: action.reason || action.explanation,
+      practiceGoal: action.exercise || action.concept || action.reason,
+      moveLine: action.lineOrPosition || "",
+      targetDrills: action.completionTarget?.type === "correct_repetitions" ? action.completionTarget.count : 1,
+      targetGames: action.completionTarget?.type === "future_games" ? action.completionTarget.count : 0,
+      successMetric: action.completionTarget?.label || priority?.rationale || "Complete the report's recommended action.",
+    };
+  }
+  if (decision) return null;
   const mission = coachInsights(data)?.focusMission || coachInsights(data)?.focus_mission;
   return mission && typeof mission === "object" ? mission : null;
 }
@@ -147,7 +175,8 @@ function buildMission(data, fitData, openingFitUserState) {
   }
 
   const plan = buildTrainingRecommendations(data, fitData);
-  const weakest = buildWeakestLineTrainingTarget(data || {});
+  const hasCanonicalDecision = Boolean(data?.reportDecision || data?.report_decision);
+  const weakest = hasCanonicalDecision ? { available: false, target: null } : buildWeakestLineTrainingTarget(data || {});
   const target = plan.primary?.trainingTarget || (weakest.available ? weakest.target : null);
   const activeToday = localToday?.lastState === "started" && isToday(localToday?.saved_at || localToday?.lastSavedAt);
   const realProgress = reviewedToday > 0 || activeToday;

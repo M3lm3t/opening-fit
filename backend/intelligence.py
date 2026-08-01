@@ -20,6 +20,35 @@ def safe_number(value: Any, fallback: Any = None) -> Any:
         return fallback
 
 
+def validated_current_count_contract(value: Any) -> dict | None:
+    """Accept v4 report counts only when the complete funnel reconciles.
+
+    Current imports are validated by the report builder. This second boundary
+    prevents a malformed stored/demo payload from regaining invented confidence
+    during response enrichment; historical reports remain explicitly unknown.
+    """
+    if not isinstance(value, dict) or safe_number(value.get("contractVersion"), 0) < 4:
+        return None
+    keys = (
+        "gamesFetched", "eligible", "gamesPgnAvailable", "gamesParsed",
+        "gamesAttributed", "gamesClassified", "gamesUsedForOpeningStats",
+    )
+    values = [value.get(key) for key in keys]
+    if any(type(item) is not int or item < 0 for item in values):
+        return None
+    if any(left < right for left, right in zip(values, values[1:])):
+        return None
+    excluded = value.get("gamesExcluded")
+    reasons = value.get("exclusionReasons")
+    if type(excluded) is not int or excluded != values[0] - values[-1] or not isinstance(reasons, dict):
+        return None
+    if any(type(count) is not int or count < 0 for count in reasons.values()):
+        return None
+    if sum(reasons.values()) != excluded:
+        return None
+    return value
+
+
 def as_list(value: Any) -> list:
     if not value:
         return []
@@ -1017,8 +1046,8 @@ def build_competitive_psychology(
             {
                 "type": "identity_drift",
                 "severity": "medium",
-                "title": "Your opening identity is too scattered",
-                "body": f"You touched {variety} opening buckets, but only {repeat_count} repeat enough to build confidence. That creates the feeling of always starting from scratch.",
+                "title": "Many opening buckets appear in this sample",
+                "body": f"You touched {variety} opening buckets, but only {repeat_count} repeat enough to build confidence. This is a broad sample observation, not a repertoire-concentration calculation.",
                 "action": "Freeze the repertoire menu for two weeks and measure confidence before adding another line.",
             }
         )
@@ -1280,34 +1309,23 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
     openings = collect_openings(data, include_unknown=True)
     known_openings = [item for item in openings if not item.get("is_unknown_opening")]
     unknown_openings = [item for item in openings if item.get("is_unknown_opening")]
-    # Standardised import counts
-    games_imported = (
-        safe_number(data.get("gamesImported"), None)
-        or safe_number(data.get("games_imported"), None)
-        or safe_number(data.get("totalGames"), None)
-        or safe_number(data.get("total_games"), None)
-        or safe_number(data.get("gameCount"), None)
-        or safe_number(data.get("game_count"), None)
-        or 0
-    )
-
-    # Count games with PGN where available
-    games_list = data.get("games") if isinstance(data.get("games"), list) else None
-    games_with_pgn = 0
-    games_parsed = 0
-    if games_list:
-        for g in games_list:
-            pgn = g.get("pgn") if isinstance(g, dict) else None
-            if pgn:
-                games_with_pgn += 1
-                games_parsed += 1
-
-    # Opening detection counts
-    games_with_opening = sum(get_opening_games(item) for item in openings)
+    # The import builder owns all game totals. Opening collections overlap and
+    # may include catalogue recommendations, so they must never be summed here.
+    raw_count_contract = data.get("gameCounts") or data.get("game_counts") or {}
+    count_contract = validated_current_count_contract(raw_count_contract)
+    canonical_counts = count_contract is not None
+    if not canonical_counts:
+        count_contract = {}
+        if isinstance(raw_count_contract, dict) and safe_number(raw_count_contract.get("contractVersion"), 0) >= 4:
+            data["gameCountContractStatus"] = "invalid_current_contract"
+    games_imported = int(safe_number(count_contract.get("gamesFetched"), 0) or 0) if canonical_counts else int(safe_number(data.get("gamesImported"), 0) or 0)
+    games_with_pgn = int(safe_number(count_contract.get("gamesPgnAvailable"), 0) or 0) if canonical_counts else None
+    games_parsed = int(safe_number(count_contract.get("gamesParsed"), 0) or 0) if canonical_counts else None
+    games_attributed = int(safe_number(count_contract.get("gamesAttributed"), 0) or 0) if canonical_counts else None
+    games_with_opening = int(safe_number(count_contract.get("gamesClassified"), 0) or 0) if canonical_counts else None
     openings_detected = len(openings)
 
-    # Usable games are those assigned to known openings (not unknown)
-    usable_games = sum(get_opening_games(item) for item in known_openings)
+    usable_games = int(safe_number(count_contract.get("gamesUsedForOpeningStats"), 0) or 0) if canonical_counts else None
     scored_games = 0
     weighted_score_total = 0
 
@@ -1352,32 +1370,23 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
     # Repeat openings heuristic
     repeat_openings = len([item for item in known_openings if get_opening_games(item) >= 3])
 
-    # Base confidence (legacy)
-    if games_imported < 30:
-        base_confidence = "low"
-    elif level_profile.get("rating") is None:
-        base_confidence = "medium"
-    elif games_imported >= 80 and repeat_openings >= 4:
-        base_confidence = "high"
-    else:
-        base_confidence = "medium"
-
-    # Sample-size aware final confidence / tier
-    if usable_games >= 10:
+    evidence_games = usable_games if usable_games is not None else 0
+    if evidence_games >= 25:
         sample_tier = "strong"
-    elif 5 <= usable_games <= 9:
+    elif evidence_games >= 10:
         sample_tier = "medium"
-    elif 3 <= usable_games <= 4:
+    elif evidence_games >= 5:
         sample_tier = "light"
     else:
-        sample_tier = "aggregate"
+        sample_tier = "low"
 
     final_confidence = sample_tier
+    base_confidence = sample_tier
 
     not_enough_data_reason = None
-    if usable_games < 10:
+    if evidence_games < 10:
         not_enough_data_reason = (
-            f"Only {usable_games} usable games detected — fewer than the recommended 10 for a strong report."
+            f"Only {evidence_games} games were used in opening statistics — fewer than 10 for a stable report-level signal."
         )
 
     recommendation = build_recommendation(data, level_profile, openings)
@@ -1386,7 +1395,7 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
     data["opening_classification"] = {
         "known_openings": len(known_openings),
         "unclassified_openings": len(unknown_openings),
-        "unclassified_games": sum(get_opening_games(item) for item in unknown_openings),
+        "unclassified_games": int(safe_number(count_contract.get("gamesUnclassified"), 0) or 0) if canonical_counts else None,
         "display_label": level_profile["opening_unknown_label"],
         "explanation": level_profile["unknown_explanation"],
     }
@@ -1396,6 +1405,8 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
         "games_checked": games_imported,
         "usable_games": usable_games,
         "games_with_pgn": games_with_pgn,
+        "games_parsed": games_parsed,
+        "games_attributed": games_attributed,
         "games_with_opening": games_with_opening,
         "repeat_openings": repeat_openings,
         "known_openings": len(known_openings),
@@ -1403,10 +1414,13 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
         "average_score": average_score,
     }
     # Expose analysis-level fields required by the UI
-    data["gamesImported"] = games_imported
-    data["gamesWithPgn"] = games_with_pgn
-    data["gamesWithOpeningDetected"] = games_with_opening
-    data["gamesUsedForFit"] = usable_games
+    if canonical_counts:
+        data["gamesImported"] = data["games_imported"] = games_imported
+        data["gamesWithPgn"] = data["games_with_pgn"] = games_with_pgn
+        data["gamesParsed"] = data["games_parsed"] = games_parsed
+        data["gamesAttributed"] = data["games_attributed"] = games_attributed
+        data["gamesWithOpeningDetected"] = data["games_with_opening_detected"] = games_with_opening
+        data["gamesUsedForFit"] = data["games_used_for_fit"] = usable_games
     data["qualifiedOpenings"] = [get_opening_name(o) for o in qualified_openings]
     data["analysisConfidence"] = final_confidence
     data["notEnoughDataReason"] = not_enough_data_reason
@@ -1420,16 +1434,21 @@ def enrich_analysis_result(payload: Any, username: str | None = None, platform: 
         "gamesFetched": games_imported,
         "gamesWithPgn": games_with_pgn,
         "gamesParsed": games_parsed,
+        "gamesAttributed": games_attributed,
         "gamesWithOpening": games_with_opening,
         "openingsDetected": openings_detected,
         "qualifiedOpenings": [get_opening_name(o) for o in qualified_openings],
         "topOpeningSamples": [get_opening_name(o) for o in sorted(openings, key=lambda x: get_opening_games(x), reverse=True)[:5]],
-        "rejectedReasonCounts": data.get("rejected") or {},
+        "rejectedReasonCounts": count_contract.get("exclusionReasons") if canonical_counts else {},
         "finalConfidence": final_confidence,
         "notEnoughDataReason": not_enough_data_reason,
     }
 
     data["import_debug"] = debug
+    fingerprint = data.get("style_fingerprint") or data.get("styleFingerprint")
+    if isinstance(fingerprint, dict) and not games_with_pgn and str(fingerprint.get("method") or "").startswith("deterministic_pgn"):
+        fingerprint = {**fingerprint, "method": "insufficient_move_evidence", "confidence": "low"}
+        data["style_fingerprint"] = data["styleFingerprint"] = fingerprint
     data["backend_recommendation"] = recommendation
     data["backend_coach_summary"] = level_profile["headline"]
     data["backend_next_action"] = recommendation["primary_action"]

@@ -134,4 +134,6 @@ def test_fit_score_is_preserved_but_never_used_as_current_performance():
 
     assert recommendation["fitScore"] == 91
     assert recommendation["scoreRate"] is None
-    assert recommendation["verdict"] == "insufficient-data"
+    assert recommendation["evidenceStatus"] == "sufficient"
+    assert recommendation["verdict"] == "explore"
+    assert recommendation["confidenceReasons"][-1].startswith("Not every supporting game")

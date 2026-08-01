@@ -1,8 +1,8 @@
-import { normaliseOpeningKey } from "../data/openings";
+import { normaliseOpeningKey } from "../data/openings.ts";
 import {
   OPENING_RECOMMENDATION_VERDICT_ACTIONS,
   OPENING_RECOMMENDATION_VERDICT_THRESHOLDS,
-} from "./openingRecommendationVerdictConfig";
+} from "./openingRecommendationVerdictConfig.js";
 
 const VERDICT_LABELS = {
   KEEP: "KEEP",

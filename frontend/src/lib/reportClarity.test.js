@@ -22,16 +22,78 @@ test("canonical counts reconcile and keep precise stable meanings", () => {
   assert.equal(counts.exclusionReasons.reduce((sum, row) => sum + row.count, 0), 6);
 });
 
+test("v3 counts use explicit structural, classified and aggregate totals", () => {
+  const counts = buildReportGameCounts({ gameCounts: {
+    contractVersion: 3,
+    gamesFetched: 314,
+    gamesStructurallyUsable: 281,
+    gamesClassified: 280,
+    gamesUsedForOpeningStats: 279,
+    gamesUnclassified: 1,
+    gamesExcluded: 33,
+    exclusionReasons: { beyondMaximumGameCap: 14, incompleteGame: 19 },
+    analysisSelectionRule: "newest_first",
+  } });
+  assert.deepEqual(
+    [counts.fetchedGames, counts.structurallyUsableGames, counts.classifiedGames, counts.usedForOpeningStats, counts.unclassifiedGames, counts.excludedGames],
+    [314, 281, 280, 279, 1, 33],
+  );
+  assert.equal(counts.classified, 280);
+  assert.equal(counts.exclusionReasons.reduce((sum, row) => sum + row.count, 0), 33);
+});
+
+test("v4 canonical counts take precedence and expose one complete funnel", () => {
+  const counts = buildReportGameCounts({
+    gamesImported: 30, gamesAnalysed: 30,
+    gameCounts: {
+      contractVersion: 4, gamesFetched: 24, eligible: 24, gamesPgnAvailable: 24,
+      gamesParsed: 24, gamesAttributed: 24, gamesClassified: 24,
+      gamesUsedForOpeningStats: 24, gamesExcluded: 0, exclusionReasons: {},
+      duplicateGamesRemoved: 0,
+    },
+  });
+  assert.deepEqual([
+    counts.fetchedGames, counts.eligibleGames, counts.pgnAvailableGames, counts.parsedGames,
+    counts.attributedGames, counts.classifiedGames, counts.usedForOpeningStats, counts.excludedGames,
+  ], [24, 24, 24, 24, 24, 24, 24, 0]);
+  assert.equal(counts.countStatus, "canonical");
+  assert.equal(reportCountSentence({ gameCounts: {
+    contractVersion: 4, gamesFetched: 24, eligible: 24, gamesPgnAvailable: 24,
+    gamesParsed: 24, gamesAttributed: 24, gamesClassified: 24,
+    gamesUsedForOpeningStats: 24, gamesExcluded: 0, exclusionReasons: {},
+  } }), "24 games found · 24 games used · 0 games excluded");
+});
+
+test("legacy reports preserve unknown stages instead of manufacturing zero", () => {
+  const counts = buildReportGameCounts({ gamesImported: 24 });
+  assert.equal(counts.fetchedGames, 24);
+  assert.equal(counts.analysedGames, null);
+  assert.equal(counts.excludedGames, null);
+  assert.equal(counts.countStatus, "legacy_incomplete");
+  assert.equal(reportCountSentence({ gamesImported: 24 }), "Exact import breakdown unavailable for this older report.");
+});
+
+test("invalid current contracts fail safe rather than displaying contradictory totals", () => {
+  const counts = buildReportGameCounts({ gameCounts: {
+    contractVersion: 4, gamesFetched: 24, eligible: 24, gamesPgnAvailable: 24,
+    gamesParsed: 24, gamesAttributed: 24, gamesClassified: 24,
+    gamesUsedForOpeningStats: 30, gamesExcluded: 0, exclusionReasons: {},
+  } });
+  assert.equal(counts.countStatus, "invalid_current_contract");
+  assert.equal(counts.fetchedGames, null);
+  assert.equal(counts.usedForOpeningStats, null);
+});
+
 test("excluded categories are concise and duplicate categories merge", () => {
   const counts = buildReportGameCounts({ gamesFound: 8, gamesAnalysed: 5, skippedGameReasons: [
     { key: "veryShort", count: 1 }, { key: "tooFewLegalMoves", count: 2 },
   ] });
-  assert.deepEqual(counts.exclusionReasons.map((row) => [row.label, row.count]), [["Did not contain enough opening information", 3]]);
+  assert.deepEqual(counts.exclusionReasons.map((row) => [row.label, row.count]), [["Insufficient opening plies", 3]]);
 });
 
 test("excluded games keep recorded reasons and use an honest fallback", () => {
   const recorded = buildReportGameCounts({ gameCounts: { contractVersion: 2, fetchedGames: 10, analysedGames: 7, exclusionReasons: { duplicate: 2 } } });
-  assert.deepEqual(recorded.exclusionReasons.map((reason) => [reason.label, reason.count]), [["Duplicate game record", 2], ["Reason unavailable", 1]]);
+  assert.deepEqual(recorded.exclusionReasons.map((reason) => [reason.label, reason.count]), [["Duplicate", 2], ["Reason unavailable", 1]]);
   const unavailable = buildReportGameCounts({ gamesImported: 10, gamesAnalysed: 7, gamesExcluded: 3 });
   assert.deepEqual(unavailable.exclusionReasons.map((reason) => [reason.label, reason.count]), [["Reason unavailable", 3]]);
 });
@@ -48,7 +110,7 @@ test("count sentence handles singular and plural grammar", () => {
   assert.equal(reportCountSentence({ gameCounts: { contractVersion: 2, fetchedGames: 1, dateRangeEligibleGames: 1, timeControlEligibleGames: 1, analysisCandidateGames: 1, analysedGames: 1, usableOpeningSignals: 1, excludedGames: 0, exclusionReasons: {} } }), "1 public game found. 1 game contained enough opening information to analyse. 0 games not analysed.");
 });
 
-test("melmet-shaped compact evidence never replaces canonical analysis totals", () => {
+test("large compact evidence never replaces canonical analysis totals", () => {
   const counts = buildReportGameCounts({
     gameCounts: {
       contractVersion: 2, fetchedGames: 307, dateRangeEligibleGames: 307,
@@ -81,6 +143,25 @@ test("headline, history and export count surfaces consume the shared adapter", (
     assert.match(source, /buildReportGameCounts/);
     assert.doesNotMatch(source, /usable opening signal/i);
   }
+});
+
+test("current reports explain the maximum-game cap and imported date-window scope", () => {
+  const summarySource = fs.readFileSync(fileURLToPath(new URL("../components/ReportGameCountSummary.jsx", import.meta.url)), "utf8");
+  const appSource = fs.readFileSync(fileURLToPath(new URL("../App.jsx", import.meta.url)), "utf8");
+  assert.match(summarySource, /Maximum-game cap/);
+  assert.match(summarySource, /selected newest first; capped games are not invalid/i);
+  assert.match(appSource, /All imported games/);
+  assert.match(appSource, /not the player’s all-time public history/i);
+});
+
+test("all count surfaces use the same adapter and mobile compact counts wrap", () => {
+  const component = fs.readFileSync(fileURLToPath(new URL("../components/ReportGameCountSummary.jsx", import.meta.url)), "utf8");
+  const styles = fs.readFileSync(fileURLToPath(new URL("../components/PrimaryReportSummary.css", import.meta.url)), "utf8");
+  assert.match(component, /buildReportGameCounts/);
+  assert.match(component, /counts\.fetchedGames/);
+  assert.match(component, /counts\.usedForOpeningStats/);
+  assert.match(component, /counts\.excludedGames/);
+  assert.match(styles, /\.reportGameCountCompact\s*\{[^}]*flex-wrap:\s*wrap/s);
 });
 
 test("baseline makes comparison-only secondary metrics unavailable", () => {

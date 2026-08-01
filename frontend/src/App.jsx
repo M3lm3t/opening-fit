@@ -15,6 +15,7 @@ import GameReplayBoard from "./components/GameReplayBoard";
 import TrainingSessionQueue from "./components/TrainingSessionQueue";
 import { findOpeningPracticePack } from "./data/openingPracticeLines";
 import { normaliseOpeningKey } from "./data/openings";
+import { evidenceGapCategory, mergeOpeningContextRows, shouldShowEvidenceGap } from "./lib/openingContextRows.js";
 import ResultsCommandCenter from "./components/ResultsCommandCenter";
 import OpeningHealthScore from "./components/OpeningHealthScore";
 import OpeningHealthTrends from "./components/OpeningHealthTrends";
@@ -146,6 +147,7 @@ import PrimaryReportSummary from "./components/PrimaryReportSummary.jsx";
 import FeatureAccessPreview from "./components/FeatureAccessPreview.jsx";
 import { selectPreviousReportSnapshot } from "./lib/reportComparisonPresentation.js";
 import { primaryComparisonState } from "./lib/primaryReportSummary.js";
+import { selectAuthoritativeCoachingPriority } from "./lib/authoritativeReportPresentation.js";
 import { normaliseReportView, reportViewFromLocation, reportViewHash, reportViewHeadingId } from "./lib/reportViews.js";
 import { buildReportGameCounts, reportCountSentence } from "./lib/reportGameCounts.js";
 import { accountExperienceState, subscriptionPresentation } from "./lib/accountExperience.js";
@@ -1114,21 +1116,13 @@ function repertoireBucketForOpening(opening) {
 }
 
 function uniqueOpeningsByNameAndContext(items) {
-  const seen = new Set();
-  const result = [];
-
-  items.forEach((item) => {
-    const name = getOpeningName(item);
-    const context = item?.context || itemContext(item);
-    const key = `${String(name).toLowerCase()}::${context}`;
-
-    if (!name || isUnknownOpeningName(name) || seen.has(key)) return;
-
-    seen.add(key);
-    result.push(item);
+  return mergeOpeningContextRows(items, {
+    getName: getOpeningName,
+    getContext: (item) => item?.context || itemContext(item),
+    getGames: getOpeningGames,
+    normaliseName: normaliseOpeningKey,
+    isUnknown: isUnknownOpeningName,
   });
-
-  return result;
 }
 
 function firstMoveBucketForOpening(opening) {
@@ -1504,19 +1498,13 @@ function weakDataReason(opening) {
   const signal = getOpeningSignal(opening);
   const games = getOpeningGames(opening);
 
-  if (context.type === "mixed" || context.type === "faced" || itemContext(opening) === "unknown_mixed") {
-    return "context unclear";
-  }
-
-  if (games <= 2 || signal.tier === "tooLittle" || signal.tier === "none") {
-    return "sample too small";
-  }
-
-  if (games <= 7 || signal.tier === "low") {
-    return "early signal only";
-  }
-
-  return "not a clear repertoire signal";
+  return evidenceGapCategory(opening, {
+    games,
+    contextType: context.type,
+    context: itemContext(opening),
+    evidenceStatus: opening?.evidenceStatus || opening?.evidence_status || ((signal.tier === "tooLittle" || signal.tier === "none") && games < 5 ? "insufficient" : ""),
+    reasonCode: opening?.evidenceReasonCode || opening?.evidence_reason_code,
+  });
 }
 
 function buildInterestingButThinOpenings(data, fitData, sections = []) {
@@ -1537,14 +1525,14 @@ function buildInterestingButThinOpenings(data, fitData, sections = []) {
     const context = getOpeningContext(opening);
     const signal = getOpeningSignal(opening);
 
-    return (
-      games >= 1 &&
-      (games <= 7 ||
-        !signal.canBePrimary ||
-        context.type === "mixed" ||
-        context.type === "faced" ||
-        itemContext(opening) === "unknown_mixed")
-    );
+    return shouldShowEvidenceGap(opening, {
+      games,
+      contextType: context.type,
+      context: itemContext(opening),
+      evidenceStatus: opening?.evidenceStatus || opening?.evidence_status || (!signal.canBePrimary && games < 5 ? "insufficient" : ""),
+      relationship: opening?.relationship || (context.type === "faced" ? "faced_by_user" : "played_by_user"),
+      mixedPerformance: signal.canBePrimary && ["explore", "watch", "improve"].includes(String(opening?.verdict || opening?.fitVerdict || "").toLowerCase()),
+    });
   });
 
   return uniqueOpeningsByNameAndContext([
@@ -2286,15 +2274,8 @@ function confidenceRowText(opening) {
 
 function getOpeningSharePercent(opening, data) {
   const games = getOpeningGames(opening);
-  const total = Number(
-    data?.total_games ||
-      data?.totalGames ||
-      data?.gamesAnalysed ||
-      data?.gamesAnalyzed ||
-      data?.games_analyzed ||
-      data?.gamesImported ||
-      0
-  );
+  const counts = buildReportGameCounts(data || {});
+  const total = Number(counts.usedForOpeningStats ?? counts.analysedGames ?? 0);
 
   if (!games || !total) return null;
   return Math.max(1, Math.round((games / total) * 100));
@@ -3195,7 +3176,7 @@ function getImportSummary(data) {
       )
     : 0;
   const gamesAnalysed = counts.analysedGames;
-  const gamesFound = counts.fetchedGames || archiveGames || gamesAnalysed;
+  const gamesFound = counts.fetchedGames ?? (archiveGames || gamesAnalysed);
   const skipped = counts.excludedGames;
   const months =
     numberOrNull(
@@ -3490,7 +3471,7 @@ const DATE_RANGE_FILTERS = [
   { key: "90", label: "Last 90 days", days: 90 },
   { key: "180", label: "Last 6 months", days: 180 },
   { key: "365", label: "Last 12 months", days: 365 },
-  { key: "all", label: "All Time", days: null },
+  { key: "all", label: "All imported games", days: null },
 ];
 
 const COLOUR_FILTERS = [
@@ -4385,14 +4366,14 @@ function applyReportFilters(data, filters) {
     return {
       ...data,
       reportFilters: { ...normalizedFilters, limited: false },
-      filterSummary: "All Games, All Time, All",
+      filterSummary: `All Games, All imported games (${formatImportRange(data)}), All`,
     };
   }
 
   const aggregate = aggregateFilteredOpeningGames(data, normalizedFilters);
   const originalCounts = buildReportGameCounts(data);
   const timeLabel = TIME_CONTROL_FILTERS.find((item) => item.key === normalizedFilters.timeControl)?.label || "All Games";
-  const dateLabel = DATE_RANGE_FILTERS.find((item) => item.key === normalizedFilters.dateRange)?.label || "All Time";
+  const dateLabel = DATE_RANGE_FILTERS.find((item) => item.key === normalizedFilters.dateRange)?.label || "All imported games";
   const colourLabel = COLOUR_FILTERS.find((item) => item.key === (normalizedFilters.colour || "all"))?.label || "All";
   const openingLabel = normalizedFilters.openingQuery ? `, ${normalizedFilters.openingQuery}` : "";
   const filterSummary = `${timeLabel}, ${dateLabel}, ${colourLabel}${openingLabel}`;
@@ -4468,13 +4449,27 @@ function applyReportFilters(data, filters) {
     },
     filteredGames: aggregate.totalGames,
     filtered_games: aggregate.totalGames,
+    totalGames: originalCounts.usedForOpeningStats ?? originalCounts.analysedGames,
+    total_games: originalCounts.usedForOpeningStats ?? originalCounts.analysedGames,
     gamesImported: originalCounts.fetchedGames,
+    games_imported: originalCounts.fetchedGames,
+    gamesFound: originalCounts.fetchedGames,
+    games_found: originalCounts.fetchedGames,
     gamesAnalysed: originalCounts.analysedGames,
     gamesAnalyzed: originalCounts.analysedGames,
-    gamesEligible: originalCounts.timeControlEligibleGames ?? originalCounts.analysedGames,
-    games_eligible: originalCounts.timeControlEligibleGames ?? originalCounts.analysedGames,
-    gamesClassified: originalCounts.analysedGames,
-    games_classified: originalCounts.analysedGames,
+    games_analyzed: originalCounts.analysedGames,
+    gamesEligible: originalCounts.structurallyUsableGames ?? originalCounts.analysedGames,
+    games_eligible: originalCounts.structurallyUsableGames ?? originalCounts.analysedGames,
+    gamesWithPgn: originalCounts.pgnAvailableGames,
+    games_with_pgn: originalCounts.pgnAvailableGames,
+    gamesAttributed: originalCounts.attributedGames,
+    games_attributed: originalCounts.attributedGames,
+    gamesClassified: originalCounts.classifiedGames ?? originalCounts.analysedGames,
+    games_classified: originalCounts.classifiedGames ?? originalCounts.analysedGames,
+    gamesUsedForOpeningStats: originalCounts.usedForOpeningStats,
+    games_used_for_opening_stats: originalCounts.usedForOpeningStats,
+    gamesUsedForFit: originalCounts.usedForOpeningStats,
+    games_used_for_fit: originalCounts.usedForOpeningStats,
     gamesExcluded: originalCounts.excludedGames,
     games_excluded: originalCounts.excludedGames,
     gameCounts,
@@ -4885,22 +4880,18 @@ function ImportQualitySummary({ data }) {
           <span>Username</span>
           <strong>{username}</strong>
         </div>
-        <div>
-          <span>Imported games</span>
-          <strong>{counts.imported}</strong>
-        </div>
-        <div>
-          <span>Eligible games</span>
-          <strong>{counts.eligible}</strong>
-        </div>
+        <div><span>Games fetched</span><strong>{counts.fetchedGames}</strong></div>
+        <div><span>Not used in opening statistics</span><strong>{counts.excludedGames ?? "Unavailable"}</strong></div>
+        <div><span>Eligible</span><strong>{counts.eligibleGames ?? counts.structurallyUsableGames ?? "Unavailable"}</strong></div>
+        <div><span>PGN or moves available</span><strong>{counts.pgnAvailableGames ?? "Unavailable"}</strong></div>
+        <div><span>Parsed</span><strong>{counts.parsedGames ?? counts.analysedGames ?? "Unavailable"}</strong></div>
+        <div><span>Attributed to player</span><strong>{counts.attributedGames ?? "Unavailable"}</strong></div>
         <div>
           <span>Classified games</span>
-          <strong>{counts.classified}</strong>
+          <strong>{counts.classifiedGames ?? counts.classified}</strong>
         </div>
-        <div>
-          <span>Excluded games</span>
-          <strong>{counts.excluded}</strong>
-        </div>
+        <div><span>Used in opening statistics</span><strong>{counts.usedForOpeningStats ?? counts.usableOpeningSignals}</strong></div>
+        <div><span>Unclassified</span><strong>{counts.unclassifiedGames ?? "Unavailable"}</strong></div>
         <div>
           <span>Time range</span>
           <strong>{formatImportRange(data)}</strong>
@@ -5130,14 +5121,14 @@ function InterestingThinDataSection({ data, fitData }) {
     <section className="interestingThinDataCard finalReportBlock" aria-labelledby="interesting-thin-title">
       <div className="interestingThinDataHeader">
         <div>
-          <p className="eyebrow">Interesting but not enough data</p>
-          <h2 id="interesting-thin-title">Small samples and noisy openings</h2>
+          <p className="eyebrow">Evidence context</p>
+          <h2 id="interesting-thin-title">Evidence gaps and mixed signals</h2>
         </div>
         <span>{items.length}</span>
       </div>
 
       <p>
-        Found in the import, but not driving the main verdict yet.
+        Found in the import, with the specific limitation shown below. Large samples are not described as small.
       </p>
 
       <ul className="interestingThinDataList">
@@ -6053,6 +6044,7 @@ function ReportOpeningFilters({ filters, onFiltersChange, data }) {
         </div>
         <span>{data?.filterSummary || "Current report"}</span>
       </div>
+      <p className="reportFilterScope">“All imported games” means the complete {formatImportRange(data)} dataset used for this report, not the player’s all-time public history.</p>
 
       <div className="reportFilterControls">
         <label>
@@ -6551,7 +6543,6 @@ function FinalReportFlow({
   onViewChange,
   onNavigate,
   onLoadReport,
-  recentGames = [],
   reportHistory = [],
   openingFitUserState = [],
   retentionSnapshots = [],
@@ -6704,7 +6695,7 @@ function FinalReportFlow({
 
       {reportView === "train" ? <section className="reportViewPanel" id="report-train-view" aria-labelledby="report-train-view-title">
         <header className="reportViewHeader"><span>Train</span><h2 id="report-train-view-title" tabIndex="-1">Your canonical current task</h2><p>Start with the report’s single evidence-backed priority. The full weekly plan remains on the training page.</p></header>
-        <FiniteTrainingSession model={decisionModel} recentGames={recentGames} onPractice={onPractice} />
+        <FiniteTrainingSession model={decisionModel} onPractice={onPractice} />
         <div className="reportTrainLaunch"><button type="button" className="primaryBtn" onClick={() => onNavigate?.({ view: "train", path: "/train", target: "training-plan" })}>Open this week’s training plan</button></div>
       </section> : null}
 
@@ -10340,19 +10331,21 @@ function DecisionRepertoireMap({ model, onPractice, onEvidence, onAnalyse }) {
   );
 }
 
-function FiniteTrainingSession({ model, recentGames, onPractice }) {
+function FiniteTrainingSession({ model, onPractice }) {
   const training = model.training;
   if (!training) return null;
-  const recent = recentGames?.[0] || null;
-  const provenance = describeLineProvenance({ line: training.line, findingType: model.coachingPriority?.findingType, sampleSize: model.coachingPriority?.evidenceCount, sourceGameIds: model.coachingPriority?.evidenceGameIds, illustrative: model.header.platform === "Example data" });
+  const priority = model.coachingPriority || training.source || null;
+  const representatives = Array.isArray(priority?.representativeGameIds) ? priority.representativeGameIds : [];
+  const provenance = describeLineProvenance({ line: priority?.recognisedLine || training.line, findingType: priority?.findingType, sampleSize: representatives.length, sourceGameIds: representatives, illustrative: model.header.platform === "Example data" });
   return (
     <section className="finiteTrainingSession" id="report-training-plan" aria-labelledby="finite-training-title">
       <div><p className="eyebrow">Next training session</p><h2 id="finite-training-title">One focused review before your next games</h2><p>A short session should be enough to review this target once; take longer if the position is unfamiliar.</p></div>
       <ol>
-        <li><span>{provenance?.label || "Line"}</span><strong>{training.line || `Specific ${training.opening} line unavailable in this report`}</strong>{provenance ? <small>{provenance.note}</small> : null}</li>
-        <li><span>Position</span><strong>{recent?.opening ? `Review the recent ${recent.opening} game` : "No recent position is attached to this report"}</strong></li>
-        <li><span>Repetition</span><strong>Play the line from memory, then correct it once</strong></li>
-        <li><span>Next-game objective</span><strong>{training.objective}</strong></li>
+        <li><span>{provenance?.label || "Recognised line"}</span><strong>{priority?.recognisedLine || training.line || `Specific ${training.opening} line unavailable in this report`}</strong>{provenance ? <small>{provenance.note}</small> : null}</li>
+        <li><span>Verified games</span><strong>{representatives.length ? `Review ${representatives.length === 1 ? "the" : `up to ${representatives.length}`} verified ${priority?.openingName || training.opening} game${representatives.length === 1 ? "" : "s"}` : `No verified ${priority?.openingName || training.opening} source game is retained; use the line-rehearsal task instead`}</strong></li>
+        {priority?.opponentContinuation?.move ? <li><span>Opponent&apos;s continuation</span><strong>{priority.opponentContinuation.move} across {priority.opponentContinuation.games} supporting game{priority.opponentContinuation.games === 1 ? "" : "s"}</strong></li> : null}
+        <li><span>Repetition</span><strong>{priority?.playerResponse?.move ? `Rehearse ${priority.playerResponse.move} once as your response` : "Rehearse one response without claiming an engine-best move"}</strong></li>
+        <li><span>Next-game objective</span><strong>{priority?.nextGameObjective || training.objective}</strong></li>
       </ol>
       <RecommendationEvidenceDisclosure
         recommendation={{ ...(training.source || {}), ...(model.authoritative?.nextTrainingAction || {}), sample: model.authoritative?.nextTrainingAction?.sample || training.source?.sample }}
@@ -10360,7 +10353,7 @@ function FiniteTrainingSession({ model, recentGames, onPractice }) {
         interpretation={training.objective}
         label="Why this training priority?"
       />
-      <button type="button" className="primaryBtn" onClick={() => onPractice?.(training.source)}>Start this session</button>
+      <button type="button" className="primaryBtn" onClick={() => onPractice?.(priority)}>Start this session</button>
     </section>
   );
 }
@@ -13546,7 +13539,7 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
         </div>
         <details className="landingAdvancedOptions">
           <summary>How analysis works</summary>
-          <p>OpeningFit fetches public games, applies your date and time-control filters, excludes invalid or opening-light records, and analyses at most {DEFAULT_PUBLIC_ANALYSIS_CONTRACT.analysisGameLimit} eligible games per import. It identifies openings from moves and player colour, then labels confidence before selecting report decisions.</p>
+          <p>OpeningFit fetches public games, applies your date and time-control filters, excludes unusable records, and classifies at most {DEFAULT_PUBLIC_ANALYSIS_CONTRACT.analysisGameLimit} structurally usable games per import. It identifies openings from moves and player colour, then labels confidence before selecting report decisions.</p>
           <a href="/how-it-works">Read the methodology, score formula and limitations</a>
         </details>
       </section>
@@ -14045,7 +14038,8 @@ function OpeningFitReportHero({ data }) {
     data.requested_username ||
     "your games";
 
-  const gamesImported = buildReportGameCounts(data).analysedGames || openings.reduce((sum, item) => sum + item.games, 0);
+  const reportCounts = buildReportGameCounts(data);
+  const gamesImported = reportCounts.parsedGames ?? reportCounts.analysedGames;
 
   const styleSummary =
     data.styleSummary ||
@@ -14784,6 +14778,15 @@ export default function App() {
   const normaliseData = (incoming) => {
     if (!incoming) return incoming;
 
+    const normalizedGameCounts = buildReportGameCounts(incoming);
+    const currentCountContract = normalizedGameCounts.countStatus === "canonical";
+    const normalizedAnalysed = currentCountContract
+      ? normalizedGameCounts.parsedGames
+      : normalizedGameCounts.analysedGames;
+    const normalizedUsed = currentCountContract
+      ? normalizedGameCounts.usedForOpeningStats
+      : normalizedGameCounts.analysedGames;
+
     const selectedTimeFormat = normalizeAnalysisTimeFormat(
       incoming.analysisTimeFormat ||
         incoming.analysis_time_format ||
@@ -14844,35 +14847,29 @@ export default function App() {
         selectedTimeFormat === "custom"
           ? detectedTimeFormat?.label || "All Time Controls"
           : getAnalysisTimeFormatLabel(selectedTimeFormat),
-      total_games:
-        incoming.total_games ?? incoming.totalGames ?? incoming.gamesImported ?? 0,
+      total_games: normalizedUsed,
+      totalGames: normalizedUsed,
       months_checked: incoming.months_checked ?? incoming.monthsChecked ?? 0,
       monthsChecked: incoming.monthsChecked ?? incoming.months_checked ?? 0,
-      gamesFound:
-        incoming.gamesFound ??
-        incoming.games_found ??
-        incoming.gamesImported ??
-        incoming.totalGames ??
-        incoming.total_games ??
-        0,
-      gamesAnalysed:
-        incoming.gamesAnalysed ??
-        incoming.gamesAnalyzed ??
-        incoming.games_analyzed ??
-        incoming.gamesImported ??
-        incoming.totalGames ??
-        incoming.total_games ??
-        0,
-      gamesAnalyzed:
-        incoming.gamesAnalyzed ??
-        incoming.gamesAnalysed ??
-        incoming.games_analyzed ??
-        incoming.gamesImported ??
-        incoming.totalGames ??
-        incoming.total_games ??
-        0,
-      skippedGames:
-        incoming.skippedGames ?? incoming.skipped_games ?? 0,
+      gamesImported: normalizedGameCounts.fetchedGames,
+      games_imported: normalizedGameCounts.fetchedGames,
+      gamesFound: normalizedGameCounts.fetchedGames,
+      games_found: normalizedGameCounts.fetchedGames,
+      gamesAnalysed: normalizedAnalysed,
+      gamesAnalyzed: normalizedAnalysed,
+      games_analyzed: normalizedAnalysed,
+      gamesWithPgn: normalizedGameCounts.pgnAvailableGames,
+      games_with_pgn: normalizedGameCounts.pgnAvailableGames,
+      gamesClassified: normalizedGameCounts.classifiedGames,
+      games_classified: normalizedGameCounts.classifiedGames,
+      gamesUsedForFit: normalizedGameCounts.usedForOpeningStats,
+      games_used_for_fit: normalizedGameCounts.usedForOpeningStats,
+      gamesExcluded: normalizedGameCounts.excludedGames,
+      games_excluded: normalizedGameCounts.excludedGames,
+      skippedGames: normalizedGameCounts.excludedGames,
+      skipped_games: normalizedGameCounts.excludedGames,
+      normalizedGameCounts,
+      normalized_game_counts: normalizedGameCounts,
       importPlatform:
         incoming.importPlatform ?? incoming.import_platform ?? incoming.platform ?? platform,
       importedAt:
@@ -15256,7 +15253,7 @@ export default function App() {
 
   const practiceOpeningName = practiceOpening ? getOpeningName(practiceOpening) : "";
   const practiceLineFocus = practiceOpening
-    ? getOpeningVariationName(practiceOpening) || getOpeningMoveLine(practiceOpening) || practiceOpening?.line || ""
+    ? practiceOpening?.practiceLine || practiceOpening?.recognisedLine || getOpeningVariationName(practiceOpening) || getOpeningMoveLine(practiceOpening) || practiceOpening?.line || ""
     : "";
 
   const isUnknownOpening = (name) => isUnknownOpeningName(name);
@@ -16188,6 +16185,8 @@ export default function App() {
   ]);
 
   const featuredTrainOpening = useMemo(() => {
+    const reportPriority = reportData ? selectAuthoritativeCoachingPriority(reportData, { allowFallback: false }) : null;
+    if (reportPriority?.openingName) return reportPriority;
     const planOpening = personalTrainingPlan.find((item) => item.opening)?.opening;
     const candidates = [
       planOpening,
@@ -16205,6 +16204,7 @@ export default function App() {
     );
   }, [
     personalTrainingPlan,
+    reportData,
     fitData.bestOpening,
     filteredPreferredWhite,
     filteredPreferredBlack,
@@ -17325,7 +17325,6 @@ export default function App() {
                     onViewChange={setActiveView}
                     onNavigate={handleAppNavigate}
                     onLoadReport={setData}
-                    recentGames={filteredRecentGames}
                     isPremium={isPremium}
                     reportHistory={effectiveReportHistory}
                     openingFitUserState={openingFitUserState}

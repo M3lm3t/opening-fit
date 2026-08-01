@@ -12,26 +12,44 @@ const firstInteger = (...values) => {
   return null;
 };
 
+const firstStrictNonNegativeInteger = (...values) => {
+  for (const value of values) {
+    if (value === null || value === undefined || value === "") continue;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) return null;
+    return parsed;
+  }
+  return null;
+};
+
 export const EXCLUSION_REASON_LABELS = Object.freeze({
-  outsideDateRange: "Outside the selected period",
-  outsideWindow: "Outside the selected period",
-  unsupportedTimeControl: "Did not match the selected time controls",
-  bullet: "Did not match the selected time controls",
+  outsideDateWindow: "Outside selected date window",
+  outsideDateRange: "Outside selected date window",
+  outsideWindow: "Outside selected date window",
+  beyondMaximumGameCap: "Beyond configured maximum-game cap",
+  analysisLimit: "Beyond configured maximum-game cap",
+  unsupportedTimeControl: "Unsupported time control",
+  bullet: "Unsupported time control",
   unsupportedGameType: "Unsupported chess variant",
   variants: "Unsupported chess variant",
   incompleteGame: "Incomplete or abandoned game",
   abandoned: "Incomplete or abandoned game",
   earlyTimeout: "Incomplete or abandoned game",
   oneMoveResignation: "Incomplete or abandoned game",
-  duplicate: "Duplicate game record",
-  analysisLimit: "Outside the current analysis limit",
-  missingOpeningSignal: "Did not contain enough opening information",
-  missingOpening: "Did not contain enough opening information",
-  invalidPgn: "Did not contain enough opening information",
-  veryShort: "Did not contain enough opening information",
-  tooFewLegalMoves: "Did not contain enough opening information",
+  duplicate: "Duplicate",
+  missingPgnMoves: "Missing PGN or moves",
+  missingOpening: "Missing PGN or moves",
+  invalidPgn: "Missing PGN or moves",
+  insufficientOpeningPlies: "Insufficient opening plies",
+  veryShort: "Insufficient opening plies",
+  tooFewLegalMoves: "Insufficient opening plies",
+  parseFailure: "PGN or moves could not be parsed",
+  attributionFailed: "Requested player could not be attributed to one side",
+  unclassifiedOpening: "Opening family could not be classified",
+  notUsedForOpeningStats: "Classified game was not usable in opening statistics",
+  missingOpeningSignal: "Reason unavailable",
   reportFilters: "Outside the selected report filters",
-  other: "Other",
+  other: "Reason unavailable",
 });
 
 function reasonRows(report = {}, source = {}) {
@@ -75,27 +93,84 @@ function reconciledReasons(rows, excluded, precise) {
 
 export function buildReportGameCounts(report = {}) {
   const source = report.gameCounts || report.game_counts || report.importSummary || report.import_summary || {};
-  const isCanonical = integer(source.contractVersion ?? source.contract_version) >= 2 || firstInteger(source.fetchedGames, source.fetched_games) !== null;
+  const contractVersion = integer(source.contractVersion ?? source.contract_version) ?? 0;
+  const isCanonical = contractVersion >= 2 || firstInteger(source.fetchedGames, source.fetched_games) !== null;
+
+  if (contractVersion >= 4) {
+    const fetchedGames = firstStrictNonNegativeInteger(source.gamesFetched, source.fetchedGames);
+    const eligibleGames = firstStrictNonNegativeInteger(source.eligible, source.gamesEligible);
+    const pgnAvailableGames = firstStrictNonNegativeInteger(source.gamesPgnAvailable, source.pgnAvailable);
+    const parsedGames = firstStrictNonNegativeInteger(source.gamesParsed, source.parsed);
+    const attributedGames = firstStrictNonNegativeInteger(source.gamesAttributed, source.attributed);
+    const classifiedGames = firstStrictNonNegativeInteger(source.gamesClassified, source.classified);
+    const usedForOpeningStats = firstStrictNonNegativeInteger(source.gamesUsedForOpeningStats, source.usedForOpeningStats);
+    const excludedGames = firstStrictNonNegativeInteger(source.gamesExcluded, source.excludedGames, source.excluded);
+    const stages = [fetchedGames, eligibleGames, pgnAvailableGames, parsedGames, attributedGames, classifiedGames, usedForOpeningStats];
+    const rawReasons = source.exclusionReasons || source.exclusion_reasons || {};
+    const reasonValues = Array.isArray(rawReasons)
+      ? rawReasons.map((row) => typeof row === "object" ? row?.count ?? row?.games : null).filter((value) => value !== null)
+      : Object.values(rawReasons);
+    const reasonsValid = reasonValues.every((value) => firstStrictNonNegativeInteger(value) !== null);
+    const rows = mergeReasons(reasonRows(report, source));
+    const reasonsTotal = rows.reduce((sum, row) => sum + (row.count ?? 0), 0);
+    const valid = stages.every((value) => value !== null)
+      && reasonsValid
+      && stages.every((value, index) => index === 0 || stages[index - 1] >= value)
+      && excludedGames === fetchedGames - usedForOpeningStats
+      && reasonsTotal === excludedGames;
+    if (!valid) {
+      return {
+        fetchedGames: null, eligibleGames: null, structurallyUsableGames: null, pgnAvailableGames: null,
+        parsedGames: null, attributedGames: null, classifiedGames: null, usedForOpeningStats: null,
+        unclassifiedGames: null, excludedGames: null, exclusionReasons: [], analysisLimit: null,
+        analysisSelectionRule: null, duplicateGamesRemoved: null, breakdownAvailable: false,
+        contractVersion, countStatus: "invalid_current_contract", imported: null, eligible: null,
+        classified: null, excluded: null, analysedGames: null, usableOpeningSignals: null,
+      };
+    }
+    return {
+      fetchedGames, eligibleGames, structurallyUsableGames: eligibleGames, pgnAvailableGames,
+      parsedGames, attributedGames, classifiedGames, usedForOpeningStats,
+      unclassifiedGames: attributedGames - classifiedGames, excludedGames, exclusionReasons: rows,
+      dateRangeEligibleGames: firstInteger(source.dateRangeEligibleGames),
+      timeControlEligibleGames: firstInteger(source.timeControlEligibleGames),
+      analysisCandidateGames: firstInteger(source.analysisCandidateGames),
+      analysisLimit: firstInteger(source.analysisLimit, source.analysis_limit),
+      analysisSelectionRule: source.analysisSelectionRule || source.analysis_selection_rule || null,
+      duplicateGamesRemoved: firstInteger(source.duplicateGamesRemoved, source.duplicate_games_removed) ?? 0,
+      breakdownAvailable: true, contractVersion, countStatus: "canonical",
+      analysedGames: parsedGames, usableOpeningSignals: usedForOpeningStats,
+      imported: fetchedGames, eligible: eligibleGames, classified: classifiedGames, excluded: excludedGames,
+    };
+  }
 
   if (isCanonical) {
-    const fetchedGames = firstInteger(source.fetchedGames, source.fetched_games, source.imported) ?? 0;
-    const analysedGames = Math.min(fetchedGames, firstInteger(source.analysedGames, source.analyzedGames, source.analysed_games, source.classified) ?? 0);
+    const fetchedGames = firstInteger(source.gamesFetched, source.fetchedGames, source.fetched_games, source.imported) ?? 0;
+    const structurallyUsableGames = Math.min(fetchedGames, firstInteger(source.gamesStructurallyUsable, source.analysedGames, source.analyzedGames, source.analysed_games, source.classified) ?? 0);
+    const classifiedGames = Math.min(structurallyUsableGames, firstInteger(source.gamesClassified, source.classified, source.classifiedGames) ?? structurallyUsableGames);
+    const unclassifiedGames = Math.min(structurallyUsableGames, firstInteger(source.gamesUnclassified) ?? Math.max(0, structurallyUsableGames - classifiedGames));
+    const usedForOpeningStats = Math.min(classifiedGames, firstInteger(source.gamesUsedForOpeningStats, source.usableOpeningSignals, source.usable_opening_signals) ?? classifiedGames);
+    const explicitExcluded = firstInteger(source.gamesExcluded, source.excludedGames, source.excluded_games, source.excluded);
+    const excludedGames = explicitExcluded ?? Math.max(0, fetchedGames - structurallyUsableGames);
+    const analysedGames = structurallyUsableGames;
     const dateRangeEligibleGames = Math.min(fetchedGames, firstInteger(source.dateRangeEligibleGames, source.date_range_eligible_games) ?? fetchedGames);
     const timeControlEligibleGames = Math.min(dateRangeEligibleGames, firstInteger(source.timeControlEligibleGames, source.time_control_eligible_games, source.eligible) ?? dateRangeEligibleGames);
     const analysisCandidateGames = Math.min(timeControlEligibleGames, Math.max(analysedGames, firstInteger(source.analysisCandidateGames, source.analysis_candidate_games) ?? timeControlEligibleGames));
-    const usableOpeningSignals = Math.min(analysedGames, firstInteger(source.usableOpeningSignals, source.usable_opening_signals) ?? analysedGames);
-    const excludedGames = fetchedGames - analysedGames;
+    const usableOpeningSignals = usedForOpeningStats;
     const rows = reconciledReasons(mergeReasons(reasonRows(report, source)), excludedGames, true);
     return {
       fetchedGames, dateRangeEligibleGames, timeControlEligibleGames, analysisCandidateGames,
-      analysedGames, usableOpeningSignals, excludedGames,
+      structurallyUsableGames, analysedGames, classifiedGames, usedForOpeningStats,
+      unclassifiedGames, usableOpeningSignals, excludedGames,
       exclusionReasons: rows,
       analysisLimit: firstInteger(source.analysisLimit, source.analysis_limit),
+      analysisSelectionRule: source.analysisSelectionRule || source.analysis_selection_rule || null,
       breakdownAvailable: true,
-      contractVersion: 2,
+      countStatus: "historical_contract",
+      contractVersion: Math.max(2, contractVersion),
       imported: fetchedGames,
-      eligible: timeControlEligibleGames,
-      classified: analysedGames,
+      eligible: contractVersion >= 3 ? structurallyUsableGames : timeControlEligibleGames,
+      classified: classifiedGames,
       excluded: excludedGames,
     };
   }
@@ -103,25 +178,26 @@ export function buildReportGameCounts(report = {}) {
   // Legacy reports did not preserve every processing stage. Keep the totals we
   // can prove and explicitly mark the unavailable breakdown instead of deriving
   // fake date/time-control precision from truncated evidence arrays.
-  const analysedGames = firstInteger(source.classified, source.classifiedGames, report.gamesClassified, report.gamesAnalysed, report.gamesAnalyzed, report.totalGames, report.total_games) ?? 0;
+  const analysedGames = firstInteger(source.classified, source.classifiedGames, report.gamesClassified, report.gamesAnalysed, report.gamesAnalyzed, report.totalGames, report.total_games);
   const explicitExcluded = firstInteger(source.excluded, report.gamesExcluded, report.skippedGames);
-  const fetchedGames = Math.max(analysedGames, firstInteger(source.imported, report.gamesFound, report.gamesImported, explicitExcluded === null ? null : analysedGames + explicitExcluded) ?? analysedGames);
-  const excludedGames = fetchedGames - analysedGames;
-  const rows = reconciledReasons(mergeReasons(reasonRows(report, source)), excludedGames, true);
+  const fetchedGames = firstInteger(source.imported, report.gamesFound, report.gamesImported, explicitExcluded === null || analysedGames === null ? null : analysedGames + explicitExcluded);
+  const excludedGames = explicitExcluded ?? (fetchedGames === null || analysedGames === null ? null : fetchedGames - analysedGames);
+  const rows = excludedGames === null ? mergeReasons(reasonRows(report, source)) : reconciledReasons(mergeReasons(reasonRows(report, source)), excludedGames, true);
   return {
     fetchedGames,
     dateRangeEligibleGames: null,
     timeControlEligibleGames: null,
     analysisCandidateGames: null,
     analysedGames,
-    usableOpeningSignals: analysedGames,
+    usableOpeningSignals: null,
     excludedGames,
     exclusionReasons: rows,
     analysisLimit: null,
     breakdownAvailable: false,
     contractVersion: 1,
+    countStatus: "legacy_incomplete",
     imported: fetchedGames,
-    eligible: analysedGames,
+    eligible: null,
     classified: analysedGames,
     excluded: excludedGames,
   };
@@ -137,11 +213,24 @@ export function formatResultCounts({ wins = 0, draws = 0, losses = 0 } = {}) {
 
 export function reportCountSentence(report = {}) {
   const counts = buildReportGameCounts(report);
+  if (counts.contractVersion >= 4 && counts.countStatus === "canonical") {
+    return `${countNoun(counts.fetchedGames, "game")} found · ${countNoun(counts.usedForOpeningStats, "game")} used · ${countNoun(counts.excludedGames, "game")} excluded`;
+  }
+  if (counts.contractVersion >= 3) {
+    const unclassified = counts.unclassifiedGames
+      ? ` ${countNoun(counts.unclassifiedGames, "structurally usable game")} could not be assigned an opening family.`
+      : "";
+    return `${countNoun(counts.fetchedGames, "public game")} found. ${countNoun(counts.classifiedGames, "game")} classified.${unclassified} ${countNoun(counts.excludedGames, "game")} excluded.`;
+  }
+  if (counts.fetchedGames === null || counts.analysedGames === null || counts.excludedGames === null) {
+    return "Exact import breakdown unavailable for this older report.";
+  }
   return `${countNoun(counts.fetchedGames, "public game")} found. ${analysedGameSentence(counts.analysedGames)} ${countNoun(counts.excludedGames, "game")} not analysed.`;
 }
 
 export function reportExclusionSummary(report = {}) {
   const counts = buildReportGameCounts(report);
+  if (counts.excludedGames === null) return { summary: "Exact import breakdown unavailable for this older report.", confidenceNote: "", detailed: false };
   if (!counts.excludedGames) return { summary: "No imported games were excluded.", confidenceNote: "", detailed: counts.breakdownAvailable };
   const known = counts.exclusionReasons.filter((row) => row.count !== null && row.count > 0);
   const summary = !counts.breakdownAvailable
@@ -156,12 +245,20 @@ export function reportExclusionSummary(report = {}) {
 }
 
 export const REPORT_COUNT_DEFINITIONS = Object.freeze({
-  fetchedGames: "Public game records returned by the selected chess platform for the requested import period.",
+  fetchedGames: "Unique public games returned by the selected chess platform for the requested import period; repeated platform records are counted separately.",
   dateRangeEligibleGames: "Returned games inside the selected import period.",
   timeControlEligibleGames: "Games in that period matching the selected time control.",
-  analysisCandidateGames: "Most recent matching, unique games selected within the 300-game service limit.",
-  analysedGames: "Candidate games with enough valid opening information to contribute to this report.",
-  excludedGames: "Fetched games not analysed; the available reasons reconcile to this total.",
+  analysisCandidateGames: "Most recent matching, unique games selected within the configured maximum-game cap.",
+  structurallyUsableGames: "Fetched games passing platform, time-control, deduplication, cap and basic validity checks.",
+  pgnAvailableGames: "Eligible games containing usable PGN or move data.",
+  parsedGames: "Games whose PGN or moves were successfully parsed.",
+  attributedGames: "Parsed games confidently matched to the requested player with one explicit colour.",
+  classifiedGames: "Attributed games assigned to one recognised primary opening family.",
+  usedForOpeningStats: "Classified games with trusted player colour and repertoire-role attribution used in opening statistics.",
+  unclassifiedGames: "Attributed games that could not be assigned to a recognised opening family.",
+  analysedGames: "Legacy alias for successfully parsed games in current reports.",
+  excludedGames: "Fetched games not used in opening statistics; every current-report game has one primary recorded reason.",
+  duplicateGamesRemoved: "Repeated platform records removed before the unique fetched total and opening aggregation.",
 });
 
 export function reportSaveState(status = "", authenticated = false, sampleMode = false) {

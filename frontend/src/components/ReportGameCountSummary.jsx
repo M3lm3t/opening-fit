@@ -11,9 +11,9 @@ export default function ReportGameCountSummary({ report, saveStatus = "", authen
   return (
     <section className="reportGameCountSummary" aria-label="Import and save status">
       <div className="reportGameCountCompact">
-        <span><strong>{counts.imported}</strong> imported</span>
-        <span><strong>{counts.analysedGames}</strong> analysed</span>
-        <span><strong>{counts.excludedGames}</strong> excluded</span>
+        <span><strong>{counts.fetchedGames ?? "Unavailable"}</strong> found</span>
+        <span><strong>{counts.usedForOpeningStats ?? "Unavailable"}</strong> used</span>
+        <span><strong>{counts.excludedGames ?? "Unavailable"}</strong> excluded</span>
         <span><strong>{save.label}</strong></span>
       </div>
       {counts.excludedGames ? <p className="reportGameExclusionSummary">{exclusions.summary}</p> : null}
@@ -21,13 +21,24 @@ export default function ReportGameCountSummary({ report, saveStatus = "", authen
       <details>
         <summary>Import and exclusion details</summary>
         <p>{reportCountSentence(report)}</p>
+        {counts.contractVersion >= 4 && counts.countStatus === "canonical" ? <ol className="reportGamePipeline">
+          <li><strong>{counts.fetchedGames}</strong> Games fetched</li>
+          <li><strong>{counts.eligibleGames}</strong> Eligible</li>
+          <li><strong>{counts.pgnAvailableGames}</strong> PGN or moves available</li>
+          <li><strong>{counts.parsedGames}</strong> Parsed</li>
+          <li><strong>{counts.attributedGames}</strong> Attributed to the player</li>
+          <li><strong>{counts.classifiedGames}</strong> Classified</li>
+          <li><strong>{counts.usedForOpeningStats}</strong> Used in opening statistics</li>
+          <li><strong>{counts.excludedGames}</strong> Excluded from opening statistics</li>
+        </ol> : null}
+        {counts.analysisLimit ? <p><strong>Maximum-game cap:</strong> {counts.analysisLimit}. {counts.analysisSelectionRule === "newest_first" ? "Matching games are selected newest first; capped games are not invalid." : "The stored report does not identify the selection order."}</p> : null}
         <dl>
           {Object.entries(REPORT_COUNT_DEFINITIONS).map(([key, definition]) => (
             <div key={key}><dt>{labelForKey(key)} · {counts[key] ?? "Unavailable"}</dt><dd>{definition}</dd></div>
           ))}
         </dl>
-        {!counts.breakdownAvailable ? <p>Detailed processing-stage counts were not stored with this older report.</p> : null}
-        {counts.excludedGames ? <div className="reportGameExclusions"><strong>Why games were not analysed</strong><ul>{counts.exclusionReasons.length ? counts.exclusionReasons.map((reason) => <li key={`${reason.key}-${reason.label}`}>{reason.label}{reason.count === null ? "" : `: ${reason.count}`}</li>) : <li>Reason unavailable: {counts.excludedGames}</li>}</ul></div> : null}
+        {!counts.breakdownAvailable ? <p>Exact import breakdown unavailable for this older report.</p> : null}
+        {counts.excludedGames ? <div className="reportGameExclusions"><strong>Why games were not used in opening statistics</strong><ul>{counts.exclusionReasons.length ? counts.exclusionReasons.map((reason) => <li key={`${reason.key}-${reason.label}`}>{reason.label}{reason.count === null ? "" : `: ${reason.count}`}</li>) : <li>Reason unavailable: {counts.excludedGames}</li>}</ul></div> : null}
         <p><a href="/how-it-works">How filtering, limits and opening signals work</a></p>
       </details>
       <details>

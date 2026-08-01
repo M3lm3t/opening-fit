@@ -8,8 +8,11 @@ import { buildPrimaryReportSummary } from "./primaryReportSummary.js";
 import { buildReportDecisionModel, openingPerspective } from "./reportDecisionModel.js";
 import { reportExclusionSummary } from "./reportGameCounts.js";
 import { buildCoachSummary } from "../services/retentionJourney.js";
+import { buildTrainingRecommendations } from "../services/trainingRecommendations.js";
+import { buildWeeklyOpeningSession } from "../services/weeklyOpeningSession.js";
 
 function recommendation({ id, opening, role, repertoireRole, verdict = "keep", games = 5, findingType = "stable_strength" }) {
+  const confidenceLevel = games >= 25 ? "high_sample" : games >= 10 ? "moderate" : games >= 5 ? "low" : games >= 3 ? "very_early" : "insufficient";
   return {
     recommendationId: id,
     openingName: opening,
@@ -21,8 +24,17 @@ function recommendation({ id, opening, role, repertoireRole, verdict = "keep", g
     verdict,
     findingType,
     sample: { games, wins: games, draws: 0, losses: 0, gameIds: Array.from({ length: games }, (_, index) => `${id}-${index}`) },
-    confidence: { level: "medium", sampleSize: games },
+    sampleSize: games,
+    sampleThreshold: 5,
+    evidenceStatus: games >= 5 ? "sufficient" : games >= 3 ? "very_early" : "insufficient",
+    confidenceLevel,
+    confidenceReasons: [`${games} unique games support this context.`],
+    confidence: { level: confidenceLevel, sampleSize: games },
+    performanceScore: 100,
+    fitScore: null,
+    verdictReasons: [`${games} unique, correctly attributed games support this context.`],
     trainingAction: { title: `Review ${opening}`, explanation: `${games} supporting games justify this decision.` },
+    recommendedAction: { title: `Review ${opening}`, explanation: `${games} supporting games justify this decision.`, completionTarget: { type: "reviewed_games", count: 1 } },
     evidenceCounts: { importedGames: 78, eligibleGames: 40, classifiedOpeningGames: 12, roleAttributedGames: games, supportingGames: games, excludedGames: 38 },
     supportingGameCount: games,
     requiredGameCount: 5,
@@ -50,7 +62,7 @@ function canonicalReport() {
     },
     topOpenings: [{ name: "Stale low result", games: 20, wins: 0, draws: 0, losses: 20, openingRole: "played_as_black", repertoireSlot: "black_vs_e4" }],
     reportDecision: {
-      schemaVersion: 3,
+      schemaVersion: 4,
       recommendations: [strength, preparation],
       establishedStrength: strength,
       primaryProblem: null,
@@ -80,13 +92,33 @@ test("all canonical report models retain the same weekly preparation priority", 
   assert.doesNotMatch(retention.needsAttention, /Stale low result/);
 });
 
+test("training services use the canonical action instead of reranking raw weak openings", () => {
+  const report = canonicalReport();
+  report.opening_stats = [{ name: "Unrelated raw opening", games: 40, wins: 0, draws: 0, losses: 40 }];
+  const training = buildTrainingRecommendations(report);
+  const weekly = buildWeeklyOpeningSession(report);
+
+  assert.equal(training.primary.opening, "Caro-Kann Defence");
+  assert.equal(training.primary.trainingTarget.source, "authoritative-report-decision");
+  assert.equal(weekly.targetName, "Caro-Kann Defence");
+  assert.match(weekly.rationale, /preparation, not a weakness/i);
+  assert.doesNotMatch(JSON.stringify({ training, weekly }), /Unrelated raw opening/);
+});
+
 test("supported Vienna and Scandinavian samples keep summary and role-card decisions aligned", () => {
   const report = canonicalReport();
-  const scandinavian = recommendation({ id: "scandinavian:black-e4", opening: "Scandinavian Defence", role: "played_as_black", repertoireRole: "black_vs_e4", verdict: "keep", games: 20 });
-  report.reportDecision.recommendations = [report.reportDecision.establishedStrength, scandinavian, ...report.reportDecision.recommendations.slice(1)];
+  const vienna = recommendation({ id: "vienna:white", opening: "Vienna Game", role: "played_as_white", repertoireRole: "white", verdict: "keep", games: 60 });
+  const scandinavian = recommendation({ id: "scandinavian:black-e4", opening: "Scandinavian Defence", role: "played_as_black", repertoireRole: "black_vs_e4", verdict: "explore", games: 78, findingType: "mixed_signal" });
+  scandinavian.performanceScore = 50;
+  scandinavian.score = 50;
+  scandinavian.scoreRate = 50;
+  scandinavian.sample = { ...scandinavian.sample, wins: 26, draws: 26, losses: 26, scoreRate: 50 };
+  scandinavian.recommendedAction = { title: "Watch Scandinavian Defence without changing it yet", explanation: "Large sample, mixed signal.", completionTarget: { type: "reviewed_games", count: 1 } };
+  report.reportDecision.establishedStrength = vienna;
+  report.reportDecision.recommendations = [vienna, scandinavian, ...report.reportDecision.recommendations.slice(1)];
   report.reportDecision.repertoireRoles = [
-    report.reportDecision.repertoireRoles[0],
-    { key: "black_e4", repertoireRole: "black_vs_e4", status: "established", openingName: "Scandinavian Defence", evidenceCount: 20, supportingGameCount: 20, requiredGameCount: 5 },
+    { ...report.reportDecision.repertoireRoles[0], openingName: "Vienna Game", verdict: "keep", evidenceCount: 60, supportingGameCount: 60, sampleSize: 60, sampleThreshold: 5, evidenceStatus: "sufficient", confidenceLevel: "high_sample" },
+    { key: "black_e4", repertoireRole: "black_vs_e4", status: "established", openingName: "Scandinavian Defence", verdict: "explore", evidenceCount: 78, supportingGameCount: 78, sampleSize: 78, sampleThreshold: 5, evidenceStatus: "sufficient", confidenceLevel: "high_sample", recommendedAction: scandinavian.recommendedAction },
     report.reportDecision.repertoireRoles[2],
   ];
 
@@ -101,9 +133,15 @@ test("supported Vienna and Scandinavian samples keep summary and role-card decis
   assert.equal(blackE4.opening, "Scandinavian Defence");
   assert.equal(blackE4.status, "established");
   assert.equal(blackE4.verdict, blackCard.verdict);
-  assert.equal(blackCard.source.verdict, "keep");
-  assert.match(blackCard.confidenceExplanation, /20/);
+  assert.equal(blackCard.source.verdict, "explore");
+  assert.equal(blackCard.verdict, "watch");
+  assert.equal(blackCard.contextualAction.type, "practice");
+  assert.doesNotMatch(blackCard.contextualAction.label, /play 1 more|more relevant game/i);
+  assert.match(blackCard.confidenceExplanation, /78/);
   assert.doesNotMatch(blackCard.confidenceExplanation, /insufficient/i);
+  assert.equal(blackCard.confidence.level, "high_sample");
+  assert.equal(summary.decisions[0].source.verdict, "keep");
+  assert.equal(summary.decisions[0].source.sample.games, 60);
 });
 
 test("active report history and training surfaces do not reintroduce legacy conclusions", () => {
@@ -140,7 +178,7 @@ test("coverage explanation uses role reason codes and hides an unexplained preci
 
 test("exclusion summaries use recorded counts and disclose high exclusion impact", () => {
   const summary = reportExclusionSummary({ gameCounts: { contractVersion: 2, fetchedGames: 100, analysedGames: 40, exclusionReasons: { bullet: 50, missingOpeningSignal: 10 } } });
-  assert.match(summary.summary, /60 excluded: 50 did not match the selected time controls, 10 did not contain enough opening information/i);
+  assert.match(summary.summary, /60 excluded: 50 unsupported time control, 10 reason unavailable/i);
   assert.match(summary.confidenceNote, /More than half/);
   assert.equal(reportExclusionSummary({ gamesImported: 20, gamesAnalysed: 10, gamesExcluded: 10 }).summary, "A detailed exclusion breakdown is unavailable for this older report.");
 });

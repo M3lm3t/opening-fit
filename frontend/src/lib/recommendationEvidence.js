@@ -38,9 +38,12 @@ function repertoireRoleFor(item, role) {
 
 export function confidenceForRecommendation(games, valid = true, traceable = true) {
   const count = Math.max(0, Math.round(numeric(games)));
-  if (valid && traceable && count >= RECOMMENDATION_EVIDENCE_THRESHOLDS.high) return { level: "high", label: "High confidence" };
-  if (valid && count >= RECOMMENDATION_EVIDENCE_THRESHOLDS.medium) return { level: "medium", label: "Medium confidence" };
-  return { level: "low", label: "Low confidence" };
+  if (!valid) return { level: "context_uncertain", label: "Context uncertain" };
+  if (count <= 2) return { level: "insufficient", label: "Insufficient sample" };
+  if (count <= 4) return { level: "very_early", label: "Very early signal" };
+  if (count <= 9) return { level: "low", label: "Low confidence" };
+  if (count < RECOMMENDATION_EVIDENCE_THRESHOLDS.high || !traceable) return { level: "moderate", label: "Moderate confidence" };
+  return { level: "high_sample", label: "High sample confidence" };
 }
 
 export function validateRecommendationEvidence(entry = {}) {
@@ -75,8 +78,17 @@ export function normaliseCanonicalRecommendation(entry) {
   const role = roleFor(entry);
   const relationship = role.startsWith("played_") ? "played" : role.startsWith("faced_") ? "faced" : "unknown";
   const checked = validateRecommendationEvidence(entry);
-  const confidence = confidenceForRecommendation(checked.sample.games, checked.valid && relationship !== "unknown", checked.sample.gameIds.length === checked.sample.games);
-  const supported = checked.valid && checked.sample.games >= RECOMMENDATION_EVIDENCE_THRESHOLDS.minimum;
+  const calculatedConfidence = confidenceForRecommendation(checked.sample.games, checked.valid && relationship !== "unknown", checked.sample.gameIds.length === checked.sample.games);
+  const confidenceLevel = clean(entry.confidenceLevel || entry.confidence_level || entry.confidence?.level) || calculatedConfidence.level;
+  const confidence = {
+    ...calculatedConfidence,
+    ...(typeof entry.confidence === "object" ? entry.confidence : {}),
+    level: confidenceLevel,
+    label: clean(entry.confidence?.label) || calculatedConfidence.label,
+    reasons: Array.isArray(entry.confidenceReasons) ? entry.confidenceReasons : Array.isArray(entry.confidence?.reasons) ? entry.confidence.reasons : [],
+  };
+  const evidenceStatus = clean(entry.evidenceStatus || entry.evidence_status).toLowerCase();
+  const supported = checked.valid && relationship !== "unknown" && (evidenceStatus === "sufficient" || (!evidenceStatus && checked.sample.games >= RECOMMENDATION_EVIDENCE_THRESHOLDS.minimum));
   const originalVerdict = clean(entry.verdict).toLowerCase();
   const verdict = supported ? originalVerdict : "insufficient-data";
   return {
@@ -93,8 +105,19 @@ export function normaliseCanonicalRecommendation(entry) {
     score: checked.sample.scoreRate,
     scoreRate: checked.sample.scoreRate,
     verdict,
+    sampleSize: checked.sample.games,
+    sampleThreshold: numeric(entry.sampleThreshold || entry.sample_threshold, RECOMMENDATION_EVIDENCE_THRESHOLDS.minimum),
+    evidenceStatus: evidenceStatus || (supported ? "sufficient" : checked.sample.games >= 3 ? "very_early" : "insufficient"),
     sampleSizeStatus: supported ? "sufficient" : "insufficient_data",
-    confidence: { ...(typeof entry.confidence === "object" ? entry.confidence : {}), ...confidence, sampleSize: checked.sample.games },
+    confidenceLevel,
+    confidenceReasons: confidence.reasons,
+    confidence: { ...confidence, sampleSize: checked.sample.games },
+    performanceScore: entry.performanceScore ?? entry.performance_score ?? checked.sample.scoreRate,
+    fitScore: entry.fitScore ?? entry.fit_score ?? null,
+    verdictReasons: Array.isArray(entry.verdictReasons) ? entry.verdictReasons : [],
+    recommendedAction: entry.recommendedAction || entry.trainingAction || null,
+    alternativeOpening: entry.alternativeOpening || null,
+    alternativeReason: entry.alternativeReason || null,
     validation: { valid: checked.valid, issues: checked.issues },
   };
 }
