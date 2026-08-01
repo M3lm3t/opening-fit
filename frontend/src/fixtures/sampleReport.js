@@ -20,8 +20,9 @@ const openings = [
     wins: 11,
     draws: 2,
     losses: 5,
-    winRate: 67,
-    win_rate: 67,
+    winRate: 61.1,
+    win_rate: 61.1,
+    scoreRate: 66.7,
     fitScore: 72,
     verdict: "Keep",
     confidence: "High confidence — based on 18 recent games.",
@@ -33,8 +34,9 @@ const openings = [
     wins: 8,
     draws: 3,
     losses: 5,
-    winRate: 59,
-    win_rate: 59,
+    winRate: 50,
+    win_rate: 50,
+    scoreRate: 59.4,
     fitScore: 64,
     verdict: "Keep",
     confidence: "High confidence — based on 16 recent games.",
@@ -46,8 +48,9 @@ const openings = [
     wins: 3,
     draws: 3,
     losses: 6,
-    winRate: 38,
-    win_rate: 38,
+    winRate: 25,
+    win_rate: 25,
+    scoreRate: 37.5,
     fitScore: 68,
     verdict: "Improve",
     confidence: "Medium confidence — based on 12 recent games.",
@@ -59,8 +62,9 @@ const openings = [
     wins: 4,
     draws: 2,
     losses: 4,
-    winRate: 50,
-    win_rate: 50,
+    winRate: 40,
+    win_rate: 40,
+    scoreRate: 50,
     fitScore: 51,
     verdict: "Prepare",
     confidence: "Medium confidence — based on 10 recent games.",
@@ -72,8 +76,9 @@ const openings = [
     wins: 4,
     draws: 2,
     losses: 3,
-    winRate: 56,
-    win_rate: 56,
+    winRate: 44.4,
+    win_rate: 44.4,
+    scoreRate: 55.6,
     fitScore: 58,
     verdict: "Watch",
     confidence: "Low confidence — based on 9 recent games.",
@@ -85,8 +90,9 @@ const openings = [
     wins: 3,
     draws: 1,
     losses: 3,
-    winRate: 50,
-    win_rate: 50,
+    winRate: 42.9,
+    win_rate: 42.9,
+    scoreRate: 50,
     fitScore: 50,
     verdict: "Prepare",
     confidence: "Low confidence — based on 7 recent games.",
@@ -120,6 +126,9 @@ const sampleOpeningEco = Object.freeze({
   "French Defence": "C00", "London System": "D02", "English Opening": "A10",
 });
 
+const sampleOpeningSlug = (name) => String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+const sampleGameIds = (name, count) => Array.from({ length: count }, (_, index) => `sample-${sampleOpeningSlug(name)}-${index + 1}`);
+
 const canonicalSampleRole = (opening) => {
   if (opening.perspective.userColour === "white") return "white_repertoire";
   return opening.perspective.repertoireSlot || "black_other";
@@ -127,17 +136,18 @@ const canonicalSampleRole = (opening) => {
 
 const sampleGames = openings.flatMap((opening) => Array.from({ length: opening.games }, (_, offset) => {
   const number = offset + 1;
-  const slug = opening.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const slug = sampleOpeningSlug(opening.name);
   const id = `sample-${slug}-${number}`;
   const playerIsWhite = opening.perspective.userColour === "white";
   const white = playerIsWhite ? "Example Player — Sample" : `Example opponent ${number}`;
   const black = playerIsWhite ? `Example opponent ${number}` : "Example Player — Sample";
   const moves = sampleOpeningMoves[opening.name];
-  const result = number % 5 === 0 ? "1/2-1/2" : playerIsWhite ? "1-0" : "0-1";
+  const playerResult = number <= opening.wins ? "win" : number <= opening.wins + opening.draws ? "draw" : "loss";
+  const result = playerResult === "draw" ? "1/2-1/2" : playerIsWhite === (playerResult === "win") ? "1-0" : "0-1";
   return {
     id, gameId: id, url: `https://example.invalid/games/${id}`,
     white_username: white, black_username: black, playerColour: opening.perspective.userColour,
-    playerResult: result === "1/2-1/2" ? "draw" : "win", result, time_class: "rapid",
+    playerResult, result, time_class: "rapid",
     playedAt: `2026-06-${String(15 - (offset % 14)).padStart(2, "0")}T12:00:00.000Z`,
     eco: sampleOpeningEco[opening.name], opening: opening.name, openingFamily: opening.name,
     variation: null, classificationPly: 4, repertoireRole: canonicalSampleRole(opening),
@@ -158,7 +168,7 @@ const establishedStrength = {
   games: 18,
   score: 66.7,
   fitScore: 72,
-  sample: { games: 18, wins: 11, draws: 2, losses: 5, scoreRate: 66.7, gameIds: [] },
+  sample: { games: 18, wins: 11, draws: 2, losses: 5, scoreRate: 66.7, gameIds: sampleGameIds("Vienna Game", 18) },
   confidence: "High confidence — based on 18 recent games.",
   sampleSizeStatus: "sufficient",
   evidence: ["18 games", "67% score rate", "Reliable development and king safety"],
@@ -175,14 +185,17 @@ const primaryProblem = {
   games: 12,
   score: 38,
   fitScore: 68,
-  sample: { games: 12, wins: 3, draws: 3, losses: 6, scoreRate: 37.5, gameIds: [] },
+  sample: { games: 12, wins: 3, draws: 3, losses: 6, scoreRate: 37.5, gameIds: sampleGameIds("Queen's Gambit Declined", 12) },
   confidence: "Medium confidence — based on 12 recent games.",
   sampleSizeStatus: "sufficient",
   evidence: ["12 games", "38% score rate", "Repeated difficulty completing development"],
 };
 
 const nextTrainingAction = {
+  decisionId: "decision:sample:qgd-black-d4",
+  actionId: "decision:sample:qgd-black-d4",
   type: "repair_repertoire",
+  verdict: "repair",
   opening: "Queen's Gambit Declined",
   role: "played_as_black",
   label: "Review your Queen's Gambit Declined development",
@@ -190,6 +203,25 @@ const nextTrainingAction = {
   exercise: "Replay those three games from the Black side and write down one safer development plan.",
   completionTarget: { type: "reviewed_games", count: 3, label: "Finish three annotated reviews." },
 };
+
+const sampleRepertoireHealth = Object.freeze({
+  score: 82.555,
+  version: "repertoire_health_v2",
+  formulaVersion: "repertoire_health_v2",
+  displayName: "Repertoire Health",
+  components: [
+    { key: "roleCompleteness", label: "Role completeness", score: 100, value: 100, baseWeight: 35, effectiveWeight: 35, contribution: 35, available: true },
+    { key: "concentrationConsistency", label: "Concentration and consistency", score: 88.9, value: 88.9, baseWeight: 25, effectiveWeight: 25, contribution: 22.225, available: true },
+    { key: "evidenceStrength", label: "Evidence strength", score: 61.3, value: 61.3, baseWeight: 25, effectiveWeight: 25, contribution: 15.325, available: true },
+    { key: "unresolvedRecurringProblems", label: "Unresolved recurring problems", score: 66.7, value: 66.7, baseWeight: 15, effectiveWeight: 15, contribution: 10.005, available: true },
+  ],
+  baseWeightsTotal: 100,
+  effectiveWeightsTotal: 100,
+  weightsTotal: 100,
+  confidence: { level: "high_sample", sampleSize: 46, scope: "repertoire_health", explanation: "46 correctly attributed repertoire-role games support this fictional health snapshot." },
+  evidenceUsed: { roleAttributedGames: 46, establishedRoles: 3, totalRoles: 3 },
+  comparisonEligibility: { eligible: false, reason: "This fictional example is a baseline report." },
+});
 
 export const SAMPLE_REPORT = Object.freeze({
   schemaVersion: 4,
@@ -262,9 +294,13 @@ export const SAMPLE_REPORT = Object.freeze({
   monthsChecked: 3,
   rating: 1420,
   playerLevel: "Intermediate",
-  openingFitScore: 72,
-  opening_fit_score: 72,
-  openingFitScoreBand: "Developing repertoire",
+  openingFitScore: 82.555,
+  opening_fit_score: 82.555,
+  openingFitScoreBand: "Established repertoire",
+  repertoireHealth: sampleRepertoireHealth,
+  repertoire_health: sampleRepertoireHealth,
+  repertoireCoverageScore: sampleRepertoireHealth,
+  openingFitScoreContract: sampleRepertoireHealth,
   summary: "Example data shows a reliable Vienna Game, one Queen's Gambit Declined problem to review, and separate preparation notes for openings the example player faces.",
   styleProfile: {
     primary: "Active, development-first play",

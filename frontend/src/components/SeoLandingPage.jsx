@@ -4,6 +4,11 @@ import "./SeoLandingPage.css";
 export const SITE_URL = "https://www.openingfit.com";
 export const DEFAULT_SHARE_IMAGE = `${SITE_URL}/og-image.png`;
 export const ORGANIZATION_NAME = "OpeningFit";
+export const PUBLIC_PRICING_OFFERS = Object.freeze([
+  { "@type": "Offer", name: "OpeningFit Free", price: "0", priceCurrency: "GBP", availability: "https://schema.org/InStock", url: `${SITE_URL}/` },
+  { "@type": "Offer", name: "OpeningFit Plus Monthly", price: "4.99", priceCurrency: "GBP", availability: "https://schema.org/InStock", url: `${SITE_URL}/premium`, priceSpecification: { "@type": "UnitPriceSpecification", price: "4.99", priceCurrency: "GBP", billingDuration: "P1M" } },
+  { "@type": "Offer", name: "OpeningFit Plus Annual", price: "39.99", priceCurrency: "GBP", availability: "https://schema.org/InStock", url: `${SITE_URL}/premium`, priceSpecification: { "@type": "UnitPriceSpecification", price: "39.99", priceCurrency: "GBP", billingDuration: "P1Y" } },
+]);
 
 export const HOME_SEO = {
   title: "Find the Best Chess Opening for Your Playing Style | OpeningFit",
@@ -457,11 +462,7 @@ export function getSeoJsonLd(page) {
       publisher: {
         "@id": `${SITE_URL}/#organization`,
       },
-      offers: {
-        "@type": "Offer",
-        price: "0",
-        priceCurrency: "GBP",
-      },
+      offers: PUBLIC_PRICING_OFFERS,
     },
     {
       "@type": "SoftwareApplication",
@@ -475,11 +476,7 @@ export function getSeoJsonLd(page) {
       publisher: {
         "@id": `${SITE_URL}/#organization`,
       },
-      offers: {
-        "@type": "Offer",
-        price: "0",
-        priceCurrency: "GBP",
-      },
+      offers: PUBLIC_PRICING_OFFERS,
     },
   ];
 

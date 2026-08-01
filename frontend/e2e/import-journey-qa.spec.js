@@ -185,7 +185,7 @@ test("signed-out visitor sees readable real progress before a many-game report",
   await expect(overlay.locator(".importLoadingActiveMessage p")).toHaveText(/24 games found so far/i, { timeout: 5000 });
   await expect(overlay.locator(".importLoadingActiveMessage p")).toHaveText(/Processing game 36 of 72/i, { timeout: 7000 });
   await expect(overlay.getByText("Building your recommendations", { exact: true }).first()).toBeVisible({ timeout: 9000 });
-  await expect(page.getByRole("heading", { name: "Your opening plan" })).toBeVisible({ timeout: 12000 });
+  await expect(page.locator(".reportPageTitle")).toBeVisible({ timeout: 12000 });
   await expect(page.locator(".reportPageTitle")).toBeFocused();
   await expect(overlay).toHaveCount(0);
 });
@@ -210,7 +210,7 @@ test("few and empty completed imports resolve without an endless loading state",
   await routeJob(page, [{ status: "completed", progress: { stage: "finishing_report", counts: { fetchedGames: 4, analysedGames: 4 } }, result: reportFixture({ games: 4, score: 63 }) }]);
   await prepareVisitor(page, { width: 768, height: 1024 });
   await startImport(page, "FewGamesPlayer");
-  await expect(page.getByRole("heading", { name: "Your opening plan" })).toBeVisible({ timeout: 5000 });
+  await expect(page.locator(".reportPageTitle")).toBeVisible({ timeout: 5000 });
   await expect(page.locator(".primaryReportConfidence")).toContainText("Confidence is still developing");
 
   await page.context().unroute(jobStartRoute);

@@ -58,6 +58,16 @@ def test_signed_out_user_cannot_call_protected_account_helpers():
     assert error.value.status_code == 401
 
 
+def test_legacy_premium_preview_lists_only_current_supported_capabilities():
+    preview = main.build_premium_data([], {"summary": ""})
+    copy = str(preview).lower()
+    assert "future stockfish" not in copy
+    assert "keep / improve / avoid engine" not in copy
+    assert "coming soon" not in copy
+    assert "evidence-backed weekly training" in copy
+    assert "up to 12 months of game history" in copy
+
+
 def test_incorrect_user_cannot_open_another_users_customer_portal(monkeypatch):
     monkeypatch.setattr(main, "get_auth_user", lambda _request: SimpleNamespace(id="user-a"))
     with pytest.raises(HTTPException) as error:

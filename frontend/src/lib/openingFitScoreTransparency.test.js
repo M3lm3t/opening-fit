@@ -100,7 +100,8 @@ test("main score surfaces reuse the central development-state helper", async () 
     assert.doesNotMatch(source, /Opening\s*Fit Score/i);
   }
   assert.match(methodologySource, /repertoire_health_v2/);
-  assert.match(methodologySource, /role completeness \(35%\).*concentration and consistency \(25%\).*evidence strength \(25%\).*unresolved recurring problems \(15%\)/i);
+  assert.match(methodologySource, /report shows its versioned components and effective weights/i);
+  assert.doesNotMatch(methodologySource, /role completeness \(35%\).*concentration and consistency \(25%\)/i);
   assert.match(methodologySource, /Historical reports retain their stored formula version/i);
 });
 

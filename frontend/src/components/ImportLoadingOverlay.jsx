@@ -58,9 +58,15 @@ export default function ImportLoadingOverlay({
       icon: BookOpen,
     },
     {
-      keys: [IMPORT_STAGES.RECOMMENDING, IMPORT_STAGES.SAVING, IMPORT_STAGES.COMPLETE],
+      keys: [IMPORT_STAGES.RECOMMENDING],
       title: "Building your recommendations",
       detail: "Preparing evidence-based repertoire recommendations.",
+      icon: Sparkles,
+    },
+    {
+      keys: [IMPORT_STAGES.SAVING, IMPORT_STAGES.COMPLETE],
+      title: "Preparing your report",
+      detail: "Keeping the completed report safely on this device.",
       icon: Sparkles,
     },
   ];
@@ -82,6 +88,7 @@ export default function ImportLoadingOverlay({
       role="dialog"
       aria-modal="true"
       aria-labelledby="import-loading-title"
+      aria-busy={!complete}
     >
       <div className="importLoadingCard">
         <header className="importLoadingHeader">
@@ -108,6 +115,7 @@ export default function ImportLoadingOverlay({
             className={`importLoadingProgress ${determinate ? "importLoadingProgress--determinate" : "importLoadingProgress--indeterminate"}`}
             role="progressbar"
             aria-label={determinate ? `${activeStage?.title || "Analysis"} progress` : `${activeStage?.title || "Analysis"} in progress`}
+            aria-valuetext={determinate ? `${progressValue} of ${stageProgress.maximum} ${stageProgress.unit}` : "Waiting for confirmed progress from the analysis service"}
             aria-valuemin={determinate ? 0 : undefined}
             aria-valuemax={determinate ? stageProgress.maximum : undefined}
             aria-valuenow={determinate ? progressValue : undefined}
@@ -118,11 +126,11 @@ export default function ImportLoadingOverlay({
 
         <div className="importLoadingWorkspace">
           <div className="importLoadingNarrative">
-            <div className="importLoadingActiveMessage" role="status" aria-live="polite" aria-atomic="true">
+            <div className="importLoadingActiveMessage" role="status" aria-live="polite" aria-atomic="true" aria-busy={!complete}>
               <ChessAnalysisLoader />
               <span>{complete ? <Check size={14} /> : <Search size={14} />} {complete ? "Analysis complete" : "Analysing games"}</span>
               <strong>{complete ? "Your report is ready" : hasRealStage ? activeStage.title : "Waiting for a confirmed analysis stage"}</strong>
-              <p>{progress?.message || "OpeningFit is waiting for the analysis service. Detailed stages are not available for this request."}</p>
+              <p>{progress?.message || `Finding your ${platformLabel} games. This can take longer when several monthly archives need checking. OpeningFit is waiting for the platform response.`}</p>
             </div>
 
             <div className="importLoadingSteps">

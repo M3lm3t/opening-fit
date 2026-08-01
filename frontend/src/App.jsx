@@ -139,7 +139,6 @@ import { trackProductEvent } from "./lib/productAnalytics";
 import { completedAnalysisJourney, restoredReportJourney } from "./lib/postAnalysisJourney.js";
 import { SUPPORT_EMAIL } from "./lib/supportConfig.js";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
-import FounderPassOutcomePanel from "./components/FounderPassOutcomePanel";
 import ReportCommandBar from "./components/ReportCommandBar";
 import ReportGameCountSummary from "./components/ReportGameCountSummary.jsx";
 import ReportComparisonSection from "./components/ReportComparisonSection.jsx";
@@ -12334,7 +12333,7 @@ function getCurrentPath() {
 }
 
 function isPrivateSeoPath(path) {
-  return ["/account", "/profile", "/login", "/dashboard", "/report", SAMPLE_REPORT_PATH, "/repertoire", "/progress", "/journey", "/train", "/premium", "/pricing", "/upgrade"].includes(path);
+  return ["/account", "/profile", "/login", "/dashboard", "/report", SAMPLE_REPORT_PATH, "/repertoire", "/progress", "/journey", "/train", "/pricing", "/upgrade"].includes(path);
 }
 
 function getInitialAppView() {
@@ -15509,7 +15508,7 @@ export default function App() {
           canRetry: false,
           recoveryActions: recoveryActionsForImportFailure(emptyCategory, { canExpand: monthsToImport < gameHistoryMonths, hasPreviousReport: Boolean(data) }),
         });
-        setLoadingStep("No public games found.");
+        setLoadingStep(emptyCategory === "no_eligible_games" ? "No games matched the selected report filters." : "No public games found.");
         await trackEvent("analysis_failed", { platform: selectedPlatformKey, errorCategory: emptyCategory, source: "analysis_form" });
         return;
       }
@@ -16398,7 +16397,15 @@ export default function App() {
   const isUnknownOpeningPath = Boolean(openingSlug && !openingSeoPage);
   const seoPage = SEO_PAGES[currentPath] || null;
   const seoData = useMemo(() => {
-    if (trustPageKey) return { title: `${trustPageKey === "how" ? "How analysis works" : trustPageKey[0].toUpperCase() + trustPageKey.slice(1)} | OpeningFit`, description: "OpeningFit product, analysis, privacy and support information.", path: currentPath, url: `${SITE_URL}${currentPath}` };
+    const trustMetadata = {
+      about: { title: "About OpeningFit | Independent Chess Opening Guidance", description: "Learn why OpeningFit provides independent, deterministic opening guidance from public Chess.com and Lichess games." },
+      how: { title: "How OpeningFit Analysis Works | Methodology", description: "Understand OpeningFit's game import, exclusions, score meanings, evidence confidence and deterministic opening recommendations." },
+      privacy: { title: "OpeningFit Privacy and Data Use", description: "See which public chess and account data OpeningFit uses, where it is stored and how authenticated users can delete it." },
+      terms: { title: "OpeningFit Terms and Product Limitations", description: "Read the practical limits of OpeningFit training guidance, public-game analysis and paid access." },
+      changelog: { title: "OpeningFit Changelog | Product Updates", description: "Review user-facing changes to OpeningFit analysis, reports, training, accounts and subscriptions." },
+    };
+    if (trustPageKey) return { ...trustMetadata[trustPageKey], path: currentPath, url: `${SITE_URL}${currentPath}` };
+    if (currentPath === "/premium" || currentPath === "/pricing") return { title: "OpeningFit Plus Pricing | Monthly and Annual Plans", description: "Compare free OpeningFit access with Plus at £4.99 monthly or £39.99 annually for longer history, saved progress and current training features.", path: "/premium", url: `${SITE_URL}/premium` };
     if (isGuidesHub) {
       return {
         title: guideHubPage.title,
@@ -16498,6 +16505,8 @@ export default function App() {
         ? `${SITE_URL}/chess-openings/vienna-game`
         : isUnknownOpeningPath
           ? `${SITE_URL}/openings`
+          : currentPath === "/pricing"
+            ? `${SITE_URL}/premium`
           : shouldNoindex
             ? `${SITE_URL}/`
             : seoData.url;

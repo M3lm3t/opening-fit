@@ -23,7 +23,7 @@ export const IMPORT_STAGE_DETAILS = Object.freeze({
   [IMPORT_STAGES.FILTERING]: { title: "Checking eligible time controls", detail: "Separating games that can support an opening report." },
   [IMPORT_STAGES.IDENTIFYING]: { title: "Identifying recurring opening positions", detail: "Grouping repeated openings and move orders." },
   [IMPORT_STAGES.RECOMMENDING]: { title: "Preparing recommendations", detail: "Comparing results and selecting practical next actions." },
-  [IMPORT_STAGES.SAVING]: { title: "Saving report", detail: "Keeping the completed report locally and syncing it when available." },
+  [IMPORT_STAGES.SAVING]: { title: "Preparing report", detail: "Keeping the completed report locally and syncing it when available." },
   [IMPORT_STAGES.COMPLETE]: { title: "Report complete", detail: "Your latest successful report is ready." },
 });
 
