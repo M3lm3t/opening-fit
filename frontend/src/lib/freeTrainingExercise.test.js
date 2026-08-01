@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { Chess } from "chess.js";
 import { buildFreeTrainingExercise, explainTrainingPriority } from "./freeTrainingExercise.js";
-import { normalizeExerciseProvenance } from "./openingOpportunityDrills.js";
+import { attemptOpeningOpportunityMove, createOpeningOpportunitySession, normalizeExerciseProvenance } from "./openingOpportunityDrills.js";
 
 const sourceUrl = "https://www.chess.com/game/live/123456789";
 const pgn = `[Event "Live Chess"]
@@ -57,6 +57,68 @@ test("a validated own-game position exposes source metadata without a generic di
   assert.equal(exercise.drill.sourceGame.opponent, "PracticeOpponent");
   assert.equal(exercise.drill.sourceGame.moveNumber, 2);
   assert.equal(exercise.drill.sourceGame.url, sourceUrl);
+});
+
+test("a canonical diagnosis drives the own-game FEN, orientation and evidence without inventing a best move", () => {
+  const diagnosis = {
+    version: "opening_diagnosis_v1",
+    diagnosisId: "diagnosis:caro-position",
+    opening: "Caro-Kann Defence",
+    playerColour: "white",
+    precisionLevel: "exact_position",
+    positionFen: beforeWhiteMoveTwo,
+    targetPly: 2,
+    targetMoveNumber: 2,
+    representativeGameId: sourceUrl,
+    representativeGameIds: [sourceUrl],
+    supportingGameIds: [sourceUrl],
+    repeatedContinuation: { move: "d4", games: 2, source: "repeated_personal_continuation" },
+    evidenceSummary: "Two distinct supporting games reproduce this position.",
+    userFacingDiagnosis: "You reached this position twice and chose different continuations.",
+  };
+  const canonicalPriority = {
+    ...priority,
+    schemaVersion: 3,
+    representativeSelectionRequired: true,
+    representativeGameIds: [sourceUrl],
+    openingDiagnosis: diagnosis,
+    diagnosisId: diagnosis.diagnosisId,
+    positionFen: diagnosis.positionFen,
+  };
+  const report = { ...ownReport, openingTrainingOpportunities: [], analysisGameIndex: ownReport.recentGames };
+  const exercise = buildFreeTrainingExercise(report, canonicalPriority);
+
+  assert.equal(exercise.kind, "own_game_position");
+  assert.equal(exercise.opportunity.diagnosisId, diagnosis.diagnosisId);
+  assert.equal(exercise.drill.orientation, "white");
+  assert.equal(exercise.drill.initialFen.split(" ").slice(0, 4).join(" "), diagnosis.positionFen.split(" ").slice(0, 4).join(" "));
+  assert.equal(exercise.drill.sourceGame.id, sourceUrl);
+  assert.equal(exercise.drill.type, "position_review");
+  assert.equal(exercise.drill.recommendedMove, null);
+  assert.deepEqual(exercise.drill.expectedMoves, []);
+  assert.doesNotMatch(exercise.drill.explanation, /best|winning|losing|blunder/i);
+  const completed = attemptOpeningOpportunityMove(exercise.drill, createOpeningOpportunitySession(exercise.drill), "d4");
+  assert.equal(completed.completion, true);
+  assert.match(completed.feedback.why, /legal move to test.*not labelled best/i);
+});
+
+test("an exact trusted catalogue continuation is rehearsed with its source intact", () => {
+  const diagnosis = {
+    version: "opening_diagnosis_v1", diagnosisId: "diagnosis:caro-catalogue", opening: "Caro-Kann Defence",
+    playerColour: "white", precisionLevel: "exact_position", positionFen: beforeWhiteMoveTwo,
+    targetPly: 2, targetMoveNumber: 2, representativeGameId: sourceUrl, representativeGameIds: [sourceUrl],
+    supportingGameIds: [sourceUrl], authoritativeContinuation: { move: "d4", source: "opening_reference_line", sourceLabel: "existing opening catalogue" },
+    evidenceSummary: "Two distinct supporting games reproduce this position.", userFacingDiagnosis: "Review the repeated position.",
+  };
+  const exercise = buildFreeTrainingExercise(
+    { ...ownReport, openingTrainingOpportunities: [], analysisGameIndex: ownReport.recentGames },
+    { ...priority, schemaVersion: 3, representativeSelectionRequired: true, representativeGameIds: [sourceUrl], openingDiagnosis: diagnosis, diagnosisId: diagnosis.diagnosisId },
+  );
+
+  assert.equal(exercise.drill.type, "position_choice");
+  assert.equal(exercise.drill.recommendedMove, "d4");
+  assert.equal(exercise.opportunity.source, "opening_reference_line");
+  assert.equal(attemptOpeningOpportunityMove(exercise.drill, createOpeningOpportunitySession(exercise.drill), "d4").completion, true);
 });
 
 test("a general setup has a conservative disclaimer and no source link", () => {

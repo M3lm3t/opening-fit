@@ -1,7 +1,7 @@
 import { findOpeningLine, normaliseOpeningKey } from "../data/openings.ts";
 import { countNoun } from "./reportGameCounts.js";
 
-export const TRAINING_PRIORITY_SCHEMA_VERSION = 2;
+export const TRAINING_PRIORITY_SCHEMA_VERSION = 3;
 
 const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 const list = (value) => Array.isArray(value) ? value.filter(Boolean) : [];
@@ -64,9 +64,10 @@ function playerRoleFor(source = {}, target = {}) {
 
 function canonicalPriority(source, report, decision) {
   if (!source || typeof source !== "object") return null;
+  const diagnosis = source.openingDiagnosis || source.opening_diagnosis || decision.openingDiagnosis || decision.opening_diagnosis || null;
   const target = targetFor(source, decision);
   const sample = source.sample && typeof source.sample === "object" ? source.sample : target?.sample || {};
-  const openingName = text(target?.openingName || target?.opening || source.openingName || source.opening_name || source.opening) || null;
+  const openingName = text(diagnosis?.opening || diagnosis?.openingFamily || target?.openingName || target?.opening || source.openingName || source.opening_name || source.opening) || null;
   const actionType = text(source.type || source.actionType || source.action_type || "review");
   const explicitFindingType = text(source.findingType || source.finding_type || target?.findingType || target?.finding_type);
   const findingType = explicitFindingType || (
@@ -85,7 +86,7 @@ function canonicalPriority(source, report, decision) {
   const title = text(source.trainingTitle || source.training_title || source.title) || (openingName ? `Practise ${openingName}` : text(source.label)) || "Review your current opening evidence";
   const evidenceGameIds = [...new Set(list(source.evidenceGameIds || source.evidence_game_ids || sample.gameIds || sample.game_ids || source.sourceGameIds || source.source_game_ids).map(text).filter(Boolean))];
   const evidenceSet = new Set(evidenceGameIds);
-  const representativeGameIds = [...new Set(list(source.representativeGameIds || source.representative_game_ids).map(text).filter((id) => id && evidenceSet.has(id)))].slice(0, 3);
+  const representativeGameIds = [...new Set(list(diagnosis?.representativeGameIds || diagnosis?.representative_game_ids || source.representativeGameIds || source.representative_game_ids).map(text).filter((id) => id && evidenceSet.has(id)))].slice(0, 3);
   const workflowSteps = list(source.sessionSteps || source.session_steps || source.workflowSteps || source.workflow_steps);
   return {
     schemaVersion: TRAINING_PRIORITY_SCHEMA_VERSION,
@@ -93,6 +94,8 @@ function canonicalPriority(source, report, decision) {
     actionId: text(source.actionId || source.action_id || decision.primaryAction?.actionId || decision.primary_action?.action_id) || null,
     priorityId,
     taskId: text(source.taskId || source.task_id) || priorityId,
+    diagnosisId: text(diagnosis?.diagnosisId || diagnosis?.diagnosis_id || source.diagnosisId || source.diagnosis_id) || null,
+    openingDiagnosis: diagnosis,
     recommendationId: recommendationId || null,
     openingName,
     openingKey,
@@ -100,9 +103,9 @@ function canonicalPriority(source, report, decision) {
     contextRole: text(source.contextRole || source.context_role || source.role || target?.role) || null,
     playerRole: playerRoleFor(source, target),
     relationship: ({ played: "played_by_user", faced: "faced_by_user" }[text(source.relationship || target?.relationship).toLowerCase()] || text(source.relationship || target?.relationship) || "unknown"),
-    repertoireRole: text(source.repertoireRole || source.repertoire_role || target?.repertoireRole || target?.repertoire_role) || "unresolved",
+    repertoireRole: text(diagnosis?.repertoireRole || diagnosis?.repertoire_role || source.repertoireRole || source.repertoire_role || target?.repertoireRole || target?.repertoire_role) || "unresolved",
     findingType,
-    playerColour: colourFor(source, target),
+    playerColour: text(diagnosis?.playerColour || diagnosis?.player_colour).toLowerCase() || colourFor(source, target),
     taskType: taskTypeFor(source),
     actionType,
     verdict: text(source.verdict || decision.primaryAction?.verdict || decision.primary_action?.verdict) || null,
@@ -119,18 +122,18 @@ function canonicalPriority(source, report, decision) {
     representativeSelectionRequired: Number(source.schemaVersion || source.schema_version || 0) >= 2,
     estimatedDurationMinutes: duration,
     trainingDuration: source.trainingDuration && typeof source.trainingDuration === "object" ? source.trainingDuration : { minutes: duration },
-    nextAction: text(source.nextAction || source.next_action || source.exercise || source.explanation) || null,
-    successCheck: text(source.successCheck || source.success_check || source.successCriteria || source.success_criteria || completion.label) || "Complete the practice and record one practical takeaway.",
+    nextAction: text(diagnosis?.trainingTask || diagnosis?.training_task || source.nextAction || source.next_action || source.exercise || source.explanation) || null,
+    successCheck: text(diagnosis?.successCheck || diagnosis?.success_check || source.successCheck || source.success_check || source.successCriteria || source.success_criteria || completion.label) || "Complete the practice and record one practical takeaway.",
     completionTarget: completion,
     confidenceStatus: text(source.confidenceStatus || source.confidence_status || target?.confidence?.level || source.confidence?.level || source.confidence) || "unknown",
     confidence: source.confidence && typeof source.confidence === "object" ? source.confidence : target?.confidence || { level: text(source.confidenceStatus || source.confidence_status) || "unknown" },
     sourceReportId: text(source.sourceReportId || source.source_report_id || report.analysisId || report.analysis_id || report.report_id || report.id) || null,
-    lineOrPosition: text(source.lineOrPosition || source.line_or_position || source.practiceLine || source.practice_line || source.recognisedLine || source.recognizedLine || source.line || source.moveLine || source.move_line) || null,
-    recognisedLine: text(source.recognisedLine || source.recognizedLine || source.recognised_line || source.recognized_line) || null,
-    practiceLine: text(source.practiceLine || source.practice_line) || null,
-    classificationPly: integer(source.classificationPly ?? source.classification_ply, null),
-    opponentContinuation: source.opponentContinuation || source.opponent_continuation || null,
-    playerResponse: source.playerResponse || source.player_response || null,
+    lineOrPosition: text(diagnosis?.commonMovePrefix?.san || source.lineOrPosition || source.line_or_position || source.practiceLine || source.practice_line || source.recognisedLine || source.recognizedLine || source.line || source.moveLine || source.move_line) || null,
+    recognisedLine: text(diagnosis?.commonMovePrefix?.san || source.recognisedLine || source.recognizedLine || source.recognised_line || source.recognized_line) || null,
+    practiceLine: text(diagnosis?.commonMovePrefix?.san || source.practiceLine || source.practice_line) || null,
+    classificationPly: integer(diagnosis?.targetPly ?? diagnosis?.target_ply ?? source.classificationPly ?? source.classification_ply, null),
+    opponentContinuation: diagnosis ? null : source.opponentContinuation || source.opponent_continuation || null,
+    playerResponse: diagnosis?.repeatedContinuation || diagnosis?.repeated_continuation || source.playerResponse || source.player_response || null,
     firstRepeatedDivergence: source.firstRepeatedDivergence || source.first_repeated_divergence || null,
     nextGameObjective: text(source.nextGameObjective || source.next_game_objective) || null,
     objectiveGameCount: integer(source.objectiveGameCount ?? source.objective_game_count, 5),
@@ -138,7 +141,7 @@ function canonicalPriority(source, report, decision) {
     sessionSteps: workflowSteps,
     fallbackSetupDrill: source.fallbackSetupDrill || source.fallback_setup_drill || null,
     sourceGameAvailability: source.sourceGameAvailability || source.source_game_availability || null,
-    positionFen: text(source.positionFen || source.position_fen) || null,
+    positionFen: text(diagnosis?.positionFen || diagnosis?.position_fen || source.positionFen || source.position_fen) || null,
     expectedMoves: list(source.expectedMoves || source.expected_moves).map(text).filter(Boolean),
     fallback,
     fallbackReason: text(source.fallbackReason || source.fallback_reason) || null,
@@ -259,6 +262,8 @@ export function trainingTaskFromPriority(priority, order = 1) {
     order,
     status: "pending",
     trainingPriorityId: priority.priorityId,
+    diagnosisId: priority.diagnosisId,
+    openingDiagnosis: priority.openingDiagnosis,
     findingType: priority.findingType,
     repertoireRole: priority.repertoireRole,
     evidenceCount: priority.evidenceCount,

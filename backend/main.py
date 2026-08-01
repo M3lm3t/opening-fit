@@ -9343,6 +9343,8 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
     apply_repertoire_coverage_score(result, report_decision)
     result["training_priority"] = report_decision["trainingPriority"]
     result["trainingPriority"] = report_decision["trainingPriority"]
+    result["opening_diagnosis"] = report_decision.get("openingDiagnosis")
+    result["openingDiagnosis"] = report_decision.get("openingDiagnosis")
 
     result["progress_comparison"] = build_report_progress_comparison(
         result,
@@ -10098,6 +10100,8 @@ def build_lichess_analysis(
     apply_repertoire_coverage_score(result, report_decision)
     result["training_priority"] = report_decision["trainingPriority"]
     result["trainingPriority"] = report_decision["trainingPriority"]
+    result["opening_diagnosis"] = report_decision.get("openingDiagnosis")
+    result["openingDiagnosis"] = report_decision.get("openingDiagnosis")
 
     result["progress_comparison"] = build_report_progress_comparison(
         result,
@@ -11190,6 +11194,8 @@ def demo_profile():
     demo_data["reportDecision"] = report_decision
     demo_data["training_priority"] = report_decision["trainingPriority"]
     demo_data["trainingPriority"] = report_decision["trainingPriority"]
+    demo_data["opening_diagnosis"] = report_decision.get("openingDiagnosis")
+    demo_data["openingDiagnosis"] = report_decision.get("openingDiagnosis")
     demo_data["recommended_action"] = report_decision["primaryAction"]["label"]
     demo_data["recommendedAction"] = report_decision["primaryAction"]["label"]
     demo_data["training_plan"] = [report_decision["primaryAction"]["nextAction"]]

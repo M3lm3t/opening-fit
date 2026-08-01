@@ -108,6 +108,49 @@ test("the report priority and the Train plan retain the same canonical ID", () =
   assert.equal(trainPlan.tasks[0].representativeGameIds[0], "game-2");
 });
 
+test("a saved canonical diagnosis wins over conflicting frontend fallback fields", () => {
+  const diagnosis = {
+    version: "opening_diagnosis_v1",
+    diagnosisId: "diagnosis:queen-pawn-position",
+    opening: "Queen Pawn Game",
+    repertoireRole: "white",
+    playerColour: "white",
+    precisionLevel: "exact_position",
+    positionFen: "rnbqkb1r/ppp1pppp/5n2/3p4/3P4/5N2/PPP1PPPP/RNBQKB1R w KQkq - 2 3",
+    targetPly: 4,
+    commonMovePrefix: { san: "1. d4 d5 2. Nf3 Nf6", uci: ["d2d4", "d7d5", "g1f3", "g8f6"] },
+    representativeGameIds: ["game-2"],
+    trainingTask: "Replay the supplied game to this position and choose one legal continuation to test.",
+    successCheck: "Rehearse the chosen continuation three times.",
+  };
+  const report = {
+    analysisId: "analysis-diagnosis",
+    reportDecision: {
+      ...caroDecision,
+      openingDiagnosis: diagnosis,
+      trainingPriority: {
+        schemaVersion: 3,
+        priorityId: "training-queen-pawn",
+        recommendationId: "caro-kann:defence:played_as_black",
+        openingName: "Wrong frontend fallback",
+        evidenceGameIds: ["game-1", "game-2"],
+        representativeGameIds: ["game-1"],
+        positionFen: "wrong-fen",
+        openingDiagnosis: diagnosis,
+      },
+    },
+  };
+  const priority = resolveTrainingPriority(report, { allowFallback: false });
+
+  assert.equal(priority.diagnosisId, diagnosis.diagnosisId);
+  assert.equal(priority.openingName, "Queen Pawn Game");
+  assert.equal(priority.positionFen, diagnosis.positionFen);
+  assert.equal(priority.classificationPly, 4);
+  assert.deepEqual(priority.representativeGameIds, ["game-2"]);
+  assert.equal(priority.nextAction, diagnosis.trainingTask);
+  assert.equal(priority.successCheck, diagnosis.successCheck);
+});
+
 test("shared count formatting handles singular and plural result labels", () => {
   assert.equal(formatResultCounts({ wins: 1, draws: 1, losses: 1 }), "1 win, 1 draw and 1 loss");
   assert.equal(formatResultCounts({ wins: 2, draws: 2, losses: 2 }), "2 wins, 2 draws and 2 losses");

@@ -486,7 +486,7 @@ def test_training_priority_falls_back_to_line_rehearsal_without_verified_represe
     assert "No verified source game" in priority["workflowSteps"][0]["label"]
 
 
-def test_opponent_continuation_uses_the_next_white_move_when_the_player_is_black():
+def test_black_priority_targets_the_players_turn_without_labelling_the_opponents_move_as_the_diagnosis():
     games = [
         black_pgn_game("Caro-Kann Defence", index, "1. e4 c6 2. d4 d5 3. Nc3", "loss")
         for index in range(1, 6)
@@ -497,11 +497,8 @@ def test_opponent_continuation_uses_the_next_white_move_when_the_player_is_black
     assert priority["playerColour"] == "black"
     assert priority["playerRole"] == "black_vs_e4"
     assert priority["relationship"] == "played_by_user"
-    assert priority["recognisedLine"] == "1. e4 c6"
-    assert priority["opponentContinuation"] == {
-        "move": "d4",
-        "games": 5,
-        "supportingGameIds": [f"played_as_black-{index}" for index in range(1, 6)],
-    }
-    assert priority["playerResponse"]["move"] == "d5"
-    assert priority["opponentContinuation"]["move"] not in {"e4", "c6"}
+    assert priority["recognisedLine"] == "1. e4 c6 2. d4"
+    assert priority["openingDiagnosis"]["playerToMove"] == "black"
+    assert priority["openingDiagnosis"]["repeatedContinuation"]["move"] == "d5"
+    assert priority["openingDiagnosis"]["repeatedContinuation"]["move"] not in {"e4", "c6", "d4"}
+    assert priority["opponentContinuation"] is None

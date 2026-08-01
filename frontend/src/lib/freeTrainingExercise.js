@@ -97,7 +97,29 @@ export function buildFreeTrainingExercise(report = {}, priority = null) {
   const priorityReason = explainTrainingPriority(report, priority);
   const selectedReview = buildTrainingReviewSelection(report, priority || {}, priorityReason);
   const knownLineConcept = selectedReview.games.map((game) => deriveKnownLineConcept(game, priority?.openingName)).find(Boolean) || null;
-  const opportunities = list(report.openingTrainingOpportunities || report.opening_training_opportunities)
+  const diagnosis = priority?.openingDiagnosis || priority?.opening_diagnosis || null;
+  const diagnosisOpportunity = diagnosis?.positionFen && diagnosis?.representativeGameId ? {
+    opportunityId: `diagnosis:${diagnosis.diagnosisId}`,
+    diagnosisId: diagnosis.diagnosisId,
+    gameId: diagnosis.representativeGameId,
+    openingId: priority?.openingKey,
+    openingName: diagnosis.opening,
+    side: diagnosis.playerColour,
+    positionFen: diagnosis.positionFen,
+    moveNumber: diagnosis.targetMoveNumber,
+    playedMove: diagnosis.repeatedContinuation?.move || null,
+    recommendedMove: diagnosis.authoritativeContinuation?.move || null,
+    expectedMoves: diagnosis.authoritativeContinuation?.move ? [diagnosis.authoritativeContinuation.move] : [],
+    source: diagnosis.authoritativeContinuation?.source || "repeated_personal_continuation",
+    issueType: "repeated_personal_decision",
+    explanation: diagnosis.userFacingDiagnosis,
+    evidence: diagnosis.evidenceSummary,
+    confidence: diagnosis.confidence,
+    recurrenceCount: list(diagnosis.supportingGameIds).length,
+    trainingPriorityReason: priorityReason,
+  } : null;
+  const opportunities = [diagnosisOpportunity, ...list(report.openingTrainingOpportunities || report.opening_training_opportunities)]
+    .filter(Boolean)
     .map((opportunity) => ({ opportunity, drill: buildOpeningOpportunityDrill(opportunity, report) }))
     .filter((entry) => entry.drill.valid && entry.drill.provenance?.kind === "own_game_position")
     .sort((left, right) => scoreOpportunity(right.opportunity, priority) - scoreOpportunity(left.opportunity, priority));

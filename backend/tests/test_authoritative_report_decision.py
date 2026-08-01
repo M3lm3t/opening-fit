@@ -246,3 +246,21 @@ def test_demo_semantics_and_aliases_do_not_change_primary_action():
     assert vienna["evidenceConfidence"]["level"] == "low"
     assert payload["repertoireHealth"] == payload["repertoire_health"] == payload["repertoireCoverageScore"]
     assert payload["openingFitScore"] == payload["repertoireHealth"]["score"]
+
+
+def test_demo_diagnosis_is_honest_and_stays_inside_the_queen_pawn_sample():
+    payload = backend_main.demo_profile()
+    diagnosis = payload["openingDiagnosis"]
+    queen_ids = set(next(row for row in payload["reportDecision"]["recommendations"] if row["openingName"] == "Queen Pawn Game")["sample"]["gameIds"])
+
+    assert payload["reportDecision"]["primaryAction"]["opening"] == "Queen Pawn Game"
+    assert diagnosis["opening"] == "Queen Pawn Game"
+    assert diagnosis["repertoireRole"] == "white"
+    assert diagnosis["playerColour"] == "white"
+    assert diagnosis["precisionLevel"] == "move_order"
+    assert diagnosis["positionFen"]
+    assert diagnosis["playerToMove"] == "white"
+    assert len(diagnosis["supportingGameIds"]) == 6
+    assert set(diagnosis["supportingGameIds"]) == queen_ids
+    assert diagnosis["objectiveMoveClaimed"] is False
+    assert payload["trainingPriority"]["diagnosisId"] == diagnosis["diagnosisId"]

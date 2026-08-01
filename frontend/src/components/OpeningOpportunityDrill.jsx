@@ -16,7 +16,7 @@ import ChessPositionBoard from "./ChessPositionBoard.jsx";
 import { TRAINING_TASK_COMPLETED_EVENT } from "../lib/trainingQueue.js";
 import "./OpeningOpportunityDrill.css";
 
-const TYPE_LABELS = { position_choice: "Position choice", line_replay: "Line replay", concept_check: "Concept check" };
+const TYPE_LABELS = { position_choice: "Position choice", position_review: "Position review", line_replay: "Line replay", concept_check: "Concept check" };
 
 function sourceSummary(sourceGame) {
   if (!sourceGame) return "";
@@ -168,8 +168,8 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose, 
           {session.feedback.success ? <CheckCircle2 size={21} /> : <AlertTriangle size={21} />}
           <dl>
             <div><dt>You played</dt><dd>{session.feedback.played}</dd></div>
-            {(session.attempts > 0 || session.revealed) ? <div><dt>{drill.type === "concept_check" ? "Recommended plan" : "Recommended move or plan"}</dt><dd>{session.feedback.recommended || currentExpectedMove || drill.plan}</dd></div> : null}
-            <div><dt>{drill.type === "concept_check" ? drill.knownLine ? "Why it fits this structure" : "Why variation-specific commitment is premature" : "Why this answer is recommended"}</dt><dd>{session.feedback.why}</dd></div>
+            {(session.attempts > 0 || session.revealed) ? <div><dt>{drill.type === "concept_check" ? "Recommended plan" : drill.type === "position_review" ? "Chosen continuation" : "Recommended move or plan"}</dt><dd>{session.feedback.recommended || currentExpectedMove || drill.plan}</dd></div> : null}
+            <div><dt>{drill.type === "concept_check" ? drill.knownLine ? "Why it fits this structure" : "Why variation-specific commitment is premature" : drill.type === "position_review" ? "What this records" : "Why this answer is recommended"}</dt><dd>{session.feedback.why}</dd></div>
             {drill.type === "concept_check" ? <div><dt>What to watch for next time</dt><dd>{drill.watchForNextTime}</dd></div> : null}
             {session.feedback.gameReference ? <div><dt>Your evidence</dt><dd>{session.feedback.gameReference}{drill.sourceGame?.url ? <> <a href={drill.sourceGame.url} target="_blank" rel="noreferrer">Open game</a></> : null}</dd></div> : null}
           </dl>
@@ -178,7 +178,7 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose, 
       ) : null}
 
       <footer className="openingOpportunityActions">
-        {!session.revealed && !session.completion ? <button type="button" className="secondaryBtn" onClick={() => persist(revealOpeningOpportunityAnswer(drill, session))}><Eye size={16} /> Show answer</button> : null}
+        {!session.revealed && !session.completion && drill.type !== "position_review" ? <button type="button" className="secondaryBtn" onClick={() => persist(revealOpeningOpportunityAnswer(drill, session))}><Eye size={16} /> Show answer</button> : null}
         {(session.completion || session.attempts > 0) ? <button type="button" className="secondaryBtn" onClick={reset}><RotateCcw size={16} /> Practise again</button> : null}
         {onClose ? <button type="button" className="secondaryBtn" onClick={onClose}>Choose another line</button> : null}
       </footer>

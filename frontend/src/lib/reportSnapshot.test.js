@@ -149,7 +149,7 @@ test("persists and restores the canonical training priority", () => {
   const report = {
     ...completedReport(),
     trainingPriority: {
-      schemaVersion: 2,
+      schemaVersion: 3,
       priorityId: "training-caro:played_as_black",
       recommendationId: "caro:played_as_black",
       openingName: "Caro-Kann Defence",
@@ -158,6 +158,14 @@ test("persists and restores the canonical training priority", () => {
       evidenceCount: 5,
       evidenceGameIds: ["caro-1", "caro-2"],
       representativeGameIds: ["caro-2"],
+      diagnosisId: "diagnosis:caro-position",
+      openingDiagnosis: {
+        version: "opening_diagnosis_v1", diagnosisId: "diagnosis:caro-position",
+        opening: "Caro-Kann Defence", repertoireRole: "black_vs_e4", playerColour: "black",
+        precisionLevel: "exact_position", positionFen: "rnbqkbnr/pp1ppppp/2p5/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq - 0 2",
+        targetPly: 3, commonMovePrefix: { san: "1. e4 c6 2. d4", uci: ["e2e4", "c7c6", "d2d4"] },
+        representativeGameIds: ["caro-2"], trainingTask: "Review the diagnosed position.", successCheck: "Rehearse one legal continuation.",
+      },
       recognisedLine: "1. e4 c6",
       classificationPly: 2,
       opponentContinuation: { move: "d4", games: 2, supportingGameIds: ["caro-1", "caro-2"] },
@@ -198,9 +206,11 @@ test("persists and restores the canonical training priority", () => {
   assert.equal(restored.training_priority.openingName, "Caro-Kann Defence");
   assert.equal(restored.training_priority.relationship, "played_by_user");
   assert.deepEqual(restored.training_priority.representativeGameIds, ["caro-2"]);
-  assert.equal(restored.training_priority.recognisedLine, "1. e4 c6");
-  assert.equal(restored.training_priority.classificationPly, 2);
-  assert.equal(restored.training_priority.opponentContinuation.move, "d4");
+  assert.equal(restored.training_priority.diagnosisId, "diagnosis:caro-position");
+  assert.equal(restored.training_priority.openingDiagnosis.positionFen, report.trainingPriority.openingDiagnosis.positionFen);
+  assert.equal(restored.training_priority.recognisedLine, "1. e4 c6 2. d4");
+  assert.equal(restored.training_priority.classificationPly, 3);
+  assert.equal(restored.training_priority.opponentContinuation, null);
   assert.match(restored.training_priority.nextGameObjective, /next five relevant games/i);
   assert.equal(snapshot.report_decision.primaryProblem.verdict, "repair");
   assert.equal(restored.report_decision.primaryProblem.verdict, "repair");

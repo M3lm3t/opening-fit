@@ -3,7 +3,7 @@ import { findOpeningLine } from "../data/openings.ts";
 import { formatOpeningNameForDisplay } from "./openingNamePresentation.js";
 
 export const OPENING_OPPORTUNITY_PROGRESS_KEY = "openingFit:openingOpportunityProgress:v1";
-export const OPENING_OPPORTUNITY_DRILL_TYPES = Object.freeze(["position_choice", "line_replay", "concept_check"]);
+export const OPENING_OPPORTUNITY_DRILL_TYPES = Object.freeze(["position_choice", "position_review", "line_replay", "concept_check"]);
 
 const list = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
 const text = (value) => String(value ?? "").trim();
@@ -119,7 +119,11 @@ function sameMove(left, right) {
 }
 
 function reportGames(report = {}) {
-  return [...list(report.recentGames), ...list(report.recent_games), ...list(report.openingGames), ...list(report.opening_games), ...list(report.games)];
+  return [
+    ...list(report.analysisGameIndex), ...list(report.analysis_game_index),
+    ...list(report.recentGames), ...list(report.recent_games),
+    ...list(report.openingGames), ...list(report.opening_games), ...list(report.games),
+  ];
 }
 
 function sourceGame(opportunity, report = {}) {
@@ -242,7 +246,8 @@ export function buildOpeningOpportunityDrill(opportunity, report = {}) {
   const resolvedOpeningName = openingLabel(opportunity);
   const concept = exerciseConcept(opportunity, resolvedOpeningName, side);
   const hasMoveAnswer = Boolean(recommendedMove);
-  const type = moves.length >= 2 ? "line_replay" : hasMoveAnswer ? "position_choice" : "concept_check";
+  const diagnosisOwnedPosition = Boolean(opportunity.diagnosisId || opportunity.diagnosis_id);
+  const type = moves.length >= 2 ? "line_replay" : hasMoveAnswer ? "position_choice" : ownGamePosition && fen && diagnosisOwnedPosition ? "position_review" : "concept_check";
   const position = fen ? safeChess(fen) : { chess: null, error: "The saved opportunity does not include a board position." };
   if (type !== "concept_check" && !position.chess) {
     return { valid: false, error: position.error, type, opportunityId: text(opportunity.opportunityId || opportunity.opportunity_id), side, orientation: side };
@@ -272,7 +277,7 @@ export function buildOpeningOpportunityDrill(opportunity, report = {}) {
     side,
     orientation: side,
     initialFen: position.chess?.fen() || null,
-    prompt: type === "position_choice" ? "What would you play here?" : type === "line_replay" ? `Replay the short line as ${side === "black" ? "Black" : "White"}.` : concept.question,
+    prompt: type === "position_choice" ? "What would you play here?" : type === "position_review" ? "Choose one legal continuation to test from your repeated position." : type === "line_replay" ? `Replay the short line as ${side === "black" ? "Black" : "White"}.` : concept.question,
     explanation: text(opportunity.explanation) || "Review the opening decision shown by your analysed game.",
     evidence: text(opportunity.evidence),
     confidence: opportunity.confidence ?? null,
@@ -334,7 +339,7 @@ function attemptedLabel(attempted) {
 }
 
 export function attemptOpeningOpportunityMove(drill, session, attempted) {
-  if (!drill?.valid || !["position_choice", "line_replay"].includes(drill.type)) return { ...session, feedback: { success: false, error: drill?.error || "This move drill is not available." } };
+  if (!drill?.valid || !["position_choice", "position_review", "line_replay"].includes(drill.type)) return { ...session, feedback: { success: false, error: drill?.error || "This move drill is not available." } };
   const position = safeChess(session.fen);
   if (!position.chess) return { ...session, feedback: { success: false, error: position.error } };
   const userColour = drill.side === "black" ? "b" : "w";
@@ -342,6 +347,22 @@ export function attemptOpeningOpportunityMove(drill, session, attempted) {
   const played = legalMove(position.chess, attempted);
   const attempts = session.attempts + 1;
   if (!played) return { ...session, attempts, repeatedFailure: attempts >= 3, feedback: feedbackFor(drill, attemptedLabel(attempted), false, { error: "That move is not legal in the saved position." }) };
+
+  if (drill.type === "position_review") {
+    position.chess.move({ from: played.from, to: played.to, promotion: played.promotion || undefined });
+    return {
+      ...session,
+      fen: position.chess.fen(),
+      attempts,
+      success: true,
+      completion: true,
+      lastPlayed: played.san,
+      feedback: feedbackFor(drill, played.san, true, {
+        recommended: "Your chosen legal continuation",
+        why: "OpeningFit recorded this as a legal move to test; it is not labelled best or objectively correct.",
+      }),
+    };
+  }
 
   const expectedText = drill.type === "line_replay" ? drill.expectedMoves[session.lineIndex] : drill.recommendedMove;
   const expected = legalMove(position.chess, expectedText);

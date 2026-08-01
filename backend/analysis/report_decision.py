@@ -26,6 +26,9 @@ REPERTOIRE_HEALTH_VERSION = "repertoire_health_v2"
 OPENING_SUITABILITY_VERSION = "opening_suitability_v1"
 OBSERVED_PERFORMANCE_VERSION = "observed_performance_v1"
 EVIDENCE_CONFIDENCE_VERSION = "evidence_confidence_v1"
+OPENING_DIAGNOSIS_VERSION = "opening_diagnosis_v1"
+OPENING_DIAGNOSIS_METHOD = "legal_pgn_normalised_position_v1"
+MAX_DIAGNOSIS_PLY = 20
 # Compatibility alias for callers and stored reports written before the score was
 # given its precise product name. The arithmetic is intentionally unchanged.
 REPERTOIRE_COVERAGE_SCORE_VERSION = REPERTOIRE_HEALTH_VERSION
@@ -1186,19 +1189,30 @@ def _parsed_training_game(row: Mapping[str, Any]) -> Optional[dict[str, Any]]:
         return None
     try:
         parsed = chess.pgn.read_game(io.StringIO(pgn))
-        if parsed is None:
+        if parsed is None or parsed.errors:
             return None
         board = parsed.board()
         moves: list[str] = []
+        uci_moves: list[str] = []
         fens = [board.fen()]
+        positions = [{"ply": 0, "fen": board.fen(), "key": " ".join(board.fen().split()[:4]), "turn": "white"}]
         for move in parsed.mainline_moves():
             moves.append(board.san(move))
+            uci_moves.append(move.uci())
             board.push(move)
             fens.append(board.fen())
+            positions.append({
+                "ply": len(moves),
+                "fen": board.fen(),
+                # Half/full-move clocks do not change the legal position. Board,
+                # turn, castling and legally relevant en-passant state do.
+                "key": " ".join(board.fen().split()[:4]),
+                "turn": "white" if board.turn == chess.WHITE else "black",
+            })
         if not moves:
             return None
         headers = {str(key).lower(): str(value) for key, value in parsed.headers.items()}
-        return {"moves": moves, "fens": fens, "headers": headers}
+        return {"moves": moves, "uciMoves": uci_moves, "fens": fens, "positions": positions, "headers": headers}
     except (ValueError, TypeError, IndexError):
         return None
 
@@ -1246,10 +1260,15 @@ def _valid_training_game(
         "id": game_id,
         "row": row,
         "moves": parsed["moves"],
+        "uciMoves": parsed["uciMoves"],
         "fens": parsed["fens"],
+        "positions": parsed["positions"],
         "classificationPly": classification_ply,
         "playedAt": str(row.get("playedAt") or row.get("played_at") or row.get("endTime") or row.get("end_time") or ""),
         "result": str(row.get("playerResult") or row.get("result") or "unknown").lower(),
+        "url": str(row.get("url") or row.get("gameUrl") or row.get("game_url") or "").strip(),
+        "eco": str(row.get("eco") or "").strip() or None,
+        "variation": str(row.get("variation") or "").strip() or None,
     }
 
 
@@ -1267,100 +1286,232 @@ def _safe_epoch(value: Any) -> float:
         return 0
 
 
-def _training_line_contract(target: Mapping[str, Any], report: Mapping[str, Any], evidence_ids: list[str]) -> dict[str, Any]:
+def _common_prefix(rows: list[list[str]]) -> list[str]:
+    if not rows:
+        return []
+    prefix = list(rows[0])
+    for row in rows[1:]:
+        limit = min(len(prefix), len(row))
+        index = 0
+        while index < limit and prefix[index] == row[index]:
+            index += 1
+        prefix = prefix[:index]
+    return prefix
+
+
+def _diagnosis_confidence(games: int, precision: str) -> tuple[str, str]:
+    subject = (
+        "reproduce this position" if precision == "exact_position"
+        else "reproduce this opening branch" if precision in {"variation", "move_order"}
+        else "support this opening-level review"
+    )
+    if games < 2:
+        return "insufficient", "A repeated target requires at least two distinct supporting games."
+    if games < 5:
+        return "low", f"{games} distinct games {subject}; treat it as a review target, not an objective move verdict."
+    if games < 10:
+        return "medium", f"{games} distinct games {subject}, providing useful personal evidence without an objective move-quality claim."
+    return "high", f"{games} distinct games {subject}, providing strong personal evidence without an objective move-quality claim."
+
+
+def _representative_ids(games: list[Mapping[str, Any]]) -> list[str]:
+    result_rank = {"loss": 0, "draw": 1, "win": 2}
+    return [str(game["id"]) for game in sorted(
+        games,
+        key=lambda game: (result_rank.get(str(game.get("result")), 3), -_safe_epoch(game.get("playedAt")), str(game["id"])),
+    )[:3]]
+
+
+def _trusted_diagnosis_continuation(
+    report: Mapping[str, Any],
+    *,
+    opening: str,
+    colour: str,
+    position_key: Optional[str],
+    position_fen: Optional[str],
+) -> Optional[dict[str, Any]]:
+    """Pass through only an existing legal repertoire/reference continuation."""
+    if not position_key or not position_fen:
+        return None
+    try:
+        board = chess.Board(position_fen)
+    except ValueError:
+        return None
+    trusted_sources = {
+        "active_repertoire_line": "saved repertoire",
+        "opening_reference_line": "existing opening catalogue",
+    }
+    matches = []
+    rows = report.get("openingTrainingOpportunities") or report.get("opening_training_opportunities") or []
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, Mapping):
+            continue
+        source = str(row.get("source") or "").strip()
+        if source not in trusted_sources:
+            continue
+        row_opening = str(row.get("openingId") or row.get("opening_id") or row.get("openingName") or row.get("opening_name") or "").strip()
+        if _slug(row_opening) != _slug(opening):
+            continue
+        if str(row.get("side") or row.get("playerColour") or row.get("player_colour") or "").strip().lower() != colour:
+            continue
+        raw_fen = str(row.get("positionFen") or row.get("position_fen") or "").strip()
+        raw_key = str(row.get("positionKey") or row.get("position_key") or "").strip()
+        if raw_fen:
+            try:
+                raw_key = " ".join(chess.Board(raw_fen).fen().split()[:4])
+            except ValueError:
+                continue
+        if raw_key != position_key:
+            continue
+        raw_move = str(row.get("recommendedMove") or row.get("recommended_move") or "").strip()
+        try:
+            move = board.parse_san(raw_move)
+            san = board.san(move)
+        except (ValueError, TypeError):
+            continue
+        matches.append((source, san, trusted_sources[source]))
+    unique = sorted(set(matches))
+    if len(unique) != 1:
+        return None
+    source, move, label = unique[0]
+    return {"move": move, "source": source, "sourceLabel": label}
+
+
+def _build_opening_diagnosis(target: Mapping[str, Any], report: Mapping[str, Any], evidence_ids: list[str]) -> dict[str, Any]:
+    """Resolve one deterministic diagnosis inside the selected opening/context only."""
     username = normalise_player_identifier(report.get("username") or report.get("playerName") or report.get("player_name"))
     supporting_ids = set(evidence_ids)
     valid = [
         parsed for row in _training_game_rows(report)
         if (parsed := _valid_training_game(row, target=target, supporting_ids=supporting_ids, username=username)) is not None
     ]
-    if not valid:
-        return {
-            "representativeGameIds": [],
-            "recognisedLine": None,
-            "classificationPly": None,
-            "positionFen": None,
-            "opponentContinuation": None,
-            "playerResponse": None,
-            "firstRepeatedDivergence": None,
-            "expectedMoves": [],
-        }
+    valid_by_id = {str(game["id"]): game for game in valid}
+    valid = [valid_by_id[key] for key in sorted(valid_by_id)]
+    opening = str(target.get("openingName") or target.get("opening") or "this opening")
+    role = str(target.get("repertoireRole") or RepertoireRole.UNRESOLVED.value)
+    colour = str(target.get("playerColour") or "unknown")
+    source_report_id = report.get("analysisId") or report.get("analysis_id") or report.get("reportId") or report.get("report_id")
+    decision_id = target.get("decisionId") or target.get("actionId")
 
-    line_counts = Counter(tuple(game["moves"][:game["classificationPly"]]) for game in valid)
-    recognised_moves, _ = sorted(line_counts.items(), key=lambda item: (-item[1], item[0]))[0]
-    matching_line = [game for game in valid if tuple(game["moves"][:game["classificationPly"]]) == recognised_moves]
-    player_colour = str(target.get("playerColour"))
-    opponent_colour = "black" if player_colour == "white" else "white"
+    position_occurrences: dict[str, dict[str, Mapping[str, Any]]] = {}
+    for game in valid:
+        start = max(0, game["classificationPly"])
+        stop = min(len(game["moves"]), MAX_DIAGNOSIS_PLY)
+        for position in game["positions"][start:stop + 1]:
+            ply = int(position["ply"])
+            if position["turn"] != colour:
+                continue
+            position_occurrences.setdefault(str(position["key"]), {}).setdefault(str(game["id"]), {
+                "game": game,
+                "position": position,
+                "move": game["moves"][ply] if ply < len(game["moves"]) else None,
+                "uci": game["uciMoves"][ply] if ply < len(game["uciMoves"]) else None,
+            })
 
-    branches = []
-    player_first_moves = []
-    for game in matching_line:
-        start = game["classificationPly"]
-        opponent_index = next((index for index in range(start, len(game["moves"])) if ("white" if index % 2 == 0 else "black") == opponent_colour), None)
-        player_index = next((index for index in range(start, len(game["moves"])) if ("white" if index % 2 == 0 else "black") == player_colour), None)
-        if player_index is not None:
-            player_first_moves.append((game["moves"][player_index], game["id"]))
-        if opponent_index is None:
+    candidates = []
+    for position_key, by_game in position_occurrences.items():
+        occurrences = list(by_game.values())
+        if len(occurrences) < 2:
             continue
-        response_index = next((index for index in range(opponent_index + 1, len(game["moves"])) if ("white" if index % 2 == 0 else "black") == player_colour), None)
-        branches.append({
-            "game": game,
-            "opponentIndex": opponent_index,
-            "opponentMove": game["moves"][opponent_index],
-            "responseIndex": response_index,
-            "responseMove": game["moves"][response_index] if response_index is not None else None,
+        continuation_counts = Counter(str(row["move"]) for row in occurrences if row.get("move"))
+        score_points = sum({"win": 1.0, "draw": 0.5}.get(str(row["game"].get("result")), 0.0) for row in occurrences)
+        representative = min(occurrences, key=lambda row: (int(row["position"]["ply"]), str(row["game"]["id"])))
+        candidates.append({
+            "key": position_key,
+            "occurrences": occurrences,
+            "continuations": continuation_counts,
+            "inconsistency": len(continuation_counts),
+            "scoreRate": score_points / len(occurrences),
+            "ply": int(representative["position"]["ply"]),
+            "fen": str(representative["position"]["fen"]),
         })
+    exact_candidates = [row for row in candidates if row["inconsistency"] > 1]
+    pool = exact_candidates or candidates
+    selected = sorted(pool, key=lambda row: (-len(row["occurrences"]), -row["inconsistency"], row["scoreRate"], row["ply"], row["key"]))[0] if pool else None
 
-    opponent_counts = Counter(branch["opponentMove"] for branch in branches)
-    opponent_move = sorted(opponent_counts.items(), key=lambda item: (-item[1], item[0]))[0][0] if opponent_counts else None
-    opponent_branches = [branch for branch in branches if branch["opponentMove"] == opponent_move]
-    response_counts = Counter(branch["responseMove"] for branch in opponent_branches if branch["responseMove"])
-    response_move = sorted(response_counts.items(), key=lambda item: (-item[1], item[0]))[0][0] if response_counts else None
-    representative_pool = list(opponent_branches) or [{"game": game, "opponentIndex": None, "responseIndex": None} for game in matching_line]
-    result_rank = {"loss": 0, "draw": 1, "win": 2}
-    representative_pool.sort(key=lambda branch: (
-        result_rank.get(branch["game"]["result"], 3),
-        -_safe_epoch(branch["game"]["playedAt"]),
-        branch["game"]["id"],
-    ))
-    representative_ids = [branch["game"]["id"] for branch in representative_pool[:3]]
-    position_fen = None
-    practice_line = list(recognised_moves)
-    if opponent_branches:
-        representative = opponent_branches[0]
-        opponent_index = representative["opponentIndex"]
-        practice_line = representative["game"]["moves"][:opponent_index + 1]
-        position_fen = representative["game"]["fens"][opponent_index + 1]
-
-    divergence_counts = Counter(move for move, _ in player_first_moves)
-    divergence = None
-    if len(divergence_counts) > 1:
-        choices = [{"move": move, "games": count} for move, count in sorted(divergence_counts.items(), key=lambda item: (-item[1], item[0]))]
-        divergence = {"ply": matching_line[0]["classificationPly"] + (0 if ("white" if matching_line[0]["classificationPly"] % 2 == 0 else "black") == player_colour else 1), "choices": choices}
+    precision = "exact_position" if selected and selected["inconsistency"] > 1 else "move_order" if selected else "variation" if any(game.get("variation") for game in valid) and len(valid) >= 2 else "opening" if valid else "insufficient_evidence"
+    diagnosis_games = [row["game"] for row in selected["occurrences"]] if selected else valid
+    diagnosis_ids = [str(game["id"]) for game in diagnosis_games]
+    representative_ids = _representative_ids(diagnosis_games)
+    san_prefix = _common_prefix([game["moves"][:selected["ply"]] if selected else game["moves"][:game["classificationPly"]] for game in diagnosis_games])
+    uci_prefix = _common_prefix([game["uciMoves"][:selected["ply"]] if selected else game["uciMoves"][:game["classificationPly"]] for game in diagnosis_games])
+    variation_counts = Counter(str(game.get("variation")) for game in diagnosis_games if game.get("variation"))
+    variation = sorted(variation_counts.items(), key=lambda row: (-row[1], row[0]))[0][0] if variation_counts else str(target.get("variationName") or "").strip() or None
+    eco_counts = Counter(str(game.get("eco")) for game in diagnosis_games if game.get("eco"))
+    eco = sorted(eco_counts.items(), key=lambda row: (-row[1], row[0]))[0][0] if eco_counts else None
+    continuations = sorted((selected or {}).get("continuations", {}).items(), key=lambda row: (-row[1], row[0]))
+    repeated = {"move": continuations[0][0], "games": continuations[0][1], "source": "repeated_personal_continuation"} if continuations else None
+    alternatives = [{"move": move, "games": count, "source": "repeated_personal_continuation"} for move, count in continuations[1:]]
+    trusted_continuation = _trusted_diagnosis_continuation(
+        report,
+        opening=opening,
+        colour=colour,
+        position_key=(selected or {}).get("key"),
+        position_fen=(selected or {}).get("fen"),
+    )
+    confidence, confidence_reason = _diagnosis_confidence(len(diagnosis_games), precision)
+    if precision == "exact_position":
+        diagnosis_text = f"You reached this legal position in {len(diagnosis_games)} games and chose {len(continuations)} different continuations. This is the first strongest repeated position where your plan is inconsistent."
+        task = (
+            f"Replay the {min(3, len(representative_ids))} supplied {opening} games to this position, compare your continuations, then rehearse {trusted_continuation['move']} from your {trusted_continuation['sourceLabel']}."
+            if trusted_continuation else
+            f"Replay the {min(3, len(representative_ids))} supplied {opening} games to this position, compare your continuations, then choose one legal continuation to test."
+        )
+        success = "Complete the supplied reviews and rehearse the sourced continuation three times." if trusted_continuation else "Complete the supplied reviews and rehearse your chosen legal continuation three times."
+        divergence_type = "inconsistent_player_continuations"
+    elif precision in {"move_order", "variation"}:
+        diagnosis_text = f"You reached this repeated {variation or 'opening move order'} in {len(diagnosis_games)} games, but the data does not support an objective best-move claim."
+        task = f"Replay up to three supplied {opening} games through the repeated line, compare the first player decision that differs, and save one legal continuation to test."
+        success = "Complete the supplied reviews and record one legal continuation for the next five relevant games."
+        divergence_type = "repeated_move_order"
+    elif precision == "opening":
+        diagnosis_text = f"No repeated legal position or variation was retained across the {len(diagnosis_games)} usable {opening} games. The diagnosis remains at opening level."
+        task = f"Compare up to three supplied {opening} games and mark the first position where your plans diverge; do not assume a move is a mistake."
+        success = "Complete the supplied reviews and record one position to revisit after more games."
+        divergence_type = "opening_level_review"
+    else:
+        diagnosis_text = f"The saved {opening} evidence does not contain enough valid PGN data for a repeated-position diagnosis."
+        task = f"Review the available {opening} evidence at opening level and collect another complete game before narrowing the diagnosis."
+        success = "Record one opening-plan question and add a complete relevant game before reassessing."
+        divergence_type = "insufficient_legal_move_evidence"
+    fallback = precision in {"opening", "opening_family", "insufficient_evidence"}
+    diagnosis_id = "diagnosis:" + hashlib.sha256("|".join([str(decision_id or source_report_id or "report"), opening, role, str((selected or {}).get("key") or precision), *diagnosis_ids]).encode()).hexdigest()[:20]
     return {
+        "version": OPENING_DIAGNOSIS_VERSION, "diagnosisId": diagnosis_id,
+        "sourceReportId": source_report_id, "canonicalDecisionId": decision_id,
+        "opening": opening, "openingFamily": opening, "variation": variation, "eco": eco,
+        "repertoireRole": role, "playerColour": colour, "precisionLevel": precision,
+        "confidence": confidence, "confidenceReason": confidence_reason,
+        "gamesConsidered": len(valid), "supportingGameIds": diagnosis_ids,
+        "supportingGameUrls": [game["url"] for game in diagnosis_games if game.get("url")],
+        "representativeGameId": representative_ids[0] if representative_ids else None,
         "representativeGameIds": representative_ids,
-        "recognisedLine": _numbered_san(list(recognised_moves)),
-        "practiceLine": _numbered_san(practice_line),
-        "classificationPly": len(recognised_moves),
-        "positionFen": position_fen,
-        "opponentContinuation": {
-            "move": opponent_move,
-            "games": opponent_counts.get(opponent_move, 0),
-            "supportingGameIds": [branch["game"]["id"] for branch in opponent_branches],
-        } if opponent_move else None,
-        "playerResponse": {
-            "move": response_move,
-            "games": response_counts.get(response_move, 0),
-            "supportingGameIds": [branch["game"]["id"] for branch in opponent_branches if branch.get("responseMove") == response_move],
-        } if response_move else None,
-        "firstRepeatedDivergence": divergence,
-        "expectedMoves": [response_move] if response_move else [],
+        "commonMovePrefix": {"san": _numbered_san(san_prefix) if san_prefix else None, "uci": uci_prefix},
+        "positionFen": (selected or {}).get("fen"), "positionKey": (selected or {}).get("key"),
+        "playerToMove": colour if selected else None, "targetPly": (selected or {}).get("ply"),
+        "targetMoveNumber": ((selected["ply"] // 2) + 1) if selected else None,
+        "repeatedContinuation": repeated, "alternativeContinuations": alternatives,
+        "authoritativeContinuation": trusted_continuation,
+        "continuationSource": trusted_continuation["source"] if trusted_continuation else "no_authoritative_continuation_available",
+        "divergenceType": divergence_type,
+        "evidenceSummary": f"{len(diagnosis_games)} distinct supporting games; {len(valid)} valid PGNs considered from {len(evidence_ids)} canonical evidence IDs.",
+        "userFacingDiagnosis": diagnosis_text, "trainingTask": task, "successCheck": success,
+        "fallbackUsed": fallback,
+        "fallbackReason": diagnosis_text if fallback else None,
+        "method": OPENING_DIAGNOSIS_METHOD,
+        "engineAnalysisUsed": False,
+        "objectiveMoveClaimed": False,
     }
 
 
 def _training_priority(action: Mapping[str, Any], recommendations: list[Mapping[str, Any]], report: Mapping[str, Any]) -> dict[str, Any]:
     recommendation_id = str(action.get("recommendationId") or "").strip()
     target = next((item for item in recommendations if item.get("recommendationId") == recommendation_id), None)
+    if target is None and action.get("opening"):
+        target = next((item for item in recommendations if (
+            _opening_key(item.get("openingName")) == _opening_key(action.get("opening"))
+            and str(item.get("repertoireRole") or "") == str(action.get("repertoireRole") or "")
+        )), None)
     sample = action.get("sample") if isinstance(action.get("sample"), Mapping) else {}
     confidence = target.get("confidence") if isinstance(target, Mapping) and isinstance(target.get("confidence"), Mapping) else {}
     confidence_status = str(confidence.get("level") or action.get("confidenceLevel") or "insufficient").strip()
@@ -1389,39 +1540,38 @@ def _training_priority(action: Mapping[str, Any], recommendations: list[Mapping[
     priority_identity = recommendation_id or f"{action_type}:{opening_key or 'report'}"
     priority_id = f"training-{priority_identity}"
     evidence_ids = list(dict.fromkeys(str(value) for value in (sample.get("gameIds") or []) if str(value)))
-    line_contract = _training_line_contract(target or {}, report, evidence_ids) if target else {
-        "representativeGameIds": [], "recognisedLine": None, "practiceLine": None,
-        "classificationPly": None, "positionFen": None, "opponentContinuation": None,
-        "playerResponse": None, "firstRepeatedDivergence": None, "expectedMoves": [],
-    }
-    recorded_line = line_contract.get("practiceLine") or line_contract.get("recognisedLine") or action.get("lineOrPosition")
+    diagnosis_target = {**dict(target or {}), "decisionId": action.get("decisionId"), "actionId": action.get("actionId")}
+    diagnosis = _build_opening_diagnosis(diagnosis_target, report, evidence_ids) if target else None
+    diagnosis_evidence_ids = list((diagnosis or {}).get("supportingGameIds") or evidence_ids)
+    common_prefix = (diagnosis or {}).get("commonMovePrefix") if isinstance((diagnosis or {}).get("commonMovePrefix"), Mapping) else {}
+    recorded_line = common_prefix.get("san") or action.get("lineOrPosition")
     has_recorded_line = bool(recorded_line)
-    response_move = str((line_contract.get("playerResponse") or {}).get("move") or "").strip()
     objective = (
-        f"In your next five relevant {opening} games, reach the recognised branch and rehearse {response_move}; record whether you used it."
-        if opening and response_move else
-        f"In your next five relevant {opening} games, record whether you reached the recognised opening setup."
+        f"In your next five relevant {opening} games, record whether you reached the diagnosed position and used the continuation you chose to test."
+        if opening and (diagnosis or {}).get("positionFen") else
+        f"In your next five relevant {opening} games, record the first position where your plan becomes unclear."
         if opening else
         "In your next five relevant games, record the opening role and the first position where your plan became unclear."
     )
     workflow_steps = []
-    if line_contract["representativeGameIds"]:
+    representative_ids = list((diagnosis or {}).get("representativeGameIds") or [])
+    if representative_ids:
         workflow_steps.append({"type": "source_game_review", "label": "Review up to three verified games from this exact opening and context.", "source": "user_games"})
     else:
         workflow_steps.append({"type": "line_rehearsal", "label": "No verified source game is retained; rehearse the recognised line without a source-game claim.", "source": "report_line_or_general_guidance"})
-    if line_contract.get("firstRepeatedDivergence"):
-        workflow_steps.append({"type": "decision_point", "label": "Compare your first repeated move divergence after the recognised opening position.", "source": "user_games"})
+    if (diagnosis or {}).get("divergenceType") == "inconsistent_player_continuations":
+        workflow_steps.append({"type": "decision_point", "label": "Compare your continuations at the diagnosed repeated position.", "source": "user_games"})
     else:
         workflow_steps.append({"type": "decision_point", "label": "Identify the first position after the recognised line where your plan became unclear.", "source": "report_and_general_guidance"})
-    workflow_steps.append({"type": "response_plan", "label": f"Rehearse {response_move} once as your response." if response_move else "Save and rehearse one short response plan.", "source": "report_and_general_guidance"})
+    workflow_steps.append({"type": "response_plan", "label": "Choose and rehearse one legal continuation; OpeningFit is not claiming an engine-best move.", "source": "user_choice"})
     workflow_steps.append({
         "type": "position_practice" if has_recorded_line else "setup_practice",
         "label": "Practise the recorded position." if has_recorded_line else "Practise a clearly labelled general setup drill.",
-        "source": "user_games" if line_contract["representativeGameIds"] else "report_line" if has_recorded_line else "general_guidance",
+        "source": "user_games" if representative_ids else "report_line" if has_recorded_line else "general_guidance",
     })
     workflow_steps.append({"type": "next_game_objective", "label": objective, "source": "completion_contract"})
     return {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "decisionId": action.get("decisionId"),
         "actionId": action.get("actionId"),
         "priorityId": priority_id,
@@ -1441,7 +1591,7 @@ def _training_priority(action: Mapping[str, Any], recommendations: list[Mapping[
         "taskType": task_type,
         "verdict": action.get("verdict"),
         "title": title,
-        "rationale": str(action.get("reason") or action.get("explanation") or "Review the report evidence before your next games.").strip(),
+        "rationale": str((diagnosis or {}).get("userFacingDiagnosis") or action.get("reason") or action.get("explanation") or "Review the report evidence before your next games.").strip(),
         "reasonSelected": str(action.get("reason") or action.get("explanation") or "Review the report evidence before your next games.").strip(),
         "selectionCriteria": [
             "The opening is tied to the submitted player's attributed role and context.",
@@ -1453,25 +1603,31 @@ def _training_priority(action: Mapping[str, Any], recommendations: list[Mapping[
         "selectionFactors": dict((target or {}).get("priorityFactors") or {}),
         "evidenceCount": max(0, int(_number(sample.get("games")) or 0)),
         "supportingGameCount": max(0, int(_number(sample.get("games")) or 0)),
-        "evidenceGameIds": evidence_ids,
+        "evidenceGameIds": diagnosis_evidence_ids,
+        "canonicalEvidenceGameIds": evidence_ids,
         "estimatedDurationMinutes": 10,
         "trainingDuration": dict(action.get("trainingDuration") or {"minutes": 10}),
-        "nextAction": str(action.get("nextAction") or action.get("exercise") or action.get("explanation") or "").strip(),
-        "successCheck": str(completion.get("label") or "Complete the practice and record one practical takeaway.").strip(),
+        "nextAction": str((diagnosis or {}).get("trainingTask") or action.get("nextAction") or action.get("exercise") or action.get("explanation") or "").strip(),
+        "successCheck": str((diagnosis or {}).get("successCheck") or completion.get("label") or "Complete the practice and record one practical takeaway.").strip(),
         "confidenceStatus": confidence_status,
         "confidence": dict(confidence) if confidence else {"level": confidence_status, "reason": action.get("confidenceReason")},
         "sourceReportId": report.get("analysisId") or report.get("analysis_id") or report.get("reportId") or report.get("report_id"),
+        "diagnosisId": (diagnosis or {}).get("diagnosisId"),
+        "openingDiagnosis": diagnosis,
         "lineOrPosition": recorded_line,
-        "recognisedLine": line_contract.get("recognisedLine"),
-        "practiceLine": line_contract.get("practiceLine"),
-        "classificationPly": line_contract.get("classificationPly"),
-        "positionFen": line_contract.get("positionFen"),
-        "opponentContinuation": line_contract.get("opponentContinuation"),
-        "playerResponse": line_contract.get("playerResponse"),
-        "firstRepeatedDivergence": line_contract.get("firstRepeatedDivergence"),
-        "expectedMoves": line_contract.get("expectedMoves") or [],
-        "representativeGameIds": line_contract.get("representativeGameIds") or [],
-        "representativeGameStatus": "verified" if line_contract.get("representativeGameIds") else "unavailable",
+        "recognisedLine": recorded_line,
+        "practiceLine": recorded_line,
+        "classificationPly": (diagnosis or {}).get("targetPly"),
+        "positionFen": (diagnosis or {}).get("positionFen"),
+        "opponentContinuation": None,
+        "playerResponse": (diagnosis or {}).get("repeatedContinuation"),
+        "firstRepeatedDivergence": {"ply": (diagnosis or {}).get("targetPly"), "choices": (diagnosis or {}).get("alternativeContinuations") or []} if (diagnosis or {}).get("divergenceType") == "inconsistent_player_continuations" else None,
+        # Repeated personal choices are evidence only. A move is marked for
+        # rehearsal solely when an existing validated catalogue/repertoire line
+        # matches this exact legal position.
+        "expectedMoves": [diagnosis["authoritativeContinuation"]["move"]] if (diagnosis or {}).get("authoritativeContinuation") else [],
+        "representativeGameIds": representative_ids,
+        "representativeGameStatus": "verified" if representative_ids else "unavailable",
         "nextGameObjective": objective,
         "objectiveGameCount": 5,
         "completionTarget": dict(completion),
@@ -1483,11 +1639,12 @@ def _training_priority(action: Mapping[str, Any], recommendations: list[Mapping[
             "instruction": "Complete development, support the centre and secure the king before choosing a structure-specific pawn break.",
         },
         "sourceGameAvailability": {
-            "supportingGames": max(0, int(_number(sample.get("games")) or 0)),
-            "referencedGameIds": len(evidence_ids),
+            "supportingGames": len(diagnosis_evidence_ids),
+            "canonicalOpeningGames": max(0, int(_number(sample.get("games")) or 0)),
+            "referencedGameIds": len(diagnosis_evidence_ids),
         },
-        "fallback": False,
-        "fallbackReason": None,
+        "fallback": action.get("type") not in {"repair_repertoire", "consolidate_strength"},
+        "fallbackReason": str(action.get("reason")) if action.get("type") not in {"repair_repertoire", "consolidate_strength"} else None,
     }
 
 
@@ -1558,6 +1715,35 @@ def assert_decision_consistency(decision: Mapping[str, Any]) -> None:
         or priority.get("successCheck") != primary.get("successCheck")
     ):
         raise ValueError("decision_contract: training priority differs from primary action")
+    diagnosis = decision.get("openingDiagnosis") or decision.get("opening_diagnosis")
+    if decision.get("openingDiagnosis") != decision.get("opening_diagnosis"):
+        raise ValueError("decision_contract: opening diagnosis aliases diverge")
+    if diagnosis:
+        primary_ids = set(str(value) for value in ((primary or {}).get("evidenceGameIds") or []))
+        diagnosis_ids = [str(value) for value in diagnosis.get("supportingGameIds") or []]
+        representative_ids = [str(value) for value in diagnosis.get("representativeGameIds") or []]
+        if len(diagnosis_ids) != len(set(diagnosis_ids)) or not set(diagnosis_ids).issubset(primary_ids):
+            raise ValueError("decision_contract: diagnosis evidence escapes the primary opening sample")
+        if not set(representative_ids).issubset(set(diagnosis_ids)):
+            raise ValueError("decision_contract: diagnosis representative game is unsupported")
+        if diagnosis.get("canonicalDecisionId") != (primary or {}).get("decisionId"):
+            raise ValueError("decision_contract: diagnosis belongs to another decision")
+        if diagnosis.get("opening") != (primary or {}).get("opening") or diagnosis.get("repertoireRole") != (primary or {}).get("repertoireRole"):
+            raise ValueError("decision_contract: diagnosis opening or role differs from primary action")
+        if diagnosis.get("precisionLevel") == "exact_position" and (
+            len(diagnosis_ids) < 2
+            or not diagnosis.get("positionFen")
+            or diagnosis.get("playerToMove") != (primary or {}).get("playerColour")
+        ):
+            raise ValueError("decision_contract: exact diagnosis is not a repeated player-turn position")
+        if diagnosis.get("engineAnalysisUsed") or diagnosis.get("objectiveMoveClaimed"):
+            raise ValueError("decision_contract: deterministic diagnosis claims unsupported engine authority")
+        if priority and (
+            priority.get("diagnosisId") != diagnosis.get("diagnosisId")
+            or priority.get("openingDiagnosis") != diagnosis
+            or priority.get("positionFen") != diagnosis.get("positionFen")
+        ):
+            raise ValueError("decision_contract: training priority differs from opening diagnosis")
     if decision.get("repair") and decision["repair"].get("verdict") != "repair":
         raise ValueError("decision_contract: repair slot is not a repair verdict")
     if decision.get("keep") and decision["keep"].get("verdict") != "keep":
@@ -1737,6 +1923,8 @@ def build_report_decision(
     action.update({
         "decisionId": action_id, "actionId": action_id,
         "canonicalOpeningId": (selected or selected_experiment or {}).get("openingId"),
+        "playerColour": (selected or selected_experiment or {}).get("playerColour"),
+        "relationship": (selected or selected_experiment or {}).get("relationship"),
         "targetType": (
             "repertoire_gap" if action.get("type") == "fill_repertoire_gap"
             else "exact_line" if action.get("lineOrPosition")
@@ -1772,6 +1960,15 @@ def build_report_decision(
     comparable = reports_are_comparable(report, previous_report)
     coverage = _report_coverage(total_games)
     training_priority = _training_priority(action, recommendations, report)
+    opening_diagnosis = training_priority.get("openingDiagnosis")
+    if opening_diagnosis:
+        action.update({
+            "diagnosisId": opening_diagnosis.get("diagnosisId"),
+            "openingDiagnosis": opening_diagnosis,
+            "targetType": opening_diagnosis.get("precisionLevel"),
+            "nextAction": training_priority.get("nextAction"),
+            "successCheck": training_priority.get("successCheck"),
+        })
     repertoire_coverage_score = build_repertoire_coverage_score(repertoire_roles, problem)
     repertoire_coverage_score["comparisonEligibility"] = {
         "eligible": comparable,
@@ -1816,20 +2013,29 @@ def build_report_decision(
             else "insufficient"
         ),
         "overallSummary": (
-            f"Repair {problem['openingName']} first; keep {strength['openingName']} as the stable reference." if problem and strength
-            else f"Repair {problem['openingName']} first." if problem
+            f"Repair {problem['openingName']} first; keep {strength['openingName']} as the stable reference. {(opening_diagnosis or {}).get('userFacingDiagnosis', '')}".strip() if problem and strength
+            else f"Repair {problem['openingName']} first. {(opening_diagnosis or {}).get('userFacingDiagnosis', '')}".strip() if problem
             else str(action.get("reason") or action.get("label"))
         ),
         "recommendations": recommendations,
         "findings": findings,
         "keep": _decision_slot(strength, "keep"),
-        "repair": _decision_slot(problem, "repair"),
+        "repair": ({
+            **(_decision_slot(problem, "repair") or {}),
+            "diagnosisId": (opening_diagnosis or {}).get("diagnosisId"),
+            "openingDiagnosis": opening_diagnosis,
+            "targetType": (opening_diagnosis or {}).get("precisionLevel") or "opening_family",
+            "nextAction": (opening_diagnosis or {}).get("trainingTask") or str((problem.get("trainingAction") or {}).get("exercise") or ""),
+            "successCheck": (opening_diagnosis or {}).get("successCheck") or "Complete the task and record one practical takeaway.",
+        } if problem else None),
         "experiment": experiments[0] if experiments else None,
         "establishedStrength": strength,
         "primaryProblem": problem,
         "primaryAction": action,
         "nextTrainingAction": action,
         "trainingPriority": training_priority,
+        "openingDiagnosis": opening_diagnosis,
+        "opening_diagnosis": opening_diagnosis,
         "rejectedCandidates": [
             {
                 "recommendationId": row.get("recommendationId"),

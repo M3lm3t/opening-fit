@@ -77,6 +77,8 @@ export default function TrainingGameReviewSession({ report, priority, exercise, 
   const hasActionableGames = games.some((game) => game.hasInternalReplay || game.sourceUrl);
   const activeGame = games.find((game) => game.id === activeGameId);
   const knownLine = activeGame ? deriveKnownLineConcept(activeGame, opening) : games.map((game) => deriveKnownLineConcept(game, opening)).find(Boolean);
+  const diagnosis = priority?.openingDiagnosis || priority?.opening_diagnosis || null;
+  const diagnosedPly = Number.isInteger(Number(diagnosis?.targetPly ?? priority?.classificationPly)) ? Number(diagnosis?.targetPly ?? priority?.classificationPly) : null;
 
   const openStep = (step) => {
     setActiveStep(step);
@@ -186,7 +188,7 @@ export default function TrainingGameReviewSession({ report, priority, exercise, 
         <p><strong>Why selected:</strong> {game.whySelected}</p>
         <div className="trainingReviewGame__actions">{game.hasInternalReplay ? <button type="button" className="primaryBtn" onClick={() => setActiveGameId(activeGameId === game.id ? "" : game.id)}><Play size={16} /> {activeGameId === game.id ? "Collapse review" : "Review in OpeningFit"}</button> : null}{game.sourceUrl ? <a className="secondaryBtn" href={game.sourceUrl} target="_blank" rel="noreferrer">Open {game.platform} source game <ExternalLink size={15} aria-hidden="true" /><span className="srOnly"> (opens in a new tab)</span></a> : null}{!game.hasInternalReplay && game.sourceUrl ? <button type="button" className="primaryBtn" onClick={() => markReviewed(game)}>Mark source game reviewed and continue</button> : null}{!game.hasInternalReplay && !game.sourceUrl ? <span className="trainingReviewUnavailable">Replay and source link are not retained in this saved report.</span> : null}</div>
       </article>)}</div> : null}
-      {activeGame ? <div className="trainingReviewReplay"><div className="trainingReviewReplay__cue"><strong>Opening decision point</strong>{knownLine?.line ? <p>Position selected for plan practice after: {knownLine.line}</p> : <p>Use the replay to review the early plan; no error position is claimed.</p>}</div><GameReplayBoard key={activeGame.id} game={activeGame} title={`Review position · ${activeGame.opening || opening}`} initialOrientation={activeGame.userColour || "white"} initialMoveIndex={knownLine?.moves?.length || 0} /><button type="button" className="primaryBtn" onClick={() => markReviewed(activeGame)}>Mark reviewed and continue</button></div> : null}
+      {activeGame ? <div className="trainingReviewReplay"><div className="trainingReviewReplay__cue"><strong>Opening decision point</strong>{diagnosis?.userFacingDiagnosis ? <p>{diagnosis.userFacingDiagnosis}</p> : knownLine?.line ? <p>Position selected for plan practice after: {knownLine.line}</p> : <p>Use the replay to review the early plan; no error position is claimed.</p>}</div><GameReplayBoard key={activeGame.id} game={activeGame} title={`Review position · ${activeGame.opening || opening}`} initialOrientation={diagnosis?.playerColour || activeGame.userColour || "white"} initialMoveIndex={diagnosedPly ?? knownLine?.moves?.length ?? 0} /><button type="button" className="primaryBtn" onClick={() => markReviewed(activeGame)}>Mark reviewed and continue</button></div> : null}
       {!hasActionableGames ? <button type="button" className="primaryBtn" onClick={() => openStep(nextTrainingSessionStep("review", "no_source"))}>Continue to concept</button> : null}
     </TrainingStep>
 
