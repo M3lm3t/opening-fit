@@ -46,7 +46,7 @@ import OpeningInsights from "./components/OpeningInsights";
 import OpeningEvidenceBlock, { getOpeningConfidence, getOpeningContext, getOpeningSignal } from "./components/OpeningEvidence";
 import RecommendationEvidenceDisclosure from "./components/RecommendationEvidenceDisclosure.jsx";
 import OpeningVerdictSummary from "./components/OpeningVerdictSummary.jsx";
-import { buildOpeningVerdictPresentation } from "./lib/fitTrustModel.js";
+import { analysisConfidence, buildOpeningVerdictPresentation } from "./lib/fitTrustModel.js";
 import RecommendationReasonHint from "./components/RecommendationReasonHint";
 import FounderPassLoginUpgrade from "./components/FounderPassLoginUpgrade";
 import CheckoutStatusNotice from "./components/CheckoutStatusNotice";
@@ -2734,7 +2734,8 @@ function buildOpeningFitData(data) {
     [...recognised].sort((a, b) => a.fitScore - b.fitScore)[0] ||
     null;
 
-  const overallScore =
+  const currentHealthContract = data?.repertoireHealth || data?.repertoire_health || data?.repertoireCoverageScore || data?.repertoire_coverage_score;
+  const legacyOverallScore =
     recognised.length > 0
       ? Math.round(
           recognised
@@ -2743,7 +2744,7 @@ function buildOpeningFitData(data) {
             Math.min(recognised.length, 8)
         )
       : 0;
-  const backendScore = safeNumber(data?.openingFitScore ?? data?.opening_fit_score, null);
+  const backendScore = safeNumber(currentHealthContract?.score ?? data?.openingFitScore ?? data?.opening_fit_score, null);
   const openingIdentity =
     data?.openingIdentity || data?.opening_identity || playerStyle.title || "Opening identity pending";
   const identityExplanation =
@@ -2759,12 +2760,12 @@ function buildOpeningFitData(data) {
     scoredOpenings,
     bestOpening,
     weakestOpening,
-    overallScore: backendScore ?? overallScore,
+    overallScore: backendScore ?? (currentHealthContract ? null : legacyOverallScore),
     recommendedAction: buildSingleRecommendedAction(data),
     scoreExplanation:
       data?.openingFitScoreExplanation ||
       data?.opening_fit_score_explanation ||
-      "Repertoire coverage combines core-role completeness and opening-specific evidence confidence. Recent results and repair status are shown separately.",
+      "Repertoire Health combines core-role completeness, concentration, evidence strength and unresolved recurring problems. It is not a chess rating or individual-opening grade.",
     openingIdentity,
     identityExplanation,
     scoreBreakdown: data?.openingFitScoreBreakdown || {},
@@ -2828,7 +2829,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
   const bestCanBeRepertoire = canTreatAsRepertoireOpening(bestOpening);
   const recommendedAction = fitData.recommendedAction || buildSingleRecommendedAction(fitData);
   const overallScoreInfo = {
-    name: "Repertoire coverage",
+    name: "Repertoire Health",
     games: scoredOpenings.reduce((total, opening) => total + getOpeningGames(opening), 0),
     fitScore: overallScore,
     confidence: scoredOpenings.length ? "Report-level estimate" : "Limited confidence",
@@ -2879,7 +2880,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
           </strong>
           {bestOpening ? (
             <p>
-              {bestOpening.fitScore}/100 — {bestOpening.fitDisplayVerdict || confidenceVerdictLabel(bestOpening, {}, bestOpening.fitVerdict)}
+              Opening Suitability: {bestOpening.fitScore}/100 — Evidence Confidence: {analysisConfidence(bestOpening).label}
             </p>
           ) : null}
         </div>
@@ -2891,7 +2892,7 @@ function OpeningFitSummaryCard({ fitData, onPractice }) {
           </strong>
           {weakestOpening ? (
             <p>
-              {weakestOpening.fitScore}/100 — {weakestOpening.fitDisplayVerdict || confidenceVerdictLabel(weakestOpening, {}, weakestOpening.fitVerdict)}
+              Opening Suitability: {weakestOpening.fitScore}/100 — Evidence Confidence: {analysisConfidence(weakestOpening).label}
             </p>
           ) : null}
         </div>
@@ -3081,14 +3082,14 @@ function OpeningFitScoreList({ data, fitData, onPractice }) {
                         {displayStatus}
                       </span>
                       <span className="openingCoachConfidenceBadge">
-                        {coachInsightConfidenceLabel(coachDiagnostic, opening)} confidence
+                        Evidence Confidence: {coachInsightConfidenceLabel(coachDiagnostic, opening)}
                       </span>
                     </div>
                     <strong>{getOpeningContextTitle(opening, name)}</strong>
                   </div>
                 </div>
                 <div className="openingFitScorePill">
-                  <span>Fit</span>
+                  <span>Opening Suitability</span>
                   <OpeningScoreInfoButton opening={coachOpening} />
                   <strong>{verdictPresentation.fit.label}</strong>
                 </div>
@@ -4161,22 +4162,12 @@ function buildPerformanceByTimeControl(games, filters) {
   return Array.from(rows.values())
     .map((row) => ({
       ...row,
-      winRate: row.games ? Math.round(((row.wins + row.draws * 0.5) / row.games) * 100) : 0,
-      win_rate: row.games ? Math.round(((row.wins + row.draws * 0.5) / row.games) * 100) : 0,
+      winRate: row.games ? Math.round((row.wins / row.games) * 100) : null,
+      win_rate: row.games ? Math.round((row.wins / row.games) * 100) : null,
+      scoreRate: row.games ? Math.round(((row.wins + row.draws * 0.5) / row.games) * 100) : null,
+      score_rate: row.games ? Math.round(((row.wins + row.draws * 0.5) / row.games) * 100) : null,
     }))
     .sort((a, b) => b.games - a.games);
-}
-
-function buildFilteredOpeningFitScore(openings, weakLines) {
-  const rows = Array.isArray(openings) ? openings.filter((item) => getOpeningGames(item) > 0) : [];
-  if (!rows.length) return null;
-
-  const totalGames = rows.reduce((sum, item) => sum + getOpeningGames(item), 0);
-  const weightedScore = rows.reduce((sum, item) => sum + getWinRate(item) * getOpeningGames(item), 0) / Math.max(1, totalGames);
-  const sampleBonus = Math.min(15, Math.round(Math.log10(Math.max(1, totalGames)) * 8));
-  const weakPenalty = Math.min(18, (weakLines?.length || 0) * 4);
-
-  return Math.max(0, Math.min(100, Math.round(weightedScore * 0.82 + sampleBonus - weakPenalty)));
 }
 
 function buildFilteredOpeningIdentity(openings, weakLines, filters) {
@@ -4386,7 +4377,6 @@ function applyReportFilters(data, filters) {
     };
   }
 
-  const openingFitScore = buildFilteredOpeningFitScore(aggregate.topOpenings, aggregate.weakLines);
   const openingIdentity = buildFilteredOpeningIdentity(aggregate.topOpenings, aggregate.weakLines, normalizedFilters);
   const trainingPlan = buildFilteredTrainingPlan(aggregate.weakLines, aggregate.topOpenings);
   const filteredReportDecision = buildFilteredReportDecision(aggregate.topOpenings, aggregate.totalGames);
@@ -4428,8 +4418,6 @@ function applyReportFilters(data, filters) {
     performanceByTimeControl: aggregate.performanceByTimeControl,
     performance_by_time_control: aggregate.performanceByTimeControl,
     timeControlPerformance: aggregate.performanceByTimeControl,
-    openingFitScore,
-    opening_fit_score: openingFitScore,
     openingIdentity,
     opening_identity: openingIdentity,
     oneThingToFix,
@@ -4438,8 +4426,6 @@ function applyReportFilters(data, filters) {
     weakest_line: weakestLine,
     retentionMetrics: {
       ...(data.retentionMetrics || data.retention_metrics || {}),
-      openingFitScore,
-      opening_fit_score: openingFitScore,
       openingIdentity,
       opening_identity: openingIdentity,
       weakestLine,
@@ -7030,7 +7016,7 @@ function CurrentReportSummary({
   const dashboardStats = [
     { label: "Player", value: playerName, detail: platformLabel, tone: "player" },
     { label: "Date analysed", value: analysedDate, detail: `${games || "—"} games analysed`, tone: "date" },
-    { label: "Repertoire coverage", value: score || "—", detail: score ? "/100 evidence summary" : "Coverage pending", tone: "score" },
+    { label: "Repertoire Health", value: score || "—", detail: score ? "/100 repertoire summary" : "Health pending", tone: "score" },
     { label: "Top recommendation", value: mainRecommendation, detail: focusOpening ? getOpeningContextTitle(focusOpening) : "One clear next step", tone: "recommendation" },
   ];
   const insightCards = [
@@ -7150,12 +7136,12 @@ function CurrentReportSummary({
           <p>{verdict.profile}</p>
         </div>
 
-        <div className="commandCentreScore" aria-label="Repertoire coverage">
+        <div className="commandCentreScore" aria-label="Repertoire Health">
           <span>
-            Repertoire coverage{" "}
+            Repertoire Health{" "}
             <OpeningScoreInfoButton
               opening={{
-                name: "Repertoire coverage",
+                name: "Repertoire Health",
                 games: scoredOpenings.reduce((total, opening) => total + getOpeningGames(opening), 0),
                 fitScore: score,
                 confidence: score ? "Report-level estimate" : "Not enough data",
@@ -7824,7 +7810,7 @@ function buildProfileInsights(data, fitData) {
   }
 
   if (score !== null && score !== undefined) {
-    insights.push(`Repertoire coverage: ${Math.round(Number(score)) || score}/100.`);
+    insights.push(`Repertoire Health: ${Math.round(Number(score)) || score}/100.`);
   }
 
   if (!insights.length) {
@@ -8882,10 +8868,10 @@ function OpeningFitRetentionSection({
     <section className={`openingFitRetentionSection ${compact ? "openingFitRetentionSectionCompact" : ""}`} aria-label="OpeningFit retention dashboard">
       <div className="retentionScoreCard">
         <span>
-          Repertoire coverage{" "}
+          Repertoire Health{" "}
           <OpeningScoreInfoButton
             opening={{
-              name: "Repertoire coverage",
+              name: "Repertoire Health",
               games,
               fitScore: score,
               confidence: score === null ? "Not enough data" : "Report-level estimate",
@@ -8981,10 +8967,10 @@ function OpeningFitVerdictPanel({
 
         <article className="verdict-summary-card verdict-summary-card--score">
           <p className="eyebrow openingScoreEyebrow">
-            Repertoire coverage{" "}
+            Repertoire Health{" "}
             <OpeningScoreInfoButton
               opening={{
-                name: "Repertoire coverage",
+                name: "Repertoire Health",
                 games: (Array.isArray(fitData?.scoredOpenings) ? fitData.scoredOpenings : []).reduce(
                   (total, opening) => total + getOpeningGames(opening),
                   0
@@ -9118,10 +9104,10 @@ function ReturnUserDashboard({
         </div>
         <div className="returnDashboardScore" aria-label={`Current repertoire score ${score ?? confidence}`}>
           <span>
-            Repertoire coverage{" "}
+            Repertoire Health{" "}
             <OpeningScoreInfoButton
               opening={{
-                name: "Repertoire coverage",
+                name: "Repertoire Health",
                 games: getProfileGameCount(data) || 0,
                 fitScore: score,
                 confidence: score !== null && score !== undefined ? "Saved progress estimate" : "Not enough data",
@@ -10263,7 +10249,7 @@ function CompactOpeningHealth({ model }) {
       <div className="compactOpeningHealthGrid">
         <div className="compactOpeningHealthScore"><span>Coverage</span><strong>{health.score ?? "—"}</strong><small>{health.score !== null ? "/100" : "Unavailable"}</small></div>
         <dl>
-          <div><dt>Confidence</dt><dd>{health.confidence}</dd></div>
+          <div><dt>Evidence Confidence</dt><dd>{health.confidence}</dd></div>
           <div><dt>Games</dt><dd>{health.games}</dd></div>
           <div><dt>Strongest</dt><dd>{health.strongest}</dd></div>
           <div><dt>Weakest</dt><dd>{health.weakest}</dd></div>
@@ -10273,9 +10259,9 @@ function CompactOpeningHealth({ model }) {
       <details className="fitMetricDefinitions">
         <summary>What these metrics mean</summary>
         <dl>
-          <div><dt>Repertoire coverage</dt><dd>A combined signal from established roles, available results, repetition, plan clarity and behavioural-fit inputs. It is not a chess rating or objective opening-quality grade.</dd></div>
+          <div><dt>Repertoire Health</dt><dd>A combined signal from role completeness, concentration, evidence strength and unresolved recurring problems. It is not a chess rating or individual-opening grade.</dd></div>
           <div><dt>Performance</dt><dd>The results achieved in the analysed games.</dd></div>
-          <div><dt>Confidence</dt><dd>The amount of opening-specific evidence. A high Fit from few games remains low confidence.</dd></div>
+          <div><dt>Evidence Confidence</dt><dd>The amount of opening-specific evidence. High Opening Suitability from few games can still have Low Evidence Confidence.</dd></div>
           <div><dt>Trend</dt><dd>Change between comparable reports when prior data exists; it is separate from Fit.</dd></div>
         </dl>
       </details>
@@ -10314,9 +10300,9 @@ function DecisionRepertoireMap({ model, onPractice, onEvidence, onAnalyse }) {
               <div><dt>Status</dt><dd>{area.statusLabel}</dd></div>
               <div><dt>Decision</dt><dd>{area.verdictLabel}</dd></div>
               <div><dt>Supporting sample</dt><dd>{area.supportingGames ?? area.relevantGames ?? "Not recorded"}</dd></div>
-              <div><dt>Confidence</dt><dd>{area.confidence.label}</dd></div>
-              {area.fitScore !== null ? <div><dt>Fit</dt><dd>{area.fitScore}/100 · {area.fitLabel}</dd></div> : null}
-              {area.performanceScore !== null ? <div><dt>Performance</dt><dd>{area.performanceScore}% · {area.performanceLabel}</dd></div> : null}
+              <div><dt>Evidence Confidence</dt><dd>{area.confidence.label}</dd></div>
+              {area.fitScore !== null ? <div><dt>Opening Suitability</dt><dd>{area.fitScore}/100 · {area.fitLabel}</dd></div> : null}
+              {area.performanceScore !== null ? <div><dt>Observed Score Rate</dt><dd>{area.performanceScore}% · {area.performanceLabel}</dd></div> : null}
             </dl>
             {area.fitScore === null ? <p>{area.fitLabel}</p> : null}
             {area.weakestLine ? <dl><div><dt>Weakest recurring line</dt><dd>{area.weakestLine}</dd></div></dl> : null}
@@ -16060,7 +16046,7 @@ export default function App() {
             : `Build around ${getOpeningContextTitle(bestFit)}`,
           text: advancedOrHigher
             ? `This is the strongest clean signal at ${bestFit.fitScore}/100. ${ratingCopy.keepAction}`
-            : `This is your best current clean Opening Fit at ${bestFit.fitScore}/100. ${ratingCopy.keepAction}`,
+            : `This is your best current Opening Suitability estimate at ${bestFit.fitScore}/100, with evidence confidence shown separately. ${ratingCopy.keepAction}`,
           action: `Practise ${getOpeningName(bestFit)}`,
           opening: getOpeningName(bestFit),
         });
@@ -17092,7 +17078,7 @@ export default function App() {
               <div><p className="eyebrow">Your report</p><h1>Your opening profile starts with one import.</h1>
               <p>OpeningFit will turn recent games into opening verdicts, confidence labels, and one clear line to study.</p></div>
               <div className="productStatePreview" aria-label="Report contents">
-                <span><CheckCircle2 size={15} /> Repertoire coverage</span>
+                <span><CheckCircle2 size={15} /> Repertoire Health</span>
                 <span><CheckCircle2 size={15} /> Keep and improve verdicts</span>
                 <span><CheckCircle2 size={15} /> Personal training action</span>
               </div>

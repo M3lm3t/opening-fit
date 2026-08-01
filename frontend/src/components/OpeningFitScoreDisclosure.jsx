@@ -6,18 +6,19 @@ export default function OpeningFitScoreDisclosure({ model, report, previousRepor
   const contributionTotal = view.components.reduce((sum, component) => sum + Number(component.contribution || 0), 0);
   return (
     <details className="openingFitScoreDisclosure">
-      <summary aria-label="Explain repertoire coverage calculation">How this is calculated</summary>
+      <summary aria-label="Explain Repertoire Health calculation">How Repertoire Health is calculated</summary>
       <div className="openingFitScoreDisclosureBody">
         <p className="openingFitScoreMeaning">{view.meaning}</p>
         <dl className="openingFitScoreFacts">
-          <div><dt>Current coverage indicator</dt><dd>{view.scoreDisplayLabel}</dd></div>
-          <div><dt>Previous coverage indicator</dt><dd>{view.previousScore === null ? "No previous indicator" : `${view.previousScore}%`}</dd></div>
-          <div><dt>Evidence state</dt><dd>{view.statusLabel}</dd></div>
+          <div><dt>Current Repertoire Health</dt><dd>{view.scoreDisplayLabel}</dd></div>
+          <div><dt>Previous score</dt><dd>{view.previousScore === null ? "No comparable previous score" : `${view.previousScore}/100`}</dd></div>
+          <div><dt>Overall Evidence Confidence</dt><dd>{view.evidenceConfidence?.label || view.statusLabel}</dd></div>
           <div><dt>Games analysed</dt><dd>{view.games}</dd></div>
         </dl>
-        <section><h3>Why coverage and the verdict can differ</h3><p>{view.weaknessContext}</p></section>
+        {view.explanation ? <p><strong>{view.explanation}</strong></p> : null}
+        <section><h3>Why Repertoire Health and the verdict can differ</h3><p>{view.weaknessContext}</p></section>
         <section><h3>Historical comparison</h3><p>{view.reasonForChange}</p></section>
-        {view.hasComponentData ? <section><h3>Inputs and arithmetic</h3><div className="openingFitScoreComponents">{view.components.map((component) => <article key={component.key}><header><strong>{component.title}</strong><span>{component.value} / 100 × {component.weight}% = {component.contribution} points</span></header><p>{component.explanation}</p></article>)}</div><p><strong>Total:</strong> {contributionTotal.toFixed(2)} weighted points, displayed as a {view.currentScore ?? "unavailable"}% coverage indicator.</p></section> : <p className="openingFitScoreMissingComponents">Component data is unavailable for this report, so OpeningFit is not inventing a breakdown.</p>}
+        {view.hasComponentData ? <section><h3>Inputs and arithmetic</h3><div className="openingFitScoreComponents">{view.components.map((component) => <article key={component.key}><header><strong>{component.title}</strong><span>{component.value} / 100 × {Number(component.weight).toFixed(2)}% effective weight = {component.contribution} points</span></header><p>{component.explanation}</p></article>)}</div><p><strong>Total:</strong> {contributionTotal.toFixed(2)} weighted points, displayed as {view.currentScore ?? "unavailable"}/100 Repertoire Health.</p></section> : <p className="openingFitScoreMissingComponents">Component data is unavailable for this report, so OpeningFit is not inventing a breakdown.</p>}
         {view.roleScores.length ? <section><h3>Role concentration</h3><p>A role is called scattered only when it has at least {view.concentrationRule?.minimumRoleGames ?? 10} games, at least {view.concentrationRule?.minimumDistinctOpenings ?? 3} distinct openings, and its leading opening is below {view.concentrationRule?.scatteredBelowTopOpeningShare ?? 50}%.</p><div className="openingFitScoreComponents">{view.roleScores.map((role) => <article key={role.key}><header><strong>{role.label}</strong><span>{role.scattered ? "Scattered by the documented rule" : "Not labelled scattered"}</span></header><p>{role.explanation}</p></article>)}</div></section> : null}
         {view.repairStatus ? <section><h3>Repair status is separate</h3><p><strong>{view.repairStatus.label}.</strong> {view.repairStatus.explanation}</p></section> : null}
         <section className="openingFitScoreExplanationGrid">

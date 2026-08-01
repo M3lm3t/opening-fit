@@ -43,7 +43,7 @@ export function publicFeatureComparison(contract = DEFAULT_PUBLIC_ANALYSIS_CONTR
   const limits = normalisePublicAnalysisContract(contract);
   return [
     ["Opening report", "First report included", "Ongoing reports"],
-    ["Repertoire coverage and style", "Included", "Included"],
+    ["Repertoire Health and style context", "Included", "Included"],
     ["Keep and repair verdicts", "When supported by your evidence", "When supported, with fuller evidence"],
     ["Next training action", "One personalised action", `Up to ${limits.plusWeeklyTasks} weekly tasks`],
     ["Report refresh", `On demand, at least ${limits.freeRefreshMinutes} minutes apart`, `On demand, at least ${limits.plusRefreshMinutes} minutes apart`],

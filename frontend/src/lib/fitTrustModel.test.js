@@ -13,7 +13,7 @@ test("strong fit and weak current performance remain separate", () => {
   const model = buildOpeningVerdictPresentation({ fitScore: 78, sample: { games: 12, wins: 3, draws: 2, losses: 7 }, verdict: "repair" });
   assert.equal(model.fit.label, "Strong");
   assert.equal(model.performance.label, "Struggling");
-  assert.equal(model.confidence.label, "Moderate");
+  assert.equal(model.confidence.label, "Medium");
 });
 
 test("weak fit and strong results can coexist at low confidence", () => {
@@ -54,7 +54,7 @@ test("legacy reports receive safe bands without treating result score as fit", (
   const model = buildOpeningVerdictPresentation({ games_played: 12, win_rate: 60, recommendation_label: "Keep" });
   assert.equal(model.fit.label, "Unknown");
   assert.equal(model.performance.label, "Strong");
-  assert.equal(model.confidence.label, "Moderate");
+  assert.equal(model.confidence.label, "Medium");
   assert.equal(model.recommendation, "Keep");
 });
 
@@ -70,4 +70,35 @@ test("feedback supports anonymous and authenticated analytics senders", async ()
   assert.equal(await saveRecommendationFeedback(async () => true, { feedback: "helpful" }), true);
   assert.equal(await saveRecommendationFeedback(async () => false, { feedback: "helpful", authenticated: true }), false);
   assert.equal(await saveRecommendationFeedback(async () => { throw new Error("offline"); }, {}), false);
+});
+
+test("authoritative contracts keep suitability performance and evidence confidence distinct", () => {
+  const model = buildOpeningVerdictPresentation({
+    openingSuitability: { score: 90, version: "opening_suitability_v1" },
+    observedPerformance: { games: 6, wins: 1, draws: 1, losses: 4, winRate: 16.7, scoreRate: 25, version: "observed_performance_v1" },
+    evidenceConfidence: { level: "low", label: "Low", sampleSize: 6, scope: "opening_decision", explanation: "Useful six-game signal." },
+    verdict: "repair",
+  });
+  assert.equal(model.fit.label, "Strong");
+  assert.equal(model.fit.score, 90);
+  assert.equal(model.fit.displayName, "Opening Suitability");
+  assert.equal(model.fit.version, "opening_suitability_v1");
+  assert.equal(model.performance.score, 25);
+  assert.match(model.performance.detail, /Win Rate 16\.7% · Score Rate 25%/);
+  assert.equal(model.confidence.displayName, "Evidence Confidence");
+  assert.equal(model.confidence.scope, "opening_decision");
+  assert.equal(model.confidence.label, "Low");
+});
+
+test("zero-game experiments never invent observed performance", () => {
+  const model = buildOpeningVerdictPresentation({
+    openingSuitability: { score: 84 },
+    observedPerformance: null,
+    evidenceConfidence: { level: "insufficient", label: "Insufficient", sampleSize: 0, scope: "opening_suitability" },
+    games: 0, wins: 0, draws: 0, losses: 0,
+  });
+  assert.equal(model.fit.score, 84);
+  assert.equal(model.performance.score, null);
+  assert.equal(model.performance.detail, "Performance unavailable");
+  assert.equal(model.confidence.label, "Insufficient");
 });

@@ -678,5 +678,7 @@ def build_retention_metrics(
         "one_thing_to_fix": one_fix,
         "repertoireHealth": health,
         "repertoire_health": health,
+        "masteryHealth": {**health, "version": "mastery_health_v1", "meaning": "A progress-only mastery diagnostic; not the report-level Repertoire Health contract."},
+        "mastery_health": {**health, "version": "mastery_health_v1", "meaning": "A progress-only mastery diagnostic; not the report-level Repertoire Health contract."},
         "method": "heuristic_retention_metrics_v1",
     }

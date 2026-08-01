@@ -268,7 +268,7 @@ export function buildReportSnapshot({
     report.retentionMetrics?.scoreComponents,
     report.retention_metrics?.score_components,
   );
-  const scoreContract = first(report.repertoireCoverageScore, report.repertoire_coverage_score, report.openingFitScoreContract, report.opening_fit_score_contract);
+  const scoreContract = first(report.repertoireHealth, report.repertoire_health, report.repertoireCoverageScore, report.repertoire_coverage_score, report.openingFitScoreContract, report.opening_fit_score_contract);
   const recommendations = recommendationSlots(report);
   const activeRepertoire = first(
     summary.activeRepertoire,

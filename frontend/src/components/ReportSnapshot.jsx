@@ -166,7 +166,7 @@ export default function ReportSnapshot({ data, onViewChange }) {
     },
     {
       eyebrow: publicMode ? "Lower-scoring sample" : "Needs work",
-      title: openingContextTitle(weakSpot, publicMode ? "Recent underperformer" : "No reliable opening weakness found yet"),
+      title: openingContextTitle(weakSpot, publicMode ? "Recent underperformer" : "No authoritative repair target yet"),
       detail: weakSpot ? "" : "No weakness claim is supported",
       note: publicMode
         ? "Compare by time control, opponent pool, and whether the games were experimental."

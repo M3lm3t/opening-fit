@@ -141,7 +141,7 @@ export default function ShareReport({ data }) {
     const card = (entry) => entry ? { name: entry.opening, games: entry.sample?.games ?? entry.games, winRate: entry.sample?.scoreRate ?? entry.scoreRate ?? entry.score, source: entry } : null;
     const best = card(decision?.establishedStrength);
     const weakest = card(decision?.primaryProblem);
-    const nextAction = decision?.nextTrainingAction || { label: "Collect more games before changing your repertoire", reason: "No reliable opening weakness was found yet." };
+    const nextAction = decision?.nextTrainingAction || { label: "Collect more games before changing your repertoire", reason: "No single opening currently has enough evidence to qualify as an authoritative repair target." };
     const trainingPriority = selectAuthoritativeCoachingPriority(data, { decision, allowFallback: true });
     const training = trainingPriority
       ? { title: formatTrainingPriorityTitle(trainingPriority, { prefix: false }), explanation: trainingPriority.rationale }
@@ -262,7 +262,7 @@ Try it: https://www.openingfit.com`;
 
           <div className="shareReportResult fix">
             <span>Primary problem</span>
-            <h3>{report.weakest?.name || "No reliable opening weakness found yet"}</h3>
+            <h3>{report.weakest?.name || "No authoritative repair target yet"}</h3>
             {report.weakest ? <OpeningVerdictSummary opening={report.weakest.source} verdict="repair" compact /> : <p>No weakness claim is supported</p>}
           </div>
         </div>

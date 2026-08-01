@@ -1,5 +1,3 @@
-import OpeningScoreInfo from "./OpeningScoreInfo";
-
 function getOpeningName(opening) {
   return (
     opening?.name ||
@@ -94,23 +92,17 @@ function getDiagnosis(data) {
     Number(data?.games_analyzed ?? data?.gamesImported ?? data?.total_games ?? 0) ||
     openings.reduce((sum, opening) => sum + getGames(opening), 0);
 
-  const averageScore = scored.length
-    ? Math.round(scored.reduce((sum, opening) => sum + opening.fitScore, 0) / scored.length)
-    : 58;
+  const authoritativeHealth = data?.repertoireHealth || data?.repertoire_health || data?.repertoireCoverageScore || data?.repertoire_coverage_score;
+  const storedScore = authoritativeHealth?.score ?? data?.openingFitScore ?? data?.opening_fit_score;
+  const fitScore = Number.isFinite(Number(storedScore)) ? clamp(Number(storedScore), 0, 100) : null;
 
-  const fitScore = clamp(
-    Number(data?.openingFitScore ?? data?.fit_score ?? averageScore),
-    0,
-    100
-  );
-
-  let verdict = "Your repertoire is usable, but it needs a cleaner plan.";
+  let verdict = fitScore === null ? "Repertoire Health is unavailable for this saved report." : "Your repertoire is usable, but it needs a cleaner plan.";
   let tone = "steady";
 
-  if (fitScore >= 75) {
+  if (fitScore !== null && fitScore >= 75) {
     verdict = "Your repertoire has a clear strength. Build around it.";
     tone = "strong";
-  } else if (fitScore < 55) {
+  } else if (fitScore !== null && fitScore < 55) {
     verdict = "Your repertoire is leaking points. Tighten the weakest openings first.";
     tone = "risky";
   }
@@ -182,22 +174,10 @@ export default function OpeningFitDiagnosisFirst({
           </p>
         </div>
 
-        <div className="diagnosisFirst__scoreCard" aria-label="Repertoire coverage">
-          <span>
-            Repertoire coverage{" "}
-            <OpeningScoreInfo
-              opening={{
-                name: "Repertoire coverage",
-                games: totalGames,
-                fitScore,
-                confidence: totalGames >= 10 ? "Useful confidence" : "Limited confidence",
-                nextAction: `Review 3 losses in ${getOpeningName(fix)} and find the first uncomfortable position.`,
-              }}
-              score={fitScore}
-            />
-          </span>
-          <strong>{fitScore}</strong>
-          <em>/100</em>
+        <div className="diagnosisFirst__scoreCard" aria-label="Repertoire Health">
+          <span>Repertoire Health</span>
+          <strong>{fitScore ?? "Unavailable"}</strong>
+          {fitScore !== null ? <em>/100</em> : null}
         </div>
       </div>
 

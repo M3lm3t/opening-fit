@@ -96,10 +96,10 @@ test("main score surfaces reuse the central development-state helper", async () 
   assert.match(progressSource, /openingFitDevelopmentState\(score\)\.label/);
   assert.match(summarySource, /scoreView\.developmentState\.label/);
   for (const source of [appSource, diagnosisSource, methodologySource]) {
-    assert.match(source, /Repertoire coverage/i);
+    assert.match(source, /Repertoire Health/i);
     assert.doesNotMatch(source, /Opening\s*Fit Score/i);
   }
-  assert.match(methodologySource, /repertoire_coverage_v3/);
+  assert.match(methodologySource, /repertoire_health_v2/);
   assert.match(methodologySource, /role completeness \(35%\).*concentration and consistency \(25%\).*evidence strength \(25%\).*unresolved recurring problems \(15%\)/i);
   assert.match(methodologySource, /Historical reports retain their stored formula version/i);
 });
@@ -134,4 +134,28 @@ test("legacy scores are retained but not compared across methodology versions", 
   });
   assert.equal(view.comparableMethodology, false);
   assert.match(view.reasonForChange, /not compared numerically/i);
+});
+
+test("Repertoire Health consumes authoritative effective weights and limiting factors", () => {
+  const contract = {
+    version: "repertoire_health_v2",
+    score: 55.575,
+    explanation: "Repertoire Health is held back mainly by evidence strength and role completeness.",
+    weaknessExplanation: "No single played opening stands out as the main weakness, but your repertoire is incomplete in Black against 1.d4.",
+    confidence: { level: "medium", label: "Medium", scope: "repertoire_health" },
+    limitingFactors: [{ key: "evidenceStrength", label: "Evidence strength", value: 40 }],
+    components: [
+      { key: "roleCompleteness", label: "Role completeness", value: 66.7, score: 66.7, baseWeight: 35, effectiveWeight: 58.333333, contribution: 38.908333, available: true },
+      { key: "evidenceStrength", label: "Evidence strength", value: 40, score: 40, baseWeight: 25, effectiveWeight: 41.666667, contribution: 16.666667, available: true },
+      { key: "concentrationConsistency", label: "Concentration / consistency", value: null, score: null, baseWeight: 25, effectiveWeight: 0, contribution: null, available: false },
+    ],
+  };
+  const view = buildOpeningFitScoreTransparency({ report: { repertoireHealth: contract, openingFitScore: 99 } });
+  assert.equal(view.currentScore, 56);
+  assert.equal(view.formulaVersion, "repertoire_health_v2");
+  assert.equal(view.components.length, 2);
+  assert.equal(view.components[0].weight, 58.333333);
+  assert.equal(view.evidenceConfidence.label, "Medium");
+  assert.match(view.weaknessContext, /incomplete in Black against 1\.d4/);
+  assert.match(view.explanation, /evidence strength and role completeness/);
 });

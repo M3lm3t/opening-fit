@@ -522,7 +522,9 @@ def report_score_formula_version(report: Optional[Dict[str, Any]]) -> str:
     if not isinstance(report, dict):
         return ""
     contract = (
-        report.get("repertoireCoverageScore")
+        report.get("repertoireHealth")
+        or report.get("repertoire_health")
+        or report.get("repertoireCoverageScore")
         or report.get("repertoire_coverage_score")
         or report.get("openingFitScoreContract")
         or report.get("opening_fit_score_contract")
@@ -531,7 +533,7 @@ def report_score_formula_version(report: Optional[Dict[str, Any]]) -> str:
     )
     if not isinstance(contract, dict):
         return ""
-    return str(contract.get("formulaVersion") or contract.get("formula_version") or "").strip()
+    return str(contract.get("version") or contract.get("formulaVersion") or contract.get("formula_version") or "").strip()
 
 
 def build_report_progress_comparison(current: Dict[str, Any], previous: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -560,8 +562,8 @@ def build_report_progress_comparison(current: Dict[str, Any], previous: Optional
                 {
                     "type": "fit_score",
                     "status": direction,
-                    "title": f"OpeningFit score {verb}",
-                    "copy": f"Your OpeningFit score {verb} from {round(previous_fit)} to {round(current_fit)}.",
+                    "title": f"Repertoire Health {verb}",
+                    "copy": f"Your Repertoire Health {verb} from {round(previous_fit)} to {round(current_fit)}.",
                     "previous": previous_fit,
                     "current": current_fit,
                 }
@@ -10885,6 +10887,9 @@ def demo_profile():
         )
         for row in demo_best_openings
     ]
+    for row in demo_best_openings:
+        row["confidence"] = "Low Confidence" if int(row.get("games", 0) or 0) < 10 else "Medium Confidence"
+        row.update(balanced_opening_fit_score(row))
 
     style_profile = {
         "primaryStyle": "Aggressive Tactical",
@@ -11180,6 +11185,7 @@ def demo_profile():
     }
 
     report_decision = build_report_decision(demo_data, openings=demo_best_openings)
+    apply_repertoire_coverage_score(demo_data, report_decision)
     demo_data["report_decision"] = report_decision
     demo_data["reportDecision"] = report_decision
     demo_data["training_priority"] = report_decision["trainingPriority"]

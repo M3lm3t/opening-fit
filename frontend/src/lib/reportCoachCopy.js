@@ -41,7 +41,7 @@ export function formatChessScore(recommendation = {}) {
 
 export const REPORT_COACH_TEMPLATES = Object.freeze({
   noStrength: "We do not have enough consistent results to name your strongest opening yet.",
-  noWeakness: "No reliable opening weakness was found yet. Keep your current repertoire and check again after more games.",
+  noWeakness: "No single opening currently has enough evidence to qualify as an authoritative repair target. Keep your current repertoire and check again after more games.",
   mixedRepertoire: "Your results are mixed across several openings. Keep the repertoire stable and review one repeated problem at a time.",
   noEligibleGames: "No games matched the selected date and time-control filters. Adjust the filters or import a different period.",
   noOpeningInformation: "The imported games did not contain enough opening information to make a reliable recommendation.",
@@ -113,7 +113,7 @@ export function coachVerdict({ strength = null, problem = null, action = null } 
   const strengthGames = count(sampleFor(strength || {}).games);
   const problemGames = count(sampleFor(problem || {}).games);
   if (strength && problem) return `Keep playing ${openingFor(strength)} based on ${plural(strengthGames, "relevant game")}; fix ${openingFor(problem)} first because it is the clearest recurring problem across ${plural(problemGames, "relevant game")}.`;
-  if (strength) return `Keep playing ${openingFor(strength)} based on ${plural(strengthGames, "relevant game")}; no reliable opening weakness was found yet.`;
+  if (strength) return `Keep playing ${openingFor(strength)} based on ${plural(strengthGames, "relevant game")}; no single opening currently qualifies as an authoritative repair target.`;
   if (problem) return `We do not have enough consistent results to name your strongest opening yet; fix ${openingFor(problem)} first because it is the clearest recurring problem across ${plural(problemGames, "relevant game")}.`;
   if (action?.type === "prepare_against") return `You face the ${openingFor(action)} as ${colourFor(action)} in ${plural(count(action.sample?.games), "relevant game")}; prepare one clear response before your next game.`;
   return "We do not have enough consistent results to name your strongest opening or a reliable opening weakness yet.";

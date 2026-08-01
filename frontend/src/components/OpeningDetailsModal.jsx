@@ -50,12 +50,10 @@ export default function OpeningDetailsModal({ opening, data = null, onClose, onR
   const draws = Number(opening.draws ?? opening.draw ?? opening.d ?? 0);
   const losses = Number(opening.losses ?? opening.loss ?? opening.l ?? 0);
 
-  const winRate = Number(
-    opening.win_rate ??
-      opening.winRate ??
-      opening.score ??
-      (games ? Math.round(((wins + draws * 0.5) / games) * 100) : 0)
-  );
+  const scoreRateValue = opening.observedPerformance?.scoreRate ?? opening.observed_performance?.scoreRate ?? opening.scoreRate ?? opening.score_rate ?? opening.score;
+  const scoreRate = scoreRateValue === null || scoreRateValue === undefined
+    ? (games ? Math.round(((wins + draws * 0.5) / games) * 100) : null)
+    : Number(scoreRateValue) <= 1 ? Number(scoreRateValue) * 100 : Number(scoreRateValue);
 
   const colour = opening.colour || opening.color || opening.side || "Not established";
   const context = getOpeningContext(opening);
@@ -90,7 +88,7 @@ export default function OpeningDetailsModal({ opening, data = null, onClose, onR
         : opening.fitVerdict ||
             opening.verdict ||
             opening.recommendation ||
-            getVerdict(winRate, games);
+            getVerdict(scoreRate, games);
 
   function getVerdict(rate, gameCount) {
     const n = Number(rate) || 0;
@@ -150,8 +148,8 @@ export default function OpeningDetailsModal({ opening, data = null, onClose, onR
           </div>
 
           <div>
-            <span>Score</span>
-            <strong>{Number(winRate).toFixed(0)}%</strong>
+            <span>Score Rate</span>
+            <strong>{scoreRate === null ? "Unavailable" : `${Number(scoreRate).toFixed(0)}%`}</strong>
           </div>
 
           <div>
@@ -165,7 +163,7 @@ export default function OpeningDetailsModal({ opening, data = null, onClose, onR
           </div>
 
           <div>
-            <span>Confidence</span>
+            <span>Evidence Confidence</span>
             <strong>{confidenceLabel}</strong>
           </div>
         </div>

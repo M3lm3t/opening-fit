@@ -20,7 +20,7 @@ function RecapDetails({ recap }) {
   return (
     <dl className="weeklyRecapGrid">
       <div><dt>New games analysed</dt><dd>{recap.newGames}</dd></div>
-      {recap.score ? <div><dt>Repertoire coverage</dt><dd>{recap.score.label}</dd></div> : null}
+      {recap.score ? <div><dt>Repertoire Health</dt><dd>{recap.score.label}</dd></div> : null}
       {recap.improvedArea ? <div><dt><TrendingUp size={16} /> Improved area</dt><dd><strong>{recap.improvedArea.label}</strong><span>{recap.improvedArea.detail}</span></dd></div> : null}
       {recap.repairArea ? <div><dt><Wrench size={16} /> Ongoing repair</dt><dd><strong>{recap.repairArea.label}</strong><span>{recap.repairArea.detail}</span></dd></div> : null}
       {recap.trainingCompletion !== null ? <div><dt><CheckCircle2 size={16} /> Training completion</dt><dd>{recap.trainingCompletion}%</dd></div> : null}

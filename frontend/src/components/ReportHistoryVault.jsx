@@ -362,7 +362,7 @@ function buildWhatChanged(previous, current) {
         detail: previousWeak === currentWeak ? "Still the main line to review." : `Changed from ${previousWeak}.`,
       },
       {
-        label: "Repertoire coverage",
+        label: "Repertoire Health",
         value: currentScore === null ? "Not available yet" : `${currentScore}`,
         detail: scoreDelta === null ? "No comparable score in the older report." : `${signedDelta(scoreDelta)} since previous report.`,
       },

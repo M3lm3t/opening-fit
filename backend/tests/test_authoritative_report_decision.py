@@ -4,7 +4,11 @@ import pytest
 
 import main as backend_main
 from analysis.opening_perspective import attach_perspective, classify_opening_perspective
-from analysis.report_decision import assert_decision_consistency, build_report_decision
+from analysis.report_decision import (
+    assert_decision_consistency,
+    build_report_decision,
+    build_repertoire_coverage_score,
+)
 
 
 def context(role: str):
@@ -160,3 +164,85 @@ def test_contract_guard_rejects_competing_primary_alias_and_unsupported_percenta
         assert_decision_consistency(altered)
     assert "%" not in decision["primaryAction"]["successCheck"]
     assert "estimated_impact" not in decision["primaryAction"]
+
+
+def test_repertoire_health_is_versioned_reproducible_and_weights_reconcile():
+    payload = backend_main.demo_profile()
+    health = payload["repertoireHealth"]
+    available = [row for row in health["components"] if row["available"]]
+
+    assert health["version"] == health["formulaVersion"] == "repertoire_health_v2"
+    assert health["score"] == pytest.approx(sum(row["contribution"] for row in available), abs=1e-5)
+    assert sum(row["baseWeight"] for row in health["components"]) == 100
+    assert sum(row["effectiveWeight"] for row in available) == pytest.approx(100, abs=1e-5)
+    assert health["limitingFactors"]
+    assert health["limitingFactors"][0]["label"].lower() in health["explanation"].lower()
+
+
+def test_unavailable_health_components_are_null_and_reweighted_not_zeroed():
+    health = build_repertoire_coverage_score([
+        {"key": "white", "label": "White", "status": "insufficient", "supportingGameCount": 0, "evidenceFunnel": {"openingBreakdown": []}},
+        {"key": "black_e4", "label": "Black against 1.e4", "status": "insufficient", "supportingGameCount": 0, "evidenceFunnel": {"openingBreakdown": []}},
+        {"key": "black_d4", "label": "Black against 1.d4", "status": "insufficient", "supportingGameCount": 0, "evidenceFunnel": {"openingBreakdown": []}},
+    ])
+    components = {row["key"]: row for row in health["components"]}
+
+    assert components["roleCompleteness"]["available"] is True
+    assert components["roleCompleteness"]["value"] == 0
+    for key in ("concentrationConsistency", "evidenceStrength", "unresolvedRecurringProblems"):
+        assert components[key]["available"] is False
+        assert components[key]["value"] is None
+        assert components[key]["contribution"] is None
+    assert components["roleCompleteness"]["effectiveWeight"] == 100
+
+
+def test_observed_performance_distinguishes_win_rate_score_rate_and_role_baseline():
+    results = ["win", "draw", "loss", "loss", "loss", "loss"]
+    decision = build([opening("Queen Pawn Game", "white", results, fit_score=90)], games_for("Queen Pawn Game", "white", results))
+    recommendation = decision["recommendations"][0]
+    observed = recommendation["observedPerformance"]
+
+    assert observed["version"] == "observed_performance_v1"
+    assert observed["winRate"] == 16.7
+    assert observed["scoreRate"] == 25.0
+    assert observed["role"] == "white"
+    assert observed["baselineSource"] == "neutral chess-score reference for this role"
+    assert recommendation["openingSuitability"]["score"] == 90
+    assert recommendation["performanceScore"] == 25.0
+
+
+def test_confidence_has_explicit_scope_and_does_not_change_observed_results():
+    results = ["win", "draw"] + ["loss"] * 6
+    recommendation = build([opening("Vienna Game", "white", results, fit_score=90)], games_for("Vienna Game", "white", results))["recommendations"][0]
+
+    assert recommendation["observedPerformance"]["scoreRate"] == 18.8
+    assert recommendation["evidenceConfidence"]["level"] == "low"
+    assert recommendation["evidenceConfidence"]["scope"] == "opening_decision"
+    assert recommendation["openingSuitability"]["confidence"]["scope"] == "opening_suitability"
+
+
+def test_zero_game_experiment_has_suitability_but_no_observed_performance():
+    decision = build([], [], recommended_openings={"white": [{"name": "Vienna Game", "games": 0, "fitScore": 90}]})
+    experiment = decision["experiment"]
+
+    assert experiment["observedPerformance"] is None
+    assert experiment["scoreRate"] is None
+    assert experiment["openingSuitability"]["score"] == 90
+    assert "not proven by your results" in experiment["openingSuitability"]["rationale"]
+    assert experiment["evidenceConfidence"]["level"] == "insufficient"
+
+
+def test_demo_semantics_and_aliases_do_not_change_primary_action():
+    payload = backend_main.demo_profile()
+    decision = payload["reportDecision"]
+    queen = next(row for row in decision["recommendations"] if row["openingName"] == "Queen Pawn Game")
+    vienna = next(row for row in decision["recommendations"] if row["openingName"] == "Vienna Game")
+
+    assert decision["primaryAction"]["opening"] == "Queen Pawn Game"
+    assert queen["observedPerformance"] == queen["observed_performance"]
+    assert queen["observedPerformance"] | {"winRate": 16.7, "scoreRate": 25.0} == queen["observedPerformance"]
+    assert vienna["observedPerformance"]["games"] == 8
+    assert vienna["observedPerformance"]["scoreRate"] == 68.8
+    assert vienna["evidenceConfidence"]["level"] == "low"
+    assert payload["repertoireHealth"] == payload["repertoire_health"] == payload["repertoireCoverageScore"]
+    assert payload["openingFitScore"] == payload["repertoireHealth"]["score"]

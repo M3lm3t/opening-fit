@@ -252,7 +252,7 @@ export function buildJourneyEvents({ data = {}, reportHistory = [], activity = [
     if (!time) return;
     if (index === 0) add({ key: "first-analysis", type: "milestones", date: time, title: "First analysis", detail: `${gameCount(report)} games analysed.` });
     const score = reportScore(row);
-    if (score !== null) add({ key: `score:${time}`, type: "progress", date: time, title: `Repertoire coverage ${score}`, detail: "Saved report coverage." });
+    if (score !== null) add({ key: `score:${time}`, type: "progress", date: time, title: `Repertoire Health ${score}`, detail: "Saved report score using its stored formula version." });
     const strongest = collectOpenings(report).filter((item) => openingScore(item) !== null).sort((a, b) => openingScore(b) - openingScore(a))[0];
     if (strongest) add({ key: `strongest:${time}:${openingName(strongest)}`, type: "openings", date: time, title: "Strongest opening identified", detail: openingName(strongest) });
   });

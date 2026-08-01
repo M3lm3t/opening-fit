@@ -336,15 +336,21 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
       : []
     : buildCostlyIssues(data, decisions);
   const games = Number(data.gamesAnalysed ?? data.gamesAnalyzed ?? data.games_analyzed ?? data.gamesImported ?? data.total_games ?? 0) || 0;
-  const score = Number(fitData?.overallScore ?? data.openingFitScore ?? data.opening_fit_score ?? data.repertoireHealth?.score ?? data.repertoire_health?.score);
+  const healthContract = serverDecision?.repertoireHealth || serverDecision?.repertoireCoverageScore || data.repertoireHealth || data.repertoire_health || data.repertoireCoverageScore || data.repertoire_coverage_score || null;
+  const score = Number(healthContract?.score ?? data.openingFitScore ?? data.opening_fit_score ?? fitData?.overallScore);
   const scoreValue = Number.isFinite(score) ? Math.round(score) : null;
   const coverage = serverDecision?.reportCoverage;
-  const confidence = coverage?.level
+  const confidence = healthContract?.confidence?.label
+    ? `${healthContract.confidence.label} overall Evidence Confidence`
+    : coverage?.level
     ? `${coverage.level[0].toUpperCase()}${coverage.level.slice(1)} report coverage`
     : `${games} analysed game${games === 1 ? "" : "s"}`;
   const previousRow = comparableHistory(data, reportHistory);
   const previous = previousRow?.openingfit_score ?? previousRow?.normalized_snapshot?.openingfit_score ?? previousRow?.snapshot?.openingfit_score ?? previousRow?.summary?.openingFitProgress?.score ?? previousRow?.summary?.opening_fit_score ?? null;
-  const comparisonAllowed = Boolean(serverDecision?.baseline?.comparisonClaimsAllowed || previousRow);
+  const currentScoreVersion = String(healthContract?.version || healthContract?.formulaVersion || "openingfit_score_v1");
+  const previousScoreContract = previousRow?.score_contract || previousRow?.normalized_snapshot?.score_contract || previousRow?.snapshot?.score_contract || {};
+  const previousScoreVersion = String(previousScoreContract?.version || previousScoreContract?.formulaVersion || previousScoreContract?.formula_version || "openingfit_score_v1");
+  const comparisonAllowed = Boolean(serverDecision?.baseline?.comparisonClaimsAllowed || previousRow) && currentScoreVersion === previousScoreVersion;
   const trend = comparisonAllowed && scoreValue !== null && previous !== null && previous !== undefined && previous !== "" && Number.isFinite(Number(previous))
     ? scoreValue - Number(previous)
     : null;
@@ -378,6 +384,7 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
     primaryProblem: primaryProblem || (repair ? { opening: repair.opening, role: repair.role, games: repair.games, score: repair.score, repertoireOwned: true } : null),
     nextTrainingAction,
     trainingPriority,
+    repertoireHealth: healthContract,
     supportingEvidence: serverDecision?.supportingEvidence || [nextTrainingAction.reason],
     confidence: serverDecision?.confidence || { status: decisions.length ? "sufficient" : "insufficient_data", gamesAnalysed: games, minimumOpeningGames: 5 },
     baseline: { ...baseline, status: comparisonAllowed ? "comparable_later_report" : "baseline", hasComparablePrevious: comparisonAllowed, comparisonClaimsAllowed: comparisonAllowed },

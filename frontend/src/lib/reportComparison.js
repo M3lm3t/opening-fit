@@ -365,7 +365,7 @@ function summaryHighlights(scoreStatus, scoreChange, previousScore, currentScore
     highlights.push({
       type: "score",
       status: scoreStatus,
-      text: `Repertoire coverage ${scoreStatus === "improved" ? "increased" : "decreased"} from ${Math.round(previousScore)} to ${Math.round(currentScore)}.`,
+      text: `Repertoire Health ${scoreStatus === "improved" ? "increased" : "decreased"} from ${Math.round(previousScore)} to ${Math.round(currentScore)}.`,
       previousValue: previousScore,
       currentValue: currentScore,
       change: scoreChange,

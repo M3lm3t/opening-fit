@@ -143,6 +143,22 @@ function confidenceText(opening = {}) {
 }
 
 export function buildOpeningScoreExplanation({ opening = {}, score, nextStep = "" } = {}) {
+  const suitability = opening.openingSuitability || opening.opening_suitability;
+  if (suitability && typeof suitability === "object") {
+    const evidenceSources = asArray(suitability.evidenceSources || suitability.evidence_sources);
+    const confidence = suitability.confidence || opening.evidenceConfidence || opening.evidence_confidence || {};
+    return {
+      title: "Why this Opening Suitability estimate?",
+      basedOn: evidenceSources.length ? `Available sources: ${evidenceSources.join(" and ")}.` : "The report does not contain a detailed suitability-source breakdown.",
+      strongest: text(suitability.rationale) || "No additional rationale was stored.",
+      holdingBack: text(confidence.explanation) || "Evidence certainty is reported separately from the suitability estimate.",
+      confidence: `${text(confidence.label) || "Insufficient"} Evidence Confidence. ${text(confidence.explanation)}`.trim(),
+      styleFit: "",
+      componentSummary: "",
+      nextStep: bestNextStep(opening, nextStep),
+      improve: "Suitability is an estimate, not observed success; use the authoritative coaching action before changing openings.",
+    };
+  }
   const resolvedScore = scoreFor(opening, score ?? null);
   const games = gamesFor(opening, 0);
   const styleFit = styleFitText(opening);
@@ -178,13 +194,13 @@ export default function OpeningScoreInfo({ opening = {}, score, nextStep = "", l
     <InfoHint label={`${label} for ${name}`} className={`openingScoreInfoHint ${className}`.trim()}>
       <span className="openingScoreInfoContent">
         <strong>{explanation.title}</strong>
-        <span><b>What it means...</b> OpeningScore estimates how reliable this opening is for you right now. It is a training priority score, not a judgement of your chess ability.</span>
+        <span><b>What it means...</b> Opening Suitability estimates repertoire and style fit. It is not observed performance, a training-priority score, or a judgement of chess ability.</span>
         <span><b>This score is based on...</b> {explanation.basedOn}</span>
         {explanation.componentSummary ? <span><b>Score details found:</b> {explanation.componentSummary}</span> : null}
         <span><b>Your strongest signal...</b> {explanation.strongest}</span>
         <span><b>What is holding it back...</b> {explanation.holdingBack}</span>
         {explanation.styleFit ? <span><b>Style fit...</b> {explanation.styleFit}</span> : null}
-        <span><b>Confidence in this score...</b> {explanation.confidence}</span>
+        <span><b>Evidence Confidence...</b> {explanation.confidence}</span>
         <span><b>How it improves...</b> {explanation.improve}</span>
         <small><b>Best next step...</b> {explanation.nextStep}</small>
       </span>

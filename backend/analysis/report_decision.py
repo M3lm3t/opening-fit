@@ -22,7 +22,13 @@ from analysis.evidence_thresholds import (
 MIN_OPENING_EVIDENCE = MINIMUM_OPENING_GAMES
 MEDIUM_CONFIDENCE_GAMES = MODERATE_CONFIDENCE_GAMES
 MIN_COMPARABLE_REPORT_GAMES = 5
-REPERTOIRE_COVERAGE_SCORE_VERSION = "repertoire_coverage_v3"
+REPERTOIRE_HEALTH_VERSION = "repertoire_health_v2"
+OPENING_SUITABILITY_VERSION = "opening_suitability_v1"
+OBSERVED_PERFORMANCE_VERSION = "observed_performance_v1"
+EVIDENCE_CONFIDENCE_VERSION = "evidence_confidence_v1"
+# Compatibility alias for callers and stored reports written before the score was
+# given its precise product name. The arithmetic is intentionally unchanged.
+REPERTOIRE_COVERAGE_SCORE_VERSION = REPERTOIRE_HEALTH_VERSION
 REPERTOIRE_COVERAGE_COMPONENTS = (
     {"key": "roleCompleteness", "label": "Role completeness", "weight": 35},
     {"key": "concentrationConsistency", "label": "Concentration / consistency", "weight": 25},
@@ -98,11 +104,98 @@ def _result_counts(games: list[Mapping[str, Any]]) -> tuple[int, int, int]:
 def _candidate_score_rate(item: Mapping[str, Any], games: int, wins: int, draws: int) -> Optional[float]:
     if games and wins + draws + int(_number(item.get("losses")) or 0) == games:
         return round(((wins + draws * 0.5) / games) * 100, 1)
-    for key in ("scoreRate", "score_rate", "rawResultScore", "raw_result_score", "winRate", "win_rate", "score"):
+    # Win rate is deliberately not a fallback: draws count for score rate but not
+    # for win rate, so the two measurements are not interchangeable.
+    for key in ("scoreRate", "score_rate", "rawResultScore", "raw_result_score", "score"):
         value = _number(item.get(key))
         if value is not None:
             return round(max(0, min(100, value * 100 if 0 <= value <= 1 else value)), 1)
     return None
+
+
+def _public_confidence_level(level: Any, games: int) -> str:
+    raw = str(level or "").strip().lower()
+    if raw in {"context_uncertain", "insufficient", "very_early", "no_personal_evidence"} or games <= 3:
+        return "insufficient"
+    if raw == "low" or games <= 9:
+        return "low"
+    if raw in {"moderate", "medium"} or games < HIGH_CONFIDENCE_GAMES:
+        return "medium"
+    return "high"
+
+
+def _evidence_confidence_contract(confidence: Mapping[str, Any], *, games: int, scope: str) -> dict[str, Any]:
+    level = _public_confidence_level(confidence.get("level"), games)
+    label = {"insufficient": "Insufficient", "low": "Low", "medium": "Medium", "high": "High"}[level]
+    return {
+        "version": EVIDENCE_CONFIDENCE_VERSION,
+        "level": level,
+        "label": label,
+        "scope": scope,
+        "sampleSize": games,
+        "sampleTier": (
+            "no_personal_performance_evidence" if games == 0 else
+            "too_little_for_firm_verdict" if games <= 3 else
+            "useful_signal_needs_more_games" if games <= 9 else
+            "stronger_opening_specific_evidence"
+        ),
+        "reasons": list(confidence.get("reasons") or [confidence.get("reason") or "Evidence confidence is unavailable."]),
+        "explanation": str(confidence.get("reason") or "Evidence confidence is unavailable."),
+    }
+
+
+def _observed_performance_contract(
+    *, games: int, wins: int, draws: int, losses: int, role: str, colour: str,
+    baseline: Optional[float] = None, baseline_source: Optional[str] = None,
+) -> Optional[dict[str, Any]]:
+    if games <= 0:
+        return None
+    reconciled = wins + draws + losses == games
+    if not reconciled:
+        return None
+    win_rate = (wins / games) * 100
+    score_rate = ((wins + 0.5 * draws) / games) * 100
+    return {
+        "version": OBSERVED_PERFORMANCE_VERSION,
+        "games": games, "wins": wins, "draws": draws, "losses": losses,
+        "winRate": round(win_rate, 1) if win_rate is not None else None,
+        "scoreRate": round(score_rate, 1) if score_rate is not None else None,
+        "relevantBaseline": round(baseline, 1) if baseline is not None else None,
+        "baselineSource": baseline_source,
+        "baselineDifference": round(score_rate - baseline, 1) if score_rate is not None and baseline is not None else None,
+        "role": role, "colour": colour,
+        "sampleTier": "insufficient" if games <= 3 else "low" if games <= 9 else "medium" if games < HIGH_CONFIDENCE_GAMES else "high",
+        "drawTreatment": "Draws count as half a point in Score Rate; Win Rate counts wins only.",
+    }
+
+
+def _opening_suitability_contract(item: Mapping[str, Any], *, fit_score: Optional[float], games: int, confidence: Mapping[str, Any]) -> dict[str, Any]:
+    score = round(max(0, min(100, fit_score)), 1) if fit_score is not None else None
+    style_available = any(item.get(key) is not None for key in (
+        "traitFitScore", "trait_fit_score", "styleFitScore", "style_fit_score", "fitScore", "fit_score",
+    ))
+    played_available = games > 0
+    rationale = str(item.get("fitExplanation") or item.get("fit_explanation") or item.get("reason") or "").strip()
+    if games == 0:
+        rationale = "This is a style/repertoire estimate, not proven by your results. " + (rationale or "No personal game evidence is available yet.")
+    elif not rationale:
+        rationale = "This suitability estimate is separate from the observed game result and does not override the authoritative recommendation."
+    evidence_sources = []
+    if played_available:
+        evidence_sources.append("role-attributed played games")
+    if style_available:
+        evidence_sources.append("deterministic style/repertoire inputs")
+    return {
+        "version": OPENING_SUITABILITY_VERSION,
+        "score": score,
+        "evidenceSources": evidence_sources,
+        "currentlyPlayed": played_available,
+        "playedGameContributionAvailable": played_available,
+        "styleCatalogueContributionAvailable": style_available,
+        "rationale": rationale,
+        "confidence": _evidence_confidence_contract(confidence, games=games, scope="opening_suitability"),
+        "meaning": "An estimate of repertoire and style fit; it is not observed performance or a chess rating.",
+    }
 
 
 def reports_are_comparable(current: Mapping[str, Any], previous: Optional[Mapping[str, Any]]) -> bool:
@@ -481,6 +574,14 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         verdict_reasons.append("Style fit was not calculated; this does not reduce the opening-specific evidence sample.")
     if verdict == "explore" and games >= HIGH_CONFIDENCE_GAMES:
         verdict_reasons.append("Large sample, mixed signal: the sample is strong, while the chess conclusion remains mixed.")
+    evidence_confidence = _evidence_confidence_contract(confidence, games=games, scope="opening_decision")
+    observed_performance = _observed_performance_contract(
+        games=games, wins=wins, draws=draws, losses=losses,
+        role=repertoire_role, colour=perspective["userColour"],
+    )
+    opening_suitability = _opening_suitability_contract(
+        item, fit_score=fit_score, games=games, confidence=confidence,
+    )
     return {
         "recommendationId": recommendation_id,
         "verdict": verdict,
@@ -504,6 +605,12 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         "scoreRate": score_rate,
         "fitScore": round(max(0, min(100, fit_score)), 1) if fit_score is not None else None,
         "performanceScore": score_rate,
+        "observedPerformance": observed_performance,
+        "observed_performance": observed_performance,
+        "openingSuitability": opening_suitability,
+        "opening_suitability": opening_suitability,
+        "evidenceConfidence": evidence_confidence,
+        "evidence_confidence": evidence_confidence,
         "issue": issue,
         "confidence": confidence,
         "confidenceLevel": confidence["level"],
@@ -627,6 +734,19 @@ def _attach_relevant_baselines(recommendations: list[dict[str, Any]]) -> list[di
         candidate["relevantBaseline"] = round(baseline, 1)
         candidate["baselineDifference"] = round(float(score) - baseline, 1) if score is not None else None
         candidate["baselineReason"] = baseline_source
+        sample = candidate.get("sample") if isinstance(candidate.get("sample"), Mapping) else {}
+        observed = _observed_performance_contract(
+            games=int(_number(sample.get("games")) or 0),
+            wins=int(_number(sample.get("wins")) or 0),
+            draws=int(_number(sample.get("draws")) or 0),
+            losses=int(_number(sample.get("losses")) or 0),
+            role=str(candidate.get("repertoireRole") or "unknown"),
+            colour=str(candidate.get("playerColour") or "unknown"),
+            baseline=baseline,
+            baseline_source=baseline_source,
+        )
+        candidate["observedPerformance"] = observed
+        candidate["observed_performance"] = observed
         if candidate.get("verdict") == "repair" and not candidate.get("issue"):
             if candidate["baselineDifference"] is None or candidate["baselineDifference"] > -10:
                 candidate["verdict"] = "explore"
@@ -690,6 +810,14 @@ def _style_experiments(report: Mapping[str, Any]) -> list[dict[str, Any]]:
             item.get("reason") or item.get("whyItFits") or item.get("why_it_fits")
             or f"This is an unplayed style/repertoire-fit suggestion for {role.replace('_', ' ')}."
         ).strip()
+        experiment_confidence = _evidence_confidence_contract(
+            {"level": "no_personal_evidence", "reason": "No personal performance evidence is available for this experiment."},
+            games=0, scope="opening_suitability",
+        )
+        experiment_suitability = _opening_suitability_contract(
+            item, fit_score=_number(item.get("fitScore") if item.get("fitScore") is not None else item.get("fit_score")),
+            games=0, confidence={"level": "no_personal_evidence", "reason": "No personal performance evidence is available for this experiment."},
+        )
         experiments.append({
             "recommendationId": f"experiment:{_slug(name)}:{role}",
             "openingId": _slug(name), "canonicalOpeningId": _slug(name),
@@ -699,6 +827,9 @@ def _style_experiments(report: Mapping[str, Any]) -> list[dict[str, Any]]:
             "relevantBaseline": None, "baselineDifference": None,
             "confidenceLevel": "no_personal_evidence",
             "confidenceReason": "No played-game evidence supports this experiment yet.",
+            "observedPerformance": None, "observed_performance": None,
+            "evidenceConfidence": experiment_confidence, "evidence_confidence": experiment_confidence,
+            "openingSuitability": experiment_suitability, "opening_suitability": experiment_suitability,
             "evidenceGameIds": [], "conciseReason": reason,
             "nextAction": f"Try one 10-minute general setup rehearsal for {name} before deciding whether to test it.",
             "trainingDuration": {"minutes": 10},
@@ -880,11 +1011,10 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
 def build_repertoire_coverage_score(repertoire_roles: list[Mapping[str, Any]], primary_problem: Optional[Mapping[str, Any]] = None) -> dict[str, Any]:
     supported = sum(1 for row in repertoire_roles if row.get("status") == "established")
     completeness = round((supported / len(REPERTOIRE_ROLE_SPECS)) * 100, 1)
-    evidence_scores = [
-        min(100.0, (float(_number(row.get("supportingGameCount") or row.get("evidenceCount")) or 0) / HIGH_CONFIDENCE_GAMES) * 100)
-        for row in repertoire_roles
-    ]
-    evidence_strength = round(sum(evidence_scores) / len(REPERTOIRE_ROLE_SPECS), 1)
+    role_evidence_counts = [max(0, int(_number(row.get("supportingGameCount") or row.get("evidenceCount")) or 0)) for row in repertoire_roles]
+    evidence_scores = [min(100.0, (count / HIGH_CONFIDENCE_GAMES) * 100) for count in role_evidence_counts]
+    available_evidence_scores = [score for score, count in zip(evidence_scores, role_evidence_counts) if count > 0]
+    evidence_strength = round(sum(available_evidence_scores) / len(available_evidence_scores), 1) if available_evidence_scores else None
     concentration_rows = []
     for row in repertoire_roles:
         funnel = row.get("evidenceFunnel") if isinstance(row.get("evidenceFunnel"), Mapping) else {}
@@ -902,7 +1032,8 @@ def build_repertoire_coverage_score(repertoire_roles: list[Mapping[str, Any]], p
                 if role_games else "No correctly attributed opening sample is available for this role."
             ),
         })
-    concentration = round(sum(item["topOpeningShare"] for item in concentration_rows) / len(REPERTOIRE_ROLE_SPECS), 1)
+    available_concentration = [item["topOpeningShare"] for item in concentration_rows if item["roleGames"] > 0]
+    concentration = round(sum(available_concentration) / len(available_concentration), 1) if available_concentration else None
     problem_role = str((primary_problem or {}).get("repertoireRole") or "")
     problem_scores = []
     for row in repertoire_roles:
@@ -913,21 +1044,76 @@ def build_repertoire_coverage_score(repertoire_roles: list[Mapping[str, Any]], p
             problem_scores.append(50.0)
         else:
             problem_scores.append(100.0)
-    unresolved_problems = round(sum(problem_scores) / len(REPERTOIRE_ROLE_SPECS), 1)
+    available_problem_scores = [score for score, count in zip(problem_scores, role_evidence_counts) if count > 0]
+    unresolved_problems = round(sum(available_problem_scores) / len(available_problem_scores), 1) if available_problem_scores else None
     values = {
         "roleCompleteness": completeness,
         "concentrationConsistency": concentration,
         "evidenceStrength": evidence_strength,
         "unresolvedRecurringProblems": unresolved_problems,
     }
-    components = [
-        {**item, "score": values[item["key"]], "contribution": round(values[item["key"]] * item["weight"] / 100, 2), "available": True}
-        for item in REPERTOIRE_COVERAGE_COMPONENTS
+    available_weight = sum(item["weight"] for item in REPERTOIRE_COVERAGE_COMPONENTS if values[item["key"]] is not None)
+    components = []
+    for item in REPERTOIRE_COVERAGE_COMPONENTS:
+        value = values[item["key"]]
+        available = value is not None
+        effective_weight = (item["weight"] / available_weight * 100) if available and available_weight else 0.0
+        components.append({
+            **item,
+            "value": value,
+            "score": value,
+            "baseWeight": item["weight"],
+            "effectiveWeight": round(effective_weight, 6),
+            "contribution": round(value * effective_weight / 100, 6) if available else None,
+            "available": available,
+            "availabilityReason": "Evidence is available." if available else "No role-attributed personal-game evidence is available for this component.",
+        })
+    total = round(sum(float(item["contribution"] or 0) for item in components), 6) if available_weight else None
+    ranked = sorted(
+        [item for item in components if item["available"]],
+        key=lambda item: ((100 - float(item["value"])) * float(item["effectiveWeight"]), item["key"]),
+        reverse=True,
+    )
+    limiting = [{"key": item["key"], "label": item["label"], "value": item["value"]} for item in ranked[:2]]
+    strongest = [
+        {"key": item["key"], "label": item["label"], "value": item["value"]}
+        for item in sorted([item for item in components if item["available"]], key=lambda item: (item["value"], item["key"]), reverse=True)[:2]
     ]
-    total = round(sum(item["contribution"] for item in components), 2)
+    missing_roles = [str(row.get("label") or row.get("key")) for row in repertoire_roles if row.get("status") != "established"]
+    if primary_problem:
+        weakness_explanation = f"{primary_problem.get('openingName') or primary_problem.get('opening')} is the evidence-backed repair target."
+    elif missing_roles:
+        weakness_explanation = f"No single played opening stands out as the main weakness, but your repertoire is incomplete in {', '.join(missing_roles)}."
+    elif evidence_strength is None or evidence_strength < 40:
+        weakness_explanation = "No single weakness is proven yet. Limited evidence is reducing your Repertoire Health."
+    elif limiting:
+        weakness_explanation = "No single opening currently has enough evidence to qualify as an authoritative repair target. " + "The main limits are " + " and ".join(item["label"].lower() for item in limiting) + "."
+    else:
+        weakness_explanation = "No single opening currently has enough evidence to qualify as an authoritative repair target."
+    explanation = (
+        "Repertoire Health is held back mainly by " + " and ".join(item["label"].lower() for item in limiting) + "."
+        if limiting and total is not None and total < 70 else
+        "The most useful improvement lever is " + limiting[0]["label"].lower() + "."
+        if limiting else "Repertoire Health is unavailable until repertoire evidence exists."
+    )
+    total_role_games = sum(role_evidence_counts)
+    health_confidence = _evidence_confidence_contract(
+        {"level": "high_sample" if total_role_games >= 50 else "moderate" if total_role_games >= 10 else "low" if total_role_games >= 4 else "insufficient",
+         "reason": f"{total_role_games} correctly attributed repertoire-role games support this overall health snapshot."},
+        games=total_role_games, scope="repertoire_health",
+    )
     return {
-        "score": total, "formulaVersion": REPERTOIRE_COVERAGE_SCORE_VERSION,
-        "components": components, "weightsTotal": sum(item["weight"] for item in components),
+        "score": total, "version": REPERTOIRE_HEALTH_VERSION, "formulaVersion": REPERTOIRE_HEALTH_VERSION,
+        "displayName": "Repertoire Health",
+        "components": components,
+        "baseWeightsTotal": sum(item["weight"] for item in components),
+        "effectiveWeightsTotal": round(sum(item["effectiveWeight"] for item in components), 6),
+        "weightsTotal": sum(item["weight"] for item in components),
+        "limitingFactors": limiting, "strongestFactors": strongest,
+        "explanation": explanation, "weaknessExplanation": weakness_explanation,
+        "confidence": health_confidence,
+        "comparisonEligibility": {"eligible": False, "reason": "Comparison eligibility is set from the report-level baseline contract."},
+        "evidenceUsed": {"roleAttributedGames": total_role_games, "establishedRoles": supported, "totalRoles": len(REPERTOIRE_ROLE_SPECS)},
         "roleScores": [{
             "key": row.get("key"), "label": row.get("label"), "status": row.get("status"), "evidenceScore": evidence_scores[index],
             "problemResolutionScore": problem_scores[index], **concentration_rows[index],
@@ -946,7 +1132,7 @@ def build_repertoire_coverage_score(repertoire_roles: list[Mapping[str, Any]], p
             "explanation": "An unresolved evidence-backed repair target lowers only the unresolved recurring-problems component.",
         },
         "recentResults": {"scored": False, "explanation": "Recent White and Black results are shown as evidence, not included in repertoire coverage."},
-        "meaning": "Coverage combines role completeness, opening concentration, evidence strength and unresolved recurring problems across the three user-played repertoire roles. Opponent openings faced by the player do not fill or lower role completeness. It does not grade opening quality or playing strength.",
+        "meaning": "Repertoire Health combines role completeness, opening concentration, evidence strength and unresolved recurring problems across the three user-played repertoire roles. It does not measure general chess strength, tactics, accuracy, next-game winning chances, or the quality of one opening.",
     }
 
 
@@ -972,6 +1158,8 @@ def apply_repertoire_coverage_score(report: dict[str, Any], decision: dict[str, 
     report["repertoire_roles"] = roles
     report["repertoireCoverageScore"] = score
     report["repertoire_coverage_score"] = score
+    report["repertoireHealth"] = score
+    report["repertoire_health"] = score
 
 
 def _training_game_rows(report: Mapping[str, Any]) -> list[Mapping[str, Any]]:
@@ -1329,6 +1517,21 @@ def assert_decision_consistency(decision: Mapping[str, Any]) -> None:
             or not row.get("alternativeReason")
         ):
             raise ValueError("decision_contract: incompatible or unexplained alternative")
+        observed = row.get("observedPerformance")
+        if sample == 0 and observed is not None:
+            raise ValueError("decision_contract: zero-game opening exposes observed performance")
+        if isinstance(observed, Mapping):
+            wins = int(_number(observed.get("wins")) or 0)
+            draws = int(_number(observed.get("draws")) or 0)
+            losses = int(_number(observed.get("losses")) or 0)
+            if wins + draws + losses != sample:
+                raise ValueError("decision_contract: observed performance does not reconcile")
+            expected_win_rate = round(wins / sample * 100, 1)
+            expected_score_rate = round((wins + draws * 0.5) / sample * 100, 1)
+            if _number(observed.get("winRate")) != expected_win_rate or _number(observed.get("scoreRate")) != expected_score_rate:
+                raise ValueError("decision_contract: observed performance rates diverge from WDL")
+        if row.get("openingSuitability") != row.get("opening_suitability") or row.get("evidenceConfidence") != row.get("evidence_confidence"):
+            raise ValueError("decision_contract: score contract aliases diverge")
     for role in decision.get("roleDecisions", []):
         if not isinstance(role, Mapping) or not role.get("currentOpening"):
             continue
@@ -1359,6 +1562,15 @@ def assert_decision_consistency(decision: Mapping[str, Any]) -> None:
         raise ValueError("decision_contract: repair slot is not a repair verdict")
     if decision.get("keep") and decision["keep"].get("verdict") != "keep":
         raise ValueError("decision_contract: keep slot is not a keep verdict")
+    health = decision.get("repertoireHealth") or decision.get("repertoireCoverageScore")
+    if isinstance(health, Mapping):
+        available = [row for row in health.get("components", []) if isinstance(row, Mapping) and row.get("available")]
+        effective_total = sum(float(_number(row.get("effectiveWeight")) or 0) for row in available)
+        reproduced = sum(float(_number(row.get("contribution")) or 0) for row in available)
+        if available and abs(effective_total - 100) > 0.00001:
+            raise ValueError("decision_contract: Repertoire Health effective weights do not reconcile")
+        if _number(health.get("score")) is not None and abs(reproduced - float(health["score"])) > 0.00001:
+            raise ValueError("decision_contract: Repertoire Health score is not reproducible")
 
 
 def _decision_slot(candidate: Optional[Mapping[str, Any]], verdict: str) -> Optional[dict[str, Any]]:
@@ -1503,7 +1715,7 @@ def build_report_decision(
             "type": "collect_more_games", "opening": None, "role": None,
             "repertoireRole": RepertoireRole.UNRESOLVED.value, "findingType": "insufficient_evidence",
             "label": "Collect more games before changing your repertoire",
-            "reason": "No reliable opening weakness was found. Keep your current repertoire and check again after more games.",
+            "reason": "No single opening currently has enough evidence to qualify as an authoritative repair target. Keep your current repertoire and check again after more games.",
             "recommendationId": None, "sample": None,
             "title": "Collect more games before changing your repertoire",
             "explanation": "Keep the current repertoire stable, play five more eligible games, then run the report again.",
@@ -1561,6 +1773,10 @@ def build_report_decision(
     coverage = _report_coverage(total_games)
     training_priority = _training_priority(action, recommendations, report)
     repertoire_coverage_score = build_repertoire_coverage_score(repertoire_roles, problem)
+    repertoire_coverage_score["comparisonEligibility"] = {
+        "eligible": comparable,
+        "reason": "The previous report uses a compatible player, platform, sample and chronology." if comparable else "No compatible earlier report is available for a direct Repertoire Health comparison.",
+    }
     evidence = []
     if strength:
         evidence.extend(strength["evidence"][:2])
@@ -1629,6 +1845,8 @@ def build_report_decision(
         "repertoireRoles": repertoire_roles,
         "roleDecisions": repertoire_roles,
         "repertoireCoverageScore": repertoire_coverage_score,
+        "repertoireHealth": repertoire_coverage_score,
+        "repertoire_health": repertoire_coverage_score,
         "supportingEvidence": evidence,
         "reportCoverage": coverage,
         "confidence": {

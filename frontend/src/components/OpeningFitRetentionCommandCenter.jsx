@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { recordRetentionMetric } from "../services/retentionMetrics";
-import OpeningScoreInfo from "./OpeningScoreInfo";
 import "./OpeningFitRetentionCommandCenter.css";
 
 const STORAGE_PREFIX = "openingFit:retentionCommandCenter";
@@ -256,7 +255,6 @@ export default function OpeningFitRetentionCommandCenter({ data, username }) {
   const strongestOpening = [...masteredOpenings].sort((a, b) => b.mastery - a.mastery)[0];
   const metrics = scoreMetrics(masteredOpenings);
   const openingFitScore = Math.round(metrics.reduce((sum, item) => sum + item.value, 0) / metrics.length);
-  const totalGames = masteredOpenings.reduce((sum, opening) => sum + safeNumber(opening?.games, 0), 0);
   const identity = getIdentity(data || {}, masteredOpenings);
   const streakDays = completedToday ? 4 : 3;
 
@@ -290,23 +288,11 @@ export default function OpeningFitRetentionCommandCenter({ data, username }) {
             grow mastery, and watch your chess identity evolve over time.
           </p>
         </div>
-        <div className="ofRetentionScoreCard" aria-label={`Repertoire coverage ${openingFitScore}`}>
+        <div className="ofRetentionScoreCard" aria-label={`Training momentum ${openingFitScore}`}>
           <div className="ofLevelBurst" aria-hidden="true">Level up</div>
-          <span>
-            Repertoire coverage{" "}
-            <OpeningScoreInfo
-              opening={{
-                name: "Repertoire coverage",
-                games: totalGames,
-                fitScore: openingFitScore,
-                confidence: totalGames >= 10 ? "Useful confidence" : "Limited confidence",
-                nextAction: `Train ${weakestOpening?.name || "the weakest repeated line"} before the next import.`,
-              }}
-              score={openingFitScore}
-            />
-          </span>
+          <span>Training momentum</span>
           <strong>{openingFitScore}</strong>
-          <small>{identity.title}</small>
+          <small>{identity.title} · activity and mastery summary</small>
         </div>
       </div>
 

@@ -84,7 +84,7 @@ function getOpeningIdentity(data = {}) {
 
 function getRepertoireHealth(data = {}) {
   const metrics = getRetentionMetrics(data);
-  return data.repertoireHealth || data.repertoire_health || metrics.repertoireHealth || metrics.repertoire_health || {};
+  return metrics.masteryHealth || metrics.mastery_health || metrics.repertoireHealth || metrics.repertoire_health || {};
 }
 
 function getOpeningMastery(data = {}) {
@@ -210,7 +210,7 @@ function weaknessText(item = {}) {
   const lossRate = clampPercent(item.lossRate ?? item.loss_rate, 0);
   if (lossRate >= 55) return "High loss rate";
   if (clampPercent(item.consistencyScore ?? item.consistency_score, 100) < 55) return "Inconsistent plans";
-  return "No clear weakness";
+  return "No authoritative repair target yet";
 }
 
 function decayText(item = {}) {
@@ -624,15 +624,15 @@ export default function OpeningJourney({ data, fitData, retentionSnapshots = [] 
 
       <div className="openingJourneyGrid">
         <article className="openingJourneyScore">
-          <span>Repertoire coverage</span>
-          <strong>{journey.openingFitScore.value}/100</strong>
-          <p>Primary coaching score for repertoire familiarity, results, recurring weaknesses and evidence confidence. Available on baseline reports; this trend view requires comparable history.</p>
+          <span>Opening progress</span>
+          <strong>{journey.openingFitScore.value}/1000</strong>
+          <p>A separate activity and mastery trend. It is not Repertoire Health, Opening Suitability, or Observed Performance.</p>
         </article>
 
         <article className="openingJourneyHealth">
-          <span>Repertoire Health</span>
+          <span>Mastery snapshot</span>
           <strong>{journey.healthScore}/100</strong>
-          <p>Secondary diagnostic of coverage and opening mastery. It is shown only in Progress details because it overlaps the primary repertoire coverage measure. {healthStatus(journey.health)}</p>
+          <p>A secondary mastery diagnostic retained in Progress details. It is not the report's versioned Repertoire Health. {healthStatus(journey.health)}</p>
         </article>
 
         <article className="openingJourneyWeakLine">

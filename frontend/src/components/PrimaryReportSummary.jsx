@@ -64,18 +64,19 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
 
       <ReportGameCountSummary report={report} saveStatus={saveStatus} authenticated={authenticated} onAccount={onAccount} />
 
-      <section className="primaryReportScoreSection" aria-labelledby="repertoire-coverage-title">
+      <section className="primaryReportScoreSection" aria-labelledby="repertoire-health-title">
         <div className="primaryReportScoreExplanation">
           <span>Repertoire completeness</span>
-          <h2 id="repertoire-coverage-title">{view.establishedRoleCount} of {view.totalRoleCount} repertoire roles established</h2>
+          <h2 id="repertoire-health-title">{view.establishedRoleCount} of {view.totalRoleCount} repertoire roles established</h2>
           <strong>{view.completenessLabel}</strong>
           <ul className="primaryReportRoleOverview">{view.slots.map((slot) => <li key={slot.key}><span>{slot.label}</span><strong>{slot.statusLabel}</strong></li>)}</ul>
           <p>{isSampleReport(report)
             ? "Role completeness shows whether the fictional repertoire fills all three jobs. The coverage indicator also reflects the strength of its supporting evidence."
-            : ["repertoire_coverage_v2", "repertoire_coverage_v3"].includes(scoreView.formulaVersion)
-            ? "Role completeness uses only openings you played in the three core jobs. The coverage indicator also shows concentration, evidence strength and unresolved recurring problems."
+            : ["repertoire_health_v2", "repertoire_coverage_v2", "repertoire_coverage_v3"].includes(scoreView.formulaVersion)
+            ? "Role completeness uses only openings you played in the three core jobs. Repertoire Health also shows concentration, evidence strength and unresolved recurring problems."
             : "This saved report uses the earlier coverage method. It does not measure playing strength or opening quality."}</p>
-          <p className="primaryReportCoverageIndicator"><strong>{view.scoreLabel}:</strong> {scoreView.scoreDisplayLabel} · {scoreView.displayScore === null ? "Evidence components are incomplete" : scoreView.developmentState.label}</p>
+          <p className="primaryReportCoverageIndicator"><strong>{view.scoreLabel}:</strong> {scoreView.scoreDisplayLabel} · {scoreView.displayScore === null ? "Evidence components are incomplete" : scoreView.explanation || scoreView.developmentState.label}</p>
+          {scoreView.evidenceConfidence ? <p><strong>Overall Evidence Confidence:</strong> {scoreView.evidenceConfidence.label}</p> : null}
         </div>
       </section>
       <OpeningFitScoreDisclosure model={model} report={report} previousReport={previousReport} />

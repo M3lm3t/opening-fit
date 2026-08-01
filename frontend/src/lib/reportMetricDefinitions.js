@@ -1,15 +1,15 @@
 export const REPORT_METRIC_DEFINITIONS = Object.freeze({
   openingFitScore: Object.freeze({
-    label: "Repertoire coverage",
+    label: "Repertoire Health",
     scale: "0–100",
-    purpose: "Primary coaching score for repertoire familiarity, White and Black results, recurring weaknesses and evidence confidence.",
+    purpose: "Primary coaching score for repertoire-role completeness, concentration, evidence strength and unresolved recurring problems.",
     baselineAvailable: true,
     primary: true,
   }),
   repertoireHealth: Object.freeze({
     label: "Repertoire Health",
     scale: "0–100",
-    purpose: "Secondary diagnostic for repertoire coverage and opening mastery; it overlaps the primary score and belongs in Progress details.",
+    purpose: "The versioned overall repertoire-condition contract; it is not an individual-opening score or chess rating.",
     baselineAvailable: false,
     primary: false,
   }),

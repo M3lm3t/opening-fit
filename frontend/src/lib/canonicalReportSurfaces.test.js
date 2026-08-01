@@ -211,7 +211,7 @@ test("coverage explanation uses role reason codes and hides an unexplained preci
   const explained = buildOpeningFitScoreTransparency({ model, report });
   const forming = buildOpeningFitScoreTransparency({ model: { ...model, health: { ...model.health, score: 63 } }, report: { openingFitScore: 63 } });
   assert.match(explained.weaknessContext, /supporting-game threshold|role-specific evidence/);
-  assert.equal(explained.scoreDisplayLabel, "63%");
+  assert.equal(explained.scoreDisplayLabel, "63/100");
   assert.equal(forming.scoreDisplayLabel, "Score still forming");
 });
 

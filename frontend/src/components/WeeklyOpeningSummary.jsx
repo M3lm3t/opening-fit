@@ -201,7 +201,7 @@ export default function WeeklyOpeningSummary({ retentionSnapshots = [], onAnalys
 
       <div className="weeklyOpeningSummaryGrid">
         <article>
-          <span>Repertoire coverage</span>
+          <span>Repertoire Health</span>
           <strong>{signedDelta(weekly.latestScore, weekly.previousScore)}</strong>
           <small>{weekly.latestScore ?? "No score"} now</small>
         </article>

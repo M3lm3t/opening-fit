@@ -42,6 +42,16 @@ function gameCount(item = {}) {
 }
 
 function resultSample(item = {}) {
+  const authoritative = item.observedPerformance || item.observed_performance;
+  if (authoritative && typeof authoritative === "object") {
+    return {
+      games: Number(authoritative.games), wins: Number(authoritative.wins), draws: Number(authoritative.draws), losses: Number(authoritative.losses),
+      supplied: true, reconciled: true,
+      winRate: rounded(authoritative.winRate ?? authoritative.win_rate),
+      scoreRate: rounded(authoritative.scoreRate ?? authoritative.score_rate),
+      authoritative: true,
+    };
+  }
   const sample = sampleFor(item);
   const games = gameCount(item);
   const raw = [sample.wins ?? item.wins ?? item.w, sample.draws ?? item.draws ?? item.d, sample.losses ?? item.losses ?? item.l];
@@ -50,10 +60,10 @@ function resultSample(item = {}) {
     const parsed = numeric(value);
     return parsed === null ? null : Math.max(0, Math.round(parsed));
   });
-  const reconciled = supplied && [wins, draws, losses].every((value) => value !== null) && wins + draws + losses === games;
+  const reconciled = games > 0 && supplied && [wins, draws, losses].every((value) => value !== null) && wins + draws + losses === games;
   const explicitRate = rounded(sample.scoreRate ?? sample.score_rate ?? item.scoreRate ?? item.score_rate ?? item.rawResultScore ?? item.raw_result_score ?? item.winRate ?? item.win_rate);
   const scoreRate = reconciled ? Math.round(((wins + draws * 0.5) / games) * 1000) / 10 : !supplied && games && explicitRate !== null && explicitRate >= 0 && explicitRate <= 100 ? explicitRate : null;
-  return { games, wins, draws, losses, supplied, reconciled, scoreRate };
+  return { games, wins, draws, losses, supplied, reconciled, winRate: reconciled ? Math.round((wins / games) * 1000) / 10 : null, scoreRate };
 }
 
 function validationInvalid(item = {}, sample = resultSample(item)) {
@@ -65,6 +75,17 @@ function validationInvalid(item = {}, sample = resultSample(item)) {
 }
 
 export function analysisConfidence(item = {}) {
+  const authoritative = item.evidenceConfidence || item.evidence_confidence || item.openingSuitability?.confidence || item.opening_suitability?.confidence;
+  if (authoritative && typeof authoritative === "object") {
+    return {
+      level: String(authoritative.level || "insufficient"),
+      label: String(authoritative.label || "Insufficient"),
+      games: Number(authoritative.sampleSize ?? authoritative.sample_size ?? 0),
+      explanation: String(authoritative.explanation || authoritative.reasons?.[0] || "Evidence confidence is unavailable."),
+      scope: String(authoritative.scope || "opening_decision"),
+      version: authoritative.version || null,
+    };
+  }
   const sample = resultSample(item);
   const games = sample.games;
   if (!games) return { level: "insufficient", label: "Insufficient data", games, explanation: "No opening-specific games are available." };
@@ -81,7 +102,7 @@ export function analysisConfidence(item = {}) {
     : games >= OPENING_EVIDENCE_THRESHOLDS.moderate && moderateQuality
       ? "moderate"
       : "low";
-  const label = level === "high" ? "High" : level === "moderate" ? "Moderate" : "Low";
+  const label = level === "high" ? "High" : level === "moderate" ? "Medium" : "Low";
   const explanation = level === "high"
     ? `${games} traceable games with reconciled results provide a repeated opening-specific sample.`
     : level === "moderate"
@@ -91,7 +112,7 @@ export function analysisConfidence(item = {}) {
 }
 
 export function openingFitScore(item = {}) {
-  return rounded(item.fitScore ?? item.fit_score ?? item.openingFitScore ?? item.opening_fit_score ?? item.traitFitScore ?? item.trait_fit_score ?? item.styleFitScore ?? item.style_fit_score);
+  return rounded(item.openingSuitability?.score ?? item.opening_suitability?.score ?? item.fitScore ?? item.fit_score ?? item.openingFitScore ?? item.opening_fit_score ?? item.traitFitScore ?? item.trait_fit_score ?? item.styleFitScore ?? item.style_fit_score);
 }
 
 export function fitBand(score) {
@@ -112,7 +133,7 @@ export function performanceBand(item = {}) {
 
 export function performanceSummary(item = {}) {
   const sample = resultSample(item);
-  if (sample.reconciled) return formatResultCounts(sample);
+  if (sample.reconciled) return `${formatResultCounts(sample)} · Win Rate ${sample.winRate}% · Score Rate ${sample.scoreRate}%`;
   if (sample.scoreRate !== null) return `${sample.scoreRate}% chess score across ${sample.games} game${sample.games === 1 ? "" : "s"}`;
   return sample.games ? `${sample.games} opening-specific game${sample.games === 1 ? "" : "s"}; result split unavailable` : "Performance unavailable";
 }
@@ -137,6 +158,7 @@ function recommendationLabel(item = {}, fallback = "Review") {
 
 export function buildOpeningVerdictPresentation(item = {}, options = {}) {
   const fitScore = openingFitScore(item);
+  const suitabilityContract = item.openingSuitability || item.opening_suitability || null;
   const result = resultSample(item);
   const confidence = analysisConfidence(item);
   const opening = String(item.opening || item.openingName || item.name || options.opening || "this opening").trim();
@@ -149,9 +171,9 @@ export function buildOpeningVerdictPresentation(item = {}, options = {}) {
       : `Keep ${opening}, but repair the ${branch} branch.`
     : baseRecommendation;
   return {
-    fit: { label: fitBand(fitScore), score: fitScore, definition: OPENING_VERDICT_DEFINITIONS.fit },
+    fit: { label: fitBand(fitScore), score: fitScore, displayName: suitabilityContract ? "Opening Suitability" : "Legacy fit estimate", version: suitabilityContract?.version || null, definition: OPENING_VERDICT_DEFINITIONS.fit },
     performance: { label: performanceBand(item), score: result.scoreRate, detail: performanceSummary(item), definition: OPENING_VERDICT_DEFINITIONS.performance },
-    confidence: { label: confidence.label, level: confidence.level, games: confidence.games, detail: confidence.explanation, definition: OPENING_VERDICT_DEFINITIONS.confidence },
+    confidence: { label: confidence.label, level: confidence.level, games: confidence.games, detail: confidence.explanation, displayName: "Evidence Confidence", scope: confidence.scope || "opening_decision", definition: OPENING_VERDICT_DEFINITIONS.confidence },
     recommendation,
     branchRepair,
   };
@@ -159,7 +181,7 @@ export function buildOpeningVerdictPresentation(item = {}, options = {}) {
 
 export function formatOpeningVerdictText(item = {}, options = {}) {
   const model = buildOpeningVerdictPresentation(item, options);
-  return `Fit: ${model.fit.label}. Performance: ${model.performance.label}. Confidence: ${model.confidence.label}. Verdict: ${model.recommendation}.`;
+  return `${model.fit.displayName}: ${model.fit.label}. Observed Performance: ${model.performance.label}. Evidence Confidence: ${model.confidence.label}. Verdict: ${model.recommendation}.`;
 }
 
 export function fitEvidence(item = {}) {

@@ -26,7 +26,7 @@ test("free and premium first reports share the same analysis hierarchy", () => {
   assert.deepEqual(free.decisions.map((decision) => decision.title), ["Italian Game", "Sicilian Defence", "This week: practise Sicilian Defence for approximately 10 minutes."]);
   assert.equal(free.decisions[2].action.label, "Start 10-minute practice");
   assert.equal(free.training.cta, "Start 10-minute practice");
-  assert.equal(free.scoreLabel, "Coverage indicator");
+  assert.equal(free.scoreLabel, "Repertoire Health");
   assert.equal(free.establishedRoleCount, 3);
   assert.deepEqual(free.slots.map((slot) => slot.confidence), ["Low confidence", "Low confidence", "Low confidence"]);
 });
@@ -51,7 +51,7 @@ test("the report leads with verdict, evidence, one action and compact status", a
   assert.match(source, /Why isn&apos;t this established\?/);
   assert.match(source, /View evidence and full report/);
   assert.match(source, /Role completeness uses only openings you played in the three core jobs/);
-  assert.match(source, /coverage indicator also shows concentration, evidence strength and unresolved recurring problems/);
+  assert.match(source, /Repertoire Health also shows concentration, evidence strength and unresolved recurring problems/);
   assert.doesNotMatch(source, /<small>\/100<\/small>|Why \$\{view\.score\}\?/);
   assert.doesNotMatch(source, /primaryReportProblem|primaryReportTraining/);
   assert.match(appSource, /onPractice=\{onPractice\}/);
@@ -179,7 +179,7 @@ test("a positive verdict can have medium coverage and no reliable weakness", () 
     training: { type: "keep", opening: "Vienna Game" },
   });
   assert.equal(view.score, 60);
-  assert.equal(view.scoreLabel, "Coverage indicator");
+  assert.equal(view.scoreLabel, "Repertoire Health");
   assert.equal(view.establishedRoleCount, 1);
   assert.equal(view.weaknessState, "strong_results");
   assert.equal(view.problem.title, "No statistically reliable opening weakness was found");
@@ -332,5 +332,5 @@ test("coverage completeness and the weighted indicator remain separate", () => {
   assert.equal(view.establishedRoleCount, 2);
   assert.equal(view.totalRoleCount, 3);
   assert.equal(view.score, 67);
-  assert.equal(view.scoreLabel, "Coverage indicator");
+  assert.equal(view.scoreLabel, "Repertoire Health");
 });

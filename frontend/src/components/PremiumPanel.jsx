@@ -14,7 +14,7 @@ const FAQ = [
   ["Which platforms are supported?", "OpeningFit currently analyses public Chess.com and Lichess games."],
   ["What happens to lifetime access?", "Existing lifetime members keep lifetime access. A subscription launch does not convert or expire a lifetime entitlement."],
   ["How many games are analysed?", "The number depends on public game activity, filters and usable opening records. Each import classifies at most 300 structurally usable games, selected newest first. Free can request up to 3 months of history; Plus can request up to 12 months."],
-  ["Is repertoire coverage a chess rating?", "No. Repertoire coverage describes whether the three core roles are established and supported by enough correctly attributed games. Results and weakness findings are shown separately."],
+  ["Is Repertoire Health a chess rating?", "No. Repertoire Health describes role completeness, concentration, evidence strength and unresolved recurring problems. Individual-opening results and suitability are shown separately."],
 ];
 
 function BillingToggle({ value, onChange, monthlyAmount, annualAmount, saving }) {

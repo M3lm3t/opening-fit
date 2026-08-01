@@ -154,6 +154,7 @@ function recommendationContext(strength) {
 }
 
 export function buildPrimaryReportSummary(model = {}, report = {}) {
+  const healthContract = report.repertoireHealth || report.repertoire_health || model.authoritative?.repertoireHealth || model.authoritative?.repertoireCoverageScore || null;
   const suppliedRoles = Array.isArray(model.repertoire) ? model.repertoire : [];
   const roleModels = suppliedRoles.length && suppliedRoles.every((item) => ["established", "building", "insufficient", "unresolved"].includes(item.status))
     ? suppliedRoles
@@ -201,6 +202,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   const trainingTitle = formatOpeningNameForDisplay(training?.label || (training?.opening ? `Train ${training.opening}` : "Collect more games before changing your repertoire"));
   const rawTrainingReason = trainingPriority?.rationale || training?.objective || training?.reason || model.nextTrainingAction?.reason || "Review one opening focus before your next games.";
   const weakness = noWeaknessExplanation({ model, problem, problemCandidates, strength, slots });
+  if (!problem && healthContract?.weaknessExplanation) weakness.text = text(healthContract.weaknessExplanation);
   const fitContext = recommendationContext(strength);
   const primaryAction = primaryActionCopy({ collectMoreGames, model, report, nextAction, training, problem, strength, priority: trainingPriority, slots });
   primaryAction.title = formatOpeningNameForDisplay(primaryAction.title);
@@ -209,7 +211,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   const completenessLabel = ({ 0: "Repertoire not established yet", 1: "Building repertoire", 2: "Nearly complete", 3: "Complete repertoire" })[establishedRoleCount] || "Repertoire status unavailable";
   return {
     score: model.health?.score !== null && model.health?.score !== undefined && Number.isFinite(Number(model.health.score)) ? Math.round(Number(model.health.score)) : null,
-    scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Coverage pending" : "Coverage indicator",
+    scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Repertoire Health pending" : "Repertoire Health",
     establishedRoleCount,
     completenessLabel,
     totalRoleCount: slots.length,
@@ -219,7 +221,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     recommendationContext: fitContext,
     trainingPriority,
     primaryAction,
-    confidence: text(model.health?.confidence) || "Insufficient data",
+    confidence: healthContract?.confidence?.label ? `Overall Evidence Confidence: ${healthContract.confidence.label}` : text(model.health?.confidence) || "Insufficient data",
     confidenceWarning: lowConfidence ? `This report has ${model.health?.games || 0} game${Number(model.health?.games || 0) === 1 ? "" : "s"} with enough opening information, so recommendations are provisional. More analysed games will improve confidence.` : "",
     slots,
     incompleteRepertoire: slots.some((slot) => !slot.complete),

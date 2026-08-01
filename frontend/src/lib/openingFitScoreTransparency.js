@@ -30,7 +30,7 @@ function breakdown(report = {}) {
 }
 
 function scoreContract(report = {}) {
-  const value = report.repertoireCoverageScore || report.repertoire_coverage_score || report.openingFitScoreContract || report.opening_fit_score_contract || report.score_contract;
+  const value = report.repertoireHealth || report.repertoire_health || report.repertoireCoverageScore || report.repertoire_coverage_score || report.openingFitScoreContract || report.opening_fit_score_contract || report.score_contract;
   return value && typeof value === "object" ? value : {};
 }
 
@@ -65,7 +65,7 @@ function reasonForChange(currentScore, previousScore, current, previous, current
   if (previousScore === null) return "This is your baseline coverage indicator; a later report using the same methodology can explain what changed.";
   if (currentVersion !== previousVersion) return `The saved score uses ${previousVersion}; it is not compared numerically with the current ${currentVersion} method.`;
   if (currentScore === previousScore) return "The rounded coverage indicator is unchanged from the previous report.";
-  if (["repertoire_coverage_v2", "repertoire_coverage_v3"].includes(currentVersion)) {
+  if (["repertoire_health_v2", "repertoire_coverage_v2", "repertoire_coverage_v3"].includes(currentVersion)) {
     const earlier = new Map((previousContract.components || []).map((component) => [component.key, component]));
     const changes = (currentContract.components || []).flatMap((component) => {
       const before = earlier.get(component.key);
@@ -85,32 +85,35 @@ function reasonForChange(currentScore, previousScore, current, previous, current
 }
 
 export function buildOpeningFitScoreTransparency({ model = {}, report = {}, previousReport = null } = {}) {
-  const currentScore = integer(model.health?.score ?? report.openingFitScore ?? report.opening_fit_score);
-  const previousScore = integer(previousReport?.openingfit_score ?? previousReport?.openingFitScore ?? previousReport?.opening_fit_score);
+  const contract = scoreContract(report);
+  const previousContract = scoreContract(previousReport || {});
+  const currentScore = integer(contract.score ?? model.health?.score ?? report.openingFitScore ?? report.opening_fit_score);
+  const previousScore = integer(previousContract.score ?? previousReport?.openingfit_score ?? previousReport?.openingFitScore ?? previousReport?.opening_fit_score);
   const games = integer(model.header?.games ?? report.gamesAnalysed ?? report.gamesImported ?? report.total_games) || 0;
   const currentBreakdown = breakdown(report);
   const previousBreakdown = breakdown(previousReport || {});
-  const contract = scoreContract(report);
-  const previousContract = scoreContract(previousReport || {});
-  const formulaVersion = text(contract.formulaVersion) || "openingfit_score_v1";
-  const previousFormulaVersion = text(previousContract.formulaVersion) || "openingfit_score_v1";
-  const components = ["repertoire_coverage_v2", "repertoire_coverage_v3"].includes(formulaVersion) && Array.isArray(contract.components)
+  const formulaVersion = text(contract.version || contract.formulaVersion) || "openingfit_score_v1";
+  const previousFormulaVersion = text(previousContract.version || previousContract.formulaVersion) || "openingfit_score_v1";
+  const isHealthContract = ["repertoire_health_v2", "repertoire_coverage_v2", "repertoire_coverage_v3"].includes(formulaVersion);
+  const components = isHealthContract && Array.isArray(contract.components)
     ? contract.components.map((component) => ({
       key: component.key,
       title: component.label || component.title || component.key,
       value: integer(component.score),
       exactValue: finite(component.score) ? Number(component.score) : null,
-      weight: integer(component.weight),
+      weight: finite(component.effectiveWeight) ? Number(component.effectiveWeight) : integer(component.weight),
+      baseWeight: finite(component.baseWeight) ? Number(component.baseWeight) : integer(component.weight),
+      available: component.available !== false,
       contribution: finite(component.contribution) ? Number(component.contribution) : null,
       explanation: ({
         repertoireCompleteness: "The share of White, Black against 1.e4, and Black against 1.d4 roles that meet the evidence threshold.",
         evidenceConfidence: "How close the three roles are, on average, to their opening-specific evidence threshold.",
         roleCompleteness: "The share of White, Black against 1.e4, and Black against 1.d4 roles established from openings played by the user.",
-        concentrationConsistency: "The average share held by the leading opening in each user-played role. Missing roles contribute zero.",
+        concentrationConsistency: "The average share held by the leading opening in each role where personal evidence is available. Missing roles are represented by role completeness, not a fabricated zero here.",
         evidenceStrength: "How strongly the leading opening in each role is supported, reaching full strength at 25 unique games.",
         unresolvedRecurringProblems: "Whether the three user-played roles contain an unresolved evidence-backed repair target or a sufficient but mixed signal.",
       })[component.key] || text(component.explanation) || "A documented input to repertoire coverage.",
-    })).filter((component) => component.value !== null && component.weight !== null)
+    })).filter((component) => component.available && component.value !== null && component.weight !== null)
     : OPENINGFIT_SCORE_FORMULA.flatMap((component) => {
       const value = componentValue(currentBreakdown, component);
       return value === null ? [] : [{ key: component.key, title: component.title, value, exactValue: value, weight: component.weight, contribution: value * component.weight / 100, explanation: component.explanation }];
@@ -121,7 +124,7 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
     .slice(0, 3)
     .map((component) => ({ key: component.key, title: component.title, value: component.value, explanation: component.value >= 70 ? `${component.title} supports the current coverage indicator.` : `${component.title} is limiting the current coverage indicator.` }));
   const evidence = components.find((item) => ["evidenceStrength", "evidenceConfidence", "evidenceCoverage"].includes(item.key));
-  const coverage = ["repertoire_coverage_v2", "repertoire_coverage_v3"].includes(formulaVersion)
+  const coverage = isHealthContract
     ? coverageLabel(evidence?.exactValue, model.health?.confidence)
     : finite(evidence?.exactValue)
       ? Number(evidence.exactValue) >= 75 ? "Broad report coverage" : Number(evidence.exactValue) >= 50 ? "Moderate report coverage" : "Limited report coverage"
@@ -131,20 +134,23 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
   return {
     currentScore, previousScore, games, confidence: coverage, coverage, provisional,
     displayScore: components.length ? currentScore : null,
-    scoreDisplayLabel: components.length ? (currentScore === null ? "Score still forming" : `${currentScore}%`) : "Score still forming",
+    scoreDisplayLabel: components.length ? (currentScore === null ? "Score still forming" : `${currentScore}/100`) : "Score still forming",
     statusLabel: provisional ? "Provisional coverage indicator" : coverage,
     components, hasComponentData: components.length > 0,
     reasonForChange: reasonForChange(currentScore, previousScore, currentBreakdown, previousBreakdown, formulaVersion, previousFormulaVersion, contract, previousContract),
     scale: { minimum: 0, maximum: 100 }, formulaVersion, previousFormulaVersion,
-    comparableMethodology: previousScore === null || formulaVersion === previousFormulaVersion,
+    comparableMethodology: previousScore === null || (formulaVersion === previousFormulaVersion && contract.comparisonEligibility?.eligible !== false),
     developmentState: openingFitDevelopmentState(currentScore), contributors,
-    meaning: ["repertoire_coverage_v2", "repertoire_coverage_v3"].includes(formulaVersion)
-      ? text(contract.meaning) || "Coverage measures the three core repertoire roles and their supporting evidence. It is not a chess rating, opening-quality grade, or engine evaluation."
+    meaning: isHealthContract
+      ? text(contract.meaning) || "Repertoire Health describes the condition and completeness of the three core repertoire roles. It is not a chess rating, opening-quality grade, or engine evaluation."
       : "This legacy score mixed repertoire stability, results, evidence and weakness signals. It is retained for historical reports and is not a chess rating or engine judgement.",
-    weaknessContext: weaknessContext(model, repairStatus),
+    weaknessContext: text(contract.weaknessExplanation) || weaknessContext(model, repairStatus),
+    explanation: text(contract.explanation),
+    limitingFactors: Array.isArray(contract.limitingFactors) ? contract.limitingFactors : contributors.slice(0, 2),
+    evidenceConfidence: contract.confidence && typeof contract.confidence === "object" ? contract.confidence : null,
     affects: components.length ? "The calculation uses only the components and weights shown below." : "This older report contains the final score but not a compatible component breakdown.",
-    doesNotAffect: formulaVersion === "repertoire_coverage_v3" ? "Chess rating and opponent openings faced by the player do not fill or lower role completeness." : formulaVersion === "repertoire_coverage_v2" ? "Recent win rate, chess rating and weakness status do not directly change this coverage score." : "Official ratings do not directly determine the legacy score.",
-    whyChange: formulaVersion === "repertoire_coverage_v3"
+    doesNotAffect: formulaVersion === "repertoire_health_v2" || formulaVersion === "repertoire_coverage_v3" ? "Chess rating and opponent openings faced by the player do not fill or lower role completeness." : formulaVersion === "repertoire_coverage_v2" ? "Recent win rate, chess rating and weakness status do not directly change this coverage score." : "Official ratings do not directly determine the legacy score.",
+    whyChange: formulaVersion === "repertoire_health_v2" || formulaVersion === "repertoire_coverage_v3"
       ? "It rises when user-played roles become complete, concentrated, strongly evidenced, and free of unresolved recurring problems."
       : formulaVersion === "repertoire_coverage_v2"
         ? "It rises only when correctly attributed games establish or strengthen White, Black against 1.e4, and Black against 1.d4 evidence."
