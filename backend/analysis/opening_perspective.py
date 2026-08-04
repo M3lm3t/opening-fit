@@ -3,6 +3,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Mapping, TypedDict
 import unicodedata
+import re
+from collections import Counter
 
 
 class RepertoireRole(str, Enum):
@@ -70,37 +72,122 @@ def player_colour_from_names(username: Any, white_username: Any, black_username:
     return ("white", None) if white_match else ("black", None)
 
 
-def _player_identifier_from_record(game: Mapping[str, Any], colour: str) -> tuple[str, bool]:
-    """Read supported platform player shapes without guessing malformed data."""
-    raw = game.get(colour)
-    malformed = raw is not None and not isinstance(raw, (str, Mapping))
-    if isinstance(raw, Mapping):
-        nested_user = raw.get("user") if isinstance(raw.get("user"), Mapping) else {}
-        raw = raw.get("username") or raw.get("name") or raw.get("id") or nested_user.get("name") or nested_user.get("id")
-    elif not isinstance(raw, str):
-        raw = None
-    direct = (
-        raw
-        or game.get(f"{colour}_username")
-        or game.get(f"{colour}Username")
-        or game.get(f"{colour}_name")
-        or game.get(f"{colour}Name")
-    )
-    return normalise_player_identifier(direct), malformed
+def _pgn_header(game: Mapping[str, Any], colour: str) -> str:
+    match = re.search(rf'^\[{colour.title()}\s+"([^"]+)"\]', str(game.get("pgn") or ""), re.MULTILINE)
+    return match.group(1) if match else ""
+
+
+def _player_identifier_candidates(game: Mapping[str, Any], colour: str) -> tuple[list[tuple[str, str]], bool]:
+    """Read supported identifiers in precedence order without using unrelated display fields."""
+    players = game.get("players") if isinstance(game.get("players"), Mapping) else {}
+    values: list[tuple[str, Any]] = []
+    malformed = False
+    for source, raw in (("side", game.get(colour)), ("players", players.get(colour))):
+        if raw is not None and not isinstance(raw, (str, Mapping)):
+            malformed = True
+            continue
+        if isinstance(raw, Mapping):
+            user = raw.get("user") if isinstance(raw.get("user"), Mapping) else {}
+            values.extend([(f"{source}.username", raw.get("username")), (f"{source}.name", raw.get("name")), (f"{source}.userId", raw.get("userId")), (f"{source}.user.name", user.get("name")), (f"{source}.user.id", user.get("id"))])
+        elif isinstance(raw, str):
+            values.append((source, raw))
+    values.extend([
+        ("flattened_username", game.get(f"{colour}_username") or game.get(f"{colour}Username")),
+        ("flattened_name", game.get(f"{colour}_name") or game.get(f"{colour}Name")),
+        ("pgn_header", _pgn_header(game, colour)),
+    ])
+    candidates, seen = [], set()
+    for source, value in values:
+        identifier = normalise_player_identifier(value)
+        if identifier and identifier not in seen:
+            seen.add(identifier)
+            candidates.append((source, identifier))
+    return candidates, malformed
 
 
 def player_colour_from_game(username: Any, game: Mapping[str, Any]) -> tuple[str, str | None]:
     """Resolve colour from raw Chess.com/Lichess or canonical imported records."""
-    white, white_malformed = _player_identifier_from_record(game, "white")
-    black, black_malformed = _player_identifier_from_record(game, "black")
+    user = normalise_player_identifier(username)
+    white, white_malformed = _player_identifier_candidates(game, "white")
+    black, black_malformed = _player_identifier_candidates(game, "black")
+    if len(white) > 1 or len(black) > 1:
+        return "unknown", "player_identifier_conflict"
+    white_match = any(value == user for _source, value in white)
+    black_match = any(value == user for _source, value in black)
+    if white_match and black_match:
+        return "unknown", "player_identifier_conflict"
+    if white_match:
+        return "white", None
+    if black_match:
+        return "black", None
     if white or black:
-        return player_colour_from_names(username, white, black)
+        return "unknown", "analysed_username_not_found"
     explicit = str(game.get("playerColour") or game.get("player_colour") or "").strip().lower()
     if explicit in {"white", "black"}:
         return explicit, None
     if white_malformed or black_malformed:
         return "unknown", "player_data_malformed"
     return "unknown", "player_data_missing"
+
+
+def attribution_diagnostic(username: Any, game: Mapping[str, Any], platform: str = "unknown") -> dict[str, Any]:
+    """Privacy-safe structural detail: never includes usernames, opponents, URLs or PGN."""
+    white, white_malformed = _player_identifier_candidates(game, "white")
+    black, black_malformed = _player_identifier_candidates(game, "black")
+    colour, reason = player_colour_from_game(username, game)
+    return {
+        "platform": str(platform or "unknown"),
+        "schemaVariant": "players_nested" if isinstance(game.get("players"), Mapping) else "side_nested" if isinstance(game.get("white"), Mapping) or isinstance(game.get("black"), Mapping) else "flattened_or_canonical",
+        "whiteIdentifierPresent": bool(white), "blackIdentifierPresent": bool(black),
+        "requestedUsernameMatched": colour in {"white", "black"},
+        "candidateIdentifierCount": len(white) + len(black), "failureReasonCode": reason,
+        "hasPgnHeaders": bool(_pgn_header(game, "white") or _pgn_header(game, "black")),
+        "hasNestedPlayers": isinstance(game.get("players"), Mapping),
+        "hasFlattenedUsernames": bool(game.get("white_username") or game.get("whiteUsername") or game.get("black_username") or game.get("blackUsername")),
+        "malformedPlayerShape": white_malformed or black_malformed,
+    }
+
+
+def summarise_attribution_diagnostics(games: list[Mapping[str, Any]]) -> dict[str, Any]:
+    """Aggregate only categorical reason/schema counts for operator-safe output."""
+    diagnostics = [game.get("attributionDiagnostic") for game in games if isinstance(game.get("attributionDiagnostic"), Mapping)]
+    failures = [item for item in diagnostics if item.get("failureReasonCode")]
+    return {
+        "totalChecked": len(diagnostics),
+        "attributed": len(diagnostics) - len(failures),
+        "failed": len(failures),
+        "reasonCounts": dict(sorted(Counter(str(item.get("failureReasonCode")) for item in failures).items())),
+        "schemaVariantCounts": dict(sorted(Counter(str(item.get("schemaVariant")) for item in diagnostics).items())),
+    }
+
+
+def first_white_move_from_item(item: Mapping[str, Any]) -> str:
+    explicit = item.get("firstWhiteMove") or item.get("first_white_move")
+    if explicit:
+        return str(explicit).strip().rstrip("+#?!")
+    moves = item.get("moves")
+    if isinstance(moves, list) and moves:
+        return str(moves[0]).strip().rstrip("+#?!")
+    if isinstance(moves, str) and moves.strip():
+        return moves.split()[0].strip().rstrip("+#?!")
+    body = "\n".join(line for line in str(item.get("pgn") or "").splitlines() if not line.strip().startswith("["))
+    body = re.sub(r"\{[^}]*\}|\([^)]*\)|\$\d+", " ", body)
+    for token in body.split():
+        clean = re.sub(r"^\d+\.(\.\.)?", "", token).strip().rstrip("+#?!")
+        if clean and clean not in {"1-0", "0-1", "1/2-1/2", "*"}:
+            return clean
+    return ""
+
+
+def validate_repertoire_role_for_game(role: str, game: Mapping[str, Any]) -> tuple[bool, str | None]:
+    """Validate a role from retained player colour and moves, never an opening label."""
+    stored = game.get("perspective") if isinstance(game.get("perspective"), Mapping) else {}
+    colour = str(game.get("playerColour") or game.get("player_colour") or stored.get("userColour") or stored.get("user_colour") or "").lower()
+    relationship = str(game.get("relationship") or stored.get("relationship") or "").lower()
+    if relationship not in {"played", "played_by_user"}:
+        return False, "supporting_game_not_played_by_user"
+    expected, reason = canonical_repertoire_role(colour, first_white_move_from_item(game))
+    return (True, None) if expected == role else (False, reason or "supporting_game_role_mismatch")
 
 
 def canonical_repertoire_role(user_colour: str, first_white_move: str = "") -> tuple[str, str | None]:

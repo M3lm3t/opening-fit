@@ -76,3 +76,29 @@ test("the validator detects contradictions but legacy reports remain non-crashin
   assert.equal(legacy.enforceable, false);
   assert.doesNotThrow(() => assertGeneratedReportConsistency({ reportDecision: { recommendations: [{ openingName: "Legacy" }] } }));
 });
+
+test("role legality is rechecked from every supporting game's colour and first move", () => {
+  const legal = clone();
+  assert.equal(validateReportConsistency(legal).valid, true);
+  const illegal = clone();
+  illegal.analysis_game_index.filter((game) => game.gameId.startsWith("kid-black-d4-")).forEach((game) => { game.moves[0] = "e4"; });
+  assert.ok(validateReportConsistency(illegal).violations.some((violation) => violation.startsWith("illegal_role_support:black_vs_d4:")));
+});
+
+test("opening-level and repeated-line diagnosis scopes remain nested and reconciled", () => {
+  const diagnosis = clone().reportDecision.openingDiagnosis;
+  assert.equal(diagnosis.openingScopeEvidence.supportingGameCount, 43);
+  assert.equal(diagnosis.repeatedLineEvidence.supportingGameCount, 4);
+  assert.ok(diagnosis.repeatedLineEvidence.supportingGameIds.every((id) => diagnosis.openingScopeEvidence.supportingGameIds.includes(id)));
+  assert.doesNotMatch(diagnosis.userFacingDiagnosis, /no single repeated legal position or variation/i);
+});
+
+test("health explanations retain metric, context, unique evidence and exact destination", () => {
+  for (const component of clone().reportDecision.repertoireHealth.components) {
+    assert.ok(component.metric);
+    assert.ok(component.context);
+    assert.equal(component.supportingGameCount, new Set(component.supportingGameIds).size);
+    assert.ok(component.destinationActionId);
+    assert.match(component.explanation, /\d+.*game/i);
+  }
+});

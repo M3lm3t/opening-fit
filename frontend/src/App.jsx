@@ -153,6 +153,7 @@ import { canonicalReportAction, normaliseReportView, reportActionForPriority, re
 import { buildReportGameCounts, reportCountSentence } from "./lib/reportGameCounts.js";
 import { canonicalResultAggregate } from "./lib/reportResults.js";
 import { persistReport, readPersistedReport } from "./lib/reportPersistence.js";
+import { assertGeneratedReportConsistency } from "./lib/reportConsistency.js";
 import { accountExperienceState, subscriptionPresentation } from "./lib/accountExperience.js";
 import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT } from "./lib/productTransparency.js";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
@@ -5131,6 +5132,7 @@ function InterestingThinDataSection({ data, fitData }) {
           return (
             <li key={`${getOpeningName(opening)}-${itemContext(opening)}-${index}`}>
               <strong>{getOpeningName(opening)}</strong>
+              <span>{contextLabel(itemContext(opening))}</span>
               <span>{games} game{games === 1 ? "" : "s"} · {opening.weakDataReason}</span>
             </li>
           );
@@ -14895,6 +14897,12 @@ export default function App() {
 
   const saveLocalAnalysis = (analysis, cleanUsername, selectedPlatformKey = platform) => {
     if (!canPersistReport(analysis)) return false;
+    try {
+      assertGeneratedReportConsistency(analysis);
+    } catch (consistencyError) {
+      console.warn("OpeningFit candidate report failed release invariants", { violations: consistencyError?.message });
+      return false;
+    }
     const savedAt = new Date().toISOString();
     const importedUsername = getImportedAccountUsername(analysis, cleanUsername) || cleanUsername;
     const importedPlatform = getImportedAccountPlatform(analysis, selectedPlatformKey) || selectedPlatformKey;
@@ -15267,6 +15275,14 @@ export default function App() {
     });
   };
 
+  const openLastSuccessfulReport = () => {
+    const restored = readPersistedReport(localStorage, STORAGE_KEY);
+    if (!restored.ok || isSampleReport(restored.analysis)) return false;
+    setData(restored.analysis);
+    handleAppNavigate("report");
+    return true;
+  };
+
   const redirectToReportAfterSuccessfulImport = (redirectKey) => {
     if (!redirectKey) return;
     const alreadyRedirected = reportRedirectKeyRef.current === redirectKey;
@@ -15289,7 +15305,8 @@ export default function App() {
     const cleanUsername = String(usernameOverride ?? username).trim();
     const selectedPlatform = platforms[selectedPlatformKey] || platforms.chesscom;
     const validation = validateImportUsername(cleanUsername);
-    const hadPreviousReport = Boolean(data);
+    const previousPersistedReport = readPersistedReport(localStorage, STORAGE_KEY);
+    const hadPreviousReport = previousPersistedReport.ok && !isSampleReport(previousPersistedReport.analysis);
 
     setImportStage(IMPORT_STAGES.VALIDATING);
     if (!validation.ok) {
@@ -15482,10 +15499,10 @@ export default function App() {
         setError("");
         setImportStatus({
           ...importOutcome,
-          message: `${importOutcome.message} Your previous successful report, if any, is still available.`,
+          message: hadPreviousReport ? `${importOutcome.message} Your previous successful report is still available.` : importOutcome.message,
           category: emptyCategory,
           canRetry: false,
-          recoveryActions: recoveryActionsForImportFailure(emptyCategory, { canExpand: monthsToImport < gameHistoryMonths, hasPreviousReport: Boolean(data) }),
+          recoveryActions: recoveryActionsForImportFailure(emptyCategory, { canExpand: monthsToImport < gameHistoryMonths, hasPreviousReport: hadPreviousReport }),
         });
         setLoadingStep(emptyCategory === "no_eligible_games" ? "No games matched the selected report filters." : "No public games found.");
         await trackEvent("analysis_failed", { platform: selectedPlatformKey, errorCategory: emptyCategory, source: "analysis_form" });
@@ -15511,6 +15528,9 @@ export default function App() {
       analysisProgressRef.current = savingProgress;
       setAnalysisProgress(savingProgress);
       const savedLocally = saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
+      if (!savedLocally) {
+        throw new Error("candidate_report_not_persisted");
+      }
       const completeProgress = { ...savingProgress, stage: IMPORT_STAGES.COMPLETE, message: `${completedImportCounts.fetchedGames} games imported. Your report is ready.` };
       analysisProgressRef.current = completeProgress;
       setImportStage(IMPORT_STAGES.COMPLETE);
@@ -15690,6 +15710,22 @@ export default function App() {
           error: postImportError,
         });
         setLoadingStep("");
+        if (postImportError?.message === "candidate_report_not_persisted") {
+          setImportStage(IMPORT_STAGES.RECOVERABLE_ERROR);
+          setImportStatus({
+            tone: "warning",
+            title: "Report was not replaced",
+            message: hadPreviousReport
+              ? "The new analysis could not pass every save check. Your previous successful report remains available."
+              : "The new analysis could not pass every save check, so no report was stored.",
+            category: "candidate_persistence_failure",
+            canRetry: true,
+            recoveryActions: ["retry", ...(hadPreviousReport ? ["last_report"] : [])],
+          });
+          setCloudSaveStatus("unsaved");
+          setCloudSaveWarning("The candidate report was not saved or shown because persistence verification failed.");
+          return;
+        }
         setCloudSaveStatus((current) => current || "unsaved");
         setCloudSaveWarning(
           "Analysis complete, but some post-import actions could not finish. The report remains open in this tab; check the save status before closing it."
@@ -15711,11 +15747,11 @@ export default function App() {
         setImportStatus({
           tone: "warning",
           title: "Import did not start",
-          message: `OpeningFit hit a local app error before contacting the analysis server. ${data ? "Your last successful report is still available." : "No completed report was replaced."}`,
+          message: `OpeningFit hit a local app error before contacting the analysis server. ${hadPreviousReport ? "Your last successful report is still available." : "No completed report was replaced."}`,
           meta: selectedPlatform.label,
           category: "fatal_local_error",
           canRetry: true,
-          recoveryActions: ["retry", ...(data ? ["last_report"] : [])],
+          recoveryActions: ["retry", ...(hadPreviousReport ? ["last_report"] : [])],
         });
         return;
       }
@@ -15758,7 +15794,7 @@ export default function App() {
       const failure = classifyImportFailure({
         error: err,
         platform: selectedPlatformKey,
-        hadPreviousReport: Boolean(data),
+        hadPreviousReport,
       });
       void trackEvent("account_lookup_failed", { platform: selectedPlatformKey, errorCategory: failure.category });
       void trackEvent("analysis_failed", { platform: selectedPlatformKey, errorCategory: failure.category });
@@ -15771,7 +15807,7 @@ export default function App() {
         meta: selectedPlatform.label,
         category: failure.category,
         canRetry: failure.canRetry,
-        recoveryActions: recoveryActionsForImportFailure(failure.category, { canExpand: monthsToImport < gameHistoryMonths, hasPreviousReport: Boolean(data) }),
+        recoveryActions: recoveryActionsForImportFailure(failure.category, { canExpand: monthsToImport < gameHistoryMonths, hasPreviousReport: hadPreviousReport }),
       });
     } finally {
       if (importAbortRef.current === abortController) {
@@ -17212,8 +17248,8 @@ export default function App() {
                         {importStatus.recoveryActions.includes("sample") ? (
                           <button type="button" onClick={loadDemoReport}>Open example report</button>
                         ) : null}
-                        {importStatus.recoveryActions.includes("last_report") && data ? (
-                          <button type="button" onClick={() => handleAppNavigate("report")}>View last successful report</button>
+                        {importStatus.recoveryActions.includes("last_report") ? (
+                          <button type="button" onClick={openLastSuccessfulReport}>View last successful report</button>
                         ) : null}
                       </div>
                     ) : null}

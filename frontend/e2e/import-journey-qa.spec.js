@@ -231,6 +231,30 @@ test("failed import leaves a correction or retry action", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Retry analysis" })).toBeVisible();
 });
 
+test("a zero-usable candidate retains the last successful report through report-route reload", async ({ page }) => {
+  const baseUrl = appUrl.replace(/\/$/, "");
+  const reportA = { ...reportFixture({ games: 43, score: 68 }), username: "FabioFixture", playerName: "FabioFixture" };
+  const persistedA = JSON.stringify({ schemaVersion: 1, username: "FabioFixture", platform: "chesscom", savedAt: "2026-08-04T10:00:00Z", analysis: reportA });
+  await page.addInitScript((payload) => localStorage.setItem("openingFit:lastAnalysis", payload), persistedA);
+  await page.goto(`${baseUrl}/report#report-summary`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".reportPageTitle")).toBeVisible();
+  await page.getByText("Analyse", { exact: true }).first().click();
+
+  await routeJob(page, [{
+    status: "completed",
+    progress: { stage: "finishing_report", counts: { fetchedGames: 5, analysedGames: 0 } },
+    result: { username: "ThinFixture", platform: "chess.com", gamesImported: 5, gamesFound: 5, gamesAnalysed: 0, gamesClassified: 0, gamesExcluded: 5 },
+  }]);
+  await startImport(page, "ThinFixture");
+  await expect(page.getByText(/previous successful report is still available/i)).toBeVisible({ timeout: 5000 });
+  expect(await page.evaluate(() => localStorage.getItem("openingFit:lastAnalysis"))).toBe(persistedA);
+
+  await page.goto(`${baseUrl}/report#report-summary`, { waitUntil: "domcontentloaded" });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator(".reportPageTitle")).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("openingFit:lastAnalysis")).analysis.username)).toBe("FabioFixture");
+});
+
 test("the report priority survives navigation and a direct signed-out reload of train", async ({ page }) => {
   await routeJob(page, [{
     status: "completed",

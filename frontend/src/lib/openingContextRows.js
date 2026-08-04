@@ -32,7 +32,9 @@ export function mergeOpeningContextRows(items, {
     const relationship = text(item?.relationship || item?.openingRelationship || item?.opening_relationship);
     const role = text(item?.playerRole || item?.player_role || item?.repertoireRole || item?.repertoire_role);
     const colour = text(item?.playerColour || item?.player_color || item?.playerColor || item?.colour || item?.color);
-    const key = [normaliseName(name), context, relationship, role, colour].join("::");
+    const canonicalId = text(item?.canonicalOpeningId || item?.openingId || item?.opening_id) || normaliseName(name);
+    const diagnosisType = text(item?.diagnosisType || item?.diagnosis_type || item?.evidenceGapType || item?.evidence_gap_type || "evidence_gap");
+    const key = [canonicalId, context, relationship, role, colour, diagnosisType].join("::");
     const existing = rows.get(key);
     if (!existing) {
       rows.set(key, { ...item, supportingGameIds: supportingIds(item), variationLabels: variationNames(item) });
@@ -50,7 +52,7 @@ export function mergeOpeningContextRows(items, {
       variationLabels: [...new Set([...variationNames(existing), ...variationNames(item)])],
     });
   }
-  return [...rows.values()];
+  return [...rows.values()].sort((left, right) => [getContext(left), normaliseName(getName(left))].join("::").localeCompare([getContext(right), normaliseName(getName(right))].join("::")));
 }
 
 export function evidenceGapCategory(opening, {

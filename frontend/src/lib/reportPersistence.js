@@ -19,14 +19,24 @@ export function readPersistedReport(storage = globalThis.localStorage, key = "op
 }
 
 export function persistReport(storage = globalThis.localStorage, key = "openingFit:lastAnalysis", payload = {}) {
+  let previousRaw = null;
   try {
     if (!payload?.analysis || typeof payload.analysis !== "object") return { ok: false, reason: "invalid_report" };
     const versioned = { ...payload, schemaVersion: LOCAL_REPORT_SCHEMA_VERSION };
-    storage?.setItem?.(key, JSON.stringify(versioned));
+    const serialized = JSON.stringify(versioned);
+    previousRaw = storage?.getItem?.(key) ?? null;
+    storage?.setItem?.(key, serialized);
+    if (storage?.getItem?.(key) !== serialized) throw new Error("write_verification_failed");
     const restored = readPersistedReport(storage, key);
-    if (!restored.ok) return { ok: false, reason: "write_verification_failed" };
+    if (!restored.ok || JSON.stringify(restored.payload) !== serialized) throw new Error("write_verification_failed");
     return { ok: true, reason: null, payload: versioned };
-  } catch {
-    return { ok: false, reason: "write_failed" };
+  } catch (error) {
+    try {
+      if (previousRaw === null) storage?.removeItem?.(key);
+      else storage?.setItem?.(key, previousRaw);
+    } catch {
+      return { ok: false, reason: "rollback_failed" };
+    }
+    return { ok: false, reason: error?.message === "write_verification_failed" ? "write_verification_failed" : "write_failed" };
   }
 }

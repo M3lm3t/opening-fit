@@ -20,6 +20,8 @@ from analysis.opening_perspective import (
     perspective_from_item,
     player_colour_from_game,
     player_colour_from_names,
+    attribution_diagnostic,
+    summarise_attribution_diagnostics,
 )
 from analysis.classified_game import (
     build_classified_game_record,
@@ -8831,6 +8833,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
             else str(perspective["repertoireSlot"] or perspective["role"])
         )
         perspective_fields = attach_perspective({}, perspective)
+        attribution_detail = attribution_diagnostic(username, game, "chess.com")
         time_control_raw = game.get("time_control") or game.get("timeControl") or game.get("time_class")
         time_control_normalized = normalise_filter_time_control(game.get("time_class") or time_control_raw)
         played_at = (
@@ -8923,6 +8926,8 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
                 "playedDate": played_at,
                 "pgn": pgn,
                 "moves": moves,
+                "firstWhiteMove": first_white_move,
+                "attributionDiagnostic": attribution_detail,
                 "move_count": move_count,
                 "moveCount": move_count,
                 "loss_timing": loss_timing,
@@ -8973,6 +8978,8 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
                 "moves": moves,
                 "movesText": " ".join(moves),
                 "moves_text": " ".join(moves),
+                "firstWhiteMove": first_white_move,
+                "attributionDiagnostic": attribution_detail,
                 "move_count": move_count,
                 "moveCount": move_count,
                 "loss_timing": loss_timing,
@@ -9217,6 +9224,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
     premium_data = build_premium_data(best_openings, style_profile)
     opening_training_opportunities = extract_opening_training_opportunities(recent_games, user_id=username, username=username)
     diagnostic_summary = build_diagnostic_summary(recent_games, username=username)
+    attribution_diagnostics = summarise_attribution_diagnostics(recent_games)
 
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
@@ -9287,6 +9295,8 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
         "openingTrainingOpportunities": opening_training_opportunities,
         "diagnostic_summary": diagnostic_summary,
         "diagnosticSummary": diagnostic_summary,
+        "attributionDiagnostics": attribution_diagnostics,
+        "attribution_diagnostics": attribution_diagnostics,
         "opening_fit_metrics": opening_fit_metrics,
         "openingFitMetrics": opening_fit_metrics,
         "style_based_recommendations": style_based_recommendations,
@@ -9535,6 +9545,7 @@ def build_lichess_analysis(
         )
         perspective_fields = attach_perspective({}, perspective)
         loss_timing = classify_loss_timing(result, moves=moves)
+        attribution_detail = attribution_diagnostic(username, game, "lichess")
         time_control_raw = lichess_time_control_raw(game)
         time_control_normalized = lichess_time_class(game)
         played_at_ms = game.get("lastMoveAt") or game.get("createdAt")
@@ -9648,6 +9659,8 @@ def build_lichess_analysis(
                 "playedDate": played_at,
                 "pgn": simple_pgn,
                 "moves": moves,
+                "firstWhiteMove": first_white_move,
+                "attributionDiagnostic": attribution_detail,
                 "movesText": moves_text,
                 "move_count": move_count,
                 "moveCount": move_count,
@@ -9956,6 +9969,7 @@ def build_lichess_analysis(
     premium_data = build_premium_data(best_openings, style_profile)
     opening_training_opportunities = extract_opening_training_opportunities(recent_games, user_id=username, username=username)
     diagnostic_summary = build_diagnostic_summary(recent_games, username=username)
+    attribution_diagnostics = summarise_attribution_diagnostics(recent_games)
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
 
     count_context = count_context or {}
@@ -10037,6 +10051,8 @@ def build_lichess_analysis(
         "openingTrainingOpportunities": opening_training_opportunities,
         "diagnostic_summary": diagnostic_summary,
         "diagnosticSummary": diagnostic_summary,
+        "attributionDiagnostics": attribution_diagnostics,
+        "attribution_diagnostics": attribution_diagnostics,
         "opening_fit_metrics": opening_fit_metrics,
         "openingFitMetrics": opening_fit_metrics,
         "style_based_recommendations": style_based_recommendations,
@@ -10576,6 +10592,7 @@ def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
                     "openingSide", "perspective", "playerColour", "playerResult", "timeControl",
                     "eco", "openingFamily", "variation", "classificationPly", "playerRole",
                     "relationship", "exclusionReason",
+                    "firstWhiteMove",
                 )
                 if key in game
             }
@@ -10594,6 +10611,7 @@ def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
                     "attributionReasonCode", "openingSide", "perspective", "playerColour",
                     "playerResult", "timeControl", "eco", "openingFamily", "variation",
                     "classificationPly", "playerRole", "relationship", "exclusionReason",
+                    "firstWhiteMove",
                 )
                 if key in game
             })

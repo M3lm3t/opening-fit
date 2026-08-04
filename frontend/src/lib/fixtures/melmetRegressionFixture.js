@@ -29,8 +29,8 @@ const frenchResults = ["win", "draw", "loss", "loss", "loss"];
 const kidIds = ids("kid-black-d4", 2);
 const kidResults = ["draw", "loss"];
 
-const indexed = (gameIds, results, opening, playerColour, moves, classificationPly) => gameIds.map((gameId, index) => ({
-  gameId, opening, playerColour, playerResult: results[index], result: results[index], classificationPly, moves,
+const indexed = (gameIds, results, opening, playerColour, moves, classificationPly, relationship = "played_by_user") => gameIds.map((gameId, index) => ({
+  gameId, opening, playerColour, playerResult: results[index], result: results[index], classificationPly, moves, relationship,
   whiteUsername: playerColour === "white" ? (index % 2 ? " Melmet " : "MELMET") : "Opponent",
   blackUsername: playerColour === "black" ? (index % 2 ? "melmet" : "Melmet") : "Opponent",
 }));
@@ -42,7 +42,7 @@ export const MELMET_REGRESSION_FIXTURE = {
   analysis_game_index: [
     ...indexed(viennaIds, viennaResults, "Vienna Game", "white", ["e4", "e5", "Nc3", "Nf6", "f4", "d5"], 4),
     ...indexed(scandiIds, scandiResults, "Scandinavian Defence", "black", ["e4", "d5", "exd5", "Qxd5", "Nc3", "Qd8"], 4),
-    ...indexed(frenchIds, frenchResults, "French Defence", "white", ["e4", "e6", "d4", "d5", "Nc3", "Nf6"], 4),
+    ...indexed(frenchIds, frenchResults, "French Defence", "white", ["e4", "e6", "d4", "d5", "Nc3", "Nf6"], 4, "faced_by_user"),
     ...indexed(kidIds, kidResults, "King's Indian Defence", "black", ["d4", "Nf6", "c4", "g6", "Nc3", "Bg7", "e4", "d6"], 6),
     { ...indexed(kidIds, kidResults, "King's Indian Defence", "black", ["d4", "Nf6", "c4", "g6"], 4)[0] },
     { gameId: "malformed-unattributable", opening: "Unclassified opening", white: 7, black: [], playerColour: "unknown", playerResult: "unknown" },
@@ -61,22 +61,24 @@ export const MELMET_REGRESSION_FIXTURE = {
     primaryProblem: { recommendationId: "scandi:black", opening: "Scandinavian Defence" },
     experiment: { recommendationId: "experiment:queens-gambit", openingName: "Queen's Gambit", verdict: "experiment", sample: { games: 0 } },
     repertoireRoles: [
-      { key: "white", repertoireRole: "white", status: "established", openingName: "Vienna Game", supportingGameCount: 30, evidenceCount: 30, requiredGameCount: 5, gamesNeeded: 0, evidenceRequirement: { threshold: 5, additionalRelevantGamesRequired: 0 } },
-      { key: "black_e4", repertoireRole: "black_vs_e4", status: "established", openingName: "Scandinavian Defence", supportingGameCount: 43, evidenceCount: 43, requiredGameCount: 5, gamesNeeded: 0, evidenceRequirement: { threshold: 5, additionalRelevantGamesRequired: 0 } },
-      { key: "black_d4", repertoireRole: "black_vs_d4", status: "building", openingName: "King's Indian Defence", supportingGameCount: 2, evidenceCount: 2, requiredGameCount: 5, gamesNeeded: 3, evidenceRequirement: { threshold: 5, additionalRelevantGamesRequired: 3 } },
+      { key: "white", repertoireRole: "white", status: "established", openingName: "Vienna Game", supportingGameCount: 30, evidenceCount: 30, evidenceGameIds: viennaIds, requiredGameCount: 5, gamesNeeded: 0, evidenceRequirement: { threshold: 5, additionalRelevantGamesRequired: 0 } },
+      { key: "black_e4", repertoireRole: "black_vs_e4", status: "established", openingName: "Scandinavian Defence", supportingGameCount: 43, evidenceCount: 43, evidenceGameIds: scandiIds, requiredGameCount: 5, gamesNeeded: 0, evidenceRequirement: { threshold: 5, additionalRelevantGamesRequired: 0 } },
+      { key: "black_d4", repertoireRole: "black_vs_d4", status: "building", openingName: "King's Indian Defence", supportingGameCount: 2, evidenceCount: 2, evidenceGameIds: kidIds, requiredGameCount: 5, gamesNeeded: 3, evidenceRequirement: { threshold: 5, additionalRelevantGamesRequired: 3 } },
     ],
     openingDiagnosis: {
       diagnosisId: "diagnosis:scandi-opening", canonicalDecisionId: "opening-decision:scandi:black", opening: "Scandinavian Defence",
       repertoireRole: "black_vs_e4", playerColour: "black", diagnosisScope: "opening", precisionLevel: "opening",
       supportingGameIds: scandiIds, affectedGameCount: 43, lostGameCount: 20, trainingTaskId: "training-task:scandi-opening",
+      openingScopeEvidence: { scope: "opening", supportingGameIds: scandiIds, supportingGameCount: 43 },
+      repeatedLineEvidence: { scope: "variation", precisionLevel: "variation", supportingGameIds: scandiIds.slice(0, 4), supportingGameCount: 4, variation: "Main line" },
       confidence: "high", confidenceReason: "43 unique opening-level games support this review.",
-      userFacingDiagnosis: "This opening-level pattern recurs across 43 supporting Scandinavian games, but no single repeated legal position or variation was retained.",
+      userFacingDiagnosis: "This opening-level pattern affects 43 supporting Scandinavian games; a validated repeated line appears in four of them and is the narrower training target.",
     },
     primaryAction: { type: "repair_repertoire", verdict: "repair", decisionId: "decision:melmet-regression", recommendationId: "scandi:black", opening: "Scandinavian Defence", repertoireRole: "black_vs_e4", completionTarget: { type: "reviewed_games", count: 3 } },
     trainingPriority: { type: "repair_repertoire", findingType: "opening_weakness", decisionId: "decision:melmet-regression", diagnosisId: "diagnosis:scandi-opening", openingName: "Scandinavian Defence", repertoireRole: "black_vs_e4", openingDiagnosis: null },
     repertoireHealth: { version: "repertoire_health_v2", score: 62, components: [
-      { componentId: "role-completeness", contribution: 28, status: "supported", evidenceSource: "canonical-role-counts", targetDecisionId: "decision:melmet-regression", explanation: "Vienna and Scandinavian provide established White and Black-vs-e4 coverage." },
-      { componentId: "repair-priority", contribution: 10, status: "weakness", evidenceSource: "canonical-scandi-diagnosis", targetDecisionId: "opening-decision:scandi:black", explanation: "Scandinavian results create the current repair priority across 43 supporting games." },
+      { componentId: "role-completeness", contribution: 28, status: "supported", evidenceSource: "canonical-role-counts", targetDecisionId: "decision:melmet-regression", targetCanonicalContextId: "repertoire:all", context: "all_repertoire_roles", metric: "roleCompleteness", direction: "helping", explanationReasonCode: "role_completeness_helping", destinationActionId: "report-action:repertoire-health", supportingGameIds: [...viennaIds, ...scandiIds, ...kidIds], supportingGameCount: 75, explanation: "Role completeness helps across 75 unique role-attributed games." },
+      { componentId: "repair-priority", contribution: 10, status: "weakness", evidenceSource: "canonical-scandi-diagnosis", targetDecisionId: "opening-decision:scandi:black", targetCanonicalContextId: "scandinavian-defence:black_vs_e4", opening: "Scandinavian Defence", context: "black_vs_e4", metric: "recurringProblems", direction: "dragging", explanationReasonCode: "recurring_problem_dragging", destinationActionId: "opening-decision:scandi:black", supportingGameIds: scandiIds, supportingGameCount: 43, explanation: "Scandinavian Defence as Black against 1.e4 contributes recurring problems across 43 games." },
     ] },
   },
   gameCounts: {

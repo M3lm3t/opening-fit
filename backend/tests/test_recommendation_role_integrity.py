@@ -29,8 +29,9 @@ def opening(name: str, role, games: int, wins=None, draws=None, losses=None):
 
 
 def game(name: str, role, number: int, result="draw"):
+    first_move = {"black_vs_e4": "e4", "black_vs_d4": "d4"}.get(role["repertoireRole"], "e4")
     return attach_perspective(
-        {"opening": name, "gameId": f"role-game-{number}", "result": result},
+        {"opening": name, "gameId": f"role-game-{number}", "result": result, "firstWhiteMove": first_move},
         role,
     )
 

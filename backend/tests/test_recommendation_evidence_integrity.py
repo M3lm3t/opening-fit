@@ -21,7 +21,7 @@ def opening(name: str, role: str, games: int, wins: int, draws: int, losses: int
 
 def game(name: str, role: str, number: int, result: str):
     return attach_perspective(
-        {"opening": name, "gameId": f"{role}-{number}", "result": result, "played_at": f"2026-07-{number:02d}T12:00:00Z"},
+        {"opening": name, "gameId": f"{role}-{number}", "result": result, "played_at": f"2026-07-{number:02d}T12:00:00Z", "firstWhiteMove": "e4"},
         perspective(role),
     )
 

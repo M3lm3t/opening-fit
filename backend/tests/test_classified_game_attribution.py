@@ -7,7 +7,7 @@ from analysis.classified_game import (
     record_is_classified,
     record_is_used_for_opening_stats,
 )
-from analysis.opening_perspective import classify_opening_perspective, player_colour_from_game, player_colour_from_names
+from analysis.opening_perspective import attribution_diagnostic, classify_opening_perspective, player_colour_from_game, player_colour_from_names, validate_repertoire_role_for_game
 from analysis.report_decision import _matching_games, build_repertoire_coverage_score, build_repertoire_roles
 from main import (
     ANALYSIS_GAME_LIMIT,
@@ -148,8 +148,9 @@ def test_complete_analysis_index_prevents_large_sample_from_becoming_insufficien
         {
             "gameId": f"scandi-{index}",
             "opening": "Scandinavian Defence",
-            "result": "win",
-            "perspective": perspective,
+                "result": "win",
+                "perspective": perspective,
+                "firstWhiteMove": "e4",
         }
         for index in range(78)
     ]
@@ -167,10 +168,10 @@ def test_faced_openings_never_fill_a_player_repertoire_role():
         user_colour="white", opening_side="black", first_white_move="e4"
     )
     report = {"analysis_game_index": [
-        {"gameId": f"played-{index}", "opening": "Scandinavian Defence", "result": "win", "perspective": played}
+            {"gameId": f"played-{index}", "opening": "Scandinavian Defence", "result": "win", "perspective": played, "firstWhiteMove": "e4"}
         for index in range(8)
     ] + [
-        {"gameId": f"faced-{index}", "opening": "Scandinavian Defence", "result": "loss", "perspective": faced}
+            {"gameId": f"faced-{index}", "opening": "Scandinavian Defence", "result": "loss", "perspective": faced, "firstWhiteMove": "e4"}
         for index in range(94)
     ]}
     recommendation = {
@@ -213,10 +214,10 @@ def test_large_scandinavian_black_sample_establishes_the_role_and_coverage_uses_
     faced = classify_opening_perspective(user_colour="white", opening_side="black", first_white_move="e4")
     played_ids = [f"scandi-black-{index}" for index in range(78)]
     report = {"analysis_game_index": [
-        {"gameId": game_id, "opening": "Scandinavian Defence", "result": "draw", "perspective": played}
+            {"gameId": game_id, "opening": "Scandinavian Defence", "result": "draw", "perspective": played, "firstWhiteMove": "e4"}
         for game_id in played_ids
     ] + [
-        {"gameId": f"scandi-faced-{index}", "opening": "Scandinavian Defence", "result": "loss", "perspective": faced}
+            {"gameId": f"scandi-faced-{index}", "opening": "Scandinavian Defence", "result": "loss", "perspective": faced, "firstWhiteMove": "e4"}
         for index in range(94)
     ]}
     recommendation = {
@@ -243,13 +244,26 @@ def test_large_scandinavian_black_sample_establishes_the_role_and_coverage_uses_
 def test_duplicate_kings_indian_context_uses_each_game_once():
     played = classify_opening_perspective(user_colour="black", opening_side="black", first_white_move="d4")
     games = [
-        {"gameId": f"kid-{index}", "opening": "King's Indian Defence", "result": "draw", "perspective": played}
+        {"gameId": f"kid-{index}", "opening": "King's Indian Defence", "result": "draw", "perspective": played, "firstWhiteMove": "d4"}
         for index in range(9)
     ]
     report = {"analysis_game_index": games + games[:7]}
     roles = build_repertoire_roles([], report)
     black_d4 = next(role for role in roles if role["key"] == "black_d4")
     assert black_d4["evidenceFunnel"]["openingBreakdown"] == [{"openingName": "King's Indian Defence", "games": 9, "gameIds": [f"kid-{index}" for index in range(9)]}]
+
+
+def test_nimzo_support_is_legal_only_for_black_against_d4():
+    game = {"gameId": "nimzo-1", "opening": "Nimzo-Indian Defence", "playerColour": "black", "relationship": "played_by_user", "moves": ["d4", "Nf6", "c4", "e6", "Nc3", "Bb4"]}
+    assert validate_repertoire_role_for_game("black_vs_d4", game) == (True, None)
+    assert validate_repertoire_role_for_game("black_vs_e4", game) == (False, "supporting_game_role_mismatch")
+
+
+@pytest.mark.parametrize("first_move", ["c4", "Nf3", "f4"])
+def test_other_first_moves_do_not_leak_into_modelled_black_roles(first_move):
+    game = {"playerColour": "black", "relationship": "played_by_user", "firstWhiteMove": first_move}
+    assert not validate_repertoire_role_for_game("black_vs_e4", game)[0]
+    assert not validate_repertoire_role_for_game("black_vs_d4", game)[0]
 
 
 def test_excluded_canonical_record_preserves_reason_without_becoming_classified_usage():
@@ -325,9 +339,20 @@ def test_chesscom_result_and_score_are_from_the_requested_players_perspective():
         ({"white": {"username": " Melmet "}, "black": {"username": "Other"}}, ("white", None)),
         ({"whiteUsername": "Other", "black_username": "MELMET"}, ("black", None)),
         ({"players": {}, "playerColour": "black"}, ("black", None)),
+        ({"players": {"white": {"user": {"name": "Other"}}, "black": {"user": {"id": " MELMET "}}}}, ("black", None)),
+        ({"white": {"name": "melmet"}, "black": {"name": "Other"}}, ("white", None)),
+        ({"pgn": '[White "Other"]\n[Black " Melmet "]\n\n1. e4 e5'}, ("black", None)),
+        ({"white": {"username": "melmet"}, "blackUsername": "MELMET"}, ("unknown", "player_identifier_conflict")),
         ({}, ("unknown", "player_data_missing")),
         ({"white": 7, "black": []}, ("unknown", "player_data_malformed")),
     ],
 )
 def test_shared_game_username_attribution_handles_platform_and_canonical_shapes(game, expected):
     assert player_colour_from_game("melmet", game) == expected
+
+
+def test_attribution_diagnostic_contains_only_structural_categories():
+    diagnostic = attribution_diagnostic("melmet", {"white": {"username": "Opponent"}, "black": {"username": "Missing"}, "url": "private"}, "chess.com")
+    assert diagnostic["failureReasonCode"] == "analysed_username_not_found"
+    assert diagnostic["candidateIdentifierCount"] == 2
+    assert not ({"username", "opponent", "url", "pgn"} & set(diagnostic))

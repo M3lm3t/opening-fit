@@ -17,6 +17,30 @@ function confidenceDimensions(row = {}) {
   ];
 }
 
+function firstWhiteMove(game = {}) {
+  const explicit = text(game.firstWhiteMove || game.first_white_move).replace(/[+#?!]+$/g, "");
+  if (explicit) return explicit;
+  if (Array.isArray(game.moves)) return text(game.moves[0]).replace(/[+#?!]+$/g, "");
+  if (typeof game.moves === "string") return text(game.moves.split(/\s+/)[0]).replace(/[+#?!]+$/g, "");
+  const body = text(game.pgn).split(/\r?\n/).filter((line) => !line.trim().startsWith("[")).join(" ").replace(/\{[^}]*\}|\([^)]*\)|\$\d+/g, " ");
+  for (const token of body.split(/\s+/)) {
+    const move = token.replace(/^\d+\.(\.\.)?/, "").replace(/[+#?!]+$/g, "");
+    if (move && !["1-0", "0-1", "1/2-1/2", "*"].includes(move)) return move;
+  }
+  return "";
+}
+
+function roleIsLegal(role, game = {}) {
+  const colour = text(game.playerColour || game.player_colour || game.perspective?.userColour).toLowerCase();
+  const move = firstWhiteMove(game);
+  const relationship = text(game.relationship || game.perspective?.relationship).toLowerCase();
+  const played = ["played", "played_by_user"].includes(relationship);
+  if (role === "white") return colour === "white" && played;
+  if (role === "black_vs_e4") return colour === "black" && played && move === "e4";
+  if (role === "black_vs_d4") return colour === "black" && played && move === "d4";
+  return false;
+}
+
 const ACTION_SUPPORT = Object.freeze({
   open_evidence: "evidence",
   open_diagnosed_problem: "problems",
@@ -31,6 +55,7 @@ export function validateReportConsistency(report = {}) {
   const violations = [];
   const verdictById = new Map();
   const contexts = new Set();
+  const gameIndex = new Map(list(report.analysis_game_index || report.analysisGameIndex || report.opening_games || report.openingGames).map((game) => [text(game.gameId || game.game_id || game.url), game]));
 
   for (const row of recommendations) {
     const decisionId = text(row.decisionId || row.recommendationId);
@@ -58,6 +83,14 @@ export function validateReportConsistency(report = {}) {
   }
 
   for (const role of list(decision.repertoireRoles || decision.roleDecisions)) {
+    const roleId = text(role.repertoireRole || role.role);
+    const supportingIds = list(role.evidenceGameIds || role.supportingGameIds).map(text).filter(Boolean);
+    const declaredSupport = number(role.supportingGameCount ?? role.evidenceCount ?? role.sampleSize);
+    if (enforceable && declaredSupport !== null && declaredSupport !== supportingIds.length) violations.push(`role_support_count_mismatch:${roleId}`);
+    for (const gameId of supportingIds) {
+      const game = gameIndex.get(gameId);
+      if (!game || !roleIsLegal(roleId, game)) violations.push(`illegal_role_support:${roleId}:${gameId}`);
+    }
     const current = number(role.supportingGameCount ?? role.evidenceCount ?? role.sampleSize);
     const threshold = number(role.requiredGameCount ?? role.sampleThreshold ?? role.evidenceRequirement?.threshold);
     const stated = number(role.evidenceRequirement?.additionalRelevantGamesRequired ?? role.evidenceFunnel?.additionalRequired ?? role.gamesNeeded);
@@ -70,6 +103,16 @@ export function validateReportConsistency(report = {}) {
   const diagnosisIds = diagnoses.map((item) => text(item?.diagnosisId || item?.diagnosis_id)).filter(Boolean);
   if (diagnosisIds.length !== new Set(diagnosisIds).size) violations.push("duplicate_diagnosis_id");
   if (diagnoses.some((item) => !text(item?.diagnosisId || item?.diagnosis_id))) violations.push("missing_diagnosis_id");
+  const canonicalDiagnosis = decision.openingDiagnosis || decision.opening_diagnosis;
+  if (canonicalDiagnosis?.openingScopeEvidence) {
+    const openingIds = list(canonicalDiagnosis.openingScopeEvidence.supportingGameIds).map(text).filter(Boolean);
+    if (openingIds.length !== new Set(openingIds).size || openingIds.length !== number(canonicalDiagnosis.openingScopeEvidence.supportingGameCount)) violations.push("opening_diagnosis_scope_mismatch");
+    const line = canonicalDiagnosis.repeatedLineEvidence;
+    if (line) {
+      const lineIds = list(line.supportingGameIds).map(text).filter(Boolean);
+      if (lineIds.length !== new Set(lineIds).size || lineIds.length !== number(line.supportingGameCount) || lineIds.some((id) => !openingIds.includes(id))) violations.push("line_diagnosis_scope_mismatch");
+    }
+  }
 
   for (const rawAction of list(report.reportActions)) {
     const action = canonicalReportAction(rawAction);
@@ -86,12 +129,15 @@ export function validateReportConsistency(report = {}) {
 
   const componentClaims = new Map();
   for (const component of list(decision.repertoireHealth?.components || report.repertoireHealth?.components)) {
+    const healthIds = list(component.supportingGameIds).map(text).filter(Boolean);
+    if (enforceable && (healthIds.length !== new Set(healthIds).size || healthIds.length !== number(component.supportingGameCount))) violations.push(`health_support_count_mismatch:${text(component.componentId)}`);
+    if (enforceable && [component.componentId, component.targetCanonicalContextId, component.context, component.metric, component.direction, component.explanationReasonCode, component.destinationActionId].some((value) => !text(value))) violations.push(`unstructured_health_component:${text(component.componentId)}`);
     const target = text(component.targetDecisionId || component.targetDiagnosisId);
-    const source = text(component.evidenceSource || component.source);
+    const source = text(component.metric || component.evidenceSource || component.source);
     if (!target || !source) continue;
     const claim = `${text(component.status)} ${text(component.explanation)}`.toLowerCase();
     const polarity = /drag|hurt|negative|weak/.test(claim) ? "negative" : /help|strength|positive|support/.test(claim) ? "positive" : "neutral";
-    const key = `${target}::${source}`;
+    const key = `${text(component.targetCanonicalContextId) || target}::${source}`;
     if (componentClaims.has(key) && componentClaims.get(key) !== polarity && ![componentClaims.get(key), polarity].includes("neutral")) violations.push(`contradictory_health_component:${key}`);
     componentClaims.set(key, polarity);
   }

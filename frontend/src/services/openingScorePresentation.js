@@ -187,6 +187,8 @@ function buildFactors({ data, health, repertoireMap, openings }) {
     ...asArray(data.recurringWeakLines),
     ...asArray(data.recurring_weak_lines),
   ];
+  const evidenceContext = (item) => item?.contextLabel || item?.roleLabel || ({ white: "as White", black_vs_e4: "as Black against 1.e4", black_vs_d4: "as Black against 1.d4", played_as_white: "as White" }[item?.repertoireRole || item?.context] || "in this opening context");
+  const evidenceCount = (item) => openingGames(item);
 
   factors.push({
     key: "repertoire",
@@ -214,7 +216,7 @@ function buildFactors({ data, health, repertoireMap, openings }) {
       status: statusForScore(health.breakdown.recentForm),
       text:
         strongOpenings.length
-          ? `${openingName(strongOpenings[0])} is helping the score because it has a stronger current signal.`
+          ? `${openingName(strongOpenings[0])} ${evidenceContext(strongOpenings[0])} helps results: ${scoreOpening(strongOpenings[0])}% across ${evidenceCount(strongOpenings[0])} games.`
           : "Your main-opening results are still looking for one clearly positive anchor.",
       action: actionForFactor("results"),
     });
@@ -228,7 +230,7 @@ function buildFactors({ data, health, repertoireMap, openings }) {
       text:
         weakLines.length
           ? "Recurring opening problems are still showing up in the analysed games."
-          : `${openingName(weakOpenings[0])} is dragging the score because the current sample is less stable.`,
+          : `${openingName(weakOpenings[0])} ${evidenceContext(weakOpenings[0])} contributes weaker results: ${scoreOpening(weakOpenings[0])}% across ${evidenceCount(weakOpenings[0])} games.`,
       action: actionForFactor("mistakes"),
     });
   }

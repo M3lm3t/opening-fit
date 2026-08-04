@@ -10,7 +10,7 @@ from typing import Any, Iterable, Mapping, Optional
 import chess
 import chess.pgn
 
-from analysis.opening_perspective import RepertoireRole, normalise_player_identifier, perspective_from_item
+from analysis.opening_perspective import RepertoireRole, normalise_player_identifier, perspective_from_item, validate_repertoire_role_for_game
 from analysis.classified_game import canonical_player_role
 from analysis.evidence_thresholds import (
     HIGH_CONFIDENCE_GAMES,
@@ -251,6 +251,10 @@ def _matching_games(report: Mapping[str, Any], item: Mapping[str, Any]) -> list[
             continue
         if perspective.get("repertoireRole") != expected.get("repertoireRole"):
             continue
+        if expected.get("relationship") == "played":
+            legal, _reason = validate_repertoire_role_for_game(str(expected.get("repertoireRole") or ""), game)
+            if not legal:
+                continue
         if expected.get("relationship") != "unknown" and perspective.get("relationship") != expected.get("relationship"):
             continue
         if not perspective.get("roleAttributionTrusted"):
@@ -897,6 +901,10 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
             ):
                 continue
             seen_role_game_ids.add(game_id)
+            legal, legality_reason = validate_repertoire_role_for_game(spec["role"], game)
+            if not legal:
+                unresolved_role_games.append({**dict(game), "roleLegalityReasonCode": legality_reason})
+                continue
             if game_perspective.get("roleAttributionTrusted"):
                 matching_role_games.append(game)
             else:
@@ -925,7 +933,7 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
             current = int(leading["games"])
             sample_ids = list(leading["gameIds"])
             candidate = next((item for item in candidates if _opening_key(item.get("openingName")) == _opening_key(opening)), None)
-        else:
+        elif not _has_report_game_collection(report):
             sample = candidate.get("sample") if isinstance(candidate, Mapping) and isinstance(candidate.get("sample"), Mapping) else {}
             current = max(0, int(_number(sample.get("games")) or 0))
             opening = str(candidate.get("openingName") or "").strip() if candidate else ""
@@ -939,6 +947,8 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
                 for item in candidates
                 if int(_number((item.get("sample") or {}).get("games")) or 0) > 0
             ]
+        else:
+            current, opening, sample_ids, opening_breakdown, candidate = 0, "", [], [], None
         attributed = sum(int(item["games"]) for item in opening_breakdown)
         attributed_openings = len(opening_breakdown)
         additional = max(0, MIN_OPENING_EVIDENCE - current)
@@ -1085,12 +1095,31 @@ def build_repertoire_coverage_score(repertoire_roles: list[Mapping[str, Any]], p
     }
     available_weight = sum(item["weight"] for item in REPERTOIRE_COVERAGE_COMPONENTS if values[item["key"]] is not None)
     components = []
+    all_role_game_ids = list(dict.fromkeys(
+        str(game_id)
+        for role in repertoire_roles
+        for game_id in (role.get("evidenceGameIds") or [])
+        if str(game_id)
+    ))
     for item in REPERTOIRE_COVERAGE_COMPONENTS:
         value = values[item["key"]]
         available = value is not None
         effective_weight = (item["weight"] / available_weight * 100) if available and available_weight else 0.0
+        direction = "neutral" if not available or 40 < float(value) < 70 else "helping" if float(value) >= 70 else "dragging"
         components.append({
             **item,
+            "componentId": f"health:{item['key']}",
+            "targetCanonicalContextId": "repertoire:all",
+            "opening": None,
+            "context": "all_repertoire_roles",
+            "supportingGameIds": all_role_game_ids,
+            "supportingGameCount": len(all_role_game_ids),
+            "metric": item["key"],
+            "direction": direction,
+            "explanationReasonCode": f"{item['key']}_{direction}",
+            "destinationActionId": "report-action:repertoire-health",
+            "evidenceSource": f"canonical-health-metric:{item['key']}",
+            "explanation": (f"{item['label']} is {direction} at {value}% across {len(all_role_game_ids)} unique role-attributed games." if available else f"{item['label']} is neutral because no role-attributed evidence is available."),
             "value": value,
             "score": value,
             "baseWeight": item["weight"],
@@ -1506,6 +1535,15 @@ def _build_opening_diagnosis(target: Mapping[str, Any], report: Mapping[str, Any
     diagnosis_id = "diagnosis:" + hashlib.sha256("|".join([str(decision_id or source_report_id or "report"), opening, role, str((selected or {}).get("key") or precision), *diagnosis_ids]).encode()).hexdigest()[:20]
     diagnosis_scope = "position" if precision == "exact_position" else "variation" if precision in {"move_order", "variation"} else "opening"
     lost_game_count = sum(1 for game in diagnosis_games if str(game.get("result") or "").lower() == "loss")
+    opening_scope_ids = sorted(set(str(value) for value in evidence_ids if str(value)))
+    repeated_line_evidence = ({
+        "scope": diagnosis_scope,
+        "precisionLevel": precision,
+        "supportingGameIds": diagnosis_ids,
+        "supportingGameCount": len(diagnosis_ids),
+        "positionKey": (selected or {}).get("key"),
+        "variation": variation,
+    } if precision in {"exact_position", "move_order", "variation"} else None)
     return {
         "version": OPENING_DIAGNOSIS_VERSION, "diagnosisId": diagnosis_id,
         "trainingTaskId": f"training-task:{diagnosis_id.removeprefix('diagnosis:')}",
@@ -1513,6 +1551,8 @@ def _build_opening_diagnosis(target: Mapping[str, Any], report: Mapping[str, Any
         "opening": opening, "openingFamily": opening, "variation": variation, "eco": eco,
         "repertoireRole": role, "playerColour": colour, "precisionLevel": precision,
         "diagnosisScope": diagnosis_scope,
+        "openingScopeEvidence": {"scope": "opening", "supportingGameIds": opening_scope_ids, "supportingGameCount": len(opening_scope_ids)},
+        "repeatedLineEvidence": repeated_line_evidence,
         "confidence": confidence, "confidenceReason": confidence_reason,
         "gamesConsidered": len(valid), "supportingGameIds": diagnosis_ids,
         "affectedGameCount": len(diagnosis_ids), "lostGameCount": lost_game_count,
@@ -1777,6 +1817,15 @@ def assert_decision_consistency(decision: Mapping[str, Any]) -> None:
             raise ValueError("decision_contract: diagnosis evidence escapes the primary opening sample")
         if not set(representative_ids).issubset(set(diagnosis_ids)):
             raise ValueError("decision_contract: diagnosis representative game is unsupported")
+        opening_scope = diagnosis.get("openingScopeEvidence") if isinstance(diagnosis.get("openingScopeEvidence"), Mapping) else {}
+        opening_scope_ids = [str(value) for value in opening_scope.get("supportingGameIds") or []]
+        if len(opening_scope_ids) != len(set(opening_scope_ids)) or int(_number(opening_scope.get("supportingGameCount")) or 0) != len(opening_scope_ids):
+            raise ValueError("decision_contract: opening diagnosis scope does not reconcile")
+        line_scope = diagnosis.get("repeatedLineEvidence") if isinstance(diagnosis.get("repeatedLineEvidence"), Mapping) else None
+        if line_scope:
+            line_ids = [str(value) for value in line_scope.get("supportingGameIds") or []]
+            if len(line_ids) != len(set(line_ids)) or int(_number(line_scope.get("supportingGameCount")) or 0) != len(line_ids) or not set(line_ids).issubset(set(opening_scope_ids)):
+                raise ValueError("decision_contract: repeated-line diagnosis scope does not reconcile")
         if diagnosis.get("canonicalDecisionId") != (primary or {}).get("decisionId"):
             raise ValueError("decision_contract: diagnosis belongs to another decision")
         if diagnosis.get("opening") != (primary or {}).get("opening") or diagnosis.get("repertoireRole") != (primary or {}).get("repertoireRole"):
@@ -1802,6 +1851,19 @@ def assert_decision_consistency(decision: Mapping[str, Any]) -> None:
     health = decision.get("repertoireHealth") or decision.get("repertoireCoverageScore")
     if isinstance(health, Mapping):
         available = [row for row in health.get("components", []) if isinstance(row, Mapping) and row.get("available")]
+        health_claims: dict[tuple[str, str], str] = {}
+        for row in [item for item in health.get("components", []) if isinstance(item, Mapping)]:
+            ids = [str(value) for value in row.get("supportingGameIds") or []]
+            if len(ids) != len(set(ids)) or int(_number(row.get("supportingGameCount")) or 0) != len(ids):
+                raise ValueError("decision_contract: health component evidence count does not reconcile")
+            if not all(row.get(key) is not None for key in ("componentId", "targetCanonicalContextId", "context", "metric", "direction", "explanationReasonCode", "destinationActionId")):
+                raise ValueError("decision_contract: health component lacks structured evidence")
+            claim_key = (str(row.get("targetCanonicalContextId")), str(row.get("metric")))
+            prior_direction = health_claims.get(claim_key)
+            direction = str(row.get("direction"))
+            if prior_direction and prior_direction != direction and "neutral" not in {prior_direction, direction}:
+                raise ValueError("decision_contract: one health metric both helps and drags the same context")
+            health_claims[claim_key] = direction
         effective_total = sum(float(_number(row.get("effectiveWeight")) or 0) for row in available)
         reproduced = sum(float(_number(row.get("contribution")) or 0) for row in available)
         if available and abs(effective_total - 100) > 0.00001:

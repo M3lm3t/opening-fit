@@ -21,6 +21,18 @@ test("the same family remains separate across played and faced contexts", () => 
   assert.equal(rows.length, 2);
 });
 
+test("diagnosis type participates in identity and merged rows have stable context ordering", () => {
+  const rows = mergeOpeningContextRows([
+    { openingId: "nimzo", openingName: "Nimzo-Indian Defence", context: "black_vs_d4", diagnosisType: "mixed_signal", supportingGameIds: ["n-2"] },
+    { openingId: "nimzo", openingName: "Nimzo-Indian Defence", context: "black_vs_d4", diagnosisType: "evidence_gap", supportingGameIds: ["n-1", "n-1"] },
+    { openingId: "nimzo", openingName: "Nimzo-Indian Defence", context: "black_vs_d4", diagnosisType: "evidence_gap", supportingGameIds: ["n-1"] },
+    { openingId: "kid", openingName: "King's Indian Defence", context: "black_vs_e4", diagnosisType: "evidence_gap", supportingGameIds: ["k-1"] },
+  ]);
+  assert.equal(rows.length, 3);
+  assert.deepEqual(rows.map((row) => row.context), ["black_vs_d4", "black_vs_d4", "black_vs_e4"]);
+  assert.equal(rows.find((row) => row.diagnosisType === "evidence_gap" && row.openingId === "nimzo").supportingGameIds.length, 1);
+});
+
 test("large samples are never labelled small and faced evidence does not become a repertoire gap", () => {
   const opening = { openingName: "Scandinavian Defence", games: 94, relationship: "faced_by_user", evidenceStatus: "sufficient" };
   assert.equal(evidenceGapCategory(opening), "Sufficient evidence but mixed performance");

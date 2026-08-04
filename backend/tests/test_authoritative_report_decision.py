@@ -41,6 +41,7 @@ def games_for(name, role, results, *, prefix=None):
                 "openingFamily": name,
                 "gameId": f"{marker}-{index}",
                 "result": result,
+                "firstWhiteMove": "d4" if role == "black_vs_d4" else "e4",
                 "played_at": f"2026-07-{index:02d}T12:00:00Z",
             },
             context(role),
