@@ -12,7 +12,12 @@ export function canonicalResultAggregate(source = {}, { precision = 1 } = {}) {
   const wins = Number(sample.wins ?? source.wins ?? 0) || 0;
   const draws = Number(sample.draws ?? source.draws ?? 0) || 0;
   const losses = Number(sample.losses ?? source.losses ?? 0) || 0;
-  const knownResults = Number(sample.knownResults ?? sample.known_results ?? source.knownResults ?? source.known_results ?? wins + draws + losses) || 0;
+  const wdlResults = wins + draws + losses;
+  const suppliedKnownResults = Number(sample.knownResults ?? sample.known_results ?? source.knownResults ?? source.known_results ?? wdlResults) || 0;
+  // Backend aggregate metadata can retain a pre-filter known-results count while
+  // the W/D/L values already represent the canonical displayed sample. When the
+  // complete W/D/L total reconciles with games, it is the exact score denominator.
+  const knownResults = wdlResults > 0 && wdlResults <= games ? wdlResults : suppliedKnownResults;
   const supplied = sample.scoreRate ?? source.observedPerformance?.scoreRate ?? source.observed_performance?.scoreRate ?? source.scoreRate ?? source.score_rate ?? source.winRate ?? source.win_rate ?? source.score;
   const scoreRate = knownResults > 0
     ? ((wins + draws * 0.5) / knownResults) * 100

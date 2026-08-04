@@ -65,5 +65,5 @@ test("local report save verifies the write and survives direct report/hash reloa
   assert.equal(stale.migrated, true);
   assert.equal(readPersistedReport(memoryStorage({ report: "{" }), "report").reason, "corrupt");
   const blocked = { getItem: () => null, setItem: () => { throw new Error("blocked"); } };
-  assert.deepEqual(persistReport(blocked, "report", { analysis: report }), { ok: false, reason: "write_failed" });
+  assert.deepEqual(persistReport(blocked, "report", { analysis: report }), { ok: false, reason: "local_write_failed", rollbackFailed: false });
 });

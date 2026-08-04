@@ -24,13 +24,23 @@ export function readPersistedReport(storage = globalThis.localStorage, key = "op
 
 export function persistReport(storage = globalThis.localStorage, key = "openingFit:lastAnalysis", payload = {}) {
   let previousRaw = null;
+  let serialized;
+  let failureReason = "local_write_failed";
+  if (!payload?.analysis || typeof payload.analysis !== "object") return { ok: false, reason: "invalid_report" };
   try {
-    if (!payload?.analysis || typeof payload.analysis !== "object") return { ok: false, reason: "invalid_report" };
     const versioned = { ...payload, schemaVersion: LOCAL_REPORT_SCHEMA_VERSION };
-    const serialized = JSON.stringify(versioned);
+    try {
+      serialized = JSON.stringify(versioned);
+      if (typeof serialized !== "string") throw new Error("serialization_failed");
+    } catch {
+      return { ok: false, reason: "local_serialisation_failed" };
+    }
+    failureReason = "local_readback_failed";
     previousRaw = storage?.getItem?.(key) ?? null;
+    failureReason = "local_write_failed";
     storage?.setItem?.(key, serialized);
-    if (storage?.getItem?.(key) !== serialized) throw new Error("write_verification_failed");
+    failureReason = "local_readback_failed";
+    if (storage?.getItem?.(key) !== serialized) throw new Error("readback_mismatch");
     const restored = readPersistedReport(storage, key);
     const expectedId = payload.analysis.analysisId || payload.analysis.analysis_id || null;
     const restoredId = restored.analysis?.analysisId || restored.analysis?.analysis_id || null;
@@ -39,15 +49,15 @@ export function persistReport(storage = globalThis.localStorage, key = "openingF
       JSON.stringify(restored.payload) !== serialized ||
       restored.payload?.schemaVersion !== LOCAL_REPORT_SCHEMA_VERSION ||
       (expectedId && restoredId !== expectedId)
-    ) throw new Error("write_verification_failed");
-    return { ok: true, reason: null, payload: versioned };
-  } catch (error) {
+    ) throw new Error("readback_mismatch");
+    return { ok: true, reason: null, payload: versioned, serialized };
+  } catch {
     try {
       if (previousRaw === null) storage?.removeItem?.(key);
       else storage?.setItem?.(key, previousRaw);
     } catch {
-      return { ok: false, reason: "rollback_failed" };
+      return { ok: false, reason: failureReason, rollbackFailed: true };
     }
-    return { ok: false, reason: error?.message === "write_verification_failed" ? "write_verification_failed" : "write_failed" };
+    return { ok: false, reason: failureReason, rollbackFailed: false };
   }
 }

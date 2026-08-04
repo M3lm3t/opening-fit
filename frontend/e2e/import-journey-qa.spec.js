@@ -1,6 +1,7 @@
 /* global process */
 import { expect, test } from "playwright/test";
 import { SAMPLE_REPORT } from "../src/fixtures/sampleReport.js";
+import { FABIO_PRODUCTION_RESPONSE_FIXTURE } from "../src/lib/fixtures/fabioProductionResponseFixture.js";
 
 const appUrl = process.env.OPENINGFIT_E2E_URL;
 test.skip(!appUrl, "Set OPENINGFIT_E2E_URL to a configured local preview.");
@@ -225,6 +226,30 @@ test("few and empty completed imports resolve without an endless loading state",
   await expect(page.getByRole("button", { name: "Open example report" })).toBeVisible();
 });
 
+test("backend-shaped Fabio import opens /report and survives refresh without a false persistence error", async ({ page }) => {
+  await routeJob(page, [{
+    status: "completed",
+    progress: { stage: "finishing_report", counts: { fetchedGames: 798, analysedGames: 223, excludedGames: 575 } },
+    result: structuredClone(FABIO_PRODUCTION_RESPONSE_FIXTURE),
+  }]);
+  await prepareVisitor(page);
+  await startImport(page, "fabiowaintraub");
+  await expect(page).toHaveURL(/\/report(?:#report-summary)?$/);
+  await expect(page.locator(".reportPageTitle")).toBeVisible();
+  await expect(page.getByText(/persistence verification failed|Cloud save needs attention/i)).toHaveCount(0);
+
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem("openingFit:lastAnalysis")));
+  const vienna = persisted.analysis.top_openings.find((row) => row.name === "Vienna Game");
+  expect({ games: vienna.games, wins: vienna.wins, draws: vienna.draws, losses: vienna.losses, score: vienna.performanceScore }).toEqual({ games: 60, wins: 36, draws: 3, losses: 21, score: 62.5 });
+  expect(persisted.analysis.reportDecision.trainingPriority).toMatchObject({ subjectType: "role_gap", subjectRole: "black_vs_e4", openingName: null });
+  expect(JSON.stringify(persisted.analysis)).not.toMatch(/Nimzo|"scoreRate":72/);
+
+  const reportId = persisted.analysis.analysisId;
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator(".reportPageTitle")).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("openingFit:lastAnalysis")).analysis.analysisId)).toBe(reportId);
+});
+
 test("failed import leaves a correction or retry action", async ({ page }) => {
   await routeJob(page, [{ status: "failed", progress: { stage: "requesting_public_games", counts: {} }, error: { status: 502, message: "Chess.com could not return all selected monthly game archives." } }]);
   await prepareVisitor(page, { width: 320, height: 568 });
@@ -327,7 +352,7 @@ for (const outcome of ["network failure", "backend failure", "cancellation", "il
     }
 
     if (["illegal role", "storage failure"].includes(outcome)) {
-      await expect(page.getByText(/Report was not replaced/i)).toBeVisible({ timeout: 12000 });
+      await expect(page.getByText("Report was not replaced", { exact: true })).toBeVisible({ timeout: 12000 });
     } else if (outcome !== "cancellation") {
       await expect(page.getByText(/previous successful report/i)).toBeVisible({ timeout: 12000 });
     }

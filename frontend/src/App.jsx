@@ -154,8 +154,9 @@ import { canonicalReportAction, normaliseReportView, reportActionForPriority, re
 import { buildReportGameCounts, reportCountSentence } from "./lib/reportGameCounts.js";
 import { canonicalResultAggregate } from "./lib/reportResults.js";
 import { buildCanonicalReportPresentation, formatCanonicalScoreRate } from "./lib/canonicalReportPresentation.js";
-import { persistReport, readPersistedReport } from "./lib/reportPersistence.js";
-import { assertGeneratedReportConsistency, enforceReportRoleContract } from "./lib/reportConsistency.js";
+import { readPersistedReport } from "./lib/reportPersistence.js";
+import { enforceReportRoleContract } from "./lib/reportConsistency.js";
+import { candidateFailureMessage, commitReportCandidate, REPORT_CANDIDATE_RESULTS } from "./lib/reportCandidateTransaction.js";
 import { accountExperienceState, subscriptionPresentation } from "./lib/accountExperience.js";
 import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT } from "./lib/productTransparency.js";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
@@ -14716,13 +14717,6 @@ export default function App() {
   const normaliseData = (incoming) => {
     if (!incoming) return incoming;
 
-    const roleContract = enforceReportRoleContract(incoming);
-    const incomingDecision = incoming.reportDecision || incoming.report_decision || {};
-    if (Number(incomingDecision.schemaVersion || incomingDecision.schema_version || 0) >= 5 && !roleContract.valid) {
-      throw new Error(`candidate_report_invalid:${roleContract.violations.join(",")}`);
-    }
-    incoming = roleContract.report;
-
     const normalizedGameCounts = buildReportGameCounts(incoming);
     const currentCountContract = normalizedGameCounts.countStatus === "canonical";
     const normalizedAnalysed = currentCountContract
@@ -14881,12 +14875,8 @@ export default function App() {
   };
 
   const saveLocalAnalysis = (analysis, cleanUsername, selectedPlatformKey = platform) => {
-    if (!canPersistReport(analysis)) return false;
-    try {
-      assertGeneratedReportConsistency(analysis);
-    } catch (consistencyError) {
-      console.warn("OpeningFit candidate report failed release invariants", { violations: consistencyError?.message });
-      return false;
+    if (!canPersistReport(analysis)) {
+      return { ok: false, type: REPORT_CANDIDATE_RESULTS.CONTRACT_REJECTED, diagnostic: { referenceCode: "OF-INVALID", invariantCode: "invalid_report" } };
     }
     const savedAt = new Date().toISOString();
     const importedUsername = getImportedAccountUsername(analysis, cleanUsername) || cleanUsername;
@@ -14906,8 +14896,16 @@ export default function App() {
       },
     };
 
-    const persisted = persistReport(localStorage, STORAGE_KEY, payload);
-    if (!persisted.ok) return false;
+    const result = commitReportCandidate({
+      storage: localStorage,
+      key: STORAGE_KEY,
+      report: payload.analysis,
+      payload: { username: importedUsername, platform: importedPlatform, savedAt },
+    });
+    if (!result.ok) {
+      console.warn("OpeningFit candidate transaction rejected", result.diagnostic || { invariantCode: result.type });
+      return result;
+    }
     try {
       localStorage.setItem(USERNAME_KEY, importedUsername);
       localStorage.setItem(PLATFORM_KEY, importedPlatform);
@@ -14916,7 +14914,7 @@ export default function App() {
       // The verified report payload is authoritative; auxiliary preferences are optional.
     }
     setLocalSavedAt(savedAt);
-    return true;
+    return result;
   };
 
   const handleCloudRestore = async (event) => {
@@ -15470,7 +15468,7 @@ export default function App() {
         getImportedAccountUsername(normalizedImportData, cleanUsername) || cleanUsername;
       const importedPlatform =
         getImportedAccountPlatform(normalizedImportData, selectedPlatformKey) || selectedPlatformKey;
-      const cleanData = {
+      let cleanData = {
         ...normalizedImportData,
         username: importedUsername,
         importPlatform: normalizedImportData.importPlatform || importedPlatform,
@@ -15514,10 +15512,14 @@ export default function App() {
       const savingProgress = { real: true, stage: IMPORT_STAGES.SAVING, counts: completedImportCounts, progress: { current: 1, maximum: 1, unit: "stage" }, message: "Saving the completed report on this device." };
       analysisProgressRef.current = savingProgress;
       setAnalysisProgress(savingProgress);
-      const savedLocally = saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
-      if (!savedLocally) {
-        throw new Error("candidate_report_not_persisted");
+      const candidateTransaction = saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
+      if (!candidateTransaction.ok) {
+        const transactionError = new Error(candidateTransaction.type);
+        transactionError.candidateResult = candidateTransaction;
+        throw transactionError;
       }
+      cleanData = candidateTransaction.candidate;
+      const savedLocally = true;
       const completeProgress = { ...savingProgress, stage: IMPORT_STAGES.COMPLETE, message: `${completedImportCounts.fetchedGames} games imported. Your report is ready.` };
       analysisProgressRef.current = completeProgress;
       setImportStage(IMPORT_STAGES.COMPLETE);
@@ -15688,29 +15690,26 @@ export default function App() {
         setCloudSaveWarning("The report is open, but this browser blocked local persistence. Keep this tab open or try again after enabling site storage.");
       }
       } catch (postImportError) {
-        console.warn("OpeningFit post-import handling failed", {
-          platform: selectedPlatformKey,
-          username: cleanUsername,
-          months: monthsToImport,
+        const candidateResult = postImportError?.candidateResult || null;
+        console.warn("OpeningFit post-import handling failed", candidateResult?.diagnostic || {
+          invariantCode: "post_import_unexpected",
           errorName: postImportError?.name,
-          errorMessage: postImportError?.message,
-          error: postImportError,
         });
         setLoadingStep("");
-        if (postImportError?.message === "candidate_report_not_persisted" || postImportError?.message?.startsWith("candidate_report_invalid:")) {
+        if (candidateResult) {
+          const failure = candidateFailureMessage(candidateResult, { hadPreviousReport });
           setImportStage(IMPORT_STAGES.RECOVERABLE_ERROR);
           setImportStatus({
             tone: "warning",
-            title: "Report was not replaced",
-            message: hadPreviousReport
-              ? "The new analysis could not pass every save check. Your previous successful report remains available."
-              : "The new analysis could not pass every save check, so no report was stored.",
-            category: "candidate_persistence_failure",
+            title: failure.title,
+            message: failure.message,
+            meta: `Reference ${failure.referenceCode}`,
+            category: failure.category,
             canRetry: true,
-            recoveryActions: ["retry", ...(hadPreviousReport ? ["last_report"] : [])],
+            recoveryActions: failure.recoveryActions,
           });
-          setCloudSaveStatus("unsaved");
-          setCloudSaveWarning("The candidate report was not saved or shown because persistence verification failed.");
+          setCloudSaveStatus("");
+          setCloudSaveWarning("");
           return;
         }
         setCloudSaveStatus((current) => current || "unsaved");

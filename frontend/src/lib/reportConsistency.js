@@ -121,9 +121,20 @@ export function enforceReportRoleContract(report = {}) {
     if (blackBucket && !["black_vs_e4", "black_vs_d4"].includes(role)) return false;
     return roleClaimValidation(row, gameIndex).valid && (!blackBucket || role.startsWith("black_"));
   };
+  const keepNonCanonicalAggregate = (row) => {
+    const ids = roleSupport(row).ids;
+    const canonicalIdentity = text(row?.decisionId || row?.recommendationId || row?.canonicalContextId || row?.canonical_context_id);
+    const role = text(row?.repertoireRole || row?.repertoire_role).toLowerCase();
+    const colour = text(row?.playerColour || row?.player_colour || row?.colour || row?.color).toLowerCase();
+    const impossibleColourRole = (colour === "white" && role.startsWith("black_"))
+      || (colour === "black" && role === "white");
+    return !ids.length && !canonicalIdentity && !impossibleColourRole;
+  };
   const cleanReport = { ...report, reportDecision: decision, report_decision: decision, repertoireRoles: roles };
   for (const key of ["top_openings", "topOpenings", "best_openings", "bestOpenings", "preferred_white", "preferredWhite"]) {
-    if (Array.isArray(cleanReport[key])) cleanReport[key] = cleanReport[key].filter((row) => keepUntrustedOpening(row));
+    if (Array.isArray(cleanReport[key])) cleanReport[key] = cleanReport[key].filter((row) =>
+      (["top_openings", "topOpenings", "best_openings", "bestOpenings"].includes(key) && keepNonCanonicalAggregate(row)) || keepUntrustedOpening(row)
+    );
   }
   for (const key of ["preferred_black", "preferredBlack"]) {
     if (Array.isArray(cleanReport[key])) cleanReport[key] = cleanReport[key].filter((row) => keepUntrustedOpening(row, { blackBucket: true }));
@@ -157,6 +168,7 @@ export function validateReportConsistency(report = {}) {
   const canonicalContextEnforceable = Number(decision.schemaVersion || decision.schema_version || 0) >= 6;
   const violations = [];
   const verdictById = new Map();
+  const verdictByCanonicalContext = new Map();
   const contexts = new Set();
   const gameIndex = gameIndexForReport(report);
 
@@ -174,6 +186,8 @@ export function validateReportConsistency(report = {}) {
       violations.push(`missing_canonical_context_identity:${decisionId || contextKey(row)}`);
     }
     if (canonicalContextId) {
+      if (verdictByCanonicalContext.has(canonicalContextId) && verdictByCanonicalContext.get(canonicalContextId) !== verdict) violations.push(`conflicting_verdict:${canonicalContextId}`);
+      verdictByCanonicalContext.set(canonicalContextId, verdict);
       const mismatchedId = ids.find((id) => text(gameIndex.get(id)?.canonicalContextId || gameIndex.get(id)?.canonical_context_id) !== canonicalContextId);
       if (mismatchedId) violations.push(`canonical_context_support_mismatch:${decisionId || contextKey(row)}:${mismatchedId}`);
     }
@@ -211,7 +225,13 @@ export function validateReportConsistency(report = {}) {
     const current = number(role.supportingGameCount ?? role.evidenceCount ?? role.sampleSize);
     const threshold = number(role.requiredGameCount ?? role.sampleThreshold ?? role.evidenceRequirement?.threshold);
     const stated = number(role.evidenceRequirement?.additionalRelevantGamesRequired ?? role.evidenceFunnel?.additionalRequired ?? role.gamesNeeded);
-    if (current !== null && threshold !== null && stated !== null && stated !== Math.max(0, threshold - current)) violations.push(`games_needed_mismatch:${text(role.repertoireRole || role.key)}`);
+    const safelyUnresolved = current === 0
+      && !text(role.currentOpening || role.openingName || role.opening_name)
+      && ["insufficient", "unresolved"].includes(text(role.status || role.evidenceStatus).toLowerCase());
+    // A role-contract downgrade deliberately clears unverifiable support. Backend
+    // funnel metadata can still describe the pre-downgrade sample, so it is not an
+    // authoritative UI games-needed value for this safe zero-game state.
+    if (!safelyUnresolved && current !== null && threshold !== null && stated !== null && stated !== Math.max(0, threshold - current)) violations.push(`games_needed_mismatch:${text(role.repertoireRole || role.key)}`);
     const action = decision.primaryAction || decision.nextTrainingAction || {};
     if (text(action.repertoireRole) === text(role.repertoireRole) && action.completionTarget?.type === "new_games" && stated !== null && number(action.completionTarget.count) !== stated) violations.push(`games_needed_cta_mismatch:${text(role.repertoireRole)}`);
   }
