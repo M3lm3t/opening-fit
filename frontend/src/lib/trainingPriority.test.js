@@ -3,8 +3,11 @@ import test from "node:test";
 
 import {
   formatTrainingPriorityTitle,
+  roleGapCopy,
   resolveTrainingPriority,
+  TRAINING_SUBJECT_TYPES,
   trainingPlanMatchesPriority,
+  validateTrainingSubject,
 } from "./trainingPriority.js";
 import { buildFoundationalWeeklyPlan } from "./thisWeekTraining.js";
 import { countNoun, formatResultCounts } from "./reportGameCounts.js";
@@ -90,15 +93,38 @@ test("an unresolved Black-vs-d4 role cannot inherit an unrelated established ope
   const priority = resolveTrainingPriority(report);
   const plan = buildFoundationalWeeklyPlan({ report, now: new Date("2026-08-01T12:00:00Z") });
 
-  assert.equal(priority.openingName, "Black against 1.d4 preparation");
+  assert.equal(priority.subjectType, "role_gap");
+  assert.equal(priority.subjectRole, "black_vs_d4");
+  assert.equal(priority.openingName, null);
+  assert.equal(priority.openingKey, null);
   assert.equal(priority.repertoireRole, "black_vs_d4");
   assert.doesNotMatch(JSON.stringify(plan), /Vienna/);
-  assert.ok(plan.tasks.every((task) => task.openingName === "Black against 1.d4 preparation"));
+  assert.ok(plan.tasks.every((task) => task.openingName === null && task.subjectRole === "black_vs_d4"));
+  assert.equal(plan.primaryGoal, "Build your Black response to 1.d4");
+});
+
+for (const [role, heading] of [["black_vs_e4", "Build your Black response to 1.e4"], ["black_vs_d4", "Build your Black response to 1.d4"], ["white", "Build your White repertoire"]]) {
+  test(`${role} is a first-class opening-free training subject`, () => {
+    const report = { analysisId: `report-${role}`, topOpenings: [{ name: "Vienna Game", games: 20 }], reportDecision: { repertoireRoles: [{ repertoireRole: role, status: "insufficient", supportingGameCount: 0 }], nextTrainingAction: { type: "collect_more_games", repertoireRole: role, decisionId: `decision-${role}` } } };
+    const priority = resolveTrainingPriority(report);
+    const plan = buildFoundationalWeeklyPlan({ report, now: new Date("2026-08-01T12:00:00Z") });
+    assert.deepEqual({ type: priority.subjectType, opening: priority.openingName, openingId: priority.openingKey, evidence: priority.evidenceGameIds }, { type: "role_gap", opening: null, openingId: null, evidence: [] });
+    assert.equal(priority.decisionId, `decision-${role}`);
+    assert.equal(plan.primaryGoal, heading);
+    assert.doesNotMatch(JSON.stringify({ priority, plan }), /Vienna|null line|source game is retained/);
+  });
+}
+
+test("invalid mixed training subjects fail closed", () => {
+  assert.equal(validateTrainingSubject({ subjectType: TRAINING_SUBJECT_TYPES.ROLE_GAP, subjectRole: "black_vs_e4", openingName: "Vienna Game", openingKey: "vienna-game", evidenceGameIds: [] }).valid, false);
+  assert.equal(resolveTrainingPriority({ reportDecision: { trainingPriority: { subjectType: "role_gap", repertoireRole: "black_vs_e4", openingName: "Vienna Game", openingId: "vienna-game" } } }), null);
+  assert.equal(roleGapCopy("black_vs_e4").label, "Black against 1.e4");
 });
 
 test("cached plans match only the exact report priority", () => {
   const priority = resolveTrainingPriority({ reportDecision: caroDecision }, { allowFallback: false });
-  assert.equal(trainingPlanMatchesPriority({ trainingPriorityId: priority.priorityId }, priority), true);
+  assert.equal(trainingPlanMatchesPriority({ trainingPriorityId: priority.priorityId, trainingPriority: { subjectType: priority.subjectType, subjectRole: priority.subjectRole, openingKey: priority.openingKey } }, priority), true);
+  assert.equal(trainingPlanMatchesPriority({ trainingPriorityId: priority.priorityId }, priority), false);
   assert.equal(trainingPlanMatchesPriority({ trainingPriorityId: "training-vienna" }, priority), false);
   assert.equal(trainingPlanMatchesPriority({}, priority), false);
 });

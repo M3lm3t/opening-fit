@@ -39,6 +39,10 @@ function conceptForIssue(issueType = "") {
       plan: "Complete development, keep the centre supported, and choose a pawn break only when the position justifies it.",
       distractors: ["Commit to a pawn break before finishing development", "Trade the centre immediately regardless of the piece placement"],
     },
+    role_gap_choice: {
+      plan: "Choose one sound repertoire response, learn its basic development plan, and use it consistently for the next five correctly attributed games.",
+      distractors: ["Change responses after every game before learning one plan", "Choose a response solely because another opening scored well in a different role"],
+    },
     left_known_opening_territory: {
       plan: "Return to the familiar development plan and identify the first decision point.",
       distractors: ["Choose the most forcing continuation and calculate from there", "Simplify into a familiar structure even if it changes the opening plan"],
@@ -84,6 +88,13 @@ function exerciseConcept(opportunity = {}, openingName = "", side = "white") {
     };
   }
   const base = conceptForIssue(text(opportunity.issueType || opportunity.issue_type));
+  if (opportunity.subjectType === "role_gap") return {
+    ...base,
+    question: `Which approach best establishes a reliable ${text(opportunity.subjectLabel)} choice?`,
+    explanation: "A consistent, sound response creates correctly attributed evidence without pretending that an opening is already established.",
+    suggestedResponsePlan: base.plan,
+    distractorExplanations: ["Changing immediately prevents a stable repertoire sample from forming.", "Evidence from another role cannot establish this repertoire choice."],
+  };
   return {
     ...base,
     question: "Which plan best supports sound opening development in this setup?",
@@ -178,6 +189,10 @@ function validatedSourceUrl(url, platform) {
 
 export function normalizeExerciseProvenance(opportunity = {}, report = {}) {
   const fictional = Boolean(report.sampleMode || report.sample_mode || report.source === "sample_fixture" || report.isDemo);
+  if (opportunity.subjectType === "role_gap") return {
+    kind: "general_role_guidance", fictional: false, label: "General repertoire guidance",
+    contextLabel: "No personal source game is claimed", disclaimer: "This guidance establishes a repertoire choice; it is not attributed to a particular game.", sourceGame: null,
+  };
   const general = {
     kind: "general_opening_setup",
     fictional,
@@ -243,8 +258,10 @@ export function buildOpeningOpportunityDrill(opportunity, report = {}) {
   const acceptedMoves = ownGamePosition
     ? [...new Set([recommendedMove, ...list(opportunity.alternativeMoves || opportunity.alternative_moves), ...list(opportunity.recognisedTranspositions || opportunity.recognizedTranspositions || opportunity.acceptedMoves || opportunity.accepted_moves)].map(cleanSan).filter(Boolean))]
     : [];
-  const resolvedOpeningName = openingLabel(opportunity);
-  const concept = exerciseConcept(opportunity, resolvedOpeningName, side);
+  const roleGap = opportunity.subjectType === "role_gap";
+  const resolvedOpeningName = roleGap ? null : openingLabel(opportunity);
+  const subjectLabel = roleGap ? text(opportunity.subjectLabel) : resolvedOpeningName;
+  const concept = exerciseConcept(opportunity, subjectLabel, side);
   const hasMoveAnswer = Boolean(recommendedMove);
   const diagnosisOwnedPosition = Boolean(opportunity.diagnosisId || opportunity.diagnosis_id);
   const type = moves.length >= 2 ? "line_replay" : hasMoveAnswer ? "position_choice" : ownGamePosition && fen && diagnosisOwnedPosition ? "position_review" : "concept_check";
@@ -266,7 +283,7 @@ export function buildOpeningOpportunityDrill(opportunity, report = {}) {
     }
   }
   const correctOptionId = "plan";
-  const generalSetup = provenance.kind === "general_opening_setup";
+  const generalSetup = ["general_opening_setup", "general_role_guidance"].includes(provenance.kind);
   return {
     valid: true,
     id: `opportunity-drill:${text(opportunity.opportunityId || opportunity.opportunity_id)}`,
@@ -274,6 +291,9 @@ export function buildOpeningOpportunityDrill(opportunity, report = {}) {
     type,
     openingId: text(opportunity.openingId || opportunity.opening_id),
     openingName: resolvedOpeningName,
+    subjectType: text(opportunity.subjectType) || "opening",
+    subjectRole: text(opportunity.subjectRole),
+    subjectLabel,
     side,
     orientation: side,
     initialFen: position.chess?.fen() || null,

@@ -149,6 +149,7 @@ import FeatureAccessPreview from "./components/FeatureAccessPreview.jsx";
 import { selectPreviousReportSnapshot } from "./lib/reportComparisonPresentation.js";
 import { primaryComparisonState } from "./lib/primaryReportSummary.js";
 import { selectAuthoritativeCoachingPriority } from "./lib/authoritativeReportPresentation.js";
+import { roleGapCopy, TRAINING_SUBJECT_TYPES } from "./lib/trainingPriority.js";
 import { canonicalReportAction, normaliseReportView, reportActionForPriority, reportActionFromLocation, reportActionUrl, reportViewFromLocation, reportViewHash, reportViewHeadingId } from "./lib/reportViews.js";
 import { buildReportGameCounts, reportCountSentence } from "./lib/reportGameCounts.js";
 import { canonicalResultAggregate } from "./lib/reportResults.js";
@@ -10385,6 +10386,20 @@ function FiniteTrainingSession({ model, onPractice }) {
   const training = model.training;
   if (!training) return null;
   const priority = model.coachingPriority || training.source || null;
+  if (priority?.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP) {
+    const copy = roleGapCopy(priority.subjectRole);
+    return (
+      <section className="finiteTrainingSession finiteTrainingSession--roleGap" id="report-training-plan" aria-labelledby="finite-training-title">
+        <div><p className="eyebrow">Next training session</p><h2 id="finite-training-title">{copy.reportHeading}</h2><p>No correctly attributed opening is established for this role yet.</p></div>
+        <dl>
+          <div><dt>Context</dt><dd>{copy.label}</dd></div>
+          <div><dt>Guidance</dt><dd>General repertoire guidance; no personal source game is claimed.</dd></div>
+          <div><dt>Next-game objective</dt><dd>{copy.objective}</dd></div>
+        </dl>
+        <button type="button" className="primaryBtn" onClick={() => onPractice?.(priority)}>Start this session</button>
+      </section>
+    );
+  }
   const representatives = Array.isArray(priority?.representativeGameIds) ? priority.representativeGameIds : [];
   const provenance = describeLineProvenance({ line: priority?.recognisedLine || training.line, findingType: priority?.findingType, sampleSize: representatives.length, sourceGameIds: representatives, illustrative: model.header.platform === "Example data" });
   return (

@@ -1,13 +1,17 @@
 const list = (value) => Array.isArray(value) ? value.filter(Boolean) : [];
 const text = (value) => String(value ?? "").trim();
+const roleLabel = (role) => ({ black_vs_e4: "Black against 1.e4", black_vs_d4: "Black against 1.d4", white: "White repertoire", white_repertoire: "White repertoire" })[text(role)] || "Repertoire role";
 
 export function buildTrainingResponsePlanRecord({ existing = {}, taskId, planId, responsePlan, openingName, priority = {}, sourceType = "general setup", synced = false, now = new Date() } = {}) {
   const timestamp = new Date(now).toISOString();
+  const roleGap = priority.subjectType === "role_gap";
   return {
     taskId: text(taskId) || null,
     planId: text(planId) || null,
     responsePlan: text(responsePlan),
-    openingName: text(openingName) || "Opening focus",
+    subjectType: text(priority.subjectType) || "opening",
+    subjectRole: text(priority.subjectRole) || null,
+    openingName: roleGap ? null : text(openingName) || "Opening focus",
     repertoireRole: text(priority.repertoireRole) || "unresolved",
     playerColour: text(priority.playerColour) || null,
     triggeringPosition: text(priority.lineOrPosition) || null,
@@ -61,12 +65,13 @@ export function buildPremiumTrainingHistory(plans = [], responsePlans = {}) {
     const saved = responsePlans[task.id] || Object.values(responsePlans).find((item) => item?.taskId === task.id);
     const sourceType = text(saved?.sourceType) || (task.positionFen ? "own game" : task.sourceGameIds?.length ? "own game" : "general setup");
     if (sourceType === "fictional preview" || saved?.fictional) return [];
+    const roleGap = (saved?.subjectType || task.subjectType) === "role_gap";
     return [{
       id: `${plan.id}:${task.id}`,
       planId: plan.id,
       taskId: task.id,
       title: task.title || "Completed training task",
-      openingName: saved?.openingName || task.openingName || task.openingId || plan.targetMetric?.openingId || "Opening focus",
+      openingName: roleGap ? roleLabel(saved?.subjectRole || task.subjectRole) : saved?.openingName || task.openingName || task.openingId || plan.targetMetric?.openingId || "Opening focus",
       startedAt: task.startedAt || task.started_at || plan.createdAt || plan.created_at || null,
       completedAt: task.completedAt || task.completed_at || plan.completedAt || plan.completed_at || null,
       sourceType,
@@ -79,6 +84,14 @@ export function buildPremiumTrainingHistory(plans = [], responsePlans = {}) {
 }
 
 export function contextualPlusContinuation(priority = {}, responsePlan = "") {
+  if (priority.subjectType === "role_gap") {
+    return {
+      title: "Continue building your repertoire choice",
+      message: responsePlan
+        ? "Plus keeps this repertoire response plan with the weekly plan, refreshes the role after future valid reports, and checks the next correctly attributed evidence."
+        : "Plus turns this repertoire-building action into a weekly loop with prioritised tasks, saved response plans, and honest progress checks after future comparable reports.",
+    };
+  }
   const opening = text(priority.openingName) || "this opening";
   const role = text(priority.role).toLowerCase();
   const roleText = role === "played_as_white" ? "your White role" : role.includes("black") ? "your Black repertoire role" : role.startsWith("faced_") ? `your preparation against ${opening}` : `your ${opening} preparation`;

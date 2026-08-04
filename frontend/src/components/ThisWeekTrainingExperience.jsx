@@ -8,7 +8,7 @@ import { getOrCreateWeeklyTrainingPlan, getWeeklyTrainingPlanHistory, setWeeklyT
 import { canUseFeature, OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
 import { personaliseWeeklyTrainingPlan, readLocalTrainingPreferences, resolveTrainingPreferences } from "../lib/trainingPreferences.js";
 import { TRAINING_PREFERENCES_EDIT_EVENT, TRAINING_PREFERENCES_UPDATED_EVENT } from "./PostReportOnboarding.jsx";
-import { trainingPlanMatchesPriority } from "../lib/trainingPriority.js";
+import { roleGapCopy, TRAINING_SUBJECT_TYPES, trainingPlanMatchesPriority } from "../lib/trainingPriority.js";
 import { selectAuthoritativeCoachingPriority } from "../lib/authoritativeReportPresentation.js";
 import FeatureAccessPreview from "./FeatureAccessPreview.jsx";
 import OpeningOpportunityDrill from "./OpeningOpportunityDrill.jsx";
@@ -53,6 +53,7 @@ function writeCache(userId, plan, pendingTaskIds = []) {
 }
 
 function practiceTarget(task, plan) {
+  if (task.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP) return null;
   const opening = openingForWeeklyTask(task, plan);
   return {
     id: opening.id,
@@ -69,10 +70,11 @@ function practiceTarget(task, plan) {
 
 function TaskMeta({ task, plan }) {
   const opening = openingForWeeklyTask(task, plan);
+  const subjectLabel = task.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP ? roleGapCopy(task.subjectRole)?.label : opening.name;
   return (
     <div className="thisWeekTaskMeta" aria-label="Task details">
       <span>{TASK_LABELS[task.type] || "Training task"}</span>
-      <span>{opening.name}</span>
+      <span>{subjectLabel}</span>
       <span><Clock3 size={14} /> {task.estimatedMinutes || 5} min</span>
     </div>
   );
@@ -130,12 +132,13 @@ function formatPlanDate(value) {
 
 function PremiumWeeklyOverview({ plan, report, priority, responsePlans, onContinue }) {
   const overview = buildPremiumWeeklyOverview(plan, responsePlans);
-  const games = selectTrainingReviewGames(report || {}, priority || {}, { kind: priority?.actionType?.includes("repair") ? "reliable_weakness" : "preparation_opportunity" });
+  const roleGap = priority?.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP;
+  const games = roleGap ? [] : selectTrainingReviewGames(report || {}, priority || {}, { kind: priority?.actionType?.includes("repair") ? "reliable_weakness" : "preparation_opportunity" });
   return <section className="premiumWeeklyOverview" aria-labelledby="premium-weekly-focus-title">
     <header><div><span>Main focus</span><h2 id="premium-weekly-focus-title">{overview.primaryTask?.title || plan.primaryGoal}</h2><p>{overview.primaryTask?.explanation || plan.reason}</p></div><div className="premiumWeeklyOverview__progress"><strong>{overview.completionPercent}%</strong><span>{overview.completed} of {overview.total} tasks</span></div></header>
-    <dl><div><dt>Evidence and confidence</dt><dd>{overview.evidenceCount} supporting game{overview.evidenceCount === 1 ? "" : "s"} · {overview.confidence}</dd></div><div><dt>Total plan time</dt><dd>{overview.estimatedMinutes} minutes</dd></div><div><dt>Generated</dt><dd>{formatPlanDate(overview.generatedAt)}</dd></div></dl>
+    <dl><div><dt>Evidence and confidence</dt><dd>{roleGap ? "General repertoire guidance; no personal source game is claimed." : `${overview.evidenceCount} supporting game${overview.evidenceCount === 1 ? "" : "s"} · ${overview.confidence}`}</dd></div><div><dt>Total plan time</dt><dd>{overview.estimatedMinutes} minutes</dd></div><div><dt>Generated</dt><dd>{formatPlanDate(overview.generatedAt)}</dd></div></dl>
     {priority?.workflowSteps?.length ? <section className="premiumWeeklyWorkflow" aria-labelledby="premium-weekly-workflow-title"><h3 id="premium-weekly-workflow-title">This week</h3><ol>{priority.workflowSteps.map((step, index) => <li key={`${step.type || "step"}-${index}`}>{step.label}</li>)}</ol></section> : null}
-    <div className="premiumWeeklyOverview__grid"><section><h3>{games.length ? "Own-game evidence" : "Exercise source"}</h3>{games.length ? <ul>{games.map((game) => <li key={game.id}><strong>{game.opening}</strong><span>{game.opponent} · {game.result} · {game.platform}</span><small>{game.whySelected}</small></li>)}</ul> : <p>General opening setup · no recoverable source game is stored.</p>}</section><section><h3>Your saved plan</h3><blockquote>{overview.responsePlan || "Complete the main session and save one practical response here."}</blockquote><small>{overview.responsePlanSource}</small></section></div>
+    <div className="premiumWeeklyOverview__grid"><section><h3>{games.length ? "Own-game evidence" : "Exercise source"}</h3>{games.length ? <ul>{games.map((game) => <li key={game.id}><strong>{game.opening}</strong><span>{game.opponent} · {game.result} · {game.platform}</span><small>{game.whySelected}</small></li>)}</ul> : <p>{roleGap ? "General repertoire guidance; no personal source game is claimed." : "General opening setup · no recoverable source game is stored."}</p>}</section><section><h3>Your saved plan</h3><blockquote>{overview.responsePlan || "Complete the main session and save one practical response here."}</blockquote><small>{overview.responsePlanSource}</small></section></div>
     {overview.primaryTask ? <button className="primaryBtn" type="button" onClick={() => onContinue(overview.primaryTask)}><Play size={16} /> Continue training</button> : null}
     <footer><span>Progress check</span><p>{overview.refreshMessage}</p></footer>
   </section>;
@@ -338,7 +341,7 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
           <TrainingGameReviewSession report={report} priority={currentPriority} exercise={freeExercise} taskId={previewTask.id} planId={plan.id} conceptEngaged={conceptEngaged} onReadinessChange={handleTrainingReadiness}>
             <OpeningOpportunityDrill opportunity={freeExercise.opportunity} report={report} showPriorityReason={false} onEngaged={() => setConceptEngaged(true)} onCompleted={() => setConceptEngaged(true)} />
           </TrainingGameReviewSession>
-          <div className="thisWeekFreeActive"><strong>Success check</strong><p>Review one supplied game when available, attempt or reveal the concept, and save one response plan.</p>{trainingSessionReady ? <button type="button" className="primaryBtn" disabled={busyTaskId === previewTask.id} onClick={() => completeTask(previewTask)}>{busyTaskId === previewTask.id ? "Saving…" : "Complete this session"}</button> : <small>Finish the available review steps shown above before completing this action.</small>}</div>
+          <div className="thisWeekFreeActive"><strong>Success check</strong><p>{previewTask.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP ? "Choose one repertoire response and save the practical plan you will use in your next games." : "Review one supplied game when available, attempt or reveal the concept, and save one response plan."}</p>{trainingSessionReady ? <button type="button" className="primaryBtn" disabled={busyTaskId === previewTask.id} onClick={() => completeTask(previewTask)}>{busyTaskId === previewTask.id ? "Saving…" : "Complete this session"}</button> : <small>Finish the available steps shown above before completing this action.</small>}</div>
         </div>}
       </article> : null}
       {freeState.showPlusInvitation ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.WEEKLY_PLAN} eyebrow="Continue with OpeningFit Plus" title={freeContinuation.title} onViewed={trackPlusInvitation} onUpgrade={openPlus}><p>{freeContinuation.message}</p></FeatureAccessPreview> : null}

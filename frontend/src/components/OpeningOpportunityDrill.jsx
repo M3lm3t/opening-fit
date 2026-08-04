@@ -66,10 +66,12 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose, 
     }
     if (next.completion && !session.completion && !drill.provenance?.fictional) {
       onCompleted?.({ drill, session: next });
-      window.dispatchEvent(new CustomEvent(TRAINING_TASK_COMPLETED_EVENT, { detail: { opening: drill.openingName, line: drill.opportunityId, result: next.repeatedFailure ? "repeated_failure" : "completed" } }));
+      window.dispatchEvent(new CustomEvent(TRAINING_TASK_COMPLETED_EVENT, { detail: { opening: drill.openingName, subjectType: drill.subjectType, subjectRole: drill.subjectRole, line: drill.opportunityId, result: next.repeatedFailure ? "repeated_failure" : "completed" } }));
       void recordActivity?.("opening_opportunity_drill_completed", {
         opportunityId: drill.opportunityId,
-        openingId: drill.openingId,
+        openingId: drill.openingId || null,
+        subjectType: drill.subjectType,
+        subjectRole: drill.subjectRole,
         drillType: drill.type,
         attempts: next.attempts,
         success: next.success,
@@ -120,7 +122,7 @@ export default function OpeningOpportunityDrill({ opportunity, report, onClose, 
   return (
     <section className={`openingOpportunityDrill openingOpportunityDrill--${drill.type}`} aria-labelledby="opening-opportunity-title">
       <header className="openingOpportunityHeader">
-        <div><span>{TYPE_LABELS[drill.type]} · Train as {drill.side === "black" ? "Black" : "White"}</span><h2 id="opening-opportunity-title">{drill.openingName}</h2><p>{drill.prompt}</p></div>
+        <div><span>{TYPE_LABELS[drill.type]} · Train as {drill.side === "black" ? "Black" : "White"}</span><h2 id="opening-opportunity-title">{drill.subjectLabel || drill.openingName}</h2><p>{drill.prompt}</p></div>
         <div className="openingOpportunityStats"><span>Attempts <strong>{session.attempts}</strong></span><span>Source <strong>{ownGame ? "Analysed game" : drill.provenance?.fictional ? "Fictional example" : "General setup"}</strong></span><span>Status <strong>{session.completion ? "Complete" : session.repeatedFailure ? "Repeat recommended" : "In progress"}</strong></span></div>
       </header>
 

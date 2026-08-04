@@ -1,6 +1,7 @@
 import { buildOpeningOpportunityDrill } from "./openingOpportunityDrills.js";
 import { normaliseOpeningKey } from "../data/openings.ts";
 import { buildTrainingReviewSelection, deriveKnownLineConcept } from "./trainingGameReview.js";
+import { roleGapCopy, TRAINING_SUBJECT_TYPES } from "./trainingPriority.js";
 
 const list = (value) => Array.isArray(value) ? value.filter(Boolean) : [];
 const text = (value) => String(value ?? "").trim();
@@ -30,6 +31,10 @@ function sameOpening(left, right) {
 }
 
 export function explainTrainingPriority(report = {}, priority = null) {
+  if (priority?.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP) {
+    const copy = roleGapCopy(priority.subjectRole);
+    return { kind: "role_gap", label: "General repertoire guidance", text: `No correctly attributed opening is established for ${copy.label} yet.` };
+  }
   const opening = text(priority?.openingName) || "this opening";
   const games = Math.max(0, Number(priority?.evidenceCount || 0));
   const decision = reportDecision(report);
@@ -93,8 +98,31 @@ function generalSetupOpportunity(priority = {}, priorityReason = null, report = 
   };
 }
 
+function roleGapOpportunity(priority = {}, priorityReason = null) {
+  const copy = roleGapCopy(priority.subjectRole);
+  return {
+    opportunityId: `role-gap:${text(priority.taskId || priority.priorityId)}`,
+    subjectType: TRAINING_SUBJECT_TYPES.ROLE_GAP,
+    subjectRole: copy.role,
+    subjectLabel: copy.label,
+    side: copy.role.startsWith("black_") ? "black" : "white",
+    issueType: "role_gap_choice",
+    explanation: copy.objective,
+    evidence: "General repertoire guidance; no personal source game is claimed.",
+    confidence: null,
+    recurrenceCount: 1,
+    generalSetup: true,
+    trainingPriorityReason: priorityReason,
+  };
+}
+
 export function buildFreeTrainingExercise(report = {}, priority = null) {
   const priorityReason = explainTrainingPriority(report, priority);
+  if (priority?.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP) {
+    const opportunity = roleGapOpportunity(priority, priorityReason);
+    const drill = buildOpeningOpportunityDrill(opportunity, report);
+    return { kind: "role_gap_guidance", opportunity, drill, provenance: drill.provenance, priorityReason, attribution: "General repertoire guidance", sourceGameId: null };
+  }
   const selectedReview = buildTrainingReviewSelection(report, priority || {}, priorityReason);
   const knownLineConcept = selectedReview.games.map((game) => deriveKnownLineConcept(game, priority?.openingName)).find(Boolean) || null;
   const diagnosis = priority?.openingDiagnosis || priority?.opening_diagnosis || null;

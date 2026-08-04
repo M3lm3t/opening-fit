@@ -1,7 +1,7 @@
 import { findOpeningLine, normaliseOpeningKey } from "../data/openings.ts";
 import { WEEKLY_TRAINING_PLAN_SCHEMA_VERSION, weeklyPlanWindow } from "./weeklyTrainingPlan.js";
 import { normaliseTrainingPreferences, personaliseWeeklyTrainingPlan } from "./trainingPreferences.js";
-import { formatTrainingPriorityTitle, trainingTaskFromPriority } from "./trainingPriority.js";
+import { formatTrainingPriorityTitle, roleGapCopy, TRAINING_SUBJECT_TYPES, trainingTaskFromPriority, validateTrainingSubject } from "./trainingPriority.js";
 import { selectAuthoritativeCoachingPriority } from "./authoritativeReportPresentation.js";
 
 const text = (value) => String(value ?? "").trim();
@@ -28,6 +28,8 @@ function foundationOpening(report = {}, repertoire = []) {
 function foundationalTask({ type, title, explanation, successCriteria, minutes, order, opening }) {
   return {
     id: makeId("foundation-task"),
+    subjectType: TRAINING_SUBJECT_TYPES.OPENING,
+    subjectRole: opening.side === "black" ? "black_other" : "white_repertoire",
     type,
     title,
     explanation,
@@ -46,10 +48,26 @@ function foundationalTask({ type, title, explanation, successCriteria, minutes, 
 
 export function buildFoundationalWeeklyPlan({ userId = "local", report = {}, repertoire = [], now = new Date(), preferences = null } = {}) {
   const priority = selectAuthoritativeCoachingPriority(report);
-  const fallbackOpeningValue = foundationOpening(report, repertoire);
-  const opening = priority.openingName ? { id: priority.openingKey, name: priority.openingName, side: priority.playerColour || fallbackOpeningValue.side } : fallbackOpeningValue;
   const { weekStart, weekEnd } = weeklyPlanWindow(now);
   const priorityTask = { ...trainingTaskFromPriority(priority, 1), fixedDuration: !priority.fallback };
+  if (!validateTrainingSubject(priority).valid) return null;
+  if (priority.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP) {
+    const copy = roleGapCopy(priority.subjectRole);
+    return {
+      schemaVersion: WEEKLY_TRAINING_PLAN_SCHEMA_VERSION,
+      id: `role-gap-plan:${priority.sourceReportId || "report"}:${copy.role}`,
+      userId, weekStart, weekEnd, reportId: priority.sourceReportId, status: "active",
+      primaryGoal: copy.pageHeading,
+      reason: "No correctly attributed opening is established for this role yet.",
+      estimatedMinutes: priority.estimatedDurationMinutes,
+      targetMetric: { type: "task_completion", target: 100, label: "Choose and save one repertoire response", openingId: null, trainingPriorityId: priority.priorityId, evidenceGames: 0, subjectType: priority.subjectType, subjectRole: priority.subjectRole },
+      tasks: [{ ...priorityTask, title: copy.title, explanation: copy.objective, openingId: null, openingName: null, sourceGameIds: [], representativeGameIds: [], evidenceSource: "general_guidance", evidenceSourceLabel: "General repertoire guidance; no personal source game is claimed.", successCriteria: priority.successCheck, status: "pending" }],
+      completionPercent: 0, createdAt: new Date(now).toISOString(), completedAt: null,
+      foundation: true, trainingPriority: priority, trainingPriorityId: priority.priorityId, preservePrimaryGoal: true,
+    };
+  }
+  const fallbackOpeningValue = foundationOpening(report, repertoire);
+  const opening = priority.openingName ? { id: priority.openingKey, name: priority.openingName, side: priority.playerColour || fallbackOpeningValue.side } : fallbackOpeningValue;
   if (!priority.fallback) {
     return {
       schemaVersion: WEEKLY_TRAINING_PLAN_SCHEMA_VERSION,
@@ -106,6 +124,10 @@ export function buildFoundationalWeeklyPlan({ userId = "local", report = {}, rep
 }
 
 export function openingForWeeklyTask(task = {}, plan = {}) {
+  if (task.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP) {
+    const copy = roleGapCopy(task.subjectRole || task.repertoireRole);
+    return { name: copy?.label || "Repertoire role", id: null, side: copy?.role.startsWith("black_") ? "black" : "white" };
+  }
   const known = findOpeningLine(task.openingName || task.openingId || plan.targetMetric?.openingId || "");
   const fallback = text(task.openingName || task.openingId || plan.targetMetric?.openingId) || "Opening focus";
   const blackSignal = /black|defen[cs]e|sicilian|french|caro|scandinavian|pirc|dutch|king.?s indian/i.test(`${task.trainingSide || ""} ${fallback}`);
@@ -122,6 +144,8 @@ export function weeklyTargetMetricLabel(metric = {}, taskCount = 0) {
 export function buildThisWeekTrainingView(plan) {
   if (!plan) return { state: "empty", tasks: [], nextTask: null, completedTasks: [], pendingTasks: [] };
   const tasks = list(plan.tasks).slice().sort((left, right) => number(left.order) - number(right.order));
+  const invalidSubject = tasks.find((task) => !validateTrainingSubject({ ...plan.trainingPriority, ...task, openingKey: task.openingId, evidenceGameIds: task.sourceGameIds }).valid);
+  if (invalidSubject) return { state: "unavailable", tasks: [], nextTask: null, completedTasks: [], pendingTasks: [], unavailableReason: "Training task unavailable from this report." };
   const expectedId = text(plan.trainingPriority?.openingKey || plan.targetMetric?.openingId);
   const expectedName = text(plan.trainingPriority?.openingName);
   const anchorId = expectedId || text(tasks.find((task) => text(task.openingId))?.openingId);

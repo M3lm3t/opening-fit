@@ -366,7 +366,9 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
   const weakest = issues[0]?.opening || repair?.opening || reduce?.opening || "No recurring weakness identified";
   const next = repair || reduce || keep || null;
   const nextTrainingAction = serverDecision?.nextTrainingAction || (next ? { type: next.type, opening: next.opening, role: next.role, label: `${next.type === "keep" ? "Consolidate" : "Repair"} ${next.opening}`, reason: next.reason } : { type: "collect_more_games", opening: null, role: null, label: "Collect more games before changing your repertoire", reason: "No opening has enough correctly attributed evidence for a strength or weakness claim." });
-  const trainingPriority = selectAuthoritativeCoachingPriority(data, { decision: serverDecision ? { ...serverDecision, nextTrainingAction } : { nextTrainingAction }, allowFallback: false });
+  const unresolvedTrainingRole = text(nextTrainingAction?.repertoireRole || nextTrainingAction?.repertoire_role);
+  const allowRoleGapFallback = Boolean(serverDecision && nextTrainingAction?.type === "collect_more_games" && ["white", "white_repertoire", "black_vs_e4", "black_vs_d4"].includes(unresolvedTrainingRole));
+  const trainingPriority = selectAuthoritativeCoachingPriority(data, { decision: serverDecision ? { ...serverDecision, nextTrainingAction } : { nextTrainingAction }, allowFallback: allowRoleGapFallback });
   const playerProfile = data.playerProfile || data.player_profile || {};
   const displayName = text(data.displayName || data.display_name || playerProfile.displayName || playerProfile.display_name || data.username || data.playerName) || "OpeningFit player";
   const username = text(data.username || data.playerName || data.player_name || playerProfile.username);

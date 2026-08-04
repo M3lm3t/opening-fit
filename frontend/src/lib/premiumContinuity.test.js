@@ -76,6 +76,17 @@ test("free continuation preview names only implemented continuity features", () 
   assert.doesNotMatch(preview.message, /AI|engine|guaranteed|rating/i);
 });
 
+test("role-gap continuity retains the role without inventing an opening or source review", () => {
+  const priority = { subjectType: "role_gap", subjectRole: "black_vs_e4", repertoireRole: "black_vs_e4", sourceReportId: "report-gap" };
+  const record = buildTrainingResponsePlanRecord({ taskId: "gap-task", planId: "gap-plan", responsePlan: "Choose one response.", openingName: "Vienna Game", priority, now: new Date("2026-08-04T10:00:00Z") });
+  const history = buildPremiumTrainingHistory([{ id: "gap-plan", tasks: [{ id: "gap-task", status: "completed", subjectType: "role_gap", subjectRole: "black_vs_e4", title: "Establish a choice" }] }], { "gap-task": record });
+  const preview = contextualPlusContinuation(priority);
+  assert.equal(record.openingName, null);
+  assert.equal(history[0].openingName, "Black against 1.e4");
+  assert.match(preview.message, /turns this repertoire-building action into a weekly loop/);
+  assert.doesNotMatch(JSON.stringify({ record, history, preview }), /Vienna|this this|source-game review/i);
+});
+
 test("continuity preferences safely separate response plans and repertoire intentions", () => {
   const settings = { preferences: { trainingResponsePlans: { task: { responsePlan: "Play c3" } }, repertoireIntentions: { black_vs_e4: { intention: "Keep" } } } };
   assert.equal(trainingResponsePlans(settings).task.responsePlan, "Play c3");

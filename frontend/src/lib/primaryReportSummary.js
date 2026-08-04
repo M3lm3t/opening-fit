@@ -1,6 +1,6 @@
 import { recommendationCopy } from "./reportCoachCopy.js";
 import { analysisConfidence, OPENING_EVIDENCE_THRESHOLDS } from "./fitTrustModel.js";
-import { formatTrainingPriorityTitle } from "./trainingPriority.js";
+import { formatTrainingPriorityTitle, TRAINING_SUBJECT_TYPES } from "./trainingPriority.js";
 import { formatResultCounts } from "./reportGameCounts.js";
 import { formatOpeningNameForDisplay } from "./openingNamePresentation.js";
 import { buildAuthoritativeRoleViewModels } from "./authoritativeReportPresentation.js";
@@ -232,7 +232,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   const nextAction = model.authoritative?.nextTrainingAction || model.nextTrainingAction || null;
   const trainingPriority = model.authoritative?.trainingPriority || model.trainingPriority || null;
   const hasExplicitTrainingAction = Boolean(nextAction?.type || training?.type || training?.opening || training?.source);
-  const collectMoreGames = nextAction?.type === "collect_more_games" || !hasExplicitTrainingAction;
+  const collectMoreGames = (nextAction?.type === "collect_more_games" || !hasExplicitTrainingAction) && trainingPriority?.subjectType !== TRAINING_SUBJECT_TYPES.ROLE_GAP;
   const keepFallback = moreGamesCopy(model, report, strengthCandidates, "makes a confident keep recommendation");
   const trainingTitle = formatOpeningNameForDisplay(training?.label || (training?.opening ? `Train ${training.opening}` : "Collect more games before changing your repertoire"));
   const rawTrainingReason = trainingPriority?.rationale || training?.objective || training?.reason || model.nextTrainingAction?.reason || "Review one opening focus before your next games.";

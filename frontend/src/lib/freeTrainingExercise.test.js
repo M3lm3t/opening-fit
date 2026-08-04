@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { Chess } from "chess.js";
 import { buildFreeTrainingExercise, explainTrainingPriority } from "./freeTrainingExercise.js";
 import { attemptOpeningOpportunityMove, createOpeningOpportunitySession, normalizeExerciseProvenance } from "./openingOpportunityDrills.js";
+import { resolveTrainingPriority } from "./trainingPriority.js";
 
 const sourceUrl = "https://www.chess.com/game/live/123456789";
 const pgn = `[Event "Live Chess"]
@@ -252,4 +253,29 @@ test("free completion requires the complete review session", () => {
   assert.match(source, /<TrainingGameReviewSession[\s\S]*?<OpeningOpportunityDrill[\s\S]*?onEngaged=/);
   assert.match(source, /trainingSessionReady \? <button[\s\S]*?Complete this session/);
   assert.doesNotMatch(source, /Mark action complete/);
+});
+
+test("role-gap exercise identity is isolated from Vienna and stable on reload", () => {
+  const report = { analysisId: "fabio-shaped", topOpenings: [{ name: "Vienna Game", games: 9 }], reportDecision: { repertoireRoles: [{ repertoireRole: "black_vs_e4", status: "insufficient", supportingGameCount: 0 }], nextTrainingAction: { type: "collect_more_games", repertoireRole: "black_vs_e4", decisionId: "unresolved-e4" } } };
+  const gapPriority = resolveTrainingPriority(report);
+  const first = buildFreeTrainingExercise(report, gapPriority);
+  const reloaded = buildFreeTrainingExercise(structuredClone(report), resolveTrainingPriority(structuredClone(report)));
+  const vienna = buildFreeTrainingExercise({}, { ...priority, priorityId: "training-vienna", taskId: "training-vienna", openingName: "Vienna Game", openingKey: "vienna-game" });
+
+  assert.equal(first.kind, "role_gap_guidance");
+  assert.equal(first.drill.openingName, null);
+  assert.equal(first.drill.subjectLabel, "Black against 1.e4");
+  assert.equal(first.drill.provenance.label, "General repertoire guidance");
+  assert.equal(first.drill.id, reloaded.drill.id);
+  assert.notEqual(first.drill.id, vienna.drill.id);
+  assert.doesNotMatch(JSON.stringify(first), /Vienna|null line|source game reviewed/i);
+});
+
+test("role-gap renderers omit review and source-game requirements", () => {
+  const session = readFileSync(new URL("../components/TrainingGameReviewSession.jsx", import.meta.url), "utf8");
+  const page = readFileSync(new URL("../components/ThisWeekTrainingExperience.jsx", import.meta.url), "utf8");
+  assert.match(session, /STEPS\.filter\(\(step\) => !roleGap \|\| step\.id !== "review"\)/);
+  assert.match(session, /!roleGap \? <TrainingStep step=\{STEPS\[1\]\}/);
+  assert.match(page, /Choose one repertoire response and save the practical plan/);
+  assert.doesNotMatch(page, /turns this this opening action/);
 });
