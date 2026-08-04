@@ -21,15 +21,11 @@ function reportDecision(report = {}, supplied = null) {
   return supplied || report.reportDecision || report.report_decision || {};
 }
 
-function prioritySource(report = {}, decision = {}) {
-  // A decision-owned priority always wins. Top-level fields are compatibility
-  // aliases and may be stale in older saved reports.
+function prioritySources(report = {}, decision = {}) {
   const explicit = decision.trainingPriority || decision.training_priority || report.trainingPriority || report.training_priority;
-  if (explicit && typeof explicit === "object") return explicit;
   const action = decision.primaryAction || decision.primary_action || decision.nextTrainingAction || decision.next_training_action || report.nextTrainingAction || report.next_training_action;
-  if (action && typeof action === "object" && text(action.type || action.actionType || action.action_type).toLowerCase() !== "collect_more_games") return action;
   const legacy = list(report.nextTrainingActions || report.next_training_actions || report.trainingPlan || report.training_plan)[0];
-  return legacy && typeof legacy === "object" ? legacy : null;
+  return [explicit, action, legacy].filter((source, index, values) => source && typeof source === "object" && values.indexOf(source) === index);
 }
 
 function targetFor(source, decision = {}) {
@@ -93,7 +89,9 @@ function canonicalPriority(source, report, decision) {
   const target = targetFor(source, decision);
   const sample = source.sample && typeof source.sample === "object" ? source.sample : target?.sample || {};
   const openingName = text(diagnosis?.opening || diagnosis?.openingFamily || target?.openingName || target?.opening || source.openingName || source.opening_name || source.opening) || null;
-  const actionType = text(source.type || source.actionType || source.action_type || "review");
+  const decisionAction = decision.primaryAction || decision.primary_action || decision.nextTrainingAction || decision.next_training_action || {};
+  const sameDecisionTarget = !text(source.recommendationId || source.recommendation_id) || text(source.recommendationId || source.recommendation_id) === text(decisionAction.recommendationId || decisionAction.recommendation_id);
+  const actionType = text(source.type || source.actionType || source.action_type || (sameDecisionTarget ? decisionAction.type || decisionAction.actionType || decisionAction.action_type : "") || "review");
   const explicitFindingType = text(source.findingType || source.finding_type || target?.findingType || target?.finding_type);
   const findingType = explicitFindingType || (
     /prepare|explore/.test(actionType.toLowerCase()) ? "preparation_opportunity"
@@ -115,7 +113,7 @@ function canonicalPriority(source, report, decision) {
   const workflowSteps = list(source.sessionSteps || source.session_steps || source.workflowSteps || source.workflow_steps);
   const repertoireRole = text(diagnosis?.repertoireRole || diagnosis?.repertoire_role || source.repertoireRole || source.repertoire_role || target?.repertoireRole || target?.repertoire_role) || "unresolved";
   const gapCopy = roleGapCopy(repertoireRole);
-  const inferredRoleGap = Boolean(!diagnosis && !openingName && !openingKey && gapCopy && /collect|missing|insufficient/.test(`${actionType} ${findingType}`.toLowerCase()));
+  const inferredRoleGap = Boolean(!diagnosis && !openingName && !openingKey && gapCopy && /fill_repertoire_gap|repertoire_gap|collect|missing|insufficient/.test(`${actionType} ${findingType}`.toLowerCase()));
   const subjectType = text(source.subjectType || source.subject_type) || (diagnosis ? TRAINING_SUBJECT_TYPES.DIAGNOSED_POSITION : openingName && openingKey ? TRAINING_SUBJECT_TYPES.OPENING : inferredRoleGap ? TRAINING_SUBJECT_TYPES.ROLE_GAP : "");
   const sourceReportId = text(source.sourceReportId || source.source_report_id || report.analysisId || report.analysis_id || report.report_id || report.id) || null;
   const resolvedPriorityId = subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP ? `training-role-gap:${sourceReportId || "report"}:${gapCopy.role}` : priorityId;
@@ -161,6 +159,7 @@ function canonicalPriority(source, report, decision) {
     confidenceStatus: text(source.confidenceStatus || source.confidence_status || target?.confidence?.level || source.confidence?.level || source.confidence) || "unknown",
     confidence: source.confidence && typeof source.confidence === "object" ? source.confidence : target?.confidence || { level: text(source.confidenceStatus || source.confidence_status) || "unknown" },
     sourceReportId,
+    sourceReportVersion: text(source.sourceReportVersion || source.source_report_version || decision.schemaVersion || decision.schema_version || decision.version) || null,
     lineOrPosition: text(diagnosis?.commonMovePrefix?.san || source.lineOrPosition || source.line_or_position || source.practiceLine || source.practice_line || source.recognisedLine || source.recognizedLine || source.line || source.moveLine || source.move_line) || null,
     recognisedLine: text(diagnosis?.commonMovePrefix?.san || source.recognisedLine || source.recognizedLine || source.recognised_line || source.recognized_line) || null,
     practiceLine: text(diagnosis?.commonMovePrefix?.san || source.practiceLine || source.practice_line) || null,
@@ -257,6 +256,7 @@ function fallbackPriority(report, decision) {
     confidenceStatus: "insufficient_branch_evidence",
     confidence: { level: "insufficient_branch_evidence" },
     sourceReportId,
+    sourceReportVersion: text(decision.schemaVersion || decision.schema_version || decision.version) || null,
     lineOrPosition: null,
     recognisedLine: null,
     practiceLine: null,
@@ -287,9 +287,21 @@ function fallbackPriority(report, decision) {
 
 export function resolveTrainingPriority(report = {}, { decision: suppliedDecision = null, allowFallback = true } = {}) {
   const decision = reportDecision(report, suppliedDecision);
-  const source = prioritySource(report, decision);
-  if (source) return canonicalPriority(source, report, decision);
-  return allowFallback ? fallbackPriority(report, decision) : null;
+  const sources = prioritySources(report, decision);
+  const candidates = sources.map((source) => canonicalPriority(source, report, decision)).filter(Boolean);
+  const diagnosis = candidates.find((priority) => priority.subjectType === TRAINING_SUBJECT_TYPES.DIAGNOSED_POSITION);
+  if (diagnosis) return diagnosis;
+  const repair = candidates.find((priority) => priority.subjectType === TRAINING_SUBJECT_TYPES.OPENING && /repair|weak|problem/.test(`${priority.actionType} ${priority.findingType} ${priority.verdict}`.toLowerCase()));
+  if (repair) return repair;
+  const explicitGap = candidates.find((priority) => priority.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP);
+  const unresolvedGap = allowFallback ? fallbackPriority(report, decision) : null;
+  if (explicitGap) return explicitGap;
+  if (unresolvedGap?.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP) return unresolvedGap;
+  const opening = candidates.find((priority) => priority.subjectType === TRAINING_SUBJECT_TYPES.OPENING);
+  if (opening) return opening;
+  const general = candidates.find((priority) => priority.subjectType === TRAINING_SUBJECT_TYPES.GENERAL_GUIDANCE);
+  if (general) return general;
+  return allowFallback && sources.length === 0 ? unresolvedGap : null;
 }
 
 export function formatTrainingPriorityTitle(priority, { prefix = true } = {}) {
@@ -333,6 +345,7 @@ export function trainingTaskFromPriority(priority, order = 1) {
     evidenceSource: priority.evidenceGameIds?.length ? "user_games" : "general_guidance",
     evidenceSourceLabel: priority.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP ? "General repertoire guidance; no personal source game is claimed." : priority.evidenceGameIds?.length ? "Supported by your analysed games" : "General setup guidance; no recoverable source game is claimed",
     sourceReportId: priority.sourceReportId,
+    sourceReportVersion: priority.sourceReportVersion,
     lineOrPosition: priority.lineOrPosition,
     recognisedLine: priority.recognisedLine,
     practiceLine: priority.practiceLine,
@@ -350,11 +363,42 @@ export function trainingTaskFromPriority(priority, order = 1) {
   };
 }
 
+export function trainingPriorityIdentity(priority = {}) {
+  return {
+    sourceReportId: priority.sourceReportId || null,
+    sourceReportVersion: priority.sourceReportVersion || null,
+    trainingPriorityId: priority.priorityId || null,
+    taskId: priority.taskId || null,
+    decisionId: priority.decisionId || null,
+    subjectType: priority.subjectType || null,
+    subjectRole: priority.subjectRole || null,
+    openingId: priority.openingKey || null,
+    diagnosisId: priority.diagnosisId || null,
+  };
+}
+
 export function trainingPlanMatchesPriority(plan, priority) {
   if (!plan || !priority) return false;
-  const planPriorityId = text(plan.trainingPriorityId || plan.training_priority_id || plan.trainingPriority?.priorityId || plan.targetMetric?.trainingPriorityId || plan.target_metric?.trainingPriorityId);
-  const planSubjectType = text(plan.trainingPriority?.subjectType || plan.tasks?.[0]?.subjectType);
-  const planSubjectRole = text(plan.trainingPriority?.subjectRole || plan.tasks?.[0]?.subjectRole);
-  const openingId = text(plan.trainingPriority?.openingKey || plan.tasks?.[0]?.openingId || plan.targetMetric?.openingId);
-  return Boolean(planPriorityId && planPriorityId === priority.priorityId && planSubjectType === priority.subjectType && planSubjectRole === text(priority.subjectRole) && openingId === text(priority.openingKey));
+  const metric = plan.targetMetric || plan.target_metric || {};
+  const task = plan.tasks?.[0] || {};
+  const stored = plan.trainingPriority || {};
+  const identity = {
+    reportId: text(stored.sourceReportId || metric.sourceReportId || task.sourceReportId),
+    reportVersion: text(stored.sourceReportVersion || metric.sourceReportVersion || task.sourceReportVersion),
+    priorityId: text(plan.trainingPriorityId || plan.training_priority_id || stored.priorityId || metric.trainingPriorityId || task.trainingPriorityId),
+    taskId: text(stored.taskId || metric.taskId || task.id),
+    decisionId: text(stored.decisionId || metric.decisionId || task.decisionId),
+    subjectType: text(stored.subjectType || metric.subjectType || task.subjectType),
+    subjectRole: text(stored.subjectRole || metric.subjectRole || task.subjectRole),
+    openingId: text(stored.openingKey || metric.openingId || task.openingId),
+    diagnosisId: text(stored.diagnosisId || metric.diagnosisId || task.diagnosisId),
+  };
+  const expected = {
+    reportId: text(priority.sourceReportId), reportVersion: text(priority.sourceReportVersion), priorityId: text(priority.priorityId), taskId: text(priority.taskId),
+    decisionId: text(priority.decisionId), subjectType: text(priority.subjectType), subjectRole: text(priority.subjectRole), openingId: text(priority.openingKey), diagnosisId: text(priority.diagnosisId),
+  };
+  const complete = Object.entries(expected).every(([key, value]) => ["openingId", "diagnosisId"].includes(key) || Boolean(value))
+    && Boolean(identity.reportId && identity.reportVersion && identity.priorityId && identity.taskId && identity.decisionId && identity.subjectType && identity.subjectRole);
+  if (!complete || !validateTrainingSubject({ ...task, ...stored, subjectType: identity.subjectType, subjectRole: identity.subjectRole, openingKey: identity.openingId, diagnosisId: identity.diagnosisId, evidenceGameIds: stored.evidenceGameIds || task.sourceGameIds || [] }).valid) return false;
+  return Object.keys(expected).every((key) => identity[key] === expected[key]);
 }

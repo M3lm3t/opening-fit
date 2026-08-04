@@ -205,6 +205,13 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
     setLoading(!cached.plan);
     try {
       const result = await getOrCreateWeeklyTrainingPlan(userId, { preferences: trainingPreferences });
+      if (!result.plan) {
+        setPlan(null);
+        setPendingTaskIds([]);
+        setError("Training is unavailable because the current report does not contain a complete task identity. Run a fresh report before training.");
+        setLoading(false);
+        return;
+      }
       let nextPlan = personalise(result.plan || cached.plan) || foundation();
       const pending = cached.pendingTaskIds.filter((taskId) => nextPlan.tasks?.some((task) => task.id === taskId));
       for (const taskId of pending) {

@@ -16211,9 +16211,10 @@ export default function App() {
     entitlement,
   ]);
 
+  const reportTrainingPriority = useMemo(() => reportData ? selectAuthoritativeCoachingPriority(reportData, { allowFallback: false }) : null, [reportData]);
   const featuredTrainOpening = useMemo(() => {
-    const reportPriority = reportData ? selectAuthoritativeCoachingPriority(reportData, { allowFallback: false }) : null;
-    if (reportPriority?.openingName) return reportPriority;
+    if (reportTrainingPriority?.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP) return null;
+    if (reportTrainingPriority?.openingName) return reportTrainingPriority;
     const planOpening = personalTrainingPlan.find((item) => item.opening)?.opening;
     const candidates = [
       planOpening,
@@ -16231,7 +16232,7 @@ export default function App() {
     );
   }, [
     personalTrainingPlan,
-    reportData,
+    reportTrainingPriority,
     fitData.bestOpening,
     filteredPreferredWhite,
     filteredPreferredBlack,
@@ -17392,7 +17393,7 @@ export default function App() {
                     onReport={() => handleAppNavigate("report")}
                     onUpgrade={() => handleAppNavigate("premium")}
                   />
-                  {canUseOwnGameDrills ? <>
+                  {canUseOwnGameDrills && (practiceOpening || reportTrainingPriority?.subjectType !== TRAINING_SUBJECT_TYPES.ROLE_GAP) ? <>
                   <ReportOpeningFilters filters={reportFilters} onFiltersChange={setReportFilters} data={reportData} />
 
                   <div id="opening-practice">

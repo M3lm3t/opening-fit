@@ -111,15 +111,12 @@ test("canonical Plus plans contain only supported tasks and never pad to five", 
   assert.equal(result.plan.tasks.some((task) => /recheck|padding|unrelated/i.test(task.title)), false);
 });
 
-test("low-evidence canonical reports receive a constructive evidence-building plan", () => {
+test("an unscoped low-evidence canonical report fails closed", () => {
   const lowEvidence = {
     ...report,
     reportDecision: { nextTrainingAction: { type: "collect_more_games" }, establishedStrength: null, primaryProblem: null },
   };
   const result = buildWeeklyTrainingPlan({ userId: USER_ID, report: lowEvidence, repertoire, reportId: REPORT_ID, now: NOW });
-  assert.equal(result.state, "created");
-  assert.equal(result.plan.trainingPriority.findingType, "insufficient_evidence");
-  assert.ok(result.plan.tasks.some((task) => task.evidenceSource === "future_evidence"));
-  assert.ok(result.plan.tasks.some((task) => task.evidenceSource === "general_guidance"));
-  assert.equal(result.plan.tasks.length <= 5, true);
+  assert.equal(result.state, "unavailable-priority");
+  assert.equal(result.plan, null);
 });

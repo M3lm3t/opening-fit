@@ -13,6 +13,8 @@ import { buildFoundationalWeeklyPlan } from "./thisWeekTraining.js";
 import { countNoun, formatResultCounts } from "./reportGameCounts.js";
 
 const caroDecision = {
+  schemaVersion: 6,
+  decisionId: "decision-caro",
   recommendations: [{
     recommendationId: "caro-kann:defence:played_as_black",
     openingName: "Caro-Kann Defence",
@@ -76,7 +78,7 @@ test("the honest fallback is marked and uses only opening-specific evidence", ()
 test("collect-more-games recovery remains an analysis action rather than a fabricated training priority", () => {
   const report = { reportDecision: { nextTrainingAction: { type: "collect_more_games", label: "Collect more games", reason: "Evidence is limited." } } };
   assert.equal(resolveTrainingPriority(report, { allowFallback: false }), null);
-  assert.equal(resolveTrainingPriority(report).fallback, true);
+  assert.equal(resolveTrainingPriority(report), null);
 });
 
 test("an unresolved Black-vs-d4 role cannot inherit an unrelated established opening", () => {
@@ -122,8 +124,10 @@ test("invalid mixed training subjects fail closed", () => {
 });
 
 test("cached plans match only the exact report priority", () => {
-  const priority = resolveTrainingPriority({ reportDecision: caroDecision }, { allowFallback: false });
-  assert.equal(trainingPlanMatchesPriority({ trainingPriorityId: priority.priorityId, trainingPriority: { subjectType: priority.subjectType, subjectRole: priority.subjectRole, openingKey: priority.openingKey } }, priority), true);
+  const report = { analysisId: "report-caro-cache", reportDecision: caroDecision };
+  const priority = resolveTrainingPriority(report, { allowFallback: false });
+  const plan = buildFoundationalWeeklyPlan({ report, now: new Date("2026-08-01T12:00:00Z") });
+  assert.equal(trainingPlanMatchesPriority(plan, priority), true);
   assert.equal(trainingPlanMatchesPriority({ trainingPriorityId: priority.priorityId }, priority), false);
   assert.equal(trainingPlanMatchesPriority({ trainingPriorityId: "training-vienna" }, priority), false);
   assert.equal(trainingPlanMatchesPriority({}, priority), false);
@@ -195,6 +199,27 @@ test("a saved canonical diagnosis wins over conflicting frontend fallback fields
   assert.deepEqual(priority.representativeGameIds, ["game-2"]);
   assert.equal(priority.nextAction, diagnosis.trainingTask);
   assert.equal(priority.successCheck, diagnosis.successCheck);
+});
+
+test("Vienna remains an opening subject when it is the real selected task and no role gap exists", () => {
+  const report = {
+    analysisId: "analysis-vienna",
+    reportDecision: {
+      schemaVersion: 6, decisionId: "decision-vienna", repertoireRoles: [{ repertoireRole: "white", status: "established", openingName: "Vienna Game" }],
+      nextTrainingAction: { type: "consolidate_strength", recommendationId: "vienna:white", opening: "Vienna Game", repertoireRole: "white", role: "played_as_white" },
+      trainingPriority: { priorityId: "training-vienna:white", taskId: "training-vienna:white", recommendationId: "vienna:white", openingName: "Vienna Game", openingKey: "vienna-game", repertoireRole: "white", role: "played_as_white", evidenceGameIds: ["v-1"] },
+      recommendations: [{ recommendationId: "vienna:white", openingName: "Vienna Game", openingId: "vienna-game", repertoireRole: "white", role: "played_as_white", sample: { games: 5, gameIds: ["v-1"] } }],
+    },
+  };
+  const priority = resolveTrainingPriority(report, { allowFallback: true });
+  assert.deepEqual({ subject: priority.subjectType, role: priority.subjectRole, opening: priority.openingName }, { subject: "opening", role: "white_repertoire", opening: "Vienna Game" });
+});
+
+test("a diagnosed Scandinavian position remains the highest-priority diagnosed subject", () => {
+  const diagnosis = { diagnosisId: "diagnosis-scandinavian", opening: "Scandinavian Defence", repertoireRole: "black_vs_e4", playerColour: "black", positionFen: "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2" };
+  const report = { analysisId: "analysis-scandinavian", reportDecision: { schemaVersion: 6, decisionId: "decision-scandinavian", openingDiagnosis: diagnosis, trainingPriority: { priorityId: "training-scandinavian", taskId: "training-scandinavian", diagnosisId: diagnosis.diagnosisId, openingDiagnosis: diagnosis, openingName: diagnosis.opening, openingKey: "scandinavian-defense", repertoireRole: "black_vs_e4", role: "played_as_black", evidenceGameIds: ["s-1"] } } };
+  const priority = resolveTrainingPriority(report, { allowFallback: true });
+  assert.deepEqual({ subject: priority.subjectType, diagnosis: priority.diagnosisId, opening: priority.openingName }, { subject: "diagnosed_position", diagnosis: "diagnosis-scandinavian", opening: "Scandinavian Defence" });
 });
 
 test("shared count formatting handles singular and plural result labels", () => {

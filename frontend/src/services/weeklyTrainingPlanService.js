@@ -102,7 +102,9 @@ export async function getOrCreateWeeklyTrainingPlan(userId, options = {}) {
   const { weekStart } = weeklyPlanWindow(options.now || new Date());
   const hasCanonicalDecision = Boolean(report.reportDecision || report.report_decision || report.trainingPriority || report.training_priority);
   const priority = selectAuthoritativeCoachingPriority(report, { allowFallback: hasCanonicalDecision });
-  if (isReusableWeeklyPlan(current, { weekStart, reportId, priorityId: priority?.priorityId || null, forceRefresh: options.forceRefresh })) {
+  if (hasCanonicalDecision && !priority) return { state: "unavailable-priority", plan: null, reused: false };
+  const reusable = isReusableWeeklyPlan(current, { weekStart, reportId, priorityId: priority?.priorityId || null, priority, forceRefresh: options.forceRefresh });
+  if (reusable) {
     return { state: "reused", plan: current, reused: true };
   }
 
@@ -110,7 +112,7 @@ export async function getOrCreateWeeklyTrainingPlan(userId, options = {}) {
   if (!generated.plan) return { ...generated, reused: false };
   const { data, error } = await client.rpc("save_weekly_training_plan", {
     p_plan: generated.plan,
-    p_force_refresh: Boolean(options.forceRefresh),
+    p_force_refresh: Boolean(options.forceRefresh || current),
   });
   if (error) throw serviceError(error, "Could not save this week's training plan.");
   return { state: current?.reportId && current.reportId !== reportId ? "regenerated-for-report" : "created", plan: weeklyPlanFromRow(data), reused: false };

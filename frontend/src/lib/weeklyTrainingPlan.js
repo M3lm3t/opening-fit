@@ -1,9 +1,9 @@
 import { findOpeningLine, normaliseOpeningKey } from "../data/openings.ts";
 import { normaliseTrainingPreferences, personaliseWeeklyTrainingPlan } from "./trainingPreferences.js";
-import { formatTrainingPriorityTitle, trainingTaskFromPriority } from "./trainingPriority.js";
+import { formatTrainingPriorityTitle, roleGapCopy, TRAINING_SUBJECT_TYPES, trainingPriorityIdentity, trainingTaskFromPriority, trainingPlanMatchesPriority, validateTrainingSubject } from "./trainingPriority.js";
 import { selectAuthoritativeCoachingPriority } from "./authoritativeReportPresentation.js";
 
-export const WEEKLY_TRAINING_PLAN_SCHEMA_VERSION = 1;
+export const WEEKLY_TRAINING_PLAN_SCHEMA_VERSION = 2;
 export const WEEKLY_TRAINING_TASK_TYPES = Object.freeze(["position_drill", "line_replay", "game_review", "concept_review"]);
 export const WEEKLY_TRAINING_PLAN_STATUSES = Object.freeze(["active", "completed", "expired"]);
 export const WEEKLY_TRAINING_TASK_STATUSES = Object.freeze(["pending", "completed"]);
@@ -93,7 +93,7 @@ function expectedMoves(weakness = {}) {
   return text(raw) ? text(raw).split(/\s+/).filter(Boolean).slice(0, 12) : [];
 }
 
-function task({ type, title, explanation, openingId = null, games = [], fen = null, moves = [], success, minutes, order, findingType = null, role = null, source = "report_evidence", sourceLabel = "Supported by the current report", lineOrPosition = null }) {
+function task({ type, title, explanation, openingId = null, games = [], fen = null, moves = [], success, minutes, order, findingType = null, role = null, source = "report_evidence", sourceLabel = "Supported by the current report", lineOrPosition = null, subject = null }) {
   return {
     id: makeId("weekly-task"),
     type,
@@ -112,6 +112,11 @@ function task({ type, title, explanation, openingId = null, games = [], fen = nu
     evidenceSource: source,
     evidenceSourceLabel: sourceLabel,
     lineOrPosition,
+    ...(subject ? {
+      subjectType: subject.subjectType, subjectRole: subject.subjectRole, decisionId: subject.decisionId,
+      trainingPriorityId: subject.priorityId, sourceReportId: subject.sourceReportId, sourceReportVersion: subject.sourceReportVersion,
+      diagnosisId: subject.diagnosisId, openingName: subject.openingName,
+    } : {}),
   };
 }
 
@@ -142,6 +147,22 @@ export function buildWeeklyTrainingPlan({ userId, report, repertoire = [], repor
   const hasCanonicalDecision = Boolean(report.reportDecision || report.report_decision || report.trainingPriority || report.training_priority);
   const priority = selectAuthoritativeCoachingPriority(report, { allowFallback: hasCanonicalDecision });
   if (priority) {
+    if (!validateTrainingSubject(priority).valid) return { state: "unavailable-priority", plan: null };
+    if (priority.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP) {
+      const copy = roleGapCopy(priority.subjectRole);
+      const priorityTask = { ...trainingTaskFromPriority(priority, 1), title: copy.title, explanation: copy.objective, openingId: null, openingName: null, sourceGameIds: [], representativeGameIds: [], evidenceSource: "general_guidance", evidenceSourceLabel: "General repertoire guidance; no personal source game is claimed.", status: "pending" };
+      const { weekStart, weekEnd } = weeklyPlanWindow(now);
+      const plan = {
+        schemaVersion: WEEKLY_TRAINING_PLAN_SCHEMA_VERSION, id: makeUuid(), userId, weekStart, weekEnd,
+        reportId: reportId || priority.sourceReportId || report.report_id || report.id || null, status: "active",
+        primaryGoal: copy.pageHeading, reason: "No correctly attributed opening is established for this role yet.", estimatedMinutes: priority.estimatedDurationMinutes,
+        targetMetric: { type: "task_completion", target: 100, label: "Choose and save one repertoire response", evidenceGames: 0, ...trainingPriorityIdentity(priority) },
+        tasks: [priorityTask], completionPercent: 0, createdAt: new Date(now).toISOString(), completedAt: null,
+        trainingPriority: priority, trainingPriorityId: priority.priorityId, preservePrimaryGoal: true,
+      };
+      return { state: "created", plan: personaliseWeeklyTrainingPlan(plan, preferences, { allowTaskResize: false }) };
+    }
+    if (![TRAINING_SUBJECT_TYPES.OPENING, TRAINING_SUBJECT_TYPES.DIAGNOSED_POSITION].includes(priority.subjectType)) return { state: "unavailable-priority", plan: null };
     const focus = priority.openingName || "your current opening evidence";
     const priorityTask = {
       ...trainingTaskFromPriority(priority, 1),
@@ -149,7 +170,7 @@ export function buildWeeklyTrainingPlan({ userId, report, repertoire = [], repor
       evidenceSourceLabel: priority.evidenceGameIds.length ? `${priority.evidenceCount} supporting game${priority.evidenceCount === 1 ? "" : "s"} selected this priority.` : "No recoverable source game is claimed; this uses clearly labelled general setup guidance.",
     };
     const tasks = [priorityTask];
-    const add = (value) => tasks.push(task({ ...value, order: tasks.length + 1, findingType: priority.findingType, role: priority.repertoireRole }));
+    const add = (value) => tasks.push(task({ ...value, order: tasks.length + 1, findingType: priority.findingType, role: priority.repertoireRole, subject: priority }));
     if (priority.evidenceGameIds.length > 1) add({
       type: "game_review",
       title: `Compare relevant ${focus} games`,
@@ -205,7 +226,7 @@ export function buildWeeklyTrainingPlan({ userId, report, repertoire = [], repor
       primaryGoal: formatTrainingPriorityTitle(priority),
       reason: priority.rationale,
       estimatedMinutes: tasks.reduce((sum, item) => sum + item.estimatedMinutes, 0),
-      targetMetric: { type: "task_completion", target: 100, openingId: priority.openingKey, trainingPriorityId: priority.priorityId, evidenceGames: priority.evidenceCount, label: priority.successCheck },
+      targetMetric: { type: "task_completion", target: 100, evidenceGames: priority.evidenceCount, label: priority.successCheck, ...trainingPriorityIdentity(priority) },
       tasks,
       completionPercent: 0,
       createdAt: new Date(now).toISOString(),
@@ -216,6 +237,8 @@ export function buildWeeklyTrainingPlan({ userId, report, repertoire = [], repor
     };
     return { state: "created", plan: personaliseWeeklyTrainingPlan(plan, preferences, { allowTaskResize: true }) };
   }
+
+  if (hasCanonicalDecision) return { state: "unavailable-priority", plan: null };
 
   const active = list(repertoire).filter((entry) => entry.status === "active");
   if (!active.length) return { state: "missing-repertoire", plan: null };
@@ -323,7 +346,8 @@ export function completeWeeklyTask(plan, taskId, completed = true) {
   };
 }
 
-export function isReusableWeeklyPlan(plan, { weekStart, reportId, priorityId = null, forceRefresh = false } = {}) {
+export function isReusableWeeklyPlan(plan, { weekStart, reportId, priorityId = null, priority = null, forceRefresh = false } = {}) {
   const currentPriorityId = plan?.trainingPriorityId || plan?.targetMetric?.trainingPriorityId || null;
-  return Boolean(plan && !forceRefresh && plan.status === "active" && plan.weekStart === weekStart && (!reportId || plan.reportId === reportId) && (!priorityId || currentPriorityId === priorityId));
+  const baseMatch = Boolean(plan && !forceRefresh && plan.status === "active" && plan.weekStart === weekStart && (!reportId || plan.reportId === reportId) && (!priorityId || currentPriorityId === priorityId));
+  return Boolean(baseMatch && (!priority || trainingPlanMatchesPriority(plan, priority)));
 }

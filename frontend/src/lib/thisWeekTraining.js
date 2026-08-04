@@ -1,7 +1,7 @@
 import { findOpeningLine, normaliseOpeningKey } from "../data/openings.ts";
 import { WEEKLY_TRAINING_PLAN_SCHEMA_VERSION, weeklyPlanWindow } from "./weeklyTrainingPlan.js";
 import { normaliseTrainingPreferences, personaliseWeeklyTrainingPlan } from "./trainingPreferences.js";
-import { formatTrainingPriorityTitle, roleGapCopy, TRAINING_SUBJECT_TYPES, trainingTaskFromPriority, validateTrainingSubject } from "./trainingPriority.js";
+import { formatTrainingPriorityTitle, roleGapCopy, TRAINING_SUBJECT_TYPES, trainingPriorityIdentity, trainingTaskFromPriority, validateTrainingSubject } from "./trainingPriority.js";
 import { selectAuthoritativeCoachingPriority } from "./authoritativeReportPresentation.js";
 
 const text = (value) => String(value ?? "").trim();
@@ -60,7 +60,7 @@ export function buildFoundationalWeeklyPlan({ userId = "local", report = {}, rep
       primaryGoal: copy.pageHeading,
       reason: "No correctly attributed opening is established for this role yet.",
       estimatedMinutes: priority.estimatedDurationMinutes,
-      targetMetric: { type: "task_completion", target: 100, label: "Choose and save one repertoire response", openingId: null, trainingPriorityId: priority.priorityId, evidenceGames: 0, subjectType: priority.subjectType, subjectRole: priority.subjectRole },
+      targetMetric: { type: "task_completion", target: 100, label: "Choose and save one repertoire response", evidenceGames: 0, ...trainingPriorityIdentity(priority) },
       tasks: [{ ...priorityTask, title: copy.title, explanation: copy.objective, openingId: null, openingName: null, sourceGameIds: [], representativeGameIds: [], evidenceSource: "general_guidance", evidenceSourceLabel: "General repertoire guidance; no personal source game is claimed.", successCriteria: priority.successCheck, status: "pending" }],
       completionPercent: 0, createdAt: new Date(now).toISOString(), completedAt: null,
       foundation: true, trainingPriority: priority, trainingPriorityId: priority.priorityId, preservePrimaryGoal: true,
@@ -71,7 +71,7 @@ export function buildFoundationalWeeklyPlan({ userId = "local", report = {}, rep
   if (!priority.fallback) {
     return {
       schemaVersion: WEEKLY_TRAINING_PLAN_SCHEMA_VERSION,
-      id: makeId("priority-plan"),
+      id: `priority-plan:${priority.sourceReportId || "report"}:${priority.taskId || priority.priorityId}`,
       userId,
       weekStart,
       weekEnd,
@@ -80,7 +80,7 @@ export function buildFoundationalWeeklyPlan({ userId = "local", report = {}, rep
       primaryGoal: formatTrainingPriorityTitle(priority),
       reason: priority.rationale,
       estimatedMinutes: priority.estimatedDurationMinutes,
-      targetMetric: { type: "task_completion", target: 100, label: "Complete this report training priority", openingId: priority.openingKey, trainingPriorityId: priority.priorityId, evidenceGames: priority.evidenceCount },
+      targetMetric: { type: "task_completion", target: 100, label: "Complete this report training priority", evidenceGames: priority.evidenceCount, ...trainingPriorityIdentity(priority) },
       tasks: [priorityTask],
       completionPercent: 0,
       createdAt: new Date(now).toISOString(),
