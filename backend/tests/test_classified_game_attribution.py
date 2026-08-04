@@ -10,6 +10,7 @@ from analysis.opening_perspective import classify_opening_perspective, player_co
 from analysis.report_decision import _matching_games, build_repertoire_coverage_score, build_repertoire_roles
 from main import (
     ANALYSIS_GAME_LIMIT,
+    build_game_import_quality,
     build_game_count_summary,
     chesscom_skip_reason,
     deduplicate_games,
@@ -187,6 +188,23 @@ def test_faced_openings_never_fill_a_player_repertoire_role():
     assert all(not game_id.startswith("faced-") for game_id in black_e4["evidenceGameIds"])
 
 
+def test_jobava_london_cannot_fill_black_against_d4():
+    faced = classify_opening_perspective(
+        user_colour="black", opening_side="white", first_white_move="d4"
+    )
+    games = [
+        {"gameId": f"jobava-{index}", "opening": "Jobava London System", "result": "loss", "perspective": faced}
+        for index in range(12)
+    ]
+    roles = build_repertoire_roles([], {"analysis_game_index": games})
+    black_d4 = next(role for role in roles if role["key"] == "black_d4")
+
+    assert faced["relationship"] == "faced"
+    assert black_d4["currentOpening"] is None
+    assert black_d4["supportingGameCount"] == 0
+    assert black_d4["status"] != "established"
+
+
 def test_large_scandinavian_black_sample_establishes_the_role_and_coverage_uses_it():
     played = classify_opening_perspective(user_colour="black", opening_side="black", first_white_move="e4")
     faced = classify_opening_perspective(user_colour="white", opening_side="black", first_white_move="e4")
@@ -252,3 +270,23 @@ def test_excluded_canonical_record_preserves_reason_without_becoming_classified_
     assert record["exclusionReason"] == "incompleteGame"
     assert not record_is_classified(record)
     assert not record_is_used_for_opening_stats(record)
+
+
+def test_quality_separates_large_sample_from_incomplete_attribution_and_roles():
+    trusted_white = classify_opening_perspective(user_colour="white", opening_side="white", first_white_move="e4")
+    unresolved = classify_opening_perspective(user_colour="unknown", opening_side="white", first_white_move="e4")
+    games = [
+        {"gameId": f"trusted-{index}", "opening": "Vienna Game", "colour": "white", "move_count": 20, "perspective": trusted_white}
+        for index in range(60)
+    ] + [
+        {"gameId": f"unresolved-{index}", "opening": "Scandinavian Defence", "colour": "unknown", "move_count": 20, "perspective": unresolved}
+        for index in range(40)
+    ]
+    quality = build_game_import_quality(games, total_found=100)
+
+    assert quality["sampleSize"]["label"] == "Large"
+    assert quality["category"] != "Strong data"
+    assert quality["reportCompleteness"]["complete"] is False
+    assert quality["metrics"]["correctlyAttributedGames"] == 60
+    assert quality["metrics"]["unresolvedContextCount"] == 40
+    assert quality["metrics"]["roleCoverageCount"] == 1

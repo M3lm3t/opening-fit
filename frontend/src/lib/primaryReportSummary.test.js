@@ -46,7 +46,7 @@ test("the report renders one Health, Keep, Repair and Train next command centre"
   assert.doesNotMatch(source, /FeatureAccessPreview/);
   assert.doesNotMatch(source, /primaryReportDecisions|primaryReportNextAction|primaryReportRepertoire/);
   assert.match(source, /View supporting games/);
-  assert.match(source, /Explore repertoire details/);
+  assert.match(source, /View evidence and full report/);
   assert.doesNotMatch(source, /<small>\/100<\/small>|Why \$\{view\.score\}\?/);
   assert.match(source, /data-decision-id=\{view\.decisionId/);
   assert.match(source, /data-diagnosis-id=\{view\.diagnosisId/);

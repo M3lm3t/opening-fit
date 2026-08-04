@@ -166,6 +166,23 @@ def test_contract_guard_rejects_competing_primary_alias_and_unsupported_percenta
     assert "estimated_impact" not in decision["primaryAction"]
 
 
+def test_contract_guard_rejects_duplicate_ids_and_context_verdict_conflicts():
+    results = ["win"] * 6
+    decision = build([opening("Vienna Game", "white", results)], games_for("Vienna Game", "white", results))
+    duplicate = deepcopy(decision["recommendations"][0])
+    duplicate["verdict"] = "repair"
+    broken = deepcopy(decision)
+    broken["recommendations"].append(duplicate)
+
+    with pytest.raises(ValueError, match="recommendation IDs must be present and unique"):
+        assert_decision_consistency(broken)
+
+    duplicate["recommendationId"] = "different-id-same-context"
+    broken["recommendations"][-1] = duplicate
+    with pytest.raises(ValueError, match="conflicting verdicts"):
+        assert_decision_consistency(broken)
+
+
 def test_repertoire_health_is_versioned_reproducible_and_weights_reconcile():
     payload = backend_main.demo_profile()
     health = payload["repertoireHealth"]
@@ -219,6 +236,11 @@ def test_confidence_has_explicit_scope_and_does_not_change_observed_results():
     assert recommendation["evidenceConfidence"]["level"] == "low"
     assert recommendation["evidenceConfidence"]["scope"] == "opening_decision"
     assert recommendation["openingSuitability"]["confidence"]["scope"] == "opening_suitability"
+    assert recommendation["sampleSizeConfidence"]["scope"] == "opening_decision"
+    assert recommendation["classificationConfidence"]["level"] == "trusted"
+    assert recommendation["roleAttributionConfidence"]["level"] == "trusted"
+    assert recommendation["recommendationConfidence"]["scope"] == "recommendation"
+    assert recommendation["gamesNeeded"] == 0
 
 
 def test_zero_game_experiment_has_suitability_but_no_observed_performance():

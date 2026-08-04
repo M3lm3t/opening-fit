@@ -235,3 +235,24 @@ test("Mixed is not used as player colour and legacy reports remain safe", () => 
   assert.equal(openingPerspective({ name: "Legacy opening" }).userColour, "unknown");
   assert.doesNotThrow(() => buildReportDecisionModel({ gamesAnalysed: 2, topOpenings: [{ name: "Legacy opening", games: 2 }] }));
 });
+
+test("canonical Problems exposes one diagnosis even when legacy problem rows are duplicated", () => {
+  const report = canonicalReport();
+  const repair = recommendation({ id: "kid:black-d4", opening: "King's Indian Defence", role: "played_as_black", repertoireRole: "black_vs_d4", verdict: "repair", games: 9, findingType: "branch_weakness" });
+  repair.issue = { description: "Repeated queenside delay", occurrences: 4, positionOrMoveSequence: "1. d4 Nf6 2. c4 g6", supportingGameIds: ["a", "b", "c", "d"] };
+  report.reportDecision.primaryProblem = repair;
+  report.reportDecision.recommendations.push(repair);
+  report.problem_lines = [repair.issue, repair.issue, repair.issue];
+
+  const model = buildReportDecisionModel(report);
+  assert.equal(model.issues.length, 1);
+  assert.equal(model.issues[0].opening, "King's Indian Defence");
+});
+
+test("Evidence table source is the canonical recommendation collection", () => {
+  const app = readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
+  assert.match(app, /canonicalRows = data\?\.reportDecision\?\.recommendations/);
+  assert.match(app, /Array\.isArray\(canonicalRows\) && canonicalRows\.length/);
+  assert.match(app, /repair: "Repair"/);
+  assert.match(app, /"insufficient-data": "Not enough evidence"/);
+});

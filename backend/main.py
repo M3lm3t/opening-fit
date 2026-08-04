@@ -26,7 +26,7 @@ from analysis.classified_game import (
     record_is_classified,
     record_is_used_for_opening_stats,
 )
-from analysis.report_decision import apply_repertoire_coverage_score, build_report_decision, reports_are_comparable
+from analysis.report_decision import REPERTOIRE_ROLE_SPECS, apply_repertoire_coverage_score, build_report_decision, reports_are_comparable
 from opening_detection import (
     detect_opening,
     detect_opening_from_pgn,
@@ -5214,7 +5214,15 @@ def build_game_import_quality(
     total_found: Optional[int] = None,
 ) -> Dict[str, Any]:
     skipped = skipped_reason_counts or {}
-    analysed = len(games or [])
+    unique_games: List[Dict[str, Any]] = []
+    seen_game_ids: set[str] = set()
+    for index, game in enumerate(games or []):
+        game_id = str(game.get("gameId") or game.get("game_id") or game.get("id") or game.get("url") or f"unidentified:{index}")
+        if game_id in seen_game_ids:
+            continue
+        seen_game_ids.add(game_id)
+        unique_games.append(game)
+    analysed = len(unique_games)
     found = int(total_found if total_found is not None else analysed + sum(int(value or 0) for value in skipped.values()))
     very_short = int(skipped.get("veryShort", 0) or 0)
     noisy_ignored = sum(
@@ -5222,9 +5230,6 @@ def build_game_import_quality(
         for key in ["veryShort", "abandoned", "earlyTimeout", "oneMoveResignation", "tooFewLegalMoves"]
     )
     missing_opening = int(skipped.get("missingOpening", 0) or 0)
-    classified_candidates = max(1, found - int(skipped.get("variants", 0) or 0) - noisy_ignored)
-    classification_success = round((analysed / classified_candidates) * 100, 1) if classified_candidates else 0
-
     now_ts = datetime.now(timezone.utc).timestamp()
     recent_count = 0
     time_controls = Counter()
@@ -5233,7 +5238,12 @@ def build_game_import_quality(
     colour_counts = Counter()
     analysed_short = 0
 
-    for game in games or []:
+    classified_count = 0
+    attributed_count = 0
+    unresolved_context_count = 0
+    covered_roles: set[str] = set()
+
+    for game in unique_games:
         end_time = epoch_seconds(game.get("end_time") or game.get("endTime"))
         if end_time and now_ts - end_time <= 90 * 24 * 60 * 60:
             recent_count += 1
@@ -5246,6 +5256,21 @@ def build_game_import_quality(
                 rated_count += 1
         colour = str(game.get("colour") or game.get("color") or "unknown").lower()
         colour_counts[colour] += 1
+        opening_name = str(game.get("openingFamily") or game.get("opening") or game.get("name") or "").strip().lower()
+        if opening_name and "unclassified" not in opening_name and opening_name not in {"unknown", "unknown opening"}:
+            classified_count += 1
+        perspective = perspective_from_item(game)
+        trusted = bool(
+            perspective.get("roleAttributionTrusted")
+            and perspective.get("userColour") in {"white", "black"}
+            and perspective.get("repertoireRole") in {"white", "black_vs_e4", "black_vs_d4"}
+        )
+        if trusted:
+            attributed_count += 1
+            if perspective.get("relationship") == "played":
+                covered_roles.add(str(perspective.get("repertoireRole")))
+        else:
+            unresolved_context_count += 1
         if int(game.get("move_count", game.get("moveCount", 0)) or 0) <= 10:
             analysed_short += 1
 
@@ -5261,42 +5286,49 @@ def build_game_import_quality(
     short_total = noisy_ignored + analysed_short
     short_pct = round((short_total / max(1, found)) * 100, 1)
 
+    classification_rate = round((classified_count / analysed) * 100, 1) if analysed else 0
+    classification_success = classification_rate
+    attribution_rate = round((attributed_count / analysed) * 100, 1) if analysed else 0
+    role_coverage_count = len(covered_roles)
+    role_coverage_rate = round((role_coverage_count / len(REPERTOIRE_ROLE_SPECS)) * 100, 1)
+
     score = 0
     if analysed >= 60:
-        score += 35
+        score += 25
     elif analysed >= 30:
-        score += 28
+        score += 21
     elif analysed >= 15:
-        score += 20
+        score += 16
     elif analysed >= 8:
-        score += 12
+        score += 10
     elif analysed >= 4:
-        score += 6
+        score += 5
 
     if recent_count >= 30:
-        score += 20
-    elif recent_count >= 15:
-        score += 15
-    elif recent_count >= 8:
         score += 10
+    elif recent_count >= 15:
+        score += 8
+    elif recent_count >= 8:
+        score += 6
     elif recent_count >= 4:
-        score += 5
+        score += 3
 
-    score += 12 if classification_success >= 90 else 8 if classification_success >= 75 else 3 if classification_success >= 55 else 0
-    score += 10 if colour_balance >= 35 else 6 if colour_balance >= 25 else 2 if colour_balance >= 12 else 0
+    score += 15 if classification_rate >= 95 else 11 if classification_rate >= 80 else 5 if classification_rate >= 55 else 0
+    score += 25 if attribution_rate >= 98 else 18 if attribution_rate >= 90 else 9 if attribution_rate >= 70 else 0
+    score += role_coverage_count * 5
     if rated_pct is None:
-        score += 5
+        score += 3
     else:
-        score += 10 if rated_pct >= 70 else 6 if rated_pct >= 40 else 2
-    score += 8 if dominant_time_pct <= 70 else 4 if dominant_time_pct <= 85 else 1
-    score += 5 if short_pct <= 8 else 2 if short_pct <= 18 else 0
+        score += 5 if rated_pct >= 70 else 3 if rated_pct >= 40 else 1
+    score += 3 if dominant_time_pct <= 70 else 2 if dominant_time_pct <= 85 else 0
+    score += 7 if short_pct <= 8 else 3 if short_pct <= 18 else 0
     score = max(0, min(100, round(score)))
 
     if analysed < 5:
         category = "Not enough data"
-    elif score < 45:
+    elif score < 50 or attribution_rate < 70:
         category = "Weak data"
-    elif score < 72:
+    elif score < 80 or attribution_rate < 95 or role_coverage_count < len(REPERTOIRE_ROLE_SPECS):
         category = "Usable data"
     else:
         category = "Strong data"
@@ -5316,6 +5348,10 @@ def build_game_import_quality(
         warnings.append(f"OpeningFit ignored {noisy_ignored} very short or noisy game{'' if noisy_ignored == 1 else 's'} because they do not provide reliable opening evidence.")
     if classification_success < 75:
         warnings.append(f"Opening classification succeeded on about {classification_success}% of usable games.")
+    if unresolved_context_count:
+        warnings.append(f"{unresolved_context_count} analysed game{'' if unresolved_context_count == 1 else 's'} could not be assigned to a trusted player colour and repertoire role.")
+    if role_coverage_count < len(REPERTOIRE_ROLE_SPECS):
+        warnings.append(f"Trusted evidence covers {role_coverage_count} of {len(REPERTOIRE_ROLE_SPECS)} core repertoire roles, so report completeness is limited.")
     if rated_pct is not None and rated_pct < 40:
         warnings.append("Many imported games were unrated, so treat performance signals more cautiously.")
 
@@ -5353,7 +5389,27 @@ def build_game_import_quality(
             "ignored_noisy_games": noisy_ignored,
             "shortGameShare": short_pct,
             "openingClassificationSuccessRate": classification_success,
+            "classifiedGames": classified_count,
+            "correctlyAttributedGames": attributed_count,
+            "attributionSuccessRate": attribution_rate,
+            "unresolvedContextCount": unresolved_context_count,
+            "roleCoverageCount": role_coverage_count,
+            "roleCoverageTotal": len(REPERTOIRE_ROLE_SPECS),
+            "roleCoverageRate": role_coverage_rate,
+            "coveredRoles": sorted(covered_roles),
             "missingOpeningCount": missing_opening,
+        },
+        "sampleSize": {
+            "games": analysed,
+            "label": "Large" if analysed >= 50 else "Moderate" if analysed >= 20 else "Small",
+        },
+        "reportCompleteness": {
+            "classifiedGames": classified_count,
+            "correctlyAttributedGames": attributed_count,
+            "unresolvedContextCount": unresolved_context_count,
+            "coveredRoles": sorted(covered_roles),
+            "requiredRoles": [spec["role"] for spec in REPERTOIRE_ROLE_SPECS],
+            "complete": attribution_rate >= 95 and role_coverage_count == len(REPERTOIRE_ROLE_SPECS),
         },
     }
 

@@ -16,6 +16,7 @@ import TrainingSessionQueue from "./components/TrainingSessionQueue";
 import { findOpeningPracticePack } from "./data/openingPracticeLines";
 import { normaliseOpeningKey } from "./data/openings";
 import { evidenceGapCategory, mergeOpeningContextRows, shouldShowEvidenceGap } from "./lib/openingContextRows.js";
+import { buildMeaningfulOpponentResponsePrep } from "./lib/opponentContinuation.js";
 import ResultsCommandCenter from "./components/ResultsCommandCenter";
 import OpeningHealthScore from "./components/OpeningHealthScore";
 import OpeningHealthTrends from "./components/OpeningHealthTrends";
@@ -148,7 +149,7 @@ import FeatureAccessPreview from "./components/FeatureAccessPreview.jsx";
 import { selectPreviousReportSnapshot } from "./lib/reportComparisonPresentation.js";
 import { primaryComparisonState } from "./lib/primaryReportSummary.js";
 import { selectAuthoritativeCoachingPriority } from "./lib/authoritativeReportPresentation.js";
-import { normaliseReportView, reportViewFromLocation, reportViewHash, reportViewHeadingId } from "./lib/reportViews.js";
+import { canonicalReportAction, normaliseReportView, reportActionForPriority, reportActionFromLocation, reportActionUrl, reportViewFromLocation, reportViewHash, reportViewHeadingId } from "./lib/reportViews.js";
 import { buildReportGameCounts, reportCountSentence } from "./lib/reportGameCounts.js";
 import { accountExperienceState, subscriptionPresentation } from "./lib/accountExperience.js";
 import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT } from "./lib/productTransparency.js";
@@ -2263,6 +2264,16 @@ function confidenceVerdictLabel(opening, data, fallback = "") {
 }
 
 function openingVerdictLabel(opening, data, fallback = "") {
+  if (opening?.recommendationId || String(opening?.decisionId || "").startsWith("opening-decision:")) {
+    const canonical = String(opening?.verdict || "").toLowerCase();
+    return ({
+      keep: "Keep",
+      repair: "Repair",
+      explore: "Review",
+      "insufficient-data": "Not enough evidence",
+      experiment: "Experiment",
+    })[canonical] || "Evidence unavailable";
+  }
   return baseConfidenceVerdict(opening, data, fallback);
 }
 
@@ -5015,8 +5026,11 @@ function TopActionsSection({ data, fitData, onPractice }) {
 }
 
 function EvidenceTableSection({ data, fitData, entitlement = null, onPractice }) {
+  const canonicalRows = data?.reportDecision?.recommendations || data?.report_decision?.recommendations;
   const rows = uniqueOpeningsByNameAndContext(
-    Array.isArray(fitData?.scoredOpenings) && fitData.scoredOpenings.length
+    Array.isArray(canonicalRows) && canonicalRows.length
+      ? canonicalRows
+      : Array.isArray(fitData?.scoredOpenings) && fitData.scoredOpenings.length
       ? fitData.scoredOpenings
       : [
           ...(Array.isArray(data?.best_openings) ? data.best_openings : []),
@@ -6548,6 +6562,7 @@ function FinalReportFlow({
     [data, fitData, reportHistory]
   );
   const [reportView, setReportView] = useState(() => reportViewFromLocation());
+  const [reportActionContext, setReportActionContext] = useState(() => reportActionFromLocation());
   const currentComparisonSnapshot = useMemo(
     () => buildReportSnapshot({ report: data, summary: buildReportHistorySummary(data, fitData) }),
     [data, fitData]
@@ -6569,7 +6584,10 @@ function FinalReportFlow({
     if (typeof window === "undefined") return undefined;
 
     const handleReportMode = (event) => setReportView(event.detail?.mode === "table" ? "evidence" : event.detail?.mode === "full" ? "repertoire" : "summary");
-    const handleHistory = () => setReportView(reportViewFromLocation());
+    const handleHistory = () => {
+      setReportView(reportViewFromLocation());
+      setReportActionContext(reportActionFromLocation());
+    };
 
     window.addEventListener("openingfit:set-report-mode", handleReportMode);
     window.addEventListener("popstate", handleHistory);
@@ -6589,6 +6607,16 @@ function FinalReportFlow({
     }
     if (typeof window !== "undefined") {
       window.requestAnimationFrame(() => document.getElementById(reportViewHeadingId(next))?.focus());
+    }
+  }, []);
+
+  const navigateReportAction = useCallback((input) => {
+    const action = canonicalReportAction({ ...input, destinationRoute: typeof window !== "undefined" ? window.location.pathname : "/report" });
+    setReportView(action.destinationSection);
+    setReportActionContext(action);
+    if (typeof window !== "undefined") {
+      window.history.pushState({ reportView: action.destinationSection, reportAction: action }, "", reportActionUrl(action, window.location));
+      window.requestAnimationFrame(() => document.getElementById(reportViewHeadingId(action.destinationSection))?.focus());
     }
   }, []);
 
@@ -6616,8 +6644,18 @@ function FinalReportFlow({
     return () => window.removeEventListener("resize", checkVerdictCardWidths);
   }, [activeView, data, fitData, reportView]);
 
-  const openOpeningBreakdown = useCallback(() => {
-    changeReportView("evidence");
+  const openOpeningBreakdown = useCallback((target = {}) => {
+    const source = { ...(target?.source || {}), ...(target || {}) };
+    navigateReportAction({
+      actionType: "open_evidence",
+      sourceSection: reportView,
+      destinationSection: "evidence",
+      decisionId: source.decisionId || source.decision_id || source.recommendationId,
+      diagnosisId: source.diagnosisId || source.diagnosis_id,
+      openingId: source.canonicalOpeningId || source.openingId || source.opening_id,
+      repertoireRole: source.repertoireRole || source.repertoire_role || target?.role,
+      focusTarget: "evidence-table",
+    });
     if (typeof window === "undefined") return;
     window.setTimeout(() => {
       document.getElementById("evidence-table")?.scrollIntoView({
@@ -6625,13 +6663,44 @@ function FinalReportFlow({
         block: "start",
       });
     }, 60);
-  }, [changeReportView]);
+  }, [navigateReportAction, reportView]);
 
   const openFullReport = useCallback(() => {
-    changeReportView("repertoire");
-    if (typeof window === "undefined") return;
-    window.setTimeout(() => document.getElementById("report-repertoire-view")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
-  }, [changeReportView]);
+    navigateReportAction({
+      actionType: "open_evidence",
+      sourceSection: "summary",
+      destinationSection: "evidence",
+      decisionId: decisionModel.decisionId,
+      diagnosisId: decisionModel.trainingPriority?.diagnosisId,
+      openingId: decisionModel.trainingPriority?.openingId || decisionModel.trainingPriority?.canonicalOpeningId,
+      repertoireRole: decisionModel.trainingPriority?.repertoireRole,
+      focusTarget: "evidence-table",
+    });
+  }, [decisionModel, navigateReportAction]);
+
+  const priorityAction = useMemo(
+    () => reportActionForPriority(decisionModel.trainingPriority || decisionModel.primaryAction || {}, "evidence"),
+    [decisionModel]
+  );
+  const knownContextIds = useMemo(() => new Set([
+    decisionModel.decisionId,
+    decisionModel.primaryAction?.decisionId,
+    decisionModel.trainingPriority?.decisionId,
+    decisionModel.trainingPriority?.diagnosisId,
+    decisionModel.authoritative?.openingDiagnosis?.diagnosisId,
+    ...(decisionModel.authoritative?.recommendations || []).flatMap((item) => [item.decisionId, item.recommendationId]),
+  ].filter(Boolean).map(String)), [decisionModel]);
+  const requestedContextId = reportActionContext?.diagnosisId || reportActionContext?.decisionId;
+  const contextIsStale = Boolean(requestedContextId && !knownContextIds.has(String(requestedContextId)));
+  const contextRecommendation = (decisionModel.authoritative?.recommendations || []).find((item) =>
+    [item.decisionId, item.recommendationId, item.openingId].filter(Boolean).map(String).includes(String(requestedContextId || reportActionContext?.openingId || ""))
+  );
+  const focusedPriorityName = contextRecommendation?.openingName || decisionModel.trainingPriority?.openingName || decisionModel.primaryAction?.opening || decisionModel.trainingPriority?.displayName || String(reportActionContext?.repertoireRole || "the current report priority").replaceAll("_", " ");
+  const reportContextNotice = reportActionContext ? (
+    <p className="reportContextNotice" role="status" data-report-context-id={requestedContextId || undefined}>
+      {contextIsStale ? "The requested report context is no longer available. The current section is shown safely." : `Report context retained: ${focusedPriorityName}.`}
+    </p>
+  ) : null;
 
   return (
     <div className="finalReportFlow decisionReportFlow">
@@ -6661,18 +6730,21 @@ function FinalReportFlow({
 
       {reportView === "repertoire" ? <section className="reportViewPanel" id="report-repertoire-view" role="tabpanel" aria-labelledby="report-tab-repertoire">
         <header className="reportViewHeader"><span>Repertoire</span><h2 id="report-repertoire-view-title" tabIndex="-1">Your three core roles and practical alternatives</h2><p>Established, building and unresolved roles stay visible without inventing an opening.</p></header>
+        {reportContextNotice}
         <DecisionRepertoireMap model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} onAnalyse={() => onNavigate?.("analyse")} />
         <FocusedRepertoireSection data={data} model={decisionModel} onPractice={onPractice} onAnalytics={onAnalytics} />
       </section> : null}
 
       {reportView === "problems" ? <section className="reportViewPanel" id="report-problems-view" role="tabpanel" aria-labelledby="report-tab-problems">
         <header className="reportViewHeader"><span>Problems</span><h2 id="report-problems-view-title" tabIndex="-1">Repeated issues and evidence still missing</h2><p>A missing role is an evidence gap, not automatically a weakness.</p></header>
+        {reportContextNotice}
         {decisionModel.repertoire.some((role) => !role.complete) ? <div className="reportEvidenceGapGrid" aria-label="Missing repertoire evidence">{decisionModel.repertoire.filter((role) => !role.complete).map((role) => <article key={role.key}><span>{role.label}</span><strong>{role.opening || "Not established yet"}</strong><p>{role.evidenceRequirement?.whyNeeded || "More correctly attributed games are needed for this exact role."}</p></article>)}</div> : null}
         <CostlyIssuesSection model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} />
         <InterestingThinDataSection data={data} fitData={fitData} />
       </section> : null}
 
       {reportView === "train" ? <section className="reportViewPanel" id="report-train-view" role="tabpanel" aria-labelledby="report-tab-train">
+        {reportContextNotice}
         <header className="reportViewHeader"><span>Train</span><h2 id="report-train-view-title" tabIndex="-1">Your canonical current task</h2><p>Start with the report’s single evidence-backed priority. The full weekly plan remains on the training page.</p></header>
         <FiniteTrainingSession model={decisionModel} onPractice={onPractice} />
         <div className="reportTrainLaunch"><button type="button" className="primaryBtn" onClick={() => onNavigate?.({ view: "train", path: "/train", target: "training-plan" })}>Open this week’s training plan</button></div>
@@ -6680,6 +6752,7 @@ function FinalReportFlow({
 
       {reportView === "evidence" ? <section className="reportViewPanel" id="report-evidence-view" role="tabpanel" aria-labelledby="report-tab-evidence">
         <header className="reportViewHeader"><span>Evidence</span><h2 id="report-evidence-view-title" tabIndex="-1">Games, filters, confidence and report tools</h2><p>Inspect what was included, what was excluded and how the report reached its decisions.</p></header>
+        {reportContextNotice}
         <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
         <ReportGameCountSummary report={data} saveStatus={saveStatus} authenticated={authenticated} onAccount={onAccount} />
         <EvidenceTableSection data={data} fitData={fitData} entitlement={entitlement} onPractice={onPractice} />
@@ -6692,7 +6765,7 @@ function FinalReportFlow({
           {decisionModel.baseline.comparisonClaimsAllowed && reportHistory.length ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
           {decisionModel.baseline.comparisonClaimsAllowed ? <WhatChangedSinceLastAnalysis data={data} fitData={fitData} retentionSnapshots={retentionSnapshots} decisionModel={decisionModel} /> : null}
           {decisionModel.baseline.comparisonClaimsAllowed ? <OpeningJourney data={data} fitData={fitData} retentionSnapshots={retentionSnapshots} onPractice={onPractice} onNavigate={onNavigate} /> : null}
-          <OpeningScoreBreakdown data={data} fitData={fitData} reportHistory={reportHistory} openingFitUserState={openingFitUserState} onAction={(route) => onNavigate?.(route)} decisionModel={decisionModel} />
+          <OpeningScoreBreakdown data={data} fitData={fitData} reportHistory={reportHistory} openingFitUserState={openingFitUserState} onAction={() => navigateReportAction(priorityAction)} decisionModel={decisionModel} />
           {decisionModel.baseline.comparisonClaimsAllowed ? <WeeklyOpeningReport data={data} savedHistory={openingFitUserState.flatMap((row) => row?.coach_progress?.weeklyOpeningSnapshots || []).filter(Boolean)} decisionModel={decisionModel} /> : null}
           {decisionModel.baseline.comparisonClaimsAllowed ? <OpeningGamificationProgress data={data} fitData={fitData} savedProgress={openingFitUserState.map((row) => row?.coach_progress?.openingGamification || null).filter(Boolean)[0] || null} /> : null}
         </div>
@@ -10394,14 +10467,6 @@ function movesForReportGame(game = {}) {
     .filter((token) => token && !/^\d+\.(\.\.)?$/.test(token) && !["1-0", "0-1", "1/2-1/2", "*"].includes(token));
 }
 
-function resultScoreForGame(game = {}) {
-  const result = String(game.result || "").toLowerCase();
-  if (result.includes("win")) return 1;
-  if (result.includes("draw")) return 0.5;
-  if (result.includes("loss")) return 0;
-  return null;
-}
-
 function allReportGames(data = {}) {
   const games = [
     ...(Array.isArray(data.recentGames) ? data.recentGames : []),
@@ -10411,94 +10476,15 @@ function allReportGames(data = {}) {
   ].filter(Boolean);
   const seen = new Set();
   return games.filter((game, index) => {
-    const key = game.url || game.gameUrl || game.id || `${getOpeningName(game)}-${movesForReportGame(game).slice(0, 8).join(" ")}-${index}`;
+    const key = game.gameId || game.game_id || game.url || game.gameUrl || game.id || `${getOpeningName(game)}-${movesForReportGame(game).slice(0, 8).join(" ")}-${index}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 }
 
-function opponentReplyForGame(game = {}) {
-  const moves = movesForReportGame(game);
-  const colour = String(game.colour || game.color || getOpeningSide(game)).toLowerCase();
-  if (moves.length < 2 && colour.includes("white")) return null;
-  if (!moves.length) return null;
-
-  if (colour.includes("white")) {
-    return {
-      reply: moves[1],
-      branch: moves.slice(0, Math.min(8, moves.length)).join(" "),
-      confidence: moves.length >= 4 ? "usable" : "thin",
-    };
-  }
-
-  if (colour.includes("black")) {
-    return {
-      reply: moves[0],
-      branch: moves.slice(0, Math.min(8, moves.length)).join(" "),
-      confidence: moves.length >= 4 ? "usable" : "thin",
-    };
-  }
-
-  return null;
-}
-
 function buildOpponentResponsePrep(data = {}) {
-  const grouped = new Map();
-  allReportGames(data).forEach((game) => {
-    const name = getOpeningName(game);
-    if (!name || isUnknownOpeningName(name)) return;
-    const replyInfo = opponentReplyForGame(game);
-    if (!replyInfo || replyInfo.confidence !== "usable") return;
-    const key = `${normaliseCoachOpeningName(name)}::${replyInfo.reply}`;
-    const score = resultScoreForGame(game);
-    if (!grouped.has(key)) {
-      grouped.set(key, {
-        openingName: name,
-        reply: replyInfo.reply,
-        branch: replyInfo.branch,
-        games: 0,
-        scoreSum: 0,
-        scoredGames: 0,
-      });
-    }
-    const row = grouped.get(key);
-    row.games += 1;
-    if (score !== null) {
-      row.scoreSum += score;
-      row.scoredGames += 1;
-    }
-  });
-
-  const byOpening = new Map();
-  Array.from(grouped.values())
-    .filter((row) => row.games >= 2)
-    .forEach((row) => {
-      const score = row.scoredGames ? Math.round((row.scoreSum / row.scoredGames) * 100) : null;
-      const next = { ...row, score };
-      const key = normaliseCoachOpeningName(row.openingName);
-      byOpening.set(key, [...(byOpening.get(key) || []), next]);
-    });
-
-  return Array.from(byOpening.values())
-    .map((branches) => {
-      const sorted = [...branches].sort((a, b) => b.games - a.games || (a.score ?? 100) - (b.score ?? 100));
-      const hardest = branches
-        .filter((branch) => branch.games >= 3 && branch.score !== null)
-        .sort((a, b) => a.score - b.score || b.games - a.games)[0];
-      const common = sorted[0];
-      return {
-        ...common,
-        isHardest: Boolean(hardest && hardest.reply === common.reply),
-        hardestReply: hardest?.reply || "",
-        recommendation: hardest && hardest.reply === common.reply
-          ? `Practise the first 8 moves against ${common.reply}; this is both common and your hardest response.`
-          : `Practise the first 8 moves against ${common.reply} so this common branch feels routine.`,
-      };
-    })
-    .filter((row) => row.games >= 2)
-    .sort((a, b) => b.games - a.games)
-    .slice(0, 4);
+  return buildMeaningfulOpponentResponsePrep(allReportGames(data), { normaliseName: normaliseCoachOpeningName });
 }
 
 function FocusedRepertoireSection({ data, model, onPractice, onAnalytics }) {

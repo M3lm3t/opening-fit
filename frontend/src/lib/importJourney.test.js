@@ -187,4 +187,18 @@ test("the loading overlay exposes accessible determinate and indeterminate progr
   assert.doesNotMatch(styles, /min-width:\s*[4-9]\d\dpx/);
   assert.match(source, /role="dialog"/);
   assert.equal((source.match(/aria-live="polite"/g) || []).length, 1);
+  assert.match(source, /Importing and analysing games/);
+  assert.match(source, /hasRealStage \|\| complete \? <div className="importLoadingSteps"/);
+  assert.doesNotMatch(source, /Waiting for a confirmed analysis stage/);
+});
+
+test("unconfirmed work has one honest indeterminate surface while confirmed stages remain available", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const overlay = await readFile(new URL("../components/ImportLoadingOverlay.jsx", import.meta.url), "utf8");
+  const app = await readFile(new URL("../App.jsx", import.meta.url), "utf8");
+  assert.match(overlay, /hasRealStage = Boolean\(progress\?\.real/);
+  assert.match(overlay, /Detailed stages are not available for this request/);
+  assert.match(overlay, /timing\.showElapsed/);
+  assert.match(overlay, /You can safely cancel without replacing your last report/);
+  assert.match(app, /loading && data \? \([\s\S]*backgroundAnalysisNotice[\s\S]*\) : loading \? \([\s\S]*<ImportLoadingOverlay/);
 });

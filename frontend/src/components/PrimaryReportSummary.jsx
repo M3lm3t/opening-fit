@@ -78,7 +78,7 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
 
       {view.confidenceWarning ? <aside className="primaryReportConfidence" role="status"><strong>Confidence is still developing</strong><p>{view.confidenceWarning}</p></aside> : null}
       <OpeningFitScoreDisclosure model={model} report={report} previousReport={previousReport} />
-      <div className="primaryReportMore"><button type="button" className="secondaryBtn" onClick={onFullReport}>Explore repertoire details</button><small>Rankings, role coverage, games, exclusions, history and report tools remain in the report views.</small></div>
+      <div className="primaryReportMore"><button type="button" className="secondaryBtn" onClick={onFullReport}>View evidence and full report</button><small>Games, confidence, filters, exclusions, history and report tools remain in Evidence.</small></div>
     </section>
   );
 }

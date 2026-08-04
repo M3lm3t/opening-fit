@@ -578,6 +578,22 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
     if verdict == "explore" and games >= HIGH_CONFIDENCE_GAMES:
         verdict_reasons.append("Large sample, mixed signal: the sample is strong, while the chess conclusion remains mixed.")
     evidence_confidence = _evidence_confidence_contract(confidence, games=games, scope="opening_decision")
+    classification_confidence = {
+        "level": "trusted" if perspective.get("openingSide") in {"white", "black"} else "unresolved",
+        "label": "Opening side classified" if perspective.get("openingSide") in {"white", "black"} else "Opening side unresolved",
+        "source": perspective.get("classificationSource"),
+    }
+    role_attribution_confidence = {
+        "level": "trusted" if perspective.get("roleAttributionTrusted") else "unresolved",
+        "label": "Role attribution trusted" if perspective.get("roleAttributionTrusted") else "Role attribution unresolved",
+        "reasonCode": perspective.get("attributionReasonCode"),
+    }
+    recommendation_confidence = {
+        "level": evidence_confidence["level"] if not validation else "insufficient",
+        "label": evidence_confidence["label"] if not validation else "Recommendation unresolved",
+        "scope": "recommendation",
+        "reasons": [*confidence["reasons"], *validation],
+    }
     observed_performance = _observed_performance_contract(
         games=games, wins=wins, draws=draws, losses=losses,
         role=repertoire_role, colour=perspective["userColour"],
@@ -587,6 +603,7 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
     )
     return {
         "recommendationId": recommendation_id,
+        "decisionId": f"opening-decision:{recommendation_id}",
         "verdict": verdict,
         "openingId": _slug(opening_name),
         "openingName": opening_name,
@@ -614,6 +631,10 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         "opening_suitability": opening_suitability,
         "evidenceConfidence": evidence_confidence,
         "evidence_confidence": evidence_confidence,
+        "sampleSizeConfidence": evidence_confidence,
+        "classificationConfidence": classification_confidence,
+        "roleAttributionConfidence": role_attribution_confidence,
+        "recommendationConfidence": recommendation_confidence,
         "issue": issue,
         "confidence": confidence,
         "confidenceLevel": confidence["level"],
@@ -626,6 +647,7 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         "evidenceCounts": evidence_counts,
         "evidence_counts": evidence_counts,
         "sampleSizeStatus": "sufficient" if games >= MIN_OPENING_EVIDENCE and not validation else "insufficient_data",
+        "gamesNeeded": max(0, MIN_OPENING_EVIDENCE - games),
         "trainingAction": training_action,
         "recommendedAction": training_action,
         "verdictReasons": verdict_reasons,
@@ -1651,6 +1673,23 @@ def _training_priority(action: Mapping[str, Any], recommendations: list[Mapping[
 def assert_decision_consistency(decision: Mapping[str, Any]) -> None:
     """Fail closed when two fields in the authoritative contract disagree."""
     recommendations = [row for row in decision.get("recommendations", []) if isinstance(row, Mapping)]
+    seen_decision_ids: set[str] = set()
+    context_verdicts: dict[tuple[str, str, str, str], str] = {}
+    for row in recommendations:
+        recommendation_id = str(row.get("recommendationId") or "")
+        if not recommendation_id or recommendation_id in seen_decision_ids:
+            raise ValueError("decision_contract: recommendation IDs must be present and unique")
+        seen_decision_ids.add(recommendation_id)
+        context_id = (
+            str(row.get("openingId") or _opening_key(row.get("openingName"))),
+            str(row.get("repertoireRole") or ""),
+            str(row.get("role") or ""),
+            str(row.get("relationship") or ""),
+        )
+        prior_verdict = context_verdicts.get(context_id)
+        if prior_verdict is not None and prior_verdict != str(row.get("verdict") or ""):
+            raise ValueError("decision_contract: conflicting verdicts for one canonical opening context")
+        context_verdicts[context_id] = str(row.get("verdict") or "")
     by_context = {
         (_opening_key(row.get("openingName")), str(row.get("repertoireRole") or "")): row
         for row in recommendations

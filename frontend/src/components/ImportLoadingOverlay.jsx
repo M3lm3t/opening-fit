@@ -129,11 +129,11 @@ export default function ImportLoadingOverlay({
             <div className="importLoadingActiveMessage" role="status" aria-live="polite" aria-atomic="true" aria-busy={!complete}>
               <ChessAnalysisLoader />
               <span>{complete ? <Check size={14} /> : <Search size={14} />} {complete ? "Analysis complete" : "Analysing games"}</span>
-              <strong>{complete ? "Your report is ready" : hasRealStage ? activeStage.title : "Waiting for a confirmed analysis stage"}</strong>
-              <p>{progress?.message || `Finding your ${platformLabel} games. This can take longer when several monthly archives need checking. OpeningFit is waiting for the platform response.`}</p>
+              <strong>{complete ? "Your report is ready" : hasRealStage ? activeStage.title : "Importing and analysing games"}</strong>
+              <p>{hasRealStage || complete ? progress?.message || activeStage?.detail : `OpeningFit is working on ${platformLabel}${username ? ` games for ${username}` : " games"}. Detailed stages are not available for this request.`}</p>
             </div>
 
-            <div className="importLoadingSteps">
+            {hasRealStage || complete ? <div className="importLoadingSteps" aria-label="Confirmed analysis stages">
               {progressStages.map((stageItem, index) => {
                 const StageIcon = stageItem.icon;
                 const isDone = complete || (hasRealStage && index < activeStageIndex);
@@ -155,7 +155,7 @@ export default function ImportLoadingOverlay({
                   </div>
                 );
               })}
-            </div>
+            </div> : null}
           </div>
         </div>
 
