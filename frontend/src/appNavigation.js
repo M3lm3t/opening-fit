@@ -4,8 +4,8 @@ export const APP_NAV_ROUTES = {
   today: { view: "dashboard", path: "/dashboard", target: "coach-dashboard", fallbackIds: ["app-dashboard"] },
   dashboard: { view: "dashboard", path: "/dashboard", target: "coach-dashboard", fallbackIds: ["app-dashboard"] },
   home: { view: "analyse", path: "/", target: "app-dashboard", fallbackIds: ["import"] },
-  analyse: { view: "analyse", path: "/", target: "import" },
-  import: { view: "analyse", path: "/", target: "import" },
+  analyse: { view: "analyse", path: "/analyse", target: "import" },
+  import: { view: "analyse", path: "/analyse", target: "import" },
   report: { view: "report", path: "/report", target: "app-results" },
   overview: { view: "report", path: "/report", target: "app-results" },
   recommendations: {
@@ -56,6 +56,20 @@ export const APP_NAV_ROUTES = {
   premium: { view: "premium", path: "/premium", target: "premium", fallbackIds: ["profile"] },
   feedback: { view: "feedback", path: "/", target: "feedback" },
 };
+
+export const OWNED_PRODUCT_ROUTES = Object.freeze({
+  "/": Object.freeze({ view: "home", kind: "landing", hydrateReport: false }),
+  "/analyse": Object.freeze({ view: "analyse", kind: "analysis", hydrateReport: false }),
+  "/report": Object.freeze({ view: "report", kind: "report", hydrateReport: true }),
+  "/train": Object.freeze({ view: "train", kind: "training", hydrateReport: true }),
+  "/report/sample": Object.freeze({ view: "report", kind: "sample", hydrateReport: false }),
+});
+
+export function resolveOwnedProductRoute(pathname = "/") {
+  const raw = String(pathname || "/").split(/[?#]/)[0] || "/";
+  const path = raw.length > 1 ? raw.replace(/\/+$/, "") : "/";
+  return OWNED_PRODUCT_ROUTES[path] || null;
+}
 
 export function getAppSection(view) {
   const aliases = {

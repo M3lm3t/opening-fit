@@ -3,6 +3,7 @@ import { normaliseReportDecision } from "./recommendationEvidence.js";
 import { coachVerdict, formatRecommendationConfidence, trainingActionCopy } from "./reportCoachCopy.js";
 import { formatTrainingPriorityTitle } from "./trainingPriority.js";
 import { buildAuthoritativeRoleViewModels, selectAuthoritativeCoachingPriority } from "./authoritativeReportPresentation.js";
+import { buildCanonicalReportPresentation } from "./canonicalReportPresentation.js";
 
 function list(value) {
   if (!value) return [];
@@ -322,6 +323,7 @@ function canonicalOpening(source, fallbackType) {
 }
 
 export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory = []) {
+  const reportPresentation = buildCanonicalReportPresentation(data);
   const serverDecision = normaliseReportDecision(data.reportDecision || data.report_decision || null, data);
   const legacyDecisions = serverDecision ? [] : buildRepertoireDecisions(data);
   const sourceOpenings = collectReportOpenings(data);
@@ -347,12 +349,9 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
   const healthContract = serverDecision?.repertoireHealth || serverDecision?.repertoireCoverageScore || data.repertoireHealth || data.repertoire_health || data.repertoireCoverageScore || data.repertoire_coverage_score || null;
   const score = Number(healthContract?.score ?? data.openingFitScore ?? data.opening_fit_score ?? fitData?.overallScore);
   const scoreValue = Number.isFinite(score) ? Math.round(score) : null;
-  const coverage = serverDecision?.reportCoverage;
-  const confidence = healthContract?.confidence?.label
-    ? `${healthContract.confidence.label} overall Evidence Confidence`
-    : coverage?.level
-    ? `${coverage.level[0].toUpperCase()}${coverage.level.slice(1)} report coverage`
-    : `${games} analysed game${games === 1 ? "" : "s"}`;
+  const confidence = reportPresentation.reportConfidenceCode === "unavailable"
+    ? `${games} analysed game${games === 1 ? "" : "s"}`
+    : reportPresentation.reportConfidenceLabel;
   const previousRow = comparableHistory(data, reportHistory);
   const previous = previousRow?.openingfit_score ?? previousRow?.normalized_snapshot?.openingfit_score ?? previousRow?.snapshot?.openingfit_score ?? previousRow?.summary?.openingFitProgress?.score ?? previousRow?.summary?.opening_fit_score ?? null;
   const currentScoreVersion = String(healthContract?.version || healthContract?.formulaVersion || "openingfit_score_v1");
@@ -362,8 +361,8 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
   const trend = comparisonAllowed && scoreValue !== null && previous !== null && previous !== undefined && previous !== "" && Number.isFinite(Number(previous))
     ? scoreValue - Number(previous)
     : null;
-  const strongest = keep?.opening || "Not enough evidence yet";
-  const weakest = issues[0]?.opening || repair?.opening || reduce?.opening || "No recurring weakness identified";
+  const strongest = reportPresentation.strength?.openingName || "Not enough evidence yet";
+  const weakest = reportPresentation.weakness?.openingName || "No recurring weakness identified";
   const next = repair || reduce || keep || null;
   const nextTrainingAction = serverDecision?.nextTrainingAction || (next ? { type: next.type, opening: next.opening, role: next.role, label: `${next.type === "keep" ? "Consolidate" : "Repair"} ${next.opening}`, reason: next.reason } : { type: "collect_more_games", opening: null, role: null, label: "Collect more games before changing your repertoire", reason: "No opening has enough correctly attributed evidence for a strength or weakness claim." });
   const unresolvedTrainingRole = text(nextTrainingAction?.repertoireRole || nextTrainingAction?.repertoire_role);

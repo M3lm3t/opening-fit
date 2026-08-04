@@ -986,3 +986,18 @@
     margin-top: 16px !important;
   }
 }
+
+/* This final rule follows legacy shell overrides so Guides and marketing pages
+   cannot expose desktop links and the mobile trigger together. */
+@media (max-width: 1179px) {
+  .page .appPrimaryNav .appPrimaryTabs,
+  .page .appPrimaryNav .appPrimaryAccount,
+  .page .appPrimaryNav .appPrimaryGetStarted { display: none !important; }
+  .page .appPrimaryNav .appPrimaryMenuToggle { display: inline-grid !important; place-items: center !important; }
+}
+
+@media (min-width: 1180px) {
+  .page .appPrimaryNav .appPrimaryMenuToggle,
+  .page .appPrimaryNav .appPrimaryMobileBackdrop,
+  .page .appPrimaryNav .appPrimaryMobilePanel { display: none !important; }
+}

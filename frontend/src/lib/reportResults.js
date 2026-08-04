@@ -6,7 +6,7 @@ export function percentValue(value) {
   return Math.max(0, Math.min(100, numeric >= 0 && numeric <= 1 ? numeric * 100 : numeric));
 }
 
-export function canonicalResultAggregate(source = {}) {
+export function canonicalResultAggregate(source = {}, { precision = 1 } = {}) {
   const sample = source.sample && typeof source.sample === "object" ? source.sample : source;
   const games = Number(sample.games ?? source.games ?? 0) || 0;
   const wins = Number(sample.wins ?? source.wins ?? 0) || 0;
@@ -23,6 +23,6 @@ export function canonicalResultAggregate(source = {}) {
     wins: Math.max(0, Math.round(wins)),
     draws: Math.max(0, Math.round(draws)),
     losses: Math.max(0, Math.round(losses)),
-    scoreRate: scoreRate === null ? null : Math.round(scoreRate * 10) / 10,
+    scoreRate: scoreRate === null ? null : Number(scoreRate.toFixed(Math.max(0, Math.min(4, precision)))),
   };
 }

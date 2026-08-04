@@ -1061,8 +1061,8 @@ export default function AccountPanel({ variant = "floating",
           {status && user ? <div className="accountStatus">{status}</div> : null}
 
           {user ? <nav className="accountLegalLinks" aria-label="Account help and legal links">
-            <a href="#privacy">Privacy Policy</a>
-            <a href="#terms">Terms</a>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms</a>
             <a href={SUPPORT_MAILTO}>Support</a>
           </nav> : null}
         </div>

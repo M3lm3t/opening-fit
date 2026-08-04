@@ -153,5 +153,5 @@ test("sample analytics are distinguishable from user-report analytics", () => {
 });
 
 test("Analyse my games exits sample mode to the real import form", () => {
-  assert.deepEqual(sampleReportExit(), { path: "/", view: "analyse", report: null, target: "import" });
+  assert.deepEqual(sampleReportExit(), { path: "/analyse", view: "analyse", report: null, target: "import" });
 });

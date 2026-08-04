@@ -164,7 +164,7 @@ test("signed-out example refresh stays fictional and preserves a genuine local r
   expect(await page.evaluate(() => localStorage.getItem("openingFit:lastAnalysis"))).toBe(genuinePayload);
 
   await page.getByRole("button", { name: "Analyse your games" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/analyse$/);
   expect(await page.evaluate(() => localStorage.getItem("openingFit:lastAnalysis"))).toBe(genuinePayload);
 });
 
@@ -342,6 +342,52 @@ for (const outcome of ["network failure", "backend failure", "cancellation", "il
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem("openingFit:lastAnalysis")).analysis.analysisId)).toBe(`matrix-a-${outcome}`);
   });
 }
+
+test("direct route ownership, history, legal links and responsive primary navigation stay canonical", async ({ page }) => {
+  const baseUrl = appUrl.replace(/\/$/, "");
+  const report = { ...reportFixture({ games: 38, score: 60 }), analysisId: "route-contract-report", username: "RouteFixture", playerName: "RouteFixture" };
+  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await page.evaluate((analysis) => localStorage.setItem("openingFit:lastAnalysis", JSON.stringify({ username: analysis.username, platform: analysis.platform, savedAt: "2026-08-04T12:00:00Z", analysis })), report);
+
+  await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Stop guessing which chess openings you should play." })).toBeVisible();
+  await expect(page.locator(".reportPageTitle")).toHaveCount(0);
+  await expect(page.locator('a[href="/analyse"]').first()).toHaveAttribute("href", "/analyse");
+  await expect(page.locator('a[href="/privacy"]').first()).toHaveAttribute("href", "/privacy");
+  await expect(page.locator('a[href="/terms"]').first()).toHaveAttribute("href", "/terms");
+
+  await page.goto(`${baseUrl}/analyse`, { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Stop guessing which chess openings you should play." })).toBeVisible();
+  await expect(page).toHaveURL(/\/analyse$/);
+  await page.goto(`${baseUrl}/report`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".reportPageTitle")).toContainText("RouteFixture");
+  await page.goto(`${baseUrl}/train`, { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/train$/);
+  await expect(page.getByText(/This week|training/i).first()).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/report$/);
+  await page.goForward();
+  await expect(page).toHaveURL(/\/train$/);
+
+  await page.goto(`${baseUrl}/report/sample`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator('[data-report-kind="sample"]')).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("openingFit:lastAnalysis")).analysis.analysisId)).toBe("route-contract-report");
+
+  for (const width of [320, 375, 768]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
+    await expect(page.locator(".appPrimaryTabs")).toBeHidden();
+    await expect(page.locator(".appPrimaryMenuToggle")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.locator(".appPrimaryTabs")).toBeVisible();
+  await expect(page.locator(".appPrimaryMenuToggle")).toBeHidden();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: /Switch to (light|dark) mode/ })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.locator(".appPrimaryBrand")).toBeFocused();
+});
 
 test("the report priority survives navigation and a direct signed-out reload of train", async ({ page }) => {
   await routeJob(page, [{

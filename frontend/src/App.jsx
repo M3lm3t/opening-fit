@@ -63,7 +63,7 @@ import {
 } from "./components/OpeningScoreProgress";
 import DailyOpeningHabit from "./components/DailyOpeningHabit";
 import { useAuth } from "./context/AuthDataProvider";
-import { getAppSection, HOME_NAVIGATION, navigateApp, scrollToAppTarget } from "./appNavigation";
+import { getAppSection, HOME_NAVIGATION, navigateApp, resolveOwnedProductRoute, scrollToAppTarget } from "./appNavigation";
 
 
 import { CoachSummaryCard, SeriousAppTabs } from "./components/SeriousAppUpgrade";
@@ -153,6 +153,7 @@ import { roleGapCopy, TRAINING_SUBJECT_TYPES } from "./lib/trainingPriority.js";
 import { canonicalReportAction, normaliseReportView, reportActionForPriority, reportActionFromLocation, reportActionUrl, reportViewFromLocation, reportViewHash, reportViewHeadingId } from "./lib/reportViews.js";
 import { buildReportGameCounts, reportCountSentence } from "./lib/reportGameCounts.js";
 import { canonicalResultAggregate } from "./lib/reportResults.js";
+import { buildCanonicalReportPresentation, formatCanonicalScoreRate } from "./lib/canonicalReportPresentation.js";
 import { persistReport, readPersistedReport } from "./lib/reportPersistence.js";
 import { assertGeneratedReportConsistency, enforceReportRoleContract } from "./lib/reportConsistency.js";
 import { accountExperienceState, subscriptionPresentation } from "./lib/accountExperience.js";
@@ -558,7 +559,7 @@ function lineMatchesOpeningFilter(item, filters = {}) {
 
 function getOpeningGames(opening) {
   if (typeof opening === "string") return 0;
-  return safeNumber(opening?.games ?? opening?.count ?? opening?.total);
+  return safeNumber(opening?.gameCount ?? opening?.sample?.games ?? opening?.games ?? opening?.count ?? opening?.total);
 }
 
 function getWinRate(opening) {
@@ -1113,8 +1114,8 @@ function repertoireBucketForOpening(opening) {
 
 function uniqueOpeningsByNameAndContext(items) {
   return mergeOpeningContextRows(items, {
-    getName: getOpeningName,
-    getContext: (item) => item?.context || itemContext(item),
+    getName: (item) => item?.openingName || getOpeningName(item),
+    getContext: (item) => item?.playerPerspective || item?.context || itemContext(item),
     getGames: getOpeningGames,
     normaliseName: normaliseOpeningKey,
     isUnknown: isUnknownOpeningName,
@@ -5021,9 +5022,13 @@ function TopActionsSection({ data, fitData, onPractice }) {
 }
 
 function EvidenceTableSection({ data, fitData, entitlement = null, onEvidence }) {
+  const reportPresentation = buildCanonicalReportPresentation(data || {});
   const canonicalRows = data?.reportDecision?.recommendations || data?.report_decision?.recommendations;
+  const presentationRows = reportPresentation.contexts;
   const rows = uniqueOpeningsByNameAndContext(
-    Array.isArray(canonicalRows) && canonicalRows.length
+    Array.isArray(presentationRows) && presentationRows.length
+      ? presentationRows
+      : Array.isArray(canonicalRows) && canonicalRows.length
       ? canonicalRows
       : Array.isArray(fitData?.scoredOpenings) && fitData.scoredOpenings.length
       ? fitData.scoredOpenings
@@ -5063,29 +5068,27 @@ function EvidenceTableSection({ data, fitData, entitlement = null, onEvidence })
             </thead>
             <tbody>
               {visibleRows.map((opening, index) => {
-                const verdict = openingVerdictLabel(
-                  opening,
-                  data,
-                  opening.fitVerdict || opening.verdict
-                );
+                const isCanonical = Boolean(opening.contextId);
+                const verdict = isCanonical ? ({ keep: "Keep", repair: "Repair", explore: "Review", "insufficient-data": "Not enough evidence", experiment: "Experiment" })[opening.verdict] || "Evidence unavailable" : openingVerdictLabel(opening, data, opening.fitVerdict || opening.verdict);
+                const evidenceSource = opening.source || opening;
 
                 return (
-                  <tr key={`${getOpeningName(opening)}-${itemContext(opening)}-${index}`}>
+                  <tr key={`${opening.contextId || getOpeningName(opening)}-${opening.playerPerspective || itemContext(opening)}-${index}`}>
                     <td>
                       <button
                         className="tableOpeningBtn"
                         type="button"
-                        onClick={() => onEvidence?.(opening)}
-                        aria-label={`View evidence for ${getOpeningName(opening)}`}
+                        onClick={() => onEvidence?.(evidenceSource)}
+                        aria-label={`View evidence for ${opening.openingName || getOpeningName(opening)}`}
                       >
-                        {getOpeningName(opening)}
+                        {opening.openingName || getOpeningName(opening)}
                       </button>
                     </td>
-                    <td>{getOpeningContext(opening).label}</td>
+                    <td>{isCanonical ? contextLabel(opening.playerPerspective) : getOpeningContext(opening).label}</td>
                     <td>{getOpeningGames(opening)}</td>
                     <td>{openingShareText(opening, data)}</td>
-                    <td>{getWinRate(opening)}%</td>
-                    <td>{getOpeningConfidence(opening)}</td>
+                    <td>{isCanonical ? formatCanonicalScoreRate(opening.scoreRate) : `${getWinRate(opening)}%`}</td>
+                    <td>{isCanonical ? opening.confidenceLabel : getOpeningConfidence(opening)}</td>
                     <td><span className={commandVerdictClass(verdict)}>{verdict}</span></td>
                   </tr>
                 );
@@ -8719,22 +8722,6 @@ function getReturnDashboardProgress({ data, fitData, reportHistory = [], opening
   return getProgressFromReportRow(getLatestCloudReport(reportHistory));
 }
 
-function getReturnDashboardRecommendations(progress, latestReport) {
-  const summary = latestReport?.summary || {};
-  const topOpenings = Array.isArray(summary.topOpenings) ? summary.topOpenings : [];
-  const names = [
-    progress?.mainOpeningRecommendation,
-    ...topOpenings.map((item) => item?.name),
-    summary.studyTarget,
-    latestReport?.report?.opening_recommendations?.white?.[0],
-  ]
-    .filter(Boolean)
-    .map((item) => (typeof item === "string" ? item : getOpeningName(item)))
-    .filter((item) => item && item !== "No clear recommendation yet");
-
-  return [...new Set(names)].slice(0, 3);
-}
-
 function getDaysSinceDashboardDate(value) {
   const date = value ? new Date(value) : null;
   if (!date || Number.isNaN(date.getTime())) return null;
@@ -8874,24 +8861,6 @@ function calculateRetentionScore({ data, fitData, progress, latestReport, openin
   return Math.max(0, Math.min(100, Math.round(averagePerformance + sampleBonus + trainingBonus - weakPenalty)));
 }
 
-function buildWeeklyFocus({ strength, weakness, data, progress }) {
-  if (weakness && getOpeningName(weakness) !== "Unknown Opening") {
-    const name = getOpeningName(weakness);
-    const context = roleNameForAction(weakness);
-    if (context.includes("Black vs 1.d4")) return "Review your Black vs d4 repertoire";
-    return `Train your ${name} weaknesses`;
-  }
-
-  if (progress?.suggestedNextAction) return progress.suggestedNextAction;
-
-  if (strength && getOpeningName(strength) !== "Unknown Opening") {
-    return `Keep playing the ${getOpeningName(strength)}`;
-  }
-
-  if (getProfileGameCount(data)) return "Review repertoire";
-  return "Analyse games to unlock a weekly focus";
-}
-
 function getRetentionLastAnalysed(data, progress, latestReport) {
   const raw =
     getProfileImportDate(data) ||
@@ -8907,24 +8876,26 @@ function OpeningFitRetentionSection({
   data,
   fitData,
   reportHistory = [],
-  openingFitUserState = [],
   onAnalyse,
   onTrain,
   compact = false,
 }) {
   const latestReport = getLatestCloudReport(reportHistory);
-  const progress = getReturnDashboardProgress({ data, fitData, reportHistory, openingFitUserState });
   const sourceData = data || latestReport?.report || null;
-  const hasAnySignal = Boolean(sourceData || progress || latestReport);
+  const hasAnySignal = Boolean(sourceData);
 
   if (!hasAnySignal) return null;
 
-  const { strength, weakness } = getDashboardOpeningSignals(sourceData, fitData, latestReport);
-  const score = calculateRetentionScore({ data: sourceData, fitData, progress, latestReport, openingFitUserState });
-  const games = getProfileGameCount(sourceData) || progress?.gamesAnalysed || latestReport?.summary?.games || 0;
-  const strengthName = strength ? getOpeningName(strength) : "Not available yet";
-  const weaknessName = weakness ? getOpeningName(weakness) : "Not available yet";
-  const weeklyFocus = buildWeeklyFocus({ strength, weakness, data: sourceData, progress });
+  const presentation = buildCanonicalReportPresentation(sourceData);
+  const model = buildReportDecisionModel(sourceData, fitData || {}, reportHistory);
+  const strength = presentation.strength;
+  const weakness = presentation.weakness;
+  const priority = presentation.trainingPriority;
+  const score = presentation.healthScore;
+  const games = model.header.games;
+  const strengthName = strength?.openingName || "No supported strength";
+  const weaknessName = weakness?.openingName || "No supported weakness";
+  const weeklyFocus = priority?.title || priority?.rationale || (priority?.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP ? roleGapCopy(priority.subjectRole).reportHeading : "Analyse more eligible games to establish a priority");
   const returnPrompt = games
     ? "Come back after 10 more games to see what changed."
     : "Analyse recent games to start tracking progress.";
@@ -8954,12 +8925,12 @@ function OpeningFitRetentionSection({
         <h2>{weeklyFocus}</h2>
         <p>{returnPrompt}</p>
         <div className="retentionActions">
-          {weakness ? (
-            <button type="button" className="primaryBtn" onClick={() => onTrain?.(weakness)}>
+          {priority ? (
+            <button type="button" className="primaryBtn" onClick={() => onTrain?.(priority)}>
               Train this week
             </button>
           ) : null}
-          <button type="button" className={weakness ? "secondaryButton" : "primaryBtn"} onClick={onAnalyse}>
+          <button type="button" className={priority ? "secondaryButton" : "primaryBtn"} onClick={onAnalyse}>
             Analyse new games
           </button>
         </div>
@@ -8968,7 +8939,7 @@ function OpeningFitRetentionSection({
       <div className="retentionSnapshotGrid" aria-label="Progress snapshot">
         <article>
           <span>Last analysed</span>
-          <strong>{getRetentionLastAnalysed(sourceData, progress, latestReport)}</strong>
+          <strong>{getRetentionLastAnalysed(sourceData, null, latestReport)}</strong>
         </article>
         <article>
           <span>Games analysed</span>
@@ -9095,18 +9066,21 @@ function ReturnUserDashboard({
   if (!user?.id) return null;
 
   const latestReport = getLatestCloudReport(reportHistory);
+  const sourceData = data || latestReport?.report || null;
+  const presentation = buildCanonicalReportPresentation(sourceData || {});
   const progress = getReturnDashboardProgress({ data, fitData, reportHistory, openingFitUserState });
   const hasPreviousData = Boolean(progress || latestReport || data);
-  const recommendations = getReturnDashboardRecommendations(progress, latestReport);
-  const { strength, weakness } = getDashboardOpeningSignals(data, fitData, latestReport);
+  const strength = presentation.strength;
+  const weakness = presentation.weakness;
+  const priority = presentation.trainingPriority;
   const deltas = getDashboardDeltaSummary(progress, reportHistory);
   const displayName =
     user.user_metadata?.full_name ||
     user.user_metadata?.display_name ||
     user.email?.split("@")[0] ||
     "there";
-  const score = progress?.repertoireConfidenceScore;
-  const confidence = progress?.recommendationConfidence || "Building confidence";
+  const score = presentation.healthScore;
+  const confidence = presentation.reportConfidenceLabel;
   const games =
     progress?.gamesAnalysed ||
     latestReport?.summary?.games ||
@@ -9126,17 +9100,13 @@ function ReturnUserDashboard({
       : daysSinceImport === 0
         ? "Today"
         : `${daysSinceImport} day${daysSinceImport === 1 ? "" : "s"} ago`;
-  const strengthName = strength ? getOpeningName(strength) : recommendations[0] || "First weapon pending";
+  const strengthName = strength?.openingName || "No supported strength";
   const strengthConfidence =
-    strength?.confidence ||
-    strength?.fitConfidence ||
     strength?.confidenceLabel ||
-    progress?.recommendationConfidence ||
     confidence;
-  const weaknessName = weakness ? getOpeningName(weakness) : recommendations[1] || "No repair target yet";
+  const weaknessName = weakness?.openingName || "No supported weakness";
   const studyNext =
-    progress?.suggestedNextAction ||
-    (recommendations[0] ? `Study ${recommendations[0]} next.` : "Analyse your first games to build your OpeningFit profile.");
+    priority?.title || priority?.rationale || progress?.suggestedNextAction || "Analyse more eligible games to establish a training priority.";
   const scoreDeltaLabel =
     deltas.scoreDelta === null
       ? "New baseline"
@@ -9197,8 +9167,8 @@ function ReturnUserDashboard({
       <div className="returnDashboardGrid">
         <article className="returnDashboardTileFocus">
           <span>Today's Focus</span>
-          <strong>Repair: {weaknessName}</strong>
-          <p>{weakness ? "This is the clearest opening repair target in your current profile." : studyNext}</p>
+          <strong>{priority?.title || (weakness ? `Repair: ${weaknessName}` : "No supported repair target")}</strong>
+          <p>{priority?.rationale || (weakness ? "This is the canonical repair target in your current report." : studyNext)}</p>
           <button type="button" className="secondaryButton" onClick={onStudyPlan}>
             Train this line
           </button>
@@ -9207,7 +9177,7 @@ function ReturnUserDashboard({
           <span>Best opening</span>
           <strong>{strengthName}</strong>
           <p>{coachConfidenceLabel(strengthConfidence)} {confidenceStars(strengthConfidence)}</p>
-          <button type="button" className="secondaryButton" onClick={() => onStudyPlan?.(strengthName)}>
+          <button type="button" className="secondaryButton" onClick={() => onStudyPlan?.(strength || priority)} disabled={!strength && !priority}>
             Train
           </button>
         </article>
@@ -9930,7 +9900,7 @@ function CompactReportSummary({ data, fitData, onViewChange, onPractice }) {
   const nextFocusName = nextFocus ? getOpeningName(nextFocus) : repertoireShape.study;
   const nextFocusContext = nextFocus ? getOpeningContextTitle(nextFocus) : "your next study target";
   const nextBestAction = nextFocus
-    ? `This week: review ${nextFocusContext} and play 5 rapid games testing the same line.`
+    ? `This week: review ${nextFocusContext} and play 5 more eligible games testing the same line.`
     : "This week: collect more colour-specific games before changing your repertoire.";
 
   const card = (label, opening, fallback, className, action) => (
@@ -11859,7 +11829,7 @@ function AppPrimaryNav({
         { key: "progress", label: "Progress", path: "/progress", target: "openingfit-progress" },
       ]
     : [
-        { key: "analyse", label: "Analyse", path: hasReport ? "/" : "/#import", native: !hasReport },
+        { key: "analyse", label: "Analyse", path: "/analyse" },
         { key: "how", label: "How it works", path: "/#how-it-works-app", native: true },
         { key: "example", label: "Example report", path: SAMPLE_REPORT_PATH, target: "app-results", action: onExampleReport },
         { key: "learn", label: "Learn", path: "/guides", native: true },
@@ -11878,6 +11848,7 @@ function AppPrimaryNav({
   const isPrimaryNavItemActive = (item) => {
     const isPremiumPath = currentPath === "/premium" || currentPath === "/pricing" || currentPath === "/upgrade";
     if (item.key === "example") return isSampleReportPath(currentPath);
+    if (item.key === "analyse") return currentPath === "/analyse";
     if (item.key === activeView) return true;
 
     const activeViewsByKey = {
@@ -12047,8 +12018,8 @@ function AppPrimaryNav({
           {isAppNavigation && hasReport ? (
             <a href="/account" onClick={(event) => navigate(event, { key: "history" })}>History</a>
           ) : null}
-          <a href="#privacy" onClick={() => setMobileMenuOpen(false)}>Privacy</a>
-          <a href="#terms" onClick={() => setMobileMenuOpen(false)}>Terms</a>
+          <a href="/privacy" onClick={() => setMobileMenuOpen(false)}>Privacy</a>
+          <a href="/terms" onClick={() => setMobileMenuOpen(false)}>Terms</a>
           <a href={`mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`}>Support</a>
         </div>
       </div>
@@ -12061,7 +12032,7 @@ function AppStoreReadinessFooter({ onAccount }) {
     <footer className="appStoreReadinessFooter" aria-label="OpeningFit legal and support">
       <section id="privacy" className="appLegalPanel">
         <div>
-          <span>Privacy Policy</span>
+          <a href="/privacy">Privacy Policy</a>
           <h2>Your chess data stays focused on OpeningFit.</h2>
         </div>
         <p>
@@ -12072,7 +12043,7 @@ function AppStoreReadinessFooter({ onAccount }) {
 
       <section id="terms" className="appLegalPanel">
         <div>
-          <span>Terms</span>
+          <a href="/terms">Terms</a>
           <h2>Use OpeningFit as training guidance.</h2>
         </div>
         <p>
@@ -12335,20 +12306,14 @@ function isPrivateSeoPath(path) {
 
 function getInitialAppView() {
   const path = getCurrentPath();
+  const owned = resolveOwnedProductRoute(path);
+  if (owned) return owned.view;
   if (path === "/dashboard") return "dashboard";
   if (path === "/account" || path === "/profile" || path === "/login") return "profile";
   if (path === "/upgrade" || path === "/premium" || path === "/pricing") return "upgrade";
-  if (path === "/train") return "train";
-  if (path === "/report" || isSampleReportPath(path)) return "report";
   if (path === "/repertoire") return "repertoire";
   if (path === "/progress") return "progress";
   if (path === "/journey") return "journey";
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    if (saved?.analysis) return "report";
-  } catch {
-    // Ignore invalid saved reports; hydration will clean them up.
-  }
   return "analyse";
 }
 
@@ -14238,7 +14203,7 @@ export default function App() {
     return restored.ok ? enforceReportRoleContract(restored.analysis).report : null;
   });
   const [activeView, setActiveView] = useState(getInitialAppView);
-  const [forceAnalyseImportFlow, setForceAnalyseImportFlow] = useState(false);
+  const [, setForceAnalyseImportFlow] = useState(false);
   const importAbortRef = useRef(null);
   const analysisProgressRef = useRef(null);
   const activeImportRunRef = useRef(0);
@@ -14396,7 +14361,7 @@ export default function App() {
   };
 
   // This is intentionally session-only.
-  const [showPublicLanding, setShowPublicLanding] = useState(shouldShowLandingIntro);
+  const [, setShowPublicLanding] = useState(shouldShowLandingIntro);
 
   useEffect(() => {
     if (!loading) {
@@ -14551,10 +14516,6 @@ export default function App() {
           setLocalSavedAt(parsed.savedAt || "");
           setCloudSaveStatus("local");
           setShowPublicLanding(false);
-          if (getCurrentPath() === "/") {
-            setActiveView("report");
-            window.history.replaceState({}, "", "/report");
-          }
           setSavedProfileMessage(
             `Saved local report found${
               parsed.username ? ` for ${parsed.username}` : ""
@@ -16285,7 +16246,7 @@ export default function App() {
     setSelectedGameIndex(0);
   }, [showUnknownOpenings]);
 
-  const isPublicLanding = !data && showPublicLanding;
+  const isPublicLanding = getCurrentPath() === "/";
 
 
   const hasReport = Boolean(
@@ -16343,10 +16304,8 @@ export default function App() {
       void trackProductEvent("pricing_viewed", properties, { onceKey: window.location.pathname });
     }
   }, [activeAppSection, isPremium, supabaseUser?.id]);
-  const showCoachDashboard =
-    !forceAnalyseImportFlow &&
-    (activeView === "dashboard" || Boolean((supabaseUser || accountUser) && reportData && activeAppSection === "analyse"));
-  const showAnalyseImportFlow = forceAnalyseImportFlow || !showCoachDashboard || !reportData;
+  const showCoachDashboard = activeView === "dashboard";
+  const showAnalyseImportFlow = activeAppSection === "analyse" && !showCoachDashboard;
   const currentAnalysisPlatformLabel = platforms[platform]?.label || "your chess platform";
   const effectiveReportHistory = useMemo(() => {
     const history = Array.isArray(cloudReportHistory) ? cloudReportHistory : [];
@@ -16543,8 +16502,7 @@ export default function App() {
     isPrivateSeoPath(currentPath) ||
     isUnknownGuidePath ||
     isUnknownChessOpeningPath ||
-    isUnknownOpeningPath ||
-    (currentPath === "/" && hasReport);
+    isUnknownOpeningPath;
   const canonicalUrl =
     isUnknownGuidePath
       ? `${SITE_URL}/guides`
@@ -16780,7 +16738,7 @@ export default function App() {
           entitlementState={mobileEntitlementState}
           onNavigate={handleAppNavigate}
         /> : null}
-        {data ? (
+        {data && !isPublicLanding ? (
           <>
             <OpeningFitImportDoctor username={username} />
 
@@ -16840,7 +16798,7 @@ export default function App() {
             <span className="backgroundAnalysisPulse" aria-hidden="true" />
             <div>
               <strong>Refreshing your report in the background</strong>
-              <small>{loadingStep || `Analysing ${currentAnalysisPlatformLabel} games`}{loadingElapsedSeconds >= 15 ? ` · ${Math.floor(loadingElapsedSeconds / 60)}:${String(loadingElapsedSeconds % 60).padStart(2, "0")} elapsed` : ""}. Reports can take up to several minutes; you can keep browsing.</small>
+              <small>{String(loadingStep || `Analysing ${currentAnalysisPlatformLabel} games`).replace(/[.\s]+$/, "")}{loadingElapsedSeconds >= 15 ? ` · ${Math.floor(loadingElapsedSeconds / 60)}:${String(loadingElapsedSeconds % 60).padStart(2, "0")} elapsed` : ""}. Reports can take up to several minutes; you can keep browsing.</small>
             </div>
             <button type="button" onClick={cancelImport}>Cancel</button>
           </aside>
@@ -16895,7 +16853,7 @@ export default function App() {
 
           {showAnalyseImportFlow ? (
           <>
-          <ResumeTrainingPrompt data={reportData || data} onResume={startOpeningPractice} />
+          {!isPublicLanding ? <ResumeTrainingPrompt data={reportData || data} onResume={startOpeningPractice} /> : null}
 
           <header className="hero heroCard compactImportHero analyseImportHero" aria-busy={loading}>
             <div className="heroTop">
@@ -17098,7 +17056,7 @@ export default function App() {
             </div>
           ) : null}
           {showAnalyseImportFlow ? <SimplifiedHomepageStory onSampleReport={loadDemoReport} /> : null}
-          {showAnalyseImportFlow ? (
+          {showAnalyseImportFlow && !isPublicLanding ? (
           <div className="preAnalysisSupport">
             <ReturnUserDashboard
               user={supabaseUser || accountUser}

@@ -86,7 +86,8 @@ test("rendered report CTAs use canonical report destinations and retain safe fal
   assert.match(flow, /The requested report context is no longer available/);
   assert.match(flow, /path: "\/train\?start=report-task"/);
   assert.match(app, /function EvidenceTableSection\(\{ data, fitData, entitlement = null, onEvidence \}\)/);
-  assert.match(app, /onClick=\{\(\) => onEvidence\?\.\(opening\)\}/);
+  assert.match(app, /evidenceSource = opening\.source \|\| opening/);
+  assert.match(app, /onClick=\{\(\) => onEvidence\?\.\(evidenceSource\)\}/);
   assert.match(flow, /<EvidenceTableSection[^>]*onEvidence=\{openOpeningBreakdown\}/);
 });
 

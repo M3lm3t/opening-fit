@@ -158,6 +158,11 @@ const sampleGames = openings.flatMap((opening) => Array.from({ length: opening.g
 }));
 
 const establishedStrength = {
+  contextId: "sample:vienna:white",
+  decisionId: "decision:sample:vienna-white",
+  recommendationId: "sample:vienna:white",
+  openingId: "vienna-game",
+  openingName: "Vienna Game",
   opening: "Vienna Game",
   role: "played_as_white",
   roleLabel: "played by you as White",
@@ -171,10 +176,17 @@ const establishedStrength = {
   sample: { games: 18, wins: 11, draws: 2, losses: 5, scoreRate: 66.7, gameIds: sampleGameIds("Vienna Game", 18) },
   confidence: "High confidence — based on 18 recent games.",
   sampleSizeStatus: "sufficient",
+  verdict: "keep",
+  evidenceConfidence: { level: "high", label: "High confidence" },
   evidence: ["18 games", "67% score rate", "Reliable development and king safety"],
 };
 
 const primaryProblem = {
+  contextId: "sample:qgd:black-vs-d4",
+  decisionId: "decision:sample:qgd-black-d4",
+  recommendationId: "sample:qgd:black-vs-d4",
+  openingId: "queens-gambit-declined",
+  openingName: "Queen's Gambit Declined",
   opening: "Queen's Gambit Declined",
   role: "played_as_black",
   roleLabel: "played by you as Black",
@@ -188,6 +200,8 @@ const primaryProblem = {
   sample: { games: 12, wins: 3, draws: 3, losses: 6, scoreRate: 37.5, gameIds: sampleGameIds("Queen's Gambit Declined", 12) },
   confidence: "Medium confidence — based on 12 recent games.",
   sampleSizeStatus: "sufficient",
+  verdict: "repair",
+  evidenceConfidence: { level: "medium", label: "Medium confidence" },
   evidence: ["12 games", "38% score rate", "Repeated difficulty completing development"],
 };
 
@@ -342,6 +356,8 @@ export const SAMPLE_REPORT = Object.freeze({
   },
   reportDecision: {
     schemaVersion: 1,
+    decisionId: "decision:sample:qgd-black-d4",
+    recommendations: [establishedStrength, primaryProblem],
     establishedStrength,
     primaryProblem,
     nextTrainingAction,
@@ -350,11 +366,13 @@ export const SAMPLE_REPORT = Object.freeze({
       "Queen's Gambit Declined: 12 relevant games with a 37.5% chess score.",
       "French Defence is faced as White and is opponent preparation, not owned repertoire.",
     ],
-    confidence: { status: "sufficient", sampleSizeStatus: "sufficient", gamesAnalysed: 72, minimumOpeningGames: 3 },
+    confidence: { status: "sufficient", label: "Sufficient evidence", sampleSizeStatus: "sufficient", gamesAnalysed: 72, minimumOpeningGames: 3 },
     baseline: { status: "baseline", hasComparablePrevious: false, comparisonClaimsAllowed: false },
   },
   report_decision: {
     schemaVersion: 1,
+    decisionId: "decision:sample:qgd-black-d4",
+    recommendations: [establishedStrength, primaryProblem],
     establishedStrength,
     primaryProblem,
     nextTrainingAction,
@@ -363,7 +381,7 @@ export const SAMPLE_REPORT = Object.freeze({
       "Queen's Gambit Declined: 12 relevant games with a 37.5% chess score.",
       "French Defence is faced as White and is opponent preparation, not owned repertoire.",
     ],
-    confidence: { status: "sufficient", sampleSizeStatus: "sufficient", gamesAnalysed: 72, minimumOpeningGames: 3 },
+    confidence: { status: "sufficient", label: "Sufficient evidence", sampleSizeStatus: "sufficient", gamesAnalysed: 72, minimumOpeningGames: 3 },
     baseline: { status: "baseline", hasComparablePrevious: false, comparisonClaimsAllowed: false },
   },
   progress_comparison: {
@@ -453,5 +471,5 @@ export function sampleReportEntry(source = "sample_report") {
 }
 
 export function sampleReportExit() {
-  return { path: "/", view: "analyse", report: null, target: "import" };
+  return { path: "/analyse", view: "analyse", report: null, target: "import" };
 }
