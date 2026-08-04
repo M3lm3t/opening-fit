@@ -9702,6 +9702,7 @@ def build_lichess_analysis(
                 "moves": moves,
                 "movesText": moves_text,
                 "moves_text": moves_text,
+                "firstWhiteMove": first_white_move,
                 "move_count": move_count,
                 "moveCount": move_count,
                 "loss_timing": loss_timing,
@@ -10565,6 +10566,69 @@ analysis_job_keys: Dict[str, str] = {}
 analysis_jobs_lock = threading.Lock()
 
 
+def _serialized_role_is_legal(role: str, game: Dict[str, Any]) -> bool:
+    colour = str(game.get("playerColour") or game.get("player_colour") or (game.get("perspective") or {}).get("userColour") or "").lower()
+    relationship = str(game.get("relationship") or (game.get("perspective") or {}).get("relationship") or "").lower()
+    first_move = str(game.get("firstWhiteMove") or game.get("first_white_move") or "").rstrip("+#?!")
+    played = relationship in {"played", "played_by_user"}
+    if role == "white":
+        return colour == "white" and played
+    if role == "black_vs_e4":
+        return colour == "black" and played and first_move == "e4"
+    if role == "black_vs_d4":
+        return colour == "black" and played and first_move == "d4"
+    return False
+
+
+def enforce_serialized_role_contract(report: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove role claims that cannot be proven from the serialized evidence."""
+    decision = report.get("reportDecision") or report.get("report_decision")
+    if not isinstance(decision, dict):
+        return report
+    games = report.get("analysis_game_index") or report.get("analysisGameIndex") or report.get("opening_games") or report.get("openingGames") or []
+    game_index = {
+        str(game.get("gameId") or game.get("game_id") or game.get("url")): game
+        for game in games if isinstance(game, dict) and (game.get("gameId") or game.get("game_id") or game.get("url"))
+    }
+
+    def claim_valid(row: Dict[str, Any]) -> bool:
+        role = str(row.get("repertoireRole") or row.get("repertoire_role") or row.get("role") or "").lower()
+        if role not in {"white", "black_vs_e4", "black_vs_d4"}:
+            return True
+        sample = row.get("sample") if isinstance(row.get("sample"), dict) else {}
+        ids = row.get("evidenceGameIds") or row.get("supportingGameIds") or sample.get("gameIds") or sample.get("game_ids") or []
+        ids = [str(value) for value in ids if str(value)] if isinstance(ids, list) else []
+        declared = row.get("supportingGameCount", row.get("evidenceCount", row.get("sampleSize", sample.get("games"))))
+        opening = row.get("currentOpening") or row.get("openingName") or row.get("opening_name") or row.get("opening")
+        status = str(row.get("status") or row.get("evidenceStatus") or "").lower()
+        if not ids and (declared == 0 or (not opening and status in {"insufficient", "unresolved"})):
+            return True
+        return bool(ids) and (declared is None or int(declared) == len(ids)) and all(
+            game_id in game_index and _serialized_role_is_legal(role, game_index[game_id]) for game_id in ids
+        )
+
+    roles = []
+    for source in decision.get("repertoireRoles") or decision.get("roleDecisions") or []:
+        if not isinstance(source, dict):
+            continue
+        if claim_valid(source):
+            roles.append({**source, "roleContractVerified": True, "validation": {**(source.get("validation") or {}), "valid": True}})
+            continue
+        threshold = source.get("requiredGameCount") or source.get("sampleThreshold") or (source.get("evidenceRequirement") or {}).get("threshold") or 5
+        roles.append({
+            **source, "status": "insufficient", "evidenceStatus": "insufficient", "currentOpening": None,
+            "openingName": None, "supportingGameCount": 0, "evidenceCount": 0, "relevantGameCount": 0,
+            "evidenceGameIds": [], "supportingGameIds": [], "gamesNeeded": int(threshold),
+            "roleContractVerified": False, "validation": {**(source.get("validation") or {}), "valid": False, "reason": "unverifiable_role_context"},
+        })
+    recommendations = [
+        {**row, "roleContractVerified": True, "validation": {**(row.get("validation") or {}), "valid": True}}
+        for row in decision.get("recommendations") or [] if isinstance(row, dict) and claim_valid(row)
+    ]
+    clean_decision = {**decision, "repertoireRoles": roles, "roleDecisions": roles, "recommendations": recommendations}
+    return {**report, "reportDecision": clean_decision, "report_decision": clean_decision, "repertoireRoles": roles}
+
+
 def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
     """Bound public report payloads without removing the evidence used by the UI."""
     if not isinstance(result, dict):
@@ -10640,7 +10704,7 @@ def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
     ):
         compact.pop(duplicate_key, None)
 
-    return compact
+    return enforce_serialized_role_contract(compact)
 
 
 def analysis_job_public(job: Dict[str, Any]) -> Dict[str, Any]:

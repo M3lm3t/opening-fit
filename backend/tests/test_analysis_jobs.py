@@ -209,3 +209,63 @@ def test_compact_analysis_result_bounds_evidence_and_removes_large_aliases():
     assert "openingFitMetrics" not in compact
     assert "openingRecommendations" not in compact
     assert "recommendedOpenings" not in compact
+
+
+def test_homepage_job_serializes_two_d4_nimzo_games_only_under_d4(monkeypatch):
+    monkeypatch.setattr(main.analysis_job_executor, "submit", lambda *_args: None)
+    monkeypatch.setattr(main, "previous_saved_report", lambda *_args: None)
+    monkeypatch.setattr(main, "save_user_profile", lambda username, _payload: {
+        "username": username, "lastUpdated": "2026-08-04T12:00:00Z", "importHistory": [], "isPremium": False,
+    })
+    monkeypatch.setattr(main, "log_analytics_event", lambda *_args, **_kwargs: None)
+
+    def game(game_id):
+        return {
+            "id": game_id,
+            "moves": "d4 Nf6 c4 e6 Nc3 Bb4 e3 O-O",
+            "opening": {"name": "Nimzo-Indian Defense"},
+            "players": {
+                "white": {"user": {"name": "Opponent"}, "rating": 1500},
+                "black": {"user": {"name": "ContractPlayer"}, "rating": 1500},
+            },
+            "winner": "white", "speed": "rapid", "lastMoveAt": 1_700_000_000_000 + int(game_id),
+        }
+
+    monkeypatch.setattr(
+        main,
+        "run_import_route",
+        lambda *_args: main.build_lichess_analysis("contractplayer", [game("11"), game("12")], 1),
+    )
+    started = main.start_analysis_job(main.AnalysisJobRequest(platform="lichess", username="ContractPlayer", months=1))
+    main.execute_analysis_job(started["jobId"])
+    payload = main.get_analysis_job(main.UUID(started["jobId"]))["result"]
+    roles = {row["repertoireRole"]: row for row in payload["reportDecision"]["roleDecisions"]}
+    recommendations = payload["reportDecision"]["recommendations"]
+
+    assert roles["black_vs_e4"]["status"] == "insufficient"
+    assert roles["black_vs_e4"]["currentOpening"] is None
+    assert roles["black_vs_d4"]["relevantGameCount"] == 2
+    assert all(row["repertoireRole"] != "black_vs_e4" for row in recommendations if row["openingName"] == "Nimzo-Indian Defence")
+    assert {row["firstWhiteMove"] for row in payload["analysis_game_index"]} == {"d4"}
+    assert all(row["playerColour"] == "black" and row["relationship"] == "played_by_user" for row in payload["analysis_game_index"])
+
+
+def test_compact_serializer_rejects_malformed_legacy_black_e4_claim():
+    game = {
+        "gameId": "d4-1", "url": "https://example.test/d4-1", "playerColour": "black",
+        "relationship": "played_by_user", "firstWhiteMove": "d4", "opening": "Nimzo-Indian Defence",
+    }
+    illegal = {
+        "repertoireRole": "black_vs_e4", "openingName": "Nimzo-Indian Defence", "currentOpening": "Nimzo-Indian Defence",
+        "supportingGameCount": 1, "evidenceGameIds": ["d4-1"], "status": "building",
+    }
+    compact = main.compact_analysis_result({
+        "opening_games": [game],
+        "reportDecision": {"schemaVersion": 5, "repertoireRoles": [illegal], "recommendations": [{**illegal, "sample": {"games": 1, "gameIds": ["d4-1"]}}]},
+    })
+
+    role = compact["reportDecision"]["repertoireRoles"][0]
+    assert role["currentOpening"] is None
+    assert role["status"] == "insufficient"
+    assert role["validation"] == {"valid": False, "reason": "unverifiable_role_context"}
+    assert compact["reportDecision"]["recommendations"] == []

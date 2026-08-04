@@ -29,6 +29,7 @@ import {
   upsertUserRow,
 } from "../services/userDataService";
 import { resolvePremiumEntitlement } from "../lib/premiumEntitlement";
+import { shouldClearLegacyStorageForAuthEvent } from "../lib/reportPersistence";
 
 const AuthDataContext = createContext(null);
 
@@ -792,7 +793,10 @@ export function AuthDataProvider({ children }) {
         if (!nextSession?.user) {
           restoreSeqRef.current += 1;
           restoredUserIdRef.current = null;
-          clearLegacyStorage();
+          // INITIAL_SESSION is also emitted for a normal signed-out visitor.
+          // Clearing here deleted the guest's verified last report on reload.
+          // Explicit sign-out still performs the between-user cleanup.
+          if (shouldClearLegacyStorageForAuthEvent(event, Boolean(nextSession?.user))) clearLegacyStorage();
           setUserData(null);
           setProfileLoading(false);
           setCloudRestoreLoading(false);

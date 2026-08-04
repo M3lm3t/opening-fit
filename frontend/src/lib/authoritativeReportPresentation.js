@@ -51,7 +51,10 @@ export function roleVerdictLabel(value) {
 }
 
 function candidateFor(role, base, candidates) {
-  const eligible = list(candidates).filter((candidate) => contextKey(candidate) === role.contextKey);
+  const eligible = list(candidates).filter((candidate) => {
+    const relationship = text(candidate.relationship || candidate.perspective?.relationship).toLowerCase();
+    return !["faced", "faced_by_user", "opponent"].includes(relationship) && contextKey(candidate) === role.contextKey;
+  });
   const target = openingKey(base?.opening || base?.openingName || base?.opening_name);
   if (target) return eligible.find((candidate) => openingKey(candidate) === target) || null;
   return eligible.sort((left, right) => Number(right.sample?.games ?? right.games ?? 0) - Number(left.sample?.games ?? left.games ?? 0))[0] || null;

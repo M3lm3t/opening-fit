@@ -153,7 +153,7 @@ import { canonicalReportAction, normaliseReportView, reportActionForPriority, re
 import { buildReportGameCounts, reportCountSentence } from "./lib/reportGameCounts.js";
 import { canonicalResultAggregate } from "./lib/reportResults.js";
 import { persistReport, readPersistedReport } from "./lib/reportPersistence.js";
-import { assertGeneratedReportConsistency } from "./lib/reportConsistency.js";
+import { assertGeneratedReportConsistency, enforceReportRoleContract } from "./lib/reportConsistency.js";
 import { accountExperienceState, subscriptionPresentation } from "./lib/accountExperience.js";
 import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT } from "./lib/productTransparency.js";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
@@ -14218,7 +14218,8 @@ export default function App() {
   const [data, setData] = useState(() => {
     const routed = reportForInitialPath(getCurrentPath());
     if (routed) return routed;
-    return readPersistedReport(localStorage, STORAGE_KEY).analysis;
+    const restored = readPersistedReport(localStorage, STORAGE_KEY);
+    return restored.ok ? enforceReportRoleContract(restored.analysis).report : null;
   });
   const [activeView, setActiveView] = useState(getInitialAppView);
   const [forceAnalyseImportFlow, setForceAnalyseImportFlow] = useState(false);
@@ -14525,7 +14526,7 @@ export default function App() {
           const restoredUsername = getImportedAccountUsername(savedAnalysis.analysis, parsed.username || savedUsername);
           const restoredPlatform = getImportedAccountPlatform(savedAnalysis.analysis, parsed.platform || savedPlatform);
           const restoredAnalysis = {
-            ...savedAnalysis.analysis,
+            ...enforceReportRoleContract(savedAnalysis.analysis).report,
             ...(restoredUsername ? { username: restoredUsername } : {}),
           };
           setData(restoredAnalysis);
@@ -14737,6 +14738,13 @@ export default function App() {
 
   const normaliseData = (incoming) => {
     if (!incoming) return incoming;
+
+    const roleContract = enforceReportRoleContract(incoming);
+    const incomingDecision = incoming.reportDecision || incoming.report_decision || {};
+    if (Number(incomingDecision.schemaVersion || incomingDecision.schema_version || 0) >= 5 && !roleContract.valid) {
+      throw new Error(`candidate_report_invalid:${roleContract.violations.join(",")}`);
+    }
+    incoming = roleContract.report;
 
     const normalizedGameCounts = buildReportGameCounts(incoming);
     const currentCountContract = normalizedGameCounts.countStatus === "canonical";
@@ -15181,6 +15189,10 @@ export default function App() {
         : routeOrKey;
     const requestedRoute = typeof requested === "string" ? null : requested;
     const requestedSection = typeof requested === "string" ? getAppSection(requested) : getAppSection(requestedRoute?.view);
+    if (requestedSection === "report" && !isSampleReport(data)) {
+      const restored = readPersistedReport(localStorage, STORAGE_KEY);
+      if (restored.ok) setData(enforceReportRoleContract(restored.analysis).report);
+    }
     if (isSampleReport(data) && requestedSection === "train") {
       exitSampleReport();
       return;
@@ -15278,7 +15290,7 @@ export default function App() {
   const openLastSuccessfulReport = () => {
     const restored = readPersistedReport(localStorage, STORAGE_KEY);
     if (!restored.ok || isSampleReport(restored.analysis)) return false;
-    setData(restored.analysis);
+    setData(enforceReportRoleContract(restored.analysis).report);
     handleAppNavigate("report");
     return true;
   };
@@ -15396,8 +15408,6 @@ export default function App() {
     }
 
     try {
-      localStorage.setItem(USERNAME_KEY, cleanUsername);
-      localStorage.setItem(PLATFORM_KEY, selectedPlatformKey);
       localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
       localStorage.setItem(ANALYSIS_TIME_FORMAT_KEY, normalizeAnalysisTimeFormat(analysisTimeFormat));
       setUsername(cleanUsername);
@@ -15710,7 +15720,7 @@ export default function App() {
           error: postImportError,
         });
         setLoadingStep("");
-        if (postImportError?.message === "candidate_report_not_persisted") {
+        if (postImportError?.message === "candidate_report_not_persisted" || postImportError?.message?.startsWith("candidate_report_invalid:")) {
           setImportStage(IMPORT_STAGES.RECOVERABLE_ERROR);
           setImportStatus({
             tone: "warning",
@@ -16630,6 +16640,10 @@ export default function App() {
         }
         if (isSampleReport(current)) {
           return path === "/report" ? genuineReportBeforeSampleRef.current : null;
+        }
+        if (path === "/report") {
+          const restored = readPersistedReport(localStorage, STORAGE_KEY);
+          if (restored.ok) return enforceReportRoleContract(restored.analysis).report;
         }
         return current;
       });

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { MELMET_REGRESSION_FIXTURE } from "./fixtures/melmetRegressionFixture.js";
 import { buildMeaningfulOpponentResponsePrep, meaningfulOpponentContinuation } from "./opponentContinuation.js";
-import { assertGeneratedReportConsistency, validateReportConsistency } from "./reportConsistency.js";
+import { assertGeneratedReportConsistency, enforceReportRoleContract, validateReportConsistency } from "./reportConsistency.js";
 import { reportActionForPriority, reportActionUrl } from "./reportViews.js";
 
 const clone = () => structuredClone(MELMET_REGRESSION_FIXTURE);
@@ -83,6 +83,42 @@ test("role legality is rechecked from every supporting game's colour and first m
   const illegal = clone();
   illegal.analysis_game_index.filter((game) => game.gameId.startsWith("kid-black-d4-")).forEach((game) => { game.moves[0] = "e4"; });
   assert.ok(validateReportConsistency(illegal).violations.some((violation) => violation.startsWith("illegal_role_support:black_vs_d4:")));
+});
+
+test("the production response boundary cannot reconstruct a d4 opening under black versus e4", () => {
+  const games = ["d4-1", "d4-2"].map((gameId) => ({
+    gameId,
+    playerColour: "black",
+    relationship: "played_by_user",
+    firstWhiteMove: "d4",
+    opening: "Nimzo-Indian Defence",
+  }));
+  const unresolvedE4 = {
+    key: "black_e4", repertoireRole: "black_vs_e4", status: "insufficient", currentOpening: null,
+    supportingGameCount: 0, evidenceGameIds: [], requiredGameCount: 5,
+  };
+  const d4 = {
+    key: "black_d4", repertoireRole: "black_vs_d4", status: "building", currentOpening: "Nimzo-Indian Defence",
+    supportingGameCount: 2, evidenceGameIds: ["d4-1", "d4-2"], requiredGameCount: 5,
+  };
+  const recommendation = {
+    recommendationId: "nimzo:d4", openingName: "Nimzo-Indian Defence", repertoireRole: "black_vs_d4",
+    playerColour: "black", relationship: "played_by_user", sample: { games: 2, gameIds: ["d4-1", "d4-2"] },
+    sampleSizeConfidence: { label: "Early" }, classificationConfidence: { label: "Known" },
+    roleAttributionConfidence: { label: "Verified" }, recommendationConfidence: { label: "Early" },
+  };
+  const malformedLegacy = { ...recommendation, recommendationId: "nimzo:legacy-e4", repertoireRole: "black_vs_e4" };
+  const source = {
+    analysis_game_index: games,
+    reportDecision: { schemaVersion: 5, repertoireRoles: [unresolvedE4, d4], recommendations: [recommendation, malformedLegacy] },
+  };
+  const contract = enforceReportRoleContract(source);
+
+  assert.equal(contract.valid, false);
+  assert.deepEqual(contract.report.reportDecision.recommendations.map((row) => row.repertoireRole), ["black_vs_d4"]);
+  assert.equal(contract.report.reportDecision.repertoireRoles.find((row) => row.repertoireRole === "black_vs_e4").currentOpening, null);
+  assert.equal(contract.report.reportDecision.repertoireRoles.find((row) => row.repertoireRole === "black_vs_d4").currentOpening, "Nimzo-Indian Defence");
+  assert.equal(validateReportConsistency(contract.report).valid, true);
 });
 
 test("opening-level and repeated-line diagnosis scopes remain nested and reconciled", () => {

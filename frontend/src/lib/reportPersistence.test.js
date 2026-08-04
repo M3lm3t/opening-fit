@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { persistReport, readPersistedReport } from "./reportPersistence.js";
+import { persistReport, readPersistedReport, shouldClearLegacyStorageForAuthEvent } from "./reportPersistence.js";
 
 function memoryStorage(initial = {}) {
   const values = new Map(Object.entries(initial));
@@ -44,4 +44,10 @@ test("an invalid candidate never touches an existing report", () => {
   const storage = memoryStorage({ [key]: previous });
   assert.deepEqual(persistReport(storage, key, { analysis: null }), { ok: false, reason: "invalid_report" });
   assert.equal(storage.getItem(key), previous);
+});
+
+test("anonymous session hydration preserves report A while explicit sign-out clears between users", () => {
+  assert.equal(shouldClearLegacyStorageForAuthEvent("INITIAL_SESSION", false), false);
+  assert.equal(shouldClearLegacyStorageForAuthEvent("SIGNED_OUT", false), true);
+  assert.equal(shouldClearLegacyStorageForAuthEvent("SIGNED_IN", true), false);
 });

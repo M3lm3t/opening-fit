@@ -99,8 +99,9 @@ function caroPriorityReport() {
 
 async function prepareVisitor(page, viewport = { width: 1440, height: 900 }) {
   await page.setViewportSize(viewport);
-  await page.addInitScript(() => localStorage.clear());
   await page.goto(appUrl, { waitUntil: "domcontentloaded" });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Stop guessing which chess openings you should play." })).toBeVisible();
   const trustNote = page.getByText("No password required", { exact: true });
   await expect(trustNote).toBeVisible();
@@ -215,6 +216,7 @@ test("few and empty completed imports resolve without an endless loading state",
 
   await page.context().unroute(jobStartRoute);
   await page.context().unroute(jobStatusRoute);
+  await page.evaluate(() => localStorage.clear());
   await page.goto(appUrl, { waitUntil: "domcontentloaded" });
   await routeJob(page, [{ status: "completed", progress: { stage: "finishing_report", counts: { fetchedGames: 0, analysedGames: 0 } }, result: { username: "NoGamesPlayer", platform: "chess.com", gamesImported: 0, gamesFound: 0, gamesAnalysed: 0 } }]);
   await startImport(page, "NoGamesPlayer");
@@ -233,11 +235,17 @@ test("failed import leaves a correction or retry action", async ({ page }) => {
 
 test("a zero-usable candidate retains the last successful report through report-route reload", async ({ page }) => {
   const baseUrl = appUrl.replace(/\/$/, "");
-  const reportA = { ...reportFixture({ games: 43, score: 68 }), username: "FabioFixture", playerName: "FabioFixture" };
-  const persistedA = JSON.stringify({ schemaVersion: 1, username: "FabioFixture", platform: "chesscom", savedAt: "2026-08-04T10:00:00Z", analysis: reportA });
-  await page.addInitScript((payload) => localStorage.setItem("openingFit:lastAnalysis", payload), persistedA);
-  await page.goto(`${baseUrl}/report#report-summary`, { waitUntil: "domcontentloaded" });
+  const reportA = { ...reportFixture({ games: 43, score: 68 }), analysisId: "fabio-report-a", username: "FabioFixture", playerName: "FabioFixture" };
+  await routeJob(page, [{ status: "completed", progress: { stage: "finishing_report", counts: { fetchedGames: 43, analysedGames: 43 } }, result: reportA }]);
+  await prepareVisitor(page);
+  await startImport(page, "FabioFixture");
   await expect(page.locator(".reportPageTitle")).toBeVisible();
+  await expect(page.getByText(/Saved locally/i)).toBeVisible();
+  const persistedA = await page.evaluate(() => localStorage.getItem("openingFit:lastAnalysis"));
+  expect(JSON.parse(persistedA).analysis.analysisId).toBe("fabio-report-a");
+
+  await page.context().unroute(jobStartRoute);
+  await page.context().unroute(jobStatusRoute);
   await page.getByText("Analyse", { exact: true }).first().click();
 
   await routeJob(page, [{
@@ -253,7 +261,87 @@ test("a zero-usable candidate retains the last successful report through report-
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.locator(".reportPageTitle")).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("openingFit:lastAnalysis")).analysis.username)).toBe("FabioFixture");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("openingFit:lastAnalysis")).analysis.analysisId)).toBe("fabio-report-a");
 });
+
+for (const outcome of ["network failure", "backend failure", "cancellation", "illegal role", "storage failure", "verified success"]) {
+  test(`report replacement transaction: ${outcome}`, async ({ page }) => {
+    const baseUrl = appUrl.replace(/\/$/, "");
+    const reportA = { ...reportFixture({ games: 43, score: 68 }), analysisId: `matrix-a-${outcome}`, username: "MatrixReportA", playerName: "MatrixReportA" };
+    await routeJob(page, [{ status: "completed", result: reportA }]);
+    await prepareVisitor(page);
+    await startImport(page, "MatrixReportA");
+    await expect(page.locator(".reportPageTitle")).toBeVisible();
+    const bytesA = await page.evaluate(() => localStorage.getItem("openingFit:lastAnalysis"));
+    await page.context().unroute(jobStartRoute);
+    await page.context().unroute(jobStatusRoute);
+    await page.getByText("Analyse", { exact: true }).first().click();
+
+    if (outcome === "network failure") {
+      await page.context().route(jobStartRoute, (route) => route.abort("failed"));
+    } else if (outcome === "backend failure") {
+      await routeJob(page, [{ status: "failed", error: { status: 503, message: "Analysis service unavailable." } }]);
+    } else if (outcome === "cancellation") {
+      await routeJob(page, [{ status: "running", progress: { stage: "requesting_public_games", counts: {} } }]);
+    } else if (outcome === "illegal role") {
+      const illegal = {
+        ...reportFixture({ games: 1, score: 40 }),
+        analysisId: "matrix-illegal-b",
+        analysis_game_index: [{ gameId: "d4-illegal", playerColour: "black", relationship: "played_by_user", firstWhiteMove: "d4" }],
+        reportDecision: {
+          schemaVersion: 5,
+          repertoireRoles: [{ repertoireRole: "black_vs_e4", currentOpening: "Illegal candidate", status: "building", supportingGameCount: 1, evidenceGameIds: ["d4-illegal"], requiredGameCount: 5 }],
+          recommendations: [],
+        },
+      };
+      await routeJob(page, [{ status: "completed", result: illegal }]);
+    } else {
+      const candidateB = { ...reportFixture({ games: 12, score: 74 }), analysisId: "matrix-valid-b", username: "MatrixReportB", playerName: "MatrixReportB" };
+      await routeJob(page, [{ status: "completed", result: candidateB }]);
+      if (outcome === "storage failure") {
+        await page.evaluate(() => {
+          const original = Storage.prototype.setItem;
+          window.__openingFitOriginalSetItem = original;
+          Storage.prototype.setItem = function setItem(key, value) {
+            if (key === "openingFit:lastAnalysis" && String(value).includes("matrix-valid-b")) return original.call(this, key, "truncated");
+            return original.call(this, key, value);
+          };
+        });
+      }
+    }
+
+    await startImport(page, `MatrixB${outcome.replace(/[^a-z]/gi, "")}`);
+    if (outcome === "cancellation") {
+      await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeVisible({ timeout: 12000 });
+      await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    }
+
+    if (outcome === "verified success") {
+      await expect(page.locator(".reportPageTitle")).toBeVisible();
+      const bytesB = await page.evaluate(() => localStorage.getItem("openingFit:lastAnalysis"));
+      expect(bytesB).not.toBe(bytesA);
+      expect(JSON.parse(bytesB).analysis.analysisId).toBe("matrix-valid-b");
+      await page.reload({ waitUntil: "domcontentloaded" });
+      expect(await page.evaluate(() => JSON.parse(localStorage.getItem("openingFit:lastAnalysis")).analysis.analysisId)).toBe("matrix-valid-b");
+      return;
+    }
+
+    if (["illegal role", "storage failure"].includes(outcome)) {
+      await expect(page.getByText(/Report was not replaced/i)).toBeVisible({ timeout: 12000 });
+    } else if (outcome !== "cancellation") {
+      await expect(page.getByText(/previous successful report/i)).toBeVisible({ timeout: 12000 });
+    }
+    await expect(page.locator(".importLoadingOverlay")).toHaveCount(0, { timeout: 12000 });
+    if (outcome === "storage failure") {
+      await page.evaluate(() => { Storage.prototype.setItem = window.__openingFitOriginalSetItem; });
+    }
+    expect(await page.evaluate(() => localStorage.getItem("openingFit:lastAnalysis"))).toBe(bytesA);
+    await page.goto(`${baseUrl}/report#report-summary`, { waitUntil: "domcontentloaded" });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator(".reportPageTitle")).toBeVisible();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("openingFit:lastAnalysis")).analysis.analysisId)).toBe(`matrix-a-${outcome}`);
+  });
+}
 
 test("the report priority survives navigation and a direct signed-out reload of train", async ({ page }) => {
   await routeJob(page, [{

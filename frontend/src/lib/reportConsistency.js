@@ -30,7 +30,7 @@ function firstWhiteMove(game = {}) {
   return "";
 }
 
-function roleIsLegal(role, game = {}) {
+export function roleIsLegal(role, game = {}) {
   const colour = text(game.playerColour || game.player_colour || game.perspective?.userColour).toLowerCase();
   const move = firstWhiteMove(game);
   const relationship = text(game.relationship || game.perspective?.relationship).toLowerCase();
@@ -39,6 +39,108 @@ function roleIsLegal(role, game = {}) {
   if (role === "black_vs_e4") return colour === "black" && played && move === "e4";
   if (role === "black_vs_d4") return colour === "black" && played && move === "d4";
   return false;
+}
+
+function gameIndexForReport(report = {}) {
+  const games = [
+    ...list(report.analysis_game_index || report.analysisGameIndex),
+    ...list(report.opening_games || report.openingGames),
+  ];
+  return new Map(games.map((game) => [text(game.gameId || game.game_id || game.url), game]).filter(([id]) => id));
+}
+
+function roleSupport(row = {}) {
+  const ids = list(row.evidenceGameIds || row.supportingGameIds || row.sample?.gameIds || row.sample?.game_ids).map(text).filter(Boolean);
+  const declared = number(row.supportingGameCount ?? row.evidenceCount ?? row.sampleSize ?? row.sample?.games ?? row.games);
+  return { ids, declared };
+}
+
+function roleClaimValidation(row, gameIndex) {
+  const role = text(row?.repertoireRole || row?.repertoire_role || row?.repertoireSlot || row?.repertoire_slot || row?.context || row?.role).toLowerCase();
+  if (!["white", "black_vs_e4", "black_vs_d4"].includes(role)) return { role, valid: true, reason: null };
+  const relationship = text(row.relationship || row.perspective?.relationship).toLowerCase();
+  if (["faced", "faced_by_user", "opponent"].includes(relationship)) return { role, valid: true, reason: null };
+  const { ids, declared } = roleSupport(row);
+  const opening = text(row.currentOpening || row.openingName || row.opening_name || row.opening);
+  const status = text(row.status || row.evidenceStatus).toLowerCase();
+  if (!ids.length && (declared === 0 || (!opening && ["insufficient", "unresolved"].includes(status)))) {
+    return { role, valid: true, reason: null };
+  }
+  if (!ids.length || (declared !== null && declared !== ids.length)) return { role, valid: false, reason: "missing_role_support_context" };
+  const invalidId = ids.find((id) => !gameIndex.has(id) || !roleIsLegal(role, gameIndex.get(id)));
+  return { role, valid: !invalidId, reason: invalidId ? `illegal_role_support:${role}:${invalidId}` : null };
+}
+
+function unresolvedRole(row = {}) {
+  const threshold = number(row.requiredGameCount ?? row.sampleThreshold ?? row.evidenceRequirement?.threshold) ?? 5;
+  return {
+    ...row,
+    status: "insufficient",
+    evidenceStatus: "insufficient",
+    currentOpening: null,
+    openingName: null,
+    supportingGameCount: 0,
+    evidenceCount: 0,
+    relevantGameCount: 0,
+    evidenceGameIds: [],
+    supportingGameIds: [],
+    gamesNeeded: threshold,
+    roleContractVerified: false,
+    validation: { ...(row.validation || {}), valid: false, reason: "unverifiable_role_context" },
+  };
+}
+
+export function enforceReportRoleContract(report = {}) {
+  if (!report || typeof report !== "object") return { report, valid: false, violations: ["invalid_report"] };
+  const gameIndex = gameIndexForReport(report);
+  const sourceDecision = report.reportDecision || report.report_decision;
+  if (!sourceDecision || typeof sourceDecision !== "object") return { report, valid: true, violations: [] };
+  const violations = [];
+  const roles = list(sourceDecision.repertoireRoles || sourceDecision.roleDecisions).map((row) => {
+    const result = roleClaimValidation(row, gameIndex);
+    if (!result.valid) {
+      violations.push(result.reason);
+      return unresolvedRole(row);
+    }
+    return { ...row, roleContractVerified: true, validation: { ...(row.validation || {}), valid: true } };
+  });
+  const recommendations = list(sourceDecision.recommendations).flatMap((row) => {
+    const result = roleClaimValidation(row, gameIndex);
+    if (!result.valid) {
+      violations.push(result.reason);
+      return [];
+    }
+    return [{ ...row, roleContractVerified: true, validation: { ...(row.validation || {}), valid: true } }];
+  });
+  const decision = { ...sourceDecision, repertoireRoles: roles, roleDecisions: roles, recommendations };
+  const keepUntrustedOpening = (row, { blackBucket = false } = {}) => {
+    if (!row || typeof row !== "object") return !blackBucket;
+    const role = text(row.repertoireRole || row.repertoire_role || row.repertoireSlot || row.repertoire_slot || row.context || row.role).toLowerCase();
+    const colour = text(row.playerColour || row.player_colour || row.colour || row.color || row.openingSide).toLowerCase();
+    if (!["white", "black_vs_e4", "black_vs_d4"].includes(role) && colour !== "black" && !blackBucket) return true;
+    if (blackBucket && !["black_vs_e4", "black_vs_d4"].includes(role)) return false;
+    return roleClaimValidation(row, gameIndex).valid && (!blackBucket || role.startsWith("black_"));
+  };
+  const cleanReport = { ...report, reportDecision: decision, report_decision: decision, repertoireRoles: roles };
+  for (const key of ["top_openings", "topOpenings", "best_openings", "bestOpenings", "preferred_white", "preferredWhite"]) {
+    if (Array.isArray(cleanReport[key])) cleanReport[key] = cleanReport[key].filter((row) => keepUntrustedOpening(row));
+  }
+  for (const key of ["preferred_black", "preferredBlack"]) {
+    if (Array.isArray(cleanReport[key])) cleanReport[key] = cleanReport[key].filter((row) => keepUntrustedOpening(row, { blackBucket: true }));
+  }
+  for (const key of ["opening_recommendations", "openingRecommendations"]) {
+    const source = cleanReport[key];
+    if (!source || typeof source !== "object" || Array.isArray(source)) continue;
+    cleanReport[key] = Object.fromEntries(Object.entries(source).map(([bucket, rows]) => [
+      bucket,
+      list(rows).filter((row) => keepUntrustedOpening(row, { blackBucket: ["black_vs_e4", "blackVsE4", "black_vs_d4", "blackVsD4"].includes(bucket) })),
+    ]));
+  }
+  return {
+    report: cleanReport,
+    valid: violations.length === 0,
+    violations: [...new Set(violations)],
+  };
 }
 
 const ACTION_SUPPORT = Object.freeze({
@@ -55,7 +157,7 @@ export function validateReportConsistency(report = {}) {
   const violations = [];
   const verdictById = new Map();
   const contexts = new Set();
-  const gameIndex = new Map(list(report.analysis_game_index || report.analysisGameIndex || report.opening_games || report.openingGames).map((game) => [text(game.gameId || game.game_id || game.url), game]));
+  const gameIndex = gameIndexForReport(report);
 
   for (const row of recommendations) {
     const decisionId = text(row.decisionId || row.recommendationId);
@@ -73,6 +175,11 @@ export function validateReportConsistency(report = {}) {
     const colour = text(row.playerColour || row.player_colour).toLowerCase();
     const role = text(row.repertoireRole || row.repertoire_role).toLowerCase();
     if (colour === "white" && role.startsWith("black_")) violations.push(`white_candidate_in_black_role:${decisionId || key}`);
+
+    if (enforceable) {
+      const claim = roleClaimValidation(row, gameIndex);
+      if (!claim.valid) violations.push(`${claim.reason}:recommendation:${decisionId || key}`);
+    }
 
     if (enforceable) {
       for (const [dimension, confidence] of confidenceDimensions(row)) {

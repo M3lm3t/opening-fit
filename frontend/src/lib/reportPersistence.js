@@ -1,5 +1,9 @@
 export const LOCAL_REPORT_SCHEMA_VERSION = 1;
 
+export function shouldClearLegacyStorageForAuthEvent(event, hasUser) {
+  return !hasUser && event === "SIGNED_OUT";
+}
+
 export function readPersistedReport(storage = globalThis.localStorage, key = "openingFit:lastAnalysis") {
   try {
     const raw = storage?.getItem?.(key);
@@ -28,7 +32,14 @@ export function persistReport(storage = globalThis.localStorage, key = "openingF
     storage?.setItem?.(key, serialized);
     if (storage?.getItem?.(key) !== serialized) throw new Error("write_verification_failed");
     const restored = readPersistedReport(storage, key);
-    if (!restored.ok || JSON.stringify(restored.payload) !== serialized) throw new Error("write_verification_failed");
+    const expectedId = payload.analysis.analysisId || payload.analysis.analysis_id || null;
+    const restoredId = restored.analysis?.analysisId || restored.analysis?.analysis_id || null;
+    if (
+      !restored.ok ||
+      JSON.stringify(restored.payload) !== serialized ||
+      restored.payload?.schemaVersion !== LOCAL_REPORT_SCHEMA_VERSION ||
+      (expectedId && restoredId !== expectedId)
+    ) throw new Error("write_verification_failed");
     return { ok: true, reason: null, payload: versioned };
   } catch (error) {
     try {
