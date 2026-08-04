@@ -250,6 +250,35 @@ def test_homepage_job_serializes_two_d4_nimzo_games_only_under_d4(monkeypatch):
     assert all(row["playerColour"] == "black" and row["relationship"] == "played_by_user" for row in payload["analysis_game_index"])
 
 
+def test_raw_e4_games_with_external_nimzo_metadata_never_create_a_nimzo_context(monkeypatch):
+    monkeypatch.setattr(main, "previous_saved_report", lambda *_args: None)
+    monkeypatch.setattr(main, "save_user_profile", lambda username, _payload: {
+        "username": username, "lastUpdated": "2026-08-04T12:00:00Z", "importHistory": [], "isPremium": False,
+    })
+    monkeypatch.setattr(main, "log_analytics_event", lambda *_args, **_kwargs: None)
+    def game(game_id, moves):
+        return {
+            "id": game_id, "moves": moves,
+            "opening": {"name": "Nimzo-Indian Defense", "eco": "B00"},
+            "players": {
+                "white": {"user": {"name": "Opponent"}, "rating": 1500},
+                "black": {"user": {"name": "ContractPlayer"}, "rating": 1500},
+            },
+            "winner": "white", "speed": "rapid", "lastMoveAt": 1_700_000_000_000 + int(game_id),
+        }
+
+    report = main.build_lichess_analysis("contractplayer", [
+        game("21", "e4 e5 d4 Nc6 d5 Nd4 c3 Bc5 Nf3 d6 cxd4 exd4"),
+        game("22", "e4 e5 d4 Nc6 d5 Nce7 Nf3 h6 c4 d6 Nc3 Nf6"),
+    ], 1)
+    games = report["analysis_game_index"]
+    recommendations = (report.get("reportDecision") or {}).get("recommendations") or []
+
+    assert all(row["openingFamily"] != "Nimzo-Indian Defence" for row in games)
+    assert all(row["classificationConflictReason"] in {"metadata_without_move_rule", "metadata_conflicts_with_move_rule"} for row in games)
+    assert not any(row.get("openingName") == "Nimzo-Indian Defence" for row in recommendations)
+
+
 def test_compact_serializer_rejects_malformed_legacy_black_e4_claim():
     game = {
         "gameId": "d4-1", "url": "https://example.test/d4-1", "playerColour": "black",

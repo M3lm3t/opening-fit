@@ -5019,7 +5019,7 @@ function TopActionsSection({ data, fitData, onPractice }) {
   );
 }
 
-function EvidenceTableSection({ data, fitData, entitlement = null, onPractice }) {
+function EvidenceTableSection({ data, fitData, entitlement = null, onEvidence }) {
   const canonicalRows = data?.reportDecision?.recommendations || data?.report_decision?.recommendations;
   const rows = uniqueOpeningsByNameAndContext(
     Array.isArray(canonicalRows) && canonicalRows.length
@@ -5074,7 +5074,8 @@ function EvidenceTableSection({ data, fitData, entitlement = null, onPractice })
                       <button
                         className="tableOpeningBtn"
                         type="button"
-                        onClick={() => onPractice?.(opening)}
+                        onClick={() => onEvidence?.(opening)}
+                        aria-label={`View evidence for ${getOpeningName(opening)}`}
                       >
                         {getOpeningName(opening)}
                       </button>
@@ -6750,7 +6751,7 @@ function FinalReportFlow({
         {reportContextNotice}
         <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
         <ReportGameCountSummary report={data} saveStatus={saveStatus} authenticated={authenticated} onAccount={onAccount} />
-        <EvidenceTableSection data={data} fitData={fitData} entitlement={entitlement} onPractice={onPractice} />
+        <EvidenceTableSection data={data} fitData={fitData} entitlement={entitlement} onEvidence={openOpeningBreakdown} />
         <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
         <ImportQualitySummary data={data} />
         <div className="reportSecondaryDetailsBody">

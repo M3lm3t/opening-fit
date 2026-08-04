@@ -122,6 +122,20 @@ export function weeklyTargetMetricLabel(metric = {}, taskCount = 0) {
 export function buildThisWeekTrainingView(plan) {
   if (!plan) return { state: "empty", tasks: [], nextTask: null, completedTasks: [], pendingTasks: [] };
   const tasks = list(plan.tasks).slice().sort((left, right) => number(left.order) - number(right.order));
+  const expectedId = text(plan.trainingPriority?.openingKey || plan.targetMetric?.openingId);
+  const expectedName = text(plan.trainingPriority?.openingName);
+  const anchorId = expectedId || text(tasks.find((task) => text(task.openingId))?.openingId);
+  const anchorName = expectedName || text(tasks.find((task) => text(task.openingName))?.openingName);
+  const contextMismatch = tasks.some((task) =>
+    (anchorId && text(task.openingId) && text(task.openingId) !== anchorId)
+    || (anchorName && text(task.openingName) && text(task.openingName) !== anchorName)
+  );
+  if (contextMismatch) {
+    return {
+      state: "unavailable", tasks: [], nextTask: null, completedTasks: [], pendingTasks: [],
+      unavailableReason: "This training plan contains conflicting opening contexts. Run a fresh report before training.",
+    };
+  }
   const completedTasks = tasks.filter((task) => task.status === "completed");
   const pendingTasks = tasks.filter((task) => task.status !== "completed");
   const complete = plan.status === "completed" || (tasks.length > 0 && completedTasks.length === tasks.length);

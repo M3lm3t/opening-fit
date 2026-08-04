@@ -38,7 +38,7 @@ def test_detects_mainstream_openings_without_needing_long_exact_lines():
         assert result["signals"], expected
 
 
-def test_eco_url_metadata_can_identify_future_or_deep_variations():
+def test_eco_url_metadata_is_diagnostic_while_moves_authoritatively_identify_family():
     pgn = """[Event "Example"]
 [ECO "B90"]
 [ECOUrl "https://www.chess.com/openings/Sicilian-Defense-Najdorf-Variation"]
@@ -48,7 +48,22 @@ def test_eco_url_metadata_can_identify_future_or_deep_variations():
     result = detect_opening_from_pgn(pgn, ["e4", "c5", "Nf3", "d6", "d4", "cxd4"])
 
     assert result["opening"] == "Sicilian Defence"
-    assert any(signal["type"] == "eco" for signal in result["signals"])
+    assert any(signal["type"] == "eco" for signal in result["metadataSignals"])
+    assert result["classificationSource"].startswith("move_sequence:")
+    assert result["matchedOpeningRuleId"]
+    assert result["matchedPlyDepth"] > 0
+
+
+def test_incompatible_external_nimzo_tag_cannot_classify_e4_games():
+    result = detect_opening(
+        ["e4", "e5", "d4", "Nc6", "d5", "Nd4", "c3", "Bc5"],
+        eco="B00",
+        tagged_opening="Nimzo-Indian Defence",
+    )
+
+    assert result["opening"] != "Nimzo-Indian Defence"
+    assert result["metadataConflictReason"] in {"metadata_without_move_rule", "metadata_conflicts_with_move_rule"}
+    assert result["classificationSource"] == "unclassified" or result["matchedOpeningRuleId"]
 
 
 def test_eco_ranges_cover_major_families():

@@ -67,6 +67,14 @@ test("task opening metadata keeps Black training oriented as Black", () => {
   assert.match(weeklyTargetMetricLabel({ type: "task_completion" }, 4), /4 focused tasks/);
 });
 
+test("conflicting task and plan contexts fail closed", () => {
+  const plan = buildFoundationalWeeklyPlan();
+  plan.tasks[1].openingName = "Unrelated opening";
+  const view = buildThisWeekTrainingView(plan);
+  assert.equal(view.state, "unavailable");
+  assert.equal(view.tasks.length, 0);
+});
+
 test("free training appears before the contextual Plus invitation", () => {
   const task = { id: "free-task", status: "pending" };
   assert.deepEqual(freeTrainingPreviewState(task), { state: "ready", started: false, completed: false, showPlusInvitation: false });

@@ -154,6 +154,7 @@ export function validateReportConsistency(report = {}) {
   const decision = report.reportDecision || report.report_decision || {};
   const recommendations = list(decision.recommendations);
   const enforceable = Number(decision.schemaVersion || decision.schema_version || 0) >= 5;
+  const canonicalContextEnforceable = Number(decision.schemaVersion || decision.schema_version || 0) >= 6;
   const violations = [];
   const verdictById = new Map();
   const contexts = new Set();
@@ -167,6 +168,15 @@ export function validateReportConsistency(report = {}) {
 
     const ids = list(row.sample?.gameIds || row.sample?.game_ids).map(text).filter(Boolean);
     if (ids.length !== new Set(ids).size) violations.push(`duplicate_game_in_aggregate:${decisionId || contextKey(row)}`);
+    const canonicalContextId = text(row.canonicalContextId || row.canonical_context_id);
+    const canonicalAggregateId = text(row.canonicalAggregateId || row.canonical_aggregate_id);
+    if (canonicalContextEnforceable && (!canonicalContextId || canonicalAggregateId !== `opening-aggregate:${canonicalContextId}`)) {
+      violations.push(`missing_canonical_context_identity:${decisionId || contextKey(row)}`);
+    }
+    if (canonicalContextId) {
+      const mismatchedId = ids.find((id) => text(gameIndex.get(id)?.canonicalContextId || gameIndex.get(id)?.canonical_context_id) !== canonicalContextId);
+      if (mismatchedId) violations.push(`canonical_context_support_mismatch:${decisionId || contextKey(row)}:${mismatchedId}`);
+    }
 
     const key = contextKey(row);
     if (contexts.has(key)) violations.push(`duplicate_opening_context:${key}`);

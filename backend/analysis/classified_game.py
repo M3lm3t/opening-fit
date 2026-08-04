@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Mapping, TypedDict
 
 
@@ -34,7 +35,7 @@ def canonical_player_result(game: Mapping[str, Any], player_colour: str) -> str:
     return "unknown"
 
 
-class ClassifiedGameRecord(TypedDict):
+class ClassifiedGameRecord(TypedDict, total=False):
     gameId: str
     url: str
     playerColour: str
@@ -48,6 +49,24 @@ class ClassifiedGameRecord(TypedDict):
     playerRole: str
     relationship: str
     exclusionReason: str | None
+    canonicalOpeningId: str
+    openingDisplayName: str
+    classificationSource: str
+    matchedOpeningRuleId: str | None
+    matchedPlyDepth: int
+    matchedMoves: list[str]
+    classificationConfidence: float
+    firstWhiteMove: str | None
+    firstBlackMove: str | None
+    ownership: str
+    repertoireRoleEligibility: str
+    canonicalContextId: str
+    classificationContractVersion: int
+    classificationConflictReason: str | None
+
+
+def _slug(value: str, fallback: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", str(value or "").strip().lower()).strip("-") or fallback
 
 
 def canonical_player_role(perspective: Mapping[str, Any]) -> str:
@@ -84,16 +103,30 @@ def build_classified_game_record(
     classification_ply: int | None,
     perspective: Mapping[str, Any],
     exclusion_reason: str | None = None,
+    canonical_opening_id: str | None = None,
+    classification_source: str | None = None,
+    matched_opening_rule_id: str | None = None,
+    matched_moves: list[str] | None = None,
+    classification_confidence: float | None = None,
+    first_white_move: str | None = None,
+    first_black_move: str | None = None,
+    classification_conflict_reason: str | None = None,
 ) -> ClassifiedGameRecord:
     """Create the single attribution record used by counts and aggregates.
 
     Colour comes from platform player names before this function is called;
     opening names never participate in player-colour attribution.
     """
-    return {
+    player_role = canonical_player_role(perspective)
+    ownership = canonical_relationship(perspective)
+    opening_id = canonical_opening_id or _slug(opening_family, "unclassified-opening")
+    normalised_colour = player_colour if player_colour in {"white", "black"} else "unknown"
+    context_id = ":".join((opening_id, normalised_colour, ownership, player_role))
+    provenance_supplied = classification_source is not None or matched_opening_rule_id is not None
+    record: ClassifiedGameRecord = {
         "gameId": str(game_id),
         "url": str(url or ""),
-        "playerColour": player_colour if player_colour in {"white", "black"} else "unknown",
+        "playerColour": normalised_colour,
         "playerResult": player_result if player_result in {"win", "draw", "loss"} else "unknown",
         "timeControl": str(time_control or "unknown"),
         "playedAt": played_at,
@@ -101,14 +134,35 @@ def build_classified_game_record(
         "openingFamily": str(opening_family or "Unclassified opening"),
         "variation": str(variation).strip() if variation else None,
         "classificationPly": max(0, int(classification_ply)) if classification_ply is not None else None,
-        "playerRole": canonical_player_role(perspective),
-        "relationship": canonical_relationship(perspective),
+        "playerRole": player_role,
+        "relationship": ownership,
         "exclusionReason": exclusion_reason,
     }
+    if provenance_supplied:
+        depth = max(0, int(classification_ply or 0))
+        record.update({
+            "canonicalOpeningId": opening_id,
+            "openingDisplayName": str(opening_family or "Unclassified opening"),
+            "classificationSource": str(classification_source or "unclassified"),
+            "matchedOpeningRuleId": str(matched_opening_rule_id) if matched_opening_rule_id else None,
+            "matchedPlyDepth": depth,
+            "matchedMoves": list(matched_moves or [])[:depth],
+            "classificationConfidence": max(0.0, min(1.0, float(classification_confidence or 0))),
+            "firstWhiteMove": first_white_move or None,
+            "firstBlackMove": first_black_move or None,
+            "ownership": ownership,
+            "repertoireRoleEligibility": player_role if player_role != "unknown" else "ineligible",
+            "canonicalContextId": context_id,
+            "classificationContractVersion": 1,
+            "classificationConflictReason": classification_conflict_reason or None,
+        })
+    return record
 
 
-def opening_context_key(record: Mapping[str, Any]) -> tuple[str, str, str, str]:
+def opening_context_key(record: Mapping[str, Any]) -> tuple[str, ...]:
     """Keep every aggregate separated by family, colour, role and ownership."""
+    if record.get("canonicalContextId"):
+        return (str(record["canonicalContextId"]),)
     return (
         str(record.get("openingFamily") or "Unclassified opening"),
         str(record.get("playerColour") or "unknown"),
@@ -119,7 +173,10 @@ def opening_context_key(record: Mapping[str, Any]) -> tuple[str, str, str, str]:
 
 def record_is_classified(record: Mapping[str, Any]) -> bool:
     name = str(record.get("openingFamily") or "").strip().lower()
-    return bool(name and "unclassified" not in name and name not in {"unknown", "unknown opening"})
+    named = bool(name and "unclassified" not in name and name not in {"unknown", "unknown opening"})
+    if record.get("classificationContractVersion"):
+        return bool(named and record.get("matchedOpeningRuleId") and int(record.get("matchedPlyDepth") or 0) > 0)
+    return named
 
 
 def record_is_used_for_opening_stats(record: Mapping[str, Any]) -> bool:

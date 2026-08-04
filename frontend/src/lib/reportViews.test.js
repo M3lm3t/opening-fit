@@ -85,6 +85,9 @@ test("rendered report CTAs use canonical report destinations and retain safe fal
   assert.doesNotMatch(flow, /onAction=\{\(route\) => onNavigate\?\.\(route\)\}/);
   assert.match(flow, /The requested report context is no longer available/);
   assert.match(flow, /path: "\/train\?start=report-task"/);
+  assert.match(app, /function EvidenceTableSection\(\{ data, fitData, entitlement = null, onEvidence \}\)/);
+  assert.match(app, /onClick=\{\(\) => onEvidence\?\.\(opening\)\}/);
+  assert.match(flow, /<EvidenceTableSection[^>]*onEvidence=\{openOpeningBreakdown\}/);
 });
 
 test("existing report content is mapped across the five views", async () => {

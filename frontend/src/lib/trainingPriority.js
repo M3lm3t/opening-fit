@@ -162,35 +162,61 @@ function fallbackOpening(report = {}, decision = {}) {
   };
 }
 
+function unresolvedRoleGap(decision = {}) {
+  const roles = list(decision.repertoireRoles || decision.roleDecisions || decision.repertoire_roles || decision.role_decisions);
+  const unresolved = roles.filter((item) => {
+    const key = text(item?.repertoireRole || item?.repertoire_role || item?.role);
+    const status = text(item?.status || item?.evidenceStatus || item?.evidence_status).toLowerCase();
+    return ["white", "black_vs_e4", "black_vs_d4"].includes(key) && ["insufficient", "unresolved", "missing"].includes(status);
+  });
+  const action = decision.primaryAction || decision.nextTrainingAction || decision.primary_action || decision.next_training_action || {};
+  const requestedRole = text(action.repertoireRole || action.repertoire_role);
+  const role = unresolved.find((item) => text(item.repertoireRole || item.repertoire_role || item.role) === requestedRole) || unresolved[0];
+  if (!role) return null;
+  const key = text(role.repertoireRole || role.repertoire_role || role.role);
+  const labels = {
+    white: { name: "White repertoire preparation", colour: "white" },
+    black_vs_e4: { name: "Black against 1.e4 preparation", colour: "black" },
+    black_vs_d4: { name: "Black against 1.d4 preparation", colour: "black" },
+  };
+  return { ...labels[key], key, games: integer(role.supportingGameCount ?? role.evidenceCount ?? role.relevantGameCount) };
+}
+
 function fallbackPriority(report, decision) {
+  const gap = unresolvedRoleGap(decision);
   const opening = fallbackOpening(report, decision);
-  const hasNamedOpening = opening.name !== "opening fundamentals";
-  const evidence = opening.games > 0 ? `${countNoun(opening.games, "relevant game")} ${opening.games === 1 ? "supports" : "support"} ${opening.name} overall, but ` : "";
-  const reason = hasNamedOpening
+  const hasNamedOpening = !gap && opening.name !== "opening fundamentals";
+  const evidenceGames = gap?.games ?? opening.games;
+  const evidence = evidenceGames > 0
+    ? `${countNoun(evidenceGames, "relevant game")} ${evidenceGames === 1 ? "supports" : "support"} ${gap ? "this role" : `${opening.name} overall`}, but `
+    : "";
+  const reason = gap
+    ? `${evidence}there is not enough classified move evidence to name an opening for ${gap.name}.`
+    : hasNamedOpening
     ? `${evidence}not enough repeated examples of one ${opening.name} branch are available to recommend a narrower drill confidently.`
     : "The report does not contain enough repeated examples of one opening-specific branch to recommend a narrower drill confidently.";
-  const priorityId = `training-fallback:${opening.key}`;
+  const priorityId = `training-fallback:${gap?.key || opening.key}`;
   return {
     schemaVersion: TRAINING_PRIORITY_SCHEMA_VERSION,
     priorityId,
     taskId: priorityId,
-    openingName: hasNamedOpening ? opening.name : null,
-    openingKey: hasNamedOpening ? opening.key : null,
+    openingName: gap?.name || (hasNamedOpening ? opening.name : null),
+    openingKey: gap?.key || (hasNamedOpening ? opening.key : null),
     role: null,
     relationship: "unknown",
-    repertoireRole: "unresolved",
+    repertoireRole: gap?.key || "unresolved",
     findingType: "insufficient_evidence",
-    playerColour: opening.colour,
+    playerColour: gap?.colour || opening.colour,
     taskType: "concept_review",
     actionType: "fallback",
-    title: hasNamedOpening ? `Review one familiar ${opening.name} setup` : "Review one familiar opening setup",
+    title: gap ? `Establish one ${gap.name} setup` : hasNamedOpening ? `Review one familiar ${opening.name} setup` : "Review one familiar opening setup",
     rationale: reason,
     reasonSelected: reason,
-    evidenceCount: opening.games,
+    evidenceCount: evidenceGames,
     evidenceGameIds: [],
     representativeGameIds: [],
     representativeGameStatus: "unavailable",
-    supportingGameCount: opening.games,
+    supportingGameCount: evidenceGames,
     estimatedDurationMinutes: 10,
     successCheck: "Name one development cue and one practical response for your next game.",
     completionTarget: { type: "concept_and_future_evidence", count: 1, label: "Save one setup cue, then add relevant games before reassessing." },
@@ -221,7 +247,7 @@ function fallbackPriority(report, decision) {
     expectedMoves: [],
     fallback: true,
     fallbackReason: reason,
-    sourceGameAvailability: { supportingGames: opening.games, referencedGameIds: 0 },
+    sourceGameAvailability: { supportingGames: evidenceGames, referencedGameIds: 0 },
   };
 }
 

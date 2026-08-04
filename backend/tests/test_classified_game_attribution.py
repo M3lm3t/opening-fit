@@ -39,8 +39,15 @@ def classified_record(moves, *, username="FixturePlayer", white="FixturePlayer",
         eco=None,
         opening_family=detection["opening"],
         variation=tagged or None,
-        classification_ply=len(detection["movesAnalysed"]),
+        classification_ply=detection["matchedPlyDepth"],
         perspective=perspective,
+        canonical_opening_id=detection["canonicalOpeningId"],
+        classification_source=detection["classificationSource"],
+        matched_opening_rule_id=detection["matchedOpeningRuleId"],
+        matched_moves=detection["matchedMoves"],
+        classification_confidence=detection["classificationConfidence"],
+        first_white_move=moves[0] if moves else None,
+        first_black_move=moves[1] if len(moves) > 1 else None,
     )
     return record, perspective, reason
 
@@ -72,6 +79,9 @@ def test_scandinavian_and_french_are_attributed_from_player_names_not_opening_na
     assert scandi_black_perspective["relationship"] == french_black_perspective["relationship"] == "played"
     assert scandi_white_perspective["relationship"] == french_white_perspective["relationship"] == "faced"
     assert len({opening_context_key(scandi_black), opening_context_key(scandi_white)}) == 2
+    assert scandi_black["canonicalContextId"].endswith(":black:played_by_user:black_vs_e4")
+    assert scandi_black["matchedOpeningRuleId"]
+    assert scandi_black["matchedMoves"] == ["e4", "d5"]
 
 
 def test_duplicate_records_and_transposed_aliases_have_deterministic_canonical_contexts():

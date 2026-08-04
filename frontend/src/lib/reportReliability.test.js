@@ -85,6 +85,21 @@ test("role legality is rechecked from every supporting game's colour and first m
   assert.ok(validateReportConsistency(illegal).violations.some((violation) => violation.startsWith("illegal_role_support:black_vs_d4:")));
 });
 
+test("schema 6 recommendations require one canonical context across every supporting game", () => {
+  const source = clone();
+  const recommendation = structuredClone(source.reportDecision.recommendations[0]);
+  const canonicalContextId = "vienna-game:white:played_by_user:white_repertoire";
+  recommendation.canonicalContextId = canonicalContextId;
+  recommendation.canonicalAggregateId = `opening-aggregate:${canonicalContextId}`;
+  const ids = new Set(recommendation.sample.gameIds);
+  const games = source.analysis_game_index.filter((game) => ids.has(game.gameId)).map((game) => ({ ...game, canonicalContextId }));
+  const report = { analysis_game_index: games, reportDecision: { schemaVersion: 6, recommendations: [recommendation], repertoireRoles: [] } };
+
+  assert.equal(validateReportConsistency(report).valid, true);
+  report.analysis_game_index[0].canonicalContextId = "different-context";
+  assert.ok(validateReportConsistency(report).violations.some((value) => value.startsWith("canonical_context_support_mismatch:")));
+});
+
 test("the production response boundary cannot reconstruct a d4 opening under black versus e4", () => {
   const games = ["d4-1", "d4-2"].map((gameId) => ({
     gameId,

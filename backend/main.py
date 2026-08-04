@@ -3263,6 +3263,11 @@ def opening_item(
         "plan_structures_8": dict(stats.get("plan_structures_8", {}) or {}),
         "plan_structures_10": dict(stats.get("plan_structures_10", {}) or {}),
         "supportingGameIds": list(dict.fromkeys(stats.get("supportingGameIds", []) or [])),
+        "canonicalContextId": stats.get("canonicalContextId"),
+        "canonicalAggregateId": stats.get("canonicalAggregateId"),
+        "canonicalOpeningId": stats.get("canonicalOpeningId"),
+        "classificationSource": stats.get("classificationSource"),
+        "matchedOpeningRuleId": stats.get("matchedOpeningRuleId"),
         "context": context,
         "openingRole": dominant_opening_role(stats),
         "opening_role": dominant_opening_role(stats),
@@ -3736,6 +3741,11 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "plan_structures_8": dict(stats.get("plan_structures_8", {}) or {}),
                 "plan_structures_10": dict(stats.get("plan_structures_10", {}) or {}),
                 "supportingGameIds": list(dict.fromkeys(stats.get("supportingGameIds", []) or [])),
+                "canonicalContextId": stats.get("canonicalContextId"),
+                "canonicalAggregateId": stats.get("canonicalAggregateId"),
+                "canonicalOpeningId": stats.get("canonicalOpeningId"),
+                "classificationSource": stats.get("classificationSource"),
+                "matchedOpeningRuleId": stats.get("matchedOpeningRuleId"),
                 "win_rate": win_rate,
                 "winRate": win_rate,
                 "score": score_rate,
@@ -8825,7 +8835,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
             user_colour=colour,
             opening_side=opening_detection.get("openingSide"),
             first_white_move=first_white_move,
-            classification_source=str(opening_detection.get("openingSideSource") or "move_sequence_or_opening_metadata"),
+            classification_source=str(opening_detection.get("openingSideSource") or "unresolved"),
         )
         repertoire_context = (
             "played_as_white"
@@ -8852,8 +8862,16 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
             eco=pgn_tag_value(pgn, "ECO") or None,
             opening_family=opening,
             variation=tagged_variation if tagged_variation and detect_normalise_opening_name(tagged_variation) != opening else None,
-            classification_ply=len(opening_detection.get("movesAnalysed") or []),
+            classification_ply=int(opening_detection.get("matchedPlyDepth") or 0),
             perspective=perspective,
+            canonical_opening_id=str(opening_detection.get("canonicalOpeningId") or "unclassified-opening"),
+            classification_source=str(opening_detection.get("classificationSource") or "unclassified"),
+            matched_opening_rule_id=opening_detection.get("matchedOpeningRuleId"),
+            matched_moves=list(opening_detection.get("matchedMoves") or []),
+            classification_confidence=float(opening_detection.get("classificationConfidence") or 0),
+            first_white_move=first_white_move or None,
+            first_black_move=moves[1] if len(moves) > 1 else None,
+            classification_conflict_reason=opening_detection.get("metadataConflictReason"),
         )
 
         if record_is_used_for_opening_stats(canonical_game):
@@ -8871,6 +8889,11 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
                 "perspectiveRole": perspective["role"],
                 "roleAttributionTrusted": perspective["roleAttributionTrusted"],
                 "attributionReasonCode": perspective["attributionReasonCode"],
+                "canonicalContextId": canonical_game.get("canonicalContextId"),
+                "canonicalAggregateId": f"opening-aggregate:{canonical_game.get('canonicalContextId')}",
+                "canonicalOpeningId": canonical_game.get("canonicalOpeningId"),
+                "classificationSource": canonical_game.get("classificationSource"),
+                "matchedOpeningRuleId": canonical_game.get("matchedOpeningRuleId"),
             })
             for stats in (opening_results[opening], context_stats):
                 stats["name"] = opening
@@ -9536,7 +9559,7 @@ def build_lichess_analysis(
             user_colour=colour,
             opening_side=opening_detection.get("openingSide"),
             first_white_move=first_white_move,
-            classification_source=str(opening_detection.get("openingSideSource") or "move_sequence_or_opening_metadata"),
+            classification_source=str(opening_detection.get("openingSideSource") or "unresolved"),
         )
         repertoire_context = (
             "played_as_white"
@@ -9585,8 +9608,16 @@ def build_lichess_analysis(
             eco=str(raw_opening.get("eco") or "") or None,
             opening_family=opening,
             variation=tagged_variation if tagged_variation and detect_normalise_opening_name(tagged_variation) != opening else None,
-            classification_ply=len(opening_detection.get("movesAnalysed") or []),
+            classification_ply=int(opening_detection.get("matchedPlyDepth") or 0),
             perspective=perspective,
+            canonical_opening_id=str(opening_detection.get("canonicalOpeningId") or "unclassified-opening"),
+            classification_source=str(opening_detection.get("classificationSource") or "unclassified"),
+            matched_opening_rule_id=opening_detection.get("matchedOpeningRuleId"),
+            matched_moves=list(opening_detection.get("matchedMoves") or []),
+            classification_confidence=float(opening_detection.get("classificationConfidence") or 0),
+            first_white_move=moves[0] if moves else None,
+            first_black_move=moves[1] if len(moves) > 1 else None,
+            classification_conflict_reason=opening_detection.get("metadataConflictReason"),
         )
 
         if record_is_used_for_opening_stats(canonical_game):
@@ -9604,6 +9635,11 @@ def build_lichess_analysis(
                 "perspectiveRole": perspective["role"],
                 "roleAttributionTrusted": perspective["roleAttributionTrusted"],
                 "attributionReasonCode": perspective["attributionReasonCode"],
+                "canonicalContextId": canonical_game.get("canonicalContextId"),
+                "canonicalAggregateId": f"opening-aggregate:{canonical_game.get('canonicalContextId')}",
+                "canonicalOpeningId": canonical_game.get("canonicalOpeningId"),
+                "classificationSource": canonical_game.get("classificationSource"),
+                "matchedOpeningRuleId": canonical_game.get("matchedOpeningRuleId"),
             })
             for stats in (opening_results[opening], context_stats):
                 stats["name"] = opening
@@ -10603,8 +10639,12 @@ def enforce_serialized_role_contract(report: Dict[str, Any]) -> Dict[str, Any]:
         status = str(row.get("status") or row.get("evidenceStatus") or "").lower()
         if not ids and (declared == 0 or (not opening and status in {"insufficient", "unresolved"})):
             return True
+        expected_context_id = str(row.get("canonicalContextId") or row.get("canonical_context_id") or "")
         return bool(ids) and (declared is None or int(declared) == len(ids)) and all(
-            game_id in game_index and _serialized_role_is_legal(role, game_index[game_id]) for game_id in ids
+            game_id in game_index
+            and _serialized_role_is_legal(role, game_index[game_id])
+            and (not expected_context_id or str(game_index[game_id].get("canonicalContextId") or game_index[game_id].get("canonical_context_id") or "") == expected_context_id)
+            for game_id in ids
         )
 
     roles = []
@@ -10656,7 +10696,11 @@ def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
                     "openingSide", "perspective", "playerColour", "playerResult", "timeControl",
                     "eco", "openingFamily", "variation", "classificationPly", "playerRole",
                     "relationship", "exclusionReason",
-                    "firstWhiteMove",
+                    "firstWhiteMove", "firstBlackMove", "canonicalOpeningId", "openingDisplayName",
+                    "classificationSource", "matchedOpeningRuleId", "matchedPlyDepth", "matchedMoves",
+                    "classificationConfidence", "ownership", "repertoireRoleEligibility",
+                    "canonicalContextId", "classificationContractVersion",
+                    "classificationConflictReason",
                 )
                 if key in game
             }
@@ -10675,7 +10719,11 @@ def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
                     "attributionReasonCode", "openingSide", "perspective", "playerColour",
                     "playerResult", "timeControl", "eco", "openingFamily", "variation",
                     "classificationPly", "playerRole", "relationship", "exclusionReason",
-                    "firstWhiteMove",
+                    "firstWhiteMove", "firstBlackMove", "canonicalOpeningId", "openingDisplayName",
+                    "classificationSource", "matchedOpeningRuleId", "matchedPlyDepth", "matchedMoves",
+                    "classificationConfidence", "ownership", "repertoireRoleEligibility",
+                    "canonicalContextId", "classificationContractVersion",
+                    "classificationConflictReason",
                 )
                 if key in game
             })

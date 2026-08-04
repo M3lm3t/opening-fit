@@ -76,6 +76,26 @@ test("collect-more-games recovery remains an analysis action rather than a fabri
   assert.equal(resolveTrainingPriority(report).fallback, true);
 });
 
+test("an unresolved Black-vs-d4 role cannot inherit an unrelated established opening", () => {
+  const report = {
+    topOpenings: [{ name: "Vienna Game", games: 60 }],
+    reportDecision: {
+      repertoireRoles: [
+        { repertoireRole: "black_vs_e4", status: "insufficient", supportingGameCount: 0 },
+        { repertoireRole: "black_vs_d4", status: "insufficient", supportingGameCount: 0 },
+      ],
+      nextTrainingAction: { type: "collect_more_games", repertoireRole: "black_vs_d4" },
+    },
+  };
+  const priority = resolveTrainingPriority(report);
+  const plan = buildFoundationalWeeklyPlan({ report, now: new Date("2026-08-01T12:00:00Z") });
+
+  assert.equal(priority.openingName, "Black against 1.d4 preparation");
+  assert.equal(priority.repertoireRole, "black_vs_d4");
+  assert.doesNotMatch(JSON.stringify(plan), /Vienna/);
+  assert.ok(plan.tasks.every((task) => task.openingName === "Black against 1.d4 preparation"));
+});
+
 test("cached plans match only the exact report priority", () => {
   const priority = resolveTrainingPriority({ reportDecision: caroDecision }, { allowFallback: false });
   assert.equal(trainingPlanMatchesPriority({ trainingPriorityId: priority.priorityId }, priority), true);

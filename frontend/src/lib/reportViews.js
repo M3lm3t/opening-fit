@@ -122,7 +122,7 @@ export const REPORT_ACTION_INVENTORY = Object.freeze([
   { label: "Supporting games / Train", source: "Problems", actionType: "problem_action", destination: "Evidence or Training", context: "decision/diagnosis", access: "Existing behaviour" },
   { label: "Open this week's training plan", source: "Train", actionType: "open_training_plan", destination: "/train", context: "canonical task", access: "Existing weekly-plan entitlement" },
   { label: "Practise this response", source: "Repertoire opponent-response prep", actionType: "start_response_practice", destination: "/train", context: "opening/branch", access: "Existing behaviour" },
-  { label: "Opening name", source: "Evidence table", actionType: "start_opening_practice", destination: "/train", context: "opening decision", access: "Existing behaviour" },
+  { label: "Opening name", source: "Evidence table", actionType: "open_evidence", destination: "/report/evidence", context: "opening decision", access: "Canonical evidence drill-down" },
   { label: "Report filters", source: "Evidence", actionType: "filter_report", destination: "Current Evidence section", context: "report filter state", access: "Free" },
   { label: "Sign in / Account", source: "Evidence save status", actionType: "open_account", destination: "Account", context: "report", access: "Existing auth behaviour unchanged" },
   { label: "Upgrade", source: "Report continuation and locked Evidence tools", actionType: "open_upgrade", destination: "Upgrade", context: "feature", access: "Existing entitlement behaviour unchanged" },

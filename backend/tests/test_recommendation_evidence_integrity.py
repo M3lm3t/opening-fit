@@ -158,7 +158,7 @@ def test_vienna_decision_contract_cannot_disagree_with_its_repertoire_role():
     recommendation = decision["recommendations"][0]
     role = next(row for row in decision["roleDecisions"] if row["repertoireRole"] == "white")
 
-    assert decision["schemaVersion"] == 5
+    assert decision["schemaVersion"] == 6
     assert recommendation["sampleSize"] == 60
     assert recommendation["sampleThreshold"] == 5
     assert recommendation["evidenceStatus"] == "sufficient"

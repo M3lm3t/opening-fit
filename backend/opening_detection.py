@@ -91,6 +91,10 @@ def normalise_opening_name(name: str) -> str:
     return str(name).strip() or UNKNOWN_OPENING
 
 
+def canonical_opening_id(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", normalise_opening_name(name).lower()).strip("-") or "unclassified-opening"
+
+
 def is_unknown_opening(name: str) -> bool:
     lower = str(name or "").strip().lower()
     return lower in {"", "opening", "unknown", "unknown opening", "unclassified opening"} or "unknown" in lower
@@ -448,6 +452,9 @@ def exact_book_signal(moves: list[str]) -> dict[str, Any] | None:
         "evidence": f"Matched book line through {' '.join(best.moves)}.",
         "eco": best.eco,
         "openingSide": opening_side_for(best.name),
+        "ruleId": f"book:{best.eco.lower()}:{canonical_opening_id(best.name)}",
+        "matchedMoves": list(best.moves),
+        "matchedPlyDepth": len(best.moves),
     }
 
 
@@ -649,6 +656,12 @@ def aggregate_signals(signals: list[dict[str, Any]]) -> dict[str, Any]:
             "signals": [],
             "openingSide": None,
             "openingSideSource": "unresolved",
+            "canonicalOpeningId": "unclassified-opening",
+            "matchedOpeningRuleId": None,
+            "matchedMoves": [],
+            "matchedPlyDepth": 0,
+            "classificationSource": "unclassified",
+            "classificationConfidence": 0.0,
         }
 
     scores: dict[str, float] = {}
@@ -678,8 +691,36 @@ def aggregate_signals(signals: list[dict[str, Any]]) -> dict[str, Any]:
         "repertoireBucket": repertoire_bucket_for(best_opening),
         "signals": sorted(signals, key=lambda signal: signal.get("weight", 0) * signal.get("confidence", 0), reverse=True),
         "openingSide": best_signal.get("openingSide") or opening_side_for(best_opening),
-        "openingSideSource": "move_sequence_or_opening_metadata",
+        "openingSideSource": "move_sequence",
+        "canonicalOpeningId": canonical_opening_id(best_opening),
+        "matchedOpeningRuleId": best_signal.get("ruleId"),
+        "matchedMoves": list(best_signal.get("matchedMoves") or []),
+        "matchedPlyDepth": int(best_signal.get("matchedPlyDepth") or 0),
+        "classificationSource": f"move_sequence:{best_signal.get('type') or 'rule'}",
+        "classificationConfidence": float(best_signal.get("confidence") or 0),
     }
+
+
+def attach_move_provenance(signals: list[dict[str, Any]], moves: list[str]) -> list[dict[str, Any]]:
+    output = []
+    for signal in signals:
+        row = dict(signal)
+        signal_type = str(row.get("type") or "move_rule")
+        matched = list(row.get("matchedMoves") or [])
+        if not matched:
+            opening = str(row.get("opening") or "")
+            for depth in range(1, min(len(moves), 18) + 1):
+                prefix_signals = structure_signals(moves[:depth]) + piece_placement_signals(moves[:depth])
+                if any(str(candidate.get("type") or "") == signal_type and str(candidate.get("opening") or "") == opening for candidate in prefix_signals):
+                    matched = moves[:depth]
+                    break
+        if not matched:
+            matched = moves[:18]
+        row["ruleId"] = row.get("ruleId") or f"{signal_type}:{canonical_opening_id(str(row.get('opening') or ''))}"
+        row["matchedMoves"] = matched
+        row["matchedPlyDepth"] = int(row.get("matchedPlyDepth") or len(matched))
+        output.append(row)
+    return output
 
 
 def detect_opening(
@@ -696,14 +737,21 @@ def detect_opening(
     if book:
         signals.append(book)
 
-    eco_match = eco_signal(eco, eco_url=eco_url, tagged_opening=tagged_opening)
-    if eco_match:
-        signals.append(eco_match)
-
     signals.extend(structure_signals(clean_moves))
     signals.extend(piece_placement_signals(clean_moves))
+    signals = attach_move_provenance(signals, clean_moves)
 
+    metadata = eco_signal(eco, eco_url=eco_url, tagged_opening=tagged_opening)
     result = aggregate_signals(signals)
+    metadata_opening = normalise_opening_name(str((metadata or {}).get("opening") or ""))
+    move_opening = normalise_opening_name(str(result.get("opening") or ""))
+    conflict = None
+    if metadata and is_unknown_opening(move_opening):
+        conflict = "metadata_without_move_rule"
+    elif metadata and metadata_opening != move_opening:
+        conflict = "metadata_conflicts_with_move_rule"
+    result["metadataSignals"] = [metadata] if metadata else []
+    result["metadataConflictReason"] = conflict
     result["movesAnalysed"] = clean_moves[:18]
     return result
 

@@ -207,7 +207,7 @@ def classify_opening_perspective(
     user_colour: str,
     opening_side: str | None,
     first_white_move: str = "",
-    classification_source: str = "move_sequence_or_opening_metadata",
+    classification_source: str = "unresolved",
 ) -> OpeningPerspective:
     user = str(user_colour or "").lower()
     side = str(opening_side or "").lower() or None

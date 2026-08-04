@@ -243,9 +243,13 @@ def _has_report_game_collection(report: Mapping[str, Any]) -> bool:
 
 def _matching_games(report: Mapping[str, Any], item: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     expected_name = _opening_key(_name(item))
+    expected_context_id = str(item.get("canonicalContextId") or item.get("canonical_context_id") or "")
     expected = perspective_from_item(item)
     seen, matched = set(), []
     for game in _report_games(report):
+        game_context_id = str(game.get("canonicalContextId") or game.get("canonical_context_id") or "")
+        if expected_context_id and game_context_id != expected_context_id:
+            continue
         perspective = perspective_from_item(game)
         if _opening_key(game.get("opening") or game.get("name")) != expected_name:
             continue
@@ -466,7 +470,9 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
 
     opening_name = _name(item)
     repertoire_role = str(perspective.get("repertoireRole") or RepertoireRole.UNRESOLVED.value)
-    recommendation_id = f"{_slug(opening_name)}:{repertoire_role}:{perspective['role']}"
+    canonical_context_id = str(item.get("canonicalContextId") or item.get("canonical_context_id") or "")
+    canonical_aggregate_id = str(item.get("canonicalAggregateId") or item.get("canonical_aggregate_id") or "")
+    recommendation_id = canonical_aggregate_id or (f"opening-aggregate:{canonical_context_id}" if canonical_context_id else f"{_slug(opening_name)}:{repertoire_role}:{perspective['role']}")
     sample = {
         "gameIds": supporting_ids,
         "games": games,
@@ -613,7 +619,9 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
     )
     return {
         "recommendationId": recommendation_id,
-        "decisionId": f"opening-decision:{recommendation_id}",
+        "decisionId": f"opening-decision:{canonical_context_id}" if canonical_context_id else f"opening-decision:{recommendation_id}",
+        "canonicalContextId": canonical_context_id or None,
+        "canonicalAggregateId": canonical_aggregate_id or (recommendation_id if canonical_context_id else None),
         "verdict": verdict,
         "openingId": _slug(opening_name),
         "openingName": opening_name,
@@ -2115,8 +2123,8 @@ def build_report_decision(
         "recommendationId": None,
     } for role in repertoire_roles if role["status"] != "established")
     decision = {
-        "schemaVersion": 5,
-        "version": "report_decision_v5",
+        "schemaVersion": 6,
+        "version": "report_decision_v6",
         "decisionId": action_id,
         "sourceReportId": source_report_id,
         "generatedAt": report.get("importedAt") or report.get("imported_at") or report.get("lastUpdated") or report.get("last_updated"),
