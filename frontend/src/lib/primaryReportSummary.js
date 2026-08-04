@@ -136,12 +136,13 @@ function recommendationContext(strength) {
   const wins = Number(sample.wins ?? combined.wins);
   const draws = Number(sample.draws ?? combined.draws);
   const losses = Number(sample.losses ?? combined.losses);
+  const knownResults = Number(sample.knownResults ?? sample.known_results ?? wins + draws + losses);
   const explicit = [
     ...(Array.isArray(combined.fitReasonBullets) ? combined.fitReasonBullets : []),
     ...(Array.isArray(combined.fit_reason_bullets) ? combined.fit_reason_bullets : []),
   ].map(text).filter(Boolean);
   const reasons = [...explicit];
-  if (games > 0 && [wins, draws, losses].every(Number.isFinite) && wins + draws + losses === games) {
+  if (games > 0 && [wins, draws, losses, knownResults].every(Number.isFinite) && wins + draws + losses === knownResults && knownResults <= games) {
     reasons.push(`${games} suitable games produced ${formatResultCounts({ wins, draws, losses })}.`);
   } else if (games > 0) {
     reasons.push(`${games} suitable games support this opening-specific decision.`);
@@ -176,10 +177,11 @@ function observedSummary(candidate) {
   const wins = Number(observed.wins ?? sample.wins ?? combined.wins);
   const draws = Number(observed.draws ?? sample.draws ?? combined.draws);
   const losses = Number(observed.losses ?? sample.losses ?? combined.losses);
+  const knownResults = Number(observed.knownResults ?? sample.knownResults ?? sample.known_results ?? wins + draws + losses);
   const scoreRate = Number(observed.scoreRate ?? observed.score_rate ?? sample.scoreRate ?? sample.score_rate ?? combined.scoreRate ?? combined.score_rate);
   return {
     games,
-    results: games > 0 && [wins, draws, losses].every(Number.isFinite) && wins + draws + losses === games
+    results: games > 0 && [wins, draws, losses, knownResults].every(Number.isFinite) && wins + draws + losses === knownResults && knownResults <= games
       ? formatResultCounts({ wins, draws, losses })
       : null,
     scoreRate: Number.isFinite(scoreRate) ? `${Math.round(scoreRate)}% Score Rate` : null,

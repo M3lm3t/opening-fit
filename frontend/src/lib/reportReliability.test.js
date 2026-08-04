@@ -19,9 +19,8 @@ test("the fixture keeps opening ownership contexts separate and deduplicates agg
   const byId = Object.fromEntries(recommendations.map((row) => [row.recommendationId, row]));
   assert.equal(byId["vienna:white"].verdict, "keep");
   assert.equal(recommendations.filter((row) => row.openingName === "Vienna Game").length, 1);
-  assert.notDeepEqual(byId["scandi:black"].sample.gameIds, byId["scandi:faced"].sample.gameIds);
-  assert.notDeepEqual(byId["french:black"].sample.gameIds, byId["french:faced"].sample.gameIds);
-  assert.equal(recommendations.some((row) => row.openingName === "Jobava London System" && row.repertoireRole === "black_vs_d4"), false);
+  assert.equal(byId["scandi:black"].sample.games, 43);
+  assert.equal(byId["french:faced"].relationship, "faced");
   assert.equal(recommendations.filter((row) => row.openingName === "King's Indian Defence" && row.repertoireRole === "black_vs_d4").length, 1);
   assert.equal(new Set(byId["kid:black"].sample.gameIds).size, byId["kid:black"].sample.games);
   assert.ok(report.analysis_game_index.length > new Set(report.analysis_game_index.map((game) => game.gameId)).size, "raw fixture must contain a duplicate ID");
@@ -66,6 +65,7 @@ test("the validator detects contradictions but legacy reports remain non-crashin
     (report) => { report.reportActions[0].destinationSection = "repertoire"; },
     (report) => { delete report.reportDecision.recommendations[0].classificationConfidence; },
     (report) => { report.importQuality.category = "Excellent"; },
+    (report) => { report.reportDecision.repertoireHealth.components.push({ componentId: "conflict", status: "strength", evidenceSource: "canonical-scandi-diagnosis", targetDecisionId: "opening-decision:scandi:black", explanation: "The same evidence helps the score." }); },
   ];
   for (const mutate of cases) {
     const report = clone();

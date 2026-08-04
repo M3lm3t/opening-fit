@@ -3,6 +3,37 @@ from __future__ import annotations
 from typing import Any, Mapping, TypedDict
 
 
+DRAW_RESULTS = frozenset({"1/2-1/2", "draw", "agreed", "repetition", "stalemate", "insufficient", "50move", "timevsinsufficient"})
+LOSS_RESULTS = frozenset({"loss", "lose", "checkmated", "resigned", "timeout"})
+
+
+def canonical_player_result(game: Mapping[str, Any], player_colour: str) -> str:
+    """Return a completed result from the analysed player's perspective."""
+    colour = str(player_colour or "").strip().lower()
+    if colour not in {"white", "black"}:
+        return "unknown"
+    direct = str(game.get("playerResult") or game.get("player_result") or "").strip().lower()
+    if direct in {"win", "draw", "loss"}:
+        return direct
+    result = str(game.get("result") or game.get("Result") or "").strip().lower()
+    if result in DRAW_RESULTS:
+        return "draw"
+    if result in {"1-0", "0-1"}:
+        return "win" if (result == "1-0") == (colour == "white") else "loss"
+    winner = str(game.get("winner") or game.get("winnerColour") or game.get("winner_color") or "").strip().lower()
+    if winner in {"white", "black"}:
+        return "win" if winner == colour else "loss"
+    side = game.get(colour)
+    side_result = str(side.get("result") if isinstance(side, Mapping) else "").strip().lower()
+    if side_result == "win":
+        return "win"
+    if side_result in DRAW_RESULTS:
+        return "draw"
+    if side_result in LOSS_RESULTS:
+        return "loss"
+    return "unknown"
+
+
 class ClassifiedGameRecord(TypedDict):
     gameId: str
     url: str

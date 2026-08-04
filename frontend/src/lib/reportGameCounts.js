@@ -139,7 +139,7 @@ export function buildReportGameCounts(report = {}) {
       analysisSelectionRule: source.analysisSelectionRule || source.analysis_selection_rule || null,
       duplicateGamesRemoved: firstInteger(source.duplicateGamesRemoved, source.duplicate_games_removed) ?? 0,
       breakdownAvailable: true, contractVersion, countStatus: "canonical",
-      analysedGames: parsedGames, usableOpeningSignals: usedForOpeningStats,
+      analysedGames: usedForOpeningStats, usableOpeningSignals: usedForOpeningStats,
       imported: fetchedGames, eligible: eligibleGames, classified: classifiedGames, excluded: excludedGames,
     };
   }
@@ -256,13 +256,14 @@ export const REPORT_COUNT_DEFINITIONS = Object.freeze({
   classifiedGames: "Attributed games assigned to one recognised primary opening family.",
   usedForOpeningStats: "Classified games with trusted player colour and repertoire-role attribution used in opening statistics.",
   unclassifiedGames: "Attributed games that could not be assigned to a recognised opening family.",
-  analysedGames: "Legacy alias for successfully parsed games in current reports.",
+  analysedGames: "Headline count of unique attributed and classified games used in opening statistics for current reports.",
   excludedGames: "Fetched games not used in opening statistics; every current-report game has one primary recorded reason.",
   duplicateGamesRemoved: "Repeated platform records removed before the unique fetched total and opening aggregation.",
 });
 
 export function reportSaveState(status = "", authenticated = false, sampleMode = false) {
   if (sampleMode) return { label: "Example only · Not saved", detail: "Fictional example data is not stored locally or synced to an account." };
+  if (status === "unsaved") return { label: "Not saved", detail: "This browser did not confirm local or cloud persistence for the open report." };
   if (status === "saving") return { label: "Saving", detail: "Syncing this report to your account." };
   if (status === "saved") return { label: "Saved to cloud", detail: "This report is synced to your OpeningFit account." };
   if (status === "failed") return { label: "Saved locally", detail: "Cloud save failed, but this report remains available on this device." };

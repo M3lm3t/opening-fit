@@ -84,6 +84,18 @@ export function validateReportConsistency(report = {}) {
   const category = text(quality.category).toLowerCase();
   if (/strong|excellent/.test(category) && complete !== true) violations.push("quality_exceeds_report_completeness");
 
+  const componentClaims = new Map();
+  for (const component of list(decision.repertoireHealth?.components || report.repertoireHealth?.components)) {
+    const target = text(component.targetDecisionId || component.targetDiagnosisId);
+    const source = text(component.evidenceSource || component.source);
+    if (!target || !source) continue;
+    const claim = `${text(component.status)} ${text(component.explanation)}`.toLowerCase();
+    const polarity = /drag|hurt|negative|weak/.test(claim) ? "negative" : /help|strength|positive|support/.test(claim) ? "positive" : "neutral";
+    const key = `${target}::${source}`;
+    if (componentClaims.has(key) && componentClaims.get(key) !== polarity && ![componentClaims.get(key), polarity].includes("neutral")) violations.push(`contradictory_health_component:${key}`);
+    componentClaims.set(key, polarity);
+  }
+
   return { valid: violations.length === 0, enforceable, violations };
 }
 

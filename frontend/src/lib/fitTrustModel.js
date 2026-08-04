@@ -60,10 +60,12 @@ function resultSample(item = {}) {
     const parsed = numeric(value);
     return parsed === null ? null : Math.max(0, Math.round(parsed));
   });
-  const reconciled = games > 0 && supplied && [wins, draws, losses].every((value) => value !== null) && wins + draws + losses === games;
+  const knownResults = numeric(sample.knownResults ?? sample.known_results);
+  const resultDenominator = knownResults === null ? games : Math.max(0, Math.round(knownResults));
+  const reconciled = games > 0 && supplied && [wins, draws, losses].every((value) => value !== null) && wins + draws + losses === resultDenominator && resultDenominator <= games;
   const explicitRate = rounded(sample.scoreRate ?? sample.score_rate ?? item.scoreRate ?? item.score_rate ?? item.rawResultScore ?? item.raw_result_score ?? item.winRate ?? item.win_rate);
-  const scoreRate = reconciled ? Math.round(((wins + draws * 0.5) / games) * 1000) / 10 : !supplied && games && explicitRate !== null && explicitRate >= 0 && explicitRate <= 100 ? explicitRate : null;
-  return { games, wins, draws, losses, supplied, reconciled, winRate: reconciled ? Math.round((wins / games) * 1000) / 10 : null, scoreRate };
+  const scoreRate = reconciled && resultDenominator ? Math.round(((wins + draws * 0.5) / resultDenominator) * 1000) / 10 : !supplied && games && explicitRate !== null && explicitRate >= 0 && explicitRate <= 100 ? explicitRate : null;
+  return { games, knownResults: resultDenominator, wins, draws, losses, supplied, reconciled, winRate: reconciled && resultDenominator ? Math.round((wins / resultDenominator) * 1000) / 10 : null, scoreRate };
 }
 
 function validationInvalid(item = {}, sample = resultSample(item)) {

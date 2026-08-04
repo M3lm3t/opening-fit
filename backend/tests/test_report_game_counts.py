@@ -19,7 +19,7 @@ def assert_invariants(summary):
     assert all(left >= right for left, right in zip(stages, stages[1:]))
     assert summary["gamesExcluded"] == summary["gamesFetched"] - summary["gamesUsedForOpeningStats"]
     assert sum(summary["exclusionReasons"].values()) == summary["excludedGames"]
-    assert summary["analysedGames"] == summary["gamesParsed"]
+    assert summary["analysedGames"] == summary["gamesUsedForOpeningStats"]
     assert summary["usableOpeningSignals"] == summary["gamesUsedForOpeningStats"]
 
 

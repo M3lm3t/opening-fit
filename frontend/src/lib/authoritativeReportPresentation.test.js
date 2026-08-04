@@ -41,7 +41,7 @@ test("one role model preserves the live report verdicts, evidence and British di
   assert.deepEqual(roles.map(({ key, verdict, relevantGames }) => ({ key, verdict, relevantGames })), [
     { key: "white", verdict: "keep", relevantGames: 60 },
     { key: "black_e4", verdict: "keep", relevantGames: 78 },
-    { key: "black_d4", verdict: "improve", relevantGames: 7 },
+    { key: "black_d4", verdict: "repair", relevantGames: 7 },
   ]);
   assert.deepEqual(roles.map((role) => role.status), ["established", "established", "established"]);
   assert.notEqual(roles[0].confidence.level, "insufficient");

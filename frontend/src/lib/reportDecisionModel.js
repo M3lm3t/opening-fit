@@ -171,15 +171,20 @@ function problemRows(data = {}) {
 
 export function buildCostlyIssues(data = {}, decisions = buildRepertoireDecisions(data)) {
   const rows = problemRows(data).map((item) => {
-    const affected = Number(item.affectedGames ?? item.affected_games ?? item.games ?? item.count ?? 0) || 0;
-    const lost = Number(item.lostGames ?? item.lost_games ?? item.losses ?? item.loss_count ?? 0) || 0;
+    const supportingGameIds = [...new Set(list(item.supportingGameIds || item.supporting_game_ids).map(text).filter(Boolean))];
+    const affected = supportingGameIds.length || Number(item.affectedGameCount ?? item.affectedGames ?? item.affected_games ?? item.occurrences ?? item.games ?? item.count ?? 0) || 0;
+    const lost = Number(item.lostGameCount ?? item.lostGames ?? item.lost_games ?? item.losses ?? item.loss_count ?? 0) || 0;
     const severity = Number(item.severityScore ?? item.severity_score ?? item.severity ?? 0) || 0;
     return {
       opening: openingName(item) || text(item.position || item.lineName || item.line_name) || "Recurring opening position",
       line: text(item.variation || item.line || item.moveLine || item.move_line),
       affectedGames: affected,
       lostGames: lost,
-      explanation: text(item.explanation || item.reason || item.summary || item.issue) || "This position recurs in the available game sample.",
+      explanation: text(item.userFacingDiagnosis || item.explanation || item.reason || item.summary || item.issue) || "This is an opening-level pattern; no repeated legal position is claimed.",
+      diagnosisId: text(item.diagnosisId || item.diagnosis_id) || null,
+      canonicalDecisionId: text(item.canonicalDecisionId || item.canonical_decision_id || item.decisionId) || null,
+      diagnosisScope: text(item.diagnosisScope || item.diagnosis_scope || item.precisionLevel) || "opening",
+      supportingGameIds,
       importance: lost * 5 + affected * 2 + severity,
       source: item,
     };
@@ -329,9 +334,12 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
   const keep = decisions.find((item) => item.type === "keep");
   const repair = decisions.find((item) => item.type === "repair");
   const reduce = decisions.find((item) => item.type === "reduce");
+  const canonicalDiagnosis = serverDecision?.openingDiagnosis || serverDecision?.opening_diagnosis || serverDecision?.trainingPriority?.openingDiagnosis || serverDecision?.training_priority?.openingDiagnosis;
   const issues = serverDecision
-    ? primaryProblem
-      ? buildCostlyIssues({ problem_lines: primaryProblem.issue ? [{ ...primaryProblem.issue, opening: primaryProblem.opening }] : [] }, decisions)
+    ? canonicalDiagnosis
+      ? buildCostlyIssues({ problem_lines: [{ ...canonicalDiagnosis, opening: canonicalDiagnosis.opening || primaryProblem?.opening }] }, decisions)
+      : primaryProblem
+      ? buildCostlyIssues({ problem_lines: primaryProblem.issue ? [{ ...primaryProblem.issue, opening: primaryProblem.opening, canonicalDecisionId: primaryProblem.decisionId }] : [] }, decisions)
           .map((item) => ({ ...item, findingType: primaryProblem.findingType || primaryProblem.finding_type || (primaryProblem.issue ? "branch_weakness" : "opening_weakness") }))
       : []
     : buildCostlyIssues(data, decisions);
@@ -376,6 +384,7 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
   const authoritative = {
     schemaVersion: serverDecision?.schemaVersion || 1,
     decisionId: serverDecision?.decisionId || serverDecision?.decision_id || nextTrainingAction?.decisionId || null,
+    recommendations: serverDecision?.recommendations || [],
     primaryAction: serverDecision?.primaryAction || nextTrainingAction,
     keep: serverDecision?.keep || null,
     repair: serverDecision?.repair || null,
@@ -389,10 +398,10 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
     confidence: serverDecision?.confidence || { status: decisions.length ? "sufficient" : "insufficient_data", gamesAnalysed: games, minimumOpeningGames: 5 },
     baseline: { ...baseline, status: comparisonAllowed ? "comparable_later_report" : "baseline", hasComparablePrevious: comparisonAllowed, comparisonClaimsAllowed: comparisonAllowed },
   };
-  const repertoireSource = serverDecision?.recommendations?.length ? { ...data, best_openings: serverDecision.recommendations, repertoireRoles: serverDecision.repertoireRoles } : data;
+  const repertoireSource = serverDecision?.recommendations?.length ? { ...data, repertoireRoles: serverDecision.repertoireRoles } : data;
   const repertoire = buildAuthoritativeRoleViewModels({
     baseRoles: buildRepertoireMapModel(repertoireSource),
-    candidates: collectReportOpenings(repertoireSource),
+    candidates: serverDecision?.recommendations?.length ? serverDecision.recommendations : collectReportOpenings(repertoireSource),
   });
   return {
     ...authoritative,

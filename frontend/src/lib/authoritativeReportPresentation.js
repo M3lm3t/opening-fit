@@ -39,7 +39,7 @@ function verdictValue(source = {}) {
 export function normaliseRoleVerdict(value, { established = false, relevantGames = 0 } = {}) {
   const raw = text(value).toLowerCase();
   if (/keep|strong|reliable|main weapon/.test(raw)) return "keep";
-  if (/repair|improve|fix|weak|struggling/.test(raw)) return "improve";
+  if (/repair|improve|fix|weak|struggling/.test(raw)) return "repair";
   if (/watch|explore|review|track|mixed/.test(raw)) return "watch";
   if (/insufficient|not enough|missing|unresolved/.test(raw)) return "insufficient_evidence";
   if (!established && relevantGames < 5) return "insufficient_evidence";
@@ -47,7 +47,7 @@ export function normaliseRoleVerdict(value, { established = false, relevantGames
 }
 
 export function roleVerdictLabel(value) {
-  return ({ keep: "Keep", improve: "Improve", watch: "Watch", insufficient_evidence: "Insufficient evidence" })[value] || "Watch";
+  return ({ keep: "Keep", repair: "Repair", watch: "Watch", insufficient_evidence: "Insufficient evidence" })[value] || "Watch";
 }
 
 function candidateFor(role, base, candidates) {

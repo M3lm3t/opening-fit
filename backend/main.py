@@ -18,10 +18,12 @@ from analysis.opening_perspective import (
     attach_perspective,
     classify_opening_perspective,
     perspective_from_item,
+    player_colour_from_game,
     player_colour_from_names,
 )
 from analysis.classified_game import (
     build_classified_game_record,
+    canonical_player_result,
     opening_context_key,
     record_is_classified,
     record_is_used_for_opening_stats,
@@ -1867,7 +1869,7 @@ def build_game_count_summary(
         "dateRangeEligibleGames": date_eligible,
         "timeControlEligibleGames": time_eligible,
         "analysisCandidateGames": candidates,
-        "analysedGames": structural,
+        "analysedGames": used_games,
         "usableOpeningSignals": used_games,
         "excludedGames": excluded,
         "exclusionReasons": reasons,
@@ -1973,7 +1975,7 @@ def game_count_report_aliases(counts: Dict[str, Any]) -> Dict[str, Any]:
         "gamesEligible": counts["eligible"], "games_eligible": counts["eligible"],
         "gamesStructurallyUsable": counts["gamesStructurallyUsable"],
         "games_structurally_usable": counts["gamesStructurallyUsable"],
-        "gamesAnalysed": parsed, "gamesAnalyzed": parsed,
+        "gamesAnalysed": used, "gamesAnalyzed": used,
         "gamesWithPgn": counts["gamesPgnAvailable"], "games_with_pgn": counts["gamesPgnAvailable"],
         "gamesParsed": parsed, "games_parsed": parsed,
         "gamesAttributed": counts["gamesAttributed"], "games_attributed": counts["gamesAttributed"],
@@ -2141,40 +2143,12 @@ def split_usable_games(
 
 
 def result_for_user(game: Dict[str, Any], username: str) -> str:
-    colour, _reason = player_colour_from_names(
-        username,
-        game.get("white", {}).get("username", ""),
-        game.get("black", {}).get("username", ""),
-    )
-    if colour == "white":
-        res = game.get("white", {}).get("result", "")
-    elif colour == "black":
-        res = game.get("black", {}).get("result", "")
-    else:
-        return "unknown"
-
-    if res == "win":
-        return "win"
-
-    if res in {
-        "agreed",
-        "repetition",
-        "stalemate",
-        "insufficient",
-        "50move",
-        "timevsinsufficient",
-    }:
-        return "draw"
-
-    return "loss"
+    colour, _reason = player_colour_from_game(username, game)
+    return canonical_player_result(game, colour)
 
 
 def colour_for_user(game: Dict[str, Any], username: str) -> str:
-    colour, _reason = player_colour_from_names(
-        username,
-        game.get("white", {}).get("username", ""),
-        game.get("black", {}).get("username", ""),
-    )
+    colour, _reason = player_colour_from_game(username, game)
     return colour
 
 
@@ -2704,6 +2678,7 @@ def empty_opening_stats() -> Dict[str, Any]:
         "wins": 0,
         "draws": 0,
         "losses": 0,
+        "known_results": 0,
         "white": 0,
         "black": 0,
         "played_as_white": 0,
@@ -3256,9 +3231,10 @@ def opening_item(
     stats = stats or {}
     win_rate = None
 
-    if stats.get("games"):
-        win_rate = round((stats.get("wins", 0) / stats["games"]) * 100, 1)
-        score_rate = round(((stats.get("wins", 0) + stats.get("draws", 0) * 0.5) / stats["games"]) * 100, 1)
+    known_results = int(stats.get("known_results", 0) or (int(stats.get("wins", 0) or 0) + int(stats.get("draws", 0) or 0) + int(stats.get("losses", 0) or 0)))
+    if known_results:
+        win_rate = round((stats.get("wins", 0) / known_results) * 100, 1)
+        score_rate = round(((stats.get("wins", 0) + stats.get("draws", 0) * 0.5) / known_results) * 100, 1)
     else:
         score_rate = None
 
@@ -3268,6 +3244,8 @@ def opening_item(
         "wins": int(stats.get("wins", 0) or 0),
         "draws": int(stats.get("draws", 0) or 0),
         "losses": int(stats.get("losses", 0) or 0),
+        "knownResults": known_results,
+        "known_results": known_results,
         "opening_losses": int(stats.get("opening_losses", 0) or 0),
         "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
         "late_losses": int(stats.get("late_losses", 0) or 0),
@@ -3723,12 +3701,13 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
         wins = stats["wins"]
         draws = stats["draws"]
         losses = stats["losses"]
+        known_results = int(stats.get("known_results", 0) or (wins + draws + losses))
 
         if games == 0:
             continue
 
-        win_rate = round((wins / games) * 100, 1)
-        score = round((wins + 0.5 * draws) / games, 2)
+        win_rate = round((wins / known_results) * 100, 1) if known_results else None
+        score_rate = round(((wins + 0.5 * draws) / known_results) * 100, 1) if known_results else None
 
         context = dominant_opening_context(stats)
 
@@ -3738,6 +3717,8 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "wins": wins,
                 "draws": draws,
                 "losses": losses,
+                "knownResults": known_results,
+                "known_results": known_results,
                 "opening_losses": int(stats.get("opening_losses", 0) or 0),
                 "middlegame_losses": int(stats.get("middlegame_losses", 0) or 0),
                 "late_losses": int(stats.get("late_losses", 0) or 0),
@@ -3755,7 +3736,9 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
                 "supportingGameIds": list(dict.fromkeys(stats.get("supportingGameIds", []) or [])),
                 "win_rate": win_rate,
                 "winRate": win_rate,
-                "score": score,
+                "score": score_rate,
+                "scoreRate": score_rate,
+                "score_rate": score_rate,
                 "colour": dominant_opening_colour(stats),
                 "color": dominant_opening_colour(stats),
                 "context": context,
@@ -3795,7 +3778,7 @@ def build_opening_scores(opening_results: Dict[str, Dict[str, int]]) -> List[Dic
         item["evidenceBullets"] = item["evidence"]
         scored.append(item)
 
-    scored.sort(key=lambda x: (x["games"] >= 5, x.get("fitScore", 0), x["score"], x["games"]), reverse=True)
+    scored.sort(key=lambda x: (x["games"] >= 5, x.get("fitScore", 0), x.get("score") or -1, x["games"]), reverse=True)
     return scored
 
 
@@ -8900,10 +8883,13 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
 
                 if result == "win":
                     stats["wins"] += 1
+                    stats["known_results"] += 1
                 elif result == "draw":
                     stats["draws"] += 1
+                    stats["known_results"] += 1
                 elif result == "loss":
                     stats["losses"] += 1
+                    stats["known_results"] += 1
                     add_loss_timing_to_stats(stats, loss_timing)
                 add_plan_structure_to_stats(stats, moves, result)
 
@@ -9444,22 +9430,12 @@ def get_lichess_result(game: Dict[str, Any], username: str) -> str:
     white_name = lichess_user_name(players.get("white", {}), "White")
     black_name = lichess_user_name(players.get("black", {}), "Black")
 
-    winner = game.get("winner")
-
     colour, _reason = player_colour_from_names(username, white_name, black_name)
-    is_white = colour == "white"
-    is_black = colour == "black"
-
-    if not winner:
-        return "draw"
-
-    if is_white and winner == "white":
-        return "win"
-
-    if is_black and winner == "black":
-        return "win"
-
-    return "loss"
+    status = str(game.get("status") or "").lower()
+    if not game.get("winner") and status not in {"draw", "stalemate", "repetition", "insufficient", "timeoutvsinsufficient"}:
+        return "unknown"
+    result_source = {**game, "result": "1/2-1/2" if not game.get("winner") else game.get("result")}
+    return canonical_player_result(result_source, colour)
 
 
 def get_lichess_colour(game: Dict[str, Any], username: str) -> str:
@@ -9632,10 +9608,13 @@ def build_lichess_analysis(
 
                 if result == "win":
                     stats["wins"] += 1
+                    stats["known_results"] += 1
                 elif result == "draw":
                     stats["draws"] += 1
+                    stats["known_results"] += 1
                 elif result == "loss":
                     stats["losses"] += 1
+                    stats["known_results"] += 1
                     add_loss_timing_to_stats(stats, loss_timing)
                 add_plan_structure_to_stats(stats, moves, result)
 

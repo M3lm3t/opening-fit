@@ -99,9 +99,10 @@ def _game_id(game: Mapping[str, Any]) -> str:
     return f"game-{hashlib.sha256(fingerprint.encode('utf-8', errors='ignore')).hexdigest()[:16]}"
 
 
-def _result_counts(games: list[Mapping[str, Any]]) -> tuple[int, int, int]:
+def _result_counts(games: list[Mapping[str, Any]]) -> tuple[int, int, int, int]:
     results = [str(game.get("result") or "").lower() for game in games]
-    return results.count("win"), results.count("draw"), results.count("loss")
+    wins, draws, losses = results.count("win"), results.count("draw"), results.count("loss")
+    return wins, draws, losses, wins + draws + losses
 
 
 def _candidate_score_rate(item: Mapping[str, Any], games: int, wins: int, draws: int) -> Optional[float]:
@@ -153,14 +154,14 @@ def _observed_performance_contract(
 ) -> Optional[dict[str, Any]]:
     if games <= 0:
         return None
-    reconciled = wins + draws + losses == games
-    if not reconciled:
+    known_results = wins + draws + losses
+    if not known_results or known_results > games:
         return None
-    win_rate = (wins / games) * 100
-    score_rate = ((wins + 0.5 * draws) / games) * 100
+    win_rate = (wins / known_results) * 100
+    score_rate = ((wins + 0.5 * draws) / known_results) * 100
     return {
         "version": OBSERVED_PERFORMANCE_VERSION,
-        "games": games, "wins": wins, "draws": draws, "losses": losses,
+        "games": games, "knownResults": known_results, "wins": wins, "draws": draws, "losses": losses,
         "winRate": round(win_rate, 1) if win_rate is not None else None,
         "scoreRate": round(score_rate, 1) if score_rate is not None else None,
         "relevantBaseline": round(baseline, 1) if baseline is not None else None,
@@ -402,7 +403,7 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
     raw_games = _games(item)
     if matched or _has_report_game_collection(report):
         games = len(matched)
-        wins, draws, losses = _result_counts(matched)
+        wins, draws, losses, known_results = _result_counts(matched)
         supporting_ids = [_game_id(game) for game in matched]
         if raw_games and raw_games != games:
             diagnostics.append("source_sample_replaced_by_supporting_games")
@@ -411,15 +412,19 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         wins = int(_number(item.get("wins")) or 0)
         draws = int(_number(item.get("draws")) or 0)
         losses = int(_number(item.get("losses")) or 0)
+        known_results = int(_number(item.get("knownResults") or item.get("known_results")) or (wins + draws + losses))
         supporting_ids = [str(value) for value in (item.get("supportingGameIds") or item.get("supporting_game_ids") or []) if str(value)]
 
     result_total = wins + draws + losses
-    complete_results = result_total == games
-    if result_total and not complete_results:
-        validation.append("results_do_not_reconcile")
+    known_results = min(games, known_results, result_total)
+    complete_results = known_results == games
+    if result_total > games:
+        validation.append("results_exceed_sample")
+    elif not complete_results:
+        diagnostics.append("unknown_results_excluded_from_score_rate")
     if supporting_ids and len(supporting_ids) != games:
         validation.append("supporting_games_do_not_reconcile")
-    score_rate = round(((wins + draws * 0.5) / games) * 100, 1) if games and complete_results else _candidate_score_rate(item, games, wins, draws)
+    score_rate = round(((wins + draws * 0.5) / known_results) * 100, 1) if known_results else _candidate_score_rate(item, games, wins, draws)
     fit_score = _number(item.get("fitScore") if item.get("fitScore") is not None else item.get("fit_score"))
     played_dates = [
         parsed
@@ -464,6 +469,7 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         "wins": wins,
         "draws": draws,
         "losses": losses,
+        "knownResults": known_results,
         "scoreRate": score_rate,
     }
     if verdict == "repair":
@@ -1487,7 +1493,7 @@ def _build_opening_diagnosis(target: Mapping[str, Any], report: Mapping[str, Any
         success = "Complete the supplied reviews and record one legal continuation for the next five relevant games."
         divergence_type = "repeated_move_order"
     elif precision == "opening":
-        diagnosis_text = f"No repeated legal position or variation was retained across the {len(diagnosis_games)} usable {opening} games. The diagnosis remains at opening level."
+        diagnosis_text = f"This opening-level pattern recurs across {len(diagnosis_games)} supporting {opening} games, but no single repeated legal position or variation was retained."
         task = f"Compare up to three supplied {opening} games and mark the first position where your plans diverge; do not assume a move is a mistake."
         success = "Complete the supplied reviews and record one position to revisit after more games."
         divergence_type = "opening_level_review"
@@ -1498,13 +1504,18 @@ def _build_opening_diagnosis(target: Mapping[str, Any], report: Mapping[str, Any
         divergence_type = "insufficient_legal_move_evidence"
     fallback = precision in {"opening", "opening_family", "insufficient_evidence"}
     diagnosis_id = "diagnosis:" + hashlib.sha256("|".join([str(decision_id or source_report_id or "report"), opening, role, str((selected or {}).get("key") or precision), *diagnosis_ids]).encode()).hexdigest()[:20]
+    diagnosis_scope = "position" if precision == "exact_position" else "variation" if precision in {"move_order", "variation"} else "opening"
+    lost_game_count = sum(1 for game in diagnosis_games if str(game.get("result") or "").lower() == "loss")
     return {
         "version": OPENING_DIAGNOSIS_VERSION, "diagnosisId": diagnosis_id,
+        "trainingTaskId": f"training-task:{diagnosis_id.removeprefix('diagnosis:')}",
         "sourceReportId": source_report_id, "canonicalDecisionId": decision_id,
         "opening": opening, "openingFamily": opening, "variation": variation, "eco": eco,
         "repertoireRole": role, "playerColour": colour, "precisionLevel": precision,
+        "diagnosisScope": diagnosis_scope,
         "confidence": confidence, "confidenceReason": confidence_reason,
         "gamesConsidered": len(valid), "supportingGameIds": diagnosis_ids,
+        "affectedGameCount": len(diagnosis_ids), "lostGameCount": lost_game_count,
         "supportingGameUrls": [game["url"] for game in diagnosis_games if game.get("url")],
         "representativeGameId": representative_ids[0] if representative_ids else None,
         "representativeGameIds": representative_ids,
@@ -1720,10 +1731,11 @@ def assert_decision_consistency(decision: Mapping[str, Any]) -> None:
             wins = int(_number(observed.get("wins")) or 0)
             draws = int(_number(observed.get("draws")) or 0)
             losses = int(_number(observed.get("losses")) or 0)
-            if wins + draws + losses != sample:
+            known_results = int(_number(observed.get("knownResults")) or (wins + draws + losses))
+            if wins + draws + losses != known_results or known_results > sample:
                 raise ValueError("decision_contract: observed performance does not reconcile")
-            expected_win_rate = round(wins / sample * 100, 1)
-            expected_score_rate = round((wins + draws * 0.5) / sample * 100, 1)
+            expected_win_rate = round(wins / known_results * 100, 1)
+            expected_score_rate = round((wins + draws * 0.5) / known_results * 100, 1)
             if _number(observed.get("winRate")) != expected_win_rate or _number(observed.get("scoreRate")) != expected_score_rate:
                 raise ValueError("decision_contract: observed performance rates diverge from WDL")
         if row.get("openingSuitability") != row.get("opening_suitability") or row.get("evidenceConfidence") != row.get("evidence_confidence"):

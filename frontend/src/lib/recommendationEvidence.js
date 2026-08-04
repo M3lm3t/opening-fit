@@ -52,23 +52,25 @@ export function validateRecommendationEvidence(entry = {}) {
   const wins = Math.max(0, Math.round(numeric(sample.wins ?? entry.wins)));
   const draws = Math.max(0, Math.round(numeric(sample.draws ?? entry.draws)));
   const losses = Math.max(0, Math.round(numeric(sample.losses ?? entry.losses)));
+  const suppliedKnownResults = sample.knownResults ?? sample.known_results;
+  const knownResults = Math.max(0, Math.round(numeric(suppliedKnownResults, wins + draws + losses)));
   const rawIds = sample.gameIds || sample.supportingGameIds || sample.supporting_game_ids || entry.supportingGameIds || entry.supporting_game_ids;
   const ids = Array.isArray(rawIds) ? [...new Set(rawIds.map(clean).filter(Boolean))] : [];
   const issues = [];
-  if (hasResults && wins + draws + losses !== games) issues.push("results_do_not_reconcile");
+  if (hasResults && (wins + draws + losses !== knownResults || knownResults > games || (suppliedKnownResults === undefined && knownResults !== games))) issues.push("results_do_not_reconcile");
   if (ids.length && ids.length !== games) issues.push("supporting_games_do_not_reconcile");
   if (entry.confidence && typeof entry.confidence === "object" && entry.confidence.sampleSize !== undefined && numeric(entry.confidence.sampleSize) !== games) {
     issues.push("confidence_sample_does_not_reconcile");
   }
   const supplied = sample.scoreRate ?? entry.scoreRate ?? entry.score;
-  const calculated = games && hasResults ? Math.round(((wins + draws * 0.5) / games) * 1000) / 10 : supplied !== undefined && supplied !== null ? numeric(supplied) : null;
+  const calculated = knownResults && hasResults ? Math.round(((wins + draws * 0.5) / knownResults) * 1000) / 10 : supplied !== undefined && supplied !== null ? numeric(supplied) : null;
   if (hasResults && supplied !== undefined && supplied !== null && calculated !== null && Math.abs(numeric(supplied) - calculated) > 0.11) {
     issues.push("score_rate_does_not_reconcile");
   }
   return {
     valid: issues.length === 0,
     issues,
-    sample: { gameIds: ids, games, wins, draws, losses, scoreRate: calculated },
+    sample: { gameIds: ids, games, knownResults, wins, draws, losses, scoreRate: calculated },
   };
 }
 

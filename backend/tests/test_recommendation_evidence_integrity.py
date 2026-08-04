@@ -83,8 +83,9 @@ def test_three_game_french_slice_cannot_inherit_twenty_two_game_repair_claim():
         "games": 3,
         "wins": 2,
         "draws": 0,
-        "losses": 1,
-        "scoreRate": 66.7,
+            "losses": 1,
+            "knownResults": 3,
+            "scoreRate": 66.7,
     }
     assert recommendation["verdict"] == "insufficient-data"
     assert recommendation["confidence"]["level"] == "insufficient"

@@ -2,11 +2,12 @@ import pytest
 
 from analysis.classified_game import (
     build_classified_game_record,
+    canonical_player_result,
     opening_context_key,
     record_is_classified,
     record_is_used_for_opening_stats,
 )
-from analysis.opening_perspective import classify_opening_perspective, player_colour_from_names
+from analysis.opening_perspective import classify_opening_perspective, player_colour_from_game, player_colour_from_names
 from analysis.report_decision import _matching_games, build_repertoire_coverage_score, build_repertoire_roles
 from main import (
     ANALYSIS_GAME_LIMIT,
@@ -14,6 +15,8 @@ from main import (
     build_game_count_summary,
     chesscom_skip_reason,
     deduplicate_games,
+    opening_item,
+    result_for_user,
 )
 from opening_detection import detect_opening
 
@@ -290,3 +293,41 @@ def test_quality_separates_large_sample_from_incomplete_attribution_and_roles():
     assert quality["metrics"]["correctlyAttributedGames"] == 60
     assert quality["metrics"]["unresolvedContextCount"] == 40
     assert quality["metrics"]["roleCoverageCount"] == 1
+
+
+@pytest.mark.parametrize(
+    ("game", "colour", "expected"),
+    [
+        ({"result": "1-0"}, "white", "win"),
+        ({"result": "1-0"}, "black", "loss"),
+        ({"result": "0-1"}, "black", "win"),
+        ({"result": "1/2-1/2"}, "white", "draw"),
+        ({"winner": "black"}, "white", "loss"),
+        ({"white": {"result": "abandoned"}}, "white", "unknown"),
+        ({}, "white", "unknown"),
+    ],
+)
+def test_authoritative_player_result_handles_supported_completed_and_unknown_formats(game, colour, expected):
+    assert canonical_player_result(game, colour) == expected
+
+
+def test_chesscom_result_and_score_are_from_the_requested_players_perspective():
+    game = {"white": {"username": "Opponent", "result": "checkmated"}, "black": {"username": " Melmet ", "result": "win"}}
+    assert result_for_user(game, "MELMET") == "win"
+    aggregate = opening_item("Vienna Game", 31, "played_as_white", {"games": 31, "known_results": 30, "wins": 17, "draws": 0, "losses": 13})
+    assert aggregate["knownResults"] == 30
+    assert aggregate["scoreRate"] == pytest.approx(56.7, abs=0.05)
+
+
+@pytest.mark.parametrize(
+    ("game", "expected"),
+    [
+        ({"white": {"username": " Melmet "}, "black": {"username": "Other"}}, ("white", None)),
+        ({"whiteUsername": "Other", "black_username": "MELMET"}, ("black", None)),
+        ({"players": {}, "playerColour": "black"}, ("black", None)),
+        ({}, ("unknown", "player_data_missing")),
+        ({"white": 7, "black": []}, ("unknown", "player_data_malformed")),
+    ],
+)
+def test_shared_game_username_attribution_handles_platform_and_canonical_shapes(game, expected):
+    assert player_colour_from_game("melmet", game) == expected

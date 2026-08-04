@@ -151,6 +151,8 @@ import { primaryComparisonState } from "./lib/primaryReportSummary.js";
 import { selectAuthoritativeCoachingPriority } from "./lib/authoritativeReportPresentation.js";
 import { canonicalReportAction, normaliseReportView, reportActionForPriority, reportActionFromLocation, reportActionUrl, reportViewFromLocation, reportViewHash, reportViewHeadingId } from "./lib/reportViews.js";
 import { buildReportGameCounts, reportCountSentence } from "./lib/reportGameCounts.js";
+import { canonicalResultAggregate } from "./lib/reportResults.js";
+import { persistReport, readPersistedReport } from "./lib/reportPersistence.js";
 import { accountExperienceState, subscriptionPresentation } from "./lib/accountExperience.js";
 import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT } from "./lib/productTransparency.js";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
@@ -559,16 +561,7 @@ function getOpeningGames(opening) {
 
 function getWinRate(opening) {
   if (!opening || typeof opening === "string") return 0;
-
-  if (opening.win_rate !== undefined) return safeNumber(opening.win_rate);
-  if (opening.winRate !== undefined) return safeNumber(opening.winRate);
-
-  const games = safeNumber(opening.games);
-  const wins = safeNumber(opening.wins ?? opening.w);
-  const draws = safeNumber(opening.draws ?? opening.d);
-
-  if (!games) return 0;
-  return Math.round(((wins + draws * 0.5) / games) * 100);
+  return canonicalResultAggregate(opening).scoreRate ?? 0;
 }
 
 function getOpeningLosses(opening) {
@@ -14220,7 +14213,11 @@ export default function App() {
   const [loadingElapsedSeconds, setLoadingElapsedSeconds] = useState(0);
   const [error, setError] = useState("");
   const [importStatus, setImportStatus] = useState(null);
-  const [data, setData] = useState(() => reportForInitialPath(getCurrentPath()));
+  const [data, setData] = useState(() => {
+    const routed = reportForInitialPath(getCurrentPath());
+    if (routed) return routed;
+    return readPersistedReport(localStorage, STORAGE_KEY).analysis;
+  });
   const [activeView, setActiveView] = useState(getInitialAppView);
   const [forceAnalyseImportFlow, setForceAnalyseImportFlow] = useState(false);
   const importAbortRef = useRef(null);
@@ -14498,7 +14495,7 @@ export default function App() {
     const savedMonths = localStorage.getItem(IMPORT_MONTHS_KEY);
     const savedSamplePercent = localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY);
     const savedAnalysisTimeFormat = localStorage.getItem(ANALYSIS_TIME_FORMAT_KEY);
-    const savedAnalysis = localStorage.getItem(STORAGE_KEY);
+    const savedAnalysis = readPersistedReport(localStorage, STORAGE_KEY);
 
     if (savedUsername) setUsername(savedUsername);
 
@@ -14521,21 +14518,19 @@ export default function App() {
       setPlatform(savedPlatform);
     }
 
-    if (savedAnalysis) {
-      try {
-        const parsed = JSON.parse(savedAnalysis);
-
-        if (parsed?.analysis) {
-          const restoredUsername = getImportedAccountUsername(parsed.analysis, parsed.username || savedUsername);
-          const restoredPlatform = getImportedAccountPlatform(parsed.analysis, parsed.platform || savedPlatform);
+    if (savedAnalysis.ok) {
+          const parsed = savedAnalysis.payload;
+          const restoredUsername = getImportedAccountUsername(savedAnalysis.analysis, parsed.username || savedUsername);
+          const restoredPlatform = getImportedAccountPlatform(savedAnalysis.analysis, parsed.platform || savedPlatform);
           const restoredAnalysis = {
-            ...parsed.analysis,
+            ...savedAnalysis.analysis,
             ...(restoredUsername ? { username: restoredUsername } : {}),
           };
           setData(restoredAnalysis);
           if (restoredUsername) setUsername(restoredUsername);
           if (restoredPlatform && platforms[restoredPlatform]) setPlatform(restoredPlatform);
           setLocalSavedAt(parsed.savedAt || "");
+          setCloudSaveStatus("local");
           setShowPublicLanding(false);
           if (getCurrentPath() === "/") {
             setActiveView("report");
@@ -14546,10 +14541,6 @@ export default function App() {
               parsed.username ? ` for ${parsed.username}` : ""
             }.`
           );
-        }
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
-      }
     }
   }, [authHydrated, authLoading, supabaseUser?.id]);
 
@@ -14922,13 +14913,15 @@ export default function App() {
       },
     };
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    localStorage.setItem(USERNAME_KEY, importedUsername);
-    localStorage.setItem(PLATFORM_KEY, importedPlatform);
-    localStorage.setItem(
-      ANALYSIS_TIME_FORMAT_KEY,
-      normalizeAnalysisTimeFormat(analysis.analysisTimeFormat || analysisTimeFormat)
-    );
+    const persisted = persistReport(localStorage, STORAGE_KEY, payload);
+    if (!persisted.ok) return false;
+    try {
+      localStorage.setItem(USERNAME_KEY, importedUsername);
+      localStorage.setItem(PLATFORM_KEY, importedPlatform);
+      localStorage.setItem(ANALYSIS_TIME_FORMAT_KEY, normalizeAnalysisTimeFormat(analysis.analysisTimeFormat || analysisTimeFormat));
+    } catch {
+      // The verified report payload is authoritative; auxiliary preferences are optional.
+    }
     setLocalSavedAt(savedAt);
     return true;
   };
@@ -15517,7 +15510,7 @@ export default function App() {
       const savingProgress = { real: true, stage: IMPORT_STAGES.SAVING, counts: completedImportCounts, progress: { current: 1, maximum: 1, unit: "stage" }, message: "Saving the completed report on this device." };
       analysisProgressRef.current = savingProgress;
       setAnalysisProgress(savingProgress);
-      saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
+      const savedLocally = saveLocalAnalysis(cleanData, importedUsername, selectedPlatformKey);
       const completeProgress = { ...savingProgress, stage: IMPORT_STAGES.COMPLETE, message: `${completedImportCounts.fetchedGames} games imported. Your report is ready.` };
       analysisProgressRef.current = completeProgress;
       setImportStage(IMPORT_STAGES.COMPLETE);
@@ -15594,7 +15587,9 @@ export default function App() {
       rememberLandingSeen({ keepPublicLanding: false });
 
       setSavedProfileMessage(
-        `${importOutcome.title}. Saved ${supabaseUser?.id ? "to your account" : "locally"} so you can load it next time.`
+        savedLocally
+          ? `${importOutcome.title}. Saved ${supabaseUser?.id ? "on this device while account sync completes" : "locally"} so you can load it next time.`
+          : `${importOutcome.title}. This browser did not confirm local persistence.`
       );
 
       if (supabaseUser?.id) {
@@ -15674,13 +15669,16 @@ export default function App() {
               platform: selectedPlatformKey,
               reportCreated: true,
             });
-            setCloudSaveStatus("failed");
+            setCloudSaveStatus(savedLocally ? "failed" : "unsaved");
             setCloudSaveWarning(`${saveFailure.title}. ${saveFailure.message}`);
           }
         })();
-      } else {
+      } else if (savedLocally) {
         console.info("Skipping cloud save: user is not signed in");
         setCloudSaveStatus("local");
+      } else {
+        setCloudSaveStatus("unsaved");
+        setCloudSaveWarning("The report is open, but this browser blocked local persistence. Keep this tab open or try again after enabling site storage.");
       }
       } catch (postImportError) {
         console.warn("OpeningFit post-import handling failed", {
@@ -15692,9 +15690,9 @@ export default function App() {
           error: postImportError,
         });
         setLoadingStep("");
-        setCloudSaveStatus((current) => current || "local");
+        setCloudSaveStatus((current) => current || "unsaved");
         setCloudSaveWarning(
-          "Analysis complete, but some post-import actions could not finish. Your report is kept locally."
+          "Analysis complete, but some post-import actions could not finish. The report remains open in this tab; check the save status before closing it."
         );
       }
     } catch (err) {

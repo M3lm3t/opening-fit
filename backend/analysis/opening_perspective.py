@@ -70,6 +70,39 @@ def player_colour_from_names(username: Any, white_username: Any, black_username:
     return ("white", None) if white_match else ("black", None)
 
 
+def _player_identifier_from_record(game: Mapping[str, Any], colour: str) -> tuple[str, bool]:
+    """Read supported platform player shapes without guessing malformed data."""
+    raw = game.get(colour)
+    malformed = raw is not None and not isinstance(raw, (str, Mapping))
+    if isinstance(raw, Mapping):
+        nested_user = raw.get("user") if isinstance(raw.get("user"), Mapping) else {}
+        raw = raw.get("username") or raw.get("name") or raw.get("id") or nested_user.get("name") or nested_user.get("id")
+    elif not isinstance(raw, str):
+        raw = None
+    direct = (
+        raw
+        or game.get(f"{colour}_username")
+        or game.get(f"{colour}Username")
+        or game.get(f"{colour}_name")
+        or game.get(f"{colour}Name")
+    )
+    return normalise_player_identifier(direct), malformed
+
+
+def player_colour_from_game(username: Any, game: Mapping[str, Any]) -> tuple[str, str | None]:
+    """Resolve colour from raw Chess.com/Lichess or canonical imported records."""
+    white, white_malformed = _player_identifier_from_record(game, "white")
+    black, black_malformed = _player_identifier_from_record(game, "black")
+    if white or black:
+        return player_colour_from_names(username, white, black)
+    explicit = str(game.get("playerColour") or game.get("player_colour") or "").strip().lower()
+    if explicit in {"white", "black"}:
+        return explicit, None
+    if white_malformed or black_malformed:
+        return "unknown", "player_data_malformed"
+    return "unknown", "player_data_missing"
+
+
 def canonical_repertoire_role(user_colour: str, first_white_move: str = "") -> tuple[str, str | None]:
     colour = str(user_colour or "").strip().lower()
     if colour == "white":

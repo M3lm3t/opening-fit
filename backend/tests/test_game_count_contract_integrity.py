@@ -87,7 +87,7 @@ def test_public_aliases_are_assigned_from_the_same_contract_values():
     counts = build_game_count_summary(8, 6, {"unsupportedTimeControl": 1}, structurally_usable=7, used_for_opening_stats=6)
     aliases = game_count_report_aliases(counts)
     assert aliases["gamesImported"] == aliases["gamesFound"] == counts["gamesFetched"]
-    assert aliases["gamesAnalysed"] == aliases["gamesAnalyzed"] == counts["gamesParsed"]
+    assert aliases["gamesAnalysed"] == aliases["gamesAnalyzed"] == counts["gamesUsedForOpeningStats"]
     assert aliases["gamesClassified"] == aliases["games_classified"] == counts["gamesClassified"]
     assert aliases["gamesUsedForFit"] == aliases["games_used_for_fit"] == counts["gamesUsedForOpeningStats"]
     assert aliases["gamesExcluded"] == aliases["games_excluded"] == counts["gamesExcluded"]

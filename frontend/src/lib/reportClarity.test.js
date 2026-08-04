@@ -101,6 +101,7 @@ test("excluded games keep recorded reasons and use an honest fallback", () => {
 test("logged-out reports clearly identify the local-save state", () => {
   assert.deepEqual(reportSaveState("local", false), { label: "Saved locally", detail: "This report stays in this browser. Log in to sync it across devices." });
   assert.equal(reportSaveState("saved", true).label, "Saved to cloud");
+  assert.equal(reportSaveState("unsaved", false).label, "Not saved");
   assert.deepEqual(reportSaveState("local", false, true), { label: "Example only · Not saved", detail: "Fictional example data is not stored locally or synced to an account." });
 });
 
