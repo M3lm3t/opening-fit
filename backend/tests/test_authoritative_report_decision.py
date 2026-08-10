@@ -1,4 +1,5 @@
 from copy import deepcopy
+import json
 
 import pytest
 
@@ -242,6 +243,57 @@ def test_confidence_has_explicit_scope_and_does_not_change_observed_results():
     assert recommendation["roleAttributionConfidence"]["level"] == "trusted"
     assert recommendation["recommendationConfidence"]["scope"] == "recommendation"
     assert recommendation["gamesNeeded"] == 0
+
+
+def test_recommendation_serializes_trusted_role_attribution_explicitly():
+    results = ["win"] * 6
+    recommendation = build(
+        [opening("Vienna Game", "white", results)],
+        games_for("Vienna Game", "white", results),
+    )["recommendations"][0]
+
+    assert recommendation["roleAttributionTrusted"] is True
+
+
+def test_unresolved_recommendation_serializes_false_and_remains_cautious():
+    unresolved = classify_opening_perspective(
+        user_colour="black",
+        opening_side="black",
+        first_white_move="Nf3",
+        classification_source="decision_contract_fixture",
+    )
+    results = ["loss"] * 20
+    row = attach_perspective(
+        {"name": "English Opening", "games": 20, "wins": 0, "draws": 0, "losses": 20},
+        unresolved,
+    )
+    evidence = [
+        attach_perspective(
+            {"opening": "English Opening", "gameId": f"unresolved-{index}", "result": result},
+            unresolved,
+        )
+        for index, result in enumerate(results, 1)
+    ]
+    decision = build([row], evidence)
+    recommendation = decision["recommendations"][0]
+
+    assert recommendation["roleAttributionTrusted"] is False
+    assert recommendation["verdict"] == "insufficient-data"
+    assert recommendation["evidenceStatus"] == "unresolved"
+    assert decision["primaryProblem"] is None
+    restored = json.loads(json.dumps(decision))
+    assert restored["recommendations"][0]["roleAttributionTrusted"] is False
+
+
+def test_serialization_round_trip_preserves_role_attribution_boolean():
+    results = ["win"] * 6
+    decision = build(
+        [opening("Vienna Game", "white", results)],
+        games_for("Vienna Game", "white", results),
+    )
+    restored = json.loads(json.dumps(decision))
+
+    assert restored["recommendations"][0]["roleAttributionTrusted"] is True
 
 
 def test_zero_game_experiment_has_suitability_but_no_observed_performance():

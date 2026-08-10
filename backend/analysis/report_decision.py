@@ -630,6 +630,7 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         "playerColour": perspective["userColour"],
         "repertoireRole": repertoire_role,
         "repertoire_role": repertoire_role,
+        "roleAttributionTrusted": bool(perspective.get("roleAttributionTrusted")),
         "role": perspective["role"],
         "roleLabel": perspective["label"],
         "relationship": perspective["relationship"],
