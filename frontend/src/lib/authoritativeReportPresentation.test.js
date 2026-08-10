@@ -113,9 +113,13 @@ test("summary completeness and every repertoire renderer consume the authoritati
   assert.deepEqual(summary.slots.map((slot) => slot.verdict), roles.map((role) => role.verdict));
 
   const app = readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
+  const coverageComponent = readFileSync(new URL("../components/RepertoireCoverageMap.jsx", import.meta.url), "utf8");
+  const coverageModel = readFileSync(new URL("./repertoireCoverage.js", import.meta.url), "utf8");
   assert.match(app, /getFocusedRepertoirePlan\(data \|\| \{\}, model\)/);
   const decisionMap = app.slice(app.indexOf("function DecisionRepertoireMap"), app.indexOf("function FiniteTrainingSession"));
-  assert.match(decisionMap, /model\.repertoire\.map/);
+  assert.match(decisionMap, /<RepertoireCoverageMap model=\{model\}/);
+  assert.match(coverageComponent, /buildRepertoireCoverage\(model\)/);
+  assert.match(coverageModel, /Array\.isArray\(model\.repertoire\)/);
   assert.doesNotMatch(app.slice(app.indexOf("function getFocusedRepertoirePlan(data, model)"), app.indexOf("function movesForReportGame")), /rows:|model\?\.repertoire/);
   assert.doesNotMatch(app.slice(app.indexOf("function DecisionRepertoireMap"), app.indexOf("function FiniteTrainingSession")), /OpeningVerdictSummary/);
   assert.doesNotMatch(app.slice(app.indexOf("function getFocusedRepertoirePlan(data, model)"), app.indexOf("function movesForReportGame")), /focusMission|repertoireRecommendation\?\.focus/);

@@ -711,11 +711,9 @@
 .coachDecisionVerdict dt,
 .compactOpeningHealth dt,
 .reportDecisionCard dt,
-.decisionRepertoireMap dt { color: var(--of-color-muted); font-size: 0.72rem; font-weight: 900; text-transform: uppercase; }
 .coachDecisionVerdict dd,
 .compactOpeningHealth dd,
 .reportDecisionCard dd,
-.decisionRepertoireMap dd { margin: 0; color: var(--of-color-text); font-weight: 850; }
 .reportDecisionSection > header,
 .compactOpeningHealth > header,
 .costlyIssuesSection > header,
@@ -789,8 +787,6 @@
 .decisionRepertoireMap article { display: grid; gap: 8px; padding: 15px; border: 1px solid var(--of-color-border); border-radius: var(--of-radius-md); background: var(--of-color-surface-muted); }
 .decisionRepertoireMap article > span { color: var(--of-color-muted); font-size: 0.76rem; font-weight: 900; text-transform: uppercase; }
 .decisionRepertoireMap h3 { margin: 0; color: var(--of-color-text); }
-.decisionRepertoireMap dl { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 0; }
-.decisionRepertoireMap dl div { display: grid; gap: 2px; }
 .decisionRepertoireMap p { margin: 0; color: var(--of-color-text-soft); line-height: 1.45; }
 .decisionRepertoireMap article > div { display: flex; flex-wrap: wrap; gap: 6px; }
 .decisionRepertoireMap .repertoireCoverageGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

@@ -6735,7 +6735,7 @@ function FinalReportFlow({
       {reportView === "repertoire" ? <section className="reportViewPanel" id="report-repertoire-view" role="tabpanel" aria-labelledby="report-tab-repertoire">
         <header className="reportViewHeader"><span>Repertoire</span><h2 id="report-repertoire-view-title" tabIndex="-1">Your three core roles and practical alternatives</h2><p>Established, building and unresolved roles stay visible without inventing an opening.</p></header>
         {reportContextNotice}
-        <DecisionRepertoireMap model={decisionModel} onPractice={onPractice} onEvidence={openOpeningBreakdown} onAnalyse={() => onNavigate?.("analyse")} />
+        <DecisionRepertoireMap model={decisionModel} onEvidence={openOpeningBreakdown} />
         <FocusedRepertoireSection data={data} model={decisionModel} onPractice={onPractice} onAnalytics={onAnalytics} />
       </section> : null}
 
@@ -10352,34 +10352,6 @@ function CostlyIssuesSection({ model, onPractice, onEvidence }) {
 function DecisionRepertoireMap({ model, onEvidence }) {
   if (!model.repertoire.length) return null;
   return <RepertoireCoverageMap model={model} onEvidence={onEvidence} />;
-  /* Legacy detailed presentation retained here only as source history.
-  return (
-    <section className="decisionRepertoireMap" id="repertoire-map" aria-labelledby="decision-map-title">
-      <header><p className="eyebrow">Repertoire map</p><h2 id="decision-map-title">Your current opening roles</h2></header>
-      <div>
-        {model.repertoire.map((area) => (
-          <article key={area.key}>
-            <span>{area.label}</span><h3>{area.displayName || "Not established yet"}</h3>
-            <dl>
-              <div><dt>Status</dt><dd>{area.statusLabel}</dd></div>
-              <div><dt>Decision</dt><dd>{area.verdictLabel}</dd></div>
-              <div><dt>Supporting sample</dt><dd>{area.supportingGames ?? area.relevantGames ?? "Not recorded"}</dd></div>
-              <div><dt>Evidence Confidence</dt><dd>{area.confidence.label}</dd></div>
-              {area.fitScore !== null ? <div><dt>Opening Suitability</dt><dd>{area.fitScore}/100 · {area.fitLabel}</dd></div> : null}
-              {area.performanceScore !== null ? <div><dt>Observed Score Rate</dt><dd>{area.performanceScore}% · {area.performanceLabel}</dd></div> : null}
-            </dl>
-            {area.fitScore === null ? <p>{area.fitLabel}</p> : null}
-            {area.weakestLine ? <dl><div><dt>Weakest recurring line</dt><dd>{area.weakestLine}</dd></div></dl> : null}
-            <p>{area.recommendationReason}</p>
-            {area.compatibleAlternative ? <p><strong>Same-role option:</strong> {area.compatibleAlternative.openingName}</p> : null}
-            <details><summary>Why this confidence?</summary><p>{area.confidenceExplanation}</p><dl>{Object.entries(area.confidenceCounts || {}).filter(([, value]) => value !== null).map(([key, value]) => <div key={key}><dt>{key.replace(/([A-Z])/g, " $1")}</dt><dd>{value}</dd></div>)}</dl></details>
-            <div><button type="button" onClick={() => onEvidence?.(area)}>Evidence</button>{area.contextualAction?.type === "practice" ? <button type="button" onClick={() => onPractice?.({ ...(area.source || {}), name: area.displayName, opening: area.displayName, openingName: area.displayName, role: area.role, repertoireRole: area.role })}>{area.contextualAction.label}</button> : null}{area.contextualAction?.type === "analyse" ? <button type="button" onClick={onAnalyse}>{area.contextualAction.label}</button> : null}{area.contextualAction?.type === "options" ? <button type="button" onClick={() => onEvidence?.(area)}>{area.contextualAction.label}</button> : null}</div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-  */
 }
 
 function FiniteTrainingSession({ model, onPractice }) {
