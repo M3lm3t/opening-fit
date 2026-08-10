@@ -118,10 +118,7 @@ function inferStyle(openings) {
   return "Practical club player";
 }
 
-export default function ShareReport({ data }) {
-  const [copied, setCopied] = useState(false);
-
-  const report = useMemo(() => {
+function buildShareReportModel(data) {
     if (!data) return null;
 
     const openings = collectOpenings(data)
@@ -179,7 +176,11 @@ Try it: https://www.openingfit.com`;
       training,
       text,
     };
-  }, [data]);
+}
+
+export default function ShareReport({ data }) {
+  const [copied, setCopied] = useState(false);
+  const report = useMemo(() => buildShareReportModel(data), [data]);
 
   if (!data || !report) return null;
 

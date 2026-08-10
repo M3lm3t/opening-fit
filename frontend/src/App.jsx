@@ -6773,6 +6773,7 @@ function FinalReportFlow({
           {decisionModel.baseline.comparisonClaimsAllowed ? <WeeklyOpeningReport data={data} savedHistory={openingFitUserState.flatMap((row) => row?.coach_progress?.weeklyOpeningSnapshots || []).filter(Boolean)} decisionModel={decisionModel} /> : null}
           {decisionModel.baseline.comparisonClaimsAllowed ? <OpeningGamificationProgress data={data} fitData={fitData} savedProgress={openingFitUserState.map((row) => row?.coach_progress?.openingGamification || null).filter(Boolean)[0] || null} /> : null}
         </div>
+        <ShareReport data={data} />
         <ReportExportAndHistory data={data} entitlement={entitlement} onUpgrade={() => onNavigate?.("premium")} onLoadReport={onLoadReport} />
       </section> : null}
     </div>
@@ -15151,7 +15152,7 @@ export default function App() {
     "repertoire-plan": { view: "report", target: "repertoire-map", reportMode: "full" },
     "my-repertoire": { view: "repertoire", path: "/repertoire", target: "my-repertoire" },
     "progress-tracker": { view: "profile", target: "profile" },
-    "share-report": { view: "profile", target: "report-history" },
+    "share-report": { view: "report", path: "/report", target: "share-report", reportMode: "table" },
     "report-history": { view: "profile", target: "report-history" },
     "top-openings-table": { view: "report", target: "evidence-table", reportMode: "table" },
     "section-top": { view: "report", target: "evidence-table", reportMode: "table" },
