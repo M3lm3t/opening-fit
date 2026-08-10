@@ -285,7 +285,7 @@ export default function TodayTrainingCard({
 
         <div className="todayTrainingStats">
           {primary.games ? <span>{primary.games} games</span> : null}
-          {primary.winRate !== null && primary.winRate !== undefined ? <span>{primary.winRate}% win rate</span> : null}
+          {primary.winRate !== null && primary.winRate !== undefined ? <span>{primary.winRate}% score</span> : null}
           {primary.lossRate !== null && primary.lossRate !== undefined ? <span>{primary.lossRate}% loss rate</span> : null}
         </div>
 

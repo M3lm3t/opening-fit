@@ -54,3 +54,12 @@ test("current report UI has no filtered overall-score calculator", () => {
   assert.doesNotMatch(app, /function buildFilteredOpeningFitScore/);
   assert.doesNotMatch(app, /weightedScore \* 0\.82/);
 });
+
+test("active Today training labels its draw-inclusive weak-line percentage as score", () => {
+  const today = readFileSync(new URL("../components/TodayTrainingCard.jsx", import.meta.url), "utf8");
+  const weakLines = readFileSync(new URL("../services/weakLineDetection.js", import.meta.url), "utf8");
+
+  assert.match(weakLines, /\(line\.wins \+ line\.draws \* 0\.5\) \/ line\.games/);
+  assert.match(today, /\{primary\.winRate\}% score/);
+  assert.doesNotMatch(today, /\{primary\.winRate\}% win rate/);
+});
