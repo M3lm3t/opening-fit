@@ -145,6 +145,7 @@ import ReportGameCountSummary from "./components/ReportGameCountSummary.jsx";
 import ReportComparisonSection from "./components/ReportComparisonSection.jsx";
 import TrainingImpactSection from "./components/TrainingImpactSection.jsx";
 import PrimaryReportSummary from "./components/PrimaryReportSummary.jsx";
+import RepertoireCoverageMap from "./components/RepertoireCoverageMap.jsx";
 import FeatureAccessPreview from "./components/FeatureAccessPreview.jsx";
 import RatingGoalCard from "./components/RatingGoalCard.jsx";
 import { selectPreviousReportSnapshot } from "./lib/reportComparisonPresentation.js";
@@ -10348,8 +10349,10 @@ function CostlyIssuesSection({ model, onPractice, onEvidence }) {
   );
 }
 
-function DecisionRepertoireMap({ model, onPractice, onEvidence, onAnalyse }) {
+function DecisionRepertoireMap({ model, onEvidence }) {
   if (!model.repertoire.length) return null;
+  return <RepertoireCoverageMap model={model} onEvidence={onEvidence} />;
+  /* Legacy detailed presentation retained here only as source history.
   return (
     <section className="decisionRepertoireMap" id="repertoire-map" aria-labelledby="decision-map-title">
       <header><p className="eyebrow">Repertoire map</p><h2 id="decision-map-title">Your current opening roles</h2></header>
@@ -10376,6 +10379,7 @@ function DecisionRepertoireMap({ model, onPractice, onEvidence, onAnalyse }) {
       </div>
     </section>
   );
+  */
 }
 
 function FiniteTrainingSession({ model, onPractice }) {

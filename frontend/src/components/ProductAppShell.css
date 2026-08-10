@@ -793,6 +793,16 @@
 .decisionRepertoireMap dl div { display: grid; gap: 2px; }
 .decisionRepertoireMap p { margin: 0; color: var(--of-color-text-soft); line-height: 1.45; }
 .decisionRepertoireMap article > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.decisionRepertoireMap .repertoireCoverageGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.decisionRepertoireMap .repertoireCoverageGrid article { grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+.decisionRepertoireMap .repertoireCoverageRole { display: grid; gap: 4px; }
+.decisionRepertoireMap .repertoireCoverageStatus { border-radius: 999px; padding: 4px 8px; background: var(--of-color-surface); color: var(--of-color-text-soft); font-size: 0.7rem; text-transform: uppercase; white-space: nowrap; }
+.decisionRepertoireMap .repertoireCoverageStatus--established { color: var(--of-color-success, #287a4b); }
+.decisionRepertoireMap .repertoireCoverageStatus--needs_repair { color: var(--of-color-warning, #97620d); }
+.decisionRepertoireMap .repertoireCoverageStatus--coverage_gap { color: var(--of-color-danger, #a84242); }
+.decisionRepertoireMap .repertoireCoverageGrid details { grid-column: 1 / -1; }
+.decisionRepertoireMap .repertoireCoverageGrid summary { cursor: pointer; font-weight: 800; }
+.decisionRepertoireMap .repertoireCoveragePriority { margin-top: 12px; }
 .finiteTrainingSession { display: grid; grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr) auto; gap: 18px; align-items: center; border-color: color-mix(in srgb, var(--of-color-info) 42%, var(--of-shell-border)); }
 .finiteTrainingSession p { margin: 0; color: var(--of-color-text-soft); line-height: 1.45; }
 .finiteTrainingSession ol { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; padding: 0; list-style: none; }
