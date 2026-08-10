@@ -15,6 +15,7 @@ import {
 import { buildXpProgress, xpForEvent } from "../services/xpProgress";
 import NextBestAction from "./NextBestAction";
 import SessionSummary from "./SessionSummary";
+import RatingGoalCard from "./RatingGoalCard.jsx";
 import { buildReportDecisionModel } from "../lib/reportDecisionModel.js";
 import { formatTrainingPriorityTitle } from "../lib/trainingPriority.js";
 import "./CoachDashboard.css";
@@ -434,68 +435,6 @@ function DailyProgressCard({ progress }) {
           ? "Nice work. Your plan is complete for today. Come back tomorrow for a fresh opening priority."
           : "Complete one meaningful training action today to protect your streak."}
       </p>
-    </section>
-  );
-}
-
-function RatingGoalCard({ goal, onSaveGoal, onProgress }) {
-  const [open, setOpen] = useState(false);
-  const [target, setTarget] = useState(goal.target || "");
-  const [current, setCurrent] = useState(goal.current || "");
-
-  const save = () => {
-    onSaveGoal?.({
-      targetRating: Number(target) || null,
-      currentRating: Number(current) || null,
-      startRating: goal.start || Number(current) || null,
-    });
-    setOpen(false);
-  };
-
-  return (
-    <section className="coachDashboardCard ratingGoalCard">
-      <div className="coachCardHeader">
-        <span>Road to Rating Goal</span>
-        <strong>{goal.hasGoal ? `${goal.progress}%` : "Not set"}</strong>
-      </div>
-      {goal.hasGoal ? (
-        <>
-          <p>
-            Current {goal.current ?? "-"}{goal.ratingSourceLabel ? ` from ${goal.ratingSourceLabel}` : ""} to target {goal.target}. Keep the work opening-focused; no Elo gain is promised from one task.
-          </p>
-          <div className="todayProgressTrack" aria-hidden="true">
-            <span style={{ width: `${goal.progress}%` }} />
-          </div>
-        </>
-      ) : (
-        <p>
-          {goal.hasImportedRating
-            ? `Detected ${goal.current} from ${goal.ratingSourceLabel || "your latest import"}. Set a target and OpeningFit will shape your training around it.`
-            : "Set your next rating goal. OpeningFit will shape your training around it."}
-        </p>
-      )}
-      <div className="coachCardActions">
-        <button type="button" className="secondaryBtn" onClick={() => setOpen(true)}>
-          {goal.hasGoal ? "Edit goal" : "Set goal"}
-        </button>
-        <button type="button" className="secondaryBtn" onClick={onProgress}>View improvement plan</button>
-      </div>
-      {open ? (
-        <div className="ratingGoalEditor" role="dialog" aria-label="Set rating goal">
-          <label>
-            Current rating
-            <input value={current} inputMode="numeric" onChange={(event) => setCurrent(event.target.value)} />
-          </label>
-          <label>
-            Target rating
-            <input value={target} inputMode="numeric" onChange={(event) => setTarget(event.target.value)} />
-          </label>
-          <div className="coachCardActions">
-            <button type="button" className="primaryBtn" onClick={save}>Save goal</button>
-            <button type="button" className="secondaryBtn" onClick={() => setOpen(false)}>Cancel</button>
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }

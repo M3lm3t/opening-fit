@@ -1,0 +1,12 @@
+.ratingGoalCard { display: grid; gap: 10px; min-width: 0; border: 1px solid var(--of-border, rgba(148, 163, 184, .2)); border-radius: 16px; padding: 16px; background: var(--of-surface, rgba(15, 23, 42, .62)); }
+.ratingGoalCard p { margin: 0; color: var(--of-muted, #94a3b8); line-height: 1.5; }
+.ratingGoalCard .coachCardHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ratingGoalCard .coachCardHeader span { color: var(--of-muted, #94a3b8); font-size: .74rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.ratingGoalNote { font-size: .78rem; }
+.ratingGoalCard .coachCardActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ratingGoalCard .todayProgressTrack { overflow: hidden; height: 8px; border-radius: 999px; background: rgba(148, 163, 184, .18); }
+.ratingGoalCard .todayProgressTrack span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #22c55e, #38bdf8); }
+.ratingGoalEditor { display: grid; gap: 10px; border: 1px solid var(--of-border, rgba(125, 211, 252, .22)); border-radius: 12px; padding: 12px; background: var(--of-surface-muted, rgba(2, 6, 23, .34)); }
+.ratingGoalEditor label { display: grid; gap: 6px; color: var(--of-text, #e2e8f0); font-weight: 850; }
+.ratingGoalEditor input { min-height: 44px; border: 1px solid var(--of-border, rgba(148, 163, 184, .24)); border-radius: 10px; padding: 0 12px; background: var(--of-surface, rgba(15, 23, 42, .8)); color: var(--of-text, #f8fafc); font: inherit; }
+@media (max-width: 520px) { .ratingGoalCard .coachCardActions button { flex: 1 1 140px; } }

@@ -146,6 +146,7 @@ import ReportComparisonSection from "./components/ReportComparisonSection.jsx";
 import TrainingImpactSection from "./components/TrainingImpactSection.jsx";
 import PrimaryReportSummary from "./components/PrimaryReportSummary.jsx";
 import FeatureAccessPreview from "./components/FeatureAccessPreview.jsx";
+import RatingGoalCard from "./components/RatingGoalCard.jsx";
 import { selectPreviousReportSnapshot } from "./lib/reportComparisonPresentation.js";
 import { primaryComparisonState } from "./lib/primaryReportSummary.js";
 import { selectAuthoritativeCoachingPriority } from "./lib/authoritativeReportPresentation.js";
@@ -160,6 +161,7 @@ import { candidateFailureMessage, commitReportCandidate, REPORT_CANDIDATE_RESULT
 import { accountExperienceState, subscriptionPresentation } from "./lib/accountExperience.js";
 import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT } from "./lib/productTransparency.js";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
+import { buildRatingGoalModel, localDateKey } from "./services/todayRetention.js";
 const AccountPanel = lazy(() => import("./components/AccountPanel"));
 const OpeningPracticeLinesPanel = lazy(() => import("./components/OpeningPracticeLinesPanel"));
 const PremiumPanel = lazy(() => import("./components/PremiumPanel"));
@@ -9483,6 +9485,13 @@ function OpeningFitProfileDashboard({
   theme = "dark",
   onThemeToggle,
   onTrainingPreferences,
+  profile = null,
+  settings = null,
+  activityHistory = [],
+  onSaveSettings,
+  onRecordActivity,
+  onToday,
+  onJourney,
   activeView = "profile",
   onAnalytics,
 }) {
@@ -9512,6 +9521,19 @@ function OpeningFitProfileDashboard({
   const shouldOpenAccountDetails = currentPath === "/login" || currentPath === "/account";
   const showHistoryPage = activeView === "history";
   const profileLoadMessage = profileError || restoreError || "";
+  const ratingGoal = buildRatingGoalModel({ profile, settings, activity: activityHistory, data });
+  const saveRatingGoal = async (goal) => {
+    const ratingGoalPayload = { ...goal, updatedAt: new Date().toISOString() };
+    try {
+      await onSaveSettings?.({ preferences: { ratingGoal: ratingGoalPayload } });
+      await onRecordActivity?.("rating_goal_updated", {
+        ...ratingGoalPayload,
+        dedupe_key: `rating_goal_updated:${localDateKey()}`,
+      });
+    } catch (error) {
+      console.warn("OpeningFit could not save rating goal.", error);
+    }
+  };
 
   return (
     <div className={`profileDashboard profileDashboardSimple ${data ? "" : "profileDashboardNoReport"}`}>
@@ -9540,6 +9562,7 @@ function OpeningFitProfileDashboard({
             openingFitUserState={openingFitUserState}
           />
           <ProfilePreferencesSimpleCard theme={theme} onThemeToggle={onThemeToggle} onTrainingPreferences={onTrainingPreferences} />
+          <RatingGoalCard goal={ratingGoal} onSaveGoal={saveRatingGoal} onProgress={onToday} />
           <ProfileSubscriptionSimpleCard
             isPremium={isPremium}
             isPremiumPreview={isPremiumPreview}
@@ -9559,6 +9582,8 @@ function OpeningFitProfileDashboard({
             View latest report
           </button>
         ) : null}
+        {onToday ? <button type="button" className="secondaryButton" onClick={onToday}>Open Today</button> : null}
+        {onJourney ? <button type="button" className="secondaryButton" onClick={onJourney}>Training history</button> : null}
       </div>
 
       <ProfileInsightsBoundary>
@@ -17602,6 +17627,13 @@ export default function App() {
                   setTheme((current) => (current === "dark" ? "light" : "dark"))
                 }
                 onTrainingPreferences={() => window.dispatchEvent(new Event(TRAINING_PREFERENCES_EDIT_EVENT))}
+                profile={supabaseProfile}
+                settings={userSettings}
+                activityHistory={activityHistory}
+                onSaveSettings={saveCloudSettings}
+                onRecordActivity={recordCloudActivity}
+                onToday={() => handleAppNavigate("dashboard")}
+                onJourney={canUseFeature(entitlement, OPENINGFIT_FEATURES.TRAINING_HISTORY) ? () => handleAppNavigate("journey") : null}
                 activeView={activeView}
                 onAnalytics={trackEvent}
               />
