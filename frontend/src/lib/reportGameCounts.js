@@ -128,6 +128,19 @@ export function buildReportGameCounts(report = {}) {
         classified: null, excluded: null, analysedGames: null, usableOpeningSignals: null,
       };
     }
+    const rawReconciliation = report.gameReconciliation || report.game_reconciliation || source.gameReconciliation || source.game_reconciliation || null;
+    const totalImported = firstStrictNonNegativeInteger(rawReconciliation?.total_imported, rawReconciliation?.totalImported);
+    const reconciliationAnalysed = firstStrictNonNegativeInteger(rawReconciliation?.analysed);
+    const excludedTotal = firstStrictNonNegativeInteger(rawReconciliation?.excluded_total, rawReconciliation?.excludedTotal);
+    const rawBreakdown = rawReconciliation?.exclusion_breakdown || rawReconciliation?.exclusionBreakdown;
+    const exclusionBreakdown = rawBreakdown && typeof rawBreakdown === "object" && !Array.isArray(rawBreakdown)
+      ? mergeReasons(reasonRows({}, { exclusionReasons: rawBreakdown }))
+      : [];
+    const breakdownTotal = exclusionBreakdown.reduce((sum, row) => sum + (row.count ?? 0), 0);
+    const reconciliationValid = totalImported !== null && reconciliationAnalysed !== null && excludedTotal !== null
+      && totalImported === reconciliationAnalysed + excludedTotal
+      && excludedTotal === breakdownTotal
+      && reconciliationAnalysed === usedForOpeningStats;
     return {
       fetchedGames, eligibleGames, structurallyUsableGames: eligibleGames, pgnAvailableGames,
       parsedGames, attributedGames, classifiedGames, usedForOpeningStats,
@@ -141,6 +154,11 @@ export function buildReportGameCounts(report = {}) {
       breakdownAvailable: true, contractVersion, countStatus: "canonical",
       analysedGames: usedForOpeningStats, usableOpeningSignals: usedForOpeningStats,
       imported: fetchedGames, eligible: eligibleGames, classified: classifiedGames, excluded: excludedGames,
+      totalImported: reconciliationValid ? totalImported : null,
+      reconciliationAnalysed: reconciliationValid ? reconciliationAnalysed : null,
+      excludedTotal: reconciliationValid ? excludedTotal : null,
+      exclusionBreakdown: reconciliationValid ? exclusionBreakdown : [],
+      reconciliationStatus: rawReconciliation ? (reconciliationValid ? "canonical" : "invalid_current_contract") : "unavailable",
     };
   }
 
@@ -213,6 +231,12 @@ export function formatResultCounts({ wins = 0, draws = 0, losses = 0 } = {}) {
 
 export function reportCountSentence(report = {}) {
   const counts = buildReportGameCounts(report);
+  if (counts.reconciliationStatus === "invalid_current_contract") {
+    return "The import totals could not be reconciled safely, so exact counts are unavailable.";
+  }
+  if (counts.reconciliationStatus === "canonical") {
+    return `${countNoun(counts.totalImported, "game")} found · ${countNoun(counts.reconciliationAnalysed, "game")} analysed · ${countNoun(counts.excludedTotal, "game")} excluded`;
+  }
   if (counts.contractVersion >= 4 && counts.countStatus === "canonical") {
     return `${countNoun(counts.fetchedGames, "game")} found · ${countNoun(counts.usedForOpeningStats, "game")} used · ${countNoun(counts.excludedGames, "game")} excluded`;
   }

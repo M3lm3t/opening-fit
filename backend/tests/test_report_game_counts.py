@@ -21,6 +21,9 @@ def assert_invariants(summary):
     assert sum(summary["exclusionReasons"].values()) == summary["excludedGames"]
     assert summary["analysedGames"] == summary["gamesUsedForOpeningStats"]
     assert summary["usableOpeningSignals"] == summary["gamesUsedForOpeningStats"]
+    reconciliation = summary["gameReconciliation"]
+    assert reconciliation["total_imported"] == reconciliation["analysed"] + reconciliation["excluded_total"]
+    assert reconciliation["excluded_total"] == sum(reconciliation["exclusion_breakdown"].values())
 
 
 def test_report_game_counts_reconcile_with_exclusions():
@@ -30,6 +33,52 @@ def test_report_game_counts_reconcile_with_exclusions():
     assert summary["analysedGames"] == 14
     assert summary["excludedGames"] == 6
     assert_invariants(summary)
+
+
+def test_all_imported_records_are_analysed_when_no_filter_applies():
+    summary = build_game_count_summary(8, 8, {})
+    assert summary["gameReconciliation"] == {
+        "contractVersion": 1,
+        "total_imported": 8,
+        "analysed": 8,
+        "excluded_total": 0,
+        "exclusion_breakdown": {key: 0 for key in summary["exclusionReasons"]},
+    }
+
+
+def test_mixed_exclusions_and_duplicates_reconcile_without_changing_analysis_rules():
+    summary = build_game_count_summary(
+        12, 6,
+        {"unsupportedTimeControl": 2, "outsideWindow": 1, "veryShort": 1, "invalidPgn": 1, "other": 1},
+        duplicate_games_removed=2,
+    )
+    reconciliation = summary["gameReconciliation"]
+    assert (reconciliation["total_imported"], reconciliation["analysed"], reconciliation["excluded_total"]) == (14, 6, 8)
+    assert reconciliation["exclusion_breakdown"]["duplicate"] == 2
+    assert reconciliation["exclusion_breakdown"]["unsupportedTimeControl"] == 2
+    assert reconciliation["exclusion_breakdown"]["outsideDateWindow"] == 1
+    assert reconciliation["exclusion_breakdown"]["missingPgnMoves"] == 1
+    assert_invariants(summary)
+
+
+def test_zero_analysed_and_unknown_invalid_games_reconcile_safely():
+    summary = build_game_count_summary(
+        3, 0,
+        {"parseFailure": 1, "attributionFailed": 1, "unclassifiedOpening": 1},
+        structurally_usable=3, pgn_available=3, parsed=2, attributed=1,
+    )
+    assert summary["gameReconciliation"]["analysed"] == 0
+    assert summary["gameReconciliation"]["excluded_total"] == 3
+    assert_invariants(summary)
+
+
+def test_reconciliation_validator_rejects_divergent_totals():
+    summary = build_game_count_summary(5, 4, {"outsideWindow": 1})
+    summary["gameReconciliation"]["excluded_total"] = 2
+    from main import validate_game_count_contract
+    import pytest
+    with pytest.raises(ValueError, match="do not reconcile"):
+        validate_game_count_contract(summary)
 
 
 def test_analysis_limit_is_a_real_exclusion_not_the_evidence_payload_limit():

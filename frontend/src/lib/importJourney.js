@@ -145,6 +145,20 @@ export function mergeAnalysisJobProgress(previous, incoming) {
   return incoming;
 }
 
+export function analysisCountMilestones(progress = {}) {
+  if (!progress?.real) return [];
+  const counts = progress.counts || {};
+  const rows = [];
+  if (Number.isFinite(counts.archivesTotal)) {
+    const processed = Number.isFinite(counts.archivesProcessed) ? Math.min(counts.archivesProcessed, counts.archivesTotal) : 0;
+    rows.push(`${processed} of ${counts.archivesTotal} archives located`);
+  }
+  if (Number.isFinite(counts.fetchedGames)) rows.push(`${counts.fetchedGames} games downloaded`);
+  if (Number.isFinite(counts.eligibleGames)) rows.push(`${counts.eligibleGames} match selected time controls`);
+  if (Number.isFinite(counts.analysedGames)) rows.push(`${counts.analysedGames} games ready for analysis`);
+  return rows;
+}
+
 export function waitForProgressCompletion(signal, delay = 350, timers = globalThis) {
   return new Promise((resolve) => {
     let settled = false;

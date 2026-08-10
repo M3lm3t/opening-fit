@@ -1760,6 +1760,14 @@ class ReportGameCounts(TypedDict):
     contractVersion: int
 
 
+class GameReconciliation(TypedDict):
+    contractVersion: int
+    total_imported: int
+    analysed: int
+    excluded_total: int
+    exclusion_breakdown: Dict[str, int]
+
+
 def skipped_reason_items(reason_counts: Dict[str, int]) -> List[Dict[str, Any]]:
     return [
         {
@@ -1884,8 +1892,20 @@ def build_game_count_summary(
         {"key": key, "label": CANONICAL_EXCLUSION_REASON_LABELS[key], "count": count}
         for key, count in reasons.items() if count
     ]
+    duplicate_records = max(0, int(duplicate_games_removed or 0))
+    reconciliation_breakdown = dict(reasons)
+    reconciliation_breakdown["duplicate"] = duplicate_records
+    reconciliation: GameReconciliation = {
+        "contractVersion": 1,
+        "total_imported": fetched + duplicate_records,
+        "analysed": used_games,
+        "excluded_total": excluded + duplicate_records,
+        "exclusion_breakdown": reconciliation_breakdown,
+    }
     result = {
         **canonical,
+        "gameReconciliation": reconciliation,
+        "game_reconciliation": reconciliation,
         # Backward-compatible aliases. These are never independently calculated.
         "imported": fetched,
         "eligible": eligible,
@@ -1922,6 +1942,23 @@ def validate_game_count_contract(counts: Dict[str, Any], *, opening_stat_games: 
         raise ValueError("game_count_contract: fetched games must already be unique")
     if type(counts.get("duplicateGamesRemoved")) is not int or counts["duplicateGamesRemoved"] < 0:
         raise ValueError("game_count_contract: duplicateGamesRemoved must be a non-negative integer")
+    reconciliation = counts.get("gameReconciliation") or counts.get("game_reconciliation")
+    if reconciliation is not None:
+        breakdown = reconciliation.get("exclusion_breakdown") if isinstance(reconciliation, dict) else None
+        reconciliation_values = [
+            reconciliation.get("total_imported"), reconciliation.get("analysed"),
+            reconciliation.get("excluded_total"),
+        ] if isinstance(reconciliation, dict) else []
+        if len(reconciliation_values) != 3 or any(type(value) is not int or value < 0 for value in reconciliation_values):
+            raise ValueError("game_reconciliation_contract: totals must be non-negative integers")
+        if not isinstance(breakdown, dict) or any(type(value) is not int or value < 0 for value in breakdown.values()):
+            raise ValueError("game_reconciliation_contract: exclusion breakdown must contain non-negative integers")
+        if reconciliation["total_imported"] != reconciliation["analysed"] + reconciliation["excluded_total"]:
+            raise ValueError("game_reconciliation_contract: imported games do not reconcile")
+        if reconciliation["excluded_total"] != sum(breakdown.values()):
+            raise ValueError("game_reconciliation_contract: exclusion breakdown does not reconcile")
+        if reconciliation["analysed"] != ordered[-1] or reconciliation["total_imported"] != ordered[0] + counts["duplicateGamesRemoved"]:
+            raise ValueError("game_reconciliation_contract: totals diverge from the import pipeline")
     if opening_stat_games is not None and int(opening_stat_games) != ordered[-1]:
         raise ValueError(
             f"game_count_contract: opening-stat total {opening_stat_games} differs from used {ordered[-1]}"
@@ -8618,12 +8655,16 @@ def build_not_enough_games_import_result(
     player_url: Optional[str] = None,
     player_profile: Optional[Dict[str, Any]] = None,
     archives_checked: Optional[List[Dict[str, Any]]] = None,
+    duplicate_games_removed: int = 0,
 ) -> Dict[str, Any]:
     skipped_reason_counts = skipped_reason_counts or {key: 0 for key in SKIPPED_REASON_LABELS}
     platform_label = "Chess.com" if platform == "chess.com" else "Lichess"
     player_profile = player_profile or normalize_player_profile(platform, {}, username)
 
-    game_counts = build_game_count_summary(games_found, 0, skipped_reason_counts)
+    game_counts = build_game_count_summary(
+        games_found, 0, skipped_reason_counts,
+        duplicate_games_removed=duplicate_games_removed,
+    )
     return {
         "ok": False,
         "code": "not_enough_games",
@@ -8778,6 +8819,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
             player_url=player.get("url"),
             player_profile=player_profile,
             archives_checked=archive_breakdown,
+            duplicate_games_removed=duplicate_count,
         )
 
     if progress:
@@ -8787,6 +8829,8 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
     )
     analysis_candidates = select_analysis_candidates(time_control_games, "chess.com", ANALYSIS_GAME_LIMIT)
     analysed_games, skipped_reason_counts = split_usable_games(analysis_candidates, chesscom_skip_reason)
+    skipped_reason_counts["unsupportedTimeControl"] = unsupported_time_control_count
+    skipped_reason_counts["analysisLimit"] = max(0, len(time_control_games) - len(analysis_candidates))
 
     if progress:
         progress(
@@ -8810,6 +8854,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
             player_url=player.get("url"),
             player_profile=player_profile,
             archives_checked=archive_breakdown,
+            duplicate_games_removed=duplicate_count,
         )
 
     opening_counter = Counter()
@@ -10362,6 +10407,7 @@ def import_lichess_logic(username: str, months: int = 3, time_control: str = "cu
                     "gamesFound": 0,
                 }
             ],
+            duplicate_games_removed=duplicate_count,
         )
 
     if progress:
@@ -10402,6 +10448,7 @@ def import_lichess_logic(username: str, months: int = 3, time_control: str = "cu
                     "gamesFound": len(games),
                 }
             ],
+            duplicate_games_removed=duplicate_count,
         )
 
     return build_lichess_analysis(

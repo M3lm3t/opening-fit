@@ -8,19 +8,25 @@ export default function ReportGameCountSummary({ report, saveStatus = "", authen
   const sampleMode = isSampleReport(report);
   const save = reportSaveState(saveStatus, authenticated, sampleMode);
   const exclusions = reportExclusionSummary(report);
+  const reconciliationInvalid = counts.reconciliationStatus === "invalid_current_contract";
+  const totalImported = reconciliationInvalid ? null : counts.totalImported ?? counts.fetchedGames;
+  const analysed = reconciliationInvalid ? null : counts.reconciliationAnalysed ?? counts.usedForOpeningStats;
+  const excluded = reconciliationInvalid ? null : counts.excludedTotal ?? counts.excludedGames;
+  const exclusionRows = counts.reconciliationStatus === "canonical" ? counts.exclusionBreakdown : counts.exclusionReasons;
   return (
     <section className="reportGameCountSummary" aria-label="Import and save status">
       <div className="reportGameCountCompact">
-        <span><strong>{counts.fetchedGames ?? "Unavailable"}</strong> found</span>
-        <span><strong>{counts.usedForOpeningStats ?? "Unavailable"}</strong> used</span>
-        <span><strong>{counts.excludedGames ?? "Unavailable"}</strong> excluded</span>
+        <span><strong>{totalImported ?? "Unavailable"}</strong> found</span>
+        <span><strong>{analysed ?? "Unavailable"}</strong> analysed</span>
+        <span><strong>{excluded ?? "Unavailable"}</strong> excluded</span>
         <span><strong>{save.label}</strong></span>
       </div>
-      {counts.excludedGames ? <p className="reportGameExclusionSummary">{exclusions.summary}</p> : null}
+      {excluded ? <p className="reportGameExclusionSummary">Excluded games are normal filtering outcomes, not import errors.</p> : null}
       {exclusions.confidenceNote ? <p role="status" className="reportGameConfidenceNote">{exclusions.confidenceNote}</p> : null}
       <details>
-        <summary>Import and exclusion details</summary>
+        <summary>Why were games excluded?</summary>
         <p>{reportCountSentence(report)}</p>
+        {counts.reconciliationStatus === "invalid_current_contract" ? <p role="status">The import totals could not be reconciled safely, so the detailed counts are unavailable.</p> : null}
         {counts.contractVersion >= 4 && counts.countStatus === "canonical" ? <ol className="reportGamePipeline">
           <li><strong>{counts.fetchedGames}</strong> Games fetched</li>
           <li><strong>{counts.eligibleGames}</strong> Eligible</li>
@@ -38,7 +44,7 @@ export default function ReportGameCountSummary({ report, saveStatus = "", authen
           ))}
         </dl>
         {!counts.breakdownAvailable ? <p>Exact import breakdown unavailable for this older report.</p> : null}
-        {counts.excludedGames ? <div className="reportGameExclusions"><strong>Why games were not used in opening statistics</strong><ul>{counts.exclusionReasons.length ? counts.exclusionReasons.map((reason) => <li key={`${reason.key}-${reason.label}`}>{reason.label}{reason.count === null ? "" : `: ${reason.count}`}</li>) : <li>Reason unavailable: {counts.excludedGames}</li>}</ul></div> : null}
+        {excluded ? <div className="reportGameExclusions"><strong>Why games were not analysed</strong><ul>{exclusionRows.length ? exclusionRows.map((reason) => <li key={`${reason.key}-${reason.label}`}>{reason.label}{reason.count === null ? "" : `: ${reason.count}`}</li>) : <li>Reason unavailable: {excluded}</li>}</ul></div> : null}
         <p><a href="/how-it-works">How filtering, limits and opening signals work</a></p>
       </details>
       <details>

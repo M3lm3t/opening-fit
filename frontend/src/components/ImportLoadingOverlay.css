@@ -244,6 +244,27 @@
   gap: 13px;
 }
 
+.importLoadingCountMilestones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.importLoadingCountMilestones li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: rgba(34, 197, 94, 0.1);
+  color: #bbf7d0;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .importLoadingActiveMessage {
   min-height: 128px;
   display: grid;

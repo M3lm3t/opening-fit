@@ -7,7 +7,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { analysisTimingStatus, IMPORT_STAGES } from "../lib/importJourney";
+import { analysisCountMilestones, analysisTimingStatus, IMPORT_STAGES } from "../lib/importJourney";
 
 function ChessAnalysisLoader() {
   return (
@@ -81,6 +81,7 @@ export default function ImportLoadingOverlay({
   const platformLabel =
     typeof platform === "string" && platform.length ? platform : "your chess platform";
   const timing = analysisTimingStatus(elapsedSeconds);
+  const countMilestones = analysisCountMilestones(progress);
 
   return (
     <div
@@ -156,6 +157,9 @@ export default function ImportLoadingOverlay({
                 );
               })}
             </div> : null}
+            {countMilestones.length ? <ul className="importLoadingCountMilestones" aria-label="Confirmed import counts">
+              {countMilestones.map((milestone) => <li key={milestone}><Check size={14} aria-hidden="true" />{milestone}</li>)}
+            </ul> : null}
           </div>
         </div>
 
