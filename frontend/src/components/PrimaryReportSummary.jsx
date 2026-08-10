@@ -4,6 +4,19 @@ import OpeningFitScoreDisclosure from "./OpeningFitScoreDisclosure.jsx";
 import { isSampleReport } from "../fixtures/sampleReport.js";
 import "./PrimaryReportSummary.css";
 
+function DecisionEvidence({ evidence, confidence, compact = false }) {
+  const rows = [evidence?.gamesLabel, evidence?.results, evidence?.scoreRate].filter(Boolean);
+  const label = confidence && confidence !== "Unavailable" ? confidence : evidence?.confidence;
+  if (!rows.length && (!label || label === "Unavailable")) return null;
+
+  return (
+    <div className={`primaryReportDecisionEvidence ${compact ? "isCompact" : ""}`} aria-label="Decision evidence">
+      {rows.length ? <p>{rows.join(" · ")}</p> : null}
+      {label && label !== "Unavailable" ? <small>Evidence: {label}</small> : null}
+    </div>
+  );
+}
+
 export default function PrimaryReportSummary({ model, report, previousReport = null, onTraining, onPractice, onEvidence, onAnalyse, onFullReport }) {
   const view = buildPrimaryReportSummary(model, report);
   const scoreView = buildOpeningFitScoreTransparency({ model, report, previousReport });
@@ -27,12 +40,12 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
       <section className="primaryReportHealth" aria-labelledby="primary-report-title">
         <div>
           <span>Repertoire Health</span>
-          <h2 id="primary-report-title" tabIndex="-1">{scoreView.scoreDisplayLabel}</h2>
+          <h2 id="primary-report-title" tabIndex="-1">{scoreView.scoreDisplayLabel} — {scoreView.developmentState.label}</h2>
+          <p className="primaryReportHealthSummary">{scoreView.explanation}</p>
           <strong>{view.completenessLabel} · {view.establishedRoleCount} of {view.totalRoleCount} roles established</strong>
         </div>
         <div className="primaryReportHealthExplanation">
           {sampleMode ? <p>Role completeness shows whether the fictional repertoire fills all three jobs.</p> : null}
-          <p>{scoreView.displayScore === null ? "The stored evidence cannot support a complete health calculation." : scoreView.explanation || scoreView.developmentState.label}</p>
           <p>{view.verdict}</p>
           <small>{view.confidence}</small>
         </div>
@@ -40,12 +53,11 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
 
       <div className="primaryReportCommandGrid" aria-label="Keep, repair and train next">
         <article className="primaryReportCommand primaryReportCommand--keep" data-command-role="keep">
-          <span>Keep</span>
+          <span>{view.keep.label}</span>
           <h3>{view.keep.opening}</h3>
           <strong>{view.keep.role}</strong>
+          <DecisionEvidence evidence={view.keep.observed} confidence={view.keep.confidence} />
           <p>{view.keep.reason}</p>
-          {view.keep.observed.results || view.keep.observed.scoreRate ? <p className="primaryReportCommandMetric">{[view.keep.observed.results, view.keep.observed.scoreRate].filter(Boolean).join(" · ")}</p> : null}
-          <small>Evidence Confidence: {view.keep.confidence}</small>
           {view.keep.available && onEvidence ? <button type="button" className="secondaryBtn" onClick={() => onEvidence(view.keep.source)}>View supporting games</button> : null}
         </article>
 
@@ -53,15 +65,15 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
           <span>Repair</span>
           <h3>{view.repair.opening}</h3>
           <strong>{view.repair.role}</strong>
+          <DecisionEvidence evidence={view.repair.observed} confidence={view.repair.confidence} />
           <p>{view.repair.diagnosis}</p>
-          {view.repair.supportingGames > 0 ? <p className="primaryReportCommandMetric">{view.repair.supportingGames} supporting game{view.repair.supportingGames === 1 ? "" : "s"}</p> : null}
-          <small>Evidence Confidence: {view.repair.confidence}</small>
           {view.repair.available && onEvidence ? <button type="button" className="secondaryBtn" onClick={() => onEvidence(view.repair.source)}>View supporting games</button> : null}
         </article>
 
         <article className="primaryReportCommand primaryReportCommand--train" data-command-role="train-next">
           <span>Train next</span>
           <h3>{view.trainNext.title}</h3>
+          <DecisionEvidence evidence={view.trainNext.observed} confidence={view.trainNext.confidence} compact />
           <p>{view.trainNext.reason}</p>
           <p><strong>Success:</strong> {view.trainNext.successCheck}</p>
           <small>Approximately {view.trainNext.duration} minutes</small>
@@ -72,6 +84,7 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
       {view.experiment ? <aside className="primaryReportExperiment">
         <span>Optional experiment</span>
         <strong>{view.experiment.opening} · {view.experiment.role}</strong>
+        <DecisionEvidence evidence={view.experiment.observed} confidence={view.experiment.confidence} compact />
         <p>{view.experiment.reason}</p>
         <small>{view.experiment.hasPersonalEvidence ? "Separate experimental evidence" : "No personal game evidence yet"}</small>
       </aside> : null}

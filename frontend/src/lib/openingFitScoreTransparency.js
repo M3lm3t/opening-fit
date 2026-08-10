@@ -61,6 +61,25 @@ function weaknessContext(model = {}, repairStatus = null) {
   return `No statistically reliable weakness was found. That neutral finding does not mean every core repertoire role is established: coverage reflects whether each role has enough consistent evidence, not the number of weaknesses.${constraint}`;
 }
 
+function healthExplanation(contract, contributors, repairStatus) {
+  const supplied = text(contract.explanation);
+  if (supplied) return supplied;
+  const limitingKey = contributors[0]?.key;
+  if (limitingKey === "unresolvedRecurringProblems" || repairStatus?.status === "repair") {
+    return "A recurring, evidence-backed weakness is the main constraint on your repertoire health.";
+  }
+  if (["roleCompleteness", "repertoireCompleteness"].includes(limitingKey)) {
+    return "At least one core repertoire role is still a coverage gap and needs more established opening evidence.";
+  }
+  if (["evidenceStrength", "evidenceConfidence", "evidenceCoverage"].includes(limitingKey)) {
+    return "Your current openings need more qualifying games before the evidence is consistently reliable.";
+  }
+  if (limitingKey === "concentrationConsistency") {
+    return "Your evidence is spread across openings, so the repertoire is not yet consistently established.";
+  }
+  return "Your repertoire health reflects the available role coverage, evidence strength, consistency, and unresolved problems.";
+}
+
 function reasonForChange(currentScore, previousScore, current, previous, currentVersion, previousVersion, currentContract = {}, previousContract = {}) {
   if (previousScore === null) return "This is your baseline coverage indicator; a later report using the same methodology can explain what changed.";
   if (currentVersion !== previousVersion) return `The saved score uses ${previousVersion}; it is not compared numerically with the current ${currentVersion} method.`;
@@ -145,7 +164,7 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
       ? text(contract.meaning) || "Repertoire Health describes the condition and completeness of the three core repertoire roles. It is not a chess rating, opening-quality grade, or engine evaluation."
       : "This legacy score mixed repertoire stability, results, evidence and weakness signals. It is retained for historical reports and is not a chess rating or engine judgement.",
     weaknessContext: text(contract.weaknessExplanation) || weaknessContext(model, repairStatus),
-    explanation: text(contract.explanation),
+    explanation: healthExplanation(contract, contributors, repairStatus),
     limitingFactors: Array.isArray(contract.limitingFactors) ? contract.limitingFactors : contributors.slice(0, 2),
     evidenceConfidence: contract.confidence && typeof contract.confidence === "object" ? contract.confidence : null,
     affects: components.length ? "The calculation uses only the components and weights shown below." : "This older report contains the final score but not a compatible component breakdown.",

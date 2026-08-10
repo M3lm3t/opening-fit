@@ -166,7 +166,7 @@ function roleLabel(value) {
 
 function evidenceLabel(candidate) {
   const combined = { ...(candidate?.source || {}), ...(candidate || {}) };
-  return text(combined.confidence?.label || combined.confidenceLabel || combined.confidence_level || combined.evidenceConfidence?.label) || "Unavailable";
+  return text(combined.evidenceConfidence?.label || combined.evidence_confidence?.label || combined.confidence?.label || combined.confidenceLabel || combined.confidence_level) || "Unavailable";
 }
 
 function observedSummary(candidate) {
@@ -179,12 +179,16 @@ function observedSummary(candidate) {
   const losses = Number(observed.losses ?? sample.losses ?? combined.losses);
   const knownResults = Number(observed.knownResults ?? sample.knownResults ?? sample.known_results ?? wins + draws + losses);
   const scoreRate = Number(observed.scoreRate ?? observed.score_rate ?? sample.scoreRate ?? sample.score_rate ?? combined.scoreRate ?? combined.score_rate);
+  const reconciled = games > 0 && [wins, draws, losses, knownResults].every(Number.isFinite) && wins + draws + losses === knownResults && knownResults <= games;
   return {
     games,
-    results: games > 0 && [wins, draws, losses, knownResults].every(Number.isFinite) && wins + draws + losses === knownResults && knownResults <= games
-      ? formatResultCounts({ wins, draws, losses })
-      : null,
-    scoreRate: Number.isFinite(scoreRate) ? `${Math.round(scoreRate)}% Score Rate` : null,
+    gamesLabel: games > 0 ? `${games} qualifying game${games === 1 ? "" : "s"}` : null,
+    wins: reconciled ? wins : null,
+    draws: reconciled ? draws : null,
+    losses: reconciled ? losses : null,
+    results: reconciled ? `${wins} W / ${draws} D / ${losses} L` : null,
+    scoreRate: Number.isFinite(scoreRate) ? `${Math.round(scoreRate * 10) / 10}% score` : null,
+    confidence: evidenceLabel(combined),
   };
 }
 
@@ -246,6 +250,9 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   const completenessLabel = ({ 0: "Repertoire not established yet", 1: "Building repertoire", 2: "Nearly complete", 3: "Complete repertoire" })[establishedRoleCount] || "Repertoire status unavailable";
   const diagnosis = trainingPriority?.openingDiagnosis || trainingPriority?.opening_diagnosis || null;
   const experiment = model.authoritative?.experiment || model.experiment || null;
+  const keepDisplay = strength || strengthCandidates[0] || null;
+  const trainEvidenceCandidates = [nextAction, trainingPriority, training?.source, problem, strength].filter(Boolean);
+  const trainEvidenceSource = trainEvidenceCandidates.find((candidate) => openingGames(candidate) > 0) || trainEvidenceCandidates[0] || null;
   return {
     score: model.health?.score !== null && model.health?.score !== undefined && Number.isFinite(Number(model.health.score)) ? Math.round(Number(model.health.score)) : null,
     scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Repertoire Health pending" : "Repertoire Health",
@@ -264,11 +271,12 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     diagnosisId: diagnosis?.diagnosisId || diagnosis?.diagnosis_id || trainingPriority?.diagnosisId || null,
     keep: {
       available: Boolean(strength),
-      opening: formatOpeningNameForDisplay(strength?.opening) || "No supported Keep decision yet",
-      role: roleLabel(strength?.repertoireRole || strength?.repertoire_role),
+      label: strength ? "Keep" : keepDisplay ? "Not enough evidence" : "Keep",
+      opening: formatOpeningNameForDisplay(keepDisplay?.opening || keepDisplay?.openingName) || "No supported Keep decision yet",
+      role: roleLabel(keepDisplay?.repertoireRole || keepDisplay?.repertoire_role),
       reason: strength ? formatOpeningNameForDisplay(recommendationCopy(strength, "keep")) : keepFallback,
-      confidence: evidenceLabel(strength),
-      observed: observedSummary(strength),
+      confidence: evidenceLabel(keepDisplay),
+      observed: observedSummary(keepDisplay),
       source: strength,
     },
     repair: {
@@ -277,7 +285,8 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
       role: roleLabel(diagnosis?.repertoireRole || diagnosis?.repertoire_role || problem?.repertoireRole || problem?.repertoire_role),
       diagnosis: text(diagnosis?.userFacingDiagnosis || diagnosis?.user_facing_diagnosis) || weakness.text,
       supportingGames: Array.isArray(diagnosis?.supportingGameIds) ? diagnosis.supportingGameIds.length : openingGames(problem),
-      confidence: text(diagnosis?.confidenceReason || diagnosis?.confidence_reason) || evidenceLabel(problem),
+      confidence: text(diagnosis?.confidence?.label || diagnosis?.confidenceLabel || diagnosis?.confidence_label) || evidenceLabel(problem),
+      observed: observedSummary(problem),
       source: problem,
     },
     trainNext: {
@@ -287,12 +296,18 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
       successCheck: text(trainingPriority?.successCheck || trainingPriority?.success_check) || "Complete the task and record one practical takeaway.",
       action: primaryAction,
       priorityId: trainingPriority?.priorityId || null,
+      opening: formatOpeningNameForDisplay(trainingPriority?.openingName || nextAction?.opening || training?.opening) || null,
+      role: roleLabel(trainingPriority?.repertoireRole || nextAction?.repertoireRole || nextAction?.repertoire_role),
+      observed: observedSummary(trainEvidenceSource),
+      confidence: evidenceLabel(trainEvidenceSource),
     },
     experiment: experiment ? {
       opening: formatOpeningNameForDisplay(experiment.openingName || experiment.opening || experiment.name) || "Optional opening experiment",
       role: roleLabel(experiment.repertoireRole || experiment.repertoire_role),
       reason: text(experiment.reason || experiment.explanation) || "This is an optional comparison, not a conclusion from your games.",
       hasPersonalEvidence: openingGames(experiment) > 0,
+      observed: observedSummary(experiment),
+      confidence: evidenceLabel(experiment),
     } : null,
     slots,
     incompleteRepertoire: slots.some((slot) => !slot.complete),

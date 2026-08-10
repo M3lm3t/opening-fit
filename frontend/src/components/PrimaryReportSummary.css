@@ -14,6 +14,7 @@
 .primaryReportExperiment > span { color: var(--of-muted, #64748b); font-size: .73rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
 .primaryReportHealth h2 { margin: 4px 0; font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1; }
 .primaryReportHealth strong { font-size: .86rem; }
+.primaryReportHealthSummary { margin: 8px 0; color: var(--of-muted, #64748b); font-size: .88rem; line-height: 1.45; }
 .primaryReportHealthExplanation { min-width: 0; }
 .primaryReportHealthExplanation p { margin: 0; line-height: 1.5; }
 .primaryReportHealthExplanation p + p { margin-top: 8px; color: var(--of-muted, #64748b); }
@@ -26,7 +27,10 @@
 .primaryReportCommand h3 { margin: 0; font-size: clamp(1.05rem, 2vw, 1.35rem); overflow-wrap: anywhere; }
 .primaryReportCommand > strong { font-size: .82rem; }
 .primaryReportCommand p { margin: 0; color: var(--of-muted, #64748b); font-size: .86rem; line-height: 1.5; overflow-wrap: anywhere; }
-.primaryReportCommandMetric { width: 100%; padding-top: 8px; border-top: 1px solid var(--of-border, #d8dee8); color: var(--of-text, #0f172a) !important; font-weight: 800; }
+.primaryReportDecisionEvidence { width: 100%; display: grid; gap: 3px; padding: 8px 0; border-top: 1px solid var(--of-border, #d8dee8); border-bottom: 1px solid var(--of-border, #d8dee8); }
+.primaryReportDecisionEvidence.isCompact { padding: 6px 0; }
+.primaryReportDecisionEvidence p { color: var(--of-text, #0f172a) !important; font-weight: 800; }
+.primaryReportDecisionEvidence small { color: var(--of-muted, #64748b); font-weight: 800; }
 .primaryReportCommand small { color: var(--of-muted, #64748b); line-height: 1.4; }
 .primaryReportCommand button { min-height: 44px; margin-top: auto; }
 .primaryReportExperiment { display: grid; gap: 5px; padding: 14px 16px; background: var(--of-surface-muted, #f8fafc); }
@@ -60,6 +64,8 @@
   .primaryReportSummary { gap: 12px; }
   .primaryReportHealth h2 { font-size: 2rem; }
   .primaryReportCommand { padding: 14px; }
+  .primaryReportDecisionEvidence p { font-size: .8rem; }
+  .primaryReportDecisionEvidence small { font-size: .72rem; }
   .primaryReportCommand button,
   .primaryReportMore button { width: 100%; }
   .reportGameCountSummary dl > div { grid-template-columns: 1fr; gap: 2px; }
