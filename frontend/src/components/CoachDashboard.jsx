@@ -3,21 +3,14 @@ import RecommendationExplanationPanel from "./RecommendationExplanationPanel";
 import MistakeBasedPractice from "./MistakeBasedPractice";
 import { OpeningMilestones, OpeningScoreBreakdown } from "./OpeningScoreProgress";
 import {
-  buildDailyProgress,
   buildRatingGoalModel,
-  buildRecentActivity,
-  buildStreak,
-  buildTodayHeader,
-  buildTodayTasks,
-  buildWhatChanged,
   localDateKey,
 } from "../services/todayRetention";
-import { buildXpProgress, xpForEvent } from "../services/xpProgress";
+import { xpForEvent } from "../services/xpProgress";
 import NextBestAction from "./NextBestAction";
 import SessionSummary from "./SessionSummary";
 import RatingGoalCard from "./RatingGoalCard.jsx";
 import { buildReportDecisionModel } from "../lib/reportDecisionModel.js";
-import { formatTrainingPriorityTitle } from "../lib/trainingPriority.js";
 import { buildTodayPrimaryAction, todayGoalContext } from "../lib/todayPrimaryAction.js";
 import ChessPositionBoard from "./ChessPositionBoard.jsx";
 import SinceLastReportSummary from "./SinceLastReportSummary.jsx";
@@ -136,16 +129,6 @@ function collectOpenings(data = {}, fitData = null) {
   return [...merged.values()];
 }
 
-function getReportGames(data = {}) {
-  data = data || {};
-  return [
-    ...asArray(data.recent_games),
-    ...asArray(data.recentGames),
-    ...asArray(data.opening_games),
-    ...asArray(data.openingGames),
-  ];
-}
-
 function getGameCount(data = {}, openings = []) {
   data = data || {};
   return (
@@ -160,157 +143,6 @@ function getGameCount(data = {}, openings = []) {
       0
     ) || openings.reduce((sum, opening) => sum + openingGames(opening), 0)
   );
-}
-
-function getHealthScore(data = {}, fitData = null) {
-  data = data || {};
-  return numberValue(
-    data.openingFitScore ??
-      data.opening_fit_score ??
-      data.opening_fit_score_v2 ??
-      data.openingfit_score ??
-      data.openingHealthScore ??
-      data.opening_health_score ??
-      fitData?.overallScore,
-    null
-  );
-}
-
-function reportTimestamp(row = {}) {
-  const report = row.report || row.summary || row;
-  return Date.parse(row.created_at || row.createdAt || report.importedAt || report.imported_at || report.lastUpdated || report.last_updated || "");
-}
-
-function reportScore(row = {}) {
-  const report = row.report || row.summary || row;
-  return numberValue(
-    row.opening_fit_score ??
-      row.openingFitScore ??
-      row.snapshot?.healthScore ??
-      report.openingFitScore ??
-      report.opening_fit_score ??
-      report.opening_fit_score_v2 ??
-      report.openingHealth?.score ??
-      report.opening_health?.score,
-    null
-  );
-}
-
-function getScoreTrend(reportHistory = [], currentScore = null) {
-  const scored = asArray(reportHistory)
-    .map((row) => ({ score: reportScore(row), time: reportTimestamp(row) }))
-    .filter((row) => row.score !== null && Number.isFinite(row.time))
-    .sort((a, b) => a.time - b.time);
-
-  if (!scored.length || currentScore === null) return null;
-  const previous = scored[scored.length - 1]?.score;
-  if (previous === null || previous === undefined || previous === currentScore) return null;
-  return currentScore - previous;
-}
-
-function getRecommendationBuckets(data = {}) {
-  data = data || {};
-  const recs = data.opening_recommendations || data.openingRecommendations || data.recommendedOpenings || {};
-  const sections = asArray(recs.sections).flatMap((section) => asArray(section.items));
-  return [
-    ...sections,
-    ...asArray(recs.white_repertoire),
-    ...asArray(recs.whiteDetailed),
-    ...asArray(recs.black_vs_e4),
-    ...asArray(recs.blackVsE4Detailed),
-    ...asArray(recs.black_vs_d4),
-    ...asArray(recs.blackVsD4Detailed),
-  ];
-}
-
-function buildRepertoireFocus(openings = [], data = {}) {
-  const known = openings.filter((opening) => opening.games > 0);
-  const e4Defences = known.filter((opening) => /e4|black/i.test(opening.contextLabel));
-  const white = known.filter((opening) => /white/i.test(opening.contextLabel));
-  const d4 = known.filter((opening) => /d4/i.test(opening.contextLabel));
-
-  if (known.length >= 8) {
-    return {
-      status: "Scattered",
-      text: `You have ${known.length} recurring opening signals. Choose one White system and one main Black defence before adding more.`,
-    };
-  }
-
-  if (e4Defences.length >= 4) {
-    return {
-      status: "Too many Black systems",
-      text: `You are using ${e4Defences.length} different Black responses. Pick one primary defence against 1.e4 for the next month.`,
-    };
-  }
-
-  if (!white.length || (!e4Defences.length && !d4.length)) {
-    return {
-      status: "Incomplete",
-      text: "Your repertoire map has a gap. Build one reliable White choice and one main Black response before expanding.",
-    };
-  }
-
-  const recommendations = getRecommendationBuckets(data);
-  if (recommendations.length >= 3) {
-    return {
-      status: "Focused",
-      text: "Your recommendations already point to a usable core. Train the priority opening before learning another system.",
-    };
-  }
-
-  return {
-    status: "Balanced",
-    text: "Your repertoire is compact enough to improve. Keep the current core stable while you repair the biggest leak.",
-  };
-}
-
-function buildDashboardModel({ data = {}, fitData = null, reportHistory = [], openingFitUserState = [] }) {
-  data = data || {};
-  const decisionModel = buildReportDecisionModel(data, fitData || {}, reportHistory);
-  const openings = collectOpenings(data, fitData);
-  const gameCount = getGameCount(data, openings);
-  const score = decisionModel.health?.score ?? getHealthScore(data, fitData);
-  const trend = getScoreTrend(reportHistory, score);
-  const games = getReportGames(data);
-  const strongest = decisionModel.establishedStrength || null;
-  const leak = decisionModel.primaryProblem || null;
-  const repertoire = buildRepertoireFocus(openings, data);
-  const priority = decisionModel.coachingPriority;
-  const taskOpening = priority?.openingName || decisionModel.nextTrainingAction?.opening || "";
-  const taskText = priority ? formatTrainingPriorityTitle(priority, { prefix: false }) : decisionModel.nextTrainingAction?.label || "Analyse recent games to unlock today's opening task.";
-  const taskWhy = priority?.rationale || decisionModel.nextTrainingAction?.reason || "OpeningFit needs a recent report before it can choose a precise training target.";
-  const practiceSessions = asArray(openingFitUserState).filter((row) =>
-    /practice|training|mission|drill/i.test(String(row.type || row.activity_type || row.event_type || ""))
-  ).length;
-
-  const verdict = decisionModel.verdict?.paragraph || "Your opening coach is ready for a fresh analysis.";
-  const reason = taskWhy;
-
-  return {
-    verdict,
-    reason,
-    score,
-    trend,
-    gameCount,
-    strongest,
-    leak,
-    repertoire,
-    task: {
-      text: taskText,
-      opening: taskOpening,
-      minutes: priority?.estimatedDurationMinutes || 10,
-      why: taskWhy,
-      cta: priority ? "Start today's plan" : "Analyse games",
-    },
-    progress: {
-      hasHistory: asArray(reportHistory).length >= 2 || trend !== null || practiceSessions > 0,
-      trend,
-      gameCount,
-      practiceSessions,
-      latestGames: games.length,
-      mostImproved: null,
-    },
-  };
 }
 
 function trendLabel(trend) {
@@ -649,22 +481,16 @@ function EmptyCoachDashboard({ signedIn, partial, insufficient, onAnalyse, onRep
 export default function CoachDashboard({
   data,
   fitData,
-  user,
   reportHistory = [],
   openingFitUserState = [],
   activityHistory = [],
   profile = null,
   settings = null,
   onRecordActivity,
-  onSaveSettings,
   onAnalyse,
   onPractice,
   onReport,
-  onTraining,
   onRecommendations,
-  onProgress,
-  onJourney,
-  onScoreAction,
 }) {
   const openings = collectOpenings(data || {}, fitData);
   const gameCount = getGameCount(data || {}, openings);

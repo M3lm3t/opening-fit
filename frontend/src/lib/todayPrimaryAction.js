@@ -1,5 +1,5 @@
 import { canonicalChessEvidence } from "./primaryReportSummary.js";
-import { formatTrainingPriorityTitle, roleGapCopy, TRAINING_SUBJECT_TYPES } from "./trainingPriority.js";
+import { roleGapCopy, TRAINING_SUBJECT_TYPES } from "./trainingPriority.js";
 
 const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 const list = (value) => Array.isArray(value) ? value.filter(Boolean) : [];

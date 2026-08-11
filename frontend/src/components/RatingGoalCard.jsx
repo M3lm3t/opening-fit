@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import "./RatingGoalCard.css";
 
 export default function RatingGoalCard({ goal, onSaveGoal, onProgress }) {
+  const goalTarget = goal?.target || "";
+  const goalCurrent = goal?.current || "";
   const [open, setOpen] = useState(false);
-  const [target, setTarget] = useState(goal?.target || "");
-  const [current, setCurrent] = useState(goal?.current || "");
+  const [target, setTarget] = useState(goalTarget);
+  const [current, setCurrent] = useState(goalCurrent);
 
   useEffect(() => {
     if (open) return;
-    setTarget(goal?.target || "");
-    setCurrent(goal?.current || "");
-  }, [goal?.current, goal?.target, open]);
+    setTarget(goalTarget);
+    setCurrent(goalCurrent);
+  }, [goalCurrent, goalTarget, open]);
 
   const save = () => {
     onSaveGoal?.({
