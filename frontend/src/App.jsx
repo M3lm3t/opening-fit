@@ -115,6 +115,7 @@ import {
   sampleAnalyticsContext,
 } from "./fixtures/sampleReport.js";
 import { buildApiUrl, logApiDiagnostic } from "./lib/apiBase";
+import { isNativeApp } from "./lib/platform.js";
 import { importGames as importGamesFromApi } from "./lib/importClient";
 import {
   IMPORT_STAGES,
@@ -16276,7 +16277,7 @@ export default function App() {
         : profileError || restoreError
           ? "error"
           : "ready";
-  const showMobileBottomNavigation = !isPublicLanding
+  const showMobileBottomNavigation = (!isPublicLanding || isNativeApp())
     && !isSignedOutLoginPage
     && activeAppSection !== "premium"
     && !isSampleReport(reportData);

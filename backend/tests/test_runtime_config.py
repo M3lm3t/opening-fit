@@ -5,6 +5,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from runtime_config import (
+    NATIVE_APP_ORIGINS,
     PRODUCTION_ORIGINS,
     assert_valid_startup_configuration,
     build_allowed_origins,
@@ -83,7 +84,7 @@ def test_incomplete_billing_does_not_take_down_non_billing_production_routes():
     assert readiness["monthly_price"] == "not_configured"
 
 
-def test_cors_origins_are_explicit_and_localhost_is_development_only():
+def test_cors_origins_are_explicit_and_insecure_localhost_is_development_only():
     production = build_allowed_origins(production_env())
     assert "https://openingfit.com" in production
     assert "https://www.openingfit.com" in production
@@ -94,6 +95,12 @@ def test_cors_origins_are_explicit_and_localhost_is_development_only():
     assert all("*" not in origin for origin in build_allowed_origins(production_env(CORS_ALLOWED_ORIGINS="*")))
     preview = build_allowed_origins({"APP_ENV": "preview", "CORS_ALLOWED_ORIGINS": "https://opening-fit-preview.vercel.app"})
     assert "https://opening-fit-preview.vercel.app" in preview
+
+
+def test_native_origin_is_builtin_without_becoming_required_deployment_configuration():
+    env = production_env(CORS_ALLOWED_ORIGINS=",".join(PRODUCTION_ORIGINS))
+    assert validate_runtime_configuration(env) == []
+    assert set(NATIVE_APP_ORIGINS).issubset(build_allowed_origins(env))
 
 
 def test_readiness_is_safe_when_configuration_is_missing():

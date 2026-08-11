@@ -24,6 +24,12 @@ test("native API and authentication use secure production URLs", async () => {
   assert.doesNotMatch(auth, /service.?role/i);
 });
 
+test("native landing keeps the mobile navigation available", async () => {
+  const app = await read("../App.jsx");
+  assert.match(app, /\(!isPublicLanding \|\| isNativeApp\(\)\)/);
+  assert.match(app, /showMobileBottomNavigation \? <MobileBottomNav/);
+});
+
 test("native shell owns back handling, deep links, external links and the PWA guard", async () => {
   const shell = await read("./nativeAppShell.js");
   const external = await read("./externalNavigation.js");
