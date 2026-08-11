@@ -1,6 +1,7 @@
 import { buildPrimaryReportSummary } from "../lib/primaryReportSummary.js";
 import { buildOpeningFitScoreTransparency } from "../lib/openingFitScoreTransparency.js";
 import OpeningFitScoreDisclosure from "./OpeningFitScoreDisclosure.jsx";
+import ChessPositionBoard from "./ChessPositionBoard.jsx";
 import { isSampleReport } from "../fixtures/sampleReport.js";
 import "./PrimaryReportSummary.css";
 
@@ -33,6 +34,7 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
     else if (action?.type === "analyse") onAnalyse?.();
     else if (action?.type === "training") onTraining?.(action.target);
   };
+  const repairBoardIsUnique = Boolean(view.repair.chessEvidence?.positionFen && view.repair.chessEvidence.positionFen !== view.trainNext.chessEvidence?.positionFen);
 
   return (
     <section className="primaryReportSummary" aria-labelledby="primary-report-title" data-report-command-centre="true">
@@ -66,6 +68,8 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
           <h3>{view.repair.opening}</h3>
           <strong>{view.repair.role}</strong>
           <DecisionEvidence evidence={view.repair.observed} confidence={view.repair.confidence} />
+          {view.repair.chessEvidence?.moveLine ? <div className="primaryReportMoveLine"><span>Recorded branch</span><code>{view.repair.chessEvidence.moveLine}</code></div> : null}
+          {repairBoardIsUnique ? <div className="primaryReportPosition primaryReportPosition--compact"><ChessPositionBoard position={view.repair.chessEvidence.positionFen} orientation={view.repair.chessEvidence.orientation} interactive={false} /><small>This recurring position is the repair evidence.</small></div> : null}
           <p>{view.repair.diagnosis}</p>
           {view.repair.available && onEvidence ? <button type="button" className="secondaryBtn" onClick={() => onEvidence(view.repair.source)}>View supporting games</button> : null}
         </article>
@@ -74,6 +78,7 @@ export default function PrimaryReportSummary({ model, report, previousReport = n
           <span>Train next</span>
           <h3>{view.trainNext.title}</h3>
           <DecisionEvidence evidence={view.trainNext.observed} confidence={view.trainNext.confidence} compact />
+          {view.trainNext.chessEvidence?.positionFen ? <div className="primaryReportPosition"><ChessPositionBoard position={view.trainNext.chessEvidence.positionFen} orientation={view.trainNext.chessEvidence.orientation} interactive={false} /><div><strong>Position to train</strong>{view.trainNext.chessEvidence.moveLine ? <code>{view.trainNext.chessEvidence.moveLine}</code> : null}</div></div> : view.trainNext.chessEvidence?.moveLine ? <div className="primaryReportMoveLine"><span>Line to train</span><code>{view.trainNext.chessEvidence.moveLine}</code></div> : null}
           <p>{view.trainNext.reason}</p>
           <p><strong>Success:</strong> {view.trainNext.successCheck}</p>
           <small>Approximately {view.trainNext.duration} minutes</small>

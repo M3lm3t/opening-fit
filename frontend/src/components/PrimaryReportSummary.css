@@ -34,6 +34,16 @@
 .primaryReportDecisionEvidence small { color: var(--of-muted, #64748b); font-weight: 650; }
 .primaryReportCommand small { color: var(--of-muted, #64748b); line-height: 1.4; }
 .primaryReportCommand button { min-height: 44px; margin-top: auto; }
+.primaryReportMoveLine { width: 100%; display: grid; gap: 4px; padding: 8px 0; }
+.primaryReportMoveLine span { color: var(--of-muted, #64748b); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.primaryReportMoveLine code,
+.primaryReportPosition code { color: var(--of-text, #0f172a); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
+.primaryReportPosition { width: 100%; display: grid; grid-template-columns: minmax(180px, 250px) minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 0; }
+.primaryReportPosition .chessPositionBoard { width: min(100%, 250px); aspect-ratio: 1; }
+.primaryReportPosition > div:last-child { display: grid; gap: 5px; }
+.primaryReportPosition > div:last-child > strong { color: var(--of-text, #0f172a); font-size: .9rem; }
+.primaryReportPosition--compact { grid-template-columns: minmax(150px, 200px) minmax(0, 1fr); }
+.primaryReportPosition--compact .chessPositionBoard { width: min(100%, 200px); }
 .primaryReportExperiment { display: grid; gap: 5px; padding: 14px 16px; border-left: 3px solid var(--of-muted, #64748b); background: var(--of-surface-muted, #f8fafc); }
 .primaryReportExperiment p { margin: 0; color: var(--of-muted, #64748b); font-size: .84rem; line-height: 1.45; }
 .primaryReportExperiment small { color: var(--of-muted, #64748b); font-weight: 800; }
@@ -71,4 +81,8 @@
   .primaryReportCommand button,
   .primaryReportMore button { width: 100%; }
   .reportGameCountSummary dl > div { grid-template-columns: 1fr; gap: 2px; }
+  .primaryReportPosition,
+  .primaryReportPosition--compact { grid-template-columns: 1fr; }
+  .primaryReportPosition .chessPositionBoard,
+  .primaryReportPosition--compact .chessPositionBoard { width: min(100%, 280px); }
 }

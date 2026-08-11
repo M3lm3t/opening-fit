@@ -4,8 +4,33 @@ import { formatTrainingPriorityTitle, TRAINING_SUBJECT_TYPES } from "./trainingP
 import { formatResultCounts } from "./reportGameCounts.js";
 import { formatOpeningNameForDisplay } from "./openingNamePresentation.js";
 import { buildAuthoritativeRoleViewModels } from "./authoritativeReportPresentation.js";
+import { Chess } from "chess.js";
 
 const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
+
+function canonicalChessEvidence(source) {
+  if (!source || typeof source !== "object") return null;
+  const diagnosis = source.openingDiagnosis || source.opening_diagnosis || {};
+  const issue = source.recurringIssue || source.recurring_issue || source.issue || {};
+  const fen = text(source.positionFen || source.position_fen || diagnosis.positionFen || diagnosis.position_fen);
+  let positionFen = null;
+  if (fen) {
+    try {
+      positionFen = new Chess(fen).fen();
+    } catch {
+      positionFen = null;
+    }
+  }
+  const moveLine = text(
+    source.recognisedLine || source.recognizedLine || source.recognised_line || source.recognized_line ||
+    source.lineOrPosition || source.line_or_position || source.commonMovePrefix?.san || source.common_move_prefix?.san || diagnosis.commonMovePrefix?.san || diagnosis.common_move_prefix?.san ||
+    issue.positionOrMoveSequence || issue.position_or_move_sequence || issue.moveLine || issue.move_line
+  );
+  if (!positionFen && !moveLine) return null;
+  const colour = text(source.playerColour || source.player_color || diagnosis.playerColour || diagnosis.player_colour).toLowerCase();
+  const role = text(source.repertoireRole || source.repertoire_role || diagnosis.repertoireRole || diagnosis.repertoire_role).toLowerCase();
+  return { positionFen, moveLine: moveLine || null, orientation: colour === "black" || role.startsWith("black_") ? "black" : "white" };
+}
 
 function oneSentence(model = {}) {
   const paragraph = text(model.verdict?.paragraph);
@@ -186,7 +211,7 @@ function observedSummary(candidate) {
     wins: reconciled ? wins : null,
     draws: reconciled ? draws : null,
     losses: reconciled ? losses : null,
-    results: reconciled ? `${wins} W / ${draws} D / ${losses} L` : null,
+    results: reconciled ? `${wins} W · ${draws} D · ${losses} L` : null,
     scoreRate: Number.isFinite(scoreRate) ? `${Math.round(scoreRate * 10) / 10}% score` : null,
     confidence: evidenceLabel(combined),
   };
@@ -253,6 +278,8 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   const keepDisplay = strength || strengthCandidates[0] || null;
   const trainEvidenceCandidates = [nextAction, trainingPriority, training?.source, problem, strength].filter(Boolean);
   const trainEvidenceSource = trainEvidenceCandidates.find((candidate) => openingGames(candidate) > 0) || trainEvidenceCandidates[0] || null;
+  const trainingChessEvidence = canonicalChessEvidence(trainingPriority || training?.source || nextAction);
+  const repairChessEvidence = canonicalChessEvidence(diagnosis || problem);
   return {
     score: model.health?.score !== null && model.health?.score !== undefined && Number.isFinite(Number(model.health.score)) ? Math.round(Number(model.health.score)) : null,
     scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Repertoire Health pending" : "Repertoire Health",
@@ -287,6 +314,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
       supportingGames: Array.isArray(diagnosis?.supportingGameIds) ? diagnosis.supportingGameIds.length : openingGames(problem),
       confidence: text(diagnosis?.confidence?.label || diagnosis?.confidenceLabel || diagnosis?.confidence_label) || evidenceLabel(problem),
       observed: observedSummary(problem),
+      chessEvidence: repairChessEvidence,
       source: problem,
     },
     trainNext: {
@@ -300,6 +328,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
       role: roleLabel(trainingPriority?.repertoireRole || nextAction?.repertoireRole || nextAction?.repertoire_role),
       observed: observedSummary(trainEvidenceSource),
       confidence: evidenceLabel(trainEvidenceSource),
+      chessEvidence: trainingChessEvidence,
     },
     experiment: experiment ? {
       opening: formatOpeningNameForDisplay(experiment.openingName || experiment.opening || experiment.name) || "Optional opening experiment",

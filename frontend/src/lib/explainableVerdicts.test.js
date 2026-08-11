@@ -23,10 +23,10 @@ test("strong KEEP and genuine REPAIR expose their canonical supporting evidence"
     authoritative: { establishedStrength: keep, primaryProblem: repair, nextTrainingAction: { type: "repair", opening: repair.opening, sample: repair.sample }, decisionId: "decision-17", trainingPriority: { diagnosisId: "diagnosis-9" } },
   });
 
-  assert.deepEqual(view.keep.observed, { games: 38, gamesLabel: "38 qualifying games", wins: 18, draws: 8, losses: 12, results: "18 W / 8 D / 12 L", scoreRate: "57.9% score", confidence: "Strong" });
+  assert.deepEqual(view.keep.observed, { games: 38, gamesLabel: "38 qualifying games", wins: 18, draws: 8, losses: 12, results: "18 W · 8 D · 12 L", scoreRate: "57.9% score", confidence: "Strong" });
   assert.equal(view.keep.label, "Keep");
   assert.equal(view.repair.observed.gamesLabel, "31 qualifying games");
-  assert.equal(view.repair.observed.results, "11 W / 6 D / 14 L");
+  assert.equal(view.repair.observed.results, "11 W · 6 D · 14 L");
   assert.equal(view.repair.confidence, "Strong");
   assert.equal(view.decisionId, "decision-17");
   assert.equal(view.diagnosisId, "diagnosis-9");
