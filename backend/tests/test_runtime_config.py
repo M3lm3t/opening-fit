@@ -87,6 +87,7 @@ def test_cors_origins_are_explicit_and_localhost_is_development_only():
     production = build_allowed_origins(production_env())
     assert "https://openingfit.com" in production
     assert "https://www.openingfit.com" in production
+    assert "https://localhost" in production
     assert "http://localhost:5173" not in production
     assert "http://localhost:5173" in build_allowed_origins({"APP_ENV": "development"})
     assert "https://unknown.example" not in production

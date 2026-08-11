@@ -29,6 +29,13 @@ def test_production_and_www_origins_are_allowed():
         assert response.headers["access-control-allow-credentials"] == "true"
 
 
+def test_secure_capacitor_origin_is_allowed_without_wildcards():
+    response = preflight("/api/import/chesscom/player", "https://localhost", "GET")
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://localhost"
+    assert response.headers["access-control-allow-credentials"] == "true"
+
+
 def test_localhost_is_allowed_in_development():
     response = preflight("/api/import/chesscom/player", "http://localhost:5173", "GET")
     assert response.status_code == 200

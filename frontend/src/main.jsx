@@ -8,9 +8,16 @@ import "./styles/iconControlAlignment.css";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthDataProvider } from "./context/AuthDataProvider";
 import ReferralCaptureNotice from "./components/ReferralCaptureNotice";
+import { initializeNativeAppShell } from "./lib/nativeAppShell.js";
+import { isWebApp } from "./lib/platform.js";
+import "./styles/nativeAppShell.css";
 
 const AdminReferralsPage = React.lazy(() => import("./components/AdminReferralsPage"));
 const isReferralAdminRoute = window.location.pathname === "/admin/referrals";
+
+void initializeNativeAppShell().catch((error) => {
+  console.warn("OpeningFit native shell initialization was incomplete.", error);
+});
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -27,7 +34,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 );
 
 
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
+if (isWebApp() && "serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   });

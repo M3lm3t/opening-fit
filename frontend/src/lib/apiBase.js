@@ -1,5 +1,8 @@
+import { isNativeApp } from "./platform.js";
+
 const DEFAULT_DEV_API_BASE_URL = "http://127.0.0.1:8001";
 const SAME_ORIGIN_API_BASE_URL = "";
+const NATIVE_API_BASE_URL = "https://www.openingfit.com";
 
 export function getApiBaseUrl() {
   const envBase = String(import.meta.env?.VITE_API_BASE_URL || "").trim();
@@ -7,6 +10,8 @@ export function getApiBaseUrl() {
   if (envBase) {
     return envBase.replace(/\/+$/, "");
   }
+
+  if (isNativeApp()) return NATIVE_API_BASE_URL;
 
   if (import.meta.env?.PROD) {
     return SAME_ORIGIN_API_BASE_URL;

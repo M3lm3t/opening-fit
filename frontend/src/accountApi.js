@@ -1,5 +1,6 @@
 import { supabase } from "./lib/supabaseClient";
 import { buildApiUrl, getApiBaseUrl } from "./lib/apiBase";
+import { openSubscriptionCheckout } from "./lib/billingNavigation.js";
 import { canStartCheckout, normaliseBillingInterval } from "./lib/premiumExperience";
 import { trackProductEvent } from "./lib/productAnalytics";
 
@@ -183,7 +184,7 @@ export async function startPremiumCheckout(user, billingInterval = "monthly") {
       hasUrl: true,
     });
   }
-  window.location.href = data.url;
+  await openSubscriptionCheckout(data.url);
 
   return data;
 }

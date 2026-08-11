@@ -1,0 +1,35 @@
+:root {
+  --of-safe-top: env(safe-area-inset-top, 0px);
+  --of-safe-right: env(safe-area-inset-right, 0px);
+  --of-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --of-safe-left: env(safe-area-inset-left, 0px);
+}
+
+html.of-native-app,
+html.of-native-app body,
+html.of-native-app #root {
+  min-height: 100%;
+  min-height: 100dvh;
+}
+
+html.of-native-app body {
+  overscroll-behavior-y: none;
+}
+
+html.of-native-app .mobileBottomNav {
+  bottom: 0 !important;
+  min-height: calc(var(--of-bottom-nav-height, 72px) + var(--of-safe-bottom)) !important;
+  padding-bottom: var(--of-safe-bottom) !important;
+}
+
+html.of-native-app .page,
+html.of-native-app .appShell {
+  min-height: 100dvh;
+}
+
+@media (max-width: 760px) {
+  html.of-native-app .page,
+  html.of-native-app .appShell {
+    padding-bottom: calc(var(--of-bottom-nav-clearance, 96px) + var(--of-safe-bottom));
+  }
+}

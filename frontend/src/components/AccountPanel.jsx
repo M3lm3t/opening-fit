@@ -16,6 +16,10 @@ import { trackProductEvent } from "../lib/productAnalytics";
 import ReferralCodeEntry from "./ReferralCodeEntry";
 import { SUPPORT_EMAIL, supportMailto } from "../lib/supportConfig.js";
 import { ACCOUNT_SAVE_EXPLANATION, GOOGLE_AUTH_EXPLANATION, OPENINGFIT_PLUS_NAME, subscriptionPresentation } from "../lib/accountExperience.js";
+import { getAuthRedirectUrl } from "../lib/authRedirect.js";
+import { openExternalUrl } from "../lib/externalNavigation.js";
+import { isNativeApp } from "../lib/platform.js";
+import { openBillingManagement } from "../lib/billingNavigation.js";
 
 const EMPTY_PROFILE = {
   chesscom_username: "",
@@ -26,25 +30,9 @@ const MIN_PASSWORD_LENGTH = 6;
 const AUTH_REQUEST_TIMEOUT_MS = 12000;
 const SUPPORT_MAILTO = supportMailto("OpeningFit support");
 const DELETE_REQUEST_MAILTO = supportMailto("OpeningFit account deletion request");
-const PRODUCTION_AUTH_ORIGIN = "https://www.openingfit.com";
 const GOOGLE_SIGN_IN_ENABLED = true;
 const GOOGLE_PROVIDER_UNAVAILABLE_MESSAGE =
   "Google sign-in is taking too long at the auth provider. Email login and login links are still available.";
-
-function getStableAuthRedirectTo() {
-  if (typeof window === "undefined") return `${PRODUCTION_AUTH_ORIGIN}/account`;
-
-  const { hostname, origin } = window.location;
-  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
-  const authOrigin =
-    isLocalhost || hostname.endsWith(".localhost")
-      ? origin
-      : hostname === "www.openingfit.com" || hostname === "openingfit.com" || hostname.endsWith(".vercel.app")
-        ? PRODUCTION_AUTH_ORIGIN
-        : origin;
-
-  return `${authOrigin}/account`;
-}
 
 async function withAuthTimeout(request, message = "Supabase auth is taking too long. Please try again shortly.") {
   let timeoutId;
@@ -286,7 +274,7 @@ export default function AccountPanel({ variant = "floating",
         supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
-            redirectTo: getStableAuthRedirectTo(),
+            redirectTo: getAuthRedirectUrl(),
             skipBrowserRedirect: true,
             queryParams: {
               prompt: "select_account",
@@ -303,6 +291,12 @@ export default function AccountPanel({ variant = "floating",
       }
 
       if (data?.url) {
+        if (isNativeApp()) {
+          await openExternalUrl(data.url);
+          setGoogleRedirectUrl("");
+          setStatus("Complete Google sign-in in the secure browser, then return to OpeningFit.");
+          return;
+        }
         const googleWindow = window.open(data.url, "_blank", "noopener,noreferrer");
 
         if (googleWindow) {
@@ -352,7 +346,7 @@ export default function AccountPanel({ variant = "floating",
         supabase.auth.signInWithOtp({
           email: email.trim(),
           options: {
-            emailRedirectTo: getStableAuthRedirectTo(),
+            emailRedirectTo: getAuthRedirectUrl(),
             shouldCreateUser: true,
           },
         })
@@ -439,7 +433,7 @@ export default function AccountPanel({ variant = "floating",
                 password,
                 displayName: cleanDisplayName || cleanUsername || cleanEmail,
                 username: cleanUsername,
-                redirectTo: getStableAuthRedirectTo(),
+                redirectTo: getAuthRedirectUrl(),
               })
             )
           : await withAuthTimeout(signInWithEmailPassword({ email: cleanEmail, password }));
@@ -571,7 +565,7 @@ export default function AccountPanel({ variant = "floating",
     void trackProductEvent("subscription_manage_clicked", { authenticated: true, source: "account_subscription" });
     try {
       const portalUrl = await createSubscriptionPortalSession(user);
-      window.location.assign(portalUrl);
+      await openBillingManagement(portalUrl);
     } catch (error) {
       console.error("OpeningFit subscription portal failed", error);
       const message = error?.message || "We could not open subscription management. Please try again.";

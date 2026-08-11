@@ -36,6 +36,10 @@ lerna-debug.log*
 frontend/.env
 frontend/.env.local
 frontend/.env.*.local
+frontend/android/local.properties
+frontend/android/app/google-services.json
+*.jks
+*.keystore
 backend/.env
 backend/.env.local
 backend/.env.*.local

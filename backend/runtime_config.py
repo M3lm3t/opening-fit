@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 PRODUCTION_ORIGINS = (
     "https://openingfit.com",
     "https://www.openingfit.com",
+    "https://localhost",
 )
 DEVELOPMENT_ORIGINS = (
     "http://localhost:5173",
@@ -90,7 +91,7 @@ def build_allowed_origins(env: Optional[Mapping[str, str]] = None) -> list[str]:
     source = env if env is not None else os.environ
     configured = configured_cors_origins(source)
     if is_production_environment(source):
-        return configured
+        return list(dict.fromkeys([*PRODUCTION_ORIGINS, *configured]))
     return list(dict.fromkeys([*DEVELOPMENT_ORIGINS, *PRODUCTION_ORIGINS, *configured]))
 
 

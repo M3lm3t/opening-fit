@@ -1,0 +1,21 @@
+{
+  "appId": "com.openingfit.app",
+  "appName": "OpeningFit",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 900,
+      "backgroundColor": "#f7f8faff",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "DARK",
+      "backgroundColor": "#f7f8fa"
+    }
+  }
+}
