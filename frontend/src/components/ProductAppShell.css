@@ -85,9 +85,7 @@
 
 .appReportPage {
   min-height: 100vh;
-  background:
-    linear-gradient(180deg, rgba(56, 189, 248, 0.06), transparent 260px),
-    var(--of-shell-bg);
+  background: var(--of-shell-bg);
   color: var(--of-shell-text);
 }
 
@@ -695,7 +693,9 @@
 .decisionReportHeader h1 { margin: 6px 0 10px; color: var(--of-color-text); font-size: clamp(1.35rem, 3vw, 2rem); overflow-wrap: anywhere; }
 .decisionReportMeta { display: flex; flex-wrap: wrap; gap: 7px; }
 .decisionReportMeta span,
-.reportDecisionEvidence span { border: 1px solid var(--of-color-border); border-radius: 999px; padding: 5px 9px; background: var(--of-color-surface-muted); color: var(--of-color-text-soft); font-size: 0.78rem; font-weight: 800; }
+.reportDecisionEvidence span { padding: 2px 0; color: var(--of-color-text-soft); font-size: 0.78rem; font-weight: 650; }
+.decisionReportMeta span:not(:last-child)::after,
+.reportDecisionEvidence span:not(:last-child)::after { content: "\00b7"; margin-left: 7px; color: var(--of-color-border-strong); }
 .coachDecisionVerdict { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr); gap: 22px; border-left: 4px solid var(--of-color-info); }
 .coachDecisionVerdict h2,
 .reportDecisionSection h2,
@@ -719,11 +719,11 @@
 .costlyIssuesSection > header,
 .decisionRepertoireMap > header { margin-bottom: 16px; }
 .reportDecisionGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.reportDecisionCard { display: grid; align-content: start; gap: 9px; min-width: 0; border: 1px solid var(--of-color-border); border-top: 4px solid var(--of-color-neutral); border-radius: var(--of-radius-lg); padding: 16px; background: var(--of-color-surface-muted); }
-.reportDecisionCard--keep { border-top-color: var(--of-color-success); }
-.reportDecisionCard--repair { border-top-color: var(--of-color-warning); }
-.reportDecisionCard--reduce { border-top-color: var(--of-color-error); }
-.reportDecisionLabel { color: var(--of-color-muted); font-size: 0.72rem; font-weight: 950; text-transform: uppercase; letter-spacing: 0.06em; }
+.reportDecisionCard { display: grid; align-content: start; gap: 9px; min-width: 0; border: 0; border-left: 3px solid var(--of-color-neutral); border-radius: var(--of-radius-md); padding: 16px; background: var(--of-color-surface-muted); }
+.reportDecisionCard--keep { border-left-color: var(--of-color-success); }
+.reportDecisionCard--repair { border-left-color: var(--of-color-warning); }
+.reportDecisionCard--reduce { border-left-color: var(--of-color-error); }
+.reportDecisionLabel { color: var(--of-color-muted); font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
 .reportDecisionCard h3 { margin: 0; color: var(--of-color-text); font-size: 1.12rem; overflow-wrap: anywhere; }
 .reportDecisionCard > strong { color: var(--of-color-text-soft); font-size: 0.82rem; }
 .reportDecisionCard > p { margin: 0; color: var(--of-color-text-soft); line-height: 1.48; }

@@ -4,39 +4,40 @@
 .primaryReportExperiment,
 .primaryReportConfidence {
   min-width: 0;
-  border: 1px solid var(--of-border, #d8dee8);
-  border-radius: var(--of-radius-lg, 16px);
+  border: 0;
+  border-radius: var(--of-radius-md, 12px);
   background: var(--of-surface, #fff);
 }
-.primaryReportHealth { display: grid; grid-template-columns: minmax(190px, .65fr) minmax(0, 1.35fr); gap: 20px; align-items: center; padding: clamp(18px, 3vw, 28px); }
+.primaryReportHealth { display: grid; grid-template-columns: minmax(190px, .65fr) minmax(0, 1.35fr); gap: 20px; align-items: center; padding: clamp(18px, 3vw, 28px); border: 1px solid var(--of-border, #d8dee8); }
 .primaryReportHealth span,
 .primaryReportCommand > span,
 .primaryReportExperiment > span { color: var(--of-muted, #64748b); font-size: .73rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
 .primaryReportHealth h2 { margin: 4px 0; font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1; }
-.primaryReportHealth strong { font-size: .86rem; }
+.primaryReportHealth strong { font-size: .86rem; font-weight: 700; }
 .primaryReportHealthSummary { margin: 8px 0; color: var(--of-muted, #64748b); font-size: .88rem; line-height: 1.45; }
 .primaryReportHealthExplanation { min-width: 0; }
 .primaryReportHealthExplanation p { margin: 0; line-height: 1.5; }
 .primaryReportHealthExplanation p + p { margin-top: 8px; color: var(--of-muted, #64748b); }
 .primaryReportHealthExplanation small { display: block; margin-top: 10px; color: var(--of-muted, #64748b); }
 .primaryReportCommandGrid { min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.primaryReportCommand { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; padding: clamp(15px, 2vw, 20px); overflow: hidden; }
-.primaryReportCommand--repair.isActionable { border-width: 2px; border-color: color-mix(in srgb, var(--of-warning, #d97706) 52%, var(--of-border, #d8dee8)); }
-.primaryReportCommand--repair.isCautious { border-style: dashed; }
-.primaryReportCommand--train { background: color-mix(in srgb, var(--of-accent, #2563eb) 7%, var(--of-surface, #fff)); }
+.primaryReportCommand { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; padding: clamp(15px, 2vw, 20px); overflow: hidden; border-left: 3px solid var(--of-border, #d8dee8); background: var(--of-surface-muted, #f8fafc); }
+.primaryReportCommand--keep { border-left-color: var(--of-success, #15803d); }
+.primaryReportCommand--repair.isActionable { border-left-color: var(--of-warning, #d97706); }
+.primaryReportCommand--repair.isCautious { border-left-color: var(--of-muted, #64748b); }
+.primaryReportCommand--train { border-left-color: var(--of-accent, #2563eb); }
 .primaryReportCommand h3 { margin: 0; font-size: clamp(1.05rem, 2vw, 1.35rem); overflow-wrap: anywhere; }
-.primaryReportCommand > strong { font-size: .82rem; }
+.primaryReportCommand > strong { font-size: .82rem; font-weight: 700; }
 .primaryReportCommand p { margin: 0; color: var(--of-muted, #64748b); font-size: .86rem; line-height: 1.5; overflow-wrap: anywhere; }
 .primaryReportDecisionEvidence { width: 100%; display: grid; gap: 3px; padding: 8px 0; border-top: 1px solid var(--of-border, #d8dee8); border-bottom: 1px solid var(--of-border, #d8dee8); }
 .primaryReportDecisionEvidence.isCompact { padding: 6px 0; }
-.primaryReportDecisionEvidence p { color: var(--of-text, #0f172a) !important; font-weight: 800; }
-.primaryReportDecisionEvidence small { color: var(--of-muted, #64748b); font-weight: 800; }
+.primaryReportDecisionEvidence p { color: var(--of-text, #0f172a) !important; font-weight: 700; }
+.primaryReportDecisionEvidence small { color: var(--of-muted, #64748b); font-weight: 650; }
 .primaryReportCommand small { color: var(--of-muted, #64748b); line-height: 1.4; }
 .primaryReportCommand button { min-height: 44px; margin-top: auto; }
-.primaryReportExperiment { display: grid; gap: 5px; padding: 14px 16px; background: var(--of-surface-muted, #f8fafc); }
+.primaryReportExperiment { display: grid; gap: 5px; padding: 14px 16px; border-left: 3px solid var(--of-muted, #64748b); background: var(--of-surface-muted, #f8fafc); }
 .primaryReportExperiment p { margin: 0; color: var(--of-muted, #64748b); font-size: .84rem; line-height: 1.45; }
 .primaryReportExperiment small { color: var(--of-muted, #64748b); font-weight: 800; }
-.primaryReportConfidence { padding: 13px 16px; background: color-mix(in srgb, var(--of-warning, #d97706) 7%, var(--of-surface, #fff)); }
+.primaryReportConfidence { padding: 13px 16px; border-left: 3px solid var(--of-muted, #64748b); background: var(--of-surface-muted, #f8fafc); }
 .primaryReportConfidence p { margin: 4px 0 0; color: var(--of-muted, #64748b); line-height: 1.45; }
 .primaryReportMore { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .primaryReportMore button { min-height: 44px; }
@@ -44,7 +45,8 @@
 .reportGameCountSummary { padding: 14px 16px; border: 1px solid var(--of-border, #d8dee8); border-radius: var(--of-radius-md, 12px); background: var(--of-surface, #fff); }
 .reportGameCountSummary > p { margin: 0; line-height: 1.55; }
 .reportGameCountCompact { display: flex; flex-wrap: wrap; gap: 8px; }
-.reportGameCountCompact > span { padding: 6px 10px; border-radius: 8px; background: var(--of-surface-muted, #f1f5f9); color: var(--of-muted, #64748b); font-size: .8rem; }
+.reportGameCountCompact > span { padding: 2px 0; color: var(--of-muted, #64748b); font-size: .8rem; }
+.reportGameCountCompact > span:not(:last-child)::after { content: "\00b7"; margin-left: 8px; color: var(--of-border-strong, #94a3b8); }
 .reportGameCountCompact strong { color: var(--of-text, #0f172a); }
 .reportGameCountSummary details { margin-top: 8px; }
 .reportGameCountSummary summary { min-height: 44px; display: flex; align-items: center; color: var(--of-muted, #64748b); cursor: pointer; font-weight: 800; }

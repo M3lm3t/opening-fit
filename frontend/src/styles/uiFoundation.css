@@ -173,20 +173,14 @@ body,
 
 body,
 .page {
-  background:
-    radial-gradient(circle at 18% 8%, rgba(73, 168, 255, 0.14), transparent 28rem),
-    radial-gradient(circle at 88% 2%, rgba(243, 201, 105, 0.08), transparent 22rem),
-    linear-gradient(180deg, var(--of-color-page), var(--of-color-page-2) 46%, var(--background, #020617));
+  background: var(--of-color-page);
   color: var(--of-color-text-soft);
 }
 
 body.light,
 .page.light,
 [data-theme="light"] .page {
-  background:
-    radial-gradient(circle at 12% 0%, rgba(37, 99, 235, 0.1), transparent 26rem),
-    radial-gradient(circle at 90% 4%, rgba(243, 201, 105, 0.12), transparent 22rem),
-    linear-gradient(180deg, var(--of-color-page) 0%, var(--of-color-page-2) 46%, #ffffff 100%);
+  background: var(--of-color-page);
 }
 
 .of-app-shell,

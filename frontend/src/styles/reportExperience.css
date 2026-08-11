@@ -123,7 +123,7 @@
   border: 1px solid var(--of-border, var(--color-border, rgba(148, 163, 184, 0.28)));
   border-radius: var(--of-radius-lg, 16px);
   background: var(--of-surface, var(--card-bg, #fff));
-  box-shadow: var(--of-shadow-sm, 0 10px 28px rgba(15, 23, 42, 0.07));
+  box-shadow: none;
   overflow: hidden;
 }
 
@@ -180,6 +180,23 @@
   white-space: normal;
 }
 
+.finalReportFlow .currentReportMetaInline span,
+.finalReportFlow .commandCentreMeta span {
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  font-weight: 650;
+}
+
+.finalReportFlow .currentReportMetaInline span:not(:last-child)::after,
+.finalReportFlow .commandCentreMeta span:not(:last-child)::after {
+  content: "\00b7";
+  margin-left: 8px;
+  color: var(--of-border-strong, #94a3b8);
+}
+
 .finalReportFlow .commandCentreScore {
   min-width: 0;
   display: grid;
@@ -231,7 +248,7 @@
 .finalReportFlow .commandCentreOpeningGrid article,
 .finalReportFlow .reportTrainingPreviewGrid article {
   min-width: 0;
-  border: 1px solid var(--of-border, var(--color-border, rgba(148, 163, 184, 0.28)));
+  border: 0;
   border-radius: var(--of-radius-md, 12px);
   background: var(--of-surface-raised, var(--color-surface-raised, #fff));
   box-shadow: none;
@@ -240,7 +257,8 @@
 .finalReportFlow .reportDashboardStat {
   display: grid;
   gap: 4px;
-  padding: 13px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--of-border, var(--color-border, rgba(148, 163, 184, 0.28)));
 }
 
 .finalReportFlow .reportDashboardStat strong {
