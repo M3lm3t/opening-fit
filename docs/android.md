@@ -110,6 +110,8 @@ Repository-side Android App Link intent filters exist for `openingfit.com` and `
 
 The placeholder above is documentation only and must never be deployed. Verify association with Android Studio/App Links Assistant and a Play-signed build before describing App Links as production verified.
 
+The checked-in association currently contains the local Android debug certificate solely for ADB/device authentication testing. Before a Play release, add the Play App Signing SHA-256 certificate fingerprint to the same `com.openingfit.app` statement and verify the Play-installed build. Do not remove a still-needed development fingerprint until debug callback testing no longer uses it.
+
 ## Navigation and browser boundaries
 
 Android Back closes the top visible dialog first, then uses existing browser history, and exits only when no internal WebView history remains. HTTPS links intentionally leaving the bundled application use Capacitor Browser. Stripe checkout and account management therefore open securely outside the WebView; web behavior continues to use normal browser navigation.
