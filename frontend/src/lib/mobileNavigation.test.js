@@ -12,6 +12,22 @@ test("logged-out navigation offers Pricing only after auth resolution", () => {
   assert.deepEqual(labels(ready(resolvePremiumEntitlement(), false)), ["Report", "Repertoire", "Train", "Progress", "Pricing"]);
 });
 
+test("native logged-out navigation always exposes the existing Account destination", () => {
+  assert.deepEqual(
+    labels({ authenticated: false, entitlementState: "loading", nativeApp: true }),
+    ["Report", "Repertoire", "Train", "Progress", "Account"],
+  );
+  assert.deepEqual(
+    labels({ ...ready(resolvePremiumEntitlement(), false), nativeApp: true }),
+    ["Report", "Repertoire", "Train", "Progress", "Account"],
+  );
+});
+
+test("native logged-in navigation keeps the same Account destination", () => {
+  const premium = resolvePremiumEntitlement([{ access_type: "lifetime", status: "active" }]);
+  assert.equal(labels({ ...ready(premium), nativeApp: true }).at(-1), "Account");
+});
+
 test("a logged-in free user receives Plus and expired access returns to Plus", () => {
   assert.equal(labels(ready(resolvePremiumEntitlement())).at(-1), "Plus");
   const expired = resolvePremiumEntitlement([{ access_type: "annual_subscription", status: "expired", current_period_end: "2025-01-01T00:00:00Z" }]);
@@ -74,4 +90,8 @@ test("the app passes protected entitlement state without preview access", () => 
   assert.doesNotMatch(render, /isPremium|Preview/);
   assert.match(app, /profileError \|\| restoreError\s*\? "error"/);
   assert.match(component, /buildMobileNavigationItems/);
+  assert.match(component, /nativeApp: isNativeApp\(\)/);
+  assert.match(component, /view: "account", path: "\/account", target: "profile-account"/);
+  assert.match(app, /<AccountPanel variant="screen"/);
+  assert.equal((component.match(/AccountPanel/g) || []).length, 0);
 });

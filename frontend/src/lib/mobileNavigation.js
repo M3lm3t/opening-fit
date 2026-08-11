@@ -10,8 +10,16 @@ const CORE_MOBILE_NAVIGATION = Object.freeze([
  * deliberately does not infer access from Stripe labels, preview flags, URLs,
  * or browser state.
  */
-export function buildMobileNavigationItems({ authenticated = false, entitlement = null, entitlementState = "loading" } = {}) {
+export function buildMobileNavigationItems({ authenticated = false, entitlement = null, entitlementState = "loading", nativeApp = false } = {}) {
   const items = CORE_MOBILE_NAVIGATION.map((item) => ({ ...item }));
+  if (nativeApp) {
+    items.push({
+      key: "account",
+      label: "Account",
+      activeViews: ["profile", "account", "login", "history"],
+    });
+    return items;
+  }
   if (entitlementState !== "ready") return items;
 
   if (entitlement?.hasPremiumAccess) {

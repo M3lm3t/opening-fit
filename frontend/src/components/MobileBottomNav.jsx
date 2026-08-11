@@ -1,6 +1,7 @@
 import { BookOpenCheck, ChartNoAxesCombined, Crown, Dumbbell, TrendingUp, UserRound } from "lucide-react";
 import { getAppSection } from "../appNavigation";
 import { buildMobileNavigationItems } from "../lib/mobileNavigation.js";
+import { isNativeApp } from "../lib/platform.js";
 
 const ICONS = Object.freeze({
   report: ChartNoAxesCombined,
@@ -24,6 +25,7 @@ export default function MobileBottomNav({
     authenticated: Boolean(accountUser?.id),
     entitlement,
     entitlementState,
+    nativeApp: isNativeApp(),
   }).map((item) => ({ ...item, Icon: ICONS[item.key] }));
 
   function handleClick(event, item) {
