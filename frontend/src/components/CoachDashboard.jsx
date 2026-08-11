@@ -18,6 +18,8 @@ import SessionSummary from "./SessionSummary";
 import RatingGoalCard from "./RatingGoalCard.jsx";
 import { buildReportDecisionModel } from "../lib/reportDecisionModel.js";
 import { formatTrainingPriorityTitle } from "../lib/trainingPriority.js";
+import { buildTodayPrimaryAction, todayGoalContext } from "../lib/todayPrimaryAction.js";
+import ChessPositionBoard from "./ChessPositionBoard.jsx";
 import "./CoachDashboard.css";
 
 function asArray(value) {
@@ -420,6 +422,26 @@ function TodayTrainingPlan({ tasks, progress, data, onTaskAction, onCompleteTask
   );
 }
 
+function TodayPrimaryAction({ action, goal, onAction, onComplete }) {
+  const goalContext = todayGoalContext(goal);
+  if (action.completed) {
+    return <section className="todayPrimaryAction isComplete" aria-labelledby="today-primary-title"><p className="coachEyebrow">Today</p><h1 id="today-primary-title">Done for today</h1><p>You completed the current evidence-backed task. Keep playing; OpeningFit will only add another task when one already exists in your report.</p>{goalContext ? <small className="todayGoalContext">Goal context: {goalContext}</small> : null}</section>;
+  }
+  if (action.kind === "calm") {
+    return <section className="todayPrimaryAction isCalm" aria-labelledby="today-primary-title"><p className="coachEyebrow">Today</p><h1 id="today-primary-title">{action.title}</h1><p>{action.explanation}</p>{goalContext ? <small className="todayGoalContext">Goal context: {goalContext}</small> : null}</section>;
+  }
+  return (
+    <section className={`todayPrimaryAction todayPrimaryAction--${action.kind}`} aria-labelledby="today-primary-title">
+      <header><p className="coachEyebrow">Today</p><h1 id="today-primary-title">{action.title}</h1>{action.opening ? <strong>{action.opening}</strong> : null}{action.role ? <small>{action.role}</small> : null}</header>
+      <p>{action.explanation}</p>
+      {action.chessEvidence?.positionFen ? <div className="todayPrimaryPosition"><ChessPositionBoard position={action.chessEvidence.positionFen} orientation={action.chessEvidence.orientation} interactive={false} /><div><strong>Position to train</strong>{action.chessEvidence.moveLine ? <code>{action.chessEvidence.moveLine}</code> : null}</div></div> : action.chessEvidence?.moveLine ? <code className="todayPrimaryMoveLine">{action.chessEvidence.moveLine}</code> : null}
+      {action.why ? <details className="todayPrimaryWhy"><summary>Why this matters</summary><p>{action.why}</p></details> : null}
+      {goalContext ? <small className="todayGoalContext">Goal context: {goalContext}</small> : null}
+      <div className="todayPrimaryActions"><button type="button" className="primaryBtn" onClick={() => onAction(action)}>{action.cta}</button><button type="button" className="todayCompleteAction" onClick={() => onComplete(action)}>Mark complete</button></div>
+    </section>
+  );
+}
+
 function DailyProgressCard({ progress }) {
   return (
     <section className="coachDashboardCard dailyProgressCard" aria-label="Daily progress">
@@ -646,51 +668,21 @@ export default function CoachDashboard({
   const gameCount = getGameCount(data || {}, openings);
   const partial = Boolean(data) && !openings.length;
   const insufficient = Boolean(data) && gameCount > 0 && gameCount < 5;
-  const model = buildDashboardModel({ data, fitData, reportHistory, openingFitUserState });
   const [optimisticActivity, setOptimisticActivity] = useState([]);
   const [sessionSummary, setSessionSummary] = useState(null);
   const activity = useMemo(
     () => [...optimisticActivity, ...asArray(activityHistory), ...asArray(openingFitUserState)],
     [activityHistory, openingFitUserState, optimisticActivity]
   );
-  const todayTasks = useMemo(
-    () => buildTodayTasks({ data, fitData, reportHistory, activity }),
-    [data, fitData, reportHistory, activity]
-  );
-  const dailyProgress = buildDailyProgress(todayTasks);
-  const todayHeader = buildTodayHeader({ profile, data, reportHistory, activity });
-  const streak = buildStreak(activity);
   const ratingGoal = buildRatingGoalModel({ profile, settings, activity, data });
-  const changes = buildWhatChanged({ data, reportHistory });
-  const recentActivity = buildRecentActivity(activity);
-  const xp = buildXpProgress(activity);
-
-  if (!data || partial || insufficient) {
-    return (
-      <EmptyCoachDashboard
-        signedIn={Boolean(user)}
-        partial={partial}
-        insufficient={insufficient}
-        onAnalyse={onAnalyse}
-        onReport={onReport}
-      />
-    );
-  }
-
-  const startTask = (target = null) => {
-    if (target) {
-      onPractice?.(target);
-      return;
-    }
-    if (model.task.opening) {
-      onPractice?.(model.task.opening);
-      return;
-    }
-    onAnalyse?.();
-  };
+  const todayAction = useMemo(() => buildTodayPrimaryAction({ decisionModel: data && !partial && !insufficient ? buildReportDecisionModel(data, fitData || {}, reportHistory) : null, activity, hasReport: Boolean(data) }), [activity, data, fitData, insufficient, partial, reportHistory]);
   const handleTaskAction = (task) => {
+    if (task?.route === "repertoire") {
+      onRecommendations?.();
+      return;
+    }
     if (task?.route === "practice") {
-      onPractice?.(task.opening || model.task.opening);
+      onPractice?.(task.target || task.opening);
       return;
     }
     if (task?.route === "report") {
@@ -714,119 +706,34 @@ export default function CoachDashboard({
         dedupe_key: `today_task_completed:${localDateKey()}:${task.id}`,
       },
     };
-    const nextCompleted = todayTasks.filter((item) => item.completed || item.id === task.id).length;
-    const willCompletePlan = nextCompleted >= todayTasks.length;
-    const bonusEvent = willCompletePlan
-      ? {
+    const bonusEvent = {
           id: `optimistic:today-plan:${localDateKey()}`,
           type: "today_plan_completed",
           created_at: new Date().toISOString(),
           points: xpForEvent("today_plan_completed"),
           payload: {
             training_date: localDateKey(),
-            tasks_completed: todayTasks.length,
+            tasks_completed: 1,
             points: xpForEvent("today_plan_completed"),
             dedupe_key: `today_plan_completed:${localDateKey()}`,
           },
-        }
-      : null;
+        };
     setOptimisticActivity((items) => [event, ...items.filter((item) => item.payload?.task_id !== task.id)]);
     try {
       await onRecordActivity?.("today_task_completed", {
         ...event.payload,
         points: xpForEvent("today_task_completed"),
       });
-      if (bonusEvent) {
-        setOptimisticActivity((items) => [bonusEvent, ...items.filter((item) => item.payload?.dedupe_key !== bonusEvent.payload.dedupe_key)]);
-        await onRecordActivity?.("today_plan_completed", bonusEvent.payload);
-        setSessionSummary({
-          title: "Today's progress",
-          lines: [`${todayTasks.length} tasks completed`, "Daily streak maintained", `${xpForEvent("today_plan_completed")} bonus XP earned`],
-        });
-      }
+      setOptimisticActivity((items) => [bonusEvent, ...items.filter((item) => item.payload?.dedupe_key !== bonusEvent.payload.dedupe_key)]);
+      await onRecordActivity?.("today_plan_completed", bonusEvent.payload);
+      setSessionSummary({ title: "Today's progress", lines: ["Current task completed", "Daily streak maintained", `${xpForEvent("today_plan_completed")} bonus XP earned`] });
     } catch (error) {
       console.warn("OpeningFit could not save daily task completion.", error);
     }
   };
-  const saveRatingGoal = async (goal) => {
-    const payload = {
-      ratingGoal: {
-        ...goal,
-        updatedAt: new Date().toISOString(),
-      },
-    };
-    try {
-      await onSaveSettings?.({ preferences: payload });
-      await onRecordActivity?.("rating_goal_updated", {
-        ...payload.ratingGoal,
-        dedupe_key: `rating_goal_updated:${localDateKey()}`,
-      });
-    } catch (error) {
-      console.warn("OpeningFit could not save rating goal.", error);
-    }
-  };
-
   return (
     <section className="coachDashboard" id="coach-dashboard" aria-label="OpeningFit Today">
-      <TodayHeader
-        header={{ ...todayHeader, streak }}
-        xp={xp}
-        onPrimary={() => handleTaskAction(todayTasks.find((task) => !task.completed) || todayTasks[0])}
-        onAnalyse={onAnalyse}
-      />
-      <div className="coachDashboardLayout">
-        <div className="coachDashboardMain">
-          <TodayTrainingPlan
-            tasks={todayTasks}
-            progress={dailyProgress}
-            data={data}
-            onTaskAction={handleTaskAction}
-            onCompleteTask={completeTask}
-          />
-          <DailyProgressCard progress={dailyProgress} />
-          <WhatChangedCard changes={changes} />
-          <WeeklyProgressCard progress={model.progress} onProgress={onProgress} />
-          <NextBestAction
-            title={dailyProgress.complete ? "Come back tomorrow for a fresh plan" : "Complete today's next useful action"}
-            detail={dailyProgress.complete ? "Your daily plan is done. Review the report if you want more context." : "The next action updates as tasks are completed."}
-            primary={{
-              label: dailyProgress.complete ? "Open full report" : (todayTasks.find((task) => !task.completed)?.cta || "Continue"),
-              onClick: dailyProgress.complete ? onReport : () => handleTaskAction(todayTasks.find((task) => !task.completed) || todayTasks[0]),
-            }}
-            secondary={[
-              { label: "Practise", onClick: () => startTask() },
-              { label: "Refresh analysis", onClick: onAnalyse },
-            ]}
-          />
-        </div>
-        <div className="coachDashboardSide">
-          <RatingGoalCard goal={ratingGoal} onSaveGoal={saveRatingGoal} onProgress={onProgress} />
-          <RecentActivityCard items={recentActivity} />
-          <CoachVerdictCard model={model} onPrimary={startTask} />
-          <OpeningStrengthCard opening={model.strongest} onPractice={onPractice} />
-          <OpeningLeakCard opening={model.leak} onLearnMore={onReport} />
-          <RepertoireFocusCard focus={model.repertoire} onOpen={onRecommendations} />
-          <OpeningScoreBreakdown
-            data={data}
-            fitData={fitData}
-            reportHistory={reportHistory}
-            openingFitUserState={openingFitUserState}
-            onAction={onScoreAction}
-          />
-          <OpeningMilestones
-            data={data}
-            fitData={fitData}
-            reportHistory={reportHistory}
-            openingFitUserState={openingFitUserState}
-          />
-        </div>
-      </div>
-      <div className="coachDashboardFooterActions" aria-label="Dashboard secondary actions">
-        <button type="button" className="secondaryBtn" onClick={onReport}>Open full report</button>
-        <button type="button" className="secondaryBtn" onClick={onTraining}>Training plan</button>
-        {onJourney ? <button type="button" className="secondaryBtn" onClick={onJourney}>Journey</button> : null}
-        <button type="button" className="secondaryBtn" onClick={onAnalyse}>Refresh analysis</button>
-      </div>
+      <TodayPrimaryAction action={todayAction} goal={ratingGoal} onAction={handleTaskAction} onComplete={completeTask} />
       <SessionSummary
         summary={sessionSummary}
         onDismiss={() => setSessionSummary(null)}

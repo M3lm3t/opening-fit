@@ -368,6 +368,52 @@
   background: linear-gradient(90deg, #22c55e, #38bdf8);
 }
 
+/* Today has one job: present the current canonical action without becoming a report dashboard. */
+.todayPrimaryAction {
+  width: min(100%, 820px);
+  display: grid;
+  gap: 14px;
+  margin-inline: auto;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--of-color-border);
+  border-left: 3px solid var(--of-color-info);
+  border-radius: var(--of-radius-md);
+  background: var(--of-color-surface);
+}
+
+.todayPrimaryAction--repair { border-left-color: var(--of-color-warning); }
+.todayPrimaryAction--coverage,
+.todayPrimaryAction.isCalm,
+.todayPrimaryAction.isComplete { border-left-color: var(--of-color-neutral); }
+.todayPrimaryAction header { display: grid; gap: 4px; }
+.todayPrimaryAction h1 { margin: 0; color: var(--of-color-text); font-size: clamp(1.7rem, 4vw, 2.5rem); line-height: 1.08; }
+.todayPrimaryAction header > strong { color: var(--of-color-text); font-size: 1.12rem; }
+.todayPrimaryAction header > small,
+.todayPrimaryAction > p,
+.todayGoalContext { color: var(--of-color-muted); }
+.todayPrimaryAction > p { max-width: 64ch; margin: 0; line-height: 1.55; }
+.todayPrimaryPosition { display: grid; grid-template-columns: minmax(220px, 320px) minmax(0, 1fr); gap: 16px; align-items: center; }
+.todayPrimaryPosition .chessPositionBoard { width: min(100%, 320px); aspect-ratio: 1; }
+.todayPrimaryPosition > div { display: grid; gap: 7px; }
+.todayPrimaryPosition code,
+.todayPrimaryMoveLine { color: var(--of-color-text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; line-height: 1.5; overflow-wrap: anywhere; }
+.todayPrimaryWhy { border-top: 1px solid var(--of-color-border); padding-top: 10px; }
+.todayPrimaryWhy summary { min-height: 40px; display: flex; align-items: center; cursor: pointer; color: var(--of-color-text); font-weight: 700; }
+.todayPrimaryWhy p { margin: 4px 0 0; color: var(--of-color-muted); line-height: 1.5; }
+.todayGoalContext { font-weight: 650; }
+.todayPrimaryActions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.todayPrimaryActions .primaryBtn { min-height: 44px; }
+.todayCompleteAction { min-height: 40px; border: 0; padding: 0 4px; background: transparent; color: var(--of-color-muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+@media (max-width: 640px) {
+  .todayPrimaryAction { gap: 12px; padding: 16px; }
+  .todayPrimaryPosition { grid-template-columns: 1fr; }
+  .todayPrimaryPosition .chessPositionBoard { width: min(100%, 320px); }
+  .todayPrimaryActions { display: grid; }
+  .todayPrimaryActions .primaryBtn { width: 100%; }
+  .todayCompleteAction { justify-self: start; }
+}
+
 .ratingGoalEditor {
   display: grid;
   gap: 10px;

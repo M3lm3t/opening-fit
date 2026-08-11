@@ -34,7 +34,6 @@ import ResumeTrainingPrompt from "./components/ResumeTrainingPrompt";
 import TodayTrainingCard from "./components/TodayTrainingCard";
 import ThisWeekTrainingExperience from "./components/ThisWeekTrainingExperience.jsx";
 import PostReportOnboarding, { TRAINING_PREFERENCES_EDIT_EVENT } from "./components/PostReportOnboarding.jsx";
-import WeeklyRecap from "./components/WeeklyRecap.jsx";
 import OpeningFitVerdict from "./components/OpeningFitVerdict";
 import OpeningCoachSummary from "./components/OpeningCoachSummary";
 import OpeningJourney from "./components/OpeningJourney";
@@ -16821,14 +16820,6 @@ export default function App() {
           <>
           {showCoachDashboard ? (
             <>
-            <WeeklyRecap
-              data={data || reportData}
-              fitData={fitData}
-              reportHistory={effectiveReportHistory}
-              active
-              onTraining={() => handleAppNavigate("training")}
-              onReport={() => handleAppNavigate("report")}
-            />
             <CoachDashboard
               data={data || reportData}
               fitData={fitData}

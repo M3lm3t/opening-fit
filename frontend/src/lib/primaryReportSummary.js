@@ -8,7 +8,7 @@ import { Chess } from "chess.js";
 
 const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
-function canonicalChessEvidence(source) {
+export function canonicalChessEvidence(source) {
   if (!source || typeof source !== "object") return null;
   const diagnosis = source.openingDiagnosis || source.opening_diagnosis || {};
   const issue = source.recurringIssue || source.recurring_issue || source.issue || {};
