@@ -20,6 +20,8 @@ import { buildReportDecisionModel } from "../lib/reportDecisionModel.js";
 import { formatTrainingPriorityTitle } from "../lib/trainingPriority.js";
 import { buildTodayPrimaryAction, todayGoalContext } from "../lib/todayPrimaryAction.js";
 import ChessPositionBoard from "./ChessPositionBoard.jsx";
+import SinceLastReportSummary from "./SinceLastReportSummary.jsx";
+import { buildReportSnapshot } from "../lib/reportSnapshot.js";
 import "./CoachDashboard.css";
 
 function asArray(value) {
@@ -676,6 +678,13 @@ export default function CoachDashboard({
   );
   const ratingGoal = buildRatingGoalModel({ profile, settings, activity, data });
   const todayAction = useMemo(() => buildTodayPrimaryAction({ decisionModel: data && !partial && !insufficient ? buildReportDecisionModel(data, fitData || {}, reportHistory) : null, activity, hasReport: Boolean(data) }), [activity, data, fitData, insufficient, partial, reportHistory]);
+  const currentProgressSnapshot = useMemo(() => data ? buildReportSnapshot({ report: data, defaultGeneratedAt: false }) : null, [data]);
+  const progressSnapshots = useMemo(() => asArray(reportHistory).map((row) => {
+    if (row?.normalized_snapshot) return row.normalized_snapshot;
+    if (Number(row?.snapshot?.report_schema_version) >= 2) return row.snapshot;
+    const report = row?.data || row?.report || row?.summary;
+    return report ? buildReportSnapshot({ report, summary: row?.snapshot || row?.summary || {}, reportId: row?.id, defaultGeneratedAt: false }) : null;
+  }).filter(Boolean), [reportHistory]);
   const handleTaskAction = (task) => {
     if (task?.route === "repertoire") {
       onRecommendations?.();
@@ -734,6 +743,7 @@ export default function CoachDashboard({
   return (
     <section className="coachDashboard" id="coach-dashboard" aria-label="OpeningFit Today">
       <TodayPrimaryAction action={todayAction} goal={ratingGoal} onAction={handleTaskAction} onComplete={completeTask} />
+      <SinceLastReportSummary currentSnapshot={currentProgressSnapshot} reportSnapshots={progressSnapshots} />
       <SessionSummary
         summary={sessionSummary}
         onDismiss={() => setSessionSummary(null)}

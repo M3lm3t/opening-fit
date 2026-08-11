@@ -1,0 +1,9 @@
+.sinceLastReportSummary { width: min(100%, 820px); display: grid; gap: 12px; margin-inline: auto; padding-top: 4px; }
+.sinceLastReportSummary header { display: grid; gap: 3px; }
+.sinceLastReportSummary h2 { margin: 0; color: var(--of-color-text); font-size: clamp(1.15rem, 2vw, 1.4rem); }
+.sinceLastReportSummary ul { display: grid; gap: 0; margin: 0; padding: 0; border-top: 1px solid var(--of-color-border); list-style: none; }
+.sinceLastReportSummary li { display: grid; grid-template-columns: minmax(96px, .25fr) minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--of-color-border); }
+.sinceLastReportSummary li > span { color: var(--of-color-muted); font-size: .7rem; font-weight: 750; letter-spacing: .05em; }
+.sinceLastReportSummary li strong { color: var(--of-color-text); }
+.sinceLastReportSummary li p { margin: 3px 0 0; color: var(--of-color-muted); font-size: .86rem; line-height: 1.45; }
+@media (max-width: 520px) { .sinceLastReportSummary li { grid-template-columns: 1fr; gap: 4px; } }
