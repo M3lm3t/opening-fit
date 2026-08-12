@@ -11857,14 +11857,14 @@ function AppPrimaryNav({
     const activeViewsByKey = {
       analyse: ["analyse", "home", "import"],
       dashboard: ["dashboard"],
-      report: ["report", "overview", "recommendations", "openings", "weakspots", "verdicts", "progress"],
+      report: ["report", "overview", "recommendations", "openings", "weakspots", "verdicts"],
       repertoire: ["repertoire"],
       recommendations: ["recommendations", "openings", "weakspots", "verdicts"],
       training: ["train", "training", "interactive", "practice"],
       journey: ["journey"],
       games: ["games", "data"],
       history: ["history"],
-      account: ["profile", "account", "progress"],
+      account: ["profile", "account"],
       progress: ["progress"],
       premium: ["premium", "upgrade"],
       pricing: ["premium", "upgrade"],
@@ -15151,7 +15151,7 @@ export default function App() {
     "recommended-repertoire": { view: "report", target: "repertoire-map", reportMode: "full" },
     "repertoire-plan": { view: "report", target: "repertoire-map", reportMode: "full" },
     "my-repertoire": { view: "repertoire", path: "/repertoire", target: "my-repertoire" },
-    "progress-tracker": { view: "profile", target: "profile" },
+    "progress-tracker": { view: "progress", path: "/progress", target: "openingfit-progress" },
     "share-report": { view: "report", path: "/report", target: "share-report", reportMode: "table" },
     "report-history": { view: "profile", target: "report-history" },
     "top-openings-table": { view: "report", target: "evidence-table", reportMode: "table" },
@@ -17119,6 +17119,34 @@ export default function App() {
               onNavigate={handleAppNavigate}
             />
           ) : activeAppSection === "journey" && !loading ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.TRAINING_HISTORY} title="See your training history" onUpgrade={() => handleAppNavigate("premium")} /> : null}
+
+          {activeAppSection === "progress" && !loading ? (
+            <section className="profileSection progressSection" aria-label="OpeningFit progress">
+              {authLoading || !authHydrated || profileLoading ? (
+                <section className="profileDashboardCard openingFitProgressCard" id="openingfit-progress">
+                  <div className="profileCardHeader"><p className="eyebrow">Your OpeningFit Progress</p><h2>Loading your progress</h2><p>OpeningFit is checking your saved report and progress data.</p></div>
+                </section>
+              ) : !resolvedAccountUser?.id ? (
+                <section className="profileDashboardCard openingFitProgressCard" id="openingfit-progress">
+                  <div className="profileCardHeader"><p className="eyebrow">Your OpeningFit Progress</p><h2>Sign in to see saved progress</h2><p>Your saved reports and comparisons are attached to your OpeningFit account.</p></div>
+                  <div className="openingFitProgressActions"><button type="button" className="primaryBtn" onClick={openLoginPage}>Sign in</button><button type="button" className="secondaryButton" onClick={() => handleAppNavigate("analyse")}>Analyse games</button></div>
+                </section>
+              ) : (
+                <OpeningFitProgressCard
+                  data={reportData}
+                  fitData={fitData}
+                  accountUser={resolvedAccountUser}
+                  reportHistory={effectiveReportHistory}
+                  openingFitUserState={openingFitUserState}
+                  onAnalyse={() => handleAppNavigate("analyse")}
+                  onOpenReport={() => handleAppNavigate("report")}
+                />
+              )}
+              {resolvedAccountUser?.id && !reportData && !openingFitUserState?.some((row) => row?.coach_progress?.openingFitProgress || row?.coach_progress?.opening_fit_progress) ? (
+                <section className="profileDashboardCard"><div className="profileCardHeader"><p className="eyebrow">Your OpeningFit Progress</p><h2>Create your first progress baseline</h2><p>Analyse your games to create a real, saved repertoire snapshot.</p></div><button type="button" className="primaryBtn" onClick={() => handleAppNavigate("analyse")}>Analyse games</button></section>
+              ) : null}
+            </section>
+          ) : null}
 
           {activeAppSection === "train" && !reportData && !loading ? (
             <>

@@ -1,6 +1,6 @@
 import { BookOpenCheck, ChartNoAxesCombined, Crown, Dumbbell, TrendingUp, UserRound } from "lucide-react";
 import { getAppSection } from "../appNavigation";
-import { buildMobileNavigationItems } from "../lib/mobileNavigation.js";
+import { buildMobileNavigationItems, isMobileNavigationItemActive } from "../lib/mobileNavigation.js";
 import { isNativeApp } from "../lib/platform.js";
 
 const ICONS = Object.freeze({
@@ -67,11 +67,7 @@ export default function MobileBottomNav({
     >
       {items.map((item) => {
         const isReportPrompt = item.needsReport && !hasReport;
-        const isActive =
-          activeView === item.key ||
-          item.activeViews?.includes(activeView) ||
-          item.activeSections?.includes(activeSection) ||
-          (!item.activeViews && !item.activeSections && activeSection === getAppSection(item.key));
+        const isActive = isMobileNavigationItemActive(item, activeView, activeSection);
 
         return (
           <button

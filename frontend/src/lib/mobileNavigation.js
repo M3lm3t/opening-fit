@@ -38,3 +38,10 @@ export function buildMobileNavigationItems({ authenticated = false, entitlement 
   });
   return items;
 }
+
+export function isMobileNavigationItemActive(item, activeView, activeSection) {
+  return activeView === item.key ||
+    item.activeViews?.includes(activeView) ||
+    item.activeSections?.includes(activeSection) ||
+    (!item.activeViews && !item.activeSections && activeSection === item.key);
+}

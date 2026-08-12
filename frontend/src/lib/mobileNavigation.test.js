@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { buildMobileNavigationItems } from "./mobileNavigation.js";
+import { buildMobileNavigationItems, isMobileNavigationItemActive } from "./mobileNavigation.js";
+import { APP_NAV_ROUTES, getAppSection, resolveOwnedProductRoute } from "../appNavigation.js";
 import { resolvePremiumEntitlement } from "./premiumEntitlement.js";
 
 const labels = (options) => buildMobileNavigationItems(options).map((item) => item.label);
@@ -26,6 +27,26 @@ test("native logged-out navigation always exposes the existing Account destinati
 test("native logged-in navigation keeps the same Account destination", () => {
   const premium = resolvePremiumEntitlement([{ access_type: "lifetime", status: "active" }]);
   assert.equal(labels({ ...ready(premium), nativeApp: true }).at(-1), "Account");
+});
+
+test("web and native Progress share the canonical progress route", () => {
+  assert.deepEqual(APP_NAV_ROUTES.progress, { view: "progress", path: "/progress", target: "openingfit-progress", fallbackIds: ["profile"] });
+  assert.equal(getAppSection("progress"), "progress");
+  assert.equal(resolveOwnedProductRoute("/progress").view, "progress");
+  for (const nativeApp of [false, true]) {
+    const items = buildMobileNavigationItems({ ...ready(resolvePremiumEntitlement(), false), nativeApp });
+    assert.equal(items.find((item) => item.key === "progress")?.label, "Progress");
+  }
+});
+
+test("Progress and Account active states remain mutually exclusive", () => {
+  const items = buildMobileNavigationItems({ ...ready(resolvePremiumEntitlement(), false), nativeApp: true });
+  const progress = items.find((item) => item.key === "progress");
+  const account = items.find((item) => item.key === "account");
+  assert.equal(isMobileNavigationItemActive(progress, "progress", getAppSection("progress")), true);
+  assert.equal(isMobileNavigationItemActive(account, "progress", getAppSection("progress")), false);
+  assert.equal(isMobileNavigationItemActive(account, "account", getAppSection("account")), true);
+  assert.equal(isMobileNavigationItemActive(progress, "account", getAppSection("account")), false);
 });
 
 test("a logged-in free user receives Plus and expired access returns to Plus", () => {

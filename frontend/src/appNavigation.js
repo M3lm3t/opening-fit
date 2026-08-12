@@ -62,6 +62,7 @@ export const OWNED_PRODUCT_ROUTES = Object.freeze({
   "/analyse": Object.freeze({ view: "analyse", kind: "analysis", hydrateReport: false }),
   "/report": Object.freeze({ view: "report", kind: "report", hydrateReport: true }),
   "/train": Object.freeze({ view: "train", kind: "training", hydrateReport: true }),
+  "/progress": Object.freeze({ view: "progress", kind: "progress", hydrateReport: true }),
   "/report/sample": Object.freeze({ view: "report", kind: "sample", hydrateReport: false }),
 });
 
@@ -95,7 +96,7 @@ export function getAppSection(view) {
     account: "profile",
     login: "profile",
     history: "profile",
-    progress: "profile",
+    progress: "progress",
     journey: "journey",
     premium: "premium",
     upgrade: "premium",
