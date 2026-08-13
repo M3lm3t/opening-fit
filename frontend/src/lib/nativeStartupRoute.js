@@ -2,6 +2,7 @@ export function resolveNativeStartupRoute({
   native = false,
   authResolved = false,
   authenticated = false,
+  reportAvailable = false,
   currentPath = "/",
   launchPath = null,
   handled = false,
@@ -10,7 +11,8 @@ export function resolveNativeStartupRoute({
   if (currentPath !== "/" || (launchPath && launchPath !== "/")) {
     return { handled: true, destination: null };
   }
-  return { handled: true, destination: authenticated ? "/account" : null };
+  if (!authenticated) return { handled: true, destination: null };
+  return { handled: true, destination: reportAvailable ? "/report" : "/account" };
 }
 
 export function nativeLogoutRoute({ native = false, hadUser = false, authenticated = false } = {}) {

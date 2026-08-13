@@ -14452,23 +14452,28 @@ export default function App() {
   }, [authHydrated, supabaseUser?.id]);
 
   useEffect(() => {
-    if (authLoading || !authHydrated || nativeStartupHandledRef.current || !isNativeApp()) return undefined;
+    const authenticated = Boolean(supabaseUser?.id);
+    const authResolved = !authLoading && authHydrated && (!authenticated || (profileLoaded && !profileLoading));
+    if (!authResolved || nativeStartupHandledRef.current || !isNativeApp()) return undefined;
     let cancelled = false;
 
     void getNativeLaunchPath().then((launchPath) => {
       if (cancelled) return;
+      const latestSavedReport = getLatestCloudReport(cloudReportHistory)?.report || null;
       const result = resolveNativeStartupRoute({
         native: true,
         authResolved: true,
-        authenticated: Boolean(supabaseUser?.id),
+        authenticated,
+        reportAvailable: Boolean(latestSavedReport),
         currentPath: getCurrentPath(),
         launchPath,
         handled: nativeStartupHandledRef.current,
       });
       nativeStartupHandledRef.current = result.handled;
-      if (result.destination === "/account") {
+      if (result.destination) {
+        if (result.destination === "/report" && latestSavedReport) setData(latestSavedReport);
         window.history.replaceState({}, "", result.destination);
-        setActiveView("account");
+        setActiveView(result.destination === "/report" ? "report" : "account");
         setShowPublicLanding(false);
       }
     }).catch((error) => {
@@ -14477,7 +14482,7 @@ export default function App() {
     });
 
     return () => { cancelled = true; };
-  }, [authHydrated, authLoading, supabaseUser?.id]);
+  }, [authHydrated, authLoading, cloudReportHistory, profileLoaded, profileLoading, supabaseUser?.id]);
 
   const rememberLandingSeen = ({ keepPublicLanding = true } = {}) => {
     localStorage.setItem("openingfit_landing_seen", "true");

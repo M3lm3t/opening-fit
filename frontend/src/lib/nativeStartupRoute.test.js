@@ -12,7 +12,11 @@ test("native signed-out root remains public", () => {
   assert.deepEqual(resolve(), { handled: true, destination: null });
 });
 
-test("native returning user at root opens Account", () => {
+test("native returning user with a saved report opens Report", () => {
+  assert.deepEqual(resolve({ authenticated: true, reportAvailable: true }), { handled: true, destination: "/report" });
+});
+
+test("native returning user without a saved report opens Account", () => {
   assert.deepEqual(resolve({ authenticated: true }), { handled: true, destination: "/account" });
 });
 
