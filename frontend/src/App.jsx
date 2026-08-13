@@ -116,6 +116,8 @@ import {
 } from "./fixtures/sampleReport.js";
 import { buildApiUrl, logApiDiagnostic } from "./lib/apiBase";
 import { isNativeApp } from "./lib/platform.js";
+import { getNativeLaunchPath } from "./lib/nativeAppShell.js";
+import { nativeLogoutRoute, resolveNativeStartupRoute } from "./lib/nativeStartupRoute.js";
 import { importGames as importGamesFromApi } from "./lib/importClient";
 import {
   IMPORT_STAGES,
@@ -14354,6 +14356,7 @@ export default function App() {
   const [cloudSaveWarning, setCloudSaveWarning] = useState("");
   const [cloudSaveStatus, setCloudSaveStatus] = useState("");
   const previousAuthUserIdRef = useRef(undefined);
+  const nativeStartupHandledRef = useRef(false);
   const shouldShowLandingIntro = () => {
     if (isPrivateSeoPath(getCurrentPath())) return false;
 
@@ -14437,10 +14440,44 @@ export default function App() {
       setError("");
       setCloudSaveWarning("");
       setCloudSaveStatus("");
+      const logoutPath = nativeLogoutRoute({ native: isNativeApp(), hadUser: true, authenticated: Boolean(currentUserId) });
+      if (logoutPath) {
+        window.history.replaceState({}, "", logoutPath);
+        setActiveView("analyse");
+        setShowPublicLanding(true);
+      }
     }
 
     previousAuthUserIdRef.current = currentUserId;
   }, [authHydrated, supabaseUser?.id]);
+
+  useEffect(() => {
+    if (authLoading || !authHydrated || nativeStartupHandledRef.current || !isNativeApp()) return undefined;
+    let cancelled = false;
+
+    void getNativeLaunchPath().then((launchPath) => {
+      if (cancelled) return;
+      const result = resolveNativeStartupRoute({
+        native: true,
+        authResolved: true,
+        authenticated: Boolean(supabaseUser?.id),
+        currentPath: getCurrentPath(),
+        launchPath,
+        handled: nativeStartupHandledRef.current,
+      });
+      nativeStartupHandledRef.current = result.handled;
+      if (result.destination === "/account") {
+        window.history.replaceState({}, "", result.destination);
+        setActiveView("account");
+        setShowPublicLanding(false);
+      }
+    }).catch((error) => {
+      console.warn("OpeningFit could not resolve the native launch destination.", error);
+      nativeStartupHandledRef.current = true;
+    });
+
+    return () => { cancelled = true; };
+  }, [authHydrated, authLoading, supabaseUser?.id]);
 
   const rememberLandingSeen = ({ keepPublicLanding = true } = {}) => {
     localStorage.setItem("openingfit_landing_seen", "true");

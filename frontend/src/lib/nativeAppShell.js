@@ -7,6 +7,15 @@ import { isAndroidApp, isNativeApp } from "./platform.js";
 
 const APP_LINK_HOSTS = new Set(["openingfit.com", "www.openingfit.com"]);
 
+export async function getNativeLaunchPath() {
+  if (!isNativeApp()) return null;
+  const launch = await CapacitorApp.getLaunchUrl();
+  if (!launch?.url) return null;
+  const target = new URL(launch.url);
+  if (!APP_LINK_HOSTS.has(target.hostname.toLowerCase())) return null;
+  return target.pathname || "/";
+}
+
 function visibleDialog() {
   return [...document.querySelectorAll('[role="dialog"], dialog[open], [aria-modal="true"]')]
     .reverse()
