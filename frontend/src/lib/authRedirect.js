@@ -17,6 +17,15 @@ export function getAuthRedirectUrl(path = "/account") {
   return `${authOrigin}${cleanPath}`;
 }
 
+export function isAuthCallbackUrl(url) {
+  if (!url) return false;
+  const callback = new URL(url);
+  const fragment = new URLSearchParams(callback.hash.replace(/^#/, ""));
+  return callback.searchParams.has("code") ||
+    callback.searchParams.has("error") ||
+    (fragment.has("access_token") && fragment.has("refresh_token"));
+}
+
 export async function restoreSessionFromAuthUrl(url) {
   if (!supabase || !url) return false;
   const callback = new URL(url);

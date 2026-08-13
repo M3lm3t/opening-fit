@@ -38,6 +38,10 @@ test("native shell owns back handling, deep links, external links and the PWA gu
   assert.match(shell, /closeVisibleDialog/);
   assert.match(shell, /window\.history\.back\(\)/);
   assert.match(shell, /addListener\("appUrlOpen"/);
+  assert.match(shell, /getLaunchUrl/);
+  assert.match(shell, /if \(launch\?\.url\) await openAppUrl\(launch\.url\)/);
+  assert.match(shell, /isAuthCallbackUrl/);
+  assert.match(main, /await initializeNativeAppShell\(\)/);
   assert.match(external, /Browser\.open/);
   assert.match(main, /isWebApp\(\).*serviceWorker/);
 });

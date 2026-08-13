@@ -1,15 +1,21 @@
 import { App as CapacitorApp } from "@capacitor/app";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
-import { restoreSessionFromAuthUrl } from "./authRedirect.js";
+import { isAuthCallbackUrl, restoreSessionFromAuthUrl } from "./authRedirect.js";
 import { installExternalLinkHandler } from "./externalNavigation.js";
 import { isAndroidApp, isNativeApp } from "./platform.js";
 
 const APP_LINK_HOSTS = new Set(["openingfit.com", "www.openingfit.com"]);
+let nativeLaunchUrlPromise;
+
+async function getNativeLaunchUrl() {
+  if (!isNativeApp()) return null;
+  nativeLaunchUrlPromise ||= CapacitorApp.getLaunchUrl();
+  return nativeLaunchUrlPromise;
+}
 
 export async function getNativeLaunchPath() {
-  if (!isNativeApp()) return null;
-  const launch = await CapacitorApp.getLaunchUrl();
+  const launch = await getNativeLaunchUrl();
   if (!launch?.url) return null;
   const target = new URL(launch.url);
   if (!APP_LINK_HOSTS.has(target.hostname.toLowerCase())) return null;
@@ -31,15 +37,18 @@ function closeVisibleDialog() {
   return true;
 }
 
-async function openAppUrl(url) {
+export async function openAppUrl(url) {
   const target = new URL(url);
   if (!APP_LINK_HOSTS.has(target.hostname.toLowerCase())) return;
+  const authCallback = isAuthCallbackUrl(target.toString());
   try {
-    await restoreSessionFromAuthUrl(target.toString());
+    if (authCallback) await restoreSessionFromAuthUrl(target.toString());
   } catch (error) {
     console.warn("OpeningFit could not restore the authentication callback.", error);
   }
-  const path = `${target.pathname || "/"}${target.searchParams.has("code") ? "" : target.search}${target.hash && !target.hash.includes("access_token") ? target.hash : ""}`;
+  const path = authCallback
+    ? target.pathname || "/account"
+    : `${target.pathname || "/"}${target.search}${target.hash}`;
   window.history.pushState({}, "", path || "/");
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
@@ -52,7 +61,6 @@ export async function initializeNativeAppShell() {
   await StatusBar.setOverlaysWebView({ overlay: false });
   await StatusBar.setStyle({ style: Style.Dark });
   await StatusBar.setBackgroundColor({ color: "#F7F8FA" });
-  await SplashScreen.hide();
 
   const listeners = await Promise.all([
     CapacitorApp.addListener("appUrlOpen", ({ url }) => void openAppUrl(url)),
@@ -65,6 +73,9 @@ export async function initializeNativeAppShell() {
       void CapacitorApp.exitApp();
     }),
   ]);
+  const launch = await getNativeLaunchUrl();
+  if (launch?.url) await openAppUrl(launch.url);
+  await SplashScreen.hide();
   const removeExternalHandler = installExternalLinkHandler();
   return () => {
     listeners.forEach((listener) => listener.remove());
