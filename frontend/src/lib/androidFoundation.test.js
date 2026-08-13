@@ -75,6 +75,8 @@ test("production web assets associate the account callback with debug and Play-s
   assert.equal(app?.target?.namespace, "android_app");
   assert.deepEqual(app?.target?.sha256_cert_fingerprints, [
     "F1:6E:3F:28:75:D7:D0:2E:C4:59:B9:DF:61:DE:1F:74:28:12:44:A0:02:3A:01:58:48:FB:04:72:EB:22:86:AD",
+    "05:63:27:04:24:08:60:CB:94:9D:FB:8E:B5:BA:FD:29:E9:A7:C7:FE:C6:60:A5:C7:35:D5:47:CF:DC:C4:CE:4A",
+    "14:75:F9:14:BB:43:D6:00:24:10:18:2D:7C:A7:C6:00:AE:7A:CD:6D:F9:33:2C:B1:DB:A5:67:F3:43:BB:5E:CA",
     "AB:10:AF:11:49:4B:09:3A:9B:EE:67:03:C9:57:7F:0B:CB:C0:01:0D:56:73:51:7C:86:C7:5B:B3:4D:CB:F4:64",
   ]);
 });
