@@ -64,12 +64,13 @@ test("Android release foundation stays HTTPS-only and permission-minimal", async
   assert.match(variables, /targetSdkVersion = 36/);
 });
 
-test("production web assets associate the account callback with the debug Android app", async () => {
+test("production web assets associate the account callback with debug and Play-signed Android apps", async () => {
   const statements = JSON.parse(await read("../../public/.well-known/assetlinks.json"));
   const app = statements.find((statement) => statement?.target?.package_name === "com.openingfit.app");
   assert.deepEqual(app?.relation, ["delegate_permission/common.handle_all_urls"]);
   assert.equal(app?.target?.namespace, "android_app");
   assert.deepEqual(app?.target?.sha256_cert_fingerprints, [
     "F1:6E:3F:28:75:D7:D0:2E:C4:59:B9:DF:61:DE:1F:74:28:12:44:A0:02:3A:01:58:48:FB:04:72:EB:22:86:AD",
+    "AB:10:AF:11:49:4B:09:3A:9B:EE:67:03:C9:57:7F:0B:CB:C0:01:0D:56:73:51:7C:86:C7:5B:B3:4D:CB:F4:64",
   ]);
 });
