@@ -1,5 +1,26 @@
 apply plugin: 'com.android.application'
 
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
+def releaseSigningKeys = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword']
+def hasReleaseSigning = keystorePropertiesFile.exists() && releaseSigningKeys.every {
+    keystoreProperties.getProperty(it)?.trim()
+}
+def releaseBuildRequested = gradle.startParameter.taskNames.any {
+    it.toLowerCase().matches('.*(bundle|assemble|install|publish).*release.*')
+}
+
+if (releaseBuildRequested && !hasReleaseSigning) {
+    throw new GradleException(
+        "Release signing is not configured. Add storeFile, storePassword, keyAlias, and keyPassword to " +
+        "frontend/android/keystore.properties (this file is ignored by git)."
+    )
+}
+
 android {
     namespace = "com.openingfit.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +37,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(keystoreProperties.getProperty('storeFile'))
+                storePassword keystoreProperties.getProperty('storePassword')
+                keyAlias keystoreProperties.getProperty('keyAlias')
+                keyPassword keystoreProperties.getProperty('keyPassword')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

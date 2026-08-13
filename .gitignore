@@ -37,6 +37,7 @@ frontend/.env
 frontend/.env.local
 frontend/.env.*.local
 frontend/android/local.properties
+frontend/android/keystore.properties
 frontend/android/app/google-services.json
 *.jks
 *.keystore
