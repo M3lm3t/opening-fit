@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { TRUST_ROUTES, accountDeletionCopy, accountDeletionResult, supportPath, validateFeedback } from "./trustExperience.js";
 test("valid general feedback captures safe context", () => assert.equal(validateFeedback({ category: "General product feedback", message: "Useful report", route: "/report", platform: "lichess" }).valid, true));
 test("invalid feedback is rejected", () => { assert.equal(validateFeedback({ category: "Feature suggestion", message: "" }).valid, false); assert.equal(validateFeedback({ category: "Unknown", message: "Useful" }).valid, false); });
@@ -8,3 +9,12 @@ test("account deletion requires authentication and explicit warning", () => { as
 test("account deletion success and failure remain distinct", () => { assert.equal(accountDeletionResult().complete, true); assert.equal(accountDeletionResult(new Error("failed")).complete, false); });
 test("payment and import support paths are explicit", () => { assert.match(supportPath("payment"), /Missing%20premium/); assert.match(supportPath("import"), /Broken%20game/); });
 test("privacy and terms have direct public routes", () => { assert.ok(TRUST_ROUTES.includes("/privacy")); assert.ok(TRUST_ROUTES.includes("/terms")); });
+test("account deletion instructions have a direct public route", () => { assert.ok(TRUST_ROUTES.includes("/delete-account")); });
+test("public policy and deletion copy cover Play disclosure requirements without requiring login", () => {
+  const trustPage = readFileSync(new URL("../components/PublicTrustPage.jsx", import.meta.url), "utf8");
+  for (const disclosure of ["Supabase", "Google OAuth", "Chess.com", "Lichess", "Stripe", "Vercel", "Children&apos;s privacy", "Effective date: 14 August 2026"]) assert.match(trustPage, new RegExp(disclosure.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(trustPage, /does not receive or store your Google password/);
+  assert.match(trustPage, /does not store full payment-card details/);
+  assert.match(trustPage, /href="\/delete-account"/);
+  assert.match(trustPage, /Request deletion on the web/);
+});

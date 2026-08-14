@@ -12024,6 +12024,7 @@ function AppPrimaryNav({
             <a href="/account" onClick={(event) => navigate(event, { key: "history" })}>History</a>
           ) : null}
           <a href="/privacy" onClick={() => setMobileMenuOpen(false)}>Privacy</a>
+          <a href="/delete-account" onClick={() => setMobileMenuOpen(false)}>Delete account</a>
           <a href="/terms" onClick={() => setMobileMenuOpen(false)}>Terms</a>
           <a href={`mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`}>Support</a>
         </div>
@@ -12064,6 +12065,7 @@ function AppStoreReadinessFooter({ onAccount }) {
         </div>
         <div className="appLegalActions">
           <a href={`mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`}>Email support</a>
+          <a href="/delete-account">Account deletion instructions</a>
           <button type="button" onClick={onAccount}>Open account settings</button>
         </div>
       </section>
@@ -12646,6 +12648,7 @@ function PublicHomepageFooter({ onAccount }) {
     ["Opening guides", "/guides"],
     ["Pricing", "/premium"],
     ["Privacy", "/privacy"],
+    ["Delete account", "/delete-account"],
     ["Terms", "/terms"],
     ["Changelog", "/changelog"],
     ["Contact", `mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20support`],
@@ -16436,7 +16439,7 @@ export default function App() {
     }
   }, [hasReport]);
 
-  const trustPageKey = ({ "/about": "about", "/how-it-works": "how", "/privacy": "privacy", "/terms": "terms", "/changelog": "changelog" })[currentPath] || null;
+  const trustPageKey = ({ "/about": "about", "/how-it-works": "how", "/privacy": "privacy", "/delete-account": "deletion", "/terms": "terms", "/changelog": "changelog" })[currentPath] || null;
   const chessOpeningSlug = getChessOpeningSeoSlugFromPath(currentPath);
   const chessOpeningSeoPage = chessOpeningSlug ? getChessOpeningSeoPage(chessOpeningSlug) : null;
   const openingSlug = getOpeningSeoSlugFromPath(currentPath);
@@ -16453,6 +16456,7 @@ export default function App() {
       about: { title: "About OpeningFit | Independent Chess Opening Guidance", description: "Learn why OpeningFit provides independent, deterministic opening guidance from public Chess.com and Lichess games." },
       how: { title: "How OpeningFit Analysis Works | Methodology", description: "Understand OpeningFit's game import, exclusions, score meanings, evidence confidence and deterministic opening recommendations." },
       privacy: { title: "OpeningFit Privacy and Data Use", description: "See which public chess and account data OpeningFit uses, where it is stored and how authenticated users can delete it." },
+      deletion: { title: "Delete Your OpeningFit Account", description: "Public instructions for permanently deleting an OpeningFit account and its associated account data." },
       terms: { title: "OpeningFit Terms and Product Limitations", description: "Read the practical limits of OpeningFit training guidance, public-game analysis and paid access." },
       changelog: { title: "OpeningFit Changelog | Product Updates", description: "Review user-facing changes to OpeningFit analysis, reports, training, accounts and subscriptions." },
     };
@@ -17743,7 +17747,7 @@ export default function App() {
             {feedbackStatus ? (
               <p className="statusMessage">{feedbackStatus}</p>
             ) : null}
-            <div className="feedbackSupportLinks" aria-label="Direct support paths"><a href={`mailto:${SUPPORT_EMAIL}?subject=Broken%20game%20import`}>Import failure</a><a href={`mailto:${SUPPORT_EMAIL}?subject=Missing%20premium%20access`}>Payment access</a><a href={`mailto:${SUPPORT_EMAIL}?subject=Incorrect%20recommendation`}>Recommendation issue</a><a href="/privacy">Data question</a><a href="/account">Account deletion</a></div>
+            <div className="feedbackSupportLinks" aria-label="Direct support paths"><a href={`mailto:${SUPPORT_EMAIL}?subject=Broken%20game%20import`}>Import failure</a><a href={`mailto:${SUPPORT_EMAIL}?subject=Missing%20premium%20access`}>Payment access</a><a href={`mailto:${SUPPORT_EMAIL}?subject=Incorrect%20recommendation`}>Recommendation issue</a><a href="/privacy">Data question</a><a href="/delete-account">Account deletion</a></div>
             </section>
           ) : null}
 

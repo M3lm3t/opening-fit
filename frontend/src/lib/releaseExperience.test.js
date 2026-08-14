@@ -64,7 +64,7 @@ test("release metadata publishes exact pricing and only intended public routes",
 
   const sitemap = source("../../public/sitemap.xml");
   const robots = source("../../public/robots.txt");
-  for (const route of ["/premium", "/about", "/how-it-works", "/privacy", "/terms", "/changelog"]) assert.match(sitemap, new RegExp(`<loc>https://www\\.openingfit\\.com${route.replaceAll("-", "\\-")}<\\/loc>`));
+  for (const route of ["/premium", "/about", "/how-it-works", "/privacy", "/delete-account", "/terms", "/changelog"]) assert.match(sitemap, new RegExp(`<loc>https://www\\.openingfit\\.com${route.replaceAll("-", "\\-")}<\\/loc>`));
   assert.doesNotMatch(sitemap, /\/(account|admin|report|profile|train|dashboard)<\/loc>/);
   assert.doesNotMatch(sitemap, /https:\/\/openingfit\.com/);
   assert.match(robots, /Sitemap: https:\/\/www\.openingfit\.com\/sitemap\.xml/);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CHANGELOG } from "../content/changelog";
 import { supportPath } from "../lib/trustExperience";
+import { SUPPORT_EMAIL } from "../lib/supportConfig.js";
 import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT, loadPublicAnalysisContract } from "../lib/productTransparency.js";
 
 export default function PublicTrustPage({ page, appTopNav }) {
@@ -44,18 +45,59 @@ export default function PublicTrustPage({ page, appTopNav }) {
       <p>OpeningFit is an independent product and is not affiliated with Chess.com or Lichess. <a href="/report/sample">Inspect the labelled example report</a> or <a href={supportPath("general")}>ask a methodology question</a>.</p>
     </>,
     privacy: <>
-      <h1>Data and privacy</h1>
-      <h2>Public chess data</h2>
-      <p>OpeningFit fetches public username/profile fields, ratings where available, game records, moves/PGNs, results, dates and time controls from Chess.com or Lichess. It never asks for your chess-platform password.</p>
-      <h2>Anonymous use</h2>
-      <p>The latest report, repertoire choices, training progress, active session and preferences may be stored in your browser. The backend also keeps a latest-result/profile cache and short import history keyed by the public platform username, and may retain restrained operational analytics and feedback. Browser data stays on that device unless you clear it.</p>
-      <h2>Referral links</h2>
-      <p>If you follow or enter a referral code, OpeningFit stores the code, partner name, a random browser identifier and capture/expiry dates in your browser for up to 30 days. It records the code, random identifier, landing path and visit time in Supabase to prevent duplicate visit counts and attribute a later account or purchase. It does not store the browser user agent for referral tracking.</p>
-      <h2>Account use</h2>
-      <p>Authenticated users can store profile details, reports, analysed game records, repertoire/training state, activity and progress history in Supabase so they can restore it. If a valid referral is attached, OpeningFit also stores the referring partner, referral code, account identifier, purchase status and commission audit amounts. Stripe processes payments and retains payment/accounting records under its own obligations; OpeningFit stores entitlement and limited Stripe reference fields, not card details. Vercel hosts the web application and product analytics may record restrained route/event data.</p>
-      <h2>Deletion</h2>
-      <p>Account settings provide a confirmed deletion action. Deleting the authenticated account removes the auth user and user-owned application rows, including its referral attribution, through database cascades; it also removes matching cached profiles and clears OpeningFit browser state on that device. Stripe may retain transaction records where legally or operationally required.</p>
-      <p>This plain-language page describes current product behaviour but is not a substitute for professional legal review. <a href={supportPath("data")}>Ask a data question</a>.</p>
+      <h1>OpeningFit Privacy Policy</h1>
+      <p><strong>Effective date: 14 August 2026.</strong></p>
+      <p>OpeningFit is an independent chess-training product. Questions about this policy or personal data can be sent to <a href={`mailto:${SUPPORT_EMAIL}?subject=OpeningFit%20data%20question`}>{SUPPORT_EMAIL}</a>.</p>
+
+      <h2>Information OpeningFit collects</h2>
+      <p>When you create an account, OpeningFit may process your email address, account identifier, display name, linked authentication provider information, chess usernames, preferences and session information. Supabase provides authentication, account and session storage. Google OAuth may be used to sign in; OpeningFit does not receive or store your Google password.</p>
+      <p>When you submit a Chess.com or Lichess username, OpeningFit requests publicly available profile and game information from that platform. This can include usernames, ratings, game records, moves or PGNs, results, dates, opponents, colours, openings and time controls. No Chess.com or Lichess password is required.</p>
+      <p>OpeningFit creates information derived from those games, including analysis results, recommendations and reports. Signed-in users may save reports, analysed-game records, repertoire choices, training state, activity, settings, recommendation history and progress information to their account. Signed-out use may store reports, preferences and progress locally in the browser or app. The service may also keep limited username-based import/profile caches needed to provide and restore results.</p>
+
+      <h2>How information is used</h2>
+      <p>OpeningFit uses this information to authenticate users, import and analyse public games, generate and save reports, restore account data across devices, provide repertoire and training features, manage subscriptions, prevent abuse, diagnose failures, respond to support requests and improve product reliability.</p>
+
+      <h2>Technical, analytics and referral data</h2>
+      <p>OpeningFit records limited operational and product events such as the route, device category, feature stage and broad success or error category. Its analytics safeguards reject fields such as passwords, tokens, email addresses, usernames, PGNs, payment details and session or user identifiers. Vercel hosts the web application and provides web analytics. Server logs may contain ordinary technical request and error information needed for security and operation.</p>
+      <p>If you use a referral link or code, OpeningFit may store the code, partner name, a random browser identifier, landing path and capture or expiry times to prevent duplicate counts and attribute later registration or purchase. A valid account referral may include purchase status and commission audit amounts.</p>
+
+      <h2>Payments</h2>
+      <p>Stripe processes subscription checkout, billing and payment-management sessions. OpeningFit stores subscription entitlement and limited Stripe reference information needed to match access to an account. OpeningFit does not store full payment-card details.</p>
+
+      <h2>Service providers and sharing</h2>
+      <p>OpeningFit uses service providers including Supabase for authentication and database services, Vercel for hosting and analytics, Stripe for payments, and Chess.com and Lichess as sources of public chess data. Google processes information when Google OAuth is chosen. These providers process information for their respective services under their own terms and privacy practices. OpeningFit does not describe this provider processing as a sale of personal data.</p>
+
+      <h2>Storage, security and retention</h2>
+      <p>OpeningFit uses access controls, authenticated API requests and HTTPS to protect account-linked information. No internet service can guarantee absolute security. Account-linked data is generally retained while the account is active and as needed to provide the service. Local browser or app data remains until it is cleared, overwritten or the app is removed. Operational records, cached public-game results and backups may persist for a limited period according to operational cycles.</p>
+      <p>Following a valid deletion, current account-linked data is deleted or anonymised where applicable, subject to technical completion and information that must be retained for fraud prevention, security, accounting, dispute resolution or other legal obligations. Stripe may retain transaction records under its own obligations.</p>
+
+      <h2>Account deletion and your choices</h2>
+      <p>You can review or update account information in OpeningFit account settings. You can permanently delete an authenticated OpeningFit account from the Account page, or submit a request using the public <a href="/delete-account">account deletion instructions</a>. You may also contact <a href={supportPath("data")}>{SUPPORT_EMAIL}</a> to request access, correction or deletion, or to ask about other privacy rights available where you live. OpeningFit may need to verify the request before acting.</p>
+
+      <h2>Children&apos;s privacy</h2>
+      <p>OpeningFit is not directed to children under 13, or below the minimum age required to consent to online services where they live, and does not knowingly collect their personal information. A parent or guardian who believes a child supplied personal information should contact OpeningFit.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>This policy may be updated when the product, providers or legal requirements change. The effective date above will be updated when material changes are published.</p>
+    </>,
+    deletion: <>
+      <h1>Delete your OpeningFit account</h1>
+      <p>This public page explains how to request permanent deletion of an OpeningFit account and associated account data.</p>
+
+      <h2>Delete your account in OpeningFit</h2>
+      <ol>
+        <li>Sign in to the OpeningFit account you want to delete.</li>
+        <li>Open <a href="/account">Account</a> and find <strong>Delete account</strong>.</li>
+        <li>Select <strong>Delete my account</strong> and confirm the permanent deletion prompt.</li>
+      </ol>
+      <p>The authenticated deletion flow removes the OpeningFit authentication account and current account profile. Associated current user-owned application data is removed in accordance with the configured database deletion behavior, matching cached chess profiles are cleared, and OpeningFit data stored by the app on that device is cleared after sign-out.</p>
+
+      <h2>Request deletion on the web</h2>
+      <p>If you cannot use the signed-in deletion control, email <a href={supportPath("deletion")}>{SUPPORT_EMAIL}</a> with the subject “OpeningFit account deletion”. Send the request from the email address associated with the account where possible. OpeningFit may ask for reasonable verification before deleting data; never send a password or payment-card details.</p>
+
+      <h2>What deletion does not affect</h2>
+      <p>Deleting OpeningFit does not delete your Chess.com, Lichess, Google or Stripe account. Those services must be managed directly with their providers. Some transaction, security, fraud-prevention, dispute or accounting information may be retained where legally or operationally required.</p>
+      <p>Account deletion is permanent. For more information, read the <a href="/privacy">OpeningFit Privacy Policy</a>.</p>
     </>,
     terms: <>
       <h1>OpeningFit terms and limitations</h1>
@@ -69,5 +111,5 @@ export default function PublicTrustPage({ page, appTopNav }) {
     </>,
   };
 
-  return <div className="publicTrustPage">{appTopNav()}<main className="publicTrustContent">{sections[page]}</main><footer><a href="/about">About</a><a href="/how-it-works">How analysis works</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/changelog">Changelog</a><a href={supportPath("general")}>Support</a></footer></div>;
+  return <div className="publicTrustPage">{appTopNav()}<main className="publicTrustContent">{sections[page]}</main><footer><a href="/about">About</a><a href="/how-it-works">How analysis works</a><a href="/privacy">Privacy</a><a href="/delete-account">Delete account</a><a href="/terms">Terms</a><a href="/changelog">Changelog</a><a href={supportPath("general")}>Support</a></footer></div>;
 }
