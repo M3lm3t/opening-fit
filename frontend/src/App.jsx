@@ -117,7 +117,7 @@ import {
 import { buildApiUrl, logApiDiagnostic } from "./lib/apiBase";
 import { isNativeApp } from "./lib/platform.js";
 import { getNativeLaunchPath } from "./lib/nativeAppShell.js";
-import { nativeLogoutRoute, resolveNativeStartupRoute } from "./lib/nativeStartupRoute.js";
+import { nativeLogoutRoute, nativeStartupBootstrapState, resolveNativeStartupRoute } from "./lib/nativeStartupRoute.js";
 import { importGames as importGamesFromApi } from "./lib/importClient";
 import {
   IMPORT_STAGES,
@@ -14357,6 +14357,7 @@ export default function App() {
   const [cloudSaveStatus, setCloudSaveStatus] = useState("");
   const previousAuthUserIdRef = useRef(undefined);
   const nativeStartupHandledRef = useRef(false);
+  const [nativeStartupHandled, setNativeStartupHandled] = useState(() => !isNativeApp());
   const shouldShowLandingIntro = () => {
     if (isPrivateSeoPath(getCurrentPath())) return false;
 
@@ -14476,9 +14477,11 @@ export default function App() {
         setActiveView(result.destination === "/report" ? "report" : "account");
         setShowPublicLanding(false);
       }
+      setNativeStartupHandled(true);
     }).catch((error) => {
       console.warn("OpeningFit could not resolve the native launch destination.", error);
       nativeStartupHandledRef.current = true;
+      setNativeStartupHandled(true);
     });
 
     return () => { cancelled = true; };
@@ -16708,6 +16711,24 @@ export default function App() {
 
   if (chessOpeningSeoPage) {
     return <ChessOpeningSeoPage opening={chessOpeningSeoPage} ThemeToggle={ThemeToggle} Analytics={Analytics} AppTopNav={PublicAppTopNav} />;
+  }
+
+  const nativeAuthResolved = !authLoading
+    && authHydrated
+    && (!supabaseUser?.id || (profileLoaded && !profileLoading));
+  const nativeBootstrapState = nativeStartupBootstrapState({
+    native: isNativeApp(),
+    authResolved: nativeAuthResolved,
+    startupHandled: nativeStartupHandled,
+  });
+
+  if (nativeBootstrapState === "loading") {
+    return (
+      <main className="nativeAuthBootstrap" role="status" aria-live="polite">
+        <strong>OpeningFit</strong>
+        <p>Loading your account...</p>
+      </main>
+    );
   }
 
   if (isUnknownChessOpeningPath) {

@@ -16,6 +16,31 @@ html.of-native-app body {
   overscroll-behavior-y: none;
 }
 
+html.of-native-app .restoreNoticeLoading {
+  display: none;
+}
+
+.nativeAuthBootstrap {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  text-align: center;
+  background: #f7f8fa;
+  color: #111827;
+}
+
+.nativeAuthBootstrap strong {
+  font-size: 1.5rem;
+}
+
+.nativeAuthBootstrap p {
+  margin: 0;
+  color: #4b5563;
+}
+
 html.of-native-app .mobileBottomNav {
   bottom: 0 !important;
   min-height: calc(var(--of-bottom-nav-height, 72px) + var(--of-safe-bottom)) !important;

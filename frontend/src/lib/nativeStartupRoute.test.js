@@ -1,11 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { nativeLogoutRoute, resolveNativeStartupRoute } from "./nativeStartupRoute.js";
+import { nativeLogoutRoute, nativeStartupBootstrapState, resolveNativeStartupRoute } from "./nativeStartupRoute.js";
 
 const resolve = (overrides = {}) => resolveNativeStartupRoute({ native: true, authResolved: true, currentPath: "/", ...overrides });
 
 test("native auth loading does not redirect", () => {
   assert.deepEqual(resolve({ authResolved: false, authenticated: true }), { handled: false, destination: null });
+});
+
+test("native unresolved auth is gated instead of rendering the public landing", () => {
+  assert.equal(nativeStartupBootstrapState({ native: true }), "loading");
+  assert.equal(nativeStartupBootstrapState({ native: true, authResolved: false, startupHandled: false }), "loading");
+});
+
+test("native startup remains gated until the restored session route is handled", () => {
+  assert.equal(nativeStartupBootstrapState({ native: true, authResolved: true }), "loading");
+  assert.equal(nativeStartupBootstrapState({ native: true, authResolved: true, startupHandled: true }), "ready");
 });
 
 test("native signed-out root remains public", () => {
@@ -29,10 +39,13 @@ test("native deep links are preserved for Progress and Report", () => {
 
 test("web root startup remains unchanged", () => {
   assert.deepEqual(resolve({ native: false, authenticated: true }), { handled: false, destination: null });
+  assert.equal(nativeStartupBootstrapState({ native: false }), "ready");
 });
 
 test("a handled startup does not redirect again on resume", () => {
   assert.deepEqual(resolve({ authenticated: true, handled: true }), { handled: true, destination: null });
+  assert.equal(nativeStartupBootstrapState({ native: true, authResolved: false, startupHandled: true }), "ready");
+  assert.equal(nativeStartupBootstrapState({ native: true, authResolved: true, startupHandled: true }), "ready");
 });
 
 test("native explicit logout returns to the public root only after a real user transition", () => {
