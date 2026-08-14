@@ -112,7 +112,8 @@ test("the app passes protected entitlement state without preview access", () => 
   assert.match(app, /profileError \|\| restoreError\s*\? "error"/);
   assert.match(component, /buildMobileNavigationItems/);
   assert.match(component, /nativeApp: isNativeApp\(\)/);
-  assert.match(component, /view: "account", path: "\/account", target: "profile-account"/);
+  assert.match(component, /canonicalAppDestination/);
+  assert.doesNotMatch(component, /view: "report", path: "\/report"/);
   assert.match(app, /<AccountPanel variant="screen"/);
   assert.equal((component.match(/AccountPanel/g) || []).length, 0);
 });

@@ -1,6 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { REPORT_ACTION_INVENTORY, REPORT_VIEWS, canonicalReportAction, normaliseReportView, reportActionForPriority, reportActionFromLocation, reportActionUrl, reportViewFromLocation, reportViewHash, reportViewHeadingId } from "./reportViews.js";
+import { CANONICAL_APP_DESTINATIONS, REPORT_ACTION_INVENTORY, REPORT_VIEWS, canonicalDestinationUrl, canonicalReportAction, isCanonicalDestinationActive, normaliseReportView, reportActionForPriority, reportActionFromLocation, reportActionUrl, reportViewFromLocation, reportViewHash, reportViewHeadingId } from "./reportViews.js";
+
+test("report tabs and bottom navigation share one canonical destination registry", () => {
+  assert.equal(canonicalDestinationUrl("report", { pathname: "/", search: "", hash: "" }), "/report#report-summary");
+  assert.equal(canonicalDestinationUrl("repertoire", { pathname: "/report", search: "?decision=1", hash: "#report-train" }), "/report?decision=1#report-repertoire");
+  assert.equal(canonicalDestinationUrl("train", { pathname: "/report", search: "", hash: "#report-summary" }), "/report#report-train");
+  assert.equal(CANONICAL_APP_DESTINATIONS.progress.path, "/progress");
+  assert.equal(CANONICAL_APP_DESTINATIONS.account.path, "/account");
+  assert.equal(isCanonicalDestinationActive("repertoire", { pathname: "/report", hash: "#report-repertoire" }), true);
+  assert.equal(isCanonicalDestinationActive("train", { pathname: "/report", hash: "#report-repertoire" }), false);
+});
 
 test("the report exposes exactly five stable top-level views", () => {
   assert.deepEqual(REPORT_VIEWS.map((view) => view.label), ["Summary", "Repertoire", "Problems", "Train", "Evidence"]);

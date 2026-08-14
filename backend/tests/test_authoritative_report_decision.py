@@ -63,6 +63,48 @@ def build(rows, games, **extra):
     return build_report_decision(report, openings=rows)
 
 
+def test_systemic_role_attribution_failure_is_recoverable_and_suppresses_chess_claims():
+    decision = build(
+        [opening("Italian Game", "white", ["loss"] * 20)],
+        games_for("Italian Game", "white", ["loss"] * 20),
+        roleEvidenceAccounting={
+            "valid": False,
+            "status": "invalid",
+            "diagnosticReference": "role-deadbeef1234",
+            "eligibleGames": 20,
+            "roleAttributedGames": 0,
+        },
+    )
+    assert decision["nextTrainingAction"]["type"] == "reanalyse_role_attribution"
+    assert decision["nextTrainingAction"]["findingType"] == "processing_failure"
+    assert decision["recommendations"] == []
+    assert decision["findings"] == [{
+        "type": "processing_failure", "opening": None, "repertoireRole": "unresolved",
+        "playerColour": None, "supportingGameCount": 0,
+        "confidenceReasonCode": "systemic_role_attribution_failure", "recommendationId": None,
+    }]
+    assert all(role["dataQuality"] == "role_attribution_failure" for role in decision["repertoireRoles"])
+
+
+def test_realistic_three_hundred_game_fixture_establishes_all_three_roles():
+    fixtures = [
+        ("Vienna Game", "white"),
+        ("Caro-Kann Defence", "black_vs_e4"),
+        ("Queen's Gambit Declined", "black_vs_d4"),
+    ]
+    rows = []
+    games = []
+    for name, role in fixtures:
+        results = (["win", "draw", "loss", "win"] * 25)
+        rows.append(opening(name, role, results))
+        games.extend(games_for(name, role, results, prefix=role))
+    decision = build(rows, games)
+    established = [role for role in decision["repertoireRoles"] if role["status"] == "established"]
+    assert len(established) == 3
+    assert {role["repertoireRole"] for role in established} == {"white", "black_vs_e4", "black_vs_d4"}
+    assert all(role["relevantGameCount"] == 100 for role in established)
+
+
 def test_six_game_severe_weakness_outranks_seven_game_playable_opening():
     weak = ["win", "loss", "loss", "loss", "loss", "loss"]
     playable = ["win", "win", "win", "win", "loss", "loss", "loss"]

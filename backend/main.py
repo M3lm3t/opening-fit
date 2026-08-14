@@ -17,6 +17,7 @@ from analysis.retention_metrics import build_retention_metrics
 from analysis.opening_perspective import (
     attach_perspective,
     classify_opening_perspective,
+    first_white_move_from_item,
     perspective_from_item,
     player_colour_from_game,
     player_colour_from_names,
@@ -1967,6 +1968,65 @@ def validate_game_count_contract(counts: Dict[str, Any], *, opening_stat_games: 
     if any(counts.get(left) != counts.get(right) for left, right in alias_pairs):
         raise ValueError("game_count_contract: compatibility aliases diverged")
     return counts
+
+
+def build_role_evidence_accounting(records: List[Dict[str, Any]], game_counts: Dict[str, Any]) -> Dict[str, Any]:
+    """Reconcile every eligible canonical game into a repertoire role bucket."""
+    unique: Dict[str, Dict[str, Any]] = {}
+    for record in records:
+        identity = str(record.get("gameId") or record.get("game_id") or record.get("url") or "").strip()
+        if not identity:
+            raise ValueError("role_evidence_contract: eligible game has no stable identity")
+        unique.setdefault(identity, record)
+    eligible = int(game_counts.get("analysisCandidateGames", game_counts.get("gamesParsed", game_counts.get("gamesUsedForOpeningStats", 0))) or 0)
+    if len(unique) != eligible:
+        raise ValueError(f"role_evidence_contract: {len(unique)} canonical games differ from {eligible} eligible games")
+    role_counts = {"white": 0, "black_vs_e4": 0, "black_vs_d4": 0}
+    outside = 0
+    errors = 0
+    reason_counts: Counter = Counter()
+    for game in unique.values():
+        perspective = perspective_from_item(game)
+        role = str(perspective.get("repertoireRole") or "unresolved")
+        colour = str(perspective.get("userColour") or game.get("playerColour") or "unknown")
+        if role in role_counts:
+            role_counts[role] += 1
+        elif colour == "black" and first_white_move_from_item(game):
+            outside += 1
+            reason_counts["outside_core_first_move"] += 1
+        else:
+            errors += 1
+            reason_counts[str(perspective.get("attributionReasonCode") or "role_attribution_unresolved")] += 1
+    attributed = sum(role_counts.values())
+    if eligible != attributed + outside + errors:
+        raise ValueError("role_evidence_contract: eligible games do not reconcile")
+    imported = int((game_counts.get("gameReconciliation") or {}).get("total_imported", game_counts.get("gamesFetched", 0)) or 0)
+    # Opening-classification failures are still eligible for colour/first-move
+    # role attribution, so only pre-analysis filters belong in this exclusion.
+    excluded = max(0, imported - eligible)
+    if imported != eligible + excluded:
+        raise ValueError("role_evidence_contract: imported games do not equal eligible plus excluded")
+    invalid = eligible >= 15 and attributed < max(3, int(eligible * 0.1))
+    diagnostic_seed = f"{imported}:{eligible}:{attributed}:{outside}:{errors}:{sorted(reason_counts.items())}"
+    return {
+        "contractVersion": 1,
+        "importedGames": imported,
+        "parsedGames": int(game_counts.get("gamesParsed", 0) or 0),
+        "eligibleGames": eligible,
+        "excludedGames": excluded,
+        "duplicateGames": int(game_counts.get("duplicateGamesRemoved", 0) or 0),
+        "roleAttributedGames": attributed,
+        "whiteGames": role_counts["white"],
+        "blackVsE4Games": role_counts["black_vs_e4"],
+        "blackVsD4Games": role_counts["black_vs_d4"],
+        "eligibleOutsideCoreRoles": outside,
+        "attributionErrors": errors,
+        "exclusionReasons": dict(game_counts.get("exclusionReasons") or {}),
+        "attributionReasonCounts": dict(sorted(reason_counts.items())),
+        "valid": not invalid,
+        "status": "invalid" if invalid else "trusted",
+        "diagnosticReference": f"role-{hashlib.sha256(diagnostic_seed.encode()).hexdigest()[:12]}",
+    }
 
 
 def classified_game_pipeline_counts(records: List[Dict[str, Any]]) -> Dict[str, int]:
@@ -9319,6 +9379,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
         game_counts,
         opening_stat_games=sum(int(stats.get("games", 0) or 0) for stats in context_opening_results.values()),
     )
+    role_evidence_accounting = build_role_evidence_accounting(opening_game_samples, game_counts)
     result = {
         "username": player_profile.get("username") or player.get("username", username),
         "display_name": player_profile.get("display_name"),
@@ -9334,6 +9395,8 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
         "chessTitle": player.get("title"),
         "chess_title": player.get("title"),
         **game_count_report_aliases(game_counts),
+        "roleEvidenceAccounting": role_evidence_accounting,
+        "role_evidence_accounting": role_evidence_accounting,
         "gamesStructurallyUsable": game_counts["gamesStructurallyUsable"],
         "gamesUnclassified": game_counts["gamesUnclassified"],
         "analysisTimeControl": time_control,
@@ -10075,6 +10138,7 @@ def build_lichess_analysis(
         game_counts,
         opening_stat_games=sum(int(stats.get("games", 0) or 0) for stats in context_opening_results.values()),
     )
+    role_evidence_accounting = build_role_evidence_accounting(opening_game_samples, game_counts)
     result = {
         "username": player_profile.get("username") or username,
         "display_name": player_profile.get("display_name"),
@@ -10092,6 +10156,8 @@ def build_lichess_analysis(
         "player_level": player_level,
         "playerLevel": player_level,
         **game_count_report_aliases(game_counts),
+        "roleEvidenceAccounting": role_evidence_accounting,
+        "role_evidence_accounting": role_evidence_accounting,
         "gamesStructurallyUsable": game_counts["gamesStructurallyUsable"],
         "gamesUnclassified": game_counts["gamesUnclassified"],
         "analysisTimeControl": count_context.get("timeControl", "custom"),

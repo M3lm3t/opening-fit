@@ -52,6 +52,7 @@ SUPPORTED_FINDING_TYPES = frozenset({
     "stable_strength",
     "mixed_signal",
     "insufficient_evidence",
+    "processing_failure",
 })
 
 
@@ -905,7 +906,6 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
             game_id = _game_id(game)
             if (
                 game_perspective.get("repertoireRole") != spec["role"]
-                or game_perspective.get("relationship") != "played"
                 or game_id in seen_role_game_ids
             ):
                 continue
@@ -918,7 +918,13 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
                 matching_role_games.append(game)
             else:
                 unresolved_role_games.append(game)
-        role_games = [game for game in matching_role_games if _name(game)]
+        # Every eligible game belongs to its colour/first-move role. Only an
+        # opening conventionally played by the user can establish the user's
+        # leading opening inside that role.
+        role_games = [
+            game for game in matching_role_games
+            if _name(game) and perspective_from_item(game).get("relationship") == "played"
+        ]
         opening_groups: dict[str, dict[str, Any]] = {}
         for game in role_games:
             key = _opening_key(_name(game))
@@ -1025,7 +1031,7 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
             "reasonCodes": [value for value in [reason_code, (candidate or {}).get("confidenceReasonCode")] if value],
             "evidenceCount": current, "evidenceGameIds": sample_ids,
             "rawGameCount": int(_number((candidate or {}).get("evidenceCounts", {}).get("classifiedOpeningGames")) or current),
-            "relevantGameCount": attributed,
+            "relevantGameCount": len(matching_role_games),
             "supportingGameCount": current,
             "requiredGameCount": MIN_OPENING_EVIDENCE,
             "confidenceReasonCode": (candidate or {}).get("confidenceReasonCode") or reason_code,
@@ -1037,6 +1043,7 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
                 "importedCandidates": None,
                 "passedReportFilters": len(matching_role_games) + len(unresolved_role_games) if _report_games(report) else None,
                 "correctlyAttributed": attributed,
+                "roleAttributed": len(matching_role_games),
                 "assignedToLeadingOpening": current,
                 "distinctAttributedOpenings": attributed_openings,
                 "openingUnclassified": max(0, len(matching_role_games) - attributed) if _report_games(report) else None,
@@ -1944,13 +1951,41 @@ def build_report_decision(
 
     repertoire_roles = build_repertoire_roles(recommendations, report)
     experiments = _style_experiments(report)
+    role_accounting = report.get("roleEvidenceAccounting") or report.get("role_evidence_accounting") or {}
+    attribution_invalid = isinstance(role_accounting, Mapping) and role_accounting.get("valid") is False
+    if attribution_invalid:
+        strength = problem = mixed = None
+        recommendations = []
+        experiments = []
+        repertoire_roles = [{
+            **role,
+            "status": "unresolved",
+            "dataQuality": "role_attribution_failure",
+            "currentOpening": None,
+            "openingName": None,
+            "confidenceReasonCode": "systemic_role_attribution_failure",
+            "confidenceExplanation": "Role attribution failed systemically; reanalyse before using repertoire conclusions.",
+        } for role in repertoire_roles]
     missing_role = next((
         role for role in repertoire_roles
         if role.get("status") in {"insufficient", "unresolved"} and not role.get("currentOpening")
     ), None)
     building_roles = [role for role in repertoire_roles if role.get("status") != "established"]
 
-    if problem:
+    if attribution_invalid:
+        action = {
+            "type": "reanalyse_role_attribution", "opening": None, "role": None,
+            "repertoireRole": RepertoireRole.UNRESOLVED.value, "findingType": "processing_failure",
+            "label": "Reanalyse to repair role attribution",
+            "reason": "We imported your games but couldn’t reliably assign them to repertoire roles. Reanalyse to repair this report.",
+            "recommendationId": None, "sample": None,
+            "title": "Reanalyse to repair this report",
+            "explanation": "OpeningFit retained a diagnostic reference and will not manufacture weaknesses or recommendations from invalid role evidence.",
+            "concept": "Repair the report processing contract before using repertoire conclusions.",
+            "exercise": "Run the analysis again.",
+            "completionTarget": {"type": "reanalyse", "count": 1, "label": "Complete one successful reanalysis."},
+        }
+    elif problem:
         training = problem["trainingAction"]
         action = {
             "type": "repair_repertoire", "opening": problem["openingName"], "role": problem["role"],
@@ -2123,6 +2158,12 @@ def build_report_decision(
         "confidenceReasonCode": role.get("confidenceReasonCode"),
         "recommendationId": None,
     } for role in repertoire_roles if role["status"] != "established")
+    if attribution_invalid:
+        findings = [{
+            "type": "processing_failure", "opening": None, "repertoireRole": "unresolved",
+            "playerColour": None, "supportingGameCount": 0,
+            "confidenceReasonCode": "systemic_role_attribution_failure", "recommendationId": None,
+        }]
     decision = {
         "schemaVersion": 6,
         "version": "report_decision_v6",
@@ -2170,6 +2211,7 @@ def build_report_decision(
         ],
         "fallbackUsed": bool(action.get("fallback")),
         "fallbackReason": str(action.get("reason")) if action.get("fallback") else None,
+        "roleAttribution": dict(role_accounting) if isinstance(role_accounting, Mapping) else None,
         "repertoireRoles": repertoire_roles,
         "roleDecisions": repertoire_roles,
         "repertoireCoverageScore": repertoire_coverage_score,

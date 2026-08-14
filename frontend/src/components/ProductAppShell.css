@@ -799,6 +799,9 @@
 .decisionRepertoireMap .repertoireCoverageGrid details { grid-column: 1 / -1; }
 .decisionRepertoireMap .repertoireCoverageGrid summary { cursor: pointer; font-weight: 800; }
 .decisionRepertoireMap .repertoireCoveragePriority { margin-top: 12px; }
+.roleAttributionFailure { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border: 1px solid var(--of-color-danger, #a84242); border-radius: var(--of-radius-md); background: color-mix(in srgb, var(--of-color-danger, #a84242) 8%, var(--of-color-surface)); }
+.roleAttributionFailure p { margin: 4px 0; color: var(--of-color-text-soft); }
+.roleAttributionFailure small { color: var(--of-color-muted); }
 .finiteTrainingSession { display: grid; grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr) auto; gap: 18px; align-items: center; border-color: color-mix(in srgb, var(--of-color-info) 42%, var(--of-shell-border)); }
 .finiteTrainingSession p { margin: 0; color: var(--of-color-text-soft); line-height: 1.45; }
 .finiteTrainingSession ol { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; padding: 0; list-style: none; }
@@ -826,6 +829,14 @@
   .decisionReportFlow > *:not(.reportCommandBar):not(.decisionReportHeader):not(.coachDecisionVerdict):not(.finiteTrainingSession):not(.reportDecisionSection):not(.compactOpeningHealth):not(.decisionRepertoireMap):not(.costlyIssuesSection):not(.reportSupportingDataDetails):not(.reportSecondaryDetails) { order: 9; }
   .decisionReportHeader { grid-template-columns: 1fr; }
   .decisionReportHeader .secondaryBtn { width: 100%; }
+  .decisionRepertoireMap .repertoireCoverageGrid { grid-template-columns: minmax(0, 1fr); }
+  .decisionRepertoireMap .repertoireCoverageGrid article { min-width: 0; grid-template-columns: minmax(0, 1fr); width: 100%; overflow: hidden; }
+  .decisionRepertoireMap .repertoireCoverageRole,
+  .decisionRepertoireMap .repertoireCoverageRole h3,
+  .decisionRepertoireMap .repertoireCoverageStatus { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: break-word; word-break: normal; }
+  .decisionRepertoireMap .repertoireCoverageStatus { justify-self: start; }
+  .roleAttributionFailure { align-items: stretch; flex-direction: column; }
+  .roleAttributionFailure .primaryBtn { width: 100%; }
   .compactOpeningHealthGrid,
   .compactOpeningHealth dl,
   .decisionRepertoireMap > div,

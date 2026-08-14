@@ -98,6 +98,23 @@ test("saves one immutable snapshot and returns it on a duplicate save", async ()
   assert.equal(duplicate.id, "report-1");
 });
 
+test("role evidence accounting survives saved-report serialization and restoration", () => {
+  const report = completedReport();
+  report.roleEvidenceAccounting = {
+    valid: true,
+    importedGames: 300,
+    eligibleGames: 297,
+    excludedGames: 3,
+    roleAttributedGames: 290,
+    eligibleOutsideCoreRoles: 7,
+    attributionErrors: 0,
+    diagnosticReference: "role-fixture300",
+  };
+  const snapshot = buildReportSnapshot({ report, userId: "user-1", reportId: "report-role" });
+  const restored = adaptReportHistoryRow({ id: "report-role", user_id: "user-1", normalized_snapshot: snapshot });
+  assert.deepEqual(restored.role_evidence_accounting, report.roleEvidenceAccounting);
+});
+
 test("adapts an old report without inventing unavailable fields", () => {
   const adapted = adaptReportHistoryRow({
     id: "old-report",

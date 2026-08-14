@@ -323,6 +323,7 @@ export function buildReportSnapshot({
     score_components: scoreComponents && typeof scoreComponents === "object" ? scoreComponents : null,
     score_contract: scoreContract && typeof scoreContract === "object" ? scoreContract : null,
     repertoire_roles: list(first(report.repertoireRoles, report.repertoire_roles, reportDecision?.repertoireRoles)),
+    role_evidence_accounting: first(report.roleEvidenceAccounting, report.role_evidence_accounting),
     style_profile: first(summary.styleProfile, summary.style_profile, report.styleProfile, report.style_profile),
     recommendations: {
       white: recommendations.white.opening,
@@ -394,6 +395,7 @@ export function adaptReportHistoryRow(row = {}) {
       training_outcome_context: rawSnapshot.training_outcome_context || {},
       active_repertoire: rawSnapshot.active_repertoire || null,
       report_decision: reportDecision,
+      role_evidence_accounting: rawSnapshot.role_evidence_accounting || rawSnapshot.roleEvidenceAccounting || null,
       training_priority: selectAuthoritativeCoachingPriority(rawSnapshot, { decision: reportDecision, allowFallback: false }),
       analysis_metadata: rawSnapshot.analysis_metadata || {},
     };

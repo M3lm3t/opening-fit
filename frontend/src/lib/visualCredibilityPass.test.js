@@ -39,3 +39,9 @@ test("responsive report hierarchy and accessible evidence labels remain intact",
   assert.match(component, /aria-label="Decision evidence"/);
   assert.match(component, /aria-label="Keep, repair and train next"/);
 });
+
+test("repertoire coverage cards collapse to readable single-column mobile geometry", () => {
+  assert.match(shell, /@media \(max-width: 640px\)[\s\S]*?\.decisionRepertoireMap \.repertoireCoverageGrid \{ grid-template-columns: minmax\(0, 1fr\); \}/);
+  assert.match(shell, /\.decisionRepertoireMap \.repertoireCoverageGrid article \{ min-width: 0; grid-template-columns: minmax\(0, 1fr\); width: 100%; overflow: hidden; \}/);
+  assert.match(shell, /\.repertoireCoverageStatus \{ justify-self: start; \}/);
+});

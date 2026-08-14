@@ -3,7 +3,7 @@ import { Chess } from "chess.js";
 import { X } from "lucide-react";
 import ChessPositionBoard from "./ChessPositionBoard";
 import { BoardThemeStatusLabel, BoardThemeToggle, useBoardTheme } from "./boardThemes.jsx";
-import { findOpeningPracticePack, openingPracticePacks } from "../data/openingPracticeLines";
+import { resolveOpeningPracticePack } from "../data/openingPracticeLines";
 import { OPENINGS, normaliseOpeningKey, searchOpenings } from "../data/openings";
 import { fetchOpeningFitCloudState, saveOpeningFitCloudState } from "./openingFitCloudState";
 import { useAuth } from "../context/AuthDataProvider";
@@ -466,10 +466,17 @@ function StandardOpeningPracticeLinesPanel({
   const trainingSet = opening?.trainingSet || opening?.training_set || null;
   const { boardTheme, setBoardTheme } = useBoardTheme();
   const [activeOpeningName, setActiveOpeningName] = useState(openingName);
-  const basePack = useMemo(() => findOpeningPracticePack(activeOpeningName), [activeOpeningName]);
+  const packResolution = useMemo(() => resolveOpeningPracticePack(activeOpeningName === openingName ? {
+    ...opening,
+    openingName,
+    targetLine: focusLine || opening?.moveLine || opening?.move_line || "",
+  } : activeOpeningName), [activeOpeningName, focusLine, opening, openingName]);
+  const basePack = packResolution.pack;
   const exactMoves = useMemo(() => parseExactMoveSequence(opening, trainingSet), [opening, trainingSet]);
   const exactPracticePack = useMemo(() => {
-    if (activeOpeningName !== openingName || exactMoves.length < 2) return null;
+    if (activeOpeningName !== openingName || exactMoves.length < 2 || !basePack) return null;
+    const expectedFamily = packResolution.pack?.initialMoveFamily || opening?.initialMoveFamily || opening?.initial_move_family || "";
+    if (expectedFamily && exactMoves[0] !== expectedFamily) return null;
 
     const lineName = exactLineName(opening, trainingSet, focusLine);
     return {
@@ -513,16 +520,16 @@ function StandardOpeningPracticeLinesPanel({
         },
       ],
     };
-  }, [activeOpeningName, basePack, exactMoves, focusLine, opening, openingName, trainingSet]);
+  }, [activeOpeningName, basePack, exactMoves, focusLine, opening, openingName, packResolution.pack?.initialMoveFamily, trainingSet]);
   const pack = exactPracticePack || basePack;
   const usingExactWeakLine = Boolean(exactPracticePack);
   const fallbackExplanation = useMemo(() => {
     if (!trainingSet && !focusLine && !opening?.weakLine) return "";
     if (usingExactWeakLine) return "";
     if (!exactMoves.length) {
-      return "Exact moves were not saved for this weak line, so OpeningFit loaded the closest available opening practice instead.";
+      return "Exact moves were not saved for this weak line. OpeningFit will only load a canonical compatible pack.";
     }
-    return "The saved weak-line moves could not be played legally from the starting position, so OpeningFit loaded the closest available opening practice instead.";
+    return "The saved weak-line moves could not be verified from the starting position. OpeningFit will not substitute an unrelated pack.";
   }, [exactMoves.length, focusLine, opening?.weakLine, trainingSet, usingExactWeakLine]);
 
   const [selectedLineIndex, setSelectedLineIndex] = useState(0);
@@ -692,7 +699,7 @@ function StandardOpeningPracticeLinesPanel({
   if (!opening) return null;
 
   if (!pack) {
-    const suggestedPacks = openingPracticePacks.slice(0, 8);
+    const suggestedPacks = packResolution.compatibleAlternatives || [];
 
     return (
       <section
@@ -714,11 +721,9 @@ function StandardOpeningPracticeLinesPanel({
         </div>
 
         <div className="practiceComingSoon">
-          <h3>No exact pack for {openingName} yet</h3>
+          <h3>Compatible practice is unavailable</h3>
           <p>
-            {focusLine
-              ? `Practice mode is ready for this opening, but no exact move line was found yet. Target line: ${focusLine}.`
-              : "Practice mode is ready for this opening, but no exact move line was found yet."}
+            OpeningFit could not verify this target against a canonical pack for the same repertoire role, colour, and first-move family. Reanalyse your games to refresh the training target.
           </p>
           {trainingSet ? (
             <div className="weakestLineTrainingSet">

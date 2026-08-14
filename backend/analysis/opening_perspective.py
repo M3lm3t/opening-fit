@@ -238,8 +238,10 @@ def classify_opening_perspective(
         OpeningRole.FACED_AS_BLACK: "faced by you as Black",
         OpeningRole.UNKNOWN: "ownership unresolved",
     }
-    trusted = repertoire_role != RepertoireRole.UNRESOLVED.value and side in {"white", "black"}
-    attribution_reason = role_reason if role_reason else None if trusted else "opening_side_unresolved"
+    # Repertoire role is a player-colour/first-move fact. Opening-side ownership
+    # describes the conventional opening label and must never invalidate it.
+    trusted = repertoire_role != RepertoireRole.UNRESOLVED.value
+    attribution_reason = role_reason if role_reason else None if trusted else "role_attribution_unresolved"
     return {
         "userColour": user if user in {"white", "black"} else "unknown",
         "openingSide": side if side in {"white", "black"} else None,
@@ -267,7 +269,7 @@ def perspective_from_item(item: Mapping[str, Any]) -> OpeningPerspective:
             repertoire_role, reason = canonical_repertoire_role(str(stored.get("userColour") or stored.get("user_colour") or ""), str(item.get("firstWhiteMove") or item.get("first_white_move") or ""))
             stored["attributionReasonCode"] = stored.get("attributionReasonCode") or reason or "legacy_role_unresolved"
         stored["repertoireRole"] = repertoire_role
-        stored["roleAttributionTrusted"] = bool(stored.get("roleAttributionTrusted", stored.get("role_attribution_trusted", repertoire_role != RepertoireRole.UNRESOLVED.value and opening_side in {"white", "black"})))
+        stored["roleAttributionTrusted"] = bool(stored.get("roleAttributionTrusted", stored.get("role_attribution_trusted", repertoire_role != RepertoireRole.UNRESOLVED.value)))
         stored.setdefault("attributionReasonCode", None if stored["roleAttributionTrusted"] else "legacy_role_unresolved")
         return stored  # type: ignore[return-value]
 
@@ -280,7 +282,7 @@ def perspective_from_item(item: Mapping[str, Any]) -> OpeningPerspective:
         if repertoire_role not in {member.value for member in RepertoireRole}:
             repertoire_role, _reason = canonical_repertoire_role(user_colour, str(item.get("firstWhiteMove") or item.get("first_white_move") or ""))
         opening_side = item.get("openingSide") or item.get("opening_side")
-        trusted = bool(item.get("roleAttributionTrusted", item.get("role_attribution_trusted", repertoire_role != RepertoireRole.UNRESOLVED.value and opening_side in {"white", "black"})))
+        trusted = bool(item.get("roleAttributionTrusted", item.get("role_attribution_trusted", repertoire_role != RepertoireRole.UNRESOLVED.value)))
         return {
             "userColour": user_colour,
             "openingSide": opening_side,

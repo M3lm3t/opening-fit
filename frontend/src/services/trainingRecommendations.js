@@ -1,5 +1,6 @@
 import { mergeWeakLines } from "./weakLineDetection.js";
 import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
+import { resolveOpeningPracticePack } from "../data/openingPracticeLines.js";
 
 export const TRAINING_TARGET_THRESHOLDS = {
   weakLineMinGames: 3,
@@ -340,6 +341,15 @@ function canonicalTrainingRecommendation(data = {}) {
   const source = decision.recommendations.find((item) => item.recommendationId === action.recommendationId) || null;
   const priority = decision.trainingPriority || data.trainingPriority || data.training_priority || {};
   const side = source?.playerColour || priority.playerColour || priority.player_colour || (source?.role === "played_as_black" ? "black" : "white");
+  const repertoireRole = source?.repertoireRole || source?.repertoire_role || priority.repertoireRole || priority.repertoire_role || "";
+  const targetLine = priority.practiceLine || priority.recognisedLine || action.lineOrPosition || "";
+  const packResolution = resolveOpeningPracticePack({
+    openingId: source?.canonicalOpeningId || source?.canonical_opening_id || source?.openingId || source?.opening_id,
+    openingName: action.opening,
+    repertoireRole,
+    playerColour: side,
+    targetLine,
+  });
   const reason = action.reason || action.explanation || source?.recommendedAction?.explanation || source?.trainingAction?.explanation || "This is the report's authoritative next action.";
   const target = {
     ...(source || {}),
@@ -354,6 +364,17 @@ function canonicalTrainingRecommendation(data = {}) {
     colour: side,
     selectedReason: reason,
     source: "authoritative-report-decision",
+    subjectType: "canonical_opening_training_target",
+    openingId: source?.canonicalOpeningId || source?.canonical_opening_id || source?.openingId || source?.opening_id || packResolution.pack?.canonicalOpeningId || null,
+    canonicalOpeningName: action.opening,
+    repertoireRole,
+    playerColour: side,
+    initialMoveFamily: packResolution.pack?.initialMoveFamily || null,
+    sourceDiagnosisId: source?.diagnosisId || source?.diagnosis_id || action.diagnosisId || action.diagnosis_id || null,
+    sourceEvidenceId: source?.evidenceId || source?.evidence_id || null,
+    targetLine,
+    packId: packResolution.pack?.packId || null,
+    packResolutionStatus: packResolution.status,
   };
   return {
     type: action.type,

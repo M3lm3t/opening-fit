@@ -2,6 +2,7 @@ import { BookOpenCheck, ChartNoAxesCombined, Crown, Dumbbell, TrendingUp, UserRo
 import { getAppSection } from "../appNavigation";
 import { buildMobileNavigationItems, isMobileNavigationItemActive } from "../lib/mobileNavigation.js";
 import { isNativeApp } from "../lib/platform.js";
+import { canonicalAppDestination, isCanonicalDestinationActive } from "../lib/reportViews.js";
 
 const ICONS = Object.freeze({
   report: ChartNoAxesCombined,
@@ -32,28 +33,10 @@ export default function MobileBottomNav({
     event.preventDefault();
     event.stopPropagation();
     const target = item.needsReport && !hasReport ? "analyse" : item.key;
-    if (target === "train") {
-      onNavigate?.({ view: "train", path: "/train", target: "opening-practice" });
-      return;
-    }
-    if (target === "report") {
-      onNavigate?.({ view: "report", path: "/report", target: "app-results" });
-      return;
-    }
-    if (target === "repertoire") {
-      onNavigate?.({ view: "repertoire", path: "/repertoire", target: "my-repertoire", fallbackIds: ["app-dashboard"] });
-      return;
-    }
-    if (target === "progress") {
-      onNavigate?.({ view: "progress", path: "/progress", target: "openingfit-progress", fallbackIds: ["profile"] });
-      return;
-    }
+    const canonical = canonicalAppDestination(target);
+    if (canonical) { onNavigate?.(canonical); return; }
     if (target === "premium") {
       onNavigate?.({ view: "premium", path: "/premium", target: "premium" });
-      return;
-    }
-    if (target === "account") {
-      onNavigate?.({ view: "account", path: "/account", target: "profile-account", fallbackIds: ["profile"] });
       return;
     }
     onNavigate?.(target);
@@ -67,7 +50,7 @@ export default function MobileBottomNav({
     >
       {items.map((item) => {
         const isReportPrompt = item.needsReport && !hasReport;
-        const isActive = isMobileNavigationItemActive(item, activeView, activeSection);
+        const isActive = isCanonicalDestinationActive(item.key) || isMobileNavigationItemActive(item, activeView, activeSection) && !["report", "repertoire", "train"].includes(item.key);
 
         return (
           <button

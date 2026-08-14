@@ -6590,16 +6590,19 @@ function FinalReportFlow({
     if (typeof window === "undefined") return undefined;
 
     const handleReportMode = (event) => setReportView(event.detail?.mode === "table" ? "evidence" : event.detail?.mode === "full" ? "repertoire" : "summary");
+    const handleReportView = (event) => setReportView(normaliseReportView(event.detail?.view));
     const handleHistory = () => {
       setReportView(reportViewFromLocation());
       setReportActionContext(reportActionFromLocation());
     };
 
     window.addEventListener("openingfit:set-report-mode", handleReportMode);
+    window.addEventListener("openingfit:set-report-view", handleReportView);
     window.addEventListener("popstate", handleHistory);
     window.addEventListener("hashchange", handleHistory);
     return () => {
       window.removeEventListener("openingfit:set-report-mode", handleReportMode);
+      window.removeEventListener("openingfit:set-report-view", handleReportView);
       window.removeEventListener("popstate", handleHistory);
       window.removeEventListener("hashchange", handleHistory);
     };
@@ -6707,6 +6710,8 @@ function FinalReportFlow({
       {contextIsStale ? "The requested report context is no longer available. The current section is shown safely." : `Report context retained: ${focusedPriorityName}.`}
     </p>
   ) : null;
+  const roleAccounting = data?.roleEvidenceAccounting || data?.role_evidence_accounting || null;
+  const roleAttributionFailed = roleAccounting?.valid === false;
 
   return (
     <div className="finalReportFlow decisionReportFlow">
@@ -6719,6 +6724,10 @@ function FinalReportFlow({
         saveStatus={saveStatus}
         authenticated={authenticated}
       />
+      {roleAttributionFailed ? <section className="roleAttributionFailure" role="alert">
+        <div><strong>Reanalyse to repair this report</strong><p>We imported your games but couldn’t reliably assign them to repertoire roles. OpeningFit will not manufacture weaknesses or recommendations from this report.</p><small>Diagnostic reference: {roleAccounting.diagnosticReference}</small></div>
+        <button type="button" className="primaryBtn" onClick={() => onNavigate?.("analyse")}>Reanalyse</button>
+      </section> : null}
 
       {reportView === "summary" ? <section className="reportViewPanel" id="report-summary-view" role="tabpanel" aria-labelledby="report-tab-summary"><PrimaryReportSummary
         model={decisionModel}

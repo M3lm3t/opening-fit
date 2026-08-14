@@ -7,12 +7,13 @@ from analysis.classified_game import (
     record_is_classified,
     record_is_used_for_opening_stats,
 )
-from analysis.opening_perspective import attribution_diagnostic, classify_opening_perspective, player_colour_from_game, player_colour_from_names, validate_repertoire_role_for_game
+from analysis.opening_perspective import attribution_diagnostic, classify_opening_perspective, first_white_move_from_item, player_colour_from_game, player_colour_from_names, validate_repertoire_role_for_game
 from analysis.report_decision import _matching_games, build_repertoire_coverage_score, build_repertoire_roles
 from main import (
     ANALYSIS_GAME_LIMIT,
     build_game_import_quality,
     build_game_count_summary,
+    build_role_evidence_accounting,
     chesscom_skip_reason,
     deduplicate_games,
     opening_item,
@@ -82,6 +83,50 @@ def test_scandinavian_and_french_are_attributed_from_player_names_not_opening_na
     assert scandi_black["canonicalContextId"].endswith(":black:played_by_user:black_vs_e4")
     assert scandi_black["matchedOpeningRuleId"]
     assert scandi_black["matchedMoves"] == ["e4", "d5"]
+
+
+def test_username_matching_is_case_insensitive_and_unicode_normalised():
+    assert player_colour_from_names("faith", "FAITH", "Opponent") == ("white", None)
+    assert player_colour_from_names("Faith", "Opponent", "Ｆａｉｔｈ") == ("black", None)
+
+
+def test_first_move_survives_headers_comments_variations_move_numbers_and_nags():
+    game = {"pgn": '''[Event "Fixture"]
+[White "Opponent"]
+[Black "Faith"]
+
+{leading note} (1. e4? e5) 1. d4 $1 Nf6 2. c4 *'''}
+    assert first_white_move_from_item(game) == "d4"
+
+
+def test_three_hundred_game_role_accounting_reconciles_without_evidence_loss():
+    records = []
+    fixtures = [
+        ("white", "e4", "white"),
+        ("black", "e4", "black_vs_e4"),
+        ("black", "d4", "black_vs_d4"),
+    ]
+    for colour, first_move, expected_role in fixtures:
+        perspective = classify_opening_perspective(user_colour=colour, opening_side="white", first_white_move=first_move)
+        assert perspective["repertoireRole"] == expected_role
+        for index in range(100):
+            records.append({
+                "gameId": f"{expected_role}-{index}",
+                "playerColour": colour,
+                "firstWhiteMove": first_move,
+                "perspective": perspective,
+            })
+    accounting = build_role_evidence_accounting(records, {
+        "gamesUsedForOpeningStats": 300,
+        "gamesParsed": 300,
+        "duplicateGamesRemoved": 2,
+        "exclusionReasons": {"duplicate": 2, "unsupported": 1},
+        "gameReconciliation": {"total_imported": 303, "excluded_total": 3},
+    })
+    assert accounting["valid"] is True
+    assert accounting["roleAttributedGames"] == 300
+    assert accounting["whiteGames"] == accounting["blackVsE4Games"] == accounting["blackVsD4Games"] == 100
+    assert accounting["importedGames"] == accounting["eligibleGames"] + accounting["excludedGames"]
 
 
 def test_duplicate_records_and_transposed_aliases_have_deterministic_canonical_contexts():

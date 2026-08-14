@@ -6,6 +6,32 @@ export const REPORT_VIEWS = Object.freeze([
   { key: "evidence", label: "Evidence", hash: "report-evidence", headingId: "report-evidence-view-title" },
 ]);
 
+export const CANONICAL_APP_DESTINATIONS = Object.freeze({
+  report: Object.freeze({ key: "report", view: "report", path: "/report", reportView: "summary", target: "app-results" }),
+  repertoire: Object.freeze({ key: "repertoire", view: "report", path: "/report", reportView: "repertoire", target: "report-repertoire-view" }),
+  train: Object.freeze({ key: "train", view: "report", path: "/report", reportView: "train", target: "report-train-view" }),
+  progress: Object.freeze({ key: "progress", view: "progress", path: "/progress", target: "openingfit-progress", fallbackIds: ["profile"] }),
+  account: Object.freeze({ key: "account", view: "account", path: "/account", target: "profile-account", fallbackIds: ["profile"] }),
+});
+
+export function canonicalAppDestination(key) {
+  return CANONICAL_APP_DESTINATIONS[key] || null;
+}
+
+export function canonicalDestinationUrl(key, location = globalThis.location) {
+  const destination = canonicalAppDestination(key);
+  if (!destination) return null;
+  const preserveReportContext = destination.path === "/report" && location?.pathname === "/report";
+  const search = preserveReportContext ? String(location?.search || "") : "";
+  return `${destination.path}${search}${destination.reportView ? reportViewHash(destination.reportView) : ""}`;
+}
+
+export function isCanonicalDestinationActive(key, location = globalThis.location) {
+  const destination = canonicalAppDestination(key);
+  if (!destination || location?.pathname !== destination.path) return false;
+  return destination.reportView ? reportViewFromLocation(location) === destination.reportView : true;
+}
+
 export const REPORT_CONTEXT_QUERY_KEYS = Object.freeze(["reportAction", "decision", "diagnosis", "opening", "role", "task", "focus", "source"]);
 
 /**
