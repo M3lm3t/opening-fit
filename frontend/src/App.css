@@ -48531,6 +48531,10 @@ a,
   --color-primary: #14b8a6;
   --color-primary-hover: #2dd4bf;
   --color-primary-soft: rgba(20, 184, 166, 0.16);
+  --color-on-primary: #03111f;
+  --color-on-dark: #f8fafc;
+  --color-disabled-bg: rgba(71, 85, 105, 0.52);
+  --color-disabled-text: #cbd5e1;
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
@@ -48616,6 +48620,10 @@ a,
   --color-primary: #0f766e;
   --color-primary-hover: #0d9488;
   --color-primary-soft: rgba(13, 148, 136, 0.12);
+  --color-on-primary: #ffffff;
+  --color-on-dark: #f8fafc;
+  --color-disabled-bg: #e2e8f0;
+  --color-disabled-text: #475569;
   --color-success: #15803d;
   --color-warning: #b45309;
   --color-danger: #dc2626;
@@ -48809,7 +48817,7 @@ a:focus-visible {
 button[type="submit"] {
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)) !important;
   border-color: color-mix(in srgb, var(--color-primary) 54%, var(--color-border)) !important;
-  color: #ffffff !important;
+  color: var(--color-on-primary) !important;
   box-shadow: 0 12px 28px color-mix(in srgb, var(--color-primary) 26%, transparent) !important;
 }
 
@@ -48821,11 +48829,40 @@ button[type="submit"] {
 .dangerHistoryButton,
 .reportCommandButton,
 .appPrimaryMobileTheme,
-.practiceControls button,
+.practiceControls button:not(.primaryPracticeControl),
 .boardThemeToggle button {
   background: color-mix(in srgb, var(--color-surface-raised) 82%, transparent) !important;
   border-color: var(--color-border) !important;
   color: var(--color-text) !important;
+}
+
+/* These controls intentionally use strong/dark fills. Their foreground must
+   describe that surface instead of inheriting the page text colour. */
+.emailSignInBtn,
+.saveAccountBtn {
+  background: var(--color-primary) !important;
+  border-color: color-mix(in srgb, var(--color-primary) 54%, var(--color-border)) !important;
+  color: var(--color-on-primary) !important;
+}
+
+.googleSignInBtn,
+.primaryPracticeControl,
+.accountSubscriptionActions button {
+  color: var(--color-on-primary) !important;
+}
+
+.signOutBtn {
+  background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface-raised)) !important;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 34%, var(--color-border)) !important;
+  color: color-mix(in srgb, var(--color-danger) 78%, var(--color-text)) !important;
+}
+
+button:disabled,
+button[aria-disabled="true"] {
+  background: var(--color-disabled-bg) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-disabled-text) !important;
+  opacity: 1;
 }
 
 button:disabled,

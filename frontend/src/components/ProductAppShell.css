@@ -297,10 +297,8 @@
 
 .page.light.appReportPage .secondaryBtn,
 .page.light.appReportPage .secondaryButton,
-.page.light.appReportPage button:not(.primaryBtn):not(.appPrimaryGetStarted):not(.platformButtonActive),
 [data-theme="light"] .appReportPage .secondaryBtn,
-[data-theme="light"] .appReportPage .secondaryButton,
-[data-theme="light"] .appReportPage button:not(.primaryBtn):not(.appPrimaryGetStarted):not(.platformButtonActive) {
+[data-theme="light"] .appReportPage .secondaryButton {
   color: #0f172a !important;
 }
 
@@ -326,10 +324,8 @@
 
 .page.light.appReportPage .secondaryBtn:hover,
 .page.light.appReportPage .secondaryButton:hover,
-.page.light.appReportPage button:not(.primaryBtn):not(.appPrimaryGetStarted):not(.platformButtonActive):hover,
 [data-theme="light"] .appReportPage .secondaryBtn:hover,
-[data-theme="light"] .appReportPage .secondaryButton:hover,
-[data-theme="light"] .appReportPage button:not(.primaryBtn):not(.appPrimaryGetStarted):not(.platformButtonActive):hover {
+[data-theme="light"] .appReportPage .secondaryButton:hover {
   color: #020617 !important;
 }
 
@@ -897,6 +893,65 @@
   }
 }
 
+/* Semantic theme boundary. ProductAppShell is loaded after legacy component
+   styles, so shared controls are resolved here without blanket button rules. */
+[data-theme="light"] .secondaryBtn,
+[data-theme="light"] .secondaryButton,
+[data-theme="light"] button.secondaryBtn,
+[data-theme="light"] button.secondaryButton,
+[data-theme="light"] .inlineSampleButton,
+[data-theme="light"] .appLegalActions button,
+[data-theme="light"] .homepageFooter nav button {
+  border-color: var(--color-border-strong, rgba(15, 23, 42, 0.22)) !important;
+  background: var(--color-surface-raised, #ffffff) !important;
+  color: var(--color-text, #0f172a) !important;
+}
+
+[data-theme="light"] .platformButton:not(.platformButtonActive),
+[data-theme="light"] .analysisTimeFormatButton:not(.analysisTimeFormatButtonActive) {
+  border-color: var(--color-border-strong, rgba(15, 23, 42, 0.22)) !important;
+  background: var(--color-disabled-bg, #e2e8f0) !important;
+  color: var(--color-text, #0f172a) !important;
+}
+
+[data-theme="light"] .analysisTimeFormatSelector legend,
+[data-theme="light"] .accountSyncChip,
+[data-theme="light"] .accountSyncChip * {
+  color: var(--color-text, #0f172a) !important;
+}
+
+[data-theme="light"] .themeToggle,
+[data-theme="light"] .themeToggle * {
+  color: var(--color-text, #0f172a) !important;
+}
+
+[data-theme="light"] .emailSignInBtn,
+[data-theme="light"] .saveAccountBtn,
+[data-theme="light"] .primaryPracticeControl {
+  background: var(--color-primary, #0f766e) !important;
+  border-color: var(--color-primary, #0f766e) !important;
+  color: var(--color-on-primary, #ffffff) !important;
+}
+
+[data-theme="light"] .signOutBtn {
+  background: color-mix(in srgb, var(--color-danger, #dc2626) 12%, white) !important;
+  border-color: color-mix(in srgb, var(--color-danger, #dc2626) 34%, var(--color-border)) !important;
+  color: #991b1b !important;
+}
+
+[data-theme="light"] button:disabled,
+[data-theme="light"] button[aria-disabled="true"] {
+  background: var(--color-disabled-bg, #e2e8f0) !important;
+  border-color: var(--color-border, rgba(15, 23, 42, 0.12)) !important;
+  color: var(--color-disabled-text, #475569) !important;
+  opacity: 1 !important;
+}
+
+[data-theme="light"] button *,
+[data-theme="dark"] button * {
+  color: inherit;
+}
+
 /* Simplified public homepage */
 .publicLandingPage .analyseImportHero {
   display: grid;
@@ -1229,3 +1284,11 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+body .page.light .mobileBottomNav button,
+body .page.light .mobileBottomNav button * { color: var(--nav-text, #475569) !important; }
+body .page.light .mobileBottomNav button[aria-current="page"],
+body .page.light .mobileBottomNav button[aria-current="page"] * { color: var(--nav-active-text, #0f766e) !important; }
+
+html[data-theme="light"] .page.light .appLegalActions button,
+html[data-theme="light"] .page.light .homepageFooter nav button { color: var(--color-text, #0f172a) !important; }

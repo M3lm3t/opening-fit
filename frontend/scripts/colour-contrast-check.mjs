@@ -8,7 +8,11 @@ const BASE_URL = `http://${HOST}:${PORT}`;
 const ROUTES = ["/", "/login", "/report", "/report/sample", "/repertoire", "/train", "/progress", "/account", "/premium", "/privacy", "/terms", "/guides", "/openings"];
 const THEMES = ["dark", "light"];
 const VIEWPORTS = [
-  { name: "phone", width: 390, height: 844 },
+  { name: "phone-compact", width: 320, height: 720 },
+  { name: "phone", width: 360, height: 800 },
+  { name: "phone-plus", width: 390, height: 844 },
+  { name: "phone-tall", width: 412, height: 915 },
+  { name: "tablet", width: 768, height: 1024 },
   { name: "desktop", width: 1280, height: 900 },
 ];
 
@@ -65,6 +69,14 @@ async function auditPageContrast(page) {
       for (const layer of layers.reverse()) result = composite(layer, result);
       return result;
     };
+    const hasBackgroundImageAncestor = (element) => {
+      let current = element;
+      while (current && current !== document.documentElement) {
+        if (getComputedStyle(current).backgroundImage !== "none") return true;
+        current = current.parentElement;
+      }
+      return false;
+    };
 
     const failures = [];
     const seen = new Set();
@@ -77,7 +89,7 @@ async function auditPageContrast(page) {
       if (rect.width < 1 || rect.height < 1 || style.visibility === "hidden" || style.display === "none" || Number(style.opacity) < 0.25) continue;
       // Gradient and image backgrounds need pixel sampling rather than CSS colour
       // composition, so they are covered by the visual regression sweep.
-      if (style.backgroundImage !== "none") continue;
+      if (hasBackgroundImageAncestor(element)) continue;
       const foreground = parse(style.color);
       if (!foreground) continue;
       const background = effectiveBackground(element);
@@ -105,6 +117,35 @@ async function auditPageContrast(page) {
   });
 }
 
+async function auditSemanticControls(page, theme, viewport) {
+  const result = await page.evaluate(() => {
+    const fixture = document.createElement("section");
+    fixture.className = "appReportPage accountPanel practiceControls";
+    fixture.setAttribute("aria-label", "Theme control regression fixture");
+    fixture.style.cssText = "position:fixed;inset:8px auto auto 8px;z-index:99999;padding:12px;background:var(--color-surface-raised);display:grid;gap:8px";
+    fixture.innerHTML = [
+      '<button class="emailSignInBtn" type="button">Save account</button>',
+      '<button class="signOutBtn" type="button">Sign out</button>',
+      '<button class="accountSubscriptionAction" type="button">Manage subscription</button>',
+      '<button class="primaryPracticeControl" type="button">Show move</button>',
+      '<button class="secondaryButton" type="button">Next line</button>',
+      '<button class="secondaryButton" type="button" disabled>Loading account</button>',
+    ].join("");
+    document.body.append(fixture);
+    const controls = [...fixture.querySelectorAll("button")].map((button) => {
+      const style = getComputedStyle(button);
+      const rect = button.getBoundingClientRect();
+      return { label: button.textContent.trim(), color: style.color, background: style.backgroundColor, width: rect.width, height: rect.height };
+    });
+    fixture.remove();
+    return controls;
+  });
+  return result.flatMap((control) => {
+    const invisible = !control.label || control.color === "rgba(0, 0, 0, 0)" || control.width < 1 || control.height < 1;
+    return invisible ? [{ theme, viewport, route: "semantic-controls", selector: "button", text: control.label, contrast: 0, minimum: 4.5, foreground: control.color, background: control.background }] : [];
+  });
+}
+
 async function main() {
   const server = await createServer({ server: { host: HOST, port: PORT, strictPort: true }, logLevel: "error" });
   await server.listen();
@@ -126,6 +167,7 @@ async function main() {
           const routeFindings = await auditPageContrast(page);
           findings.push(...routeFindings.map((finding) => ({ theme, viewport: viewport.name, route, ...finding })));
         }
+        findings.push(...await auditSemanticControls(page, theme, viewport.name));
         await page.close();
       }
     }

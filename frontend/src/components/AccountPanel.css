@@ -1900,3 +1900,30 @@
   font-size: 0.8rem;
   color: var(--ui-text-muted, #94a3b8);
 }
+
+/* Account is code-split, so its semantic boundary belongs after every legacy
+   account rule and remains stable when this stylesheet loads on demand. */
+
+.page.light .accountPanel .googleSignInBtn,
+[data-theme="light"] .accountPanel .googleSignInBtn { background: linear-gradient(135deg, #2563eb, #15803d) !important; color: #fff !important; }
+.page.light .accountPanel .emailSignInBtn,
+.page.light .accountPanel .saveAccountBtn,
+[data-theme="light"] .accountPanel .emailSignInBtn,
+[data-theme="light"] .accountPanel .saveAccountBtn { background: var(--color-primary, #0f766e) !important; color: var(--color-on-primary, #fff) !important; }
+.page.light .accountPanel .accountAuthMode button:not(.isActive),
+[data-theme="light"] .accountPanel .accountAuthMode button:not(.isActive) { background: #fff !important; color: var(--color-text, #0f172a) !important; }
+.page.light .accountPanel .accountAuthMode button.isActive,
+[data-theme="light"] .accountPanel .accountAuthMode button.isActive { background: #334155 !important; color: #fff !important; }
+.page.light .accountPanel .accountAuthSwitchHint button,
+.page.light .accountPanel .accountTextButton,
+[data-theme="light"] .accountPanel .accountAuthSwitchHint button,
+[data-theme="light"] .accountPanel .accountTextButton { background: transparent !important; color: #1d4ed8 !important; }
+.page.light .accountPanel .signOutBtn,
+[data-theme="light"] .accountPanel .signOutBtn { background: #fff1f2 !important; border-color: #fda4af !important; color: #991b1b !important; }
+.page.light .accountPanel button:disabled,
+[data-theme="light"] .accountPanel button:disabled { background: var(--color-disabled-bg, #e2e8f0) !important; color: var(--color-disabled-text, #475569) !important; opacity: 1 !important; }
+
+html[data-theme="light"] body .accountPanel .accountAuthSwitchHint button,
+html[data-theme="light"] body .accountPanel .accountTextButton { background: transparent !important; color: #1d4ed8 !important; }
+html[data-theme="light"] body.light .accountPanel .accountAuthSwitchHint button,
+html[data-theme="light"] body.light .accountPanel .accountTextButton { background: transparent !important; color: #1d4ed8 !important; }
