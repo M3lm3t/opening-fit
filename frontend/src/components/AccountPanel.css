@@ -1919,9 +1919,11 @@
 [data-theme="light"] .accountPanel .accountAuthSwitchHint button,
 [data-theme="light"] .accountPanel .accountTextButton { background: transparent !important; color: #1d4ed8 !important; }
 .page.light .accountPanel .signOutBtn,
-[data-theme="light"] .accountPanel .signOutBtn { background: #fff1f2 !important; border-color: #fda4af !important; color: #991b1b !important; }
-.page.light .accountPanel button:disabled,
-[data-theme="light"] .accountPanel button:disabled { background: var(--color-disabled-bg, #e2e8f0) !important; color: var(--color-disabled-text, #475569) !important; opacity: 1 !important; }
+[data-theme="light"] .accountPanel .signOutBtn { background: #fff !important; border-color: #cbd5e1 !important; color: #334155 !important; }
+.page.light .accountPanel .accountDangerButton,
+[data-theme="light"] .accountPanel .accountDangerButton { background: #fff1f2 !important; border-color: #fda4af !important; color: #991b1b !important; }
+.page.light .accountPanel :is(.saveAccountBtn, .signOutBtn, .accountDangerButton):disabled,
+[data-theme="light"] .accountPanel :is(.saveAccountBtn, .signOutBtn, .accountDangerButton):disabled { background: #e2e8f0 !important; border-color: #cbd5e1 !important; color: #475569 !important; opacity: 1 !important; }
 
 html[data-theme="light"] body .accountPanel .accountAuthSwitchHint button,
 html[data-theme="light"] body .accountPanel .accountTextButton { background: transparent !important; color: #1d4ed8 !important; }

@@ -3335,10 +3335,14 @@ body.openingfitTabbedResults .ofLegacySectionNavHidden {
   border-color: rgba(79, 70, 229, 0.2) !important;
 }
 
-/* Keep positive action buttons clear */
-.page.light button:not(.secondary):not(.ofUXStickyNav button),
-.page.light .button:not(.secondary),
-.page.light a.button:not(.secondary) {
+/* Filled actions own a light foreground. Do not infer a foreground for every
+   button: outlined, chip, danger and disabled variants use pale surfaces. */
+.page.light .primaryBtn,
+.page.light .googleSignInBtn,
+.page.light .emailSignInBtn,
+.page.light .saveAccountBtn,
+.page.light .primaryPracticeControl,
+.page.light .accountPrimaryAction {
   color: #ffffff !important;
 }
 

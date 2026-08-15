@@ -48528,10 +48528,10 @@ a,
   --color-text-muted: #a8b6c7;
   --color-border: rgba(203, 213, 225, 0.16);
   --color-border-strong: rgba(203, 213, 225, 0.28);
-  --color-primary: #14b8a6;
-  --color-primary-hover: #2dd4bf;
+  --color-primary: #0f766e;
+  --color-primary-hover: #0d9488;
   --color-primary-soft: rgba(20, 184, 166, 0.16);
-  --color-on-primary: #03111f;
+  --color-on-primary: #ffffff;
   --color-on-dark: #f8fafc;
   --color-disabled-bg: rgba(71, 85, 105, 0.52);
   --color-disabled-text: #cbd5e1;
@@ -48836,6 +48836,65 @@ button[type="submit"] {
   color: var(--color-text) !important;
 }
 
+/* Component-owned control variants. Foreground and background are paired so
+   light mode never relies on inherited generic button colour. */
+:root[data-theme="light"] .boardThemeToggle button:not(.boardThemeToggleActive) {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+:root[data-theme="light"] .boardThemeToggle .boardThemeToggleActive {
+  background: #ccfbf1 !important;
+  border-color: #0f766e !important;
+  color: #115e59 !important;
+}
+
+:root[data-theme="light"] .practiceMoveChip {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+:root[data-theme="light"] .practiceMoveChip span { color: #475569 !important; }
+:root[data-theme="light"] .practiceMoveChip.done { background: #dcfce7 !important; border-color: #86efac !important; color: #166534 !important; }
+:root[data-theme="light"] .practiceMoveChip.current { background: #dbeafe !important; border-color: #60a5fa !important; color: #1e40af !important; }
+:root[data-theme="light"] .practiceMoveChip.critical { background: #fef3c7 !important; border-color: #f59e0b !important; color: #92400e !important; }
+:root[data-theme="light"] .practiceMoveChip small { color: inherit !important; }
+
+:root[data-theme="light"] .boardPracticeControls button:not(.primaryPracticeControl) {
+  background: #fff !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+:root[data-theme="light"] .boardPracticeControls .primaryPracticeControl {
+  background: #0f766e !important;
+  border-color: #0f766e !important;
+  color: #fff !important;
+}
+
+:root[data-theme="light"] .boardPracticeControls button:disabled {
+  background: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+  opacity: 1 !important;
+}
+
+:root[data-theme="light"] .practiceLineChoice {
+  background: #fff !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+:root[data-theme="light"] .practiceLineChoice.active {
+  background: #172033 !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+:root[data-theme="light"] .practiceLineChoice.active :is(span, strong, small) { color: #f8fafc !important; }
+
 /* These controls intentionally use strong/dark fills. Their foreground must
    describe that surface instead of inheriting the page text colour. */
 .emailSignInBtn,
@@ -48855,14 +48914,6 @@ button[type="submit"] {
   background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface-raised)) !important;
   border: 1px solid color-mix(in srgb, var(--color-danger) 34%, var(--color-border)) !important;
   color: color-mix(in srgb, var(--color-danger) 78%, var(--color-text)) !important;
-}
-
-button:disabled,
-button[aria-disabled="true"] {
-  background: var(--color-disabled-bg) !important;
-  border-color: var(--color-border) !important;
-  color: var(--color-disabled-text) !important;
-  opacity: 1;
 }
 
 button:disabled,

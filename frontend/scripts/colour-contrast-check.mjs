@@ -72,7 +72,10 @@ async function auditPageContrast(page) {
     const hasBackgroundImageAncestor = (element) => {
       let current = element;
       while (current && current !== document.documentElement) {
-        if (getComputedStyle(current).backgroundImage !== "none") return true;
+        const style = getComputedStyle(current);
+        if (style.backgroundImage !== "none") return true;
+        const colour = parse(style.backgroundColor);
+        if (colour?.[3] >= 0.98) return false;
         current = current.parentElement;
       }
       return false;
@@ -118,32 +121,30 @@ async function auditPageContrast(page) {
 }
 
 async function auditSemanticControls(page, theme, viewport) {
-  const result = await page.evaluate(() => {
+  await page.evaluate(() => {
     const fixture = document.createElement("section");
-    fixture.className = "appReportPage accountPanel practiceControls";
+    fixture.className = "themeRegressionFixture appReportPage accountPanel";
     fixture.setAttribute("aria-label", "Theme control regression fixture");
     fixture.style.cssText = "position:fixed;inset:8px auto auto 8px;z-index:99999;padding:12px;background:var(--color-surface-raised);display:grid;gap:8px";
     fixture.innerHTML = [
       '<button class="emailSignInBtn" type="button">Save account</button>',
+      '<button class="saveAccountBtn" type="button">Cloud Restore</button>',
       '<button class="signOutBtn" type="button">Sign out</button>',
-      '<button class="accountSubscriptionAction" type="button">Manage subscription</button>',
-      '<button class="primaryPracticeControl" type="button">Show move</button>',
-      '<button class="secondaryButton" type="button">Next line</button>',
-      '<button class="secondaryButton" type="button" disabled>Loading account</button>',
+      '<button class="accountDangerButton" type="button">Delete my account</button>',
+      '<div class="boardThemeToggle"><button class="boardThemeToggleActive" type="button">Classic green</button><button type="button">Lichess brown</button><button type="button">Blue</button><button type="button">Grey</button><button type="button">High Contrast</button></div>',
+      '<div class="practiceMoveList"><button class="practiceMoveChip done" type="button"><span>1.</span> d4</button><button class="practiceMoveChip current" type="button"><span>1...</span> ?</button><button class="practiceMoveChip critical" type="button"><span>2...</span> ? <small>Decision</small></button><button class="practiceMoveChip" type="button" disabled><span>3.</span> ?</button></div>',
+      '<button class="secondaryBtn" type="button">View evidence and full report</button>',
+      '<button class="secondaryBtn" type="button" disabled>View evidence and full report</button>',
+      '<div class="practiceControls boardPracticeControls"><button type="button">Back</button><button type="button">Reset</button><button type="button">Hint</button><button class="primaryPracticeControl" type="button">Show move</button><button class="nextLineControl" type="button">Next line</button></div>',
+      '<button class="practiceLineChoice active" type="button"><span>Line 1</span><strong>Queen\'s Pawn Opening practical line</strong></button>',
     ].join("");
     document.body.append(fixture);
-    const controls = [...fixture.querySelectorAll("button")].map((button) => {
-      const style = getComputedStyle(button);
-      const rect = button.getBoundingClientRect();
-      return { label: button.textContent.trim(), color: style.color, background: style.backgroundColor, width: rect.width, height: rect.height };
-    });
-    fixture.remove();
-    return controls;
   });
-  return result.flatMap((control) => {
-    const invisible = !control.label || control.color === "rgba(0, 0, 0, 0)" || control.width < 1 || control.height < 1;
-    return invisible ? [{ theme, viewport, route: "semantic-controls", selector: "button", text: control.label, contrast: 0, minimum: 4.5, foreground: control.color, background: control.background }] : [];
-  });
+  const findings = await auditPageContrast(page);
+  await page.evaluate(() => document.querySelector(".themeRegressionFixture")?.remove());
+  return findings
+    .filter((finding) => finding.selector.includes("themeRegressionFixture"))
+    .map((finding) => ({ theme, viewport, route: "semantic-controls", ...finding }));
 }
 
 async function main() {

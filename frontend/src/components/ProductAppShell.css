@@ -939,19 +939,6 @@
   color: #991b1b !important;
 }
 
-[data-theme="light"] button:disabled,
-[data-theme="light"] button[aria-disabled="true"] {
-  background: var(--color-disabled-bg, #e2e8f0) !important;
-  border-color: var(--color-border, rgba(15, 23, 42, 0.12)) !important;
-  color: var(--color-disabled-text, #475569) !important;
-  opacity: 1 !important;
-}
-
-[data-theme="light"] button *,
-[data-theme="dark"] button * {
-  color: inherit;
-}
-
 /* Simplified public homepage */
 .publicLandingPage .analyseImportHero {
   display: grid;
