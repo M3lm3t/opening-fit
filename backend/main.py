@@ -1978,7 +1978,11 @@ def build_role_evidence_accounting(records: List[Dict[str, Any]], game_counts: D
         if not identity:
             raise ValueError("role_evidence_contract: eligible game has no stable identity")
         unique.setdefault(identity, record)
-    eligible = int(game_counts.get("analysisCandidateGames", game_counts.get("gamesParsed", game_counts.get("gamesUsedForOpeningStats", 0))) or 0)
+    # `records` is the canonical parsed-game sample, not every pre-parse
+    # candidate or only the narrower attributed/opening-stat subset. Attribution
+    # failures stay in this sample as explicit errors; pre-parse exclusions remain
+    # accounted for by the game-count funnel without aborting the report.
+    eligible = int(game_counts.get("gamesParsed", game_counts.get("gamesUsedForOpeningStats", 0)) or 0)
     if len(unique) != eligible:
         raise ValueError(f"role_evidence_contract: {len(unique)} canonical games differ from {eligible} eligible games")
     role_counts = {"white": 0, "black_vs_e4": 0, "black_vs_d4": 0}
@@ -2012,6 +2016,7 @@ def build_role_evidence_accounting(records: List[Dict[str, Any]], game_counts: D
         "contractVersion": 1,
         "importedGames": imported,
         "parsedGames": int(game_counts.get("gamesParsed", 0) or 0),
+        "analysisCandidateGames": int(game_counts.get("analysisCandidateGames", game_counts.get("gamesParsed", 0)) or 0),
         "eligibleGames": eligible,
         "excludedGames": excluded,
         "duplicateGames": int(game_counts.get("duplicateGamesRemoved", 0) or 0),

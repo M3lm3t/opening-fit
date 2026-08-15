@@ -129,6 +129,38 @@ def test_three_hundred_game_role_accounting_reconciles_without_evidence_loss():
     assert accounting["importedGames"] == accounting["eligibleGames"] + accounting["excludedGames"]
 
 
+def test_role_accounting_keeps_legitimate_unclassified_candidates_out_of_the_role_sample():
+    records = []
+    for index in range(219):
+        colour, first_move = (("white", "e4") if index % 2 == 0 else ("black", "d4")) if index < 178 else ("unknown", "")
+        records.append({
+            "gameId": f"production-shaped-{index}",
+            "playerColour": colour,
+            "firstWhiteMove": first_move,
+            "perspective": classify_opening_perspective(
+                user_colour=colour,
+                opening_side="white",
+                first_white_move=first_move,
+            ),
+        })
+    accounting = build_role_evidence_accounting(records, {
+        "analysisCandidateGames": 233,
+        "gamesParsed": 219,
+        "gamesAttributed": 178,
+        "gamesClassified": 178,
+        "gamesUsedForOpeningStats": 178,
+        "duplicateGamesRemoved": 0,
+        "exclusionReasons": {"unclassifiedOpening": 14},
+        "gameReconciliation": {"total_imported": 233, "excluded_total": 14},
+    })
+    assert accounting["valid"] is True
+    assert accounting["analysisCandidateGames"] == 233
+    assert accounting["eligibleGames"] == 219
+    assert accounting["roleAttributedGames"] == 178
+    assert accounting["attributionErrors"] == 41
+    assert accounting["excludedGames"] == 14
+
+
 def test_duplicate_records_and_transposed_aliases_have_deterministic_canonical_contexts():
     games = [
         {"pgn": '[White "A"]\n[Black "B"]\n\n1. d4 Nf6'},

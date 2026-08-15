@@ -13,20 +13,27 @@ test("logged-out navigation offers Pricing only after auth resolution", () => {
   assert.deepEqual(labels(ready(resolvePremiumEntitlement(), false)), ["Report", "Repertoire", "Train", "Progress", "Pricing"]);
 });
 
-test("native logged-out navigation always exposes the existing Account destination", () => {
+test("native logged-out navigation exposes Account and discovers Pricing after auth resolution", () => {
   assert.deepEqual(
     labels({ authenticated: false, entitlementState: "loading", nativeApp: true }),
     ["Report", "Repertoire", "Train", "Progress", "Account"],
   );
   assert.deepEqual(
     labels({ ...ready(resolvePremiumEntitlement(), false), nativeApp: true }),
-    ["Report", "Repertoire", "Train", "Progress", "Account"],
+    ["Report", "Repertoire", "Train", "Progress", "Account", "Pricing"],
   );
 });
 
-test("native logged-in navigation keeps the same Account destination", () => {
+test("native paid navigation keeps Account without advertising an upgrade", () => {
   const premium = resolvePremiumEntitlement([{ access_type: "lifetime", status: "active" }]);
-  assert.equal(labels({ ...ready(premium), nativeApp: true }).at(-1), "Account");
+  assert.deepEqual(labels({ ...ready(premium), nativeApp: true }), ["Report", "Repertoire", "Train", "Progress", "Account"]);
+});
+
+test("native free navigation keeps Account and makes Plus explicit", () => {
+  assert.deepEqual(
+    labels({ ...ready(resolvePremiumEntitlement()), nativeApp: true }),
+    ["Report", "Repertoire", "Train", "Progress", "Account", "Plus"],
+  );
 });
 
 test("web and native Progress share the canonical progress route", () => {

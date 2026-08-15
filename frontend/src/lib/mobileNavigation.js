@@ -18,6 +18,13 @@ export function buildMobileNavigationItems({ authenticated = false, entitlement 
       label: "Account",
       activeViews: ["profile", "account", "login", "history"],
     });
+    if (entitlementState === "ready" && !entitlement?.hasPremiumAccess) {
+      items.push({
+        key: "premium",
+        label: authenticated ? "Plus" : "Pricing",
+        activeViews: ["premium", "upgrade"],
+      });
+    }
     return items;
   }
   if (entitlementState !== "ready") return items;
