@@ -232,6 +232,7 @@ import {
   ShieldCheck,
   Sparkles,
   Target,
+  UserRound,
   X,
 } from "lucide-react";
 import "./ThemePolish.css";
@@ -7527,14 +7528,14 @@ function normalizePlayerName(value = "") {
 }
 
 function getPlayerInitials(value = "") {
-  const words = String(value || "OF")
+  const words = String(value || "")
     .trim()
     .split(/\s+/)
     .filter(Boolean);
   const initials = words.length > 1
     ? `${words[0][0]}${words[1][0]}`
-    : (words[0] || "OF").slice(0, 2);
-  return initials.toUpperCase();
+    : (words[0] || "").slice(0, 2);
+  return initials.toUpperCase() || "?";
 }
 
 function getPlayerIdentity(data = {}, fallback = "") {
@@ -11972,8 +11973,9 @@ function AppPrimaryNav({
           className="appPrimaryAccount"
           href={accountAction.path || "/account"}
           onClick={(event) => navigate(event, accountAction)}
+          aria-label={accountAction.label || "Account"}
         >
-          <span aria-hidden="true">{accountUser ? "OF" : "→"}</span>
+          <span aria-hidden="true"><UserRound size={15} strokeWidth={2.4} /></span>
           {accountAction.label}
         </a>
 
@@ -12154,8 +12156,8 @@ function AccountSyncStatusBar({
   }
 
   const initials = useMemo(() => {
-    if (!user?.id) return "OF";
-    const source = identity || user?.email || "OF";
+    if (!user?.id) return "";
+    const source = identity || user?.email || "OpeningFit user";
     const [first = "", second = ""] = source.split(/[\s@._-]+/).filter(Boolean);
     return `${first[0] || "O"}${second[0] || "F"}`.toUpperCase();
   }, [identity, user?.email, user?.id]);
@@ -12210,11 +12212,14 @@ function AccountSyncStatusBar({
       <button
         className="accountSyncChip"
         type="button"
+        aria-label="Account status and profile"
         aria-expanded={isExpanded}
         aria-controls="account-sync-details"
         onClick={() => setIsExpanded((current) => !current)}
       >
-        <span className="accountSyncAvatar" aria-hidden="true">{initials}</span>
+        <span className="accountSyncAvatar" aria-hidden="true">
+          {initials || <UserRound size={16} strokeWidth={2.25} />}
+        </span>
         <span className="accountSyncCompactText">
           <span>{label}</span>
           <strong>{identity}</strong>

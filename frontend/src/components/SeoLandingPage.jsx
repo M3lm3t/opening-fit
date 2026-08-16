@@ -677,7 +677,7 @@ export default function SeoLandingPage({ page, ThemeToggle, Analytics, AppTopNav
           ) : (
             <nav className="seoTopNav" aria-label="OpeningFit navigation">
               <a className="seoBrandLink" href="/">
-                <span>OF</span>
+                <img src="/icons/openingfit-icon.svg" alt="" width="34" height="34" aria-hidden="true" />
                 OpeningFit
               </a>
               <div>

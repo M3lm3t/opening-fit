@@ -55,14 +55,11 @@
   color: #f8fafc !important;
 }
 
-.seoBrandLink span {
+.seoBrandLink img {
   width: 34px;
   height: 34px;
-  display: grid;
-  place-items: center;
   border-radius: 12px;
-  color: #ffffff;
-  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  flex: 0 0 auto;
 }
 
 .seoHero {
