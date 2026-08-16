@@ -1,0 +1,24 @@
+.trainingStreakCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--color-border, var(--app-border));
+  border-radius: 14px;
+  background: var(--color-surface, var(--app-surface));
+  color: var(--color-text, var(--app-text));
+}
+
+.trainingStreakCard > svg { color: var(--color-warning, var(--app-gold)); }
+.trainingStreakCard div { display: grid; gap: 0.12rem; min-width: 0; }
+.trainingStreakCard strong { color: var(--color-text, var(--app-text)); font-size: 0.98rem; }
+.trainingStreakCard span,
+.trainingStreakCard small { color: var(--color-text-muted, var(--app-text-soft)); }
+.trainingStreakCard span { font-size: 0.86rem; }
+.trainingStreakCard small { white-space: nowrap; font-weight: 700; }
+
+@media (max-width: 430px) {
+  .trainingStreakCard { grid-template-columns: auto minmax(0, 1fr); }
+  .trainingStreakCard small { grid-column: 2; }
+}

@@ -3,6 +3,7 @@ import { adaptReportHistoryRow } from "../lib/reportSnapshot.js";
 import { buildWeeklyTrainingPlan, isReusableWeeklyPlan, weeklyPlanWindow } from "../lib/weeklyTrainingPlan.js";
 import { getActiveRepertoire } from "./repertoireService.js";
 import { selectAuthoritativeCoachingPriority } from "../lib/authoritativeReportPresentation.js";
+import { QUALIFYING_STREAK_ACTIVITIES, recordQualifiedActivity } from "./trainingStreakService.js";
 
 function requireUser(userId) {
   if (!String(userId || "").trim()) throw new Error("Sign in to use a saved weekly training plan.");
@@ -127,6 +128,13 @@ export async function setWeeklyTrainingTaskCompletion(userId, planId, taskId, co
     p_completed: Boolean(completed),
   });
   if (error) throw serviceError(error, "Could not update that training task.");
+  if (completed) {
+    await recordQualifiedActivity({
+      userId,
+      activityType: QUALIFYING_STREAK_ACTIVITIES.TRAINING_TASK_COMPLETED,
+      sourceId: `weekly-plan:${planId}:task:${taskId}`,
+    }, { client: clientFor(options) }).catch(() => null);
+  }
   return weeklyPlanFromRow(data);
 }
 

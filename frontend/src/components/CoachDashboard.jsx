@@ -14,6 +14,9 @@ import { buildReportDecisionModel } from "../lib/reportDecisionModel.js";
 import { buildTodayPrimaryAction, todayGoalContext } from "../lib/todayPrimaryAction.js";
 import ChessPositionBoard from "./ChessPositionBoard.jsx";
 import SinceLastReportSummary from "./SinceLastReportSummary.jsx";
+import TrainingStreakCard from "./TrainingStreakCard.jsx";
+import { useAuth } from "../context/AuthDataProvider.jsx";
+import { QUALIFYING_STREAK_ACTIVITIES, recordQualifiedActivity } from "../services/trainingStreakService.js";
 import { buildReportSnapshot } from "../lib/reportSnapshot.js";
 import "./CoachDashboard.css";
 
@@ -492,6 +495,7 @@ export default function CoachDashboard({
   onReport,
   onRecommendations,
 }) {
+  const { user } = useAuth();
   const openings = collectOpenings(data || {}, fitData);
   const gameCount = getGameCount(data || {}, openings);
   const partial = Boolean(data) && !openings.length;
@@ -561,6 +565,13 @@ export default function CoachDashboard({
       });
       setOptimisticActivity((items) => [bonusEvent, ...items.filter((item) => item.payload?.dedupe_key !== bonusEvent.payload.dedupe_key)]);
       await onRecordActivity?.("today_plan_completed", bonusEvent.payload);
+      if (user?.id && typeof onRecordActivity === "function") {
+        await recordQualifiedActivity({
+          userId: user.id,
+          activityType: QUALIFYING_STREAK_ACTIVITIES.TODAY_TRAINING_COMPLETED,
+          sourceId: event.payload.dedupe_key,
+        }).catch((streakError) => console.warn("OpeningFit could not update the training streak.", streakError));
+      }
       setSessionSummary({ title: "Today's progress", lines: ["Current task completed", "Daily streak maintained", `${xpForEvent("today_plan_completed")} bonus XP earned`] });
     } catch (error) {
       console.warn("OpeningFit could not save daily task completion.", error);
@@ -568,6 +579,7 @@ export default function CoachDashboard({
   };
   return (
     <section className="coachDashboard" id="coach-dashboard" aria-label="OpeningFit Today">
+      <TrainingStreakCard />
       <TodayPrimaryAction action={todayAction} goal={ratingGoal} onAction={handleTaskAction} onComplete={completeTask} />
       <SinceLastReportSummary currentSnapshot={currentProgressSnapshot} reportSnapshots={progressSnapshots} />
       <SessionSummary

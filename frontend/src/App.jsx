@@ -139,6 +139,7 @@ import { REPERTOIRE_PENDING_KEY } from "./lib/repertoireWorkspace";
 import { canUsePremiumPreview } from "./lib/premiumExperience";
 import { canUseFeature, featureLimit, OPENINGFIT_FEATURES } from "./lib/premiumEntitlement.js";
 import { trackProductEvent } from "./lib/productAnalytics";
+import { QUALIFYING_STREAK_ACTIVITIES, recordQualifiedActivity } from "./services/trainingStreakService.js";
 import { completedAnalysisJourney, restoredReportJourney } from "./lib/postAnalysisJourney.js";
 import { SUPPORT_EMAIL } from "./lib/supportConfig.js";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
@@ -15615,6 +15616,13 @@ export default function App() {
         excludedGames: completedCounts.excludedGames,
         analysisId: cleanData.analysisId,
       });
+      if (supabaseUser?.id) {
+        void recordQualifiedActivity({
+          userId: supabaseUser.id,
+          activityType: QUALIFYING_STREAK_ACTIVITIES.ANALYSIS_COMPLETED,
+          sourceId: cleanData.analysisId,
+        }).catch((streakError) => console.warn("OpeningFit could not update the training streak.", streakError));
+      }
 
       logRetentionEvent(
         "data_imported",

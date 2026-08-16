@@ -4,6 +4,7 @@ import { canPersistReport } from "../fixtures/sampleReport.js";
 import { buildTrainingRecommendations } from "../services/trainingRecommendations";
 import { buildWeakestLineTrainingTarget } from "../services/weakestLineTraining";
 import "./TodayTrainingCard.css";
+import { QUALIFYING_STREAK_ACTIVITIES, recordQualifiedActivity } from "../services/trainingStreakService.js";
 
 const LOCAL_KEY = "openingFit:trainingProgress";
 
@@ -155,6 +156,13 @@ export default function TodayTrainingCard({
         ...payload,
         points: state === "completed" ? 80 : 35,
       });
+      if (state === "completed") {
+        await recordQualifiedActivity({
+          userId: user.id,
+          activityType: QUALIFYING_STREAK_ACTIVITIES.TRAINING_TASK_COMPLETED,
+          sourceId: `today-training:${payload.recommendation_key}`,
+        }).catch((streakError) => console.warn("OpeningFit could not update the training streak.", streakError));
+      }
     }
 
     if (user?.id && upsertUserData) {

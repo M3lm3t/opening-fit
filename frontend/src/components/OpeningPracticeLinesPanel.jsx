@@ -13,6 +13,7 @@ import {
 } from "../services/weakestLineTraining";
 import { TRAINING_SESSION_KEY, TRAINING_TASK_COMPLETED_EVENT, trainingOutcome } from "../lib/trainingQueue";
 import { trackProductEvent } from "../lib/productAnalytics";
+import { QUALIFYING_STREAK_ACTIVITIES, recordQualifiedActivity } from "../services/trainingStreakService.js";
 import OpeningOpportunityDrill from "./OpeningOpportunityDrill.jsx";
 
 const TRAINING_PROGRESS_KEY = "openingFit:openingTrainingProgress";
@@ -850,6 +851,11 @@ function StandardOpeningPracticeLinesPanel({
           points: 80,
           dedupe_key: eventWithUser.key,
         });
+        await recordQualifiedActivity({
+          userId: user.id,
+          activityType: QUALIFYING_STREAK_ACTIVITIES.REPAIR_REVIEW_COMPLETED,
+          sourceId: eventWithUser.key,
+        }).catch((streakError) => console.warn("OpeningFit could not update the training streak.", streakError));
       } catch (error) {
         console.warn("OpeningFit could not save weakest-line completion activity.", error);
         if (!completionNotice) setCompletionNotice("Training saved.");
