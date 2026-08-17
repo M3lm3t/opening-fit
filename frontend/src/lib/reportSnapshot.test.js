@@ -115,6 +115,26 @@ test("role evidence accounting survives saved-report serialization and restorati
   assert.deepEqual(restored.role_evidence_accounting, report.roleEvidenceAccounting);
 });
 
+test("repertoire history classifications survive saved-report serialization and restoration", () => {
+  const report = completedReport();
+  report.repertoireHistory = {
+    version: "repertoire_history_v1",
+    recentWindowDays: 60,
+    historyAvailable: true,
+    openings: [{
+      opening: "Owen's Defence", repertoireRole: "black_vs_e4", classification: "DORMANT",
+      totalEligibleGames: 8, recentGames: 0, historicalGames: 8,
+      firstSeen: "2025-09-07T12:00:00Z", lastSeen: "2026-04-02T12:00:00Z",
+      historicalFrequency: 1, recentFrequency: 0,
+      continuity: { historicalMonths: 8, historicalSpanDays: 207, repeatedAcrossTime: true },
+      performance: { wins: 3, draws: 3, losses: 2, scoreRate: 56.3 },
+    }],
+  };
+  const snapshot = buildReportSnapshot({ report, userId: "user-1", reportId: "report-history" });
+  const restored = adaptReportHistoryRow({ id: "report-history", user_id: "user-1", normalized_snapshot: snapshot });
+  assert.deepEqual(restored.repertoire_history, report.repertoireHistory);
+});
+
 test("adapts an old report without inventing unavailable fields", () => {
   const adapted = adaptReportHistoryRow({
     id: "old-report",

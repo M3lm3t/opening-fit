@@ -11,6 +11,7 @@ import chess
 import chess.pgn
 
 from analysis.opening_perspective import RepertoireRole, normalise_player_identifier, perspective_from_item, validate_repertoire_role_for_game
+from analysis.repertoire_history import build_repertoire_history
 from analysis.classified_game import canonical_player_role
 from analysis.evidence_thresholds import (
     HIGH_CONFIDENCE_GAMES,
@@ -894,8 +895,14 @@ def _time_controls(report: Mapping[str, Any]) -> list[str]:
     return [str(value).strip() for value in values if str(value).strip()]
 
 
-def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Mapping[str, Any]) -> list[dict[str, Any]]:
+def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Mapping[str, Any], repertoire_history: Optional[Mapping[str, Any]] = None) -> list[dict[str, Any]]:
     controls = _time_controls(report)
+    history_rows = repertoire_history.get("openings", []) if isinstance(repertoire_history, Mapping) else []
+    history_index = {
+        (str(row.get("repertoireRole") or ""), _opening_key(row.get("opening"))): row
+        for row in history_rows if isinstance(row, Mapping)
+    }
+    history_available = bool((repertoire_history or {}).get("historyAvailable"))
     rows = []
     for spec in REPERTOIRE_ROLE_SPECS:
         matching_role_games: list[Mapping[str, Any]] = []
@@ -931,9 +938,18 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
             group = opening_groups.setdefault(key, {"openingName": _name(game), "games": 0, "gameIds": []})
             group["games"] += 1
             group["gameIds"].append(_game_id(game))
+        for key, group in opening_groups.items():
+            history = history_index.get((spec["role"], key))
+            if history:
+                group["historyClassification"] = history.get("classification")
+                group["history"] = dict(history)
+        history_rank = {"ESTABLISHED": 0, "DORMANT": 0, "INSUFFICIENT_EVIDENCE": 1, "CURRENT": 2, "EXPERIMENT": 3}
         opening_breakdown = sorted(
             opening_groups.values(),
-            key=lambda item: (-int(item["games"]), str(item["openingName"]).lower()),
+            key=lambda item: (
+                history_rank.get(str(item.get("historyClassification")), 4) if history_available else 0,
+                -int(item["games"]), str(item["openingName"]).lower(),
+            ),
         )
         candidates = [
             item for item in recommendations
@@ -1215,6 +1231,7 @@ def build_repertoire_coverage_score(repertoire_roles: list[Mapping[str, Any]], p
 def apply_repertoire_coverage_score(report: dict[str, Any], decision: dict[str, Any]) -> None:
     roles = decision["repertoireRoles"]
     score = decision["repertoireCoverageScore"]
+    history = decision.get("repertoireHistory") or decision.get("repertoire_history")
     legacy_score = report.get("openingFitScore")
     if legacy_score is None:
         legacy_score = report.get("opening_fit_score")
@@ -1232,6 +1249,8 @@ def apply_repertoire_coverage_score(report: dict[str, Any], decision: dict[str, 
     report["opening_fit_score_explanation"] = score["meaning"]
     report["repertoireRoles"] = roles
     report["repertoire_roles"] = roles
+    report["repertoireHistory"] = history
+    report["repertoire_history"] = history
     report["repertoireCoverageScore"] = score
     report["repertoire_coverage_score"] = score
     report["repertoireHealth"] = score
@@ -1929,10 +1948,27 @@ def build_report_decision(
     openings: Iterable[Mapping[str, Any]],
     previous_report: Optional[Mapping[str, Any]] = None,
 ) -> dict[str, Any]:
+    repertoire_history = build_repertoire_history(_report_games(report))
+    history_index = {
+        (str(row.get("repertoireRole") or ""), _opening_key(row.get("opening"))): row
+        for row in repertoire_history.get("openings", []) if isinstance(row, Mapping)
+    }
     recommendations = _attach_evidence_backed_alternatives(_attach_relevant_baselines([
         _canonical_recommendation(report, item) for item in openings if _name(item)
     ]))
-    owned = [item for item in recommendations if item["repertoireOwned"] and item["validation"]["valid"]]
+    recommendations = [{
+        **item,
+        "repertoireHistoryClassification": (history_index.get((str(item.get("repertoireRole") or ""), _opening_key(item.get("openingName")))) or {}).get("classification"),
+        "repertoireHistory": history_index.get((str(item.get("repertoireRole") or ""), _opening_key(item.get("openingName")))),
+    } for item in recommendations]
+    owned = [
+        item for item in recommendations
+        if item["repertoireOwned"] and item["validation"]["valid"]
+        and not (
+            repertoire_history.get("historyAvailable")
+            and item.get("repertoireHistoryClassification") == "EXPERIMENT"
+        )
+    ]
     strengths = [item for item in owned if item["verdict"] == "keep"]
     problems = [item for item in owned if item["verdict"] == "repair"]
     mixed_signals = [item for item in owned if item["verdict"] == "explore" and item["evidenceStatus"] == "sufficient"]
@@ -1949,7 +1985,7 @@ def build_report_decision(
         key=lambda item: (-item["priority"], -item["sample"]["games"], item["openingName"].lower(), item["role"]),
     )[0] if mixed_signals else None
 
-    repertoire_roles = build_repertoire_roles(recommendations, report)
+    repertoire_roles = build_repertoire_roles(recommendations, report, repertoire_history)
     experiments = _style_experiments(report)
     role_accounting = report.get("roleEvidenceAccounting") or report.get("role_evidence_accounting") or {}
     attribution_invalid = isinstance(role_accounting, Mapping) and role_accounting.get("valid") is False
@@ -2212,6 +2248,8 @@ def build_report_decision(
         "fallbackUsed": bool(action.get("fallback")),
         "fallbackReason": str(action.get("reason")) if action.get("fallback") else None,
         "roleAttribution": dict(role_accounting) if isinstance(role_accounting, Mapping) else None,
+        "repertoireHistory": repertoire_history,
+        "repertoire_history": repertoire_history,
         "repertoireRoles": repertoire_roles,
         "roleDecisions": repertoire_roles,
         "repertoireCoverageScore": repertoire_coverage_score,

@@ -86,6 +86,24 @@ def test_systemic_role_attribution_failure_is_recoverable_and_suppresses_chess_c
     assert all(role["dataQuality"] == "role_attribution_failure" for role in decision["repertoireRoles"])
 
 
+def dated_games(name, role, dates, *, prefix, results=None):
+    outcomes = results or (["win", "draw", "loss"] * len(dates))[:len(dates)]
+    return [
+        attach_perspective(
+            {
+                "opening": name,
+                "openingFamily": name,
+                "gameId": f"{prefix}-{index}",
+                "result": outcomes[index - 1],
+                "firstWhiteMove": "d4" if role == "black_vs_d4" else "e4",
+                "played_at": f"{played_on}T12:00:00Z",
+            },
+            context(role),
+        )
+        for index, played_on in enumerate(dates, 1)
+    ]
+
+
 def test_realistic_three_hundred_game_fixture_establishes_all_three_roles():
     fixtures = [
         ("Vienna Game", "white"),
@@ -103,6 +121,43 @@ def test_realistic_three_hundred_game_fixture_establishes_all_three_roles():
     assert len(established) == 3
     assert {role["repertoireRole"] for role in established} == {"white", "black_vs_e4", "black_vs_d4"}
     assert all(role["relevantGameCount"] == 100 for role in established)
+
+
+def test_historical_repertoire_survives_recent_opening_experiments():
+    nimzo_dates = ["2025-10-05", "2025-11-12", "2025-12-20", "2026-01-08", "2026-02-14", "2026-03-03"]
+    owen_dates = ["2025-09-07", "2025-10-19", "2025-11-21", "2025-12-11", "2026-01-17", "2026-02-09", "2026-03-18", "2026-04-02"]
+    caro_dates = ["2026-07-03", "2026-07-19", "2026-08-02", "2026-08-15"]
+    sicilian_dates = ["2026-07-08", "2026-07-27", "2026-08-10"]
+    games = [
+        *dated_games("Nimzo-Larsen Attack", "white", nimzo_dates, prefix="nimzo-larsen"),
+        *dated_games("Owen's Defence", "black_vs_e4", owen_dates, prefix="owen"),
+        *dated_games("Caro-Kann Defence", "black_vs_e4", caro_dates, prefix="caro"),
+        *dated_games("Sicilian Defence", "black_vs_e4", sicilian_dates, prefix="sicilian"),
+    ]
+    rows = [
+        opening("Nimzo-Larsen Attack", "white", ["win", "draw", "loss", "win", "draw", "loss"]),
+        opening("Owen's Defence", "black_vs_e4", ["win", "draw", "loss", "win", "draw", "loss", "win", "draw"]),
+        opening("Caro-Kann Defence", "black_vs_e4", ["loss"] * 4),
+        opening("Sicilian Defence", "black_vs_e4", ["loss"] * 3),
+    ]
+
+    decision = build(rows, games)
+    history = {(row["opening"], row["repertoireRole"]): row for row in decision["repertoireHistory"]["openings"]}
+    roles = {row["repertoireRole"]: row for row in decision["repertoireRoles"]}
+
+    assert decision["repertoireHistory"]["historyAvailable"] is True
+    assert history[("Nimzo-Larsen Attack", "white")]["classification"] == "DORMANT"
+    assert history[("Owen's Defence", "black_vs_e4")]["classification"] == "DORMANT"
+    assert history[("Caro-Kann Defence", "black_vs_e4")]["classification"] == "EXPERIMENT"
+    assert history[("Sicilian Defence", "black_vs_e4")]["classification"] == "EXPERIMENT"
+    assert history[("Owen's Defence", "black_vs_e4")]["totalEligibleGames"] == 8
+    assert history[("Owen's Defence", "black_vs_e4")]["historicalGames"] == 8
+    assert history[("Caro-Kann Defence", "black_vs_e4")]["recentGames"] == 4
+    assert history[("Owen's Defence", "black_vs_e4")]["continuity"]["repeatedAcrossTime"] is True
+    assert history[("Owen's Defence", "black_vs_e4")]["performance"]["scoreRate"] is not None
+    assert roles["white"]["currentOpening"] == "Nimzo-Larsen Attack"
+    assert roles["black_vs_e4"]["currentOpening"] == "Owen's Defence"
+    assert decision["primaryAction"].get("opening") not in {"Caro-Kann Defence", "Sicilian Defence"}
 
 
 def test_six_game_severe_weakness_outranks_seven_game_playable_opening():

@@ -323,6 +323,7 @@ export function buildReportSnapshot({
     score_components: scoreComponents && typeof scoreComponents === "object" ? scoreComponents : null,
     score_contract: scoreContract && typeof scoreContract === "object" ? scoreContract : null,
     repertoire_roles: list(first(report.repertoireRoles, report.repertoire_roles, reportDecision?.repertoireRoles)),
+    repertoire_history: first(report.repertoireHistory, report.repertoire_history, reportDecision?.repertoireHistory, reportDecision?.repertoire_history) || null,
     role_evidence_accounting: first(report.roleEvidenceAccounting, report.role_evidence_accounting),
     style_profile: first(summary.styleProfile, summary.style_profile, report.styleProfile, report.style_profile),
     recommendations: {
