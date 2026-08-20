@@ -17,6 +17,10 @@
 .trainingStreakCard small { color: var(--color-text-muted, var(--app-text-soft)); }
 .trainingStreakCard span { font-size: 0.86rem; }
 .trainingStreakCard small { white-space: nowrap; font-weight: 700; }
+.trainingStreakCard details { grid-column: 2 / -1; }
+.trainingStreakMilestone { grid-column: 2 / -1; margin: 0; animation: consistency-milestone .45s ease-out; }
+@keyframes consistency-milestone { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .trainingStreakMilestone { animation: none; } }
 
 @media (max-width: 430px) {
   .trainingStreakCard { grid-template-columns: auto minmax(0, 1fr); }

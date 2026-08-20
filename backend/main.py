@@ -13,6 +13,7 @@ from analysis.game_diagnostics import build_diagnostic_summary
 from analysis.opening_fit_metrics import build_opening_fit_metrics, merge_opening_fit_metrics
 from analysis.opening_coach_insights import build_opening_coach_insights
 from analysis.opening_training_opportunities import extract_opening_training_opportunities
+from analysis.game_check import build_game_check_change_set
 from analysis.retention_metrics import build_retention_metrics
 from analysis.opening_perspective import (
     attach_perspective,
@@ -311,6 +312,15 @@ class AnalysisJobRequest(BaseModel):
     username: str
     months: int = 3
     time_control: str = "custom"
+
+
+class GameCheckRequest(BaseModel):
+    games: List[Dict[str, Any]]
+    checked_ids: Optional[List[str]] = None
+    priority: Optional[Dict[str, Any]] = None
+    response_plan: Optional[Dict[str, Any]] = None
+    previous_report: Optional[Dict[str, Any]] = None
+    import_limit: Optional[int] = None
 
 
 PRODUCT_ANALYTICS_EVENTS = {
@@ -862,6 +872,18 @@ def api_health():
         "ok": True,
         "service": "openingfit-api",
     }
+
+
+@app.post("/api/game-check/evaluate")
+def evaluate_game_check(payload: GameCheckRequest):
+    return build_game_check_change_set(
+        games=payload.games,
+        checked_ids=payload.checked_ids or [],
+        priority=payload.priority,
+        response_plan=payload.response_plan,
+        previous_report=payload.previous_report,
+        import_limit=payload.import_limit,
+    )
 
 
 @app.get("/api/readiness")

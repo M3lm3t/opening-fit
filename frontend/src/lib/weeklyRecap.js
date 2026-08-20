@@ -44,23 +44,53 @@ function scoreSummary(comparison) {
   return { previous, current, status: comparison.scoreStatus, label: direction === "remained broadly unchanged" ? `Broadly unchanged: ${previous} before · ${current} now.` : `${direction} from ${previous} to ${current}.` };
 }
 
+function strongestRole(snapshot = {}) {
+  const decision = snapshot.report_decision || snapshot.reportDecision || {};
+  const roles = snapshot.repertoire_roles || decision.repertoireRoles || [];
+  return [...roles].filter(Boolean).sort((left, right) => {
+    const established = (value) => /established/i.test(text(value?.status)) ? 1 : 0;
+    return established(right) - established(left)
+      || (number(right.supportingGameCount ?? right.games) || 0) - (number(left.supportingGameCount ?? left.games) || 0)
+      || text(left.repertoireRole || left.key).localeCompare(text(right.repertoireRole || right.key));
+  })[0] || null;
+}
+
+function canonicalContinuity(snapshot = {}, comparison = {}) {
+  const decision = snapshot.report_decision || snapshot.reportDecision || {};
+  const priority = decision.trainingPriority || decision.training_priority || decision.nextTrainingAction || {};
+  const repair = decision.primaryProblem || decision.primary_problem || comparison.continuedWeaknesses?.[0] || comparison.newWeaknesses?.[0] || null;
+  const role = strongestRole(snapshot);
+  return {
+    strongestRole: role ? { label: text(role.label || role.repertoireRole || role.key).replaceAll("_", " "), opening: text(role.currentOpening || role.openingName || role.opening) || null, games: number(role.supportingGameCount ?? role.games) || 0 } : null,
+    urgentRepair: repair ? { label: text(repair.openingName || repair.opening || repair.title) || "Current canonical repair", diagnosisId: text(repair.diagnosisId || repair.diagnosis_id) || null } : null,
+    avoidedMistake: comparison.resolvedWeaknesses?.[0] ? { label: text(comparison.resolvedWeaknesses[0].opening || comparison.resolvedWeaknesses[0].title), detail: "The prior canonical weakness was not repeated in the sufficient compatible sample." } : null,
+    repeatedMistake: comparison.continuedWeaknesses?.[0] ? { label: text(comparison.continuedWeaknesses[0].opening || comparison.continuedWeaknesses[0].title), detail: `${comparison.continuedWeaknesses[0].frequency} supporting games in the current report.` } : null,
+    recommendedAction: text(priority.title || priority.label || priority.nextAction || priority.exercise) || null,
+    targetNextWeek: text(priority.successCheck || priority.success_check || priority.completionTarget?.label || priority.completion_target?.label) || "Complete the current canonical training task and analyse genuinely new games.",
+    identity: text(priority.priorityId || priority.priority_id || priority.decisionId || priority.decision_id) || null,
+  };
+}
+
 export function buildWeeklyRecap({ currentSnapshot, previousSnapshot, plan = null, now = new Date() } = {}) {
   const { weekStart, weekEnd } = weeklyPlanWindow(now);
   const activeIncompletePlan = Boolean(plan && plan.status === "active" && Number(plan.completionPercent || 0) < 100);
   const comparison = compareReportSnapshots(previousSnapshot, currentSnapshot);
   const newGames = previousSnapshot ? Math.max(0, Math.round(number(comparison.newGamesCount) || 0)) : 0;
+  const continuity = canonicalContinuity(currentSnapshot, comparison);
 
   if (!newGames) {
-    if (!activeIncompletePlan) return null;
+    if (!currentSnapshot && !activeIncompletePlan) return null;
     return {
-      id: `weekly-recap:${weekStart}:training-reminder`,
+      id: `weekly-recap:${weekStart}:continuity:${continuity.identity || "current"}`,
       weekStart,
       weekEnd,
       type: "training_reminder",
       title: "Your weekly training is ready to continue",
       newGames: 0,
-      trainingCompletion: Math.max(0, Math.min(99, Math.round(number(plan.completionPercent) || 0))),
-      nextFocus: text(plan.primaryGoal) || null,
+      trainingCompletion: activeIncompletePlan ? Math.max(0, Math.min(99, Math.round(number(plan.completionPercent) || 0))) : null,
+      nextFocus: text(plan?.primaryGoal) || continuity.recommendedAction,
+      progressConfidence: "limited",
+      continuity,
       score: null,
       improvedArea: null,
       repairArea: null,
@@ -87,6 +117,8 @@ export function buildWeeklyRecap({ currentSnapshot, previousSnapshot, plan = nul
     repairArea: repair,
     trainingCompletion,
     nextFocus,
+    progressConfidence: comparison.comparable ? "comparable" : "limited",
+    continuity,
   };
 }
 

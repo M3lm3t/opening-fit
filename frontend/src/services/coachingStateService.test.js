@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { getCurrentCoachingPriority, getWeeklyCoachingGoal, MEANINGFUL_COACHING_ACTIVITIES, recordMeaningfulCoachingActivity, selectOwnerCoachingState } from "./coachingStateService.js";
+import { completeGameCheck, countNewGamesSinceCheckpoint, getCurrentCoachingPriority, getWeeklyCoachingGoal, MEANINGFUL_COACHING_ACTIVITIES, recordMeaningfulCoachingActivity, saveCoachingResponsePlan, selectOwnerCoachingState } from "./coachingStateService.js";
 
 const migration = readFileSync(new URL("../../../supabase/migrations/202608200001_canonical_coaching_activity.sql", import.meta.url), "utf8");
 function clientReturning(data) { const calls = []; return { calls, async rpc(name, params) { calls.push({ name, params }); return { data, error: null }; } }; }
@@ -29,6 +29,26 @@ test("priority and weekly goal are selected from authoritative cloud state", asy
   assert.deepEqual(await getWeeklyCoachingGoal("u1", { client: goalClient }), { target: 3, completed: 2, weekStart: "2026-08-17", weekEnd: "2026-08-23", timezone: "Europe/London" });
   assert.match(migration, /date_trunc\('week', local_now\)/i);
   assert.match(migration, /pg_timezone_names[\s\S]*UTC/i);
+});
+
+test("new game count is only shown from stable IDs and a canonical checkpoint", () => {
+  assert.equal(countNewGamesSinceCheckpoint([{ id: "old" }, { game_id: "new" }, { id: "new" }], { checked_game_ids: ["old"] }), 1);
+  assert.equal(countNewGamesSinceCheckpoint([{ result: "1-0" }], { checked_game_ids: [] }), null);
+  assert.equal(countNewGamesSinceCheckpoint([{ id: "one" }], null), null);
+});
+
+test("response-plan save uses canonical identities and does not trust a non-UUID report ID", async () => {
+  const client = clientReturning({ id: "plan-1", status: "active" });
+  await saveCoachingResponsePlan({ userId: "u1", repertoireRole: "black_vs_e4", openingId: "caro", diagnosisId: "d1", reportId: "legacy-report", taskId: "t1", planText: "  Challenge the centre.  " }, { client });
+  assert.deepEqual(client.calls[0], { name: "save_coaching_response_plan", params: { p_repertoire_role: "black_vs_e4", p_opening_id: "caro", p_diagnosis_id: "d1", p_report_id: null, p_task_id: "t1", p_plan_text: "Challenge the centre." } });
+});
+
+test("Game Check completion sends one idempotent atomic checkpoint RPC", async () => {
+  const client = clientReturning({ activityId: "a1", checkpointId: "c1" });
+  await completeGameCheck({ userId: "u1", platform: "ChessCom", username: "Player", checkedGameIds: ["g1", "g1", "g2"], idempotencyKey: "check:g1-g2" }, { client });
+  assert.equal(client.calls[0].name, "complete_game_check");
+  assert.deepEqual(client.calls[0].params.p_checked_game_ids, ["g1", "g2"]);
+  assert.equal(client.calls[0].params.p_idempotency_key, "check:g1-g2");
 });
 
 test("RLS prevents cross-user reads and keeps service role explicit", () => {

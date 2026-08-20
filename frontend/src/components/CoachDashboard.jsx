@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import RecommendationExplanationPanel from "./RecommendationExplanationPanel";
 import MistakeBasedPractice from "./MistakeBasedPractice";
 import { OpeningMilestones, OpeningScoreBreakdown } from "./OpeningScoreProgress";
@@ -11,13 +11,18 @@ import NextBestAction from "./NextBestAction";
 import SessionSummary from "./SessionSummary";
 import RatingGoalCard from "./RatingGoalCard.jsx";
 import { buildReportDecisionModel } from "../lib/reportDecisionModel.js";
-import { buildTodayPrimaryAction, todayGoalContext } from "../lib/todayPrimaryAction.js";
+import { buildTodayExperienceAction, todayGoalContext } from "../lib/todayPrimaryAction.js";
 import ChessPositionBoard from "./ChessPositionBoard.jsx";
 import SinceLastReportSummary from "./SinceLastReportSummary.jsx";
-import TrainingStreakCard from "./TrainingStreakCard.jsx";
 import { useAuth } from "../context/AuthDataProvider.jsx";
 import { QUALIFYING_STREAK_ACTIVITIES, recordQualifiedActivity } from "../services/trainingStreakService.js";
 import { buildReportSnapshot } from "../lib/reportSnapshot.js";
+import { buildPersonalTrainingItems, dueTrainingSession, evaluatePersonalTrainingOutcomes, mergeTrainingState } from "../lib/personalOpeningTraining.js";
+import { buildEvidenceSufficiency } from "../lib/evidenceSufficiency.js";
+import { countNewGamesSinceCheckpoint, getCoachingGameCheckpoint, getCurrentCoachingPriority, getWeeklyCoachingGoal, recordMeaningfulCoachingActivity } from "../services/coachingStateService.js";
+import { trackProductEvent } from "../lib/productAnalytics.js";
+import GameCheckPanel from "./GameCheckPanel.jsx";
+import TrainingStreakCard from "./TrainingStreakCard.jsx";
 import "./CoachDashboard.css";
 
 function asArray(value) {
@@ -259,13 +264,41 @@ function TodayTrainingPlan({ tasks, progress, data, onTaskAction, onCompleteTask
   );
 }
 
-function TodayPrimaryAction({ action, goal, onAction, onComplete }) {
+function RecurringOpeningHabits({ habits, onTrain }) {
+  const rows = asArray(habits).filter((habit) => habit?.positionIdentity && habit?.playedMove);
+  if (!rows.length) return null;
+  const typeCopy = {
+    RECURRING_MISTAKE: "It repeatedly leaves you worse.",
+    RECURRING_INACCURACY: "This repeatedly gives away some of the position.",
+    GOOD_HABIT: "This is a reliable decision worth keeping.",
+    MIXED: "Your decision varies when this position returns.",
+  };
+  return (
+    <section className="coachDashboardCard" aria-labelledby="recurring-opening-habits-title">
+      <div className="coachCardHeader"><span>Recurring habit</span><strong>{rows.length}</strong></div>
+      <h2 id="recurring-opening-habits-title">Repeated opening decisions</h2>
+      {rows.slice(0, 3).map((habit) => (
+        <article key={habit.habitId} className="todayTaskRow">
+          <div>
+            <strong>{habit.opening}</strong>
+            <p>You played {habit.playedMove} in {habit.occurrenceCount} of {habit.eligibleOccurrenceCount} games reaching this position.</p>
+            <p>{typeCopy[habit.habitType] || "This repeated decision has trustworthy evidence."}</p>
+            {habit.recommendedMove && habit.recommendedMove !== habit.playedMove ? <p>Try {habit.recommendedMove} instead.</p> : null}
+          </div>
+          <button type="button" className="secondaryBtn" onClick={() => onTrain?.({ ...habit, opportunityId: habit.habitId, openingId: habit.canonicalOpeningId, positionKey: habit.positionIdentity, issueType: habit.habitType.toLowerCase(), reviewType: habit.recommendedMove ? "move_review" : "concept_review", recurrenceCount: habit.occurrenceCount })}>Train this position</button>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function TodayPrimaryAction({ action, goal, weeklyGoal, newGames, onAction, onComplete, trainingSession, onTraining }) {
   const goalContext = todayGoalContext(goal);
   if (action.completed) {
-    return <section className="todayPrimaryAction isComplete" aria-labelledby="today-primary-title"><p className="coachEyebrow">Today</p><h1 id="today-primary-title">Done for today</h1><p>You completed the current evidence-backed task. Keep playing; OpeningFit will only add another task when one already exists in your report.</p>{goalContext ? <small className="todayGoalContext">Goal context: {goalContext}</small> : null}</section>;
+    return <section className="todayPrimaryAction isComplete" aria-labelledby="today-primary-title"><p className="coachEyebrow">Today</p><h1 id="today-primary-title">Session complete</h1><p>Your completion is saved. OpeningFit will not replace it until a genuinely relevant task is available.</p><button type="button" className="primaryBtn" onClick={() => onAction({ route: "analyse" })}>Check for new games</button></section>;
   }
   if (action.kind === "calm") {
-    return <section className="todayPrimaryAction isCalm" aria-labelledby="today-primary-title"><p className="coachEyebrow">Today</p><h1 id="today-primary-title">{action.title}</h1><p>{action.explanation}</p>{goalContext ? <small className="todayGoalContext">Goal context: {goalContext}</small> : null}</section>;
+    return <section className="todayPrimaryAction isCalm" aria-labelledby="today-primary-title"><p className="coachEyebrow">Today</p><h1 id="today-primary-title">{action.title}</h1><p>{action.explanation}</p>{action.cta ? <button type="button" className="primaryBtn" onClick={() => onAction(action)}>{action.cta}</button> : null}</section>;
   }
   return (
     <section className={`todayPrimaryAction todayPrimaryAction--${action.kind}`} aria-labelledby="today-primary-title">
@@ -273,8 +306,10 @@ function TodayPrimaryAction({ action, goal, onAction, onComplete }) {
       <p>{action.explanation}</p>
       {action.chessEvidence?.positionFen ? <div className="todayPrimaryPosition"><ChessPositionBoard position={action.chessEvidence.positionFen} orientation={action.chessEvidence.orientation} interactive={false} /><div><strong>Position to train</strong>{action.chessEvidence.moveLine ? <code>{action.chessEvidence.moveLine}</code> : null}</div></div> : action.chessEvidence?.moveLine ? <code className="todayPrimaryMoveLine">{action.chessEvidence.moveLine}</code> : null}
       {action.why ? <details className="todayPrimaryWhy"><summary>Why this matters</summary><p>{action.why}</p></details> : null}
-      {goalContext ? <small className="todayGoalContext">Goal context: {goalContext}</small> : null}
-      <div className="todayPrimaryActions"><button type="button" className="primaryBtn" onClick={() => onAction(action)}>{action.cta}</button><button type="button" className="todayCompleteAction" onClick={() => onComplete(action)}>Mark complete</button></div>
+      <dl className="todayPrimaryContract">{action.durationMinutes || trainingSession?.estimatedMinutes ? <div><dt>Time</dt><dd>About {action.durationMinutes || trainingSession.estimatedMinutes} minutes</dd></div> : null}<div><dt>How improvement is checked</dt><dd>{action.improvementCheck}</dd></div></dl>
+      {trainingSession?.dueCount ? <p className="todayTrainingDue"><strong>{trainingSession.dueCount} position{trainingSession.dueCount === 1 ? "" : "s"} due</strong> · about {trainingSession.estimatedMinutes} minute{trainingSession.estimatedMinutes === 1 ? "" : "s"} · {trainingSession.items.length} in this session</p> : null}
+      <div className="todayStatusLine" aria-label="Coaching status"><span>{weeklyGoal ? `${weeklyGoal.completed} of ${weeklyGoal.target} meaningful sessions` : "Weekly progress will sync when available"}</span><span>{newGames === null ? "Game Check status unavailable" : `${newGames} new game${newGames === 1 ? "" : "s"} waiting`}</span>{goalContext ? <span>Rating goal: {goalContext}</span> : null}</div>
+      <div className="todayPrimaryActions"><button type="button" className="primaryBtn" onClick={() => trainingSession?.dueCount ? onTraining?.() : onAction(action)}>{trainingSession?.dueCount ? "Start training" : action.cta}</button><button type="button" className="todayCompleteAction" onClick={() => onComplete(action)}>Mark complete</button></div>
     </section>
   );
 }
@@ -489,11 +524,16 @@ export default function CoachDashboard({
   activityHistory = [],
   profile = null,
   settings = null,
+  loading = false,
+  importStatus = null,
+  username = "",
+  platform = "",
   onRecordActivity,
   onAnalyse,
   onPractice,
   onReport,
   onRecommendations,
+  onTraining,
 }) {
   const { user } = useAuth();
   const openings = collectOpenings(data || {}, fitData);
@@ -502,13 +542,42 @@ export default function CoachDashboard({
   const insufficient = Boolean(data) && gameCount > 0 && gameCount < 5;
   const [optimisticActivity, setOptimisticActivity] = useState([]);
   const [sessionSummary, setSessionSummary] = useState(null);
+  const [canonicalPriority, setCanonicalPriority] = useState(null);
+  const [weeklyGoal, setWeeklyGoal] = useState(null);
+  const [newGames, setNewGames] = useState(null);
   const activity = useMemo(
     () => [...optimisticActivity, ...asArray(activityHistory), ...asArray(openingFitUserState)],
     [activityHistory, openingFitUserState, optimisticActivity]
   );
   const ratingGoal = buildRatingGoalModel({ profile, settings, activity, data });
-  const todayAction = useMemo(() => buildTodayPrimaryAction({ decisionModel: data && !partial && !insufficient ? buildReportDecisionModel(data, fitData || {}, reportHistory) : null, activity, hasReport: Boolean(data) }), [activity, data, fitData, insufficient, partial, reportHistory]);
-  const currentProgressSnapshot = useMemo(() => data ? buildReportSnapshot({ report: data, defaultGeneratedAt: false }) : null, [data]);
+  useEffect(() => {
+    let active = true;
+    if (!user?.id) return () => { active = false; };
+    Promise.allSettled([
+      getCurrentCoachingPriority(user.id),
+      getWeeklyCoachingGoal(user.id),
+      getCoachingGameCheckpoint(user.id, { platform: platform || data?.platform, username: username || data?.username }),
+    ]).then(([priorityResult, goalResult, checkpointResult]) => {
+      if (!active) return;
+      if (priorityResult.status === "fulfilled") setCanonicalPriority(priorityResult.value);
+      if (goalResult.status === "fulfilled") setWeeklyGoal(goalResult.value);
+      if (checkpointResult.status === "fulfilled") setNewGames(countNewGamesSinceCheckpoint(data?.games || data?.analysedGames || data?.analysed_games, checkpointResult.value));
+    });
+    return () => { active = false; };
+  }, [data, platform, user?.id, username]);
+  const evidence = useMemo(() => buildEvidenceSufficiency(data || {}), [data]);
+  const connected = Boolean(username || data?.username || data?.playerName || data?.player_name);
+  const todayAction = useMemo(() => {
+    return buildTodayExperienceAction({ connected, loading, importMessage: importStatus?.message, evidence, canonicalPriority, decisionModel: data && !partial && !insufficient ? buildReportDecisionModel(data, fitData || {}, reportHistory) : null, activity, hasReport: Boolean(data) });
+  }, [activity, canonicalPriority, connected, data, evidence, fitData, importStatus?.message, insufficient, loading, partial, reportHistory]);
+  const personalTrainingSession = useMemo(() => {
+    const generated = buildPersonalTrainingItems({ report: data || {}, ownerId: user?.id || "anonymous-session" });
+    const stored = user?.id ? settings?.preferences?.personalOpeningTraining?.items || [] : [];
+    return dueTrainingSession(mergeTrainingState(generated.items, stored, user?.id || "anonymous-session"), { limit: 5 });
+  }, [data, settings?.preferences?.personalOpeningTraining?.items, user?.id]);
+  const trainingOutcomes = useMemo(() => evaluatePersonalTrainingOutcomes(settings?.preferences?.personalOpeningTraining?.items || [], data?.games || data?.analysedGames || data?.analysed_games || []), [data, settings?.preferences?.personalOpeningTraining?.items]);
+  const retentionData = useMemo(() => data ? { ...data, trainingOutcomes } : data, [data, trainingOutcomes]);
+  const currentProgressSnapshot = useMemo(() => retentionData ? buildReportSnapshot({ report: retentionData, defaultGeneratedAt: false }) : null, [retentionData]);
   const progressSnapshots = useMemo(() => asArray(reportHistory).map((row) => {
     if (row?.normalized_snapshot) return row.normalized_snapshot;
     if (Number(row?.snapshot?.report_schema_version) >= 2) return row.snapshot;
@@ -559,6 +628,7 @@ export default function CoachDashboard({
         };
     setOptimisticActivity((items) => [event, ...items.filter((item) => item.payload?.task_id !== task.id)]);
     try {
+      if (user?.id) await recordMeaningfulCoachingActivity({ userId: user.id, activityType: "training_session_completed", idempotencyKey: `today:${localDateKey()}:${task.id}`, payload: { task_id: task.id, report_id: task.identities?.reportId, diagnosis_id: task.identities?.diagnosisId } });
       await onRecordActivity?.("today_task_completed", {
         ...event.payload,
         points: xpForEvent("today_task_completed"),
@@ -573,15 +643,24 @@ export default function CoachDashboard({
         }).catch((streakError) => console.warn("OpeningFit could not update the training streak.", streakError));
       }
       setSessionSummary({ title: "Today's progress", lines: ["Current task completed", "Daily streak maintained", `${xpForEvent("today_plan_completed")} bonus XP earned`] });
+      void trackProductEvent("today_primary_action_completed", { authenticated: Boolean(user?.id), source: "today" });
     } catch (error) {
       console.warn("OpeningFit could not save daily task completion.", error);
     }
   };
+  useEffect(() => {
+    void trackProductEvent("today_viewed", { authenticated: Boolean(user?.id), source: "dashboard" }, { onceKey: `${user?.id || "anonymous"}:${localDateKey()}` });
+    if (todayAction.kind === "calm" && todayAction.title === "No supported session yet") void trackProductEvent("today_no_supported_task", { authenticated: Boolean(user?.id), source: "dashboard" }, { onceKey: todayAction.title });
+    if (newGames > 0) void trackProductEvent("today_new_games_available", { authenticated: Boolean(user?.id), source: "dashboard", newGames }, { onceKey: String(newGames) });
+  }, [newGames, todayAction.kind, todayAction.title, user?.id]);
+  const startTodayAction = (action) => { void trackProductEvent("today_primary_action_started", { authenticated: Boolean(user?.id), source: "today" }); handleTaskAction(action); };
+  const roles = ["White", "Black vs 1.e4", "Black vs 1.d4"].map((label) => openings.find((opening) => opening.contextLabel === label || (label === "Black vs 1.d4" && opening.contextLabel === "Black")) || null);
   return (
     <section className="coachDashboard" id="coach-dashboard" aria-label="OpeningFit Today">
+      <header className="todayGreeting"><p className="coachEyebrow">Welcome back</p><h1>{profile?.display_name ? `Hello, ${profile.display_name}` : "Your opening work for today"}</h1><p>{openings.length >= 3 ? "Your three repertoire roles are represented in the current report." : openings.length ? `${openings.length} of 3 repertoire roles currently have recognised opening evidence.` : "Your current report does not yet support a complete repertoire summary."}</p></header>
+      <TodayPrimaryAction action={todayAction} goal={ratingGoal} weeklyGoal={weeklyGoal} newGames={newGames} onAction={startTodayAction} onComplete={completeTask} trainingSession={personalTrainingSession} onTraining={onTraining} />
       <TrainingStreakCard />
-      <TodayPrimaryAction action={todayAction} goal={ratingGoal} onAction={handleTaskAction} onComplete={completeTask} />
-      <SinceLastReportSummary currentSnapshot={currentProgressSnapshot} reportSnapshots={progressSnapshots} />
+      <section className="todaySecondary" aria-labelledby="today-journey-title"><div className="coachCardHeader"><h2 id="today-journey-title">Your repertoire journey</h2></div><GameCheckPanel report={data} platform={platform || data?.platform} username={username || data?.username} onReport={onReport} /><div className="todayRoleJourney">{roles.map((opening, index) => <article key={index}><span>{["White", "Black vs 1.e4", "Black vs 1.d4/other"][index]}</span><strong>{opening ? openingName(opening) : "Developing evidence"}</strong></article>)}</div><SinceLastReportSummary currentSnapshot={currentProgressSnapshot} reportSnapshots={progressSnapshots} /><div className="todaySecondaryActions"><button type="button" className="secondaryBtn" onClick={onReport}>Open full report</button><button type="button" className="ghostBtn" onClick={onReport}>Report history</button></div></section>
       <SessionSummary
         summary={sessionSummary}
         onDismiss={() => setSessionSummary(null)}

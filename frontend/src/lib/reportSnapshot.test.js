@@ -135,6 +135,21 @@ test("repertoire history classifications survive saved-report serialization and 
   assert.deepEqual(restored.repertoire_history, report.repertoireHistory);
 });
 
+test("canonical recurring opening habits survive saved-report restoration", () => {
+  const report = completedReport();
+  report.recurringOpeningHabits = [{
+    habitId: "opening-habit-1", habitType: "RECURRING_MISTAKE",
+    positionIdentity: "canonical-fen", role: "black_vs_e4", opening: "Owen's Defence",
+    playedMove: "Nc6", recommendedMove: "c5", occurrenceCount: 6,
+    eligibleOccurrenceCount: 8, averageEvaluationChangeCp: -112,
+    gameReferences: ["game-1", "game-2"], confidence: { level: "high", score: 0.88 },
+    trainingSubjectId: "opening-position:black_vs_e4:abc",
+  }];
+  const snapshot = buildReportSnapshot({ report, userId: "user-1", reportId: "report-habits" });
+  const restored = adaptReportHistoryRow({ id: "report-habits", user_id: "user-1", normalized_snapshot: snapshot });
+  assert.deepEqual(restored.recurring_opening_habits, report.recurringOpeningHabits);
+});
+
 test("adapts an old report without inventing unavailable fields", () => {
   const adapted = adaptReportHistoryRow({
     id: "old-report",

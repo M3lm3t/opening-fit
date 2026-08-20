@@ -11,18 +11,23 @@ const ALLOWED_ACTIVITIES = new Set(Object.values(QUALIFYING_STREAK_ACTIVITIES));
 export const TRAINING_STREAK_UPDATED_EVENT = "openingfit:training-streak-updated";
 
 export function emptyTrainingStreak() {
-  return { currentStreak: 0, longestStreak: 0, completedToday: false, lastQualifiedDate: null, lastQualifiedAt: null, timezone: "UTC" };
+  return { status: "reset", currentStreak: 0, longestStreak: 0, completedToday: false, lastQualifiedDate: null, lastQualifiedAt: null, timezone: "UTC", weeklyCompleted: 0, weeklyTarget: 3, milestones: [3, 7, 14, 30, 50, 100], latestMilestone: null };
 }
 
 function normaliseStreak(value) {
   const row = value && typeof value === "object" ? value : {};
   return {
+    status: row.status || "reset",
     currentStreak: Math.max(0, Number(row.currentStreak ?? row.current_streak) || 0),
     longestStreak: Math.max(0, Number(row.longestStreak ?? row.longest_streak) || 0),
     completedToday: Boolean(row.completedToday ?? row.completed_today),
     lastQualifiedDate: row.lastQualifiedDate ?? row.last_qualified_date ?? null,
     lastQualifiedAt: row.lastQualifiedAt ?? row.last_qualified_at ?? null,
-    timezone: "UTC",
+    timezone: row.timezone || "UTC",
+    weeklyCompleted: Math.max(0, Number(row.weeklyCompleted ?? row.weekly_completed) || 0),
+    weeklyTarget: Math.max(1, Number(row.weeklyTarget ?? row.weekly_target) || 3),
+    milestones: Array.isArray(row.milestones) ? row.milestones : [3, 7, 14, 30, 50, 100],
+    latestMilestone: Number(row.latestMilestone ?? row.latest_milestone) || null,
   };
 }
 
@@ -34,7 +39,7 @@ function requireAccount(userId, client) {
 export async function getTrainingStreak(userId, options = {}) {
   const client = options.client ?? (isSupabaseConfigured ? supabase : null);
   requireAccount(userId, client);
-  const { data, error } = await client.rpc("get_training_streak");
+  const { data, error } = await client.rpc("get_meaningful_consistency");
   if (error) throw error;
   return normaliseStreak(data);
 }
@@ -45,10 +50,7 @@ export async function recordQualifiedActivity({ userId, activityType, sourceId }
   if (!ALLOWED_ACTIVITIES.has(activityType)) throw new Error("Unsupported qualifying streak activity.");
   const stableSourceId = String(sourceId || "").trim();
   if (!stableSourceId || stableSourceId.length > 200) throw new Error("A stable streak activity source is required.");
-  const { data, error } = await client.rpc("record_qualified_streak_activity", {
-    p_activity_type: activityType,
-    p_source_id: stableSourceId,
-  });
+  const { data, error } = await client.rpc("get_meaningful_consistency");
   if (error) throw error;
   const streak = normaliseStreak(data);
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(TRAINING_STREAK_UPDATED_EVENT, { detail: streak }));

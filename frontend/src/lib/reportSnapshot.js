@@ -315,6 +315,7 @@ export function buildReportSnapshot({
       analysisSelectionRule: gameCounts.analysisSelectionRule,
       duplicateGamesRemoved: gameCounts.duplicateGamesRemoved,
       exclusionReasons: Object.fromEntries(gameCounts.exclusionReasons.filter((row) => row.count !== null).map((row) => [row.key, row.count])),
+      gameReconciliation: report?.gameReconciliation || report?.game_reconciliation || report?.gameCounts?.gameReconciliation || report?.game_counts?.gameReconciliation || null,
     } : null,
     new_games_since_previous: numberOrNull(first(summary.newGamesSincePrevious, summary.new_games_since_previous, report.newEligibleGames, report.new_games_since_previous)),
     rating_context: ratingContext(report),
@@ -324,6 +325,8 @@ export function buildReportSnapshot({
     score_contract: scoreContract && typeof scoreContract === "object" ? scoreContract : null,
     repertoire_roles: list(first(report.repertoireRoles, report.repertoire_roles, reportDecision?.repertoireRoles)),
     repertoire_history: first(report.repertoireHistory, report.repertoire_history, reportDecision?.repertoireHistory, reportDecision?.repertoire_history) || null,
+    evidence_hierarchy: first(report.evidenceHierarchy, report.evidence_hierarchy, reportDecision?.evidenceHierarchy, reportDecision?.evidence_hierarchy) || null,
+    recurring_opening_habits: list(first(report.recurringOpeningHabits, report.recurring_opening_habits)),
     role_evidence_accounting: first(report.roleEvidenceAccounting, report.role_evidence_accounting),
     style_profile: first(summary.styleProfile, summary.style_profile, report.styleProfile, report.style_profile),
     recommendations: {

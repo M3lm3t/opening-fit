@@ -52,6 +52,14 @@ function decisionChanges(previous, current) {
   return rows;
 }
 
+function canonicalPositionMap(snapshot = {}) {
+  const habits = list(snapshot.recurring_opening_habits || snapshot.recurringOpeningHabits);
+  return new Map(habits.map((item) => {
+    const id = text(item.trainingSubjectId || item.training_subject_id || item.positionIdentity || item.position_identity);
+    return [id, item];
+  }).filter(([id]) => id));
+}
+
 export function buildMeaningfulProgressSummary({ currentSnapshot = null, reportSnapshots = [] } = {}) {
   if (!currentSnapshot) return { state: "no-current", rows: [], previousSnapshot: null };
   const previousSnapshot = selectPreviousReportSnapshot(currentSnapshot, reportSnapshots);
@@ -62,6 +70,19 @@ export function buildMeaningfulProgressSummary({ currentSnapshot = null, reportS
   }
 
   const rows = [...decisionChanges(previousSnapshot, currentSnapshot)];
+  const newGames = Number(comparison.newGamesCount);
+  if (Number.isFinite(newGames) && newGames > 0) rows.push({
+    key: "new-games", category: "NEW GAMES", title: `${newGames} new game${newGames === 1 ? "" : "s"} analysed`,
+    text: "These games were included only because the current and previous report snapshots are compatible.",
+  });
+  const previousPositions = canonicalPositionMap(previousSnapshot);
+  const currentPositions = canonicalPositionMap(currentSnapshot);
+  previousPositions.forEach((before, id) => {
+    const current = currentPositions.get(id);
+    if (!current) return;
+    const difference = (Number(current.occurrenceCount ?? current.occurrence_count) || 0) - (Number(before.occurrenceCount ?? before.occurrence_count) || 0);
+    if (difference > 0) rows.push({ key: `position:${id}`, category: "POSITION REACHED", title: text(current.opening) || "Previously diagnosed position", text: `This canonical position appeared ${difference} more time${difference === 1 ? "" : "s"}; the same training subject remains traceable across reports.` });
+  });
   comparison.resolvedWeaknesses.forEach((item) => rows.push({
     key: `resolved:${item.key}`,
     category: "RESOLVED",
@@ -73,6 +94,10 @@ export function buildMeaningfulProgressSummary({ currentSnapshot = null, reportS
     category: "NEW ISSUE",
     title: item.opening || item.title,
     text: `${item.frequency} supporting game${item.frequency === 1 ? "" : "s"} established this as a new repair signal.`,
+  }));
+  comparison.continuedWeaknesses.forEach((item) => rows.push({
+    key: `repeated:${item.key}`, category: "REPEATED", title: item.opening || item.title,
+    text: `${item.frequency} supporting game${item.frequency === 1 ? "" : "s"} still contain this canonical weakness.`,
   }));
   comparison.repertoireChanges
     .filter((item) => item.type === "role establishment changed" && item.currentEstablished)
@@ -98,6 +123,10 @@ export function buildMeaningfulProgressSummary({ currentSnapshot = null, reportS
       title: item.opening,
       text: `Score ${Math.round(item.previousScore * 10) / 10}% to ${Math.round(item.currentScore * 10) / 10}% across comparable samples of ${item.previousGames} and ${item.currentGames} games.`,
     }));
+  if (comparison.previousScore !== null && comparison.currentScore !== null) rows.push({
+    key: "repertoire-health", category: "REPERTOIRE HEALTH", title: `${Math.round(comparison.previousScore)} to ${Math.round(comparison.currentScore)}`,
+    text: comparison.scoreStatus === "insufficient evidence" ? "The values are shown for context, but the compatible sample is not strong enough to claim improvement or decline." : `The change is classified as ${comparison.scoreStatus} using the stored compatible score contract and evidence thresholds.`,
+  });
 
   const unique = [...new Map(rows.map((row) => [text(row.title).toLowerCase(), row])).values()].slice(0, 4);
   return { state: unique.length ? "ready" : "no-meaningful-change", rows: unique, previousSnapshot, comparison };

@@ -14,6 +14,18 @@ function formatWeek(value) {
 }
 
 function RecapDetails({ recap }) {
+  if (recap.continuity) return (
+    <dl className="weeklyRecapGrid">
+      <div><dt>Games analysed</dt><dd>{recap.newGames || "No new compatible games"}{recap.progressConfidence === "limited" ? <span>Progress confidence is limited; continuity uses the current canonical report.</span> : null}</dd></div>
+      {recap.continuity.strongestRole ? <div><dt>Strongest repertoire role</dt><dd><strong>{recap.continuity.strongestRole.label}</strong><span>{recap.continuity.strongestRole.opening || "Opening unavailable"} · {recap.continuity.strongestRole.games} supporting games</span></dd></div> : null}
+      {recap.continuity.urgentRepair ? <div><dt>Most urgent repair</dt><dd>{recap.continuity.urgentRepair.label}</dd></div> : null}
+      {recap.continuity.avoidedMistake ? <div><dt>Previously identified mistake avoided</dt><dd><strong>{recap.continuity.avoidedMistake.label}</strong><span>{recap.continuity.avoidedMistake.detail}</span></dd></div> : null}
+      {recap.continuity.repeatedMistake ? <div><dt>Repeated mistake</dt><dd><strong>{recap.continuity.repeatedMistake.label}</strong><span>{recap.continuity.repeatedMistake.detail}</span></dd></div> : null}
+      {recap.score ? <div><dt>Repertoire Health</dt><dd>{recap.score.label}</dd></div> : null}
+      {recap.continuity.recommendedAction ? <div><dt>Recommended training action</dt><dd>{recap.continuity.recommendedAction}</dd></div> : null}
+      <div><dt>Target for next week</dt><dd>{recap.continuity.targetNextWeek}</dd></div>
+    </dl>
+  );
   if (recap.type === "training_reminder") return (
     <div className="weeklyRecapReminder"><Clock3 size={20} /><div><strong>{recap.trainingCompletion}% of this week’s plan complete</strong>{recap.nextFocus ? <p>Next focus: {recap.nextFocus}</p> : null}</div></div>
   );
@@ -49,14 +61,13 @@ export default function WeeklyRecap({ data, fitData, reportHistory = [], active 
   const snapshots = useMemo(() => reportHistory.map((item) => adaptReportHistoryRow(item)), [reportHistory]);
   const previousSnapshot = useMemo(() => selectPreviousReportSnapshot(currentSnapshot, snapshots), [currentSnapshot, snapshots]);
   const recap = useMemo(() => buildWeeklyRecap({ currentSnapshot, previousSnapshot, plan }), [currentSnapshot, plan, previousSnapshot]);
-  const records = useMemo(() => weeklyRecapRecords({ settings, localRecords }), [localRecords, settings]);
+  const records = useMemo(() => weeklyRecapRecords({ settings, localRecords: user?.id ? {} : localRecords }), [localRecords, settings, user?.id]);
   const history = useMemo(() => Object.entries(records).filter(([, record]) => record?.recap).sort(([left], [right]) => right.localeCompare(left)), [records]);
 
   const persist = useCallback(async (weekStart, patch) => {
     const next = mergeWeeklyRecapRecord(records, weekStart, patch);
-    setLocalRecords(next);
-    writeLocalWeeklyRecaps(next);
     if (user?.id && saveSettings) await saveSettings({ preferences: { weeklyRecaps: next } });
+    else { setLocalRecords(next); writeLocalWeeklyRecaps(next); }
   }, [records, saveSettings, user?.id]);
 
   useEffect(() => {

@@ -32,13 +32,60 @@ function evidenceCount(source = {}) {
 
 function finalise(action, activity, date) {
   const id = taskId(action.kind, action.source, date);
-  return { ...action, id, type: action.kind, completed: completedToday(activity, id, date) };
+  const source = action.source || {};
+  const trainingDuration = source.trainingDuration || source.training_duration || {};
+  const minutes = Number(trainingDuration.minutes ?? source.durationMinutes ?? source.duration_minutes);
+  const completion = source.successCheck || source.success_check || source.completionTarget?.label || source.completion_target?.label;
+  return {
+    ...action,
+    id,
+    type: action.kind,
+    durationMinutes: Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes) : null,
+    improvementCheck: text(completion) || "OpeningFit will compare this canonical target when your next compatible report includes new games.",
+    identities: {
+      reportId: text(source.sourceReportId || source.source_report_id || source.reportId || source.report_id) || null,
+      diagnosisId: text(source.diagnosisId || source.diagnosis_id) || null,
+      decisionId: text(source.decisionId || source.decision_id) || null,
+      openingId: text(source.canonicalOpeningId || source.canonical_opening_id || source.openingId || source.opening_id) || null,
+      trainingSubjectId: text(source.trainingSubjectId || source.training_subject_id || source.priorityId || source.priority_id || source.taskId || source.task_id) || null,
+    },
+    completed: completedToday(activity, id, date),
+  };
 }
 
-export function buildTodayPrimaryAction({ decisionModel = null, activity = [], hasReport = false, date = new Date() } = {}) {
+export function buildTodayPrimaryAction({ decisionModel = null, canonicalPriority = null, activity = [], hasReport = false, date = new Date() } = {}) {
+  if (canonicalPriority) {
+    if (canonicalPriority.status === "unavailable") return { kind: "calm", title: "No supported session yet", explanation: "The saved coaching priority is unavailable, so OpeningFit will not manufacture a replacement.", cta: "Check for new games", route: "analyse", completed: false };
+    const evidence = canonicalPriority.evidenceRefs || {};
+    const source = {
+      ...evidence,
+      taskId: canonicalPriority.taskId,
+      priorityId: canonicalPriority.taskId,
+      sourceReportId: canonicalPriority.reportId,
+      diagnosisId: canonicalPriority.diagnosisId,
+      decisionId: canonicalPriority.decisionId || canonicalPriority.recommendationId,
+      canonicalOpeningId: canonicalPriority.openingId,
+      openingName: canonicalPriority.openingName,
+      repertoireRole: canonicalPriority.repertoireRole,
+    };
+    const action = finalise({
+      kind: "train",
+      title: canonicalPriority.openingName ? `Train ${canonicalPriority.openingName}` : "Train today's position",
+      opening: canonicalPriority.openingName,
+      role: text(canonicalPriority.repertoireRole).replaceAll("_", " "),
+      explanation: text(evidence.why || evidence.rationale) || "This is the strongest unresolved task retained from your current report.",
+      why: text(evidence.provenance || evidence.why || evidence.rationale),
+      cta: "Start session",
+      route: "practice",
+      target: source,
+      chessEvidence: canonicalChessEvidence(source),
+      source,
+    }, activity, date);
+    return { ...action, id: canonicalPriority.taskId || action.id, completed: canonicalPriority.status === "completed" || action.completed, unavailable: canonicalPriority.status === "unavailable" };
+  }
   if (!decisionModel) {
     return hasReport
-      ? { kind: "calm", title: "Nothing urgent to repair right now.", explanation: "Keep playing and collect more games before the next analysis.", completed: false }
+      ? { kind: "calm", title: "No supported session yet", explanation: "Your report does not contain a recommendation with enough trusted evidence to train safely.", cta: "Check for new games", route: "analyse", completed: false }
       : finalise({ kind: "analyse", title: "Analyse your games", explanation: "OpeningFit needs a completed report before it can choose a trustworthy daily task.", cta: "Analyse games", route: "analyse", source: {} }, activity, date);
   }
 
@@ -89,7 +136,14 @@ export function buildTodayPrimaryAction({ decisionModel = null, activity = [], h
     if (copy) return finalise({ kind: "coverage", title: copy.reportHeading, opening: copy.label, role: copy.role, explanation: copy.objective, why: "The current report has no established opening for this repertoire role.", cta: "Open repertoire", route: "repertoire", target: priority, source: priority }, activity, date);
   }
 
-  return { kind: "calm", title: "Nothing urgent to repair right now.", explanation: "Keep playing and collect more games. OpeningFit will surface a task when the evidence supports one.", completed: false };
+  return { kind: "calm", title: "No supported session yet", explanation: "Keep playing and check for new games. OpeningFit will surface a task when the evidence supports one.", cta: "Check for new games", route: "analyse", completed: false };
+}
+
+export function buildTodayExperienceAction({ connected = false, loading = false, importMessage = "", evidence = {}, ...taskInput } = {}) {
+  if (!connected && !taskInput.hasReport) return { kind: "calm", title: "Connect your chess account", explanation: "Import your Chess.com or Lichess games to create your first evidence-backed session.", cta: "Connect and import", route: "analyse", completed: false };
+  if (loading) return { kind: "calm", title: "Checking your games", explanation: text(importMessage) || "OpeningFit is using the current import progress and will keep your saved report available.", completed: false };
+  if (evidence.systemicFailure) return { kind: "calm", title: "This report needs another pass", explanation: `OpeningFit could not attribute the imported games reliably.${evidence.diagnosticReference ? ` Diagnostic reference: ${evidence.diagnosticReference}.` : ""}`, cta: "Reanalyse", route: "analyse", completed: false };
+  return buildTodayPrimaryAction(taskInput);
 }
 
 export function todayGoalContext(goal) {

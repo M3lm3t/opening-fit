@@ -1,0 +1,27 @@
+.personalTrainer { border: 1px solid var(--of-color-border); border-radius: var(--of-radius-lg); background: var(--of-color-surface); padding: clamp(.85rem, 3vw, 1.25rem); margin-bottom: 1rem; color: var(--of-color-text); }
+.personalTrainer > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.personalTrainer h2, .personalTrainer h3, .personalTrainer p { overflow-wrap: anywhere; }
+.personalTrainer h2 { margin: .15rem 0; }
+.personalTrainer > header p { margin: .25rem 0 0; color: var(--of-color-text-soft); }
+.personalTrainer__steps { display: grid; grid-template-columns: repeat(5, 1fr); list-style: none; margin: 1rem 0; padding: 0; gap: .35rem; }
+.personalTrainer__steps li { min-width: 0; padding: .45rem .25rem; border-bottom: 2px solid var(--of-color-border); color: var(--of-color-text-soft); text-align: center; font-size: .75rem; }
+.personalTrainer__steps li[data-active="true"] { border-color: var(--of-color-accent); color: var(--of-color-text); font-weight: 700; }
+.personalTrainer__layout { display: grid; grid-template-columns: minmax(260px, 480px) minmax(240px, 1fr); gap: clamp(1rem, 3vw, 2rem); align-items: start; }
+.personalTrainer__board { width: 100%; max-width: 480px; aspect-ratio: 1; }
+.personalTrainer__board .chessPositionBoard { width: 100%; height: 100%; }
+.personalTrainer__content { min-width: 0; }
+.personalTrainer__layout--plan { grid-template-columns: minmax(0, 680px); }
+.personalTrainer__content button { min-height: 44px; max-width: 100%; }
+.personalTrainer__content textarea { width: 100%; max-width: 100%; box-sizing: border-box; resize: vertical; padding: .75rem; border: 1px solid var(--of-color-border); border-radius: var(--of-radius-md); background: var(--of-color-surface-muted); color: var(--of-color-text); font: inherit; }
+.personalTrainer__content label { display: block; margin-bottom: .4rem; font-weight: 700; }
+.personalTrainer__content small { display: block; margin: .5rem 0 1rem; color: var(--of-color-text-soft); }
+.personalTrainer__choices { display: grid; gap: .5rem; margin-block: .75rem; }
+.personalTrainer__mode { color: var(--of-color-accent); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: .75rem; }
+.personalTrainer__feedback { padding: .75rem; background: var(--of-color-surface-muted); border-radius: var(--of-radius-md); }
+.personalTrainer details { margin-top: 1rem; }
+.personalTrainer dl div { display: grid; grid-template-columns: 90px 1fr; gap: .5rem; margin-top: .4rem; }
+.personalTrainer dt { color: var(--of-color-text-soft); }
+.personalTrainer dd { margin: 0; }
+.personalTrainer--empty ul { color: var(--of-color-text-soft); }
+@media (max-width: 720px) { .personalTrainer__layout { grid-template-columns: 1fr; } .personalTrainer__board { max-width: min(100%, calc(100dvh - 300px)); margin-inline: auto; } }
+@media (max-width: 430px) { .personalTrainer { padding: .75rem; padding-bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); overflow-x: clip; } .personalTrainer__steps { gap: .15rem; } .personalTrainer__steps li { font-size: .64rem; } .personalTrainer__content button { width: 100%; } .personalTrainer__board { max-width: min(100%, calc(100dvh - 280px)); } }

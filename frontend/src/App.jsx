@@ -12,7 +12,7 @@ import OpeningScoreInfo from "./components/OpeningScoreInfo";
 import RepertoireStudyPlan from "./components/RepertoireStudyPlan";
 import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
 import GameReplayBoard from "./components/GameReplayBoard";
-import TrainingSessionQueue from "./components/TrainingSessionQueue";
+import PersonalOpeningTrainer from "./components/PersonalOpeningTrainer.jsx";
 import { findOpeningPracticePack } from "./data/openingPracticeLines";
 import { normaliseOpeningKey } from "./data/openings";
 import { evidenceGapCategory, mergeOpeningContextRows, shouldShowEvidenceGap } from "./lib/openingContextRows.js";
@@ -16916,6 +16916,10 @@ export default function App() {
               user={supabaseUser || accountUser}
               profile={supabaseProfile}
               settings={userSettings}
+              loading={loading}
+              importStatus={importStatus}
+              username={username}
+              platform={platform}
               reportHistory={effectiveReportHistory}
               openingFitUserState={openingFitUserState}
               activityHistory={activityHistory}
@@ -17465,7 +17469,7 @@ export default function App() {
                   <ReportOpeningFilters filters={reportFilters} onFiltersChange={setReportFilters} data={reportData} />
 
                   <div id="opening-practice">
-                    <TrainingSessionQueue data={reportData} selectedTarget={practiceOpening} onStart={startOpeningPractice} onReport={() => handleAppNavigate("report")} onAnalyse={() => handleAppNavigate("analyse")} />
+                    <PersonalOpeningTrainer report={reportData} onReport={() => handleAppNavigate("report")} onAnalyse={() => handleAppNavigate("analyse")} />
                     <ContinueTrainingCard
                       data={reportData}
                       fitData={fitData}
