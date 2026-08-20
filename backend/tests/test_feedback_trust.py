@@ -1,4 +1,5 @@
 import sys
+import re
 from pathlib import Path
 
 import pytest
@@ -6,6 +7,12 @@ from fastapi import HTTPException
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import main
+
+
+def frontend_product_events():
+    source = (Path(__file__).resolve().parents[2] / "frontend" / "src" / "lib" / "productAnalytics.js").read_text(encoding="utf-8")
+    registry = source.split("const allowed =", 1)[0]
+    return set(re.findall(r'"([a-z][a-z0-9_]+)"', registry))
 
 
 class Query:
@@ -68,6 +75,56 @@ def test_analytics_schema_rejects_sensitive_properties():
         "upgrade_clicked",
         "portal_open_failed",
     }.issubset(main.PRODUCT_ANALYTICS_EVENTS)
+
+
+def test_canonical_retention_analytics_events_are_accepted(monkeypatch):
+    recorded = []
+    monkeypatch.setattr(main, "log_analytics_event", lambda event, data: recorded.append((event, data)))
+    retention_events = {
+        "today_viewed",
+        "today_primary_action_started",
+        "today_primary_action_completed",
+        "today_no_supported_task",
+        "today_new_games_available",
+        "weekly_recap_shown",
+        "weekly_recap_opened",
+        "weekly_recap_dismissed",
+        "weekly_recap_action_clicked",
+        "training_session_completed",
+        "new_games_detected",
+    }
+    for event in retention_events:
+        assert main.analytics_event(main.AnalyticsEventRequest(event=event, data={"source": "contract_test"})) == {"status": "ok"}
+    assert {event for event, _data in recorded} == retention_events
+
+
+def test_backend_allowlist_exactly_covers_frontend_registry():
+    assert frontend_product_events() == main.PRODUCT_ANALYTICS_EVENTS
+
+
+def test_analytics_endpoint_rejects_unknown_and_malformed_events(monkeypatch):
+    monkeypatch.setattr(main, "log_analytics_event", lambda _event, _data: None)
+    with pytest.raises(HTTPException) as unknown:
+        main.analytics_event(main.AnalyticsEventRequest(event="retention_event_not_registered", data={}))
+    assert unknown.value.status_code == 400
+    with pytest.raises(HTTPException) as malformed:
+        main.analytics_event(main.AnalyticsEventRequest(event="   ", data={}))
+    assert malformed.value.status_code == 400
+
+
+def test_analytics_endpoint_strips_private_payload_and_keeps_legacy_event(monkeypatch):
+    recorded = []
+    monkeypatch.setattr(main, "log_analytics_event", lambda event, data: recorded.append((event, data)))
+    result = main.analytics_event(main.AnalyticsEventRequest(event="analysis_completed", data={
+        "source": "legacy_flow",
+        "username": "private-player",
+        "pgn": "1. e4 e5",
+        "responsePlanText": "private plan",
+        "notificationText": "private reminder",
+        "reportContent": "private report",
+    }))
+    assert result == {"status": "ok"}
+    assert recorded == [("analysis_completed", {"source": "legacy_flow"})]
 
 
 def test_operational_log_details_redact_secrets_and_safely_reference_ids():
