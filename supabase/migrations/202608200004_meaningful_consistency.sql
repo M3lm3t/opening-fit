@@ -15,19 +15,28 @@ update public.activity_history a
 set activity_local_date = (coalesce(a.occurred_at, a.created_at) at time zone public.coaching_timezone(a.user_id))::date
 where a.coaching_activity_type is not null and a.activity_local_date is null;
 
-insert into public.activity_history(user_id, type, action_type, coaching_activity_type, dedupe_key, payload, occurred_at, activity_local_date, updated_at)
-select q.user_id,
-       case when q.activity_type = 'repair_review_completed' then 'position_review_completed' else 'training_session_completed' end,
-       case when q.activity_type = 'repair_review_completed' then 'position_review_completed' else 'training_session_completed' end,
-       case when q.activity_type = 'repair_review_completed' then 'position_review_completed' else 'training_session_completed' end,
-       'migrated-qualified:' || q.id::text,
-       jsonb_build_object('migratedFrom', 'qualified_streak_activities', 'legacySourceId', q.source_id),
-       q.created_at,
-       q.activity_date,
-       now()
-from public.qualified_streak_activities q
-where q.activity_type in ('today_training_completed', 'training_task_completed', 'repair_review_completed')
-on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;
+-- The legacy streak ledger was introduced after the baseline production schema
+-- and may legitimately be absent. Preserve its verified training completions
+-- when present, but do not make it a dependency of canonical consistency.
+do $legacy_activity_migration$
+begin
+  if to_regclass('public.qualified_streak_activities') is not null then
+    insert into public.activity_history(user_id, type, action_type, coaching_activity_type, dedupe_key, payload, occurred_at, activity_local_date, updated_at)
+    select q.user_id,
+           case when q.activity_type = 'repair_review_completed' then 'position_review_completed' else 'training_session_completed' end,
+           case when q.activity_type = 'repair_review_completed' then 'position_review_completed' else 'training_session_completed' end,
+           case when q.activity_type = 'repair_review_completed' then 'position_review_completed' else 'training_session_completed' end,
+           'migrated-qualified:' || q.id::text,
+           jsonb_build_object('migratedFrom', 'qualified_streak_activities', 'legacySourceId', q.source_id),
+           q.created_at,
+           q.activity_date,
+           now()
+    from public.qualified_streak_activities q
+    where q.activity_type in ('today_training_completed', 'training_task_completed', 'repair_review_completed')
+    on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;
+  end if;
+end
+$legacy_activity_migration$;
 
 create or replace function public.record_meaningful_coaching_activity(
   p_activity_type text,
