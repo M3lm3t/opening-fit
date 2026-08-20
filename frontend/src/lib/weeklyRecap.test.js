@@ -43,6 +43,15 @@ test("no new games produces only an active-plan reminder", () => {
   assert.equal(continuity.progressConfidence, "limited");
 });
 
+test("weekly review carries authoritative actions, response plan and outcomes", () => {
+  const current = { ...comparisonFixtures.scoreIncrease.current, training_outcomes: [{ status: "trained_move", message: "The saved response was played." }] };
+  const recap = buildWeeklyRecap({ currentSnapshot: current, previousSnapshot: comparisonFixtures.scoreIncrease.previous, weeklyGoal: { completed: 3, target: 3 }, responsePlan: { repertoire_role: "black_vs_d4", opening_id: "qgd" }, now: new Date("2026-07-15T12:00:00Z") });
+  assert.equal(recap.meaningfulActions, 3);
+  assert.equal(recap.responsePlanUsage, 1);
+  assert.equal(recap.activeResponsePlan.openingId, "qgd");
+  assert.equal(recap.postTrainingOutcome.status, "trained_move");
+});
+
 test("a recap auto-shows only once in its week unless explicitly opened", () => {
   const recap = { weekStart: "2026-07-13" };
   assert.equal(shouldAutoShowWeeklyRecap(recap, {}), true);

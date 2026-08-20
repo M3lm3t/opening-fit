@@ -23,6 +23,8 @@ import { countNewGamesSinceCheckpoint, getCoachingGameCheckpoint, getCurrentCoac
 import { trackProductEvent } from "../lib/productAnalytics.js";
 import GameCheckPanel from "./GameCheckPanel.jsx";
 import TrainingStreakCard from "./TrainingStreakCard.jsx";
+import WeeklyRecap from "./WeeklyRecap.jsx";
+import CoachingReminderSettings from "./CoachingReminderSettings.jsx";
 import "./CoachDashboard.css";
 
 function asArray(value) {
@@ -660,6 +662,8 @@ export default function CoachDashboard({
       <header className="todayGreeting"><p className="coachEyebrow">Welcome back</p><h1>{profile?.display_name ? `Hello, ${profile.display_name}` : "Your opening work for today"}</h1><p>{openings.length >= 3 ? "Your three repertoire roles are represented in the current report." : openings.length ? `${openings.length} of 3 repertoire roles currently have recognised opening evidence.` : "Your current report does not yet support a complete repertoire summary."}</p></header>
       <TodayPrimaryAction action={todayAction} goal={ratingGoal} weeklyGoal={weeklyGoal} newGames={newGames} onAction={startTodayAction} onComplete={completeTask} trainingSession={personalTrainingSession} onTraining={onTraining} />
       <TrainingStreakCard />
+      <WeeklyRecap data={retentionData} fitData={fitData} reportHistory={reportHistory} active={Boolean(data)} onTraining={onTraining} onReport={onReport} />
+      <CoachingReminderSettings weeklyGoal={weeklyGoal} newGames={newGames || 0} />
       <section className="todaySecondary" aria-labelledby="today-journey-title"><div className="coachCardHeader"><h2 id="today-journey-title">Your repertoire journey</h2></div><GameCheckPanel report={data} platform={platform || data?.platform} username={username || data?.username} onReport={onReport} /><div className="todayRoleJourney">{roles.map((opening, index) => <article key={index}><span>{["White", "Black vs 1.e4", "Black vs 1.d4/other"][index]}</span><strong>{opening ? openingName(opening) : "Developing evidence"}</strong></article>)}</div><SinceLastReportSummary currentSnapshot={currentProgressSnapshot} reportSnapshots={progressSnapshots} /><div className="todaySecondaryActions"><button type="button" className="secondaryBtn" onClick={onReport}>Open full report</button><button type="button" className="ghostBtn" onClick={onReport}>Report history</button></div></section>
       <SessionSummary
         summary={sessionSummary}

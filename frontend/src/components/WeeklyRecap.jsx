@@ -6,7 +6,10 @@ import { selectPreviousReportSnapshot } from "../lib/reportComparisonPresentatio
 import { trackProductEvent } from "../lib/productAnalytics.js";
 import { buildWeeklyRecap, mergeWeeklyRecapRecord, readLocalWeeklyRecaps, shouldAutoShowWeeklyRecap, weeklyRecapRecords, writeLocalWeeklyRecaps } from "../lib/weeklyRecap.js";
 import { getCurrentWeeklyTrainingPlan } from "../services/weeklyTrainingPlanService.js";
+import { getActiveCoachingResponsePlan, getWeeklyCoachingGoal } from "../services/coachingStateService.js";
+import { listWeeklyCoachingReviews, saveWeeklyCoachingReview } from "../services/weeklyCoachingReviewService.js";
 import "./WeeklyRecap.css";
+import { canUseFeature, OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
 
 function formatWeek(value) {
   const date = new Date(`${value}T12:00:00Z`);
@@ -21,6 +24,9 @@ function RecapDetails({ recap }) {
       {recap.continuity.urgentRepair ? <div><dt>Most urgent repair</dt><dd>{recap.continuity.urgentRepair.label}</dd></div> : null}
       {recap.continuity.avoidedMistake ? <div><dt>Previously identified mistake avoided</dt><dd><strong>{recap.continuity.avoidedMistake.label}</strong><span>{recap.continuity.avoidedMistake.detail}</span></dd></div> : null}
       {recap.continuity.repeatedMistake ? <div><dt>Repeated mistake</dt><dd><strong>{recap.continuity.repeatedMistake.label}</strong><span>{recap.continuity.repeatedMistake.detail}</span></dd></div> : null}
+      <div><dt>Meaningful actions completed</dt><dd>{recap.meaningfulActions || 0}</dd></div>
+      {recap.responsePlanUsage ? <div><dt>Response plan</dt><dd>Followed in {recap.responsePlanUsage} recoverable game{recap.responsePlanUsage === 1 ? "" : "s"}.</dd></div> : null}
+      {recap.postTrainingOutcome ? <div><dt>Post-training outcome</dt><dd>{recap.postTrainingOutcome.message || "A trustworthy trained-position outcome was recorded."}</dd></div> : null}
       {recap.score ? <div><dt>Repertoire Health</dt><dd>{recap.score.label}</dd></div> : null}
       {recap.continuity.recommendedAction ? <div><dt>Recommended training action</dt><dd>{recap.continuity.recommendedAction}</dd></div> : null}
       <div><dt>Target for next week</dt><dd>{recap.continuity.targetNextWeek}</dd></div>
@@ -42,8 +48,11 @@ function RecapDetails({ recap }) {
 }
 
 export default function WeeklyRecap({ data, fitData, reportHistory = [], active = false, onTraining, onReport }) {
-  const { user, settings, saveSettings, profileLoading, hydrated } = useAuth();
+  const { user, settings, saveSettings, profileLoading, hydrated, entitlement } = useAuth();
   const [plan, setPlan] = useState(null);
+  const [weeklyGoal, setWeeklyGoal] = useState(null);
+  const [responsePlan, setResponsePlan] = useState(null);
+  const [cloudHistory, setCloudHistory] = useState([]);
   const [visible, setVisible] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -53,22 +62,33 @@ export default function WeeklyRecap({ data, fitData, reportHistory = [], active 
   useEffect(() => {
     let cancelled = false;
     if (!active || !user?.id) { setPlan(null); return undefined; }
-    getCurrentWeeklyTrainingPlan(user.id).then((value) => { if (!cancelled) setPlan(value); }).catch(() => { if (!cancelled) setPlan(null); });
+    Promise.allSettled([getCurrentWeeklyTrainingPlan(user.id), getWeeklyCoachingGoal(user.id), getActiveCoachingResponsePlan(user.id), listWeeklyCoachingReviews(user.id)]).then(([planResult, goalResult, responseResult, historyResult]) => {
+      if (cancelled) return;
+      setPlan(planResult.status === "fulfilled" ? planResult.value : null);
+      setWeeklyGoal(goalResult.status === "fulfilled" ? goalResult.value : null);
+      setResponsePlan(responseResult.status === "fulfilled" ? responseResult.value : null);
+      setCloudHistory(historyResult.status === "fulfilled" ? historyResult.value : []);
+    });
     return () => { cancelled = true; };
   }, [active, user?.id]);
 
   const currentSnapshot = useMemo(() => data ? buildReportSnapshot({ report: data, summary: fitData || {} }) : null, [data, fitData]);
   const snapshots = useMemo(() => reportHistory.map((item) => adaptReportHistoryRow(item)), [reportHistory]);
   const previousSnapshot = useMemo(() => selectPreviousReportSnapshot(currentSnapshot, snapshots), [currentSnapshot, snapshots]);
-  const recap = useMemo(() => buildWeeklyRecap({ currentSnapshot, previousSnapshot, plan }), [currentSnapshot, plan, previousSnapshot]);
+  const recap = useMemo(() => buildWeeklyRecap({ currentSnapshot, previousSnapshot, plan, weeklyGoal, responsePlan }), [currentSnapshot, plan, previousSnapshot, responsePlan, weeklyGoal]);
   const records = useMemo(() => weeklyRecapRecords({ settings, localRecords: user?.id ? {} : localRecords }), [localRecords, settings, user?.id]);
-  const history = useMemo(() => Object.entries(records).filter(([, record]) => record?.recap).sort(([left], [right]) => right.localeCompare(left)), [records]);
+  const history = useMemo(() => {
+    if (!canUseFeature(entitlement, OPENINGFIT_FEATURES.SAVED_REPORT_HISTORY)) return [];
+    const local = Object.entries(records).filter(([, record]) => record?.recap);
+    const cloud = cloudHistory.map((row) => [row.week_start, { recap: row.payload, status: row.status }]);
+    return [...new Map([...cloud, ...local].map((entry) => [entry[0], entry])).values()].sort(([left], [right]) => right.localeCompare(left));
+  }, [cloudHistory, entitlement, records]);
 
   const persist = useCallback(async (weekStart, patch) => {
     const next = mergeWeeklyRecapRecord(records, weekStart, patch);
-    if (user?.id && saveSettings) await saveSettings({ preferences: { weeklyRecaps: next } });
+    if (user?.id && saveSettings) { await saveSettings({ preferences: { weeklyRecaps: next } }); if (patch.recap) await saveWeeklyCoachingReview(user.id, patch.recap); }
     else { setLocalRecords(next); writeLocalWeeklyRecaps(next); }
-  }, [records, saveSettings, user?.id]);
+  }, [records, saveSettings, user]);
 
   useEffect(() => {
     if (!active || !hydrated || (user?.id && profileLoading) || !recap) return;

@@ -56,6 +56,7 @@ function strongestRole(snapshot = {}) {
 }
 
 function canonicalContinuity(snapshot = {}, comparison = {}) {
+  snapshot = snapshot || {};
   const decision = snapshot.report_decision || snapshot.reportDecision || {};
   const priority = decision.trainingPriority || decision.training_priority || decision.nextTrainingAction || {};
   const repair = decision.primaryProblem || decision.primary_problem || comparison.continuedWeaknesses?.[0] || comparison.newWeaknesses?.[0] || null;
@@ -71,7 +72,7 @@ function canonicalContinuity(snapshot = {}, comparison = {}) {
   };
 }
 
-export function buildWeeklyRecap({ currentSnapshot, previousSnapshot, plan = null, now = new Date() } = {}) {
+export function buildWeeklyRecap({ currentSnapshot, previousSnapshot, plan = null, weeklyGoal = null, responsePlan = null, now = new Date() } = {}) {
   const { weekStart, weekEnd } = weeklyPlanWindow(now);
   const activeIncompletePlan = Boolean(plan && plan.status === "active" && Number(plan.completionPercent || 0) < 100);
   const comparison = compareReportSnapshots(previousSnapshot, currentSnapshot);
@@ -91,6 +92,10 @@ export function buildWeeklyRecap({ currentSnapshot, previousSnapshot, plan = nul
       nextFocus: text(plan?.primaryGoal) || continuity.recommendedAction,
       progressConfidence: "limited",
       continuity,
+      meaningfulActions: Number(weeklyGoal?.completed || 0),
+      responsePlanUsage: 0,
+      postTrainingOutcome: null,
+      quietWeek: true,
       score: null,
       improvedArea: null,
       repairArea: null,
@@ -119,6 +124,12 @@ export function buildWeeklyRecap({ currentSnapshot, previousSnapshot, plan = nul
     nextFocus,
     progressConfidence: comparison.comparable ? "comparable" : "limited",
     continuity,
+    reportId: text(currentSnapshot?.report_id) || null,
+    meaningfulActions: Number(weeklyGoal?.completed || 0),
+    responsePlanUsage: Number(currentSnapshot?.training_outcomes?.filter?.((item) => item?.status === "trained_move" || item?.status === "acceptable_move").length || 0),
+    activeResponsePlan: responsePlan ? { role: responsePlan.repertoire_role || responsePlan.repertoireRole, openingId: responsePlan.opening_id || responsePlan.openingId } : null,
+    postTrainingOutcome: currentSnapshot?.training_outcomes?.find?.((item) => ["improved", "repeated_mistake", "trained_move", "acceptable_move"].includes(item?.status)) || null,
+    quietWeek: false,
   };
 }
 
