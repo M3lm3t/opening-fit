@@ -1,17 +1,27 @@
 # Production reconciliation execution record
 
-Current release status (2026-08-20): **AWAITING MANUAL EXECUTION — DO NOT PUSH MAIN**.
-Owner-confirmed target: `frtjfvhiimgruenqcuon`. Automated Supabase CLI access
-was unavailable; use the secret-free procedure in
-`docs/retention-release-manual-execution.md`. Do not record credentials or
-private query results in this repository template.
+Current release status (2026-08-20): **RETENTION MIGRATIONS MANUALLY APPLIED AND VERIFIED**.
+Owner-confirmed production target: `frtjfvhiimgruenqcuon`.
+
+The owner confirmed that corrected bundle SHA-256
+`116E5E63A84406C6C557099B90C45FF4F9AC489868C93460E88EE02F15999EB5`
+was executed manually. Migrations `202608200001` through `202608200005` ran in
+filename order, and every in-transaction postcondition passed. The final
+metadata checks independently confirmed the required tables, enabled RLS,
+owner-only policies, notification columns and defaults, existing reminder rows
+remaining disabled, and all eight expected functions.
+
+Migration history remains intentionally unaligned. Normal `supabase db push`
+remains prohibited under `docs/production-schema-reconciliation.md`. No
+credentials, user content, or private query output are recorded here.
 
 Retention bundle attempt: initial precondition failed before any migration
 section ran because the superseded bundle incorrectly required optional legacy
 table `public.qualified_streak_activities`. Exact production execution timestamp
 was not supplied. Superseded bundle SHA-256:
 `83B47793E27A53607AB404176CCA8F87BDE5310D9CFB66EBF2BD6FFC59B79F6C`.
-Use only the regenerated bundle recorded in the manual execution guide.
+The failed bundle was not used again. The corrected bundle recorded below is
+the successfully executed artifact.
 Corrected bundle: 35,884 bytes; SHA-256
 `116E5E63A84406C6C557099B90C45FF4F9AC489868C93460E88EE02F15999EB5`.
 
