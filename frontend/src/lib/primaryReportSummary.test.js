@@ -31,7 +31,32 @@ test("free and premium first reports share the same analysis hierarchy", () => {
   assert.deepEqual(free.slots.map((slot) => slot.confidence), ["Low confidence", "Low confidence", "Low confidence"]);
 });
 
-test("the report renders one Health, Keep, Repair and Train next command centre", async () => {
+test("sufficient report evidence and medium repair confidence remain separate", () => {
+  const roles = ["white", "black_vs_e4", "black_vs_d4"].map((key) => ({ key, label: key, displayName: `${key} opening`, status: "established", relevantGames: 12, confidence: { label: "High confidence" } }));
+  const model = { ...completeModel, health: { score: 83, confidence: "Sufficient evidence", games: 72 }, repertoire: roles, authoritative: { confidence: { status: "sufficient", label: "Sufficient evidence" }, primaryProblem: { ...completeModel.primaryProblem, confidence: { label: "Medium confidence" } } } };
+  const report = { repertoireHealth: { version: "repertoire_health_v3", score: 83, confidence: { status: "sufficient", label: "Sufficient evidence" }, components: [{ key: "roleCompleteness", score: 100, effectiveWeight: 100, contribution: 100, available: true }] } };
+  const view = buildPrimaryReportSummary(model, report);
+  assert.equal(view.verdict, "Your repertoire is complete and performing well overall.");
+  assert.equal(view.repair.confidence, "Medium confidence");
+  assert.equal(view.confidenceWarning, "");
+  assert.doesNotMatch(view.verdict, /more qualifying games/i);
+});
+
+test("unresolved roles prevent a complete high-confidence summary", () => {
+  const view = buildPrimaryReportSummary({ ...completeModel, repertoire: [{ key: "white", status: "established", displayName: "Italian" }, { key: "black_vs_e4", status: "unresolved" }, { key: "black_vs_d4", status: "insufficient" }], authoritative: { confidence: { status: "sufficient" } } });
+  assert.match(view.verdict, /2 core roles need more trustworthy role-specific evidence/i);
+  assert.notEqual(view.completenessLabel, "Complete repertoire");
+});
+
+test("general setup fallback leads with useful practice and defers provenance", () => {
+  const model = { ...completeModel, authoritative: { trainingPriority: { priorityId: "fallback:italian", openingName: "Italian Game", estimatedDurationMinutes: 5, fallbackSetupDrill: { instruction: "Develop the minor pieces, support the centre and castle." }, fallbackReason: "No recoverable source game or exact recognised line is stored.", representativeGameStatus: "unavailable" }, nextTrainingAction: { type: "review", opening: "Italian Game" } } };
+  const view = buildPrimaryReportSummary(model);
+  assert.match(view.trainNext.reason, /Develop the minor pieces/i);
+  assert.match(view.trainNext.provenanceLimitation, /No recoverable source game/i);
+  assert.doesNotMatch(view.trainNext.reason, /unavailable|no verified/i);
+});
+
+test("the report renders concise Summary and canonical Priorities from one view", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../components/PrimaryReportSummary.jsx", import.meta.url), "utf8");
   const styles = await readFile(new URL("../components/PrimaryReportSummary.css", import.meta.url), "utf8");
@@ -41,12 +66,12 @@ test("the report renders one Health, Keep, Repair and Train next command centre"
   const repair = source.indexOf('data-command-role="repair"');
   const train = source.indexOf('data-command-role="train-next"');
   const more = source.indexOf("<div className=\"primaryReportMore\"");
-  assert.ok(health < keep && keep < repair && repair < train && train < more);
+  assert.ok(repair < keep && keep < health && health < train && train < more);
   assert.equal((source.match(/"primaryBtn"/g) || []).length, 1);
   assert.doesNotMatch(source, /FeatureAccessPreview/);
   assert.doesNotMatch(source, /primaryReportDecisions|primaryReportNextAction|primaryReportRepertoire/);
   assert.match(source, /View supporting games/);
-  assert.match(source, /View evidence and full report/);
+  assert.match(source, /View evidence and methodology/);
   assert.doesNotMatch(source, /<small>\/100<\/small>|Why \$\{view\.score\}\?/);
   assert.match(source, /data-decision-id=\{view\.decisionId/);
   assert.match(source, /data-diagnosis-id=\{view\.diagnosisId/);

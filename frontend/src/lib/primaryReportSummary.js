@@ -5,6 +5,7 @@ import { formatResultCounts } from "./reportGameCounts.js";
 import { formatOpeningNameForDisplay } from "./openingNamePresentation.js";
 import { buildAuthoritativeRoleViewModels } from "./authoritativeReportPresentation.js";
 import { Chess } from "chess.js";
+import { buildOpeningFitScoreTransparency } from "./openingFitScoreTransparency.js";
 
 const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
@@ -270,9 +271,19 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   const fitContext = recommendationContext(strength);
   const primaryAction = primaryActionCopy({ collectMoreGames, model, report, nextAction, training, problem, strength, priority: trainingPriority, slots });
   primaryAction.title = formatOpeningNameForDisplay(primaryAction.title);
-  const trainingReason = formatOpeningNameForDisplay(preparationReason({ problem, collectMoreGames, priority: trainingPriority, training, nextAction, fallback: rawTrainingReason }));
+  const trainingReason = formatOpeningNameForDisplay(trainingPriority?.fallbackSetupDrill?.instruction || preparationReason({ problem, collectMoreGames, priority: trainingPriority, training, nextAction, fallback: rawTrainingReason }));
   const establishedRoleCount = slots.filter((slot) => slot.complete).length;
   const completenessLabel = ({ 0: "Repertoire not established yet", 1: "Building repertoire", 2: "Nearly complete", 3: "Complete repertoire" })[establishedRoleCount] || "Repertoire status unavailable";
+  const reportConfidenceStatus = text(healthContract?.confidence?.status || model.authoritative?.confidence?.status || model.confidence?.status).toLowerCase();
+  const reportEvidenceSufficient = /sufficient|strong|high/.test(reportConfidenceStatus) && !/insufficient|limited|low/.test(reportConfidenceStatus);
+  const scoreView = buildOpeningFitScoreTransparency({ model, report });
+  const overallSummary = establishedRoleCount === 3 && reportEvidenceSufficient
+    ? scoreView.currentScore !== null && scoreView.currentScore >= 78
+      ? "Your repertoire is complete and performing well overall."
+      : "Your repertoire covers all three core roles with sufficient overall evidence."
+    : establishedRoleCount < slots.length
+      ? `${completenessLabel}. ${slots.length - establishedRoleCount} core role${slots.length - establishedRoleCount === 1 ? " needs" : "s need"} more trustworthy role-specific evidence.`
+      : oneSentence(model);
   const diagnosis = trainingPriority?.openingDiagnosis || trainingPriority?.opening_diagnosis || null;
   const experiment = model.authoritative?.experiment || model.experiment || null;
   const keepDisplay = strength || strengthCandidates[0] || null;
@@ -285,15 +296,16 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     scoreLabel: model.health?.score === null || model.health?.score === undefined ? "Repertoire Health pending" : "Repertoire Health",
     establishedRoleCount,
     completenessLabel,
+    health: { ...scoreView, overallSummary },
     totalRoleCount: slots.length,
-    verdict: formatOpeningNameForDisplay(oneSentence(model)),
+    verdict: formatOpeningNameForDisplay(overallSummary || oneSentence(model)),
     evidenceExplanation: weakness.text,
     weaknessState: weakness.kind,
     recommendationContext: fitContext,
     trainingPriority,
     primaryAction,
     confidence: healthContract?.confidence?.label ? `Overall Evidence Confidence: ${healthContract.confidence.label}` : text(model.health?.confidence) || "Insufficient data",
-    confidenceWarning: lowConfidence ? `This report has ${model.health?.games || 0} game${Number(model.health?.games || 0) === 1 ? "" : "s"} with enough opening information, so recommendations are provisional. More analysed games will improve confidence.` : "",
+    confidenceWarning: lowConfidence && !reportEvidenceSufficient ? `This report has ${model.health?.games || 0} game${Number(model.health?.games || 0) === 1 ? "" : "s"} with enough opening information, so recommendations are provisional. More analysed games will improve confidence.` : "",
     decisionId: model.authoritative?.decisionId || model.decisionId || null,
     diagnosisId: diagnosis?.diagnosisId || diagnosis?.diagnosis_id || trainingPriority?.diagnosisId || null,
     keep: {
@@ -329,6 +341,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
       observed: observedSummary(trainEvidenceSource),
       confidence: evidenceLabel(trainEvidenceSource),
       chessEvidence: trainingChessEvidence,
+      provenanceLimitation: trainingPriority?.fallbackSetupDrill ? text(trainingPriority.fallbackReason) : "",
     },
     experiment: experiment ? {
       opening: formatOpeningNameForDisplay(experiment.openingName || experiment.opening || experiment.name) || "Optional opening experiment",

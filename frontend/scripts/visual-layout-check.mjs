@@ -301,12 +301,12 @@ async function assertRouteLayout(page, route) {
     const sampleNotice = page.locator(".sampleReportNotice").first();
     if (!(await sampleNotice.isVisible().catch(() => false))) failures.push("Example report notice is not visible.");
     const pageText = await page.locator("body").innerText();
-    for (const requiredText of ["Illustrative example", "Fictional data", "Analyse your games", "72 analysed games", "fictional player"]) {
+    for (const requiredText of ["Illustrative example", "Fictional data", "Analyse your games", "72 games", "fictional player"]) {
       if (!pageText.includes(requiredText)) failures.push(`Example report is missing required text: ${requiredText}.`);
     }
     const reportNavigation = page.getByRole("tablist", { name: "Report sections" });
-    if (!(await reportNavigation.isVisible().catch(() => false))) failures.push("Example report is missing the five-view report navigation.");
-    if (await reportNavigation.getByRole("tab").count() !== 5) failures.push("Example report must expose exactly five report views.");
+    if (!(await reportNavigation.isVisible().catch(() => false))) failures.push("Example report is missing the four-view report navigation.");
+    if (await reportNavigation.getByRole("tab").count() !== 4) failures.push("Example report must expose exactly four report views.");
     const persistedReport = await page.evaluate(() => window.localStorage.getItem("openingFit:lastAnalysis"));
     if (persistedReport !== null) failures.push("Direct sample route persisted data as the visitor's report.");
   }
@@ -364,9 +364,11 @@ async function assertRouteLayout(page, route) {
         failures.push("Phone layout shows both bottom navigation and a redundant hamburger.");
       }
       const navText = await bottomNav.innerText();
-      if (!navText.includes("Pricing")) failures.push("Resolved logged-out mobile navigation is missing Pricing.");
-      if (/Premium|Upgrade/.test(navText)) failures.push("Logged-out mobile navigation uses an ambiguous upgrade label.");
-    } else if (["/", "/login", "/premium"].includes(route)) {
+      for (const label of ["Home", "Report", "Train", "Account"]) {
+        if (!navText.includes(label)) failures.push(`Canonical mobile navigation is missing ${label}.`);
+      }
+      if (/Pricing|Premium|Upgrade|Repertoire|Progress/.test(navText)) failures.push("Mobile navigation contains a retired primary destination.");
+    } else if (["/", "/login"].includes(route)) {
       if (await bottomNav.isVisible().catch(() => false)) failures.push("Marketing route shows the application bottom navigation.");
       if (!(await page.getByRole("button", { name: "Open OpeningFit menu" }).isVisible().catch(() => false))) {
         failures.push("Marketing route is missing its responsive menu.");
@@ -476,16 +478,16 @@ async function main() {
         if (route === "/report") {
           const reportViews = [
             ["Summary", "#report-summary-view"],
+            ["Priorities", "#report-priorities-view"],
             ["Repertoire", "#report-repertoire-view"],
-            ["Problems", "#report-problems-view"],
-            ["Train", "#report-train-view"],
             ["Evidence", "#report-evidence-view"],
           ];
           const reportNavigation = page.getByRole("tablist", { name: "Report sections" });
           for (const [label, selector] of reportViews) {
             const reportButton = reportNavigation.getByRole("tab", { name: label, exact: true });
             if (label !== "Summary") await reportButton.click();
-            if (!(await page.locator(selector).isVisible().catch(() => false))) {
+            const opened = await page.locator(selector).waitFor({ state: "visible", timeout: 3000 }).then(() => true).catch(() => false);
+            if (!opened) {
               const active = await reportNavigation.locator('[aria-selected="true"]').allTextContents();
               throw new Error(`Report view ${label} did not open (${page.url()}; active: ${active.join(", ") || "none"}).`);
             }

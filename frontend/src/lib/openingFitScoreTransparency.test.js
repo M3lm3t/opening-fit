@@ -99,7 +99,7 @@ test("main score surfaces reuse the central development-state helper", async () 
     assert.match(source, /Repertoire Health/i);
     assert.doesNotMatch(source, /Opening\s*Fit Score/i);
   }
-  assert.match(methodologySource, /repertoire_health_v2/);
+  assert.match(methodologySource, /repertoire_health_v3/);
   assert.match(methodologySource, /report shows its versioned components and effective weights/i);
   assert.doesNotMatch(methodologySource, /role completeness \(35%\).*concentration and consistency \(25%\)/i);
   assert.match(methodologySource, /Historical reports retain their stored formula version/i);
@@ -159,4 +159,23 @@ test("Repertoire Health consumes authoritative effective weights and limiting fa
   assert.equal(view.evidenceConfidence.label, "Medium");
   assert.match(view.weaknessContext, /incomplete in Black against 1\.d4/);
   assert.match(view.explanation, /evidence strength and role completeness/);
+});
+
+test("recent experiments remain separately visible and outside primary health arithmetic", () => {
+  const report = { repertoireHealth: {
+    version: "repertoire_health_v3", formulaVersion: "repertoire_health_v3", score: 78,
+    components: [{ key: "roleCompleteness", label: "Role completeness", score: 78, effectiveWeight: 100, contribution: 78, available: true }],
+    recentExperiments: [{ canonicalOpeningId: "caro-kann-defence", repertoireRole: "black_vs_e4", opening: "Caro-Kann Defence", statusLabel: "struggling", includedInPrimaryScore: false }],
+  } };
+  const view = buildOpeningFitScoreTransparency({ report });
+  assert.equal(view.currentScore, 78);
+  assert.deepEqual(view.recentExperiments, report.repertoireHealth.recentExperiments);
+  assert.match(view.doesNotAffect, /recent experiments/i);
+});
+
+test("missing authoritative health score never receives a numeric fallback", () => {
+  const view = buildOpeningFitScoreTransparency({ model: { health: { score: 84 } }, report: { repertoireHealth: { version: "repertoire_health_v3", components: [] }, openingFitScore: 91 } });
+  assert.equal(view.currentScore, null);
+  assert.equal(view.displayScore, null);
+  assert.equal(view.scoreDisplayLabel, "Not enough evidence to score");
 });

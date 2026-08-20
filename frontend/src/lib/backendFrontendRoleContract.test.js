@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
 import { buildReportDecisionModel } from "./reportDecisionModel.js";
 import { enforceReportRoleContract, validateReportConsistency } from "./reportConsistency.js";
 import { persistReport, readPersistedReport } from "./reportPersistence.js";
@@ -40,9 +42,10 @@ recommendations = [
 report = {"analysisId": "python-contract-report", "analysisCompleted": True, "opening_games": games, "gameCounts": {"fetchedGames": 3, "dateRangeEligibleGames": 3, "timeControlEligibleGames": 3, "analysisCandidateGames": 3, "analysedGames": 3, "excludedGames": 0}, "reportDecision": {"schemaVersion": 5, "repertoireRoles": roles, "recommendations": recommendations}}
 print(json.dumps(main.compact_analysis_result(report), separators=(",", ":")))
 `;
-  const serialized = spawnSync("python", ["-c", script], {
+  const serialized = spawnSync("uv", ["run", "--offline", "--with-requirements", "requirements.txt", "python", "-c", script], {
     cwd: new URL("../../../backend", import.meta.url),
     encoding: "utf8",
+    env: { ...process.env, UV_CACHE_DIR: process.env.UV_CACHE_DIR || fileURLToPath(new URL("../../../.uv-cache-retention", import.meta.url)) },
   });
   assert.equal(serialized.status, 0, serialized.stderr);
   const backendJson = JSON.parse(serialized.stdout);
