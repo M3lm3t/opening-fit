@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 
 export const BOARD_THEMES = {
+  openingFit: {
+    label: "OpeningFit",
+    statusLabel: "OpeningFit slate",
+    light: "var(--of-board-light-square, #dbe7ea)",
+    dark: "var(--of-board-dark-square, #3f6472)",
+  },
   green: {
     label: "Classic green",
     statusLabel: "Classic green",
@@ -32,20 +38,16 @@ export const BOARD_THEMES = {
 };
 
 export const BOARD_THEME_OPTIONS = [
-  { key: "green", label: "Classic green" },
-  { key: "lichess", label: "Lichess brown" },
-  { key: "blue", label: "Blue" },
-  { key: "grey", label: "Grey" },
+  { key: "openingFit", label: "OpeningFit" },
   { key: "highContrast", label: "High Contrast" },
 ];
 
 const STORAGE_KEY = "openingFit:boardTheme";
 const BOARD_THEME_EVENT = "openingfit:board-theme-change";
-const DEFAULT_BOARD_THEME = "green";
+const DEFAULT_BOARD_THEME = "openingFit";
 
 function normaliseBoardTheme(value) {
-  if (value === "classic") return "lichess";
-  if (value === "lichessGreen") return "green";
+  if (["classic", "lichessGreen", "green", "lichess", "blue", "grey"].includes(value)) return "openingFit";
   return BOARD_THEMES[value] ? value : DEFAULT_BOARD_THEME;
 }
 
@@ -71,11 +73,11 @@ export function getBoardThemeVariables(themeKey) {
   return {
     "--board-light-square": theme.light,
     "--board-dark-square": theme.dark,
-    "--board-border": "rgba(15, 23, 42, 0.42)",
-    "--board-selected": "rgba(59, 130, 246, 0.58)",
+    "--board-border": "var(--of-board-border, rgba(15, 23, 42, 0.5))",
+    "--board-selected": "var(--of-board-selected, rgba(37, 99, 235, 0.62))",
     "--board-invalid": "rgba(239, 68, 68, 0.58)",
-    "--board-last-move": "rgba(255, 214, 89, 0.58)",
-    "--board-legal-move": "rgba(20, 83, 45, 0.34)",
+    "--board-last-move": "var(--of-board-last-move, rgba(45, 212, 191, 0.34))",
+    "--board-legal-move": "var(--of-board-legal-move, rgba(13, 148, 136, 0.42))",
   };
 }
 

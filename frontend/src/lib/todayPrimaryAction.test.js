@@ -5,6 +5,8 @@ import { Chess } from "chess.js";
 import { buildTodayExperienceAction, buildTodayPrimaryAction, todayGoalContext } from "./todayPrimaryAction.js";
 
 const dashboard = fs.readFileSync(new URL("../components/CoachDashboard.jsx", import.meta.url), "utf8");
+const dashboardCss = fs.readFileSync(new URL("../components/CoachDashboard.css", import.meta.url), "utf8");
+const boardThemes = fs.readFileSync(new URL("../components/boardThemes.jsx", import.meta.url), "utf8");
 const app = fs.readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
 
 const day = new Date(2026, 7, 11, 12);
@@ -96,10 +98,28 @@ test("Today renders one primary action and does not alter premium entitlement pl
 });
 
 test("mobile Today keeps one full-width CTA and a bounded board", () => {
-  const css = fs.readFileSync(new URL("../components/CoachDashboard.css", import.meta.url), "utf8");
-  assert.match(css, /@media \(max-width: 640px\)[\s\S]*?\.todayPrimaryPosition \{ grid-template-columns: 1fr; \}/);
-  assert.match(css, /\.todayPrimaryActions \.primaryBtn \{ width: 100%; \}/);
-  assert.match(css, /\.todayPrimaryPosition \.chessPositionBoard \{ width: min\(100%, 320px\);/);
-  assert.match(css, /max-height: 700px/);
-  assert.match(css, /safe-area-inset-bottom/);
+  assert.match(dashboardCss, /@media \(max-width: 640px\)[\s\S]*?\.todayPrimaryTrainingArea \{ grid-template-columns: 1fr;/);
+  assert.match(dashboardCss, /\.todayPrimaryActions \.primaryBtn \{ width: 100%; \}/);
+  assert.match(dashboardCss, /\.todayPrimaryBoard \.chessPositionBoard \{ width: min\(100%, 360px\)/);
+  assert.match(dashboardCss, /max-height: 700px/);
+  assert.match(dashboardCss, /safe-area-inset-bottom/);
+});
+
+test("Today uses restrained responsive headings and a contained two-column training surface", () => {
+  assert.match(dashboard, /todayPrimaryTrainingArea/);
+  assert.match(dashboard, /todayPositionSummary/);
+  assert.match(dashboard, />Position to train</);
+  assert.match(dashboardCss, /\.todayGreeting h1[^}]*font-size: clamp\(2rem, 3\.6vw, 3rem\)/);
+  assert.match(dashboardCss, /\.todayPrimaryAction h1[^}]*font-size: clamp\(2rem, 3\.1vw, 2\.75rem\)/);
+  assert.match(dashboardCss, /\.todayPrimaryTrainingArea \{[^}]*grid-template-columns: minmax\(260px, 360px\) minmax\(0, 1fr\)/);
+  assert.match(dashboardCss, /scroll-margin-top: calc\(4\.5rem \+ env\(safe-area-inset-top, 0px\)\)/);
+});
+
+test("OpeningFit board palette is canonical while high contrast remains available", () => {
+  assert.match(boardThemes, /openingFit:\s*\{/);
+  assert.match(boardThemes, /const DEFAULT_BOARD_THEME = "openingFit"/);
+  assert.match(boardThemes, /\["classic", "lichessGreen", "green", "lichess", "blue", "grey"\]\.includes\(value\)/);
+  assert.match(boardThemes, /\{ key: "highContrast", label: "High Contrast" \}/);
+  assert.match(dashboardCss, /--of-board-dark-square: #3f6472/);
+  assert.match(dashboardCss, /\[data-theme="light"\][\s\S]*--of-board-dark-square: #6f929e/);
 });

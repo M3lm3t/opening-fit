@@ -304,14 +304,19 @@ function TodayPrimaryAction({ action, goal, weeklyGoal, newGames, onAction, onCo
   }
   return (
     <section className={`todayPrimaryAction todayPrimaryAction--${action.kind}`} aria-labelledby="today-primary-title">
-      <header><p className="coachEyebrow">Today</p><h1 id="today-primary-title">{action.title}</h1>{action.opening ? <strong>{action.opening}</strong> : null}{action.role ? <small>{action.role}</small> : null}</header>
-      <p>{action.explanation}</p>
-      {action.chessEvidence?.positionFen ? <div className="todayPrimaryPosition"><ChessPositionBoard position={action.chessEvidence.positionFen} orientation={action.chessEvidence.orientation} interactive={false} /><div><strong>Position to train</strong>{action.chessEvidence.moveLine ? <code>{action.chessEvidence.moveLine}</code> : null}</div></div> : action.chessEvidence?.moveLine ? <code className="todayPrimaryMoveLine">{action.chessEvidence.moveLine}</code> : null}
-      {action.why ? <details className="todayPrimaryWhy"><summary>Why this matters</summary><p>{action.why}</p></details> : null}
-      <dl className="todayPrimaryContract">{action.durationMinutes || trainingSession?.estimatedMinutes ? <div><dt>Time</dt><dd>About {action.durationMinutes || trainingSession.estimatedMinutes} minutes</dd></div> : null}<div><dt>How improvement is checked</dt><dd>{action.improvementCheck}</dd></div></dl>
+      <header className="todayPrimaryIntro"><p className="coachEyebrow">Today</p><h1 id="today-primary-title">{action.title}</h1></header>
+      <div className={`todayPrimaryTrainingArea ${action.chessEvidence?.positionFen ? "hasBoard" : "noBoard"}`}>
+        {action.chessEvidence?.positionFen ? <div className="todayPrimaryBoard"><ChessPositionBoard position={action.chessEvidence.positionFen} orientation={action.chessEvidence.orientation} interactive={false} /></div> : null}
+        <div className="todayPrimaryContext">
+          <div className="todayPositionSummary"><span>Position to train</span>{action.opening ? <strong>{action.opening}</strong> : null}{action.role ? <small>{action.role}</small> : null}{action.chessEvidence?.moveLine ? <code>{action.chessEvidence.moveLine}</code> : null}</div>
+          <p className="todayPrimaryExplanation">{action.explanation}</p>
+          <dl className="todayPrimaryContract">{action.durationMinutes || trainingSession?.estimatedMinutes ? <div><dt>Time</dt><dd>About {action.durationMinutes || trainingSession.estimatedMinutes} minutes</dd></div> : null}<div><dt>How improvement is checked</dt><dd>{action.improvementCheck}</dd></div></dl>
       {trainingSession?.dueCount ? <p className="todayTrainingDue"><strong>{trainingSession.dueCount} position{trainingSession.dueCount === 1 ? "" : "s"} due</strong> · about {trainingSession.estimatedMinutes} minute{trainingSession.estimatedMinutes === 1 ? "" : "s"} · {trainingSession.items.length} in this session</p> : null}
+          <div className="todayPrimaryActions"><button type="button" className="primaryBtn" onClick={() => trainingSession?.dueCount ? onTraining?.() : onAction(action)}>{trainingSession?.dueCount ? "Start training" : action.cta}</button><button type="button" className="todayCompleteAction" onClick={() => onComplete(action)}>Mark complete</button></div>
+        </div>
+      </div>
+      {action.why ? <details className="todayPrimaryWhy"><summary>Why this matters</summary><p>{action.why}</p></details> : null}
       <div className="todayStatusLine" aria-label="Coaching status"><span>{weeklyGoal ? `${weeklyGoal.completed} of ${weeklyGoal.target} meaningful sessions` : "Weekly progress will sync when available"}</span><span>{newGames === null ? "Game Check status unavailable" : `${newGames} new game${newGames === 1 ? "" : "s"} waiting`}</span>{goalContext ? <span>Rating goal: {goalContext}</span> : null}</div>
-      <div className="todayPrimaryActions"><button type="button" className="primaryBtn" onClick={() => trainingSession?.dueCount ? onTraining?.() : onAction(action)}>{trainingSession?.dueCount ? "Start training" : action.cta}</button><button type="button" className="todayCompleteAction" onClick={() => onComplete(action)}>Mark complete</button></div>
     </section>
   );
 }

@@ -165,6 +165,55 @@ async function installAuthenticatedAccountFixture(page) {
   });
 }
 
+async function installAuthenticatedTodayFixture(page) {
+  await page.evaluate(() => {
+    const squares = Array.from({ length: 64 }, (_, index) => `<div class="cleanReplaySquare ${((Math.floor(index / 8) + index) % 2) === 0 ? "cleanReplayLight" : "cleanReplayDark"}"></div>`).join("");
+    document.body.innerHTML = `
+      <header class="appPrimaryNav"><div class="appPrimaryNavInner"><a class="appPrimaryBrand" href="/">OpeningFit</a><nav class="appPrimaryTabs"><a href="/dashboard" aria-current="page">Home</a><a href="/report">Report</a><a href="/train">Train</a><a href="/account">Account</a></nav></div></header>
+      <main class="page"><section class="coachDashboard" id="coach-dashboard" aria-label="OpeningFit Today">
+        <header class="todayGreeting"><p class="coachEyebrow">Welcome back</p><h1>Hello, Alexandra-Margaret Baldegger-Worthington</h1><p>Your three repertoire roles are represented in the current report.</p></header>
+        <section class="todayPrimaryAction todayPrimaryAction--train" aria-labelledby="today-primary-title">
+          <header class="todayPrimaryIntro"><p class="coachEyebrow">Today</p><h1 id="today-primary-title">Train this position</h1></header>
+          <div class="todayPrimaryTrainingArea hasBoard">
+            <div class="todayPrimaryBoard"><div class="cleanReplayBoard chessPositionBoard opening-board-shell" data-board-theme="openingFit" style="--board-light-square:var(--of-board-light-square);--board-dark-square:var(--of-board-dark-square);--board-border:var(--of-board-border);--board-selected:var(--of-board-selected);--board-last-move:var(--of-board-last-move);--board-legal-move:var(--of-board-legal-move)">${squares}</div></div>
+            <div class="todayPrimaryContext">
+              <div class="todayPositionSummary"><span>Position to train</span><strong>Queen's Gambit Declined</strong><small>Black vs 1.d4</small><code>1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Rc1 c6 8. Bd3 dxc4</code></div>
+              <p class="todayPrimaryExplanation">This position appeared repeatedly in your recent games and is the strongest supported task for today.</p>
+              <dl class="todayPrimaryContract"><div><dt>Time</dt><dd>About 5 minutes</dd></div><div><dt>How improvement is checked</dt><dd>Future matching positions use the same canonical evidence.</dd></div></dl>
+              <div class="todayPrimaryActions"><button type="button" class="primaryBtn">Start training</button><button type="button" class="todayCompleteAction">Mark complete</button></div>
+            </div>
+          </div>
+          <details class="todayPrimaryWhy"><summary>Why this matters</summary><p>Six relevant games support this task.</p></details>
+          <div class="todayStatusLine"><span>2 of 3 meaningful sessions</span><span>4 new games waiting</span></div>
+        </section>
+      </section></main>
+      <nav class="mobileBottomNav" aria-label="Mobile navigation"><button>Home</button><button>Report</button><button>Train</button><button>Account</button></nav>`;
+  });
+}
+
+async function assertTodayLayout(page) {
+  const failures = [];
+  const viewport = page.viewportSize();
+  const header = page.locator(".appPrimaryNav").first();
+  const heading = page.locator(".todayGreeting h1").first();
+  const trainingArea = page.locator(".todayPrimaryTrainingArea").first();
+  const board = page.locator(".todayPrimaryBoard .chessPositionBoard").first();
+  const context = page.locator(".todayPrimaryContext").first();
+  const notation = page.locator(".todayPositionSummary code").first();
+  const action = page.locator(".todayPrimaryActions .primaryBtn").first();
+  const documentBox = await page.locator("body").evaluate((body) => ({ scrollWidth: body.scrollWidth, clientWidth: document.documentElement.clientWidth, scrollHeight: document.documentElement.scrollHeight }));
+  const [headerBox, headingBox, areaBox, boardBox, contextBox, notationBox, actionBox] = await Promise.all([header, heading, trainingArea, board, context, notation, action].map(getBox));
+  if (headerBox && headingBox && headingBox.top < headerBox.bottom - 2) failures.push("Today heading begins beneath the application header.");
+  if (headingBox && (headingBox.left < 0 || headingBox.right > (viewport?.width || 0) + 2)) failures.push("Today greeting exceeds its container.");
+  if (boardBox && Math.abs(boardBox.width - boardBox.height) > 2) failures.push(`Today board is not square (${boardBox.width}x${boardBox.height}).`);
+  if (viewport?.width >= 641 && boxesOverlap(boardBox, contextBox)) failures.push("Today board and context columns overlap.");
+  if (notationBox && contextBox && (notationBox.left < contextBox.left - 2 || notationBox.right > contextBox.right + 2)) failures.push("Today notation escapes its context panel.");
+  if (!actionBox || actionBox.bottom > documentBox.scrollHeight + 2) failures.push("Today primary action is not reachable in document flow.");
+  if (areaBox && Math.max(boardBox?.bottom || 0, contextBox?.bottom || 0) > areaBox.bottom + 2) failures.push("Today training area does not contain its visible columns.");
+  if (documentBox.scrollWidth > documentBox.clientWidth + 2) failures.push("Today fixture has horizontal overflow.");
+  if (failures.length) throw new Error(failures.join("\n"));
+}
+
 async function assertIconControlAlignment(page, route) {
   const failures = await page.locator("button").evaluateAll((buttons) => buttons.flatMap((button) => {
     const buttonStyle = getComputedStyle(button);
@@ -596,6 +645,9 @@ async function main() {
         if (route === "/account" && new URLSearchParams(FORCED_QUERY).get("accountFixture") === "authenticated") {
           await installAuthenticatedAccountFixture(page);
         }
+        if (route === "/dashboard" && new URLSearchParams(FORCED_QUERY).get("todayFixture") === "authenticated") {
+          await installAuthenticatedTodayFixture(page);
+        }
         const routeName = route.replace(/^\//, "").replaceAll("/", "-") || "home";
         const themeName = FORCED_THEME === "light" || FORCED_THEME === "dark" ? `-${FORCED_THEME}` : "";
         const filename = `${routeName}${themeName}-${viewport.name}-${viewport.width}x${viewport.height}.png`;
@@ -649,6 +701,9 @@ async function main() {
               throw new Error("Signed-out account route rendered neither the login surface nor the authenticated dashboard.");
             }
           }
+        }
+        if (route === "/dashboard" && new URLSearchParams(FORCED_QUERY).get("todayFixture") === "authenticated") {
+          await assertTodayLayout(page);
         }
       }
     }
