@@ -50,6 +50,27 @@ test("invalid reconciliation fails closed instead of deriving frontend totals", 
   assert.match(reportCountSentence(report), /could not be reconciled safely/i);
 });
 
+test("canonical reconciliation exposes a mathematically complete role allocation", () => {
+  const report = canonicalReport({
+    contractVersion: 1,
+    total_imported: 14,
+    analysed: 6,
+    excluded_total: 8,
+    exclusion_breakdown: { outsideDateWindow: 2, unsupportedTimeControl: 2, parseFailure: 1, unclassifiedOpening: 1, duplicate: 2 },
+    eligible_games: 7,
+    white_role_games: 3,
+    black_vs_e4_games: 2,
+    black_vs_d4_games: 1,
+    outside_core_role_games: 1,
+    unresolved_role_games: 0,
+    status: "trusted",
+  });
+  assert.deepEqual(buildReportGameCounts(report).roleAllocation, {
+    eligible: 7, white: 3, blackVsE4: 2, blackVsD4: 1,
+    unresolved: 0, outsideCore: 1, status: "trusted", diagnosticReference: null,
+  });
+});
+
 test("loading milestones expose only real backend counts", () => {
   const progress = mapAnalysisJobProgress({
     stage: "filtering_eligible_games",

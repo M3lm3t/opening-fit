@@ -402,7 +402,7 @@ def test_repertoire_coverage_arithmetic_excludes_results_and_neutral_weakness_st
     decision = build_report_decision(report(games), openings=[opening("Vienna Game", "played_as_white", 5, 0, 0, 5)])
     score = decision["repertoireCoverageScore"]
 
-    assert score["formulaVersion"] == "repertoire_health_v2"
+    assert score["formulaVersion"] == "repertoire_health_v3"
     assert score["weightsTotal"] == 100
     assert sum(component["contribution"] for component in score["components"]) == score["score"]
     assert score["recentResults"]["scored"] is False
@@ -413,7 +413,7 @@ def test_repertoire_coverage_arithmetic_excludes_results_and_neutral_weakness_st
     apply_repertoire_coverage_score(payload, decision)
     assert payload["openingFitScoreLegacyV1"] == 61
     assert payload["openingFitScore"] == score["score"]
-    assert payload["openingFitScoreContract"]["formulaVersion"] == "repertoire_health_v2"
+    assert payload["openingFitScoreContract"]["formulaVersion"] == "repertoire_health_v3"
     assert payload["openingFitScoreBreakdown"] == {component["key"]: component["score"] for component in score["components"]}
 
 

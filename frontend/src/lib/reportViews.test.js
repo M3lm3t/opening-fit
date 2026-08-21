@@ -5,24 +5,24 @@ import { CANONICAL_APP_DESTINATIONS, REPORT_ACTION_INVENTORY, REPORT_VIEWS, cano
 test("report tabs and bottom navigation share one canonical destination registry", () => {
   assert.equal(canonicalDestinationUrl("report", { pathname: "/", search: "", hash: "" }), "/report#report-summary");
   assert.equal(canonicalDestinationUrl("repertoire", { pathname: "/report", search: "?decision=1", hash: "#report-train" }), "/report?decision=1#report-repertoire");
-  assert.equal(canonicalDestinationUrl("train", { pathname: "/report", search: "", hash: "#report-summary" }), "/report#report-train");
-  assert.equal(CANONICAL_APP_DESTINATIONS.progress.path, "/progress");
+  assert.equal(canonicalDestinationUrl("train", { pathname: "/report", search: "", hash: "#report-summary" }), "/train");
+  assert.equal(CANONICAL_APP_DESTINATIONS.progress.path, "/account");
   assert.equal(CANONICAL_APP_DESTINATIONS.account.path, "/account");
   assert.equal(isCanonicalDestinationActive("repertoire", { pathname: "/report", hash: "#report-repertoire" }), true);
   assert.equal(isCanonicalDestinationActive("train", { pathname: "/report", hash: "#report-repertoire" }), false);
 });
 
-test("the report exposes exactly five stable top-level views", () => {
-  assert.deepEqual(REPORT_VIEWS.map((view) => view.label), ["Summary", "Repertoire", "Problems", "Train", "Evidence"]);
-  assert.equal(new Set(REPORT_VIEWS.map((view) => view.key)).size, 5);
+test("the report exposes exactly four stable top-level views", () => {
+  assert.deepEqual(REPORT_VIEWS.map((view) => view.label), ["Summary", "Priorities", "Repertoire", "Evidence"]);
+  assert.equal(new Set(REPORT_VIEWS.map((view) => view.key)).size, 4);
 });
 
 test("report hashes support direct links and safe fallbacks", () => {
-  assert.equal(reportViewFromLocation({ hash: "#report-problems" }), "problems");
-  assert.equal(normaliseReportView("train"), "train");
+  assert.equal(reportViewFromLocation({ hash: "#report-problems" }), "priorities");
+  assert.equal(normaliseReportView("train"), "summary");
   assert.equal(normaliseReportView("unknown"), "summary");
   assert.equal(reportViewHash("evidence"), "#report-evidence");
-  assert.equal(reportViewHeadingId("train"), "report-train-view-title");
+  assert.equal(reportViewHeadingId("train"), "primary-report-title");
 });
 
 test("every report tab has a synchronized hash, heading and tabpanel", () => {
@@ -50,7 +50,7 @@ test("priority routing selects visible report content instead of the repertoire 
   const diagnosed = reportActionForPriority({ type: "repair_repertoire", findingType: "branch_weakness", decisionId: "decision-1", diagnosisId: "diagnosis-1" });
   const roleGap = reportActionForPriority({ type: "fill_repertoire_gap", findingType: "repertoire_gap", decisionId: "decision-2", repertoireRole: "black_vs_d4" });
   const training = reportActionForPriority({ type: "consolidate_strength", findingType: "stable_strength", decisionId: "decision-3", taskId: "task-3" });
-  assert.deepEqual([diagnosed.destinationSection, roleGap.destinationSection, training.destinationSection], ["problems", "repertoire", "train"]);
+  assert.deepEqual([diagnosed.destinationSection, roleGap.destinationSection, training.destinationSection], ["priorities", "repertoire", "summary"]);
   for (const action of [diagnosed, roleGap, training]) assert.equal(action.destinationRoute, "/report");
   assert.equal(diagnosed.diagnosisId, "diagnosis-1");
   assert.equal(roleGap.repertoireRole, "black_vs_d4");
@@ -87,7 +87,7 @@ test("rendered report CTAs use canonical report destinations and retain safe fal
   const app = await readFile(new URL("../App.jsx", import.meta.url), "utf8");
   const summary = await readFile(new URL("../components/PrimaryReportSummary.jsx", import.meta.url), "utf8");
   const flow = app.slice(app.indexOf("function FinalReportFlow"), app.indexOf("function NextBestTrainingActionCard"));
-  assert.match(summary, /View evidence and full report/);
+  assert.match(summary, /View evidence and methodology/);
   assert.match(flow, /openFullReport[\s\S]*destinationSection: "evidence"/);
   assert.match(flow, /openOpeningBreakdown[\s\S]*decisionId:[\s\S]*destinationSection: "evidence"/);
   assert.match(flow, /source = \{ \.\.\.\(target\?\.source \|\| \{\}\), \.\.\.\(target \|\| \{\}\) \}/);
@@ -101,10 +101,10 @@ test("rendered report CTAs use canonical report destinations and retain safe fal
   assert.match(flow, /<EvidenceTableSection[^>]*onEvidence=\{openOpeningBreakdown\}/);
 });
 
-test("existing report content is mapped across the five views", async () => {
+test("existing report content is mapped across the four views", async () => {
   const { readFile } = await import("node:fs/promises");
   const app = await readFile(new URL("../App.jsx", import.meta.url), "utf8");
   const flow = app.slice(app.indexOf("function FinalReportFlow"), app.indexOf("function NextBestTrainingActionCard"));
-  for (const id of ["report-summary-view", "report-repertoire-view", "report-problems-view", "report-train-view", "report-evidence-view"]) assert.match(flow, new RegExp(id));
-  for (const component of ["PrimaryReportSummary", "FocusedRepertoireSection", "CostlyIssuesSection", "FiniteTrainingSession", "EvidenceTableSection", "ReportExportAndHistory"]) assert.match(flow, new RegExp(`<${component}`));
+  for (const id of ["report-summary-view", "report-priorities-view", "report-repertoire-view", "report-evidence-view"]) assert.match(flow, new RegExp(id));
+  for (const component of ["PrimaryReportSummary", "DecisionRepertoireMap", "ReportGameCountSummary", "EvidenceTableSection", "ReportExportAndHistory"]) assert.match(flow, new RegExp(`<${component}`));
 });

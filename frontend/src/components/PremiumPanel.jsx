@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadBillingConfiguration } from "../accountApi.js";
-import { annualEffectiveMonthly, annualSavings, BILLING_INTERVAL_STORAGE_KEY, checkoutUnavailableMessage, DEFAULT_BILLING_CONFIGURATION, formatGbp, normaliseBillingConfiguration, normaliseBillingInterval } from "../lib/premiumExperience.js";
+import { annualEffectiveMonthly, annualSavings, BILLING_INTERVAL_STORAGE_KEY, checkoutAvailabilityState, DEFAULT_BILLING_CONFIGURATION, formatGbp, normaliseBillingConfiguration, normaliseBillingInterval } from "../lib/premiumExperience.js";
 import { trackProductEvent } from "../lib/productAnalytics.js";
 import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT, loadPublicAnalysisContract, publicFeatureComparison } from "../lib/productTransparency.js";
 import { OPENINGFIT_FEATURES } from "../lib/premiumEntitlement.js";
@@ -29,11 +29,12 @@ function savedBillingInterval() {
   }
 }
 
-export default function PremiumPanel({ isPremium, entitlement, authenticated = false, onFounderPass, checkoutLoading = false, checkoutError = "" }) {
+export default function PremiumPanel({ isPremium, entitlement, authenticated = false, onFounderPass, checkoutLoading = false, checkoutError = "", compact = false }) {
   const [interval, setInterval] = useState(savedBillingInterval);
   const [configuration, setConfiguration] = useState(DEFAULT_BILLING_CONFIGURATION);
   const [configurationState, setConfigurationState] = useState("loading");
   const [analysisContract, setAnalysisContract] = useState(DEFAULT_PUBLIC_ANALYSIS_CONTRACT);
+  const [configurationAttempt, setConfigurationAttempt] = useState(0);
 
   useEffect(() => {
     void trackProductEvent("pricing_viewed", { source: "pricing_page", authenticated }, { onceKey: "subscription_pricing" });
@@ -41,7 +42,7 @@ export default function PremiumPanel({ isPremium, entitlement, authenticated = f
     loadBillingConfiguration().then((value) => { if (!active) return; setConfiguration(normaliseBillingConfiguration(value)); setConfigurationState("ready"); }).catch(() => { if (active) setConfigurationState("error"); });
     loadPublicAnalysisContract().then((value) => { if (active) setAnalysisContract(value); }).catch(() => {});
     return () => { active = false; };
-  }, [authenticated]);
+  }, [authenticated, configurationAttempt]);
 
   const effectiveMonthly = annualEffectiveMonthly(configuration);
   const saving = annualSavings(configuration);
@@ -49,6 +50,7 @@ export default function PremiumPanel({ isPremium, entitlement, authenticated = f
   const selected = configuration[interval];
   const selectedAmount = interval === "annual" && founding ? configuration.foundingOffer.firstYearAmount : selected.amount;
   const checkoutAvailable = configurationState === "ready" && configuration.checkoutReady && selected.available;
+  const checkoutState = checkoutAvailabilityState(configuration, configurationState, authenticated);
   const lifetime = entitlement?.accessType === "lifetime" && entitlement?.hasPremiumAccess;
   const priceSummary = useMemo(() => interval === "monthly"
     ? `${formatGbp(selectedAmount)} per month`
@@ -68,7 +70,7 @@ export default function PremiumPanel({ isPremium, entitlement, authenticated = f
   const checkout = () => onFounderPass?.("pricing_page", interval);
   const comparison = publicFeatureComparison(analysisContract);
 
-  return <section className="premiumUpgradeShell subscriptionPricing" id="premium-offer" aria-labelledby="pricing-title">
+  return <section className={`premiumUpgradeShell subscriptionPricing${compact ? " subscriptionPricing--compact" : ""}`} id="premium-offer" aria-labelledby="pricing-title">
     <header className="subscriptionPricingHero"><span>OpeningFit Plus</span><h1 id="pricing-title">Turn each report into useful weekly training.</h1><p>Maintain a living three-role repertoire, review the evidence behind each supported task, and check honestly whether trained positions recur or improve.</p>{lifetime ? <strong className="subscriptionLifetimeNotice">Your lifetime access remains active.</strong> : null}</header>
 
     <div className="subscriptionPlanGrid">
@@ -80,7 +82,7 @@ export default function PremiumPanel({ isPremium, entitlement, authenticated = f
         {interval === "annual" && founding ? <aside className="subscriptionFoundingOffer"><strong>Founding launch price</strong><p>{formatGbp(configuration.foundingOffer.firstYearAmount)} for the first year, then {formatGbp(configuration.foundingOffer.renewsAtAmount)} per year unless cancelled.</p></aside> : null}
         <ul><li>Maintain a living three-role repertoire</li><li>Receive up to {analysisContract.plusWeeklyTasks} evidence-backed weekly tasks—only when supported</li><li>Review the most relevant recoverable games behind each task</li><li>Save editable response plans for recurring positions</li><li>Practise clearly labelled general setups when no source position is recoverable</li><li>See whether trained problems recur or improve in genuinely comparable reports</li><li>Keep report and completed-training history</li><li>Inspect full recommendation evidence where available</li></ul>
         <button type="button" className="premiumCheckoutBtn" onClick={checkout} disabled={isPremium || checkoutLoading || !checkoutAvailable}>{isPremium ? lifetime ? "Lifetime access active" : "OpeningFit Plus active" : checkoutLoading ? "Opening secure checkout…" : configurationState === "loading" ? "Checking secure checkout…" : !checkoutAvailable ? "Subscription checkout unavailable" : !authenticated ? "Sign in to subscribe" : `Continue with ${interval} billing`}</button>
-        {!isPremium && !checkoutAvailable ? <p className="premiumCheckoutAvailability" role={configurationState === "error" ? "alert" : "status"}>{checkoutUnavailableMessage(configuration, configurationState)}</p> : null}
+        {!isPremium && (!checkoutAvailable || !authenticated) ? <div className="premiumCheckoutAvailability" role="status"><p>{checkoutState.message}</p>{checkoutState.canRetry ? <button type="button" className="secondaryBtn" onClick={() => { setConfigurationState("loading"); setConfigurationAttempt((value) => value + 1); }}>Retry checkout check</button> : null}</div> : null}
         {checkoutError ? <p className="premiumCheckoutError" role="alert">{checkoutError}</p> : null}
         <small>Recurring billing. Cancel through account settings. Access continues until the end of the paid period after cancellation.</small>
       </article>

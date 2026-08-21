@@ -141,6 +141,18 @@ export function buildReportGameCounts(report = {}) {
       && totalImported === reconciliationAnalysed + excludedTotal
       && excludedTotal === breakdownTotal
       && reconciliationAnalysed === usedForOpeningStats;
+    const roleAllocation = reconciliationValid && rawReconciliation?.eligible_games !== undefined ? {
+      eligible: firstStrictNonNegativeInteger(rawReconciliation.eligible_games),
+      white: firstStrictNonNegativeInteger(rawReconciliation.white_role_games),
+      blackVsE4: firstStrictNonNegativeInteger(rawReconciliation.black_vs_e4_games),
+      blackVsD4: firstStrictNonNegativeInteger(rawReconciliation.black_vs_d4_games),
+      unresolved: firstStrictNonNegativeInteger(rawReconciliation.unresolved_role_games),
+      outsideCore: firstStrictNonNegativeInteger(rawReconciliation.outside_core_role_games),
+      status: rawReconciliation.status || null,
+      diagnosticReference: rawReconciliation.diagnostic_reference || null,
+    } : null;
+    const roleAllocationValid = !roleAllocation || Object.values(roleAllocation).slice(0, 6).every((value) => value !== null)
+      && roleAllocation.eligible === roleAllocation.white + roleAllocation.blackVsE4 + roleAllocation.blackVsD4 + roleAllocation.unresolved + roleAllocation.outsideCore;
     return {
       fetchedGames, eligibleGames, structurallyUsableGames: eligibleGames, pgnAvailableGames,
       parsedGames, attributedGames, classifiedGames, usedForOpeningStats,
@@ -159,6 +171,7 @@ export function buildReportGameCounts(report = {}) {
       excludedTotal: reconciliationValid ? excludedTotal : null,
       exclusionBreakdown: reconciliationValid ? exclusionBreakdown : [],
       reconciliationStatus: rawReconciliation ? (reconciliationValid ? "canonical" : "invalid_current_contract") : "unavailable",
+      roleAllocation: roleAllocationValid ? roleAllocation : null,
     };
   }
 

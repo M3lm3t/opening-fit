@@ -156,9 +156,9 @@ export function enforceReportRoleContract(report = {}) {
 
 const ACTION_SUPPORT = Object.freeze({
   open_evidence: "evidence",
-  open_diagnosed_problem: "problems",
+  open_diagnosed_problem: "priorities",
   open_repertoire_priority: "repertoire",
-  open_training_priority: "train",
+  open_training_priority: "summary",
 });
 
 export function validateReportConsistency(report = {}) {

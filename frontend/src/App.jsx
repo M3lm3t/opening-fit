@@ -8,11 +8,13 @@ import "./components/WeakLineDetection.css";
 import { Component, createElement, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import "./App.css";
+import "./components/InformationArchitecture.css";
 import OpeningScoreInfo from "./components/OpeningScoreInfo";
 import RepertoireStudyPlan from "./components/RepertoireStudyPlan";
 import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
 import GameReplayBoard from "./components/GameReplayBoard";
 import PersonalOpeningTrainer from "./components/PersonalOpeningTrainer.jsx";
+import TrainingStreakCard from "./components/TrainingStreakCard.jsx";
 import { findOpeningPracticePack } from "./data/openingPracticeLines";
 import { normaliseOpeningKey } from "./data/openings";
 import { evidenceGapCategory, mergeOpeningContextRows, shouldShowEvidenceGap } from "./lib/openingContextRows.js";
@@ -62,7 +64,7 @@ import {
 } from "./components/OpeningScoreProgress";
 import DailyOpeningHabit from "./components/DailyOpeningHabit";
 import { useAuth } from "./context/AuthDataProvider";
-import { getAppSection, HOME_NAVIGATION, navigateApp, resolveOwnedProductRoute, scrollToAppTarget } from "./appNavigation";
+import { getAppSection, HOME_NAVIGATION, legacyProductRedirect, navigateApp, resolveOwnedProductRoute, scrollToAppTarget } from "./appNavigation";
 
 
 import { CoachSummaryCard, SeriousAppTabs } from "./components/SeriousAppUpgrade";
@@ -136,7 +138,6 @@ import { buildFilteredReportDecision } from "./lib/recommendationEvidence.js";
 import { adaptReportHistoryRow, buildReportSnapshot } from "./lib/reportSnapshot.js";
 import { saveRecommendationFeedback } from "./lib/fitTrustModel";
 import { REPERTOIRE_PENDING_KEY } from "./lib/repertoireWorkspace";
-import { canUsePremiumPreview } from "./lib/premiumExperience";
 import { canUseFeature, featureLimit, OPENINGFIT_FEATURES } from "./lib/premiumEntitlement.js";
 import { trackProductEvent } from "./lib/productAnalytics";
 import { QUALIFYING_STREAK_ACTIVITIES, recordQualifiedActivity } from "./services/trainingStreakService.js";
@@ -145,14 +146,17 @@ import { SUPPORT_EMAIL } from "./lib/supportConfig.js";
 import OpeningFitDiagnosisFirst from "./components/OpeningFitDiagnosisFirst";
 import ReportCommandBar from "./components/ReportCommandBar";
 import ReportGameCountSummary from "./components/ReportGameCountSummary.jsx";
+import EvidenceSufficiencySummary from "./components/EvidenceSufficiencySummary.jsx";
 import ReportComparisonSection from "./components/ReportComparisonSection.jsx";
 import TrainingImpactSection from "./components/TrainingImpactSection.jsx";
 import PrimaryReportSummary from "./components/PrimaryReportSummary.jsx";
+import OpeningFitScoreDisclosure from "./components/OpeningFitScoreDisclosure.jsx";
 import RepertoireCoverageMap from "./components/RepertoireCoverageMap.jsx";
 import FeatureAccessPreview from "./components/FeatureAccessPreview.jsx";
 import RatingGoalCard from "./components/RatingGoalCard.jsx";
+import CoachingReminderSettings from "./components/CoachingReminderSettings.jsx";
 import { selectPreviousReportSnapshot } from "./lib/reportComparisonPresentation.js";
-import { primaryComparisonState } from "./lib/primaryReportSummary.js";
+import { buildPrimaryReportSummary, primaryComparisonState } from "./lib/primaryReportSummary.js";
 import { selectAuthoritativeCoachingPriority } from "./lib/authoritativeReportPresentation.js";
 import { roleGapCopy, TRAINING_SUBJECT_TYPES } from "./lib/trainingPriority.js";
 import { canonicalReportAction, normaliseReportView, reportActionForPriority, reportActionFromLocation, reportActionUrl, reportViewFromLocation, reportViewHash, reportViewHeadingId } from "./lib/reportViews.js";
@@ -162,7 +166,7 @@ import { buildCanonicalReportPresentation, formatCanonicalScoreRate } from "./li
 import { readPersistedReport } from "./lib/reportPersistence.js";
 import { enforceReportRoleContract } from "./lib/reportConsistency.js";
 import { candidateFailureMessage, commitReportCandidate, REPORT_CANDIDATE_RESULTS } from "./lib/reportCandidateTransaction.js";
-import { accountExperienceState, subscriptionPresentation } from "./lib/accountExperience.js";
+import { accountExperienceState, membershipAccessState, subscriptionPresentation } from "./lib/accountExperience.js";
 import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT } from "./lib/productTransparency.js";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
 import { buildRatingGoalModel, localDateKey } from "./services/todayRetention.js";
@@ -6564,11 +6568,14 @@ function FinalReportFlow({
   isPremium = false,
   saveStatus = "",
   onAccount,
+  maxHistoryMonths = 3,
+  onAnalysisPeriodChange,
 }) {
   const decisionModel = useMemo(
     () => buildReportDecisionModel(data, fitData, reportHistory),
     [data, fitData, reportHistory]
   );
+  const canonicalReportSummary = useMemo(() => buildPrimaryReportSummary(decisionModel, data), [data, decisionModel]);
   const [reportView, setReportView] = useState(() => reportViewFromLocation());
   const [reportActionContext, setReportActionContext] = useState(() => reportActionFromLocation());
   const currentComparisonSnapshot = useMemo(
@@ -6689,6 +6696,14 @@ function FinalReportFlow({
     });
   }, [decisionModel, navigateReportAction]);
 
+  const openRepertoireManagement = useCallback(() => {
+    if (typeof document === "undefined") return;
+    const details = document.querySelector(".reportRepertoireManagement");
+    if (!details) return;
+    details.open = true;
+    details.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   const priorityAction = useMemo(
     () => reportActionForPriority(decisionModel.trainingPriority || decisionModel.primaryAction || {}, "evidence"),
     [decisionModel]
@@ -6714,10 +6729,34 @@ function FinalReportFlow({
   ) : null;
   const roleAccounting = data?.roleEvidenceAccounting || data?.role_evidence_accounting || null;
   const roleAttributionFailed = roleAccounting?.valid === false;
+  const analysedGames = buildReportGameCounts(data || {}).analysedGames;
+  const selectedMonths = Number(data?.monthsChecked || data?.months_checked || data?.importMonths || data?.import_months) || null;
+  const periodLabel = selectedMonths === 1 ? "Last 30 days" : selectedMonths === 3 ? "Last 90 days" : selectedMonths === 6 ? "Last 6 months" : selectedMonths === 12 ? "Last 12 months" : formatImportRange(data);
+  const repertoireHistory = data?.repertoireHistory || data?.repertoire_history || decisionModel?.authoritative?.repertoireHistory || {};
+  const historyOpenings = Array.isArray(repertoireHistory?.openings) ? repertoireHistory.openings : [];
+  const recentRepertoireGames = historyOpenings.reduce((sum, row) => sum + (Number(row?.recentGames) || 0), 0);
+  const historicalRepertoireGames = historyOpenings.reduce((sum, row) => sum + (Number(row?.historicalGames) || 0), 0);
+  const periodOptions = [{ months: 1, label: "30 days" }, { months: 3, label: "90 days" }, { months: 6, label: "6 months" }, { months: 12, label: "12 months" }];
 
   return (
     <div className="finalReportFlow decisionReportFlow">
       <h1 className="reportPageTitle" tabIndex="-1">OpeningFit report for {data?.username || data?.player || "your games"}</h1>
+      <section className="reportAnalysisContext" aria-labelledby="report-analysis-context-title">
+        <div className="reportAnalysisContextSummary">
+          <span id="report-analysis-context-title">Analysed</span>
+          <strong>{analysedGames > 0 ? `${analysedGames} games` : "Game count unavailable"} <b aria-hidden="true">·</b> {periodLabel}</strong>
+          {historicalRepertoireGames > 0 ? <small>{recentRepertoireGames} recent repertoire games <b aria-hidden="true">·</b> {historicalRepertoireGames} historical games considered for repertoire context</small> : <small>No separate historical repertoire context was available in this import.</small>}
+        </div>
+        <fieldset className="reportAnalysisPeriodSelector">
+          <legend>Next analysis period</legend>
+          <div>
+            {periodOptions.map((option) => {
+              const available = option.months <= maxHistoryMonths;
+              return <button type="button" key={option.months} className={selectedMonths === option.months ? "isActive" : ""} aria-pressed={selectedMonths === option.months} disabled={!available} title={available ? `Use ${option.label} for the next analysis` : `${option.label} requires extended history access`} onClick={() => onAnalysisPeriodChange?.(option.months)}>{option.label}{available ? "" : " · Plus"}</button>;
+            })}
+          </div>
+        </fieldset>
+      </section>
       <ReportCommandBar
         data={data}
         model={decisionModel}
@@ -6734,6 +6773,7 @@ function FinalReportFlow({
       {reportView === "summary" ? <section className="reportViewPanel" id="report-summary-view" role="tabpanel" aria-labelledby="report-tab-summary"><PrimaryReportSummary
         model={decisionModel}
         report={data}
+        view={canonicalReportSummary}
         previousReport={hasComparisonAccess ? previousComparisonSnapshot : null}
         onTraining={() => onNavigate?.({ view: "train", path: "/train?start=report-task", target: "training-plan" })}
         onPractice={onPractice}
@@ -6742,17 +6782,36 @@ function FinalReportFlow({
         onFullReport={openFullReport}
         entitlement={entitlement}
       />
+      <OpponentPrepPreview data={data} onStart={onPractice} />
       {!isPremium && entitlement?.hasPremiumAccess === false ? <div className="reportOverviewPlusContinuation"><FeatureAccessPreview feature={OPENINGFIT_FEATURES.WEEKLY_PLAN} eyebrow="Continue when useful" title="Turn this task into a saved weekly plan" benefits={["Full weekly plan", "Own-game drills", "Saved progress", "Repertoire workspace"]} onUpgrade={() => onNavigate?.("premium")} actionClassName="secondaryBtn"><p>Your free report and first training action remain available. Plus continues the same evidence-backed work.</p></FeatureAccessPreview></div> : null}
+      </section> : null}
+
+      {reportView === "priorities" ? <section className="reportViewPanel" id="report-priorities-view" role="tabpanel" aria-labelledby="report-tab-priorities">
+        {reportContextNotice}
+        <PrimaryReportSummary model={decisionModel} report={data} view={canonicalReportSummary} section="priorities" onEvidence={openOpeningBreakdown} />
       </section> : null}
 
       {reportView === "repertoire" ? <section className="reportViewPanel" id="report-repertoire-view" role="tabpanel" aria-labelledby="report-tab-repertoire">
         <header className="reportViewHeader"><span>Repertoire</span><h2 id="report-repertoire-view-title" tabIndex="-1">Your three core roles and practical alternatives</h2><p>Established, building and unresolved roles stay visible without inventing an opening.</p></header>
         {reportContextNotice}
-        <DecisionRepertoireMap model={decisionModel} onEvidence={openOpeningBreakdown} />
-        <FocusedRepertoireSection data={data} model={decisionModel} onPractice={onPractice} onAnalytics={onAnalytics} />
+        <DecisionRepertoireMap model={decisionModel} onEvidence={openOpeningBreakdown} onManage={openRepertoireManagement} />
+        <details className="reportRepertoireManagement">
+          <summary><span>Manage saved repertoire</span><strong>Preferences and active choices</strong></summary>
+          <MyRepertoire
+            embedded
+            data={data}
+            reportHistory={reportHistory}
+            onAnalyse={() => onNavigate?.("analyse")}
+            onPractice={onPractice}
+            onReport={() => changeReportView("summary")}
+            onAccount={() => onNavigate?.("account")}
+            onTrainingHistory={() => onNavigate?.("progress")}
+            onUpgrade={() => onNavigate?.("premium")}
+          />
+        </details>
       </section> : null}
 
-      {reportView === "problems" ? <section className="reportViewPanel" id="report-problems-view" role="tabpanel" aria-labelledby="report-tab-problems">
+      {false && reportView === "problems" ? <section className="reportViewPanel" id="report-problems-view" role="tabpanel" aria-labelledby="report-tab-problems">
         <header className="reportViewHeader"><span>Problems</span><h2 id="report-problems-view-title" tabIndex="-1">Repeated issues and evidence still missing</h2><p>A missing role is an evidence gap, not automatically a weakness.</p></header>
         {reportContextNotice}
         {decisionModel.repertoire.some((role) => !role.complete) ? <div className="reportEvidenceGapGrid" aria-label="Missing repertoire evidence">{decisionModel.repertoire.filter((role) => !role.complete).map((role) => <article key={role.key}><span>{role.label}</span><strong>{role.opening || "Not established yet"}</strong><p>{role.evidenceRequirement?.whyNeeded || "More correctly attributed games are needed for this exact role."}</p></article>)}</div> : null}
@@ -6760,7 +6819,7 @@ function FinalReportFlow({
         <InterestingThinDataSection data={data} fitData={fitData} />
       </section> : null}
 
-      {reportView === "train" ? <section className="reportViewPanel" id="report-train-view" role="tabpanel" aria-labelledby="report-tab-train">
+      {false && reportView === "train" ? <section className="reportViewPanel" id="report-train-view" role="tabpanel" aria-labelledby="report-tab-train">
         {reportContextNotice}
         <header className="reportViewHeader"><span>Train</span><h2 id="report-train-view-title" tabIndex="-1">Your canonical current task</h2><p>Start with the report’s single evidence-backed priority. The full weekly plan remains on the training page.</p></header>
         <FiniteTrainingSession model={decisionModel} onPractice={onPractice} />
@@ -6770,11 +6829,11 @@ function FinalReportFlow({
       {reportView === "evidence" ? <section className="reportViewPanel" id="report-evidence-view" role="tabpanel" aria-labelledby="report-tab-evidence">
         <header className="reportViewHeader"><span>Evidence</span><h2 id="report-evidence-view-title" tabIndex="-1">Games, filters, confidence and report tools</h2><p>Inspect what was included, what was excluded and how the report reached its decisions.</p></header>
         {reportContextNotice}
+        <EvidenceSufficiencySummary report={data} onReanalyse={() => onNavigate?.("analyse")} />
         <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
         <ReportGameCountSummary report={data} saveStatus={saveStatus} authenticated={authenticated} onAccount={onAccount} />
         <EvidenceTableSection data={data} fitData={fitData} entitlement={entitlement} onEvidence={openOpeningBreakdown} />
-        <AnalysisTrustSignalsPanel data={data} fitData={fitData} />
-        <ImportQualitySummary data={data} />
+        <details className="reportMethodologyDisclosure"><summary>Confidence and methodology</summary><OpeningFitScoreDisclosure model={decisionModel} report={data} previousReport={hasComparisonAccess ? previousComparisonSnapshot : null} /><AnalysisTrustSignalsPanel data={data} fitData={fitData} /></details>
         <div className="reportSecondaryDetailsBody">
           {primaryComparison !== "hidden" && primaryComparison !== "preview" ? <ReportComparisonSection currentSnapshot={currentComparisonSnapshot} reportSnapshots={comparisonSnapshots} loading={comparisonLoading} error={comparisonError} onViewHistory={() => onNavigate?.("history")} onAnalytics={onAnalytics} /> : null}
           {!decisionModel.baseline.comparisonClaimsAllowed ? <p className="reportBaselineDetailsNotice">This is your baseline report. Progress deltas, improvement achievements, streak claims and comparison-only metrics stay unavailable until a comparable later report exists.</p> : null}
@@ -9233,59 +9292,6 @@ function ReturnUserDashboard({
   );
 }
 
-function FounderPassProfileCard({ isPremium, entitlement, onFounderPass }) {
-  const valueBullets = [
-    "Save up to 50 reports",
-    "Compare progress over time",
-    "Track weak lines",
-    "Personal repertoire plan",
-    "Weekly review tracking",
-  ];
-  const trustItems = ["Built for club players", "Monthly or annual billing", "Cancel in account settings"];
-
-  return (
-    <section className={isPremium ? "profileFounderCard profileFounderCardActive" : "profileFounderCard"}>
-      <div className="profileFounderMain">
-        <p className="eyebrow">OpeningFit Plus</p>
-        <h2>{isPremium ? subscriptionPresentation(entitlement).planName : "Save and compare your opening progress"}</h2>
-        <p>
-          {isPremium
-            ? "Your profile has Plus or preserved lifetime access. Saved reports and progress tracking stay attached to this account."
-            : "Turn the free snapshot into saved reports, weak-line tracking, and a personal repertoire plan."}
-        </p>
-        <div className="profileFounderTrust">
-          {trustItems.map((item) => (
-            <span key={item}>{item}</span>
-          ))}
-        </div>
-      </div>
-
-      <div className="profileFounderValue">
-        {valueBullets.map((item) => (
-          <span key={item}>{item}</span>
-        ))}
-      </div>
-
-      <div className="profileFounderOffer">
-        <span>Subscription plans</span>
-        <strong>From £4.99/month</strong>
-        <div className="profileFounderOfferBadges" aria-label="OpeningFit Plus offer details">
-          <span>Monthly or annual</span>
-          <span>Cancel in settings</span>
-        </div>
-        <small>Existing lifetime members retain lifetime access.</small>
-        {!isPremium ? (
-          <button type="button" className="primaryBtn" onClick={onFounderPass}>
-            View Plus plans
-          </button>
-        ) : (
-          <span className="profileFounderStatus">Active</span>
-        )}
-      </div>
-    </section>
-  );
-}
-
 function readLocalJson(key, fallback) {
   if (typeof window === "undefined") return fallback;
   try {
@@ -9376,7 +9382,7 @@ function ProfileAccountSimpleCard({
 
       <details className="simpleProfileNestedDetails" open={defaultOpen || undefined}>
         <summary>{accountUser?.id ? "Account controls" : "Sign in or create account"}</summary>
-        <AccountPanel variant="screen" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
+        <AccountPanel variant="profile" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
       </details>
     </SimpleProfileCard>
   );
@@ -9448,26 +9454,20 @@ function ProfilePreferencesSimpleCard({ theme, onThemeToggle, onTrainingPreferen
   );
 }
 
-function ProfileSubscriptionSimpleCard({ isPremium, isPremiumPreview, accountUser, entitlement, onFounderPass }) {
-  const plan = getProfilePlanLabel({ isPremium, isPremiumPreview, accountUser, entitlement });
-  return (
-    <SimpleProfileCard
-      eyebrow="Subscription"
-      title="Subscription"
-      className="simpleProfileCard--subscription"
-      actions={
-        <button type="button" className={isPremium ? "secondaryButton" : "primaryBtn"} onClick={onFounderPass}>
-          {isPremium ? "Manage access" : "Upgrade"}
-        </button>
-      }
-    >
-      <div className="simpleProfileSubscription">
-        <span>Current tier</span>
-        <strong>{plan}</strong>
-        <p>{isPremium ? "Saved reports and progress tracking are active on this account." : "Free account. Upgrade when you want saved reports, weak-line tracking, and progress comparisons."}</p>
-      </div>
-    </SimpleProfileCard>
-  );
+const ACCOUNT_SECTIONS = [
+  { key: "profile", label: "Profile", hash: "account-profile" },
+  { key: "preferences", label: "Preferences", hash: "account-preferences" },
+  { key: "membership", label: "Membership", hash: "account-membership" },
+  { key: "data", label: "Data & support", hash: "account-data-support" },
+];
+
+function accountSectionFromLocation() {
+  if (typeof window === "undefined") return "profile";
+  const requested = new URLSearchParams(window.location.search).get("section")?.toLowerCase();
+  if (ACCOUNT_SECTIONS.some((section) => section.key === requested)) return requested;
+  const hash = window.location.hash.replace(/^#/, "");
+  if (hash === "account-progress") return "data";
+  return ACCOUNT_SECTIONS.find((section) => section.hash === hash)?.key || "profile";
 }
 
 function OpeningFitProfileDashboard({
@@ -9477,15 +9477,12 @@ function OpeningFitProfileDashboard({
   username,
   platform,
   isPremium,
-  isPremiumPreview,
-  entitlement,
   onAnalyse,
   onOpenReport,
   onPractice,
   onReviewSession,
   onSeeSessionPlan,
   onLoadReport,
-  onFounderPass,
   onCloudRestore,
   onUserChange,
   reportHistory = [],
@@ -9497,9 +9494,6 @@ function OpeningFitProfileDashboard({
   authHydrated = true,
   profileError = "",
   restoreError = "",
-  theme = "dark",
-  onThemeToggle,
-  onTrainingPreferences,
   profile = null,
   settings = null,
   activityHistory = [],
@@ -9507,9 +9501,37 @@ function OpeningFitProfileDashboard({
   onRecordActivity,
   onToday,
   onJourney,
-  activeView = "profile",
   onAnalytics,
+  theme,
+  onThemeToggle,
+  onTrainingPreferences,
+  accountMembership,
+  membershipContent,
+  dataSupportContent,
 }) {
+  const [accountSection, setAccountSection] = useState(accountSectionFromLocation);
+  const accountTabRefs = useRef([]);
+  useEffect(() => {
+    const restoreSection = () => setAccountSection(accountSectionFromLocation());
+    window.addEventListener("hashchange", restoreSection);
+    window.addEventListener("popstate", restoreSection);
+    return () => {
+      window.removeEventListener("hashchange", restoreSection);
+      window.removeEventListener("popstate", restoreSection);
+    };
+  }, []);
+  const selectAccountSection = (key) => {
+    const section = ACCOUNT_SECTIONS.find((item) => item.key === key) || ACCOUNT_SECTIONS[0];
+    setAccountSection(section.key);
+    window.history.pushState({ accountSection: section.key }, "", `/account?section=${section.key}#${section.hash}`);
+  };
+  const handleAccountTabKeyDown = (event, index) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? ACCOUNT_SECTIONS.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + ACCOUNT_SECTIONS.length) % ACCOUNT_SECTIONS.length;
+    selectAccountSection(ACCOUNT_SECTIONS[nextIndex].key);
+    accountTabRefs.current[nextIndex]?.focus();
+  };
   const accountState = accountExperienceState({ authLoading, authHydrated, profileLoading, user: accountUser });
   if (accountState === "checking_session") {
     return <section className="profileAccountLoading profileAccountLoading--local" aria-busy="true" aria-live="polite"><span>Account</span><h1>Log in or create account</h1><p>Checking your saved session before showing sign-in options.</p><div className="profileAccountLoadingBar" aria-hidden="true" /></section>;
@@ -9534,7 +9556,6 @@ function OpeningFitProfileDashboard({
     "";
   const currentPath = getCurrentPath();
   const shouldOpenAccountDetails = currentPath === "/login" || currentPath === "/account";
-  const showHistoryPage = activeView === "history";
   const profileLoadMessage = profileError || restoreError || "";
   const ratingGoal = buildRatingGoalModel({ profile, settings, activity: activityHistory, data });
   const saveRatingGoal = async (goal) => {
@@ -9552,6 +9573,13 @@ function OpeningFitProfileDashboard({
 
   return (
     <div className={`profileDashboard profileDashboardSimple ${data ? "" : "profileDashboardNoReport"}`}>
+      <header className="accountHubHeader">
+        <div><p className="eyebrow">Account</p><h1>{accountUser?.user_metadata?.full_name || accountUser?.user_metadata?.display_name || connectedUsername || "Your account"}</h1><p>{connectedUsername ? `${formatProfileUsername(connectedUsername)} · ${getProfilePlatformLabel(data || {}, platform)}` : "Add a chess username in Profile"}</p><small>{accountUser?.email}</small></div>
+        <span className={`accountMembershipBadge accountMembershipBadge--${accountMembership?.kind || "unresolved"}`}>{accountMembership?.label || "Checking access"}</span>
+      </header>
+      <div className="accountSectionNav" role="tablist" aria-label="Account sections">
+        {ACCOUNT_SECTIONS.map((section, index) => <button key={section.key} ref={(node) => { accountTabRefs.current[index] = node; }} id={`account-tab-${section.key}`} type="button" role="tab" aria-selected={accountSection === section.key} aria-controls={`account-panel-${section.key}`} tabIndex={accountSection === section.key ? 0 : -1} onKeyDown={(event) => handleAccountTabKeyDown(event, index)} onClick={() => selectAccountSection(section.key)}>{section.label}</button>)}
+      </div>
       {profileLoadMessage ? (
         <div className="profileLoadNotice" role="status">
           <strong>Profile loaded with limited cloud data</strong>
@@ -9559,6 +9587,7 @@ function OpeningFitProfileDashboard({
         </div>
       ) : null}
 
+      <section id="account-panel-profile" role="tabpanel" aria-labelledby="account-tab-profile" hidden={accountSection !== "profile"}>
       <div className="simpleProfileGrid">
         <ProfileAccountSimpleCard
           data={data}
@@ -9576,15 +9605,6 @@ function OpeningFitProfileDashboard({
             reportHistory={reportHistory}
             openingFitUserState={openingFitUserState}
           />
-          <ProfilePreferencesSimpleCard theme={theme} onThemeToggle={onThemeToggle} onTrainingPreferences={onTrainingPreferences} />
-          <RatingGoalCard goal={ratingGoal} onSaveGoal={saveRatingGoal} onProgress={onToday} />
-          <ProfileSubscriptionSimpleCard
-            isPremium={isPremium}
-            isPremiumPreview={isPremiumPreview}
-            accountUser={accountUser}
-            entitlement={entitlement}
-            onFounderPass={onFounderPass}
-          />
         </div>
       </div>
 
@@ -9600,6 +9620,18 @@ function OpeningFitProfileDashboard({
         {onToday ? <button type="button" className="secondaryButton" onClick={onToday}>Open Today</button> : null}
         {onJourney ? <button type="button" className="secondaryButton" onClick={onJourney}>Training history</button> : null}
       </div>
+      </section>
+
+      <section id="account-panel-preferences" role="tabpanel" aria-labelledby="account-tab-preferences" hidden={accountSection !== "preferences"}>
+        <ProfilePreferencesSimpleCard theme={theme} onThemeToggle={onThemeToggle} onTrainingPreferences={onTrainingPreferences} />
+        <CoachingReminderSettings />
+      </section>
+
+      <section id="account-panel-membership" role="tabpanel" aria-labelledby="account-tab-membership" hidden={accountSection !== "membership"}>
+        {membershipContent}
+      </section>
+
+      <section id="account-panel-data" role="tabpanel" aria-labelledby="account-tab-data" hidden={accountSection !== "data"}>
 
       <ProfileInsightsBoundary>
       <WeeklyOpeningSessionCard
@@ -9625,9 +9657,14 @@ function OpeningFitProfileDashboard({
         />
       ) : null}
 
-      {accountUser?.id ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
+      <section className="accountProgressSection" id="account-progress" aria-labelledby="account-progress-title">
+        <header><p className="eyebrow">Account · Progress</p><h2 id="account-progress-title">Progress and report history</h2><p>Rating goals, streaks, comparable reports and saved history stay together here.</p></header>
+        <RatingGoalCard goal={ratingGoal} onSaveGoal={saveRatingGoal} onProgress={onToday} />
+        <TrainingStreakCard />
+        {accountUser?.id || hasStoredProgress ? <OpeningFitProgressCard data={data} fitData={fitData} accountUser={accountUser} reportHistory={reportHistory} openingFitUserState={openingFitUserState} onAnalyse={onAnalyse} onOpenReport={onOpenReport} /> : null}
+        {accountUser?.id ? <OpeningHealthTrends reportHistory={reportHistory} /> : null}
 
-      <OpeningProgressTimeline
+        <OpeningProgressTimeline
         data={data}
         fitData={fitData}
         reportHistory={reportHistory}
@@ -9638,23 +9675,24 @@ function OpeningFitProfileDashboard({
         }}
       />
 
-      <OpeningMilestones
+        <OpeningMilestones
         data={data}
         fitData={fitData}
         reportHistory={reportHistory}
         openingFitUserState={openingFitUserState}
       />
 
-      <MonthlyRecapCard
+        <MonthlyRecapCard
         data={data}
         fitData={fitData}
         reportHistory={reportHistory}
         openingFitUserState={openingFitUserState}
       />
 
-      {showHistoryPage ? (
         <ReportHistoryVault data={data} fitData={fitData} onLoadReport={onLoadReport} />
-      ) : null}
+        <RecommendationHistorySection data={data} fitData={fitData} accountUser={accountUser} recommendationHistory={recommendationHistory} authLoading={authLoading} profileLoading={profileLoading} authHydrated={authHydrated} onAnalyse={onAnalyse} onViewRepertoire={onOpenReport} />
+        {data ? <ProfileAchievementsCard data={data} fitData={fitData} isPremium={isPremium} /> : null}
+      </section>
 
       <details className="profileSecondaryDetails profileAdvancedDetails">
         <summary>
@@ -9678,18 +9716,6 @@ function OpeningFitProfileDashboard({
           <WeeklyOpeningSummaryCompact retentionSnapshots={retentionSnapshots} onAnalyse={onAnalyse} />
           <SavedReportsProfileCard onLoadReport={onLoadReport} onCreateReport={onAnalyse} />
 
-          {accountUser?.id || hasStoredProgress ? (
-            <OpeningFitProgressCard
-              data={data}
-              fitData={fitData}
-              accountUser={accountUser}
-              reportHistory={reportHistory}
-              openingFitUserState={openingFitUserState}
-              onAnalyse={onAnalyse}
-              onOpenReport={onOpenReport}
-            />
-          ) : null}
-
           {data || savedOpeningGamificationProgress ? (
             <OpeningGamificationProgress
               data={data}
@@ -9698,23 +9724,12 @@ function OpeningFitProfileDashboard({
             />
           ) : null}
 
-          <RecommendationHistorySection
-            data={data}
-            fitData={fitData}
-            accountUser={accountUser}
-            recommendationHistory={recommendationHistory}
-            authLoading={authLoading}
-            profileLoading={profileLoading}
-            authHydrated={authHydrated}
-            onAnalyse={onAnalyse}
-            onViewRepertoire={onOpenReport}
-          />
-
-          {data ? <ProfileAchievementsCard data={data} fitData={fitData} isPremium={isPremium} /> : null}
-          <FounderPassProfileCard isPremium={isPremium} entitlement={entitlement} onFounderPass={onFounderPass} />
         </div>
       </details>
       </ProfileInsightsBoundary>
+      {dataSupportContent}
+      <AccountPanel variant="data-support" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
+      </section>
     </div>
   );
 }
@@ -10363,9 +10378,9 @@ function CostlyIssuesSection({ model, onPractice, onEvidence }) {
   );
 }
 
-function DecisionRepertoireMap({ model, onEvidence }) {
+function DecisionRepertoireMap({ model, onEvidence, onManage }) {
   if (!model.repertoire.length) return null;
-  return <RepertoireCoverageMap model={model} onEvidence={onEvidence} />;
+  return <RepertoireCoverageMap model={model} onEvidence={onEvidence} onManage={onManage} />;
 }
 
 function FiniteTrainingSession({ model, onPractice }) {
@@ -11839,21 +11854,19 @@ function AppPrimaryNav({
   const isAppNavigation = mode === "app";
   const items = isAppNavigation
     ? [
+        { key: "home", label: "Home", path: "/dashboard" },
         { key: "report", label: "Report", path: "/report" },
-        { key: "repertoire", label: "Repertoire", path: "/repertoire" },
         { key: "training", label: "Train", path: "/train" },
-        { key: "progress", label: "Progress", path: "/progress", target: "openingfit-progress" },
       ]
     : [
         { key: "analyse", label: "Analyse", path: "/analyse" },
         { key: "how", label: "How it works", path: "/#how-it-works-app", native: true },
         { key: "example", label: "Example report", path: SAMPLE_REPORT_PATH, target: "app-results", action: onExampleReport },
         { key: "learn", label: "Learn", path: "/guides", native: true },
-        { key: "pricing", label: "Pricing", path: "/premium" },
       ];
   const accountAction = accountUser
     ? { key: "account", label: "Account", path: "/account" }
-    : { key: "login", label: "Sign in", path: "/login", target: "login", action: onLogin };
+    : { key: "account", label: "Account", path: "/login", target: "login", action: onLogin };
   const brandAction = HOME_NAVIGATION;
   const primaryAction = accountUser
     ? { key: "analyse", label: "New analysis" }
@@ -11862,7 +11875,6 @@ function AppPrimaryNav({
   const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
 
   const isPrimaryNavItemActive = (item) => {
-    const isPremiumPath = currentPath === "/premium" || currentPath === "/pricing" || currentPath === "/upgrade";
     if (item.key === "example") return isSampleReportPath(currentPath);
     if (item.key === "analyse") return currentPath === "/analyse";
     if (item.key === activeView) return true;
@@ -11871,17 +11883,14 @@ function AppPrimaryNav({
       analyse: ["analyse", "home", "import"],
       dashboard: ["dashboard"],
       report: ["report", "overview", "recommendations", "openings", "weakspots", "verdicts"],
-      repertoire: ["repertoire"],
+      home: ["home", "dashboard", "analyse", "import"],
       recommendations: ["recommendations", "openings", "weakspots", "verdicts"],
       training: ["train", "training", "interactive", "practice"],
       journey: ["journey"],
       games: ["games", "data"],
       history: ["history"],
-      account: ["profile", "account"],
-      progress: ["progress"],
-      premium: ["premium", "upgrade"],
-      pricing: ["premium", "upgrade"],
-      login: ["login", "profile", "account", "progress"],
+      account: ["profile", "account", "login", "history", "progress", "premium", "upgrade"],
+      login: ["login", "profile", "account"],
     };
 
     if (
@@ -11891,8 +11900,6 @@ function AppPrimaryNav({
       return true;
     }
     if (activeViewsByKey[item.key]?.includes(activeView)) return true;
-    if (item.key === "account" && isPremiumPath) return false;
-    if ((item.key === "premium" || item.key === "pricing") && isPremiumPath && ["premium", "upgrade"].includes(activeView)) return true;
     if (item.key === "login" && currentPath === "/login") return true;
     if (item.key === "account" && currentPath === "/account" && !["history"].includes(activeView)) return true;
 
@@ -12332,10 +12339,9 @@ function getInitialAppView() {
   if (owned) return owned.view;
   if (path === "/dashboard") return "dashboard";
   if (path === "/account" || path === "/profile" || path === "/login") return "profile";
-  if (path === "/upgrade" || path === "/premium" || path === "/pricing") return "upgrade";
-  if (path === "/repertoire") return "repertoire";
-  if (path === "/progress") return "progress";
-  if (path === "/journey") return "journey";
+  if (path === "/upgrade" || path === "/premium" || path === "/pricing") return "account";
+  if (path === "/repertoire") return "report";
+  if (path === "/progress" || path === "/journey") return "account";
   return "analyse";
 }
 
@@ -13760,76 +13766,44 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
 }
 
 
-function OpponentPrepPreview({ data }) {
+const OPPONENT_PREP_MVP_ENABLED = import.meta.env?.VITE_OPPONENT_PREP_MVP === "true";
+
+function OpponentPrepPreview({ data, onStart }) {
   const [opponentName, setOpponentName] = useState("");
-  const [preparedOpponent, setPreparedOpponent] = useState("");
+  const [platform, setPlatform] = useState("chess.com");
+  const [prep, setPrep] = useState(null);
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  if (!data) return null;
-
-  const playerName =
-    data.username ||
-    data.playerName ||
-    data.player_name ||
-    data.requestedUsername ||
-    "you";
-
-  const cleanOpponent = preparedOpponent.trim();
-
-  const hasPrep = cleanOpponent.length > 0;
-
-  const prepSeed = cleanOpponent
-    .split("")
-    .reduce((sum, char) => sum + char.charCodeAt(0), 0);
-
-  const opponentWhiteChoices = [
-    "London System",
-    "Italian Game",
-    "Queen's Gambit",
-    "Vienna Game",
-    "Scotch Game",
-  ];
-
-  const opponentBlackChoices = [
-    "Caro-Kann Defence",
-    "Sicilian Defence",
-    "French Defence",
-    "Scandinavian Defence",
-    "King's Indian setup",
-  ];
-
-  const whiteChoice =
-    opponentWhiteChoices[prepSeed % opponentWhiteChoices.length];
-
-  const blackChoice =
-    opponentBlackChoices[(prepSeed + 2) % opponentBlackChoices.length];
-
-  const weakness =
-    prepSeed % 2 === 0
-      ? "They may struggle when the position opens quickly and they have to calculate forcing lines."
-      : "They may struggle when you avoid their main setup and make them solve unfamiliar middlegame plans.";
-
-  const recommendation =
-    prepSeed % 2 === 0
-      ? "Prepare one direct attacking line and keep your development simple."
-      : "Prepare a solid setup first, then look for pawn breaks once they commit their pieces.";
-
-  const handlePrep = () => {
-    if (!opponentName.trim()) return;
-    setPreparedOpponent(opponentName.trim());
+  if (!data || !OPPONENT_PREP_MVP_ENABLED) return null;
+  const history = data.repertoireHistory || data.repertoire_history || {};
+  const ownOpeningIds = (Array.isArray(history.openings) ? history.openings : []).filter((row) => !["EXPERIMENT", "IGNORED"].includes(row.effectiveClassification || row.classification)).map((row) => row.canonicalOpeningId).filter(Boolean);
+  const handlePrep = async () => {
+    const username = opponentName.trim();
+    if (!username || loading) return;
+    setLoading(true); setStatus("Analysing available public games…"); setPrep(null);
+    try {
+      const response = await fetch(buildApiUrl("/api/opponent-prep"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ platform, username, own_canonical_opening_ids: ownOpeningIds }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.detail || payload.message || "Opponent prep is temporarily unavailable.");
+      setPrep(payload); setStatus("");
+    } catch (error) {
+      setStatus(error.message || "Opponent prep is temporarily unavailable.");
+    } finally {
+      setLoading(false);
+    }
   };
+  const roleCard = (label, rows = []) => <article className="opponentPrepCard"><span>{label}</span>{rows.length ? rows.map((row) => <div key={`${label}:${row.canonicalOpeningId}`}><strong>{row.opening}</strong><p>{row.games} games · {Math.round(Number(row.frequency || 0) * 100)}% frequency · {row.recentGames} recent / {row.historicalGames} historical{row.intersectsUserRepertoire ? " · Matches your repertoire" : ""}</p></div>) : <p>No trustworthy role evidence was available.</p>}</article>;
 
   return (
     <section className="opponentPrepShell" id="opponent-prep">
       <div className="opponentPrepIntro">
-        <span>Premium preview</span>
+        <span>Opponent prep MVP</span>
         <h2>Opponent prep mode</h2>
-        <p>
-          Enter an opponent username and Opening Fit can become a prep tool:
-          what they are likely to play, what to expect, and what you should study
-          before the game.
-        </p>
+        <p>Enter a public Chess.com or Lichess username to identify likely repertoire choices and repeated opening positions.</p>
 
         <div className="opponentPrepInputRow">
+          <select value={platform} onChange={(event) => setPlatform(event.target.value)} aria-label="Opponent platform" disabled={loading}><option value="chess.com">Chess.com</option><option value="lichess">Lichess</option></select>
           <input
             value={opponentName}
             onChange={(event) => setOpponentName(event.target.value)}
@@ -13840,56 +13814,19 @@ function OpponentPrepPreview({ data }) {
             aria-label="Opponent username"
           />
 
-          <button type="button" onClick={handlePrep}>
-            Preview prep
-          </button>
+          <button type="button" onClick={handlePrep} disabled={loading}>{loading ? "Analysing…" : "Prepare"}</button>
         </div>
-
-        <small>
-          Demo mode for now. Full opponent prep can later use public Chess.com
-          and Lichess games.
-        </small>
+        <small>Uses available public games only. No external chess database integration. No engine-preparation claim is made unless engine analysis actually ran.</small>
+        {status ? <p role="status">{status}</p> : null}
       </div>
 
-      <div className="opponentPrepCards">
-        <article className="opponentPrepCard">
-          <span>Opponent</span>
-          <strong>{hasPrep ? cleanOpponent : "Example opponent"}</strong>
-          <p>
-            {hasPrep
-              ? `Prep snapshot generated for ${cleanOpponent}.`
-              : "Type a username to preview how opponent preparation could look."}
-          </p>
-        </article>
-
-        <article className="opponentPrepCard">
-          <span>Likely as White</span>
-          <strong>{hasPrep ? whiteChoice : "London System"}</strong>
-          <p>
-            Prepare a simple response that gets you into familiar middlegame
-            structures.
-          </p>
-        </article>
-
-        <article className="opponentPrepCard">
-          <span>Likely as Black</span>
-          <strong>{hasPrep ? blackChoice : "Caro-Kann Defence"}</strong>
-          <p>
-            Choose your opening plan before the game so you are not improvising
-            on move two.
-          </p>
-        </article>
-
-        <article className="opponentPrepCard highlight">
-          <span>Prep recommendation</span>
-          <strong>{hasPrep ? recommendation : "Use your strongest fit opening"}</strong>
-          <p>
-            {hasPrep
-              ? weakness
-              : `${playerName} should start with the strongest side-specific Opening Fit recommendation first.`}
-          </p>
-        </article>
-      </div>
+      {prep ? <div className="opponentPrepCards">
+        {roleCard("Likely as White", prep.likelyWhiteOpenings)}
+        {roleCard("Likely Black vs 1.e4", prep.likelyBlackVsE4)}
+        {roleCard("Likely Black vs 1.d4", prep.likelyBlackVsD4)}
+        <article className="opponentPrepCard highlight"><span>Repeated move tendencies</span>{prep.repeatedMoveTendencies?.length ? prep.repeatedMoveTendencies.slice(0, 3).map((row) => <p key={row.trainingSubjectId}>{row.opening}: {row.playedMove} in {row.occurrenceCount} of {row.eligibleOccurrenceCount} games reaching the position.</p>) : <p>No repeated canonical position reached the evidence threshold.</p>}</article>
+        <article className="opponentPrepCard highlight"><span>Recommended preparation</span><strong>{prep.candidatePreparationPositions?.length || 0} positions</strong><p>Prioritised where the opponent’s public-game evidence intersects your known repertoire.</p><button type="button" className="primaryBtn" disabled={!prep.candidatePreparationPositions?.length} onClick={() => { const target = prep.candidatePreparationPositions?.[0]; if (target) onStart?.({ ...target, opportunityId: target.trainingSubjectId, openingId: target.canonicalOpeningId, gameId: target.gameReferences?.[0], reviewType: "concept_review" }); }}>Start opponent prep</button></article>
+      </div> : null}
     </section>
   );
 }
@@ -14183,18 +14120,10 @@ export default function App() {
   const isPremium = Boolean(hasPremiumAccess);
   const canUseOwnGameDrills = canUseFeature(entitlement, OPENINGFIT_FEATURES.OWN_GAME_DRILLS);
   const gameHistoryMonths = featureLimit(entitlement, OPENINGFIT_FEATURES.GAME_HISTORY, "months", 3);
-  const [isPremiumPreview, setIsPremiumPreview] = useState(false);
+  const isPremiumPreview = false;
   const [premiumCheckoutLoading, setPremiumCheckoutLoading] = useState(false);
   const [premiumCheckoutError, setPremiumCheckoutError] = useState("");
   const premiumCheckoutInFlightRef = useRef(false);
-
-  const unlockPremiumDemo = () => {
-    setIsPremiumPreview(canUsePremiumPreview({ isDevelopment: import.meta.env.DEV, requested: true }));
-  };
-
-  const resetPremiumDemo = () => {
-    setIsPremiumPreview(false);
-  };
 
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem("openingFit:theme");
@@ -14280,7 +14209,7 @@ export default function App() {
 
     if (!supabaseUser?.id) {
       try {
-        localStorage.setItem(AUTH_RETURN_PATH_KEY, "/premium");
+        localStorage.setItem(AUTH_RETURN_PATH_KEY, "/account#account-membership");
       } catch {
         // Login still works if return-path storage is unavailable.
       }
@@ -15197,9 +15126,9 @@ export default function App() {
     "dashboard": { view: "dashboard", path: "/dashboard", target: "coach-dashboard" },
     "journey": { view: "journey", path: "/journey", target: "journey-page" },
     "feedback": { view: "feedback", target: "feedback" },
-    "premium": { view: "upgrade", target: "premium" },
-    "premium-offer": { view: "upgrade", target: "premium" },
-    "premium-workspace": { view: "upgrade", target: "premium-workspace" },
+    "premium": { view: "account", path: "/account", target: "account-membership" },
+    "premium-offer": { view: "account", path: "/account", target: "account-membership" },
+    "premium-workspace": { view: "account", path: "/account", target: "account-membership" },
     "training-plan": { view: "train", target: "training-plan" },
     "section-training": { view: "train", target: "section-training" },
     "seven-day-plan": { view: "train", target: "seven-day-plan" },
@@ -15213,8 +15142,8 @@ export default function App() {
     "section-recommendations": { view: "report", target: "repertoire-map", reportMode: "full" },
     "recommended-repertoire": { view: "report", target: "repertoire-map", reportMode: "full" },
     "repertoire-plan": { view: "report", target: "repertoire-map", reportMode: "full" },
-    "my-repertoire": { view: "repertoire", path: "/repertoire", target: "my-repertoire" },
-    "progress-tracker": { view: "progress", path: "/progress", target: "openingfit-progress" },
+    "my-repertoire": { view: "report", path: "/report", target: "my-repertoire", reportView: "repertoire" },
+    "progress-tracker": { view: "account", path: "/account", target: "account-progress" },
     "share-report": { view: "report", path: "/report", target: "share-report", reportMode: "table" },
     "report-history": { view: "profile", target: "report-history" },
     "top-openings-table": { view: "report", target: "evidence-table", reportMode: "table" },
@@ -16347,6 +16276,7 @@ export default function App() {
         : profileError || restoreError
           ? "error"
           : "ready";
+  const accountMembership = membershipAccessState(entitlement, mobileEntitlementState);
   const showMobileBottomNavigation = (!isPublicLanding || isNativeApp())
     && !isSignedOutLoginPage
     && activeAppSection !== "premium"
@@ -16679,6 +16609,8 @@ export default function App() {
 
   useEffect(() => {
     const syncViewFromPath = () => {
+      const legacyDestination = legacyProductRedirect(window.location.pathname, window.location.search);
+      if (legacyDestination) window.history.replaceState({ redirectedFrom: window.location.pathname }, "", legacyDestination);
       const path = getCurrentPath();
       setData((current) => {
         if (isSampleReportPath(path)) {
@@ -16699,6 +16631,8 @@ export default function App() {
     };
 
     window.addEventListener("popstate", syncViewFromPath);
+
+    syncViewFromPath();
 
     return () => {
       window.removeEventListener("popstate", syncViewFromPath);
@@ -17047,8 +16981,8 @@ export default function App() {
                     aria-label="Months to import"
                     disabled={loading}
                   >
-                    <option value={1}>1 month</option>
-                    <option value={3}>3 months</option>
+                    <option value={1}>30 days</option>
+                    <option value={3}>90 days</option>
                     <option value={6} disabled={gameHistoryMonths < 6}>
                       6 months {gameHistoryMonths >= 6 ? "" : "- Paid"}
                     </option>
@@ -17056,7 +16990,7 @@ export default function App() {
                       12 months {gameHistoryMonths >= 12 ? "" : "- Paid"}
                     </option>
                   </select>
-                  {gameHistoryMonths < 12 ? <p className="analysisSettingsPlusCopy">Six- and twelve-month history are included with OpeningFit Plus. <a href="/premium">See Plus pricing</a>.</p> : null}
+                  {gameHistoryMonths < 12 ? <p className="analysisSettingsPlusCopy">Six- and twelve-month history are included with OpeningFit Plus. <a href="/account#account-membership">See membership options</a>.</p> : null}
 
                   <fieldset className="analysisTimeFormatSelector">
                     <legend>Change time controls</legend>
@@ -17187,60 +17121,6 @@ export default function App() {
             </section>
           ) : null}
 
-          {activeAppSection === "repertoire" && !loading ? (
-            <MyRepertoire
-              data={reportData}
-              reportHistory={effectiveReportHistory}
-              onAnalyse={() => handleAppNavigate("analyse")}
-              onPractice={startOpeningPractice}
-              onReport={() => handleAppNavigate("report")}
-              onAccount={() => handleAppNavigate("account")}
-              onTrainingHistory={() => handleAppNavigate("journey")}
-              onUpgrade={() => handleAppNavigate("premium")}
-            />
-          ) : null}
-
-          {activeAppSection === "journey" && !loading && canUseFeature(entitlement, OPENINGFIT_FEATURES.TRAINING_HISTORY) ? (
-            <RetentionJourneyPage
-              user={supabaseUser || accountUser}
-              data={reportData}
-              reportHistory={effectiveReportHistory}
-              activityHistory={activityHistory}
-              settings={userSettings}
-              onRecordActivity={recordCloudActivity}
-              onSaveSettings={saveCloudSettings}
-              onNavigate={handleAppNavigate}
-            />
-          ) : activeAppSection === "journey" && !loading ? <FeatureAccessPreview feature={OPENINGFIT_FEATURES.TRAINING_HISTORY} title="See your training history" onUpgrade={() => handleAppNavigate("premium")} /> : null}
-
-          {activeAppSection === "progress" && !loading ? (
-            <section className="profileSection progressSection" aria-label="OpeningFit progress">
-              {authLoading || !authHydrated || profileLoading ? (
-                <section className="profileDashboardCard openingFitProgressCard" id="openingfit-progress">
-                  <div className="profileCardHeader"><p className="eyebrow">Your OpeningFit Progress</p><h2>Loading your progress</h2><p>OpeningFit is checking your saved report and progress data.</p></div>
-                </section>
-              ) : !resolvedAccountUser?.id ? (
-                <section className="profileDashboardCard openingFitProgressCard" id="openingfit-progress">
-                  <div className="profileCardHeader"><p className="eyebrow">Your OpeningFit Progress</p><h2>Sign in to see saved progress</h2><p>Your saved reports and comparisons are attached to your OpeningFit account.</p></div>
-                  <div className="openingFitProgressActions"><button type="button" className="primaryBtn" onClick={openLoginPage}>Sign in</button><button type="button" className="secondaryButton" onClick={() => handleAppNavigate("analyse")}>Analyse games</button></div>
-                </section>
-              ) : (
-                <OpeningFitProgressCard
-                  data={reportData}
-                  fitData={fitData}
-                  accountUser={resolvedAccountUser}
-                  reportHistory={effectiveReportHistory}
-                  openingFitUserState={openingFitUserState}
-                  onAnalyse={() => handleAppNavigate("analyse")}
-                  onOpenReport={() => handleAppNavigate("report")}
-                />
-              )}
-              {resolvedAccountUser?.id && !reportData && !openingFitUserState?.some((row) => row?.coach_progress?.openingFitProgress || row?.coach_progress?.opening_fit_progress) ? (
-                <section className="profileDashboardCard"><div className="profileCardHeader"><p className="eyebrow">Your OpeningFit Progress</p><h2>Create your first progress baseline</h2><p>Analyse your games to create a real, saved repertoire snapshot.</p></div><button type="button" className="primaryBtn" onClick={() => handleAppNavigate("analyse")}>Analyse games</button></section>
-              ) : null}
-            </section>
-          ) : null}
-
           {activeAppSection === "train" && !reportData && !loading ? (
             <>
               <ThisWeekTrainingExperience
@@ -17261,32 +17141,6 @@ export default function App() {
                 />
               </div> : null}
             </>
-          ) : null}
-
-          {activeAppSection === "premium" ? (
-            <section className="premiumStandalonePage" id="premium">
-              {reportData ? (
-                <>
-                  <PremiumPanel
-                    data={reportData}
-                    isPremium={isPremium}
-                    entitlement={entitlement}
-                    authenticated={Boolean(supabaseUser?.id)}
-                    isPremiumPreview={isPremiumPreview}
-                    onUnlockDemo={unlockPremiumDemo}
-                    onResetDemo={resetPremiumDemo}
-                    onFounderPass={handleFounderPassClick}
-                    checkoutLoading={premiumCheckoutLoading}
-                    checkoutError={premiumCheckoutError}
-                  />
-
-                </>
-              ) : (
-                <>
-                  <PremiumPanel data={{}} isPremium={isPremium} entitlement={entitlement} authenticated={Boolean(supabaseUser?.id)} isPremiumPreview={false} onFounderPass={handleFounderPassClick} checkoutLoading={premiumCheckoutLoading} checkoutError={premiumCheckoutError} />
-                </>
-              )}
-            </section>
           ) : null}
 
           {loading && activeAppSection !== "analyse" && (
@@ -17452,6 +17306,8 @@ export default function App() {
                     entitlement={entitlement}
                     saveStatus={cloudSaveStatus}
                     onAccount={openLoginPage}
+                    maxHistoryMonths={gameHistoryMonths}
+                    onAnalysisPeriodChange={(months) => { setImportMonths(Math.min(months, gameHistoryMonths)); goToAnalyseImport(); }}
                   />
                 </>
               ) : null}
@@ -17726,6 +17582,9 @@ export default function App() {
                 onJourney={canUseFeature(entitlement, OPENINGFIT_FEATURES.TRAINING_HISTORY) ? () => handleAppNavigate("journey") : null}
                 activeView={activeView}
                 onAnalytics={trackEvent}
+                accountMembership={accountMembership}
+                membershipContent={<section className="accountMembershipSection" id="account-membership" aria-labelledby="account-membership-title"><header><p className="eyebrow">Membership</p><h2 id="account-membership-title">Membership and billing</h2><p>Your plan, access, restoration and billing controls.</p></header><AccountPanel variant="membership" entitlementState={mobileEntitlementState} onUserChange={setAccountUser} onCloudRestore={handleCloudRestore} />{accountMembership.canUpgrade ? <PremiumPanel compact isPremium={isPremium} entitlement={entitlement} authenticated={Boolean(supabaseUser?.id)} onFounderPass={handleFounderPassClick} checkoutLoading={premiumCheckoutLoading} checkoutError={premiumCheckoutError} /> : null}</section>}
+                dataSupportContent={<section className="accountProgressHistory" aria-labelledby="account-progress-history-title"><header><p className="eyebrow">Saved data</p><h2 id="account-progress-history-title">Training and report history</h2></header>{canUseFeature(entitlement, OPENINGFIT_FEATURES.TRAINING_HISTORY) ? <RetentionJourneyPage user={supabaseUser || accountUser} data={reportData} reportHistory={effectiveReportHistory} activityHistory={activityHistory} settings={userSettings} onRecordActivity={recordCloudActivity} onSaveSettings={saveCloudSettings} onNavigate={handleAppNavigate} /> : <FeatureAccessPreview feature={OPENINGFIT_FEATURES.TRAINING_HISTORY} title="See your training history" onUpgrade={accountMembership.canUpgrade ? () => handleAppNavigate("premium") : undefined} />}</section>}
               />
             </section>
           ) : null}

@@ -76,7 +76,7 @@ function SuggestedChange({ suggestion, busy, onKeep, onAccept }) {
   );
 }
 
-export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPractice, onReport, onAccount, onTrainingHistory, onUpgrade }) {
+export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPractice, onReport, onAccount, onTrainingHistory, onUpgrade, embedded = false }) {
   const { user, entitlement, settings, saveSettings, openingFitUserState = [], refreshUserData } = useAuth();
   const hasFullRepertoire = canUseFeature(entitlement, OPENINGFIT_FEATURES.FULL_REPERTOIRE);
   const cloudWorkspace = openingFitUserState.map((row) => row?.coach_progress?.repertoireWorkspace).find(Boolean) || null;
@@ -173,16 +173,19 @@ export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPr
 
   const savedPlanFor = (card) => Object.values(responsePlans).filter((item) => !item?.fictional && normaliseOpeningKey(item?.openingName) === normaliseOpeningKey(card.openingName)).sort((left, right) => (Date.parse(right.updatedAt) || 0) - (Date.parse(left.updatedAt) || 0))[0]?.responsePlan || "";
 
-  if (data && !hasFullRepertoire) return <section className="myRepertoireEmpty" id="my-repertoire"><span>My Repertoire · Preview</span><h1>Your report has the foundations of a repertoire.</h1><p>Keep using your free coverage, style profile, evidence-supported verdicts and next training action.</p><FeatureAccessPreview feature={OPENINGFIT_FEATURES.FULL_REPERTOIRE} title="Save a permanent White and Black workspace" onUpgrade={onUpgrade} /></section>;
+  const Heading = embedded ? "h2" : "h1";
+  const embeddedClass = embedded ? " myRepertoire--embedded" : "";
+
+  if (data && !hasFullRepertoire) return <section className={`myRepertoireEmpty${embeddedClass}`} id="my-repertoire"><span>Saved repertoire · Preview</span><Heading>Your report has the foundations of a repertoire.</Heading><p>Keep using your free coverage, style profile, evidence-supported verdicts and next training action.</p><FeatureAccessPreview feature={OPENINGFIT_FEATURES.FULL_REPERTOIRE} title="Save a permanent White and Black workspace" onUpgrade={onUpgrade} /></section>;
 
   if (view.state === "loading") return <section className="myRepertoireEmpty" role="status"><span>My Repertoire</span><h1>Loading your saved repertoire…</h1><div className="repertoireLoadingBars" aria-hidden="true"><i /><i /><i /></div></section>;
-  if (view.state === "no-report") return <section className="myRepertoireEmpty" id="my-repertoire"><span>My Repertoire</span><h1>Your permanent repertoire starts with a report.</h1><p>{view.notice}</p><button className="primaryBtn" type="button" onClick={onAnalyse}>Analyse games</button></section>;
-  if (view.state === "not-built") return <section className="myRepertoireEmpty" id="my-repertoire"><span>Report ready</span><h1>Build your saved repertoire when you are ready.</h1><p>{view.notice} Nothing will be created or replaced until you confirm.</p>{user?.id ? <button className="primaryBtn" type="button" disabled={busyId === "build"} onClick={build}>{busyId === "build" ? "Building…" : "Build my repertoire"}</button> : <button className="primaryBtn" type="button" onClick={onAccount}>Sign in to build</button>}{message ? <p role="status">{message}</p> : null}</section>;
+  if (view.state === "no-report") return <section className={`myRepertoireEmpty${embeddedClass}`} id="my-repertoire"><span>Saved repertoire</span><Heading>Your permanent repertoire starts with a report.</Heading><p>{view.notice}</p><button className="primaryBtn" type="button" onClick={onAnalyse}>Analyse games</button></section>;
+  if (view.state === "not-built") return <section className={`myRepertoireEmpty${embeddedClass}`} id="my-repertoire"><span>Report ready</span><Heading>Build your saved repertoire when you are ready.</Heading><p>{view.notice} Nothing will be created or replaced until you confirm.</p>{user?.id ? <button className="primaryBtn" type="button" disabled={busyId === "build"} onClick={build}>{busyId === "build" ? "Building…" : "Build my repertoire"}</button> : <button className="primaryBtn" type="button" onClick={onAccount}>Sign in to build</button>}{message ? <p role="status">{message}</p> : null}</section>;
 
   return (
-    <section className="myRepertoire permanentRepertoireWorkspace" id="my-repertoire" aria-labelledby="my-repertoire-title">
+    <section className={`myRepertoire permanentRepertoireWorkspace${embeddedClass}`} id="my-repertoire" aria-labelledby="my-repertoire-title">
       <header className="myRepertoireHero">
-        <div><span>Permanent workspace</span><h1 id="my-repertoire-title">My Repertoire</h1><p>Your saved White and Black choices, current evidence, and next training focus.</p></div>
+        <div><span>Saved choices</span><Heading id="my-repertoire-title">Your repertoire management</Heading><p>Your saved White and Black choices, current evidence, and next training focus.</p></div>
         <div className="myRepertoireActionCard"><span>Workspace status</span><strong>{view.suggestions.length ? `${view.suggestions.length} suggested change${view.suggestions.length === 1 ? "" : "s"} waiting for you` : "Your active choices stay in place"}</strong><button type="button" onClick={onReport}>Review latest report</button></div>
       </header>
 

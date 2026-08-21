@@ -1,0 +1,49 @@
+.userRepertoireEditor {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border, var(--app-border));
+  border-radius: 14px;
+  background: var(--color-surface, var(--app-surface));
+  color: var(--color-text, var(--app-text));
+}
+
+.userRepertoireEditor > header,
+.userRepertoireEditor li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.userRepertoireEditor header span,
+.userRepertoireEditor h3 {
+  color: var(--color-text-muted, var(--app-text-soft));
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.userRepertoireEditor h2,
+.userRepertoireEditor h3,
+.userRepertoireEditor p { margin: 0; }
+.userRepertoireEditor h2 { margin-top: 0.15rem; font-size: 1rem; }
+.userRepertoireEditor > header small,
+.userRepertoireEditor li span,
+.userRepertoireEditor > p { color: var(--color-text-muted, var(--app-text-soft)); }
+.userRepertoireSections { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 0.75rem; }
+.userRepertoireSections > section { display: grid; align-content: start; gap: 0.45rem; }
+.userRepertoireEditor ul { display: grid; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.userRepertoireEditor li { min-width: 0; padding: 0.55rem 0.65rem; border-radius: 10px; background: var(--color-surface-muted, var(--color-surface)); }
+.userRepertoireEditor li > div { display: grid; min-width: 0; gap: 0.1rem; }
+.userRepertoireEditor li strong { overflow-wrap: anywhere; font-size: 0.88rem; }
+.userRepertoireEditor li span { font-size: 0.76rem; }
+.userRepertoireEditor label:not(.srOnly) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.userRepertoireEditor select { max-width: 10.5rem; min-height: 38px; border: 1px solid var(--color-border, var(--app-border)); border-radius: 8px; padding: 0 0.55rem; background: var(--color-surface, var(--app-surface)); color: var(--color-text, var(--app-text)); }
+
+@media (max-width: 520px) {
+  .userRepertoireEditor > header { align-items: start; }
+  .userRepertoireEditor li { align-items: stretch; flex-direction: column; }
+  .userRepertoireEditor select { width: 100%; max-width: none; }
+}

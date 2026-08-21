@@ -1,0 +1,196 @@
+.accountSectionNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem;
+}
+
+.accountSectionNav a {
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.35));
+  border-radius: 999px;
+  color: inherit;
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  text-decoration: none;
+}
+
+.accountProgressSection,
+.accountProgressHistory,
+.accountMembershipSection,
+.accountSettingsSection {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  scroll-margin-top: 6rem;
+}
+
+.accountProgressSection > header,
+.accountProgressHistory > header,
+.accountMembershipSection > header,
+.accountSettingsSection > header {
+  max-width: 48rem;
+}
+
+.accountMembershipControls {
+  display: grid;
+  gap: 1rem;
+}
+
+.accountMembershipRestore {
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.35));
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.accountMembershipBenefits {
+  margin-top: 0.75rem;
+}
+
+.accountMembershipBenefits ul {
+  margin-bottom: 0;
+  padding-left: 1.25rem;
+}
+
+.subscriptionPricing--compact .subscriptionPricingHero h1 {
+  font-size: clamp(1.35rem, 4vw, 2rem);
+}
+
+.subscriptionPricing--compact .subscriptionPlanGrid {
+  grid-template-columns: minmax(0, 44rem);
+}
+
+.subscriptionPricing--compact .subscriptionPlanCard--free,
+.subscriptionPricing--compact .premiumComparisonCard,
+.subscriptionPricing--compact .subscriptionBillingNotes,
+.subscriptionPricing--compact .subscriptionFaq {
+  display: none;
+}
+
+.reportRepertoireManagement {
+  margin-top: 1.25rem;
+}
+
+.reportRepertoireManagement > summary {
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 2.75rem;
+  padding: 0.75rem 0;
+}
+
+.primaryReportTrainNext {
+  margin-top: 1rem;
+  max-width: 52rem;
+}
+
+.reportMethodologyDisclosure {
+  margin-top: 1rem;
+}
+
+.reportMethodologyDisclosure > summary {
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 2.75rem;
+  padding: 0.75rem 0;
+}
+
+.repertoireCoverageActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.evidenceSufficiencySummary > div {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.evidenceSufficiencySummary article,
+.evidenceReconciliationWarning {
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.35));
+  border-radius: 1rem;
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+@media (max-width: 640px) {
+  .accountSectionNav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .accountSectionNav a {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    padding-inline: 0.5rem;
+    text-align: center;
+  }
+
+  .accountProgressSection,
+  .accountProgressHistory,
+  .accountMembershipSection,
+  .accountSettingsSection {
+    min-width: 0;
+  }
+
+  .primaryReportHealth,
+  .primaryReportTrainNext {
+    min-width: 0;
+  }
+
+  .evidenceSufficiencySummary > div {
+    grid-template-columns: 1fr;
+  }
+
+  .primaryReportTrainNext .primaryReportPosition {
+    grid-template-columns: 1fr;
+  }
+}
+.accountHubHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.accountHubHeader h1,
+.accountHubHeader p { margin: 0; }
+.accountHubHeader small { color: var(--color-text-muted, #94a3b8); }
+.accountMembershipBadge { flex: 0 0 auto; border: 1px solid currentColor; border-radius: 999px; padding: .35rem .65rem; font-size: .8rem; font-weight: 700; }
+
+.accountSectionNav[role="tablist"] {
+  display: flex;
+  gap: .25rem;
+  overflow-x: auto;
+  max-width: 100%;
+  margin-bottom: 1rem;
+  padding: .25rem;
+  border-bottom: 1px solid var(--color-border, rgba(148, 163, 184, .3));
+  scrollbar-width: thin;
+}
+
+.accountSectionNav [role="tab"] {
+  flex: 0 0 auto;
+  min-height: 44px;
+  border: 0;
+  border-radius: .5rem;
+  padding: .55rem .8rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+}
+
+.accountSectionNav [role="tab"][aria-selected="true"] { background: var(--color-surface-raised, rgba(148, 163, 184, .14)); color: var(--color-primary, #2dd4bf); }
+.accountSectionNav [role="tab"]:focus-visible { outline: 3px solid var(--color-primary, #2dd4bf); outline-offset: 2px; }
+[role="tabpanel"][hidden] { display: none !important; }
+
+@media (max-width: 640px) {
+  .accountHubHeader { align-items: flex-start; }
+  .accountHubHeader h1 { font-size: 1.45rem; }
+  .accountSectionNav[role="tablist"] { margin-inline: -.25rem; }
+  [id^="account-panel-"] { min-width: 0; max-width: 100%; padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); overflow-wrap: anywhere; }
+}

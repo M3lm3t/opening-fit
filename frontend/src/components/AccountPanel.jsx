@@ -15,7 +15,7 @@ import { logRetentionEvent } from "../services/retentionEvents";
 import { trackProductEvent } from "../lib/productAnalytics";
 import ReferralCodeEntry from "./ReferralCodeEntry";
 import { SUPPORT_EMAIL, supportMailto } from "../lib/supportConfig.js";
-import { ACCOUNT_SAVE_EXPLANATION, GOOGLE_AUTH_EXPLANATION, OPENINGFIT_PLUS_NAME, subscriptionPresentation } from "../lib/accountExperience.js";
+import { ACCOUNT_SAVE_EXPLANATION, GOOGLE_AUTH_EXPLANATION, OPENINGFIT_PLUS_NAME, membershipAccessState, subscriptionPresentation } from "../lib/accountExperience.js";
 import { getAuthRedirectUrl } from "../lib/authRedirect.js";
 import { openExternalUrl } from "../lib/externalNavigation.js";
 import { isNativeApp } from "../lib/platform.js";
@@ -114,6 +114,7 @@ function entitlementDate(value) {
 
 function SubscriptionManagement({
   entitlement,
+  entitlementState,
   loading,
   checkoutLoading,
   portalLoading,
@@ -121,8 +122,13 @@ function SubscriptionManagement({
   onUpgrade,
   onManage,
 }) {
-  if (loading) {
+  if (loading || entitlementState === "loading") {
     return <section className="accountSubscriptionCard" aria-busy="true"><span>Subscription</span><strong>Loading your access...</strong><p>Checking the protected entitlement attached to this account.</p></section>;
+  }
+
+  const membership = membershipAccessState(entitlement, entitlementState);
+  if (!membership.resolved) {
+    return <section className="accountSubscriptionCard" aria-labelledby="account-subscription-title"><div className="accountSubscriptionHeader"><div><span>Membership</span><strong id="account-subscription-title">{membership.label}</strong></div></div><p>We could not safely confirm the access attached to this account. No upgrade or billing action is shown until the status is resolved.</p></section>;
   }
 
   const accessType = entitlement?.accessType || "free";
@@ -136,10 +142,7 @@ function SubscriptionManagement({
   const statusLabel = accessType === "free"
     ? "Not subscribed"
     : status.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
-  const canManage = Boolean(
-    entitlement?.stripeCustomerId
-    && (isSubscriber || (isLifetime && entitlement?.stripeSubscriptionId))
-  );
+  const canManage = membership.canManage;
   const badgeLabel = entitlement?.hasPremiumAccess ? "Active" : accessType === "free" ? "Free" : "Inactive";
 
   let dateMessage = "No renewal date applies to free access.";
@@ -170,10 +173,11 @@ function SubscriptionManagement({
       </dl>
       <p>{dateMessage}</p>
       <small>{presentation.billingDescription}</small>
+      <div className="accountMembershipBenefits"><strong>Included with your membership</strong><ul>{membership.benefits.map((benefit) => <li key={benefit}>{benefit}</li>)}</ul></div>
       {portalError ? <p className="accountSubscriptionError" role="alert">{portalError}</p> : null}
       <div className="accountSubscriptionActions">
         {canManage ? <button type="button" onClick={onManage} disabled={portalLoading}>{portalLoading ? "Opening Stripe..." : "Manage subscription"}</button> : null}
-        {accessType === "free" ? <button type="button" onClick={onUpgrade} disabled={checkoutLoading}>{checkoutLoading ? "Opening checkout..." : `View ${OPENINGFIT_PLUS_NAME}`}</button> : null}
+        {membership.canUpgrade ? <button type="button" onClick={onUpgrade} disabled={checkoutLoading}>{checkoutLoading ? "Opening checkout..." : `View ${OPENINGFIT_PLUS_NAME}`}</button> : null}
       </div>
       {isSubscriber && !canManage ? <small>No Stripe customer account is linked yet. Refresh after Stripe finishes synchronising.</small> : null}
     </section>
@@ -183,8 +187,12 @@ function SubscriptionManagement({
 export default function AccountPanel({ variant = "floating",
   onUserChange,
   onCloudRestore,
+  entitlementState,
 }) {
-  const isScreen = variant === "screen";
+  const isMembership = variant === "membership";
+  const isProfile = variant === "profile";
+  const isDataSupport = variant === "data-support";
+  const isScreen = variant === "screen" || isMembership || isProfile || isDataSupport;
   const {
     user,
     profile: cloudProfile,
@@ -220,6 +228,7 @@ export default function AccountPanel({ variant = "floating",
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState("");
   const authBusy = saving || oauthLoading || accountLoading || !authHydrated;
+  const resolvedEntitlementState = entitlementState || (authLoading || !authHydrated || profileLoading || !profileLoaded ? "loading" : accountError || profileError ? "error" : "ready");
   const HeadingTag = isScreen && !user ? "h1" : "h3";
 
   useEffect(() => {
@@ -555,7 +564,7 @@ export default function AccountPanel({ variant = "floating",
     setPortalError("");
     setStatus("Opening monthly and annual plans...");
     void trackProductEvent("upgrade_clicked", { authenticated: true, source: "account_subscription" });
-    window.location.assign("/premium");
+    window.location.assign("/account#account-membership");
   }
 
   async function handleManageSubscription() {
@@ -657,9 +666,30 @@ export default function AccountPanel({ variant = "floating",
       window.removeEventListener("openingfit:founder-pass-intent", handleFounderPassIntent);
     };
   }, []);
-
-
-
+  if (isMembership) {
+    return (
+      <div className="accountMembershipControls">
+        <SubscriptionManagement
+          entitlement={entitlement}
+          entitlementState={resolvedEntitlementState}
+          loading={profileLoading || !profileLoaded}
+          checkoutLoading={checkoutLoading}
+          portalLoading={portalLoading}
+          portalError={portalError}
+          onUpgrade={handlePremiumCheckout}
+          onManage={handleManageSubscription}
+        />
+        <div className="accountMembershipRestore">
+          <strong>Restore account access</strong>
+          <p>Refresh subscription status and saved cloud access after reinstalling, changing device, or returning from checkout.</p>
+          <button type="button" className="secondaryButton" onClick={handleCloudRestoreClick} disabled={!user?.id || restoreInProgress || profileLoading || !profileLoaded}>
+            {restoreInProgress ? "Restoring…" : "Restore access"}
+          </button>
+          {status ? <p role="status">{status}</p> : null}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={`accountPanelShell accountPanelShell--${variant}`}>
       {!isScreen ? (
@@ -888,25 +918,26 @@ export default function AccountPanel({ variant = "floating",
 
           {isSupabaseConfigured && user ? (
             <div className="accountProfileStack">
-              <SubscriptionManagement
+              {!isProfile && !isDataSupport ? <SubscriptionManagement
                 entitlement={entitlement}
+                entitlementState={resolvedEntitlementState}
                 loading={profileLoading || !profileLoaded}
                 checkoutLoading={checkoutLoading}
                 portalLoading={portalLoading}
                 portalError={portalError}
                 onUpgrade={handlePremiumCheckout}
                 onManage={handleManageSubscription}
-              />
+              /> : null}
 
-              <div className="premiumStatusCard accountLoginStatusCard">
+              {isDataSupport ? null : <div className="premiumStatusCard accountLoginStatusCard">
                 <span>Email / login status</span>
                 <strong>{user.email || displayName}</strong>
                 <small>
                   Provider: {user.app_metadata?.provider || user.identities?.[0]?.provider || "email"}
                 </small>
-              </div>
+              </div>}
 
-              <div className="premiumStatusCard accountLoginStatusCard">
+              {isDataSupport ? null : <div className="premiumStatusCard accountLoginStatusCard">
                 <span>Account sync</span>
                 <strong>
                   {profileLoading || !profileLoaded
@@ -947,9 +978,9 @@ export default function AccountPanel({ variant = "floating",
                     Retry sync
                   </button>
                 ) : null}
-              </div>
+              </div>}
 
-              <label className="accountLabel">
+              {isDataSupport ? null : <label className="accountLabel">
                 Chess.com username
                 <input
                   value={profile.chesscom_username}
@@ -961,9 +992,9 @@ export default function AccountPanel({ variant = "floating",
                     }))
                   }
                 />
-              </label>
+              </label>}
 
-              <label className="accountLabel">
+              {isDataSupport ? null : <label className="accountLabel">
                 Lichess username
                 <input
                   value={profile.lichess_username}
@@ -975,7 +1006,7 @@ export default function AccountPanel({ variant = "floating",
                     }))
                   }
                 />
-              </label>
+              </label>}
 
 
               {!isScreen ? (
@@ -1004,7 +1035,7 @@ export default function AccountPanel({ variant = "floating",
                 </div>
               ) : null}
 
-              <div className="accountDangerZone">
+              {!isProfile ? <div className="accountDangerZone">
                 <strong>Delete account</strong>
                 <p>Deletes your profile, reports, analysed games, repertoire, training and progress data. Stripe may retain transaction records required for accounting. Confirmation is required.</p>
                 <button
@@ -1017,9 +1048,10 @@ export default function AccountPanel({ variant = "floating",
                 <a className="accountDangerLink" href={DELETE_REQUEST_MAILTO} onClick={handleRequestDeleteAccount}>
                   Request account deletion by email
                 </a>
-              </div>
+              </div> : null}
 
               <div className="accountActions">
+                {!isDataSupport ? <>
                 <button
                   type="button"
                   className="saveAccountBtn"
@@ -1044,6 +1076,7 @@ export default function AccountPanel({ variant = "floating",
                 >
                   {restoreInProgress ? "Restoring..." : "Cloud Restore"}
                 </button>
+                </> : null}
 
                 <button type="button" className="signOutBtn" onClick={signOut}>
                   Sign out
@@ -1054,7 +1087,7 @@ export default function AccountPanel({ variant = "floating",
 
           {status && user ? <div className="accountStatus">{status}</div> : null}
 
-          {user ? <nav className="accountLegalLinks" aria-label="Account help and legal links">
+          {user && !isProfile ? <nav className="accountLegalLinks" aria-label="Account help and legal links">
             <a href="/privacy">Privacy Policy</a>
             <a href="/terms">Terms</a>
             <a href={SUPPORT_MAILTO}>Support</a>

@@ -5,7 +5,7 @@ export const HOME_NAVIGATION = Object.freeze({ key: "home", label: "OpeningFit h
 export const APP_NAV_ROUTES = {
   today: { view: "dashboard", path: "/dashboard", target: "coach-dashboard", fallbackIds: ["app-dashboard"] },
   dashboard: { view: "dashboard", path: "/dashboard", target: "coach-dashboard", fallbackIds: ["app-dashboard"] },
-  home: { view: "analyse", path: "/", target: "app-dashboard", fallbackIds: ["import"] },
+  home: { view: "dashboard", path: "/dashboard", target: "coach-dashboard", fallbackIds: ["app-dashboard", "import"] },
   analyse: { view: "analyse", path: "/analyse", target: "import" },
   import: { view: "analyse", path: "/analyse", target: "import" },
   report: { view: "report", path: "/report", target: "app-results" },
@@ -18,10 +18,11 @@ export const APP_NAV_ROUTES = {
     reportMode: "full",
   },
   repertoire: {
-    view: "repertoire",
-    path: "/repertoire",
-    target: "my-repertoire",
-    fallbackIds: ["app-dashboard"],
+    view: "report",
+    path: "/report",
+    target: "report-repertoire-view",
+    fallbackIds: ["app-results"],
+    reportView: "repertoire",
   },
   openings: {
     view: "report",
@@ -53,9 +54,9 @@ export const APP_NAV_ROUTES = {
     target: "report-history",
     fallbackIds: ["recommendation-history", "profile"],
   },
-  progress: { view: "progress", path: "/progress", target: "openingfit-progress", fallbackIds: ["profile"] },
-  journey: { view: "journey", path: "/journey", target: "journey-page", fallbackIds: ["app-dashboard"] },
-  premium: { view: "premium", path: "/premium", target: "premium", fallbackIds: ["profile"] },
+  progress: { view: "account", path: "/account", target: "account-progress", fallbackIds: ["profile"] },
+  journey: { view: "account", path: "/account", target: "account-progress", fallbackIds: ["profile"] },
+  premium: { view: "account", path: "/account", target: "account-membership", fallbackIds: ["profile"] },
   feedback: { view: "feedback", path: "/", target: "feedback" },
 };
 
@@ -64,9 +65,26 @@ export const OWNED_PRODUCT_ROUTES = Object.freeze({
   "/analyse": Object.freeze({ view: "analyse", kind: "analysis", hydrateReport: false }),
   "/report": Object.freeze({ view: "report", kind: "report", hydrateReport: true }),
   "/train": Object.freeze({ view: "train", kind: "training", hydrateReport: true }),
-  "/progress": Object.freeze({ view: "progress", kind: "progress", hydrateReport: true }),
+  "/progress": Object.freeze({ view: "account", kind: "legacy-progress", hydrateReport: true }),
   "/report/sample": Object.freeze({ view: "report", kind: "sample", hydrateReport: false }),
 });
+
+export const LEGACY_PRODUCT_REDIRECTS = Object.freeze({
+  "/repertoire": "/report#report-repertoire",
+  "/progress": "/account#account-progress",
+  "/journey": "/account#account-progress",
+  "/pricing": "/account#account-membership",
+  "/premium": "/account#account-membership",
+  "/upgrade": "/account#account-membership",
+});
+
+export function legacyProductRedirect(pathname = "/", search = "") {
+  const path = String(pathname || "/").replace(/\/+$/, "") || "/";
+  const destination = LEGACY_PRODUCT_REDIRECTS[path];
+  if (!destination) return null;
+  const [nextPath, hash = ""] = destination.split("#");
+  return `${nextPath}${String(search || "")}${hash ? `#${hash}` : ""}`;
+}
 
 export function resolveOwnedProductRoute(pathname = "/") {
   const raw = String(pathname || "/").split(/[?#]/)[0] || "/";
@@ -83,7 +101,7 @@ export function getAppSection(view) {
     analyze: "analyse",
     overview: "report",
     report: "report",
-    repertoire: "repertoire",
+    repertoire: "report",
     openings: "report",
     weakspots: "report",
     recommendations: "report",
@@ -98,10 +116,10 @@ export function getAppSection(view) {
     account: "profile",
     login: "profile",
     history: "profile",
-    progress: "progress",
-    journey: "journey",
-    premium: "premium",
-    upgrade: "premium",
+    progress: "profile",
+    journey: "profile",
+    premium: "profile",
+    upgrade: "profile",
     feedback: "feedback",
   };
 

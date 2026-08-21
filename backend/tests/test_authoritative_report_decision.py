@@ -153,11 +153,55 @@ def test_historical_repertoire_survives_recent_opening_experiments():
     assert history[("Owen's Defence", "black_vs_e4")]["totalEligibleGames"] == 8
     assert history[("Owen's Defence", "black_vs_e4")]["historicalGames"] == 8
     assert history[("Caro-Kann Defence", "black_vs_e4")]["recentGames"] == 4
+    assert history[("Nimzo-Larsen Attack", "white")]["canonicalOpeningId"] == "nimzo-larsen-attack"
+    assert history[("Owen's Defence", "black_vs_e4")]["canonicalOpeningId"] == "owens-defence"
     assert history[("Owen's Defence", "black_vs_e4")]["continuity"]["repeatedAcrossTime"] is True
     assert history[("Owen's Defence", "black_vs_e4")]["performance"]["scoreRate"] is not None
     assert roles["white"]["currentOpening"] == "Nimzo-Larsen Attack"
     assert roles["black_vs_e4"]["currentOpening"] == "Owen's Defence"
     assert decision["primaryAction"].get("opening") not in {"Caro-Kann Defence", "Sicilian Defence"}
+
+
+def test_recent_experiments_are_visible_but_do_not_lower_main_repertoire_health():
+    established_dates = ["2025-09-07", "2025-10-19", "2025-11-21", "2025-12-11", "2026-01-17", "2026-02-09"]
+    experiment_dates = ["2026-07-03", "2026-07-19", "2026-08-02", "2026-08-15"]
+    established_games = dated_games("Owen's Defence", "black_vs_e4", established_dates, prefix="owen")
+    experiment_games = dated_games("Caro-Kann Defence", "black_vs_e4", experiment_dates, prefix="caro", results=["loss"] * 4)
+    established_row = opening("Owen's Defence", "black_vs_e4", ["win", "draw", "loss", "win", "draw", "loss"])
+    experiment_row = opening("Caro-Kann Defence", "black_vs_e4", ["loss"] * 4)
+
+    baseline = build([established_row], established_games)
+    with_experiment = build([established_row, experiment_row], [*established_games, *experiment_games])
+
+    assert with_experiment["repertoireHealth"]["score"] == baseline["repertoireHealth"]["score"]
+    role = next(row for row in with_experiment["repertoireHealth"]["roleScores"] if row["key"] == "black_e4")
+    assert role["roleGames"] == 6
+    assert role["excludedExperimentGames"] == 4
+    assert role["topOpeningShare"] == 100
+    assert with_experiment["repertoireHealth"]["recentExperiments"] == [{
+        "canonicalOpeningId": "caro-kann-defence", "opening": "Caro-Kann Defence",
+        "repertoireRole": "black_vs_e4", "status": "struggling", "statusLabel": "struggling",
+        "recentGames": 4,
+        "performance": {"wins": 0, "draws": 0, "losses": 4, "scoreRate": 0.0},
+        "includedInPrimaryScore": False,
+    }]
+
+
+def test_explicit_repertoire_choice_overrides_scoring_presentation_not_history():
+    historical = dated_games("Owen's Defence", "black_vs_e4", ["2025-09-07", "2025-10-19", "2025-11-21", "2025-12-11", "2026-01-17", "2026-02-09"], prefix="owen")
+    recent = dated_games("Caro-Kann Defence", "black_vs_e4", ["2026-07-03", "2026-07-19", "2026-08-02", "2026-08-15"], prefix="caro", results=["loss"] * 4)
+    rows = [opening("Owen's Defence", "black_vs_e4", ["win", "draw", "loss", "win", "draw", "loss"]), opening("Caro-Kann Defence", "black_vs_e4", ["loss"] * 4)]
+    decision = build(rows, [*historical, *recent], repertoirePreferences=[{
+        "repertoireRole": "black_vs_e4", "canonicalOpeningId": "caro-kann-defence", "preference": "main",
+    }])
+    caro = next(row for row in decision["repertoireHistory"]["openings"] if row["canonicalOpeningId"] == "caro-kann-defence")
+    role = next(row for row in decision["repertoireHealth"]["roleScores"] if row["key"] == "black_e4")
+
+    assert caro["classification"] == "EXPERIMENT"
+    assert caro["effectiveClassification"] == "MAIN_REPERTOIRE"
+    assert caro["userPreference"] == "main"
+    assert role["excludedExperimentGames"] == 0
+    assert decision["repertoireHealth"]["recentExperiments"] == []
 
 
 def test_six_game_severe_weakness_outranks_seven_game_playable_opening():
@@ -287,7 +331,7 @@ def test_repertoire_health_is_versioned_reproducible_and_weights_reconcile():
     health = payload["repertoireHealth"]
     available = [row for row in health["components"] if row["available"]]
 
-    assert health["version"] == health["formulaVersion"] == "repertoire_health_v2"
+    assert health["version"] == health["formulaVersion"] == "repertoire_health_v3"
     assert health["score"] == pytest.approx(sum(row["contribution"] for row in available), abs=1e-5)
     assert sum(row["baseWeight"] for row in health["components"]) == 100
     assert sum(row["effectiveWeight"] for row in available) == pytest.approx(100, abs=1e-5)

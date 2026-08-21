@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { annualEffectiveMonthly, annualSavings, canStartCheckout, canUsePremiumPreview, checkoutReturnState, checkoutUnavailableMessage, confirmEntitlementWithRetry, formatGbp, normaliseBillingConfiguration, normaliseBillingInterval, premiumFeatureStructure } from "./premiumExperience.js";
+import { annualEffectiveMonthly, annualSavings, canStartCheckout, canUsePremiumPreview, checkoutAvailabilityState, checkoutReturnState, checkoutUnavailableMessage, confirmEntitlementWithRetry, formatGbp, normaliseBillingConfiguration, normaliseBillingInterval, premiumFeatureStructure } from "./premiumExperience.js";
 test("production preview flags cannot grant access", () => { assert.equal(canUsePremiumPreview({ isDevelopment: false, requested: true }), false); assert.equal(canUsePremiumPreview({ isDevelopment: true, requested: true }), true); });
 test("paid copy includes only implemented outcomes", () => { const model = premiumFeatureStructure(); assert.match(model.free.join(" "), /Useful first report/); assert.match(model.free.join(" "), /when supported by evidence/i); assert.match(model.free.join(" "), /One next training action/i); assert.doesNotMatch(model.free.join(" "), /One Keep recommendation|One Repair recommendation/i); assert.match(model.premium.join(" "), /Honest recurrence and improvement checks/); assert.match(model.premium.join(" "), /Living three-role repertoire/); assert.match(model.premium.join(" "), /source-game reviews when recoverable/i); assert.match(model.premium.join(" "), /general setup drills otherwise/i); assert.doesNotMatch(model.premium.join(" "), /email|engine|course library|guaranteed/i); });
 test("delayed entitlement retries successfully", async () => { let calls = 0; const result = await confirmEntitlementWithRetry(async () => ++calls === 2, { delay: async () => {} }); assert.deepEqual(result, { confirmed: true, attempts: 2 }); });
@@ -38,6 +38,13 @@ test("unavailable checkout gives an actionable safe reason", () => {
   assert.match(checkoutUnavailableMessage({}, "error"), /payment service could not be reached/i);
 });
 
+test("checkout states distinguish disabled, signed-out, temporary and configuration failures", () => {
+  assert.equal(checkoutAvailabilityState({ unavailableReasons: ["subscriptions_disabled"] }, "ready", true).kind, "disabled");
+  assert.equal(checkoutAvailabilityState({ checkoutReady: true, monthly: { available: true }, annual: { available: true } }, "ready", false).kind, "authentication_required");
+  assert.deepEqual(checkoutAvailabilityState({}, "error", true), { kind: "temporary_failure", message: "Checkout availability could not be checked just now. Your account is unaffected.", canRetry: true });
+  assert.equal(checkoutAvailabilityState({ unavailableReasons: ["stripe_secret_missing"] }, "ready", true).kind, "configuration");
+});
+
 test("checkout click locking and server-selected interval are retained", () => {
   const app = fs.readFileSync(fileURLToPath(new URL("../App.jsx", import.meta.url)), "utf8");
   const api = fs.readFileSync(fileURLToPath(new URL("../accountApi.js", import.meta.url)), "utf8");
@@ -46,5 +53,5 @@ test("checkout click locking and server-selected interval are retained", () => {
   assert.match(api, /\[.*"monthly".*"annual".*\]\.includes\(billingInterval\)/s);
   assert.match(api, /billingInterval: interval/);
   assert.doesNotMatch(api, /priceId:\s|stripePriceId:\s/);
-  assert.match(app, /localStorage\.setItem\(AUTH_RETURN_PATH_KEY, "\/premium"\)/);
+  assert.match(app, /localStorage\.setItem\(AUTH_RETURN_PATH_KEY, "\/account#account-membership"\)/);
 });

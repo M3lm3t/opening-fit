@@ -11688,12 +11688,13 @@ body.dark {
 
 .opponentPrepInputRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 10px;
   margin-top: 18px;
 }
 
-.opponentPrepInputRow input {
+.opponentPrepInputRow input,
+.opponentPrepInputRow select {
   min-height: 48px;
   border-radius: 16px;
   border: 1px solid rgba(148, 163, 184, 0.36);
@@ -11705,7 +11706,9 @@ body.dark {
 }
 
 .page.dark .opponentPrepInputRow input,
-[data-theme="dark"] .opponentPrepInputRow input {
+.page.dark .opponentPrepInputRow select,
+[data-theme="dark"] .opponentPrepInputRow input,
+[data-theme="dark"] .opponentPrepInputRow select {
   background: rgba(2, 6, 23, 0.56);
   color: #f8fafc;
 }
@@ -49547,4 +49550,34 @@ hr,
   border-color: rgba(71, 85, 105, 0.3) !important;
   color: #475569 !important;
   opacity: 0.82 !important;
+}
+.reportAnalysisContext {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.4rem 0 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--color-border, var(--app-border));
+  border-radius: 12px;
+  background: var(--color-surface, var(--app-surface));
+}
+
+.reportAnalysisContextSummary { display: grid; gap: 0.15rem; min-width: 0; }
+.reportAnalysisContextSummary > span,
+.reportAnalysisPeriodSelector legend { color: var(--color-text-muted, var(--app-text-soft)); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }
+.reportAnalysisContextSummary strong { font-size: 0.95rem; }
+.reportAnalysisContextSummary strong b,
+.reportAnalysisContextSummary small b { margin: 0 0.25rem; font-weight: inherit; }
+.reportAnalysisContextSummary small { color: var(--color-text-muted, var(--app-text-soft)); font-size: 0.78rem; }
+.reportAnalysisPeriodSelector { margin: 0; padding: 0; border: 0; }
+.reportAnalysisPeriodSelector > div { display: flex; flex-wrap: wrap; justify-content: end; gap: 0.3rem; }
+.reportAnalysisPeriodSelector button { min-height: 34px; border: 1px solid var(--color-border, var(--app-border)); border-radius: 8px; padding: 0.35rem 0.55rem; background: var(--color-surface-muted, var(--app-surface-soft)); color: var(--color-text, var(--app-text)); font: inherit; font-size: 0.75rem; cursor: pointer; }
+.reportAnalysisPeriodSelector button.isActive { border-color: var(--color-primary, var(--app-accent)); color: var(--color-primary, var(--app-accent)); font-weight: 700; }
+.reportAnalysisPeriodSelector button:disabled { cursor: not-allowed; opacity: 0.5; }
+
+@media (max-width: 700px) {
+  .reportAnalysisContext { align-items: stretch; flex-direction: column; padding: 0.7rem; }
+  .reportAnalysisPeriodSelector > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reportAnalysisPeriodSelector button { width: 100%; }
 }

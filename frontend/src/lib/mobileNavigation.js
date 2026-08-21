@@ -1,8 +1,8 @@
 const CORE_MOBILE_NAVIGATION = Object.freeze([
+  Object.freeze({ key: "home", label: "Home", activeViews: ["home", "dashboard", "analyse", "import"] }),
   Object.freeze({ key: "report", label: "Report", needsReport: true, activeViews: ["report", "recommendations", "openings", "weakspots", "verdicts"] }),
-  Object.freeze({ key: "repertoire", label: "Repertoire", needsReport: true, activeViews: ["repertoire"] }),
   Object.freeze({ key: "train", label: "Train", activeViews: ["train", "training", "interactive", "practice"] }),
-  Object.freeze({ key: "progress", label: "Progress", activeViews: ["progress"] }),
+  Object.freeze({ key: "account", label: "Account", activeViews: ["profile", "account", "login", "history", "progress", "premium", "upgrade"] }),
 ]);
 
 /**
@@ -11,39 +11,8 @@ const CORE_MOBILE_NAVIGATION = Object.freeze([
  * or browser state.
  */
 export function buildMobileNavigationItems({ authenticated = false, entitlement = null, entitlementState = "loading", nativeApp = false } = {}) {
-  const items = CORE_MOBILE_NAVIGATION.map((item) => ({ ...item }));
-  if (nativeApp) {
-    items.push({
-      key: "account",
-      label: "Account",
-      activeViews: ["profile", "account", "login", "history"],
-    });
-    if (entitlementState === "ready" && !entitlement?.hasPremiumAccess) {
-      items.push({
-        key: "premium",
-        label: authenticated ? "Plus" : "Pricing",
-        activeViews: ["premium", "upgrade"],
-      });
-    }
-    return items;
-  }
-  if (entitlementState !== "ready") return items;
-
-  if (entitlement?.hasPremiumAccess) {
-    items.push({
-      key: "account",
-      label: entitlement.accessType === "lifetime" ? "Access" : "Account",
-      activeViews: ["profile", "account", "history"],
-    });
-    return items;
-  }
-
-  items.push({
-    key: "premium",
-    label: authenticated ? "Plus" : "Pricing",
-    activeViews: ["premium", "upgrade"],
-  });
-  return items;
+  void authenticated; void entitlement; void entitlementState; void nativeApp;
+  return CORE_MOBILE_NAVIGATION.map((item) => ({ ...item }));
 }
 
 export function isMobileNavigationItemActive(item, activeView, activeSection) {

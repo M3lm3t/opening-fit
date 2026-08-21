@@ -39,7 +39,11 @@ export function buildRepertoireCoverage(model = {}) {
         : state === REPERTOIRE_COVERAGE_STATES.LOW_CONFIDENCE
           ? "Some relevant games exist, but the evidence is not reliable enough to establish this role yet."
           : "No opening has enough reliable, role-specific evidence here yet.";
-    return { ...spec, opening, state, statusLabel: labelFor(state), games, confidence: source.confidence?.label || null, evidence: source.confidenceExplanation || source.evidenceReason || null, explanation, source };
+    const wins = finite(source.wins) ? Number(source.wins) : null;
+    const draws = finite(source.draws) ? Number(source.draws) : null;
+    const losses = finite(source.losses) ? Number(source.losses) : null;
+    const performance = [wins, draws, losses].every((value) => value !== null) ? `${wins}W · ${draws}D · ${losses}L` : source.performanceLabel || source.performance || null;
+    return { ...spec, opening, state, statusLabel: labelFor(state), games, performance, confidence: source.confidence?.label || null, evidence: source.confidenceExplanation || source.evidenceReason || null, explanation, source };
   });
   const establishedCount = roles.filter(({ state }) => state === REPERTOIRE_COVERAGE_STATES.ESTABLISHED || state === REPERTOIRE_COVERAGE_STATES.NEEDS_REPAIR).length;
   const repairCount = roles.filter(({ state }) => state === REPERTOIRE_COVERAGE_STATES.NEEDS_REPAIR).length;

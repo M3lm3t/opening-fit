@@ -59,6 +59,15 @@ export function checkoutUnavailableMessage(config, state = "ready") {
   return "Secure checkout is currently unavailable. You can still compare monthly and annual billing.";
 }
 
+export function checkoutAvailabilityState(config, state = "ready", authenticated = false) {
+  if (state === "loading") return { kind: "loading", message: "Checking secure checkout availability…", canRetry: false };
+  if (state === "error") return { kind: "temporary_failure", message: "Checkout availability could not be checked just now. Your account is unaffected.", canRetry: true };
+  const billing = normaliseBillingConfiguration(config);
+  if (!billing.checkoutReady) return { kind: billing.unavailableReasons.includes("subscriptions_disabled") ? "disabled" : "configuration", message: checkoutUnavailableMessage(billing, state), canRetry: false };
+  if (!authenticated) return { kind: "authentication_required", message: "Sign in to continue to secure checkout.", canRetry: false };
+  return { kind: "available", message: "Secure checkout is available.", canRetry: false };
+}
+
 export function formatGbp(amount) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 2 }).format(Number(amount) || 0);
 }

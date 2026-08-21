@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { accountExperienceState, subscriptionPresentation } from "./accountExperience.js";
+import { accountExperienceState, membershipAccessState, subscriptionPresentation } from "./accountExperience.js";
 import { HOME_NAVIGATION } from "../appNavigation.js";
 
 const read = (relative) => fs.readFileSync(fileURLToPath(new URL(relative, import.meta.url)), "utf8");
@@ -13,6 +13,28 @@ test("account experience separates loading, signed-out and authenticated states"
   assert.equal(accountExperienceState({ user: { id: "user-1" }, profileLoading: true }), "restoring_account");
   assert.equal(accountExperienceState({ user: null }), "signed_out");
   assert.equal(accountExperienceState({ user: { id: "user-1" } }), "authenticated");
+});
+
+test("membership actions fail closed until entitlement is resolved", () => {
+  for (const state of ["loading", "error"]) {
+    assert.deepEqual(membershipAccessState(null, state), {
+      resolved: false,
+      kind: "unresolved",
+      label: "Membership status unavailable",
+      canUpgrade: false,
+      canManage: false,
+      benefits: ["Your existing access is not changed while status is being checked."],
+    });
+  }
+  assert.equal(membershipAccessState({}, "ready").canUpgrade, false);
+});
+
+test("only an explicitly resolved free membership can upgrade", () => {
+  const free = membershipAccessState({ accessType: "free", hasPremiumAccess: false }, "ready");
+  assert.equal(free.canUpgrade, true);
+  assert.equal(membershipAccessState({ accessType: "lifetime", hasPremiumAccess: true }, "ready").canUpgrade, false);
+  assert.equal(membershipAccessState({ accessType: "monthly_subscription", hasPremiumAccess: true, stripeCustomerId: "cus_1" }, "ready").canManage, true);
+  assert.equal(membershipAccessState({ accessType: "annual_subscription", hasPremiumAccess: true }, "ready").canUpgrade, false);
 });
 
 test("free, subscription and grandfathered lifetime terminology is stable", () => {

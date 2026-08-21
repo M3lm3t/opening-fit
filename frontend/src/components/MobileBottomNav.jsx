@@ -1,15 +1,13 @@
-import { BookOpenCheck, ChartNoAxesCombined, Crown, Dumbbell, TrendingUp, UserRound } from "lucide-react";
+import { ChartNoAxesCombined, Dumbbell, House, UserRound } from "lucide-react";
 import { getAppSection } from "../appNavigation";
 import { buildMobileNavigationItems, isMobileNavigationItemActive } from "../lib/mobileNavigation.js";
 import { isNativeApp } from "../lib/platform.js";
 import { canonicalAppDestination, isCanonicalDestinationActive } from "../lib/reportViews.js";
 
 const ICONS = Object.freeze({
+  home: House,
   report: ChartNoAxesCombined,
-  repertoire: BookOpenCheck,
   train: Dumbbell,
-  progress: TrendingUp,
-  premium: Crown,
   account: UserRound,
 });
 
@@ -35,10 +33,6 @@ export default function MobileBottomNav({
     const target = item.needsReport && !hasReport ? "analyse" : item.key;
     const canonical = canonicalAppDestination(target);
     if (canonical) { onNavigate?.(canonical); return; }
-    if (target === "premium") {
-      onNavigate?.({ view: "premium", path: "/premium", target: "premium" });
-      return;
-    }
     onNavigate?.(target);
   }
 
@@ -50,7 +44,7 @@ export default function MobileBottomNav({
     >
       {items.map((item) => {
         const isReportPrompt = item.needsReport && !hasReport;
-        const isActive = isCanonicalDestinationActive(item.key) || isMobileNavigationItemActive(item, activeView, activeSection) && !["report", "repertoire", "train"].includes(item.key);
+        const isActive = isCanonicalDestinationActive(item.key) || isMobileNavigationItemActive(item, activeView, activeSection) && !["home", "report", "train", "account"].includes(item.key);
 
         return (
           <button

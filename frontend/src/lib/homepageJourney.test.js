@@ -7,7 +7,7 @@ test("analysis settings precede the main CTA and explain paid ranges", async () 
   const form = source.slice(source.indexOf('className="searchRow topBar appActionPanel heroImportFlow"'), source.indexOf('className="compactTrustRow"'));
   assert.ok(form.indexOf('className="landingAdvancedOptions"') < form.indexOf("Get my opening report"));
   assert.match(form, /Six- and twelve-month history are included with OpeningFit Plus/);
-  assert.match(form, /href="\/premium"/);
+  assert.match(form, /href="\/account#account-membership"/);
 });
 
 test("landing trust notes are semantic information rather than controls", async () => {

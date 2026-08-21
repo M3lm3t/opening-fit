@@ -69,8 +69,8 @@ test("Overview keeps one evidence renderer, compact mobile rules, and canonical 
   assert.match(source, /<h2[^>]*>\{scoreView\.scoreDisplayLabel\}[^<]+\{scoreView\.developmentState\.label\}<\/h2>\s*<p className="primaryReportHealthSummary">\{scoreView\.explanation\}<\/p>/);
   assert.match(source, /data-decision-id=\{view\.decisionId \|\| undefined\}/);
   assert.match(source, /data-diagnosis-id=\{view\.diagnosisId \|\| undefined\}/);
-  assert.ok(source.indexOf('data-command-role="keep"') < source.indexOf('data-command-role="repair"'));
-  assert.ok(source.indexOf('data-command-role="repair"') < source.indexOf('data-command-role="train-next"'));
+  assert.ok(source.indexOf('data-command-role="repair"') < source.indexOf('data-command-role="keep"'));
+  assert.ok(source.indexOf('data-command-role="keep"') < source.indexOf('data-command-role="train-next"'));
   assert.match(styles, /@media \(max-width: 520px\)[\s\S]*\.primaryReportDecisionEvidence p/);
   assert.match(styles, /@media \(max-width: 900px\)[\s\S]*\.primaryReportCommandGrid \{ grid-template-columns: 1fr; \}/);
   assert.match(styles, /@media \(max-width: 900px\)[\s\S]*\.primaryReportCommand--repair \{ order: 1; \}[\s\S]*\.primaryReportCommand--train \{ order: 2; \}[\s\S]*\.primaryReportCommand--keep \{ order: 3; \}/);

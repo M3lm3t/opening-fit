@@ -319,7 +319,7 @@ def test_large_scandinavian_black_sample_establishes_the_role_and_coverage_uses_
     assert (black_e4["status"], black_e4["supportingGameCount"]) == ("established", 78)
     assert white["supportingGameCount"] == 0
     coverage = build_repertoire_coverage_score(roles)
-    assert coverage["formulaVersion"] == "repertoire_health_v2"
+    assert coverage["formulaVersion"] == "repertoire_health_v3"
     assert coverage["weightsTotal"] == 100
     assert coverage["score"] == pytest.approx(sum(row["contribution"] for row in coverage["components"]), abs=1e-6)
     black_score = next(row for row in coverage["roleScores"] if row["key"] == "black_e4")

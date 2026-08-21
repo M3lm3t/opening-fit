@@ -22,6 +22,15 @@ def _opening_key(value: Any) -> str:
     return "-".join(_text(value).lower().replace("'", "").split())
 
 
+def _canonical_opening_id(game: Mapping[str, Any], opening: str) -> str:
+    return _text(
+        game.get("canonicalOpeningId")
+        or game.get("canonical_opening_id")
+        or game.get("openingId")
+        or game.get("opening_id")
+    ) or _opening_key(opening)
+
+
 def _played_at(game: Mapping[str, Any]) -> datetime | None:
     raw = next((game.get(key) for key in ("playedAt", "played_at", "played_date", "end_time", "endTime", "createdAt") if game.get(key) is not None), None)
     if raw is None:
@@ -59,7 +68,12 @@ def build_repertoire_history(games: Iterable[Mapping[str, Any]]) -> dict[str, An
             continue
         if not perspective.get("roleAttributionTrusted") or perspective.get("relationship") != "played":
             continue
-        eligible.append({"game": game, "opening": opening, "openingKey": _opening_key(opening), "role": role, "playedAt": _played_at(game)})
+        eligible.append({
+            "game": game, "opening": opening,
+            "openingKey": _opening_key(opening),
+            "canonicalOpeningId": _canonical_opening_id(game, opening),
+            "role": role, "playedAt": _played_at(game),
+        })
 
     dated = [row for row in eligible if row["playedAt"] is not None]
     latest = max((row["playedAt"] for row in dated), default=None)
@@ -103,7 +117,8 @@ def build_repertoire_history(games: Iterable[Mapping[str, Any]]) -> dict[str, An
         decided = results["win"] + results["draw"] + results["loss"]
         score_rate = round(((results["win"] + 0.5 * results["draw"]) / decided) * 100, 1) if decided else None
         openings.append({
-            "opening": rows[0]["opening"], "openingKey": opening_key, "repertoireRole": role,
+            "opening": rows[0]["opening"], "openingKey": opening_key,
+            "canonicalOpeningId": rows[0]["canonicalOpeningId"], "repertoireRole": role,
             "classification": classification, "isCurrent": bool(recent_rows),
             "totalEligibleGames": len(rows), "recentGames": len(recent_rows), "historicalGames": len(historical_rows),
             "datedGames": len(dated_rows), "undatedGames": len(rows) - len(dated_rows),

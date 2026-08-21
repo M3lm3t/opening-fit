@@ -37,7 +37,8 @@ test("responsive report hierarchy and accessible evidence labels remain intact",
   assert.match(summary, /@media \(max-width: 900px\)[\s\S]*?\.primaryReportCommand--repair \{ order: 1; \}[\s\S]*?\.primaryReportCommand--train \{ order: 2; \}[\s\S]*?\.primaryReportCommand--keep \{ order: 3; \}/);
   assert.match(summary, /@media \(max-width: 520px\)[\s\S]*?\.primaryReportCommand button,[\s\S]*?width: 100%;/);
   assert.match(component, /aria-label="Decision evidence"/);
-  assert.match(component, /aria-label="Keep, repair and train next"/);
+  assert.match(component, /aria-label="Repair, keep and optional experiment"/);
+  assert.match(component, /data-primary-training-cta="true"/);
 });
 
 test("repertoire coverage cards collapse to readable single-column mobile geometry", () => {

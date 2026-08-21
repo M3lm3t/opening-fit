@@ -37,6 +37,11 @@ export default function ReportGameCountSummary({ report, saveStatus = "", authen
           <li><strong>{counts.usedForOpeningStats}</strong> Used in opening statistics</li>
           <li><strong>{counts.excludedGames}</strong> Excluded from opening statistics</li>
         </ol> : null}
+        {counts.roleAllocation ? <div className="reportRoleReconciliation">
+          <strong>Eligible games by repertoire role</strong>
+          <p>White: {counts.roleAllocation.white} · Black vs 1.e4: {counts.roleAllocation.blackVsE4} · Black vs 1.d4: {counts.roleAllocation.blackVsD4} · Outside core roles: {counts.roleAllocation.outsideCore} · Unresolved: {counts.roleAllocation.unresolved}</p>
+          {counts.roleAllocation.status === "invalid" ? <p role="alert">Role attribution failed safely. Diagnostic reference: {counts.roleAllocation.diagnosticReference || "unavailable"}. Reanalyse before using repertoire conclusions.</p> : null}
+        </div> : null}
         {counts.analysisLimit ? <p><strong>Maximum-game cap:</strong> {counts.analysisLimit}. {counts.analysisSelectionRule === "newest_first" ? "Matching games are selected newest first; capped games are not invalid." : "The stored report does not identify the selection order."}</p> : null}
         <dl>
           {Object.entries(REPORT_COUNT_DEFINITIONS).map(([key, definition]) => (

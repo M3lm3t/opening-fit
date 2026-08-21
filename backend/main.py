@@ -13,6 +13,8 @@ from analysis.game_diagnostics import build_diagnostic_summary
 from analysis.opening_fit_metrics import build_opening_fit_metrics, merge_opening_fit_metrics
 from analysis.opening_coach_insights import build_opening_coach_insights
 from analysis.opening_training_opportunities import extract_opening_training_opportunities
+from analysis.recurring_opening_habits import detect_recurring_opening_habits
+from analysis.opponent_prep import build_opponent_prep
 from analysis.game_check import build_game_check_change_set
 from analysis.retention_metrics import build_retention_metrics
 from analysis.opening_perspective import (
@@ -319,7 +321,7 @@ class GameCheckRequest(BaseModel):
     checked_ids: Optional[List[str]] = None
     priority: Optional[Dict[str, Any]] = None
     response_plan: Optional[Dict[str, Any]] = None
-    previous_report: Optional[Dict[str, Any]] = None
+    comparable: bool = False
     import_limit: Optional[int] = None
 
 
@@ -882,7 +884,7 @@ def evaluate_game_check(payload: GameCheckRequest):
         checked_ids=payload.checked_ids or [],
         priority=payload.priority,
         response_plan=payload.response_plan,
-        previous_report=payload.previous_report,
+        comparable=payload.comparable,
         import_limit=payload.import_limit,
     )
 
@@ -2055,6 +2057,33 @@ def build_role_evidence_accounting(records: List[Dict[str, Any]], game_counts: D
         "status": "invalid" if invalid else "trusted",
         "diagnosticReference": f"role-{hashlib.sha256(diagnostic_seed.encode()).hexdigest()[:12]}",
     }
+
+
+def enrich_game_reconciliation(game_counts: Dict[str, Any], role_accounting: Dict[str, Any]) -> Dict[str, Any]:
+    """Add role allocation to the one authoritative import reconciliation."""
+    base = dict(game_counts.get("gameReconciliation") or game_counts.get("game_reconciliation") or {})
+    base.update({
+        "requested_games": int(base.get("total_imported", 0) or 0),
+        "imported_games": int(game_counts.get("gamesFetched", 0) or 0),
+        "successfully_parsed_games": int(game_counts.get("gamesParsed", 0) or 0),
+        "eligible_games": int(role_accounting.get("eligibleGames", 0) or 0),
+        "duplicate_games": int(role_accounting.get("duplicateGames", 0) or 0),
+        "white_role_games": int(role_accounting.get("whiteGames", 0) or 0),
+        "black_vs_e4_games": int(role_accounting.get("blackVsE4Games", 0) or 0),
+        "black_vs_d4_games": int(role_accounting.get("blackVsD4Games", 0) or 0),
+        "unresolved_role_games": int(role_accounting.get("attributionErrors", 0) or 0),
+        "outside_core_role_games": int(role_accounting.get("eligibleOutsideCoreRoles", 0) or 0),
+        "attribution_errors": int(role_accounting.get("attributionErrors", 0) or 0),
+        "attribution_reason_counts": dict(role_accounting.get("attributionReasonCounts") or {}),
+        "status": str(role_accounting.get("status") or "trusted"),
+        "diagnostic_reference": role_accounting.get("diagnosticReference"),
+    })
+    allocated = base["white_role_games"] + base["black_vs_e4_games"] + base["black_vs_d4_games"] + base["unresolved_role_games"] + base["outside_core_role_games"]
+    if allocated != base["eligible_games"]:
+        raise ValueError("game_reconciliation_contract: eligible role allocation does not reconcile")
+    game_counts["gameReconciliation"] = base
+    game_counts["game_reconciliation"] = base
+    return base
 
 
 def classified_game_pipeline_counts(records: List[Dict[str, Any]]) -> Dict[str, int]:
@@ -9379,6 +9408,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
 
     premium_data = build_premium_data(best_openings, style_profile)
     opening_training_opportunities = extract_opening_training_opportunities(recent_games, user_id=username, username=username)
+    recurring_opening_habits = detect_recurring_opening_habits(recent_games, user_id=username, username=username)
     diagnostic_summary = build_diagnostic_summary(recent_games, username=username)
     attribution_diagnostics = summarise_attribution_diagnostics(recent_games)
 
@@ -9408,6 +9438,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
         opening_stat_games=sum(int(stats.get("games", 0) or 0) for stats in context_opening_results.values()),
     )
     role_evidence_accounting = build_role_evidence_accounting(opening_game_samples, game_counts)
+    enrich_game_reconciliation(game_counts, role_evidence_accounting)
     result = {
         "username": player_profile.get("username") or player.get("username", username),
         "display_name": player_profile.get("display_name"),
@@ -9452,6 +9483,8 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
         "engineSummary": engine_summary,
         "opening_training_opportunities": opening_training_opportunities,
         "openingTrainingOpportunities": opening_training_opportunities,
+        "recurringOpeningHabits": recurring_opening_habits,
+        "recurring_opening_habits": recurring_opening_habits,
         "diagnostic_summary": diagnostic_summary,
         "diagnosticSummary": diagnostic_summary,
         "attributionDiagnostics": attribution_diagnostics,
@@ -10141,6 +10174,7 @@ def build_lichess_analysis(
 
     premium_data = build_premium_data(best_openings, style_profile)
     opening_training_opportunities = extract_opening_training_opportunities(recent_games, user_id=username, username=username)
+    recurring_opening_habits = detect_recurring_opening_habits(recent_games, user_id=username, username=username)
     diagnostic_summary = build_diagnostic_summary(recent_games, username=username)
     attribution_diagnostics = summarise_attribution_diagnostics(recent_games)
     recent_games = sorted(recent_games, key=lambda x: x["end_time"] or 0, reverse=True)[:10]
@@ -10167,6 +10201,7 @@ def build_lichess_analysis(
         opening_stat_games=sum(int(stats.get("games", 0) or 0) for stats in context_opening_results.values()),
     )
     role_evidence_accounting = build_role_evidence_accounting(opening_game_samples, game_counts)
+    enrich_game_reconciliation(game_counts, role_evidence_accounting)
     result = {
         "username": player_profile.get("username") or username,
         "display_name": player_profile.get("display_name"),
@@ -10225,6 +10260,8 @@ def build_lichess_analysis(
         "engineSummary": engine_summary,
         "opening_training_opportunities": opening_training_opportunities,
         "openingTrainingOpportunities": opening_training_opportunities,
+        "recurringOpeningHabits": recurring_opening_habits,
+        "recurring_opening_habits": recurring_opening_habits,
         "diagnostic_summary": diagnostic_summary,
         "diagnosticSummary": diagnostic_summary,
         "attributionDiagnostics": attribution_diagnostics,
@@ -10693,6 +10730,51 @@ def enforce_game_history_limit(request: Optional[Request], months: int) -> int:
     if requested > allowed:
         raise HTTPException(status_code=403, detail=f"This account can analyse up to {allowed} months of game history.")
     return requested
+
+
+OPPONENT_PREP_ENABLED = os.getenv("OPENINGFIT_OPPONENT_PREP_MVP", "false").strip().lower() == "true"
+OPPONENT_PREP_RATE_LIMIT = 5
+OPPONENT_PREP_RATE_WINDOW_SECONDS = 10 * 60
+_opponent_prep_requests: Dict[str, List[float]] = defaultdict(list)
+_opponent_prep_rate_lock = threading.Lock()
+
+
+class OpponentPrepRequest(BaseModel):
+    platform: str
+    username: str
+    own_canonical_opening_ids: List[str] = []
+
+
+def _enforce_opponent_prep_rate_limit(request: Request) -> None:
+    forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    client = forwarded or (request.client.host if request.client else "unknown")
+    identity = hashlib.sha256(client.encode("utf-8", errors="ignore")).hexdigest()
+    now = time.time()
+    with _opponent_prep_rate_lock:
+        active = [stamp for stamp in _opponent_prep_requests[identity] if now - stamp < OPPONENT_PREP_RATE_WINDOW_SECONDS]
+        if len(active) >= OPPONENT_PREP_RATE_LIMIT:
+            raise HTTPException(status_code=429, detail="Opponent prep request limit reached. Try again in a few minutes.", headers={"Retry-After": str(OPPONENT_PREP_RATE_WINDOW_SECONDS)})
+        active.append(now)
+        _opponent_prep_requests[identity] = active
+
+
+@app.post("/api/opponent-prep")
+def opponent_prep(payload: OpponentPrepRequest, request: Request):
+    if not OPPONENT_PREP_ENABLED:
+        raise HTTPException(status_code=404, detail="Opponent prep is not enabled.")
+    _enforce_opponent_prep_rate_limit(request)
+    platform = payload.platform.strip().lower().replace("chesscom", "chess.com")
+    if platform not in {"chess.com", "lichess"}:
+        raise HTTPException(status_code=400, detail="Choose Chess.com or Lichess.")
+    username = payload.username.strip()
+    if not username or len(username) > 80 or not re.fullmatch(r"[A-Za-z0-9_-]+", username):
+        raise HTTPException(status_code=400, detail="Enter a valid public chess username.")
+    result = run_import_route(platform, username, 3, "custom")
+    if isinstance(result, JSONResponse):
+        return result
+    if not isinstance(result, dict) or int(result.get("gamesFound") or result.get("gamesImported") or 0) <= 0:
+        raise HTTPException(status_code=404, detail="No available public games were found for this account. It may be private, unavailable, or have no supported games.")
+    return build_opponent_prep(result, username=username, platform=platform, own_opening_ids=payload.own_canonical_opening_ids[:30])
 
 
 @app.get("/import/chesscom/{username}")

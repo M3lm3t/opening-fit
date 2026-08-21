@@ -668,6 +668,36 @@
 @media (max-width: 560px) {
   .importRecoveryActions { display: grid; grid-template-columns: 1fr; }
   .importRecoveryActions button { width: 100%; }
+
+  .importStatusBox--warning {
+    grid-template-columns: minmax(0, 1fr) !important;
+    justify-items: center;
+    gap: 12px;
+    padding: 18px 16px;
+    text-align: center;
+  }
+
+  .importStatusBox--warning > .productFeedbackIcon,
+  .importStatusBox--warning > div,
+  .importStatusBox--warning > span:last-child {
+    grid-column: 1;
+    justify-self: center;
+  }
+
+  .importStatusBox--warning > div {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .importStatusBox--warning strong,
+  .importStatusBox--warning p {
+    overflow-wrap: anywhere;
+  }
+
+  .importStatusBox--warning .importRecoveryActions {
+    width: min(100%, 320px);
+    margin: 10px auto 0;
+  }
 }
 
 /* Decision-first report */

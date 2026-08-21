@@ -18,12 +18,13 @@ from analysis.evidence_thresholds import (
     MINIMUM_OPENING_GAMES,
     MODERATE_CONFIDENCE_GAMES,
 )
+from analysis.evidence_hierarchy import build_evidence_hierarchy
 
 
 MIN_OPENING_EVIDENCE = MINIMUM_OPENING_GAMES
 MEDIUM_CONFIDENCE_GAMES = MODERATE_CONFIDENCE_GAMES
 MIN_COMPARABLE_REPORT_GAMES = 5
-REPERTOIRE_HEALTH_VERSION = "repertoire_health_v2"
+REPERTOIRE_HEALTH_VERSION = "repertoire_health_v3"
 OPENING_SUITABILITY_VERSION = "opening_suitability_v1"
 OBSERVED_PERFORMANCE_VERSION = "observed_performance_v1"
 EVIDENCE_CONFIDENCE_VERSION = "evidence_confidence_v1"
@@ -942,12 +943,14 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
             history = history_index.get((spec["role"], key))
             if history:
                 group["historyClassification"] = history.get("classification")
+                group["effectiveClassification"] = history.get("effectiveClassification") or history.get("classification")
+                group["userPreference"] = history.get("userPreference") or "automatic"
                 group["history"] = dict(history)
-        history_rank = {"ESTABLISHED": 0, "DORMANT": 0, "INSUFFICIENT_EVIDENCE": 1, "CURRENT": 2, "EXPERIMENT": 3}
+        history_rank = {"MAIN_REPERTOIRE": -1, "ESTABLISHED": 0, "DORMANT": 0, "INSUFFICIENT_EVIDENCE": 1, "CURRENT": 2, "EXPERIMENT": 3, "IGNORED": 4}
         opening_breakdown = sorted(
             opening_groups.values(),
             key=lambda item: (
-                history_rank.get(str(item.get("historyClassification")), 4) if history_available else 0,
+                history_rank.get(str(item.get("effectiveClassification") or item.get("historyClassification")), 4) if history_available else 0,
                 -int(item["games"]), str(item["openingName"]).lower(),
             ),
         )
@@ -1081,7 +1084,11 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
     return rows
 
 
-def build_repertoire_coverage_score(repertoire_roles: list[Mapping[str, Any]], primary_problem: Optional[Mapping[str, Any]] = None) -> dict[str, Any]:
+def build_repertoire_coverage_score(
+    repertoire_roles: list[Mapping[str, Any]],
+    primary_problem: Optional[Mapping[str, Any]] = None,
+    repertoire_history: Optional[Mapping[str, Any]] = None,
+) -> dict[str, Any]:
     supported = sum(1 for row in repertoire_roles if row.get("status") == "established")
     completeness = round((supported / len(REPERTOIRE_ROLE_SPECS)) * 100, 1)
     role_evidence_counts = [max(0, int(_number(row.get("supportingGameCount") or row.get("evidenceCount")) or 0)) for row in repertoire_roles]
@@ -1092,16 +1099,22 @@ def build_repertoire_coverage_score(repertoire_roles: list[Mapping[str, Any]], p
     for row in repertoire_roles:
         funnel = row.get("evidenceFunnel") if isinstance(row.get("evidenceFunnel"), Mapping) else {}
         breakdown = [item for item in funnel.get("openingBreakdown", []) if isinstance(item, Mapping)]
-        role_games = sum(max(0, int(_number(item.get("games")) or 0)) for item in breakdown)
-        top_games = max([max(0, int(_number(item.get("games")) or 0)) for item in breakdown] or [0])
+        scored_breakdown = [
+            item for item in breakdown
+            if str(item.get("effectiveClassification") or item.get("historyClassification") or "") not in {"EXPERIMENT", "IGNORED"}
+        ]
+        all_role_games = sum(max(0, int(_number(item.get("games")) or 0)) for item in breakdown)
+        role_games = sum(max(0, int(_number(item.get("games")) or 0)) for item in scored_breakdown)
+        top_games = max([max(0, int(_number(item.get("games")) or 0)) for item in scored_breakdown] or [0])
         top_share = round((top_games / role_games) * 100, 1) if role_games else 0.0
-        distinct = len([item for item in breakdown if int(_number(item.get("games")) or 0) > 0])
+        distinct = len([item for item in scored_breakdown if int(_number(item.get("games")) or 0) > 0])
         scattered = role_games >= 10 and distinct >= 3 and top_share < 50
         concentration_rows.append({
             "key": row.get("key"), "roleGames": role_games, "topOpeningGames": top_games,
             "topOpeningShare": top_share, "distinctOpenings": distinct, "scattered": scattered,
+            "allRoleGames": all_role_games, "excludedExperimentGames": max(0, all_role_games - role_games),
             "explanation": (
-                f"The top opening represents {top_share}% of this role across {role_games} correctly attributed games."
+                f"The top score-eligible opening represents {top_share}% of this role across {role_games} trusted main-repertoire games; {max(0, all_role_games - role_games)} experimental games are shown separately."
                 if role_games else "No correctly attributed opening sample is available for this role."
             ),
         })
@@ -1194,6 +1207,23 @@ def build_repertoire_coverage_score(repertoire_roles: list[Mapping[str, Any]], p
          "reason": f"{total_role_games} correctly attributed repertoire-role games support this overall health snapshot."},
         games=total_role_games, scope="repertoire_health",
     )
+    history_rows = [row for row in (repertoire_history or {}).get("openings", []) if isinstance(row, Mapping)]
+    recent_experiments = []
+    for row in history_rows:
+        effective = str(row.get("effectiveClassification") or row.get("classification") or "")
+        if effective != "EXPERIMENT":
+            continue
+        performance = row.get("performance") if isinstance(row.get("performance"), Mapping) else {}
+        score_rate = _number(performance.get("scoreRate"))
+        recent_games = max(0, int(_number(row.get("recentGames")) or 0))
+        status = "struggling" if recent_games >= 3 and score_rate is not None and score_rate < 40 else "developing_evidence"
+        recent_experiments.append({
+            "canonicalOpeningId": row.get("canonicalOpeningId"), "opening": row.get("opening"),
+            "repertoireRole": row.get("repertoireRole"), "status": status,
+            "statusLabel": "struggling" if status == "struggling" else "developing evidence",
+            "recentGames": recent_games, "performance": dict(performance),
+            "includedInPrimaryScore": False,
+        })
     return {
         "score": total, "version": REPERTOIRE_HEALTH_VERSION, "formulaVersion": REPERTOIRE_HEALTH_VERSION,
         "displayName": "Repertoire Health",
@@ -1206,6 +1236,7 @@ def build_repertoire_coverage_score(repertoire_roles: list[Mapping[str, Any]], p
         "confidence": health_confidence,
         "comparisonEligibility": {"eligible": False, "reason": "Comparison eligibility is set from the report-level baseline contract."},
         "evidenceUsed": {"roleAttributedGames": total_role_games, "establishedRoles": supported, "totalRoles": len(REPERTOIRE_ROLE_SPECS)},
+        "recentExperiments": recent_experiments,
         "roleScores": [{
             "key": row.get("key"), "label": row.get("label"), "status": row.get("status"), "evidenceScore": evidence_scores[index],
             "problemResolutionScore": problem_scores[index], **concentration_rows[index],
@@ -1224,7 +1255,7 @@ def build_repertoire_coverage_score(repertoire_roles: list[Mapping[str, Any]], p
             "explanation": "An unresolved evidence-backed repair target lowers only the unresolved recurring-problems component.",
         },
         "recentResults": {"scored": False, "explanation": "Recent White and Black results are shown as evidence, not included in repertoire coverage."},
-        "meaning": "Repertoire Health combines role completeness, opening concentration, evidence strength and unresolved recurring problems across the three user-played repertoire roles. It does not measure general chess strength, tactics, accuracy, next-game winning chances, or the quality of one opening.",
+        "meaning": "Repertoire Health combines trusted established or user-confirmed main repertoire evidence across the three user-played roles. Recent experiments are shown separately and may inform training, but do not lower the primary score unless they become established or the user makes them main repertoire.",
     }
 
 
@@ -1947,8 +1978,26 @@ def build_report_decision(
     *,
     openings: Iterable[Mapping[str, Any]],
     previous_report: Optional[Mapping[str, Any]] = None,
+    repertoire_preferences: Optional[Iterable[Mapping[str, Any]]] = None,
 ) -> dict[str, Any]:
+    evidence_hierarchy = build_evidence_hierarchy(_report_games(report))
     repertoire_history = build_repertoire_history(_report_games(report))
+    preference_rows = repertoire_preferences
+    if preference_rows is None:
+        preference_rows = report.get("repertoirePreferences") or report.get("repertoire_preferences") or []
+    preferences = {
+        (str(row.get("repertoireRole") or row.get("repertoire_role") or ""), str(row.get("canonicalOpeningId") or row.get("canonical_opening_id") or "")): str(row.get("preference") or "automatic")
+        for row in preference_rows if isinstance(row, Mapping)
+    }
+    for row in repertoire_history.get("openings", []):
+        preference = preferences.get((str(row.get("repertoireRole") or ""), str(row.get("canonicalOpeningId") or "")), "automatic")
+        row["userPreference"] = preference
+        row["effectiveClassification"] = (
+            "MAIN_REPERTOIRE" if preference == "main"
+            else "EXPERIMENT" if preference == "experimenting"
+            else "IGNORED" if preference == "ignore"
+            else row.get("classification")
+        )
     history_index = {
         (str(row.get("repertoireRole") or ""), _opening_key(row.get("opening"))): row
         for row in repertoire_history.get("openings", []) if isinstance(row, Mapping)
@@ -2162,7 +2211,7 @@ def build_report_decision(
             "nextAction": training_priority.get("nextAction"),
             "successCheck": training_priority.get("successCheck"),
         })
-    repertoire_coverage_score = build_repertoire_coverage_score(repertoire_roles, problem)
+    repertoire_coverage_score = build_repertoire_coverage_score(repertoire_roles, problem, repertoire_history)
     repertoire_coverage_score["comparisonEligibility"] = {
         "eligible": comparable,
         "reason": "The previous report uses a compatible player, platform, sample and chronology." if comparable else "No compatible earlier report is available for a direct Repertoire Health comparison.",
@@ -2248,6 +2297,8 @@ def build_report_decision(
         "fallbackUsed": bool(action.get("fallback")),
         "fallbackReason": str(action.get("reason")) if action.get("fallback") else None,
         "roleAttribution": dict(role_accounting) if isinstance(role_accounting, Mapping) else None,
+        "evidenceHierarchy": evidence_hierarchy,
+        "evidence_hierarchy": evidence_hierarchy,
         "repertoireHistory": repertoire_history,
         "repertoire_history": repertoire_history,
         "repertoireRoles": repertoire_roles,

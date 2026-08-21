@@ -51,7 +51,7 @@ test("every priority variant resolves to content that supports the promised acti
   const diagnosed = reportActionForPriority({ type: "repair_repertoire", findingType: "opening_weakness", diagnosisId: "diagnosis-1", decisionId: "decision-1" });
   const repertoire = reportActionForPriority({ type: "collect_more_games", findingType: "insufficient_evidence", repertoireRole: "black_vs_d4", decisionId: "decision-2" });
   const training = reportActionForPriority({ type: "consolidate_strength", findingType: "stable_strength", taskId: "task-3", decisionId: "decision-3" });
-  assert.deepEqual([diagnosed.destinationSection, repertoire.destinationSection, training.destinationSection], ["problems", "repertoire", "train"]);
+  assert.deepEqual([diagnosed.destinationSection, repertoire.destinationSection, training.destinationSection], ["priorities", "repertoire", "summary"]);
   assert.ok([diagnosed, repertoire, training].every((action) => action.destinationRoute === "/report"));
 });
 

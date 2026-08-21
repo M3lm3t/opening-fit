@@ -17,11 +17,12 @@ const files = async () => ({
 test("Overview mounts one canonical command centre with one primary action", async () => {
   const { summary, app } = await files();
   const flow = app.slice(app.indexOf("function FinalReportFlow"), app.indexOf("function NextBestTrainingActionCard"));
-  assert.equal((flow.match(/<PrimaryReportSummary/g) || []).length, 1);
+  assert.equal((flow.match(/<PrimaryReportSummary/g) || []).length, 2);
   assert.equal((summary.match(/data-report-command-centre/g) || []).length, 1);
   assert.equal((summary.match(/data-command-role="keep"/g) || []).length, 1);
   assert.equal((summary.match(/data-command-role="repair"/g) || []).length, 1);
   assert.equal((summary.match(/data-command-role="train-next"/g) || []).length, 1);
+  assert.equal((summary.match(/data-primary-training-cta="true"/g) || []).length, 1);
   assert.equal((summary.match(/className="primaryBtn"/g) || []).length, 1);
   assert.doesNotMatch(summary, /primaryReportNextAction|primaryReportDecisions|This week’s focus|current priority/i);
   assert.ok(flow.indexOf("<ReportCommandBar") < flow.indexOf('<section className="reportViewPanel" id="report-summary-view"'));
@@ -46,8 +47,8 @@ test("secondary report features remain in their existing views rather than hidde
   const { summary, app } = await files();
   const flow = app.slice(app.indexOf("function FinalReportFlow"), app.indexOf("function NextBestTrainingActionCard"));
   assert.doesNotMatch(summary, /ReportGameCountSummary|RecommendationEvidenceDisclosure|primaryReportRepertoire/);
-  for (const component of ["DecisionRepertoireMap", "FocusedRepertoireSection", "FiniteTrainingSession", "ReportGameCountSummary", "EvidenceTableSection", "ReportExportAndHistory", "ReportComparisonSection"]) assert.match(flow, new RegExp(`<${component}`));
-  assert.match(flow, /<ImportQualitySummary/);
+  for (const component of ["DecisionRepertoireMap", "ReportGameCountSummary", "EvidenceTableSection", "ReportExportAndHistory", "ReportComparisonSection"]) assert.match(flow, new RegExp(`<${component}`));
+  assert.match(flow, /reportMethodologyDisclosure/);
   assert.match(flow, /path: "\/train\?start=report-task"/);
 });
 
@@ -81,10 +82,10 @@ test("report tabs, methodology and informational context expose accessible seman
   assert.doesNotMatch(command, /reportCommandBar__context[\s\S]*?<button/);
 });
 
-test("mobile and desktop share decisions while mobile prioritises Repair then Train next", async () => {
+test("mobile and desktop share the same canonical decisions with a concise Summary", async () => {
   const { summary, css } = await files();
-  assert.equal((summary.match(/data-command-role=/g) || []).length, 3);
-  assert.match(css, /@media \(max-width: 900px\)[\s\S]*primaryReportCommand--repair \{ order: 1; \}[\s\S]*primaryReportCommand--train \{ order: 2; \}[\s\S]*primaryReportCommand--keep \{ order: 3; \}/);
+  assert.equal((summary.match(/data-command-role=/g) || []).length, 4);
+  assert.match(summary, /primaryReportTrainNext/);
   assert.match(css, /grid-template-columns: 1fr/);
   assert.doesNotMatch(css, /display:\s*none[^}]*primaryReportCommand/);
 });

@@ -1,16 +1,16 @@
 export const REPORT_VIEWS = Object.freeze([
   { key: "summary", label: "Summary", hash: "report-summary", headingId: "primary-report-title" },
+  { key: "priorities", label: "Priorities", hash: "report-priorities", headingId: "report-priorities-view-title" },
   { key: "repertoire", label: "Repertoire", hash: "report-repertoire", headingId: "report-repertoire-view-title" },
-  { key: "problems", label: "Problems", hash: "report-problems", headingId: "report-problems-view-title" },
-  { key: "train", label: "Train", hash: "report-train", headingId: "report-train-view-title" },
   { key: "evidence", label: "Evidence", hash: "report-evidence", headingId: "report-evidence-view-title" },
 ]);
 
 export const CANONICAL_APP_DESTINATIONS = Object.freeze({
+  home: Object.freeze({ key: "home", view: "dashboard", path: "/dashboard", target: "coach-dashboard", fallbackIds: ["app-dashboard", "import"] }),
   report: Object.freeze({ key: "report", view: "report", path: "/report", reportView: "summary", target: "app-results" }),
   repertoire: Object.freeze({ key: "repertoire", view: "report", path: "/report", reportView: "repertoire", target: "report-repertoire-view" }),
-  train: Object.freeze({ key: "train", view: "report", path: "/report", reportView: "train", target: "report-train-view" }),
-  progress: Object.freeze({ key: "progress", view: "progress", path: "/progress", target: "openingfit-progress", fallbackIds: ["profile"] }),
+  train: Object.freeze({ key: "train", view: "train", path: "/train", target: "opening-practice", fallbackIds: ["today-training", "training-plan"] }),
+  progress: Object.freeze({ key: "progress", view: "account", path: "/account", target: "account-progress", fallbackIds: ["profile"] }),
   account: Object.freeze({ key: "account", view: "account", path: "/account", target: "profile-account", fallbackIds: ["profile"] }),
 });
 
@@ -52,6 +52,8 @@ const clean = (value) => String(value ?? "").trim() || null;
 
 export function normaliseReportView(value) {
   const clean = String(value || "").replace(/^#/, "").trim().toLowerCase();
+  if (["problems", "report-problems"].includes(clean)) return "priorities";
+  if (["train", "report-train"].includes(clean)) return "summary";
   return REPORT_VIEWS.find((view) => view.key === clean || view.hash === clean)?.key || "summary";
 }
 
