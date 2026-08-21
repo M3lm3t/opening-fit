@@ -1,5 +1,21 @@
 # Production reconciliation execution record
 
+## Repertoire preferences release — awaiting manual execution
+
+Status (2026-08-21): **AWAITING MANUAL EXECUTION — DO NOT PUSH MAIN**.
+Target project: `frtjfvhiimgruenqcuon`.
+
+Pending source migration: `202608170001_user_repertoire_preferences.sql` from
+integration commit `aac3c2d635a32571893dee1b06db4ba450290470`.
+Pending reviewed bundle: 11,621 bytes; SHA-256
+`E941AA34D27FC1CF154326C39C4F2D370FF1D66DBBACE667A212E54387138458`.
+Execution must use the migration-specific reviewed SQL Editor bundle documented
+in `docs/repertoire-preferences-manual-execution.md`. It must not rerun retention
+migrations `202608200001–005`, align migration history, or use `supabase db push`.
+Record the final generated bundle size/hash and owner-confirmed precondition,
+transaction, metadata, RLS, owner-isolation, and compatibility results here only
+after manual execution.
+
 Current release status (2026-08-20): **RETENTION MIGRATIONS MANUALLY APPLIED AND VERIFIED**.
 Owner-confirmed production target: `frtjfvhiimgruenqcuon`.
 
