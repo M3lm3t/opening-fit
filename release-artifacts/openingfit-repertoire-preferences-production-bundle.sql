@@ -4,6 +4,7 @@
 -- Source SHA-256: D8F3BC16F11BFC8696114DCD00CE95DD47896A0058D5224EE0F117795331CAC6
 -- This bundle deliberately excludes retention migrations 202608200001-005.
 -- Run each labelled section separately. Do not align migration history.
+-- ARCHIVAL TEMPLATE ONLY: production already contains this migration. DO NOT EXECUTE.
 
 -- SECTION 1: READ-ONLY BASELINE PRECONDITIONS (expect one PRECONDITION_PASS row)
 begin read only;
@@ -64,18 +65,6 @@ rollback;
 
 -- SECTION 2: MIGRATION TRANSACTION. Execute only after Section 1 passes.
 begin;
-create temporary table repertoire_preferences_release_baseline(row_count bigint) on commit drop;
-do $capture_baseline$
-declare existing_count bigint := 0;
-begin
-  -- A CASE expression is not a parse-safe guard for an absent relation. Keep the
-  -- optional relation name inside dynamic SQL until the catalogue proves it exists.
-  if to_regclass('public.user_repertoire_preferences') is not null then
-    execute 'select count(*) from public.user_repertoire_preferences' into existing_count;
-  end if;
-  insert into repertoire_preferences_release_baseline values (existing_count);
-end
-$capture_baseline$;
 
 -- ===== BEGIN EXACT SOURCE MIGRATION 202608170001_user_repertoire_preferences.sql =====
 -- Manual repertoire presentation choices. Historical evidence remains immutable.
@@ -164,48 +153,167 @@ comment on table public.user_repertoire_preferences is
 -- ===== END EXACT SOURCE MIGRATION 202608170001_user_repertoire_preferences.sql =====
 
 do $postconditions$
-declare before_count bigint; after_count bigint;
 begin
-  select row_count into before_count from repertoire_preferences_release_baseline;
-  select count(*) into after_count from public.user_repertoire_preferences;
-  if after_count <> before_count then raise exception 'STOP: migration unexpectedly changed preference row count'; end if;
   if not exists (select 1 from pg_class where oid='public.user_repertoire_preferences'::regclass and relrowsecurity) then raise exception 'STOP: RLS is disabled'; end if;
   if not exists (select 1 from pg_policies where schemaname='public' and tablename='user_repertoire_preferences' and policyname='user_repertoire_preferences_select_own' and cmd='SELECT' and qual like '%auth.uid()%user_id%') then raise exception 'STOP: owner SELECT policy missing'; end if;
   if has_table_privilege('anon','public.user_repertoire_preferences','INSERT') or has_table_privilege('authenticated','public.user_repertoire_preferences','INSERT') or has_table_privilege('authenticated','public.user_repertoire_preferences','UPDATE') or has_table_privilege('authenticated','public.user_repertoire_preferences','DELETE') then raise exception 'STOP: direct writes remain granted'; end if;
   if not has_table_privilege('authenticated','public.user_repertoire_preferences','SELECT') then raise exception 'STOP: authenticated owner SELECT grant missing'; end if;
   if not exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='set_user_repertoire_preference' and p.prosecdef and pg_get_function_result(p.oid)='jsonb') then raise exception 'STOP: canonical security-definer RPC missing'; end if;
   if has_function_privilege('anon','public.set_user_repertoire_preference(text,text,text)','EXECUTE') or not has_function_privilege('authenticated','public.set_user_repertoire_preference(text,text,text)','EXECUTE') then raise exception 'STOP: RPC grants are incompatible'; end if;
-  if exists (select 1 from public.user_repertoire_preferences where repertoire_role not in ('white','black_vs_e4','black_vs_d4') or preference not in ('main','experimenting','ignore') or canonical_opening_id <> btrim(canonical_opening_id) or canonical_opening_id='') then raise exception 'STOP: incompatible existing preference rows'; end if;
 end
 $postconditions$;
 select 'MIGRATION_POSTCONDITION_PASS' as result;
 commit;
 
--- SECTION 3: FINAL METADATA-ONLY VERIFICATION. No user rows are returned.
-select 'FINAL_TABLE_METADATA' as check_name, c.relrowsecurity as rls_enabled,
-  (select count(*) from information_schema.columns where table_schema='public' and table_name='user_repertoire_preferences') as column_count
-from pg_class c where c.oid='public.user_repertoire_preferences'::regclass;
+-- SECTION 3: FINAL METADATA-ONLY VERIFICATION.
+-- Every numbered query below is independently executable in a fresh session.
+-- OpeningFit repertoire preferences: production metadata inspection only
+-- Target project: frtjfvhiimgruenqcuon
+-- Run each numbered SELECT independently in a fresh Supabase SQL Editor run.
+-- Read-only catalogue metadata only: no helper objects, user rows, or migration writes.
 
-select 'FINAL_POLICY_METADATA' as check_name, policyname, roles, cmd, qual, with_check
-from pg_policies where schemaname='public' and tablename='user_repertoire_preferences'
+-- 1. Expected: exactly six rows with the migration's types/nullability/defaults.
+select
+  ordinal_position,
+  column_name,
+  data_type,
+  udt_name,
+  is_nullable,
+  column_default
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'user_repertoire_preferences'
+order by ordinal_position;
+
+-- 2. Expected: canonical three-column primary key and user_id -> auth.users(id)
+-- foreign key with ON DELETE CASCADE.
+select
+  c.conname,
+  c.contype,
+  pg_get_constraintdef(c.oid, true) as definition,
+  rn.nspname as referenced_schema,
+  rc.relname as referenced_table
+from pg_constraint c
+join pg_class t on t.oid = c.conrelid
+join pg_namespace n on n.oid = t.relnamespace
+left join pg_class rc on rc.oid = c.confrelid
+left join pg_namespace rn on rn.oid = rc.relnamespace
+where n.nspname = 'public'
+  and t.relname = 'user_repertoire_preferences'
+order by c.contype, c.conname;
+
+-- 3. Expected: alongside the primary-key index, a unique index named
+-- user_repertoire_preferences_one_main_role_idx on (user_id, repertoire_role),
+-- with exact predicate (preference = 'main'::text).
+select
+  i.relname as index_name,
+  ix.indisunique as is_unique,
+  pg_get_indexdef(ix.indexrelid) as index_definition,
+  pg_get_expr(ix.indpred, ix.indrelid) as predicate
+from pg_index ix
+join pg_class t on t.oid = ix.indrelid
+join pg_namespace n on n.oid = t.relnamespace
+join pg_class i on i.oid = ix.indexrelid
+where n.nspname = 'public'
+  and t.relname = 'user_repertoire_preferences'
+order by i.relname;
+
+-- 4. Expected: rls_enabled=true, rls_forced=false.
+select
+  c.relname as table_name,
+  c.relrowsecurity as rls_enabled,
+  c.relforcerowsecurity as rls_forced
+from pg_class c
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public'
+  and c.relname = 'user_repertoire_preferences'
+  and c.relkind in ('r', 'p');
+
+-- 5. Expected: exactly one PERMISSIVE SELECT policy, for {authenticated}, with
+-- auth.uid() = user_id and no WITH CHECK expression.
+select
+  policyname,
+  permissive,
+  roles,
+  cmd,
+  qual,
+  with_check
+from pg_policies
+where schemaname = 'public'
+  and tablename = 'user_repertoire_preferences'
 order by policyname;
 
-select 'FINAL_FUNCTION_METADATA' as check_name, p.proname,
-  pg_get_function_identity_arguments(p.oid) as arguments,
-  pg_get_function_result(p.oid) as result_type, p.prosecdef as security_definer
-from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-where n.nspname='public' and p.proname='set_user_repertoire_preference';
+-- 6. Expected: one text,text,text overload returning jsonb, language plpgsql,
+-- security_definer=true, and search_path=public.
+select
+  p.oid::regprocedure::text as function_signature,
+  pg_get_function_identity_arguments(p.oid) as identity_arguments,
+  pg_get_function_result(p.oid) as return_type,
+  l.lanname as language,
+  p.prosecdef as security_definer,
+  p.proconfig as function_settings
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+join pg_language l on l.oid = p.prolang
+where n.nspname = 'public'
+  and p.proname = 'set_user_repertoire_preference'
+order by p.oid::regprocedure::text;
 
-select 'FINAL_GRANT_METADATA' as check_name, grantee, privilege_type
-from information_schema.role_table_grants
-where table_schema='public' and table_name='user_repertoire_preferences'
-  and grantee in ('anon', 'authenticated')
-order by grantee, privilege_type;
+-- 7. Expected for the canonical text,text,text overload: one EXECUTE row for
+-- authenticated; no anon or PUBLIC row.
+select
+  p.oid::regprocedure::text as function_signature,
+  case when acl.grantee = 0 then 'PUBLIC' else pg_get_userbyid(acl.grantee) end as grantee,
+  acl.privilege_type,
+  acl.is_grantable
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) acl
+where n.nspname = 'public'
+  and p.proname = 'set_user_repertoire_preference'
+  and pg_get_function_identity_arguments(p.oid) =
+    'p_repertoire_role text, p_canonical_opening_id text, p_preference text'
+order by grantee, acl.privilege_type;
 
-select 'FINAL_RPC_GRANT_METADATA' as check_name, grantee, privilege_type
-from information_schema.role_routine_grants
-where routine_schema='public' and routine_name='set_user_repertoire_preference'
-  and grantee in ('anon', 'authenticated')
-order by grantee, privilege_type;
+-- 8. Expected client ACL: authenticated has SELECT only; anon and PUBLIC have
+-- no rows. Owner/admin ACL rows may also appear and are not client grants. Query
+-- 5 must independently prove that authenticated SELECT is owner-filtered by RLS.
+select
+  case when acl.grantee = 0 then 'PUBLIC' else pg_get_userbyid(acl.grantee) end as grantee,
+  acl.privilege_type,
+  acl.is_grantable
+from pg_class c
+join pg_namespace n on n.oid = c.relnamespace
+cross join lateral aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) acl
+where n.nspname = 'public'
+  and c.relname = 'user_repertoire_preferences'
+order by grantee, acl.privilege_type;
+
+-- 9. Expected: zero rows. Internal constraint triggers are deliberately excluded.
+select
+  tg.tgname as trigger_name,
+  tg.tgenabled as enabled_state,
+  pg_get_triggerdef(tg.oid, true) as definition
+from pg_trigger tg
+join pg_class t on t.oid = tg.tgrelid
+join pg_namespace n on n.oid = t.relnamespace
+where n.nspname = 'public'
+  and t.relname = 'user_repertoire_preferences'
+  and not tg.tgisinternal
+order by tg.tgname;
+
+-- 10. Expected: table_exists=true, ordinary_table=true, table_owner is the
+-- production administrative owner, table_comment is canonical, and row data is
+-- not queried or returned.
+select
+  to_regclass('public.user_repertoire_preferences') is not null as table_exists,
+  c.relkind = 'r' as ordinary_table,
+  pg_get_userbyid(c.relowner) as table_owner,
+  obj_description(c.oid, 'pg_class') as table_comment
+from pg_class c
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public'
+  and c.relname = 'user_repertoire_preferences';
+
 
 -- Migration-history alignment is intentionally absent. Do not use supabase db push.

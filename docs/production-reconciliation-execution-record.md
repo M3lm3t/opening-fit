@@ -1,8 +1,8 @@
 # Production reconciliation execution record
 
-## Repertoire preferences release — awaiting manual execution
+## Repertoire preferences release — applied and independently verified
 
-Status (2026-08-21): **AWAITING MANUAL EXECUTION — DO NOT PUSH MAIN**.
+Status (2026-08-21): **SUCCESSFULLY APPLIED AND VERIFIED**.
 Target project: `frtjfvhiimgruenqcuon`.
 
 Pending source migration: `202608170001_user_repertoire_preferences.sql` from
@@ -23,16 +23,38 @@ schema change. No further production SQL was executed.
 
 Corrected parse-safe bundle: 12,087 bytes; SHA-256
 `DC0DEFF2FFAF70B46391D291E4708B419559DE35A82AC5D3C45CED2A63EEFF9D`.
-The corrected procedure restarts at Section 1, then runs Section 2 as one
-transaction, then runs the Section 3 metadata queries individually. Production
-execution remains pending owner action; migration-history alignment and normal
-`supabase db push` remain prohibited.
-Execution must use the migration-specific reviewed SQL Editor bundle documented
-in `docs/repertoire-preferences-manual-execution.md`. It must not rerun retention
-migrations `202608200001–005`, align migration history, or use `supabase db push`.
-Record the final generated bundle size/hash and owner-confirmed precondition,
-transaction, metadata, RLS, owner-isolation, and compatibility results here only
-after manual execution.
+The owner later reported that `to_regclass` returned
+`user_repertoire_preferences`, and that the later error was
+`ERROR: 42P01: relation "repertoire_preferences_release_baseline" does not
+exist`. The production table therefore now exists, but successful application
+is not yet classified: the missing session-scoped helper can indicate that the
+migration DDL committed and a later verification statement ran in a fresh SQL
+Editor execution. Section 2 must not be rerun.
+
+The owner ran all ten independent, read-only metadata inspections from
+`release-artifacts/openingfit-repertoire-preferences-production-inspection.sql`.
+Every check passed: six canonical columns; primary/foreign-key constraints;
+partial unique one-main-per-role index and predicate; enabled RLS; exactly the
+owner-filtered authenticated SELECT policy; no direct client writes; canonical
+security-definer RPC with `search_path=public`; authenticated-only RPC execute;
+no unexpected triggers, policies, overloads, or grants; and compatible table
+metadata. No private rows were inspected.
+
+Migration `202608170001_user_repertoire_preferences.sql` is therefore classified
+as successfully applied to project `frtjfvhiimgruenqcuon`. The missing
+`repertoire_preferences_release_baseline` error occurred in later verification
+after persistent migration state existed and is classified as a verification-
+script defect. No repair SQL was required. Section 2 must not be rerun.
+
+Both earlier generated bundles are superseded and prohibited:
+
+- 11,621 bytes, SHA-256 `E941AA34D27FC1CF154326C39C4F2D370FF1D66DBBACE667A212E54387138458`;
+- 12,087 bytes, SHA-256 `DC0DEFF2FFAF70B46391D291E4708B419559DE35A82AC5D3C45CED2A63EEFF9D`.
+
+Future generator output is archival and explicitly non-executable; it has no
+temporary/helper/session dependency, and its final metadata queries are each
+independently executable. Migration history remains intentionally unaligned.
+Normal `supabase db push` remains prohibited.
 
 Current release status (2026-08-20): **RETENTION MIGRATIONS MANUALLY APPLIED AND VERIFIED**.
 Owner-confirmed production target: `frtjfvhiimgruenqcuon`.
