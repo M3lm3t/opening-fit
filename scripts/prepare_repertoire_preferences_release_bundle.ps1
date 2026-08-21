@@ -79,9 +79,17 @@ rollback;
 -- SECTION 2: MIGRATION TRANSACTION. Execute only after Section 1 passes.
 begin;
 create temporary table repertoire_preferences_release_baseline(row_count bigint) on commit drop;
-insert into repertoire_preferences_release_baseline
-select case when to_regclass('public.user_repertoire_preferences') is null then 0
-  else (select count(*) from public.user_repertoire_preferences) end;
+do `$capture_baseline`$
+declare existing_count bigint := 0;
+begin
+  -- A CASE expression is not a parse-safe guard for an absent relation. Keep the
+  -- optional relation name inside dynamic SQL until the catalogue proves it exists.
+  if to_regclass('public.user_repertoire_preferences') is not null then
+    execute 'select count(*) from public.user_repertoire_preferences' into existing_count;
+  end if;
+  insert into repertoire_preferences_release_baseline values (existing_count);
+end
+`$capture_baseline`$;
 
 -- ===== BEGIN EXACT SOURCE MIGRATION $migrationName =====
 $migrationSql
@@ -120,13 +128,17 @@ select 'FINAL_FUNCTION_METADATA' as check_name, p.proname,
 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
 where n.nspname='public' and p.proname='set_user_repertoire_preference';
 
-select 'FINAL_COMPATIBILITY_COUNTS' as check_name,
-  count(*) as preference_rows,
-  count(distinct user_id) as owners_with_preferences,
-  count(*) filter (where preference='main') as main_rows,
-  count(*) filter (where preference='experimenting') as experimenting_rows,
-  count(*) filter (where preference='ignore') as ignored_rows
-from public.user_repertoire_preferences;
+select 'FINAL_GRANT_METADATA' as check_name, grantee, privilege_type
+from information_schema.role_table_grants
+where table_schema='public' and table_name='user_repertoire_preferences'
+  and grantee in ('anon', 'authenticated')
+order by grantee, privilege_type;
+
+select 'FINAL_RPC_GRANT_METADATA' as check_name, grantee, privilege_type
+from information_schema.role_routine_grants
+where routine_schema='public' and routine_name='set_user_repertoire_preference'
+  and grantee in ('anon', 'authenticated')
+order by grantee, privilege_type;
 
 -- Migration-history alignment is intentionally absent. Do not use supabase db push.
 "@

@@ -7,8 +7,26 @@ Target project: `frtjfvhiimgruenqcuon`.
 
 Pending source migration: `202608170001_user_repertoire_preferences.sql` from
 integration commit `aac3c2d635a32571893dee1b06db4ba450290470`.
-Pending reviewed bundle: 11,621 bytes; SHA-256
+Superseded bundle: 11,621 bytes; SHA-256
 `E941AA34D27FC1CF154326C39C4F2D370FF1D66DBBACE667A212E54387138458`.
+Section 1 returned `PRECONDITION_PASS` with
+`compatible_table_already_exists = false`. Section 2 then failed before the
+source migration could run with `ERROR: 42P01: relation
+"public.user_repertoire_preferences" does not exist` while parsing the guarded
+row-count expression. PostgreSQL resolves the relation in the unused `CASE`
+branch during statement parsing, so the guard was invalid.
+
+The owner subsequently ran
+`select to_regclass('public.user_repertoire_preferences') as table_state;` and
+reported `NULL`. This confirms the failed transaction produced no lasting
+schema change. No further production SQL was executed.
+
+Corrected parse-safe bundle: 12,087 bytes; SHA-256
+`DC0DEFF2FFAF70B46391D291E4708B419559DE35A82AC5D3C45CED2A63EEFF9D`.
+The corrected procedure restarts at Section 1, then runs Section 2 as one
+transaction, then runs the Section 3 metadata queries individually. Production
+execution remains pending owner action; migration-history alignment and normal
+`supabase db push` remain prohibited.
 Execution must use the migration-specific reviewed SQL Editor bundle documented
 in `docs/repertoire-preferences-manual-execution.md`. It must not rerun retention
 migrations `202608200001–005`, align migration history, or use `supabase db push`.

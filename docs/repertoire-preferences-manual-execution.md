@@ -18,8 +18,22 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/prepare_repertoi
 Output:
 `release-artifacts/openingfit-repertoire-preferences-production-bundle.sql`
 
-Reviewed generated artifact: 11,621 bytes; SHA-256
-`E941AA34D27FC1CF154326C39C4F2D370FF1D66DBBACE667A212E54387138458`.
+The previously reviewed 11,621-byte artifact with SHA-256
+`E941AA34D27FC1CF154326C39C4F2D370FF1D66DBBACE667A212E54387138458`
+is superseded and must not be run. Its Section 2 used a `CASE` expression that
+still caused PostgreSQL to resolve an absent relation while parsing.
+
+The owner ran this read-only query after the failed Section 2 attempt:
+
+```sql
+select to_regclass('public.user_repertoire_preferences') as table_state;
+```
+
+The result was `NULL`, confirming that the failed transaction left no lasting
+preference schema. Corrected execution therefore restarts at Section 1.
+
+Corrected reviewed artifact: 12,087 bytes; SHA-256
+`DC0DEFF2FFAF70B46391D291E4708B419559DE35A82AC5D3C45CED2A63EEFF9D`.
 
 ## Manual execution order
 
@@ -29,8 +43,8 @@ Reviewed generated artifact: 11,621 bytes; SHA-256
    returns `PRECONDITION_PASS` and raises no exception.
 3. Run Section 2 as one complete transaction. Continue only when it returns
    `MIGRATION_POSTCONDITION_PASS` and commits successfully.
-4. Run the Section 3 metadata queries individually. Do not copy private row data
-   into the repository.
+4. Run the Section 3 metadata queries individually. They query catalogues and
+   grants only; do not copy private row data into the repository.
 5. Confirm the expected results below, then notify the release owner. Do not
    align migration history and do not push code yet.
 
