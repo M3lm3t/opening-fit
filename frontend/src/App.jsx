@@ -9572,7 +9572,7 @@ function OpeningFitProfileDashboard({
   };
 
   return (
-    <div className={`profileDashboard profileDashboardSimple ${data ? "" : "profileDashboardNoReport"}`}>
+    <div className={`accountHub profileDashboard profileDashboardSimple ${data ? "" : "profileDashboardNoReport"}`}>
       <header className="accountHubHeader">
         <div><p className="eyebrow">Account</p><h1>{accountUser?.user_metadata?.full_name || accountUser?.user_metadata?.display_name || connectedUsername || "Your account"}</h1><p>{connectedUsername ? `${formatProfileUsername(connectedUsername)} · ${getProfilePlatformLabel(data || {}, platform)}` : "Add a chess username in Profile"}</p><small>{accountUser?.email}</small></div>
         <span className={`accountMembershipBadge accountMembershipBadge--${accountMembership?.kind || "unresolved"}`}>{accountMembership?.label || "Checking access"}</span>
@@ -9587,7 +9587,7 @@ function OpeningFitProfileDashboard({
         </div>
       ) : null}
 
-      <section id="account-panel-profile" role="tabpanel" aria-labelledby="account-tab-profile" hidden={accountSection !== "profile"}>
+      {accountSection === "profile" ? <section id="account-panel-profile" role="tabpanel" aria-labelledby="account-tab-profile">
       <div className="simpleProfileGrid">
         <ProfileAccountSimpleCard
           data={data}
@@ -9620,18 +9620,18 @@ function OpeningFitProfileDashboard({
         {onToday ? <button type="button" className="secondaryButton" onClick={onToday}>Open Today</button> : null}
         {onJourney ? <button type="button" className="secondaryButton" onClick={onJourney}>Training history</button> : null}
       </div>
-      </section>
+      </section> : null}
 
-      <section id="account-panel-preferences" role="tabpanel" aria-labelledby="account-tab-preferences" hidden={accountSection !== "preferences"}>
+      {accountSection === "preferences" ? <section id="account-panel-preferences" role="tabpanel" aria-labelledby="account-tab-preferences">
         <ProfilePreferencesSimpleCard theme={theme} onThemeToggle={onThemeToggle} onTrainingPreferences={onTrainingPreferences} />
         <CoachingReminderSettings />
-      </section>
+      </section> : null}
 
-      <section id="account-panel-membership" role="tabpanel" aria-labelledby="account-tab-membership" hidden={accountSection !== "membership"}>
+      {accountSection === "membership" ? <section id="account-panel-membership" role="tabpanel" aria-labelledby="account-tab-membership">
         {membershipContent}
-      </section>
+      </section> : null}
 
-      <section id="account-panel-data" role="tabpanel" aria-labelledby="account-tab-data" hidden={accountSection !== "data"}>
+      {accountSection === "data" ? <section id="account-panel-data" role="tabpanel" aria-labelledby="account-tab-data">
 
       <ProfileInsightsBoundary>
       <WeeklyOpeningSessionCard
@@ -9729,7 +9729,7 @@ function OpeningFitProfileDashboard({
       </ProfileInsightsBoundary>
       {dataSupportContent}
       <AccountPanel variant="data-support" onUserChange={onUserChange} onCloudRestore={onCloudRestore} />
-      </section>
+      </section> : null}
     </div>
   );
 }

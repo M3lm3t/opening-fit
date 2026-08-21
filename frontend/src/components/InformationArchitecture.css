@@ -156,6 +156,64 @@
   margin-bottom: 1rem;
 }
 
+/* Account is a document-flow settings screen, not the floating account popover. */
+.accountHub {
+  display: grid;
+  grid-auto-rows: max-content;
+  gap: 1rem;
+  width: min(100%, 68rem);
+  max-width: 68rem;
+  margin-inline: auto;
+  min-width: 0;
+  overflow: visible;
+}
+
+.accountHub > [role="tabpanel"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  scroll-margin-top: 7rem;
+}
+
+.accountHub .simpleProfileGrid {
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.42fr) !important;
+  align-items: start !important;
+  grid-auto-rows: max-content;
+}
+
+.accountHub .simpleProfileCard,
+.accountHub .simpleProfileNestedDetails,
+.accountHub .accountPanelShell--profile,
+.accountHub .accountPanel--profile,
+.accountHub .accountProfileStack {
+  position: static;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.accountHub .simpleProfileCard {
+  align-self: start;
+}
+
+.accountHub .accountPanel--profile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: max-content;
+  align-items: start;
+}
+
+.accountHub .accountActions {
+  position: static;
+  align-items: stretch;
+}
+
 .accountHubHeader h1,
 .accountHubHeader p { margin: 0; }
 .accountHubHeader small { color: var(--color-text-muted, #94a3b8); }
@@ -193,4 +251,10 @@
   .accountHubHeader h1 { font-size: 1.45rem; }
   .accountSectionNav[role="tablist"] { margin-inline: -.25rem; }
   [id^="account-panel-"] { min-width: 0; max-width: 100%; padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); overflow-wrap: anywhere; }
+}
+
+@media (max-width: 1023px) {
+  .accountHub .simpleProfileGrid {
+    grid-template-columns: 1fr !important;
+  }
 }

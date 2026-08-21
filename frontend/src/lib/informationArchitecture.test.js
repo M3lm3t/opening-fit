@@ -41,11 +41,18 @@ test("Account exposes the same four-section hub on responsive web and Android", 
   assert.match(nav, /role="tablist"/);
   assert.match(app, /role="tabpanel"/);
   assert.match(app, /aria-selected=\{accountSection === section\.key\}/);
+  for (const section of ["profile", "preferences", "membership", "data"]) {
+    assert.match(app, new RegExp(`accountSection === "${section}" \\? <section id="account-panel-${section}`));
+  }
+  assert.doesNotMatch(app, /hidden=\{accountSection !==/);
   assert.match(app, /ArrowLeft.*ArrowRight.*Home.*End/);
   assert.match(app, /new URLSearchParams\(window\.location\.search\)\.get\("section"\)/);
   assert.match(css, /@media \(max-width: 640px\)[\s\S]*accountSectionNav/);
   assert.match(css, /overflow-x: auto/);
   assert.match(css, /safe-area-inset-bottom/);
+  assert.match(css, /\.accountHub > \[role="tabpanel"\][\s\S]*height: auto;[\s\S]*overflow: visible;/);
+  assert.match(css, /\.accountHub \.simpleProfileCard,[\s\S]*max-height: none;[\s\S]*overflow: visible;/);
+  assert.match(css, /\.accountHub \.accountPanel--profile[\s\S]*grid-auto-rows: max-content/);
 });
 
 test("Account separates ordinary profile controls from destructive actions", () => {

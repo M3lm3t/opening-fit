@@ -54,6 +54,7 @@ const allViewports = [
   { name: "tablet", width: 768, height: 1024 },
   { name: "tablet-lg", width: 820, height: 1180 },
   { name: "desktop", width: 1024, height: 768 },
+  { name: "laptop-short", width: 1280, height: 720 },
   { name: "laptop", width: 1280, height: 800 },
   { name: "laptop-wide", width: 1366, height: 768 },
   { name: "desktop-xl", width: 1440, height: 900 },
@@ -102,6 +103,7 @@ function isIgnorableConsoleError(text = "") {
 }
 
 async function getBox(locator) {
+  if (await locator.count() === 0) return null;
   const box = await locator.boundingBox();
   if (!box) return null;
   return {
@@ -112,6 +114,55 @@ async function getBox(locator) {
     width: box.width,
     height: box.height,
   };
+}
+
+async function installAuthenticatedAccountFixture(page) {
+  await page.evaluate(() => {
+    document.body.innerHTML = `
+      <header class="appPrimaryNav"><a href="/" aria-label="OpeningFit home">OpeningFit</a><nav aria-label="Primary"><a href="/dashboard">Home</a><a href="/report">Report</a><a href="/train">Train</a><a href="/account" aria-current="page">Account</a></nav></header>
+      <main class="page">
+      <div class="accountHub profileDashboard profileDashboardSimple">
+        <header class="accountHubHeader">
+          <div><p class="eyebrow">Account</p><h1>Alex Morgan</h1><p>AlexMorganChess · Chess.com</p><small>alex@example.test</small></div>
+          <span class="accountMembershipBadge accountMembershipBadge--free">Free</span>
+        </header>
+        <div class="accountSectionNav" role="tablist" aria-label="Account sections">
+          <button id="account-tab-profile" type="button" role="tab" aria-selected="true">Profile</button>
+          <button type="button" role="tab" aria-selected="false">Preferences</button>
+          <button type="button" role="tab" aria-selected="false">Membership</button>
+          <button type="button" role="tab" aria-selected="false">Data &amp; support</button>
+        </div>
+        <section id="account-panel-profile" role="tabpanel" aria-labelledby="account-tab-profile">
+          <div class="simpleProfileGrid">
+            <article class="simpleProfileCard">
+              <div><p class="eyebrow">Profile</p><h2>Account</h2><p>Manage the identity and chess account used for your reports.</p></div>
+              <details class="simpleProfileNestedDetails" open>
+                <summary>Account details</summary>
+                <div class="accountPanelShell accountPanelShell--profile">
+                  <div class="accountPanel accountPanel--screen accountPanel--profile">
+                    <div class="accountProfileStack">
+                      <label>Display name<input type="text" value="Alex Morgan" readonly></label>
+                      <label>Email address<input type="email" value="alex@example.test" readonly></label>
+                      <label>Chess.com username<input type="text" value="AlexMorganChess" readonly></label>
+                      <label>Rating goal<input type="text" value="1800" readonly></label>
+                      <p>Your reports and training history restore from your OpeningFit account.</p>
+                      <div class="accountActions"><button type="button">Save changes</button><button type="button">Restore cloud data</button></div>
+                    </div>
+                  </div>
+                </div>
+              </details>
+            </article>
+            <article class="simpleProfileCard">
+              <div><p class="eyebrow">Progress</p><h2>Stats</h2></div>
+              <dl><div><dt>Reports saved</dt><dd>12</dd></div><div><dt>Training completed</dt><dd>28</dd></div><div><dt>Current rating</dt><dd>1642</dd></div></dl>
+              <div class="accountActions"><button type="button">Open Today</button><button type="button">Training history</button></div>
+            </article>
+          </div>
+        </section>
+      </div>
+      </main>
+      <footer class="homepageFooter"><span>OpeningFit</span></footer>`;
+  });
 }
 
 async function assertIconControlAlignment(page, route) {
@@ -162,6 +213,11 @@ async function assertAccountLayout(page) {
   const accountPanel = accountCard.locator(".accountPanel--screen").first();
   const formControls = accountCard.locator("input, button, form");
   const majorCards = page.locator(".simpleProfileCard");
+  const accountHub = page.locator(".accountHub").first();
+  const accountHeading = accountHub.locator(".accountHubHeader h1").first();
+  const activePanel = accountHub.locator('[role="tabpanel"]:visible').first();
+  const appHeader = page.locator(".appPrimaryNav, .appHeader, header.siteHeader").first();
+  const footer = page.locator(".appStoreReadinessFooter, .homepageFooter").last();
 
   await accountCard.waitFor({ state: "visible", timeout: 10000 });
 
@@ -171,6 +227,51 @@ async function assertAccountLayout(page) {
 
   if (!accountBox) failures.push("Account card is not visible.");
   if (!panelBox) failures.push("AccountPanel screen box is not visible.");
+
+  const headingBox = await getBox(accountHeading);
+  const headerBox = await getBox(appHeader);
+  if (headingBox && headerBox && headingBox.top < headerBox.bottom - 2) {
+    failures.push("Account heading begins underneath the application header.");
+  }
+
+  const activePanelContainment = await activePanel.evaluate((panel) => {
+    const panelRect = panel.getBoundingClientRect();
+    const visible = [...panel.querySelectorAll("*")].filter((node) => {
+      const style = getComputedStyle(node);
+      const rect = node.getBoundingClientRect();
+      return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+    });
+    const lastBottom = visible.reduce((bottom, node) => Math.max(bottom, node.getBoundingClientRect().bottom), panelRect.top);
+    return { panelBottom: panelRect.bottom, lastBottom, scrollHeight: panel.scrollHeight, clientHeight: panel.clientHeight };
+  });
+  if (activePanelContainment.lastBottom > activePanelContainment.panelBottom + 2) {
+    failures.push("Active Account tab panel does not contain its last visible child.");
+  }
+
+  const openDetails = activePanel.locator("details[open]").first();
+  if (await openDetails.count()) {
+    const growth = await openDetails.evaluate(async (details) => {
+      const measure = () => ({ documentHeight: document.documentElement.scrollHeight, panelHeight: details.closest('[role="tabpanel"]')?.getBoundingClientRect().height || 0 });
+      const expanded = measure();
+      details.open = false;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const collapsed = measure();
+      details.open = true;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return { expanded, collapsed };
+    });
+    if (growth.expanded.panelHeight <= growth.collapsed.panelHeight + 2 || growth.expanded.documentHeight < growth.collapsed.documentHeight) {
+      failures.push("Account document flow does not grow with expanded Profile content.");
+    }
+  }
+
+  if (await accountHub.locator('.accountLegalLinks, .accountDangerZone, a[href="/privacy"], a[href="/terms"]').count()) {
+    failures.push("Data & support content is mounted while Profile is active.");
+  }
+
+  if (await accountHub.locator('[role="tabpanel"][hidden]').count()) {
+    failures.push("Hidden Account tab panels remain mounted in layout.");
+  }
 
   if (accountBox && panelBox) {
     const tolerance = 2;
@@ -218,6 +319,38 @@ async function assertAccountLayout(page) {
         failures.push(`${label} card is ${Math.round(box.width)}px wide on desktop.`);
       }
     }
+
+    const visibleCardBoxes = await majorCards.evaluateAll((cards) => cards
+      .filter((card) => {
+        const rect = card.getBoundingClientRect();
+        const style = getComputedStyle(card);
+        return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+      })
+      .map((card) => ({ label: card.querySelector("h2")?.textContent?.trim() || "card", ...card.getBoundingClientRect().toJSON() })));
+    for (let left = 0; left < visibleCardBoxes.length; left += 1) {
+      for (let right = left + 1; right < visibleCardBoxes.length; right += 1) {
+        if (boxesOverlap(visibleCardBoxes[left], visibleCardBoxes[right])) {
+          failures.push(`${visibleCardBoxes[left].label} overlaps ${visibleCardBoxes[right].label}.`);
+        }
+      }
+    }
+  }
+
+  const escapedButtons = await activePanel.locator("button:visible").evaluateAll((buttons, panelSelector) => buttons.flatMap((button) => {
+    const owner = button.closest(panelSelector);
+    if (!owner) return [button.textContent?.trim() || "button"];
+    const buttonRect = button.getBoundingClientRect();
+    const ownerRect = owner.getBoundingClientRect();
+    return buttonRect.left < ownerRect.left - 2 || buttonRect.right > ownerRect.right + 2 || buttonRect.top < ownerRect.top - 2 || buttonRect.bottom > ownerRect.bottom + 2
+      ? [button.textContent?.trim() || "button"]
+      : [];
+  }), '[role="tabpanel"]');
+  if (escapedButtons.length) failures.push(`Buttons escape the active Account panel: ${escapedButtons.slice(0, 5).join(", ")}.`);
+
+  const hubBox = await getBox(accountHub);
+  const footerBox = await getBox(footer);
+  if (hubBox && footerBox && footerBox.top < hubBox.bottom - 2) {
+    failures.push("Global footer begins before Account content ends.");
   }
 
   const stackedText = await page.locator(".profileDashboardSimple h1, .profileDashboardSimple h2, .profileDashboardSimple h3, .profileDashboardSimple p, .profileDashboardSimple span, .profileDashboardSimple strong, .profileDashboardSimple small, .profileDashboardSimple button, .profileDashboardSimple label").evaluateAll((nodes) => {
@@ -460,8 +593,12 @@ async function main() {
           }
         }
         await page.waitForTimeout(350);
+        if (route === "/account" && new URLSearchParams(FORCED_QUERY).get("accountFixture") === "authenticated") {
+          await installAuthenticatedAccountFixture(page);
+        }
         const routeName = route.replace(/^\//, "").replaceAll("/", "-") || "home";
-        const filename = `${routeName}-${viewport.name}-${viewport.width}x${viewport.height}.png`;
+        const themeName = FORCED_THEME === "light" || FORCED_THEME === "dark" ? `-${FORCED_THEME}` : "";
+        const filename = `${routeName}${themeName}-${viewport.name}-${viewport.width}x${viewport.height}.png`;
         const filepath = path.join(SCREENSHOT_DIR, filename);
         await page.screenshot({ path: filepath, fullPage: true });
         screenshots.push(filepath);
