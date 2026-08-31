@@ -220,6 +220,9 @@ class InMemoryMissionRepository:
         self.events: dict[tuple[str, str], dict[str, Any]] = {}
         self.attempts: dict[tuple[str, str, str], dict[str, Any]] = {}
         self.encounters: dict[tuple[str, str, str, str, str], dict[str, Any]] = {}
+        self.training_sessions: dict[str, dict[str, Any]] = {}
+        self.training_start_keys: dict[tuple[str, str], str] = {}
+        self.training_completion_keys: dict[tuple[str, str], str] = {}
 
     def upsert_candidate(self, row: Mapping[str, Any]) -> dict[str, Any]:
         identity = (row["user_id"], row["candidate_key"], row["algorithm_version"], row["generation"])
@@ -299,3 +302,84 @@ class InMemoryMissionRepository:
         if key not in self.encounters:
             self.encounters[key] = {**copy.deepcopy(dict(row)), "observed_at": _now()}
         return copy.deepcopy(self.encounters[key])
+
+    def start_training_session_atomic(self, **values: Any) -> dict[str, Any]:
+        mission = self.missions.get(values["mission_id"])
+        if not mission or mission["user_id"] != values["user_id"]:
+            raise MissionPersistenceError("mission_not_found", "Mission was not found.")
+        replay = self.training_start_keys.get((values["user_id"], values["session_key"]))
+        if replay:
+            saved = self.training_sessions[replay]
+            if saved["mission_id"] != values["mission_id"]:
+                raise MissionPersistenceError("idempotency_key_conflict", "Start key was used for another mission.")
+            return copy.deepcopy({**saved, "resumed": True})
+        active = next((row for row in self.training_sessions.values() if row["user_id"] == values["user_id"] and row["mission_id"] == values["mission_id"] and row["status"] == "active"), None)
+        if active:
+            self.training_start_keys[(values["user_id"], values["session_key"])] = active["id"]
+            return copy.deepcopy({**active, "resumed": True})
+        if mission["status"] not in {"assigned", "learning", "needs_review"}:
+            raise MissionPersistenceError("mission_not_trainable", "Mission is not available for training.")
+        if mission["status"] in {"assigned", "needs_review"}:
+            self.transition_atomic(user_id=values["user_id"], mission_id=mission["id"], target_status="learning",
+                cause_type="training_session_started", cause_id=None, idempotency_key=f"session-start:{values['session_key']}", evidence_summary={})
+        stamp = _now()
+        saved = {**copy.deepcopy(values), "id": str(uuid4()), "status": "active", "exercise_manifest": copy.deepcopy(values["manifest"]),
+                 "started_at": stamp, "last_activity_at": stamp, "completed_at": None,
+                 "meaningful_activity_recorded_at": None, "created_at": stamp, "updated_at": stamp, "resumed": False}
+        saved.pop("manifest", None)
+        self.training_sessions[saved["id"]] = saved
+        self.training_start_keys[(values["user_id"], values["session_key"])] = saved["id"]
+        return copy.deepcopy(saved)
+
+    def get_training_session(self, user_id: str, session_id: str) -> dict[str, Any] | None:
+        row = self.training_sessions.get(session_id)
+        return copy.deepcopy(row) if row and row["user_id"] == user_id else None
+
+    def get_current_training_session(self, user_id: str, mission_id: str) -> dict[str, Any] | None:
+        row = next((row for row in self.training_sessions.values() if row["user_id"] == user_id and row["mission_id"] == mission_id and row["status"] == "active"), None)
+        return copy.deepcopy(row) if row else None
+
+    def list_training_attempts(self, user_id: str, session_id: str, limit: int = 100) -> list[dict[str, Any]]:
+        rows = [row for row in self.attempts.values() if row["user_id"] == user_id and row.get("session_key") == session_id]
+        return copy.deepcopy(sorted(rows, key=lambda row: str(row["created_at"]))[:max(1, min(100, limit))])
+
+    def insert_training_attempt_atomic(self, **values: Any) -> dict[str, Any]:
+        session = self.training_sessions.get(values["session_id"])
+        if not session or session["user_id"] != values["user_id"] or session["mission_id"] != values["mission_id"]:
+            raise MissionPersistenceError("session_not_found", "Training session was not found.")
+        key = (values["user_id"], values["mission_id"], values["attempt_key"])
+        if key in self.attempts:
+            existing = self.attempts[key]
+            if existing["session_key"] != values["session_id"] or existing["exercise_key"] != values["exercise_key"] or existing["attempted_move_uci"] != values["attempted_move_uci"]:
+                raise MissionPersistenceError("idempotency_key_conflict", "Attempt key was used for different input.")
+            return copy.deepcopy(existing)
+        if session["status"] != "active":
+            raise MissionPersistenceError("session_not_active", "Training session is not active.")
+        stamp = _now()
+        saved = {**copy.deepcopy(values), "id": str(uuid4()), "session_key": values["session_id"], "created_at": stamp}
+        self.attempts[key] = saved
+        session["last_activity_at"] = stamp
+        session["updated_at"] = stamp
+        return copy.deepcopy(saved)
+
+    def complete_training_session_atomic(self, **values: Any) -> dict[str, Any]:
+        session = self.training_sessions.get(values["session_id"])
+        if not session or session["user_id"] != values["user_id"] or session["mission_id"] != values["mission_id"]:
+            raise MissionPersistenceError("session_not_found", "Training session was not found.")
+        key = (values["user_id"], values["idempotency_key"])
+        if key in self.training_completion_keys:
+            if self.training_completion_keys[key] != session["id"]:
+                raise MissionPersistenceError("idempotency_key_conflict", "Completion key was used for another session.")
+            return copy.deepcopy(session)
+        if session["status"] == "completed":
+            return copy.deepcopy(session)
+        mission = self.missions[values["mission_id"]]
+        if mission["status"] != "learning":
+            raise MissionPersistenceError("mission_not_learning", "Mission is not in learning.")
+        stamp = _now()
+        session.update(status="completed", completed_at=stamp, last_activity_at=stamp, updated_at=stamp,
+                       meaningful_activity_recorded_at=stamp, completion_summary=copy.deepcopy(values["progress"]))
+        self.transition_atomic(user_id=values["user_id"], mission_id=mission["id"], target_status="awaiting_evidence",
+            cause_type="training_session_completed", cause_id=session["id"], idempotency_key=f"session-complete:{values['idempotency_key']}", evidence_summary=values["progress"])
+        self.training_completion_keys[key] = session["id"]
+        return copy.deepcopy(session)

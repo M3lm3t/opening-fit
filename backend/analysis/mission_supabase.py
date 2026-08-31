@@ -29,6 +29,15 @@ def _error_code(error: Exception) -> str:
         return "conflict"
     if "illegal mission transition" in text:
         return "illegal_transition"
+    domain_errors = {
+        "mission not trainable": "mission_not_trainable", "training material unavailable": "training_material_unavailable",
+        "session not found": "session_not_found", "session not active": "session_not_active",
+        "exercise not in session": "exercise_not_in_session", "session requirements unmet": "completion_requirements_unmet",
+        "invalid idempotency key": "invalid_idempotency_key",
+    }
+    for token, code in domain_errors.items():
+        if token in text:
+            return code
     return "transient_storage_failure"
 
 
@@ -48,7 +57,8 @@ class SupabaseMissionRepository:
         try:
             result = self._execute(self.client.rpc("openingfit_missions_schema_readiness"))
             data = result.data or {}
-            return {"ready": bool(data.get("ready")), "reason": "ready" if data.get("ready") else "schema_unavailable"}
+            return {"ready": bool(data.get("ready")), "training_ready": bool(data.get("trainingReady")),
+                    "schema_version": data.get("schemaVersion"), "reason": "ready" if data.get("ready") else "schema_unavailable"}
         except MissionPersistenceError as exc:
             return {"ready": False, "reason": exc.code}
 
@@ -96,7 +106,44 @@ class SupabaseMissionRepository:
         return dict(result.data or {})
 
     def insert_attempt(self, row: Mapping[str, Any]) -> dict[str, Any]:
-        raise MissionPersistenceError("not_implemented", "Training attempts are deferred to Phase 4.")
+        return self.insert_training_attempt_atomic(**dict(row))
+
+    def start_training_session_atomic(self, **values: Any) -> dict[str, Any]:
+        result = self._execute(self.client.rpc("start_openingfit_mission_training_session", {
+            "p_user_id": values["user_id"], "p_mission_id": values["mission_id"], "p_session_key": values["session_key"],
+            "p_exercise_set_version": values["exercise_set_version"], "p_exercise_manifest": values["manifest"],
+            "p_required_exercise_count": values["required_exercise_count"], "p_required_correct_count": values["required_correct_count"],
+        }))
+        return dict(result.data or {})
+
+    def get_training_session(self, user_id: str, session_id: str) -> dict[str, Any] | None:
+        rows = self._execute(self.client.table("openingfit_mission_training_sessions").select("*").eq("user_id", user_id).eq("id", session_id).limit(1)).data or []
+        return dict(rows[0]) if rows else None
+
+    def get_current_training_session(self, user_id: str, mission_id: str) -> dict[str, Any] | None:
+        rows = self._execute(self.client.table("openingfit_mission_training_sessions").select("*").eq("user_id", user_id).eq("mission_id", mission_id).eq("status", "active").limit(1)).data or []
+        return dict(rows[0]) if rows else None
+
+    def list_training_attempts(self, user_id: str, session_id: str, limit: int = 100) -> list[dict[str, Any]]:
+        query = self.client.table("openingfit_mission_training_attempts").select("id,exercise_key,attempt_key,attempted_move_uci,result,assistance_used,review_number,due_at,interval_days,created_at").eq("user_id", user_id).eq("session_id", session_id).order("created_at").limit(max(1, min(100, limit)))
+        return [dict(row) for row in (self._execute(query).data or [])]
+
+    def insert_training_attempt_atomic(self, **values: Any) -> dict[str, Any]:
+        result = self._execute(self.client.rpc("record_openingfit_mission_training_attempt", {
+            "p_user_id": values["user_id"], "p_mission_id": values["mission_id"], "p_session_id": values["session_id"],
+            "p_exercise_key": values["exercise_key"], "p_attempt_key": values["attempt_key"],
+            "p_attempted_move_uci": values["attempted_move_uci"], "p_result": values["result"],
+            "p_review_number": values["review_number"], "p_interval_days": values["interval_days"],
+            "p_due_at": values["due_at"].isoformat(), "p_validation_evidence": values.get("validation_evidence") or {},
+        }))
+        return dict(result.data or {})
+
+    def complete_training_session_atomic(self, **values: Any) -> dict[str, Any]:
+        result = self._execute(self.client.rpc("complete_openingfit_mission_training_session", {
+            "p_user_id": values["user_id"], "p_mission_id": values["mission_id"], "p_session_id": values["session_id"],
+            "p_idempotency_key": values["idempotency_key"],
+        }))
+        return dict(result.data or {})
 
     def insert_encounter(self, row: Mapping[str, Any]) -> dict[str, Any]:
         result = self._execute(self.client.table("openingfit_mission_encounters").upsert(dict(row), on_conflict="user_id,mission_id,platform,account_scope,game_id,exact_position_key"))

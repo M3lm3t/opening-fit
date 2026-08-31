@@ -37,6 +37,7 @@ from analysis.classified_game import (
 from analysis.mission_persistence import MissionPersistenceError, MissionPersistenceService
 from analysis.mission_processing import process_completed_analysis
 from analysis.mission_supabase import SupabaseMissionRepository
+from analysis.mission_training import MissionTrainingService, client_exercise, completion_summary
 from analysis.report_decision import REPERTOIRE_ROLE_SPECS, apply_repertoire_coverage_score, build_report_decision, reports_are_comparable
 from opening_detection import (
     detect_opening,
@@ -337,6 +338,23 @@ class MissionSelectNextRequest(BaseModel):
 class MissionDismissRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     reason: str
+    idempotencyKey: str
+
+
+class MissionTrainingStartRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    idempotencyKey: str
+
+
+class MissionTrainingAttemptRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    exerciseId: str
+    attemptedMoveUci: str
+    idempotencyKey: str
+
+
+class MissionTrainingCompleteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     idempotencyKey: str
 
 
@@ -923,9 +941,11 @@ def api_readiness():
     if missions_enabled():
         mission_schema = missions_schema_readiness()
         payload["missions_schema"] = "ready" if mission_schema["ready"] else "not_ready"
-        payload["missions_component"] = "ready" if mission_schema["ready"] else "degraded"
+        payload["missions_training_schema"] = "ready" if mission_schema.get("training_ready") else "not_ready"
+        payload["missions_component"] = "ready" if mission_schema["ready"] and mission_schema.get("training_ready") else "degraded"
     else:
         payload["missions_schema"] = "not_checked"
+        payload["missions_training_schema"] = "not_checked"
         payload["missions_component"] = "disabled"
     return JSONResponse(status_code=200 if payload["status"] == "ready" else 503, content=payload)
 
@@ -12435,8 +12455,17 @@ def _mission_availability() -> tuple[bool, str]:
     return (True, "ready") if readiness.get("ready") else (False, str(readiness.get("reason") or "schema_unavailable"))
 
 
+def _mission_training_availability() -> tuple[bool, str]:
+    available, reason = _mission_availability()
+    if not available:
+        return available, reason
+    readiness = missions_schema_readiness()
+    return (True, "ready") if readiness.get("training_ready") else (False, "training_schema_unavailable")
+
+
 _mission_select_requests: Dict[str, List[float]] = defaultdict(list)
 _mission_select_lock = threading.Lock()
+_mission_training_requests: Dict[str, List[float]] = defaultdict(list)
 
 
 def _enforce_mission_select_rate_limit(user_id: str) -> None:
@@ -12447,6 +12476,16 @@ def _enforce_mission_select_rate_limit(user_id: str) -> None:
             raise HTTPException(status_code=429, detail={"code": "rate_limit_exceeded"}, headers={"Retry-After": "60"})
         recent.append(now)
         _mission_select_requests[user_id] = recent
+
+
+def _enforce_mission_training_rate_limit(user_id: str, context: str, limit: int) -> None:
+    key = f"{user_id}:{context}"
+    now = time.monotonic()
+    with _mission_select_lock:
+        recent = [stamp for stamp in _mission_training_requests[key] if now - stamp < 60]
+        if len(recent) >= limit:
+            raise HTTPException(status_code=429, detail={"code": "rate_limit_exceeded"}, headers={"Retry-After": "60"})
+        _mission_training_requests[key] = [*recent, now]
 
 
 @app.get("/api/v1/missions/current")
@@ -12525,6 +12564,104 @@ def dismiss_mission(mission_id: UUID, payload: MissionDismissRequest, request: R
     except MissionPersistenceError as exc:
         status = 400 if exc.code.startswith("invalid_") else 403 if exc.code in {"mission_owner_mismatch", "ownership_failure"} else 409 if "conflict" in exc.code else 503
         raise HTTPException(status_code=status, detail={"code": exc.code})
+    except Exception:
+        raise HTTPException(status_code=503, detail={"code": "temporarily_unavailable"})
+
+
+def _training_session_present(repository, session: Optional[Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not session:
+        return None
+    attempts = repository.list_training_attempts(str(session["user_id"]), str(session["id"]), limit=100)
+    answered = {str(row.get("exercise_key")) for row in attempts}
+    manifest = list(session.get("exercise_manifest") or [])
+    exercises = [client_exercise(row, answered=row.get("exerciseKey") in answered) for row in manifest]
+    current = next((row for row in exercises if row["exerciseId"] not in answered), None)
+    return {"id": session["id"], "missionId": session["mission_id"], "status": session["status"],
+            "exerciseSetVersion": session["exercise_set_version"], "exerciseCount": len(manifest),
+            "startedAt": session.get("started_at"), "lastActivityAt": session.get("last_activity_at"),
+            "completedAt": session.get("completed_at"), "currentExercise": current,
+            "progress": completion_summary(manifest, attempts), "exercises": exercises}
+
+
+def _training_error(exc: MissionPersistenceError):
+    if exc.code in {"mission_not_found", "session_not_found", "mission_owner_mismatch"}:
+        raise HTTPException(status_code=404, detail={"code": "not_found"})
+    status = 400 if exc.code in {"malformed_move", "illegal_move", "invalid_idempotency_key", "exercise_not_in_session"} else 409
+    raise HTTPException(status_code=status, detail={"code": exc.code})
+
+
+@app.post("/api/v1/missions/{mission_id}/training/sessions")
+def start_mission_training(mission_id: UUID, payload: MissionTrainingStartRequest, request: Request):
+    user_id = _mission_user_id(request)
+    available, reason = _mission_training_availability()
+    if not available:
+        return {"session": None, "reasonCode": reason, "featureAvailable": False}
+    _enforce_mission_training_rate_limit(user_id, "start", 10)
+    try:
+        repository = mission_repository()
+        session = MissionTrainingService(repository).start(user_id=user_id, mission_id=str(mission_id), idempotency_key=payload.idempotencyKey)
+        mission = repository.get_mission(str(mission_id))
+        return {"session": _training_session_present(repository, session), "missionStatus": mission.get("status"),
+                "created": not bool(session.get("resumed")), "resumed": bool(session.get("resumed")), "featureAvailable": True}
+    except MissionPersistenceError as exc:
+        return _training_error(exc)
+    except Exception:
+        raise HTTPException(status_code=503, detail={"code": "temporarily_unavailable"})
+
+
+@app.get("/api/v1/missions/{mission_id}/training/sessions/current")
+def current_mission_training(mission_id: UUID, request: Request):
+    user_id = _mission_user_id(request)
+    available, reason = _mission_training_availability()
+    if not available:
+        return {"session": None, "reasonCode": reason, "featureAvailable": False}
+    try:
+        repository = mission_repository()
+        session = MissionTrainingService(repository).current(user_id=user_id, mission_id=str(mission_id))
+        return {"session": _training_session_present(repository, session),
+                "reasonCode": None if session else "no_active_session", "featureAvailable": True}
+    except MissionPersistenceError as exc:
+        return _training_error(exc)
+    except Exception:
+        raise HTTPException(status_code=503, detail={"code": "temporarily_unavailable"})
+
+
+@app.post("/api/v1/missions/{mission_id}/training/sessions/{session_id}/attempts")
+def submit_mission_training_attempt(mission_id: UUID, session_id: UUID, payload: MissionTrainingAttemptRequest, request: Request):
+    user_id = _mission_user_id(request)
+    available, reason = _mission_training_availability()
+    if not available:
+        return {"attempt": None, "reasonCode": reason, "featureAvailable": False}
+    _enforce_mission_training_rate_limit(user_id, f"attempt:{session_id}", 60)
+    try:
+        repository = mission_repository()
+        result = MissionTrainingService(repository).attempt(user_id=user_id, mission_id=str(mission_id), session_id=str(session_id),
+            exercise_id=payload.exerciseId, attempted_move_uci=payload.attemptedMoveUci, idempotency_key=payload.idempotencyKey)
+        result["session"] = _training_session_present(repository, repository.get_training_session(user_id, str(session_id)))
+        result["missionStatus"] = repository.get_mission(str(mission_id)).get("status")
+        return result
+    except MissionPersistenceError as exc:
+        return _training_error(exc)
+    except Exception:
+        raise HTTPException(status_code=503, detail={"code": "temporarily_unavailable"})
+
+
+@app.post("/api/v1/missions/{mission_id}/training/sessions/{session_id}/complete")
+def complete_mission_training(mission_id: UUID, session_id: UUID, payload: MissionTrainingCompleteRequest, request: Request):
+    user_id = _mission_user_id(request)
+    available, reason = _mission_training_availability()
+    if not available:
+        return {"completed": False, "reasonCode": reason, "featureAvailable": False}
+    _enforce_mission_training_rate_limit(user_id, f"complete:{session_id}", 15)
+    try:
+        repository = mission_repository()
+        result = MissionTrainingService(repository).complete(user_id=user_id, mission_id=str(mission_id), session_id=str(session_id), idempotency_key=payload.idempotencyKey)
+        result["session"] = _training_session_present(repository, result["session"])
+        result["missionStatus"] = repository.get_mission(str(mission_id)).get("status")
+        result["meaningfulActivity"] = "durable_marker_recorded" if result["completed"] else "not_recorded"
+        return result
+    except MissionPersistenceError as exc:
+        return _training_error(exc)
     except Exception:
         raise HTTPException(status_code=503, detail={"code": "temporarily_unavailable"})
 

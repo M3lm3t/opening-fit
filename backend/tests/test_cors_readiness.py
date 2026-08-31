@@ -112,6 +112,7 @@ def test_readiness_reports_only_safe_configured_statuses(monkeypatch):
             "subscriptions": "disabled",
             "missions": "disabled",
             "missions_schema": "not_checked",
+            "missions_training_schema": "not_checked",
             "missions_component": "disabled",
             "environment": "production",
         "billing_schema": "ready",
