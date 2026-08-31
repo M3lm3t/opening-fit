@@ -183,6 +183,11 @@ class MissionPersistenceService:
         accepted = {str(move.get("uci")) for move in mission["accepted_correction_moves"]}
         classification = "correct" if observed_move_uci in accepted else "repeated_mistake" if observed_move_uci == mission["repeated_played_move_uci"] else "other_legal"
         cutoff = mission.get("training_completed_at") or mission.get("awaiting_evidence_at") or mission.get("baseline_cutoff_at")
+        if isinstance(cutoff, str):
+            try:
+                cutoff = datetime.fromisoformat(cutoff.replace("Z", "+00:00"))
+            except ValueError:
+                cutoff = None
         qualifies = isinstance(cutoff, datetime) and played_at > cutoff
         return self.repository.insert_encounter({
             "id": str(uuid4()), "user_id": user_id, "mission_id": mission_id, "platform": platform.lower().strip(),
@@ -241,8 +246,23 @@ class InMemoryMissionRepository:
         rows = [row for row in self.missions.values() if row["user_id"] == user_id and row["is_primary"] and row["status"] in PRIMARY_ACTIVE_STATUSES]
         return copy.deepcopy(sorted(rows, key=lambda row: str(row["updated_at"]), reverse=True)[0]) if rows else None
 
-    def list_history(self, user_id: str) -> list[dict[str, Any]]:
-        return copy.deepcopy(sorted((row for row in self.missions.values() if row["user_id"] == user_id), key=lambda row: str(row["created_at"]), reverse=True))
+    def list_history(self, user_id: str, limit: int = 50, before: str | None = None) -> list[dict[str, Any]]:
+        rows = sorted((row for row in self.missions.values() if row["user_id"] == user_id), key=lambda row: str(row["created_at"]), reverse=True)
+        if before:
+            rows = [row for row in rows if str(row["created_at"]) < before]
+        return copy.deepcopy(rows[:max(1, min(50, limit))])
+
+    def list_candidates(self, user_id: str, limit: int = 20) -> list[dict[str, Any]]:
+        rows = [row for row in self.missions.values() if row["user_id"] == user_id and row["status"] == "candidate"]
+        return copy.deepcopy(sorted(rows, key=lambda row: (-float(row["candidate_score"]), row["candidate_key"]))[:max(1, min(20, limit))])
+
+    def list_verifying(self, user_id: str, limit: int = 10) -> list[dict[str, Any]]:
+        rows = [row for row in self.missions.values() if row["user_id"] == user_id and row["status"] in {"awaiting_evidence", "improving"}]
+        return copy.deepcopy(rows[:max(1, min(10, limit))])
+
+    def list_encounters(self, user_id: str, mission_id: str, limit: int = 100) -> list[dict[str, Any]]:
+        rows = [row for row in self.encounters.values() if row["user_id"] == user_id and row["mission_id"] == mission_id]
+        return copy.deepcopy(sorted(rows, key=lambda row: row["played_at"])[:max(1, min(100, limit))])
 
     def transition_atomic(self, **values: Any) -> dict[str, Any]:
         event_key = (values["user_id"], values["idempotency_key"])

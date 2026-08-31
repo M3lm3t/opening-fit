@@ -106,7 +106,7 @@ def evidence_transition(current_status: str, summary: VerificationSummary) -> st
     if current_status not in {"awaiting_evidence", "improving"}:
         raise MissionLifecycleError("status_not_awaiting_verification", "This mission is not awaiting future-game evidence.")
     qualifying = summary.qualifying
-    if qualifying >= 3 and summary.correct >= 2 and summary.correct * 100 >= qualifying * 67 and summary.repeated_mistake <= 1:
+    if qualifying >= 3 and summary.correct >= 2 and summary.correct * 3 >= qualifying * 2 and summary.repeated_mistake <= 1:
         return "repaired"
     if summary.repeated_mistake >= 2 and summary.correct * 2 < qualifying:
         return "needs_review"

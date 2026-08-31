@@ -34,6 +34,9 @@ from analysis.classified_game import (
     record_is_classified,
     record_is_used_for_opening_stats,
 )
+from analysis.mission_persistence import MissionPersistenceError, MissionPersistenceService
+from analysis.mission_processing import process_completed_analysis
+from analysis.mission_supabase import SupabaseMissionRepository
 from analysis.report_decision import REPERTOIRE_ROLE_SPECS, apply_repertoire_coverage_score, build_report_decision, reports_are_comparable
 from opening_detection import (
     detect_opening,
@@ -41,7 +44,7 @@ from opening_detection import (
     normalise_opening_name as detect_normalise_opening_name,
     pgn_tag_value,
 )
-from typing import List, Dict, Any, Optional, Tuple, TypedDict, Callable
+from typing import List, Dict, Any, Optional, Tuple, TypedDict, Callable, Mapping
 import os
 from dotenv import load_dotenv
 import re
@@ -68,7 +71,7 @@ import chess
 import chess.engine
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from supabase import create_client, Client
 from feature_entitlements import FEATURE_ACCESS, can_use_feature, entitlement_has_paid_access, feature_limit, normalise_entitlement_record
 from runtime_config import (
@@ -77,6 +80,7 @@ from runtime_config import (
     is_production_environment,
     readiness_payload,
     runtime_environment,
+    missions_enabled,
     subscriptions_enabled,
 )
 
@@ -323,6 +327,17 @@ class GameCheckRequest(BaseModel):
     response_plan: Optional[Dict[str, Any]] = None
     comparable: bool = False
     import_limit: Optional[int] = None
+
+
+class MissionSelectNextRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    idempotencyKey: str
+
+
+class MissionDismissRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    reason: str
+    idempotencyKey: str
 
 
 PRODUCT_ANALYTICS_EVENTS = {
@@ -905,6 +920,13 @@ def api_readiness():
     )
     if payload["subscriptions"] == "enabled" and not checkout_dependencies_ready:
         payload["status"] = "not_ready"
+    if missions_enabled():
+        mission_schema = missions_schema_readiness()
+        payload["missions_schema"] = "ready" if mission_schema["ready"] else "not_ready"
+        payload["missions_component"] = "ready" if mission_schema["ready"] else "degraded"
+    else:
+        payload["missions_schema"] = "not_checked"
+        payload["missions_component"] = "disabled"
     return JSONResponse(status_code=200 if payload["status"] == "ready" else 503, content=payload)
 
 
@@ -11038,6 +11060,7 @@ def execute_analysis_job(job_id: str) -> None:
             return
         job.update(status="running", updatedAt=now_iso())
         platform, username, months = job["platform"], job["username"], job["months"]
+        owner_user_id = str(job.get("ownerUserId") or "")
         time_control = job.get("timeControl", "custom")
 
     try:
@@ -11058,6 +11081,15 @@ def execute_analysis_job(job_id: str) -> None:
             analysedGames=result_counts.get("analysedGames"),
             excludedGames=result_counts.get("excludedGames"),
         )
+        if owner_user_id and missions_enabled():
+            try:
+                readiness = missions_schema_readiness()
+                if readiness["ready"]:
+                    process_completed_analysis(user_id=owner_user_id, platform=platform, username=username,
+                                               report=result, repository=mission_repository())
+            except Exception as exc:
+                reference = hashlib.sha256(f"{job_id}:{exc.__class__.__name__}".encode()).hexdigest()[:12]
+                logger.warning("mission_processing_failed reference=%s error_type=%s", reference, exc.__class__.__name__)
         result = compact_analysis_result(result)
         with analysis_jobs_lock:
             if job := analysis_jobs.get(job_id):
@@ -12353,6 +12385,148 @@ def get_auth_user(request: Request):
         raise HTTPException(status_code=401, detail="Invalid auth token.")
 
     return user
+
+
+def mission_repository() -> SupabaseMissionRepository:
+    return SupabaseMissionRepository(get_supabase_admin_client())
+
+
+def missions_schema_readiness() -> Dict[str, Any]:
+    if not os.getenv("SUPABASE_URL", "").strip() or not os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip():
+        return {"ready": False, "reason": "database_unavailable"}
+    try:
+        return mission_repository().schema_readiness()
+    except Exception:
+        return {"ready": False, "reason": "schema_unavailable"}
+
+
+def _mission_user_id(request: Request) -> str:
+    try:
+        return str(getattr(get_auth_user(request), "id", "") or "")
+    except HTTPException:
+        raise HTTPException(status_code=401, detail={"code": "authentication_required"})
+
+
+def _mission_present(row: Optional[Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not row:
+        return None
+    allowed = (
+        "id", "candidate_id", "candidate_key", "algorithm_version", "generation", "mission_type", "status", "role",
+        "opening_id", "opening_name", "position_fen", "player_turn", "repeated_played_move_uci",
+        "repeated_played_move_san", "accepted_correction_moves", "correction_source", "correction_provenance",
+        "candidate_score", "confidence", "confidence_reason_codes", "evidence_summary", "baseline_evidence_count",
+        "first_evidence_at", "last_evidence_at", "assigned_at", "learning_started_at", "training_completed_at",
+        "awaiting_evidence_at", "repaired_at", "dismissed_at", "superseded_at", "recurrence_of_mission_id",
+        "created_at", "updated_at",
+    )
+    result = {key: row.get(key) for key in allowed if key in row}
+    status = str(row.get("status") or "")
+    result["allowedNextAction"] = (
+        "dismiss" if status in {"assigned", "learning", "awaiting_evidence", "improving", "needs_review"}
+        else "select" if status == "candidate" else None
+    )
+    return result
+
+
+def _mission_availability() -> tuple[bool, str]:
+    if not missions_enabled():
+        return False, "missions_disabled"
+    readiness = missions_schema_readiness()
+    return (True, "ready") if readiness.get("ready") else (False, str(readiness.get("reason") or "schema_unavailable"))
+
+
+_mission_select_requests: Dict[str, List[float]] = defaultdict(list)
+_mission_select_lock = threading.Lock()
+
+
+def _enforce_mission_select_rate_limit(user_id: str) -> None:
+    now = time.monotonic()
+    with _mission_select_lock:
+        recent = [stamp for stamp in _mission_select_requests[user_id] if now - stamp < 60]
+        if len(recent) >= 5:
+            raise HTTPException(status_code=429, detail={"code": "rate_limit_exceeded"}, headers={"Retry-After": "60"})
+        recent.append(now)
+        _mission_select_requests[user_id] = recent
+
+
+@app.get("/api/v1/missions/current")
+def get_current_mission(request: Request):
+    user_id = _mission_user_id(request)
+    available, reason = _mission_availability()
+    if not available:
+        return {"mission": None, "reasonCode": reason, "featureAvailable": False,
+                "schemaState": "not_checked" if reason == "missions_disabled" else "not_ready"}
+    try:
+        mission = mission_repository().get_current(user_id)
+        return {"mission": _mission_present(mission), "reasonCode": None if mission else "no_active_mission",
+                "featureAvailable": True, "schemaState": "ready"}
+    except MissionPersistenceError as exc:
+        return {"mission": None, "reasonCode": exc.code, "featureAvailable": True, "schemaState": "not_ready"}
+    except Exception:
+        return {"mission": None, "reasonCode": "temporarily_unavailable", "featureAvailable": True, "schemaState": "not_ready"}
+
+
+@app.get("/api/v1/missions")
+def list_missions(request: Request, limit: int = 20, cursor: Optional[str] = None):
+    user_id = _mission_user_id(request)
+    available, reason = _mission_availability()
+    if not available:
+        return {"missions": [], "nextCursor": None, "reasonCode": reason, "featureAvailable": False}
+    try:
+        bounded = max(1, min(50, limit))
+        rows = mission_repository().list_history(user_id, bounded, cursor)
+        return {"missions": [_mission_present(row) for row in rows],
+                "nextCursor": rows[-1].get("created_at") if len(rows) == bounded else None,
+                "reasonCode": None, "featureAvailable": True}
+    except MissionPersistenceError as exc:
+        return {"missions": [], "nextCursor": None, "reasonCode": exc.code, "featureAvailable": True}
+    except Exception:
+        return {"missions": [], "nextCursor": None, "reasonCode": "temporarily_unavailable", "featureAvailable": True}
+
+
+@app.post("/api/v1/missions/select-next")
+def select_next_mission(payload: MissionSelectNextRequest, request: Request):
+    user_id = _mission_user_id(request)
+    available, reason = _mission_availability()
+    if not available:
+        return {"mission": None, "reasonCode": reason, "featureAvailable": False}
+    _enforce_mission_select_rate_limit(user_id)
+    if not payload.idempotencyKey.strip() or len(payload.idempotencyKey) > 200:
+        raise HTTPException(status_code=400, detail={"code": "invalid_idempotency_key"})
+    try:
+        repository = mission_repository()
+        service = MissionPersistenceService(repository)
+        current = service.get_current_mission(user_id)
+        if current:
+            return {"mission": _mission_present(current), "reasonCode": "active_mission_exists", "featureAvailable": True}
+        candidates = repository.list_candidates(user_id, limit=20)
+        candidates = [row for row in candidates if float((row.get("confidence") or {}).get("score") or 0) >= 70]
+        if not candidates:
+            return {"mission": None, "reasonCode": "no_trusted_candidate", "featureAvailable": True}
+        saved = service.assign_primary_mission(user_id=user_id, mission_id=candidates[0]["id"], idempotency_key=payload.idempotencyKey)
+        return {"mission": _mission_present(saved), "reasonCode": None, "featureAvailable": True}
+    except MissionPersistenceError as exc:
+        status = 403 if exc.code in {"mission_owner_mismatch", "ownership_failure"} else 409 if "conflict" in exc.code else 503
+        raise HTTPException(status_code=status, detail={"code": exc.code})
+    except Exception:
+        raise HTTPException(status_code=503, detail={"code": "temporarily_unavailable"})
+
+
+@app.post("/api/v1/missions/{mission_id}/dismiss")
+def dismiss_mission(mission_id: UUID, payload: MissionDismissRequest, request: Request):
+    user_id = _mission_user_id(request)
+    available, reason = _mission_availability()
+    if not available:
+        return {"mission": None, "reasonCode": reason, "featureAvailable": False}
+    try:
+        saved = MissionPersistenceService(mission_repository()).dismiss_mission(
+            user_id=user_id, mission_id=str(mission_id), reason=payload.reason, idempotency_key=payload.idempotencyKey)
+        return {"mission": _mission_present(saved), "reasonCode": None, "featureAvailable": True}
+    except MissionPersistenceError as exc:
+        status = 400 if exc.code.startswith("invalid_") else 403 if exc.code in {"mission_owner_mismatch", "ownership_failure"} else 409 if "conflict" in exc.code else 503
+        raise HTTPException(status_code=status, detail={"code": exc.code})
+    except Exception:
+        raise HTTPException(status_code=503, detail={"code": "temporarily_unavailable"})
 
 
 def require_matching_auth_user(request: Request, user_id: str):

@@ -107,4 +107,5 @@ def test_readiness_is_safe_when_configuration_is_missing():
     result = readiness_payload({"APP_ENV": "development"})
     assert result["status"] == "not_ready"
     assert result["database"] == "not_configured"
-    assert set(result) == {"status", "database", "stripe", "webhook", "pricing", "monthly_price", "annual_price", "portal", "cors", "subscriptions", "environment"}
+    assert set(result) == {"status", "database", "stripe", "webhook", "pricing", "monthly_price", "annual_price", "portal", "cors", "subscriptions", "missions", "environment"}
+    assert result["missions"] == "disabled"

@@ -51,6 +51,26 @@ def test_execute_analysis_job_publishes_completed_result(monkeypatch):
     assert callable(called[0][4])
 
 
+def test_mission_failure_cannot_fail_authenticated_analysis(monkeypatch):
+    job_id = str(main.uuid4())
+    with main.analysis_jobs_lock:
+        main.analysis_jobs[job_id] = {
+            "jobId": job_id, "requestKey": "user-1:lichess:player:1:rapid", "status": "queued",
+            "platform": "lichess", "username": "Player", "months": 1, "timeControl": "rapid",
+            "ownerUserId": "user-1", "createdAt": main.now_iso(), "updatedAt": main.now_iso(),
+            "result": None, "error": None, "progress": {"stage": "queued", "counts": {}},
+        }
+    report = {"gameCounts": {"fetchedGames": 1}, "opening_games": [{"pgn": "sensitive"}]}
+    monkeypatch.setattr(main, "run_import_route", lambda *_args: report)
+    monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
+    monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True})
+    monkeypatch.setattr(main, "mission_repository", lambda: object())
+    monkeypatch.setattr(main, "process_completed_analysis", lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("storage secret")))
+    main.execute_analysis_job(job_id)
+    assert main.analysis_jobs[job_id]["status"] == "completed"
+    assert main.analysis_jobs[job_id]["result"] is not None
+
+
 def test_analysis_job_publishes_only_real_stage_updates(monkeypatch):
     monkeypatch.setattr(main.analysis_job_executor, "submit", lambda *_args: None)
     started = main.start_analysis_job(main.AnalysisJobRequest(platform="chesscom", username="Player", months=1))

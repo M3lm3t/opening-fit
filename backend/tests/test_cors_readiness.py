@@ -109,8 +109,11 @@ def test_readiness_reports_only_safe_configured_statuses(monkeypatch):
         "annual_price": "configured",
         "portal": "configured",
         "cors": "configured",
-        "subscriptions": "disabled",
-        "environment": "production",
+            "subscriptions": "disabled",
+            "missions": "disabled",
+            "missions_schema": "not_checked",
+            "missions_component": "disabled",
+            "environment": "production",
         "billing_schema": "ready",
         "checkout": "disabled",
     }

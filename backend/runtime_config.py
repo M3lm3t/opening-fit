@@ -58,6 +58,12 @@ def subscriptions_enabled(env: Optional[Mapping[str, str]] = None) -> bool:
     return parse_boolean(raw)
 
 
+def missions_enabled(env: Optional[Mapping[str, str]] = None) -> bool:
+    """OpeningFit Missions is an additive beta and defaults off everywhere."""
+    source = env if env is not None else os.environ
+    return parse_boolean(source.get("OPENINGFIT_MISSIONS_ENABLED"), default=False)
+
+
 def normalize_origin(value: Any) -> str:
     raw = str(value or "").strip().rstrip("/")
     if not raw or "*" in raw:
@@ -207,5 +213,6 @@ def readiness_payload(env: Optional[Mapping[str, str]] = None) -> dict[str, str]
         "portal": "configured" if portal_ready else "not_configured",
         "cors": "configured" if cors_ready else "not_configured",
         "subscriptions": "enabled" if subscriptions_enabled(source) else "disabled",
+        "missions": "enabled" if missions_enabled(source) else "disabled",
         "environment": runtime_environment(source),
     }

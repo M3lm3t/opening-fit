@@ -52,7 +52,7 @@ def test_evidence_policy_thresholds_and_other_legal_denominator():
     assert evidence_transition("awaiting_evidence", summary("correct")) is None
     assert evidence_transition("awaiting_evidence", summary("correct", "repeated_mistake")) == "improving"
     assert evidence_transition("awaiting_evidence", summary("correct", "correct")) == "improving"
-    assert evidence_transition("awaiting_evidence", summary("correct", "correct", "repeated_mistake")) == "improving"
+    assert evidence_transition("awaiting_evidence", summary("correct", "correct", "repeated_mistake")) == "repaired"
     assert evidence_transition("awaiting_evidence", summary("correct", "correct", "correct")) == "repaired"
     assert evidence_transition("awaiting_evidence", summary("correct", "repeated_mistake", "repeated_mistake")) == "needs_review"
     assert evidence_transition("awaiting_evidence", summary("correct", "repeated_mistake", "repeated_mistake", "repeated_mistake")) == "needs_review"
@@ -62,8 +62,10 @@ def test_evidence_policy_thresholds_and_other_legal_denominator():
 
 
 def test_integer_67_percent_rule_is_unambiguous():
-    assert evidence_transition("awaiting_evidence", summary("correct", "correct", "repeated_mistake")) == "improving"  # 200 >= 201 is false
+    assert evidence_transition("awaiting_evidence", summary("correct", "correct", "repeated_mistake")) == "repaired"
     assert evidence_transition("awaiting_evidence", summary("correct", "correct", "correct", "repeated_mistake")) == "repaired"
+    assert evidence_transition("awaiting_evidence", summary("correct", "correct", "repeated_mistake", "repeated_mistake")) == "improving"
+    assert evidence_transition("awaiting_evidence", summary("correct", "correct", "correct", "correct", "repeated_mistake", "repeated_mistake")) == "improving"
 
 
 def test_duplicate_old_and_missing_positions_do_not_infer_progress():
